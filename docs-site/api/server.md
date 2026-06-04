@@ -1,3 +1,13 @@
+<!--
+SPDX-License-Identifier: AGPL-3.0-or-later
+Commercial license available
+© Concepts 1996–2026 Miroslav Šotek. All rights reserved.
+© Code 2020–2026 Miroslav Šotek. All rights reserved.
+ORCID: 0009-0009-3560-0851
+Contact: www.anulum.li | protoscience@anulum.li
+Director-Class AI — REST server API
+-->
+
 # REST Server
 
 Production-ready FastAPI server exposing Director-AI scoring over HTTP.
@@ -98,6 +108,31 @@ curl -X POST http://localhost:8080/v1/review \
   }'
 ```
 
+### Banking Sector Policy
+
+`/v1/review` can run the deterministic banking policy adapter beside the active
+scorer. Use this when a financial-services response contains product terms,
+rates, deposit-insurance language, complaint/dispute handling, or investment
+recommendations. Final `approved` is `false` if either the scorer or the sector
+policy fails.
+
+```bash
+curl -X POST http://localhost:8080/v1/review \
+  -H 'Content-Type: application/json' \
+  -H 'X-API-Key: your-key' \
+  -d '{
+    "prompt": "What is the standard FDIC deposit coverage limit?",
+    "response": "FDIC insurance covers up to $500,000 per depositor.",
+    "sector_policy": "banking",
+    "evidence_refs": ["policy://fdic/deposit-insurance/current"],
+    "numeric_evidence_refs": ["policy://fdic/deposit-insurance/current#limit"],
+    "policy_refs": ["policy://financial-services/deposit-disclosures"]
+  }'
+```
+
+Accepted `sector_policy` values are `banking` and `financial-services`.
+Unknown values return HTTP 422.
+
 ### Response
 
 ```json
@@ -110,6 +145,42 @@ curl -X POST http://localhost:8080/v1/review \
   "evidence": {
     "chunks": [
       {"text": "Refunds within 30 days of purchase.", "distance": 0.12}
+    ]
+  },
+  "sector_policy": null
+}
+```
+
+When a sector policy is enabled, `sector_policy` contains tenant-safe finding
+codes and evidence identifiers, not the raw prompt or response:
+
+```json
+{
+  "approved": false,
+  "coherence": 0.91,
+  "h_logical": 0.09,
+  "h_factual": 0.09,
+  "warning": false,
+  "evidence": null,
+  "sector_policy": {
+    "approved": false,
+    "requires_human_review": true,
+    "jurisdiction": "US",
+    "product_line": "default",
+    "policy_refs": ["policy://financial-services/deposit-disclosures"],
+    "evidence_refs": ["policy://fdic/deposit-insurance/current"],
+    "numeric_evidence_refs": ["policy://fdic/deposit-insurance/current#limit"],
+    "highest_severity": "critical",
+    "blocked_codes": ["deposit_insurance_limit_mismatch"],
+    "findings": [
+      {
+        "code": "deposit_insurance_limit_mismatch",
+        "severity": "critical",
+        "action": "block",
+        "detail": "Deposit insurance coverage claim conflicts with the configured limit.",
+        "policy_refs": ["policy://financial-services/deposit-disclosures"],
+        "evidence_required": ["deposit_insurance_limit_usd"]
+      }
     ]
   }
 }

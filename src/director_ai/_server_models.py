@@ -35,6 +35,39 @@ class ReviewRequest(BaseModel):
         description="LLM response to review",
     )
     session_id: str | None = Field(None, description="Conversation session ID")
+    sector_policy: _Literal["banking", "financial-services"] | None = Field(
+        None,
+        description="Optional deterministic sector policy to run with review",
+    )
+    evidence_refs: list[str] = Field(
+        default_factory=list,
+        max_length=64,
+        description="Evidence identifiers for sector-policy claims",
+    )
+    numeric_evidence_refs: list[str] = Field(
+        default_factory=list,
+        max_length=64,
+        description="Evidence identifiers for numeric sector-policy claims",
+    )
+    policy_refs: list[str] = Field(
+        default_factory=list,
+        max_length=64,
+        description="Policy identifiers used by deterministic sector checks",
+    )
+    jurisdiction: str = Field(
+        "US",
+        max_length=64,
+        description="Jurisdiction code for sector-policy evaluation",
+    )
+    product_line: str = Field(
+        "default",
+        max_length=128,
+        description="Product line or response class for sector-policy evaluation",
+    )
+    human_review_acknowledged: bool = Field(
+        False,
+        description="Whether the operator workflow already attached human review",
+    )
 
 
 class ProcessRequest(BaseModel):
@@ -66,6 +99,7 @@ class ReviewResponse(BaseModel):
     h_factual: float
     warning: bool = False
     evidence: dict | None = None
+    sector_policy: dict | None = None
 
 
 class FeedbackRequest(BaseModel):

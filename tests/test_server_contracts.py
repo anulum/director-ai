@@ -317,6 +317,91 @@ def test_review_redacts_prompt_and_response_before_scoring() -> None:
     assert scorer.seen == ("Email [EMAIL]", "Call [EMAIL]")
 
 
+def test_review_banking_policy_blocks_approved_scorer_without_raw_text_leak() -> None:
+    class ApprovingScorer:
+        def review(self, prompt: str, response: str, session=None, tenant_id: str = ""):
+            return True, _score(0.91, approved=True)
+
+    prompt = "Customer secret phrase: what is the standard FDIC limit?"
+    response_text = "FDIC insurance covers up to $500,000 per depositor."
+
+    with _client() as client:
+        client.app.state._state["scorer"] = ApprovingScorer()
+        response = client.post(
+            "/v1/review",
+            json={
+                "prompt": prompt,
+                "response": response_text,
+                "sector_policy": "banking",
+                "evidence_refs": ["policy://fdic/deposit-insurance/current"],
+                "numeric_evidence_refs": [
+                    "policy://fdic/deposit-insurance/current#limit"
+                ],
+                "policy_refs": ["policy://financial-services/deposit-disclosures"],
+            },
+        )
+
+    payload = response.json()
+    encoded = response.text
+
+    assert response.status_code == 200
+    assert payload["approved"] is False
+    assert payload["coherence"] == pytest.approx(0.91)
+    assert payload["sector_policy"]["approved"] is False
+    assert payload["sector_policy"]["blocked_codes"] == [
+        "deposit_insurance_limit_mismatch"
+    ]
+    assert prompt not in encoded
+    assert response_text not in encoded
+
+
+def test_review_banking_policy_approves_when_scorer_and_policy_pass() -> None:
+    class ApprovingScorer:
+        def review(self, prompt: str, response: str, session=None, tenant_id: str = ""):
+            return True, _score(0.93, approved=True)
+
+    with _client() as client:
+        client.app.state._state["scorer"] = ApprovingScorer()
+        response = client.post(
+            "/v1/review",
+            json={
+                "prompt": "What is the standard FDIC deposit coverage limit?",
+                "response": (
+                    "FDIC insurance covers up to $250,000 per depositor, per "
+                    "insured bank, for each ownership category."
+                ),
+                "sector_policy": "financial-services",
+                "evidence_refs": ["policy://fdic/deposit-insurance/current"],
+                "numeric_evidence_refs": [
+                    "policy://fdic/deposit-insurance/current#limit"
+                ],
+                "policy_refs": ["policy://financial-services/deposit-disclosures"],
+            },
+        )
+
+    payload = response.json()
+
+    assert response.status_code == 200
+    assert payload["approved"] is True
+    assert payload["sector_policy"]["approved"] is True
+    assert payload["sector_policy"]["findings"] == []
+
+
+def test_review_rejects_unknown_sector_policy() -> None:
+    with _client() as client:
+        response = client.post(
+            "/v1/review",
+            json={
+                "prompt": "p",
+                "response": "r",
+                "sector_policy": "unknown-sector",
+            },
+        )
+
+    assert response.status_code == 422
+    assert "sector_policy" in response.text
+
+
 def test_process_redacts_prompt_and_output() -> None:
     class CapturingAgent:
         def __init__(self) -> None:

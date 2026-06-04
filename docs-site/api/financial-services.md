@@ -61,6 +61,22 @@ assert result.sector_policy_report.blocked_codes == (
 )
 ```
 
+It is also exposed through `/v1/review` for API deployments:
+
+```json
+{
+  "prompt": "What is the standard FDIC deposit coverage limit?",
+  "response": "FDIC insurance covers up to $500,000 per depositor.",
+  "sector_policy": "banking",
+  "evidence_refs": ["policy://fdic/deposit-insurance/current"],
+  "numeric_evidence_refs": ["policy://fdic/deposit-insurance/current#limit"],
+  "policy_refs": ["policy://financial-services/deposit-disclosures"]
+}
+```
+
+The response includes a `sector_policy` object with the same audit-safe report
+shape as `BankingPolicyReport.to_dict()`.
+
 ## Full API
 
 ::: director_ai.core.financial_services.BankingPolicyFinding

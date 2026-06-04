@@ -779,6 +779,21 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
                     ),
                 )
         latency_ms = (time.monotonic() - start) * 1000
+        sector_policy_report = None
+        if req.sector_policy:
+            from .core.financial_services import assess_banking_response
+
+            sector_policy_report = assess_banking_response(
+                req.prompt,
+                req.response,
+                evidence_refs=req.evidence_refs,
+                numeric_evidence_refs=req.numeric_evidence_refs,
+                policy_refs=req.policy_refs,
+                jurisdiction=req.jurisdiction,
+                product_line=req.product_line,
+                human_review_acknowledged=req.human_review_acknowledged,
+            )
+            approved = approved and sector_policy_report.approved
 
         if approved:
             metrics.inc("reviews_approved")
@@ -836,6 +851,9 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
             h_factual=score.h_factual,
             warning=score.warning,
             evidence=_evidence_to_dict(score.evidence),
+            sector_policy=(
+                sector_policy_report.to_dict() if sector_policy_report else None
+            ),
         )
 
     @app.post("/v1/feedback", response_model=FeedbackResponse)
