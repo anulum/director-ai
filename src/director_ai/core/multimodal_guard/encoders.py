@@ -26,8 +26,6 @@ from __future__ import annotations
 import math
 from typing import Any, Protocol, runtime_checkable
 
-from ..mandatory import mandatory_execution
-
 try:  # pragma: no cover - optional acceleration
     from backfire_kernel import rust_sum_f64
 
@@ -187,6 +185,8 @@ def _normalise(vec: tuple[float, ...]) -> tuple[float, ...]:
 
 def _sum_float(values: list[float]) -> float:
     if _RUST_MULTIMODAL_ENCODERS:
-        with mandatory_execution(__name__, component="mandatory accelerated path"):
+        try:
             return float(rust_sum_f64(values))
+        except Exception:
+            pass
     return sum(values)

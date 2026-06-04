@@ -263,6 +263,13 @@ image, audio, or video decision when auxiliary evidence contradicts the claim.
 The resulting audit references identify only the grounding channel and metadata
 keys.
 
+Before enabling multimodal checks in production, generate the local evidence
+packet:
+
+```bash
+PYTHONPATH=src python -m benchmarks.multimodal_temporal_evidence
+```
+
 ## Formal and Code Verifier Routing
 
 Use `FormalCodeVerifierAdapter` when symbolic claims or generated code need to

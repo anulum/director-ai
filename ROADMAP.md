@@ -489,8 +489,10 @@ roots.
      stress testing against deployment traffic, and incident/change-management
      sign-off.
 5. **Multi-Modal + Temporal Consistency:**
-   - Vision-NLI and token-level video/frame streaming guardrails.
-   - Temporal consistency checks across frames and multimodal claims.
+   - Opt-in image/audio/video guard decisions, caption/metadata grounding,
+     temporal frame-consistency halts, and local evidence packet are implemented.
+   - Remaining work: external Vision-NLI or equivalent benchmark evidence, real
+     video/frame model validation, and deployment-specific modality sign-off.
 6. **Privacy-Preserving Federated Learning:**
    - MPC/DP-based federated signal sharing for hallucination patterns.
    - Isolation of sensitive tenant data and threat-model aware aggregation.

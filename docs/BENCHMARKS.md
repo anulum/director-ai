@@ -275,6 +275,25 @@ still requires an operator-owned live undo backend, adversarial trajectory
 stress testing against deployment traffic, and sign-off that rollback evidence
 is attached to incident/change-management records.
 
+## Multimodal Temporal Evidence
+
+For the R12 multimodal and temporal consistency gate, generate an evidence
+packet that checks image allow/halt paths, caption-grounding conflicts, video
+frame temporal halts, and dependency-free hash-bag image/text execution:
+
+```bash
+PYTHONPATH=src python -m benchmarks.multimodal_temporal_evidence
+```
+
+Outputs:
+
+- `benchmarks/results/multimodal_temporal_evidence_<UTC_TIMESTAMP>.json`
+
+Passing this packet is local evidence only. Closing the multimodal gate still
+requires external Vision-NLI or equivalent benchmark evidence, real video/frame
+model validation, and operator sign-off for deployment-specific modality
+coverage.
+
 ## Sustained Load Hardening Evidence
 
 For the R17 production-hardening gate, generate an evidence packet that checks

@@ -128,7 +128,7 @@ For a buyer-facing positioning, start from [Market Value and Positioning](docs-s
 | API documentation pages | 49 |
 | Rust PyO3 bindings | 78 |
 | Optional extras | 53 |
-| Python test files | 402 |
+| Python test files | 403 |
 | Public documentation pages | 144 |
 | GitHub Actions workflows | 11 |
 
