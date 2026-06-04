@@ -224,6 +224,14 @@ Default is empty, so browser CORS is disabled until exact origins are set.
 Reverse-proxy examples are documented in
 [CORS Reverse Proxy](../deployment/cors-reverse-proxy.md).
 
+## Metrics
+
+`/v1/metrics` returns JSON metrics and `/v1/metrics/prometheus` exposes the same
+signals in Prometheus text format. Sector-policy findings increment
+`sector_policy_findings_total` with `policy`, `source`, `code`, `severity`, and
+`action` labels. Use it for dashboard alerts on regulated response blocks and
+escalations without storing raw prompt or response text in the metric stream.
+
 ## Continuous Batching (ReviewQueue)
 
 For high-concurrency deployments, enable server-level request accumulation:

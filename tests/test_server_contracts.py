@@ -201,6 +201,7 @@ def test_batch_process_review_and_error_contracts() -> None:
 
 
 def test_batch_review_banking_policy_blocks_approved_result_without_raw_text_leak() -> None:
+    from director_ai.core.metrics import metrics
     from director_ai.core.runtime.batch import BatchResult
 
     class ApprovingBatch:
@@ -216,6 +217,7 @@ def test_batch_review_banking_policy_blocks_approved_result_without_raw_text_lea
 
     prompt = "Customer secret phrase: what is the standard FDIC limit?"
     response_text = "FDIC insurance covers up to $500,000 per depositor."
+    metrics.reset()
 
     with _client() as client:
         client.app.state._state["batch"] = ApprovingBatch()
@@ -233,10 +235,15 @@ def test_batch_review_banking_policy_blocks_approved_result_without_raw_text_lea
                 "policy_refs": ["policy://financial-services/deposit-disclosures"],
             },
         )
+        telemetry = client.get("/v1/metrics").json()
 
     payload = response.json()
     encoded = response.text
     result = payload["results"][0]
+    label = (
+        'action="block",code="deposit_insurance_limit_mismatch",'
+        'policy="banking",severity="critical",source="batch_review"'
+    )
 
     assert response.status_code == 200
     assert result["approved"] is False
@@ -247,6 +254,11 @@ def test_batch_review_banking_policy_blocks_approved_result_without_raw_text_lea
     ]
     assert prompt not in encoded
     assert response_text not in encoded
+    assert telemetry["counters"]["sector_policy_findings_total"]["total"] == 1.0
+    assert (
+        telemetry["counters"]["sector_policy_findings_total"]["multi_labels"][label]
+        == 1.0
+    )
 
 
 def test_batch_rejects_sector_policy_for_process_task() -> None:
@@ -382,12 +394,15 @@ def test_review_redacts_prompt_and_response_before_scoring() -> None:
 
 
 def test_review_banking_policy_blocks_approved_scorer_without_raw_text_leak() -> None:
+    from director_ai.core.metrics import metrics
+
     class ApprovingScorer:
         def review(self, prompt: str, response: str, session=None, tenant_id: str = ""):
             return True, _score(0.91, approved=True)
 
     prompt = "Customer secret phrase: what is the standard FDIC limit?"
     response_text = "FDIC insurance covers up to $500,000 per depositor."
+    metrics.reset()
 
     with _client() as client:
         client.app.state._state["scorer"] = ApprovingScorer()
@@ -404,9 +419,14 @@ def test_review_banking_policy_blocks_approved_scorer_without_raw_text_leak() ->
                 "policy_refs": ["policy://financial-services/deposit-disclosures"],
             },
         )
+        telemetry = client.get("/v1/metrics").json()
 
     payload = response.json()
     encoded = response.text
+    label = (
+        'action="block",code="deposit_insurance_limit_mismatch",'
+        'policy="banking",severity="critical",source="review"'
+    )
 
     assert response.status_code == 200
     assert payload["approved"] is False
@@ -417,6 +437,11 @@ def test_review_banking_policy_blocks_approved_scorer_without_raw_text_leak() ->
     ]
     assert prompt not in encoded
     assert response_text not in encoded
+    assert telemetry["counters"]["sector_policy_findings_total"]["total"] == 1.0
+    assert (
+        telemetry["counters"]["sector_policy_findings_total"]["multi_labels"][label]
+        == 1.0
+    )
 
 
 def test_review_banking_policy_approves_when_scorer_and_policy_pass() -> None:

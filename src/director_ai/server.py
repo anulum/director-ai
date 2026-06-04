@@ -229,6 +229,27 @@ if _FASTAPI_AVAILABLE:  # pragma: no branch
     )
 
 
+def _record_sector_policy_findings(
+    *,
+    policy: str,
+    report: Any,
+    source: str,
+) -> None:
+    """Record tenant-safe sector-policy finding metrics."""
+
+    for finding in getattr(report, "findings", ()):
+        metrics.inc_labeled(
+            "sector_policy_findings_total",
+            {
+                "policy": policy,
+                "source": source,
+                "code": finding.code,
+                "severity": finding.severity,
+                "action": finding.action,
+            },
+        )
+
+
 def create_app(config: DirectorConfig | None = None) -> FastAPI:
     """Create and configure the FastAPI application."""
     _check_fastapi()
@@ -794,6 +815,11 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
                 human_review_acknowledged=req.human_review_acknowledged,
             )
             approved = approved and sector_policy_report.approved
+            _record_sector_policy_findings(
+                policy=req.sector_policy,
+                report=sector_policy_report,
+                source="review",
+            )
 
         if approved:
             metrics.inc("reviews_approved")
@@ -1239,6 +1265,11 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
                         approved = approved and sector_policy_report.approved
                         result["approved"] = approved
                         result["sector_policy"] = sector_policy_report.to_dict()
+                        _record_sector_policy_findings(
+                            policy=req.sector_policy,
+                            report=sector_policy_report,
+                            source="batch_review",
+                        )
                     results.append(result)
                 elif isinstance(item, ReviewResult):  # process
                     score_val = item.coherence.score if item.coherence else 0.0

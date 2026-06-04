@@ -175,6 +175,7 @@ class MetricsCollector:
         "halts_total": "Safety kernel halt events",
         "feedback_total": "Human feedback events by outcome",
         "retune_recommendations_total": "Retune recommendations emitted by safety operations",
+        "sector_policy_findings_total": "Sector-policy findings by policy, code, severity, action, and source",
         "http_requests_total": "HTTP requests by method/endpoint/status",
         "coherence_score": "Coherence score distribution",
         "review_duration_seconds": "End-to-end review latency",
