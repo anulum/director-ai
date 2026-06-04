@@ -313,6 +313,24 @@ Passing this packet is local evidence only. Closing the federated privacy gate
 still requires an external federation run, malicious-secure aggregation review,
 and deployment-specific poisoning-resilience evidence.
 
+## Auto-Redteam Defence Evidence
+
+For the R15 auto-redteam and defence-genome gate, generate an evidence packet
+that checks two reviewed adversarial-mining cycles, detection-uplift gates,
+registry promotions, and tenant-safe serialisation:
+
+```bash
+PYTHONPATH=src python -m benchmarks.auto_redteam_defence_evidence
+```
+
+Outputs:
+
+- `benchmarks/results/auto_redteam_defence_evidence_<UTC_TIMESTAMP>.json`
+
+Passing this packet is local evidence only. Closing the auto-redteam gate still
+requires a live nightly run, operator-owned patch/model integration sign-off,
+and external adversarial corpus evidence.
+
 ## Sustained Load Hardening Evidence
 
 For the R17 production-hardening gate, generate an evidence packet that checks

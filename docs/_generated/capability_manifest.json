@@ -6,10 +6,10 @@
     "optional_extras": 53,
     "public_api_exports": 216,
     "public_documentation_pages": 144,
-    "python_model_classes": 709,
-    "python_model_source_modules": 312,
+    "python_model_classes": 712,
+    "python_model_source_modules": 313,
     "rust_pyo3_model_wrappers": 78,
-    "test_files": 404
+    "test_files": 406
   },
   "documentation": {
     "public_pages": [
@@ -420,6 +420,18 @@
       {
         "name": "AutoGenReplyGuard",
         "path": "src/director_ai/integrations/autogen_swarm.py"
+      },
+      {
+        "name": "AutoRedteamCycleInput",
+        "path": "src/director_ai/core/defense_genome/redteam_loop.py"
+      },
+      {
+        "name": "AutoRedteamCycleReport",
+        "path": "src/director_ai/core/defense_genome/redteam_loop.py"
+      },
+      {
+        "name": "AutoRedteamDefenceLoop",
+        "path": "src/director_ai/core/defense_genome/redteam_loop.py"
       },
       {
         "name": "AutopoieticEngine",
@@ -3141,6 +3153,7 @@
       "src/director_ai/core/cyber_physical/kinematics.py",
       "src/director_ai/core/defense_genome/engine.py",
       "src/director_ai/core/defense_genome/genome.py",
+      "src/director_ai/core/defense_genome/redteam_loop.py",
       "src/director_ai/core/defense_genome/registry.py",
       "src/director_ai/core/defense_genome/update_pipeline.py",
       "src/director_ai/core/doc_chunker.py",
@@ -3786,6 +3799,8 @@
       "tests/test_audit_log.py",
       "tests/test_audit_pg_sql_safety.py",
       "tests/test_audit_salt.py",
+      "tests/test_auto_redteam_defence_evidence.py",
+      "tests/test_auto_redteam_defence_loop.py",
       "tests/test_autogen_swarm.py",
       "tests/test_autopoietic.py",
       "tests/test_autopoietic_blueprint.py",

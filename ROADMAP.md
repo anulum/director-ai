@@ -502,8 +502,11 @@ roots.
    - Quantised tiny-NLI path and Rust/WASM runtime in browser/embedded.
    - Sub-second local inference for guarded low-latency workloads.
 8. **Auto-Redteam + Defence Genome Evolution:**
-   - Continuous adversarial corpus generation.
-   - Patch generation and integration loop with model/route updates.
+   - Reviewed repeated adversarial-mining cycles, detection-uplift gates,
+     defence registry promotion, and local tenant-safe evidence packet are
+     implemented.
+   - Remaining work: live nightly run, operator-owned patch/model integration
+     sign-off, and external adversarial corpus evidence.
 9. **Formal + Symbolic Depth:**
    - Expand Lean/Z3/DPLL deployment in math, code, and numeric domains.
    - Keep scientific foundations for verifiable reasoning.

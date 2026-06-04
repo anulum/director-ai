@@ -76,14 +76,15 @@ docker compose --profile monitoring up
 ```
 
 Before promotion, generate the local conformal-routing, trajectory rollback,
-multimodal temporal, federated privacy, and sustained-load hardening packets and
-attach them to the release evidence:
+multimodal temporal, federated privacy, auto-redteam defence, and sustained-load
+hardening packets and attach them to the release evidence:
 
 ```bash
 PYTHONPATH=src python -m benchmarks.conformal_routing_evidence
 PYTHONPATH=src python -m benchmarks.trajectory_rollback_evidence
 PYTHONPATH=src python -m benchmarks.multimodal_temporal_evidence
 PYTHONPATH=src python -m benchmarks.federated_privacy_evidence
+PYTHONPATH=src python -m benchmarks.auto_redteam_defence_evidence
 PYTHONPATH=src python -m benchmarks.sustained_load_evidence
 ```
 
