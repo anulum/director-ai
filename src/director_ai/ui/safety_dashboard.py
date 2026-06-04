@@ -321,11 +321,11 @@ class ObservabilityOperationsReport:
             lines.append("| " + " | ".join(COMPLIANCE_EXPORT_COLUMNS) + " |")
             lines.append("|" + "|".join("---" for _ in COMPLIANCE_EXPORT_COLUMNS) + "|")
             for export in self.compliance_exports:
-                row = export.to_dict()
+                export_row = export.to_dict()
                 lines.append(
                     "| "
                     + " | ".join(
-                        str(row[column]) for column in COMPLIANCE_EXPORT_COLUMNS
+                        str(export_row[column]) for column in COMPLIANCE_EXPORT_COLUMNS
                     )
                     + " |"
                 )
