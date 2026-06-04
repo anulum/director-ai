@@ -524,9 +524,8 @@ jobs:
         if: always()
         run: docker rm -f dai-smoke || true
 
-      - name: Build GPU image (build-only)
-        continue-on-error: true
-        run: docker build -f Dockerfile.gpu -t director-ai:gpu-smoke .
+      - name: Validate GPU Docker builder stage
+        run: docker build -f Dockerfile.gpu --target builder -t director-ai:gpu-builder-smoke .
 
   rust:
     name: Rust (backfire-kernel)

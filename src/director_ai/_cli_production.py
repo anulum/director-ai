@@ -441,11 +441,13 @@ def _cmd_production_check(args: list[str]) -> None:
 
     report = validate_production_scaffold(path, require_secrets=require_secrets)
     if emit_json:
-        print(  # codeql[py/clear-text-logging-sensitive-data] report.to_cli_dict() omits scaffold messages and secret-derived values.
+        # codeql[py/clear-text-logging-sensitive-data] report.to_cli_dict() omits scaffold messages and secret-derived values.
+        print(
             json.dumps(report.to_cli_dict(), indent=2, sort_keys=True),
         )
     else:
-        print(  # codeql[py/clear-text-logging-sensitive-data] report.to_cli_markdown() emits only check codes, booleans, and counts.
+        # codeql[py/clear-text-logging-sensitive-data] report.to_cli_markdown() emits only check codes, booleans, and counts.
+        print(
             report.to_cli_markdown(),
         )
     sys.exit(0 if report.passed else 1)
