@@ -233,7 +233,11 @@ signals in Prometheus text format. Sector-policy findings increment
 escalations without storing raw prompt or response text in the metric stream.
 Review batches contribute to the same `reviews_total`, `reviews_approved`, and
 `reviews_rejected` counters as single reviews, and every batch observes
-`batch_size`.
+`batch_size`. For REST calls, these counters reflect the final API decision
+after endpoint controls such as sector-policy blocks. When the server delegates
+to the built-in `BatchProcessor`, delegate decision metrics are suppressed so
+the metrics stream records one batch observation and one counter update per
+item.
 
 ## Continuous Batching (ReviewQueue)
 

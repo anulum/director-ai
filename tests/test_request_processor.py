@@ -15,6 +15,7 @@ import pytest
 
 from director_ai.core.batch import BatchProcessor, BatchResult
 from director_ai.core.exceptions import ValidationError
+from director_ai.core.metrics import metrics
 from director_ai.core.types import CoherenceScore, ReviewResult
 
 
@@ -43,6 +44,41 @@ class DeterministicReviewer:
         approved = prompt in response
         return approved, CoherenceScore(
             score=0.8 if approved else 0.2,
+            approved=approved,
+            h_logical=0.1 if approved else 0.8,
+            h_factual=0.1 if approved else 0.8,
+            warning=not approved,
+        )
+
+
+class NativeMetricsReviewer:
+    def review_batch(
+        self,
+        items: list[tuple[str, str]],
+        tenant_id: str = "",
+    ) -> list[tuple[bool, CoherenceScore]]:
+        results = []
+        for index, _item in enumerate(items):
+            approved = index == 0
+            score = 0.91 if approved else 0.21
+            results.append(
+                (
+                    approved,
+                    CoherenceScore(
+                        score=score,
+                        approved=approved,
+                        h_logical=1.0 - score,
+                        h_factual=1.0 - score,
+                        warning=not approved,
+                    ),
+                )
+            )
+        return results
+
+    def review(self, prompt: str, response: str) -> tuple[bool, CoherenceScore]:
+        approved = prompt in response
+        return approved, CoherenceScore(
+            score=0.9 if approved else 0.2,
             approved=approved,
             h_logical=0.1 if approved else 0.8,
             h_factual=0.1 if approved else 0.8,
@@ -97,6 +133,30 @@ def test_review_batch_records_approved_rejected_and_failed_items() -> None:
     assert result.failed == 1
     assert [approved for approved, _score in result.results] == [True, False]
     assert result.errors == [(2, "bad response")]
+
+
+def test_async_native_review_batch_records_operational_metrics_once() -> None:
+    metrics.reset()
+    processor = BatchProcessor(NativeMetricsReviewer(), max_concurrency=1)
+
+    result = asyncio.run(
+        processor.review_batch_async(
+            [
+                ("alpha", "alpha is present"),
+                ("beta", "no matching term"),
+            ],
+        )
+    )
+    telemetry = metrics.get_metrics()
+
+    assert result.total == 2
+    assert result.succeeded == 2
+    assert telemetry["counters"]["reviews_total"]["total"] == 2.0
+    assert telemetry["counters"]["reviews_approved"]["total"] == 1.0
+    assert telemetry["counters"]["reviews_rejected"]["total"] == 1.0
+    assert telemetry["histograms"]["coherence_score"]["count"] == 2
+    assert telemetry["histograms"]["batch_size"]["count"] == 1
+    assert telemetry["histograms"]["batch_size"]["total"] == 2.0
 
 
 @pytest.mark.parametrize(

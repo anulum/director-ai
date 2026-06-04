@@ -96,20 +96,26 @@ class BatchProcessor:
             raise ValidationError(f"max_concurrency must be >= 1, got {resolved}")
         return resolved
 
-    def process_batch(self, prompts: list[str], tenant_id: str = "") -> BatchResult:
+    def process_batch(
+        self,
+        prompts: list[str],
+        tenant_id: str = "",
+        record_metrics: bool = True,
+    ) -> BatchResult:
         """Process a batch of prompts with concurrent execution.
 
         Uses ``backend.process(prompt)`` if backend is CoherenceAgent.
         """
         start = time.monotonic()
-        metrics.observe("batch_size", float(len(prompts)))
+        if record_metrics:
+            metrics.observe("batch_size", float(len(prompts)))
 
         result = BatchResult(total=len(prompts))
         ordered: list[ReviewResult | None] = [None for _ in range(len(prompts))]
 
         with ThreadPoolExecutor(max_workers=self.max_concurrency) as pool:
             futures = {
-                pool.submit(self._process_one, i, p, tenant_id): i
+                pool.submit(self._process_one, i, p, tenant_id, record_metrics): i
                 for i, p in enumerate(prompts)
             }
             for future in futures:
@@ -137,6 +143,7 @@ class BatchProcessor:
         self,
         items: list[tuple[str, str]],
         tenant_id: str = "",
+        record_metrics: bool = True,
     ) -> BatchResult:
         """Batch-review (prompt, response) pairs.
 
@@ -145,7 +152,8 @@ class BatchProcessor:
         total instead of 2*N). Falls back to per-item ThreadPoolExecutor.
         """
         start = time.monotonic()
-        metrics.observe("batch_size", float(len(items)))
+        if record_metrics:
+            metrics.observe("batch_size", float(len(items)))
         result = BatchResult(total=len(items))
 
         scorer_batch_fn = getattr(self._backend, "review_batch", None)
@@ -171,12 +179,8 @@ class BatchProcessor:
                         result.record_success()
                         approved = item_result[0]
                         score = item_result[1]
-                        metrics.inc("reviews_total")
-                        if approved:
-                            metrics.inc("reviews_approved")
-                        else:
-                            metrics.inc("reviews_rejected")
-                        metrics.observe("coherence_score", score.score)
+                        if record_metrics:
+                            self._record_review_decision(approved, score)
                     else:
                         result.record_failure(idx, "scorer returned None")
                 result.results = [r for r in batch_results if r is not None]
@@ -194,7 +198,14 @@ class BatchProcessor:
 
         with ThreadPoolExecutor(max_workers=self.max_concurrency) as pool:
             futures = {
-                pool.submit(self._review_one, i, p, r, tenant_id): i
+                pool.submit(
+                    self._review_one,
+                    i,
+                    p,
+                    r,
+                    tenant_id,
+                    record_metrics,
+                ): i
                 for i, (p, r) in enumerate(items)
             }
             for future in futures:
@@ -212,11 +223,21 @@ class BatchProcessor:
         result.duration_seconds = time.monotonic() - start
         return result
 
+    @staticmethod
+    def _record_review_decision(approved: bool, score: CoherenceScore) -> None:
+        metrics.inc("reviews_total")
+        if approved:
+            metrics.inc("reviews_approved")
+        else:
+            metrics.inc("reviews_rejected")
+        metrics.observe("coherence_score", score.score)
+
     def _process_one(
         self,
         index: int,
         prompt: str,
         tenant_id: str = "",
+        record_metrics: bool = True,
     ) -> ReviewResult:
         """Process a single prompt."""
         metrics.gauge_inc("active_requests")
@@ -229,13 +250,14 @@ class BatchProcessor:
                     )
                 except TypeError:
                     result = self._backend.process(prompt)
-            metrics.inc("reviews_total")
-            if result.halted:
-                metrics.inc("reviews_rejected")
-            else:
-                metrics.inc("reviews_approved")
-                if result.coherence is not None:
-                    metrics.observe("coherence_score", result.coherence.score)
+            if record_metrics:
+                metrics.inc("reviews_total")
+                if result.halted:
+                    metrics.inc("reviews_rejected")
+                else:
+                    metrics.inc("reviews_approved")
+                    if result.coherence is not None:
+                        metrics.observe("coherence_score", result.coherence.score)
             return cast(ReviewResult, result)
         finally:
             metrics.gauge_dec("active_requests")
@@ -246,6 +268,7 @@ class BatchProcessor:
         prompt: str,
         response: str,
         tenant_id: str = "",
+        record_metrics: bool = True,
     ) -> tuple[bool, CoherenceScore]:
         """Review a single (prompt, response) pair."""
         metrics.gauge_inc("active_requests")
@@ -264,12 +287,8 @@ class BatchProcessor:
                     )
                 except TypeError:
                     approved, score = reviewer.review(prompt, response)
-            metrics.inc("reviews_total")
-            if approved:  # pragma: no cover — tested via scorer.review
-                metrics.inc("reviews_approved")
-            else:
-                metrics.inc("reviews_rejected")
-            metrics.observe("coherence_score", score.score)
+            if record_metrics:
+                self._record_review_decision(bool(approved), score)
             return cast(bool, approved), cast(CoherenceScore, score)
         finally:
             metrics.gauge_dec("active_requests")
@@ -279,10 +298,12 @@ class BatchProcessor:
         prompts: list[str],
         max_concurrency: int | None = None,
         tenant_id: str = "",
+        record_metrics: bool = True,
     ) -> BatchResult:
         """Async version of process_batch using asyncio concurrency."""
         start = time.monotonic()
-        metrics.observe("batch_size", float(len(prompts)))
+        if record_metrics:
+            metrics.observe("batch_size", float(len(prompts)))
         sem = asyncio.Semaphore(
             self._resolve_max_concurrency(max_concurrency, self.max_concurrency)
         )
@@ -301,6 +322,7 @@ class BatchProcessor:
                             idx,
                             prompt,
                             tenant_id,
+                            record_metrics,
                         ),
                         timeout=self.item_timeout,
                     )
@@ -321,6 +343,7 @@ class BatchProcessor:
         items: list[tuple[str, str]],
         max_concurrency: int | None = None,
         tenant_id: str = "",
+        record_metrics: bool = True,
     ) -> BatchResult:
         """Async version of review_batch.
 
@@ -328,7 +351,6 @@ class BatchProcessor:
         available, falling back to per-item asyncio concurrency.
         """
         start = time.monotonic()
-        metrics.observe("batch_size", float(len(items)))
         loop = asyncio.get_running_loop()
         resolved_max_concurrency = self._resolve_max_concurrency(
             max_concurrency,
@@ -350,7 +372,11 @@ class BatchProcessor:
             try:
                 result = await loop.run_in_executor(
                     None,
-                    lambda: self.review_batch(items, tenant_id=tenant_id),
+                    lambda: self.review_batch(
+                        items,
+                        tenant_id=tenant_id,
+                        record_metrics=record_metrics,
+                    ),
                 )
                 return result
             except Exception as exc:
@@ -358,6 +384,9 @@ class BatchProcessor:
                     "Async coalesced review_batch failed, falling back: %s",
                     exc,
                 )
+
+        if record_metrics:
+            metrics.observe("batch_size", float(len(items)))
 
         sem = asyncio.Semaphore(resolved_max_concurrency)
         result = BatchResult(total=len(items))
@@ -374,6 +403,7 @@ class BatchProcessor:
                             prompt,
                             response,
                             tenant_id,
+                            record_metrics,
                         ),
                         timeout=self.item_timeout,
                     )

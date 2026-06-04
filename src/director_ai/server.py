@@ -250,6 +250,14 @@ def _record_sector_policy_findings(
         )
 
 
+def _can_suppress_batcher_metrics(batcher: Any) -> bool:
+    """Return true when the batcher supports endpoint-owned metrics."""
+
+    from .core.runtime.batch import BatchProcessor
+
+    return isinstance(batcher, BatchProcessor)
+
+
 def create_app(config: DirectorConfig | None = None) -> FastAPI:
     """Create and configure the FastAPI application."""
     _check_fastapi()
@@ -1219,6 +1227,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
 
             start_t = time.monotonic()
             pairs: list[tuple[str, str]] = []
+            suppress_batcher_metrics = _can_suppress_batcher_metrics(batcher)
             if req.task == "review":
                 if len(req.prompts) != len(req.responses):
                     raise HTTPException(
@@ -1230,12 +1239,29 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
                     (p, r) if r else (p, "")
                     for p, r in zip(req.prompts, req.responses, strict=True)
                 ]
-                batch_res = await batcher.review_batch_async(pairs, tenant_id=tenant_id)
+                if suppress_batcher_metrics:
+                    batch_res = await batcher.review_batch_async(
+                        pairs,
+                        tenant_id=tenant_id,
+                        record_metrics=False,
+                    )
+                else:
+                    batch_res = await batcher.review_batch_async(
+                        pairs,
+                        tenant_id=tenant_id,
+                    )
             else:
-                batch_res = await batcher.process_batch_async(
-                    req.prompts,
-                    tenant_id=tenant_id,
-                )
+                if suppress_batcher_metrics:
+                    batch_res = await batcher.process_batch_async(
+                        req.prompts,
+                        tenant_id=tenant_id,
+                        record_metrics=False,
+                    )
+                else:
+                    batch_res = await batcher.process_batch_async(
+                        req.prompts,
+                        tenant_id=tenant_id,
+                    )
             duration = time.monotonic() - start_t
 
             from director_ai.core.types import ReviewResult
@@ -1286,14 +1312,18 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
                     )
 
             metrics.observe("batch_size", float(batch_res.total))
+            approved_count = sum(1 for item in results if item.get("approved"))
+            rejected_count = max(batch_res.total - approved_count, 0)
+            metrics.inc("reviews_total", float(batch_res.total))
+            metrics.inc("reviews_approved", float(approved_count))
+            metrics.inc("reviews_rejected", float(rejected_count))
             if req.task == "review":
-                approved_count = sum(1 for item in results if item.get("approved"))
-                rejected_count = max(batch_res.total - approved_count, 0)
-                metrics.inc("reviews_total", float(batch_res.total))
-                metrics.inc("reviews_approved", float(approved_count))
-                metrics.inc("reviews_rejected", float(rejected_count))
                 for item in results:
                     metrics.observe("coherence_score", float(item["score"]))
+            else:
+                for item in results:
+                    if item.get("approved"):
+                        metrics.observe("coherence_score", float(item["score"]))
 
             return BatchResponse(
                 results=results,
