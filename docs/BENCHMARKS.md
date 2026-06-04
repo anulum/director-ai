@@ -331,6 +331,24 @@ Passing this packet is local evidence only. Closing the auto-redteam gate still
 requires a live nightly run, operator-owned patch/model integration sign-off,
 and external adversarial corpus evidence.
 
+## Formal Symbolic Evidence
+
+For the R16 formal and symbolic guard gate, generate an evidence packet that
+checks DPLL formula halts/allows, the Lean runner contract, Z3 profile handling,
+code-contract ordering, and tenant-safe serialisation:
+
+```bash
+PYTHONPATH=src python -m benchmarks.formal_symbolic_evidence
+```
+
+Outputs:
+
+- `benchmarks/results/formal_symbolic_evidence_<UTC_TIMESTAMP>.json`
+
+Passing this packet is local evidence only. Closing the formal-symbolic gate
+still requires an external Lean proof run, an actual Z3 packet under `[formal]`
+in release evidence, and operator-owned math/code/numeric domain contracts.
+
 ## Sustained Load Hardening Evidence
 
 For the R17 production-hardening gate, generate an evidence packet that checks

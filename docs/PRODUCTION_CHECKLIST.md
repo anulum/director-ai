@@ -154,6 +154,8 @@ export DIRECTOR_PRODUCTION_MODE=true
       `PYTHONPATH=src python -m benchmarks.federated_privacy_evidence`
 - [ ] Generate auto-redteam defence evidence:
       `PYTHONPATH=src python -m benchmarks.auto_redteam_defence_evidence`
+- [ ] Generate formal symbolic evidence:
+      `PYTHONPATH=src python -m benchmarks.formal_symbolic_evidence`
 - [ ] Generate sustained async/tenant hardening evidence:
       `PYTHONPATH=src python -m benchmarks.sustained_load_evidence`
 

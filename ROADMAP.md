@@ -508,8 +508,11 @@ roots.
    - Remaining work: live nightly run, operator-owned patch/model integration
      sign-off, and external adversarial corpus evidence.
 9. **Formal + Symbolic Depth:**
-   - Expand Lean/Z3/DPLL deployment in math, code, and numeric domains.
-   - Keep scientific foundations for verifiable reasoning.
+   - DPLL formula checks, Lean runner contract, Z3 optional-profile gate, code
+     contract ordering, and local tenant-safe evidence packet are implemented.
+   - Remaining work: external Lean proof run, actual Z3 packet under `[formal]`
+     in release evidence, and operator-owned math/code/numeric domain
+     contracts.
 
 **Corrections to make now (required):**
 - Enforce stricter layering: default path ultra-minimal; research modules disabled
