@@ -46,7 +46,7 @@ validation records, and release documentation.
 | R14 | Edge/mobile optimisation path | Open | Quantised NLI + Rust/WASM build and deployment evidence for low-latency local path |
 | R15 | Continuous auto-redteam + defence genome loop | Open | Repeating adversarial generation and patch integration cycle with measurable coverage uplift |
 | R16 | Formal + symbolic depth expansion | Open | New Lean/Z3/DPLL integration in production paths with regression evidence for math/code/numeric outputs |
-| R17 | Deployment hardening + async/multi-tenant corrections | Partly implemented: production scaffold and authenticated monitoring added; load/poisoning evidence still open | Sustained-load async ordering run plus tenant poisoning tests and evidence packet |
+| R17 | Deployment hardening + async/multi-tenant corrections | Partly implemented: production scaffold, authenticated monitoring, async ordering regression, and tenant poisoning regression added; external sustained-load evidence still open | Sustained deployment run with async ordering telemetry plus tenant poisoning evidence packet |
 
 ## Future And Strategic Items
 
