@@ -214,6 +214,25 @@ Outputs:
 
 Use `--strict` to return non-zero when any case fails or times out.
 
+## Provenance And KB Lineage Evidence
+
+For the R9 provenance gate, generate an evidence packet that checks KB snapshot
+Merkle-root evolution, tenant-scoped roots, signed-fact conflict reporting,
+citation-fact inclusion proofs, HMAC provenance-chain verification, and tamper
+detection:
+
+```bash
+PYTHONPATH=src python -m benchmarks.provenance_evidence --fact-count 4
+```
+
+Outputs:
+
+- `benchmarks/results/provenance_evidence_<UTC_TIMESTAMP>.json`
+
+Passing this packet is local evidence only. Closing the online KB evolution gate
+still requires an operator-owned feedback loop, archived deployment evidence,
+and sign-off that the exported lineage packet matches the live tenant KB.
+
 ## Sustained Load Hardening Evidence
 
 For the R17 production-hardening gate, generate an evidence packet that checks
