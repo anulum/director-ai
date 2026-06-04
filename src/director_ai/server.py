@@ -1285,6 +1285,16 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
                         },
                     )
 
+            metrics.observe("batch_size", float(batch_res.total))
+            if req.task == "review":
+                approved_count = sum(1 for item in results if item.get("approved"))
+                rejected_count = max(batch_res.total - approved_count, 0)
+                metrics.inc("reviews_total", float(batch_res.total))
+                metrics.inc("reviews_approved", float(approved_count))
+                metrics.inc("reviews_rejected", float(rejected_count))
+                for item in results:
+                    metrics.observe("coherence_score", float(item["score"]))
+
             return BatchResponse(
                 results=results,
                 total=batch_res.total,

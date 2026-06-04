@@ -231,6 +231,9 @@ signals in Prometheus text format. Sector-policy findings increment
 `sector_policy_findings_total` with `policy`, `source`, `code`, `severity`, and
 `action` labels. Use it for dashboard alerts on regulated response blocks and
 escalations without storing raw prompt or response text in the metric stream.
+Review batches contribute to the same `reviews_total`, `reviews_approved`, and
+`reviews_rejected` counters as single reviews, and every batch observes
+`batch_size`.
 
 ## Continuous Batching (ReviewQueue)
 

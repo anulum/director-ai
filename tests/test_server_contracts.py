@@ -276,6 +276,46 @@ def test_batch_rejects_sector_policy_for_process_task() -> None:
     assert "sector_policy" in response.text
 
 
+def test_batch_review_updates_operational_metrics() -> None:
+    from director_ai.core.metrics import metrics
+    from director_ai.core.runtime.batch import BatchResult
+
+    class ReviewMetricsBatch:
+        async def review_batch_async(self, pairs, tenant_id: str = ""):
+            return BatchResult(
+                results=[
+                    (True, _score(0.91, approved=True)),
+                    (False, _score(0.31, approved=False)),
+                ],
+                errors=[],
+                total=2,
+                succeeded=2,
+                failed=0,
+                duration_seconds=0.01,
+            )
+
+    metrics.reset()
+
+    with _client() as client:
+        client.app.state._state["batch"] = ReviewMetricsBatch()
+        response = client.post(
+            "/v1/batch",
+            json={
+                "task": "review",
+                "prompts": ["p1", "p2"],
+                "responses": ["r1", "r2"],
+            },
+        )
+        telemetry = client.get("/v1/metrics").json()
+
+    assert response.status_code == 200
+    assert telemetry["counters"]["reviews_total"]["total"] == 2.0
+    assert telemetry["counters"]["reviews_approved"]["total"] == 1.0
+    assert telemetry["counters"]["reviews_rejected"]["total"] == 1.0
+    assert telemetry["histograms"]["batch_size"]["count"] == 1
+    assert telemetry["histograms"]["batch_size"]["total"] == 2.0
+
+
 def test_verify_endpoint_context_paths(monkeypatch) -> None:
     class EmptyStore:
         def retrieve_context(self, prompt: str, top_k: int, tenant_id: str = ""):
