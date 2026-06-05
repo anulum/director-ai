@@ -546,6 +546,80 @@ class AutoRedteamDefenceEvidence:
 
 
 @dataclass(frozen=True)
+class FormalSymbolicEvidence:
+    """Formal and symbolic verification evidence attached to a release gate."""
+
+    ready: bool
+    environment: str
+    formal_symbolic_packet_uri: str
+    external_lean_proof_uri: str
+    z3_release_packet_uri: str
+    domain_contracts_uri: str
+    code_contract_packet_uri: str
+    operator_signoff_uri: str
+    dpll_formula_guard_verified: bool
+    lean_external_run_verified: bool
+    z3_actual_run_verified: bool
+    code_contract_ordering_verified: bool
+    tenant_safe_serialisation_verified: bool
+    domain_contracts_verified: bool
+    evidence_hash: str
+
+    def to_dict(self) -> dict[str, Any]:
+        """Serialise formal-symbolic evidence to JSON-safe data."""
+
+        return {
+            "ready": self.ready,
+            "environment": self.environment,
+            "formal_symbolic_packet_uri": self.formal_symbolic_packet_uri,
+            "external_lean_proof_uri": self.external_lean_proof_uri,
+            "z3_release_packet_uri": self.z3_release_packet_uri,
+            "domain_contracts_uri": self.domain_contracts_uri,
+            "code_contract_packet_uri": self.code_contract_packet_uri,
+            "operator_signoff_uri": self.operator_signoff_uri,
+            "dpll_formula_guard_verified": self.dpll_formula_guard_verified,
+            "lean_external_run_verified": self.lean_external_run_verified,
+            "z3_actual_run_verified": self.z3_actual_run_verified,
+            "code_contract_ordering_verified": (
+                self.code_contract_ordering_verified
+            ),
+            "tenant_safe_serialisation_verified": (
+                self.tenant_safe_serialisation_verified
+            ),
+            "domain_contracts_verified": self.domain_contracts_verified,
+            "evidence_hash": self.evidence_hash,
+        }
+
+    @classmethod
+    def from_dict(cls, payload: dict[str, Any]) -> FormalSymbolicEvidence:
+        """Rebuild formal-symbolic evidence from JSON-safe data."""
+
+        return cls(
+            ready=bool(payload["ready"]),
+            environment=str(payload["environment"]),
+            formal_symbolic_packet_uri=str(payload["formal_symbolic_packet_uri"]),
+            external_lean_proof_uri=str(payload["external_lean_proof_uri"]),
+            z3_release_packet_uri=str(payload["z3_release_packet_uri"]),
+            domain_contracts_uri=str(payload["domain_contracts_uri"]),
+            code_contract_packet_uri=str(payload["code_contract_packet_uri"]),
+            operator_signoff_uri=str(payload["operator_signoff_uri"]),
+            dpll_formula_guard_verified=bool(
+                payload["dpll_formula_guard_verified"]
+            ),
+            lean_external_run_verified=bool(payload["lean_external_run_verified"]),
+            z3_actual_run_verified=bool(payload["z3_actual_run_verified"]),
+            code_contract_ordering_verified=bool(
+                payload["code_contract_ordering_verified"]
+            ),
+            tenant_safe_serialisation_verified=bool(
+                payload["tenant_safe_serialisation_verified"]
+            ),
+            domain_contracts_verified=bool(payload["domain_contracts_verified"]),
+            evidence_hash=str(payload["evidence_hash"]),
+        )
+
+
+@dataclass(frozen=True)
 class CustomerReleaseGateManifest:
     """Release-promotion gate across factory readiness artefacts."""
 
@@ -569,6 +643,7 @@ class CustomerReleaseGateManifest:
     federated_privacy_evidence: FederatedPrivacyEvidence
     edge_mobile_evidence: EdgeMobileEvidence
     auto_redteam_defence_evidence: AutoRedteamDefenceEvidence
+    formal_symbolic_evidence: FormalSymbolicEvidence
     deployment_hardening_evidence: DeploymentHardeningEvidence
     blockers: tuple[dict[str, str], ...]
     release_hash: str
@@ -609,6 +684,7 @@ class CustomerReleaseGateManifest:
             "auto_redteam_defence_evidence": (
                 self.auto_redteam_defence_evidence.to_dict()
             ),
+            "formal_symbolic_evidence": self.formal_symbolic_evidence.to_dict(),
             "deployment_hardening_evidence": (
                 self.deployment_hardening_evidence.to_dict()
             ),
@@ -644,6 +720,7 @@ def build_release_gate_manifest(
     federated_privacy_evidence: FederatedPrivacyEvidence,
     edge_mobile_evidence: EdgeMobileEvidence,
     auto_redteam_defence_evidence: AutoRedteamDefenceEvidence,
+    formal_symbolic_evidence: FormalSymbolicEvidence,
     deployment_hardening_evidence: DeploymentHardeningEvidence,
     generated_at: str,
 ) -> CustomerReleaseGateManifest:
@@ -671,6 +748,7 @@ def build_release_gate_manifest(
         federated_privacy_evidence=federated_privacy_evidence,
         edge_mobile_evidence=edge_mobile_evidence,
         auto_redteam_defence_evidence=auto_redteam_defence_evidence,
+        formal_symbolic_evidence=formal_symbolic_evidence,
         deployment_hardening_evidence=deployment_hardening_evidence,
         generated_at=generated_at,
     )
@@ -695,6 +773,7 @@ def build_release_gate_manifest(
             "federated_privacy_evidence": federated_privacy_evidence.to_dict(),
             "edge_mobile_evidence": edge_mobile_evidence.to_dict(),
             "auto_redteam_defence_evidence": auto_redteam_defence_evidence.to_dict(),
+            "formal_symbolic_evidence": formal_symbolic_evidence.to_dict(),
             "deployment_hardening_evidence": deployment_hardening_evidence.to_dict(),
             "blockers": blockers,
         }
@@ -721,6 +800,7 @@ def build_release_gate_manifest(
         federated_privacy_evidence=federated_privacy_evidence,
         edge_mobile_evidence=edge_mobile_evidence,
         auto_redteam_defence_evidence=auto_redteam_defence_evidence,
+        formal_symbolic_evidence=formal_symbolic_evidence,
         deployment_hardening_evidence=deployment_hardening_evidence,
         blockers=tuple(blockers),
         release_hash=release_hash,
@@ -759,6 +839,7 @@ def _collect_blockers(
     federated_privacy_evidence: FederatedPrivacyEvidence,
     edge_mobile_evidence: EdgeMobileEvidence,
     auto_redteam_defence_evidence: AutoRedteamDefenceEvidence,
+    formal_symbolic_evidence: FormalSymbolicEvidence,
     deployment_hardening_evidence: DeploymentHardeningEvidence,
     generated_at: str,
 ) -> list[dict[str, str]]:
@@ -788,6 +869,7 @@ def _collect_blockers(
     _extend_federated_privacy_blockers(federated_privacy_evidence, blockers)
     _extend_edge_mobile_blockers(edge_mobile_evidence, blockers)
     _extend_auto_redteam_defence_blockers(auto_redteam_defence_evidence, blockers)
+    _extend_formal_symbolic_blockers(formal_symbolic_evidence, blockers)
     _extend_deployment_hardening_blockers(deployment_hardening_evidence, blockers)
     _extend_boundary_blockers(
         runtime_package, evidence_pack, monitoring_manifest, risk_register, blockers
@@ -1354,6 +1436,85 @@ def _extend_auto_redteam_defence_blockers(
             _blocker(
                 "auto_redteam_evidence_hash_invalid",
                 "auto-redteam defence evidence_hash must be a sha256 hex digest",
+            )
+        )
+
+
+def _extend_formal_symbolic_blockers(
+    evidence: FormalSymbolicEvidence,
+    blockers: list[dict[str, str]],
+) -> None:
+    if not evidence.ready:
+        blockers.append(
+            _blocker(
+                "formal_symbolic_not_ready",
+                "formal-symbolic evidence is not ready",
+            )
+        )
+    if evidence.environment.strip().lower() not in {"staging", "production"}:
+        blockers.append(
+            _blocker(
+                "formal_symbolic_environment_invalid",
+                "formal-symbolic evidence must come from staging or production",
+            )
+        )
+    for field, code in (
+        ("formal_symbolic_packet_uri", "formal_symbolic_packet_missing"),
+        ("external_lean_proof_uri", "formal_external_lean_proof_missing"),
+        ("z3_release_packet_uri", "formal_z3_release_packet_missing"),
+        ("domain_contracts_uri", "formal_domain_contracts_missing"),
+        ("code_contract_packet_uri", "formal_code_contract_packet_missing"),
+        ("operator_signoff_uri", "formal_operator_signoff_missing"),
+    ):
+        if not getattr(evidence, field).strip():
+            blockers.append(_blocker(code, f"{field} is required"))
+    if not evidence.dpll_formula_guard_verified:
+        blockers.append(
+            _blocker(
+                "formal_dpll_guard_unverified",
+                "DPLL formula guard is not verified",
+            )
+        )
+    if not evidence.lean_external_run_verified:
+        blockers.append(
+            _blocker(
+                "formal_lean_external_run_unverified",
+                "external Lean proof run is not verified",
+            )
+        )
+    if not evidence.z3_actual_run_verified:
+        blockers.append(
+            _blocker(
+                "formal_z3_actual_run_unverified",
+                "actual Z3 release run is not verified",
+            )
+        )
+    if not evidence.code_contract_ordering_verified:
+        blockers.append(
+            _blocker(
+                "formal_code_contract_ordering_unverified",
+                "code-contract ordering is not verified",
+            )
+        )
+    if not evidence.tenant_safe_serialisation_verified:
+        blockers.append(
+            _blocker(
+                "formal_tenant_safe_serialisation_unverified",
+                "formal-symbolic serialisation is not verified as tenant-safe",
+            )
+        )
+    if not evidence.domain_contracts_verified:
+        blockers.append(
+            _blocker(
+                "formal_domain_contracts_unverified",
+                "operator-owned formal domain contracts are not verified",
+            )
+        )
+    if not _is_sha256(evidence.evidence_hash):
+        blockers.append(
+            _blocker(
+                "formal_symbolic_evidence_hash_invalid",
+                "formal-symbolic evidence_hash must be a sha256 hex digest",
             )
         )
 

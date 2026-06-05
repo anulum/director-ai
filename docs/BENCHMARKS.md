@@ -435,6 +435,11 @@ Outputs:
 Passing this packet is local evidence only. Closing the formal-symbolic gate
 still requires an external Lean proof run, an actual Z3 packet under `[formal]`
 in release evidence, and operator-owned math/code/numeric domain contracts.
+Customer Model Factory release promotion also requires
+`FormalSymbolicEvidence` with the formal-symbolic packet URI, external Lean
+proof URI, actual Z3 release packet URI, domain contracts URI,
+code-contract packet URI, DPLL/Lean/Z3/code-ordering/tenant-safe/domain-contract
+verification flags, operator sign-off, and evidence hash.
 
 ## Sustained Load Hardening Evidence
 

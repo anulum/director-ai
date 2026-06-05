@@ -104,6 +104,9 @@ The packet checks DPLL formula halts/allows, Lean runner invocation, Z3 profile
 handling, code-contract ordering, and tenant-safe serialisation. When the
 `director-ai[formal]` extra is not installed, the Z3 probe records the optional
 dependency gate instead of claiming an actual Z3 proof run.
+Customer Model Factory release promotion requires a separate
+`FormalSymbolicEvidence` record with external Lean proof and actual Z3 release
+packet URIs before the release gate can pass.
 
 ## Full API
 

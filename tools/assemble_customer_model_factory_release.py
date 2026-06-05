@@ -27,6 +27,7 @@ from director_ai.core.customer_model_factory.release_gate import (
     DeploymentHardeningEvidence,
     EdgeMobileEvidence,
     FederatedPrivacyEvidence,
+    FormalSymbolicEvidence,
     MultimodalTemporalEvidence,
     ObservabilityOperationsEvidence,
     ProvenanceLineageEvidence,
@@ -58,6 +59,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--federated-privacy-evidence", type=Path, required=True)
     parser.add_argument("--edge-mobile-evidence", type=Path, required=True)
     parser.add_argument("--auto-redteam-defence-evidence", type=Path, required=True)
+    parser.add_argument("--formal-symbolic-evidence", type=Path, required=True)
     parser.add_argument("--deployment-hardening-evidence", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args(argv)
@@ -100,6 +102,9 @@ def main(argv: list[str] | None = None) -> int:
         ),
         auto_redteam_defence_evidence=AutoRedteamDefenceEvidence.from_dict(
             _read_json(args.auto_redteam_defence_evidence)
+        ),
+        formal_symbolic_evidence=FormalSymbolicEvidence.from_dict(
+            _read_json(args.formal_symbolic_evidence)
         ),
         deployment_hardening_evidence=DeploymentHardeningEvidence.from_dict(
             _read_json(args.deployment_hardening_evidence)

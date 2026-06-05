@@ -192,6 +192,12 @@ export DIRECTOR_PRODUCTION_MODE=true
       and operator sign-off URI.
 - [ ] Generate formal symbolic evidence:
       `PYTHONPATH=src python -m benchmarks.formal_symbolic_evidence`
+- [ ] Attach formal-symbolic evidence to the Customer Model Factory release
+      gate with the formal-symbolic packet URI, external Lean proof URI,
+      actual Z3 release packet URI, math/code/numeric domain contracts URI,
+      code-contract packet URI, DPLL, Lean, Z3, code-ordering, tenant-safe
+      serialisation, and domain-contract verification flags, and operator
+      sign-off URI.
 - [ ] Generate edge/mobile runtime evidence:
       `PYTHONPATH=src python -m benchmarks.edge_mobile_evidence`
       and confirm `ready_for_release` only after WASM artefacts, quantised model

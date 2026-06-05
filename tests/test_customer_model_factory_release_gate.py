@@ -25,6 +25,7 @@ from director_ai.core.customer_model_factory.release_gate import (
     DeploymentHardeningEvidence,
     EdgeMobileEvidence,
     FederatedPrivacyEvidence,
+    FormalSymbolicEvidence,
     MultimodalTemporalEvidence,
     ObservabilityOperationsEvidence,
     ProvenanceLineageEvidence,
@@ -305,6 +306,26 @@ def _auto_redteam_defence_evidence() -> AutoRedteamDefenceEvidence:
     )
 
 
+def _formal_symbolic_evidence() -> FormalSymbolicEvidence:
+    return FormalSymbolicEvidence(
+        ready=True,
+        environment="staging",
+        formal_symbolic_packet_uri="gs://customer-artifacts/customer-alpha/formal/formal-symbolic-evidence.json",
+        external_lean_proof_uri="gs://customer-artifacts/customer-alpha/formal/external-lean-proof.json",
+        z3_release_packet_uri="gs://customer-artifacts/customer-alpha/formal/z3-release-packet.json",
+        domain_contracts_uri="gs://customer-artifacts/customer-alpha/formal/domain-contracts.json",
+        code_contract_packet_uri="gs://customer-artifacts/customer-alpha/formal/code-contract-packet.json",
+        operator_signoff_uri="gs://customer-artifacts/customer-alpha/signoff/r16.json",
+        dpll_formula_guard_verified=True,
+        lean_external_run_verified=True,
+        z3_actual_run_verified=True,
+        code_contract_ordering_verified=True,
+        tenant_safe_serialisation_verified=True,
+        domain_contracts_verified=True,
+        evidence_hash="9" * 64,
+    )
+
+
 def test_release_gate_allows_promotion_when_all_artifacts_are_ready():
     gate = build_release_gate_manifest(
         release_id="release-customer-alpha-20260518",
@@ -322,6 +343,7 @@ def test_release_gate_allows_promotion_when_all_artifacts_are_ready():
         federated_privacy_evidence=_federated_privacy_evidence(),
         edge_mobile_evidence=_edge_mobile_evidence(),
         auto_redteam_defence_evidence=_auto_redteam_defence_evidence(),
+        formal_symbolic_evidence=_formal_symbolic_evidence(),
         deployment_hardening_evidence=_deployment_hardening_evidence(),
         generated_at="2026-05-18T18:35:00Z",
     )
@@ -341,6 +363,7 @@ def test_release_gate_allows_promotion_when_all_artifacts_are_ready():
     assert gate.multimodal_temporal_evidence.video_temporal_verified is True
     assert gate.federated_privacy_evidence.secret_sharing_verified is True
     assert gate.edge_mobile_evidence.browser_worker_smoke_passed is True
+    assert gate.formal_symbolic_evidence.z3_actual_run_verified is True
     assert gate.deployment_hardening_evidence.tenant_poisoning_passed is True
     assert len(gate.release_hash) == 64
 
@@ -362,6 +385,7 @@ def test_release_gate_blocks_enterprise_trust_debt():
         federated_privacy_evidence=_federated_privacy_evidence(),
         edge_mobile_evidence=_edge_mobile_evidence(),
         auto_redteam_defence_evidence=_auto_redteam_defence_evidence(),
+        formal_symbolic_evidence=_formal_symbolic_evidence(),
         deployment_hardening_evidence=_deployment_hardening_evidence(),
         generated_at="2026-05-18T18:35:00Z",
     )
@@ -399,6 +423,7 @@ def test_release_gate_blocks_not_ready_required_artifacts():
         federated_privacy_evidence=_federated_privacy_evidence(),
         edge_mobile_evidence=_edge_mobile_evidence(),
         auto_redteam_defence_evidence=_auto_redteam_defence_evidence(),
+        formal_symbolic_evidence=_formal_symbolic_evidence(),
         deployment_hardening_evidence=_deployment_hardening_evidence(),
         generated_at="2026-05-18T18:35:00Z",
     )
@@ -455,6 +480,7 @@ def test_release_gate_blocks_missing_release_identity_and_all_not_ready_artifact
         federated_privacy_evidence=_federated_privacy_evidence(),
         edge_mobile_evidence=_edge_mobile_evidence(),
         auto_redteam_defence_evidence=_auto_redteam_defence_evidence(),
+        formal_symbolic_evidence=_formal_symbolic_evidence(),
         deployment_hardening_evidence=_deployment_hardening_evidence(),
         generated_at=" ",
     )
@@ -499,6 +525,7 @@ def test_release_gate_blocks_missing_observability_operations_evidence():
         federated_privacy_evidence=_federated_privacy_evidence(),
         edge_mobile_evidence=_edge_mobile_evidence(),
         auto_redteam_defence_evidence=_auto_redteam_defence_evidence(),
+        formal_symbolic_evidence=_formal_symbolic_evidence(),
         deployment_hardening_evidence=_deployment_hardening_evidence(),
         generated_at="2026-05-18T18:35:00Z",
     )
@@ -554,6 +581,7 @@ def test_release_gate_blocks_missing_provenance_lineage_evidence():
         federated_privacy_evidence=_federated_privacy_evidence(),
         edge_mobile_evidence=_edge_mobile_evidence(),
         auto_redteam_defence_evidence=_auto_redteam_defence_evidence(),
+        formal_symbolic_evidence=_formal_symbolic_evidence(),
         deployment_hardening_evidence=_deployment_hardening_evidence(),
         generated_at="2026-05-18T18:35:00Z",
     )
@@ -612,6 +640,7 @@ def test_release_gate_blocks_missing_conformal_routing_evidence():
         federated_privacy_evidence=_federated_privacy_evidence(),
         edge_mobile_evidence=_edge_mobile_evidence(),
         auto_redteam_defence_evidence=_auto_redteam_defence_evidence(),
+        formal_symbolic_evidence=_formal_symbolic_evidence(),
         deployment_hardening_evidence=_deployment_hardening_evidence(),
         generated_at="2026-05-18T18:35:00Z",
     )
@@ -671,6 +700,7 @@ def test_release_gate_blocks_missing_trajectory_rollback_evidence():
         federated_privacy_evidence=_federated_privacy_evidence(),
         edge_mobile_evidence=_edge_mobile_evidence(),
         auto_redteam_defence_evidence=_auto_redteam_defence_evidence(),
+        formal_symbolic_evidence=_formal_symbolic_evidence(),
         deployment_hardening_evidence=_deployment_hardening_evidence(),
         generated_at="2026-05-18T18:35:00Z",
     )
@@ -731,6 +761,7 @@ def test_release_gate_blocks_missing_multimodal_temporal_evidence():
         federated_privacy_evidence=_federated_privacy_evidence(),
         edge_mobile_evidence=_edge_mobile_evidence(),
         auto_redteam_defence_evidence=_auto_redteam_defence_evidence(),
+        formal_symbolic_evidence=_formal_symbolic_evidence(),
         deployment_hardening_evidence=_deployment_hardening_evidence(),
         generated_at="2026-05-18T18:35:00Z",
     )
@@ -792,6 +823,7 @@ def test_release_gate_blocks_missing_federated_privacy_evidence():
         federated_privacy_evidence=evidence,
         edge_mobile_evidence=_edge_mobile_evidence(),
         auto_redteam_defence_evidence=_auto_redteam_defence_evidence(),
+        formal_symbolic_evidence=_formal_symbolic_evidence(),
         deployment_hardening_evidence=_deployment_hardening_evidence(),
         generated_at="2026-05-18T18:35:00Z",
     )
@@ -858,6 +890,7 @@ def test_release_gate_blocks_missing_edge_mobile_evidence():
         federated_privacy_evidence=_federated_privacy_evidence(),
         edge_mobile_evidence=evidence,
         auto_redteam_defence_evidence=_auto_redteam_defence_evidence(),
+        formal_symbolic_evidence=_formal_symbolic_evidence(),
         deployment_hardening_evidence=_deployment_hardening_evidence(),
         generated_at="2026-05-18T18:35:00Z",
     )
@@ -927,6 +960,7 @@ def test_release_gate_blocks_missing_auto_redteam_defence_evidence():
         federated_privacy_evidence=_federated_privacy_evidence(),
         edge_mobile_evidence=_edge_mobile_evidence(),
         auto_redteam_defence_evidence=evidence,
+        formal_symbolic_evidence=_formal_symbolic_evidence(),
         deployment_hardening_evidence=_deployment_hardening_evidence(),
         generated_at="2026-05-18T18:35:00Z",
     )
@@ -955,6 +989,74 @@ def test_auto_redteam_defence_evidence_round_trips_from_json_safe_dict():
     evidence = _auto_redteam_defence_evidence()
 
     restored = AutoRedteamDefenceEvidence.from_dict(evidence.to_dict())
+
+    assert restored == evidence
+
+
+def test_release_gate_blocks_missing_formal_symbolic_evidence():
+    evidence = FormalSymbolicEvidence(
+        ready=False,
+        environment="local",
+        formal_symbolic_packet_uri="",
+        external_lean_proof_uri="",
+        z3_release_packet_uri="",
+        domain_contracts_uri="",
+        code_contract_packet_uri="",
+        operator_signoff_uri="",
+        dpll_formula_guard_verified=False,
+        lean_external_run_verified=False,
+        z3_actual_run_verified=False,
+        code_contract_ordering_verified=False,
+        tenant_safe_serialisation_verified=False,
+        domain_contracts_verified=False,
+        evidence_hash="not-a-sha",
+    )
+
+    gate = build_release_gate_manifest(
+        release_id="release-customer-alpha-r16-blocked",
+        enterprise_ready=True,
+        enterprise_blocking_debt_ids=(),
+        runtime_package=_runtime_package(),
+        evidence_pack=_evidence_pack(),
+        monitoring_manifest=_monitoring_manifest(),
+        risk_register=_risk_register(),
+        observability_operations_evidence=_observability_operations_evidence(),
+        provenance_lineage_evidence=_provenance_lineage_evidence(),
+        conformal_routing_evidence=_conformal_routing_evidence(),
+        trajectory_rollback_evidence=_trajectory_rollback_evidence(),
+        multimodal_temporal_evidence=_multimodal_temporal_evidence(),
+        federated_privacy_evidence=_federated_privacy_evidence(),
+        edge_mobile_evidence=_edge_mobile_evidence(),
+        auto_redteam_defence_evidence=_auto_redteam_defence_evidence(),
+        formal_symbolic_evidence=evidence,
+        deployment_hardening_evidence=_deployment_hardening_evidence(),
+        generated_at="2026-05-18T18:35:00Z",
+    )
+
+    assert gate.ready is False
+    assert {blocker["code"] for blocker in gate.blockers} >= {
+        "formal_symbolic_not_ready",
+        "formal_symbolic_environment_invalid",
+        "formal_symbolic_packet_missing",
+        "formal_external_lean_proof_missing",
+        "formal_z3_release_packet_missing",
+        "formal_domain_contracts_missing",
+        "formal_code_contract_packet_missing",
+        "formal_operator_signoff_missing",
+        "formal_dpll_guard_unverified",
+        "formal_lean_external_run_unverified",
+        "formal_z3_actual_run_unverified",
+        "formal_code_contract_ordering_unverified",
+        "formal_tenant_safe_serialisation_unverified",
+        "formal_domain_contracts_unverified",
+        "formal_symbolic_evidence_hash_invalid",
+    }
+
+
+def test_formal_symbolic_evidence_round_trips_from_json_safe_dict():
+    evidence = _formal_symbolic_evidence()
+
+    restored = FormalSymbolicEvidence.from_dict(evidence.to_dict())
 
     assert restored == evidence
 
@@ -988,6 +1090,7 @@ def test_release_gate_blocks_missing_deployment_hardening_evidence():
         federated_privacy_evidence=_federated_privacy_evidence(),
         edge_mobile_evidence=_edge_mobile_evidence(),
         auto_redteam_defence_evidence=_auto_redteam_defence_evidence(),
+        formal_symbolic_evidence=_formal_symbolic_evidence(),
         deployment_hardening_evidence=evidence,
         generated_at="2026-05-18T18:35:00Z",
     )
@@ -1036,6 +1139,7 @@ def test_release_gate_blocks_customer_boundary_mismatch():
         federated_privacy_evidence=_federated_privacy_evidence(),
         edge_mobile_evidence=_edge_mobile_evidence(),
         auto_redteam_defence_evidence=_auto_redteam_defence_evidence(),
+        formal_symbolic_evidence=_formal_symbolic_evidence(),
         deployment_hardening_evidence=_deployment_hardening_evidence(),
         generated_at="2026-05-18T18:35:00Z",
     )
@@ -1087,6 +1191,7 @@ def test_release_gate_blocks_cross_artifact_boundary_and_hash_mismatches():
         federated_privacy_evidence=_federated_privacy_evidence(),
         edge_mobile_evidence=_edge_mobile_evidence(),
         auto_redteam_defence_evidence=_auto_redteam_defence_evidence(),
+        formal_symbolic_evidence=_formal_symbolic_evidence(),
         deployment_hardening_evidence=_deployment_hardening_evidence(),
         generated_at="2026-05-18T18:35:00Z",
     )
@@ -1120,6 +1225,7 @@ def test_release_gate_serialises_deterministically(tmp_path: Path):
         federated_privacy_evidence=_federated_privacy_evidence(),
         edge_mobile_evidence=_edge_mobile_evidence(),
         auto_redteam_defence_evidence=_auto_redteam_defence_evidence(),
+        formal_symbolic_evidence=_formal_symbolic_evidence(),
         deployment_hardening_evidence=_deployment_hardening_evidence(),
         generated_at="2026-05-18T18:35:00Z",
     )
@@ -1152,6 +1258,9 @@ def test_release_gate_serialises_deterministically(tmp_path: Path):
     assert payload["auto_redteam_defence_evidence"]["nightly_run_uri"].endswith(
         "/redteam/nightly-run.json"
     )
+    assert payload["formal_symbolic_evidence"]["z3_release_packet_uri"].endswith(
+        "/formal/z3-release-packet.json"
+    )
     assert payload["deployment_hardening_evidence"]["telemetry_uri"].endswith(
         "/telemetry/r17.jsonl"
     )
@@ -1176,6 +1285,7 @@ def test_release_gate_schema_is_machine_readable():
         "federated_privacy_evidence",
         "edge_mobile_evidence",
         "auto_redteam_defence_evidence",
+        "formal_symbolic_evidence",
         "deployment_hardening_evidence",
         "blockers",
         "release_hash",

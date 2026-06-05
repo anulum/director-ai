@@ -40,6 +40,9 @@ Before deploying Director-AI to production, verify each item:
 - [ ] Run `director-ai bench --dataset e2e` to verify catch rate on your domain data
 - [ ] Run `PYTHONPATH=src python -m benchmarks.auto_redteam_defence_evidence` and archive the JSON packet with the release evidence
 - [ ] Run `PYTHONPATH=src python -m benchmarks.formal_symbolic_evidence` and archive the JSON packet with the release evidence
+- [ ] Attach formal-symbolic release-gate evidence with local packet, external
+      Lean proof, actual Z3 release packet, domain contracts, code-contract
+      packet, verification flags, operator sign-off, and evidence hash
 - [ ] Run `PYTHONPATH=src python -m benchmarks.edge_mobile_evidence` and archive the JSON packet with the release evidence
 - [ ] Run `PYTHONPATH=src python tools/check_wasm_release_package.py` after `wasm-pack build` when publishing the edge runtime
 - [ ] Run `PYTHONPATH=src python tools/run_wasm_browser_worker_smoke.py` for browser/Web Worker deployments

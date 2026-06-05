@@ -89,6 +89,11 @@ PYTHONPATH=src python -m benchmarks.formal_symbolic_evidence
 PYTHONPATH=src python -m benchmarks.sustained_load_evidence
 ```
 
+Customer Model Factory promotion also requires the formal-symbolic packet URI,
+external Lean proof URI, actual Z3 release packet URI, domain contracts URI,
+code-contract packet URI, verification flags, operator sign-off, and evidence
+hash in the release gate.
+
 ```bash
 pip install director-ai[nli,vector,embeddings,openai]
 ```

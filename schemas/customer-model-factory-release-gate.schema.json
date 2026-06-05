@@ -25,6 +25,7 @@
     "federated_privacy_evidence",
     "edge_mobile_evidence",
     "auto_redteam_defence_evidence",
+    "formal_symbolic_evidence",
     "deployment_hardening_evidence",
     "blockers",
     "release_hash"
@@ -602,6 +603,85 @@
           "type": "boolean"
         },
         "rollback_plan_verified": {
+          "type": "boolean"
+        },
+        "evidence_hash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      }
+    },
+    "formal_symbolic_evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ready",
+        "environment",
+        "formal_symbolic_packet_uri",
+        "external_lean_proof_uri",
+        "z3_release_packet_uri",
+        "domain_contracts_uri",
+        "code_contract_packet_uri",
+        "operator_signoff_uri",
+        "dpll_formula_guard_verified",
+        "lean_external_run_verified",
+        "z3_actual_run_verified",
+        "code_contract_ordering_verified",
+        "tenant_safe_serialisation_verified",
+        "domain_contracts_verified",
+        "evidence_hash"
+      ],
+      "properties": {
+        "ready": {
+          "type": "boolean"
+        },
+        "environment": {
+          "type": "string",
+          "enum": [
+            "staging",
+            "production"
+          ]
+        },
+        "formal_symbolic_packet_uri": {
+          "type": "string",
+          "minLength": 1
+        },
+        "external_lean_proof_uri": {
+          "type": "string",
+          "minLength": 1
+        },
+        "z3_release_packet_uri": {
+          "type": "string",
+          "minLength": 1
+        },
+        "domain_contracts_uri": {
+          "type": "string",
+          "minLength": 1
+        },
+        "code_contract_packet_uri": {
+          "type": "string",
+          "minLength": 1
+        },
+        "operator_signoff_uri": {
+          "type": "string",
+          "minLength": 1
+        },
+        "dpll_formula_guard_verified": {
+          "type": "boolean"
+        },
+        "lean_external_run_verified": {
+          "type": "boolean"
+        },
+        "z3_actual_run_verified": {
+          "type": "boolean"
+        },
+        "code_contract_ordering_verified": {
+          "type": "boolean"
+        },
+        "tenant_safe_serialisation_verified": {
+          "type": "boolean"
+        },
+        "domain_contracts_verified": {
           "type": "boolean"
         },
         "evidence_hash": {

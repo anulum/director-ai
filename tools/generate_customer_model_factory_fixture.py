@@ -41,6 +41,7 @@ from director_ai.core.customer_model_factory.release_gate import (
     DeploymentHardeningEvidence,
     EdgeMobileEvidence,
     FederatedPrivacyEvidence,
+    FormalSymbolicEvidence,
     MultimodalTemporalEvidence,
     ObservabilityOperationsEvidence,
     ProvenanceLineageEvidence,
@@ -317,6 +318,23 @@ def _build_manifests() -> dict[str, dict]:
         rollback_plan_verified=True,
         evidence_hash="8" * 64,
     )
+    formal_symbolic_evidence = FormalSymbolicEvidence(
+        ready=True,
+        environment="staging",
+        formal_symbolic_packet_uri="gs://customer-artifacts/customer-alpha/formal/formal-symbolic-evidence.json",
+        external_lean_proof_uri="gs://customer-artifacts/customer-alpha/formal/external-lean-proof.json",
+        z3_release_packet_uri="gs://customer-artifacts/customer-alpha/formal/z3-release-packet.json",
+        domain_contracts_uri="gs://customer-artifacts/customer-alpha/formal/domain-contracts.json",
+        code_contract_packet_uri="gs://customer-artifacts/customer-alpha/formal/code-contract-packet.json",
+        operator_signoff_uri="gs://customer-artifacts/customer-alpha/signoff/r16.json",
+        dpll_formula_guard_verified=True,
+        lean_external_run_verified=True,
+        z3_actual_run_verified=True,
+        code_contract_ordering_verified=True,
+        tenant_safe_serialisation_verified=True,
+        domain_contracts_verified=True,
+        evidence_hash="9" * 64,
+    )
     deployment_hardening_evidence = DeploymentHardeningEvidence(
         ready=True,
         environment="staging",
@@ -344,6 +362,7 @@ def _build_manifests() -> dict[str, dict]:
         federated_privacy_evidence=federated_privacy_evidence,
         edge_mobile_evidence=edge_mobile_evidence,
         auto_redteam_defence_evidence=auto_redteam_defence_evidence,
+        formal_symbolic_evidence=formal_symbolic_evidence,
         deployment_hardening_evidence=deployment_hardening_evidence,
         generated_at=GENERATED_AT,
     )
@@ -370,6 +389,7 @@ def _build_manifests() -> dict[str, dict]:
         "auto_redteam_defence_evidence.json": (
             auto_redteam_defence_evidence.to_dict()
         ),
+        "formal_symbolic_evidence.json": formal_symbolic_evidence.to_dict(),
         "deployment_hardening_evidence.json": deployment_hardening_evidence.to_dict(),
         "enterprise_readiness.json": enterprise_readiness,
         "release_gate.json": release_gate.to_dict(),
