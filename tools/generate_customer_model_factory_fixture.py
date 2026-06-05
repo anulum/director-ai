@@ -38,6 +38,7 @@ from director_ai.core.customer_model_factory.monitoring_manifest import (
 from director_ai.core.customer_model_factory.release_gate import (
     ConformalRoutingEvidence,
     DeploymentHardeningEvidence,
+    MultimodalTemporalEvidence,
     ObservabilityOperationsEvidence,
     ProvenanceLineageEvidence,
     TrajectoryRollbackEvidence,
@@ -249,6 +250,20 @@ def _build_manifests() -> dict[str, dict]:
         tenant_safe_audit_verified=True,
         evidence_hash="4" * 64,
     )
+    multimodal_temporal_evidence = MultimodalTemporalEvidence(
+        ready=True,
+        environment="staging",
+        vision_nli_benchmark_uri="gs://customer-artifacts/customer-alpha/multimodal/vision-nli-benchmark.json",
+        video_frame_validation_uri="gs://customer-artifacts/customer-alpha/multimodal/video-frame-validation.json",
+        modality_coverage_uri="gs://customer-artifacts/customer-alpha/multimodal/modality-coverage.json",
+        operator_signoff_uri="gs://customer-artifacts/customer-alpha/signoff/r12.json",
+        image_guard_verified=True,
+        audio_guard_verified=True,
+        video_temporal_verified=True,
+        caption_grounding_verified=True,
+        deployment_modalities_covered=True,
+        evidence_hash="5" * 64,
+    )
     deployment_hardening_evidence = DeploymentHardeningEvidence(
         ready=True,
         environment="staging",
@@ -272,6 +287,7 @@ def _build_manifests() -> dict[str, dict]:
         provenance_lineage_evidence=provenance_lineage_evidence,
         conformal_routing_evidence=conformal_routing_evidence,
         trajectory_rollback_evidence=trajectory_rollback_evidence,
+        multimodal_temporal_evidence=multimodal_temporal_evidence,
         deployment_hardening_evidence=deployment_hardening_evidence,
         generated_at=GENERATED_AT,
     )
@@ -292,6 +308,7 @@ def _build_manifests() -> dict[str, dict]:
         "provenance_lineage_evidence.json": provenance_lineage_evidence.to_dict(),
         "conformal_routing_evidence.json": conformal_routing_evidence.to_dict(),
         "trajectory_rollback_evidence.json": trajectory_rollback_evidence.to_dict(),
+        "multimodal_temporal_evidence.json": multimodal_temporal_evidence.to_dict(),
         "deployment_hardening_evidence.json": deployment_hardening_evidence.to_dict(),
         "enterprise_readiness.json": enterprise_readiness,
         "release_gate.json": release_gate.to_dict(),

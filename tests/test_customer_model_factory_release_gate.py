@@ -22,6 +22,7 @@ from director_ai.core.customer_model_factory.monitoring_manifest import (
 from director_ai.core.customer_model_factory.release_gate import (
     ConformalRoutingEvidence,
     DeploymentHardeningEvidence,
+    MultimodalTemporalEvidence,
     ObservabilityOperationsEvidence,
     ProvenanceLineageEvidence,
     TrajectoryRollbackEvidence,
@@ -225,6 +226,23 @@ def _trajectory_rollback_evidence() -> TrajectoryRollbackEvidence:
     )
 
 
+def _multimodal_temporal_evidence() -> MultimodalTemporalEvidence:
+    return MultimodalTemporalEvidence(
+        ready=True,
+        environment="staging",
+        vision_nli_benchmark_uri="gs://customer-artifacts/customer-alpha/multimodal/vision-nli-benchmark.json",
+        video_frame_validation_uri="gs://customer-artifacts/customer-alpha/multimodal/video-frame-validation.json",
+        modality_coverage_uri="gs://customer-artifacts/customer-alpha/multimodal/modality-coverage.json",
+        operator_signoff_uri="gs://customer-artifacts/customer-alpha/signoff/r12.json",
+        image_guard_verified=True,
+        audio_guard_verified=True,
+        video_temporal_verified=True,
+        caption_grounding_verified=True,
+        deployment_modalities_covered=True,
+        evidence_hash="5" * 64,
+    )
+
+
 def test_release_gate_allows_promotion_when_all_artifacts_are_ready():
     gate = build_release_gate_manifest(
         release_id="release-customer-alpha-20260518",
@@ -238,6 +256,7 @@ def test_release_gate_allows_promotion_when_all_artifacts_are_ready():
         provenance_lineage_evidence=_provenance_lineage_evidence(),
         conformal_routing_evidence=_conformal_routing_evidence(),
         trajectory_rollback_evidence=_trajectory_rollback_evidence(),
+        multimodal_temporal_evidence=_multimodal_temporal_evidence(),
         deployment_hardening_evidence=_deployment_hardening_evidence(),
         generated_at="2026-05-18T18:35:00Z",
     )
@@ -254,6 +273,7 @@ def test_release_gate_allows_promotion_when_all_artifacts_are_ready():
     assert gate.provenance_lineage_evidence.lineage_matches_deployed_facts is True
     assert gate.conformal_routing_evidence.escalation_route == "human_review"
     assert gate.trajectory_rollback_evidence.rollback_hook_verified is True
+    assert gate.multimodal_temporal_evidence.video_temporal_verified is True
     assert gate.deployment_hardening_evidence.tenant_poisoning_passed is True
     assert len(gate.release_hash) == 64
 
@@ -271,6 +291,7 @@ def test_release_gate_blocks_enterprise_trust_debt():
         provenance_lineage_evidence=_provenance_lineage_evidence(),
         conformal_routing_evidence=_conformal_routing_evidence(),
         trajectory_rollback_evidence=_trajectory_rollback_evidence(),
+        multimodal_temporal_evidence=_multimodal_temporal_evidence(),
         deployment_hardening_evidence=_deployment_hardening_evidence(),
         generated_at="2026-05-18T18:35:00Z",
     )
@@ -304,6 +325,7 @@ def test_release_gate_blocks_not_ready_required_artifacts():
         provenance_lineage_evidence=_provenance_lineage_evidence(),
         conformal_routing_evidence=_conformal_routing_evidence(),
         trajectory_rollback_evidence=_trajectory_rollback_evidence(),
+        multimodal_temporal_evidence=_multimodal_temporal_evidence(),
         deployment_hardening_evidence=_deployment_hardening_evidence(),
         generated_at="2026-05-18T18:35:00Z",
     )
@@ -356,6 +378,7 @@ def test_release_gate_blocks_missing_release_identity_and_all_not_ready_artifact
         provenance_lineage_evidence=_provenance_lineage_evidence(),
         conformal_routing_evidence=_conformal_routing_evidence(),
         trajectory_rollback_evidence=_trajectory_rollback_evidence(),
+        multimodal_temporal_evidence=_multimodal_temporal_evidence(),
         deployment_hardening_evidence=_deployment_hardening_evidence(),
         generated_at=" ",
     )
@@ -396,6 +419,7 @@ def test_release_gate_blocks_missing_observability_operations_evidence():
         provenance_lineage_evidence=_provenance_lineage_evidence(),
         conformal_routing_evidence=_conformal_routing_evidence(),
         trajectory_rollback_evidence=_trajectory_rollback_evidence(),
+        multimodal_temporal_evidence=_multimodal_temporal_evidence(),
         deployment_hardening_evidence=_deployment_hardening_evidence(),
         generated_at="2026-05-18T18:35:00Z",
     )
@@ -447,6 +471,7 @@ def test_release_gate_blocks_missing_provenance_lineage_evidence():
         provenance_lineage_evidence=evidence,
         conformal_routing_evidence=_conformal_routing_evidence(),
         trajectory_rollback_evidence=_trajectory_rollback_evidence(),
+        multimodal_temporal_evidence=_multimodal_temporal_evidence(),
         deployment_hardening_evidence=_deployment_hardening_evidence(),
         generated_at="2026-05-18T18:35:00Z",
     )
@@ -501,6 +526,7 @@ def test_release_gate_blocks_missing_conformal_routing_evidence():
         provenance_lineage_evidence=_provenance_lineage_evidence(),
         conformal_routing_evidence=evidence,
         trajectory_rollback_evidence=_trajectory_rollback_evidence(),
+        multimodal_temporal_evidence=_multimodal_temporal_evidence(),
         deployment_hardening_evidence=_deployment_hardening_evidence(),
         generated_at="2026-05-18T18:35:00Z",
     )
@@ -556,6 +582,7 @@ def test_release_gate_blocks_missing_trajectory_rollback_evidence():
         provenance_lineage_evidence=_provenance_lineage_evidence(),
         conformal_routing_evidence=_conformal_routing_evidence(),
         trajectory_rollback_evidence=evidence,
+        multimodal_temporal_evidence=_multimodal_temporal_evidence(),
         deployment_hardening_evidence=_deployment_hardening_evidence(),
         generated_at="2026-05-18T18:35:00Z",
     )
@@ -580,6 +607,64 @@ def test_trajectory_rollback_evidence_round_trips_from_json_safe_dict():
     evidence = _trajectory_rollback_evidence()
 
     restored = TrajectoryRollbackEvidence.from_dict(evidence.to_dict())
+
+    assert restored == evidence
+
+
+def test_release_gate_blocks_missing_multimodal_temporal_evidence():
+    evidence = MultimodalTemporalEvidence(
+        ready=False,
+        environment="local",
+        vision_nli_benchmark_uri="",
+        video_frame_validation_uri="",
+        modality_coverage_uri="",
+        operator_signoff_uri="",
+        image_guard_verified=False,
+        audio_guard_verified=False,
+        video_temporal_verified=False,
+        caption_grounding_verified=False,
+        deployment_modalities_covered=False,
+        evidence_hash="not-a-sha",
+    )
+
+    gate = build_release_gate_manifest(
+        release_id="release-customer-alpha-r12-blocked",
+        enterprise_ready=True,
+        enterprise_blocking_debt_ids=(),
+        runtime_package=_runtime_package(),
+        evidence_pack=_evidence_pack(),
+        monitoring_manifest=_monitoring_manifest(),
+        risk_register=_risk_register(),
+        observability_operations_evidence=_observability_operations_evidence(),
+        provenance_lineage_evidence=_provenance_lineage_evidence(),
+        conformal_routing_evidence=_conformal_routing_evidence(),
+        trajectory_rollback_evidence=_trajectory_rollback_evidence(),
+        multimodal_temporal_evidence=evidence,
+        deployment_hardening_evidence=_deployment_hardening_evidence(),
+        generated_at="2026-05-18T18:35:00Z",
+    )
+
+    assert gate.ready is False
+    assert {blocker["code"] for blocker in gate.blockers} >= {
+        "multimodal_temporal_not_ready",
+        "multimodal_temporal_environment_invalid",
+        "multimodal_vision_nli_benchmark_missing",
+        "multimodal_video_validation_missing",
+        "multimodal_modality_coverage_missing",
+        "multimodal_operator_signoff_missing",
+        "multimodal_image_guard_unverified",
+        "multimodal_audio_guard_unverified",
+        "multimodal_video_temporal_unverified",
+        "multimodal_caption_grounding_unverified",
+        "multimodal_deployment_coverage_missing",
+        "multimodal_evidence_hash_invalid",
+    }
+
+
+def test_multimodal_temporal_evidence_round_trips_from_json_safe_dict():
+    evidence = _multimodal_temporal_evidence()
+
+    restored = MultimodalTemporalEvidence.from_dict(evidence.to_dict())
 
     assert restored == evidence
 
@@ -609,6 +694,7 @@ def test_release_gate_blocks_missing_deployment_hardening_evidence():
         provenance_lineage_evidence=_provenance_lineage_evidence(),
         conformal_routing_evidence=_conformal_routing_evidence(),
         trajectory_rollback_evidence=_trajectory_rollback_evidence(),
+        multimodal_temporal_evidence=_multimodal_temporal_evidence(),
         deployment_hardening_evidence=evidence,
         generated_at="2026-05-18T18:35:00Z",
     )
@@ -653,6 +739,7 @@ def test_release_gate_blocks_customer_boundary_mismatch():
         provenance_lineage_evidence=_provenance_lineage_evidence(),
         conformal_routing_evidence=_conformal_routing_evidence(),
         trajectory_rollback_evidence=_trajectory_rollback_evidence(),
+        multimodal_temporal_evidence=_multimodal_temporal_evidence(),
         deployment_hardening_evidence=_deployment_hardening_evidence(),
         generated_at="2026-05-18T18:35:00Z",
     )
@@ -700,6 +787,7 @@ def test_release_gate_blocks_cross_artifact_boundary_and_hash_mismatches():
         provenance_lineage_evidence=_provenance_lineage_evidence(),
         conformal_routing_evidence=_conformal_routing_evidence(),
         trajectory_rollback_evidence=_trajectory_rollback_evidence(),
+        multimodal_temporal_evidence=_multimodal_temporal_evidence(),
         deployment_hardening_evidence=_deployment_hardening_evidence(),
         generated_at="2026-05-18T18:35:00Z",
     )
@@ -729,6 +817,7 @@ def test_release_gate_serialises_deterministically(tmp_path: Path):
         provenance_lineage_evidence=_provenance_lineage_evidence(),
         conformal_routing_evidence=_conformal_routing_evidence(),
         trajectory_rollback_evidence=_trajectory_rollback_evidence(),
+        multimodal_temporal_evidence=_multimodal_temporal_evidence(),
         deployment_hardening_evidence=_deployment_hardening_evidence(),
         generated_at="2026-05-18T18:35:00Z",
     )
@@ -749,6 +838,9 @@ def test_release_gate_serialises_deterministically(tmp_path: Path):
     assert payload["trajectory_rollback_evidence"][
         "live_undo_backend_uri"
     ].endswith("/trajectory/live-undo-backend.json")
+    assert payload["multimodal_temporal_evidence"][
+        "video_frame_validation_uri"
+    ].endswith("/multimodal/video-frame-validation.json")
     assert payload["deployment_hardening_evidence"]["telemetry_uri"].endswith(
         "/telemetry/r17.jsonl"
     )
@@ -769,6 +861,7 @@ def test_release_gate_schema_is_machine_readable():
         "provenance_lineage_evidence",
         "conformal_routing_evidence",
         "trajectory_rollback_evidence",
+        "multimodal_temporal_evidence",
         "deployment_hardening_evidence",
         "blockers",
         "release_hash",

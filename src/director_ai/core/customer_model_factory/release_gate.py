@@ -282,6 +282,63 @@ class TrajectoryRollbackEvidence:
 
 
 @dataclass(frozen=True)
+class MultimodalTemporalEvidence:
+    """Multimodal and temporal consistency evidence attached to a release gate."""
+
+    ready: bool
+    environment: str
+    vision_nli_benchmark_uri: str
+    video_frame_validation_uri: str
+    modality_coverage_uri: str
+    operator_signoff_uri: str
+    image_guard_verified: bool
+    audio_guard_verified: bool
+    video_temporal_verified: bool
+    caption_grounding_verified: bool
+    deployment_modalities_covered: bool
+    evidence_hash: str
+
+    def to_dict(self) -> dict[str, Any]:
+        """Serialise multimodal temporal evidence to JSON-safe data."""
+
+        return {
+            "ready": self.ready,
+            "environment": self.environment,
+            "vision_nli_benchmark_uri": self.vision_nli_benchmark_uri,
+            "video_frame_validation_uri": self.video_frame_validation_uri,
+            "modality_coverage_uri": self.modality_coverage_uri,
+            "operator_signoff_uri": self.operator_signoff_uri,
+            "image_guard_verified": self.image_guard_verified,
+            "audio_guard_verified": self.audio_guard_verified,
+            "video_temporal_verified": self.video_temporal_verified,
+            "caption_grounding_verified": self.caption_grounding_verified,
+            "deployment_modalities_covered": self.deployment_modalities_covered,
+            "evidence_hash": self.evidence_hash,
+        }
+
+    @classmethod
+    def from_dict(cls, payload: dict[str, Any]) -> MultimodalTemporalEvidence:
+        """Rebuild multimodal temporal evidence from JSON-safe data."""
+
+        return cls(
+            ready=bool(payload["ready"]),
+            environment=str(payload["environment"]),
+            vision_nli_benchmark_uri=str(payload["vision_nli_benchmark_uri"]),
+            video_frame_validation_uri=str(payload["video_frame_validation_uri"]),
+            modality_coverage_uri=str(payload["modality_coverage_uri"]),
+            operator_signoff_uri=str(payload["operator_signoff_uri"]),
+            image_guard_verified=bool(payload["image_guard_verified"]),
+            audio_guard_verified=bool(payload["audio_guard_verified"]),
+            video_temporal_verified=bool(payload["video_temporal_verified"]),
+            caption_grounding_verified=bool(payload["caption_grounding_verified"]),
+            deployment_modalities_covered=bool(
+                payload["deployment_modalities_covered"]
+            ),
+            evidence_hash=str(payload["evidence_hash"]),
+        )
+
+
+@dataclass(frozen=True)
 class CustomerReleaseGateManifest:
     """Release-promotion gate across factory readiness artefacts."""
 
@@ -301,6 +358,7 @@ class CustomerReleaseGateManifest:
     provenance_lineage_evidence: ProvenanceLineageEvidence
     conformal_routing_evidence: ConformalRoutingEvidence
     trajectory_rollback_evidence: TrajectoryRollbackEvidence
+    multimodal_temporal_evidence: MultimodalTemporalEvidence
     deployment_hardening_evidence: DeploymentHardeningEvidence
     blockers: tuple[dict[str, str], ...]
     release_hash: str
@@ -330,6 +388,9 @@ class CustomerReleaseGateManifest:
             "conformal_routing_evidence": self.conformal_routing_evidence.to_dict(),
             "trajectory_rollback_evidence": (
                 self.trajectory_rollback_evidence.to_dict()
+            ),
+            "multimodal_temporal_evidence": (
+                self.multimodal_temporal_evidence.to_dict()
             ),
             "deployment_hardening_evidence": (
                 self.deployment_hardening_evidence.to_dict()
@@ -362,6 +423,7 @@ def build_release_gate_manifest(
     provenance_lineage_evidence: ProvenanceLineageEvidence,
     conformal_routing_evidence: ConformalRoutingEvidence,
     trajectory_rollback_evidence: TrajectoryRollbackEvidence,
+    multimodal_temporal_evidence: MultimodalTemporalEvidence,
     deployment_hardening_evidence: DeploymentHardeningEvidence,
     generated_at: str,
 ) -> CustomerReleaseGateManifest:
@@ -385,6 +447,7 @@ def build_release_gate_manifest(
         provenance_lineage_evidence=provenance_lineage_evidence,
         conformal_routing_evidence=conformal_routing_evidence,
         trajectory_rollback_evidence=trajectory_rollback_evidence,
+        multimodal_temporal_evidence=multimodal_temporal_evidence,
         deployment_hardening_evidence=deployment_hardening_evidence,
         generated_at=generated_at,
     )
@@ -405,6 +468,7 @@ def build_release_gate_manifest(
             "provenance_lineage_evidence": provenance_lineage_evidence.to_dict(),
             "conformal_routing_evidence": conformal_routing_evidence.to_dict(),
             "trajectory_rollback_evidence": trajectory_rollback_evidence.to_dict(),
+            "multimodal_temporal_evidence": multimodal_temporal_evidence.to_dict(),
             "deployment_hardening_evidence": deployment_hardening_evidence.to_dict(),
             "blockers": blockers,
         }
@@ -427,6 +491,7 @@ def build_release_gate_manifest(
         provenance_lineage_evidence=provenance_lineage_evidence,
         conformal_routing_evidence=conformal_routing_evidence,
         trajectory_rollback_evidence=trajectory_rollback_evidence,
+        multimodal_temporal_evidence=multimodal_temporal_evidence,
         deployment_hardening_evidence=deployment_hardening_evidence,
         blockers=tuple(blockers),
         release_hash=release_hash,
@@ -461,6 +526,7 @@ def _collect_blockers(
     provenance_lineage_evidence: ProvenanceLineageEvidence,
     conformal_routing_evidence: ConformalRoutingEvidence,
     trajectory_rollback_evidence: TrajectoryRollbackEvidence,
+    multimodal_temporal_evidence: MultimodalTemporalEvidence,
     deployment_hardening_evidence: DeploymentHardeningEvidence,
     generated_at: str,
 ) -> list[dict[str, str]]:
@@ -486,6 +552,7 @@ def _collect_blockers(
     _extend_provenance_lineage_blockers(provenance_lineage_evidence, blockers)
     _extend_conformal_routing_blockers(conformal_routing_evidence, blockers)
     _extend_trajectory_rollback_blockers(trajectory_rollback_evidence, blockers)
+    _extend_multimodal_temporal_blockers(multimodal_temporal_evidence, blockers)
     _extend_deployment_hardening_blockers(deployment_hardening_evidence, blockers)
     _extend_boundary_blockers(
         runtime_package, evidence_pack, monitoring_manifest, risk_register, blockers
@@ -758,6 +825,76 @@ def _extend_trajectory_rollback_blockers(
             _blocker(
                 "trajectory_evidence_hash_invalid",
                 "trajectory evidence_hash must be a sha256 hex digest",
+            )
+        )
+
+
+def _extend_multimodal_temporal_blockers(
+    evidence: MultimodalTemporalEvidence,
+    blockers: list[dict[str, str]],
+) -> None:
+    if not evidence.ready:
+        blockers.append(
+            _blocker(
+                "multimodal_temporal_not_ready",
+                "multimodal temporal evidence is not ready",
+            )
+        )
+    if evidence.environment.strip().lower() not in {"staging", "production"}:
+        blockers.append(
+            _blocker(
+                "multimodal_temporal_environment_invalid",
+                "multimodal temporal evidence must come from staging or production",
+            )
+        )
+    for field, code in (
+        ("vision_nli_benchmark_uri", "multimodal_vision_nli_benchmark_missing"),
+        ("video_frame_validation_uri", "multimodal_video_validation_missing"),
+        ("modality_coverage_uri", "multimodal_modality_coverage_missing"),
+        ("operator_signoff_uri", "multimodal_operator_signoff_missing"),
+    ):
+        if not getattr(evidence, field).strip():
+            blockers.append(_blocker(code, f"{field} is required"))
+    if not evidence.image_guard_verified:
+        blockers.append(
+            _blocker(
+                "multimodal_image_guard_unverified",
+                "image guard validation is not verified",
+            )
+        )
+    if not evidence.audio_guard_verified:
+        blockers.append(
+            _blocker(
+                "multimodal_audio_guard_unverified",
+                "audio guard validation is not verified",
+            )
+        )
+    if not evidence.video_temporal_verified:
+        blockers.append(
+            _blocker(
+                "multimodal_video_temporal_unverified",
+                "video temporal consistency validation is not verified",
+            )
+        )
+    if not evidence.caption_grounding_verified:
+        blockers.append(
+            _blocker(
+                "multimodal_caption_grounding_unverified",
+                "caption grounding validation is not verified",
+            )
+        )
+    if not evidence.deployment_modalities_covered:
+        blockers.append(
+            _blocker(
+                "multimodal_deployment_coverage_missing",
+                "deployment-specific modality coverage is missing",
+            )
+        )
+    if not _is_sha256(evidence.evidence_hash):
+        blockers.append(
+            _blocker(
+                "multimodal_evidence_hash_invalid",
+                "multimodal evidence_hash must be a sha256 hex digest",
             )
         )
 

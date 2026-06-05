@@ -21,6 +21,7 @@
     "provenance_lineage_evidence",
     "conformal_routing_evidence",
     "trajectory_rollback_evidence",
+    "multimodal_temporal_evidence",
     "deployment_hardening_evidence",
     "blockers",
     "release_hash"
@@ -298,6 +299,71 @@
           "type": "boolean"
         },
         "tenant_safe_audit_verified": {
+          "type": "boolean"
+        },
+        "evidence_hash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      }
+    },
+    "multimodal_temporal_evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ready",
+        "environment",
+        "vision_nli_benchmark_uri",
+        "video_frame_validation_uri",
+        "modality_coverage_uri",
+        "operator_signoff_uri",
+        "image_guard_verified",
+        "audio_guard_verified",
+        "video_temporal_verified",
+        "caption_grounding_verified",
+        "deployment_modalities_covered",
+        "evidence_hash"
+      ],
+      "properties": {
+        "ready": {
+          "type": "boolean"
+        },
+        "environment": {
+          "type": "string",
+          "enum": [
+            "staging",
+            "production"
+          ]
+        },
+        "vision_nli_benchmark_uri": {
+          "type": "string",
+          "minLength": 1
+        },
+        "video_frame_validation_uri": {
+          "type": "string",
+          "minLength": 1
+        },
+        "modality_coverage_uri": {
+          "type": "string",
+          "minLength": 1
+        },
+        "operator_signoff_uri": {
+          "type": "string",
+          "minLength": 1
+        },
+        "image_guard_verified": {
+          "type": "boolean"
+        },
+        "audio_guard_verified": {
+          "type": "boolean"
+        },
+        "video_temporal_verified": {
+          "type": "boolean"
+        },
+        "caption_grounding_verified": {
+          "type": "boolean"
+        },
+        "deployment_modalities_covered": {
           "type": "boolean"
         },
         "evidence_hash": {

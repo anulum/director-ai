@@ -357,6 +357,13 @@ requires external Vision-NLI or equivalent benchmark evidence, real video/frame
 model validation, and operator sign-off for deployment-specific modality
 coverage.
 
+Customer Model Factory release promotion also requires
+`MultimodalTemporalEvidence` with the Vision-NLI or equivalent benchmark URI,
+real video/frame validation URI, deployment modality coverage URI, image guard
+verification flag, audio guard verification flag, video temporal verification
+flag, caption-grounding verification flag, operator sign-off, and evidence
+hash.
+
 ## Federated Privacy Evidence
 
 For the R13 privacy-preserving federation gate, generate an evidence packet that

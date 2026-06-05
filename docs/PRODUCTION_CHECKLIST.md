@@ -172,6 +172,10 @@ export DIRECTOR_PRODUCTION_MODE=true
       sign-off URI.
 - [ ] Generate multimodal temporal evidence:
       `PYTHONPATH=src python -m benchmarks.multimodal_temporal_evidence`
+- [ ] Attach multimodal temporal evidence to the Customer Model Factory release
+      gate with the Vision-NLI or equivalent benchmark URI, real video/frame
+      validation URI, modality coverage URI, image/audio/video-temporal guard
+      verification, caption-grounding verification, and operator sign-off URI.
 - [ ] Generate federated privacy evidence:
       `PYTHONPATH=src python -m benchmarks.federated_privacy_evidence`
 - [ ] Generate auto-redteam defence evidence:

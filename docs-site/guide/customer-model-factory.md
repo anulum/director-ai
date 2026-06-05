@@ -81,6 +81,7 @@ PYTHONPATH=src python tools/assemble_customer_model_factory_release.py \
   --provenance-lineage-evidence /tmp/director-ai-cmf-fixture/provenance_lineage_evidence.json \
   --conformal-routing-evidence /tmp/director-ai-cmf-fixture/conformal_routing_evidence.json \
   --trajectory-rollback-evidence /tmp/director-ai-cmf-fixture/trajectory_rollback_evidence.json \
+  --multimodal-temporal-evidence /tmp/director-ai-cmf-fixture/multimodal_temporal_evidence.json \
   --deployment-hardening-evidence /tmp/director-ai-cmf-fixture/deployment_hardening_evidence.json \
   --output /tmp/director-ai-cmf-fixture/release_gate.json
 ```
@@ -99,6 +100,10 @@ Trajectory rollback evidence must include simulation evidence, live undo
 backend evidence, adversarial stress evidence, incident/change-management
 record linkage, verified rollback hook, idempotency check, tenant-safe audit
 check, and operator sign-off.
+Multimodal temporal evidence must include Vision-NLI or equivalent benchmark
+evidence, real video/frame validation, deployment modality coverage, image,
+audio, video-temporal, and caption-grounding verification flags, and operator
+sign-off.
 Deployment-hardening evidence must likewise include archived telemetry, the
 sustained-load packet, async-ordering and tenant-poisoning pass flags, and
 operator sign-off.
