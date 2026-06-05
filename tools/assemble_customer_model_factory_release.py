@@ -24,6 +24,7 @@ from director_ai.core.customer_model_factory.monitoring_manifest import (
 from director_ai.core.customer_model_factory.release_gate import (
     DeploymentHardeningEvidence,
     ObservabilityOperationsEvidence,
+    ProvenanceLineageEvidence,
     build_release_gate_manifest,
 )
 from director_ai.core.customer_model_factory.risk_register import CustomerRiskRegister
@@ -44,6 +45,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--monitoring-manifest", type=Path, required=True)
     parser.add_argument("--risk-register", type=Path, required=True)
     parser.add_argument("--observability-operations-evidence", type=Path, required=True)
+    parser.add_argument("--provenance-lineage-evidence", type=Path, required=True)
     parser.add_argument("--deployment-hardening-evidence", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args(argv)
@@ -65,6 +67,9 @@ def main(argv: list[str] | None = None) -> int:
         risk_register=CustomerRiskRegister.from_dict(_read_json(args.risk_register)),
         observability_operations_evidence=ObservabilityOperationsEvidence.from_dict(
             _read_json(args.observability_operations_evidence)
+        ),
+        provenance_lineage_evidence=ProvenanceLineageEvidence.from_dict(
+            _read_json(args.provenance_lineage_evidence)
         ),
         deployment_hardening_evidence=DeploymentHardeningEvidence.from_dict(
             _read_json(args.deployment_hardening_evidence)

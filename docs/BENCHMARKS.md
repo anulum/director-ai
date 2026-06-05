@@ -279,6 +279,10 @@ Outputs:
 Passing this packet is local evidence only. Closing the online KB evolution gate
 still requires an operator-owned feedback loop, archived deployment evidence,
 and sign-off that the exported lineage packet matches the live tenant KB.
+Customer Model Factory release promotion also requires
+`ProvenanceLineageEvidence` with the archived feedback-loop run, signed lineage
+packet, tenant KB snapshot, deployed-fact match flag, protected-claim conflict
+resolution flag, operator sign-off, and evidence hash.
 
 ## Conformal Routing Evidence
 

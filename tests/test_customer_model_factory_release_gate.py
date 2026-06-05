@@ -22,6 +22,7 @@ from director_ai.core.customer_model_factory.monitoring_manifest import (
 from director_ai.core.customer_model_factory.release_gate import (
     DeploymentHardeningEvidence,
     ObservabilityOperationsEvidence,
+    ProvenanceLineageEvidence,
     build_release_gate_manifest,
 )
 from director_ai.core.customer_model_factory.risk_register import (
@@ -175,6 +176,20 @@ def _observability_operations_evidence() -> ObservabilityOperationsEvidence:
     )
 
 
+def _provenance_lineage_evidence() -> ProvenanceLineageEvidence:
+    return ProvenanceLineageEvidence(
+        ready=True,
+        environment="staging",
+        feedback_loop_run_uri="gs://customer-artifacts/customer-alpha/provenance/live-feedback-run.json",
+        signed_lineage_packet_uri="gs://customer-artifacts/customer-alpha/provenance/signed-lineage.json",
+        tenant_kb_snapshot_uri="gs://customer-artifacts/customer-alpha/provenance/tenant-kb-snapshot.json",
+        operator_signoff_uri="gs://customer-artifacts/customer-alpha/signoff/r9.json",
+        lineage_matches_deployed_facts=True,
+        protected_claim_conflicts_resolved=True,
+        evidence_hash="2" * 64,
+    )
+
+
 def test_release_gate_allows_promotion_when_all_artifacts_are_ready():
     gate = build_release_gate_manifest(
         release_id="release-customer-alpha-20260518",
@@ -185,6 +200,7 @@ def test_release_gate_allows_promotion_when_all_artifacts_are_ready():
         monitoring_manifest=_monitoring_manifest(),
         risk_register=_risk_register(),
         observability_operations_evidence=_observability_operations_evidence(),
+        provenance_lineage_evidence=_provenance_lineage_evidence(),
         deployment_hardening_evidence=_deployment_hardening_evidence(),
         generated_at="2026-05-18T18:35:00Z",
     )
@@ -198,6 +214,7 @@ def test_release_gate_allows_promotion_when_all_artifacts_are_ready():
     assert gate.artifact_hashes["monitoring_hash"] == "d" * 64
     assert gate.artifact_hashes["risk_register_hash"] == "e" * 64
     assert gate.observability_operations_evidence.drift_reviewed is True
+    assert gate.provenance_lineage_evidence.lineage_matches_deployed_facts is True
     assert gate.deployment_hardening_evidence.tenant_poisoning_passed is True
     assert len(gate.release_hash) == 64
 
@@ -212,6 +229,7 @@ def test_release_gate_blocks_enterprise_trust_debt():
         monitoring_manifest=_monitoring_manifest(),
         risk_register=_risk_register(),
         observability_operations_evidence=_observability_operations_evidence(),
+        provenance_lineage_evidence=_provenance_lineage_evidence(),
         deployment_hardening_evidence=_deployment_hardening_evidence(),
         generated_at="2026-05-18T18:35:00Z",
     )
@@ -242,6 +260,7 @@ def test_release_gate_blocks_not_ready_required_artifacts():
         monitoring_manifest=_monitoring_manifest(),
         risk_register=risk_register,
         observability_operations_evidence=_observability_operations_evidence(),
+        provenance_lineage_evidence=_provenance_lineage_evidence(),
         deployment_hardening_evidence=_deployment_hardening_evidence(),
         generated_at="2026-05-18T18:35:00Z",
     )
@@ -291,6 +310,7 @@ def test_release_gate_blocks_missing_release_identity_and_all_not_ready_artifact
         monitoring_manifest=monitoring,
         risk_register=risk_register,
         observability_operations_evidence=_observability_operations_evidence(),
+        provenance_lineage_evidence=_provenance_lineage_evidence(),
         deployment_hardening_evidence=_deployment_hardening_evidence(),
         generated_at=" ",
     )
@@ -328,6 +348,7 @@ def test_release_gate_blocks_missing_observability_operations_evidence():
         monitoring_manifest=_monitoring_manifest(),
         risk_register=_risk_register(),
         observability_operations_evidence=evidence,
+        provenance_lineage_evidence=_provenance_lineage_evidence(),
         deployment_hardening_evidence=_deployment_hardening_evidence(),
         generated_at="2026-05-18T18:35:00Z",
     )
@@ -354,6 +375,55 @@ def test_observability_operations_evidence_round_trips_from_json_safe_dict():
     assert restored == evidence
 
 
+def test_release_gate_blocks_missing_provenance_lineage_evidence():
+    evidence = ProvenanceLineageEvidence(
+        ready=False,
+        environment="local",
+        feedback_loop_run_uri="",
+        signed_lineage_packet_uri="",
+        tenant_kb_snapshot_uri="",
+        operator_signoff_uri="",
+        lineage_matches_deployed_facts=False,
+        protected_claim_conflicts_resolved=False,
+        evidence_hash="not-a-sha",
+    )
+
+    gate = build_release_gate_manifest(
+        release_id="release-customer-alpha-r9-blocked",
+        enterprise_ready=True,
+        enterprise_blocking_debt_ids=(),
+        runtime_package=_runtime_package(),
+        evidence_pack=_evidence_pack(),
+        monitoring_manifest=_monitoring_manifest(),
+        risk_register=_risk_register(),
+        observability_operations_evidence=_observability_operations_evidence(),
+        provenance_lineage_evidence=evidence,
+        deployment_hardening_evidence=_deployment_hardening_evidence(),
+        generated_at="2026-05-18T18:35:00Z",
+    )
+
+    assert gate.ready is False
+    assert {blocker["code"] for blocker in gate.blockers} >= {
+        "provenance_lineage_not_ready",
+        "provenance_lineage_environment_invalid",
+        "provenance_feedback_loop_run_missing",
+        "provenance_signed_lineage_packet_missing",
+        "provenance_tenant_kb_snapshot_missing",
+        "provenance_operator_signoff_missing",
+        "provenance_lineage_mismatch",
+        "provenance_conflicts_unresolved",
+        "provenance_evidence_hash_invalid",
+    }
+
+
+def test_provenance_lineage_evidence_round_trips_from_json_safe_dict():
+    evidence = _provenance_lineage_evidence()
+
+    restored = ProvenanceLineageEvidence.from_dict(evidence.to_dict())
+
+    assert restored == evidence
+
+
 def test_release_gate_blocks_missing_deployment_hardening_evidence():
     evidence = DeploymentHardeningEvidence(
         ready=False,
@@ -376,6 +446,7 @@ def test_release_gate_blocks_missing_deployment_hardening_evidence():
         monitoring_manifest=_monitoring_manifest(),
         risk_register=_risk_register(),
         observability_operations_evidence=_observability_operations_evidence(),
+        provenance_lineage_evidence=_provenance_lineage_evidence(),
         deployment_hardening_evidence=evidence,
         generated_at="2026-05-18T18:35:00Z",
     )
@@ -417,6 +488,7 @@ def test_release_gate_blocks_customer_boundary_mismatch():
         monitoring_manifest=_monitoring_manifest(),
         risk_register=_risk_register(),
         observability_operations_evidence=_observability_operations_evidence(),
+        provenance_lineage_evidence=_provenance_lineage_evidence(),
         deployment_hardening_evidence=_deployment_hardening_evidence(),
         generated_at="2026-05-18T18:35:00Z",
     )
@@ -461,6 +533,7 @@ def test_release_gate_blocks_cross_artifact_boundary_and_hash_mismatches():
         monitoring_manifest=monitoring,
         risk_register=risk_register,
         observability_operations_evidence=_observability_operations_evidence(),
+        provenance_lineage_evidence=_provenance_lineage_evidence(),
         deployment_hardening_evidence=_deployment_hardening_evidence(),
         generated_at="2026-05-18T18:35:00Z",
     )
@@ -487,6 +560,7 @@ def test_release_gate_serialises_deterministically(tmp_path: Path):
         monitoring_manifest=_monitoring_manifest(),
         risk_register=_risk_register(),
         observability_operations_evidence=_observability_operations_evidence(),
+        provenance_lineage_evidence=_provenance_lineage_evidence(),
         deployment_hardening_evidence=_deployment_hardening_evidence(),
         generated_at="2026-05-18T18:35:00Z",
     )
@@ -498,6 +572,9 @@ def test_release_gate_serialises_deterministically(tmp_path: Path):
     assert payload["observability_operations_evidence"][
         "operations_packet_uri"
     ].endswith("/observability/operations-packet.json")
+    assert payload["provenance_lineage_evidence"][
+        "signed_lineage_packet_uri"
+    ].endswith("/provenance/signed-lineage.json")
     assert payload["deployment_hardening_evidence"]["telemetry_uri"].endswith(
         "/telemetry/r17.jsonl"
     )
@@ -515,6 +592,7 @@ def test_release_gate_schema_is_machine_readable():
         "promotion_allowed",
         "artifact_hashes",
         "observability_operations_evidence",
+        "provenance_lineage_evidence",
         "deployment_hardening_evidence",
         "blockers",
         "release_hash",

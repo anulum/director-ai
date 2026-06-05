@@ -18,6 +18,7 @@
     "enterprise_blocking_debt_ids",
     "artifact_hashes",
     "observability_operations_evidence",
+    "provenance_lineage_evidence",
     "deployment_hardening_evidence",
     "blockers",
     "release_hash"
@@ -110,6 +111,59 @@
           "type": "boolean"
         },
         "drift_reviewed": {
+          "type": "boolean"
+        },
+        "evidence_hash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      }
+    },
+    "provenance_lineage_evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ready",
+        "environment",
+        "feedback_loop_run_uri",
+        "signed_lineage_packet_uri",
+        "tenant_kb_snapshot_uri",
+        "operator_signoff_uri",
+        "lineage_matches_deployed_facts",
+        "protected_claim_conflicts_resolved",
+        "evidence_hash"
+      ],
+      "properties": {
+        "ready": {
+          "type": "boolean"
+        },
+        "environment": {
+          "type": "string",
+          "enum": [
+            "staging",
+            "production"
+          ]
+        },
+        "feedback_loop_run_uri": {
+          "type": "string",
+          "minLength": 1
+        },
+        "signed_lineage_packet_uri": {
+          "type": "string",
+          "minLength": 1
+        },
+        "tenant_kb_snapshot_uri": {
+          "type": "string",
+          "minLength": 1
+        },
+        "operator_signoff_uri": {
+          "type": "string",
+          "minLength": 1
+        },
+        "lineage_matches_deployed_facts": {
+          "type": "boolean"
+        },
+        "protected_claim_conflicts_resolved": {
           "type": "boolean"
         },
         "evidence_hash": {

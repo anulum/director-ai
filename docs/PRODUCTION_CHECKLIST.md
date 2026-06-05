@@ -152,6 +152,10 @@ export DIRECTOR_PRODUCTION_MODE=true
 - [ ] For high throughput: `director-ai stress-test --rps 100`
 - [ ] Generate provenance and KB-lineage evidence:
       `PYTHONPATH=src python -m benchmarks.provenance_evidence --fact-count 4`
+- [ ] Attach provenance lineage evidence to the Customer Model Factory release
+      gate with the archived feedback-loop run URI, signed lineage packet URI,
+      tenant KB snapshot URI, deployed-fact match flag, protected-claim conflict
+      resolution flag, and operator sign-off URI.
 - [ ] Generate conformal routing evidence:
       `PYTHONPATH=src python -m benchmarks.conformal_routing_evidence`
 - [ ] Generate trajectory rollback evidence:

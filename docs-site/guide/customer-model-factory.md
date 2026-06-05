@@ -78,6 +78,7 @@ PYTHONPATH=src python tools/assemble_customer_model_factory_release.py \
   --monitoring-manifest /tmp/director-ai-cmf-fixture/monitoring_manifest.json \
   --risk-register /tmp/director-ai-cmf-fixture/risk_register.json \
   --observability-operations-evidence /tmp/director-ai-cmf-fixture/observability_operations_evidence.json \
+  --provenance-lineage-evidence /tmp/director-ai-cmf-fixture/provenance_lineage_evidence.json \
   --deployment-hardening-evidence /tmp/director-ai-cmf-fixture/deployment_hardening_evidence.json \
   --output /tmp/director-ai-cmf-fixture/release_gate.json
 ```
@@ -85,6 +86,9 @@ PYTHONPATH=src python tools/assemble_customer_model_factory_release.py \
 The release gate fails closed unless observability evidence comes from staging
 or production and includes the exported operations packet, dashboard evidence,
 readiness controls, compliance exports, drift review, and operator sign-off.
+KB provenance evidence must include an archived feedback-loop run, signed
+lineage packet, tenant KB snapshot, deployed-fact match, conflict-resolution
+status, and operator sign-off.
 Deployment-hardening evidence must likewise include archived telemetry, the
 sustained-load packet, async-ordering and tenant-poisoning pass flags, and
 operator sign-off.

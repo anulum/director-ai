@@ -119,6 +119,58 @@ class ObservabilityOperationsEvidence:
 
 
 @dataclass(frozen=True)
+class ProvenanceLineageEvidence:
+    """Online KB provenance and lineage evidence attached to a release gate."""
+
+    ready: bool
+    environment: str
+    feedback_loop_run_uri: str
+    signed_lineage_packet_uri: str
+    tenant_kb_snapshot_uri: str
+    operator_signoff_uri: str
+    lineage_matches_deployed_facts: bool
+    protected_claim_conflicts_resolved: bool
+    evidence_hash: str
+
+    def to_dict(self) -> dict[str, Any]:
+        """Serialise KB provenance-lineage evidence to JSON-safe data."""
+
+        return {
+            "ready": self.ready,
+            "environment": self.environment,
+            "feedback_loop_run_uri": self.feedback_loop_run_uri,
+            "signed_lineage_packet_uri": self.signed_lineage_packet_uri,
+            "tenant_kb_snapshot_uri": self.tenant_kb_snapshot_uri,
+            "operator_signoff_uri": self.operator_signoff_uri,
+            "lineage_matches_deployed_facts": self.lineage_matches_deployed_facts,
+            "protected_claim_conflicts_resolved": (
+                self.protected_claim_conflicts_resolved
+            ),
+            "evidence_hash": self.evidence_hash,
+        }
+
+    @classmethod
+    def from_dict(cls, payload: dict[str, Any]) -> ProvenanceLineageEvidence:
+        """Rebuild KB provenance-lineage evidence from JSON-safe data."""
+
+        return cls(
+            ready=bool(payload["ready"]),
+            environment=str(payload["environment"]),
+            feedback_loop_run_uri=str(payload["feedback_loop_run_uri"]),
+            signed_lineage_packet_uri=str(payload["signed_lineage_packet_uri"]),
+            tenant_kb_snapshot_uri=str(payload["tenant_kb_snapshot_uri"]),
+            operator_signoff_uri=str(payload["operator_signoff_uri"]),
+            lineage_matches_deployed_facts=bool(
+                payload["lineage_matches_deployed_facts"]
+            ),
+            protected_claim_conflicts_resolved=bool(
+                payload["protected_claim_conflicts_resolved"]
+            ),
+            evidence_hash=str(payload["evidence_hash"]),
+        )
+
+
+@dataclass(frozen=True)
 class CustomerReleaseGateManifest:
     """Release-promotion gate across factory readiness artefacts."""
 
@@ -135,6 +187,7 @@ class CustomerReleaseGateManifest:
     enterprise_blocking_debt_ids: tuple[str, ...]
     artifact_hashes: dict[str, str]
     observability_operations_evidence: ObservabilityOperationsEvidence
+    provenance_lineage_evidence: ProvenanceLineageEvidence
     deployment_hardening_evidence: DeploymentHardeningEvidence
     blockers: tuple[dict[str, str], ...]
     release_hash: str
@@ -157,6 +210,9 @@ class CustomerReleaseGateManifest:
             "artifact_hashes": dict(sorted(self.artifact_hashes.items())),
             "observability_operations_evidence": (
                 self.observability_operations_evidence.to_dict()
+            ),
+            "provenance_lineage_evidence": (
+                self.provenance_lineage_evidence.to_dict()
             ),
             "deployment_hardening_evidence": (
                 self.deployment_hardening_evidence.to_dict()
@@ -186,6 +242,7 @@ def build_release_gate_manifest(
     monitoring_manifest: CustomerMonitoringManifest,
     risk_register: CustomerRiskRegister,
     observability_operations_evidence: ObservabilityOperationsEvidence,
+    provenance_lineage_evidence: ProvenanceLineageEvidence,
     deployment_hardening_evidence: DeploymentHardeningEvidence,
     generated_at: str,
 ) -> CustomerReleaseGateManifest:
@@ -206,6 +263,7 @@ def build_release_gate_manifest(
         monitoring_manifest=monitoring_manifest,
         risk_register=risk_register,
         observability_operations_evidence=observability_operations_evidence,
+        provenance_lineage_evidence=provenance_lineage_evidence,
         deployment_hardening_evidence=deployment_hardening_evidence,
         generated_at=generated_at,
     )
@@ -223,6 +281,7 @@ def build_release_gate_manifest(
             "observability_operations_evidence": (
                 observability_operations_evidence.to_dict()
             ),
+            "provenance_lineage_evidence": provenance_lineage_evidence.to_dict(),
             "deployment_hardening_evidence": deployment_hardening_evidence.to_dict(),
             "blockers": blockers,
         }
@@ -242,6 +301,7 @@ def build_release_gate_manifest(
         enterprise_blocking_debt_ids=enterprise_blocking_debt_ids,
         artifact_hashes=artifact_hashes,
         observability_operations_evidence=observability_operations_evidence,
+        provenance_lineage_evidence=provenance_lineage_evidence,
         deployment_hardening_evidence=deployment_hardening_evidence,
         blockers=tuple(blockers),
         release_hash=release_hash,
@@ -273,6 +333,7 @@ def _collect_blockers(
     monitoring_manifest: CustomerMonitoringManifest,
     risk_register: CustomerRiskRegister,
     observability_operations_evidence: ObservabilityOperationsEvidence,
+    provenance_lineage_evidence: ProvenanceLineageEvidence,
     deployment_hardening_evidence: DeploymentHardeningEvidence,
     generated_at: str,
 ) -> list[dict[str, str]]:
@@ -295,6 +356,7 @@ def _collect_blockers(
     _extend_observability_operations_blockers(
         observability_operations_evidence, blockers
     )
+    _extend_provenance_lineage_blockers(provenance_lineage_evidence, blockers)
     _extend_deployment_hardening_blockers(deployment_hardening_evidence, blockers)
     _extend_boundary_blockers(
         runtime_package, evidence_pack, monitoring_manifest, risk_register, blockers
@@ -380,6 +442,55 @@ def _extend_observability_operations_blockers(
             _blocker(
                 "observability_evidence_hash_invalid",
                 "observability evidence_hash must be a sha256 hex digest",
+            )
+        )
+
+
+def _extend_provenance_lineage_blockers(
+    evidence: ProvenanceLineageEvidence,
+    blockers: list[dict[str, str]],
+) -> None:
+    if not evidence.ready:
+        blockers.append(
+            _blocker(
+                "provenance_lineage_not_ready",
+                "KB provenance lineage evidence is not ready",
+            )
+        )
+    if evidence.environment.strip().lower() not in {"staging", "production"}:
+        blockers.append(
+            _blocker(
+                "provenance_lineage_environment_invalid",
+                "KB provenance lineage evidence must come from staging or production",
+            )
+        )
+    for field, code in (
+        ("feedback_loop_run_uri", "provenance_feedback_loop_run_missing"),
+        ("signed_lineage_packet_uri", "provenance_signed_lineage_packet_missing"),
+        ("tenant_kb_snapshot_uri", "provenance_tenant_kb_snapshot_missing"),
+        ("operator_signoff_uri", "provenance_operator_signoff_missing"),
+    ):
+        if not getattr(evidence, field).strip():
+            blockers.append(_blocker(code, f"{field} is required"))
+    if not evidence.lineage_matches_deployed_facts:
+        blockers.append(
+            _blocker(
+                "provenance_lineage_mismatch",
+                "signed lineage packet does not match deployed tenant facts",
+            )
+        )
+    if not evidence.protected_claim_conflicts_resolved:
+        blockers.append(
+            _blocker(
+                "provenance_conflicts_unresolved",
+                "protected-claim conflicts are not resolved",
+            )
+        )
+    if not _is_sha256(evidence.evidence_hash):
+        blockers.append(
+            _blocker(
+                "provenance_evidence_hash_invalid",
+                "provenance evidence_hash must be a sha256 hex digest",
             )
         )
 

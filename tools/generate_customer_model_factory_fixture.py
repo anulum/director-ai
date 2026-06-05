@@ -38,6 +38,7 @@ from director_ai.core.customer_model_factory.monitoring_manifest import (
 from director_ai.core.customer_model_factory.release_gate import (
     DeploymentHardeningEvidence,
     ObservabilityOperationsEvidence,
+    ProvenanceLineageEvidence,
     build_release_gate_manifest,
 )
 from director_ai.core.customer_model_factory.risk_register import build_risk_register
@@ -208,6 +209,17 @@ def _build_manifests() -> dict[str, dict]:
         drift_reviewed=True,
         evidence_hash="1" * 64,
     )
+    provenance_lineage_evidence = ProvenanceLineageEvidence(
+        ready=True,
+        environment="staging",
+        feedback_loop_run_uri="gs://customer-artifacts/customer-alpha/provenance/live-feedback-run.json",
+        signed_lineage_packet_uri="gs://customer-artifacts/customer-alpha/provenance/signed-lineage.json",
+        tenant_kb_snapshot_uri="gs://customer-artifacts/customer-alpha/provenance/tenant-kb-snapshot.json",
+        operator_signoff_uri="gs://customer-artifacts/customer-alpha/signoff/r9.json",
+        lineage_matches_deployed_facts=True,
+        protected_claim_conflicts_resolved=True,
+        evidence_hash="2" * 64,
+    )
     deployment_hardening_evidence = DeploymentHardeningEvidence(
         ready=True,
         environment="staging",
@@ -228,6 +240,7 @@ def _build_manifests() -> dict[str, dict]:
         monitoring_manifest=monitoring_manifest,
         risk_register=risk_register,
         observability_operations_evidence=observability_operations_evidence,
+        provenance_lineage_evidence=provenance_lineage_evidence,
         deployment_hardening_evidence=deployment_hardening_evidence,
         generated_at=GENERATED_AT,
     )
@@ -245,6 +258,7 @@ def _build_manifests() -> dict[str, dict]:
         "observability_operations_evidence.json": (
             observability_operations_evidence.to_dict()
         ),
+        "provenance_lineage_evidence.json": provenance_lineage_evidence.to_dict(),
         "deployment_hardening_evidence.json": deployment_hardening_evidence.to_dict(),
         "enterprise_readiness.json": enterprise_readiness,
         "release_gate.json": release_gate.to_dict(),

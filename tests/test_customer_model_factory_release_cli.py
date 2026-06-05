@@ -22,6 +22,7 @@ from director_ai.core.customer_model_factory.monitoring_manifest import (
 from director_ai.core.customer_model_factory.release_gate import (
     DeploymentHardeningEvidence,
     ObservabilityOperationsEvidence,
+    ProvenanceLineageEvidence,
 )
 from director_ai.core.customer_model_factory.risk_register import CustomerRiskRegister
 from director_ai.core.customer_model_factory.runtime_package import (
@@ -154,12 +155,24 @@ def _write_inputs(tmp_path: Path, *, enterprise_ready: bool = True) -> dict[str,
         drift_reviewed=True,
         evidence_hash="1" * 64,
     )
+    provenance = ProvenanceLineageEvidence(
+        ready=True,
+        environment="production",
+        feedback_loop_run_uri="gs://customer-artifacts/customer-alpha/provenance/live-feedback-run.json",
+        signed_lineage_packet_uri="gs://customer-artifacts/customer-alpha/provenance/signed-lineage.json",
+        tenant_kb_snapshot_uri="gs://customer-artifacts/customer-alpha/provenance/tenant-kb-snapshot.json",
+        operator_signoff_uri="gs://customer-artifacts/customer-alpha/signoff/r9.json",
+        lineage_matches_deployed_facts=True,
+        protected_claim_conflicts_resolved=True,
+        evidence_hash="2" * 64,
+    )
     paths = {
         "runtime": tmp_path / "runtime.json",
         "evidence": tmp_path / "evidence.json",
         "monitoring": tmp_path / "monitoring.json",
         "risk": tmp_path / "risk.json",
         "observability": tmp_path / "observability_operations.json",
+        "provenance": tmp_path / "provenance_lineage.json",
         "hardening": tmp_path / "deployment_hardening.json",
         "enterprise": tmp_path / "enterprise.json",
         "output": tmp_path / "release_gate.json",
@@ -174,6 +187,10 @@ def _write_inputs(tmp_path: Path, *, enterprise_ready: bool = True) -> dict[str,
     )
     paths["observability"].write_text(
         json.dumps(observability.to_dict(), sort_keys=True),
+        encoding="utf-8",
+    )
+    paths["provenance"].write_text(
+        json.dumps(provenance.to_dict(), sort_keys=True),
         encoding="utf-8",
     )
     paths["enterprise"].write_text(
@@ -210,6 +227,8 @@ def test_release_cli_writes_ready_release_gate(tmp_path: Path):
             str(paths["risk"]),
             "--observability-operations-evidence",
             str(paths["observability"]),
+            "--provenance-lineage-evidence",
+            str(paths["provenance"]),
             "--deployment-hardening-evidence",
             str(paths["hardening"]),
             "--output",
@@ -223,6 +242,7 @@ def test_release_cli_writes_ready_release_gate(tmp_path: Path):
     assert payload["blockers"] == []
     assert payload["artifact_hashes"]["risk_register_hash"] == "e" * 64
     assert payload["observability_operations_evidence"]["environment"] == "production"
+    assert payload["provenance_lineage_evidence"]["environment"] == "production"
     assert payload["deployment_hardening_evidence"]["environment"] == "production"
 
 
@@ -247,6 +267,8 @@ def test_release_cli_fails_closed_when_enterprise_readiness_blocks(tmp_path: Pat
             str(paths["risk"]),
             "--observability-operations-evidence",
             str(paths["observability"]),
+            "--provenance-lineage-evidence",
+            str(paths["provenance"]),
             "--deployment-hardening-evidence",
             str(paths["hardening"]),
             "--output",
