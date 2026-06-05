@@ -178,6 +178,11 @@ export DIRECTOR_PRODUCTION_MODE=true
       verification, caption-grounding verification, and operator sign-off URI.
 - [ ] Generate federated privacy evidence:
       `PYTHONPATH=src python -m benchmarks.federated_privacy_evidence`
+- [ ] Attach federated privacy evidence to the Customer Model Factory release
+      gate with the external federation run URI, malicious-secure aggregation
+      review URI, poisoning-resilience packet URI, privacy budget ledger URI,
+      DP aggregation, cohort gate, secret-sharing and contribution-cap
+      verification flags, and operator sign-off URI.
 - [ ] Generate auto-redteam defence evidence:
       `PYTHONPATH=src python -m benchmarks.auto_redteam_defence_evidence`
 - [ ] Generate formal symbolic evidence:

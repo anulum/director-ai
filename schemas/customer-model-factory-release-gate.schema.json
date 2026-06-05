@@ -22,6 +22,7 @@
     "conformal_routing_evidence",
     "trajectory_rollback_evidence",
     "multimodal_temporal_evidence",
+    "federated_privacy_evidence",
     "deployment_hardening_evidence",
     "blockers",
     "release_hash"
@@ -364,6 +365,72 @@
           "type": "boolean"
         },
         "deployment_modalities_covered": {
+          "type": "boolean"
+        },
+        "evidence_hash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      }
+    },
+    "federated_privacy_evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ready",
+        "environment",
+        "external_federation_run_uri",
+        "malicious_secure_review_uri",
+        "poisoning_resilience_packet_uri",
+        "privacy_budget_ledger_uri",
+        "operator_signoff_uri",
+        "dp_aggregation_verified",
+        "cohort_gate_verified",
+        "secret_sharing_verified",
+        "contribution_caps_verified",
+        "evidence_hash"
+      ],
+      "properties": {
+        "ready": {
+          "type": "boolean"
+        },
+        "environment": {
+          "type": "string",
+          "enum": [
+            "staging",
+            "production"
+          ]
+        },
+        "external_federation_run_uri": {
+          "type": "string",
+          "minLength": 1
+        },
+        "malicious_secure_review_uri": {
+          "type": "string",
+          "minLength": 1
+        },
+        "poisoning_resilience_packet_uri": {
+          "type": "string",
+          "minLength": 1
+        },
+        "privacy_budget_ledger_uri": {
+          "type": "string",
+          "minLength": 1
+        },
+        "operator_signoff_uri": {
+          "type": "string",
+          "minLength": 1
+        },
+        "dp_aggregation_verified": {
+          "type": "boolean"
+        },
+        "cohort_gate_verified": {
+          "type": "boolean"
+        },
+        "secret_sharing_verified": {
+          "type": "boolean"
+        },
+        "contribution_caps_verified": {
           "type": "boolean"
         },
         "evidence_hash": {

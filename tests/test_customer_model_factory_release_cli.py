@@ -22,6 +22,7 @@ from director_ai.core.customer_model_factory.monitoring_manifest import (
 from director_ai.core.customer_model_factory.release_gate import (
     ConformalRoutingEvidence,
     DeploymentHardeningEvidence,
+    FederatedPrivacyEvidence,
     MultimodalTemporalEvidence,
     ObservabilityOperationsEvidence,
     ProvenanceLineageEvidence,
@@ -210,6 +211,20 @@ def _write_inputs(tmp_path: Path, *, enterprise_ready: bool = True) -> dict[str,
         deployment_modalities_covered=True,
         evidence_hash="5" * 64,
     )
+    federated = FederatedPrivacyEvidence(
+        ready=True,
+        environment="production",
+        external_federation_run_uri="gs://customer-artifacts/customer-alpha/federated/external-federation-run.json",
+        malicious_secure_review_uri="gs://customer-artifacts/customer-alpha/federated/malicious-secure-review.json",
+        poisoning_resilience_packet_uri="gs://customer-artifacts/customer-alpha/federated/poisoning-resilience.json",
+        privacy_budget_ledger_uri="gs://customer-artifacts/customer-alpha/federated/privacy-budget-ledger.json",
+        operator_signoff_uri="gs://customer-artifacts/customer-alpha/signoff/r13.json",
+        dp_aggregation_verified=True,
+        cohort_gate_verified=True,
+        secret_sharing_verified=True,
+        contribution_caps_verified=True,
+        evidence_hash="6" * 64,
+    )
     paths = {
         "runtime": tmp_path / "runtime.json",
         "evidence": tmp_path / "evidence.json",
@@ -220,6 +235,7 @@ def _write_inputs(tmp_path: Path, *, enterprise_ready: bool = True) -> dict[str,
         "conformal": tmp_path / "conformal_routing.json",
         "trajectory": tmp_path / "trajectory_rollback.json",
         "multimodal": tmp_path / "multimodal_temporal.json",
+        "federated": tmp_path / "federated_privacy.json",
         "hardening": tmp_path / "deployment_hardening.json",
         "enterprise": tmp_path / "enterprise.json",
         "output": tmp_path / "release_gate.json",
@@ -250,6 +266,10 @@ def _write_inputs(tmp_path: Path, *, enterprise_ready: bool = True) -> dict[str,
     )
     paths["multimodal"].write_text(
         json.dumps(multimodal.to_dict(), sort_keys=True),
+        encoding="utf-8",
+    )
+    paths["federated"].write_text(
+        json.dumps(federated.to_dict(), sort_keys=True),
         encoding="utf-8",
     )
     paths["enterprise"].write_text(
@@ -294,6 +314,8 @@ def test_release_cli_writes_ready_release_gate(tmp_path: Path):
             str(paths["trajectory"]),
             "--multimodal-temporal-evidence",
             str(paths["multimodal"]),
+            "--federated-privacy-evidence",
+            str(paths["federated"]),
             "--deployment-hardening-evidence",
             str(paths["hardening"]),
             "--output",
@@ -311,6 +333,7 @@ def test_release_cli_writes_ready_release_gate(tmp_path: Path):
     assert payload["conformal_routing_evidence"]["environment"] == "production"
     assert payload["trajectory_rollback_evidence"]["environment"] == "production"
     assert payload["multimodal_temporal_evidence"]["environment"] == "production"
+    assert payload["federated_privacy_evidence"]["environment"] == "production"
     assert payload["deployment_hardening_evidence"]["environment"] == "production"
 
 
@@ -343,6 +366,8 @@ def test_release_cli_fails_closed_when_enterprise_readiness_blocks(tmp_path: Pat
             str(paths["trajectory"]),
             "--multimodal-temporal-evidence",
             str(paths["multimodal"]),
+            "--federated-privacy-evidence",
+            str(paths["federated"]),
             "--deployment-hardening-evidence",
             str(paths["hardening"]),
             "--output",

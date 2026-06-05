@@ -382,6 +382,12 @@ Outputs:
 Passing this packet is local evidence only. Closing the federated privacy gate
 still requires an external federation run, malicious-secure aggregation review,
 and deployment-specific poisoning-resilience evidence.
+Customer Model Factory release promotion also requires
+`FederatedPrivacyEvidence` with the external federation run URI,
+malicious-secure aggregation review URI, poisoning-resilience packet URI,
+privacy budget ledger URI, DP aggregation verification flag, cohort gate
+verification flag, secret-sharing verification flag, contribution-cap
+verification flag, operator sign-off, and evidence hash.
 
 ## Auto-Redteam Defence Evidence
 

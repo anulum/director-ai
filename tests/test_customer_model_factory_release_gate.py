@@ -22,6 +22,7 @@ from director_ai.core.customer_model_factory.monitoring_manifest import (
 from director_ai.core.customer_model_factory.release_gate import (
     ConformalRoutingEvidence,
     DeploymentHardeningEvidence,
+    FederatedPrivacyEvidence,
     MultimodalTemporalEvidence,
     ObservabilityOperationsEvidence,
     ProvenanceLineageEvidence,
@@ -243,6 +244,23 @@ def _multimodal_temporal_evidence() -> MultimodalTemporalEvidence:
     )
 
 
+def _federated_privacy_evidence() -> FederatedPrivacyEvidence:
+    return FederatedPrivacyEvidence(
+        ready=True,
+        environment="staging",
+        external_federation_run_uri="gs://customer-artifacts/customer-alpha/federated/external-federation-run.json",
+        malicious_secure_review_uri="gs://customer-artifacts/customer-alpha/federated/malicious-secure-review.json",
+        poisoning_resilience_packet_uri="gs://customer-artifacts/customer-alpha/federated/poisoning-resilience.json",
+        privacy_budget_ledger_uri="gs://customer-artifacts/customer-alpha/federated/privacy-budget-ledger.json",
+        operator_signoff_uri="gs://customer-artifacts/customer-alpha/signoff/r13.json",
+        dp_aggregation_verified=True,
+        cohort_gate_verified=True,
+        secret_sharing_verified=True,
+        contribution_caps_verified=True,
+        evidence_hash="6" * 64,
+    )
+
+
 def test_release_gate_allows_promotion_when_all_artifacts_are_ready():
     gate = build_release_gate_manifest(
         release_id="release-customer-alpha-20260518",
@@ -257,6 +275,7 @@ def test_release_gate_allows_promotion_when_all_artifacts_are_ready():
         conformal_routing_evidence=_conformal_routing_evidence(),
         trajectory_rollback_evidence=_trajectory_rollback_evidence(),
         multimodal_temporal_evidence=_multimodal_temporal_evidence(),
+        federated_privacy_evidence=_federated_privacy_evidence(),
         deployment_hardening_evidence=_deployment_hardening_evidence(),
         generated_at="2026-05-18T18:35:00Z",
     )
@@ -274,6 +293,7 @@ def test_release_gate_allows_promotion_when_all_artifacts_are_ready():
     assert gate.conformal_routing_evidence.escalation_route == "human_review"
     assert gate.trajectory_rollback_evidence.rollback_hook_verified is True
     assert gate.multimodal_temporal_evidence.video_temporal_verified is True
+    assert gate.federated_privacy_evidence.secret_sharing_verified is True
     assert gate.deployment_hardening_evidence.tenant_poisoning_passed is True
     assert len(gate.release_hash) == 64
 
@@ -292,6 +312,7 @@ def test_release_gate_blocks_enterprise_trust_debt():
         conformal_routing_evidence=_conformal_routing_evidence(),
         trajectory_rollback_evidence=_trajectory_rollback_evidence(),
         multimodal_temporal_evidence=_multimodal_temporal_evidence(),
+        federated_privacy_evidence=_federated_privacy_evidence(),
         deployment_hardening_evidence=_deployment_hardening_evidence(),
         generated_at="2026-05-18T18:35:00Z",
     )
@@ -326,6 +347,7 @@ def test_release_gate_blocks_not_ready_required_artifacts():
         conformal_routing_evidence=_conformal_routing_evidence(),
         trajectory_rollback_evidence=_trajectory_rollback_evidence(),
         multimodal_temporal_evidence=_multimodal_temporal_evidence(),
+        federated_privacy_evidence=_federated_privacy_evidence(),
         deployment_hardening_evidence=_deployment_hardening_evidence(),
         generated_at="2026-05-18T18:35:00Z",
     )
@@ -379,6 +401,7 @@ def test_release_gate_blocks_missing_release_identity_and_all_not_ready_artifact
         conformal_routing_evidence=_conformal_routing_evidence(),
         trajectory_rollback_evidence=_trajectory_rollback_evidence(),
         multimodal_temporal_evidence=_multimodal_temporal_evidence(),
+        federated_privacy_evidence=_federated_privacy_evidence(),
         deployment_hardening_evidence=_deployment_hardening_evidence(),
         generated_at=" ",
     )
@@ -420,6 +443,7 @@ def test_release_gate_blocks_missing_observability_operations_evidence():
         conformal_routing_evidence=_conformal_routing_evidence(),
         trajectory_rollback_evidence=_trajectory_rollback_evidence(),
         multimodal_temporal_evidence=_multimodal_temporal_evidence(),
+        federated_privacy_evidence=_federated_privacy_evidence(),
         deployment_hardening_evidence=_deployment_hardening_evidence(),
         generated_at="2026-05-18T18:35:00Z",
     )
@@ -472,6 +496,7 @@ def test_release_gate_blocks_missing_provenance_lineage_evidence():
         conformal_routing_evidence=_conformal_routing_evidence(),
         trajectory_rollback_evidence=_trajectory_rollback_evidence(),
         multimodal_temporal_evidence=_multimodal_temporal_evidence(),
+        federated_privacy_evidence=_federated_privacy_evidence(),
         deployment_hardening_evidence=_deployment_hardening_evidence(),
         generated_at="2026-05-18T18:35:00Z",
     )
@@ -527,6 +552,7 @@ def test_release_gate_blocks_missing_conformal_routing_evidence():
         conformal_routing_evidence=evidence,
         trajectory_rollback_evidence=_trajectory_rollback_evidence(),
         multimodal_temporal_evidence=_multimodal_temporal_evidence(),
+        federated_privacy_evidence=_federated_privacy_evidence(),
         deployment_hardening_evidence=_deployment_hardening_evidence(),
         generated_at="2026-05-18T18:35:00Z",
     )
@@ -583,6 +609,7 @@ def test_release_gate_blocks_missing_trajectory_rollback_evidence():
         conformal_routing_evidence=_conformal_routing_evidence(),
         trajectory_rollback_evidence=evidence,
         multimodal_temporal_evidence=_multimodal_temporal_evidence(),
+        federated_privacy_evidence=_federated_privacy_evidence(),
         deployment_hardening_evidence=_deployment_hardening_evidence(),
         generated_at="2026-05-18T18:35:00Z",
     )
@@ -640,6 +667,7 @@ def test_release_gate_blocks_missing_multimodal_temporal_evidence():
         conformal_routing_evidence=_conformal_routing_evidence(),
         trajectory_rollback_evidence=_trajectory_rollback_evidence(),
         multimodal_temporal_evidence=evidence,
+        federated_privacy_evidence=_federated_privacy_evidence(),
         deployment_hardening_evidence=_deployment_hardening_evidence(),
         generated_at="2026-05-18T18:35:00Z",
     )
@@ -665,6 +693,65 @@ def test_multimodal_temporal_evidence_round_trips_from_json_safe_dict():
     evidence = _multimodal_temporal_evidence()
 
     restored = MultimodalTemporalEvidence.from_dict(evidence.to_dict())
+
+    assert restored == evidence
+
+
+def test_release_gate_blocks_missing_federated_privacy_evidence():
+    evidence = FederatedPrivacyEvidence(
+        ready=False,
+        environment="local",
+        external_federation_run_uri="",
+        malicious_secure_review_uri="",
+        poisoning_resilience_packet_uri="",
+        privacy_budget_ledger_uri="",
+        operator_signoff_uri="",
+        dp_aggregation_verified=False,
+        cohort_gate_verified=False,
+        secret_sharing_verified=False,
+        contribution_caps_verified=False,
+        evidence_hash="not-a-sha",
+    )
+
+    gate = build_release_gate_manifest(
+        release_id="release-customer-alpha-r13-blocked",
+        enterprise_ready=True,
+        enterprise_blocking_debt_ids=(),
+        runtime_package=_runtime_package(),
+        evidence_pack=_evidence_pack(),
+        monitoring_manifest=_monitoring_manifest(),
+        risk_register=_risk_register(),
+        observability_operations_evidence=_observability_operations_evidence(),
+        provenance_lineage_evidence=_provenance_lineage_evidence(),
+        conformal_routing_evidence=_conformal_routing_evidence(),
+        trajectory_rollback_evidence=_trajectory_rollback_evidence(),
+        multimodal_temporal_evidence=_multimodal_temporal_evidence(),
+        federated_privacy_evidence=evidence,
+        deployment_hardening_evidence=_deployment_hardening_evidence(),
+        generated_at="2026-05-18T18:35:00Z",
+    )
+
+    assert gate.ready is False
+    assert {blocker["code"] for blocker in gate.blockers} >= {
+        "federated_privacy_not_ready",
+        "federated_privacy_environment_invalid",
+        "federated_external_run_missing",
+        "federated_malicious_review_missing",
+        "federated_poisoning_packet_missing",
+        "federated_privacy_ledger_missing",
+        "federated_operator_signoff_missing",
+        "federated_dp_aggregation_unverified",
+        "federated_cohort_gate_unverified",
+        "federated_secret_sharing_unverified",
+        "federated_contribution_caps_unverified",
+        "federated_evidence_hash_invalid",
+    }
+
+
+def test_federated_privacy_evidence_round_trips_from_json_safe_dict():
+    evidence = _federated_privacy_evidence()
+
+    restored = FederatedPrivacyEvidence.from_dict(evidence.to_dict())
 
     assert restored == evidence
 
@@ -695,6 +782,7 @@ def test_release_gate_blocks_missing_deployment_hardening_evidence():
         conformal_routing_evidence=_conformal_routing_evidence(),
         trajectory_rollback_evidence=_trajectory_rollback_evidence(),
         multimodal_temporal_evidence=_multimodal_temporal_evidence(),
+        federated_privacy_evidence=_federated_privacy_evidence(),
         deployment_hardening_evidence=evidence,
         generated_at="2026-05-18T18:35:00Z",
     )
@@ -740,6 +828,7 @@ def test_release_gate_blocks_customer_boundary_mismatch():
         conformal_routing_evidence=_conformal_routing_evidence(),
         trajectory_rollback_evidence=_trajectory_rollback_evidence(),
         multimodal_temporal_evidence=_multimodal_temporal_evidence(),
+        federated_privacy_evidence=_federated_privacy_evidence(),
         deployment_hardening_evidence=_deployment_hardening_evidence(),
         generated_at="2026-05-18T18:35:00Z",
     )
@@ -788,6 +877,7 @@ def test_release_gate_blocks_cross_artifact_boundary_and_hash_mismatches():
         conformal_routing_evidence=_conformal_routing_evidence(),
         trajectory_rollback_evidence=_trajectory_rollback_evidence(),
         multimodal_temporal_evidence=_multimodal_temporal_evidence(),
+        federated_privacy_evidence=_federated_privacy_evidence(),
         deployment_hardening_evidence=_deployment_hardening_evidence(),
         generated_at="2026-05-18T18:35:00Z",
     )
@@ -818,6 +908,7 @@ def test_release_gate_serialises_deterministically(tmp_path: Path):
         conformal_routing_evidence=_conformal_routing_evidence(),
         trajectory_rollback_evidence=_trajectory_rollback_evidence(),
         multimodal_temporal_evidence=_multimodal_temporal_evidence(),
+        federated_privacy_evidence=_federated_privacy_evidence(),
         deployment_hardening_evidence=_deployment_hardening_evidence(),
         generated_at="2026-05-18T18:35:00Z",
     )
@@ -841,6 +932,9 @@ def test_release_gate_serialises_deterministically(tmp_path: Path):
     assert payload["multimodal_temporal_evidence"][
         "video_frame_validation_uri"
     ].endswith("/multimodal/video-frame-validation.json")
+    assert payload["federated_privacy_evidence"][
+        "privacy_budget_ledger_uri"
+    ].endswith("/federated/privacy-budget-ledger.json")
     assert payload["deployment_hardening_evidence"]["telemetry_uri"].endswith(
         "/telemetry/r17.jsonl"
     )
@@ -862,6 +956,7 @@ def test_release_gate_schema_is_machine_readable():
         "conformal_routing_evidence",
         "trajectory_rollback_evidence",
         "multimodal_temporal_evidence",
+        "federated_privacy_evidence",
         "deployment_hardening_evidence",
         "blockers",
         "release_hash",

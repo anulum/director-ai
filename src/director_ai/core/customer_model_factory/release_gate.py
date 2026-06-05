@@ -339,6 +339,63 @@ class MultimodalTemporalEvidence:
 
 
 @dataclass(frozen=True)
+class FederatedPrivacyEvidence:
+    """Federated privacy evidence attached to a release gate."""
+
+    ready: bool
+    environment: str
+    external_federation_run_uri: str
+    malicious_secure_review_uri: str
+    poisoning_resilience_packet_uri: str
+    privacy_budget_ledger_uri: str
+    operator_signoff_uri: str
+    dp_aggregation_verified: bool
+    cohort_gate_verified: bool
+    secret_sharing_verified: bool
+    contribution_caps_verified: bool
+    evidence_hash: str
+
+    def to_dict(self) -> dict[str, Any]:
+        """Serialise federated privacy evidence to JSON-safe data."""
+
+        return {
+            "ready": self.ready,
+            "environment": self.environment,
+            "external_federation_run_uri": self.external_federation_run_uri,
+            "malicious_secure_review_uri": self.malicious_secure_review_uri,
+            "poisoning_resilience_packet_uri": self.poisoning_resilience_packet_uri,
+            "privacy_budget_ledger_uri": self.privacy_budget_ledger_uri,
+            "operator_signoff_uri": self.operator_signoff_uri,
+            "dp_aggregation_verified": self.dp_aggregation_verified,
+            "cohort_gate_verified": self.cohort_gate_verified,
+            "secret_sharing_verified": self.secret_sharing_verified,
+            "contribution_caps_verified": self.contribution_caps_verified,
+            "evidence_hash": self.evidence_hash,
+        }
+
+    @classmethod
+    def from_dict(cls, payload: dict[str, Any]) -> FederatedPrivacyEvidence:
+        """Rebuild federated privacy evidence from JSON-safe data."""
+
+        return cls(
+            ready=bool(payload["ready"]),
+            environment=str(payload["environment"]),
+            external_federation_run_uri=str(payload["external_federation_run_uri"]),
+            malicious_secure_review_uri=str(payload["malicious_secure_review_uri"]),
+            poisoning_resilience_packet_uri=str(
+                payload["poisoning_resilience_packet_uri"]
+            ),
+            privacy_budget_ledger_uri=str(payload["privacy_budget_ledger_uri"]),
+            operator_signoff_uri=str(payload["operator_signoff_uri"]),
+            dp_aggregation_verified=bool(payload["dp_aggregation_verified"]),
+            cohort_gate_verified=bool(payload["cohort_gate_verified"]),
+            secret_sharing_verified=bool(payload["secret_sharing_verified"]),
+            contribution_caps_verified=bool(payload["contribution_caps_verified"]),
+            evidence_hash=str(payload["evidence_hash"]),
+        )
+
+
+@dataclass(frozen=True)
 class CustomerReleaseGateManifest:
     """Release-promotion gate across factory readiness artefacts."""
 
@@ -359,6 +416,7 @@ class CustomerReleaseGateManifest:
     conformal_routing_evidence: ConformalRoutingEvidence
     trajectory_rollback_evidence: TrajectoryRollbackEvidence
     multimodal_temporal_evidence: MultimodalTemporalEvidence
+    federated_privacy_evidence: FederatedPrivacyEvidence
     deployment_hardening_evidence: DeploymentHardeningEvidence
     blockers: tuple[dict[str, str], ...]
     release_hash: str
@@ -392,6 +450,9 @@ class CustomerReleaseGateManifest:
             "multimodal_temporal_evidence": (
                 self.multimodal_temporal_evidence.to_dict()
             ),
+            "federated_privacy_evidence": (
+                self.federated_privacy_evidence.to_dict()
+            ),
             "deployment_hardening_evidence": (
                 self.deployment_hardening_evidence.to_dict()
             ),
@@ -424,6 +485,7 @@ def build_release_gate_manifest(
     conformal_routing_evidence: ConformalRoutingEvidence,
     trajectory_rollback_evidence: TrajectoryRollbackEvidence,
     multimodal_temporal_evidence: MultimodalTemporalEvidence,
+    federated_privacy_evidence: FederatedPrivacyEvidence,
     deployment_hardening_evidence: DeploymentHardeningEvidence,
     generated_at: str,
 ) -> CustomerReleaseGateManifest:
@@ -448,6 +510,7 @@ def build_release_gate_manifest(
         conformal_routing_evidence=conformal_routing_evidence,
         trajectory_rollback_evidence=trajectory_rollback_evidence,
         multimodal_temporal_evidence=multimodal_temporal_evidence,
+        federated_privacy_evidence=federated_privacy_evidence,
         deployment_hardening_evidence=deployment_hardening_evidence,
         generated_at=generated_at,
     )
@@ -469,6 +532,7 @@ def build_release_gate_manifest(
             "conformal_routing_evidence": conformal_routing_evidence.to_dict(),
             "trajectory_rollback_evidence": trajectory_rollback_evidence.to_dict(),
             "multimodal_temporal_evidence": multimodal_temporal_evidence.to_dict(),
+            "federated_privacy_evidence": federated_privacy_evidence.to_dict(),
             "deployment_hardening_evidence": deployment_hardening_evidence.to_dict(),
             "blockers": blockers,
         }
@@ -492,6 +556,7 @@ def build_release_gate_manifest(
         conformal_routing_evidence=conformal_routing_evidence,
         trajectory_rollback_evidence=trajectory_rollback_evidence,
         multimodal_temporal_evidence=multimodal_temporal_evidence,
+        federated_privacy_evidence=federated_privacy_evidence,
         deployment_hardening_evidence=deployment_hardening_evidence,
         blockers=tuple(blockers),
         release_hash=release_hash,
@@ -527,6 +592,7 @@ def _collect_blockers(
     conformal_routing_evidence: ConformalRoutingEvidence,
     trajectory_rollback_evidence: TrajectoryRollbackEvidence,
     multimodal_temporal_evidence: MultimodalTemporalEvidence,
+    federated_privacy_evidence: FederatedPrivacyEvidence,
     deployment_hardening_evidence: DeploymentHardeningEvidence,
     generated_at: str,
 ) -> list[dict[str, str]]:
@@ -553,6 +619,7 @@ def _collect_blockers(
     _extend_conformal_routing_blockers(conformal_routing_evidence, blockers)
     _extend_trajectory_rollback_blockers(trajectory_rollback_evidence, blockers)
     _extend_multimodal_temporal_blockers(multimodal_temporal_evidence, blockers)
+    _extend_federated_privacy_blockers(federated_privacy_evidence, blockers)
     _extend_deployment_hardening_blockers(deployment_hardening_evidence, blockers)
     _extend_boundary_blockers(
         runtime_package, evidence_pack, monitoring_manifest, risk_register, blockers
@@ -895,6 +962,70 @@ def _extend_multimodal_temporal_blockers(
             _blocker(
                 "multimodal_evidence_hash_invalid",
                 "multimodal evidence_hash must be a sha256 hex digest",
+            )
+        )
+
+
+def _extend_federated_privacy_blockers(
+    evidence: FederatedPrivacyEvidence,
+    blockers: list[dict[str, str]],
+) -> None:
+    if not evidence.ready:
+        blockers.append(
+            _blocker(
+                "federated_privacy_not_ready",
+                "federated privacy evidence is not ready",
+            )
+        )
+    if evidence.environment.strip().lower() not in {"staging", "production"}:
+        blockers.append(
+            _blocker(
+                "federated_privacy_environment_invalid",
+                "federated privacy evidence must come from staging or production",
+            )
+        )
+    for field, code in (
+        ("external_federation_run_uri", "federated_external_run_missing"),
+        ("malicious_secure_review_uri", "federated_malicious_review_missing"),
+        ("poisoning_resilience_packet_uri", "federated_poisoning_packet_missing"),
+        ("privacy_budget_ledger_uri", "federated_privacy_ledger_missing"),
+        ("operator_signoff_uri", "federated_operator_signoff_missing"),
+    ):
+        if not getattr(evidence, field).strip():
+            blockers.append(_blocker(code, f"{field} is required"))
+    if not evidence.dp_aggregation_verified:
+        blockers.append(
+            _blocker(
+                "federated_dp_aggregation_unverified",
+                "DP aggregation is not verified",
+            )
+        )
+    if not evidence.cohort_gate_verified:
+        blockers.append(
+            _blocker(
+                "federated_cohort_gate_unverified",
+                "minimum cohort gate is not verified",
+            )
+        )
+    if not evidence.secret_sharing_verified:
+        blockers.append(
+            _blocker(
+                "federated_secret_sharing_unverified",
+                "secret-sharing aggregation is not verified",
+            )
+        )
+    if not evidence.contribution_caps_verified:
+        blockers.append(
+            _blocker(
+                "federated_contribution_caps_unverified",
+                "tenant/category contribution caps are not verified",
+            )
+        )
+    if not _is_sha256(evidence.evidence_hash):
+        blockers.append(
+            _blocker(
+                "federated_evidence_hash_invalid",
+                "federated privacy evidence_hash must be a sha256 hex digest",
             )
         )
 

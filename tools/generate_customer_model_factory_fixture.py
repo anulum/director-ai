@@ -38,6 +38,7 @@ from director_ai.core.customer_model_factory.monitoring_manifest import (
 from director_ai.core.customer_model_factory.release_gate import (
     ConformalRoutingEvidence,
     DeploymentHardeningEvidence,
+    FederatedPrivacyEvidence,
     MultimodalTemporalEvidence,
     ObservabilityOperationsEvidence,
     ProvenanceLineageEvidence,
@@ -264,6 +265,20 @@ def _build_manifests() -> dict[str, dict]:
         deployment_modalities_covered=True,
         evidence_hash="5" * 64,
     )
+    federated_privacy_evidence = FederatedPrivacyEvidence(
+        ready=True,
+        environment="staging",
+        external_federation_run_uri="gs://customer-artifacts/customer-alpha/federated/external-federation-run.json",
+        malicious_secure_review_uri="gs://customer-artifacts/customer-alpha/federated/malicious-secure-review.json",
+        poisoning_resilience_packet_uri="gs://customer-artifacts/customer-alpha/federated/poisoning-resilience.json",
+        privacy_budget_ledger_uri="gs://customer-artifacts/customer-alpha/federated/privacy-budget-ledger.json",
+        operator_signoff_uri="gs://customer-artifacts/customer-alpha/signoff/r13.json",
+        dp_aggregation_verified=True,
+        cohort_gate_verified=True,
+        secret_sharing_verified=True,
+        contribution_caps_verified=True,
+        evidence_hash="6" * 64,
+    )
     deployment_hardening_evidence = DeploymentHardeningEvidence(
         ready=True,
         environment="staging",
@@ -288,6 +303,7 @@ def _build_manifests() -> dict[str, dict]:
         conformal_routing_evidence=conformal_routing_evidence,
         trajectory_rollback_evidence=trajectory_rollback_evidence,
         multimodal_temporal_evidence=multimodal_temporal_evidence,
+        federated_privacy_evidence=federated_privacy_evidence,
         deployment_hardening_evidence=deployment_hardening_evidence,
         generated_at=GENERATED_AT,
     )
@@ -309,6 +325,7 @@ def _build_manifests() -> dict[str, dict]:
         "conformal_routing_evidence.json": conformal_routing_evidence.to_dict(),
         "trajectory_rollback_evidence.json": trajectory_rollback_evidence.to_dict(),
         "multimodal_temporal_evidence.json": multimodal_temporal_evidence.to_dict(),
+        "federated_privacy_evidence.json": federated_privacy_evidence.to_dict(),
         "deployment_hardening_evidence.json": deployment_hardening_evidence.to_dict(),
         "enterprise_readiness.json": enterprise_readiness,
         "release_gate.json": release_gate.to_dict(),
