@@ -10,6 +10,8 @@ minimum_cases = 10
 minimum_public_incident_cases = 4
 minimum_public_incident_categories = 3
 minimum_public_incident_domains = 4
+minimum_public_incident_publishers = 4
+minimum_public_incident_evidence_refs = 4
 required_categories = [
   "numeric_contradiction",
   "fabricated_policy",

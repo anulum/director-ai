@@ -6,9 +6,11 @@ EU-market regression cases across 8 languages. It is validated by
 `docs-site/benchmarks/multilingual-corpus.md`.
 
 FrontierFail note: `benchmarks/frontierfail_seed_packet.toml` and
-`benchmarks/frontierfail_cases.jsonl` define a seed regression packet for
-production-failure benchmarking. It is explicitly not an externally validated
-benchmark score; `tools/validate_frontierfail_packet.py` enforces that boundary.
+`benchmarks/frontierfail_cases.jsonl` define a seed regression and public
+incident intake packet for production-failure benchmarking. It is explicitly not
+an externally validated benchmark score; `tools/validate_frontierfail_packet.py`
+enforces that boundary plus public-incident metadata, diversity, and unique
+evidence-reference requirements.
 
 PINT note: `benchmarks/pint_replication_packet.toml` and
 `benchmarks/pint_seed_cases.jsonl` define a prompt-injection replication packet.

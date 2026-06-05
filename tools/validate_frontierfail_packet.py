@@ -87,6 +87,8 @@ def _validate_packet(packet: dict[str, Any]) -> list[str]:
         "minimum_public_incident_cases",
         "minimum_public_incident_categories",
         "minimum_public_incident_domains",
+        "minimum_public_incident_publishers",
+        "minimum_public_incident_evidence_refs",
         "required_categories",
     }
     missing = sorted(required - set(packet))
@@ -128,6 +130,20 @@ def _validate_packet(packet: dict[str, Any]) -> list[str]:
     ):
         errors.append(
             f"{PACKET}: minimum_public_incident_domains must be a non-negative integer"
+        )
+    if (
+        not isinstance(packet["minimum_public_incident_publishers"], int)
+        or packet["minimum_public_incident_publishers"] < 0
+    ):
+        errors.append(
+            f"{PACKET}: minimum_public_incident_publishers must be a non-negative integer"
+        )
+    if (
+        not isinstance(packet["minimum_public_incident_evidence_refs"], int)
+        or packet["minimum_public_incident_evidence_refs"] < 0
+    ):
+        errors.append(
+            f"{PACKET}: minimum_public_incident_evidence_refs must be a non-negative integer"
         )
     categories = packet["required_categories"]
     if not isinstance(categories, list) or not categories:
@@ -278,6 +294,38 @@ def validate_frontierfail_packet(root: Path) -> list[str]:
                     f"{PACKET}: expected at least {minimum_public_domains} "
                     "public_incident benchmark-eligible domains, "
                     f"found {public_domain_count}"
+                )
+        minimum_public_publishers = packet.get("minimum_public_incident_publishers")
+        if isinstance(minimum_public_publishers, int):
+            public_publishers = {
+                publisher.strip()
+                for row in public_rows
+                if isinstance(publisher := row.get("evidence_publisher"), str)
+                and publisher.strip()
+            }
+            public_publisher_count = len(public_publishers)
+            if public_publisher_count < minimum_public_publishers:
+                errors.append(
+                    f"{PACKET}: expected at least {minimum_public_publishers} "
+                    "public_incident publishers, "
+                    f"found {public_publisher_count}"
+                )
+        minimum_public_evidence_refs = packet.get(
+            "minimum_public_incident_evidence_refs"
+        )
+        if isinstance(minimum_public_evidence_refs, int):
+            public_evidence_refs = {
+                evidence_ref.strip()
+                for row in public_rows
+                if isinstance(evidence_ref := row.get("evidence_ref"), str)
+                and evidence_ref.strip()
+            }
+            public_evidence_ref_count = len(public_evidence_refs)
+            if public_evidence_ref_count < minimum_public_evidence_refs:
+                errors.append(
+                    f"{PACKET}: expected at least {minimum_public_evidence_refs} "
+                    "public_incident evidence refs, "
+                    f"found {public_evidence_ref_count}"
                 )
 
     seen_ids: set[str] = set()

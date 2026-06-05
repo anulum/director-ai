@@ -8,20 +8,23 @@ as a public production-failure score.
 
 | File | Purpose |
 |------|---------|
-| `benchmarks/frontierfail_seed_packet.toml` | Packet metadata, claim boundary, required categories |
-| `benchmarks/frontierfail_cases.jsonl` | Seed regression cases |
+| `benchmarks/frontierfail_seed_packet.toml` | Packet metadata, claim boundary, required categories, and public-incident diversity floors |
+| `benchmarks/frontierfail_cases.jsonl` | Synthetic regression cases plus sourced public-incident intake rows |
 | `tools/validate_frontierfail_packet.py` | Schema, provenance, and benchmark-eligibility gate |
 
 ## Current Boundary
 
-The seed cases use `source_type = "synthetic_regression"` and
-`benchmark_eligible = false`. They exist to keep the taxonomy, row schema, and
-downstream evaluation hooks stable while real sourced production cases are
-collected and redacted.
+The packet contains deterministic `synthetic_regression` rows for engineering
+regression coverage and sourced `public_incident` intake rows for early
+production-failure taxonomy coverage. It is still not an externally validated
+benchmark and must not be reported as a public FrontierFail score.
 
 Rows may become benchmark eligible only when they are sourced from a sanitized
 production report or public incident with reviewable evidence. The validator
-rejects synthetic rows marked as benchmark eligible.
+rejects synthetic rows marked as benchmark eligible, requires public incidents
+to include publisher, title, and access-date metadata, and enforces
+category/domain/publisher/evidence-reference diversity for benchmark-eligible
+public incidents. Duplicate public-incident evidence references are rejected.
 
 ## Required Categories
 
@@ -43,6 +46,10 @@ The gate fails when:
 - required categories have zero cases;
 - synthetic seed rows are marked benchmark eligible;
 - sourced benchmark-eligible rows lack reviewable evidence;
+- public incident rows lack publisher, title, or access-date metadata;
+- public incident coverage misses the configured category, domain, publisher,
+  or evidence-reference diversity floors;
+- public incident evidence references are duplicated;
 - required row fields are missing or empty;
 - expected decisions fall outside the supported decision set.
 
