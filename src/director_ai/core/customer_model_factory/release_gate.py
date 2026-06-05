@@ -71,6 +71,54 @@ class DeploymentHardeningEvidence:
 
 
 @dataclass(frozen=True)
+class ObservabilityOperationsEvidence:
+    """Operations-dashboard evidence attached to a release gate."""
+
+    ready: bool
+    environment: str
+    operations_packet_uri: str
+    dashboard_evidence_uri: str
+    operator_signoff_uri: str
+    controls_passed: bool
+    compliance_exports_available: bool
+    drift_reviewed: bool
+    evidence_hash: str
+
+    def to_dict(self) -> dict[str, Any]:
+        """Serialise observability operations evidence to JSON-safe data."""
+
+        return {
+            "ready": self.ready,
+            "environment": self.environment,
+            "operations_packet_uri": self.operations_packet_uri,
+            "dashboard_evidence_uri": self.dashboard_evidence_uri,
+            "operator_signoff_uri": self.operator_signoff_uri,
+            "controls_passed": self.controls_passed,
+            "compliance_exports_available": self.compliance_exports_available,
+            "drift_reviewed": self.drift_reviewed,
+            "evidence_hash": self.evidence_hash,
+        }
+
+    @classmethod
+    def from_dict(cls, payload: dict[str, Any]) -> ObservabilityOperationsEvidence:
+        """Rebuild observability operations evidence from JSON-safe data."""
+
+        return cls(
+            ready=bool(payload["ready"]),
+            environment=str(payload["environment"]),
+            operations_packet_uri=str(payload["operations_packet_uri"]),
+            dashboard_evidence_uri=str(payload["dashboard_evidence_uri"]),
+            operator_signoff_uri=str(payload["operator_signoff_uri"]),
+            controls_passed=bool(payload["controls_passed"]),
+            compliance_exports_available=bool(
+                payload["compliance_exports_available"]
+            ),
+            drift_reviewed=bool(payload["drift_reviewed"]),
+            evidence_hash=str(payload["evidence_hash"]),
+        )
+
+
+@dataclass(frozen=True)
 class CustomerReleaseGateManifest:
     """Release-promotion gate across factory readiness artefacts."""
 
@@ -86,6 +134,7 @@ class CustomerReleaseGateManifest:
     enterprise_ready: bool
     enterprise_blocking_debt_ids: tuple[str, ...]
     artifact_hashes: dict[str, str]
+    observability_operations_evidence: ObservabilityOperationsEvidence
     deployment_hardening_evidence: DeploymentHardeningEvidence
     blockers: tuple[dict[str, str], ...]
     release_hash: str
@@ -106,6 +155,9 @@ class CustomerReleaseGateManifest:
             "enterprise_ready": self.enterprise_ready,
             "enterprise_blocking_debt_ids": list(self.enterprise_blocking_debt_ids),
             "artifact_hashes": dict(sorted(self.artifact_hashes.items())),
+            "observability_operations_evidence": (
+                self.observability_operations_evidence.to_dict()
+            ),
             "deployment_hardening_evidence": (
                 self.deployment_hardening_evidence.to_dict()
             ),
@@ -133,6 +185,7 @@ def build_release_gate_manifest(
     evidence_pack: CustomerEvidencePackManifest,
     monitoring_manifest: CustomerMonitoringManifest,
     risk_register: CustomerRiskRegister,
+    observability_operations_evidence: ObservabilityOperationsEvidence,
     deployment_hardening_evidence: DeploymentHardeningEvidence,
     generated_at: str,
 ) -> CustomerReleaseGateManifest:
@@ -152,6 +205,7 @@ def build_release_gate_manifest(
         evidence_pack=evidence_pack,
         monitoring_manifest=monitoring_manifest,
         risk_register=risk_register,
+        observability_operations_evidence=observability_operations_evidence,
         deployment_hardening_evidence=deployment_hardening_evidence,
         generated_at=generated_at,
     )
@@ -166,6 +220,9 @@ def build_release_gate_manifest(
             "enterprise_ready": enterprise_ready,
             "enterprise_blocking_debt_ids": enterprise_blocking_debt_ids,
             "artifact_hashes": artifact_hashes,
+            "observability_operations_evidence": (
+                observability_operations_evidence.to_dict()
+            ),
             "deployment_hardening_evidence": deployment_hardening_evidence.to_dict(),
             "blockers": blockers,
         }
@@ -184,6 +241,7 @@ def build_release_gate_manifest(
         enterprise_ready=enterprise_ready,
         enterprise_blocking_debt_ids=enterprise_blocking_debt_ids,
         artifact_hashes=artifact_hashes,
+        observability_operations_evidence=observability_operations_evidence,
         deployment_hardening_evidence=deployment_hardening_evidence,
         blockers=tuple(blockers),
         release_hash=release_hash,
@@ -214,6 +272,7 @@ def _collect_blockers(
     evidence_pack: CustomerEvidencePackManifest,
     monitoring_manifest: CustomerMonitoringManifest,
     risk_register: CustomerRiskRegister,
+    observability_operations_evidence: ObservabilityOperationsEvidence,
     deployment_hardening_evidence: DeploymentHardeningEvidence,
     generated_at: str,
 ) -> list[dict[str, str]]:
@@ -232,6 +291,9 @@ def _collect_blockers(
         )
     _extend_readiness_blockers(
         runtime_package, evidence_pack, monitoring_manifest, risk_register, blockers
+    )
+    _extend_observability_operations_blockers(
+        observability_operations_evidence, blockers
     )
     _extend_deployment_hardening_blockers(deployment_hardening_evidence, blockers)
     _extend_boundary_blockers(
@@ -264,6 +326,61 @@ def _extend_readiness_blockers(
     if not risk_register.ready:
         blockers.append(
             _blocker("risk_register_not_ready", "risk register is not ready")
+        )
+
+
+def _extend_observability_operations_blockers(
+    evidence: ObservabilityOperationsEvidence,
+    blockers: list[dict[str, str]],
+) -> None:
+    if not evidence.ready:
+        blockers.append(
+            _blocker(
+                "observability_operations_not_ready",
+                "observability operations evidence is not ready",
+            )
+        )
+    if evidence.environment.strip().lower() not in {"staging", "production"}:
+        blockers.append(
+            _blocker(
+                "observability_environment_invalid",
+                "observability operations evidence must come from staging or production",
+            )
+        )
+    for field, code in (
+        ("operations_packet_uri", "observability_operations_packet_missing"),
+        ("dashboard_evidence_uri", "observability_dashboard_evidence_missing"),
+        ("operator_signoff_uri", "observability_operator_signoff_missing"),
+    ):
+        if not getattr(evidence, field).strip():
+            blockers.append(_blocker(code, f"{field} is required"))
+    if not evidence.controls_passed:
+        blockers.append(
+            _blocker(
+                "observability_controls_failed",
+                "observability readiness controls did not pass",
+            )
+        )
+    if not evidence.compliance_exports_available:
+        blockers.append(
+            _blocker(
+                "observability_compliance_exports_missing",
+                "observability compliance exports are missing or stale",
+            )
+        )
+    if not evidence.drift_reviewed:
+        blockers.append(
+            _blocker(
+                "observability_drift_not_reviewed",
+                "observability drift alerts were not reviewed",
+            )
+        )
+    if not _is_sha256(evidence.evidence_hash):
+        blockers.append(
+            _blocker(
+                "observability_evidence_hash_invalid",
+                "observability evidence_hash must be a sha256 hex digest",
+            )
         )
 
 

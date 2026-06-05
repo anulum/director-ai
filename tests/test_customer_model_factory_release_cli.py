@@ -21,6 +21,7 @@ from director_ai.core.customer_model_factory.monitoring_manifest import (
 )
 from director_ai.core.customer_model_factory.release_gate import (
     DeploymentHardeningEvidence,
+    ObservabilityOperationsEvidence,
 )
 from director_ai.core.customer_model_factory.risk_register import CustomerRiskRegister
 from director_ai.core.customer_model_factory.runtime_package import (
@@ -142,11 +143,23 @@ def _write_inputs(tmp_path: Path, *, enterprise_ready: bool = True) -> dict[str,
         tenant_poisoning_passed=True,
         evidence_hash="f" * 64,
     )
+    observability = ObservabilityOperationsEvidence(
+        ready=True,
+        environment="production",
+        operations_packet_uri="gs://customer-artifacts/customer-alpha/observability/operations-packet.json",
+        dashboard_evidence_uri="gs://customer-artifacts/customer-alpha/observability/dashboard-evidence.json",
+        operator_signoff_uri="gs://customer-artifacts/customer-alpha/signoff/r8.json",
+        controls_passed=True,
+        compliance_exports_available=True,
+        drift_reviewed=True,
+        evidence_hash="1" * 64,
+    )
     paths = {
         "runtime": tmp_path / "runtime.json",
         "evidence": tmp_path / "evidence.json",
         "monitoring": tmp_path / "monitoring.json",
         "risk": tmp_path / "risk.json",
+        "observability": tmp_path / "observability_operations.json",
         "hardening": tmp_path / "deployment_hardening.json",
         "enterprise": tmp_path / "enterprise.json",
         "output": tmp_path / "release_gate.json",
@@ -157,6 +170,10 @@ def _write_inputs(tmp_path: Path, *, enterprise_ready: bool = True) -> dict[str,
     risk.write_json(paths["risk"])
     paths["hardening"].write_text(
         json.dumps(hardening.to_dict(), sort_keys=True),
+        encoding="utf-8",
+    )
+    paths["observability"].write_text(
+        json.dumps(observability.to_dict(), sort_keys=True),
         encoding="utf-8",
     )
     paths["enterprise"].write_text(
@@ -191,6 +208,8 @@ def test_release_cli_writes_ready_release_gate(tmp_path: Path):
             str(paths["monitoring"]),
             "--risk-register",
             str(paths["risk"]),
+            "--observability-operations-evidence",
+            str(paths["observability"]),
             "--deployment-hardening-evidence",
             str(paths["hardening"]),
             "--output",
@@ -203,6 +222,7 @@ def test_release_cli_writes_ready_release_gate(tmp_path: Path):
     assert payload["promotion_allowed"] is True
     assert payload["blockers"] == []
     assert payload["artifact_hashes"]["risk_register_hash"] == "e" * 64
+    assert payload["observability_operations_evidence"]["environment"] == "production"
     assert payload["deployment_hardening_evidence"]["environment"] == "production"
 
 
@@ -225,6 +245,8 @@ def test_release_cli_fails_closed_when_enterprise_readiness_blocks(tmp_path: Pat
             str(paths["monitoring"]),
             "--risk-register",
             str(paths["risk"]),
+            "--observability-operations-evidence",
+            str(paths["observability"]),
             "--deployment-hardening-evidence",
             str(paths["hardening"]),
             "--output",

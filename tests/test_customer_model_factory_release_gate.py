@@ -21,6 +21,7 @@ from director_ai.core.customer_model_factory.monitoring_manifest import (
 )
 from director_ai.core.customer_model_factory.release_gate import (
     DeploymentHardeningEvidence,
+    ObservabilityOperationsEvidence,
     build_release_gate_manifest,
 )
 from director_ai.core.customer_model_factory.risk_register import (
@@ -160,6 +161,20 @@ def _deployment_hardening_evidence() -> DeploymentHardeningEvidence:
     )
 
 
+def _observability_operations_evidence() -> ObservabilityOperationsEvidence:
+    return ObservabilityOperationsEvidence(
+        ready=True,
+        environment="staging",
+        operations_packet_uri="gs://customer-artifacts/customer-alpha/observability/operations-packet.json",
+        dashboard_evidence_uri="gs://customer-artifacts/customer-alpha/observability/dashboard-evidence.json",
+        operator_signoff_uri="gs://customer-artifacts/customer-alpha/signoff/r8.json",
+        controls_passed=True,
+        compliance_exports_available=True,
+        drift_reviewed=True,
+        evidence_hash="1" * 64,
+    )
+
+
 def test_release_gate_allows_promotion_when_all_artifacts_are_ready():
     gate = build_release_gate_manifest(
         release_id="release-customer-alpha-20260518",
@@ -169,6 +184,7 @@ def test_release_gate_allows_promotion_when_all_artifacts_are_ready():
         evidence_pack=_evidence_pack(),
         monitoring_manifest=_monitoring_manifest(),
         risk_register=_risk_register(),
+        observability_operations_evidence=_observability_operations_evidence(),
         deployment_hardening_evidence=_deployment_hardening_evidence(),
         generated_at="2026-05-18T18:35:00Z",
     )
@@ -181,6 +197,7 @@ def test_release_gate_allows_promotion_when_all_artifacts_are_ready():
     assert gate.artifact_hashes["evidence_hash"] == "a" * 64
     assert gate.artifact_hashes["monitoring_hash"] == "d" * 64
     assert gate.artifact_hashes["risk_register_hash"] == "e" * 64
+    assert gate.observability_operations_evidence.drift_reviewed is True
     assert gate.deployment_hardening_evidence.tenant_poisoning_passed is True
     assert len(gate.release_hash) == 64
 
@@ -194,6 +211,7 @@ def test_release_gate_blocks_enterprise_trust_debt():
         evidence_pack=_evidence_pack(),
         monitoring_manifest=_monitoring_manifest(),
         risk_register=_risk_register(),
+        observability_operations_evidence=_observability_operations_evidence(),
         deployment_hardening_evidence=_deployment_hardening_evidence(),
         generated_at="2026-05-18T18:35:00Z",
     )
@@ -223,6 +241,7 @@ def test_release_gate_blocks_not_ready_required_artifacts():
         evidence_pack=_evidence_pack(),
         monitoring_manifest=_monitoring_manifest(),
         risk_register=risk_register,
+        observability_operations_evidence=_observability_operations_evidence(),
         deployment_hardening_evidence=_deployment_hardening_evidence(),
         generated_at="2026-05-18T18:35:00Z",
     )
@@ -271,6 +290,7 @@ def test_release_gate_blocks_missing_release_identity_and_all_not_ready_artifact
         evidence_pack=evidence,
         monitoring_manifest=monitoring,
         risk_register=risk_register,
+        observability_operations_evidence=_observability_operations_evidence(),
         deployment_hardening_evidence=_deployment_hardening_evidence(),
         generated_at=" ",
     )
@@ -284,6 +304,54 @@ def test_release_gate_blocks_missing_release_identity_and_all_not_ready_artifact
         "monitoring_manifest_not_ready",
         "risk_register_not_ready",
     }
+
+
+def test_release_gate_blocks_missing_observability_operations_evidence():
+    evidence = ObservabilityOperationsEvidence(
+        ready=False,
+        environment="local",
+        operations_packet_uri="",
+        dashboard_evidence_uri="",
+        operator_signoff_uri="",
+        controls_passed=False,
+        compliance_exports_available=False,
+        drift_reviewed=False,
+        evidence_hash="not-a-sha",
+    )
+
+    gate = build_release_gate_manifest(
+        release_id="release-customer-alpha-r8-blocked",
+        enterprise_ready=True,
+        enterprise_blocking_debt_ids=(),
+        runtime_package=_runtime_package(),
+        evidence_pack=_evidence_pack(),
+        monitoring_manifest=_monitoring_manifest(),
+        risk_register=_risk_register(),
+        observability_operations_evidence=evidence,
+        deployment_hardening_evidence=_deployment_hardening_evidence(),
+        generated_at="2026-05-18T18:35:00Z",
+    )
+
+    assert gate.ready is False
+    assert {blocker["code"] for blocker in gate.blockers} >= {
+        "observability_operations_not_ready",
+        "observability_environment_invalid",
+        "observability_operations_packet_missing",
+        "observability_dashboard_evidence_missing",
+        "observability_operator_signoff_missing",
+        "observability_controls_failed",
+        "observability_compliance_exports_missing",
+        "observability_drift_not_reviewed",
+        "observability_evidence_hash_invalid",
+    }
+
+
+def test_observability_operations_evidence_round_trips_from_json_safe_dict():
+    evidence = _observability_operations_evidence()
+
+    restored = ObservabilityOperationsEvidence.from_dict(evidence.to_dict())
+
+    assert restored == evidence
 
 
 def test_release_gate_blocks_missing_deployment_hardening_evidence():
@@ -307,6 +375,7 @@ def test_release_gate_blocks_missing_deployment_hardening_evidence():
         evidence_pack=_evidence_pack(),
         monitoring_manifest=_monitoring_manifest(),
         risk_register=_risk_register(),
+        observability_operations_evidence=_observability_operations_evidence(),
         deployment_hardening_evidence=evidence,
         generated_at="2026-05-18T18:35:00Z",
     )
@@ -347,6 +416,7 @@ def test_release_gate_blocks_customer_boundary_mismatch():
         evidence_pack=evidence,
         monitoring_manifest=_monitoring_manifest(),
         risk_register=_risk_register(),
+        observability_operations_evidence=_observability_operations_evidence(),
         deployment_hardening_evidence=_deployment_hardening_evidence(),
         generated_at="2026-05-18T18:35:00Z",
     )
@@ -390,6 +460,7 @@ def test_release_gate_blocks_cross_artifact_boundary_and_hash_mismatches():
         evidence_pack=evidence,
         monitoring_manifest=monitoring,
         risk_register=risk_register,
+        observability_operations_evidence=_observability_operations_evidence(),
         deployment_hardening_evidence=_deployment_hardening_evidence(),
         generated_at="2026-05-18T18:35:00Z",
     )
@@ -415,6 +486,7 @@ def test_release_gate_serialises_deterministically(tmp_path: Path):
         evidence_pack=_evidence_pack(),
         monitoring_manifest=_monitoring_manifest(),
         risk_register=_risk_register(),
+        observability_operations_evidence=_observability_operations_evidence(),
         deployment_hardening_evidence=_deployment_hardening_evidence(),
         generated_at="2026-05-18T18:35:00Z",
     )
@@ -423,6 +495,9 @@ def test_release_gate_serialises_deterministically(tmp_path: Path):
     payload = json.loads(output.read_text(encoding="utf-8"))
 
     assert payload == gate.to_dict()
+    assert payload["observability_operations_evidence"][
+        "operations_packet_uri"
+    ].endswith("/observability/operations-packet.json")
     assert payload["deployment_hardening_evidence"]["telemetry_uri"].endswith(
         "/telemetry/r17.jsonl"
     )
@@ -439,6 +514,7 @@ def test_release_gate_schema_is_machine_readable():
         "release_id",
         "promotion_allowed",
         "artifact_hashes",
+        "observability_operations_evidence",
         "deployment_hardening_evidence",
         "blockers",
         "release_hash",

@@ -17,6 +17,7 @@
     "enterprise_ready",
     "enterprise_blocking_debt_ids",
     "artifact_hashes",
+    "observability_operations_evidence",
     "deployment_hardening_evidence",
     "blockers",
     "release_hash"
@@ -63,6 +64,58 @@
       "type": "object",
       "additionalProperties": {
         "type": "string"
+      }
+    },
+    "observability_operations_evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ready",
+        "environment",
+        "operations_packet_uri",
+        "dashboard_evidence_uri",
+        "operator_signoff_uri",
+        "controls_passed",
+        "compliance_exports_available",
+        "drift_reviewed",
+        "evidence_hash"
+      ],
+      "properties": {
+        "ready": {
+          "type": "boolean"
+        },
+        "environment": {
+          "type": "string",
+          "enum": [
+            "staging",
+            "production"
+          ]
+        },
+        "operations_packet_uri": {
+          "type": "string",
+          "minLength": 1
+        },
+        "dashboard_evidence_uri": {
+          "type": "string",
+          "minLength": 1
+        },
+        "operator_signoff_uri": {
+          "type": "string",
+          "minLength": 1
+        },
+        "controls_passed": {
+          "type": "boolean"
+        },
+        "compliance_exports_available": {
+          "type": "boolean"
+        },
+        "drift_reviewed": {
+          "type": "boolean"
+        },
+        "evidence_hash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
       }
     },
     "deployment_hardening_evidence": {

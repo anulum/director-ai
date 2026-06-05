@@ -6,7 +6,7 @@
     "optional_extras": 53,
     "public_api_exports": 216,
     "public_documentation_pages": 146,
-    "python_model_classes": 718,
+    "python_model_classes": 720,
     "python_model_source_modules": 316,
     "rust_pyo3_model_wrappers": 78,
     "test_files": 416
@@ -972,6 +972,10 @@
       {
         "name": "DependencyError",
         "path": "src/director_ai/core/exceptions.py"
+      },
+      {
+        "name": "DeploymentHardeningEvidence",
+        "path": "src/director_ai/core/customer_model_factory/release_gate.py"
       },
       {
         "name": "DeploymentPolicy",
@@ -1960,6 +1964,10 @@
       {
         "name": "NumericalError",
         "path": "src/director_ai/core/exceptions.py"
+      },
+      {
+        "name": "ObservabilityOperationsEvidence",
+        "path": "src/director_ai/core/customer_model_factory/release_gate.py"
       },
       {
         "name": "ObservabilityOperationsReport",

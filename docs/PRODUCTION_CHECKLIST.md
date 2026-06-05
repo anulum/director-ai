@@ -138,6 +138,10 @@ export DIRECTOR_PRODUCTION_MODE=true
 - [ ] Export a tenant-safe operations packet with
       `build_observability_operations_report()` for halt forensics, drift
       alerts, readiness controls, and compliance evidence references
+- [ ] Attach observability operations evidence to the Customer Model Factory
+      release gate with the operations packet URI, dashboard evidence URI,
+      drift review flag, readiness-control status, compliance-export status,
+      and operator sign-off URI.
 
 ### Performance
 

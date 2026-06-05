@@ -38,6 +38,7 @@ from .monitoring_manifest import (
 from .release_gate import (
     CustomerReleaseGateManifest,
     DeploymentHardeningEvidence,
+    ObservabilityOperationsEvidence,
     build_release_gate_manifest,
 )
 from .risk_register import (
@@ -80,6 +81,7 @@ __all__ = [
     "DeploymentPolicy",
     "MonitoringMetrics",
     "MonitoringThresholds",
+    "ObservabilityOperationsEvidence",
     "SECTOR_REQUIRED_METADATA",
     "SectorEvidenceMapping",
     "TrainingLane",

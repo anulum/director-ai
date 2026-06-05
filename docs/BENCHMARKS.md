@@ -249,6 +249,18 @@ Outputs:
 
 Use `--strict` to return non-zero when any case fails or times out.
 
+## Observability Operations Evidence
+
+For the R8 observability gate, export a tenant-safe operations packet from
+`build_observability_operations_report()` and attach it to the Customer Model
+Factory release gate through `ObservabilityOperationsEvidence`.
+
+The release artefact must point to the archived operations packet, dashboard
+evidence or hosted dashboard URL, operator sign-off, readiness-control status,
+compliance-export status, and drift-review status. Local report generation is
+not enough to close R8; the release gate requires staging or production evidence
+and fails closed when any required reference or review flag is missing.
+
 ## Provenance And KB Lineage Evidence
 
 For the R9 provenance gate, generate an evidence packet that checks KB snapshot
