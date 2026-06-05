@@ -37,6 +37,7 @@ from .monitoring_manifest import (
 )
 from .release_gate import (
     CustomerReleaseGateManifest,
+    DeploymentHardeningEvidence,
     build_release_gate_manifest,
 )
 from .risk_register import (
@@ -75,6 +76,7 @@ __all__ = [
     "CustomerTraceFinding",
     "CustomerTrainingManifest",
     "CustomerWorkspace",
+    "DeploymentHardeningEvidence",
     "DeploymentPolicy",
     "MonitoringMetrics",
     "MonitoringThresholds",

@@ -17,6 +17,7 @@
     "enterprise_ready",
     "enterprise_blocking_debt_ids",
     "artifact_hashes",
+    "deployment_hardening_evidence",
     "blockers",
     "release_hash"
   ],
@@ -62,6 +63,59 @@
       "type": "object",
       "additionalProperties": {
         "type": "string"
+      }
+    },
+    "deployment_hardening_evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ready",
+        "environment",
+        "observation_window",
+        "telemetry_uri",
+        "sustained_load_packet_uri",
+        "operator_signoff_uri",
+        "async_ordering_passed",
+        "tenant_poisoning_passed",
+        "evidence_hash"
+      ],
+      "properties": {
+        "ready": {
+          "type": "boolean"
+        },
+        "environment": {
+          "type": "string",
+          "enum": [
+            "staging",
+            "production"
+          ]
+        },
+        "observation_window": {
+          "type": "string",
+          "minLength": 1
+        },
+        "telemetry_uri": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sustained_load_packet_uri": {
+          "type": "string",
+          "minLength": 1
+        },
+        "operator_signoff_uri": {
+          "type": "string",
+          "minLength": 1
+        },
+        "async_ordering_passed": {
+          "type": "boolean"
+        },
+        "tenant_poisoning_passed": {
+          "type": "boolean"
+        },
+        "evidence_hash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
       }
     },
     "blockers": {

@@ -36,6 +36,7 @@ from director_ai.core.customer_model_factory.monitoring_manifest import (
     build_monitoring_manifest,
 )
 from director_ai.core.customer_model_factory.release_gate import (
+    DeploymentHardeningEvidence,
     build_release_gate_manifest,
 )
 from director_ai.core.customer_model_factory.risk_register import build_risk_register
@@ -195,6 +196,17 @@ def _build_manifests() -> dict[str, dict]:
         generated_at="2026-05-18",
     )
     enterprise_readiness = {"ready": True, "blocking_debt_ids": []}
+    deployment_hardening_evidence = DeploymentHardeningEvidence(
+        ready=True,
+        environment="staging",
+        observation_window="2026-05-18T00:00:00Z/2026-05-18T12:00:00Z",
+        telemetry_uri="gs://customer-artifacts/customer-alpha/telemetry/r17.jsonl",
+        sustained_load_packet_uri="gs://customer-artifacts/customer-alpha/evidence/sustained-load.json",
+        operator_signoff_uri="gs://customer-artifacts/customer-alpha/signoff/r17.json",
+        async_ordering_passed=True,
+        tenant_poisoning_passed=True,
+        evidence_hash="f" * 64,
+    )
     release_gate = build_release_gate_manifest(
         release_id="release-customer-alpha-20260518",
         enterprise_ready=True,
@@ -203,6 +215,7 @@ def _build_manifests() -> dict[str, dict]:
         evidence_pack=evidence_pack,
         monitoring_manifest=monitoring_manifest,
         risk_register=risk_register,
+        deployment_hardening_evidence=deployment_hardening_evidence,
         generated_at=GENERATED_AT,
     )
     return {
@@ -216,6 +229,7 @@ def _build_manifests() -> dict[str, dict]:
         "runtime_package.json": runtime_package.to_dict(),
         "monitoring_manifest.json": monitoring_manifest.to_dict(),
         "risk_register.json": risk_register.to_dict(),
+        "deployment_hardening_evidence.json": deployment_hardening_evidence.to_dict(),
         "enterprise_readiness.json": enterprise_readiness,
         "release_gate.json": release_gate.to_dict(),
     }

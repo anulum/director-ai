@@ -28,6 +28,7 @@ EXPECTED_MANIFESTS = {
     "runtime_package.json",
     "monitoring_manifest.json",
     "risk_register.json",
+    "deployment_hardening_evidence.json",
     "enterprise_readiness.json",
     "release_gate.json",
 }
@@ -51,6 +52,7 @@ def test_e2e_fixture_generator_writes_all_release_artifacts(tmp_path: Path):
     )
 
     assert release_gate["promotion_allowed"] is True
+    assert release_gate["deployment_hardening_evidence"]["environment"] == "staging"
     assert (
         release_gate["artifact_hashes"]["runtime_hash"]
         == runtime_package["runtime_hash"]

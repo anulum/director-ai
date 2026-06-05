@@ -25,6 +25,52 @@ SCHEMA_VERSION = "1.0.0"
 
 
 @dataclass(frozen=True)
+class DeploymentHardeningEvidence:
+    """Sustained deployment-hardening evidence attached to a release gate."""
+
+    ready: bool
+    environment: str
+    observation_window: str
+    telemetry_uri: str
+    sustained_load_packet_uri: str
+    operator_signoff_uri: str
+    async_ordering_passed: bool
+    tenant_poisoning_passed: bool
+    evidence_hash: str
+
+    def to_dict(self) -> dict[str, Any]:
+        """Serialise deployment-hardening evidence to stable JSON-safe data."""
+
+        return {
+            "ready": self.ready,
+            "environment": self.environment,
+            "observation_window": self.observation_window,
+            "telemetry_uri": self.telemetry_uri,
+            "sustained_load_packet_uri": self.sustained_load_packet_uri,
+            "operator_signoff_uri": self.operator_signoff_uri,
+            "async_ordering_passed": self.async_ordering_passed,
+            "tenant_poisoning_passed": self.tenant_poisoning_passed,
+            "evidence_hash": self.evidence_hash,
+        }
+
+    @classmethod
+    def from_dict(cls, payload: dict[str, Any]) -> DeploymentHardeningEvidence:
+        """Rebuild deployment-hardening evidence from JSON-safe data."""
+
+        return cls(
+            ready=bool(payload["ready"]),
+            environment=str(payload["environment"]),
+            observation_window=str(payload["observation_window"]),
+            telemetry_uri=str(payload["telemetry_uri"]),
+            sustained_load_packet_uri=str(payload["sustained_load_packet_uri"]),
+            operator_signoff_uri=str(payload["operator_signoff_uri"]),
+            async_ordering_passed=bool(payload["async_ordering_passed"]),
+            tenant_poisoning_passed=bool(payload["tenant_poisoning_passed"]),
+            evidence_hash=str(payload["evidence_hash"]),
+        )
+
+
+@dataclass(frozen=True)
 class CustomerReleaseGateManifest:
     """Release-promotion gate across factory readiness artefacts."""
 
@@ -40,6 +86,7 @@ class CustomerReleaseGateManifest:
     enterprise_ready: bool
     enterprise_blocking_debt_ids: tuple[str, ...]
     artifact_hashes: dict[str, str]
+    deployment_hardening_evidence: DeploymentHardeningEvidence
     blockers: tuple[dict[str, str], ...]
     release_hash: str
 
@@ -59,6 +106,9 @@ class CustomerReleaseGateManifest:
             "enterprise_ready": self.enterprise_ready,
             "enterprise_blocking_debt_ids": list(self.enterprise_blocking_debt_ids),
             "artifact_hashes": dict(sorted(self.artifact_hashes.items())),
+            "deployment_hardening_evidence": (
+                self.deployment_hardening_evidence.to_dict()
+            ),
             "blockers": [dict(blocker) for blocker in self.blockers],
             "release_hash": self.release_hash,
         }
@@ -83,6 +133,7 @@ def build_release_gate_manifest(
     evidence_pack: CustomerEvidencePackManifest,
     monitoring_manifest: CustomerMonitoringManifest,
     risk_register: CustomerRiskRegister,
+    deployment_hardening_evidence: DeploymentHardeningEvidence,
     generated_at: str,
 ) -> CustomerReleaseGateManifest:
     """Build the final Customer Model Factory release-promotion gate."""
@@ -101,6 +152,7 @@ def build_release_gate_manifest(
         evidence_pack=evidence_pack,
         monitoring_manifest=monitoring_manifest,
         risk_register=risk_register,
+        deployment_hardening_evidence=deployment_hardening_evidence,
         generated_at=generated_at,
     )
     release_hash = _stable_hash(
@@ -114,6 +166,7 @@ def build_release_gate_manifest(
             "enterprise_ready": enterprise_ready,
             "enterprise_blocking_debt_ids": enterprise_blocking_debt_ids,
             "artifact_hashes": artifact_hashes,
+            "deployment_hardening_evidence": deployment_hardening_evidence.to_dict(),
             "blockers": blockers,
         }
     )
@@ -131,6 +184,7 @@ def build_release_gate_manifest(
         enterprise_ready=enterprise_ready,
         enterprise_blocking_debt_ids=enterprise_blocking_debt_ids,
         artifact_hashes=artifact_hashes,
+        deployment_hardening_evidence=deployment_hardening_evidence,
         blockers=tuple(blockers),
         release_hash=release_hash,
     )
@@ -160,6 +214,7 @@ def _collect_blockers(
     evidence_pack: CustomerEvidencePackManifest,
     monitoring_manifest: CustomerMonitoringManifest,
     risk_register: CustomerRiskRegister,
+    deployment_hardening_evidence: DeploymentHardeningEvidence,
     generated_at: str,
 ) -> list[dict[str, str]]:
     blockers: list[dict[str, str]] = []
@@ -178,6 +233,7 @@ def _collect_blockers(
     _extend_readiness_blockers(
         runtime_package, evidence_pack, monitoring_manifest, risk_register, blockers
     )
+    _extend_deployment_hardening_blockers(deployment_hardening_evidence, blockers)
     _extend_boundary_blockers(
         runtime_package, evidence_pack, monitoring_manifest, risk_register, blockers
     )
@@ -208,6 +264,55 @@ def _extend_readiness_blockers(
     if not risk_register.ready:
         blockers.append(
             _blocker("risk_register_not_ready", "risk register is not ready")
+        )
+
+
+def _extend_deployment_hardening_blockers(
+    evidence: DeploymentHardeningEvidence,
+    blockers: list[dict[str, str]],
+) -> None:
+    if not evidence.ready:
+        blockers.append(
+            _blocker(
+                "deployment_hardening_not_ready",
+                "deployment hardening evidence is not ready",
+            )
+        )
+    if evidence.environment.strip().lower() not in {"staging", "production"}:
+        blockers.append(
+            _blocker(
+                "deployment_hardening_environment_invalid",
+                "deployment hardening evidence must come from staging or production",
+            )
+        )
+    for field, code in (
+        ("observation_window", "deployment_observation_window_missing"),
+        ("telemetry_uri", "deployment_telemetry_uri_missing"),
+        ("sustained_load_packet_uri", "deployment_sustained_load_packet_missing"),
+        ("operator_signoff_uri", "deployment_operator_signoff_missing"),
+    ):
+        if not getattr(evidence, field).strip():
+            blockers.append(_blocker(code, f"{field} is required"))
+    if not evidence.async_ordering_passed:
+        blockers.append(
+            _blocker(
+                "deployment_async_ordering_failed",
+                "async ordering probe did not pass in deployment hardening evidence",
+            )
+        )
+    if not evidence.tenant_poisoning_passed:
+        blockers.append(
+            _blocker(
+                "deployment_tenant_poisoning_failed",
+                "tenant poisoning probe did not pass in deployment hardening evidence",
+            )
+        )
+    if not _is_sha256(evidence.evidence_hash):
+        blockers.append(
+            _blocker(
+                "deployment_hardening_hash_invalid",
+                "deployment hardening evidence_hash must be a sha256 hex digest",
+            )
         )
 
 
@@ -273,3 +378,7 @@ def _blocker(code: str, message: str, **extra: str) -> dict[str, str]:
 def _stable_hash(payload: dict[str, Any]) -> str:
     canonical = json.dumps(payload, sort_keys=True, separators=(",", ":"), default=str)
     return hashlib.sha256(canonical.encode()).hexdigest()
+
+
+def _is_sha256(value: str) -> bool:
+    return len(value) == 64 and all(char in "0123456789abcdef" for char in value)

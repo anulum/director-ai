@@ -171,6 +171,10 @@ export DIRECTOR_PRODUCTION_MODE=true
       `PYTHONPATH=src python tools/run_wasm_browser_worker_smoke.py`
 - [ ] Generate sustained async/tenant hardening evidence:
       `PYTHONPATH=src python -m benchmarks.sustained_load_evidence`
+- [ ] Attach deployment-hardening evidence to the Customer Model Factory
+      release gate with staging or production telemetry, the sustained-load
+      packet URI, async-ordering and tenant-poisoning pass flags, and operator
+      sign-off URI.
 - [ ] Run the local release evidence gate:
       `PYTHONPATH=src python tools/check_local_release_evidence.py --root . --mode local`
 - [ ] Before a customer release, run the strict release evidence gate:

@@ -22,6 +22,7 @@ from director_ai.core.customer_model_factory.monitoring_manifest import (
     CustomerMonitoringManifest,
 )
 from director_ai.core.customer_model_factory.release_gate import (
+    DeploymentHardeningEvidence,
     build_release_gate_manifest,
 )
 from director_ai.core.customer_model_factory.risk_register import CustomerRiskRegister
@@ -41,6 +42,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--evidence-pack", type=Path, required=True)
     parser.add_argument("--monitoring-manifest", type=Path, required=True)
     parser.add_argument("--risk-register", type=Path, required=True)
+    parser.add_argument("--deployment-hardening-evidence", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args(argv)
 
@@ -59,6 +61,9 @@ def main(argv: list[str] | None = None) -> int:
             _read_json(args.monitoring_manifest)
         ),
         risk_register=CustomerRiskRegister.from_dict(_read_json(args.risk_register)),
+        deployment_hardening_evidence=DeploymentHardeningEvidence.from_dict(
+            _read_json(args.deployment_hardening_evidence)
+        ),
         generated_at=args.generated_at,
     )
     release_gate.write_json(args.output)

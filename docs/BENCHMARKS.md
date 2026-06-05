@@ -405,6 +405,12 @@ Passing this packet is local evidence only. Closing the production deployment
 gate still requires a sustained staging or production run with external
 telemetry, environment details, and security-review sign-off.
 
+Customer Model Factory release promotion also requires this deployment
+hardening evidence as a first-class release-gate artefact. The
+`DeploymentHardeningEvidence` contract must point to archived telemetry, the
+sustained-load packet, and operator sign-off; it must record passing async
+ordering and tenant-poisoning probes from a staging or production window.
+
 ## Local Release Evidence Gate
 
 After generating the local evidence packets for R9-R17, run the repository
