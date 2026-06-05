@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.15.3] — 2026-06-05
+
+- Refresh public version surface from 3.15.2 to 3.15.3 across package metadata, README,
+  citation, generated capability inventory snapshot, and public documentation pages.
+- Add a release documentation clean-up wave for public API entry pages, CLI
+  reference examples, and stale release references in enterprise-facing recipes.
+- Keep release evidence gates unchanged: no staged customer claims until
+  Customer Model Factory hardening, evidence and operator sign-off requirements
+  remain enforced by the existing `check_local_release_evidence` strict mode.
+
 ## [3.15.2] — 2026-06-01
 
 - Refresh the public documentation entry points for evaluators, builders,

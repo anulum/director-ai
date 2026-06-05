@@ -27,7 +27,7 @@ from director_ai.core import (
 @pytest.mark.consumer
 class TestVersion:
     def test_version_string(self):
-        assert director_ai.__version__ == "3.15.2"
+        assert director_ai.__version__ == "3.15.3"
 
     def test_all_exports_present(self):
         for name in [

@@ -12,7 +12,7 @@ Director-Class AI — Documentation landing page
 
 **Real-time LLM hallucination guardrail** — NLI + RAG fact-checking with token-level streaming halt.
 
-<span class="version-badge">v3.15.2 — real-time factual-coherence guard, 5-tier scoring, RAG grounding, streaming halt</span>
+<span class="version-badge">v3.15.3 — real-time factual-coherence guard, 5-tier scoring, RAG grounding, streaming halt</span>
 
 [![CI](https://github.com/anulum/director-ai/actions/workflows/ci.yml/badge.svg)](https://github.com/anulum/director-ai/actions/workflows/ci.yml)
 [![Pre-commit](https://github.com/anulum/director-ai/actions/workflows/pre-commit.yml/badge.svg)](https://github.com/anulum/director-ai/actions/workflows/pre-commit.yml)
@@ -217,7 +217,7 @@ AGPL-3.0 for open source / research. [Commercial licensing](licensing.md) availa
 [GitHub Discussions](https://github.com/anulum/director-ai/discussions) |
 [www.anulum.li](https://www.anulum.li)
 
-*Maintained by [Miroslav Šotek](https://orcid.org/0009-0009-3560-0851) at [Anulum](https://www.anulum.li). Current release: v3.15.2.*
+*Maintained by [Miroslav Šotek](https://orcid.org/0009-0009-3560-0851) at [Anulum](https://www.anulum.li). Current release: v3.15.3.*
 
 <p align="center">
   <a href="https://www.anulum.li">

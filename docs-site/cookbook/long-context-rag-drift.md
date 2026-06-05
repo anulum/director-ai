@@ -25,7 +25,7 @@ store.ingest(
     [
         "ANULUM reported CHF 4.2M in revenue for FY2025 (audited).",
         "Marbach SG headcount at year-end 2025 was 12 employees.",
-        "Director-AI v3.14 was released on 14 April 2026.",
+        "Director-AI v3.15 was released in June 2026.",
     ],
 )
 
@@ -40,7 +40,7 @@ scorer = CoherenceScorer(
 response = (
     "ANULUM reported CHF 4.2M in revenue for FY2025. "
     "The company, based in Marbach SG, employs 12 people. "
-    "Director-AI v3.14 shipped on 14 April 2026 with six new RAG "
+    "Director-AI v3.15 shipped in June 2026 with six new RAG "
     "backends. "
     "Market analysts project CHF 11M in FY2026 revenue. "  # drift
     "The headcount will double by Q3 next year."           # drift
@@ -57,7 +57,7 @@ for i, chunk_score in enumerate(score.per_chunk):
 
 The output prints per-sentence scores. Sentences 0–2 land near `0.9`;
 sentences 3–4 are below `0.3`. With
-`chunked_aggregation="trimmed_mean"` (the v3.10 default) the bottom
+`chunked_aggregation="trimmed_mean"` (the v3.15 default) the bottom
 25% of sentences drop out of the average, so a single bad sentence
 does not pull the whole response below threshold — but the per-chunk
 trace still flags it for the caller.
