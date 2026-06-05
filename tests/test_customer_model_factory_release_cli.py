@@ -20,6 +20,7 @@ from director_ai.core.customer_model_factory.monitoring_manifest import (
     MonitoringThresholds,
 )
 from director_ai.core.customer_model_factory.release_gate import (
+    AutoRedteamDefenceEvidence,
     ConformalRoutingEvidence,
     DeploymentHardeningEvidence,
     EdgeMobileEvidence,
@@ -245,6 +246,23 @@ def _write_inputs(tmp_path: Path, *, enterprise_ready: bool = True) -> dict[str,
         package_publish_verified=True,
         evidence_hash="7" * 64,
     )
+    auto_redteam = AutoRedteamDefenceEvidence(
+        ready=True,
+        environment="production",
+        nightly_run_uri="gs://customer-artifacts/customer-alpha/redteam/nightly-run.json",
+        defence_update_packet_uri="gs://customer-artifacts/customer-alpha/redteam/defence-update-packet.json",
+        registry_snapshot_uri="gs://customer-artifacts/customer-alpha/redteam/registry-snapshot.json",
+        external_adversarial_corpus_uri="gs://customer-artifacts/customer-alpha/redteam/external-adversarial-corpus.json",
+        patch_integration_signoff_uri="gs://customer-artifacts/customer-alpha/redteam/patch-integration-signoff.json",
+        rollback_plan_uri="gs://customer-artifacts/customer-alpha/redteam/rollback-plan.json",
+        operator_signoff_uri="gs://customer-artifacts/customer-alpha/signoff/r15.json",
+        repeated_cycles_verified=True,
+        detection_uplift_verified=True,
+        registry_promotions_verified=True,
+        tenant_safe_reports_verified=True,
+        rollback_plan_verified=True,
+        evidence_hash="8" * 64,
+    )
     paths = {
         "runtime": tmp_path / "runtime.json",
         "evidence": tmp_path / "evidence.json",
@@ -257,6 +275,7 @@ def _write_inputs(tmp_path: Path, *, enterprise_ready: bool = True) -> dict[str,
         "multimodal": tmp_path / "multimodal_temporal.json",
         "federated": tmp_path / "federated_privacy.json",
         "edge_mobile": tmp_path / "edge_mobile.json",
+        "auto_redteam": tmp_path / "auto_redteam_defence.json",
         "hardening": tmp_path / "deployment_hardening.json",
         "enterprise": tmp_path / "enterprise.json",
         "output": tmp_path / "release_gate.json",
@@ -295,6 +314,10 @@ def _write_inputs(tmp_path: Path, *, enterprise_ready: bool = True) -> dict[str,
     )
     paths["edge_mobile"].write_text(
         json.dumps(edge_mobile.to_dict(), sort_keys=True),
+        encoding="utf-8",
+    )
+    paths["auto_redteam"].write_text(
+        json.dumps(auto_redteam.to_dict(), sort_keys=True),
         encoding="utf-8",
     )
     paths["enterprise"].write_text(
@@ -343,6 +366,8 @@ def test_release_cli_writes_ready_release_gate(tmp_path: Path):
             str(paths["federated"]),
             "--edge-mobile-evidence",
             str(paths["edge_mobile"]),
+            "--auto-redteam-defence-evidence",
+            str(paths["auto_redteam"]),
             "--deployment-hardening-evidence",
             str(paths["hardening"]),
             "--output",
@@ -362,6 +387,7 @@ def test_release_cli_writes_ready_release_gate(tmp_path: Path):
     assert payload["multimodal_temporal_evidence"]["environment"] == "production"
     assert payload["federated_privacy_evidence"]["environment"] == "production"
     assert payload["edge_mobile_evidence"]["environment"] == "production"
+    assert payload["auto_redteam_defence_evidence"]["environment"] == "production"
     assert payload["deployment_hardening_evidence"]["environment"] == "production"
 
 
@@ -398,6 +424,8 @@ def test_release_cli_fails_closed_when_enterprise_readiness_blocks(tmp_path: Pat
             str(paths["federated"]),
             "--edge-mobile-evidence",
             str(paths["edge_mobile"]),
+            "--auto-redteam-defence-evidence",
+            str(paths["auto_redteam"]),
             "--deployment-hardening-evidence",
             str(paths["hardening"]),
             "--output",

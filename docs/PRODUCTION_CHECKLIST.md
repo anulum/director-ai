@@ -185,6 +185,11 @@ export DIRECTOR_PRODUCTION_MODE=true
       verification flags, and operator sign-off URI.
 - [ ] Generate auto-redteam defence evidence:
       `PYTHONPATH=src python -m benchmarks.auto_redteam_defence_evidence`
+- [ ] Attach auto-redteam defence evidence to the Customer Model Factory
+      release gate with the live nightly run URI, defence update packet URI,
+      registry snapshot URI, external adversarial corpus URI, patch/model
+      integration sign-off URI, rollback plan URI, release verification flags,
+      and operator sign-off URI.
 - [ ] Generate formal symbolic evidence:
       `PYTHONPATH=src python -m benchmarks.formal_symbolic_evidence`
 - [ ] Generate edge/mobile runtime evidence:

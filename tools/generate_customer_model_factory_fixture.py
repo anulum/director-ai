@@ -36,6 +36,7 @@ from director_ai.core.customer_model_factory.monitoring_manifest import (
     build_monitoring_manifest,
 )
 from director_ai.core.customer_model_factory.release_gate import (
+    AutoRedteamDefenceEvidence,
     ConformalRoutingEvidence,
     DeploymentHardeningEvidence,
     EdgeMobileEvidence,
@@ -299,6 +300,23 @@ def _build_manifests() -> dict[str, dict]:
         package_publish_verified=True,
         evidence_hash="7" * 64,
     )
+    auto_redteam_defence_evidence = AutoRedteamDefenceEvidence(
+        ready=True,
+        environment="staging",
+        nightly_run_uri="gs://customer-artifacts/customer-alpha/redteam/nightly-run.json",
+        defence_update_packet_uri="gs://customer-artifacts/customer-alpha/redteam/defence-update-packet.json",
+        registry_snapshot_uri="gs://customer-artifacts/customer-alpha/redteam/registry-snapshot.json",
+        external_adversarial_corpus_uri="gs://customer-artifacts/customer-alpha/redteam/external-adversarial-corpus.json",
+        patch_integration_signoff_uri="gs://customer-artifacts/customer-alpha/redteam/patch-integration-signoff.json",
+        rollback_plan_uri="gs://customer-artifacts/customer-alpha/redteam/rollback-plan.json",
+        operator_signoff_uri="gs://customer-artifacts/customer-alpha/signoff/r15.json",
+        repeated_cycles_verified=True,
+        detection_uplift_verified=True,
+        registry_promotions_verified=True,
+        tenant_safe_reports_verified=True,
+        rollback_plan_verified=True,
+        evidence_hash="8" * 64,
+    )
     deployment_hardening_evidence = DeploymentHardeningEvidence(
         ready=True,
         environment="staging",
@@ -325,6 +343,7 @@ def _build_manifests() -> dict[str, dict]:
         multimodal_temporal_evidence=multimodal_temporal_evidence,
         federated_privacy_evidence=federated_privacy_evidence,
         edge_mobile_evidence=edge_mobile_evidence,
+        auto_redteam_defence_evidence=auto_redteam_defence_evidence,
         deployment_hardening_evidence=deployment_hardening_evidence,
         generated_at=GENERATED_AT,
     )
@@ -348,6 +367,9 @@ def _build_manifests() -> dict[str, dict]:
         "multimodal_temporal_evidence.json": multimodal_temporal_evidence.to_dict(),
         "federated_privacy_evidence.json": federated_privacy_evidence.to_dict(),
         "edge_mobile_evidence.json": edge_mobile_evidence.to_dict(),
+        "auto_redteam_defence_evidence.json": (
+            auto_redteam_defence_evidence.to_dict()
+        ),
         "deployment_hardening_evidence.json": deployment_hardening_evidence.to_dict(),
         "enterprise_readiness.json": enterprise_readiness,
         "release_gate.json": release_gate.to_dict(),

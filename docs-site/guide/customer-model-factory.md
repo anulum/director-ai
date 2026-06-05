@@ -84,6 +84,7 @@ PYTHONPATH=src python tools/assemble_customer_model_factory_release.py \
   --multimodal-temporal-evidence /tmp/director-ai-cmf-fixture/multimodal_temporal_evidence.json \
   --federated-privacy-evidence /tmp/director-ai-cmf-fixture/federated_privacy_evidence.json \
   --edge-mobile-evidence /tmp/director-ai-cmf-fixture/edge_mobile_evidence.json \
+  --auto-redteam-defence-evidence /tmp/director-ai-cmf-fixture/auto_redteam_defence_evidence.json \
   --deployment-hardening-evidence /tmp/director-ai-cmf-fixture/deployment_hardening_evidence.json \
   --output /tmp/director-ai-cmf-fixture/release_gate.json
 ```
@@ -114,6 +115,10 @@ Edge/mobile evidence must include the edge runtime packet, quantised model
 artefact, WASM package evidence, browser Web Worker smoke, mobile or embedded
 smoke, package-publish evidence, latency profile, verification flags for each
 release control, and operator sign-off.
+Auto-redteam defence evidence must include a live nightly run, defence update
+packet, registry snapshot, external adversarial corpus, patch/model integration
+sign-off, rollback plan, repeated-cycle, detection-uplift, registry-promotion,
+tenant-safe report, and rollback verification flags, and operator sign-off.
 Deployment-hardening evidence must likewise include archived telemetry, the
 sustained-load packet, async-ordering and tenant-poisoning pass flags, and
 operator sign-off.

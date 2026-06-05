@@ -24,6 +24,7 @@
     "multimodal_temporal_evidence",
     "federated_privacy_evidence",
     "edge_mobile_evidence",
+    "auto_redteam_defence_evidence",
     "deployment_hardening_evidence",
     "blockers",
     "release_hash"
@@ -521,6 +522,86 @@
           "type": "boolean"
         },
         "package_publish_verified": {
+          "type": "boolean"
+        },
+        "evidence_hash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      }
+    },
+    "auto_redteam_defence_evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ready",
+        "environment",
+        "nightly_run_uri",
+        "defence_update_packet_uri",
+        "registry_snapshot_uri",
+        "external_adversarial_corpus_uri",
+        "patch_integration_signoff_uri",
+        "rollback_plan_uri",
+        "operator_signoff_uri",
+        "repeated_cycles_verified",
+        "detection_uplift_verified",
+        "registry_promotions_verified",
+        "tenant_safe_reports_verified",
+        "rollback_plan_verified",
+        "evidence_hash"
+      ],
+      "properties": {
+        "ready": {
+          "type": "boolean"
+        },
+        "environment": {
+          "type": "string",
+          "enum": [
+            "staging",
+            "production"
+          ]
+        },
+        "nightly_run_uri": {
+          "type": "string",
+          "minLength": 1
+        },
+        "defence_update_packet_uri": {
+          "type": "string",
+          "minLength": 1
+        },
+        "registry_snapshot_uri": {
+          "type": "string",
+          "minLength": 1
+        },
+        "external_adversarial_corpus_uri": {
+          "type": "string",
+          "minLength": 1
+        },
+        "patch_integration_signoff_uri": {
+          "type": "string",
+          "minLength": 1
+        },
+        "rollback_plan_uri": {
+          "type": "string",
+          "minLength": 1
+        },
+        "operator_signoff_uri": {
+          "type": "string",
+          "minLength": 1
+        },
+        "repeated_cycles_verified": {
+          "type": "boolean"
+        },
+        "detection_uplift_verified": {
+          "type": "boolean"
+        },
+        "registry_promotions_verified": {
+          "type": "boolean"
+        },
+        "tenant_safe_reports_verified": {
+          "type": "boolean"
+        },
+        "rollback_plan_verified": {
           "type": "boolean"
         },
         "evidence_hash": {

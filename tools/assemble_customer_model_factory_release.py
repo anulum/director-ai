@@ -22,6 +22,7 @@ from director_ai.core.customer_model_factory.monitoring_manifest import (
     CustomerMonitoringManifest,
 )
 from director_ai.core.customer_model_factory.release_gate import (
+    AutoRedteamDefenceEvidence,
     ConformalRoutingEvidence,
     DeploymentHardeningEvidence,
     EdgeMobileEvidence,
@@ -56,6 +57,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--multimodal-temporal-evidence", type=Path, required=True)
     parser.add_argument("--federated-privacy-evidence", type=Path, required=True)
     parser.add_argument("--edge-mobile-evidence", type=Path, required=True)
+    parser.add_argument("--auto-redteam-defence-evidence", type=Path, required=True)
     parser.add_argument("--deployment-hardening-evidence", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args(argv)
@@ -95,6 +97,9 @@ def main(argv: list[str] | None = None) -> int:
         ),
         edge_mobile_evidence=EdgeMobileEvidence.from_dict(
             _read_json(args.edge_mobile_evidence)
+        ),
+        auto_redteam_defence_evidence=AutoRedteamDefenceEvidence.from_dict(
+            _read_json(args.auto_redteam_defence_evidence)
         ),
         deployment_hardening_evidence=DeploymentHardeningEvidence.from_dict(
             _read_json(args.deployment_hardening_evidence)

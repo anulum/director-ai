@@ -411,6 +411,12 @@ Outputs:
 Passing this packet is local evidence only. Closing the auto-redteam gate still
 requires a live nightly run, operator-owned patch/model integration sign-off,
 and external adversarial corpus evidence.
+Customer Model Factory release promotion also requires
+`AutoRedteamDefenceEvidence` with the live nightly run URI, defence update
+packet URI, registry snapshot URI, external adversarial corpus URI,
+patch/model integration sign-off URI, rollback plan URI, repeated-cycle,
+detection-uplift, registry-promotion, tenant-safe report, and rollback
+verification flags, operator sign-off, and evidence hash.
 
 ## Formal Symbolic Evidence
 

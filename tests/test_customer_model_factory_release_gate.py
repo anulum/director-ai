@@ -20,6 +20,7 @@ from director_ai.core.customer_model_factory.monitoring_manifest import (
     MonitoringThresholds,
 )
 from director_ai.core.customer_model_factory.release_gate import (
+    AutoRedteamDefenceEvidence,
     ConformalRoutingEvidence,
     DeploymentHardeningEvidence,
     EdgeMobileEvidence,
@@ -284,6 +285,26 @@ def _edge_mobile_evidence() -> EdgeMobileEvidence:
     )
 
 
+def _auto_redteam_defence_evidence() -> AutoRedteamDefenceEvidence:
+    return AutoRedteamDefenceEvidence(
+        ready=True,
+        environment="staging",
+        nightly_run_uri="gs://customer-artifacts/customer-alpha/redteam/nightly-run.json",
+        defence_update_packet_uri="gs://customer-artifacts/customer-alpha/redteam/defence-update-packet.json",
+        registry_snapshot_uri="gs://customer-artifacts/customer-alpha/redteam/registry-snapshot.json",
+        external_adversarial_corpus_uri="gs://customer-artifacts/customer-alpha/redteam/external-adversarial-corpus.json",
+        patch_integration_signoff_uri="gs://customer-artifacts/customer-alpha/redteam/patch-integration-signoff.json",
+        rollback_plan_uri="gs://customer-artifacts/customer-alpha/redteam/rollback-plan.json",
+        operator_signoff_uri="gs://customer-artifacts/customer-alpha/signoff/r15.json",
+        repeated_cycles_verified=True,
+        detection_uplift_verified=True,
+        registry_promotions_verified=True,
+        tenant_safe_reports_verified=True,
+        rollback_plan_verified=True,
+        evidence_hash="8" * 64,
+    )
+
+
 def test_release_gate_allows_promotion_when_all_artifacts_are_ready():
     gate = build_release_gate_manifest(
         release_id="release-customer-alpha-20260518",
@@ -300,6 +321,7 @@ def test_release_gate_allows_promotion_when_all_artifacts_are_ready():
         multimodal_temporal_evidence=_multimodal_temporal_evidence(),
         federated_privacy_evidence=_federated_privacy_evidence(),
         edge_mobile_evidence=_edge_mobile_evidence(),
+        auto_redteam_defence_evidence=_auto_redteam_defence_evidence(),
         deployment_hardening_evidence=_deployment_hardening_evidence(),
         generated_at="2026-05-18T18:35:00Z",
     )
@@ -339,6 +361,7 @@ def test_release_gate_blocks_enterprise_trust_debt():
         multimodal_temporal_evidence=_multimodal_temporal_evidence(),
         federated_privacy_evidence=_federated_privacy_evidence(),
         edge_mobile_evidence=_edge_mobile_evidence(),
+        auto_redteam_defence_evidence=_auto_redteam_defence_evidence(),
         deployment_hardening_evidence=_deployment_hardening_evidence(),
         generated_at="2026-05-18T18:35:00Z",
     )
@@ -375,6 +398,7 @@ def test_release_gate_blocks_not_ready_required_artifacts():
         multimodal_temporal_evidence=_multimodal_temporal_evidence(),
         federated_privacy_evidence=_federated_privacy_evidence(),
         edge_mobile_evidence=_edge_mobile_evidence(),
+        auto_redteam_defence_evidence=_auto_redteam_defence_evidence(),
         deployment_hardening_evidence=_deployment_hardening_evidence(),
         generated_at="2026-05-18T18:35:00Z",
     )
@@ -430,6 +454,7 @@ def test_release_gate_blocks_missing_release_identity_and_all_not_ready_artifact
         multimodal_temporal_evidence=_multimodal_temporal_evidence(),
         federated_privacy_evidence=_federated_privacy_evidence(),
         edge_mobile_evidence=_edge_mobile_evidence(),
+        auto_redteam_defence_evidence=_auto_redteam_defence_evidence(),
         deployment_hardening_evidence=_deployment_hardening_evidence(),
         generated_at=" ",
     )
@@ -473,6 +498,7 @@ def test_release_gate_blocks_missing_observability_operations_evidence():
         multimodal_temporal_evidence=_multimodal_temporal_evidence(),
         federated_privacy_evidence=_federated_privacy_evidence(),
         edge_mobile_evidence=_edge_mobile_evidence(),
+        auto_redteam_defence_evidence=_auto_redteam_defence_evidence(),
         deployment_hardening_evidence=_deployment_hardening_evidence(),
         generated_at="2026-05-18T18:35:00Z",
     )
@@ -527,6 +553,7 @@ def test_release_gate_blocks_missing_provenance_lineage_evidence():
         multimodal_temporal_evidence=_multimodal_temporal_evidence(),
         federated_privacy_evidence=_federated_privacy_evidence(),
         edge_mobile_evidence=_edge_mobile_evidence(),
+        auto_redteam_defence_evidence=_auto_redteam_defence_evidence(),
         deployment_hardening_evidence=_deployment_hardening_evidence(),
         generated_at="2026-05-18T18:35:00Z",
     )
@@ -584,6 +611,7 @@ def test_release_gate_blocks_missing_conformal_routing_evidence():
         multimodal_temporal_evidence=_multimodal_temporal_evidence(),
         federated_privacy_evidence=_federated_privacy_evidence(),
         edge_mobile_evidence=_edge_mobile_evidence(),
+        auto_redteam_defence_evidence=_auto_redteam_defence_evidence(),
         deployment_hardening_evidence=_deployment_hardening_evidence(),
         generated_at="2026-05-18T18:35:00Z",
     )
@@ -642,6 +670,7 @@ def test_release_gate_blocks_missing_trajectory_rollback_evidence():
         multimodal_temporal_evidence=_multimodal_temporal_evidence(),
         federated_privacy_evidence=_federated_privacy_evidence(),
         edge_mobile_evidence=_edge_mobile_evidence(),
+        auto_redteam_defence_evidence=_auto_redteam_defence_evidence(),
         deployment_hardening_evidence=_deployment_hardening_evidence(),
         generated_at="2026-05-18T18:35:00Z",
     )
@@ -701,6 +730,7 @@ def test_release_gate_blocks_missing_multimodal_temporal_evidence():
         multimodal_temporal_evidence=evidence,
         federated_privacy_evidence=_federated_privacy_evidence(),
         edge_mobile_evidence=_edge_mobile_evidence(),
+        auto_redteam_defence_evidence=_auto_redteam_defence_evidence(),
         deployment_hardening_evidence=_deployment_hardening_evidence(),
         generated_at="2026-05-18T18:35:00Z",
     )
@@ -761,6 +791,7 @@ def test_release_gate_blocks_missing_federated_privacy_evidence():
         multimodal_temporal_evidence=_multimodal_temporal_evidence(),
         federated_privacy_evidence=evidence,
         edge_mobile_evidence=_edge_mobile_evidence(),
+        auto_redteam_defence_evidence=_auto_redteam_defence_evidence(),
         deployment_hardening_evidence=_deployment_hardening_evidence(),
         generated_at="2026-05-18T18:35:00Z",
     )
@@ -826,6 +857,7 @@ def test_release_gate_blocks_missing_edge_mobile_evidence():
         multimodal_temporal_evidence=_multimodal_temporal_evidence(),
         federated_privacy_evidence=_federated_privacy_evidence(),
         edge_mobile_evidence=evidence,
+        auto_redteam_defence_evidence=_auto_redteam_defence_evidence(),
         deployment_hardening_evidence=_deployment_hardening_evidence(),
         generated_at="2026-05-18T18:35:00Z",
     )
@@ -860,6 +892,73 @@ def test_edge_mobile_evidence_round_trips_from_json_safe_dict():
     assert restored == evidence
 
 
+def test_release_gate_blocks_missing_auto_redteam_defence_evidence():
+    evidence = AutoRedteamDefenceEvidence(
+        ready=False,
+        environment="local",
+        nightly_run_uri="",
+        defence_update_packet_uri="",
+        registry_snapshot_uri="",
+        external_adversarial_corpus_uri="",
+        patch_integration_signoff_uri="",
+        rollback_plan_uri="",
+        operator_signoff_uri="",
+        repeated_cycles_verified=False,
+        detection_uplift_verified=False,
+        registry_promotions_verified=False,
+        tenant_safe_reports_verified=False,
+        rollback_plan_verified=False,
+        evidence_hash="not-a-sha",
+    )
+
+    gate = build_release_gate_manifest(
+        release_id="release-customer-alpha-r15-blocked",
+        enterprise_ready=True,
+        enterprise_blocking_debt_ids=(),
+        runtime_package=_runtime_package(),
+        evidence_pack=_evidence_pack(),
+        monitoring_manifest=_monitoring_manifest(),
+        risk_register=_risk_register(),
+        observability_operations_evidence=_observability_operations_evidence(),
+        provenance_lineage_evidence=_provenance_lineage_evidence(),
+        conformal_routing_evidence=_conformal_routing_evidence(),
+        trajectory_rollback_evidence=_trajectory_rollback_evidence(),
+        multimodal_temporal_evidence=_multimodal_temporal_evidence(),
+        federated_privacy_evidence=_federated_privacy_evidence(),
+        edge_mobile_evidence=_edge_mobile_evidence(),
+        auto_redteam_defence_evidence=evidence,
+        deployment_hardening_evidence=_deployment_hardening_evidence(),
+        generated_at="2026-05-18T18:35:00Z",
+    )
+
+    assert gate.ready is False
+    assert {blocker["code"] for blocker in gate.blockers} >= {
+        "auto_redteam_defence_not_ready",
+        "auto_redteam_defence_environment_invalid",
+        "auto_redteam_nightly_run_missing",
+        "auto_redteam_update_packet_missing",
+        "auto_redteam_registry_snapshot_missing",
+        "auto_redteam_external_corpus_missing",
+        "auto_redteam_patch_signoff_missing",
+        "auto_redteam_rollback_plan_missing",
+        "auto_redteam_operator_signoff_missing",
+        "auto_redteam_repeated_cycles_unverified",
+        "auto_redteam_detection_uplift_unverified",
+        "auto_redteam_registry_promotions_unverified",
+        "auto_redteam_tenant_safe_reports_unverified",
+        "auto_redteam_rollback_plan_unverified",
+        "auto_redteam_evidence_hash_invalid",
+    }
+
+
+def test_auto_redteam_defence_evidence_round_trips_from_json_safe_dict():
+    evidence = _auto_redteam_defence_evidence()
+
+    restored = AutoRedteamDefenceEvidence.from_dict(evidence.to_dict())
+
+    assert restored == evidence
+
+
 def test_release_gate_blocks_missing_deployment_hardening_evidence():
     evidence = DeploymentHardeningEvidence(
         ready=False,
@@ -888,6 +987,7 @@ def test_release_gate_blocks_missing_deployment_hardening_evidence():
         multimodal_temporal_evidence=_multimodal_temporal_evidence(),
         federated_privacy_evidence=_federated_privacy_evidence(),
         edge_mobile_evidence=_edge_mobile_evidence(),
+        auto_redteam_defence_evidence=_auto_redteam_defence_evidence(),
         deployment_hardening_evidence=evidence,
         generated_at="2026-05-18T18:35:00Z",
     )
@@ -935,6 +1035,7 @@ def test_release_gate_blocks_customer_boundary_mismatch():
         multimodal_temporal_evidence=_multimodal_temporal_evidence(),
         federated_privacy_evidence=_federated_privacy_evidence(),
         edge_mobile_evidence=_edge_mobile_evidence(),
+        auto_redteam_defence_evidence=_auto_redteam_defence_evidence(),
         deployment_hardening_evidence=_deployment_hardening_evidence(),
         generated_at="2026-05-18T18:35:00Z",
     )
@@ -985,6 +1086,7 @@ def test_release_gate_blocks_cross_artifact_boundary_and_hash_mismatches():
         multimodal_temporal_evidence=_multimodal_temporal_evidence(),
         federated_privacy_evidence=_federated_privacy_evidence(),
         edge_mobile_evidence=_edge_mobile_evidence(),
+        auto_redteam_defence_evidence=_auto_redteam_defence_evidence(),
         deployment_hardening_evidence=_deployment_hardening_evidence(),
         generated_at="2026-05-18T18:35:00Z",
     )
@@ -1017,6 +1119,7 @@ def test_release_gate_serialises_deterministically(tmp_path: Path):
         multimodal_temporal_evidence=_multimodal_temporal_evidence(),
         federated_privacy_evidence=_federated_privacy_evidence(),
         edge_mobile_evidence=_edge_mobile_evidence(),
+        auto_redteam_defence_evidence=_auto_redteam_defence_evidence(),
         deployment_hardening_evidence=_deployment_hardening_evidence(),
         generated_at="2026-05-18T18:35:00Z",
     )
@@ -1046,6 +1149,9 @@ def test_release_gate_serialises_deterministically(tmp_path: Path):
     assert payload["edge_mobile_evidence"]["latency_profile_uri"].endswith(
         "/edge/latency-profile.json"
     )
+    assert payload["auto_redteam_defence_evidence"]["nightly_run_uri"].endswith(
+        "/redteam/nightly-run.json"
+    )
     assert payload["deployment_hardening_evidence"]["telemetry_uri"].endswith(
         "/telemetry/r17.jsonl"
     )
@@ -1069,6 +1175,7 @@ def test_release_gate_schema_is_machine_readable():
         "multimodal_temporal_evidence",
         "federated_privacy_evidence",
         "edge_mobile_evidence",
+        "auto_redteam_defence_evidence",
         "deployment_hardening_evidence",
         "blockers",
         "release_hash",

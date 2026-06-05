@@ -474,6 +474,78 @@ class EdgeMobileEvidence:
 
 
 @dataclass(frozen=True)
+class AutoRedteamDefenceEvidence:
+    """Auto-redteam and defence-genome evidence attached to a release gate."""
+
+    ready: bool
+    environment: str
+    nightly_run_uri: str
+    defence_update_packet_uri: str
+    registry_snapshot_uri: str
+    external_adversarial_corpus_uri: str
+    patch_integration_signoff_uri: str
+    rollback_plan_uri: str
+    operator_signoff_uri: str
+    repeated_cycles_verified: bool
+    detection_uplift_verified: bool
+    registry_promotions_verified: bool
+    tenant_safe_reports_verified: bool
+    rollback_plan_verified: bool
+    evidence_hash: str
+
+    def to_dict(self) -> dict[str, Any]:
+        """Serialise auto-redteam defence evidence to JSON-safe data."""
+
+        return {
+            "ready": self.ready,
+            "environment": self.environment,
+            "nightly_run_uri": self.nightly_run_uri,
+            "defence_update_packet_uri": self.defence_update_packet_uri,
+            "registry_snapshot_uri": self.registry_snapshot_uri,
+            "external_adversarial_corpus_uri": self.external_adversarial_corpus_uri,
+            "patch_integration_signoff_uri": self.patch_integration_signoff_uri,
+            "rollback_plan_uri": self.rollback_plan_uri,
+            "operator_signoff_uri": self.operator_signoff_uri,
+            "repeated_cycles_verified": self.repeated_cycles_verified,
+            "detection_uplift_verified": self.detection_uplift_verified,
+            "registry_promotions_verified": self.registry_promotions_verified,
+            "tenant_safe_reports_verified": self.tenant_safe_reports_verified,
+            "rollback_plan_verified": self.rollback_plan_verified,
+            "evidence_hash": self.evidence_hash,
+        }
+
+    @classmethod
+    def from_dict(cls, payload: dict[str, Any]) -> AutoRedteamDefenceEvidence:
+        """Rebuild auto-redteam defence evidence from JSON-safe data."""
+
+        return cls(
+            ready=bool(payload["ready"]),
+            environment=str(payload["environment"]),
+            nightly_run_uri=str(payload["nightly_run_uri"]),
+            defence_update_packet_uri=str(payload["defence_update_packet_uri"]),
+            registry_snapshot_uri=str(payload["registry_snapshot_uri"]),
+            external_adversarial_corpus_uri=str(
+                payload["external_adversarial_corpus_uri"]
+            ),
+            patch_integration_signoff_uri=str(
+                payload["patch_integration_signoff_uri"]
+            ),
+            rollback_plan_uri=str(payload["rollback_plan_uri"]),
+            operator_signoff_uri=str(payload["operator_signoff_uri"]),
+            repeated_cycles_verified=bool(payload["repeated_cycles_verified"]),
+            detection_uplift_verified=bool(payload["detection_uplift_verified"]),
+            registry_promotions_verified=bool(
+                payload["registry_promotions_verified"]
+            ),
+            tenant_safe_reports_verified=bool(
+                payload["tenant_safe_reports_verified"]
+            ),
+            rollback_plan_verified=bool(payload["rollback_plan_verified"]),
+            evidence_hash=str(payload["evidence_hash"]),
+        )
+
+
+@dataclass(frozen=True)
 class CustomerReleaseGateManifest:
     """Release-promotion gate across factory readiness artefacts."""
 
@@ -496,6 +568,7 @@ class CustomerReleaseGateManifest:
     multimodal_temporal_evidence: MultimodalTemporalEvidence
     federated_privacy_evidence: FederatedPrivacyEvidence
     edge_mobile_evidence: EdgeMobileEvidence
+    auto_redteam_defence_evidence: AutoRedteamDefenceEvidence
     deployment_hardening_evidence: DeploymentHardeningEvidence
     blockers: tuple[dict[str, str], ...]
     release_hash: str
@@ -533,6 +606,9 @@ class CustomerReleaseGateManifest:
                 self.federated_privacy_evidence.to_dict()
             ),
             "edge_mobile_evidence": self.edge_mobile_evidence.to_dict(),
+            "auto_redteam_defence_evidence": (
+                self.auto_redteam_defence_evidence.to_dict()
+            ),
             "deployment_hardening_evidence": (
                 self.deployment_hardening_evidence.to_dict()
             ),
@@ -567,6 +643,7 @@ def build_release_gate_manifest(
     multimodal_temporal_evidence: MultimodalTemporalEvidence,
     federated_privacy_evidence: FederatedPrivacyEvidence,
     edge_mobile_evidence: EdgeMobileEvidence,
+    auto_redteam_defence_evidence: AutoRedteamDefenceEvidence,
     deployment_hardening_evidence: DeploymentHardeningEvidence,
     generated_at: str,
 ) -> CustomerReleaseGateManifest:
@@ -593,6 +670,7 @@ def build_release_gate_manifest(
         multimodal_temporal_evidence=multimodal_temporal_evidence,
         federated_privacy_evidence=federated_privacy_evidence,
         edge_mobile_evidence=edge_mobile_evidence,
+        auto_redteam_defence_evidence=auto_redteam_defence_evidence,
         deployment_hardening_evidence=deployment_hardening_evidence,
         generated_at=generated_at,
     )
@@ -616,6 +694,7 @@ def build_release_gate_manifest(
             "multimodal_temporal_evidence": multimodal_temporal_evidence.to_dict(),
             "federated_privacy_evidence": federated_privacy_evidence.to_dict(),
             "edge_mobile_evidence": edge_mobile_evidence.to_dict(),
+            "auto_redteam_defence_evidence": auto_redteam_defence_evidence.to_dict(),
             "deployment_hardening_evidence": deployment_hardening_evidence.to_dict(),
             "blockers": blockers,
         }
@@ -641,6 +720,7 @@ def build_release_gate_manifest(
         multimodal_temporal_evidence=multimodal_temporal_evidence,
         federated_privacy_evidence=federated_privacy_evidence,
         edge_mobile_evidence=edge_mobile_evidence,
+        auto_redteam_defence_evidence=auto_redteam_defence_evidence,
         deployment_hardening_evidence=deployment_hardening_evidence,
         blockers=tuple(blockers),
         release_hash=release_hash,
@@ -678,6 +758,7 @@ def _collect_blockers(
     multimodal_temporal_evidence: MultimodalTemporalEvidence,
     federated_privacy_evidence: FederatedPrivacyEvidence,
     edge_mobile_evidence: EdgeMobileEvidence,
+    auto_redteam_defence_evidence: AutoRedteamDefenceEvidence,
     deployment_hardening_evidence: DeploymentHardeningEvidence,
     generated_at: str,
 ) -> list[dict[str, str]]:
@@ -706,6 +787,7 @@ def _collect_blockers(
     _extend_multimodal_temporal_blockers(multimodal_temporal_evidence, blockers)
     _extend_federated_privacy_blockers(federated_privacy_evidence, blockers)
     _extend_edge_mobile_blockers(edge_mobile_evidence, blockers)
+    _extend_auto_redteam_defence_blockers(auto_redteam_defence_evidence, blockers)
     _extend_deployment_hardening_blockers(deployment_hardening_evidence, blockers)
     _extend_boundary_blockers(
         runtime_package, evidence_pack, monitoring_manifest, risk_register, blockers
@@ -1193,6 +1275,85 @@ def _extend_edge_mobile_blockers(
             _blocker(
                 "edge_mobile_evidence_hash_invalid",
                 "edge/mobile evidence_hash must be a sha256 hex digest",
+            )
+        )
+
+
+def _extend_auto_redteam_defence_blockers(
+    evidence: AutoRedteamDefenceEvidence,
+    blockers: list[dict[str, str]],
+) -> None:
+    if not evidence.ready:
+        blockers.append(
+            _blocker(
+                "auto_redteam_defence_not_ready",
+                "auto-redteam defence evidence is not ready",
+            )
+        )
+    if evidence.environment.strip().lower() not in {"staging", "production"}:
+        blockers.append(
+            _blocker(
+                "auto_redteam_defence_environment_invalid",
+                "auto-redteam defence evidence must come from staging or production",
+            )
+        )
+    for field, code in (
+        ("nightly_run_uri", "auto_redteam_nightly_run_missing"),
+        ("defence_update_packet_uri", "auto_redteam_update_packet_missing"),
+        ("registry_snapshot_uri", "auto_redteam_registry_snapshot_missing"),
+        (
+            "external_adversarial_corpus_uri",
+            "auto_redteam_external_corpus_missing",
+        ),
+        (
+            "patch_integration_signoff_uri",
+            "auto_redteam_patch_signoff_missing",
+        ),
+        ("rollback_plan_uri", "auto_redteam_rollback_plan_missing"),
+        ("operator_signoff_uri", "auto_redteam_operator_signoff_missing"),
+    ):
+        if not getattr(evidence, field).strip():
+            blockers.append(_blocker(code, f"{field} is required"))
+    if not evidence.repeated_cycles_verified:
+        blockers.append(
+            _blocker(
+                "auto_redteam_repeated_cycles_unverified",
+                "repeated auto-redteam cycles are not verified",
+            )
+        )
+    if not evidence.detection_uplift_verified:
+        blockers.append(
+            _blocker(
+                "auto_redteam_detection_uplift_unverified",
+                "detection uplift is not verified",
+            )
+        )
+    if not evidence.registry_promotions_verified:
+        blockers.append(
+            _blocker(
+                "auto_redteam_registry_promotions_unverified",
+                "defence registry promotions are not verified",
+            )
+        )
+    if not evidence.tenant_safe_reports_verified:
+        blockers.append(
+            _blocker(
+                "auto_redteam_tenant_safe_reports_unverified",
+                "auto-redteam reports are not verified as tenant-safe",
+            )
+        )
+    if not evidence.rollback_plan_verified:
+        blockers.append(
+            _blocker(
+                "auto_redteam_rollback_plan_unverified",
+                "defence rollback plan is not verified",
+            )
+        )
+    if not _is_sha256(evidence.evidence_hash):
+        blockers.append(
+            _blocker(
+                "auto_redteam_evidence_hash_invalid",
+                "auto-redteam defence evidence_hash must be a sha256 hex digest",
             )
         )
 

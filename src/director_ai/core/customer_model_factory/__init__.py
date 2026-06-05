@@ -36,6 +36,7 @@ from .monitoring_manifest import (
     build_monitoring_manifest,
 )
 from .release_gate import (
+    AutoRedteamDefenceEvidence,
     ConformalRoutingEvidence,
     CustomerReleaseGateManifest,
     DeploymentHardeningEvidence,
@@ -69,6 +70,7 @@ from .training_manifest import (
 )
 
 __all__ = [
+    "AutoRedteamDefenceEvidence",
     "BenchmarkMetrics",
     "CustomerBenchmarkResult",
     "CustomerDatasetValidationReport",
