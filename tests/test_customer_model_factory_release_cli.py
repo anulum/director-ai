@@ -20,6 +20,7 @@ from director_ai.core.customer_model_factory.monitoring_manifest import (
     MonitoringThresholds,
 )
 from director_ai.core.customer_model_factory.release_gate import (
+    ConformalRoutingEvidence,
     DeploymentHardeningEvidence,
     ObservabilityOperationsEvidence,
     ProvenanceLineageEvidence,
@@ -166,6 +167,20 @@ def _write_inputs(tmp_path: Path, *, enterprise_ready: bool = True) -> dict[str,
         protected_claim_conflicts_resolved=True,
         evidence_hash="2" * 64,
     )
+    conformal = ConformalRoutingEvidence(
+        ready=True,
+        environment="production",
+        domain_calibration_packet_uri="gs://customer-artifacts/customer-alpha/conformal/domain-calibration.json",
+        deployment_routing_packet_uri="gs://customer-artifacts/customer-alpha/conformal/deployment-routing.json",
+        escalation_route="human_review",
+        operator_signoff_uri="gs://customer-artifacts/customer-alpha/signoff/r10.json",
+        target_coverage=0.95,
+        empirical_coverage=0.97,
+        calibration_sample_count=240,
+        escalation_route_verified=True,
+        reject_to_human_available=True,
+        evidence_hash="3" * 64,
+    )
     paths = {
         "runtime": tmp_path / "runtime.json",
         "evidence": tmp_path / "evidence.json",
@@ -173,6 +188,7 @@ def _write_inputs(tmp_path: Path, *, enterprise_ready: bool = True) -> dict[str,
         "risk": tmp_path / "risk.json",
         "observability": tmp_path / "observability_operations.json",
         "provenance": tmp_path / "provenance_lineage.json",
+        "conformal": tmp_path / "conformal_routing.json",
         "hardening": tmp_path / "deployment_hardening.json",
         "enterprise": tmp_path / "enterprise.json",
         "output": tmp_path / "release_gate.json",
@@ -191,6 +207,10 @@ def _write_inputs(tmp_path: Path, *, enterprise_ready: bool = True) -> dict[str,
     )
     paths["provenance"].write_text(
         json.dumps(provenance.to_dict(), sort_keys=True),
+        encoding="utf-8",
+    )
+    paths["conformal"].write_text(
+        json.dumps(conformal.to_dict(), sort_keys=True),
         encoding="utf-8",
     )
     paths["enterprise"].write_text(
@@ -229,6 +249,8 @@ def test_release_cli_writes_ready_release_gate(tmp_path: Path):
             str(paths["observability"]),
             "--provenance-lineage-evidence",
             str(paths["provenance"]),
+            "--conformal-routing-evidence",
+            str(paths["conformal"]),
             "--deployment-hardening-evidence",
             str(paths["hardening"]),
             "--output",
@@ -243,6 +265,7 @@ def test_release_cli_writes_ready_release_gate(tmp_path: Path):
     assert payload["artifact_hashes"]["risk_register_hash"] == "e" * 64
     assert payload["observability_operations_evidence"]["environment"] == "production"
     assert payload["provenance_lineage_evidence"]["environment"] == "production"
+    assert payload["conformal_routing_evidence"]["environment"] == "production"
     assert payload["deployment_hardening_evidence"]["environment"] == "production"
 
 
@@ -269,6 +292,8 @@ def test_release_cli_fails_closed_when_enterprise_readiness_blocks(tmp_path: Pat
             str(paths["observability"]),
             "--provenance-lineage-evidence",
             str(paths["provenance"]),
+            "--conformal-routing-evidence",
+            str(paths["conformal"]),
             "--deployment-hardening-evidence",
             str(paths["hardening"]),
             "--output",

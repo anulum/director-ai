@@ -158,6 +158,11 @@ export DIRECTOR_PRODUCTION_MODE=true
       resolution flag, and operator sign-off URI.
 - [ ] Generate conformal routing evidence:
       `PYTHONPATH=src python -m benchmarks.conformal_routing_evidence`
+- [ ] Attach conformal routing evidence to the Customer Model Factory release
+      gate with the representative domain calibration packet URI, deployment
+      routing packet URI, target coverage, empirical coverage, calibration
+      sample count, verified escalation route, reject-to-human availability,
+      and operator sign-off URI.
 - [ ] Generate trajectory rollback evidence:
       `PYTHONPATH=src python -m benchmarks.trajectory_rollback_evidence`
 - [ ] Generate multimodal temporal evidence:

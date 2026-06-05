@@ -79,6 +79,7 @@ PYTHONPATH=src python tools/assemble_customer_model_factory_release.py \
   --risk-register /tmp/director-ai-cmf-fixture/risk_register.json \
   --observability-operations-evidence /tmp/director-ai-cmf-fixture/observability_operations_evidence.json \
   --provenance-lineage-evidence /tmp/director-ai-cmf-fixture/provenance_lineage_evidence.json \
+  --conformal-routing-evidence /tmp/director-ai-cmf-fixture/conformal_routing_evidence.json \
   --deployment-hardening-evidence /tmp/director-ai-cmf-fixture/deployment_hardening_evidence.json \
   --output /tmp/director-ai-cmf-fixture/release_gate.json
 ```
@@ -89,6 +90,10 @@ readiness controls, compliance exports, drift review, and operator sign-off.
 KB provenance evidence must include an archived feedback-loop run, signed
 lineage packet, tenant KB snapshot, deployed-fact match, conflict-resolution
 status, and operator sign-off.
+Conformal routing evidence must include representative domain calibration,
+archived deployment routing evidence, target and empirical coverage, verified
+human-review or stronger-model escalation, reject-to-human availability, and
+operator sign-off.
 Deployment-hardening evidence must likewise include archived telemetry, the
 sustained-load packet, async-ordering and tenant-poisoning pass flags, and
 operator sign-off.

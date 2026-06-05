@@ -36,6 +36,7 @@ from director_ai.core.customer_model_factory.monitoring_manifest import (
     build_monitoring_manifest,
 )
 from director_ai.core.customer_model_factory.release_gate import (
+    ConformalRoutingEvidence,
     DeploymentHardeningEvidence,
     ObservabilityOperationsEvidence,
     ProvenanceLineageEvidence,
@@ -220,6 +221,20 @@ def _build_manifests() -> dict[str, dict]:
         protected_claim_conflicts_resolved=True,
         evidence_hash="2" * 64,
     )
+    conformal_routing_evidence = ConformalRoutingEvidence(
+        ready=True,
+        environment="staging",
+        domain_calibration_packet_uri="gs://customer-artifacts/customer-alpha/conformal/domain-calibration.json",
+        deployment_routing_packet_uri="gs://customer-artifacts/customer-alpha/conformal/deployment-routing.json",
+        escalation_route="human_review",
+        operator_signoff_uri="gs://customer-artifacts/customer-alpha/signoff/r10.json",
+        target_coverage=0.95,
+        empirical_coverage=0.97,
+        calibration_sample_count=240,
+        escalation_route_verified=True,
+        reject_to_human_available=True,
+        evidence_hash="3" * 64,
+    )
     deployment_hardening_evidence = DeploymentHardeningEvidence(
         ready=True,
         environment="staging",
@@ -241,6 +256,7 @@ def _build_manifests() -> dict[str, dict]:
         risk_register=risk_register,
         observability_operations_evidence=observability_operations_evidence,
         provenance_lineage_evidence=provenance_lineage_evidence,
+        conformal_routing_evidence=conformal_routing_evidence,
         deployment_hardening_evidence=deployment_hardening_evidence,
         generated_at=GENERATED_AT,
     )
@@ -259,6 +275,7 @@ def _build_manifests() -> dict[str, dict]:
             observability_operations_evidence.to_dict()
         ),
         "provenance_lineage_evidence.json": provenance_lineage_evidence.to_dict(),
+        "conformal_routing_evidence.json": conformal_routing_evidence.to_dict(),
         "deployment_hardening_evidence.json": deployment_hardening_evidence.to_dict(),
         "enterprise_readiness.json": enterprise_readiness,
         "release_gate.json": release_gate.to_dict(),

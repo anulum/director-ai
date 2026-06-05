@@ -36,6 +36,7 @@ from .monitoring_manifest import (
     build_monitoring_manifest,
 )
 from .release_gate import (
+    ConformalRoutingEvidence,
     CustomerReleaseGateManifest,
     DeploymentHardeningEvidence,
     ObservabilityOperationsEvidence,
@@ -77,6 +78,7 @@ __all__ = [
     "CustomerReleaseGateManifest",
     "CustomerTraceFinding",
     "CustomerTrainingManifest",
+    "ConformalRoutingEvidence",
     "CustomerWorkspace",
     "DeploymentHardeningEvidence",
     "DeploymentPolicy",

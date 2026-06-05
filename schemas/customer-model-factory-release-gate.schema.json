@@ -19,6 +19,7 @@
     "artifact_hashes",
     "observability_operations_evidence",
     "provenance_lineage_evidence",
+    "conformal_routing_evidence",
     "deployment_hardening_evidence",
     "blockers",
     "release_hash"
@@ -164,6 +165,76 @@
           "type": "boolean"
         },
         "protected_claim_conflicts_resolved": {
+          "type": "boolean"
+        },
+        "evidence_hash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      }
+    },
+    "conformal_routing_evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ready",
+        "environment",
+        "domain_calibration_packet_uri",
+        "deployment_routing_packet_uri",
+        "escalation_route",
+        "operator_signoff_uri",
+        "target_coverage",
+        "empirical_coverage",
+        "calibration_sample_count",
+        "escalation_route_verified",
+        "reject_to_human_available",
+        "evidence_hash"
+      ],
+      "properties": {
+        "ready": {
+          "type": "boolean"
+        },
+        "environment": {
+          "type": "string",
+          "enum": [
+            "staging",
+            "production"
+          ]
+        },
+        "domain_calibration_packet_uri": {
+          "type": "string",
+          "minLength": 1
+        },
+        "deployment_routing_packet_uri": {
+          "type": "string",
+          "minLength": 1
+        },
+        "escalation_route": {
+          "type": "string",
+          "minLength": 1
+        },
+        "operator_signoff_uri": {
+          "type": "string",
+          "minLength": 1
+        },
+        "target_coverage": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 1
+        },
+        "empirical_coverage": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "calibration_sample_count": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "escalation_route_verified": {
+          "type": "boolean"
+        },
+        "reject_to_human_available": {
           "type": "boolean"
         },
         "evidence_hash": {

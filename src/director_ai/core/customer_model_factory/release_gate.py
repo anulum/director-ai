@@ -171,6 +171,63 @@ class ProvenanceLineageEvidence:
 
 
 @dataclass(frozen=True)
+class ConformalRoutingEvidence:
+    """Conformal calibration and escalation evidence attached to a release gate."""
+
+    ready: bool
+    environment: str
+    domain_calibration_packet_uri: str
+    deployment_routing_packet_uri: str
+    escalation_route: str
+    operator_signoff_uri: str
+    target_coverage: float
+    empirical_coverage: float
+    calibration_sample_count: int
+    escalation_route_verified: bool
+    reject_to_human_available: bool
+    evidence_hash: str
+
+    def to_dict(self) -> dict[str, Any]:
+        """Serialise conformal routing evidence to JSON-safe data."""
+
+        return {
+            "ready": self.ready,
+            "environment": self.environment,
+            "domain_calibration_packet_uri": self.domain_calibration_packet_uri,
+            "deployment_routing_packet_uri": self.deployment_routing_packet_uri,
+            "escalation_route": self.escalation_route,
+            "operator_signoff_uri": self.operator_signoff_uri,
+            "target_coverage": self.target_coverage,
+            "empirical_coverage": self.empirical_coverage,
+            "calibration_sample_count": self.calibration_sample_count,
+            "escalation_route_verified": self.escalation_route_verified,
+            "reject_to_human_available": self.reject_to_human_available,
+            "evidence_hash": self.evidence_hash,
+        }
+
+    @classmethod
+    def from_dict(cls, payload: dict[str, Any]) -> ConformalRoutingEvidence:
+        """Rebuild conformal routing evidence from JSON-safe data."""
+
+        return cls(
+            ready=bool(payload["ready"]),
+            environment=str(payload["environment"]),
+            domain_calibration_packet_uri=str(
+                payload["domain_calibration_packet_uri"]
+            ),
+            deployment_routing_packet_uri=str(payload["deployment_routing_packet_uri"]),
+            escalation_route=str(payload["escalation_route"]),
+            operator_signoff_uri=str(payload["operator_signoff_uri"]),
+            target_coverage=float(payload["target_coverage"]),
+            empirical_coverage=float(payload["empirical_coverage"]),
+            calibration_sample_count=int(payload["calibration_sample_count"]),
+            escalation_route_verified=bool(payload["escalation_route_verified"]),
+            reject_to_human_available=bool(payload["reject_to_human_available"]),
+            evidence_hash=str(payload["evidence_hash"]),
+        )
+
+
+@dataclass(frozen=True)
 class CustomerReleaseGateManifest:
     """Release-promotion gate across factory readiness artefacts."""
 
@@ -188,6 +245,7 @@ class CustomerReleaseGateManifest:
     artifact_hashes: dict[str, str]
     observability_operations_evidence: ObservabilityOperationsEvidence
     provenance_lineage_evidence: ProvenanceLineageEvidence
+    conformal_routing_evidence: ConformalRoutingEvidence
     deployment_hardening_evidence: DeploymentHardeningEvidence
     blockers: tuple[dict[str, str], ...]
     release_hash: str
@@ -214,6 +272,7 @@ class CustomerReleaseGateManifest:
             "provenance_lineage_evidence": (
                 self.provenance_lineage_evidence.to_dict()
             ),
+            "conformal_routing_evidence": self.conformal_routing_evidence.to_dict(),
             "deployment_hardening_evidence": (
                 self.deployment_hardening_evidence.to_dict()
             ),
@@ -243,6 +302,7 @@ def build_release_gate_manifest(
     risk_register: CustomerRiskRegister,
     observability_operations_evidence: ObservabilityOperationsEvidence,
     provenance_lineage_evidence: ProvenanceLineageEvidence,
+    conformal_routing_evidence: ConformalRoutingEvidence,
     deployment_hardening_evidence: DeploymentHardeningEvidence,
     generated_at: str,
 ) -> CustomerReleaseGateManifest:
@@ -264,6 +324,7 @@ def build_release_gate_manifest(
         risk_register=risk_register,
         observability_operations_evidence=observability_operations_evidence,
         provenance_lineage_evidence=provenance_lineage_evidence,
+        conformal_routing_evidence=conformal_routing_evidence,
         deployment_hardening_evidence=deployment_hardening_evidence,
         generated_at=generated_at,
     )
@@ -282,6 +343,7 @@ def build_release_gate_manifest(
                 observability_operations_evidence.to_dict()
             ),
             "provenance_lineage_evidence": provenance_lineage_evidence.to_dict(),
+            "conformal_routing_evidence": conformal_routing_evidence.to_dict(),
             "deployment_hardening_evidence": deployment_hardening_evidence.to_dict(),
             "blockers": blockers,
         }
@@ -302,6 +364,7 @@ def build_release_gate_manifest(
         artifact_hashes=artifact_hashes,
         observability_operations_evidence=observability_operations_evidence,
         provenance_lineage_evidence=provenance_lineage_evidence,
+        conformal_routing_evidence=conformal_routing_evidence,
         deployment_hardening_evidence=deployment_hardening_evidence,
         blockers=tuple(blockers),
         release_hash=release_hash,
@@ -334,6 +397,7 @@ def _collect_blockers(
     risk_register: CustomerRiskRegister,
     observability_operations_evidence: ObservabilityOperationsEvidence,
     provenance_lineage_evidence: ProvenanceLineageEvidence,
+    conformal_routing_evidence: ConformalRoutingEvidence,
     deployment_hardening_evidence: DeploymentHardeningEvidence,
     generated_at: str,
 ) -> list[dict[str, str]]:
@@ -357,6 +421,7 @@ def _collect_blockers(
         observability_operations_evidence, blockers
     )
     _extend_provenance_lineage_blockers(provenance_lineage_evidence, blockers)
+    _extend_conformal_routing_blockers(conformal_routing_evidence, blockers)
     _extend_deployment_hardening_blockers(deployment_hardening_evidence, blockers)
     _extend_boundary_blockers(
         runtime_package, evidence_pack, monitoring_manifest, risk_register, blockers
@@ -491,6 +556,87 @@ def _extend_provenance_lineage_blockers(
             _blocker(
                 "provenance_evidence_hash_invalid",
                 "provenance evidence_hash must be a sha256 hex digest",
+            )
+        )
+
+
+def _extend_conformal_routing_blockers(
+    evidence: ConformalRoutingEvidence,
+    blockers: list[dict[str, str]],
+) -> None:
+    if not evidence.ready:
+        blockers.append(
+            _blocker(
+                "conformal_routing_not_ready",
+                "conformal routing evidence is not ready",
+            )
+        )
+    if evidence.environment.strip().lower() not in {"staging", "production"}:
+        blockers.append(
+            _blocker(
+                "conformal_routing_environment_invalid",
+                "conformal routing evidence must come from staging or production",
+            )
+        )
+    for field, code in (
+        ("domain_calibration_packet_uri", "conformal_calibration_packet_missing"),
+        ("deployment_routing_packet_uri", "conformal_routing_packet_missing"),
+        ("escalation_route", "conformal_escalation_route_missing"),
+        ("operator_signoff_uri", "conformal_operator_signoff_missing"),
+    ):
+        if not getattr(evidence, field).strip():
+            blockers.append(_blocker(code, f"{field} is required"))
+    if not 0.0 < evidence.target_coverage <= 1.0:
+        blockers.append(
+            _blocker(
+                "conformal_target_coverage_invalid",
+                "conformal target_coverage must be between 0 and 1",
+            )
+        )
+    if not 0.0 <= evidence.empirical_coverage <= 1.0:
+        blockers.append(
+            _blocker(
+                "conformal_empirical_coverage_invalid",
+                "conformal empirical_coverage must be between 0 and 1",
+            )
+        )
+    if (
+        0.0 < evidence.target_coverage <= 1.0
+        and 0.0 <= evidence.empirical_coverage <= 1.0
+        and evidence.empirical_coverage < evidence.target_coverage
+    ):
+        blockers.append(
+            _blocker(
+                "conformal_coverage_below_target",
+                "empirical conformal coverage is below the target",
+            )
+        )
+    if evidence.calibration_sample_count <= 0:
+        blockers.append(
+            _blocker(
+                "conformal_calibration_samples_missing",
+                "conformal calibration_sample_count must be positive",
+            )
+        )
+    if not evidence.escalation_route_verified:
+        blockers.append(
+            _blocker(
+                "conformal_escalation_route_unverified",
+                "conformal escalation route is not verified",
+            )
+        )
+    if not evidence.reject_to_human_available:
+        blockers.append(
+            _blocker(
+                "conformal_reject_to_human_unavailable",
+                "reject-to-human route is not available",
+            )
+        )
+    if not _is_sha256(evidence.evidence_hash):
+        blockers.append(
+            _blocker(
+                "conformal_evidence_hash_invalid",
+                "conformal evidence_hash must be a sha256 hex digest",
             )
         )
 

@@ -307,6 +307,12 @@ still requires representative domain calibration data, archived deployment
 evidence, and operator sign-off that the selected human-review or escalation
 route is live.
 
+Customer Model Factory release promotion also requires
+`ConformalRoutingEvidence` with the representative domain calibration packet,
+deployment routing packet, selected escalation route, target coverage,
+empirical coverage, calibration sample count, verified escalation-route flag,
+reject-to-human availability flag, operator sign-off, and evidence hash.
+
 ## Trajectory Rollback Evidence
 
 For the R11 trajectory-safety gate, generate an evidence packet that checks
