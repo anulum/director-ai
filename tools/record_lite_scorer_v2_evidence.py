@@ -55,6 +55,8 @@ class EvidenceRecord:
     heldout_eval_balanced_accuracy: float
     heldout_eval_threshold: float
     onnx_artifact: Path
+    model_card: Path
+    benchmark_claim_review: Path
     latency_backend: str
     latency_device: str
     latency_sample_count: int
@@ -94,6 +96,8 @@ def _validate_record_inputs(root: Path, record: EvidenceRecord) -> list[str]:
         record.student_artifact,
         record.teacher_artifact,
         record.onnx_artifact,
+        record.model_card,
+        record.benchmark_claim_review,
     ):
         path = artifact if artifact.is_absolute() else root / artifact
         if not path.is_file():
@@ -147,6 +151,14 @@ def _render_packet(root: Path, record: EvidenceRecord) -> str:
         if record.onnx_artifact.is_absolute()
         else root / record.onnx_artifact
     )
+    model_card = (
+        record.model_card if record.model_card.is_absolute() else root / record.model_card
+    )
+    benchmark_claim_review = (
+        record.benchmark_claim_review
+        if record.benchmark_claim_review.is_absolute()
+        else root / record.benchmark_claim_review
+    )
 
     fields: list[tuple[str, str]] = [
         ("schema_version", _toml_string("1.0.0")),
@@ -182,10 +194,22 @@ def _render_packet(root: Path, record: EvidenceRecord) -> str:
         ("latency_sample_count", str(record.latency_sample_count)),
         ("latency_p50_ms", repr(record.latency_p50_ms)),
         ("latency_p95_ms", repr(record.latency_p95_ms)),
+        ("model_card_status", _toml_string("recorded")),
+        ("model_card_path", _toml_string(_display_path(root, record.model_card))),
+        ("model_card_sha256", _toml_string(_sha256(model_card))),
+        ("benchmark_claim_review_status", _toml_string("recorded")),
+        (
+            "benchmark_claim_review_path",
+            _toml_string(_display_path(root, record.benchmark_claim_review)),
+        ),
+        (
+            "benchmark_claim_review_sha256",
+            _toml_string(_sha256(benchmark_claim_review)),
+        ),
         (
             "claim_boundary",
             _toml_string(
-                "Recorded evidence packet only; no public score claim until an operator reviews and approves the scored release."
+                "Recorded evidence packet only; no public score claim until the model card and benchmark-claim review are operator approved."
             ),
         ),
     ]
@@ -260,6 +284,8 @@ def record_lite_scorer_v2_evidence_from_eval_result(
     student_artifact: Path,
     teacher_artifact: Path,
     onnx_artifact: Path,
+    model_card: Path,
+    benchmark_claim_review: Path,
     latency_backend: str,
     latency_device: str,
     output: Path = DEFAULT_EVIDENCE_PACKET,
@@ -309,6 +335,8 @@ def record_lite_scorer_v2_evidence_from_eval_result(
         heldout_eval_balanced_accuracy=balanced_accuracy,
         heldout_eval_threshold=threshold,
         onnx_artifact=onnx_artifact,
+        model_card=model_card,
+        benchmark_claim_review=benchmark_claim_review,
         latency_backend=latency_backend,
         latency_device=latency_device,
         latency_sample_count=latency_sample_count,
@@ -333,6 +361,8 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--heldout-eval-balanced-accuracy", type=float)
     parser.add_argument("--heldout-eval-threshold", type=float)
     parser.add_argument("--onnx-artifact", required=True, type=Path)
+    parser.add_argument("--model-card", required=True, type=Path)
+    parser.add_argument("--benchmark-claim-review", required=True, type=Path)
     parser.add_argument("--latency-backend", required=True)
     parser.add_argument("--latency-device", required=True)
     parser.add_argument("--latency-sample-count", type=int)
@@ -369,6 +399,8 @@ def main(argv: list[str] | None = None) -> int:
             student_artifact=args.student_artifact,
             teacher_artifact=args.teacher_artifact,
             onnx_artifact=args.onnx_artifact,
+            model_card=args.model_card,
+            benchmark_claim_review=args.benchmark_claim_review,
             latency_backend=args.latency_backend,
             latency_device=args.latency_device,
             output=args.output,
@@ -396,6 +428,8 @@ def main(argv: list[str] | None = None) -> int:
         heldout_eval_balanced_accuracy=args.heldout_eval_balanced_accuracy,
         heldout_eval_threshold=args.heldout_eval_threshold,
         onnx_artifact=args.onnx_artifact,
+        model_card=args.model_card,
+        benchmark_claim_review=args.benchmark_claim_review,
         latency_backend=args.latency_backend,
         latency_device=args.latency_device,
         latency_sample_count=args.latency_sample_count,

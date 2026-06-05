@@ -78,16 +78,23 @@ def _write_public_claim_surfaces(root: Path) -> None:
     )
 
 
-def _write_artifacts(root: Path) -> tuple[Path, Path, Path]:
+def _write_artifacts(root: Path) -> tuple[Path, Path, Path, Path, Path]:
     model_dir = root / "MODELS" / "lite-scorer-v2"
     model_dir.mkdir(parents=True)
     student = model_dir / "student.bin"
     teacher = model_dir / "teacher.bin"
     onnx = model_dir / "model.onnx"
+    model_card = model_dir / "model_card.md"
+    claim_review = root / "benchmarks" / "lite_scorer_v2_claim_review.md"
     student.write_bytes(b"student artefact\n")
     teacher.write_bytes(b"teacher artefact\n")
     onnx.write_bytes(b"onnx artefact\n")
-    return student, teacher, onnx
+    model_card.write_text("Lite Scorer v2 model card.\n", encoding="utf-8")
+    claim_review.write_text(
+        "Benchmark claim review: no public score claim.\n",
+        encoding="utf-8",
+    )
+    return student, teacher, onnx, model_card, claim_review
 
 
 def _sha256(path: Path) -> str:
@@ -99,7 +106,7 @@ def test_lite_scorer_v2_evidence_recorder_writes_valid_packet(
 ) -> None:
     _write_plan(tmp_path)
     _write_public_claim_surfaces(tmp_path)
-    student, teacher, onnx = _write_artifacts(tmp_path)
+    student, teacher, onnx, model_card, claim_review = _write_artifacts(tmp_path)
 
     record = EvidenceRecord(
         student_candidate="minilm_l6",
@@ -110,6 +117,8 @@ def test_lite_scorer_v2_evidence_recorder_writes_valid_packet(
         heldout_eval_balanced_accuracy=0.7425,
         heldout_eval_threshold=0.51,
         onnx_artifact=onnx,
+        model_card=model_card,
+        benchmark_claim_review=claim_review,
         latency_backend="onnxruntime",
         latency_device="cpu:amd-ryzen-9-7950x",
         latency_sample_count=250,
@@ -126,6 +135,8 @@ def test_lite_scorer_v2_evidence_recorder_writes_valid_packet(
     assert packet["student_artifact_sha256"] == _sha256(student)
     assert packet["teacher_artifact_sha256"] == _sha256(teacher)
     assert packet["onnx_artifact_sha256"] == _sha256(onnx)
+    assert packet["model_card_sha256"] == _sha256(model_card)
+    assert packet["benchmark_claim_review_sha256"] == _sha256(claim_review)
     assert packet["heldout_eval_rows"] == 1200
     assert packet["latency_p95_ms"] == 6.8
     assert validate_lite_scorer_v2_plan(tmp_path) == []
@@ -136,7 +147,7 @@ def test_lite_scorer_v2_evidence_recorder_rejects_missing_artifact(
 ) -> None:
     _write_plan(tmp_path)
     _write_public_claim_surfaces(tmp_path)
-    student, teacher, onnx = _write_artifacts(tmp_path)
+    student, teacher, onnx, model_card, claim_review = _write_artifacts(tmp_path)
     missing_student = student.with_name("missing-student.bin")
     record = EvidenceRecord(
         student_candidate="minilm_l6",
@@ -147,6 +158,8 @@ def test_lite_scorer_v2_evidence_recorder_rejects_missing_artifact(
         heldout_eval_balanced_accuracy=0.7425,
         heldout_eval_threshold=0.51,
         onnx_artifact=onnx,
+        model_card=model_card,
+        benchmark_claim_review=claim_review,
         latency_backend="onnxruntime",
         latency_device="cpu:amd-ryzen-9-7950x",
         latency_sample_count=250,
@@ -164,7 +177,7 @@ def test_lite_scorer_v2_evidence_recorder_rejects_impossible_latency(
 ) -> None:
     _write_plan(tmp_path)
     _write_public_claim_surfaces(tmp_path)
-    student, teacher, onnx = _write_artifacts(tmp_path)
+    student, teacher, onnx, model_card, claim_review = _write_artifacts(tmp_path)
     record = EvidenceRecord(
         student_candidate="minilm_l6",
         student_artifact=student,
@@ -174,6 +187,8 @@ def test_lite_scorer_v2_evidence_recorder_rejects_impossible_latency(
         heldout_eval_balanced_accuracy=0.7425,
         heldout_eval_threshold=0.51,
         onnx_artifact=onnx,
+        model_card=model_card,
+        benchmark_claim_review=claim_review,
         latency_backend="onnxruntime",
         latency_device="cpu:amd-ryzen-9-7950x",
         latency_sample_count=250,
@@ -193,7 +208,7 @@ def test_lite_scorer_v2_evidence_recorder_consumes_eval_result_json(
 ) -> None:
     _write_plan(tmp_path)
     _write_public_claim_surfaces(tmp_path)
-    student, teacher, onnx = _write_artifacts(tmp_path)
+    student, teacher, onnx, model_card, claim_review = _write_artifacts(tmp_path)
     eval_result = tmp_path / "benchmarks" / "results" / "lite_scorer_v2_eval.json"
     eval_result.parent.mkdir(parents=True)
     eval_result.write_text(
@@ -218,6 +233,8 @@ def test_lite_scorer_v2_evidence_recorder_consumes_eval_result_json(
         student_artifact=student,
         teacher_artifact=teacher,
         onnx_artifact=onnx,
+        model_card=model_card,
+        benchmark_claim_review=claim_review,
         latency_backend="onnxruntime",
         latency_device="cpu:amd-ryzen-9-7950x",
     )

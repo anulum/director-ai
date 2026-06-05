@@ -16,6 +16,11 @@ It records the upstream adapter contract and synthetic smoke cases only; it is
 not an official PINT score. `tools/validate_pint_replication_packet.py` enforces
 that boundary.
 
+Lite Scorer v2 note: `benchmarks/lite_scorer_v2_evidence_packet.toml` remains a
+no-claim evidence packet until real student, teacher, ONNX, held-out evaluation,
+quantized latency, model-card, and benchmark-claim review artefacts are recorded
+and pass `tools/validate_lite_scorer_v2_plan.py`.
+
 ## Scoring Tiers
 
 Director-AI uses a 5-tier scoring pyramid. Each tier trades latency for accuracy.

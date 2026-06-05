@@ -136,8 +136,8 @@ scorer = CoherenceScorer(scorer_backend="lite")
 The `nli-lite` backend is the Lite Scorer v2 distillation track. It is available
 as an experimental backend for local student artefacts and readiness testing,
 but public accuracy or latency claims require a held-out evaluation packet,
-ONNX export evidence, quantized latency evidence, and the validator gate in
-`tools/validate_lite_scorer_v2_plan.py`.
+ONNX export evidence, quantized latency evidence, a model card, a benchmark
+claim review, and the validator gate in `tools/validate_lite_scorer_v2_plan.py`.
 The current evidence placeholder is `benchmarks/lite_scorer_v2_evidence_packet.toml`;
 all evidence statuses remain `pending` until a trained student artefact is
 evaluated.
@@ -146,9 +146,9 @@ After training a student artefact, measure it with
 `tools/eval_lite_scorer_v2.py`, then record the evidence packet with
 `tools/record_lite_scorer_v2_evidence.py`. The evaluator calculates held-out
 balanced accuracy, threshold, and latency percentiles. The recorder hashes the
-student, teacher, and ONNX artefacts, can consume the evaluator JSON output via
-`--eval-result`, writes the measured values, and re-runs the Lite Scorer v2
-validator before keeping the packet.
+student, teacher, ONNX, model-card, and benchmark-claim review artefacts, can
+consume the evaluator JSON output via `--eval-result`, writes the measured
+values, and re-runs the Lite Scorer v2 validator before keeping the packet.
 
 The reproducible command plan is defined in
 `benchmarks/lite_scorer_v2_run_manifest.toml` and emitted by

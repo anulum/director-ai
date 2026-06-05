@@ -49,6 +49,8 @@ REQUIRED_EVIDENCE_FIELDS = {
     "heldout_eval_status",
     "onnx_export_status",
     "quantized_latency_status",
+    "model_card_status",
+    "benchmark_claim_review_status",
     "claim_boundary",
 }
 REQUIRED_STUDENTS = {"minilm_l6", "mobilebert", "distilbert"}
@@ -303,6 +305,47 @@ def _validate_recorded_evidence(
                 f"{label}: latency_p95_ms must be greater than latency_p50_ms"
             )
 
+    recorded_core_statuses = {
+        packet["student_artifact_status"],
+        packet["teacher_artifact_status"],
+        packet["heldout_eval_status"],
+        packet["onnx_export_status"],
+        packet["quantized_latency_status"],
+    } & RECORDED_STATUS
+    if recorded_core_statuses and packet["model_card_status"] not in RECORDED_STATUS:
+        errors.append(
+            f"{label}: recorded Lite Scorer v2 evidence requires model_card_status recorded"
+        )
+    if (
+        recorded_core_statuses
+        and packet["benchmark_claim_review_status"] not in RECORDED_STATUS
+    ):
+        errors.append(
+            f"{label}: recorded Lite Scorer v2 evidence requires benchmark_claim_review_status recorded"
+        )
+
+    if packet["model_card_status"] in RECORDED_STATUS:
+        errors.extend(_require_string(packet, label, "model_card_status", "model_card_path"))
+        errors.extend(_require_sha256(packet, label, "model_card_status", "model_card_sha256"))
+
+    if packet["benchmark_claim_review_status"] in RECORDED_STATUS:
+        errors.extend(
+            _require_string(
+                packet,
+                label,
+                "benchmark_claim_review_status",
+                "benchmark_claim_review_path",
+            )
+        )
+        errors.extend(
+            _require_sha256(
+                packet,
+                label,
+                "benchmark_claim_review_status",
+                "benchmark_claim_review_sha256",
+            )
+        )
+
     return errors
 
 
@@ -337,6 +380,8 @@ def _validate_evidence_packet(root: Path, data: dict[str, Any]) -> list[str]:
         "heldout_eval_status",
         "onnx_export_status",
         "quantized_latency_status",
+        "model_card_status",
+        "benchmark_claim_review_status",
     ):
         if packet[key] not in ALLOWED_EVIDENCE_STATUS:
             errors.append(f"{label}: unsupported {key} {packet[key]!r}")

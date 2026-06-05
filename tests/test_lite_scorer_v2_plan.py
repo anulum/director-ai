@@ -59,6 +59,8 @@ teacher_artifact_status = "pending"
 heldout_eval_status = "pending"
 onnx_export_status = "pending"
 quantized_latency_status = "pending"
+model_card_status = "pending"
+benchmark_claim_review_status = "pending"
 claim_boundary = "Evidence packet placeholder only; no public score claim."
 """.strip(),
         encoding="utf-8",
@@ -110,6 +112,8 @@ teacher_artifact_status = "pending"
 heldout_eval_status = "pending"
 onnx_export_status = "pending"
 quantized_latency_status = "pending"
+model_card_status = "pending"
+benchmark_claim_review_status = "pending"
 claim_boundary = "Evidence packet placeholder only; no public score claim."
 """.strip(),
         encoding="utf-8",
@@ -161,6 +165,8 @@ teacher_artifact_status = "pending"
 heldout_eval_status = "pending"
 onnx_export_status = "pending"
 quantized_latency_status = "pending"
+model_card_status = "pending"
+benchmark_claim_review_status = "pending"
 claim_boundary = "Evidence packet placeholder only; no public score claim."
 """.strip(),
         encoding="utf-8",
@@ -214,6 +220,8 @@ teacher_artifact_status = "recorded"
 heldout_eval_status = "recorded"
 onnx_export_status = "recorded"
 quantized_latency_status = "recorded"
+model_card_status = "recorded"
+benchmark_claim_review_status = "recorded"
 claim_boundary = "Evidence packet placeholder only; no public score claim."
 """.strip(),
         encoding="utf-8",
@@ -291,6 +299,12 @@ latency_device = "cpu"
 latency_sample_count = 100
 latency_p50_ms = 0.0
 latency_p95_ms = 1.0
+model_card_status = "recorded"
+model_card_path = "MODELS/lite-scorer-v2/model_card.md"
+model_card_sha256 = "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+benchmark_claim_review_status = "recorded"
+benchmark_claim_review_path = "benchmarks/lite_scorer_v2_claim_review.md"
+benchmark_claim_review_sha256 = "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
 claim_boundary = "Evidence packet placeholder only; no public score claim."
 """.strip(),
         encoding="utf-8",

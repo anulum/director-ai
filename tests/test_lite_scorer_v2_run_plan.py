@@ -49,6 +49,8 @@ def _write_manifest(root: Path, **overrides: object) -> Path:
         "student_artifact": "MODELS/lite-scorer-v2/student/model.safetensors",
         "onnx_output_dir": "MODELS/lite-scorer-v2/onnx",
         "onnx_artifact": "MODELS/lite-scorer-v2/onnx/model_quantized.onnx",
+        "model_card": "MODELS/lite-scorer-v2/model_card.md",
+        "benchmark_claim_review": "benchmarks/lite_scorer_v2_claim_review.md",
         "heldout_eval_dataset": "benchmarks/heldout/lite_scorer_v2.jsonl",
         "heldout_source_dataset": "training/data/eval",
         "heldout_manifest": "benchmarks/heldout/lite_scorer_v2.manifest.toml",
@@ -187,6 +189,10 @@ def test_lite_scorer_v2_run_plan_emits_ordered_argv_commands(tmp_path: Path) -> 
         "--output",
         "benchmarks/lite_scorer_v2_evidence_packet.toml",
     ]
+    assert "--model-card" in commands[4]["argv"]
+    assert "MODELS/lite-scorer-v2/model_card.md" in commands[4]["argv"]
+    assert "--benchmark-claim-review" in commands[4]["argv"]
+    assert "benchmarks/lite_scorer_v2_claim_review.md" in commands[4]["argv"]
 
 
 def test_lite_scorer_v2_run_plan_rejects_unsupported_student(tmp_path: Path) -> None:

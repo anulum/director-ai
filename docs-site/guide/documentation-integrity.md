@@ -57,8 +57,8 @@ PY
 ## Current Known Boundaries
 
 - Lite Scorer v2 evidence remains a staged pipeline until a trained student
-  artefact, held-out evaluation, ONNX export, latency measurement, and evidence
-  packet are recorded.
+  artefact, held-out evaluation, ONNX export, latency measurement, model card,
+  benchmark-claim review, and evidence packet are recorded.
 - The independent external security report remains open until a returned
   `security-validation/` evidence directory passes the validator.
 - Repo-wide public docstring debt remains open and should resume after the

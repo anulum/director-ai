@@ -31,7 +31,7 @@ validation records, and release documentation.
 | ID | Item | Status | Next evidence needed |
 |---|---|---|---|
 | R1 | Independent external security test focused on streaming paths and tenant isolation | Blocked on independent external reviewer | Third-party report or signed internal exception |
-| R2 | Lite Scorer v2 training completion and real artefact evaluation | Open | Completed training artefacts, evaluation JSON, model card, and benchmark-claim eligibility check |
+| R2 | Lite Scorer v2 training completion and real artefact evaluation | Partly implemented: durable training launcher, run manifest, held-out builder, guarded evaluator, ONNX export runner, evidence recorder, and validator are present; recorded evidence now requires hashed student, teacher, ONNX, held-out evaluation, quantized latency, model-card, and benchmark-claim review artefacts before the no-claim packet can be kept | Completed training artefacts, evaluation JSON, model card, benchmark-claim review, and operator approval for any scored release claim |
 | R3 | FrontierFail broader sourced production-failure corpus | Open | More public incident cases with dated evidence, diversity validation, and no synthetic-only benchmark claims |
 | R4 | PINT official upstream run and evidence | Open | Official upstream dataset execution, preserved outputs, and claim-guarded benchmark card |
 | R5 | Hugging Face Space live deployment push | Open/manual | Published Space URL plus deployment smoke evidence |
