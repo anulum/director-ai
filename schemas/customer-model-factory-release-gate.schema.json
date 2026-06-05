@@ -23,6 +23,7 @@
     "trajectory_rollback_evidence",
     "multimodal_temporal_evidence",
     "federated_privacy_evidence",
+    "edge_mobile_evidence",
     "deployment_hardening_evidence",
     "blockers",
     "release_hash"
@@ -431,6 +432,95 @@
           "type": "boolean"
         },
         "contribution_caps_verified": {
+          "type": "boolean"
+        },
+        "evidence_hash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      }
+    },
+    "edge_mobile_evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ready",
+        "environment",
+        "edge_runtime_evidence_uri",
+        "quantised_model_artifact_uri",
+        "wasm_package_evidence_uri",
+        "browser_worker_smoke_uri",
+        "mobile_smoke_evidence_uri",
+        "package_publish_evidence_uri",
+        "latency_profile_uri",
+        "operator_signoff_uri",
+        "quantised_model_verified",
+        "wasm_package_verified",
+        "browser_worker_smoke_passed",
+        "mobile_or_embedded_smoke_passed",
+        "latency_budget_met",
+        "package_publish_verified",
+        "evidence_hash"
+      ],
+      "properties": {
+        "ready": {
+          "type": "boolean"
+        },
+        "environment": {
+          "type": "string",
+          "enum": [
+            "staging",
+            "production"
+          ]
+        },
+        "edge_runtime_evidence_uri": {
+          "type": "string",
+          "minLength": 1
+        },
+        "quantised_model_artifact_uri": {
+          "type": "string",
+          "minLength": 1
+        },
+        "wasm_package_evidence_uri": {
+          "type": "string",
+          "minLength": 1
+        },
+        "browser_worker_smoke_uri": {
+          "type": "string",
+          "minLength": 1
+        },
+        "mobile_smoke_evidence_uri": {
+          "type": "string",
+          "minLength": 1
+        },
+        "package_publish_evidence_uri": {
+          "type": "string",
+          "minLength": 1
+        },
+        "latency_profile_uri": {
+          "type": "string",
+          "minLength": 1
+        },
+        "operator_signoff_uri": {
+          "type": "string",
+          "minLength": 1
+        },
+        "quantised_model_verified": {
+          "type": "boolean"
+        },
+        "wasm_package_verified": {
+          "type": "boolean"
+        },
+        "browser_worker_smoke_passed": {
+          "type": "boolean"
+        },
+        "mobile_or_embedded_smoke_passed": {
+          "type": "boolean"
+        },
+        "latency_budget_met": {
+          "type": "boolean"
+        },
+        "package_publish_verified": {
           "type": "boolean"
         },
         "evidence_hash": {

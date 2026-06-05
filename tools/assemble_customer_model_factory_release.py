@@ -24,6 +24,7 @@ from director_ai.core.customer_model_factory.monitoring_manifest import (
 from director_ai.core.customer_model_factory.release_gate import (
     ConformalRoutingEvidence,
     DeploymentHardeningEvidence,
+    EdgeMobileEvidence,
     FederatedPrivacyEvidence,
     MultimodalTemporalEvidence,
     ObservabilityOperationsEvidence,
@@ -54,6 +55,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--trajectory-rollback-evidence", type=Path, required=True)
     parser.add_argument("--multimodal-temporal-evidence", type=Path, required=True)
     parser.add_argument("--federated-privacy-evidence", type=Path, required=True)
+    parser.add_argument("--edge-mobile-evidence", type=Path, required=True)
     parser.add_argument("--deployment-hardening-evidence", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args(argv)
@@ -90,6 +92,9 @@ def main(argv: list[str] | None = None) -> int:
         ),
         federated_privacy_evidence=FederatedPrivacyEvidence.from_dict(
             _read_json(args.federated_privacy_evidence)
+        ),
+        edge_mobile_evidence=EdgeMobileEvidence.from_dict(
+            _read_json(args.edge_mobile_evidence)
         ),
         deployment_hardening_evidence=DeploymentHardeningEvidence.from_dict(
             _read_json(args.deployment_hardening_evidence)

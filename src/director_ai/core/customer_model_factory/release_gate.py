@@ -396,6 +396,84 @@ class FederatedPrivacyEvidence:
 
 
 @dataclass(frozen=True)
+class EdgeMobileEvidence:
+    """Edge/mobile runtime evidence attached to a release gate."""
+
+    ready: bool
+    environment: str
+    edge_runtime_evidence_uri: str
+    quantised_model_artifact_uri: str
+    wasm_package_evidence_uri: str
+    browser_worker_smoke_uri: str
+    mobile_smoke_evidence_uri: str
+    package_publish_evidence_uri: str
+    latency_profile_uri: str
+    operator_signoff_uri: str
+    quantised_model_verified: bool
+    wasm_package_verified: bool
+    browser_worker_smoke_passed: bool
+    mobile_or_embedded_smoke_passed: bool
+    latency_budget_met: bool
+    package_publish_verified: bool
+    evidence_hash: str
+
+    def to_dict(self) -> dict[str, Any]:
+        """Serialise edge/mobile evidence to JSON-safe data."""
+
+        return {
+            "ready": self.ready,
+            "environment": self.environment,
+            "edge_runtime_evidence_uri": self.edge_runtime_evidence_uri,
+            "quantised_model_artifact_uri": self.quantised_model_artifact_uri,
+            "wasm_package_evidence_uri": self.wasm_package_evidence_uri,
+            "browser_worker_smoke_uri": self.browser_worker_smoke_uri,
+            "mobile_smoke_evidence_uri": self.mobile_smoke_evidence_uri,
+            "package_publish_evidence_uri": self.package_publish_evidence_uri,
+            "latency_profile_uri": self.latency_profile_uri,
+            "operator_signoff_uri": self.operator_signoff_uri,
+            "quantised_model_verified": self.quantised_model_verified,
+            "wasm_package_verified": self.wasm_package_verified,
+            "browser_worker_smoke_passed": self.browser_worker_smoke_passed,
+            "mobile_or_embedded_smoke_passed": (
+                self.mobile_or_embedded_smoke_passed
+            ),
+            "latency_budget_met": self.latency_budget_met,
+            "package_publish_verified": self.package_publish_verified,
+            "evidence_hash": self.evidence_hash,
+        }
+
+    @classmethod
+    def from_dict(cls, payload: dict[str, Any]) -> EdgeMobileEvidence:
+        """Rebuild edge/mobile evidence from JSON-safe data."""
+
+        return cls(
+            ready=bool(payload["ready"]),
+            environment=str(payload["environment"]),
+            edge_runtime_evidence_uri=str(payload["edge_runtime_evidence_uri"]),
+            quantised_model_artifact_uri=str(
+                payload["quantised_model_artifact_uri"]
+            ),
+            wasm_package_evidence_uri=str(payload["wasm_package_evidence_uri"]),
+            browser_worker_smoke_uri=str(payload["browser_worker_smoke_uri"]),
+            mobile_smoke_evidence_uri=str(payload["mobile_smoke_evidence_uri"]),
+            package_publish_evidence_uri=str(
+                payload["package_publish_evidence_uri"]
+            ),
+            latency_profile_uri=str(payload["latency_profile_uri"]),
+            operator_signoff_uri=str(payload["operator_signoff_uri"]),
+            quantised_model_verified=bool(payload["quantised_model_verified"]),
+            wasm_package_verified=bool(payload["wasm_package_verified"]),
+            browser_worker_smoke_passed=bool(payload["browser_worker_smoke_passed"]),
+            mobile_or_embedded_smoke_passed=bool(
+                payload["mobile_or_embedded_smoke_passed"]
+            ),
+            latency_budget_met=bool(payload["latency_budget_met"]),
+            package_publish_verified=bool(payload["package_publish_verified"]),
+            evidence_hash=str(payload["evidence_hash"]),
+        )
+
+
+@dataclass(frozen=True)
 class CustomerReleaseGateManifest:
     """Release-promotion gate across factory readiness artefacts."""
 
@@ -417,6 +495,7 @@ class CustomerReleaseGateManifest:
     trajectory_rollback_evidence: TrajectoryRollbackEvidence
     multimodal_temporal_evidence: MultimodalTemporalEvidence
     federated_privacy_evidence: FederatedPrivacyEvidence
+    edge_mobile_evidence: EdgeMobileEvidence
     deployment_hardening_evidence: DeploymentHardeningEvidence
     blockers: tuple[dict[str, str], ...]
     release_hash: str
@@ -453,6 +532,7 @@ class CustomerReleaseGateManifest:
             "federated_privacy_evidence": (
                 self.federated_privacy_evidence.to_dict()
             ),
+            "edge_mobile_evidence": self.edge_mobile_evidence.to_dict(),
             "deployment_hardening_evidence": (
                 self.deployment_hardening_evidence.to_dict()
             ),
@@ -486,6 +566,7 @@ def build_release_gate_manifest(
     trajectory_rollback_evidence: TrajectoryRollbackEvidence,
     multimodal_temporal_evidence: MultimodalTemporalEvidence,
     federated_privacy_evidence: FederatedPrivacyEvidence,
+    edge_mobile_evidence: EdgeMobileEvidence,
     deployment_hardening_evidence: DeploymentHardeningEvidence,
     generated_at: str,
 ) -> CustomerReleaseGateManifest:
@@ -511,6 +592,7 @@ def build_release_gate_manifest(
         trajectory_rollback_evidence=trajectory_rollback_evidence,
         multimodal_temporal_evidence=multimodal_temporal_evidence,
         federated_privacy_evidence=federated_privacy_evidence,
+        edge_mobile_evidence=edge_mobile_evidence,
         deployment_hardening_evidence=deployment_hardening_evidence,
         generated_at=generated_at,
     )
@@ -533,6 +615,7 @@ def build_release_gate_manifest(
             "trajectory_rollback_evidence": trajectory_rollback_evidence.to_dict(),
             "multimodal_temporal_evidence": multimodal_temporal_evidence.to_dict(),
             "federated_privacy_evidence": federated_privacy_evidence.to_dict(),
+            "edge_mobile_evidence": edge_mobile_evidence.to_dict(),
             "deployment_hardening_evidence": deployment_hardening_evidence.to_dict(),
             "blockers": blockers,
         }
@@ -557,6 +640,7 @@ def build_release_gate_manifest(
         trajectory_rollback_evidence=trajectory_rollback_evidence,
         multimodal_temporal_evidence=multimodal_temporal_evidence,
         federated_privacy_evidence=federated_privacy_evidence,
+        edge_mobile_evidence=edge_mobile_evidence,
         deployment_hardening_evidence=deployment_hardening_evidence,
         blockers=tuple(blockers),
         release_hash=release_hash,
@@ -593,6 +677,7 @@ def _collect_blockers(
     trajectory_rollback_evidence: TrajectoryRollbackEvidence,
     multimodal_temporal_evidence: MultimodalTemporalEvidence,
     federated_privacy_evidence: FederatedPrivacyEvidence,
+    edge_mobile_evidence: EdgeMobileEvidence,
     deployment_hardening_evidence: DeploymentHardeningEvidence,
     generated_at: str,
 ) -> list[dict[str, str]]:
@@ -620,6 +705,7 @@ def _collect_blockers(
     _extend_trajectory_rollback_blockers(trajectory_rollback_evidence, blockers)
     _extend_multimodal_temporal_blockers(multimodal_temporal_evidence, blockers)
     _extend_federated_privacy_blockers(federated_privacy_evidence, blockers)
+    _extend_edge_mobile_blockers(edge_mobile_evidence, blockers)
     _extend_deployment_hardening_blockers(deployment_hardening_evidence, blockers)
     _extend_boundary_blockers(
         runtime_package, evidence_pack, monitoring_manifest, risk_register, blockers
@@ -1026,6 +1112,87 @@ def _extend_federated_privacy_blockers(
             _blocker(
                 "federated_evidence_hash_invalid",
                 "federated privacy evidence_hash must be a sha256 hex digest",
+            )
+        )
+
+
+def _extend_edge_mobile_blockers(
+    evidence: EdgeMobileEvidence,
+    blockers: list[dict[str, str]],
+) -> None:
+    if not evidence.ready:
+        blockers.append(
+            _blocker(
+                "edge_mobile_not_ready",
+                "edge/mobile runtime evidence is not ready",
+            )
+        )
+    if evidence.environment.strip().lower() not in {"staging", "production"}:
+        blockers.append(
+            _blocker(
+                "edge_mobile_environment_invalid",
+                "edge/mobile evidence must come from staging or production",
+            )
+        )
+    for field, code in (
+        ("edge_runtime_evidence_uri", "edge_runtime_evidence_missing"),
+        ("quantised_model_artifact_uri", "edge_quantised_model_missing"),
+        ("wasm_package_evidence_uri", "edge_wasm_package_missing"),
+        ("browser_worker_smoke_uri", "edge_browser_worker_smoke_missing"),
+        ("mobile_smoke_evidence_uri", "edge_mobile_smoke_missing"),
+        ("package_publish_evidence_uri", "edge_package_publish_missing"),
+        ("latency_profile_uri", "edge_latency_profile_missing"),
+        ("operator_signoff_uri", "edge_operator_signoff_missing"),
+    ):
+        if not getattr(evidence, field).strip():
+            blockers.append(_blocker(code, f"{field} is required"))
+    if not evidence.quantised_model_verified:
+        blockers.append(
+            _blocker(
+                "edge_quantised_model_unverified",
+                "quantised model artefact is not verified",
+            )
+        )
+    if not evidence.wasm_package_verified:
+        blockers.append(
+            _blocker(
+                "edge_wasm_package_unverified",
+                "WASM package evidence is not verified",
+            )
+        )
+    if not evidence.browser_worker_smoke_passed:
+        blockers.append(
+            _blocker(
+                "edge_browser_worker_smoke_failed",
+                "browser Web Worker smoke did not pass",
+            )
+        )
+    if not evidence.mobile_or_embedded_smoke_passed:
+        blockers.append(
+            _blocker(
+                "edge_mobile_smoke_failed",
+                "mobile or embedded-device smoke did not pass",
+            )
+        )
+    if not evidence.latency_budget_met:
+        blockers.append(
+            _blocker(
+                "edge_latency_budget_failed",
+                "edge/mobile latency profile did not meet the release budget",
+            )
+        )
+    if not evidence.package_publish_verified:
+        blockers.append(
+            _blocker(
+                "edge_package_publish_unverified",
+                "edge/mobile package publish evidence is not verified",
+            )
+        )
+    if not _is_sha256(evidence.evidence_hash):
+        blockers.append(
+            _blocker(
+                "edge_mobile_evidence_hash_invalid",
+                "edge/mobile evidence_hash must be a sha256 hex digest",
             )
         )
 

@@ -192,6 +192,11 @@ export DIRECTOR_PRODUCTION_MODE=true
       and confirm `ready_for_release` only after WASM artefacts, quantised model
       artefacts, browser/Web Worker smoke, and mobile or embedded-device smoke
       evidence are attached.
+- [ ] Attach edge/mobile evidence to the Customer Model Factory release gate
+      with the edge runtime packet URI, quantised model artefact URI, WASM
+      package evidence URI, browser Web Worker smoke URI, mobile or embedded
+      smoke URI, package-publish evidence URI, latency profile URI, release
+      verification flags, and operator sign-off URI.
 - [ ] Validate the generated WASM package after `wasm-pack build`:
       `PYTHONPATH=src python tools/check_wasm_release_package.py`
 - [ ] Run the browser Web Worker smoke:

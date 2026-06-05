@@ -22,6 +22,7 @@ from director_ai.core.customer_model_factory.monitoring_manifest import (
 from director_ai.core.customer_model_factory.release_gate import (
     ConformalRoutingEvidence,
     DeploymentHardeningEvidence,
+    EdgeMobileEvidence,
     FederatedPrivacyEvidence,
     MultimodalTemporalEvidence,
     ObservabilityOperationsEvidence,
@@ -225,6 +226,25 @@ def _write_inputs(tmp_path: Path, *, enterprise_ready: bool = True) -> dict[str,
         contribution_caps_verified=True,
         evidence_hash="6" * 64,
     )
+    edge_mobile = EdgeMobileEvidence(
+        ready=True,
+        environment="production",
+        edge_runtime_evidence_uri="gs://customer-artifacts/customer-alpha/edge/edge-mobile-evidence.json",
+        quantised_model_artifact_uri="gs://customer-artifacts/customer-alpha/edge/models/tiny-nli-int8.onnx",
+        wasm_package_evidence_uri="gs://customer-artifacts/customer-alpha/edge/wasm-release-package.json",
+        browser_worker_smoke_uri="gs://customer-artifacts/customer-alpha/edge/browser-worker-smoke.json",
+        mobile_smoke_evidence_uri="gs://customer-artifacts/customer-alpha/edge/mobile-device-smoke.json",
+        package_publish_evidence_uri="gs://customer-artifacts/customer-alpha/edge/package-publish.json",
+        latency_profile_uri="gs://customer-artifacts/customer-alpha/edge/latency-profile.json",
+        operator_signoff_uri="gs://customer-artifacts/customer-alpha/signoff/r14.json",
+        quantised_model_verified=True,
+        wasm_package_verified=True,
+        browser_worker_smoke_passed=True,
+        mobile_or_embedded_smoke_passed=True,
+        latency_budget_met=True,
+        package_publish_verified=True,
+        evidence_hash="7" * 64,
+    )
     paths = {
         "runtime": tmp_path / "runtime.json",
         "evidence": tmp_path / "evidence.json",
@@ -236,6 +256,7 @@ def _write_inputs(tmp_path: Path, *, enterprise_ready: bool = True) -> dict[str,
         "trajectory": tmp_path / "trajectory_rollback.json",
         "multimodal": tmp_path / "multimodal_temporal.json",
         "federated": tmp_path / "federated_privacy.json",
+        "edge_mobile": tmp_path / "edge_mobile.json",
         "hardening": tmp_path / "deployment_hardening.json",
         "enterprise": tmp_path / "enterprise.json",
         "output": tmp_path / "release_gate.json",
@@ -270,6 +291,10 @@ def _write_inputs(tmp_path: Path, *, enterprise_ready: bool = True) -> dict[str,
     )
     paths["federated"].write_text(
         json.dumps(federated.to_dict(), sort_keys=True),
+        encoding="utf-8",
+    )
+    paths["edge_mobile"].write_text(
+        json.dumps(edge_mobile.to_dict(), sort_keys=True),
         encoding="utf-8",
     )
     paths["enterprise"].write_text(
@@ -316,6 +341,8 @@ def test_release_cli_writes_ready_release_gate(tmp_path: Path):
             str(paths["multimodal"]),
             "--federated-privacy-evidence",
             str(paths["federated"]),
+            "--edge-mobile-evidence",
+            str(paths["edge_mobile"]),
             "--deployment-hardening-evidence",
             str(paths["hardening"]),
             "--output",
@@ -334,6 +361,7 @@ def test_release_cli_writes_ready_release_gate(tmp_path: Path):
     assert payload["trajectory_rollback_evidence"]["environment"] == "production"
     assert payload["multimodal_temporal_evidence"]["environment"] == "production"
     assert payload["federated_privacy_evidence"]["environment"] == "production"
+    assert payload["edge_mobile_evidence"]["environment"] == "production"
     assert payload["deployment_hardening_evidence"]["environment"] == "production"
 
 
@@ -368,6 +396,8 @@ def test_release_cli_fails_closed_when_enterprise_readiness_blocks(tmp_path: Pat
             str(paths["multimodal"]),
             "--federated-privacy-evidence",
             str(paths["federated"]),
+            "--edge-mobile-evidence",
+            str(paths["edge_mobile"]),
             "--deployment-hardening-evidence",
             str(paths["hardening"]),
             "--output",

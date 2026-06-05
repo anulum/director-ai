@@ -194,6 +194,11 @@ release readiness. The current local R14 evidence path can attach generated
 evidence. Release readiness still requires a quantised ONNX model artefact,
 mobile or embedded-device smoke evidence, package-publish evidence, and the
 deployment-specific release archive.
+Customer Model Factory release promotion also requires `EdgeMobileEvidence`
+with the edge runtime evidence URI, quantised model artefact URI, WASM package
+evidence URI, browser Web Worker smoke URI, mobile or embedded smoke URI,
+package-publish evidence URI, latency profile URI, verification flags for each
+release control, operator sign-off, and evidence hash.
 
 After `wasm-pack build --target web --release`, validate the generated package
 and archive the digest report:

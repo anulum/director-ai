@@ -22,6 +22,7 @@ from director_ai.core.customer_model_factory.monitoring_manifest import (
 from director_ai.core.customer_model_factory.release_gate import (
     ConformalRoutingEvidence,
     DeploymentHardeningEvidence,
+    EdgeMobileEvidence,
     FederatedPrivacyEvidence,
     MultimodalTemporalEvidence,
     ObservabilityOperationsEvidence,
@@ -261,6 +262,28 @@ def _federated_privacy_evidence() -> FederatedPrivacyEvidence:
     )
 
 
+def _edge_mobile_evidence() -> EdgeMobileEvidence:
+    return EdgeMobileEvidence(
+        ready=True,
+        environment="staging",
+        edge_runtime_evidence_uri="gs://customer-artifacts/customer-alpha/edge/edge-mobile-evidence.json",
+        quantised_model_artifact_uri="gs://customer-artifacts/customer-alpha/edge/models/tiny-nli-int8.onnx",
+        wasm_package_evidence_uri="gs://customer-artifacts/customer-alpha/edge/wasm-release-package.json",
+        browser_worker_smoke_uri="gs://customer-artifacts/customer-alpha/edge/browser-worker-smoke.json",
+        mobile_smoke_evidence_uri="gs://customer-artifacts/customer-alpha/edge/mobile-device-smoke.json",
+        package_publish_evidence_uri="gs://customer-artifacts/customer-alpha/edge/package-publish.json",
+        latency_profile_uri="gs://customer-artifacts/customer-alpha/edge/latency-profile.json",
+        operator_signoff_uri="gs://customer-artifacts/customer-alpha/signoff/r14.json",
+        quantised_model_verified=True,
+        wasm_package_verified=True,
+        browser_worker_smoke_passed=True,
+        mobile_or_embedded_smoke_passed=True,
+        latency_budget_met=True,
+        package_publish_verified=True,
+        evidence_hash="7" * 64,
+    )
+
+
 def test_release_gate_allows_promotion_when_all_artifacts_are_ready():
     gate = build_release_gate_manifest(
         release_id="release-customer-alpha-20260518",
@@ -276,6 +299,7 @@ def test_release_gate_allows_promotion_when_all_artifacts_are_ready():
         trajectory_rollback_evidence=_trajectory_rollback_evidence(),
         multimodal_temporal_evidence=_multimodal_temporal_evidence(),
         federated_privacy_evidence=_federated_privacy_evidence(),
+        edge_mobile_evidence=_edge_mobile_evidence(),
         deployment_hardening_evidence=_deployment_hardening_evidence(),
         generated_at="2026-05-18T18:35:00Z",
     )
@@ -294,6 +318,7 @@ def test_release_gate_allows_promotion_when_all_artifacts_are_ready():
     assert gate.trajectory_rollback_evidence.rollback_hook_verified is True
     assert gate.multimodal_temporal_evidence.video_temporal_verified is True
     assert gate.federated_privacy_evidence.secret_sharing_verified is True
+    assert gate.edge_mobile_evidence.browser_worker_smoke_passed is True
     assert gate.deployment_hardening_evidence.tenant_poisoning_passed is True
     assert len(gate.release_hash) == 64
 
@@ -313,6 +338,7 @@ def test_release_gate_blocks_enterprise_trust_debt():
         trajectory_rollback_evidence=_trajectory_rollback_evidence(),
         multimodal_temporal_evidence=_multimodal_temporal_evidence(),
         federated_privacy_evidence=_federated_privacy_evidence(),
+        edge_mobile_evidence=_edge_mobile_evidence(),
         deployment_hardening_evidence=_deployment_hardening_evidence(),
         generated_at="2026-05-18T18:35:00Z",
     )
@@ -348,6 +374,7 @@ def test_release_gate_blocks_not_ready_required_artifacts():
         trajectory_rollback_evidence=_trajectory_rollback_evidence(),
         multimodal_temporal_evidence=_multimodal_temporal_evidence(),
         federated_privacy_evidence=_federated_privacy_evidence(),
+        edge_mobile_evidence=_edge_mobile_evidence(),
         deployment_hardening_evidence=_deployment_hardening_evidence(),
         generated_at="2026-05-18T18:35:00Z",
     )
@@ -402,6 +429,7 @@ def test_release_gate_blocks_missing_release_identity_and_all_not_ready_artifact
         trajectory_rollback_evidence=_trajectory_rollback_evidence(),
         multimodal_temporal_evidence=_multimodal_temporal_evidence(),
         federated_privacy_evidence=_federated_privacy_evidence(),
+        edge_mobile_evidence=_edge_mobile_evidence(),
         deployment_hardening_evidence=_deployment_hardening_evidence(),
         generated_at=" ",
     )
@@ -444,6 +472,7 @@ def test_release_gate_blocks_missing_observability_operations_evidence():
         trajectory_rollback_evidence=_trajectory_rollback_evidence(),
         multimodal_temporal_evidence=_multimodal_temporal_evidence(),
         federated_privacy_evidence=_federated_privacy_evidence(),
+        edge_mobile_evidence=_edge_mobile_evidence(),
         deployment_hardening_evidence=_deployment_hardening_evidence(),
         generated_at="2026-05-18T18:35:00Z",
     )
@@ -497,6 +526,7 @@ def test_release_gate_blocks_missing_provenance_lineage_evidence():
         trajectory_rollback_evidence=_trajectory_rollback_evidence(),
         multimodal_temporal_evidence=_multimodal_temporal_evidence(),
         federated_privacy_evidence=_federated_privacy_evidence(),
+        edge_mobile_evidence=_edge_mobile_evidence(),
         deployment_hardening_evidence=_deployment_hardening_evidence(),
         generated_at="2026-05-18T18:35:00Z",
     )
@@ -553,6 +583,7 @@ def test_release_gate_blocks_missing_conformal_routing_evidence():
         trajectory_rollback_evidence=_trajectory_rollback_evidence(),
         multimodal_temporal_evidence=_multimodal_temporal_evidence(),
         federated_privacy_evidence=_federated_privacy_evidence(),
+        edge_mobile_evidence=_edge_mobile_evidence(),
         deployment_hardening_evidence=_deployment_hardening_evidence(),
         generated_at="2026-05-18T18:35:00Z",
     )
@@ -610,6 +641,7 @@ def test_release_gate_blocks_missing_trajectory_rollback_evidence():
         trajectory_rollback_evidence=evidence,
         multimodal_temporal_evidence=_multimodal_temporal_evidence(),
         federated_privacy_evidence=_federated_privacy_evidence(),
+        edge_mobile_evidence=_edge_mobile_evidence(),
         deployment_hardening_evidence=_deployment_hardening_evidence(),
         generated_at="2026-05-18T18:35:00Z",
     )
@@ -668,6 +700,7 @@ def test_release_gate_blocks_missing_multimodal_temporal_evidence():
         trajectory_rollback_evidence=_trajectory_rollback_evidence(),
         multimodal_temporal_evidence=evidence,
         federated_privacy_evidence=_federated_privacy_evidence(),
+        edge_mobile_evidence=_edge_mobile_evidence(),
         deployment_hardening_evidence=_deployment_hardening_evidence(),
         generated_at="2026-05-18T18:35:00Z",
     )
@@ -727,6 +760,7 @@ def test_release_gate_blocks_missing_federated_privacy_evidence():
         trajectory_rollback_evidence=_trajectory_rollback_evidence(),
         multimodal_temporal_evidence=_multimodal_temporal_evidence(),
         federated_privacy_evidence=evidence,
+        edge_mobile_evidence=_edge_mobile_evidence(),
         deployment_hardening_evidence=_deployment_hardening_evidence(),
         generated_at="2026-05-18T18:35:00Z",
     )
@@ -752,6 +786,76 @@ def test_federated_privacy_evidence_round_trips_from_json_safe_dict():
     evidence = _federated_privacy_evidence()
 
     restored = FederatedPrivacyEvidence.from_dict(evidence.to_dict())
+
+    assert restored == evidence
+
+
+def test_release_gate_blocks_missing_edge_mobile_evidence():
+    evidence = EdgeMobileEvidence(
+        ready=False,
+        environment="local",
+        edge_runtime_evidence_uri="",
+        quantised_model_artifact_uri="",
+        wasm_package_evidence_uri="",
+        browser_worker_smoke_uri="",
+        mobile_smoke_evidence_uri="",
+        package_publish_evidence_uri="",
+        latency_profile_uri="",
+        operator_signoff_uri="",
+        quantised_model_verified=False,
+        wasm_package_verified=False,
+        browser_worker_smoke_passed=False,
+        mobile_or_embedded_smoke_passed=False,
+        latency_budget_met=False,
+        package_publish_verified=False,
+        evidence_hash="not-a-sha",
+    )
+
+    gate = build_release_gate_manifest(
+        release_id="release-customer-alpha-r14-blocked",
+        enterprise_ready=True,
+        enterprise_blocking_debt_ids=(),
+        runtime_package=_runtime_package(),
+        evidence_pack=_evidence_pack(),
+        monitoring_manifest=_monitoring_manifest(),
+        risk_register=_risk_register(),
+        observability_operations_evidence=_observability_operations_evidence(),
+        provenance_lineage_evidence=_provenance_lineage_evidence(),
+        conformal_routing_evidence=_conformal_routing_evidence(),
+        trajectory_rollback_evidence=_trajectory_rollback_evidence(),
+        multimodal_temporal_evidence=_multimodal_temporal_evidence(),
+        federated_privacy_evidence=_federated_privacy_evidence(),
+        edge_mobile_evidence=evidence,
+        deployment_hardening_evidence=_deployment_hardening_evidence(),
+        generated_at="2026-05-18T18:35:00Z",
+    )
+
+    assert gate.ready is False
+    assert {blocker["code"] for blocker in gate.blockers} >= {
+        "edge_mobile_not_ready",
+        "edge_mobile_environment_invalid",
+        "edge_runtime_evidence_missing",
+        "edge_quantised_model_missing",
+        "edge_wasm_package_missing",
+        "edge_browser_worker_smoke_missing",
+        "edge_mobile_smoke_missing",
+        "edge_package_publish_missing",
+        "edge_latency_profile_missing",
+        "edge_operator_signoff_missing",
+        "edge_quantised_model_unverified",
+        "edge_wasm_package_unverified",
+        "edge_browser_worker_smoke_failed",
+        "edge_mobile_smoke_failed",
+        "edge_latency_budget_failed",
+        "edge_package_publish_unverified",
+        "edge_mobile_evidence_hash_invalid",
+    }
+
+
+def test_edge_mobile_evidence_round_trips_from_json_safe_dict():
+    evidence = _edge_mobile_evidence()
+
+    restored = EdgeMobileEvidence.from_dict(evidence.to_dict())
 
     assert restored == evidence
 
@@ -783,6 +887,7 @@ def test_release_gate_blocks_missing_deployment_hardening_evidence():
         trajectory_rollback_evidence=_trajectory_rollback_evidence(),
         multimodal_temporal_evidence=_multimodal_temporal_evidence(),
         federated_privacy_evidence=_federated_privacy_evidence(),
+        edge_mobile_evidence=_edge_mobile_evidence(),
         deployment_hardening_evidence=evidence,
         generated_at="2026-05-18T18:35:00Z",
     )
@@ -829,6 +934,7 @@ def test_release_gate_blocks_customer_boundary_mismatch():
         trajectory_rollback_evidence=_trajectory_rollback_evidence(),
         multimodal_temporal_evidence=_multimodal_temporal_evidence(),
         federated_privacy_evidence=_federated_privacy_evidence(),
+        edge_mobile_evidence=_edge_mobile_evidence(),
         deployment_hardening_evidence=_deployment_hardening_evidence(),
         generated_at="2026-05-18T18:35:00Z",
     )
@@ -878,6 +984,7 @@ def test_release_gate_blocks_cross_artifact_boundary_and_hash_mismatches():
         trajectory_rollback_evidence=_trajectory_rollback_evidence(),
         multimodal_temporal_evidence=_multimodal_temporal_evidence(),
         federated_privacy_evidence=_federated_privacy_evidence(),
+        edge_mobile_evidence=_edge_mobile_evidence(),
         deployment_hardening_evidence=_deployment_hardening_evidence(),
         generated_at="2026-05-18T18:35:00Z",
     )
@@ -909,6 +1016,7 @@ def test_release_gate_serialises_deterministically(tmp_path: Path):
         trajectory_rollback_evidence=_trajectory_rollback_evidence(),
         multimodal_temporal_evidence=_multimodal_temporal_evidence(),
         federated_privacy_evidence=_federated_privacy_evidence(),
+        edge_mobile_evidence=_edge_mobile_evidence(),
         deployment_hardening_evidence=_deployment_hardening_evidence(),
         generated_at="2026-05-18T18:35:00Z",
     )
@@ -935,6 +1043,9 @@ def test_release_gate_serialises_deterministically(tmp_path: Path):
     assert payload["federated_privacy_evidence"][
         "privacy_budget_ledger_uri"
     ].endswith("/federated/privacy-budget-ledger.json")
+    assert payload["edge_mobile_evidence"]["latency_profile_uri"].endswith(
+        "/edge/latency-profile.json"
+    )
     assert payload["deployment_hardening_evidence"]["telemetry_uri"].endswith(
         "/telemetry/r17.jsonl"
     )
@@ -957,6 +1068,7 @@ def test_release_gate_schema_is_machine_readable():
         "trajectory_rollback_evidence",
         "multimodal_temporal_evidence",
         "federated_privacy_evidence",
+        "edge_mobile_evidence",
         "deployment_hardening_evidence",
         "blockers",
         "release_hash",

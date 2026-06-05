@@ -34,6 +34,7 @@ EXPECTED_MANIFESTS = {
     "trajectory_rollback_evidence.json",
     "multimodal_temporal_evidence.json",
     "federated_privacy_evidence.json",
+    "edge_mobile_evidence.json",
     "deployment_hardening_evidence.json",
     "enterprise_readiness.json",
     "release_gate.json",
@@ -66,6 +67,7 @@ def test_e2e_fixture_generator_writes_all_release_artifacts(tmp_path: Path):
     assert release_gate["trajectory_rollback_evidence"]["environment"] == "staging"
     assert release_gate["multimodal_temporal_evidence"]["environment"] == "staging"
     assert release_gate["federated_privacy_evidence"]["environment"] == "staging"
+    assert release_gate["edge_mobile_evidence"]["environment"] == "staging"
     assert release_gate["deployment_hardening_evidence"]["environment"] == "staging"
     assert (
         release_gate["artifact_hashes"]["runtime_hash"]

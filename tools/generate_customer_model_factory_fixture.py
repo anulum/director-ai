@@ -38,6 +38,7 @@ from director_ai.core.customer_model_factory.monitoring_manifest import (
 from director_ai.core.customer_model_factory.release_gate import (
     ConformalRoutingEvidence,
     DeploymentHardeningEvidence,
+    EdgeMobileEvidence,
     FederatedPrivacyEvidence,
     MultimodalTemporalEvidence,
     ObservabilityOperationsEvidence,
@@ -279,6 +280,25 @@ def _build_manifests() -> dict[str, dict]:
         contribution_caps_verified=True,
         evidence_hash="6" * 64,
     )
+    edge_mobile_evidence = EdgeMobileEvidence(
+        ready=True,
+        environment="staging",
+        edge_runtime_evidence_uri="gs://customer-artifacts/customer-alpha/edge/edge-mobile-evidence.json",
+        quantised_model_artifact_uri="gs://customer-artifacts/customer-alpha/edge/models/tiny-nli-int8.onnx",
+        wasm_package_evidence_uri="gs://customer-artifacts/customer-alpha/edge/wasm-release-package.json",
+        browser_worker_smoke_uri="gs://customer-artifacts/customer-alpha/edge/browser-worker-smoke.json",
+        mobile_smoke_evidence_uri="gs://customer-artifacts/customer-alpha/edge/mobile-device-smoke.json",
+        package_publish_evidence_uri="gs://customer-artifacts/customer-alpha/edge/package-publish.json",
+        latency_profile_uri="gs://customer-artifacts/customer-alpha/edge/latency-profile.json",
+        operator_signoff_uri="gs://customer-artifacts/customer-alpha/signoff/r14.json",
+        quantised_model_verified=True,
+        wasm_package_verified=True,
+        browser_worker_smoke_passed=True,
+        mobile_or_embedded_smoke_passed=True,
+        latency_budget_met=True,
+        package_publish_verified=True,
+        evidence_hash="7" * 64,
+    )
     deployment_hardening_evidence = DeploymentHardeningEvidence(
         ready=True,
         environment="staging",
@@ -304,6 +324,7 @@ def _build_manifests() -> dict[str, dict]:
         trajectory_rollback_evidence=trajectory_rollback_evidence,
         multimodal_temporal_evidence=multimodal_temporal_evidence,
         federated_privacy_evidence=federated_privacy_evidence,
+        edge_mobile_evidence=edge_mobile_evidence,
         deployment_hardening_evidence=deployment_hardening_evidence,
         generated_at=GENERATED_AT,
     )
@@ -326,6 +347,7 @@ def _build_manifests() -> dict[str, dict]:
         "trajectory_rollback_evidence.json": trajectory_rollback_evidence.to_dict(),
         "multimodal_temporal_evidence.json": multimodal_temporal_evidence.to_dict(),
         "federated_privacy_evidence.json": federated_privacy_evidence.to_dict(),
+        "edge_mobile_evidence.json": edge_mobile_evidence.to_dict(),
         "deployment_hardening_evidence.json": deployment_hardening_evidence.to_dict(),
         "enterprise_readiness.json": enterprise_readiness,
         "release_gate.json": release_gate.to_dict(),

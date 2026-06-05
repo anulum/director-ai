@@ -83,6 +83,7 @@ PYTHONPATH=src python tools/assemble_customer_model_factory_release.py \
   --trajectory-rollback-evidence /tmp/director-ai-cmf-fixture/trajectory_rollback_evidence.json \
   --multimodal-temporal-evidence /tmp/director-ai-cmf-fixture/multimodal_temporal_evidence.json \
   --federated-privacy-evidence /tmp/director-ai-cmf-fixture/federated_privacy_evidence.json \
+  --edge-mobile-evidence /tmp/director-ai-cmf-fixture/edge_mobile_evidence.json \
   --deployment-hardening-evidence /tmp/director-ai-cmf-fixture/deployment_hardening_evidence.json \
   --output /tmp/director-ai-cmf-fixture/release_gate.json
 ```
@@ -109,6 +110,10 @@ Federated privacy evidence must include an external federation run,
 malicious-secure aggregation review, poisoning-resilience packet, privacy
 budget ledger, DP aggregation, cohort gate, secret-sharing, and contribution-cap
 verification flags, and operator sign-off.
+Edge/mobile evidence must include the edge runtime packet, quantised model
+artefact, WASM package evidence, browser Web Worker smoke, mobile or embedded
+smoke, package-publish evidence, latency profile, verification flags for each
+release control, and operator sign-off.
 Deployment-hardening evidence must likewise include archived telemetry, the
 sustained-load packet, async-ordering and tenant-poisoning pass flags, and
 operator sign-off.
