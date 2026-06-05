@@ -40,6 +40,7 @@ from director_ai.core.customer_model_factory.release_gate import (
     DeploymentHardeningEvidence,
     ObservabilityOperationsEvidence,
     ProvenanceLineageEvidence,
+    TrajectoryRollbackEvidence,
     build_release_gate_manifest,
 )
 from director_ai.core.customer_model_factory.risk_register import build_risk_register
@@ -235,6 +236,19 @@ def _build_manifests() -> dict[str, dict]:
         reject_to_human_available=True,
         evidence_hash="3" * 64,
     )
+    trajectory_rollback_evidence = TrajectoryRollbackEvidence(
+        ready=True,
+        environment="staging",
+        simulation_evidence_uri="gs://customer-artifacts/customer-alpha/trajectory/simulation-evidence.json",
+        live_undo_backend_uri="gs://customer-artifacts/customer-alpha/trajectory/live-undo-backend.json",
+        adversarial_stress_packet_uri="gs://customer-artifacts/customer-alpha/trajectory/adversarial-stress.json",
+        incident_change_record_uri="gs://customer-artifacts/customer-alpha/incidents/change-record-r11.json",
+        operator_signoff_uri="gs://customer-artifacts/customer-alpha/signoff/r11.json",
+        rollback_hook_verified=True,
+        idempotency_verified=True,
+        tenant_safe_audit_verified=True,
+        evidence_hash="4" * 64,
+    )
     deployment_hardening_evidence = DeploymentHardeningEvidence(
         ready=True,
         environment="staging",
@@ -257,6 +271,7 @@ def _build_manifests() -> dict[str, dict]:
         observability_operations_evidence=observability_operations_evidence,
         provenance_lineage_evidence=provenance_lineage_evidence,
         conformal_routing_evidence=conformal_routing_evidence,
+        trajectory_rollback_evidence=trajectory_rollback_evidence,
         deployment_hardening_evidence=deployment_hardening_evidence,
         generated_at=GENERATED_AT,
     )
@@ -276,6 +291,7 @@ def _build_manifests() -> dict[str, dict]:
         ),
         "provenance_lineage_evidence.json": provenance_lineage_evidence.to_dict(),
         "conformal_routing_evidence.json": conformal_routing_evidence.to_dict(),
+        "trajectory_rollback_evidence.json": trajectory_rollback_evidence.to_dict(),
         "deployment_hardening_evidence.json": deployment_hardening_evidence.to_dict(),
         "enterprise_readiness.json": enterprise_readiness,
         "release_gate.json": release_gate.to_dict(),

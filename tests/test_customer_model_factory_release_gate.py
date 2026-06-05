@@ -24,6 +24,7 @@ from director_ai.core.customer_model_factory.release_gate import (
     DeploymentHardeningEvidence,
     ObservabilityOperationsEvidence,
     ProvenanceLineageEvidence,
+    TrajectoryRollbackEvidence,
     build_release_gate_manifest,
 )
 from director_ai.core.customer_model_factory.risk_register import (
@@ -208,6 +209,22 @@ def _conformal_routing_evidence() -> ConformalRoutingEvidence:
     )
 
 
+def _trajectory_rollback_evidence() -> TrajectoryRollbackEvidence:
+    return TrajectoryRollbackEvidence(
+        ready=True,
+        environment="staging",
+        simulation_evidence_uri="gs://customer-artifacts/customer-alpha/trajectory/simulation-evidence.json",
+        live_undo_backend_uri="gs://customer-artifacts/customer-alpha/trajectory/live-undo-backend.json",
+        adversarial_stress_packet_uri="gs://customer-artifacts/customer-alpha/trajectory/adversarial-stress.json",
+        incident_change_record_uri="gs://customer-artifacts/customer-alpha/incidents/change-record-r11.json",
+        operator_signoff_uri="gs://customer-artifacts/customer-alpha/signoff/r11.json",
+        rollback_hook_verified=True,
+        idempotency_verified=True,
+        tenant_safe_audit_verified=True,
+        evidence_hash="4" * 64,
+    )
+
+
 def test_release_gate_allows_promotion_when_all_artifacts_are_ready():
     gate = build_release_gate_manifest(
         release_id="release-customer-alpha-20260518",
@@ -220,6 +237,7 @@ def test_release_gate_allows_promotion_when_all_artifacts_are_ready():
         observability_operations_evidence=_observability_operations_evidence(),
         provenance_lineage_evidence=_provenance_lineage_evidence(),
         conformal_routing_evidence=_conformal_routing_evidence(),
+        trajectory_rollback_evidence=_trajectory_rollback_evidence(),
         deployment_hardening_evidence=_deployment_hardening_evidence(),
         generated_at="2026-05-18T18:35:00Z",
     )
@@ -235,6 +253,7 @@ def test_release_gate_allows_promotion_when_all_artifacts_are_ready():
     assert gate.observability_operations_evidence.drift_reviewed is True
     assert gate.provenance_lineage_evidence.lineage_matches_deployed_facts is True
     assert gate.conformal_routing_evidence.escalation_route == "human_review"
+    assert gate.trajectory_rollback_evidence.rollback_hook_verified is True
     assert gate.deployment_hardening_evidence.tenant_poisoning_passed is True
     assert len(gate.release_hash) == 64
 
@@ -251,6 +270,7 @@ def test_release_gate_blocks_enterprise_trust_debt():
         observability_operations_evidence=_observability_operations_evidence(),
         provenance_lineage_evidence=_provenance_lineage_evidence(),
         conformal_routing_evidence=_conformal_routing_evidence(),
+        trajectory_rollback_evidence=_trajectory_rollback_evidence(),
         deployment_hardening_evidence=_deployment_hardening_evidence(),
         generated_at="2026-05-18T18:35:00Z",
     )
@@ -283,6 +303,7 @@ def test_release_gate_blocks_not_ready_required_artifacts():
         observability_operations_evidence=_observability_operations_evidence(),
         provenance_lineage_evidence=_provenance_lineage_evidence(),
         conformal_routing_evidence=_conformal_routing_evidence(),
+        trajectory_rollback_evidence=_trajectory_rollback_evidence(),
         deployment_hardening_evidence=_deployment_hardening_evidence(),
         generated_at="2026-05-18T18:35:00Z",
     )
@@ -334,6 +355,7 @@ def test_release_gate_blocks_missing_release_identity_and_all_not_ready_artifact
         observability_operations_evidence=_observability_operations_evidence(),
         provenance_lineage_evidence=_provenance_lineage_evidence(),
         conformal_routing_evidence=_conformal_routing_evidence(),
+        trajectory_rollback_evidence=_trajectory_rollback_evidence(),
         deployment_hardening_evidence=_deployment_hardening_evidence(),
         generated_at=" ",
     )
@@ -373,6 +395,7 @@ def test_release_gate_blocks_missing_observability_operations_evidence():
         observability_operations_evidence=evidence,
         provenance_lineage_evidence=_provenance_lineage_evidence(),
         conformal_routing_evidence=_conformal_routing_evidence(),
+        trajectory_rollback_evidence=_trajectory_rollback_evidence(),
         deployment_hardening_evidence=_deployment_hardening_evidence(),
         generated_at="2026-05-18T18:35:00Z",
     )
@@ -423,6 +446,7 @@ def test_release_gate_blocks_missing_provenance_lineage_evidence():
         observability_operations_evidence=_observability_operations_evidence(),
         provenance_lineage_evidence=evidence,
         conformal_routing_evidence=_conformal_routing_evidence(),
+        trajectory_rollback_evidence=_trajectory_rollback_evidence(),
         deployment_hardening_evidence=_deployment_hardening_evidence(),
         generated_at="2026-05-18T18:35:00Z",
     )
@@ -476,6 +500,7 @@ def test_release_gate_blocks_missing_conformal_routing_evidence():
         observability_operations_evidence=_observability_operations_evidence(),
         provenance_lineage_evidence=_provenance_lineage_evidence(),
         conformal_routing_evidence=evidence,
+        trajectory_rollback_evidence=_trajectory_rollback_evidence(),
         deployment_hardening_evidence=_deployment_hardening_evidence(),
         generated_at="2026-05-18T18:35:00Z",
     )
@@ -504,6 +529,61 @@ def test_conformal_routing_evidence_round_trips_from_json_safe_dict():
     assert restored == evidence
 
 
+def test_release_gate_blocks_missing_trajectory_rollback_evidence():
+    evidence = TrajectoryRollbackEvidence(
+        ready=False,
+        environment="local",
+        simulation_evidence_uri="",
+        live_undo_backend_uri="",
+        adversarial_stress_packet_uri="",
+        incident_change_record_uri="",
+        operator_signoff_uri="",
+        rollback_hook_verified=False,
+        idempotency_verified=False,
+        tenant_safe_audit_verified=False,
+        evidence_hash="not-a-sha",
+    )
+
+    gate = build_release_gate_manifest(
+        release_id="release-customer-alpha-r11-blocked",
+        enterprise_ready=True,
+        enterprise_blocking_debt_ids=(),
+        runtime_package=_runtime_package(),
+        evidence_pack=_evidence_pack(),
+        monitoring_manifest=_monitoring_manifest(),
+        risk_register=_risk_register(),
+        observability_operations_evidence=_observability_operations_evidence(),
+        provenance_lineage_evidence=_provenance_lineage_evidence(),
+        conformal_routing_evidence=_conformal_routing_evidence(),
+        trajectory_rollback_evidence=evidence,
+        deployment_hardening_evidence=_deployment_hardening_evidence(),
+        generated_at="2026-05-18T18:35:00Z",
+    )
+
+    assert gate.ready is False
+    assert {blocker["code"] for blocker in gate.blockers} >= {
+        "trajectory_rollback_not_ready",
+        "trajectory_rollback_environment_invalid",
+        "trajectory_simulation_evidence_missing",
+        "trajectory_live_undo_backend_missing",
+        "trajectory_stress_packet_missing",
+        "trajectory_change_record_missing",
+        "trajectory_operator_signoff_missing",
+        "trajectory_rollback_hook_unverified",
+        "trajectory_idempotency_unverified",
+        "trajectory_tenant_safe_audit_unverified",
+        "trajectory_evidence_hash_invalid",
+    }
+
+
+def test_trajectory_rollback_evidence_round_trips_from_json_safe_dict():
+    evidence = _trajectory_rollback_evidence()
+
+    restored = TrajectoryRollbackEvidence.from_dict(evidence.to_dict())
+
+    assert restored == evidence
+
+
 def test_release_gate_blocks_missing_deployment_hardening_evidence():
     evidence = DeploymentHardeningEvidence(
         ready=False,
@@ -528,6 +608,7 @@ def test_release_gate_blocks_missing_deployment_hardening_evidence():
         observability_operations_evidence=_observability_operations_evidence(),
         provenance_lineage_evidence=_provenance_lineage_evidence(),
         conformal_routing_evidence=_conformal_routing_evidence(),
+        trajectory_rollback_evidence=_trajectory_rollback_evidence(),
         deployment_hardening_evidence=evidence,
         generated_at="2026-05-18T18:35:00Z",
     )
@@ -571,6 +652,7 @@ def test_release_gate_blocks_customer_boundary_mismatch():
         observability_operations_evidence=_observability_operations_evidence(),
         provenance_lineage_evidence=_provenance_lineage_evidence(),
         conformal_routing_evidence=_conformal_routing_evidence(),
+        trajectory_rollback_evidence=_trajectory_rollback_evidence(),
         deployment_hardening_evidence=_deployment_hardening_evidence(),
         generated_at="2026-05-18T18:35:00Z",
     )
@@ -617,6 +699,7 @@ def test_release_gate_blocks_cross_artifact_boundary_and_hash_mismatches():
         observability_operations_evidence=_observability_operations_evidence(),
         provenance_lineage_evidence=_provenance_lineage_evidence(),
         conformal_routing_evidence=_conformal_routing_evidence(),
+        trajectory_rollback_evidence=_trajectory_rollback_evidence(),
         deployment_hardening_evidence=_deployment_hardening_evidence(),
         generated_at="2026-05-18T18:35:00Z",
     )
@@ -645,6 +728,7 @@ def test_release_gate_serialises_deterministically(tmp_path: Path):
         observability_operations_evidence=_observability_operations_evidence(),
         provenance_lineage_evidence=_provenance_lineage_evidence(),
         conformal_routing_evidence=_conformal_routing_evidence(),
+        trajectory_rollback_evidence=_trajectory_rollback_evidence(),
         deployment_hardening_evidence=_deployment_hardening_evidence(),
         generated_at="2026-05-18T18:35:00Z",
     )
@@ -662,6 +746,9 @@ def test_release_gate_serialises_deterministically(tmp_path: Path):
     assert payload["conformal_routing_evidence"][
         "deployment_routing_packet_uri"
     ].endswith("/conformal/deployment-routing.json")
+    assert payload["trajectory_rollback_evidence"][
+        "live_undo_backend_uri"
+    ].endswith("/trajectory/live-undo-backend.json")
     assert payload["deployment_hardening_evidence"]["telemetry_uri"].endswith(
         "/telemetry/r17.jsonl"
     )
@@ -681,6 +768,7 @@ def test_release_gate_schema_is_machine_readable():
         "observability_operations_evidence",
         "provenance_lineage_evidence",
         "conformal_routing_evidence",
+        "trajectory_rollback_evidence",
         "deployment_hardening_evidence",
         "blockers",
         "release_hash",

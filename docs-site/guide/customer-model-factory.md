@@ -80,6 +80,7 @@ PYTHONPATH=src python tools/assemble_customer_model_factory_release.py \
   --observability-operations-evidence /tmp/director-ai-cmf-fixture/observability_operations_evidence.json \
   --provenance-lineage-evidence /tmp/director-ai-cmf-fixture/provenance_lineage_evidence.json \
   --conformal-routing-evidence /tmp/director-ai-cmf-fixture/conformal_routing_evidence.json \
+  --trajectory-rollback-evidence /tmp/director-ai-cmf-fixture/trajectory_rollback_evidence.json \
   --deployment-hardening-evidence /tmp/director-ai-cmf-fixture/deployment_hardening_evidence.json \
   --output /tmp/director-ai-cmf-fixture/release_gate.json
 ```
@@ -94,6 +95,10 @@ Conformal routing evidence must include representative domain calibration,
 archived deployment routing evidence, target and empirical coverage, verified
 human-review or stronger-model escalation, reject-to-human availability, and
 operator sign-off.
+Trajectory rollback evidence must include simulation evidence, live undo
+backend evidence, adversarial stress evidence, incident/change-management
+record linkage, verified rollback hook, idempotency check, tenant-safe audit
+check, and operator sign-off.
 Deployment-hardening evidence must likewise include archived telemetry, the
 sustained-load packet, async-ordering and tenant-poisoning pass flags, and
 operator sign-off.

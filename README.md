@@ -164,7 +164,7 @@ For a buyer-facing positioning, start from [Market Value and Positioning](docs-s
 | Package version | 3.15.2 |
 | Public API exports | 216 |
 | Python capability source modules | 316 |
-| Python capability classes | 722 |
+| Python capability classes | 723 |
 | API documentation pages | 51 |
 | Rust PyO3 bindings | 78 |
 | Optional extras | 53 |

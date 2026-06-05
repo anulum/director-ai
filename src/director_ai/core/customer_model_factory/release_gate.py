@@ -228,6 +228,60 @@ class ConformalRoutingEvidence:
 
 
 @dataclass(frozen=True)
+class TrajectoryRollbackEvidence:
+    """Trajectory simulation and rollback evidence attached to a release gate."""
+
+    ready: bool
+    environment: str
+    simulation_evidence_uri: str
+    live_undo_backend_uri: str
+    adversarial_stress_packet_uri: str
+    incident_change_record_uri: str
+    operator_signoff_uri: str
+    rollback_hook_verified: bool
+    idempotency_verified: bool
+    tenant_safe_audit_verified: bool
+    evidence_hash: str
+
+    def to_dict(self) -> dict[str, Any]:
+        """Serialise trajectory rollback evidence to JSON-safe data."""
+
+        return {
+            "ready": self.ready,
+            "environment": self.environment,
+            "simulation_evidence_uri": self.simulation_evidence_uri,
+            "live_undo_backend_uri": self.live_undo_backend_uri,
+            "adversarial_stress_packet_uri": self.adversarial_stress_packet_uri,
+            "incident_change_record_uri": self.incident_change_record_uri,
+            "operator_signoff_uri": self.operator_signoff_uri,
+            "rollback_hook_verified": self.rollback_hook_verified,
+            "idempotency_verified": self.idempotency_verified,
+            "tenant_safe_audit_verified": self.tenant_safe_audit_verified,
+            "evidence_hash": self.evidence_hash,
+        }
+
+    @classmethod
+    def from_dict(cls, payload: dict[str, Any]) -> TrajectoryRollbackEvidence:
+        """Rebuild trajectory rollback evidence from JSON-safe data."""
+
+        return cls(
+            ready=bool(payload["ready"]),
+            environment=str(payload["environment"]),
+            simulation_evidence_uri=str(payload["simulation_evidence_uri"]),
+            live_undo_backend_uri=str(payload["live_undo_backend_uri"]),
+            adversarial_stress_packet_uri=str(
+                payload["adversarial_stress_packet_uri"]
+            ),
+            incident_change_record_uri=str(payload["incident_change_record_uri"]),
+            operator_signoff_uri=str(payload["operator_signoff_uri"]),
+            rollback_hook_verified=bool(payload["rollback_hook_verified"]),
+            idempotency_verified=bool(payload["idempotency_verified"]),
+            tenant_safe_audit_verified=bool(payload["tenant_safe_audit_verified"]),
+            evidence_hash=str(payload["evidence_hash"]),
+        )
+
+
+@dataclass(frozen=True)
 class CustomerReleaseGateManifest:
     """Release-promotion gate across factory readiness artefacts."""
 
@@ -246,6 +300,7 @@ class CustomerReleaseGateManifest:
     observability_operations_evidence: ObservabilityOperationsEvidence
     provenance_lineage_evidence: ProvenanceLineageEvidence
     conformal_routing_evidence: ConformalRoutingEvidence
+    trajectory_rollback_evidence: TrajectoryRollbackEvidence
     deployment_hardening_evidence: DeploymentHardeningEvidence
     blockers: tuple[dict[str, str], ...]
     release_hash: str
@@ -273,6 +328,9 @@ class CustomerReleaseGateManifest:
                 self.provenance_lineage_evidence.to_dict()
             ),
             "conformal_routing_evidence": self.conformal_routing_evidence.to_dict(),
+            "trajectory_rollback_evidence": (
+                self.trajectory_rollback_evidence.to_dict()
+            ),
             "deployment_hardening_evidence": (
                 self.deployment_hardening_evidence.to_dict()
             ),
@@ -303,6 +361,7 @@ def build_release_gate_manifest(
     observability_operations_evidence: ObservabilityOperationsEvidence,
     provenance_lineage_evidence: ProvenanceLineageEvidence,
     conformal_routing_evidence: ConformalRoutingEvidence,
+    trajectory_rollback_evidence: TrajectoryRollbackEvidence,
     deployment_hardening_evidence: DeploymentHardeningEvidence,
     generated_at: str,
 ) -> CustomerReleaseGateManifest:
@@ -325,6 +384,7 @@ def build_release_gate_manifest(
         observability_operations_evidence=observability_operations_evidence,
         provenance_lineage_evidence=provenance_lineage_evidence,
         conformal_routing_evidence=conformal_routing_evidence,
+        trajectory_rollback_evidence=trajectory_rollback_evidence,
         deployment_hardening_evidence=deployment_hardening_evidence,
         generated_at=generated_at,
     )
@@ -344,6 +404,7 @@ def build_release_gate_manifest(
             ),
             "provenance_lineage_evidence": provenance_lineage_evidence.to_dict(),
             "conformal_routing_evidence": conformal_routing_evidence.to_dict(),
+            "trajectory_rollback_evidence": trajectory_rollback_evidence.to_dict(),
             "deployment_hardening_evidence": deployment_hardening_evidence.to_dict(),
             "blockers": blockers,
         }
@@ -365,6 +426,7 @@ def build_release_gate_manifest(
         observability_operations_evidence=observability_operations_evidence,
         provenance_lineage_evidence=provenance_lineage_evidence,
         conformal_routing_evidence=conformal_routing_evidence,
+        trajectory_rollback_evidence=trajectory_rollback_evidence,
         deployment_hardening_evidence=deployment_hardening_evidence,
         blockers=tuple(blockers),
         release_hash=release_hash,
@@ -398,6 +460,7 @@ def _collect_blockers(
     observability_operations_evidence: ObservabilityOperationsEvidence,
     provenance_lineage_evidence: ProvenanceLineageEvidence,
     conformal_routing_evidence: ConformalRoutingEvidence,
+    trajectory_rollback_evidence: TrajectoryRollbackEvidence,
     deployment_hardening_evidence: DeploymentHardeningEvidence,
     generated_at: str,
 ) -> list[dict[str, str]]:
@@ -422,6 +485,7 @@ def _collect_blockers(
     )
     _extend_provenance_lineage_blockers(provenance_lineage_evidence, blockers)
     _extend_conformal_routing_blockers(conformal_routing_evidence, blockers)
+    _extend_trajectory_rollback_blockers(trajectory_rollback_evidence, blockers)
     _extend_deployment_hardening_blockers(deployment_hardening_evidence, blockers)
     _extend_boundary_blockers(
         runtime_package, evidence_pack, monitoring_manifest, risk_register, blockers
@@ -637,6 +701,63 @@ def _extend_conformal_routing_blockers(
             _blocker(
                 "conformal_evidence_hash_invalid",
                 "conformal evidence_hash must be a sha256 hex digest",
+            )
+        )
+
+
+def _extend_trajectory_rollback_blockers(
+    evidence: TrajectoryRollbackEvidence,
+    blockers: list[dict[str, str]],
+) -> None:
+    if not evidence.ready:
+        blockers.append(
+            _blocker(
+                "trajectory_rollback_not_ready",
+                "trajectory rollback evidence is not ready",
+            )
+        )
+    if evidence.environment.strip().lower() not in {"staging", "production"}:
+        blockers.append(
+            _blocker(
+                "trajectory_rollback_environment_invalid",
+                "trajectory rollback evidence must come from staging or production",
+            )
+        )
+    for field, code in (
+        ("simulation_evidence_uri", "trajectory_simulation_evidence_missing"),
+        ("live_undo_backend_uri", "trajectory_live_undo_backend_missing"),
+        ("adversarial_stress_packet_uri", "trajectory_stress_packet_missing"),
+        ("incident_change_record_uri", "trajectory_change_record_missing"),
+        ("operator_signoff_uri", "trajectory_operator_signoff_missing"),
+    ):
+        if not getattr(evidence, field).strip():
+            blockers.append(_blocker(code, f"{field} is required"))
+    if not evidence.rollback_hook_verified:
+        blockers.append(
+            _blocker(
+                "trajectory_rollback_hook_unverified",
+                "trajectory rollback hook is not verified against the live backend",
+            )
+        )
+    if not evidence.idempotency_verified:
+        blockers.append(
+            _blocker(
+                "trajectory_idempotency_unverified",
+                "trajectory rollback idempotency is not verified",
+            )
+        )
+    if not evidence.tenant_safe_audit_verified:
+        blockers.append(
+            _blocker(
+                "trajectory_tenant_safe_audit_unverified",
+                "trajectory rollback audit evidence is not tenant-safe",
+            )
+        )
+    if not _is_sha256(evidence.evidence_hash):
+        blockers.append(
+            _blocker(
+                "trajectory_evidence_hash_invalid",
+                "trajectory evidence_hash must be a sha256 hex digest",
             )
         )
 

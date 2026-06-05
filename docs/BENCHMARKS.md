@@ -332,6 +332,12 @@ still requires an operator-owned live undo backend, adversarial trajectory
 stress testing against deployment traffic, and sign-off that rollback evidence
 is attached to incident/change-management records.
 
+Customer Model Factory release promotion also requires
+`TrajectoryRollbackEvidence` with the simulation evidence packet, live undo
+backend URI, adversarial stress packet, incident/change-management record URI,
+rollback-hook verification flag, idempotency verification flag, tenant-safe
+audit verification flag, operator sign-off, and evidence hash.
+
 ## Multimodal Temporal Evidence
 
 For the R12 multimodal and temporal consistency gate, generate an evidence

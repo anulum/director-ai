@@ -24,6 +24,7 @@ from director_ai.core.customer_model_factory.release_gate import (
     DeploymentHardeningEvidence,
     ObservabilityOperationsEvidence,
     ProvenanceLineageEvidence,
+    TrajectoryRollbackEvidence,
 )
 from director_ai.core.customer_model_factory.risk_register import CustomerRiskRegister
 from director_ai.core.customer_model_factory.runtime_package import (
@@ -181,6 +182,19 @@ def _write_inputs(tmp_path: Path, *, enterprise_ready: bool = True) -> dict[str,
         reject_to_human_available=True,
         evidence_hash="3" * 64,
     )
+    trajectory = TrajectoryRollbackEvidence(
+        ready=True,
+        environment="production",
+        simulation_evidence_uri="gs://customer-artifacts/customer-alpha/trajectory/simulation-evidence.json",
+        live_undo_backend_uri="gs://customer-artifacts/customer-alpha/trajectory/live-undo-backend.json",
+        adversarial_stress_packet_uri="gs://customer-artifacts/customer-alpha/trajectory/adversarial-stress.json",
+        incident_change_record_uri="gs://customer-artifacts/customer-alpha/incidents/change-record-r11.json",
+        operator_signoff_uri="gs://customer-artifacts/customer-alpha/signoff/r11.json",
+        rollback_hook_verified=True,
+        idempotency_verified=True,
+        tenant_safe_audit_verified=True,
+        evidence_hash="4" * 64,
+    )
     paths = {
         "runtime": tmp_path / "runtime.json",
         "evidence": tmp_path / "evidence.json",
@@ -189,6 +203,7 @@ def _write_inputs(tmp_path: Path, *, enterprise_ready: bool = True) -> dict[str,
         "observability": tmp_path / "observability_operations.json",
         "provenance": tmp_path / "provenance_lineage.json",
         "conformal": tmp_path / "conformal_routing.json",
+        "trajectory": tmp_path / "trajectory_rollback.json",
         "hardening": tmp_path / "deployment_hardening.json",
         "enterprise": tmp_path / "enterprise.json",
         "output": tmp_path / "release_gate.json",
@@ -211,6 +226,10 @@ def _write_inputs(tmp_path: Path, *, enterprise_ready: bool = True) -> dict[str,
     )
     paths["conformal"].write_text(
         json.dumps(conformal.to_dict(), sort_keys=True),
+        encoding="utf-8",
+    )
+    paths["trajectory"].write_text(
+        json.dumps(trajectory.to_dict(), sort_keys=True),
         encoding="utf-8",
     )
     paths["enterprise"].write_text(
@@ -251,6 +270,8 @@ def test_release_cli_writes_ready_release_gate(tmp_path: Path):
             str(paths["provenance"]),
             "--conformal-routing-evidence",
             str(paths["conformal"]),
+            "--trajectory-rollback-evidence",
+            str(paths["trajectory"]),
             "--deployment-hardening-evidence",
             str(paths["hardening"]),
             "--output",
@@ -266,6 +287,7 @@ def test_release_cli_writes_ready_release_gate(tmp_path: Path):
     assert payload["observability_operations_evidence"]["environment"] == "production"
     assert payload["provenance_lineage_evidence"]["environment"] == "production"
     assert payload["conformal_routing_evidence"]["environment"] == "production"
+    assert payload["trajectory_rollback_evidence"]["environment"] == "production"
     assert payload["deployment_hardening_evidence"]["environment"] == "production"
 
 
@@ -294,6 +316,8 @@ def test_release_cli_fails_closed_when_enterprise_readiness_blocks(tmp_path: Pat
             str(paths["provenance"]),
             "--conformal-routing-evidence",
             str(paths["conformal"]),
+            "--trajectory-rollback-evidence",
+            str(paths["trajectory"]),
             "--deployment-hardening-evidence",
             str(paths["hardening"]),
             "--output",

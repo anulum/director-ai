@@ -165,6 +165,11 @@ export DIRECTOR_PRODUCTION_MODE=true
       and operator sign-off URI.
 - [ ] Generate trajectory rollback evidence:
       `PYTHONPATH=src python -m benchmarks.trajectory_rollback_evidence`
+- [ ] Attach trajectory rollback evidence to the Customer Model Factory release
+      gate with the simulation evidence URI, live undo backend URI, adversarial
+      stress packet URI, incident/change-management record URI, verified
+      rollback hook, idempotency check, tenant-safe audit check, and operator
+      sign-off URI.
 - [ ] Generate multimodal temporal evidence:
       `PYTHONPATH=src python -m benchmarks.multimodal_temporal_evidence`
 - [ ] Generate federated privacy evidence:

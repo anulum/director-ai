@@ -20,6 +20,7 @@
     "observability_operations_evidence",
     "provenance_lineage_evidence",
     "conformal_routing_evidence",
+    "trajectory_rollback_evidence",
     "deployment_hardening_evidence",
     "blockers",
     "release_hash"
@@ -235,6 +236,68 @@
           "type": "boolean"
         },
         "reject_to_human_available": {
+          "type": "boolean"
+        },
+        "evidence_hash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      }
+    },
+    "trajectory_rollback_evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ready",
+        "environment",
+        "simulation_evidence_uri",
+        "live_undo_backend_uri",
+        "adversarial_stress_packet_uri",
+        "incident_change_record_uri",
+        "operator_signoff_uri",
+        "rollback_hook_verified",
+        "idempotency_verified",
+        "tenant_safe_audit_verified",
+        "evidence_hash"
+      ],
+      "properties": {
+        "ready": {
+          "type": "boolean"
+        },
+        "environment": {
+          "type": "string",
+          "enum": [
+            "staging",
+            "production"
+          ]
+        },
+        "simulation_evidence_uri": {
+          "type": "string",
+          "minLength": 1
+        },
+        "live_undo_backend_uri": {
+          "type": "string",
+          "minLength": 1
+        },
+        "adversarial_stress_packet_uri": {
+          "type": "string",
+          "minLength": 1
+        },
+        "incident_change_record_uri": {
+          "type": "string",
+          "minLength": 1
+        },
+        "operator_signoff_uri": {
+          "type": "string",
+          "minLength": 1
+        },
+        "rollback_hook_verified": {
+          "type": "boolean"
+        },
+        "idempotency_verified": {
+          "type": "boolean"
+        },
+        "tenant_safe_audit_verified": {
           "type": "boolean"
         },
         "evidence_hash": {

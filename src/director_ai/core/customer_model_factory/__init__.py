@@ -41,6 +41,7 @@ from .release_gate import (
     DeploymentHardeningEvidence,
     ObservabilityOperationsEvidence,
     ProvenanceLineageEvidence,
+    TrajectoryRollbackEvidence,
     build_release_gate_manifest,
 )
 from .risk_register import (
@@ -89,6 +90,7 @@ __all__ = [
     "SECTOR_REQUIRED_METADATA",
     "SectorEvidenceMapping",
     "TrainingLane",
+    "TrajectoryRollbackEvidence",
     "build_customer_evidence_pack",
     "build_customer_runtime_package",
     "build_deployment_manifest",
