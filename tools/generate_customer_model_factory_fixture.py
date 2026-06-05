@@ -386,9 +386,7 @@ def _build_manifests() -> dict[str, dict]:
         "multimodal_temporal_evidence.json": multimodal_temporal_evidence.to_dict(),
         "federated_privacy_evidence.json": federated_privacy_evidence.to_dict(),
         "edge_mobile_evidence.json": edge_mobile_evidence.to_dict(),
-        "auto_redteam_defence_evidence.json": (
-            auto_redteam_defence_evidence.to_dict()
-        ),
+        "auto_redteam_defence_evidence.json": (auto_redteam_defence_evidence.to_dict()),
         "formal_symbolic_evidence.json": formal_symbolic_evidence.to_dict(),
         "deployment_hardening_evidence.json": deployment_hardening_evidence.to_dict(),
         "enterprise_readiness.json": enterprise_readiness,

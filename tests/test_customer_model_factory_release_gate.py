@@ -1237,21 +1237,21 @@ def test_release_gate_serialises_deterministically(tmp_path: Path):
     assert payload["observability_operations_evidence"][
         "operations_packet_uri"
     ].endswith("/observability/operations-packet.json")
-    assert payload["provenance_lineage_evidence"][
-        "signed_lineage_packet_uri"
-    ].endswith("/provenance/signed-lineage.json")
+    assert payload["provenance_lineage_evidence"]["signed_lineage_packet_uri"].endswith(
+        "/provenance/signed-lineage.json"
+    )
     assert payload["conformal_routing_evidence"][
         "deployment_routing_packet_uri"
     ].endswith("/conformal/deployment-routing.json")
-    assert payload["trajectory_rollback_evidence"][
-        "live_undo_backend_uri"
-    ].endswith("/trajectory/live-undo-backend.json")
+    assert payload["trajectory_rollback_evidence"]["live_undo_backend_uri"].endswith(
+        "/trajectory/live-undo-backend.json"
+    )
     assert payload["multimodal_temporal_evidence"][
         "video_frame_validation_uri"
     ].endswith("/multimodal/video-frame-validation.json")
-    assert payload["federated_privacy_evidence"][
-        "privacy_budget_ledger_uri"
-    ].endswith("/federated/privacy-budget-ledger.json")
+    assert payload["federated_privacy_evidence"]["privacy_budget_ledger_uri"].endswith(
+        "/federated/privacy-budget-ledger.json"
+    )
     assert payload["edge_mobile_evidence"]["latency_profile_uri"].endswith(
         "/edge/latency-profile.json"
     )

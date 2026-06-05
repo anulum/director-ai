@@ -152,7 +152,9 @@ def _render_packet(root: Path, record: EvidenceRecord) -> str:
         else root / record.onnx_artifact
     )
     model_card = (
-        record.model_card if record.model_card.is_absolute() else root / record.model_card
+        record.model_card
+        if record.model_card.is_absolute()
+        else root / record.model_card
     )
     benchmark_claim_review = (
         record.benchmark_claim_review

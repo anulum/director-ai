@@ -325,8 +325,12 @@ def _validate_recorded_evidence(
         )
 
     if packet["model_card_status"] in RECORDED_STATUS:
-        errors.extend(_require_string(packet, label, "model_card_status", "model_card_path"))
-        errors.extend(_require_sha256(packet, label, "model_card_status", "model_card_sha256"))
+        errors.extend(
+            _require_string(packet, label, "model_card_status", "model_card_path")
+        )
+        errors.extend(
+            _require_sha256(packet, label, "model_card_status", "model_card_sha256")
+        )
 
     if packet["benchmark_claim_review_status"] in RECORDED_STATUS:
         errors.extend(

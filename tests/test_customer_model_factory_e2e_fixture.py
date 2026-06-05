@@ -61,9 +61,7 @@ def test_e2e_fixture_generator_writes_all_release_artifacts(tmp_path: Path):
     )
 
     assert release_gate["promotion_allowed"] is True
-    assert (
-        release_gate["observability_operations_evidence"]["environment"] == "staging"
-    )
+    assert release_gate["observability_operations_evidence"]["environment"] == "staging"
     assert release_gate["provenance_lineage_evidence"]["environment"] == "staging"
     assert release_gate["conformal_routing_evidence"]["environment"] == "staging"
     assert release_gate["trajectory_rollback_evidence"]["environment"] == "staging"

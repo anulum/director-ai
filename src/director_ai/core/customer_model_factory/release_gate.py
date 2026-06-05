@@ -110,9 +110,7 @@ class ObservabilityOperationsEvidence:
             dashboard_evidence_uri=str(payload["dashboard_evidence_uri"]),
             operator_signoff_uri=str(payload["operator_signoff_uri"]),
             controls_passed=bool(payload["controls_passed"]),
-            compliance_exports_available=bool(
-                payload["compliance_exports_available"]
-            ),
+            compliance_exports_available=bool(payload["compliance_exports_available"]),
             drift_reviewed=bool(payload["drift_reviewed"]),
             evidence_hash=str(payload["evidence_hash"]),
         )
@@ -212,9 +210,7 @@ class ConformalRoutingEvidence:
         return cls(
             ready=bool(payload["ready"]),
             environment=str(payload["environment"]),
-            domain_calibration_packet_uri=str(
-                payload["domain_calibration_packet_uri"]
-            ),
+            domain_calibration_packet_uri=str(payload["domain_calibration_packet_uri"]),
             deployment_routing_packet_uri=str(payload["deployment_routing_packet_uri"]),
             escalation_route=str(payload["escalation_route"]),
             operator_signoff_uri=str(payload["operator_signoff_uri"]),
@@ -269,9 +265,7 @@ class TrajectoryRollbackEvidence:
             environment=str(payload["environment"]),
             simulation_evidence_uri=str(payload["simulation_evidence_uri"]),
             live_undo_backend_uri=str(payload["live_undo_backend_uri"]),
-            adversarial_stress_packet_uri=str(
-                payload["adversarial_stress_packet_uri"]
-            ),
+            adversarial_stress_packet_uri=str(payload["adversarial_stress_packet_uri"]),
             incident_change_record_uri=str(payload["incident_change_record_uri"]),
             operator_signoff_uri=str(payload["operator_signoff_uri"]),
             rollback_hook_verified=bool(payload["rollback_hook_verified"]),
@@ -434,9 +428,7 @@ class EdgeMobileEvidence:
             "quantised_model_verified": self.quantised_model_verified,
             "wasm_package_verified": self.wasm_package_verified,
             "browser_worker_smoke_passed": self.browser_worker_smoke_passed,
-            "mobile_or_embedded_smoke_passed": (
-                self.mobile_or_embedded_smoke_passed
-            ),
+            "mobile_or_embedded_smoke_passed": (self.mobile_or_embedded_smoke_passed),
             "latency_budget_met": self.latency_budget_met,
             "package_publish_verified": self.package_publish_verified,
             "evidence_hash": self.evidence_hash,
@@ -450,15 +442,11 @@ class EdgeMobileEvidence:
             ready=bool(payload["ready"]),
             environment=str(payload["environment"]),
             edge_runtime_evidence_uri=str(payload["edge_runtime_evidence_uri"]),
-            quantised_model_artifact_uri=str(
-                payload["quantised_model_artifact_uri"]
-            ),
+            quantised_model_artifact_uri=str(payload["quantised_model_artifact_uri"]),
             wasm_package_evidence_uri=str(payload["wasm_package_evidence_uri"]),
             browser_worker_smoke_uri=str(payload["browser_worker_smoke_uri"]),
             mobile_smoke_evidence_uri=str(payload["mobile_smoke_evidence_uri"]),
-            package_publish_evidence_uri=str(
-                payload["package_publish_evidence_uri"]
-            ),
+            package_publish_evidence_uri=str(payload["package_publish_evidence_uri"]),
             latency_profile_uri=str(payload["latency_profile_uri"]),
             operator_signoff_uri=str(payload["operator_signoff_uri"]),
             quantised_model_verified=bool(payload["quantised_model_verified"]),
@@ -527,19 +515,13 @@ class AutoRedteamDefenceEvidence:
             external_adversarial_corpus_uri=str(
                 payload["external_adversarial_corpus_uri"]
             ),
-            patch_integration_signoff_uri=str(
-                payload["patch_integration_signoff_uri"]
-            ),
+            patch_integration_signoff_uri=str(payload["patch_integration_signoff_uri"]),
             rollback_plan_uri=str(payload["rollback_plan_uri"]),
             operator_signoff_uri=str(payload["operator_signoff_uri"]),
             repeated_cycles_verified=bool(payload["repeated_cycles_verified"]),
             detection_uplift_verified=bool(payload["detection_uplift_verified"]),
-            registry_promotions_verified=bool(
-                payload["registry_promotions_verified"]
-            ),
-            tenant_safe_reports_verified=bool(
-                payload["tenant_safe_reports_verified"]
-            ),
+            registry_promotions_verified=bool(payload["registry_promotions_verified"]),
+            tenant_safe_reports_verified=bool(payload["tenant_safe_reports_verified"]),
             rollback_plan_verified=bool(payload["rollback_plan_verified"]),
             evidence_hash=str(payload["evidence_hash"]),
         )
@@ -580,9 +562,7 @@ class FormalSymbolicEvidence:
             "dpll_formula_guard_verified": self.dpll_formula_guard_verified,
             "lean_external_run_verified": self.lean_external_run_verified,
             "z3_actual_run_verified": self.z3_actual_run_verified,
-            "code_contract_ordering_verified": (
-                self.code_contract_ordering_verified
-            ),
+            "code_contract_ordering_verified": (self.code_contract_ordering_verified),
             "tenant_safe_serialisation_verified": (
                 self.tenant_safe_serialisation_verified
             ),
@@ -603,9 +583,7 @@ class FormalSymbolicEvidence:
             domain_contracts_uri=str(payload["domain_contracts_uri"]),
             code_contract_packet_uri=str(payload["code_contract_packet_uri"]),
             operator_signoff_uri=str(payload["operator_signoff_uri"]),
-            dpll_formula_guard_verified=bool(
-                payload["dpll_formula_guard_verified"]
-            ),
+            dpll_formula_guard_verified=bool(payload["dpll_formula_guard_verified"]),
             lean_external_run_verified=bool(payload["lean_external_run_verified"]),
             z3_actual_run_verified=bool(payload["z3_actual_run_verified"]),
             code_contract_ordering_verified=bool(
@@ -667,9 +645,7 @@ class CustomerReleaseGateManifest:
             "observability_operations_evidence": (
                 self.observability_operations_evidence.to_dict()
             ),
-            "provenance_lineage_evidence": (
-                self.provenance_lineage_evidence.to_dict()
-            ),
+            "provenance_lineage_evidence": (self.provenance_lineage_evidence.to_dict()),
             "conformal_routing_evidence": self.conformal_routing_evidence.to_dict(),
             "trajectory_rollback_evidence": (
                 self.trajectory_rollback_evidence.to_dict()
@@ -677,9 +653,7 @@ class CustomerReleaseGateManifest:
             "multimodal_temporal_evidence": (
                 self.multimodal_temporal_evidence.to_dict()
             ),
-            "federated_privacy_evidence": (
-                self.federated_privacy_evidence.to_dict()
-            ),
+            "federated_privacy_evidence": (self.federated_privacy_evidence.to_dict()),
             "edge_mobile_evidence": self.edge_mobile_evidence.to_dict(),
             "auto_redteam_defence_evidence": (
                 self.auto_redteam_defence_evidence.to_dict()
