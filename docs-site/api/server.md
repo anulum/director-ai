@@ -209,6 +209,26 @@ The `/v1/stream` WebSocket endpoint enforces the same API-key requirement before
 accepting the socket. When `api_key_tenant_map` is configured, a key must be
 present in the map and any `X-Tenant-ID` claim must match the bound tenant.
 
+## WebSocket DoS controls
+
+`/v1/stream` enforces denial-of-service limits in addition to per-session
+concurrency. Each rejection increments `ws_rejections_total{reason}` and the live
+count is exported as the `ws_active_connections` gauge:
+
+| Control | Default | Rejection reason |
+|---|---|---|
+| Global concurrent connections | 256 | `global_cap` |
+| Per-IP concurrent connections | 16 | `per_ip_cap` |
+| Message rate (per connection) | 60 / 10 s | `rate_limited` |
+| Idle timeout between messages | 300 s | `idle_timeout` |
+| Maximum session lifetime | 3600 s | `lifetime_exceeded` |
+| Per-connection prompt budget | 5,000,000 chars | `budget_exceeded` |
+
+A connection over the global or per-IP cap is closed with code `1013` before it
+is accepted; the idle and lifetime caps close with `1001`; the prompt budget
+closes with `1009`. Connection slots are released in a `finally` block, so a slot
+is always returned on disconnect or error.
+
 ## Request IDs
 
 HTTP responses include `X-Request-ID` for log and trace correlation. Caller

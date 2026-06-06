@@ -114,6 +114,14 @@ logger = logging.getLogger("DirectorAI.Server")
 
 _WS_MAX_PROMPT_LENGTH = 100_000
 _WS_MAX_CONCURRENT = 8
+# Denial-of-service controls for the WebSocket streaming endpoint.
+_WS_MAX_CONNECTIONS = 256  # global concurrent connections per process
+_WS_MAX_CONNECTIONS_PER_IP = 16  # concurrent connections from one client IP
+_WS_IDLE_TIMEOUT_S = 300.0  # close a connection idle this long between messages
+_WS_MAX_LIFETIME_S = 3600.0  # close a connection older than this
+_WS_RATE_WINDOW_S = 10.0  # sliding window for the per-connection message rate
+_WS_MAX_MSGS_PER_WINDOW = 60  # messages allowed per window before rate limiting
+_WS_CONN_CHAR_BUDGET = 5_000_000  # total prompt chars one connection may submit
 _AUTH_EXEMPT_PATHS_BASE = frozenset(
     {"/v1/live", "/v1/health", "/v1/ready", "/v1/source"}
 )
@@ -2197,6 +2205,36 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
 
     # -- WebSocket streaming (multiplexed) ------------------------------
 
+    # Per-process WebSocket connection accounting (DoS controls).
+    ws_conn_lock = asyncio.Lock()
+    ws_conn_state: dict[str, int] = {"total": 0}
+    ws_per_ip: dict[str, int] = {}
+
+    async def _ws_admit(client_ip: str) -> bool:
+        """Reserve a connection slot under the global and per-IP caps."""
+        async with ws_conn_lock:
+            if ws_conn_state["total"] >= _WS_MAX_CONNECTIONS:
+                metrics.inc_labeled("ws_rejections_total", {"reason": "global_cap"})
+                return False
+            if ws_per_ip.get(client_ip, 0) >= _WS_MAX_CONNECTIONS_PER_IP:
+                metrics.inc_labeled("ws_rejections_total", {"reason": "per_ip_cap"})
+                return False
+            ws_conn_state["total"] += 1
+            ws_per_ip[client_ip] = ws_per_ip.get(client_ip, 0) + 1
+            metrics.gauge_set("ws_active_connections", float(ws_conn_state["total"]))
+            return True
+
+    async def _ws_release(client_ip: str) -> None:
+        """Release a previously reserved connection slot."""
+        async with ws_conn_lock:
+            ws_conn_state["total"] = max(0, ws_conn_state["total"] - 1)
+            remaining = ws_per_ip.get(client_ip, 0) - 1
+            if remaining > 0:
+                ws_per_ip[client_ip] = remaining
+            else:
+                ws_per_ip.pop(client_ip, None)
+            metrics.gauge_set("ws_active_connections", float(ws_conn_state["total"]))
+
     @app.websocket("/v1/stream")
     async def stream(ws: WebSocket):
         """Handle multiplexed WebSocket agent sessions."""
@@ -2221,6 +2259,11 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
                     return
         if not ws_tenant_id:
             ws_tenant_id = ws.headers.get("X-Tenant-ID", "")
+
+        client_ip = ws.client.host if ws.client else ""
+        if not await _ws_admit(client_ip):
+            await ws.close(code=1013, reason="server at capacity")
+            return
         await ws.accept()
 
         send_lock = asyncio.Lock()
@@ -2336,13 +2379,41 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
                 finally:
                     active_tasks.pop(session_id, None)
 
+        conn_start = time.monotonic()
+        msg_window: list[float] = []
+        processed_chars = 0
         try:
             while True:
+                if time.monotonic() - conn_start > _WS_MAX_LIFETIME_S:
+                    metrics.inc_labeled(
+                        "ws_rejections_total", {"reason": "lifetime_exceeded"}
+                    )
+                    await ws.close(code=1001, reason="session lifetime exceeded")
+                    break
+
                 try:
-                    data = await ws.receive_json()
+                    data = await asyncio.wait_for(
+                        ws.receive_json(), timeout=_WS_IDLE_TIMEOUT_S
+                    )
+                except TimeoutError:
+                    metrics.inc_labeled(
+                        "ws_rejections_total", {"reason": "idle_timeout"}
+                    )
+                    await ws.close(code=1001, reason="idle timeout")
+                    break
                 except (ValueError, KeyError) as exc:
                     logger.warning("WebSocket bad JSON: %s", exc)
                     await _send({"error": "invalid JSON"})
+                    continue
+
+                now = time.monotonic()
+                msg_window.append(now)
+                msg_window[:] = [t for t in msg_window if now - t <= _WS_RATE_WINDOW_S]
+                if len(msg_window) > _WS_MAX_MSGS_PER_WINDOW:
+                    metrics.inc_labeled(
+                        "ws_rejections_total", {"reason": "rate_limited"}
+                    )
+                    await _send({"error": "message rate limit exceeded"})
                     continue
 
                 if not isinstance(data, dict):
@@ -2373,6 +2444,14 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
                     )
                     continue
 
+                processed_chars += len(prompt)
+                if processed_chars > _WS_CONN_CHAR_BUDGET:
+                    metrics.inc_labeled(
+                        "ws_rejections_total", {"reason": "budget_exceeded"}
+                    )
+                    await ws.close(code=1009, reason="connection budget exceeded")
+                    break
+
                 session_id = data.get("session_id") or str(uuid.uuid4())
                 if session_id in active_tasks:
                     await _send(
@@ -2395,8 +2474,11 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
                 active_tasks[session_id] = (task, data["_cancel_event"])
 
         except WebSocketDisconnect:
+            pass
+        finally:
             for task, cancel_event in active_tasks.values():
                 cancel_event.set()
                 task.cancel()
+            await _ws_release(client_ip)
 
     return app
