@@ -527,9 +527,11 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
         if feedback_shutdown is not None:
             feedback_shutdown.close()
 
+    import director_ai
+
     app = FastAPI(
         title="Director-Class AI",
-        version="3.14.0",
+        version=director_ai.__version__,
         description="Real-time multi-agent orchestration and coherence scoring.",
         lifespan=lifespan,
     )

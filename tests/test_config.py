@@ -103,6 +103,10 @@ class TestProfileLoading:
         monkeypatch.setenv(
             "DIRECTOR_API_KEY_TENANT_MAP", '{"real-prod-key":"tenant-default"}'
         )
+        monkeypatch.setenv(
+            "DIRECTOR_KNOWLEDGE_WRITE_HMAC_KEYS",
+            '{"kid-1":"prod-signing-secret-at-least-32-chars-xx"}',
+        )
         cfg = DirectorConfig.from_profile("production")
         assert "real-prod-key" in cfg.api_key_tenant_map
         assert "director-production-local-validation-key" not in cfg.api_key_tenant_map
@@ -110,6 +114,10 @@ class TestProfileLoading:
     def test_production_profile_is_fail_closed_and_observable(self, monkeypatch):
         monkeypatch.setenv(
             "DIRECTOR_API_KEY_TENANT_MAP", '{"real-prod-key":"tenant-default"}'
+        )
+        monkeypatch.setenv(
+            "DIRECTOR_KNOWLEDGE_WRITE_HMAC_KEYS",
+            '{"kid-1":"prod-signing-secret-at-least-32-chars-xx"}',
         )
         cfg = DirectorConfig.from_profile("production")
 
@@ -529,6 +537,7 @@ class TestBuildStore:
             production_mode=True,
             api_keys=("test-key",),
             llm_api_url="https://llm.internal.example/v1",
+            knowledge_write_hmac_keys='{"kid-1":"signing-secret-at-least-32-chars-xx"}',
         )
         with pytest.raises(RuntimeError, match="reranker model could not load"):
             cfg.build_store()
@@ -909,9 +918,11 @@ class TestConfigCoverageGaps:
             api_keys={"tenant-key"},
             llm_api_url="https://llm.internal/v1",
             llm_provider="openai",
+            knowledge_write_hmac_keys='{"kid-1":"signing-secret-at-least-32-chars-xx"}',
         )
 
         assert cfg.production_mode is True
+        assert cfg.knowledge_write_require_signature is True
         assert cfg.use_nli is True
         assert cfg.coherence_require_model_backed_nli is True
         assert cfg.injection_detection_enabled is True

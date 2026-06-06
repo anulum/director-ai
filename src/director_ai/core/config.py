@@ -508,9 +508,21 @@ class DirectorConfig:
                     "production_mode requires sanitize_inputs=True",
                 )
             object.__setattr__(self, "knowledge_write_require_auth", True)
+            # KB integrity is the product: a poisoned knowledge base lets the
+            # guard certify false claims as ground truth. Production requires
+            # signed KB writes.
+            object.__setattr__(self, "knowledge_write_require_signature", True)
             if not self.api_keys and not self.api_key_tenant_map:
                 raise ValueError(
                     "production_mode requires api_keys or api_key_tenant_map"
+                )
+            # Tenant isolation is only trustworthy with key→tenant binding;
+            # accepting X-Tenant-ID without a binding is advisory. When tenant
+            # routing is on in production, a binding map is mandatory.
+            if self.tenant_routing and not self.api_key_tenant_map:
+                raise ValueError(
+                    "production_mode with tenant_routing=True requires "
+                    "api_key_tenant_map (key→tenant binding)"
                 )
             if not self.llm_api_url.strip() and self.llm_provider in {"", "mock"}:
                 raise ValueError(
@@ -835,12 +847,15 @@ class DirectorConfig:
         if resolved.get("production_mode"):
             env_keys = os.environ.get("DIRECTOR_API_KEYS", "").strip()
             env_map = os.environ.get("DIRECTOR_API_KEY_TENANT_MAP", "").strip()
+            env_hmac = os.environ.get("DIRECTOR_KNOWLEDGE_WRITE_HMAC_KEYS", "").strip()
             if env_keys:
                 resolved["api_keys"] = [
                     k.strip() for k in env_keys.split(",") if k.strip()
                 ]
             if env_map:
                 resolved["api_key_tenant_map"] = env_map
+            if env_hmac:
+                resolved["knowledge_write_hmac_keys"] = env_hmac
         cfg = cls(**resolved)
         for key, value in resolved.items():
             object.__setattr__(cfg, key, value)
