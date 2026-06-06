@@ -1,0 +1,35 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Commercial license available
+# (c) Concepts 1996-2026 Miroslav Sotek. All rights reserved.
+# (c) Code 2020-2026 Miroslav Sotek. All rights reserved.
+# ORCID: 0009-0009-3560-0851
+# Contact: www.anulum.li | protoscience@anulum.li
+# Director-Class AI - governed security-scan exception register
+#
+# Each accepted dependency / SAST finding that the CI security gates may pass
+# MUST be listed here with an owner, a reason, a compensating control, and an
+# expiry. `tools/check_security_exceptions.py` validates this file in CI and
+# fails the build on a malformed or EXPIRED entry, so a tolerated finding can
+# never become a silent, permanent debt. Anything not listed here must fail the
+# gate once the gate is flipped to enforcing.
+#
+# Example entry (copy, fill, and remove the leading '#'):
+#
+#   [[exceptions]]
+#   id = "GHSA-xxxx-xxxx-xxxx"          # advisory id from pip-audit / semgrep
+#   tool = "pip-audit"                  # pip-audit | semgrep | bandit
+#   package = "torch"                   # affected package or rule
+#   reason = "No fixed release; not reachable from shipped code paths."
+#   compensating_control = "torch only used in optional [nli]/[finetune] extras; \
+#     not in the default install or server hot path."
+#   owner = "protoscience@anulum.li"
+#   opened = "2026-06-07"
+#   expires = "2026-09-07"             # ISO date; build goes red after this
+#   scope = "ci-dependency-audit"
+
+schema_version = "director.security_exceptions.v1"
+
+# No active exceptions yet. Populate from a CI `pip-audit -r requirements.txt`
+# run (which surfaces the real advisory ids) before flipping the audit gate from
+# advisory to enforcing.
+exceptions = []
