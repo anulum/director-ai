@@ -114,7 +114,9 @@ logger = logging.getLogger("DirectorAI.Server")
 
 _WS_MAX_PROMPT_LENGTH = 100_000
 _WS_MAX_CONCURRENT = 8
-_AUTH_EXEMPT_PATHS_BASE = frozenset({"/v1/health", "/v1/ready", "/v1/source"})
+_AUTH_EXEMPT_PATHS_BASE = frozenset(
+    {"/v1/live", "/v1/health", "/v1/ready", "/v1/source"}
+)
 
 try:
     from fastapi import FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect
@@ -772,6 +774,11 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
 
     # Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬ Health Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬
 
+    @app.get("/v1/live")
+    async def liveness():
+        """Minimal unauthenticated liveness probe — no version or config leak."""
+        return {"ok": True}
+
     @app.get("/v1/health", response_model=HealthResponse)
     async def health(request: Request):
         """Return liveness, version, router, licence, and revision status."""
@@ -780,11 +787,9 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
         lic = getattr(request.app.state, "_license", None)
         extra = {}
         if lic and lic.is_commercial:
-            extra = {
-                "license": "commercial",
-                "tier": lic.tier,
-                "licensee": lic.licensee,
-            }
+            # Public, auth-exempt endpoint: expose the licence type only, never
+            # the commercial licensee identity or tier.
+            extra = {"license": "commercial"}
         elif lic and lic.is_trial:
             extra = {"license": "trial", "expires": lic.expires}
         else:
@@ -833,7 +838,6 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
                 )
             return {
                 "license": "commercial",
-                "licensee": lic.licensee,
                 "tier": lic.tier,
                 "version": director_ai.__version__,
                 "agpl_obligation": "waived",
