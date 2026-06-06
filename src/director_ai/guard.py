@@ -61,6 +61,11 @@ from director_ai.core.financial_services import (
     BankingPolicyReport,
     assess_banking_response,
 )
+from director_ai.core.risk_threshold import (
+    RiskAdaptiveThreshold,
+    RiskFactors,
+    RiskThresholdDecision,
+)
 from director_ai.core.scoring.verified_scorer import VerifiedScorer
 from director_ai.core.streaming_repair import RepairResult
 from director_ai.core.types import CoherenceScore, InjectionResult
@@ -115,6 +120,7 @@ class ProductionGuard:
         self._canary_registry: CanaryRegistry | None = None
         self._canary_detector: CanaryDetector | None = None
         self._preflight: AgentPreflightGuard | None = None
+        self._risk_threshold: RiskAdaptiveThreshold | None = None
 
     @classmethod
     def from_profile(
@@ -444,6 +450,22 @@ class ProductionGuard:
 
             self._preflight = AgentPreflightGuard(score_fn=_score)
         return self._preflight
+
+    def risk_threshold(self, factors: RiskFactors) -> RiskThresholdDecision:
+        """Compute a per-request approval threshold from a risk profile.
+
+        Deterministically adapts the base coherence threshold up (stricter) for
+        high-risk requests and down for a demonstrated high false-halt rate,
+        recording every factor's contribution. The host applies the returned
+        threshold; the guard does not mutate its own configured threshold.
+        """
+        if self._risk_threshold is None:
+            from director_ai.core.risk_threshold import RiskThresholdPolicy
+
+            self._risk_threshold = RiskAdaptiveThreshold(
+                RiskThresholdPolicy(base_threshold=self._config.coherence_threshold)
+            )
+        return self._risk_threshold.evaluate(factors)
 
     @property
     def scorer(self) -> CoherenceScorer:
