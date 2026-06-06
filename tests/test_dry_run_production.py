@@ -80,6 +80,18 @@ class TestProductionMode:
         )
         assert cfg.production_mode is True
 
+    def test_forces_rate_limit_strict(self):
+        # Production must fail closed on a missing limiter rather than run an
+        # unthrottled public listener.
+        cfg = DirectorConfig(
+            production_mode=True,
+            rate_limit_strict=False,
+            api_keys='["sk-test"]',
+            llm_api_url="https://llm.internal.example/v1",
+            knowledge_write_hmac_keys='{"kid-1":"signing-secret-at-least-32-chars-xx"}',
+        )
+        assert cfg.rate_limit_strict is True
+
     def test_accepts_with_tenant_map(self):
         cfg = DirectorConfig(
             production_mode=True,

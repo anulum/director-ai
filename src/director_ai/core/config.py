@@ -534,6 +534,10 @@ class DirectorConfig:
             # guard certify false claims as ground truth. Production requires
             # signed KB writes.
             object.__setattr__(self, "knowledge_write_require_signature", True)
+            # A configured rate limit must fail closed in production: a missing
+            # limiter backend must refuse startup rather than silently run an
+            # unthrottled public listener.
+            object.__setattr__(self, "rate_limit_strict", True)
             if not self.api_keys and not self.api_key_tenant_map:
                 raise ValueError(
                     "production_mode requires api_keys or api_key_tenant_map"
