@@ -48,6 +48,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
 from director_ai.core import CoherenceScorer, GroundTruthStore
+from director_ai.core.agent_preflight import AgentPreflightGuard
 from director_ai.core.answer_bom import AnswerBOM, build_answer_bom
 from director_ai.core.canary import (
     CanaryDetector,
@@ -113,6 +114,7 @@ class ProductionGuard:
         self._injection_detector: InjectionDetector | None = None
         self._canary_registry: CanaryRegistry | None = None
         self._canary_detector: CanaryDetector | None = None
+        self._preflight: AgentPreflightGuard | None = None
 
     @classmethod
     def from_profile(
@@ -426,6 +428,22 @@ class ProductionGuard:
         """
         detector = self._ensure_canary()
         return detector.scan(response, tenant_id, evidence=list(evidence))
+
+    @property
+    def preflight(self) -> AgentPreflightGuard:
+        """Agent/MCP preflight guard wired to this guard's scorer.
+
+        Provides the five seam gates (before/after tool call, before final
+        answer, before handoff, before irreversible action); result plausibility
+        is scored with this guard's coherence scorer.
+        """
+        if self._preflight is None:
+
+            def _score(premise: str, hypothesis: str) -> float:
+                return self._scorer.review(premise, hypothesis)[1].score
+
+            self._preflight = AgentPreflightGuard(score_fn=_score)
+        return self._preflight
 
     @property
     def scorer(self) -> CoherenceScorer:

@@ -199,6 +199,7 @@ nav:
       - Answer Bill of Materials: api/answer-bom.md
       - Streaming Repair: api/streaming-repair.md
       - Counterfactual Canary Facts: api/canary-facts.md
+      - Agent / MCP Preflight Guard: api/agent-preflight.md
       - Defence Update Pipeline: api/defence-update-pipeline.md
       - Cross-Document Consistency Memory: api/cross-document-memory.md
       - Differentially Private Score Release: api/private-score-release.md
