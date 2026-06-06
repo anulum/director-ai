@@ -120,6 +120,51 @@ def test_unknown_tier_is_reported_unavailable(tmp_path: Path) -> None:
     assert "unknown tier" in report.tiers[0].unavailable_reason
 
 
+def test_main_skips_neutrally_on_upstream_rate_limit(
+    tmp_path: Path, monkeypatch
+) -> None:
+    import urllib.error
+
+    def _raise_429(**_kwargs):
+        raise urllib.error.HTTPError(
+            "https://example/dataset", 429, "Too Many Requests", {}, None
+        )
+
+    monkeypatch.setattr(live_red_team, "build_report", _raise_429)
+    rc = live_red_team.main(
+        [
+            "--source",
+            "fixture=https://example/dataset.csv",
+            "--output",
+            str(tmp_path / "report.json"),
+        ]
+    )
+    # A 429 means the suite could not run -> neutral skip, not a red failure.
+    assert rc == 0
+
+
+def test_main_hard_fails_on_non_transient_http_error(
+    tmp_path: Path, monkeypatch
+) -> None:
+    import urllib.error
+
+    def _raise_500(**_kwargs):
+        raise urllib.error.HTTPError(
+            "https://example/dataset", 500, "Server Error", {}, None
+        )
+
+    monkeypatch.setattr(live_red_team, "build_report", _raise_500)
+    rc = live_red_team.main(
+        [
+            "--source",
+            "fixture=https://example/dataset.csv",
+            "--output",
+            str(tmp_path / "report.json"),
+        ]
+    )
+    assert rc == 2
+
+
 def test_nightly_workflow_runs_property_contract_gates() -> None:
     workflow = NIGHTLY_WORKFLOW.read_text(encoding="utf-8")
     required_tests = (

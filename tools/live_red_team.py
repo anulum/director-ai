@@ -363,6 +363,19 @@ def main(argv: list[str] | None = None) -> int:
                 timeout_s=args.timeout_s,
                 tiers=tier_names,
             )
+    except urllib.error.HTTPError as exc:
+        # A transient upstream rate limit / unavailability means the suite could
+        # not run — that is a neutral skip for a scheduled job, not a red
+        # security failure. (HTTPError is a URLError subclass, so this clause
+        # must precede the general one below.)
+        if exc.code in (429, 503):
+            print(
+                f"live red-team skipped: upstream rate limited (HTTP {exc.code})",
+                file=sys.stderr,
+            )
+            return 0
+        print(f"live red-team setup failed: {exc}", file=sys.stderr)
+        return 2
     except (OSError, urllib.error.URLError, csv.Error) as exc:
         print(f"live red-team setup failed: {exc}", file=sys.stderr)
         return 2
