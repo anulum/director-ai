@@ -43,6 +43,53 @@ def _noauth_app():
     return create_app(cfg)
 
 
+def _map_only_app():
+    # Tenant-map-only config (no separate api_keys) — the production-profile
+    # shape. Before the effective-keys fix this was fail-open.
+    cfg = DirectorConfig(
+        api_key_tenant_map='{"map-key-1":"tenant-a"}',
+        llm_provider="mock",
+    )
+    return create_app(cfg)
+
+
+def test_map_only_config_enforces_auth():
+    """Regression: a map-only config must require a key (was fail-open)."""
+    with TestClient(_map_only_app()) as client:
+        r = client.get("/v1/config")
+    assert r.status_code == 401
+
+
+def test_map_only_authenticates_listed_key():
+    with TestClient(_map_only_app()) as client:
+        r = client.get("/v1/config", headers={"X-API-Key": "map-key-1"})
+    assert r.status_code == 200
+
+
+def test_map_only_rejects_unlisted_key():
+    with TestClient(_map_only_app()) as client:
+        r = client.get("/v1/config", headers={"X-API-Key": "not-a-key"})
+    assert r.status_code == 401
+
+
+def test_map_only_wrong_tenant_forbidden():
+    with TestClient(_map_only_app()) as client:
+        r = client.get(
+            "/v1/config",
+            headers={"X-API-Key": "map-key-1", "X-Tenant-ID": "tenant-b"},
+        )
+    assert r.status_code == 403
+
+
+def test_map_only_matching_tenant_allowed():
+    with TestClient(_map_only_app()) as client:
+        r = client.get(
+            "/v1/config",
+            headers={"X-API-Key": "map-key-1", "X-Tenant-ID": "tenant-a"},
+        )
+    assert r.status_code == 200
+
+
 def test_auth_rejects_missing_key():
     with TestClient(_auth_app()) as client:
         r = client.get("/v1/config")

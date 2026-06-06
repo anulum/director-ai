@@ -639,6 +639,20 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
     if cfg.api_key_tenant_map:
         _api_key_tenant_map = _json_mod.loads(cfg.api_key_tenant_map)
 
+    # Effective auth keys = explicit api_keys ∪ tenant-map keys. Enforcement
+    # must consider both: a map-only config (e.g. the production profile with a
+    # key→tenant binding but no separate api_keys list) still requires a valid
+    # key. Keying enforcement on cfg.api_keys alone is fail-open.
+    _valid_api_keys: list[str] = list(cfg.api_keys)
+    for _bound_key in _api_key_tenant_map:
+        if _bound_key not in _valid_api_keys:
+            _valid_api_keys.append(_bound_key)
+    if cfg.production_mode and not _valid_api_keys:
+        raise RuntimeError(
+            "production_mode requires at least one effective API key "
+            "(set api_keys or api_key_tenant_map)"
+        )
+
     @app.middleware("http")
     async def _http_middleware(request: Request, call_next):
         """Apply request IDs, API-key auth, tenant binding, and metrics."""
@@ -648,12 +662,12 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
 
         start = time.monotonic()
         api_key_hash = ""
-        if cfg.api_keys and request.url.path not in _auth_exempt:
+        if _valid_api_keys and request.url.path not in _auth_exempt:
             provided = _extract_request_api_key(request)
             # Constant-time: always compare against ALL keys to prevent
             # timing side-channels that leak key position.
             key_valid = False
-            for k in cfg.api_keys:
+            for k in _valid_api_keys:
                 if hmac.compare_digest(provided, k):
                     key_valid = True
             if not key_valid:
@@ -2181,10 +2195,10 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
     async def stream(ws: WebSocket):
         """Handle multiplexed WebSocket agent sessions."""
         ws_tenant_id = ""
-        if cfg.api_keys:
+        if _valid_api_keys:
             provided = ws.headers.get("X-API-Key", "")
             ws_key_valid = False
-            for k in cfg.api_keys:
+            for k in _valid_api_keys:
                 if hmac.compare_digest(provided, k):
                     ws_key_valid = True
             if not ws_key_valid:

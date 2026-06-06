@@ -674,9 +674,9 @@ class DirectorConfig:
                 "hybrid_retrieval": True,
                 "reranker_enabled": False,
                 "tenant_routing": True,
-                "api_key_tenant_map": (
-                    '{"director-production-local-validation-key":"tenant-default"}'
-                ),
+                # No hard-coded key: production secrets are injected from the
+                # environment (DIRECTOR_API_KEYS / DIRECTOR_API_KEY_TENANT_MAP).
+                # Without them the production profile fails closed below.
                 "llm_provider": "local",
                 "llm_api_url": "http://127.0.0.1:8081/v1",
                 "metrics_enabled": True,
@@ -828,8 +828,21 @@ class DirectorConfig:
             raise ValueError(
                 f"Unknown profile '{name}'. Choose from: {list(profiles.keys())}",
             )
-        cfg = cls(**profiles[name])
-        for key, value in profiles[name].items():
+        resolved = dict(profiles[name])
+        # Production secrets come from the environment, never from a hard-coded
+        # profile value. With neither env var set, production_mode validation
+        # fails closed (production_mode requires api_keys or api_key_tenant_map).
+        if resolved.get("production_mode"):
+            env_keys = os.environ.get("DIRECTOR_API_KEYS", "").strip()
+            env_map = os.environ.get("DIRECTOR_API_KEY_TENANT_MAP", "").strip()
+            if env_keys:
+                resolved["api_keys"] = [
+                    k.strip() for k in env_keys.split(",") if k.strip()
+                ]
+            if env_map:
+                resolved["api_key_tenant_map"] = env_map
+        cfg = cls(**resolved)
+        for key, value in resolved.items():
             object.__setattr__(cfg, key, value)
         return cfg
 

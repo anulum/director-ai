@@ -89,7 +89,28 @@ class TestProfileLoading:
         assert cfg.max_candidates == 5
         assert cfg.coherence_threshold == 0.7
 
-    def test_production_profile_is_fail_closed_and_observable(self):
+    def test_production_profile_requires_api_keys_from_env(self, monkeypatch):
+        # No hard-coded key: without env-injected secrets, production fails closed.
+        monkeypatch.delenv("DIRECTOR_API_KEYS", raising=False)
+        monkeypatch.delenv("DIRECTOR_API_KEY_TENANT_MAP", raising=False)
+        with pytest.raises(
+            ValueError, match="production_mode requires api_keys or api_key_tenant_map"
+        ):
+            DirectorConfig.from_profile("production")
+
+    def test_production_profile_loads_with_env_tenant_map(self, monkeypatch):
+        monkeypatch.delenv("DIRECTOR_API_KEYS", raising=False)
+        monkeypatch.setenv(
+            "DIRECTOR_API_KEY_TENANT_MAP", '{"real-prod-key":"tenant-default"}'
+        )
+        cfg = DirectorConfig.from_profile("production")
+        assert "real-prod-key" in cfg.api_key_tenant_map
+        assert "director-production-local-validation-key" not in cfg.api_key_tenant_map
+
+    def test_production_profile_is_fail_closed_and_observable(self, monkeypatch):
+        monkeypatch.setenv(
+            "DIRECTOR_API_KEY_TENANT_MAP", '{"real-prod-key":"tenant-default"}'
+        )
         cfg = DirectorConfig.from_profile("production")
 
         assert cfg.profile == "production"
