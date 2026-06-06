@@ -117,6 +117,8 @@ def main(argv: list[str] | None = None) -> None:
         "wizard": _cmd_wizard,
         "safety-dashboard": _cmd_safety_dashboard,
         "cost-report": _cmd_cost_report,
+        "evidence": _cmd_evidence,
+        "verify-evidence": _cmd_verify_evidence,
     }
 
     if cmd not in commands:
@@ -157,7 +159,9 @@ def _print_help() -> None:
         "  kb-health [options]   Knowledge base health diagnostics\n"
         "  wizard [--cli]        Interactive configuration wizard\n"
         "  safety-dashboard [--text] [--events F]  Halt-rate operations view\n"
-        "  cost-report [--format F]  Token cost report (text|json|html)\n",
+        "  cost-report [--format F]  Token cost report (text|json|html)\n"
+        "  evidence [--emit DIR]  Run the narrow demo, emit a verifiable packet\n"
+        "  verify-evidence <DIR>  Verify an emitted evidence packet\n",
     )
 
 
@@ -739,6 +743,63 @@ def _cmd_quickstart(args: list[str]) -> None:
         print(f"Compose quickstart: cd {out_dir} && docker compose up")
     if run_compose:
         _run_quickstart_compose(out_dir)
+
+
+def _cmd_evidence(args: list[str]) -> None:
+    """Run the narrow grounding demo and emit a verifiable evidence packet."""
+    out_dir = Path("evidence")
+    profile = "fast"
+    i = 0
+    while i < len(args):
+        if args[i] == "--emit" and i + 1 < len(args):
+            out_dir = Path(args[i + 1])
+            i += 2
+        elif args[i] == "--profile" and i + 1 < len(args):
+            profile = args[i + 1]
+            i += 2
+        else:
+            i += 1
+
+    from director_ai.core.evidence_packet import build_evidence_packet
+    from director_ai.guard import ProductionGuard
+
+    guard = ProductionGuard.from_profile(profile)
+    packet = build_evidence_packet(guard)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    path = out_dir / "evidence_packet.json"
+    path.write_text(json.dumps(packet, indent=2) + "\n", encoding="utf-8")
+
+    checks = packet["content"]["checks"]
+    print(f"Evidence packet written to {path}")
+    print(f"  grounded answer approved:    {checks['grounded_approved']}")
+    print(f"  hallucinated answer blocked: {checks['hallucinated_blocked']}")
+    print(f"  integrity (sha256): {packet['integrity']['digest'][:16]}…")
+    if not (checks["grounded_approved"] and checks["hallucinated_blocked"]):
+        print("Demo expectations not met (see packet).")
+        sys.exit(1)
+
+
+def _cmd_verify_evidence(args: list[str]) -> None:
+    """Verify an evidence packet's integrity and demo expectations."""
+    if not args:
+        print("Usage: director-ai verify-evidence <packet.json|dir>")
+        sys.exit(1)
+    target = Path(args[0])
+    if target.is_dir():
+        target = target / "evidence_packet.json"
+    if not target.exists():
+        print(f"Error: evidence packet not found at {target}")
+        sys.exit(1)
+
+    from director_ai.core.evidence_packet import verify_evidence_packet
+
+    packet = json.loads(target.read_text(encoding="utf-8"))
+    ok, reason = verify_evidence_packet(packet)
+    if ok:
+        print(f"Evidence packet VERIFIED: {target}")
+    else:
+        print(f"Evidence packet INVALID ({reason}): {target}")
+        sys.exit(1)
 
 
 def _cmd_review(args: list[str]) -> None:

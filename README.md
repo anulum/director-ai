@@ -37,6 +37,34 @@ Director-Class AI — Repository overview
 
 ---
 
+## The one-command demo
+
+The narrow thing Director-AI does, end to end — load a small policy knowledge
+base, approve a grounded answer, block a hallucinated one, and emit a
+tamper-evident record of every decision:
+
+```bash
+pip install "director-ai[nli]"
+director-ai evidence --emit evidence/        # runs the 7-step demo, writes a sealed packet
+director-ai verify-evidence evidence/        # re-checks the packet's integrity + outcomes
+```
+
+The seven steps the packet records:
+
+1. Load ~20 policy facts into the knowledge base.
+2. Ask the LLM a policy question.
+3. A **grounded** answer is approved.
+4. A **hallucinated** answer is blocked.
+5. Streaming halts before an unsafe completion.
+6. An evidence JSON (Answer Bill of Materials + OpenTelemetry eval record) is emitted.
+7. The decision is written to the audit log.
+
+`evidence_packet.json` is sealed with a SHA-256 digest, so a reviewer can verify
+it without re-running the guard. (Clear separation of grounded vs hallucinated
+needs the model-backed scorer from the `[nli]` extra.)
+
+---
+
 ## About
 
 Director-AI is an internal research tool developed at [ANULUM Institute](https://www.anulum.li) as part of the [God of the Math Collection](https://www.anulum.li) (GOTM) — a multi-project scientific computing ecosystem spanning neuroscience, plasma physics, stochastic computing, and AI safety.

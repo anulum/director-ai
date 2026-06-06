@@ -203,6 +203,7 @@ nav:
       - Counterfactual Canary Facts: api/canary-facts.md
       - Agent / MCP Preflight Guard: api/agent-preflight.md
       - OpenTelemetry Eval Trace: api/eval-trace.md
+      - Evidence Packet (demo): api/evidence-packet.md
       - Defence Update Pipeline: api/defence-update-pipeline.md
       - Cross-Document Consistency Memory: api/cross-document-memory.md
       - Differentially Private Score Release: api/private-score-release.md
