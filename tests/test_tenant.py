@@ -241,3 +241,38 @@ class TestTenantManifest:
         assert router2.get_active_model("acme") is None
         models = router2.list_models("acme")
         assert models[0].balanced_accuracy == 0.80
+
+
+class TestTenantIdValidation:
+    """Reject malformed tenant ids at the router boundary (defence in depth)."""
+
+    @pytest.mark.parametrize(
+        "bad",
+        [
+            "tenant id with spaces",
+            "tenant/slash",
+            "tenant\nnewline",
+            "*__keyspace@0__:*",
+            "a" * 200,
+            "-leading-hyphen",
+        ],
+    )
+    def test_get_store_rejects_malformed(self, bad):
+        with pytest.raises(ValueError, match="tenant_id must match"):
+            TenantRouter().get_store(bad)
+
+    def test_get_vector_store_rejects_malformed(self):
+        with pytest.raises(ValueError, match="tenant_id must match"):
+            TenantRouter().get_vector_store("bad/tenant")
+
+    def test_set_model_rejects_malformed(self):
+        with pytest.raises(ValueError, match="tenant_id must match"):
+            TenantRouter().set_model("bad tenant", "m1", "/tmp/m1")
+
+    def test_empty_tenant_allowed_as_default_scope(self):
+        # Empty id is the legitimate default (no-tenant) scope.
+        assert TenantRouter().get_store("") is not None
+
+    @pytest.mark.parametrize("good", ["acme", "tenant_1", "a.b:c-d", "T", "0"])
+    def test_valid_tenants_accepted(self, good):
+        assert TenantRouter().get_store(good) is not None

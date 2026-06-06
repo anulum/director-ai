@@ -282,3 +282,25 @@ class TestOnnxPerformanceDoc:
         assert per_call_ms < 1.0, (
             f"ONNX heuristic fallback took {per_call_ms:.3f}ms/call (expected <1ms)"
         )
+
+
+class TestOnnxPathValidation:
+    """ONNX path is resolved before use; a non-directory falls back safely (V8)."""
+
+    def test_nonexistent_onnx_path_falls_back(self):
+        scorer = NLIScorer(backend="onnx", onnx_path="/nonexistent/onnx/dir")
+        # Graceful fallback (model unavailable) — no raw path handed downstream.
+        assert scorer.model_available is False
+        assert 0.0 <= scorer.score("premise", "hypothesis") <= 1.0
+
+    def test_onnx_path_pointing_at_file_falls_back(self, tmp_path):
+        not_a_dir = tmp_path / "model.onnx"
+        not_a_dir.write_text("", encoding="utf-8")
+        scorer = NLIScorer(backend="onnx", onnx_path=str(not_a_dir))
+        assert scorer.model_available is False
+
+    def test_relative_onnx_path_resolved_not_passed_through(self):
+        # A relative non-existent path resolves and falls back rather than being
+        # handed to the runtime verbatim.
+        scorer = NLIScorer(backend="onnx", onnx_path="./does-not-exist-rel")
+        assert scorer.model_available is False

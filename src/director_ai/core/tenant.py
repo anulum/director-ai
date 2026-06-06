@@ -25,6 +25,7 @@ Usage::
 from __future__ import annotations
 
 import json
+import re
 import threading
 import time
 from dataclasses import asdict, dataclass
@@ -37,6 +38,21 @@ from .retrieval.vector_store import (
     VectorGroundTruthStore,
 )
 from .scoring.scorer import CoherenceScorer
+
+# Tenant identifiers are used as store keys, vector metadata, and document id
+# prefixes. An empty id denotes the default (no-tenant) scope; any non-empty id
+# must match this conservative shape so a malformed value cannot smuggle
+# separators or control characters into a downstream key space.
+_SAFE_TENANT_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$")
+
+
+def _require_valid_tenant(tenant_id: str) -> None:
+    """Reject a malformed non-empty tenant id; allow empty (default scope)."""
+    if tenant_id and not _SAFE_TENANT_RE.fullmatch(tenant_id):
+        raise ValueError(
+            "tenant_id must match ^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$ "
+            "(or be empty for the default scope)"
+        )
 
 
 @dataclass
@@ -73,6 +89,7 @@ class TenantRouter:
 
     def get_store(self, tenant_id: str) -> GroundTruthStore:
         """Get or create an isolated store for this tenant."""
+        _require_valid_tenant(tenant_id)
         with self._lock:
             if tenant_id not in self._stores:
                 store = GroundTruthStore()
@@ -100,6 +117,7 @@ class TenantRouter:
         Supported backend_type values: "memory", "chroma", "pinecone", "qdrant".
         Extra kwargs are forwarded to the backend constructor.
         """
+        _require_valid_tenant(tenant_id)
         key = (tenant_id, backend_type)
         with self._lock:
             if key in self._vector_stores:
@@ -163,6 +181,7 @@ class TenantRouter:
         dataset_hash: str = "",
     ) -> ModelVersion:
         """Register a fine-tuned model for a tenant."""
+        _require_valid_tenant(tenant_id)
         mv = ModelVersion(
             model_id=model_id,
             model_path=model_path,
