@@ -28,12 +28,20 @@ top of the stable :class:`CausalGraph` and :class:`Intervention`
 boundaries.
 """
 
+from .contradiction_explainer import (
+    ContradictionExplainer,
+    ContradictionExplanation,
+    ContradictionReport,
+)
 from .counterfactual import CounterfactualBranch, CounterfactualVerifier, Verdict
 from .graph import CausalGraph, GraphCycleError
 from .intervention import Intervention
 
 __all__ = [
     "CausalGraph",
+    "ContradictionExplainer",
+    "ContradictionExplanation",
+    "ContradictionReport",
     "CounterfactualBranch",
     "CounterfactualVerifier",
     "GraphCycleError",
