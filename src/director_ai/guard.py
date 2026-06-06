@@ -48,6 +48,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
 from director_ai.core import CoherenceScorer, GroundTruthStore
+from director_ai.core.answer_bom import AnswerBOM, build_answer_bom
 from director_ai.core.config import DirectorConfig
 from director_ai.core.financial_services import (
     BankingPolicyReport,
@@ -335,3 +336,36 @@ class ProductionGuard:
     @property
     def config(self) -> DirectorConfig:
         return self._config
+
+    def answer_bom(
+        self,
+        result: GuardResult,
+        *,
+        model: str = "",
+        tenant: str = "",
+        answer_id: str | None = None,
+        freshness: str = "",
+        policy_refs: Iterable[str] = (),
+    ) -> AnswerBOM:
+        """Build an Answer Bill of Materials from a :class:`GuardResult`.
+
+        Records the model/scorer/threshold header and a per-claim evidence
+        record built from the scorer's claim-level provenance. The threshold is
+        the calibrated threshold when calibration is enabled, otherwise the
+        configured coherence threshold.
+        """
+        threshold = (
+            result.calibrated_threshold
+            if result.calibrated_threshold is not None
+            else self._config.coherence_threshold
+        )
+        return build_answer_bom(
+            result.coherence,
+            model=model,
+            scorer=self._config.scorer_backend,
+            threshold=threshold,
+            tenant=tenant,
+            answer_id=answer_id,
+            freshness=freshness,
+            policy_refs=tuple(policy_refs),
+        )

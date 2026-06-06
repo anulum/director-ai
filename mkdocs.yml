@@ -196,6 +196,7 @@ nav:
       - Operational Provenance Ledger: api/provenance-ledger.md
       - Mechanistic Interpretability (ReDeEP): api/mechanistic-interpretability.md
       - Evidence Firewall: api/evidence-firewall.md
+      - Answer Bill of Materials: api/answer-bom.md
       - Defence Update Pipeline: api/defence-update-pipeline.md
       - Cross-Document Consistency Memory: api/cross-document-memory.md
       - Differentially Private Score Release: api/private-score-release.md
