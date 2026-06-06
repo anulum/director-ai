@@ -147,7 +147,7 @@ def _print_help() -> None:
         "  train submit [options]  Submit or dry-run a managed training job\n"
         "  finetune <train.jsonl> [options]  Fine-tune NLI model on domain data\n"
         "  validate-data <file.jsonl>       Validate data before fine-tuning\n"
-        "  serve [--port N] [--workers W]  Start the FastAPI server\n"
+        "  serve [--port N] [--workers W] [--dev|--production]  Start the FastAPI server\n"
         "  proxy [--port N] [--facts F]   Chat-completions guardrail proxy\n"
         "  export [--format F]   Export model to ONNX/TensorRT\n"
         "  stress-test [options] Benchmark streaming kernel throughput\n"
@@ -653,10 +653,46 @@ def _run_quickstart_compose(out_dir: Path) -> None:
         sys.exit(exc.returncode)
 
 
-def _cmd_quickstart(args: list[str]) -> None:
-    """Scaffold a working director-ai project in one command."""
+def _load_profile_for_scaffold(profile: str):
+    """Load a profile config for scaffolding, tolerating production fail-close.
+
+    Production-mode profiles fail closed without secrets, but the quickstart
+    scaffold only needs the profile's template defaults — the generated ``.env``
+    and ``docker-compose.yml`` require the operator to supply real secrets via
+    shell interpolation. When the profile fails to load, retry with placeholder
+    secrets that are used only to materialise the in-memory config and never
+    written into the scaffold.
+    """
+    import os
+
     from director_ai.core.config import DirectorConfig
 
+    try:
+        return DirectorConfig.from_profile(profile)
+    except ValueError:
+        placeholders = {
+            "DIRECTOR_API_KEYS": "scaffold-placeholder-key",
+            "DIRECTOR_API_KEY_TENANT_MAP": (
+                '{"scaffold-placeholder-key":"scaffold-tenant"}'
+            ),
+            "DIRECTOR_KNOWLEDGE_WRITE_HMAC_KEYS": (
+                '{"scaffold":"scaffold-placeholder-signing-secret-32x"}'
+            ),
+        }
+        saved = {key: os.environ.get(key) for key in placeholders}
+        try:
+            os.environ.update(placeholders)
+            return DirectorConfig.from_profile(profile)
+        finally:
+            for key, value in saved.items():
+                if value is None:
+                    os.environ.pop(key, None)
+                else:
+                    os.environ[key] = value
+
+
+def _cmd_quickstart(args: list[str]) -> None:
+    """Scaffold a working director-ai project in one command."""
     profile = "fast"
     include_compose = True
     run_compose = False
@@ -683,7 +719,7 @@ def _cmd_quickstart(args: list[str]) -> None:
         print(f"Error: {out_dir}/ already exists. Remove it or use a new dir.")
         sys.exit(1)
 
-    cfg = DirectorConfig.from_profile(profile)
+    cfg = _load_profile_for_scaffold(profile)
     out_dir.mkdir()
 
     _write_quickstart_config(

@@ -16,6 +16,38 @@ import json
 import sys
 
 
+def _apply_run_mode(config, run_mode: str):
+    """Apply the explicit ``--dev`` / ``--production`` run mode to ``config``.
+
+    Enforces that production is never entered implicitly: starting in production
+    requires the explicit ``--production`` flag, which fails closed (with a clear
+    message) when no effective API key is configured. Returns the resolved
+    config; calls ``sys.exit(1)`` on a refusal.
+    """
+    from dataclasses import replace
+
+    if run_mode == "production":
+        try:
+            config = replace(config, production_mode=True)
+        except (ValueError, TypeError) as exc:
+            print(f"Error: --production requires a hardened config: {exc}")
+            print(
+                "       Set DIRECTOR_API_KEYS (or DIRECTOR_API_KEY_TENANT_MAP) "
+                "and DIRECTOR_KNOWLEDGE_WRITE_HMAC_KEYS before --production."
+            )
+            sys.exit(1)
+    elif run_mode == "dev":
+        config = replace(config, production_mode=False)
+    elif getattr(config, "production_mode", False):
+        print(
+            "Error: config resolves to production_mode but --production was not "
+            "given. Refusing to start in production implicitly."
+        )
+        print("       Pass --production to confirm, or --dev for a dev server.")
+        sys.exit(1)
+    return config
+
+
 def _cmd_serve(args: list[str]) -> None:
     port = 8080
     # CLI default; production deployments override this via HOST or --host.
@@ -25,10 +57,17 @@ def _cmd_serve(args: list[str]) -> None:
     workers = 1
     transport = "http"
     cors_origins = ""
+    run_mode = ""  # "" (resolve from config), "dev", or "production"
 
     i = 0
     while i < len(args):
-        if args[i] == "--mode" and i + 1 < len(args):
+        if args[i] == "--production":
+            run_mode = "production"
+            i += 1
+        elif args[i] == "--dev":
+            run_mode = "dev"
+            i += 1
+        elif args[i] == "--mode" and i + 1 < len(args):
             mode = args[i + 1]
             if mode not in ("general", "grounded", "auto"):
                 print(
@@ -78,6 +117,7 @@ def _cmd_serve(args: list[str]) -> None:
         config = DirectorConfig.from_env()
     if mode:
         config = DirectorConfig(**{**config.__dict__, "mode": mode})
+    config = _apply_run_mode(config, run_mode)
     config.server_host = host
     config.server_port = port
     if cors_origins:

@@ -319,3 +319,55 @@ def test_stress_test_text_report(monkeypatch, capsys):
     assert "Streams:     1" in out
     assert "Halt rate:   0.00%" in out
     assert "Latency p95:" in out
+
+
+class TestRunMode:
+    """Explicit --dev/--production run-mode enforcement (real DirectorConfig)."""
+
+    def _hardened_kwargs(self):
+        return {
+            "api_keys": '["sk-test"]',
+            "llm_api_url": "https://llm.internal.example/v1",
+            "knowledge_write_hmac_keys": (
+                '{"kid-1":"signing-secret-at-least-32-chars-xx"}'
+            ),
+        }
+
+    def test_dev_forces_production_off(self):
+        from director_ai.core.config import DirectorConfig
+
+        cfg = DirectorConfig(production_mode=True, **self._hardened_kwargs())
+        resolved = _cli_serve._apply_run_mode(cfg, "dev")
+        assert resolved.production_mode is False
+
+    def test_production_with_keys(self):
+        from director_ai.core.config import DirectorConfig
+
+        cfg = DirectorConfig(**self._hardened_kwargs())
+        resolved = _cli_serve._apply_run_mode(cfg, "production")
+        assert resolved.production_mode is True
+
+    def test_production_without_keys_exits(self, capsys):
+        from director_ai.core.config import DirectorConfig
+
+        cfg = DirectorConfig()
+        with pytest.raises(SystemExit) as exc:
+            _cli_serve._apply_run_mode(cfg, "production")
+        assert exc.value.code == 1
+        assert "--production requires a hardened config" in capsys.readouterr().out
+
+    def test_implicit_production_refused(self, capsys):
+        from director_ai.core.config import DirectorConfig
+
+        cfg = DirectorConfig(production_mode=True, **self._hardened_kwargs())
+        with pytest.raises(SystemExit) as exc:
+            _cli_serve._apply_run_mode(cfg, "")
+        assert exc.value.code == 1
+        assert "Refusing to start in production implicitly" in capsys.readouterr().out
+
+    def test_dev_config_passes_through(self):
+        from director_ai.core.config import DirectorConfig
+
+        cfg = DirectorConfig()
+        resolved = _cli_serve._apply_run_mode(cfg, "")
+        assert resolved.production_mode is False
