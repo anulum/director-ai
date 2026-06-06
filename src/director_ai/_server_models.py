@@ -256,6 +256,48 @@ class InjectionResponse(BaseModel):
     combined_score: float
 
 
+class MultimodalDetectRequest(BaseModel):
+    """Request body for opt-in multi-modal hallucination checks."""
+
+    modality: _Literal["image", "audio", "video"] = Field(
+        ..., description="One of: image, audio, video"
+    )
+    claim_text: str = Field(
+        ...,
+        min_length=1,
+        max_length=_MAX_PROMPT_CHARS,
+        description="Text claim to verify against the media",
+    )
+    media_ref: str = Field(
+        ..., min_length=1, max_length=1024, description="Opaque media reference id"
+    )
+    image_base64: str = Field(
+        "", description="Base64-encoded image bytes (image modality)"
+    )
+    transcript_text: str = Field(
+        "", max_length=_MAX_RESPONSE_CHARS, description="Transcript (audio modality)"
+    )
+    frame_similarities: list[float] = Field(
+        default_factory=list,
+        description="Per-frame similarity scores in [0, 1] (video modality)",
+    )
+    caption_text: str = Field(
+        "", max_length=_MAX_PROMPT_CHARS, description="Optional caption to ground"
+    )
+    metadata: dict[str, str] = Field(
+        default_factory=dict, description="Optional metadata to ground"
+    )
+
+
+class MultimodalDetectResponse(BaseModel):
+    """Tenant-safe multi-modal guard decision (no raw media or claim text)."""
+
+    modality: str
+    media_ref: str
+    signal: dict
+    guard_decision: dict
+
+
 class VerifyResponse(BaseModel):
     """Generic verification response for structured guard checks."""
 

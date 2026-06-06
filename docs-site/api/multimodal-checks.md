@@ -75,6 +75,21 @@ The packet exercises image allow/halt paths, caption-grounding conflicts, video
 frame temporal halts, and the dependency-free hash-bag encoder/verifier path. It
 does not include an external Vision-NLI benchmark or a real video model run.
 
+## Live endpoint (opt-in, isolated)
+
+The guard is reachable at `POST /v1/multimodal/check`, but stays out of the
+default path: the endpoint returns **404** unless experimental hooks are enabled
+(`DIRECTOR_AI_ENABLE_EXPERIMENTAL_HOOKS=1`) **and** at least one modality is set
+via `DirectorConfig.multimodal_enabled_modalities`. When enabled, the server
+builds a dependency-free hash-bag adapter (`build_hashbag_adapter`) at startup —
+image via the hash-bag guard, audio/caption/metadata via `text_bag_similarity`,
+video via per-request frame similarities — so no ML stack is required.
+
+The request carries `modality`, `claim_text`, `media_ref`, the modality payload
+(`image_base64` / `transcript_text` / `frame_similarities`), and optional
+`caption_text` / `metadata`. The response is the tenant-safe `GuardDecision`
+(`allow` / `warn` / `halt`); it never echoes raw media, transcript, or claim text.
+
 ## Full API
 
 ::: director_ai.core.multimodal_guard.adapter.MultimodalCheckRequest

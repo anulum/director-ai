@@ -180,6 +180,38 @@ class TorchCLIPCrossModalVerifier:
         return (sim + 1.0) / 2.0
 
 
+def text_bag_similarity(
+    text_a: str,
+    text_b: str,
+    *,
+    dim: int = 512,
+    lowercase: bool = True,
+) -> float:
+    """Cosine similarity in ``[0, 1]`` between two texts' FNV hash-bags.
+
+    The dependency-free text-to-text counterpart of
+    :class:`HashBagCrossModalVerifier`, used to ground a claim against a
+    transcript, caption, or metadata blob without an ML stack. Empty input
+    on either side scores 0.0.
+    """
+    if dim <= 0:
+        raise ValueError(f"dim must be positive; got {dim!r}")
+    if not text_a or not text_a.strip() or not text_b or not text_b.strip():
+        return 0.0
+    bag_a = _text_bag(text_a, dim=dim, lowercase=lowercase)
+    bag_b = _text_bag(text_b, dim=dim, lowercase=lowercase)
+    return max(0.0, min(1.0, _cosine(bag_a, bag_b)))
+
+
+def _text_bag(text: str, *, dim: int, lowercase: bool) -> tuple[float, ...]:
+    """FNV-1a hash-bag of ``text`` tokens, unit-normed."""
+    normalised = text.lower() if lowercase else text
+    bag = [0.0] * dim
+    for token in normalised.split():
+        bag[_fnv1a_64(token.encode("utf-8")) % dim] += 1.0
+    return _normalise(tuple(bag))
+
+
 def _cosine(a: tuple[float, ...], b: tuple[float, ...]) -> float:
     if len(a) != len(b):
         return 0.0

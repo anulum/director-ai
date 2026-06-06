@@ -257,6 +257,21 @@ class DirectorConfig:
     injection_require_model_backed_nli: bool = False
     injection_fail_closed_on_error: bool = False
 
+    # Multi-modal hallucination guard (opt-in; only active when the
+    # experimental hooks flag is set AND at least one modality is enabled).
+    multimodal_enabled_modalities: tuple[str, ...] = ()
+    multimodal_benchmarked_modalities: tuple[str, ...] = ()
+    multimodal_hallucination_threshold: float = 0.15
+    multimodal_consistency_threshold: float = 0.45
+    multimodal_temporal_alpha: float = 0.5
+    multimodal_temporal_floor: float = 0.2
+    multimodal_grounding_floor: float = 0.4
+    multimodal_grounding_allow_threshold: float = 0.75
+    multimodal_embedding_dim: int = 512
+    multimodal_policy_id: str = "multimodal-default"
+    multimodal_calibrated_threshold: float = 0.5
+    multimodal_no_go_threshold: float = 0.9
+
     # Scoring weights (0.0 = use CoherenceScorer class defaults)
     w_logic: float = 0.0
     w_fact: float = 0.0

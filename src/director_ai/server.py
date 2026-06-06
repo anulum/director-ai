@@ -73,6 +73,8 @@ __all__ = [
     "InjectionRequest",
     "InjectionResponse",
     "ModelMetricsResponse",
+    "MultimodalDetectRequest",
+    "MultimodalDetectResponse",
     "NumericIssueResponse",
     "NumericVerifyResponse",
     "PairwiseAgreementResponse",
@@ -207,6 +209,8 @@ if _FASTAPI_AVAILABLE:  # pragma: no branch
         InjectionRequest,
         InjectionResponse,
         ModelMetricsResponse,
+        MultimodalDetectRequest,
+        MultimodalDetectResponse,
         NumericIssueResponse,
         NumericVerifyResponse,
         PairwiseAgreementResponse,
@@ -466,6 +470,31 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
         from .core.retrieval.doc_registry import DocRegistry
 
         app.state._state["doc_registry"] = DocRegistry()
+
+        # Multi-modal hallucination guard: opt-in and isolated. Only stood up
+        # when the experimental hooks flag is set AND a modality is configured,
+        # so the default safety posture is unchanged.
+        if cfg.multimodal_enabled_modalities:
+            from .experimental import experimental_hooks_enabled
+
+            if experimental_hooks_enabled():
+                from .core.multimodal_guard import build_hashbag_adapter
+
+                app.state._state["multimodal_adapter"] = build_hashbag_adapter(
+                    enabled_modalities=cfg.multimodal_enabled_modalities,
+                    benchmarked_modalities=cfg.multimodal_benchmarked_modalities,
+                    dim=cfg.multimodal_embedding_dim,
+                    hallucination_threshold=cfg.multimodal_hallucination_threshold,
+                    consistency_threshold=cfg.multimodal_consistency_threshold,
+                    temporal_alpha=cfg.multimodal_temporal_alpha,
+                    temporal_floor=cfg.multimodal_temporal_floor,
+                    grounding_floor=cfg.multimodal_grounding_floor,
+                    grounding_allow_threshold=cfg.multimodal_grounding_allow_threshold,
+                )
+                logger.info(
+                    "Multimodal guard enabled (modalities=%s)",
+                    cfg.multimodal_enabled_modalities,
+                )
 
         cfg.configure_logging()
 
@@ -1153,6 +1182,73 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
                 system_prompt=req.system_prompt,
             ),
         )
+        return result.to_dict()
+
+    # ── Multimodal hallucination guard (opt-in, experimental) ─────
+
+    @app.post("/v1/multimodal/check", response_model=MultimodalDetectResponse)
+    async def multimodal_check(req: MultimodalDetectRequest, request: Request):
+        """Check a text claim against paired image / audio / video evidence.
+
+        Opt-in and isolated: returns 404 unless the experimental hooks flag is
+        set and at least one modality is configured. The response is
+        tenant-safe — no raw media, transcript, or claim text is echoed back.
+        """
+        import asyncio
+        import base64
+        import binascii
+
+        adapter = request.app.state._state.get("multimodal_adapter")
+        if adapter is None:
+            raise HTTPException(
+                404,
+                "multimodal guard is disabled; enable experimental hooks and "
+                "configure multimodal_enabled_modalities",
+            )
+
+        from .core.guard_control import RiskEnvelope
+        from .core.multimodal_guard import MultimodalCheckRequest
+
+        cfg = request.app.state._state.get("config")
+        image_bytes = b""
+        if req.image_base64:
+            try:
+                image_bytes = base64.b64decode(req.image_base64, validate=True)
+            except (binascii.Error, ValueError) as exc:
+                raise HTTPException(400, "image_base64 is not valid base64") from exc
+
+        try:
+            check_request = MultimodalCheckRequest(
+                modality=req.modality,
+                claim_text=req.claim_text,
+                media_ref=req.media_ref,
+                image_bytes=image_bytes,
+                transcript_text=req.transcript_text,
+                frame_similarities=req.frame_similarities,
+                caption_text=req.caption_text,
+                metadata=req.metadata,
+            )
+            risk_envelope = RiskEnvelope(
+                action_category="multimodal",
+                reversibility="reversible",
+                domain="general",
+                calibrated_threshold=getattr(
+                    cfg, "multimodal_calibrated_threshold", 0.5
+                ),
+                no_go_threshold=getattr(cfg, "multimodal_no_go_threshold", 0.9),
+            )
+            policy_id = getattr(cfg, "multimodal_policy_id", "multimodal-default")
+            loop = asyncio.get_running_loop()
+            result = await loop.run_in_executor(
+                None,
+                lambda: adapter.check(
+                    check_request,
+                    risk_envelope=risk_envelope,
+                    policy_id=policy_id,
+                ),
+            )
+        except ValueError as exc:
+            raise HTTPException(400, str(exc)) from exc
         return result.to_dict()
 
     # ── Process ───────────────────────────────────────────────────
