@@ -13,6 +13,15 @@ server_module = "src/director_ai/server.py"
 config_module = "src/director_ai/core/config.py"
 
 [[endpoints]]
+path = "/v1/live"
+method = "GET"
+default_auth = "exempt"
+purpose = "Minimal unauthenticated liveness probe for load balancers and supervisors."
+internet_policy = "Private load-balancer probe, private network, or localhost tunnel only"
+allowed_payload = "A single static liveness flag; no version, tier, or licensee details."
+operator_control = "Restrict at the reverse proxy when exposed beyond a trusted network."
+
+[[endpoints]]
 path = "/v1/health"
 method = "GET"
 default_auth = "exempt"

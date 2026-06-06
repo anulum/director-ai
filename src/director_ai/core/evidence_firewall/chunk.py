@@ -191,7 +191,7 @@ def _to_unix(value: Any) -> float | None:
     """Coerce a metadata timestamp to epoch seconds.
 
     Accepts numeric epoch seconds (int/float, or numeric string) and RFC-3339
-    strings (``Z`` or offset). Returns ``None`` for unparseable values rather
+    strings (``Z`` or offset). Returns ``None`` for unparsable values rather
     than raising, so one malformed field cannot crash admission.
     """
     if isinstance(value, bool):

@@ -83,7 +83,7 @@ def convert(pkl_path: Path, json_path: Path) -> dict:
         raise SystemExit(f"parity check failed: max |Δproba| = {max_err:.2e}")
     print(f"parity OK: max |Δproba| = {max_err:.2e} over {len(samples)} samples")
 
-    json_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+    json_path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
     print(f"wrote {json_path} ({json_path.stat().st_size} bytes)")
     return payload
 
