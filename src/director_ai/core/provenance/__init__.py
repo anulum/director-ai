@@ -31,15 +31,35 @@ composite trust score.
 """
 
 from .chain import HmacChainError, ProvenanceChain, ProvenanceEntry
+from .content_commitment import InclusionProof, commit_root, prove_inclusion
 from .credibility import SourceCredibility, SourceScore
+from .credibility_feedback import CredibilityFeedbackLoop
 from .facts import CitationFact, FactVerificationError
+from .ledger import (
+    ChunkProvenance,
+    KnowledgeProvenanceLedger,
+    LedgerEvent,
+    LedgerTamperError,
+)
 from .merkle import MerkleProof, MerkleTree
+from .supersession import (
+    KnowledgeSupersessionPolicy,
+    SupersessionCandidate,
+    SupersessionDecision,
+)
 from .verifier import ProvenanceVerdict, ProvenanceVerifier
 
 __all__ = [
+    "ChunkProvenance",
     "CitationFact",
+    "CredibilityFeedbackLoop",
     "FactVerificationError",
     "HmacChainError",
+    "InclusionProof",
+    "KnowledgeProvenanceLedger",
+    "KnowledgeSupersessionPolicy",
+    "LedgerEvent",
+    "LedgerTamperError",
     "MerkleProof",
     "MerkleTree",
     "ProvenanceChain",
@@ -48,4 +68,8 @@ __all__ = [
     "ProvenanceVerifier",
     "SourceCredibility",
     "SourceScore",
+    "SupersessionCandidate",
+    "SupersessionDecision",
+    "commit_root",
+    "prove_inclusion",
 ]

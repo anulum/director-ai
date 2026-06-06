@@ -18,17 +18,23 @@ from __future__ import annotations
 import hashlib
 import uuid
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
 from director_ai.core.retrieval.doc_chunker import ChunkConfig, split
 from director_ai.core.retrieval.doc_parser import parse
 from director_ai.core.retrieval.doc_registry import DocRecord, DocRegistry
 from director_ai.core.retrieval.vector_store import VectorGroundTruthStore
 
+if TYPE_CHECKING:
+    from director_ai.core.provenance import KnowledgeProvenanceLedger
+    from director_ai.core.provenance.supersession import SupersessionDecision
+
 __all__ = [
     "DeletedDocument",
     "DocumentIngestionPipeline",
     "IngestionConfig",
     "IngestionResult",
+    "SupersessionResult",
 ]
 
 
@@ -81,6 +87,20 @@ class DeletedDocument:
     chunks_removed: int
 
 
+@dataclass(frozen=True)
+class SupersessionResult:
+    """Metadata returned after applying a supersession decision."""
+
+    incoming_doc_id: str
+    superseded_doc_ids: tuple[str, ...]
+    chunks_removed: int
+
+    @property
+    def superseded_count(self) -> int:
+        """Return the number of documents retired by the supersession."""
+        return len(self.superseded_doc_ids)
+
+
 class DocumentIngestionPipeline:
     """Parse, chunk, store, update, and delete documents for a vector store."""
 
@@ -90,10 +110,15 @@ class DocumentIngestionPipeline:
         store: VectorGroundTruthStore,
         registry: DocRegistry | None = None,
         config: IngestionConfig | None = None,
+        ledger: KnowledgeProvenanceLedger | None = None,
     ) -> None:
         self.store = store
         self.registry = registry or DocRegistry()
         self.config = config or IngestionConfig()
+        # Optional operational provenance. When supplied, every mutation is
+        # appended to the tamper-evident ledger; when omitted, ingestion
+        # behaves exactly as before.
+        self.ledger = ledger
 
     def ingest_bytes(
         self,
@@ -134,7 +159,7 @@ class DocumentIngestionPipeline:
             raise ValueError(f"Document {clean_doc_id!r} already exists")
 
         content_hash = _content_hash(text)
-        chunk_ids = self._stage_chunks(
+        chunk_ids, leaves = self._stage_chunks(
             text,
             doc_id=clean_doc_id,
             tenant_id=clean_tenant,
@@ -149,6 +174,12 @@ class DocumentIngestionPipeline:
             clean_tenant,
             chunk_ids,
             content_hash=content_hash,
+        )
+        self._record_mutation(
+            "ingest",
+            record=record,
+            leaves=leaves,
+            removed_chunk_ids=(),
         )
         return _result_from_record(record)
 
@@ -174,7 +205,8 @@ class DocumentIngestionPipeline:
             return _result_from_record(record, unchanged=True)
 
         prefix = f"{clean_doc_id}:rev:{uuid.uuid4().hex[:12]}"
-        new_chunk_ids = self._stage_chunks(
+        removed_chunk_ids = tuple(record.chunk_ids)
+        new_chunk_ids, leaves = self._stage_chunks(
             text,
             doc_id=clean_doc_id,
             tenant_id=clean_tenant,
@@ -195,6 +227,12 @@ class DocumentIngestionPipeline:
             source=clean_source,
             content_hash=incoming_hash,
         )
+        self._record_mutation(
+            "update",
+            record=updated,
+            leaves=leaves,
+            removed_chunk_ids=removed_chunk_ids,
+        )
         return _result_from_record(updated)
 
     def delete(self, doc_id: str, *, tenant_id: str = "") -> DeletedDocument:
@@ -204,12 +242,63 @@ class DocumentIngestionPipeline:
         record = self.registry.get(clean_doc_id, clean_tenant)
         if record is None:
             raise KeyError(f"Document {clean_doc_id!r} not found")
+        removed_chunk_ids = tuple(record.chunk_ids)
         removed = self._delete_chunks(record)
         self.registry.delete(clean_doc_id)
+        self._record_deletion(record, removed_chunk_ids=removed_chunk_ids)
         return DeletedDocument(
             doc_id=clean_doc_id,
             tenant_id=clean_tenant,
             chunks_removed=removed,
+        )
+
+    def apply_supersession(
+        self,
+        decision: SupersessionDecision,
+        *,
+        approved: bool = False,
+    ) -> SupersessionResult:
+        """Retire the documents named by an approved supersession decision.
+
+        Each superseded document's chunks are removed from the store and
+        registry, then a single ledger ``supersede`` event links them to the
+        incoming document. A decision that still requires human approval is
+        refused unless ``approved=True``; an auto-promoted decision applies
+        without it. Documents already gone are skipped silently.
+        """
+        if decision.action == "none":
+            return SupersessionResult(
+                incoming_doc_id=decision.incoming_doc_id,
+                superseded_doc_ids=(),
+                chunks_removed=0,
+            )
+        if decision.requires_human_approval and not approved:
+            raise PermissionError(
+                "supersession decision requires human approval; "
+                "pass approved=True to apply it"
+            )
+        removed_chunk_ids: list[str] = []
+        superseded: list[str] = []
+        for old_doc_id in decision.superseded_doc_ids:
+            record = self.registry.get(old_doc_id, decision.tenant_id)
+            if record is None:
+                continue
+            self._delete_chunks(record)
+            self.registry.delete(old_doc_id)
+            removed_chunk_ids.extend(record.chunk_ids)
+            superseded.append(old_doc_id)
+        if superseded and removed_chunk_ids and self.ledger is not None:
+            self.ledger.record_supersede(
+                doc_id=decision.incoming_doc_id,
+                tenant_id=decision.tenant_id,
+                source=decision.incoming_source,
+                supersedes=superseded,
+                removed_chunk_ids=removed_chunk_ids,
+            )
+        return SupersessionResult(
+            incoming_doc_id=decision.incoming_doc_id,
+            superseded_doc_ids=tuple(superseded),
+            chunks_removed=len(removed_chunk_ids),
         )
 
     def _stage_chunks(
@@ -222,10 +311,16 @@ class DocumentIngestionPipeline:
         content_hash: str,
         prefix: str,
         config: IngestionConfig | None,
-    ) -> list[str]:
-        """Chunk text and add every chunk to the backing vector store."""
+    ) -> tuple[list[str], list[bytes]]:
+        """Chunk text, store every chunk, and return ids + content digests.
+
+        The per-chunk SHA-256 digests are the leaves of the provenance
+        ledger's content commitment, so they bind each stored chunk's
+        exact text to the recorded mutation.
+        """
         chunks = _chunk_text(text, config or self.config)
         chunk_ids = [f"{prefix}:chunk:{index}" for index in range(len(chunks))]
+        leaves = [_chunk_leaf(chunk) for chunk in chunks]
         added: list[str] = []
         for index, (chunk_id, chunk) in enumerate(zip(chunk_ids, chunks, strict=True)):
             try:
@@ -247,7 +342,7 @@ class DocumentIngestionPipeline:
             except Exception:
                 self._cleanup_chunks(added)
                 raise
-        return chunk_ids
+        return chunk_ids, leaves
 
     def _delete_chunks(self, record: DocRecord) -> int:
         """Delete all vector-store chunks for a registered document."""
@@ -273,6 +368,49 @@ class DocumentIngestionPipeline:
             finally:
                 self.store.facts.pop(chunk_id, None)
 
+    def _record_mutation(
+        self,
+        event_type: str,
+        *,
+        record: DocRecord,
+        leaves: list[bytes],
+        removed_chunk_ids: tuple[str, ...],
+    ) -> None:
+        """Append an ingest/update event to the ledger when one is attached."""
+        if self.ledger is None:
+            return
+        chunk_leaves = list(zip(record.chunk_ids, leaves, strict=True))
+        if event_type == "ingest":
+            self.ledger.record_ingest(
+                doc_id=record.doc_id,
+                tenant_id=record.tenant_id,
+                source=record.source,
+                content_hash=record.content_hash,
+                chunk_leaves=chunk_leaves,
+            )
+        else:
+            self.ledger.record_update(
+                doc_id=record.doc_id,
+                tenant_id=record.tenant_id,
+                source=record.source,
+                content_hash=record.content_hash,
+                chunk_leaves=chunk_leaves,
+                removed_chunk_ids=removed_chunk_ids,
+            )
+
+    def _record_deletion(
+        self, record: DocRecord, *, removed_chunk_ids: tuple[str, ...]
+    ) -> None:
+        """Append a delete event to the ledger when one is attached."""
+        if self.ledger is None:
+            return
+        self.ledger.record_delete(
+            doc_id=record.doc_id,
+            tenant_id=record.tenant_id,
+            removed_chunk_ids=removed_chunk_ids,
+            source=record.source,
+        )
+
 
 def _chunk_text(text: str, config: IngestionConfig) -> list[str]:
     """Split non-empty text into ingestion chunks."""
@@ -287,6 +425,11 @@ def _chunk_text(text: str, config: IngestionConfig) -> list[str]:
 def _content_hash(text: str) -> str:
     """Return a stable SHA-256 hash for document content."""
     return hashlib.sha256(text.encode("utf-8", errors="replace")).hexdigest()
+
+
+def _chunk_leaf(chunk: str) -> bytes:
+    """Return the raw SHA-256 digest of one chunk's text (ledger leaf)."""
+    return hashlib.sha256(chunk.encode("utf-8", errors="replace")).digest()
 
 
 def _normalise_doc_id(doc_id: str) -> str:
