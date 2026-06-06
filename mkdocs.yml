@@ -193,6 +193,7 @@ nav:
       - Causal Attribution Graph: api/causal-attribution.md
       - Adaptive Threshold Learning: api/adaptive-threshold.md
       - Risk-Adaptive Thresholding: api/risk-adaptive-threshold.md
+      - Active Labelling Cockpit: api/labelling-cockpit.md
       - Conformal & Uncertainty Routing: api/uncertainty-routing.md
       - Operational Provenance Ledger: api/provenance-ledger.md
       - Mechanistic Interpretability (ReDeEP): api/mechanistic-interpretability.md

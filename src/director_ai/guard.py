@@ -61,6 +61,7 @@ from director_ai.core.financial_services import (
     BankingPolicyReport,
     assess_banking_response,
 )
+from director_ai.core.labelling_cockpit import ActiveLabellingCockpit
 from director_ai.core.risk_threshold import (
     RiskAdaptiveThreshold,
     RiskFactors,
@@ -121,6 +122,7 @@ class ProductionGuard:
         self._canary_detector: CanaryDetector | None = None
         self._preflight: AgentPreflightGuard | None = None
         self._risk_threshold: RiskAdaptiveThreshold | None = None
+        self._labelling_cockpit: ActiveLabellingCockpit | None = None
 
     @classmethod
     def from_profile(
@@ -466,6 +468,19 @@ class ProductionGuard:
                 RiskThresholdPolicy(base_threshold=self._config.coherence_threshold)
             )
         return self._risk_threshold.evaluate(factors)
+
+    @property
+    def labelling_cockpit(self) -> ActiveLabellingCockpit:
+        """Active-labelling cockpit at this guard's operating threshold.
+
+        Rank items to label, measure false-halt vs missed-hallucination error,
+        and recommend a threshold from reviewer-labelled outcomes.
+        """
+        if self._labelling_cockpit is None:
+            self._labelling_cockpit = ActiveLabellingCockpit(
+                threshold=self._config.coherence_threshold
+            )
+        return self._labelling_cockpit
 
     @property
     def scorer(self) -> CoherenceScorer:
