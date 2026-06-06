@@ -380,6 +380,7 @@ class TestServerOperationalReadiness:
             production_mode=True,
             api_keys=["writer"],
             llm_api_url="https://llm.internal.example/v1",
+            knowledge_write_hmac_keys='{"kid-1":"signing-secret-at-least-32-chars-xx"}',
         )
 
         with (

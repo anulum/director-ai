@@ -28,6 +28,7 @@ class TestHardenedMode:
             hardened=True,
             api_keys='["sk-test"]',
             llm_api_url="https://llm.internal.example/v1",
+            knowledge_write_hmac_keys='{"kid-1":"signing-secret-at-least-32-chars-xx"}',
         )
         assert cfg.production_mode is True
         assert cfg.use_nli is True
@@ -51,6 +52,7 @@ class TestHardenedMode:
             hardened=True,
             api_keys='["sk-test"]',
             llm_api_url="https://llm.internal.example/v1",
+            knowledge_write_hmac_keys='{"kid-1":"signing-secret-at-least-32-chars-xx"}',
         )
         assert cfg.hardened is True
         assert cfg.adaptive_threshold_enabled is True
@@ -76,6 +78,7 @@ class TestHardenedMode:
             adaptive_threshold_enabled=False,
             api_keys='["sk-test"]',
             llm_api_url="https://llm.internal.example/v1",
+            knowledge_write_hmac_keys='{"kid-1":"signing-secret-at-least-32-chars-xx"}',
         )
         assert cfg.adaptive_threshold_enabled is True
         assert cfg.adaptive_threshold_fail_closed is True

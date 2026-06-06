@@ -76,6 +76,7 @@ class TestProductionMode:
             production_mode=True,
             api_keys='["sk-test"]',
             llm_api_url="https://llm.internal.example/v1",
+            knowledge_write_hmac_keys='{"kid-1":"signing-secret-at-least-32-chars-xx"}',
         )
         assert cfg.production_mode is True
 
@@ -84,6 +85,7 @@ class TestProductionMode:
             production_mode=True,
             api_key_tenant_map='{"sk-test": "tenant1"}',
             llm_api_url="https://llm.internal.example/v1",
+            knowledge_write_hmac_keys='{"kid-1":"signing-secret-at-least-32-chars-xx"}',
         )
         assert cfg.production_mode is True
 

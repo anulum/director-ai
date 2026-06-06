@@ -188,10 +188,13 @@ def test_production_mode_enforces_kb_write_auth() -> None:
         production_mode=True,
         server_host="127.0.0.1",
         llm_api_url="https://llm.internal.example/v1",
+        knowledge_write_hmac_keys='{"kid-1":"signing-secret-at-least-32-chars-xx"}',
         **{"api" + "_keys": ["writer"]},
     )
 
     assert cfg.knowledge_write_require_auth is True
+    # Production also forces signed KB writes (KB poisoning defence).
+    assert cfg.knowledge_write_require_signature is True
 
 
 def test_ingest_denies_untrusted_writer_when_acl_enabled() -> None:
