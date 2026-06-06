@@ -1,0 +1,75 @@
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.5",
+  "$schema": "http://cyclonedx.org/schema/bom-1.5.schema.json",
+  "metadata": {
+    "component": {
+      "type": "application",
+      "name": "director-ai",
+      "version": "3.15.3",
+      "bom-ref": "pkg:pypi/director-ai@3.15.3",
+      "purl": "pkg:pypi/director-ai@3.15.3"
+    },
+    "properties": [
+      {
+        "name": "director:install_target",
+        "value": "enterprise"
+      },
+      {
+        "name": "director:sbom_kind",
+        "value": "declared-dependencies"
+      }
+    ]
+  },
+  "components": [
+    {
+      "type": "library",
+      "name": "argon2-cffi",
+      "purl": "pkg:pypi/argon2-cffi",
+      "bom-ref": "pkg:pypi/argon2-cffi",
+      "version": "<26,>=23.1"
+    },
+    {
+      "type": "library",
+      "name": "backfire-kernel",
+      "purl": "pkg:pypi/backfire-kernel",
+      "bom-ref": "pkg:pypi/backfire-kernel",
+      "version": "<0.2,>=0.1.1"
+    },
+    {
+      "type": "library",
+      "name": "numpy",
+      "purl": "pkg:pypi/numpy",
+      "bom-ref": "pkg:pypi/numpy",
+      "version": ">=1.24"
+    },
+    {
+      "type": "library",
+      "name": "psycopg2-binary",
+      "purl": "pkg:pypi/psycopg2-binary",
+      "bom-ref": "pkg:pypi/psycopg2-binary",
+      "version": "<3,>=2.9"
+    },
+    {
+      "type": "library",
+      "name": "pyjwt",
+      "purl": "pkg:pypi/pyjwt",
+      "bom-ref": "pkg:pypi/pyjwt",
+      "version": "<3,>=2.8"
+    },
+    {
+      "type": "library",
+      "name": "redis",
+      "purl": "pkg:pypi/redis",
+      "bom-ref": "pkg:pypi/redis",
+      "version": "<8,>=4.5"
+    },
+    {
+      "type": "library",
+      "name": "requests",
+      "purl": "pkg:pypi/requests",
+      "bom-ref": "pkg:pypi/requests",
+      "version": ">=2.32"
+    }
+  ]
+}

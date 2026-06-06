@@ -150,6 +150,7 @@ def _render_manifest(
     source_lines = [
         f"{json.dumps(source)} = {count}" for source, count in sorted(sources.items())
     ]
+    # REUSE-IgnoreStart
     header = [
         "# SPDX-License-Identifier: AGPL-3.0-or-later",
         "# Commercial licence available",
@@ -160,6 +161,7 @@ def _render_manifest(
         "# Director-Class AI - Lite Scorer v2 held-out dataset manifest",
         "",
     ]
+    # REUSE-IgnoreEnd
     fields = [
         'schema_version = "1.0.0"',
         'dataset_id = "lite-scorer-v2-heldout"',

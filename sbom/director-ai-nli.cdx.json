@@ -1,0 +1,61 @@
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.5",
+  "$schema": "http://cyclonedx.org/schema/bom-1.5.schema.json",
+  "metadata": {
+    "component": {
+      "type": "application",
+      "name": "director-ai",
+      "version": "3.15.3",
+      "bom-ref": "pkg:pypi/director-ai@3.15.3",
+      "purl": "pkg:pypi/director-ai@3.15.3"
+    },
+    "properties": [
+      {
+        "name": "director:install_target",
+        "value": "nli"
+      },
+      {
+        "name": "director:sbom_kind",
+        "value": "declared-dependencies"
+      }
+    ]
+  },
+  "components": [
+    {
+      "type": "library",
+      "name": "backfire-kernel",
+      "purl": "pkg:pypi/backfire-kernel",
+      "bom-ref": "pkg:pypi/backfire-kernel",
+      "version": "<0.2,>=0.1.1"
+    },
+    {
+      "type": "library",
+      "name": "numpy",
+      "purl": "pkg:pypi/numpy",
+      "bom-ref": "pkg:pypi/numpy",
+      "version": ">=1.24"
+    },
+    {
+      "type": "library",
+      "name": "requests",
+      "purl": "pkg:pypi/requests",
+      "bom-ref": "pkg:pypi/requests",
+      "version": ">=2.32"
+    },
+    {
+      "type": "library",
+      "name": "torch",
+      "purl": "pkg:pypi/torch",
+      "bom-ref": "pkg:pypi/torch",
+      "version": "<3,>=2.8"
+    },
+    {
+      "type": "library",
+      "name": "transformers",
+      "purl": "pkg:pypi/transformers",
+      "bom-ref": "pkg:pypi/transformers",
+      "version": "<6,>=5.0.0rc3"
+    }
+  ]
+}

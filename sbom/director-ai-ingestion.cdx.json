@@ -1,0 +1,68 @@
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.5",
+  "$schema": "http://cyclonedx.org/schema/bom-1.5.schema.json",
+  "metadata": {
+    "component": {
+      "type": "application",
+      "name": "director-ai",
+      "version": "3.15.3",
+      "bom-ref": "pkg:pypi/director-ai@3.15.3",
+      "purl": "pkg:pypi/director-ai@3.15.3"
+    },
+    "properties": [
+      {
+        "name": "director:install_target",
+        "value": "ingestion"
+      },
+      {
+        "name": "director:sbom_kind",
+        "value": "declared-dependencies"
+      }
+    ]
+  },
+  "components": [
+    {
+      "type": "library",
+      "name": "backfire-kernel",
+      "purl": "pkg:pypi/backfire-kernel",
+      "bom-ref": "pkg:pypi/backfire-kernel",
+      "version": "<0.2,>=0.1.1"
+    },
+    {
+      "type": "library",
+      "name": "beautifulsoup4",
+      "purl": "pkg:pypi/beautifulsoup4",
+      "bom-ref": "pkg:pypi/beautifulsoup4",
+      "version": ">=4.12"
+    },
+    {
+      "type": "library",
+      "name": "numpy",
+      "purl": "pkg:pypi/numpy",
+      "bom-ref": "pkg:pypi/numpy",
+      "version": ">=1.24"
+    },
+    {
+      "type": "library",
+      "name": "pypdf",
+      "purl": "pkg:pypi/pypdf",
+      "bom-ref": "pkg:pypi/pypdf",
+      "version": ">=3.0"
+    },
+    {
+      "type": "library",
+      "name": "python-docx",
+      "purl": "pkg:pypi/python-docx",
+      "bom-ref": "pkg:pypi/python-docx",
+      "version": ">=1.0"
+    },
+    {
+      "type": "library",
+      "name": "requests",
+      "purl": "pkg:pypi/requests",
+      "bom-ref": "pkg:pypi/requests",
+      "version": ">=2.32"
+    }
+  ]
+}

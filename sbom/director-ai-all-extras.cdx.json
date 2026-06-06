@@ -1,0 +1,655 @@
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.5",
+  "$schema": "http://cyclonedx.org/schema/bom-1.5.schema.json",
+  "metadata": {
+    "component": {
+      "type": "application",
+      "name": "director-ai",
+      "version": "3.15.3",
+      "bom-ref": "pkg:pypi/director-ai@3.15.3",
+      "purl": "pkg:pypi/director-ai@3.15.3"
+    },
+    "properties": [
+      {
+        "name": "director:install_target",
+        "value": "all-extras"
+      },
+      {
+        "name": "director:sbom_kind",
+        "value": "declared-dependencies"
+      }
+    ]
+  },
+  "components": [
+    {
+      "type": "library",
+      "name": "accelerate",
+      "purl": "pkg:pypi/accelerate",
+      "bom-ref": "pkg:pypi/accelerate",
+      "version": ">=0.21"
+    },
+    {
+      "type": "library",
+      "name": "anthropic",
+      "purl": "pkg:pypi/anthropic",
+      "bom-ref": "pkg:pypi/anthropic",
+      "version": ">=0.20"
+    },
+    {
+      "type": "library",
+      "name": "argon2-cffi",
+      "purl": "pkg:pypi/argon2-cffi",
+      "bom-ref": "pkg:pypi/argon2-cffi",
+      "version": "<26,>=23.1"
+    },
+    {
+      "type": "library",
+      "name": "backfire-kernel",
+      "purl": "pkg:pypi/backfire-kernel",
+      "bom-ref": "pkg:pypi/backfire-kernel",
+      "version": "<0.2,>=0.1.1"
+    },
+    {
+      "type": "library",
+      "name": "bandit",
+      "purl": "pkg:pypi/bandit",
+      "bom-ref": "pkg:pypi/bandit",
+      "version": ">=1.7"
+    },
+    {
+      "type": "library",
+      "name": "beautifulsoup4",
+      "purl": "pkg:pypi/beautifulsoup4",
+      "bom-ref": "pkg:pypi/beautifulsoup4",
+      "version": ">=4.12"
+    },
+    {
+      "type": "library",
+      "name": "bitsandbytes",
+      "purl": "pkg:pypi/bitsandbytes",
+      "bom-ref": "pkg:pypi/bitsandbytes",
+      "version": ">=0.41"
+    },
+    {
+      "type": "library",
+      "name": "boto3",
+      "purl": "pkg:pypi/boto3",
+      "bom-ref": "pkg:pypi/boto3",
+      "version": ">=1.26"
+    },
+    {
+      "type": "library",
+      "name": "build",
+      "purl": "pkg:pypi/build",
+      "bom-ref": "pkg:pypi/build",
+      "version": ">=1.0"
+    },
+    {
+      "type": "library",
+      "name": "chromadb",
+      "purl": "pkg:pypi/chromadb",
+      "bom-ref": "pkg:pypi/chromadb",
+      "version": "<1,>=0.4.0"
+    },
+    {
+      "type": "library",
+      "name": "crewai",
+      "purl": "pkg:pypi/crewai",
+      "bom-ref": "pkg:pypi/crewai",
+      "version": ">=0.50"
+    },
+    {
+      "type": "library",
+      "name": "cyclonedx-bom",
+      "purl": "pkg:pypi/cyclonedx-bom",
+      "bom-ref": "pkg:pypi/cyclonedx-bom",
+      "version": ">=4.0"
+    },
+    {
+      "type": "library",
+      "name": "datasets",
+      "purl": "pkg:pypi/datasets",
+      "bom-ref": "pkg:pypi/datasets",
+      "version": ">=2.14"
+    },
+    {
+      "type": "library",
+      "name": "deepgram-sdk",
+      "purl": "pkg:pypi/deepgram-sdk",
+      "bom-ref": "pkg:pypi/deepgram-sdk",
+      "version": ">=3.0"
+    },
+    {
+      "type": "library",
+      "name": "detoxify",
+      "purl": "pkg:pypi/detoxify",
+      "bom-ref": "pkg:pypi/detoxify",
+      "version": ">=0.5"
+    },
+    {
+      "type": "library",
+      "name": "elasticsearch",
+      "purl": "pkg:pypi/elasticsearch",
+      "bom-ref": "pkg:pypi/elasticsearch",
+      "version": "<9,>=8.0"
+    },
+    {
+      "type": "library",
+      "name": "elevenlabs",
+      "purl": "pkg:pypi/elevenlabs",
+      "bom-ref": "pkg:pypi/elevenlabs",
+      "version": ">=1.0"
+    },
+    {
+      "type": "library",
+      "name": "faiss-cpu",
+      "purl": "pkg:pypi/faiss-cpu",
+      "bom-ref": "pkg:pypi/faiss-cpu",
+      "version": ">=1.7"
+    },
+    {
+      "type": "library",
+      "name": "fastapi",
+      "purl": "pkg:pypi/fastapi",
+      "bom-ref": "pkg:pypi/fastapi",
+      "version": "<1,>=0.100"
+    },
+    {
+      "type": "library",
+      "name": "fastapi",
+      "purl": "pkg:pypi/fastapi",
+      "bom-ref": "pkg:pypi/fastapi",
+      "version": ">=0.100"
+    },
+    {
+      "type": "library",
+      "name": "google-api-python-client",
+      "purl": "pkg:pypi/google-api-python-client",
+      "bom-ref": "pkg:pypi/google-api-python-client",
+      "version": ">=2.100"
+    },
+    {
+      "type": "library",
+      "name": "google-cloud-aiplatform",
+      "purl": "pkg:pypi/google-cloud-aiplatform",
+      "bom-ref": "pkg:pypi/google-cloud-aiplatform",
+      "version": ">=1.133"
+    },
+    {
+      "type": "library",
+      "name": "google-cloud-storage",
+      "purl": "pkg:pypi/google-cloud-storage",
+      "bom-ref": "pkg:pypi/google-cloud-storage",
+      "version": ">=2.14"
+    },
+    {
+      "type": "library",
+      "name": "gradio",
+      "purl": "pkg:pypi/gradio",
+      "bom-ref": "pkg:pypi/gradio",
+      "version": "<7,>=4.0"
+    },
+    {
+      "type": "library",
+      "name": "gradio",
+      "purl": "pkg:pypi/gradio",
+      "bom-ref": "pkg:pypi/gradio",
+      "version": ">=4.0"
+    },
+    {
+      "type": "library",
+      "name": "grpcio",
+      "purl": "pkg:pypi/grpcio",
+      "bom-ref": "pkg:pypi/grpcio",
+      "version": ">=1.60"
+    },
+    {
+      "type": "library",
+      "name": "grpcio-tools",
+      "purl": "pkg:pypi/grpcio-tools",
+      "bom-ref": "pkg:pypi/grpcio-tools",
+      "version": ">=1.60"
+    },
+    {
+      "type": "library",
+      "name": "haystack-ai",
+      "purl": "pkg:pypi/haystack-ai",
+      "bom-ref": "pkg:pypi/haystack-ai",
+      "version": ">=2.0"
+    },
+    {
+      "type": "library",
+      "name": "httpx",
+      "purl": "pkg:pypi/httpx",
+      "bom-ref": "pkg:pypi/httpx",
+      "version": "<1,>=0.27"
+    },
+    {
+      "type": "library",
+      "name": "httpx",
+      "purl": "pkg:pypi/httpx",
+      "bom-ref": "pkg:pypi/httpx",
+      "version": ">=0.27"
+    },
+    {
+      "type": "library",
+      "name": "hypothesis",
+      "purl": "pkg:pypi/hypothesis",
+      "bom-ref": "pkg:pypi/hypothesis",
+      "version": ">=6.0"
+    },
+    {
+      "type": "library",
+      "name": "jinja2",
+      "purl": "pkg:pypi/jinja2",
+      "bom-ref": "pkg:pypi/jinja2",
+      "version": ">=3.1"
+    },
+    {
+      "type": "library",
+      "name": "langchain-core",
+      "purl": "pkg:pypi/langchain-core",
+      "bom-ref": "pkg:pypi/langchain-core",
+      "version": ">=0.3"
+    },
+    {
+      "type": "library",
+      "name": "langfuse",
+      "purl": "pkg:pypi/langfuse",
+      "bom-ref": "pkg:pypi/langfuse",
+      "version": ">=2.0"
+    },
+    {
+      "type": "library",
+      "name": "langgraph",
+      "purl": "pkg:pypi/langgraph",
+      "bom-ref": "pkg:pypi/langgraph",
+      "version": ">=0.2"
+    },
+    {
+      "type": "library",
+      "name": "langsmith",
+      "purl": "pkg:pypi/langsmith",
+      "bom-ref": "pkg:pypi/langsmith",
+      "version": ">=0.8.0"
+    },
+    {
+      "type": "library",
+      "name": "litellm",
+      "purl": "pkg:pypi/litellm",
+      "bom-ref": "pkg:pypi/litellm",
+      "version": ">=1.83.7"
+    },
+    {
+      "type": "library",
+      "name": "llama-index-core",
+      "purl": "pkg:pypi/llama-index-core",
+      "bom-ref": "pkg:pypi/llama-index-core",
+      "version": ">=0.10"
+    },
+    {
+      "type": "library",
+      "name": "maturin",
+      "purl": "pkg:pypi/maturin",
+      "bom-ref": "pkg:pypi/maturin",
+      "version": "<2,>=1.12"
+    },
+    {
+      "type": "library",
+      "name": "mkdocs",
+      "purl": "pkg:pypi/mkdocs",
+      "bom-ref": "pkg:pypi/mkdocs",
+      "version": ">=1.5"
+    },
+    {
+      "type": "library",
+      "name": "mkdocs-jupyter",
+      "purl": "pkg:pypi/mkdocs-jupyter",
+      "bom-ref": "pkg:pypi/mkdocs-jupyter",
+      "version": ">=0.25"
+    },
+    {
+      "type": "library",
+      "name": "mkdocs-material",
+      "purl": "pkg:pypi/mkdocs-material",
+      "bom-ref": "pkg:pypi/mkdocs-material",
+      "version": ">=9.5"
+    },
+    {
+      "type": "library",
+      "name": "mkdocstrings",
+      "purl": "pkg:pypi/mkdocstrings",
+      "bom-ref": "pkg:pypi/mkdocstrings",
+      "version": ">=0.24",
+      "properties": [
+        {
+          "name": "pypi:extras",
+          "value": "python"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "mujoco",
+      "purl": "pkg:pypi/mujoco",
+      "bom-ref": "pkg:pypi/mujoco",
+      "version": "<4,>=3.2"
+    },
+    {
+      "type": "library",
+      "name": "mypy",
+      "purl": "pkg:pypi/mypy",
+      "bom-ref": "pkg:pypi/mypy",
+      "version": ">=1.10"
+    },
+    {
+      "type": "library",
+      "name": "nbconvert",
+      "purl": "pkg:pypi/nbconvert",
+      "bom-ref": "pkg:pypi/nbconvert",
+      "version": ">=7.17.1"
+    },
+    {
+      "type": "library",
+      "name": "notion-client",
+      "purl": "pkg:pypi/notion-client",
+      "bom-ref": "pkg:pypi/notion-client",
+      "version": ">=2.0"
+    },
+    {
+      "type": "library",
+      "name": "numpy",
+      "purl": "pkg:pypi/numpy",
+      "bom-ref": "pkg:pypi/numpy",
+      "version": ">=1.24"
+    },
+    {
+      "type": "library",
+      "name": "onnx",
+      "purl": "pkg:pypi/onnx",
+      "bom-ref": "pkg:pypi/onnx",
+      "version": "<2,>=1.21"
+    },
+    {
+      "type": "library",
+      "name": "onnxruntime",
+      "purl": "pkg:pypi/onnxruntime",
+      "bom-ref": "pkg:pypi/onnxruntime",
+      "version": "<2,>=1.15"
+    },
+    {
+      "type": "library",
+      "name": "onnxruntime-gpu",
+      "purl": "pkg:pypi/onnxruntime-gpu",
+      "bom-ref": "pkg:pypi/onnxruntime-gpu",
+      "version": "<2,>=1.15"
+    },
+    {
+      "type": "library",
+      "name": "openai",
+      "purl": "pkg:pypi/openai",
+      "bom-ref": "pkg:pypi/openai",
+      "version": ">=1.0"
+    },
+    {
+      "type": "library",
+      "name": "opentelemetry-api",
+      "purl": "pkg:pypi/opentelemetry-api",
+      "bom-ref": "pkg:pypi/opentelemetry-api",
+      "version": ">=1.20"
+    },
+    {
+      "type": "library",
+      "name": "peft",
+      "purl": "pkg:pypi/peft",
+      "bom-ref": "pkg:pypi/peft",
+      "version": ">=0.6"
+    },
+    {
+      "type": "library",
+      "name": "pillow",
+      "purl": "pkg:pypi/pillow",
+      "bom-ref": "pkg:pypi/pillow",
+      "version": "<13,>=10"
+    },
+    {
+      "type": "library",
+      "name": "pinecone",
+      "purl": "pkg:pypi/pinecone",
+      "bom-ref": "pkg:pypi/pinecone",
+      "version": ">=5.0"
+    },
+    {
+      "type": "library",
+      "name": "polar-sdk",
+      "purl": "pkg:pypi/polar-sdk",
+      "bom-ref": "pkg:pypi/polar-sdk",
+      "version": "==0.31.3"
+    },
+    {
+      "type": "library",
+      "name": "pre-commit",
+      "purl": "pkg:pypi/pre-commit",
+      "bom-ref": "pkg:pypi/pre-commit",
+      "version": "<5,>=4.0"
+    },
+    {
+      "type": "library",
+      "name": "presidio-analyzer",
+      "purl": "pkg:pypi/presidio-analyzer",
+      "bom-ref": "pkg:pypi/presidio-analyzer",
+      "version": ">=2.2"
+    },
+    {
+      "type": "library",
+      "name": "protobuf",
+      "purl": "pkg:pypi/protobuf",
+      "bom-ref": "pkg:pypi/protobuf",
+      "version": "<7,>=4.25"
+    },
+    {
+      "type": "library",
+      "name": "psycopg2-binary",
+      "purl": "pkg:pypi/psycopg2-binary",
+      "bom-ref": "pkg:pypi/psycopg2-binary",
+      "version": "<3,>=2.9"
+    },
+    {
+      "type": "library",
+      "name": "pydantic",
+      "purl": "pkg:pypi/pydantic",
+      "bom-ref": "pkg:pypi/pydantic",
+      "version": "<3,>=2.0"
+    },
+    {
+      "type": "library",
+      "name": "pydantic",
+      "purl": "pkg:pypi/pydantic",
+      "bom-ref": "pkg:pypi/pydantic",
+      "version": ">=2.0"
+    },
+    {
+      "type": "library",
+      "name": "pyjwt",
+      "purl": "pkg:pypi/pyjwt",
+      "bom-ref": "pkg:pypi/pyjwt",
+      "version": "<3,>=2.8"
+    },
+    {
+      "type": "library",
+      "name": "pypdf",
+      "purl": "pkg:pypi/pypdf",
+      "bom-ref": "pkg:pypi/pypdf",
+      "version": ">=3.0"
+    },
+    {
+      "type": "library",
+      "name": "pytest",
+      "purl": "pkg:pypi/pytest",
+      "bom-ref": "pkg:pypi/pytest",
+      "version": ">=7.0"
+    },
+    {
+      "type": "library",
+      "name": "pytest-asyncio",
+      "purl": "pkg:pypi/pytest-asyncio",
+      "bom-ref": "pkg:pypi/pytest-asyncio",
+      "version": ">=0.21"
+    },
+    {
+      "type": "library",
+      "name": "pytest-cov",
+      "purl": "pkg:pypi/pytest-cov",
+      "bom-ref": "pkg:pypi/pytest-cov",
+      "version": ">=4.0"
+    },
+    {
+      "type": "library",
+      "name": "python-docx",
+      "purl": "pkg:pypi/python-docx",
+      "bom-ref": "pkg:pypi/python-docx",
+      "version": ">=1.0"
+    },
+    {
+      "type": "library",
+      "name": "python-multipart",
+      "purl": "pkg:pypi/python-multipart",
+      "bom-ref": "pkg:pypi/python-multipart",
+      "version": "<1,>=0.0.7"
+    },
+    {
+      "type": "library",
+      "name": "python-multipart",
+      "purl": "pkg:pypi/python-multipart",
+      "bom-ref": "pkg:pypi/python-multipart",
+      "version": ">=0.0.7"
+    },
+    {
+      "type": "library",
+      "name": "pyyaml",
+      "purl": "pkg:pypi/pyyaml",
+      "bom-ref": "pkg:pypi/pyyaml",
+      "version": ">=6.0"
+    },
+    {
+      "type": "library",
+      "name": "qdrant-client",
+      "purl": "pkg:pypi/qdrant-client",
+      "bom-ref": "pkg:pypi/qdrant-client",
+      "version": ">=1.7"
+    },
+    {
+      "type": "library",
+      "name": "ragatouille",
+      "purl": "pkg:pypi/ragatouille",
+      "bom-ref": "pkg:pypi/ragatouille",
+      "version": ">=0.0.8"
+    },
+    {
+      "type": "library",
+      "name": "redis",
+      "purl": "pkg:pypi/redis",
+      "bom-ref": "pkg:pypi/redis",
+      "version": "<8,>=4.5"
+    },
+    {
+      "type": "library",
+      "name": "requests",
+      "purl": "pkg:pypi/requests",
+      "bom-ref": "pkg:pypi/requests",
+      "version": ">=2.32"
+    },
+    {
+      "type": "library",
+      "name": "ruff",
+      "purl": "pkg:pypi/ruff",
+      "bom-ref": "pkg:pypi/ruff",
+      "version": "<1,>=0.5"
+    },
+    {
+      "type": "library",
+      "name": "scikit-learn",
+      "purl": "pkg:pypi/scikit-learn",
+      "bom-ref": "pkg:pypi/scikit-learn",
+      "version": ">=1.3"
+    },
+    {
+      "type": "library",
+      "name": "sentence-transformers",
+      "purl": "pkg:pypi/sentence-transformers",
+      "bom-ref": "pkg:pypi/sentence-transformers",
+      "version": "<6,>=4"
+    },
+    {
+      "type": "library",
+      "name": "slowapi",
+      "purl": "pkg:pypi/slowapi",
+      "bom-ref": "pkg:pypi/slowapi",
+      "version": "<1,>=0.1.9"
+    },
+    {
+      "type": "library",
+      "name": "torch",
+      "purl": "pkg:pypi/torch",
+      "bom-ref": "pkg:pypi/torch",
+      "version": "<3,>=2.8"
+    },
+    {
+      "type": "library",
+      "name": "transformers",
+      "purl": "pkg:pypi/transformers",
+      "bom-ref": "pkg:pypi/transformers",
+      "version": "<6,>=5.0.0rc3"
+    },
+    {
+      "type": "library",
+      "name": "twine",
+      "purl": "pkg:pypi/twine",
+      "bom-ref": "pkg:pypi/twine",
+      "version": ">=5.0"
+    },
+    {
+      "type": "library",
+      "name": "types-PyYAML",
+      "purl": "pkg:pypi/types-PyYAML",
+      "bom-ref": "pkg:pypi/types-PyYAML",
+      "version": ">=6.0"
+    },
+    {
+      "type": "library",
+      "name": "types-requests",
+      "purl": "pkg:pypi/types-requests",
+      "bom-ref": "pkg:pypi/types-requests",
+      "version": ">=2.31"
+    },
+    {
+      "type": "library",
+      "name": "uvicorn",
+      "purl": "pkg:pypi/uvicorn",
+      "bom-ref": "pkg:pypi/uvicorn",
+      "version": "<1,>=0.23"
+    },
+    {
+      "type": "library",
+      "name": "weasyprint",
+      "purl": "pkg:pypi/weasyprint",
+      "bom-ref": "pkg:pypi/weasyprint",
+      "version": ">=60"
+    },
+    {
+      "type": "library",
+      "name": "weaviate-client",
+      "purl": "pkg:pypi/weaviate-client",
+      "bom-ref": "pkg:pypi/weaviate-client",
+      "version": ">=4.0"
+    },
+    {
+      "type": "library",
+      "name": "z3-solver",
+      "purl": "pkg:pypi/z3-solver",
+      "bom-ref": "pkg:pypi/z3-solver",
+      "version": "<5,>=4.12"
+    }
+  ]
+}

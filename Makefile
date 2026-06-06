@@ -61,6 +61,12 @@ bandit: ## SAST scan
 
 sast: bandit ## Alias for bandit
 
+reuse: ## Check SPDX/licence compliance (REUSE 3.3)
+	reuse lint
+
+sbom: ## Regenerate the per-extra declared-dependency SBOMs
+	python -m scripts.generate_sboms
+
 preflight: ## Full preflight gate
 	python tools/preflight.py
 

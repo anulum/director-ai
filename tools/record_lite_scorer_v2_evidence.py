@@ -215,6 +215,7 @@ def _render_packet(root: Path, record: EvidenceRecord) -> str:
             ),
         ),
     ]
+    # REUSE-IgnoreStart
     header = [
         "# SPDX-License-Identifier: AGPL-3.0-or-later",
         "# Commercial licence available",
@@ -225,6 +226,7 @@ def _render_packet(root: Path, record: EvidenceRecord) -> str:
         "# Director-Class AI - Lite Scorer v2 recorded evidence packet",
         "",
     ]
+    # REUSE-IgnoreEnd
     body = [f"{key} = {value}" for key, value in fields]
     return "\n".join(header + body) + "\n"
 
