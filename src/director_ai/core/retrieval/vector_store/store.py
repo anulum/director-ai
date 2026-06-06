@@ -20,6 +20,7 @@ import hashlib
 import json
 from typing import Any
 
+from ...evidence_firewall import EvidenceFirewall, FirewallContext
 from ...metrics import metrics
 from ...otel import trace_vector_add, trace_vector_query
 from ...types import EvidenceChunk
@@ -86,6 +87,7 @@ class VectorGroundTruthStore(GroundTruthStore):
         self,
         backend: VectorBackend | None = None,
         tenant_id: str = "",
+        evidence_firewall: EvidenceFirewall | None = None,
     ) -> None:
         super().__init__()
         if backend is not None and not _is_vector_backend_like(backend):
@@ -94,6 +96,9 @@ class VectorGroundTruthStore(GroundTruthStore):
             raise ValueError("tenant_id must be a string")
         self.backend = backend if backend is not None else InMemoryBackend()
         self.tenant_id = tenant_id.strip()
+        # Optional pre-model evidence firewall. When set, every retrieval batch
+        # is screened so quarantined chunks never reach the grounding context.
+        self.evidence_firewall = evidence_firewall
         self._version_records: dict[str, dict[str, str]] = {}
         self._retraction_records: list[dict[str, str]] = []
         self._replacement_records: list[dict[str, str]] = []
@@ -996,4 +1001,28 @@ class VectorGroundTruthStore(GroundTruthStore):
             ):
                 continue
             active.append(result)
-        return active
+        return self._firewall_screen(active, tenant_id)
+
+    def _firewall_screen(
+        self,
+        results: list[dict[str, Any]],
+        tenant_id: str,
+    ) -> list[dict[str, Any]]:
+        """Drop chunks the evidence firewall quarantines, if one is configured.
+
+        A no-op when no firewall is attached, so retrieval behaviour is
+        unchanged unless a deployment opts in.
+        """
+        if self.evidence_firewall is None:
+            return results
+        import time
+
+        context = FirewallContext(tenant_id=tenant_id, now_unix=time.time())
+        report = self.evidence_firewall.screen(results, context)
+        # Verdicts are 1:1 with input order, so the original row dicts (with
+        # their distance/score fields) are preserved for the admitted chunks.
+        return [
+            result
+            for result, verdict in zip(results, report.verdicts, strict=True)
+            if verdict.admitted
+        ]

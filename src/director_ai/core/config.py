@@ -272,6 +272,28 @@ class DirectorConfig:
     multimodal_calibrated_threshold: float = 0.5
     multimodal_no_go_threshold: float = 0.9
 
+    # Pre-model evidence firewall (opt-in). When enabled, every retrieved chunk
+    # is screened before it can reach the model; quarantined chunks are dropped
+    # from the grounding context. Defaults are fail-closed on the integrity
+    # checks once enabled (tenant, provenance, signature, expiry, poisoning).
+    evidence_firewall_enabled: bool = False
+    evidence_firewall_require_tenant_match: bool = True
+    evidence_firewall_require_provenance: bool = True
+    evidence_firewall_require_signature: bool = True
+    evidence_firewall_verify_content_hash: bool = True
+    evidence_firewall_enforce_expiry: bool = True
+    evidence_firewall_max_age_seconds: float = 0.0
+    evidence_firewall_require_source_owner: bool = False
+    evidence_firewall_enforce_sensitivity: bool = False
+    evidence_firewall_allowed_sensitivity: tuple[str, ...] = (
+        "unclassified",
+        "public",
+        "internal",
+    )
+    evidence_firewall_scan_poisoning: bool = True
+    evidence_firewall_poison_threshold: float = 0.6
+    evidence_firewall_enforce_use_case: bool = False
+
     # Scoring weights (0.0 = use CoherenceScorer class defaults)
     w_logic: float = 0.0
     w_fact: float = 0.0
@@ -1074,7 +1096,12 @@ class DirectorConfig:
                 reps,
             )
 
-        return VectorGroundTruthStore(backend=backend)
+        from .evidence_firewall import build_evidence_firewall
+
+        return VectorGroundTruthStore(
+            backend=backend,
+            evidence_firewall=build_evidence_firewall(self),
+        )
 
     def _resolve_scorer_backend(self) -> str:
         """Resolve 'auto' scorer backend to best available."""

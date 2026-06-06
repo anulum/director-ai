@@ -195,6 +195,7 @@ nav:
       - Conformal & Uncertainty Routing: api/uncertainty-routing.md
       - Operational Provenance Ledger: api/provenance-ledger.md
       - Mechanistic Interpretability (ReDeEP): api/mechanistic-interpretability.md
+      - Evidence Firewall: api/evidence-firewall.md
       - Defence Update Pipeline: api/defence-update-pipeline.md
       - Cross-Document Consistency Memory: api/cross-document-memory.md
       - Differentially Private Score Release: api/private-score-release.md
