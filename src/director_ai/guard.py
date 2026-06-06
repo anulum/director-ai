@@ -57,6 +57,7 @@ from director_ai.core.canary import (
     CanarySignal,
 )
 from director_ai.core.config import DirectorConfig
+from director_ai.core.eval_trace import eval_record_from_guard, record_guard_decision
 from director_ai.core.financial_services import (
     BankingPolicyReport,
     assess_banking_response,
@@ -481,6 +482,37 @@ class ProductionGuard:
                 threshold=self._config.coherence_threshold
             )
         return self._labelling_cockpit
+
+    def eval_trace(
+        self,
+        result: GuardResult,
+        *,
+        model: str = "",
+        tenant_id: str = "",
+        domain: str = "",
+        answer_id: str = "",
+        emit_span: bool = True,
+    ) -> dict[str, str | int | float | bool]:
+        """Emit a guard decision as an OTel eval span and return its record.
+
+        Builds the stable ``director.eval.*`` / ``gen_ai.*`` attribute record
+        from the result and, when ``emit_span`` is set, opens an
+        OpenTelemetry span carrying it (a no-op without the SDK). The returned
+        dict is the same record, for tracers that take metadata rather than
+        OTLP spans.
+        """
+        record = eval_record_from_guard(
+            result,
+            model=model,
+            scorer=self._config.scorer_backend,
+            tenant_id=tenant_id,
+            domain=domain,
+            answer_id=answer_id,
+        )
+        if emit_span:
+            with record_guard_decision(record):
+                pass
+        return record
 
     @property
     def scorer(self) -> CoherenceScorer:

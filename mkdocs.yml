@@ -202,6 +202,7 @@ nav:
       - Streaming Repair: api/streaming-repair.md
       - Counterfactual Canary Facts: api/canary-facts.md
       - Agent / MCP Preflight Guard: api/agent-preflight.md
+      - OpenTelemetry Eval Trace: api/eval-trace.md
       - Defence Update Pipeline: api/defence-update-pipeline.md
       - Cross-Document Consistency Memory: api/cross-document-memory.md
       - Differentially Private Score Release: api/private-score-release.md
