@@ -72,6 +72,7 @@ class GuardResult:
     confidence_interval: tuple[float, float] | None = None
     calibrated_threshold: float | None = None
     sector_policy_report: BankingPolicyReport | None = None
+    uncertainty_action: str | None = None
 
 
 class ProductionGuard:
@@ -100,6 +101,7 @@ class ProductionGuard:
         self._calibrator: Any = None
         self._conformal: Any = None
         self._feedback: Any = None
+        self._uncertainty_router: Any = None
         self._injection_detector: InjectionDetector | None = None
 
     @classmethod
@@ -134,6 +136,29 @@ class ProductionGuard:
         self._conformal = ConformalPredictor(coverage=1.0 - alpha)
         logger.info("Calibration enabled (alpha=%.2f)", alpha)
 
+    def enable_uncertainty_routing(
+        self,
+        *,
+        allow_upper: float = 0.2,
+        reject_lower: float = 0.8,
+        escalate_human_width: float = 0.5,
+    ) -> None:
+        """Route calibrated results by uncertainty.
+
+        Requires :meth:`enable_calibration`; once enabled, :meth:`check`
+        populates :attr:`GuardResult.uncertainty_action` from the conformal
+        interval (``allow`` / ``reject`` / ``escalate_human`` /
+        ``escalate_model``).
+        """
+        from director_ai.core.routing.uncertainty_router import UncertaintyRouter
+
+        self._uncertainty_router = UncertaintyRouter(
+            allow_upper=allow_upper,
+            reject_lower=reject_lower,
+            escalate_human_width=escalate_human_width,
+        )
+        logger.info("Uncertainty routing enabled")
+
     def check(
         self,
         prompt: str,
@@ -163,8 +188,13 @@ class ProductionGuard:
 
         ci = None
         cal_threshold = None
+        uncertainty_action = None
         if self._conformal is not None:
             ci = self._conformal.predict_interval(cs.score)
+            if self._uncertainty_router is not None:
+                uncertainty_action = self._uncertainty_router.route(
+                    self._conformal.predict(cs.score)
+                ).action
         if self._calibrator is not None:
             cal_threshold = self._calibrator.adjusted_threshold
 
@@ -175,6 +205,7 @@ class ProductionGuard:
             confidence_interval=ci,
             calibrated_threshold=cal_threshold,
             sector_policy_report=sector_report,
+            uncertainty_action=uncertainty_action,
         )
 
     def _evaluate_sector_policy(

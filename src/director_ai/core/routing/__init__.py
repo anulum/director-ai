@@ -31,6 +31,11 @@ length heuristic.
 from .budget import BudgetEntry, RiskBudget
 from .router import RiskRouter, RiskScorerProtocol, RoutingDecision
 from .scorer import PromptRiskScorer, RiskComponents
+from .uncertainty_router import (
+    UncertaintyAction,
+    UncertaintyDecision,
+    UncertaintyRouter,
+)
 
 __all__ = [
     "BudgetEntry",
@@ -40,4 +45,7 @@ __all__ = [
     "RiskRouter",
     "RiskScorerProtocol",
     "RoutingDecision",
+    "UncertaintyAction",
+    "UncertaintyDecision",
+    "UncertaintyRouter",
 ]
