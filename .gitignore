@@ -170,6 +170,8 @@ logs/
 *.pkl
 !src/director_ai/models/*.pkl
 !src/director_ai/core/models/*.pkl
+# Pickle-free model artefact (replaces the legacy .pkl); must ship in the wheel.
+!src/director_ai/core/models/*.json
 *.pickle
 benchmarks/results/*
 # The orchestrator schema doc lives under benchmarks/results/ so

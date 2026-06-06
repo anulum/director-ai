@@ -394,7 +394,7 @@ class CoherenceScorer:
             self._parallel_pool = ThreadPoolExecutor(max_workers=2)
         return self._parallel_pool
 
-    _BUNDLED_CLASSIFIER = "models/dataset_type_classifier.pkl"
+    _BUNDLED_CLASSIFIER = "models/dataset_type_classifier.json"
 
     def _get_meta_classifier(self):
         """Lazy-load trained meta-classifier from pickle."""

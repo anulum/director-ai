@@ -8,24 +8,28 @@
 
 """Lightweight meta-classifier for production NLI threshold adaptation.
 
-Loads a pre-trained sklearn logistic regression model from a pickle
-bundle and predicts per-input thresholds based on text features.
+Loads a pre-trained multinomial logistic-regression model from a pickle-free
+JSON artefact and predicts per-input thresholds from text features. The model
+reduces to a few float arrays (scaler mean/scale, coefficients, intercepts), so
+prediction is reproduced exactly in NumPy with no scikit-learn or pickle
+dependency at runtime; the JSON is produced by
+``scripts/convert_classifier_to_json.py`` with a parity gate against sklearn.
 """
 
 from __future__ import annotations
 
+import json
 import logging
-
-# Runtime emits an explicit warning for untrusted model artefact paths.
-import pickle  # nosec B403
 import re
-import warnings
+from pathlib import Path
 
 import numpy as np
 
 from ..mandatory import mandatory_execution
 
 logger = logging.getLogger("DirectorAI.MetaClassifier")
+
+_CLASSIFIER_FORMAT = "director.dataset_type_classifier.v1"
 
 try:
     from backfire_kernel import rust_sum_f64, rust_word_overlap
@@ -37,26 +41,6 @@ except ImportError:
         raise RuntimeError("backfire_kernel rust_sum_f64 is unavailable")
 
     _RUST_META = True
-
-try:
-    from sklearn.exceptions import (
-        InconsistentVersionWarning as _SklearnInconsistentVersionWarning,
-    )
-except (
-    Exception
-):  # pragma: no cover - sklearn absent handled by runtime import boundaries
-
-    class _FallbackInconsistentVersionWarning(UserWarning):
-        """Fallback warning type when sklearn is unavailable at import time."""
-
-    _INCONSISTENT_VERSION_WARNING_TYPE: type[Warning] = (
-        _FallbackInconsistentVersionWarning
-    )
-else:
-    _INCONSISTENT_VERSION_WARNING_TYPE = _SklearnInconsistentVersionWarning
-
-InconsistentVersionWarning: type[Warning] = _INCONSISTENT_VERSION_WARNING_TYPE
-_INCONSISTENT_VERSION_WARNING: type[Warning] = InconsistentVersionWarning
 
 
 NEGATION_WORDS = frozenset(
@@ -195,7 +179,7 @@ def _sum_float(values: list[float]) -> float:
 class DatasetTypeClassifier:
     """Logistic regression that predicts dataset type for threshold selection.
 
-    Loads a trained sklearn model bundle and either:
+    Loads a pickle-free JSON model artefact and either:
     - (binary mode) predicts support/hallucination directly, or
     - (dataset_type mode) predicts which dataset distribution the input
       resembles, then selects a per-dataset NLI threshold.
@@ -204,34 +188,55 @@ class DatasetTypeClassifier:
     def __init__(self, model_path: str):
         import hashlib
 
-        logger.warning(
-            "Loading pickle model from %s — ensure this file is trusted",
-            model_path,
-        )
-        with open(model_path, "rb") as f:
-            raw = f.read()
+        raw = Path(model_path).read_bytes()
         sha = hashlib.sha256(raw).hexdigest()[:16]
-        logger.info("Model SHA256 prefix: %s (%d bytes)", sha, len(raw))
+        logger.info(
+            "Loading classifier %s SHA256 prefix: %s (%d bytes)",
+            model_path,
+            sha,
+            len(raw),
+        )
         try:
-            with warnings.catch_warnings():
-                warnings.simplefilter("error", InconsistentVersionWarning)
-                # The source path is warned above and the hash is logged for auditability.
-                bundle = pickle.loads(raw)  # nosec B301
-        except InconsistentVersionWarning as exc:
+            payload = json.loads(raw)
+        except json.JSONDecodeError as exc:
+            raise ValueError(f"Invalid classifier JSON at {model_path}: {exc}") from exc
+        if not isinstance(payload, dict) or payload.get("format") != _CLASSIFIER_FORMAT:
             raise ValueError(
-                f"Incompatible sklearn artefact at {model_path}: {exc}",
-            ) from exc
-        if not isinstance(bundle, dict) or "classifier" not in bundle:
-            raise ValueError(
-                f"Invalid model bundle at {model_path}: missing 'classifier' key"
+                f"Unsupported classifier artefact at {model_path}: "
+                f"expected format {_CLASSIFIER_FORMAT!r}"
             )
-        self._clf = bundle["classifier"]
-        self._scaler = bundle["scaler"]
-        self._feature_cols = bundle["feature_cols"]
-        self._mode = bundle.get("mode", "binary")
-        self._label_names = bundle.get("label_names")
-        self._dataset_thresholds = bundle.get("dataset_thresholds")
-        self._confidence_gate = bundle.get("confidence_gate", 0.5)
+        try:
+            self._coef = np.asarray(payload["coef"], dtype=float)
+            self._intercept = np.asarray(payload["intercept"], dtype=float)
+            self._scaler_mean = np.asarray(payload["scaler_mean"], dtype=float)
+            self._scaler_scale = np.asarray(payload["scaler_scale"], dtype=float)
+            self._feature_cols = list(payload["feature_cols"])
+        except KeyError as exc:
+            raise ValueError(
+                f"Incomplete classifier artefact at {model_path}: missing {exc}"
+            ) from exc
+        self._mode = payload.get("mode", "binary")
+        self._label_names = payload.get("label_names")
+        self._dataset_thresholds = payload.get("dataset_thresholds")
+        self._confidence_gate = float(payload.get("confidence_gate", 0.5))
+
+    def _predict_proba(self, feat: dict[str, float]) -> np.ndarray:
+        """Reproduce sklearn ``predict_proba`` for one feature row, in NumPy.
+
+        Applies the stored standard scaler and the (binary or multinomial)
+        logistic regression: ``softmax`` for the multiclass model, ``sigmoid``
+        for a binary one. Matches the trained sklearn model bit-for-bit (see the
+        converter's parity gate).
+        """
+        x = np.array([feat[c] for c in self._feature_cols], dtype=float)
+        x_scaled = (x - self._scaler_mean) / self._scaler_scale
+        scores = x_scaled @ self._coef.T + self._intercept
+        if self._coef.shape[0] == 1:  # binary
+            p1 = 1.0 / (1.0 + np.exp(-scores))
+            return np.array([1.0 - p1[0], p1[0]])
+        shifted = scores - np.max(scores)
+        exp = np.exp(shifted)
+        return np.asarray(exp / np.sum(exp), dtype=float)
 
     def predict(
         self,
@@ -243,10 +248,8 @@ class DatasetTypeClassifier:
     ) -> tuple[bool, float]:
         """Predict support/hallucination with probability."""
         feat = extract_features(premise, hypothesis, nli_score, confidence, chunk_count)
-        x = np.array([[feat[c] for c in self._feature_cols]])
-        x_scaled = self._scaler.transform(x)
-        prob = self._clf.predict_proba(x_scaled)[0]
-        pred = int(self._clf.predict(x_scaled)[0])
+        prob = self._predict_proba(feat)
+        pred = int(np.argmax(prob))
         return bool(pred == 1), float(prob[1])
 
     def predict_threshold(
@@ -264,9 +267,7 @@ class DatasetTypeClassifier:
             return None, 0.0
 
         feat = extract_text_features(premise, hypothesis)
-        x = np.array([[feat[c] for c in self._feature_cols]])
-        x_scaled = self._scaler.transform(x)
-        probs = self._clf.predict_proba(x_scaled)[0]
+        probs = self._predict_proba(feat)
         pred_idx = int(np.argmax(probs))
         conf = float(probs[pred_idx])
         if conf < self._confidence_gate:

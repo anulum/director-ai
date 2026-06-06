@@ -294,7 +294,7 @@ Discussions = "https://discord.gg/JvMdKv49"
 where = ["src"]
 
 [tool.setuptools.package-data]
-director_ai = ["core/models/*.pkl"]
+director_ai = ["core/models/*.json"]
 
 [tool.ruff]
 line-length = 88

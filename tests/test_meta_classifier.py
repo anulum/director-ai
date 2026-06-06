@@ -5,19 +5,19 @@
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI — DatasetTypeClassifier Tests
-"""Multi-angle tests for dataset type meta-classifier.
+"""Multi-angle tests for the dataset-type meta-classifier.
 
-Covers: feature extraction, model training, prediction, save/load,
-AdaBoost classifier, pipeline integration with adaptive thresholds,
-and performance documentation.
+Covers feature extraction, the Rust word-overlap delegation, and the pickle-free
+JSON model loader: NumPy reproduction of sklearn predict_proba (binary sigmoid
+and multinomial softmax), per-dataset threshold selection, the confidence gate,
+artefact validation errors, and the bundled artefact.
 """
 
 from __future__ import annotations
 
-import pickle
-import warnings
+import json
+import math
 
-import numpy as np
 import pytest
 
 from director_ai.core.meta_classifier import (
@@ -27,35 +27,6 @@ from director_ai.core.meta_classifier import (
     extract_features,
     extract_text_features,
 )
-
-
-class _IdentityScaler:
-    def transform(self, x):
-        self.last_x = x
-        return x
-
-
-class _DeterministicClassifier:
-    def __init__(self, *, probabilities, prediction=1):
-        self.probabilities = np.array(probabilities, dtype=float)
-        self.prediction = prediction
-        self.last_proba_x = None
-        self.last_predict_x = None
-
-    def predict_proba(self, x):
-        self.last_proba_x = x
-        return np.array([self.probabilities], dtype=float)
-
-    def predict(self, x):
-        self.last_predict_x = x
-        return np.array([self.prediction])
-
-
-def _write_bundle(tmp_path, bundle):
-    path = tmp_path / "meta_bundle.pkl"
-    with open(path, "wb") as f:
-        pickle.dump(bundle, f)
-    return str(path)
 
 
 class TestExtractFeatures:
@@ -185,282 +156,189 @@ class TestWordOverlapRustDelegation:
         assert feat["word_overlap"] == 0.42
 
 
-def _make_binary_bundle(tmp_path):
-    pytest.importorskip("sklearn")
-    from sklearn.ensemble import RandomForestClassifier
-    from sklearn.preprocessing import StandardScaler
-
-    cols = ["nli_score", "confidence", "premise_len", "hypothesis_len"]
-    x_train = np.array(
-        [
-            [0.8, 0.9, 50, 20],
-            [0.2, 0.7, 60, 15],
-            [0.9, 0.95, 40, 25],
-            [0.1, 0.6, 70, 10],
-        ]
-    )
-    y = np.array([1, 0, 1, 0])
-    scaler = StandardScaler().fit(x_train)
-    clf = RandomForestClassifier(n_estimators=5, random_state=42).fit(
-        scaler.transform(x_train), y
-    )
-    path = str(tmp_path / "test_binary.pkl")
-    with open(path, "wb") as f:
-        pickle.dump(
-            {
-                "classifier": clf,
-                "scaler": scaler,
-                "feature_cols": cols,
-                "mode": "binary",
-            },
-            f,
-        )
-    return path
+def _write_json(tmp_path, payload, name="model.json"):
+    path = tmp_path / name
+    path.write_text(json.dumps(payload), encoding="utf-8")
+    return str(path)
 
 
-def _make_dataset_type_bundle(tmp_path):
-    pytest.importorskip("sklearn")
-    from sklearn.ensemble import RandomForestClassifier
-    from sklearn.preprocessing import StandardScaler
-
-    cols = ["premise_len", "hypothesis_len"]
-    x_train = np.array([[100, 20], [200, 30], [50, 50], [300, 10], [150, 25], [60, 40]])
-    y = np.array([0, 0, 1, 1, 2, 2])
-    scaler = StandardScaler().fit(x_train)
-    clf = RandomForestClassifier(n_estimators=5, random_state=42).fit(
-        scaler.transform(x_train), y
-    )
-    path = str(tmp_path / "test_ds.pkl")
-    thresholds = {"DatasetA": 0.3, "DatasetB": 0.6, "DatasetC": 0.5}
-    with open(path, "wb") as f:
-        pickle.dump(
-            {
-                "classifier": clf,
-                "scaler": scaler,
-                "feature_cols": cols,
-                "mode": "dataset_type",
-                "label_names": ["DatasetA", "DatasetB", "DatasetC"],
-                "dataset_thresholds": thresholds,
-                "confidence_gate": 0.3,
-            },
-            f,
-        )
-    return path
+def _binary_payload():
+    # 2-feature binary logistic regression with an identity scaler.
+    return {
+        "format": "director.dataset_type_classifier.v1",
+        "model": "multinomial_logistic_regression",
+        "mode": "binary",
+        "feature_cols": ["nli_score", "confidence"],
+        "classes": [0, 1],
+        "coef": [[2.0, 1.0]],
+        "intercept": [0.5],
+        "scaler_mean": [0.0, 0.0],
+        "scaler_scale": [1.0, 1.0],
+        "confidence_gate": 0.5,
+    }
 
 
-class TestDatasetTypeClassifier:
-    def test_inconsistent_sklearn_version_warning_is_rejected(
-        self, tmp_path, monkeypatch
-    ):
-        monkeypatch.setattr(
-            "director_ai.core.meta_classifier.InconsistentVersionWarning",
-            UserWarning,
-        )
-        path = _write_bundle(
-            tmp_path,
-            {
-                "classifier": _DeterministicClassifier(
-                    probabilities=[0.5, 0.5],
-                    prediction=1,
-                ),
-                "scaler": _IdentityScaler(),
-                "feature_cols": ["nli_score", "confidence"],
-            },
-        )
+def _dataset_type_payload():
+    # 2-feature, 3-class multinomial with an identity scaler.
+    return {
+        "format": "director.dataset_type_classifier.v1",
+        "model": "multinomial_logistic_regression",
+        "mode": "dataset_type",
+        "feature_cols": ["premise_len", "hypothesis_len"],
+        "classes": [0, 1, 2],
+        "coef": [[0.01, 0.0], [0.0, 0.01], [0.0, 0.0]],
+        "intercept": [0.0, 0.0, 0.0],
+        "scaler_mean": [0.0, 0.0],
+        "scaler_scale": [1.0, 1.0],
+        "label_names": ["fact", "legal", "medical"],
+        "dataset_thresholds": {"fact": 0.30, "legal": 0.62, "medical": 0.58},
+        "confidence_gate": 0.3,
+    }
 
-        def _warn_then_load(_raw):
-            warnings.warn(
-                "sklearn version mismatch",
-                category=UserWarning,
-                stacklevel=1,
-            )
-            return {
-                "classifier": _DeterministicClassifier(
-                    probabilities=[0.5, 0.5],
-                    prediction=1,
-                ),
-                "scaler": _IdentityScaler(),
-                "feature_cols": ["nli_score", "confidence"],
-            }
 
-        monkeypatch.setattr(
-            "director_ai.core.meta_classifier.pickle.loads", _warn_then_load
-        )
+class TestArtefactValidation:
+    def test_missing_file_raises(self, tmp_path):
+        with pytest.raises(FileNotFoundError):
+            DatasetTypeClassifier(str(tmp_path / "absent.json"))
 
-        with pytest.raises(ValueError, match="Incompatible sklearn artefact"):
+    def test_invalid_json_raises(self, tmp_path):
+        path = tmp_path / "broken.json"
+        path.write_text("{not json", encoding="utf-8")
+        with pytest.raises(ValueError, match="Invalid classifier JSON"):
+            DatasetTypeClassifier(str(path))
+
+    def test_wrong_format_raises(self, tmp_path):
+        path = _write_json(tmp_path, {"format": "something.else"})
+        with pytest.raises(ValueError, match="Unsupported classifier artefact"):
             DatasetTypeClassifier(path)
 
-    def test_invalid_bundle_rejected_with_path_context(self, tmp_path):
-        path = _write_bundle(tmp_path, {"scaler": _IdentityScaler()})
-
-        with pytest.raises(ValueError, match="missing 'classifier' key") as exc_info:
+    def test_incomplete_artefact_raises(self, tmp_path):
+        payload = _binary_payload()
+        del payload["coef"]
+        path = _write_json(tmp_path, payload)
+        with pytest.raises(ValueError, match="Incomplete classifier artefact"):
             DatasetTypeClassifier(path)
 
-        assert path in str(exc_info.value)
 
-    def test_binary_predict_uses_configured_feature_columns_and_probability(
-        self,
-        tmp_path,
-    ):
-        scaler = _IdentityScaler()
-        classifier = _DeterministicClassifier(probabilities=[0.25, 0.75], prediction=1)
-        path = _write_bundle(
-            tmp_path,
-            {
-                "classifier": classifier,
-                "scaler": scaler,
-                "feature_cols": ["nli_score", "confidence", "chunk_count"],
-            },
-        )
-
-        runtime = DatasetTypeClassifier(path)
-        supported, probability = runtime.predict(
+class TestBinaryPrediction:
+    def test_predict_matches_sigmoid(self, tmp_path):
+        clf = DatasetTypeClassifier(_write_json(tmp_path, _binary_payload()))
+        # nli_score=0.91, confidence=0.84 -> score = 2*0.91 + 1*0.84 + 0.5 = 3.16
+        supported, prob = clf.predict(
             "Alice verified the claim.",
-            "Alice verified the claim?",
+            "Alice verified the claim.",
             nli_score=0.91,
             confidence=0.84,
-            chunk_count=3,
         )
-
+        expected = 1.0 / (1.0 + math.exp(-3.16))
+        assert prob == pytest.approx(expected, abs=1e-9)
         assert supported is True
-        assert probability == pytest.approx(0.75)
-        assert runtime._scaler.last_x.tolist() == [[0.91, 0.84, 3]]
-        assert runtime._clf.last_proba_x.tolist() == [[0.91, 0.84, 3]]
-        assert runtime._clf.last_predict_x.tolist() == [[0.91, 0.84, 3]]
 
-    def test_binary_predict_returns_false_for_negative_prediction(self, tmp_path):
-        path = _write_bundle(
-            tmp_path,
-            {
-                "classifier": _DeterministicClassifier(
-                    probabilities=[0.8, 0.2],
-                    prediction=0,
-                ),
-                "scaler": _IdentityScaler(),
-                "feature_cols": ["nli_score", "confidence"],
-                "mode": "binary",
-            },
-        )
-
-        supported, probability = DatasetTypeClassifier(path).predict(
-            "The answer is unsupported.",
-            "The answer is supported.",
-            nli_score=0.2,
-            confidence=0.6,
-        )
-
+    def test_predict_false_for_negative_score(self, tmp_path):
+        clf = DatasetTypeClassifier(_write_json(tmp_path, _binary_payload()))
+        supported, prob = clf.predict("x", "y", nli_score=-1.0, confidence=0.0)
+        # score = 2*(-1.0) + 0.5 = -1.5 -> sigmoid < 0.5 -> argmax = class 0
         assert supported is False
-        assert probability == pytest.approx(0.2)
-
-    def test_dataset_threshold_returns_named_threshold_and_confidence(self, tmp_path):
-        path = _write_bundle(
-            tmp_path,
-            {
-                "classifier": _DeterministicClassifier(
-                    probabilities=[0.1, 0.7, 0.2],
-                    prediction=1,
-                ),
-                "scaler": _IdentityScaler(),
-                "feature_cols": ["premise_len", "hypothesis_len"],
-                "mode": "dataset_type",
-                "label_names": ["fact", "legal", "medical"],
-                "dataset_thresholds": {"legal": 0.62, "medical": 0.58},
-                "confidence_gate": 0.5,
-            },
-        )
-
-        threshold, confidence = DatasetTypeClassifier(path).predict_threshold(
-            "A" * 40,
-            "B" * 10,
-        )
-
-        assert threshold == pytest.approx(0.62)
-        assert confidence == pytest.approx(0.7)
-
-    def test_dataset_threshold_without_label_names_falls_back_with_confidence(
-        self,
-        tmp_path,
-    ):
-        path = _write_bundle(
-            tmp_path,
-            {
-                "classifier": _DeterministicClassifier(
-                    probabilities=[0.6, 0.4],
-                    prediction=0,
-                ),
-                "scaler": _IdentityScaler(),
-                "feature_cols": ["premise_len", "hypothesis_len"],
-                "mode": "dataset_type",
-                "dataset_thresholds": {"fact": 0.7},
-                "confidence_gate": 0.5,
-            },
-        )
-
-        threshold, confidence = DatasetTypeClassifier(path).predict_threshold(
-            "premise",
-            "hypothesis",
-        )
-
-        assert threshold is None
-        assert confidence == pytest.approx(0.6)
-
-    def test_dataset_threshold_missing_dataset_name_returns_none_with_confidence(
-        self,
-        tmp_path,
-    ):
-        path = _write_bundle(
-            tmp_path,
-            {
-                "classifier": _DeterministicClassifier(
-                    probabilities=[0.2, 0.8],
-                    prediction=1,
-                ),
-                "scaler": _IdentityScaler(),
-                "feature_cols": ["premise_len", "hypothesis_len"],
-                "mode": "dataset_type",
-                "label_names": ["known", "unknown"],
-                "dataset_thresholds": {"known": 0.7},
-                "confidence_gate": 0.5,
-            },
-        )
-
-        threshold, confidence = DatasetTypeClassifier(path).predict_threshold(
-            "premise",
-            "hypothesis",
-        )
-
-        assert threshold is None
-        assert confidence == pytest.approx(0.8)
-
-    def test_binary_predict(self, tmp_path):
-        path = _make_binary_bundle(tmp_path)
-        clf = DatasetTypeClassifier(path)
-        supported, prob = clf.predict("The sky is blue.", "The sky is blue.", 0.9, 0.95)
-        assert isinstance(supported, bool)
-        assert 0.0 <= prob <= 1.0
+        assert prob < 0.5
 
     def test_binary_predict_threshold_returns_none(self, tmp_path):
-        path = _make_binary_bundle(tmp_path)
-        clf = DatasetTypeClassifier(path)
+        clf = DatasetTypeClassifier(_write_json(tmp_path, _binary_payload()))
         threshold, conf = clf.predict_threshold("premise", "hypothesis")
         assert threshold is None
         assert conf == 0.0
 
-    def test_dataset_type_predict_threshold(self, tmp_path):
-        path = _make_dataset_type_bundle(tmp_path)
-        clf = DatasetTypeClassifier(path)
-        threshold, conf = clf.predict_threshold("A" * 100, "B" * 20)
-        # Should return a threshold from the dict or None if below gate
-        if threshold is not None:
-            assert threshold in (0.3, 0.5, 0.6)
+    def test_proba_sums_to_one(self, tmp_path):
+        clf = DatasetTypeClassifier(_write_json(tmp_path, _binary_payload()))
+        feat = extract_features("p", "h", 0.3, 0.7)
+        proba = clf._predict_proba(feat)
+        assert proba.sum() == pytest.approx(1.0)
+        assert len(proba) == 2
+
+
+class TestDatasetTypePrediction:
+    def test_named_threshold_and_confidence(self, tmp_path):
+        clf = DatasetTypeClassifier(_write_json(tmp_path, _dataset_type_payload()))
+        # Long premise drives class 0 (fact); confidence above the 0.3 gate.
+        threshold, conf = clf.predict_threshold("A" * 400, "B" * 5)
+        assert threshold == pytest.approx(0.30)
+        assert conf >= 0.3
+
+    def test_softmax_sums_to_one(self, tmp_path):
+        clf = DatasetTypeClassifier(_write_json(tmp_path, _dataset_type_payload()))
+        proba = clf._predict_proba(extract_text_features("A" * 50, "B" * 50))
+        assert proba.sum() == pytest.approx(1.0)
+        assert len(proba) == 3
+
+    def test_below_gate_returns_none(self, tmp_path):
+        clf = DatasetTypeClassifier(_write_json(tmp_path, _dataset_type_payload()))
+        clf._confidence_gate = 0.99
+        threshold, conf = clf.predict_threshold("A" * 50, "B" * 50)
+        assert threshold is None
         assert 0.0 <= conf <= 1.0
 
-    def test_low_confidence_returns_none(self, tmp_path):
-        path = _make_dataset_type_bundle(tmp_path)
-        clf = DatasetTypeClassifier(path)
-        clf._confidence_gate = 0.99  # force gate too high
-        threshold, conf = clf.predict_threshold("A" * 100, "B" * 20)
+    def test_no_label_names_falls_back(self, tmp_path):
+        payload = _dataset_type_payload()
+        payload["label_names"] = None
+        clf = DatasetTypeClassifier(_write_json(tmp_path, payload))
+        threshold, conf = clf.predict_threshold("A" * 400, "B" * 5)
         assert threshold is None
+        assert conf >= 0.0
 
-    def test_backward_compat_alias(self):
-        assert MetaClassifier is DatasetTypeClassifier
+    def test_missing_dataset_name_returns_none(self, tmp_path):
+        payload = _dataset_type_payload()
+        payload["dataset_thresholds"] = {"legal": 0.62}  # 'fact' (class 0) absent
+        clf = DatasetTypeClassifier(_write_json(tmp_path, payload))
+        threshold, conf = clf.predict_threshold("A" * 400, "B" * 5)
+        assert threshold is None
+        assert conf >= 0.3
+
+    def test_no_thresholds_returns_none(self, tmp_path):
+        payload = _dataset_type_payload()
+        payload["dataset_thresholds"] = None
+        clf = DatasetTypeClassifier(_write_json(tmp_path, payload))
+        threshold, conf = clf.predict_threshold("A" * 50, "B" * 50)
+        assert threshold is None
+        assert conf == 0.0
+
+
+class TestBundledArtefact:
+    def test_bundled_json_loads_and_predicts(self):
+        from pathlib import Path
+
+        import director_ai.core.scoring.meta_classifier as meta_mod
+
+        bundled = (
+            Path(meta_mod.__file__).parent.parent
+            / "models"
+            / "dataset_type_classifier.json"
+        )
+        clf = DatasetTypeClassifier(str(bundled))
+        proba = clf._predict_proba(
+            extract_text_features("The capital of France is Paris.", "Paris.")
+        )
+        assert proba.sum() == pytest.approx(1.0)
+        assert len(proba) == 11
+        threshold, conf = clf.predict_threshold(
+            "The capital of France is Paris.", "Paris is the capital."
+        )
+        assert 0.0 <= conf <= 1.0
+        if threshold is not None:
+            assert 0.0 < threshold < 1.0
+
+    def test_bundled_artefact_is_v1_format(self):
+        from pathlib import Path
+
+        import director_ai.core.scoring.meta_classifier as meta_mod
+
+        bundled = (
+            Path(meta_mod.__file__).parent.parent
+            / "models"
+            / "dataset_type_classifier.json"
+        )
+        payload = json.loads(bundled.read_text(encoding="utf-8"))
+        assert payload["format"] == "director.dataset_type_classifier.v1"
+        assert payload["mode"] == "dataset_type"
+
+
+def test_backward_compat_alias():
+    assert MetaClassifier is DatasetTypeClassifier
