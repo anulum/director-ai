@@ -26,12 +26,15 @@ from .callbacks import (
     TokenTraceEmitter,
     TokenTraceEvent,
 )
+from .kpis import KpiReport, compute_kpis
 from .tracing import trace_token
 
 __all__ = [
+    "KpiReport",
     "LangfuseTokenCallback",
     "TokenTraceCallback",
     "TokenTraceEmitter",
     "TokenTraceEvent",
+    "compute_kpis",
     "trace_token",
 ]
