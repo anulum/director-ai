@@ -43,7 +43,7 @@ Usage::
 from __future__ import annotations
 
 import logging
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
@@ -55,6 +55,7 @@ from director_ai.core.financial_services import (
     assess_banking_response,
 )
 from director_ai.core.scoring.verified_scorer import VerifiedScorer
+from director_ai.core.streaming_repair import RepairResult
 from director_ai.core.types import CoherenceScore, InjectionResult
 
 if TYPE_CHECKING:
@@ -328,6 +329,46 @@ class ProductionGuard:
             manifest=manifest,
             execution_log=execution_log,
         )
+
+    def repair_stream(
+        self,
+        prompt: str,
+        response: str,
+        *,
+        tenant_id: str = "",
+        request_id: str = "",
+        rewrite_fn: Callable[[str, list[str]], str] | None = None,
+        threshold: float | None = None,
+    ) -> RepairResult:
+        """Repair unsupported clauses in a generated response.
+
+        Turns a coherence halt into a corrective pass: each clause is scored
+        against the knowledge base, and an unsupported clause is rewritten from
+        retrieved corrective evidence (when ``rewrite_fn`` is supplied and
+        evidence is found) or redacted, leaving the supported clauses intact.
+        Returns a :class:`RepairResult` with the corrected text, per-clause
+        actions, and a tenant-safe repair event per fix.
+        """
+        from director_ai.core.streaming_repair import StreamingRepairer
+
+        def _score_clause(clause: str) -> float:
+            return self._scorer.review(prompt, clause, tenant_id=tenant_id)[1].score
+
+        def _retrieve(clause: str) -> list[Any]:
+            getter = getattr(self._store, "retrieve_context_with_chunks", None)
+            if getter is None:
+                return []
+            return list(getter(clause, tenant_id=tenant_id))
+
+        repairer = StreamingRepairer(
+            _score_clause,
+            threshold=(
+                threshold if threshold is not None else self._config.coherence_threshold
+            ),
+            retrieve_fn=_retrieve,
+            rewrite_fn=rewrite_fn,
+        )
+        return repairer.repair(response, tenant_id=tenant_id, request_id=request_id)
 
     @property
     def scorer(self) -> CoherenceScorer:
