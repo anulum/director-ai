@@ -2,23 +2,26 @@
   "SPDX-License-Identifier": "AGPL-3.0-or-later",
   "counts": {
     "github_workflows": 11,
-    "model_documentation_pages": 51,
+    "model_documentation_pages": 63,
     "optional_extras": 53,
     "public_api_exports": 216,
-    "public_documentation_pages": 146,
-    "python_model_classes": 728,
-    "python_model_source_modules": 316,
+    "public_documentation_pages": 158,
+    "python_model_classes": 782,
+    "python_model_source_modules": 347,
     "rust_pyo3_model_wrappers": 78,
-    "test_files": 416
+    "test_files": 437
   },
   "documentation": {
     "public_pages": [
       "docs-site/api/adaptive-threshold.md",
       "docs-site/api/agent-passport-registry.md",
+      "docs-site/api/agent-preflight.md",
       "docs-site/api/agent.md",
+      "docs-site/api/answer-bom.md",
       "docs-site/api/batch.md",
       "docs-site/api/byzantine-consensus.md",
       "docs-site/api/cache.md",
+      "docs-site/api/canary-facts.md",
       "docs-site/api/causal-attribution.md",
       "docs-site/api/cli.md",
       "docs-site/api/config.md",
@@ -32,6 +35,9 @@
       "docs-site/api/director-safety-protocol.md",
       "docs-site/api/edge-runtime-readiness.md",
       "docs-site/api/enterprise.md",
+      "docs-site/api/eval-trace.md",
+      "docs-site/api/evidence-firewall.md",
+      "docs-site/api/evidence-packet.md",
       "docs-site/api/exceptions.md",
       "docs-site/api/federated-safety-signals.md",
       "docs-site/api/financial-services.md",
@@ -45,22 +51,28 @@
       "docs-site/api/injection-detector.md",
       "docs-site/api/interlock-kernel.md",
       "docs-site/api/knowledge.md",
+      "docs-site/api/labelling-cockpit.md",
+      "docs-site/api/mechanistic-interpretability.md",
       "docs-site/api/meta-guard.md",
       "docs-site/api/multimodal-checks.md",
       "docs-site/api/neuro-symbolic-verifier.md",
       "docs-site/api/nli.md",
       "docs-site/api/policy-evaluation.md",
       "docs-site/api/private-score-release.md",
+      "docs-site/api/provenance-ledger.md",
+      "docs-site/api/risk-adaptive-threshold.md",
       "docs-site/api/safety-event-schema.md",
       "docs-site/api/sanitizer.md",
       "docs-site/api/scorer.md",
       "docs-site/api/self-improving-guard-loop.md",
       "docs-site/api/server.md",
+      "docs-site/api/streaming-repair.md",
       "docs-site/api/streaming.md",
       "docs-site/api/sustainability-scoring.md",
       "docs-site/api/synthetic-distillation.md",
       "docs-site/api/trajectory-preflight.md",
       "docs-site/api/types.md",
+      "docs-site/api/uncertainty-routing.md",
       "docs-site/api/vector-store.md",
       "docs-site/api/verified-scorer.md",
       "docs-site/api/zk-attestation.md",
@@ -182,10 +194,13 @@
     "documentation_pages": [
       "adaptive-threshold.md",
       "agent-passport-registry.md",
+      "agent-preflight.md",
       "agent.md",
+      "answer-bom.md",
       "batch.md",
       "byzantine-consensus.md",
       "cache.md",
+      "canary-facts.md",
       "causal-attribution.md",
       "cli.md",
       "config.md",
@@ -199,6 +214,9 @@
       "director-safety-protocol.md",
       "edge-runtime-readiness.md",
       "enterprise.md",
+      "eval-trace.md",
+      "evidence-firewall.md",
+      "evidence-packet.md",
       "exceptions.md",
       "federated-safety-signals.md",
       "financial-services.md",
@@ -212,22 +230,28 @@
       "injection-detector.md",
       "interlock-kernel.md",
       "knowledge.md",
+      "labelling-cockpit.md",
+      "mechanistic-interpretability.md",
       "meta-guard.md",
       "multimodal-checks.md",
       "neuro-symbolic-verifier.md",
       "nli.md",
       "policy-evaluation.md",
       "private-score-release.md",
+      "provenance-ledger.md",
+      "risk-adaptive-threshold.md",
       "safety-event-schema.md",
       "sanitizer.md",
       "scorer.md",
       "self-improving-guard-loop.md",
       "server.md",
+      "streaming-repair.md",
       "streaming.md",
       "sustainability-scoring.md",
       "synthetic-distillation.md",
       "trajectory-preflight.md",
       "types.md",
+      "uncertainty-routing.md",
       "vector-store.md",
       "verified-scorer.md",
       "zk-attestation.md"
@@ -248,6 +272,14 @@
       {
         "name": "Action",
         "path": "src/director_ai/core/multi_scale_alignment/scorer.py"
+      },
+      {
+        "name": "ActivationProvider",
+        "path": "src/director_ai/core/interpretability/redeep.py"
+      },
+      {
+        "name": "ActiveLabellingCockpit",
+        "path": "src/director_ai/core/labelling_cockpit/cockpit.py"
       },
       {
         "name": "Actor",
@@ -326,6 +358,10 @@
         "path": "src/director_ai/core/agent_identity/registry.py"
       },
       {
+        "name": "AgentPreflightGuard",
+        "path": "src/director_ai/core/agent_preflight/guard.py"
+      },
+      {
         "name": "AgentProfile",
         "path": "src/director_ai/agentic/agent_profile.py"
       },
@@ -352,6 +388,10 @@
       {
         "name": "And",
         "path": "src/director_ai/core/formal_verification/formula.py"
+      },
+      {
+        "name": "AnswerBOM",
+        "path": "src/director_ai/core/answer_bom/manifest.py"
       },
       {
         "name": "AnthropicProvider",
@@ -530,6 +570,22 @@
         "path": "src/director_ai/core/calibration/online_calibrator.py"
       },
       {
+        "name": "CanaryDetector",
+        "path": "src/director_ai/core/canary/detector.py"
+      },
+      {
+        "name": "CanaryFact",
+        "path": "src/director_ai/core/canary/registry.py"
+      },
+      {
+        "name": "CanaryRegistry",
+        "path": "src/director_ai/core/canary/registry.py"
+      },
+      {
+        "name": "CanarySignal",
+        "path": "src/director_ai/core/canary/detector.py"
+      },
+      {
         "name": "CarbonIntensityTracker",
         "path": "src/director_ai/core/sustainability/carbon.py"
       },
@@ -550,12 +606,24 @@
         "path": "src/director_ai/core/causal_verifier/graph.py"
       },
       {
+        "name": "CheckOutcome",
+        "path": "src/director_ai/core/evidence_firewall/policy.py"
+      },
+      {
         "name": "ChromaBackend",
         "path": "src/director_ai/core/retrieval/vector_store/embedding.py"
       },
       {
         "name": "ChunkConfig",
         "path": "src/director_ai/core/retrieval/doc_chunker.py"
+      },
+      {
+        "name": "ChunkProvenance",
+        "path": "src/director_ai/core/provenance/ledger.py"
+      },
+      {
+        "name": "ChunkVerdict",
+        "path": "src/director_ai/core/evidence_firewall/firewall.py"
       },
       {
         "name": "CitationFact",
@@ -576,6 +644,10 @@
       {
         "name": "ClaimAttribution",
         "path": "src/director_ai/core/types.py"
+      },
+      {
+        "name": "ClaimRecord",
+        "path": "src/director_ai/core/answer_bom/manifest.py"
       },
       {
         "name": "ClaimRelation",
@@ -774,12 +846,24 @@
         "path": "src/director_ai/core/continual_adversarial/engine.py"
       },
       {
+        "name": "ContradictionExplainer",
+        "path": "src/director_ai/core/causal_verifier/contradiction_explainer.py"
+      },
+      {
+        "name": "ContradictionExplanation",
+        "path": "src/director_ai/core/causal_verifier/contradiction_explainer.py"
+      },
+      {
         "name": "ContradictionKeywordRule",
         "path": "src/director_ai/core/scoring/rules_scorer.py"
       },
       {
         "name": "ContradictionPair",
         "path": "src/director_ai/core/runtime/contradiction_tracker.py"
+      },
+      {
+        "name": "ContradictionReport",
+        "path": "src/director_ai/core/causal_verifier/contradiction_explainer.py"
       },
       {
         "name": "ContradictionReport",
@@ -832,6 +916,10 @@
       {
         "name": "CounterfactualVerifier",
         "path": "src/director_ai/core/causal_verifier/counterfactual.py"
+      },
+      {
+        "name": "CredibilityFeedbackLoop",
+        "path": "src/director_ai/core/provenance/credibility_feedback.py"
       },
       {
         "name": "CrewGuardian",
@@ -1134,8 +1222,16 @@
         "path": "src/director_ai/core/scoring/rules_scorer.py"
       },
       {
+        "name": "ErrorBreakdown",
+        "path": "src/director_ai/core/labelling_cockpit/cockpit.py"
+      },
+      {
         "name": "EvidenceChunk",
         "path": "src/director_ai/core/types.py"
+      },
+      {
+        "name": "EvidenceFirewall",
+        "path": "src/director_ai/core/evidence_firewall/firewall.py"
       },
       {
         "name": "EvolutionCycle",
@@ -1260,6 +1356,22 @@
       {
         "name": "FinetuneResult",
         "path": "src/director_ai/core/training/finetune.py"
+      },
+      {
+        "name": "FirewallContext",
+        "path": "src/director_ai/core/evidence_firewall/policy.py"
+      },
+      {
+        "name": "FirewallPolicy",
+        "path": "src/director_ai/core/evidence_firewall/policy.py"
+      },
+      {
+        "name": "FirewallReport",
+        "path": "src/director_ai/core/evidence_firewall/firewall.py"
+      },
+      {
+        "name": "FirewallSettings",
+        "path": "src/director_ai/core/evidence_firewall/factory.py"
       },
       {
         "name": "Forecast",
@@ -1430,6 +1542,14 @@
         "path": "src/director_ai/core/multimodal_guard/encoders.py"
       },
       {
+        "name": "HeadContribution",
+        "path": "src/director_ai/core/interpretability/redeep.py"
+      },
+      {
+        "name": "HeadSignal",
+        "path": "src/director_ai/core/interpretability/redeep.py"
+      },
+      {
         "name": "HealthResponse",
         "path": "src/director_ai/_server_models.py"
       },
@@ -1524,6 +1644,10 @@
       {
         "name": "InMemoryFeedbackStore",
         "path": "src/director_ai/core/self_evolving/feedback.py"
+      },
+      {
+        "name": "InclusionProof",
+        "path": "src/director_ai/core/provenance/content_commitment.py"
       },
       {
         "name": "InferenceHookDecision",
@@ -1670,6 +1794,14 @@
         "path": "src/director_ai/core/knowledge_graph/graph.py"
       },
       {
+        "name": "KnowledgeProvenanceLedger",
+        "path": "src/director_ai/core/provenance/ledger.py"
+      },
+      {
+        "name": "KnowledgeSupersessionPolicy",
+        "path": "src/director_ai/core/provenance/supersession.py"
+      },
+      {
         "name": "LLMGenerator",
         "path": "src/director_ai/core/actor.py"
       },
@@ -1680,6 +1812,10 @@
       {
         "name": "LLMProvider",
         "path": "src/director_ai/integrations/providers.py"
+      },
+      {
+        "name": "LabelItem",
+        "path": "src/director_ai/core/labelling_cockpit/items.py"
       },
       {
         "name": "LabelledPolicySample",
@@ -1694,8 +1830,24 @@
         "path": "src/director_ai/core/federated_privacy/mechanisms.py"
       },
       {
+        "name": "LayerContribution",
+        "path": "src/director_ai/core/interpretability/redeep.py"
+      },
+      {
+        "name": "LayerSignal",
+        "path": "src/director_ai/core/interpretability/redeep.py"
+      },
+      {
         "name": "LeanBackend",
         "path": "src/director_ai/core/formal_verification/verifier.py"
+      },
+      {
+        "name": "LedgerEvent",
+        "path": "src/director_ai/core/provenance/ledger.py"
+      },
+      {
+        "name": "LedgerTamperError",
+        "path": "src/director_ai/core/provenance/ledger.py"
       },
       {
         "name": "LengthRatioRule",
@@ -1744,6 +1896,14 @@
       {
         "name": "MaximumHaltRate",
         "path": "src/director_ai/core/zk_attestation/statements.py"
+      },
+      {
+        "name": "MechanisticAttributionReport",
+        "path": "src/director_ai/core/interpretability/redeep.py"
+      },
+      {
+        "name": "MechanisticAttributor",
+        "path": "src/director_ai/core/interpretability/redeep.py"
       },
       {
         "name": "MerkleCommitment",
@@ -1884,6 +2044,14 @@
       {
         "name": "MultimodalClaim",
         "path": "src/director_ai/core/multimodal_guard/claim.py"
+      },
+      {
+        "name": "MultimodalDetectRequest",
+        "path": "src/director_ai/_server_models.py"
+      },
+      {
+        "name": "MultimodalDetectResponse",
+        "path": "src/director_ai/_server_models.py"
       },
       {
         "name": "MultimodalGuard",
@@ -2158,6 +2326,10 @@
         "path": "src/director_ai/core/retrieval/vector_store/vendors.py"
       },
       {
+        "name": "PoisonScanner",
+        "path": "src/director_ai/core/evidence_firewall/poison.py"
+      },
+      {
         "name": "PolarActivationInfo",
         "path": "src/director_ai/core/polar_license.py"
       },
@@ -2236,6 +2408,14 @@
       {
         "name": "PredictivePreHaltSteering",
         "path": "src/director_ai/core/trajectory/steering.py"
+      },
+      {
+        "name": "PreflightDecision",
+        "path": "src/director_ai/core/agent_preflight/decision.py"
+      },
+      {
+        "name": "PreflightPolicy",
+        "path": "src/director_ai/core/agent_preflight/policy.py"
       },
       {
         "name": "PreflightVerdict",
@@ -2406,12 +2586,24 @@
         "path": "src/director_ai/core/retrieval/vector_store/remanentia.py"
       },
       {
+        "name": "RepairAction",
+        "path": "src/director_ai/core/streaming_repair/repair.py"
+      },
+      {
+        "name": "RepairResult",
+        "path": "src/director_ai/core/streaming_repair/repair.py"
+      },
+      {
         "name": "RerankedBackend",
         "path": "src/director_ai/core/retrieval/vector_store/composite.py"
       },
       {
         "name": "ResourcePool",
         "path": "src/director_ai/core/swarm_economics/pool.py"
+      },
+      {
+        "name": "RetrievedChunk",
+        "path": "src/director_ai/core/evidence_firewall/chunk.py"
       },
       {
         "name": "ReversibilityEstimator",
@@ -2446,6 +2638,10 @@
         "path": "src/director_ai/core/guard_control/no_go.py"
       },
       {
+        "name": "RiskAdaptiveThreshold",
+        "path": "src/director_ai/core/risk_threshold/adapter.py"
+      },
+      {
         "name": "RiskBudget",
         "path": "src/director_ai/core/routing/budget.py"
       },
@@ -2458,12 +2654,24 @@
         "path": "src/director_ai/core/guard_control/decision.py"
       },
       {
+        "name": "RiskFactors",
+        "path": "src/director_ai/core/risk_threshold/factors.py"
+      },
+      {
         "name": "RiskRouter",
         "path": "src/director_ai/core/routing/router.py"
       },
       {
         "name": "RiskScorerProtocol",
         "path": "src/director_ai/core/routing/router.py"
+      },
+      {
+        "name": "RiskThresholdDecision",
+        "path": "src/director_ai/core/risk_threshold/adapter.py"
+      },
+      {
+        "name": "RiskThresholdPolicy",
+        "path": "src/director_ai/core/risk_threshold/policy.py"
       },
       {
         "name": "RobustnessReport",
@@ -2718,6 +2926,10 @@
         "path": "src/director_ai/core/runtime/streaming.py"
       },
       {
+        "name": "StreamingRepairer",
+        "path": "src/director_ai/core/streaming_repair/repair.py"
+      },
+      {
         "name": "StructuredRecoveryConfig",
         "path": "src/director_ai/core/runtime/structured_recovery.py"
       },
@@ -2740,6 +2952,18 @@
       {
         "name": "SuiteVersion",
         "path": "src/director_ai/core/continual_adversarial/suite.py"
+      },
+      {
+        "name": "SupersessionCandidate",
+        "path": "src/director_ai/core/provenance/supersession.py"
+      },
+      {
+        "name": "SupersessionDecision",
+        "path": "src/director_ai/core/provenance/supersession.py"
+      },
+      {
+        "name": "SupersessionResult",
+        "path": "src/director_ai/core/ingestion/pipeline.py"
       },
       {
         "name": "SustainabilityBudget",
@@ -2852,6 +3076,14 @@
       {
         "name": "ThresholdFeedback",
         "path": "src/director_ai/core/calibration/adaptive_threshold.py"
+      },
+      {
+        "name": "ThresholdPoint",
+        "path": "src/director_ai/core/labelling_cockpit/cockpit.py"
+      },
+      {
+        "name": "ThresholdRecommendation",
+        "path": "src/director_ai/core/labelling_cockpit/cockpit.py"
       },
       {
         "name": "TokenEnergyCostEstimator",
@@ -3030,6 +3262,14 @@
         "path": "src/director_ai/_server_models.py"
       },
       {
+        "name": "UncertaintyDecision",
+        "path": "src/director_ai/core/routing/uncertainty_router.py"
+      },
+      {
+        "name": "UncertaintyRouter",
+        "path": "src/director_ai/core/routing/uncertainty_router.py"
+      },
+      {
         "name": "UnsupportedKinematicsError",
         "path": "src/director_ai/core/cyber_physical/kinematics.py"
       },
@@ -3176,6 +3416,11 @@
       "src/director_ai/core/agent_identity/fingerprint.py",
       "src/director_ai/core/agent_identity/passport.py",
       "src/director_ai/core/agent_identity/registry.py",
+      "src/director_ai/core/agent_preflight/decision.py",
+      "src/director_ai/core/agent_preflight/guard.py",
+      "src/director_ai/core/agent_preflight/policy.py",
+      "src/director_ai/core/answer_bom/builder.py",
+      "src/director_ai/core/answer_bom/manifest.py",
       "src/director_ai/core/async_streaming.py",
       "src/director_ai/core/attribution/causal_graph.py",
       "src/director_ai/core/audit.py",
@@ -3190,6 +3435,9 @@
       "src/director_ai/core/calibration/conformal.py",
       "src/director_ai/core/calibration/feedback_store.py",
       "src/director_ai/core/calibration/online_calibrator.py",
+      "src/director_ai/core/canary/detector.py",
+      "src/director_ai/core/canary/registry.py",
+      "src/director_ai/core/causal_verifier/contradiction_explainer.py",
       "src/director_ai/core/causal_verifier/counterfactual.py",
       "src/director_ai/core/causal_verifier/graph.py",
       "src/director_ai/core/causal_verifier/intervention.py",
@@ -3233,7 +3481,16 @@
       "src/director_ai/core/emergence_oracle/graph.py",
       "src/director_ai/core/emergence_oracle/oracle.py",
       "src/director_ai/core/emergence_oracle/spectrum.py",
+      "src/director_ai/core/eval_trace/attributes.py",
+      "src/director_ai/core/eval_trace/tracer.py",
       "src/director_ai/core/evaluation/policy.py",
+      "src/director_ai/core/evidence_firewall/checks.py",
+      "src/director_ai/core/evidence_firewall/chunk.py",
+      "src/director_ai/core/evidence_firewall/factory.py",
+      "src/director_ai/core/evidence_firewall/firewall.py",
+      "src/director_ai/core/evidence_firewall/poison.py",
+      "src/director_ai/core/evidence_firewall/policy.py",
+      "src/director_ai/core/evidence_packet/packet.py",
       "src/director_ai/core/exceptions.py",
       "src/director_ai/core/federated_privacy/accountant.py",
       "src/director_ai/core/federated_privacy/aggregator.py",
@@ -3253,6 +3510,7 @@
       "src/director_ai/core/guard_control/decision.py",
       "src/director_ai/core/guard_control/no_go.py",
       "src/director_ai/core/ingestion/pipeline.py",
+      "src/director_ai/core/interpretability/redeep.py",
       "src/director_ai/core/irreversibility/forecaster.py",
       "src/director_ai/core/irreversibility/reversibility.py",
       "src/director_ai/core/kb_write_security.py",
@@ -3261,6 +3519,8 @@
       "src/director_ai/core/knowledge_graph/graph.py",
       "src/director_ai/core/knowledge_graph/policy.py",
       "src/director_ai/core/knowledge_graph/validator.py",
+      "src/director_ai/core/labelling_cockpit/cockpit.py",
+      "src/director_ai/core/labelling_cockpit/items.py",
       "src/director_ai/core/license.py",
       "src/director_ai/core/lite_scorer.py",
       "src/director_ai/core/mandatory.py",
@@ -3278,6 +3538,7 @@
       "src/director_ai/core/multimodal_guard/adapter.py",
       "src/director_ai/core/multimodal_guard/claim.py",
       "src/director_ai/core/multimodal_guard/encoders.py",
+      "src/director_ai/core/multimodal_guard/factory.py",
       "src/director_ai/core/multimodal_guard/guard.py",
       "src/director_ai/core/multimodal_guard/verifier.py",
       "src/director_ai/core/nli.py",
@@ -3293,9 +3554,13 @@
       "src/director_ai/core/policy_compiler/registry.py",
       "src/director_ai/core/policy_compiler/rule.py",
       "src/director_ai/core/provenance/chain.py",
+      "src/director_ai/core/provenance/content_commitment.py",
       "src/director_ai/core/provenance/credibility.py",
+      "src/director_ai/core/provenance/credibility_feedback.py",
       "src/director_ai/core/provenance/facts.py",
+      "src/director_ai/core/provenance/ledger.py",
       "src/director_ai/core/provenance/merkle.py",
+      "src/director_ai/core/provenance/supersession.py",
       "src/director_ai/core/provenance/verifier.py",
       "src/director_ai/core/retrieval/adaptive_router.py",
       "src/director_ai/core/retrieval/conflict_guard.py",
@@ -3322,9 +3587,13 @@
       "src/director_ai/core/retrieval/vector_store/store.py",
       "src/director_ai/core/retrieval/vector_store/vendors.py",
       "src/director_ai/core/review_queue.py",
+      "src/director_ai/core/risk_threshold/adapter.py",
+      "src/director_ai/core/risk_threshold/factors.py",
+      "src/director_ai/core/risk_threshold/policy.py",
       "src/director_ai/core/routing/budget.py",
       "src/director_ai/core/routing/router.py",
       "src/director_ai/core/routing/scorer.py",
+      "src/director_ai/core/routing/uncertainty_router.py",
       "src/director_ai/core/runtime/async_streaming.py",
       "src/director_ai/core/runtime/batch.py",
       "src/director_ai/core/runtime/contradiction_tracker.py",
@@ -3376,6 +3645,8 @@
       "src/director_ai/core/sharded_nli.py",
       "src/director_ai/core/stats.py",
       "src/director_ai/core/streaming.py",
+      "src/director_ai/core/streaming_repair/clauses.py",
+      "src/director_ai/core/streaming_repair/repair.py",
       "src/director_ai/core/sustainability/budget.py",
       "src/director_ai/core/sustainability/carbon.py",
       "src/director_ai/core/sustainability/forecaster.py",
@@ -3820,7 +4091,7 @@
       "weaviate"
     ],
     "shipped_package_data": [
-      "core/models/*.pkl"
+      "core/models/*.json"
     ]
   },
   "project": {
@@ -3858,11 +4129,13 @@
       "tests/test_agent.py",
       "tests/test_agent_identity.py",
       "tests/test_agent_passport_registry.py",
+      "tests/test_agent_preflight.py",
       "tests/test_agent_profile.py",
       "tests/test_agent_providers.py",
       "tests/test_agent_safety_hooks.py",
       "tests/test_aggrefact_save_scores.py",
       "tests/test_airgap_install_example.py",
+      "tests/test_answer_bom.py",
       "tests/test_api_reference_index.py",
       "tests/test_async_streaming.py",
       "tests/test_async_streaming_edge.py",
@@ -3881,6 +4154,7 @@
       "tests/test_byzantine_consensus.py",
       "tests/test_cache.py",
       "tests/test_cache_concurrent.py",
+      "tests/test_canary.py",
       "tests/test_carbon.py",
       "tests/test_causal_attribution_graph.py",
       "tests/test_causal_verifier.py",
@@ -3912,9 +4186,11 @@
       "tests/test_consumer_api.py",
       "tests/test_containment.py",
       "tests/test_containment_timing_parity.py",
+      "tests/test_content_commitment.py",
       "tests/test_content_moderation_wrapper.py",
       "tests/test_contextual_compression.py",
       "tests/test_continual_adversarial.py",
+      "tests/test_contradiction_explainer.py",
       "tests/test_contradiction_tracker.py",
       "tests/test_correction_loop.py",
       "tests/test_cors_reverse_proxy_policy.py",
@@ -3922,6 +4198,7 @@
       "tests/test_cost_and_attribution.py",
       "tests/test_cost_integration.py",
       "tests/test_credibility_campaign.py",
+      "tests/test_credibility_feedback.py",
       "tests/test_crewai_integration.py",
       "tests/test_crewai_swarm.py",
       "tests/test_cross_document_memory.py",
@@ -3972,7 +4249,10 @@
       "tests/test_emergence_oracle.py",
       "tests/test_enterprise.py",
       "tests/test_enterprise_modules.py",
+      "tests/test_eval_trace.py",
       "tests/test_evidence.py",
+      "tests/test_evidence_firewall.py",
+      "tests/test_evidence_packet.py",
       "tests/test_exceptions.py",
       "tests/test_experimental_deployment_docs.py",
       "tests/test_experimental_namespace.py",
@@ -4029,6 +4309,7 @@
       "tests/test_inference_server_hooks.py",
       "tests/test_ingest.py",
       "tests/test_ingestion_pipeline.py",
+      "tests/test_ingestion_pipeline_provenance.py",
       "tests/test_ingestion_plugins.py",
       "tests/test_injection_detector.py",
       "tests/test_injection_integration.py",
@@ -4049,6 +4330,7 @@
       "tests/test_knowledge_edge_cases.py",
       "tests/test_knowledge_graph.py",
       "tests/test_knowledge_write_security.py",
+      "tests/test_labelling_cockpit.py",
       "tests/test_langchain_callback.py",
       "tests/test_langchain_real_sdk.py",
       "tests/test_langgraph_integration.py",
@@ -4077,6 +4359,7 @@
       "tests/test_loop_monitor.py",
       "tests/test_managed_training_jobs.py",
       "tests/test_mandatory_runtime_policy.py",
+      "tests/test_mechanistic_interpretability.py",
       "tests/test_meta_classifier.py",
       "tests/test_meta_confidence.py",
       "tests/test_meta_guard.py",
@@ -4091,6 +4374,7 @@
       "tests/test_multi_vector.py",
       "tests/test_multilingual_corpus.py",
       "tests/test_multimodal_check_adapter.py",
+      "tests/test_multimodal_factory.py",
       "tests/test_multimodal_guard.py",
       "tests/test_multimodal_temporal_evidence.py",
       "tests/test_neuro_symbolic_verifier.py",
@@ -4144,6 +4428,7 @@
       "tests/test_proto_serialization.py",
       "tests/test_provenance.py",
       "tests/test_provenance_evidence.py",
+      "tests/test_provenance_ledger.py",
       "tests/test_providers.py",
       "tests/test_proxy.py",
       "tests/test_proxy_audit.py",
@@ -4165,6 +4450,7 @@
       "tests/test_reranker.py",
       "tests/test_retrieval_benchmark_quality.py",
       "tests/test_review_queue.py",
+      "tests/test_risk_threshold.py",
       "tests/test_roadmap_reconciliation.py",
       "tests/test_rules_scorer.py",
       "tests/test_run_judge_benchmark.py",
@@ -4181,6 +4467,7 @@
       "tests/test_safety_ops_mixin.py",
       "tests/test_safety_protocol.py",
       "tests/test_sanitizer.py",
+      "tests/test_sbom_generation.py",
       "tests/test_scorer_backend.py",
       "tests/test_scorer_edge_cases.py",
       "tests/test_scorer_model_choices.py",
@@ -4199,7 +4486,9 @@
       "tests/test_server_contracts.py",
       "tests/test_server_feedback.py",
       "tests/test_server_helpers.py",
+      "tests/test_server_multimodal.py",
       "tests/test_server_tenant.py",
+      "tests/test_server_ws_dos.py",
       "tests/test_server_ws_mux.py",
       "tests/test_session.py",
       "tests/test_sharded_nli.py",
@@ -4212,9 +4501,11 @@
       "tests/test_streaming_false_halt_benchmark_quality.py",
       "tests/test_streaming_halt_evidence.py",
       "tests/test_streaming_nli_failure.py",
+      "tests/test_streaming_repair.py",
       "tests/test_stress_cli.py",
       "tests/test_structured_halt_recovery.py",
       "tests/test_summarization_bidir.py",
+      "tests/test_supersession.py",
       "tests/test_sustainability.py",
       "tests/test_sustainability_forecaster.py",
       "tests/test_sustainability_policy_adapter.py",
@@ -4240,6 +4531,7 @@
       "tests/test_trajectory_simulator.py",
       "tests/test_tune.py",
       "tests/test_types.py",
+      "tests/test_uncertainty_router.py",
       "tests/test_v320_hardening.py",
       "tests/test_v330_hardening.py",
       "tests/test_validate_external_security_run.py",
