@@ -6,10 +6,10 @@
     "optional_extras": 53,
     "public_api_exports": 216,
     "public_documentation_pages": 158,
-    "python_model_classes": 782,
-    "python_model_source_modules": 347,
+    "python_model_classes": 783,
+    "python_model_source_modules": 348,
     "rust_pyo3_model_wrappers": 78,
-    "test_files": 437
+    "test_files": 439
   },
   "documentation": {
     "public_pages": [
@@ -1802,6 +1802,10 @@
         "path": "src/director_ai/core/provenance/supersession.py"
       },
       {
+        "name": "KpiReport",
+        "path": "src/director_ai/core/observability/kpis.py"
+      },
+      {
         "name": "LLMGenerator",
         "path": "src/director_ai/core/actor.py"
       },
@@ -3543,6 +3547,7 @@
       "src/director_ai/core/multimodal_guard/verifier.py",
       "src/director_ai/core/nli.py",
       "src/director_ai/core/observability/callbacks.py",
+      "src/director_ai/core/observability/kpis.py",
       "src/director_ai/core/observability/tracing.py",
       "src/director_ai/core/ontology/checker.py",
       "src/director_ai/core/ontology/graph.py",
@@ -4389,6 +4394,7 @@
       "tests/test_notebook_gallery.py",
       "tests/test_numeric_verifier.py",
       "tests/test_observability.py",
+      "tests/test_observability_kpis.py",
       "tests/test_observability_pack.py",
       "tests/test_online_calibrator.py",
       "tests/test_onnx_artefact_guidance.py",
@@ -4474,6 +4480,7 @@
       "tests/test_scorer_validation.py",
       "tests/test_sdk_guard.py",
       "tests/test_sdk_guard_real_sdk.py",
+      "tests/test_security_exceptions.py",
       "tests/test_security_hardening.py",
       "tests/test_security_physical_risks.py",
       "tests/test_self_evolving.py",

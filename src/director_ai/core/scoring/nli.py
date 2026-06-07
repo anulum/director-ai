@@ -612,23 +612,11 @@ class NLIScorer:
                 )
                 self._model_loaded = True
                 return False
-            # Resolve the operator-supplied ONNX path to an absolute directory
-            # before handing it to the runtime, so an unresolved/relative or
-            # traversing path is never passed downstream. A path that does not
-            # resolve to a directory falls back to the heuristic (preserving the
-            # graceful bad-path contract) rather than loading from an arbitrary
-            # location.
-            onnx_dir = Path(self._onnx_path).expanduser().resolve()
-            if not onnx_dir.is_dir():
-                logger.warning(
-                    "onnx_path %s is not an existing directory — falling back "
-                    "to heuristic",
-                    onnx_dir,
-                )
-                self._model_loaded = True
-                return False
+            # Path-traversal safety is handled inside _load_onnx_session, which
+            # canonicalises the directory and enforces _is_relative_to on the
+            # resolved model file; a bad path falls back to the heuristic.
             self._tokenizer, self._onnx_session = _load_onnx_session(
-                str(onnx_dir),
+                self._onnx_path,
                 device=self._device,
             )
             self._onnx_batcher = OnnxDynamicBatcher(
