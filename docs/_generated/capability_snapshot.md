@@ -7,13 +7,13 @@
 |---|---:|
 | Package version | 3.15.3 |
 | Public API exports | 216 |
-| Python capability source modules | 361 |
-| Python capability classes | 833 |
-| API documentation pages | 72 |
+| Python capability source modules | 364 |
+| Python capability classes | 838 |
+| API documentation pages | 73 |
 | Rust PyO3 bindings | 78 |
 | Optional extras | 53 |
-| Python test files | 451 |
-| Public documentation pages | 167 |
+| Python test files | 452 |
+| Public documentation pages | 168 |
 | GitHub Actions workflows | 11 |
 
 Evidence boundary: this snapshot is a static inventory. Performance, coverage, hardware, and scientific-fidelity claims require their own committed evidence artefacts.

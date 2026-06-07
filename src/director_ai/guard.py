@@ -128,6 +128,7 @@ class ProductionGuard:
         self._self_healing: object | None = None
         self._dp_retrieval: object | None = None
         self._root_cause: object | None = None
+        self._output_trust: object | None = None
 
     @classmethod
     def from_profile(
@@ -557,6 +558,24 @@ class ProductionGuard:
 
             self._root_cause = HallucinationRootCauseAnalyzer()
         return self._root_cause
+
+    @property
+    def output_trust(self):
+        """Zero-trust output handling for untrusted model output (OWASP LLM05).
+
+        Encodes a model output for the specific
+        :class:`~director_ai.core.output_trust.OutputSink` it will enter (HTML,
+        shell argument, SQL identifier, filesystem path, JSON, URL query, email
+        header, log line) so one string cannot be an XSS payload in one context
+        and a command-injection payload in another, and flags constructs that
+        must never be executed or deserialised. Stateless; persists on the guard
+        only to avoid re-instantiation.
+        """
+        if self._output_trust is None:
+            from director_ai.core.output_trust import ZeroTrustOutputGuard
+
+            self._output_trust = ZeroTrustOutputGuard()
+        return self._output_trust
 
     @property
     def dp_retrieval(self):

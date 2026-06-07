@@ -2,14 +2,14 @@
   "SPDX-License-Identifier": "AGPL-3.0-or-later",
   "counts": {
     "github_workflows": 11,
-    "model_documentation_pages": 72,
+    "model_documentation_pages": 73,
     "optional_extras": 53,
     "public_api_exports": 216,
-    "public_documentation_pages": 167,
-    "python_model_classes": 833,
-    "python_model_source_modules": 361,
+    "public_documentation_pages": 168,
+    "python_model_classes": 838,
+    "python_model_source_modules": 364,
     "rust_pyo3_model_wrappers": 78,
-    "test_files": 451
+    "test_files": 452
   },
   "documentation": {
     "public_pages": [
@@ -84,6 +84,7 @@
       "docs-site/api/uncertainty-routing.md",
       "docs-site/api/vector-store.md",
       "docs-site/api/verified-scorer.md",
+      "docs-site/api/zero-trust-output.md",
       "docs-site/api/zk-attestation.md",
       "docs-site/benchmarks/external-validation-report.md",
       "docs-site/benchmarks/frontierfail-seed.md",
@@ -272,6 +273,7 @@
       "uncertainty-routing.md",
       "vector-store.md",
       "verified-scorer.md",
+      "zero-trust-output.md",
       "zk-attestation.md"
     ],
     "python_classes": [
@@ -1286,6 +1288,10 @@
       {
         "name": "EmergenceVerdict",
         "path": "src/director_ai/core/emergence_oracle/oracle.py"
+      },
+      {
+        "name": "EncodedOutput",
+        "path": "src/director_ai/core/output_trust/guard.py"
       },
       {
         "name": "EnsembleComponent",
@@ -2334,6 +2340,14 @@
       {
         "name": "Or",
         "path": "src/director_ai/core/temporal_logic/formula.py"
+      },
+      {
+        "name": "OutputExecutionRisk",
+        "path": "src/director_ai/core/output_trust/guard.py"
+      },
+      {
+        "name": "OutputSink",
+        "path": "src/director_ai/core/output_trust/sinks.py"
       },
       {
         "name": "PIIRedactionFinding",
@@ -3476,6 +3490,10 @@
         "path": "src/director_ai/core/routing/uncertainty_router.py"
       },
       {
+        "name": "UnsafeOutputError",
+        "path": "src/director_ai/core/output_trust/encoders.py"
+      },
+      {
         "name": "UnsupportedKinematicsError",
         "path": "src/director_ai/core/cyber_physical/kinematics.py"
       },
@@ -3602,6 +3620,10 @@
       {
         "name": "Z3Backend",
         "path": "src/director_ai/core/formal_verification/verifier.py"
+      },
+      {
+        "name": "ZeroTrustOutputGuard",
+        "path": "src/director_ai/core/output_trust/guard.py"
       },
       {
         "name": "ZkSnarkBackend",
@@ -3777,6 +3799,9 @@
       "src/director_ai/core/ontology/checker.py",
       "src/director_ai/core/ontology/graph.py",
       "src/director_ai/core/otel.py",
+      "src/director_ai/core/output_trust/encoders.py",
+      "src/director_ai/core/output_trust/guard.py",
+      "src/director_ai/core/output_trust/sinks.py",
       "src/director_ai/core/polar_license.py",
       "src/director_ai/core/policy.py",
       "src/director_ai/core/policy_compiler/compiler.py",
@@ -4641,6 +4666,7 @@
       "tests/test_optional_extra_lock_policy.py",
       "tests/test_orchestrator_environment_vertex_metadata.py",
       "tests/test_otel.py",
+      "tests/test_output_trust.py",
       "tests/test_paladin_mini.py",
       "tests/test_parent_child_backend.py",
       "tests/test_phase2_hardening.py",

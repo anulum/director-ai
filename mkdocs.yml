@@ -196,6 +196,7 @@ nav:
       - Self-Healing Threshold Controller: api/self-healing-controller.md
       - Active Labelling Cockpit: api/labelling-cockpit.md
       - Board-Level Guardrail KPIs: api/board-kpis.md
+      - Zero-Trust Output Handling: api/zero-trust-output.md
       - Conformal & Uncertainty Routing: api/uncertainty-routing.md
       - Operational Provenance Ledger: api/provenance-ledger.md
       - Mechanistic Interpretability (ReDeEP): api/mechanistic-interpretability.md
