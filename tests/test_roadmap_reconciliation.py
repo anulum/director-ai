@@ -36,29 +36,17 @@ def test_roadmap_status_lists_only_current_open_actionable_items() -> None:
         "Current open-item reconciliation lives in `docs/ROADMAP_STATUS.md`" in roadmap
     )
     assert "| R1 | Independent external security test" in status
-    for rid in [
-        "R1",
-        "R2",
-        "R3",
-        "R4",
-        "R5",
-        "R6",
-        "R7",
-        "R8",
-        "R9",
-        "R10",
-        "R11",
-        "R12",
-        "R13",
-        "R14",
-        "R15",
-        "R16",
-        "R17",
-    ]:
+    # R1-R7 are the operational public status items that stay public.
+    for rid in ["R1", "R2", "R3", "R4", "R5", "R6", "R7"]:
         assert f"| {rid} |" in status
-    assert "| R18 |" not in status
+    # R8-R17 (the competitive differentiator queue, each with its per-item
+    # "next evidence needed" forward plan) and the "Future And Strategic Items"
+    # table were moved to the internal TODO on 2026-06-07 to avoid premature
+    # disclosure of forward plans. They must not reappear in the public status.
+    for rid in ["R8", "R9", "R10", "R11", "R12", "R13", "R14", "R15", "R16", "R17"]:
+        assert f"| {rid} |" not in status
+    assert "tracked internally" in status
     assert "docs/internal/TODO_CONSOLIDATED.md" in status
-    assert "Future differentiator programme phases" in status
     assert "Older unchecked internal checklists" in status
 
 
