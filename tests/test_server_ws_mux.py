@@ -162,6 +162,71 @@ class TestWSAuthHeaders:
         assert exc.value.code == 1008
 
 
+class TestWSStreamingPreEgressHalt:
+    """streaming_oversight scores each token before it is forwarded.
+
+    Proves the visible /v1/stream path is token-level pre-egress interception,
+    not post-generation scoring of a finished answer.
+    """
+
+    class _FakeAgent:
+        """Agent stub yielding scripted (token, coherence) pairs."""
+
+        def __init__(self, tokens):
+            self._tokens = tokens
+
+        async def stream(self, prompt, tenant_id=""):
+            for tok, score in self._tokens:
+                yield tok, score
+
+    @staticmethod
+    def _app():
+        return create_app(config=DirectorConfig(use_nli=False, llm_provider="mock"))
+
+    def test_incremental_tokens_then_complete(self):
+        with TestClient(self._app()) as client:
+            client.app.state._state["agent"] = self._FakeAgent(
+                [("alpha", 0.9), ("beta", 0.85), ("gamma", 0.8)],
+            )
+            with client.websocket_connect("/v1/stream") as ws:
+                ws.send_json(
+                    {
+                        "prompt": "hi",
+                        "session_id": "s1",
+                        "streaming_oversight": True,
+                    },
+                )
+                msgs = [ws.receive_json() for _ in range(4)]
+        assert [m["type"] for m in msgs] == ["token", "token", "token", "complete"]
+        assert [m["token"] for m in msgs[:3]] == ["alpha", "beta", "gamma"]
+        assert msgs[-1]["halted"] is False
+        assert msgs[-1]["tokens_delivered"] == 3
+
+    def test_halt_suppresses_offending_token(self):
+        with TestClient(self._app()) as client:
+            client.app.state._state["agent"] = self._FakeAgent(
+                [("good", 0.9), ("ok", 0.8), ("bad", 0.2), ("never", 0.1)],
+            )
+            with client.websocket_connect("/v1/stream") as ws:
+                ws.send_json(
+                    {
+                        "prompt": "hi",
+                        "session_id": "s2",
+                        "streaming_oversight": True,
+                    },
+                )
+                msgs = [ws.receive_json() for _ in range(3)]
+        assert [m["type"] for m in msgs] == ["token", "token", "halt"]
+        delivered = [m["token"] for m in msgs if m["type"] == "token"]
+        assert delivered == ["good", "ok"]
+        # The low-coherence token is never delivered (pre-egress).
+        assert "bad" not in delivered and "never" not in delivered
+        halt = msgs[-1]
+        assert halt["halted"] is True
+        assert halt["tokens_delivered"] == 2
+        assert halt["reason"] == "coherence_halt"
+
+
 class TestTenantVectorFactEndpoint:
     def test_add_vector_fact(self, client):
         resp = client.post(

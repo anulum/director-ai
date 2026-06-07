@@ -2337,32 +2337,52 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
                 try:
                     from .core import StreamingKernel
 
+                    # Token-level pre-egress oversight. The WebSocket consumes
+                    # ``agent.stream()`` (per-token coherence) and applies its own
+                    # kernel as the egress gate: each token is scored *before* it
+                    # is forwarded, and the token that trips the halt is never
+                    # delivered. This is genuine pre-delivery interception, not
+                    # scoring a fully generated answer after the fact.
                     kernel = StreamingKernel(
                         hard_limit=cfg.hard_limit,
                         window_size=getattr(cfg, "window_size", 5),
                         window_threshold=getattr(cfg, "window_threshold", 0.5),
                     )
+                    kernel.reset_state()
                     cancel_event = data["_cancel_event"]
-                    result = await agent.aprocess(
+                    delivered = 0
+                    halted = False
+                    last_score = 1.0
+                    async for token, score in agent.stream(
                         prompt,
                         tenant_id=ws_tenant_id,
-                        cancel_event=cancel_event,
+                    ):
+                        if cancel_event.is_set():
+                            return
+                        last_score = score
+                        if kernel.check_halt(score):
+                            # Pre-egress: suppress the halting token entirely.
+                            halted = True
+                            break
+                        await _send(
+                            {
+                                "session_id": session_id,
+                                "type": "token",
+                                "token": token,
+                                "coherence": round(score, 4),
+                            },
+                        )
+                        delivered += 1
+                    await _send(
+                        {
+                            "session_id": session_id,
+                            "type": "halt" if halted else "complete",
+                            "halted": halted,
+                            "tokens_delivered": delivered,
+                            "coherence": round(last_score, 4),
+                            **({"reason": "coherence_halt"} if halted else {}),
+                        },
                     )
-                    if cancel_event.is_set():
-                        return
-                    coherence = result.coherence.score if result.coherence else 0.0
-                    halted = kernel.check_halt(coherence)
-                    halt_reason = "hard_limit" if halted else None
-                    msg = {
-                        "session_id": session_id,
-                        "type": "halt" if halted else "result",
-                        "output": result.output,
-                        "coherence": round(coherence, 4),
-                        "halted": halted,
-                    }
-                    if halt_reason:
-                        msg["reason"] = halt_reason
-                    await _send(msg)
                 except (
                     RuntimeError,
                     ValueError,
