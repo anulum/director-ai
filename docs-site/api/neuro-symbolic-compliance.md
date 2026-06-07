@@ -15,7 +15,7 @@ and relational *policy* constraints.
 1. **Formalise** — a natural-language policy becomes typed SMT constraints. This
    step is delegated to an injectable `PolicyFormaliser` (an LLM in production; a
    structured stub in tests). Two independent formalisations can be cross-checked
-   for logical equivalence to catch a mis-formalisation.
+   for logical equivalence to catch a faulty formalisation.
 2. **Check** — a candidate output's structured facts are checked against the
    constraints with Z3, producing a per-rule verdict with counterexamples.
 

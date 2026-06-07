@@ -13,8 +13,8 @@ constraints (the natural-language → SMT-LIB step is delegated to an injectable
 a candidate output's structured facts are checked against those constraints with
 Z3. The engine reports a per-constraint verdict with a concrete counterexample
 when a rule is violated, can cross-check that two independent formalisations are
-logically equivalent (catching a mis-formalisation), and emits the SMT-LIB text
-as an auditable artefact.
+logically equivalent (catching a faulty formalisation), and emits the SMT-LIB
+text as an auditable artefact.
 
 Z3 is imported lazily; constructing a policy needs no solver, only
 :meth:`NeuroSymbolicComplianceEngine.check` and friends require ``z3-solver``
@@ -124,7 +124,7 @@ class PolicyFormaliser(Protocol):
     The production implementation is LLM-backed (natural language → SMT-LIB);
     tests provide a deterministic structured stub. Cross-checking two independent
     formalisations with :meth:`NeuroSymbolicComplianceEngine.equivalent_to`
-    guards against a single mis-formalisation.
+    guards against a single faulty formalisation.
     """
 
     def formalise(self, natural_language_policy: str) -> CompliancePolicy: ...
