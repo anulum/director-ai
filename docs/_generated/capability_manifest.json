@@ -2,14 +2,14 @@
   "SPDX-License-Identifier": "AGPL-3.0-or-later",
   "counts": {
     "github_workflows": 11,
-    "model_documentation_pages": 66,
+    "model_documentation_pages": 67,
     "optional_extras": 53,
     "public_api_exports": 216,
-    "public_documentation_pages": 161,
-    "python_model_classes": 806,
-    "python_model_source_modules": 354,
+    "public_documentation_pages": 162,
+    "python_model_classes": 819,
+    "python_model_source_modules": 356,
     "rust_pyo3_model_wrappers": 78,
-    "test_files": 444
+    "test_files": 445
   },
   "documentation": {
     "public_pages": [
@@ -55,6 +55,7 @@
       "docs-site/api/mechanistic-interpretability.md",
       "docs-site/api/meta-guard.md",
       "docs-site/api/multimodal-checks.md",
+      "docs-site/api/neuro-symbolic-compliance.md",
       "docs-site/api/neuro-symbolic-verifier.md",
       "docs-site/api/nli.md",
       "docs-site/api/policy-evaluation.md",
@@ -237,6 +238,7 @@
       "mechanistic-interpretability.md",
       "meta-guard.md",
       "multimodal-checks.md",
+      "neuro-symbolic-compliance.md",
       "neuro-symbolic-verifier.md",
       "nli.md",
       "policy-evaluation.md",
@@ -416,6 +418,10 @@
         "path": "src/director_ai/core/autopoietic/blueprint.py"
       },
       {
+        "name": "Arith",
+        "path": "src/director_ai/core/neuro_symbolic/expression.py"
+      },
+      {
         "name": "Article15Report",
         "path": "src/director_ai/compliance/reporter.py"
       },
@@ -550,6 +556,10 @@
       {
         "name": "BenchmarkMetrics",
         "path": "src/director_ai/core/customer_model_factory/benchmark_selection.py"
+      },
+      {
+        "name": "BoolOp",
+        "path": "src/director_ai/core/neuro_symbolic/expression.py"
       },
       {
         "name": "BoundaryExample",
@@ -732,6 +742,10 @@
         "path": "src/director_ai/core/emergence_oracle/spectrum.py"
       },
       {
+        "name": "Compare",
+        "path": "src/director_ai/core/neuro_symbolic/expression.py"
+      },
+      {
         "name": "CompiledRule",
         "path": "src/director_ai/core/policy_compiler/rule.py"
       },
@@ -744,12 +758,20 @@
         "path": "src/director_ai/ui/safety_dashboard.py"
       },
       {
+        "name": "CompliancePolicy",
+        "path": "src/director_ai/core/neuro_symbolic/engine.py"
+      },
+      {
         "name": "ComplianceReportResponse",
         "path": "src/director_ai/_server_models.py"
       },
       {
         "name": "ComplianceReporter",
         "path": "src/director_ai/compliance/reporter.py"
+      },
+      {
+        "name": "ComplianceVerdict",
+        "path": "src/director_ai/core/neuro_symbolic/engine.py"
       },
       {
         "name": "ComputeQuota",
@@ -822,6 +844,18 @@
       {
         "name": "ConsistencyReport",
         "path": "src/director_ai/core/symbolic_chain/prover.py"
+      },
+      {
+        "name": "Const",
+        "path": "src/director_ai/core/neuro_symbolic/expression.py"
+      },
+      {
+        "name": "Constraint",
+        "path": "src/director_ai/core/neuro_symbolic/engine.py"
+      },
+      {
+        "name": "ConstraintViolation",
+        "path": "src/director_ai/core/neuro_symbolic/engine.py"
       },
       {
         "name": "ConsumptionRecord",
@@ -1274,6 +1308,10 @@
       {
         "name": "EvolveReport",
         "path": "src/director_ai/core/continual_adversarial/engine.py"
+      },
+      {
+        "name": "Expr",
+        "path": "src/director_ai/core/neuro_symbolic/expression.py"
       },
       {
         "name": "FAISSBackend",
@@ -2132,6 +2170,10 @@
         "path": "src/director_ai/core/symbolic_chain/verifier.py"
       },
       {
+        "name": "NeuroSymbolicComplianceEngine",
+        "path": "src/director_ai/core/neuro_symbolic/engine.py"
+      },
+      {
         "name": "NeuroSymbolicVerificationResult",
         "path": "src/director_ai/core/verification/neuro_symbolic.py"
       },
@@ -2166,6 +2208,10 @@
       {
         "name": "Not",
         "path": "src/director_ai/core/formal_verification/formula.py"
+      },
+      {
+        "name": "Not",
+        "path": "src/director_ai/core/neuro_symbolic/expression.py"
       },
       {
         "name": "Not",
@@ -2418,6 +2464,10 @@
       {
         "name": "PolicyEvaluationReport",
         "path": "src/director_ai/core/evaluation/policy.py"
+      },
+      {
+        "name": "PolicyFormaliser",
+        "path": "src/director_ai/core/neuro_symbolic/engine.py"
       },
       {
         "name": "PolicyRegistry",
@@ -3380,6 +3430,10 @@
         "path": "src/director_ai/core/multi_scale_alignment/scorer.py"
       },
       {
+        "name": "Var",
+        "path": "src/director_ai/core/neuro_symbolic/expression.py"
+      },
+      {
         "name": "Variable",
         "path": "src/director_ai/core/formal_verification/formula.py"
       },
@@ -3643,6 +3697,8 @@
       "src/director_ai/core/multimodal_guard/factory.py",
       "src/director_ai/core/multimodal_guard/guard.py",
       "src/director_ai/core/multimodal_guard/verifier.py",
+      "src/director_ai/core/neuro_symbolic/engine.py",
+      "src/director_ai/core/neuro_symbolic/expression.py",
       "src/director_ai/core/nli.py",
       "src/director_ai/core/observability/callbacks.py",
       "src/director_ai/core/observability/kpis.py",
@@ -4486,6 +4542,7 @@
       "tests/test_multimodal_factory.py",
       "tests/test_multimodal_guard.py",
       "tests/test_multimodal_temporal_evidence.py",
+      "tests/test_neuro_symbolic.py",
       "tests/test_neuro_symbolic_verifier.py",
       "tests/test_new_integrations.py",
       "tests/test_nli_backend_contracts.py",

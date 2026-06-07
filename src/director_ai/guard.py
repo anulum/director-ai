@@ -537,6 +537,20 @@ class ProductionGuard:
             self._temporal_consistency = TemporalConsistencyGraph()
         return self._temporal_consistency
 
+    def compliance_engine(self, policy):
+        """Build a neuro-symbolic SMT compliance engine for ``policy``.
+
+        ``policy`` is a
+        :class:`~director_ai.core.neuro_symbolic.CompliancePolicy`. The engine
+        checks structured output facts against the policy with Z3, returning a
+        per-constraint verdict with counterexamples, and can cross-check that two
+        formalisations are equivalent. Requires the ``[formal]`` extra (z3); the
+        engine raises a clear error if z3 is unavailable.
+        """
+        from director_ai.core.neuro_symbolic import NeuroSymbolicComplianceEngine
+
+        return NeuroSymbolicComplianceEngine(policy)
+
     @property
     def self_healing(self):
         """Self-healing threshold controller seeded at the configured threshold.

@@ -369,6 +369,8 @@ exclude_lines = [
     "pass",
     "raise NotImplementedError",
     "except ImportError",
+    "^\\s*\\.\\.\\.\\s*$",
+    ":\\s*\\.\\.\\.\\s*$",
 ]
 partial_branches = [
     "pragma: no branch",

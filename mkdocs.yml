@@ -211,6 +211,7 @@ nav:
       - Differentially Private Score Release: api/private-score-release.md
       - Federated Safety Signal Sharing: api/federated-safety-signals.md
       - Neuro-Symbolic Verifier: api/neuro-symbolic-verifier.md
+      - Neuro-Symbolic Compliance (SMT): api/neuro-symbolic-compliance.md
       - Byzantine-Resilient Consensus: api/byzantine-consensus.md
       - Standalone Interlock Kernel: api/interlock-kernel.md
       - Trajectory Preflight: api/trajectory-preflight.md
