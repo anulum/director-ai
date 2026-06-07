@@ -139,6 +139,31 @@ def _validate_content_length(raw_value: str | None) -> None:
         )
 
 
+async def _read_within_limit(file: UploadFile) -> bytes:
+    """Read an upload, rejecting once it exceeds the size limit.
+
+    The Content-Length pre-check is only advisory — a client may omit the header.
+    This reads the body in fixed chunks and aborts with 413 as soon as the
+    running total passes ``_MAX_UPLOAD_BYTES``, so a missing or dishonest
+    Content-Length cannot force an unbounded body into memory: at most one chunk
+    beyond the limit is ever buffered.
+    """
+    chunk_size = 1024 * 1024
+    chunks: list[bytes] = []
+    total = 0
+    while True:
+        chunk = await file.read(chunk_size)
+        if not chunk:
+            break
+        total += len(chunk)
+        if total > _MAX_UPLOAD_BYTES:
+            raise HTTPException(
+                413, f"File exceeds {_MAX_UPLOAD_BYTES // (1024 * 1024)} MB limit"
+            )
+        chunks.append(chunk)
+    return b"".join(chunks)
+
+
 def _file_extension(filename: str) -> str:
     """Return the lower-case filename extension without the leading dot."""
     if "." not in filename:
@@ -346,11 +371,7 @@ def create_knowledge_router() -> APIRouter:
         filename = file.filename or "unknown.txt"
         _validate_upload_type(filename, file.content_type)
 
-        content = await file.read()
-        if len(content) > _MAX_UPLOAD_BYTES:
-            raise HTTPException(
-                413, f"File exceeds {_MAX_UPLOAD_BYTES // (1024 * 1024)} MB limit"
-            )
+        content = await _read_within_limit(file)
 
         from .core.retrieval.doc_parser import parse
 

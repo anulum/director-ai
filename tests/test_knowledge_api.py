@@ -632,6 +632,93 @@ def test_upload_endpoint_rejects_body_that_exceeds_size_after_read(monkeypatch) 
     assert "File exceeds" in response.json()["detail"]
 
 
+class _ChunkedUpload:
+    """Minimal async UploadFile stub that yields the body in small reads."""
+
+    def __init__(self, data: bytes, per_read: int = 4) -> None:
+        self._data = data
+        self._pos = 0
+        self._per_read = per_read
+        self.bytes_read = 0
+
+    async def read(self, size: int = -1) -> bytes:
+        remaining = len(self._data) - self._pos
+        if size is None or size < 0:
+            size = remaining
+        take = min(size, self._per_read, remaining)
+        out = self._data[self._pos : self._pos + take]
+        self._pos += take
+        self.bytes_read += take
+        return out
+
+
+async def test_read_within_limit_returns_full_body(monkeypatch) -> None:
+    import director_ai.knowledge_api as knowledge_api
+
+    monkeypatch.setattr(knowledge_api, "_MAX_UPLOAD_BYTES", 100)
+    up = _ChunkedUpload(b"hello world payload", per_read=4)
+    assert await knowledge_api._read_within_limit(up) == b"hello world payload"
+
+
+async def test_read_within_limit_at_exact_limit_ok(monkeypatch) -> None:
+    import director_ai.knowledge_api as knowledge_api
+
+    monkeypatch.setattr(knowledge_api, "_MAX_UPLOAD_BYTES", 5)
+    assert (
+        await knowledge_api._read_within_limit(_ChunkedUpload(b"abcde", 2)) == b"abcde"
+    )
+
+
+async def test_read_within_limit_empty_body(monkeypatch) -> None:
+    import director_ai.knowledge_api as knowledge_api
+
+    monkeypatch.setattr(knowledge_api, "_MAX_UPLOAD_BYTES", 100)
+    assert await knowledge_api._read_within_limit(_ChunkedUpload(b"")) == b""
+
+
+async def test_read_within_limit_rejects_over_limit(monkeypatch) -> None:
+    from fastapi import HTTPException
+
+    import director_ai.knowledge_api as knowledge_api
+
+    monkeypatch.setattr(knowledge_api, "_MAX_UPLOAD_BYTES", 5)
+    with pytest.raises(HTTPException) as excinfo:
+        await knowledge_api._read_within_limit(_ChunkedUpload(b"abcdef", 2))
+    assert excinfo.value.status_code == 413
+
+
+async def test_read_within_limit_does_not_buffer_whole_oversized_body(
+    monkeypatch,
+) -> None:
+    from fastapi import HTTPException
+
+    import director_ai.knowledge_api as knowledge_api
+
+    monkeypatch.setattr(knowledge_api, "_MAX_UPLOAD_BYTES", 10)
+
+    class _Huge:
+        """A body with no Content-Length far larger than the limit."""
+
+        def __init__(self, total: int) -> None:
+            self._remaining = total
+            self.bytes_read = 0
+
+        async def read(self, size: int = -1) -> bytes:
+            if self._remaining <= 0:
+                return b""
+            want = size if size and size > 0 else self._remaining
+            n = min(want, self._remaining, 1024 * 1024)
+            self._remaining -= n
+            self.bytes_read += n
+            return b"x" * n
+
+    huge = _Huge(50 * 1024 * 1024)  # 50 MB body, 10-byte limit
+    with pytest.raises(HTTPException):
+        await knowledge_api._read_within_limit(huge)
+    # Only a bounded prefix is read, never the whole 50 MB payload.
+    assert huge.bytes_read <= 2 * 1024 * 1024
+
+
 def test_ingest_duplicate_and_update_paths(monkeypatch) -> None:
     import director_ai.knowledge_api as knowledge_api
 
