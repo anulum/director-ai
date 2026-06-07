@@ -114,6 +114,57 @@ def test_health_exempt_from_auth():
     assert r.status_code == 200
 
 
+def test_health_unauthenticated_hides_build_detail():
+    """With keys configured, an unauthenticated probe sees only status+licence."""
+    with TestClient(_auth_app()) as client:
+        r = client.get("/v1/health")
+    assert r.status_code == 200
+    data = r.json()
+    assert data["status"] == "ok"
+    assert "license" in data
+    # The chatty build/router/revision detail must NOT leak without a key.
+    for leaked in ("version", "mode", "profile", "routers", "model_revisions"):
+        assert leaked not in data
+
+
+def test_health_authenticated_returns_build_detail():
+    """A valid key unlocks the full health payload."""
+    with TestClient(_auth_app()) as client:
+        r = client.get("/v1/health", headers={"X-API-Key": "test-key-123"})
+    assert r.status_code == 200
+    data = r.json()
+    assert data["version"]
+    assert "model_revisions" in data
+
+
+def test_health_dev_no_keys_returns_detail():
+    """No auth posture (dev): detail is returned to keep debugging usable."""
+    with TestClient(_noauth_app()) as client:
+        r = client.get("/v1/health")
+    assert r.status_code == 200
+    assert r.json()["version"]
+
+
+def test_source_commercial_hides_tier_and_version():
+    """Commercial mode waives AGPL §13; it must not leak tier or version."""
+    from types import SimpleNamespace
+
+    with TestClient(_noauth_app()) as client:
+        client.app.state._license = SimpleNamespace(
+            is_commercial=True,
+            is_trial=False,
+            tier="enterprise",
+            licensee="ACME",
+        )
+        r = client.get("/v1/source")
+    assert r.status_code == 200
+    data = r.json()
+    assert data["license"] == "commercial"
+    assert data["agpl_obligation"] == "waived"
+    assert not data.get("tier")
+    assert not data.get("version")
+
+
 def test_prometheus_exempt_when_metrics_auth_disabled():
     with TestClient(_auth_app(metrics_require_auth=False)) as client:
         r = client.get("/v1/metrics/prometheus")

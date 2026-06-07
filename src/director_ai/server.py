@@ -665,6 +665,20 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
             "(set api_keys or api_key_tenant_map)"
         )
 
+    def _request_authenticated(request: Request) -> bool:
+        """Return True when the caller is authenticated for detail disclosure.
+
+        Auth-exempt probes (`/v1/health`, `/v1/source`) still answer to
+        unauthenticated callers, but the detailed payload (version, mode,
+        profile, routers, revision health) is only returned to a valid key
+        holder. When no API keys are configured there is no auth posture
+        (dev server), so detail is returned to keep local debugging usable.
+        """
+        if not _valid_api_keys:
+            return True
+        provided = _extract_request_api_key(request)
+        return any(hmac.compare_digest(provided, k) for k in _valid_api_keys)
+
     @app.middleware("http")
     async def _http_middleware(request: Request, call_next):
         """Apply request IDs, API-key auth, tenant binding, and metrics."""
@@ -787,9 +801,15 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
         """Minimal unauthenticated liveness probe — no version or config leak."""
         return {"ok": True}
 
-    @app.get("/v1/health", response_model=HealthResponse)
+    @app.get("/v1/health")
     async def health(request: Request):
-        """Return liveness, version, router, licence, and revision status."""
+        """Return liveness plus, for authenticated callers, build detail.
+
+        Unauthenticated callers receive ``{status, license}`` only; a valid key
+        unlocks version, mode, profile, router, and revision detail. The
+        response is no longer a fixed ``HealthResponse`` schema because the
+        payload shape now depends on authentication.
+        """
         import director_ai
 
         lic = getattr(request.app.state, "_license", None)
@@ -802,6 +822,12 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
             extra = {"license": "trial", "expires": lic.expires}
         else:
             extra = {"license": "agpl"}
+
+        if not _request_authenticated(request):
+            # Unauthenticated callers get liveness + licence type only; the
+            # detailed build/router/revision payload is gated behind a valid
+            # key. Pure liveness probes should use /v1/live.
+            return {"status": "ok", **extra}
 
         resp = HealthResponse(
             version=director_ai.__version__,
@@ -844,10 +870,11 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
                 raise HTTPException(
                     404, "Source endpoint disabled (commercial license)"
                 )
+            # AGPL §13 source obligation is waived under a commercial licence,
+            # so nothing needs publishing here. Do not leak the commercial tier
+            # or the build version on this auth-exempt endpoint.
             return {
                 "license": "commercial",
-                "tier": lic.tier,
-                "version": director_ai.__version__,
                 "agpl_obligation": "waived",
             }
 

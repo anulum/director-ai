@@ -543,7 +543,7 @@ class SourceResponse(BaseModel):
     """AGPL source-compliance response."""
 
     license: str
-    version: str
+    version: str = ""
     licensee: str = ""
     tier: str = ""
     repository_url: str = ""
