@@ -1121,3 +1121,49 @@ class TestTenantVectorIsolation:
             mock_qdrant.assert_called_once()
             call_kwargs = mock_qdrant.call_args[1]
             assert call_kwargs["collection_name"] == "director_facts_t1"
+
+
+class TestKernelAbsentSimilarityFallback:
+    """InMemoryBackend.query must use pure Python when the accelerator is absent.
+
+    When ``backfire_kernel`` fails to import, ``base.py`` sets
+    ``_RUST_VECTOR_BASE = False`` and ``rust_word_overlap = None`` so the
+    similarity loop takes its pure-Python branch directly, instead of calling the
+    None binding and catching a TypeError once per document.
+    """
+
+    def test_query_ranks_without_accelerator(self, monkeypatch):
+        import director_ai.core.retrieval.vector_store.base as base
+
+        monkeypatch.setattr(base, "_RUST_VECTOR_BASE", False)
+        monkeypatch.setattr(base, "rust_word_overlap", None)
+
+        backend = InMemoryBackend()
+        backend.add("d1", "the quick brown fox")
+        backend.add("d2", "completely unrelated content")
+
+        results = backend.query("quick brown fox", n_results=2)
+
+        assert results, "fallback must return ranked documents, not raise"
+        assert results[0]["id"] == "d1"
+
+    def test_except_block_sets_flag_false(self):
+        import importlib
+        import sys
+
+        name = "director_ai.core.retrieval.vector_store.base"
+        saved = sys.modules.get("backfire_kernel")
+        sys.modules["backfire_kernel"] = None  # make ``import backfire_kernel`` fail
+        try:
+            module = importlib.reload(sys.modules[name])
+            # A True here is the original bug: the loop would call the None
+            # binding and lean on a per-document TypeError to fall back.
+            assert module._RUST_VECTOR_BASE is False
+            assert module.rust_word_overlap is None
+        finally:
+            if saved is None:
+                sys.modules.pop("backfire_kernel", None)
+            else:
+                sys.modules["backfire_kernel"] = saved
+            importlib.reload(sys.modules[name])
+        assert sys.modules[name]._RUST_VECTOR_BASE is True

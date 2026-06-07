@@ -26,9 +26,12 @@ try:
     from backfire_kernel import rust_word_overlap
 
     _RUST_VECTOR_BASE = True
-except ImportError:  # pragma: no cover
+except ImportError:  # pragma: no cover — pure-Python fallback path
+    # The accelerator is absent: flag False so the similarity loop takes its
+    # pure-Python branch directly, rather than calling the None binding and
+    # catching the resulting TypeError once per document in a hot loop.
     rust_word_overlap = None
-    _RUST_VECTOR_BASE = True
+    _RUST_VECTOR_BASE = False
 
 logger = logging.getLogger("DirectorAI.VectorStore")
 
