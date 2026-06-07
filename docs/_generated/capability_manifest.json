@@ -2,14 +2,14 @@
   "SPDX-License-Identifier": "AGPL-3.0-or-later",
   "counts": {
     "github_workflows": 11,
-    "model_documentation_pages": 67,
+    "model_documentation_pages": 68,
     "optional_extras": 53,
     "public_api_exports": 216,
-    "public_documentation_pages": 162,
-    "python_model_classes": 819,
-    "python_model_source_modules": 356,
+    "public_documentation_pages": 163,
+    "python_model_classes": 823,
+    "python_model_source_modules": 357,
     "rust_pyo3_model_wrappers": 78,
-    "test_files": 445
+    "test_files": 446
   },
   "documentation": {
     "public_pages": [
@@ -33,6 +33,7 @@
       "docs-site/api/cyber-physical.md",
       "docs-site/api/defence-update-pipeline.md",
       "docs-site/api/director-safety-protocol.md",
+      "docs-site/api/dp-rag-retrieval.md",
       "docs-site/api/edge-runtime-readiness.md",
       "docs-site/api/enterprise.md",
       "docs-site/api/eval-trace.md",
@@ -216,6 +217,7 @@
       "cyber-physical.md",
       "defence-update-pipeline.md",
       "director-safety-protocol.md",
+      "dp-rag-retrieval.md",
       "edge-runtime-readiness.md",
       "enterprise.md",
       "eval-trace.md",
@@ -1066,6 +1068,10 @@
         "path": "src/director_ai/core/customer_model_factory/dataset_contract.py"
       },
       {
+        "name": "DPBudgetExceededError",
+        "path": "src/director_ai/core/dp_rag/retrieval.py"
+      },
+      {
         "name": "DailyUsage",
         "path": "src/director_ai/core/sustainability/quota.py"
       },
@@ -1136,6 +1142,10 @@
       {
         "name": "DifferentialPrivacyScoreReleaser",
         "path": "src/director_ai/core/federated_privacy/score_release.py"
+      },
+      {
+        "name": "DifferentiallyPrivateRetrieval",
+        "path": "src/director_ai/core/dp_rag/retrieval.py"
       },
       {
         "name": "DirectorAIChecker",
@@ -2542,6 +2552,10 @@
         "path": "src/director_ai/core/federated_privacy/score_release.py"
       },
       {
+        "name": "PrivateRanking",
+        "path": "src/director_ai/core/dp_rag/retrieval.py"
+      },
+      {
         "name": "ProcessRequest",
         "path": "src/director_ai/_server_models.py"
       },
@@ -2872,6 +2886,10 @@
       {
         "name": "ScoreCache",
         "path": "src/director_ai/core/cache.py"
+      },
+      {
+        "name": "ScoredItem",
+        "path": "src/director_ai/core/dp_rag/retrieval.py"
       },
       {
         "name": "ScoredSample",
@@ -3632,6 +3650,7 @@
       "src/director_ai/core/doc_chunker.py",
       "src/director_ai/core/doc_parser.py",
       "src/director_ai/core/doc_registry.py",
+      "src/director_ai/core/dp_rag/retrieval.py",
       "src/director_ai/core/edge/runtime_profile.py",
       "src/director_ai/core/embedding_tuner.py",
       "src/director_ai/core/emergence_oracle/graph.py",
@@ -4402,6 +4421,7 @@
       "tests/test_doc_chunker_model_cache.py",
       "tests/test_doc_modules.py",
       "tests/test_doc_registry.py",
+      "tests/test_dp_rag.py",
       "tests/test_drift_detector.py",
       "tests/test_dry_run_production.py",
       "tests/test_e2e_eval.py",

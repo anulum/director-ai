@@ -126,6 +126,7 @@ class ProductionGuard:
         self._labelling_cockpit: ActiveLabellingCockpit | None = None
         self._temporal_consistency: object | None = None
         self._self_healing: object | None = None
+        self._dp_retrieval: object | None = None
 
     @classmethod
     def from_profile(
@@ -536,6 +537,23 @@ class ProductionGuard:
 
             self._temporal_consistency = TemporalConsistencyGraph()
         return self._temporal_consistency
+
+    @property
+    def dp_retrieval(self):
+        """Differentially private retrieval ranking with a per-tenant budget.
+
+        Adds calibrated Laplace noise to retrieval similarity scores before
+        ranking and meters each query against a per-tenant ``(ε, δ)`` budget
+        (default cap 10.0), refusing a query that would exceed it. Persists
+        across calls so the budget accumulates; construct
+        :class:`~director_ai.core.dp_rag.DifferentiallyPrivateRetrieval` directly
+        for a custom budget, sensitivity, or seed.
+        """
+        if self._dp_retrieval is None:
+            from director_ai.core.dp_rag import DifferentiallyPrivateRetrieval
+
+            self._dp_retrieval = DifferentiallyPrivateRetrieval(max_epsilon=10.0)
+        return self._dp_retrieval
 
     def compliance_engine(self, policy):
         """Build a neuro-symbolic SMT compliance engine for ``policy``.
