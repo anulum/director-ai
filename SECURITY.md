@@ -91,9 +91,16 @@ ingestion API), they can insert false "ground truth" that the scorer
 will validate against. Hallucinated outputs matching poisoned KB
 entries will score as grounded.
 
-**Mitigation**: Use ``TenantRouter`` with strict ACLs on KB writes.
-Enable ``AuditLogger`` to detect unexpected KB modifications. Use
-signed/hashed KB entries for tamper detection (future roadmap).
+**Mitigation**: KB writes support HMAC-signed entries with tamper
+detection. Set ``knowledge_write_require_signature=True`` and supply
+``knowledge_write_hmac_keys`` so unsigned or mis-signed writes are
+rejected; ``production_mode`` forces signature enforcement on. Combine
+with ``TenantRouter`` strict ACLs on KB writes and ``AuditLogger`` to
+detect unexpected modifications. The opt-in pre-model **evidence
+firewall** additionally screens retrieved chunks before they reach the
+model — checking tenant match, provenance, signature, content hash,
+expiry, source owner, sensitivity, allowed use case, and poisoning
+heuristics — and quarantines failing chunks.
 
 ### NLI model evasion
 
