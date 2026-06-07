@@ -389,11 +389,14 @@ jobs:
         run: pip install --require-hashes -r requirements/ci-audit.txt
 
       - name: Audit dependencies
-        # Advisory until the exception register is populated from a CI pip-audit
-        # run (which surfaces the real advisory ids); then drop continue-on-error
-        # and pass the registered ids via --ignore-vuln.
-        run: pip-audit --strict --desc on -r requirements.txt
-        continue-on-error: true  # advisory — pending governed exception register
+        # Fail closed: audit the core requirements and the production server
+        # dependency closure. Both were clean at flip time (2026-06-07); any new
+        # advisory now blocks the build. Accepted findings must be added to the
+        # governed exception register (validated above) and passed via
+        # --ignore-vuln; there are none currently.
+        run: |
+          pip-audit --strict --desc on -r requirements.txt
+          pip-audit --strict --desc on -r requirements/docker-server.txt
 
   sbom:
     name: SBOM Generation
