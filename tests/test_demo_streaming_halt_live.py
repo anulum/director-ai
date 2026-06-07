@@ -24,8 +24,15 @@ _DEMO_PATH = (
     pathlib.Path(__file__).resolve().parent.parent / "demo" / "streaming_halt_live.py"
 )
 
-# Gradio might not be installed in the CI venv; skip cleanly.
+# Gradio might not be installed in the CI venv; skip cleanly. A partial/namespace
+# gradio install (importable but missing the public API) must also skip rather
+# than fail — guard on the actual ``Blocks`` symbol the demo builds with.
 gradio = pytest.importorskip("gradio")
+if not hasattr(gradio, "Blocks"):  # pragma: no cover - environment-dependent
+    pytest.skip(
+        "gradio is present but exposes no Blocks API (partial install)",
+        allow_module_level=True,
+    )
 
 
 def _load_demo():

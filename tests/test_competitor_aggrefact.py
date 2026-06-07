@@ -25,6 +25,11 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 torch = pytest.importorskip("torch", reason="torch required for competitor backends")
+# The CLI tests patch ``transformers.AutoTokenizer`` /
+# ``transformers.AutoModelForSequenceClassification``; ``patch`` imports the
+# target module, so transformers must be importable even though its classes are
+# mocked. Skip cleanly on the base CI job, which ships without the NLI extra.
+pytest.importorskip("transformers", reason="transformers required to patch backends")
 
 pytestmark = pytest.mark.usefixtures("_ensure_datasets_stub")
 
