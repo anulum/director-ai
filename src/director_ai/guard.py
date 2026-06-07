@@ -129,6 +129,7 @@ class ProductionGuard:
         self._dp_retrieval: object | None = None
         self._root_cause: object | None = None
         self._output_trust: object | None = None
+        self._execution_rings: object | None = None
 
     @classmethod
     def from_profile(
@@ -576,6 +577,25 @@ class ProductionGuard:
 
             self._output_trust = ZeroTrustOutputGuard()
         return self._output_trust
+
+    def execution_rings(self, *, cooling_period_seconds: float = 86_400.0):
+        """Graduated human authorisation for agent actions (execution rings).
+
+        Classifies an action into an ordered
+        :class:`~director_ai.core.execution_rings.ExecutionRing` (read → write →
+        delete → execute → exfiltrate) and allows it only when the human
+        authorisation factors that ring demands (operator approval, cooling
+        period, second operator, CISO notification) have been collected — so a
+        prompt-injected agent cannot delete or exfiltrate without out-of-band
+        confirmation. ``cooling_period_seconds`` defaults to 24 hours.
+        """
+        if self._execution_rings is None:
+            from director_ai.core.execution_rings import ExecutionRingGate
+
+            self._execution_rings = ExecutionRingGate(
+                cooling_period_seconds=cooling_period_seconds
+            )
+        return self._execution_rings
 
     @property
     def dp_retrieval(self):

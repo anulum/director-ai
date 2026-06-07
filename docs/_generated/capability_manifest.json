@@ -2,14 +2,14 @@
   "SPDX-License-Identifier": "AGPL-3.0-or-later",
   "counts": {
     "github_workflows": 11,
-    "model_documentation_pages": 73,
+    "model_documentation_pages": 74,
     "optional_extras": 53,
     "public_api_exports": 216,
-    "public_documentation_pages": 168,
-    "python_model_classes": 838,
-    "python_model_source_modules": 364,
+    "public_documentation_pages": 169,
+    "python_model_classes": 843,
+    "python_model_source_modules": 367,
     "rust_pyo3_model_wrappers": 78,
-    "test_files": 452
+    "test_files": 453
   },
   "documentation": {
     "public_pages": [
@@ -42,6 +42,7 @@
       "docs-site/api/evidence-firewall.md",
       "docs-site/api/evidence-packet.md",
       "docs-site/api/exceptions.md",
+      "docs-site/api/execution-rings.md",
       "docs-site/api/federated-dp-calibration.md",
       "docs-site/api/federated-safety-signals.md",
       "docs-site/api/financial-services.md",
@@ -231,6 +232,7 @@
       "evidence-firewall.md",
       "evidence-packet.md",
       "exceptions.md",
+      "execution-rings.md",
       "federated-dp-calibration.md",
       "federated-safety-signals.md",
       "financial-services.md",
@@ -496,6 +498,14 @@
       {
         "name": "AuditLogger",
         "path": "src/director_ai/core/safety/audit.py"
+      },
+      {
+        "name": "AuthorizationEvidence",
+        "path": "src/director_ai/core/execution_rings/authorization.py"
+      },
+      {
+        "name": "AuthorizationFactor",
+        "path": "src/director_ai/core/execution_rings/authorization.py"
       },
       {
         "name": "AutoGenReplyGuard",
@@ -1336,6 +1346,14 @@
       {
         "name": "EvolveReport",
         "path": "src/director_ai/core/continual_adversarial/engine.py"
+      },
+      {
+        "name": "ExecutionRing",
+        "path": "src/director_ai/core/execution_rings/rings.py"
+      },
+      {
+        "name": "ExecutionRingGate",
+        "path": "src/director_ai/core/execution_rings/gate.py"
       },
       {
         "name": "Expr",
@@ -2802,6 +2820,10 @@
         "path": "src/director_ai/core/guard_control/no_go.py"
       },
       {
+        "name": "RingDecision",
+        "path": "src/director_ai/core/execution_rings/gate.py"
+      },
+      {
         "name": "RiskAdaptiveThreshold",
         "path": "src/director_ai/core/risk_threshold/adapter.py"
       },
@@ -3738,6 +3760,9 @@
       "src/director_ai/core/evidence_firewall/policy.py",
       "src/director_ai/core/evidence_packet/packet.py",
       "src/director_ai/core/exceptions.py",
+      "src/director_ai/core/execution_rings/authorization.py",
+      "src/director_ai/core/execution_rings/gate.py",
+      "src/director_ai/core/execution_rings/rings.py",
       "src/director_ai/core/federated_dp/calibration.py",
       "src/director_ai/core/federated_privacy/accountant.py",
       "src/director_ai/core/federated_privacy/aggregator.py",
@@ -4517,6 +4542,7 @@
       "tests/test_evidence_firewall.py",
       "tests/test_evidence_packet.py",
       "tests/test_exceptions.py",
+      "tests/test_execution_rings.py",
       "tests/test_experimental_deployment_docs.py",
       "tests/test_experimental_namespace.py",
       "tests/test_explainability.py",
