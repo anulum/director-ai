@@ -555,6 +555,24 @@ class ProductionGuard:
             self._dp_retrieval = DifferentiallyPrivateRetrieval(max_epsilon=10.0)
         return self._dp_retrieval
 
+    def federated_calibration(self, initial_value: float | None = None, **kwargs):
+        """Build a federated DP calibration round for a shared parameter.
+
+        Tenants submit clipped local updates; the server aggregates them with
+        Gaussian noise behind a minimum-cohort gate, so the shared parameter
+        (default: this guard's coherence threshold) improves without any tenant's
+        raw data leaving. Returns a fresh
+        :class:`~director_ai.core.federated_dp.FederatedCalibrationRound`; pass
+        ``clip_norm``, ``noise_multiplier``, ``min_cohort``, ``learning_rate``,
+        ``value_bounds``, or ``seed`` via ``kwargs``.
+        """
+        from director_ai.core.federated_dp import FederatedCalibrationRound
+
+        start = (
+            self._config.coherence_threshold if initial_value is None else initial_value
+        )
+        return FederatedCalibrationRound(start, **kwargs)
+
     def compliance_engine(self, policy):
         """Build a neuro-symbolic SMT compliance engine for ``policy``.
 

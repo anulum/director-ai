@@ -2,14 +2,14 @@
   "SPDX-License-Identifier": "AGPL-3.0-or-later",
   "counts": {
     "github_workflows": 11,
-    "model_documentation_pages": 68,
+    "model_documentation_pages": 69,
     "optional_extras": 53,
     "public_api_exports": 216,
-    "public_documentation_pages": 163,
-    "python_model_classes": 823,
-    "python_model_source_modules": 357,
+    "public_documentation_pages": 164,
+    "python_model_classes": 826,
+    "python_model_source_modules": 358,
     "rust_pyo3_model_wrappers": 78,
-    "test_files": 446
+    "test_files": 447
   },
   "documentation": {
     "public_pages": [
@@ -40,6 +40,7 @@
       "docs-site/api/evidence-firewall.md",
       "docs-site/api/evidence-packet.md",
       "docs-site/api/exceptions.md",
+      "docs-site/api/federated-dp-calibration.md",
       "docs-site/api/federated-safety-signals.md",
       "docs-site/api/financial-services.md",
       "docs-site/api/formal-code-verifiers.md",
@@ -224,6 +225,7 @@
       "evidence-firewall.md",
       "evidence-packet.md",
       "exceptions.md",
+      "federated-dp-calibration.md",
       "federated-safety-signals.md",
       "financial-services.md",
       "formal-code-verifiers.md",
@@ -722,6 +724,10 @@
       {
         "name": "CoherenceScoringService",
         "path": "src/director_ai/grpc_scoring.py"
+      },
+      {
+        "name": "CohortTooSmallError",
+        "path": "src/director_ai/core/federated_dp/calibration.py"
       },
       {
         "name": "ColBERTBackend",
@@ -1346,6 +1352,10 @@
       {
         "name": "FailureStore",
         "path": "src/director_ai/core/continual_adversarial/failure.py"
+      },
+      {
+        "name": "FederatedCalibrationRound",
+        "path": "src/director_ai/core/federated_dp/calibration.py"
       },
       {
         "name": "FederatedCounter",
@@ -2808,6 +2818,10 @@
         "path": "src/director_ai/core/cyber_physical/adapters.py"
       },
       {
+        "name": "RoundResult",
+        "path": "src/director_ai/core/federated_dp/calibration.py"
+      },
+      {
         "name": "RoutingDecision",
         "path": "src/director_ai/core/retrieval/adaptive_router.py"
       },
@@ -3667,6 +3681,7 @@
       "src/director_ai/core/evidence_firewall/policy.py",
       "src/director_ai/core/evidence_packet/packet.py",
       "src/director_ai/core/exceptions.py",
+      "src/director_ai/core/federated_dp/calibration.py",
       "src/director_ai/core/federated_privacy/accountant.py",
       "src/director_ai/core/federated_privacy/aggregator.py",
       "src/director_ai/core/federated_privacy/mechanisms.py",
@@ -4444,6 +4459,7 @@
       "tests/test_explainability.py",
       "tests/test_external_security_packet.py",
       "tests/test_fastapi_guard.py",
+      "tests/test_federated_dp.py",
       "tests/test_federated_privacy.py",
       "tests/test_federated_privacy_evidence.py",
       "tests/test_feedback_loop_detector.py",
