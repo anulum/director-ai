@@ -125,6 +125,7 @@ class ProductionGuard:
         self._risk_threshold: RiskAdaptiveThreshold | None = None
         self._labelling_cockpit: ActiveLabellingCockpit | None = None
         self._temporal_consistency: object | None = None
+        self._self_healing: object | None = None
 
     @classmethod
     def from_profile(
@@ -535,6 +536,26 @@ class ProductionGuard:
 
             self._temporal_consistency = TemporalConsistencyGraph()
         return self._temporal_consistency
+
+    @property
+    def self_healing(self):
+        """Self-healing threshold controller seeded at the configured threshold.
+
+        Closes the calibration loop safely: feed labelled outcomes
+        (:class:`~director_ai.core.self_healing.LabelledOutcome`), call
+        ``propose()`` to deploy a better threshold only when it beats the current
+        one on a held-out split, and ``evaluate_regression()`` to auto-roll-back a
+        deployed update that later regresses. Persists across calls on this guard
+        so observations accumulate; every change is audited. The host applies the
+        controller's ``threshold`` — the guard does not mutate its own config.
+        """
+        if self._self_healing is None:
+            from director_ai.core.self_healing import SelfHealingThresholdController
+
+            self._self_healing = SelfHealingThresholdController(
+                self._config.coherence_threshold
+            )
+        return self._self_healing
 
     def trajectory_monitor(self, specs: dict[str, object] | None = None):
         """Return a fresh LTL safety monitor for one agent trajectory.

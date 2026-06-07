@@ -2,14 +2,14 @@
   "SPDX-License-Identifier": "AGPL-3.0-or-later",
   "counts": {
     "github_workflows": 11,
-    "model_documentation_pages": 65,
+    "model_documentation_pages": 66,
     "optional_extras": 53,
     "public_api_exports": 216,
-    "public_documentation_pages": 160,
-    "python_model_classes": 802,
-    "python_model_source_modules": 353,
+    "public_documentation_pages": 161,
+    "python_model_classes": 806,
+    "python_model_source_modules": 354,
     "rust_pyo3_model_wrappers": 78,
-    "test_files": 443
+    "test_files": 444
   },
   "documentation": {
     "public_pages": [
@@ -64,6 +64,7 @@
       "docs-site/api/safety-event-schema.md",
       "docs-site/api/sanitizer.md",
       "docs-site/api/scorer.md",
+      "docs-site/api/self-healing-controller.md",
       "docs-site/api/self-improving-guard-loop.md",
       "docs-site/api/server.md",
       "docs-site/api/streaming-repair.md",
@@ -245,6 +246,7 @@
       "safety-event-schema.md",
       "sanitizer.md",
       "scorer.md",
+      "self-healing-controller.md",
       "self-improving-guard-loop.md",
       "server.md",
       "streaming-repair.md",
@@ -1850,6 +1852,10 @@
         "path": "src/director_ai/core/labelling_cockpit/items.py"
       },
       {
+        "name": "LabelledOutcome",
+        "path": "src/director_ai/core/self_healing/controller.py"
+      },
+      {
         "name": "LabelledPolicySample",
         "path": "src/director_ai/core/evaluation/policy.py"
       },
@@ -2418,6 +2424,10 @@
         "path": "src/director_ai/core/policy_compiler/registry.py"
       },
       {
+        "name": "PolicyUpdate",
+        "path": "src/director_ai/core/self_healing/controller.py"
+      },
+      {
         "name": "PolicyVariant",
         "path": "src/director_ai/core/evaluation/policy.py"
       },
@@ -2848,6 +2858,10 @@
       {
         "name": "SelfEvolver",
         "path": "src/director_ai/core/self_evolving/evolver.py"
+      },
+      {
+        "name": "SelfHealingThresholdController",
+        "path": "src/director_ai/core/self_healing/controller.py"
       },
       {
         "name": "SelfImprovingGuardLoop",
@@ -3326,6 +3340,10 @@
         "path": "src/director_ai/core/training/tuner.py"
       },
       {
+        "name": "TuningConfig",
+        "path": "src/director_ai/core/self_healing/controller.py"
+      },
+      {
         "name": "Turn",
         "path": "src/director_ai/core/runtime/session.py"
       },
@@ -3727,6 +3745,7 @@
       "src/director_ai/core/self_evolving/guard_loop.py",
       "src/director_ai/core/self_evolving/synthetic_distillation.py",
       "src/director_ai/core/self_evolving/trainer.py",
+      "src/director_ai/core/self_healing/controller.py",
       "src/director_ai/core/session.py",
       "src/director_ai/core/sharded_nli.py",
       "src/director_ai/core/stats.py",
@@ -4570,6 +4589,7 @@
       "tests/test_security_hardening.py",
       "tests/test_security_physical_risks.py",
       "tests/test_self_evolving.py",
+      "tests/test_self_healing.py",
       "tests/test_self_improving_guard_loop.py",
       "tests/test_sentinel_judge_analyser.py",
       "tests/test_server.py",
