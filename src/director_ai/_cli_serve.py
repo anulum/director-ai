@@ -67,7 +67,11 @@ def _resolve_bind_host(config, host: str, host_explicit: bool) -> str:
     if env_host:
         return env_host
     if getattr(config, "production_mode", False):
-        return config.server_host or "0.0.0.0"  # nosec B104
+        # Production serves all interfaces by default for a reverse proxy, but
+        # honours a host explicitly configured via profile (anything other than
+        # the secure loopback default).
+        configured = getattr(config, "server_host", "") or ""
+        return "0.0.0.0" if configured in ("", "127.0.0.1") else configured  # nosec B104
     return "127.0.0.1"
 
 

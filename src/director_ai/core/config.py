@@ -225,8 +225,12 @@ class DirectorConfig:
     cache_ttl: float = 300.0
 
     # Server
-    # Production deployments override this via HOST and run behind a reverse proxy.
-    server_host: str = "0.0.0.0"  # nosec B104
+    # Secure default: bind to loopback. A direct embedder that runs uvicorn with
+    # this value is not exposed on all interfaces unless it opts in. The CLI
+    # `serve` resolves the effective bind (explicit --host, then
+    # DIRECTOR_SERVER_HOST, then 0.0.0.0 for --production behind a reverse proxy,
+    # else loopback for dev); the container image sets DIRECTOR_SERVER_HOST.
+    server_host: str = "127.0.0.1"
     server_port: int = 8080
     server_workers: int = 1
     cors_origins: str = ""

@@ -390,7 +390,7 @@ class TestResolveBindHost:
         from director_ai.core.config import DirectorConfig
 
         monkeypatch.delenv("DIRECTOR_SERVER_HOST", raising=False)
-        cfg = DirectorConfig()  # production_mode False, default host 0.0.0.0
+        cfg = DirectorConfig()  # production_mode False, secure loopback default
         assert _cli_serve._resolve_bind_host(cfg, "", False) == "127.0.0.1"
 
     def test_explicit_host_wins_in_dev(self, monkeypatch):
@@ -426,13 +426,25 @@ class TestResolveBindHost:
         cfg = DirectorConfig()
         assert _cli_serve._resolve_bind_host(cfg, "10.0.0.9", True) == "10.0.0.9"
 
-    def test_production_keeps_configured_bind(self, monkeypatch):
+    def test_production_defaults_to_all_interfaces(self, monkeypatch):
         from director_ai.core.config import DirectorConfig
 
         monkeypatch.delenv("DIRECTOR_SERVER_HOST", raising=False)
         cfg = DirectorConfig(production_mode=True, **self._hardened_kwargs())
-        # Default server_host is the all-interfaces bind for reverse proxies.
+        # With the secure loopback default config, production still exposes all
+        # interfaces for a reverse proxy.
         assert _cli_serve._resolve_bind_host(cfg, "", False) == "0.0.0.0"  # noqa: S104
+
+    def test_production_honours_explicitly_configured_host(self, monkeypatch):
+        from director_ai.core.config import DirectorConfig
+
+        monkeypatch.delenv("DIRECTOR_SERVER_HOST", raising=False)
+        cfg = DirectorConfig(
+            production_mode=True,
+            server_host="10.0.0.7",
+            **self._hardened_kwargs(),
+        )
+        assert _cli_serve._resolve_bind_host(cfg, "", False) == "10.0.0.7"
 
     def test_production_respects_explicit_host(self, monkeypatch):
         from director_ai.core.config import DirectorConfig

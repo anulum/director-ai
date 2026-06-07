@@ -51,6 +51,11 @@ class TestDirectorConfig:
         assert d["coherence_threshold"] == 0.6
         assert d["profile"] == "default"
 
+    def test_server_host_defaults_to_loopback(self):
+        # Secure default: a direct embedder that binds this value is not exposed
+        # on all interfaces unless it opts in.
+        assert DirectorConfig().server_host == "127.0.0.1"
+
     def test_to_dict_redacts_api_key(self):
         cfg = DirectorConfig(llm_api_key="sk-secret-123")
         d = cfg.to_dict()
