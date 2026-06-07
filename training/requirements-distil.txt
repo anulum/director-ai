@@ -7,7 +7,7 @@
 accelerate==1.7.0 \
     --hash=sha256:cf57165cca28769c6cf2650812371c81b18e05743dfa3c748524b1bb4f2b272f \
     --hash=sha256:e8a2a5503d6237b9eee73cc8d36cf543f9c2d8dd2c6713450b322f5e6d53a610
-    # via -r requirements-distil.in
+    # via -r training/requirements-distil.in
 aiohappyeyeballs==2.6.1 \
     --hash=sha256:c3f9d0113123803ccadfdf3f0faa505bc78e6a72d1cc4806cbd719826e943558 \
     --hash=sha256:f349ba8f4b75cb25c99c5c2d84e997e485204d2902a9597802b0371f09331fb8
@@ -570,13 +570,13 @@ cuda-bindings==13.2.0 \
 cuda-pathfinder==1.5.4 \
     --hash=sha256:9563d3175ce1828531acf4b94e1c1c7d67208c347ca002493e2654878b26f4b7
     # via cuda-bindings
-cuda-toolkit[cublas,cudart,cufft,cufile,cupti,curand,cusolver,cusparse,nvjitlink,nvrtc,nvtx]==13.0.2 \
+cuda-toolkit==13.0.2 \
     --hash=sha256:b198824cf2f54003f50d64ada3a0f184b42ca0846c1c94192fa269ecd97a66eb
     # via torch
 datasets==3.6.0 \
     --hash=sha256:1b2bf43b19776e2787e181cfd329cb0ca1a358ea014780c3581e0f276375e041 \
     --hash=sha256:25000c4a2c0873a710df127d08a202a06eab7bf42441a6bc278b499c2f72cd1b
-    # via -r requirements-distil.in
+    # via -r training/requirements-distil.in
 dill==0.3.8 \
     --hash=sha256:3ebe3c479ad625c4553aca177444d89b486b1d84982eeacded644afc0cf797ca \
     --hash=sha256:c36ca9ffb54365bdd2f8eb3eff7d2a21237f8452b57ace88b1ac615b7e815bd7
@@ -724,7 +724,7 @@ frozenlist==1.8.0 \
     # via
     #   aiohttp
     #   aiosignal
-fsspec[http]==2025.3.0 \
+fsspec==2025.3.0 \
     --hash=sha256:a935fd1ea872591f2b5148907d103488fc523295e6c64b835cfad8c3eca44972 \
     --hash=sha256:efb87af3efa9103f94ca91a7f8cb7a4df91af9f74fc106c9c7ea0efd7277c1b3
     # via
@@ -751,7 +751,7 @@ google-cloud-core==2.6.0 \
 google-cloud-storage==2.19.0 \
     --hash=sha256:aeb971b5c29cf8ab98445082cbfe7b161a1f48ed275822f59ed3f1524ea54fba \
     --hash=sha256:cd05e9e7191ba6cb68934d8eb76054d9be4562aa89dbc4236feee4d7d51342b2
-    # via -r requirements-distil.in
+    # via -r training/requirements-distil.in
 google-crc32c==1.8.0 \
     --hash=sha256:014a7e68d623e9a4222d663931febc3033c5c7c9730785727de2a81f87d5bab8 \
     --hash=sha256:01f126a5cfddc378290de52095e2c7052be2ba7656a9f0caf4bcd1bfb1833f8a \
@@ -840,7 +840,7 @@ huggingface-hub==1.12.0 \
     --hash=sha256:7c3fe85e24b652334e5d456d7a812cd9a071e75630fac4365d9165ab5e4a34b6 \
     --hash=sha256:d74939969585ee35748bd66de09baf84099d461bda7287cd9043bfb99b0e424d
     # via
-    #   -r requirements-distil.in
+    #   -r training/requirements-distil.in
     #   accelerate
     #   datasets
     #   tokenizers
@@ -1852,7 +1852,7 @@ scikit-learn==1.6.1 \
     --hash=sha256:e7be3fa5d2eb9be7d77c3734ff1d599151bb523674be9b834e8da6abe132f44e \
     --hash=sha256:e8ca8cb270fee8f1f76fa9bfd5c3507d60c6438bbee5687f81042e2bb98e5a97 \
     --hash=sha256:fa909b1a36e000a03c382aade0bd2063fd5680ff8b8e501660c0f59f021a6415
-    # via -r requirements-distil.in
+    # via -r training/requirements-distil.in
 scipy==1.17.1 \
     --hash=sha256:010f4333c96c9bb1a4516269e33cb5917b08ef2166d5556ca2fd9f082a9e6ea0 \
     --hash=sha256:02ae3b274fde71c5e92ac4d54bc06c42d80e399fec704383dcd99b301df37458 \
@@ -1982,7 +1982,11 @@ sentencepiece==0.2.1 \
     --hash=sha256:e10fa50bdbaa5e2445dbd387979980d391760faf0ec99a09bd7780ff37eaec44 \
     --hash=sha256:e37e4b4c4a11662b5db521def4e44d4d30ae69a1743241412a93ae40fdcab4bb \
     --hash=sha256:e52144670738b4b477fade6c2a9b6af71a8d0094514c9853ac9f6fc1fcfabae7
-    # via -r requirements-distil.in
+    # via -r training/requirements-distil.in
+setuptools==81.0.0 \
+    --hash=sha256:487b53915f52501f0a79ccfd0c02c165ffe06631443a886740b91af4b7a5845a \
+    --hash=sha256:fdd925d5c5d9f62e4b74b30d6dd7828ce236fd6ed998a08d81de62ce5a6310d6
+    # via torch
 shellingham==1.5.4 \
     --hash=sha256:7ecfff8f2fd72616f7481040475a65b2bf8af90a56c89140852d1120324e8686 \
     --hash=sha256:8dbca0739d487e5bd35ab3ca4b36e11c4078f3a234bfce294b0a0291363404de
@@ -2055,7 +2059,7 @@ torch==2.11.0 \
     --hash=sha256:f99924682ef0aa6a4ab3b1b76f40dc6e273fca09f367d15a524266db100a723f \
     --hash=sha256:fbf39280699d1b869f55eac536deceaa1b60bd6788ba74f399cc67e60a5fab10
     # via
-    #   -r requirements-distil.in
+    #   -r training/requirements-distil.in
     #   accelerate
 tqdm==4.67.3 \
     --hash=sha256:7d825f03f89244ef73f1d4ce193cb1774a8179fd96f31d7e1dcde62092b960bb \
@@ -2067,7 +2071,7 @@ tqdm==4.67.3 \
 transformers==5.8.0 \
     --hash=sha256:6cc9a1f0291d16b1c1b735bad775e78ebefff7722701d4e28f98aaaa2bd6fb91 \
     --hash=sha256:e9d2cae6d195a7e1e05164c5ebf26142a7044e4dc4267274f4809204f92827e4
-    # via -r requirements-distil.in
+    # via -r training/requirements-distil.in
 triton==3.6.0 \
     --hash=sha256:0b3a97e8ed304dfa9bd23bb41ca04cdf6b2e617d5e782a8653d616037a5d537d \
     --hash=sha256:10c7f76c6e72d2ef08df639e3d0d30729112f47a56b0c81672edc05ee5116ac9 \
