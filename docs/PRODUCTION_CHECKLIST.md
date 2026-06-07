@@ -101,7 +101,10 @@ log_json: true
 ### Environment variables
 
 ```bash
-export DIRECTOR_API_KEYS='["sk-prod-xxx"]'
+# Comma-separated list (recommended); a JSON array is also accepted.
+export DIRECTOR_API_KEYS='sk-prod-xxx,sk-prod-yyy'
+# Equivalent JSON-array form:
+# export DIRECTOR_API_KEYS='["sk-prod-xxx","sk-prod-yyy"]'
 export DIRECTOR_COHERENCE_THRESHOLD=0.6
 export DIRECTOR_USE_NLI=true
 export DIRECTOR_PRODUCTION_MODE=true

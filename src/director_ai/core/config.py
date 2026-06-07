@@ -28,6 +28,30 @@ __all__ = ["DirectorConfig", "ProfileMetadata"]
 logger = logging.getLogger("DirectorAI.Config")
 
 
+def _parse_api_keys_env(raw: str) -> list[str]:
+    """Parse ``DIRECTOR_API_KEYS`` accepting a JSON array or a comma list.
+
+    Operators reach for both spellings: a JSON array (``["sk-a","sk-b"]``, the
+    form the production checklist used to show) and a bare comma-separated list
+    (``sk-a,sk-b``). Parsing only one of them silently embeds brackets/quotes
+    into the literal key and produces the "auth is configured but the keys never
+    match" footgun. A JSON array of strings is honoured when the value parses to
+    a list of strings; everything else falls back to comma splitting. Blank and
+    whitespace-only entries are dropped.
+    """
+    raw = raw.strip()
+    if not raw:
+        return []
+    if raw.startswith("["):
+        try:
+            parsed = json.loads(raw)
+        except json.JSONDecodeError:
+            parsed = None
+        if isinstance(parsed, list) and all(isinstance(k, str) for k in parsed):
+            return [k.strip() for k in parsed if k.strip()]
+    return [k.strip() for k in raw.split(",") if k.strip()]
+
+
 @dataclass(frozen=True)
 class ProfileMetadata:
     """Operator-facing metadata for a built-in configuration profile."""
@@ -875,9 +899,7 @@ class DirectorConfig:
             env_map = os.environ.get("DIRECTOR_API_KEY_TENANT_MAP", "").strip()
             env_hmac = os.environ.get("DIRECTOR_KNOWLEDGE_WRITE_HMAC_KEYS", "").strip()
             if env_keys:
-                resolved["api_keys"] = [
-                    k.strip() for k in env_keys.split(",") if k.strip()
-                ]
+                resolved["api_keys"] = _parse_api_keys_env(env_keys)
             if env_map:
                 resolved["api_key_tenant_map"] = env_map
             if env_hmac:

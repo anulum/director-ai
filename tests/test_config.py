@@ -76,6 +76,52 @@ class TestDirectorConfig:
         assert d["license_key"] == ""
         assert d["license_file"] == ""
 
+
+class TestApiKeysEnvParsing:
+    def test_comma_separated(self):
+        from director_ai.core.config import _parse_api_keys_env
+
+        assert _parse_api_keys_env("sk-a,sk-b") == ["sk-a", "sk-b"]
+
+    def test_json_array(self):
+        from director_ai.core.config import _parse_api_keys_env
+
+        assert _parse_api_keys_env('["sk-a","sk-b"]') == ["sk-a", "sk-b"]
+
+    def test_json_array_does_not_embed_brackets(self):
+        from director_ai.core.config import _parse_api_keys_env
+
+        # The footgun: a JSON array must not produce a literal key that still
+        # carries brackets and quotes.
+        keys = _parse_api_keys_env('["sk-prod-xxx"]')
+        assert keys == ["sk-prod-xxx"]
+        assert "[" not in keys[0] and '"' not in keys[0]
+
+    def test_whitespace_and_blanks_dropped(self):
+        from director_ai.core.config import _parse_api_keys_env
+
+        assert _parse_api_keys_env(" sk-a , , sk-b ") == ["sk-a", "sk-b"]
+        assert _parse_api_keys_env('[" sk-a ", "", "sk-b"]') == ["sk-a", "sk-b"]
+
+    def test_empty_returns_empty_list(self):
+        from director_ai.core.config import _parse_api_keys_env
+
+        assert _parse_api_keys_env("") == []
+        assert _parse_api_keys_env("   ") == []
+
+    def test_malformed_json_falls_back_to_comma(self):
+        from director_ai.core.config import _parse_api_keys_env
+
+        # A bracketed-but-invalid value degrades to comma splitting rather than
+        # silently dropping the keys.
+        assert _parse_api_keys_env("[sk-a,sk-b") == ["[sk-a", "sk-b"]
+
+    def test_json_non_list_falls_back_to_comma(self):
+        from director_ai.core.config import _parse_api_keys_env
+
+        # A JSON object is not a key list; fall back to comma semantics.
+        assert _parse_api_keys_env('{"k":"v"}') == ['{"k":"v"}']
+
     def test_production_mode_rejects_mock_llm_provider(self):
         with pytest.raises(ValueError, match="production_mode requires a real LLM"):
             DirectorConfig(production_mode=True, api_keys={"tenant-api-key"})
