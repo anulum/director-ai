@@ -104,6 +104,64 @@ class TestWSMuxProtocol:
         assert exc_info.value.code == 1008
 
 
+class TestWSAuthHeaders:
+    """WebSocket handshake accepts the same auth headers as HTTP."""
+
+    @staticmethod
+    def _auth_app():
+        cfg = DirectorConfig(
+            api_keys=["ws-key-1"],
+            use_nli=False,
+            llm_provider="mock",
+        )
+        return create_app(config=cfg)
+
+    def test_ws_accepts_bearer_token(self):
+        with (
+            TestClient(self._auth_app()) as client,
+            client.websocket_connect(
+                "/v1/stream",
+                headers={"Authorization": "Bearer ws-key-1"},
+            ) as ws,
+        ):
+            ws.send_json({"prompt": "hello", "session_id": "sid-b"})
+            resp = ws.receive_json()
+            assert resp.get("session_id") == "sid-b"
+
+    def test_ws_accepts_x_api_key(self):
+        with (
+            TestClient(self._auth_app()) as client,
+            client.websocket_connect(
+                "/v1/stream",
+                headers={"X-API-Key": "ws-key-1"},
+            ) as ws,
+        ):
+            ws.send_json({"prompt": "hello", "session_id": "sid-x"})
+            resp = ws.receive_json()
+            assert resp.get("session_id") == "sid-x"
+
+    def test_ws_rejects_missing_auth(self):
+        with (
+            TestClient(self._auth_app()) as client,
+            pytest.raises(WebSocketDisconnect) as exc,
+            client.websocket_connect("/v1/stream") as ws,
+        ):
+            ws.send_json({"prompt": "hello"})
+        assert exc.value.code == 1008
+
+    def test_ws_rejects_bad_bearer(self):
+        with (
+            TestClient(self._auth_app()) as client,
+            pytest.raises(WebSocketDisconnect) as exc,
+            client.websocket_connect(
+                "/v1/stream",
+                headers={"Authorization": "Bearer wrong-key"},
+            ) as ws,
+        ):
+            ws.send_json({"prompt": "hello"})
+        assert exc.value.code == 1008
+
+
 class TestTenantVectorFactEndpoint:
     def test_add_vector_fact(self, client):
         resp = client.post(

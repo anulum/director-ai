@@ -164,16 +164,26 @@ def _check_fastapi() -> None:
         )
 
 
-def _extract_request_api_key(request: Request) -> str:
-    """Return the caller API key from supported production auth headers."""
-    x_api_key = request.headers.get("X-API-Key", "").strip()
+def _extract_api_key_from_headers(headers) -> str:
+    """Return the caller API key from X-API-Key or Authorization: Bearer.
+
+    Shared by the HTTP middleware and the WebSocket handshake so both transports
+    accept the same auth headers. ``headers`` is any mapping with ``.get`` —
+    ``Request.headers`` or ``WebSocket.headers``.
+    """
+    x_api_key = headers.get("X-API-Key", "").strip()
     if x_api_key:
         return x_api_key
 
-    scheme, _, token = request.headers.get("Authorization", "").partition(" ")
+    scheme, _, token = headers.get("Authorization", "").partition(" ")
     if scheme.lower() == "bearer":
         return token.strip()
     return ""
+
+
+def _extract_request_api_key(request: Request) -> str:
+    """Return the caller API key from supported production auth headers."""
+    return _extract_api_key_from_headers(request.headers)
 
 
 # Pydantic models extracted to _server_models.py (reduce module size)
@@ -2267,7 +2277,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
         """Handle multiplexed WebSocket agent sessions."""
         ws_tenant_id = ""
         if _valid_api_keys:
-            provided = ws.headers.get("X-API-Key", "")
+            provided = _extract_api_key_from_headers(ws.headers)
             ws_key_valid = False
             for k in _valid_api_keys:
                 if hmac.compare_digest(provided, k):
