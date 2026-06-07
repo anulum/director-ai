@@ -33,7 +33,8 @@ except ImportError:  # pragma: no cover
     def rust_sum_f64(_values: list[float]) -> float:
         raise RuntimeError("backfire_kernel rust_sum_f64 is unavailable")
 
-    _RUST_DOC_CHUNKER = True
+    # Rust unavailable → fall through to the pure-Python floor.
+    _RUST_DOC_CHUNKER = False
 
 
 @dataclass(frozen=True)

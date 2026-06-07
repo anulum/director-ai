@@ -19,7 +19,9 @@ try:
 
     _RUST_KNOWLEDGE = True
 except ImportError:
-    _RUST_KNOWLEDGE = True
+    # Rust unavailable → fall through to the pure-Python floor (Python is the
+    # final fallback). The stub keeps the name bound but is never called.
+    _RUST_KNOWLEDGE = False
 
     def rust_word_overlap(_text_a: str, _text_b: str) -> float:
         raise RuntimeError("backfire_kernel rust_word_overlap is unavailable")

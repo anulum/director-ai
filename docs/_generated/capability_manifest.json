@@ -9,7 +9,7 @@
     "python_model_classes": 802,
     "python_model_source_modules": 353,
     "rust_pyo3_model_wrappers": 78,
-    "test_files": 442
+    "test_files": 443
   },
   "documentation": {
     "public_pages": [
@@ -4546,6 +4546,7 @@
       "tests/test_rules_scorer.py",
       "tests/test_run_judge_benchmark.py",
       "tests/test_rust_compute.py",
+      "tests/test_rust_fallback_floor.py",
       "tests/test_rust_fallback_paths.py",
       "tests/test_rust_kernel_extraction_plan.py",
       "tests/test_rust_parity_safety.py",

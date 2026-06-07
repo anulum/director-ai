@@ -54,7 +54,9 @@ try:
 
     _RUST_NLI = True
 except ImportError:
-    _RUST_NLI = True
+    # Rust unavailable → fall through to the pure-Python floor. The stubs keep
+    # the names bound for the accelerated branch but are never called when False.
+    _RUST_NLI = False
 
     def rust_softmax(_flat: list[float], _cols: int) -> list[float]:
         """Raise when the Rust NLI softmax accelerator is unavailable."""
