@@ -13,7 +13,15 @@ updates:
     schedule:
       interval: "weekly"
       day: "monday"
-    open-pull-requests-limit: 0
+    # Open update PRs (was 0 = disabled). Minor/patch are grouped into one PR to
+    # keep noise down; major bumps stay separate so they get individual review
+    # and migration per the no-deferred-dep-upgrades policy.
+    open-pull-requests-limit: 10
+    groups:
+      actions-minor-patch:
+        update-types:
+          - "minor"
+          - "patch"
     labels:
       - "dependencies"
       - "ci"
@@ -25,7 +33,12 @@ updates:
       day: "monday"
     exclude-paths:
       - "requirements/**"
-    open-pull-requests-limit: 0
+    open-pull-requests-limit: 10
+    groups:
+      python-minor-patch:
+        update-types:
+          - "minor"
+          - "patch"
     labels:
       - "dependencies"
       - "python"
