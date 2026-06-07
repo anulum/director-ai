@@ -2,14 +2,14 @@
   "SPDX-License-Identifier": "AGPL-3.0-or-later",
   "counts": {
     "github_workflows": 11,
-    "model_documentation_pages": 71,
+    "model_documentation_pages": 72,
     "optional_extras": 53,
     "public_api_exports": 216,
-    "public_documentation_pages": 166,
-    "python_model_classes": 832,
-    "python_model_source_modules": 360,
+    "public_documentation_pages": 167,
+    "python_model_classes": 833,
+    "python_model_source_modules": 361,
     "rust_pyo3_model_wrappers": 78,
-    "test_files": 449
+    "test_files": 451
   },
   "documentation": {
     "public_pages": [
@@ -19,6 +19,7 @@
       "docs-site/api/agent.md",
       "docs-site/api/answer-bom.md",
       "docs-site/api/batch.md",
+      "docs-site/api/board-kpis.md",
       "docs-site/api/byzantine-consensus.md",
       "docs-site/api/cache.md",
       "docs-site/api/canary-facts.md",
@@ -206,6 +207,7 @@
       "agent.md",
       "answer-bom.md",
       "batch.md",
+      "board-kpis.md",
       "byzantine-consensus.md",
       "cache.md",
       "canary-facts.md",
@@ -1896,6 +1898,10 @@
       {
         "name": "KpiReport",
         "path": "src/director_ai/core/observability/kpis.py"
+      },
+      {
+        "name": "KpiTargets",
+        "path": "src/director_ai/core/observability/kpi_report.py"
       },
       {
         "name": "LLMGenerator",
@@ -3765,6 +3771,7 @@
       "src/director_ai/core/neuro_symbolic/expression.py",
       "src/director_ai/core/nli.py",
       "src/director_ai/core/observability/callbacks.py",
+      "src/director_ai/core/observability/kpi_report.py",
       "src/director_ai/core/observability/kpis.py",
       "src/director_ai/core/observability/tracing.py",
       "src/director_ai/core/ontology/checker.py",
@@ -4394,6 +4401,7 @@
       "tests/test_cli.py",
       "tests/test_cli_bench_paths.py",
       "tests/test_cli_ingest_formats.py",
+      "tests/test_cli_kpis.py",
       "tests/test_cli_new_commands.py",
       "tests/test_cli_serve_paths.py",
       "tests/test_cli_verify_deep.py",
@@ -4621,6 +4629,7 @@
       "tests/test_notebook_gallery.py",
       "tests/test_numeric_verifier.py",
       "tests/test_observability.py",
+      "tests/test_observability_kpi_report.py",
       "tests/test_observability_kpis.py",
       "tests/test_observability_pack.py",
       "tests/test_online_calibrator.py",

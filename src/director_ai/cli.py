@@ -57,6 +57,7 @@ from ._cli_verify import (
     _cmd_cost_report,
     _cmd_doctor,
     _cmd_kb_health,
+    _cmd_kpis,
     _cmd_license,
     _cmd_safety_dashboard,
     _cmd_temporal_freshness,
@@ -116,6 +117,7 @@ def main(argv: list[str] | None = None) -> None:
         "kb-health": _cmd_kb_health,
         "wizard": _cmd_wizard,
         "safety-dashboard": _cmd_safety_dashboard,
+        "kpis": _cmd_kpis,
         "cost-report": _cmd_cost_report,
         "evidence": _cmd_evidence,
         "verify-evidence": _cmd_verify_evidence,
@@ -159,6 +161,7 @@ def _print_help() -> None:
         "  kb-health [options]   Knowledge base health diagnostics\n"
         "  wizard [--cli]        Interactive configuration wizard\n"
         "  safety-dashboard [--text] [--events F]  Halt-rate operations view\n"
+        "  kpis --input F [--format text|markdown|json]  Board-level guardrail KPIs\n"
         "  cost-report [--format F]  Token cost report (text|json|html)\n"
         "  evidence [--emit DIR]  Run the narrow demo, emit a verifiable packet\n"
         "  verify-evidence <DIR>  Verify an emitted evidence packet\n",

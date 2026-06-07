@@ -772,6 +772,112 @@ def _cmd_cost_report(args: list[str]) -> None:
             )
 
 
+def _kpi_items_from_records(records: list[Any]) -> list[Any]:
+    """Build :class:`LabelItem`s from JSON records (only the fields it accepts)."""
+    from director_ai.core.labelling_cockpit.items import LabelItem
+
+    fields = ("item_id", "score", "guard_approved", "domain", "label")
+    items = []
+    for record in records:
+        if not isinstance(record, Mapping):
+            raise ValueError("each item must be a JSON object")
+        kwargs = {key: record[key] for key in fields if key in record}
+        items.append(LabelItem(**kwargs))
+    return items
+
+
+def _cmd_kpis(args: list[str]) -> None:
+    """Render the board-level guardrail KPIs from a JSON input bundle.
+
+    The input file is a JSON object with ``items`` (reviewer-labelled guard
+    decisions), optional ``latency_ms_samples``, optional operational counters
+    (``tenant_boundary_violations`` / ``unsigned_kb_writes_rejected`` /
+    ``security_exception_debt``), and an optional ``targets`` overlay.
+    """
+    input_path = None
+    fmt = "text"
+    i = 0
+    while i < len(args):
+        if args[i] == "--input" and i + 1 < len(args):
+            input_path = args[i + 1]
+            i += 2
+        elif args[i] == "--format" and i + 1 < len(args):
+            fmt = args[i + 1]
+            i += 2
+        else:
+            i += 1
+
+    if input_path is None:
+        print(
+            "Usage: director-ai kpis --input <bundle.json> [--format text|markdown|json]"
+        )
+        sys.exit(1)
+    if fmt not in ("text", "markdown", "json"):
+        print(f"Unknown format '{fmt}'. Choose from: text, markdown, json")
+        sys.exit(1)
+
+    from pathlib import Path
+
+    bundle_path = Path(input_path)
+    if not bundle_path.exists():
+        print(f"Error: input bundle not found at {bundle_path}")
+        sys.exit(1)
+
+    try:
+        bundle = json.loads(bundle_path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        print(f"Error: invalid JSON in {bundle_path}: {exc}")
+        sys.exit(1)
+    if not isinstance(bundle, Mapping):
+        print("Error: input bundle must be a JSON object")
+        sys.exit(1)
+
+    from director_ai.core.observability.kpi_report import (
+        KpiTargets,
+        render_markdown,
+        render_text,
+    )
+    from director_ai.core.observability.kpis import compute_kpis
+
+    try:
+        items = _kpi_items_from_records(list(bundle.get("items", [])))
+    except (ValueError, TypeError) as exc:
+        print(f"Error: invalid item record: {exc}")
+        sys.exit(1)
+
+    report = compute_kpis(
+        items,
+        latency_ms_samples=list(bundle.get("latency_ms_samples", [])),
+        tenant_boundary_violations=int(bundle.get("tenant_boundary_violations", 0)),
+        unsigned_kb_writes_rejected=int(bundle.get("unsigned_kb_writes_rejected", 0)),
+        security_exception_debt=int(bundle.get("security_exception_debt", 0)),
+    )
+
+    targets_overlay = bundle.get("targets")
+    try:
+        targets = KpiTargets(**targets_overlay) if targets_overlay else None
+    except (ValueError, TypeError) as exc:
+        print(f"Error: invalid targets overlay: {exc}")
+        sys.exit(1)
+
+    if fmt == "json":
+        from director_ai.core.observability.kpi_report import (
+            kpi_statuses,
+            overall_status,
+        )
+
+        payload = {
+            "report": report.to_dict(),
+            "statuses": kpi_statuses(report, targets),
+            "overall": overall_status(report, targets),
+        }
+        print(json.dumps(payload, indent=2))
+    elif fmt == "markdown":
+        print(render_markdown(report, targets=targets))
+    else:
+        print(render_text(report, targets=targets))
+
+
 def _cmd_adversarial_test(args: list[str]) -> None:
     """Run adversarial robustness test against the guardrail."""
     from director_ai.core.config import DirectorConfig
