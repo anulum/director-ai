@@ -86,6 +86,9 @@ source packages, and the WASM artefact.
 | `run_emitted_implies_all_pass` | Emitted streams contain only threshold-passing items. |
 | `run_any_fail_implies_not_emitted` | Any failing score prevents an emitted result. |
 | `run_any_fail_implies_halted` | Any failing score forces the halted result. |
+| `passes_antitone` | Passing a stricter threshold implies passing any looser one. |
+| `run_all_pass_emitted` | If every item passes, the run emits the whole input. |
+| `run_threshold_monotone` | Lowering the threshold never turns an emitting stream into a halting one. |
 
 The proof root stays outside user installation. It supports release evidence
 and contract fixtures; it is not part of the first-run path.

@@ -11,6 +11,7 @@ root = "formal/HaltMonitor"
 lean_toolchain = "formal/HaltMonitor/lean-toolchain"
 model = "formal/HaltMonitor/HaltMonitor/Core.lean"
 properties = "formal/HaltMonitor/HaltMonitor/Properties.lean"
+monotonicity = "formal/HaltMonitor/HaltMonitor/Monotonicity.lean"
 python_surface = "src/director_ai/core/runtime/kernel.py"
 rust_surface = "backfire-kernel/crates/backfire-core"
 fixture_family = "halt-monitor-contract"
@@ -38,3 +39,21 @@ name = "run_any_fail_implies_halted"
 file = "formal/HaltMonitor/HaltMonitor/Properties.lean"
 claim = "Any failing score forces the halted constructor."
 contract = "failing-score-halts"
+
+[[theorems]]
+name = "passes_antitone"
+file = "formal/HaltMonitor/HaltMonitor/Monotonicity.lean"
+claim = "Passing a stricter (higher) threshold implies passing any looser one."
+contract = "threshold-pass-antitone"
+
+[[theorems]]
+name = "run_all_pass_emitted"
+file = "formal/HaltMonitor/HaltMonitor/Monotonicity.lean"
+claim = "If every item passes the threshold, the run emits the whole input."
+contract = "all-pass-emits"
+
+[[theorems]]
+name = "run_threshold_monotone"
+file = "formal/HaltMonitor/HaltMonitor/Monotonicity.lean"
+claim = "Lowering the threshold cannot turn an emitting stream into a halting one."
+contract = "threshold-monotone-emit"

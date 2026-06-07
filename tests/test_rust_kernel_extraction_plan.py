@@ -79,16 +79,19 @@ def test_proof_manifest_maps_existing_theorems_to_runtime_surfaces() -> None:
     plan = _load_toml(PLAN_PATH)
     manifest_path = ROOT / str(plan["proof_manifest"])
     manifest = _load_toml(manifest_path)
-    properties = _read(str(manifest["properties"]))
 
     assert (ROOT / str(manifest["model"])).is_file()
+    assert (ROOT / str(manifest["properties"])).is_file()
+    assert (ROOT / str(manifest["monotonicity"])).is_file()
     assert (ROOT / str(manifest["python_surface"])).is_file()
     assert (ROOT / str(manifest["rust_surface"])).is_dir()
 
     theorems = manifest["theorems"]
     assert isinstance(theorems, list)
-    assert len(theorems) == 4
+    assert len(theorems) == 7
     for theorem in theorems:
         assert isinstance(theorem, dict)
-        assert str(theorem["name"]) in properties
+        # Each theorem is declared in the .lean file the manifest points to.
+        source = _read(str(theorem["file"]))
+        assert f"theorem {theorem['name']}" in source
         assert str(theorem["contract"])
