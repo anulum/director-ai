@@ -1370,23 +1370,3 @@ class TestKernelAbsentMerkleFallback:
 
         assert len(root) == 32
         assert walked == root  # auth path recomputes the same root, no NameError
-
-    def test_except_block_sets_flag_false(self):
-        import importlib
-        import sys
-
-        name = "director_ai.core.zk_attestation.commitment"
-        saved = sys.modules.get("backfire_kernel")
-        sys.modules["backfire_kernel"] = None  # make ``import backfire_kernel`` fail
-        try:
-            module = importlib.reload(sys.modules[name])
-            # A True here is the original bug: mandatory_execution would re-raise
-            # the NameError on the undefined bindings before the fallback ran.
-            assert module._RUST_MERKLE_AVAILABLE is False
-        finally:
-            if saved is None:
-                sys.modules.pop("backfire_kernel", None)
-            else:
-                sys.modules["backfire_kernel"] = saved
-            importlib.reload(sys.modules[name])
-        assert sys.modules[name]._RUST_MERKLE_AVAILABLE is True

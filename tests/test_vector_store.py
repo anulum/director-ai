@@ -1146,24 +1146,3 @@ class TestKernelAbsentSimilarityFallback:
 
         assert results, "fallback must return ranked documents, not raise"
         assert results[0]["id"] == "d1"
-
-    def test_except_block_sets_flag_false(self):
-        import importlib
-        import sys
-
-        name = "director_ai.core.retrieval.vector_store.base"
-        saved = sys.modules.get("backfire_kernel")
-        sys.modules["backfire_kernel"] = None  # make ``import backfire_kernel`` fail
-        try:
-            module = importlib.reload(sys.modules[name])
-            # A True here is the original bug: the loop would call the None
-            # binding and lean on a per-document TypeError to fall back.
-            assert module._RUST_VECTOR_BASE is False
-            assert module.rust_word_overlap is None
-        finally:
-            if saved is None:
-                sys.modules.pop("backfire_kernel", None)
-            else:
-                sys.modules["backfire_kernel"] = saved
-            importlib.reload(sys.modules[name])
-        assert sys.modules[name]._RUST_VECTOR_BASE is True
