@@ -290,6 +290,50 @@ def _cmd_license(args: list[str]) -> None:
     sys.exit(1)
 
 
+def _load_article15_context(path: str):
+    """Load operator-supplied Article 15 context from a JSON file.
+
+    Exits with a clear message when the file is missing, unparsable, or omits a
+    required Article 15 narrative field.
+    """
+    from pathlib import Path
+
+    from director_ai.compliance.reporter import Article15TemplateContext
+
+    ctx_file = Path(path)
+    if not ctx_file.exists():
+        print(f"Article 15 context file not found: {path}")
+        sys.exit(1)
+    try:
+        data = json.loads(ctx_file.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        print(f"Invalid Article 15 context JSON: {exc}")
+        sys.exit(1)
+    if not isinstance(data, dict):
+        print("Article 15 context must be a JSON object")
+        sys.exit(1)
+    try:
+        return Article15TemplateContext(
+            system_name=str(data.get("system_name", "")),
+            intended_purpose=str(data.get("intended_purpose", "")),
+            deployment_context=str(data.get("deployment_context", "")),
+            risk_management_summary=str(data.get("risk_management_summary", "")),
+            data_governance_summary=str(data.get("data_governance_summary", "")),
+            robustness_summary=str(data.get("robustness_summary", "")),
+            cybersecurity_summary=str(data.get("cybersecurity_summary", "")),
+            human_oversight_summary=str(data.get("human_oversight_summary", "")),
+            post_market_monitoring_summary=str(
+                data.get("post_market_monitoring_summary", "")
+            ),
+            known_limitations=tuple(data.get("known_limitations", ())),
+            residual_risks=tuple(data.get("residual_risks", ())),
+            evidence_refs=tuple(data.get("evidence_refs", ())),
+        )
+    except ValueError as exc:
+        print(f"Incomplete Article 15 context: {exc}")
+        sys.exit(1)
+
+
 def _cmd_compliance(args: list[str]) -> None:
     """EU AI Act Article 15 compliance tools."""
     if not args or args[0] in ("-h", "--help"):
@@ -298,6 +342,8 @@ def _cmd_compliance(args: list[str]) -> None:
             "\n"
             "Subcommands:\n"
             "  report  [--db PATH] [--since TS] [--until TS] [--format md|json|html]\n"
+            "          [--context FILE.json]  Full Article 15 documentation when an\n"
+            "          operator context file is supplied\n"
             "  status  [--db PATH]   Quick summary\n"
             "  drift   [--db PATH]   Drift detection analysis\n",
         )
@@ -309,6 +355,7 @@ def _cmd_compliance(args: list[str]) -> None:
     fmt = "md"
     since = None
     until = None
+    context_path = None
 
     i = 0
     while i < len(rest):
@@ -323,6 +370,9 @@ def _cmd_compliance(args: list[str]) -> None:
             i += 2
         elif rest[i] == "--format" and i + 1 < len(rest):
             fmt = rest[i + 1]
+            i += 2
+        elif rest[i] == "--context" and i + 1 < len(rest):
+            context_path = rest[i + 1]
             i += 2
         else:
             i += 1
@@ -345,7 +395,17 @@ def _cmd_compliance(args: list[str]) -> None:
     if sub == "report":
         reporter = ComplianceReporter(log)
         report = reporter.generate_report(since=since, until=until)
-        if fmt == "json":
+        if context_path is not None:
+            # Full Article 15 technical documentation: the operator-authored
+            # context (system purpose, risk/data-governance/oversight summaries)
+            # cannot be derived from telemetry, so it is supplied as a file. With
+            # it, emit the complete regulator-grade record rather than a summary.
+            context = _load_article15_context(context_path)
+            if fmt == "json":
+                print(json.dumps(report.to_article15_template(context), indent=2))
+            else:
+                print(report.to_article15_markdown(context))
+        elif fmt == "json":
             print(
                 json.dumps(
                     {

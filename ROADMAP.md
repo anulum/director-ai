@@ -470,8 +470,10 @@ roots.
 1. **Unified Observability Dashboard (Critical / Core):**
    - OTEL-first trace graph and a lightweight UI (or Langfuse-integrated path).
    - Halt explanations, confidence attribution, drift alerts, and audit exports.
-   - EU AI Act Article 15 reporting is partially implemented; complete compliance
-     exports remain open.
+   - EU AI Act Article 15 reporting exports the full structured technical
+     documentation (markdown and JSON) via `director-ai compliance report
+     --context FILE.json`, plus the audit log, cost, drift, and SOC2/ISO
+     readiness reports; a hosted/live dashboard UI remains the open item.
 2. **Online KB Evolution + Provenance:**
    - Auto-grounding with counterfactual explanations.
    - Human-feedback online calibration in the production path.

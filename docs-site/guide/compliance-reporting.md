@@ -167,6 +167,19 @@ tenant-safe dictionary with `privacy.raw_interaction_text_included = false`.
 `Article15Report.to_article15_markdown(context)` renders the same structure as a
 reviewable technical-documentation draft.
 
+Export the full template from the CLI by supplying the operator context as a JSON
+file:
+
+```bash
+director-ai compliance report --db audit.db --format json --context article15.json
+director-ai compliance report --db audit.db --context article15.json  # markdown
+```
+
+`article15.json` carries the operator-authored narrative fields (`system_name`,
+`intended_purpose`, `risk_management_summary`, `human_oversight_summary`, …).
+Without `--context`, `--format json` still emits the compact metrics summary for
+quick checks; with it, the command emits the complete Article 15 record.
+
 ## Integration with Gateway
 
 When director-ai runs as a proxy/gateway, every LLM call gets automatically scored and logged. The compliance reporter reads from the same audit database.

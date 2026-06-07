@@ -143,3 +143,98 @@ class TestCompliancePerformanceDoc:
         cli_main(["compliance", "status", "--db", db])
         elapsed_ms = (time.perf_counter() - t0) * 1000
         assert elapsed_ms < 5000, f"Compliance status took {elapsed_ms:.0f}ms"
+
+
+def _write_context(tmp_path, **overrides):
+    import json
+
+    ctx = {
+        "system_name": "Director-AI Guard",
+        "intended_purpose": "Factual-coherence guardrail for LLM output.",
+        "deployment_context": "Internal scientific pipelines.",
+        "risk_management_summary": "Streaming halt + evidence on low coherence.",
+        "data_governance_summary": "Tenant-isolated KB; signed writes.",
+        "robustness_summary": "NLI + RAG; drift detection.",
+        "cybersecurity_summary": "API-key auth; rate limits; tenant binding.",
+        "human_oversight_summary": "Review queue + operator override.",
+        "post_market_monitoring_summary": "Audit log + KPI tracking.",
+        "known_limitations": ["regex stage-1 bypassable"],
+        "residual_risks": ["novel injection vectors"],
+        "evidence_refs": ["audit/audit.jsonl"],
+    }
+    ctx.update(overrides)
+    path = tmp_path / "article15_context.json"
+    path.write_text(json.dumps(ctx), encoding="utf-8")
+    return str(path)
+
+
+class TestArticle15FullExport:
+    def test_full_json_export_with_context(self, tmp_path, capsys):
+        import json
+
+        db = str(tmp_path / "test.db")
+        _populate_db(db)
+        ctx = _write_context(tmp_path)
+        cli_main(
+            ["compliance", "report", "--db", db, "--format", "json", "--context", ctx]
+        )
+        payload = json.loads(capsys.readouterr().out)
+        assert payload["article"] == "EU AI Act Article 15"
+        assert "accuracy" in payload["article_15_sections"]
+        assert "human_oversight" in payload["article_15_sections"]
+        assert payload["privacy"]["raw_interaction_text_included"] is False
+
+    def test_full_markdown_export_with_context(self, tmp_path, capsys):
+        db = str(tmp_path / "test.db")
+        _populate_db(db)
+        ctx = _write_context(tmp_path)
+        cli_main(["compliance", "report", "--db", db, "--context", ctx])
+        out = capsys.readouterr().out
+        assert "Article 15" in out
+
+    def test_incomplete_context_exits(self, tmp_path, capsys):
+        db = str(tmp_path / "test.db")
+        _populate_db(db)
+        ctx = _write_context(tmp_path, system_name="")
+        with pytest.raises(SystemExit) as exc:
+            cli_main(["compliance", "report", "--db", db, "--context", ctx])
+        assert exc.value.code == 1
+        assert "Incomplete Article 15 context" in capsys.readouterr().out
+
+    def test_missing_context_file_exits(self, tmp_path, capsys):
+        db = str(tmp_path / "test.db")
+        _populate_db(db)
+        with pytest.raises(SystemExit) as exc:
+            cli_main(
+                [
+                    "compliance",
+                    "report",
+                    "--db",
+                    db,
+                    "--context",
+                    str(tmp_path / "absent.json"),
+                ]
+            )
+        assert exc.value.code == 1
+        assert "not found" in capsys.readouterr().out
+
+    def test_bad_context_json_exits(self, tmp_path, capsys):
+        db = str(tmp_path / "test.db")
+        _populate_db(db)
+        bad = tmp_path / "bad.json"
+        bad.write_text("{not json", encoding="utf-8")
+        with pytest.raises(SystemExit) as exc:
+            cli_main(["compliance", "report", "--db", db, "--context", str(bad)])
+        assert exc.value.code == 1
+        assert "Invalid Article 15 context JSON" in capsys.readouterr().out
+
+    def test_summary_json_without_context_unchanged(self, tmp_path, capsys):
+        import json
+
+        db = str(tmp_path / "test.db")
+        _populate_db(db)
+        cli_main(["compliance", "report", "--db", db, "--format", "json"])
+        payload = json.loads(capsys.readouterr().out)
+        # Backward-compatible summary (no Article 15 envelope).
+        assert "article" not in payload
+        assert "total_interactions" in payload
