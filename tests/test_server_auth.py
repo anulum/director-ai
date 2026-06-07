@@ -513,3 +513,33 @@ def test_sqlite_stats_works(tmp_path):
     assert r.status_code == 200
     data = r.json()
     assert data["total"] == 0
+
+
+def test_multi_worker_inmemory_rate_limit_warns(caplog):
+    """Multi-worker in-memory rate limiting warns it is per-process."""
+    import logging
+
+    cfg = DirectorConfig(
+        api_keys=[],
+        llm_provider="mock",
+        rate_limit_rpm=60,
+        server_workers=2,
+    )
+    with caplog.at_level(logging.WARNING):
+        create_app(cfg)
+    assert "per worker process" in caplog.text
+
+
+def test_single_worker_rate_limit_no_warning(caplog):
+    """A single worker does not trigger the per-process rate-limit warning."""
+    import logging
+
+    cfg = DirectorConfig(
+        api_keys=[],
+        llm_provider="mock",
+        rate_limit_rpm=60,
+        server_workers=1,
+    )
+    with caplog.at_level(logging.WARNING):
+        create_app(cfg)
+    assert "per worker process" not in caplog.text

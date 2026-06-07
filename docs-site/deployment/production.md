@@ -142,6 +142,17 @@ uvicorn director_ai.server:app --workers 4 --host 0.0.0.0 --port 8080
 
 Each worker gets its own scorer instance. The NLI model is loaded once per worker via `lru_cache`.
 
+!!! warning "Rate limiting across workers and instances"
+    Rate limiting is **in-memory and per worker process** unless a shared backend
+    is configured. With `--workers N` (or several instances behind a load
+    balancer) and no shared store, the effective limit is multiplied by the
+    number of processes. Set `redis_url` so the server's SlowAPI limiter uses
+    Redis for a single global limit; the server logs a warning at startup when
+    `server_workers > 1` and no `redis_url` is set. The standalone
+    `RateLimitMiddleware` is always per-process — for multi-instance enforcement
+    use the main server's Redis-backed limiter (or enforce limits at the reverse
+    proxy / API gateway).
+
 ### GPU Sharing
 
 For multi-worker GPU sharing, load the model once and share via torch multiprocessing:

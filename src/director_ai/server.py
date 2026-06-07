@@ -632,6 +632,16 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
                     if "@" in cfg.redis_url
                     else cfg.redis_url,
                 )
+            elif cfg.server_workers > 1:
+                # In-memory storage is per worker process; the configured limit is
+                # multiplied by the worker count and is not shared across
+                # instances. Set redis_url for a single global limit.
+                logger.warning(
+                    "Rate limiting is in-memory but server_workers=%d: the limit "
+                    "is enforced per worker process, not globally. Set redis_url "
+                    "for a shared limit across workers and instances.",
+                    cfg.server_workers,
+                )
             limiter = Limiter(
                 key_func=get_remote_address,
                 default_limits=[_rate_str],
