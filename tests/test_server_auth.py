@@ -20,11 +20,16 @@ from director_ai.core.metrics import metrics
 try:
     from fastapi.testclient import TestClient
 
-    from director_ai.server import _extract_request_api_key, create_app
+    from director_ai.server import (
+        _SLOWAPI_AVAILABLE,
+        _extract_request_api_key,
+        create_app,
+    )
 
     _SERVER_AVAILABLE = True
 except ImportError:
     _SERVER_AVAILABLE = False
+    _SLOWAPI_AVAILABLE = False
 
 pytestmark = pytest.mark.skipif(not _SERVER_AVAILABLE, reason="fastapi not installed")
 
@@ -515,6 +520,10 @@ def test_sqlite_stats_works(tmp_path):
     assert data["total"] == 0
 
 
+@pytest.mark.skipif(
+    not _SLOWAPI_AVAILABLE,
+    reason="the per-process warning only fires when the SlowAPI limiter is active",
+)
 def test_multi_worker_inmemory_rate_limit_warns(caplog):
     """Multi-worker in-memory rate limiting warns it is per-process."""
     import logging
