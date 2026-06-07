@@ -38,8 +38,12 @@ try:
     )
 
     _RUST_GEOM_AVAILABLE = True
-except ImportError:  # pragma: no cover — mandatory accelerator
-    _RUST_GEOM_AVAILABLE = True
+except ImportError:  # pragma: no cover — pure-Python fallback path
+    # The accelerator is absent: flag False so every method routes to its
+    # pure-Python collision fallback below (the documented final-floor path),
+    # rather than entering the Rust branch and hitting a NameError on the
+    # undefined ``_rust_*`` bindings.
+    _RUST_GEOM_AVAILABLE = False
 
 
 @dataclass(frozen=True)

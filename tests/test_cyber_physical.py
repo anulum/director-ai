@@ -1110,3 +1110,107 @@ class TestCarlaAdapter:
 
         assert verdict.allowed
         assert verdict.violations == ()
+
+
+class TestKernelAbsentFallback:
+    """The kernel-absent path must use pure-Python fallbacks, not NameError.
+
+    When ``backfire_kernel`` fails to import, the ``_RUST_*`` flags are set
+    ``False`` so every method routes to its pure-Python fallback. These tests
+    reproduce that state — flag ``False`` *and* the ``_rust_*`` bindings deleted
+    (as they would be when the import never ran) — and assert the geometry and
+    kinematics fallbacks compute the correct answer rather than raising
+    ``NameError`` on an undefined accelerator binding.
+    """
+
+    def test_geometry_fallbacks_without_rust_bindings(self, monkeypatch):
+        from director_ai.core.cyber_physical import geometry as geom
+
+        monkeypatch.setattr(geom, "_RUST_GEOM_AVAILABLE", False)
+        for name in (
+            "_rust_aabb_contains",
+            "_rust_sphere_contains",
+            "_rust_sphere_intersects_sphere",
+            "_rust_sphere_intersects_aabb",
+        ):
+            monkeypatch.delattr(geom, name, raising=False)
+
+        box = AABB(min_corner=Vec3(0.0, 0.0, 0.0), max_corner=Vec3(1.0, 1.0, 1.0))
+        sphere = Sphere(centre=Vec3(0.0, 0.0, 0.0), radius=1.0)
+        other = Sphere(centre=Vec3(1.5, 0.0, 0.0), radius=1.0)
+
+        assert box.contains(Vec3(0.5, 0.5, 0.5)) is True
+        assert box.contains(Vec3(2.0, 0.0, 0.0)) is False
+        assert sphere.contains(Vec3(0.5, 0.0, 0.0)) is True
+        assert sphere.contains(Vec3(2.0, 0.0, 0.0)) is False
+        assert sphere.intersects(other) is True
+        assert sphere.intersects_aabb(box) is True
+
+    def test_kinematics_inverse_fallback_without_rust_binding(self, monkeypatch):
+        from director_ai.core.cyber_physical import kinematics as kin
+
+        monkeypatch.setattr(kin, "_RUST_IK_AVAILABLE", False)
+        monkeypatch.delattr(kin, "_rust_two_link_ik", raising=False)
+
+        model = SimpleKinematicModel(
+            chain=JointChain(base=Vec3(0.0, 0.0, 0.0), link_lengths=(1.0, 1.0)),
+        )
+        target = Vec3(1.0, 1.0, 0.0)
+        solution = model.inverse(target)
+
+        assert solution is not None
+        assert model.forward(solution).distance(target) < 1e-9
+        # Unreachable target still resolves via the Python branch, not NameError.
+        assert model.inverse(Vec3(10.0, 0.0, 0.0)) is None
+
+    @staticmethod
+    def _reload_without_kernel(module_name: str):
+        """Reload a module with ``backfire_kernel`` import forced to fail.
+
+        Returns the reloaded module; the caller must restore via
+        ``_restore_with_kernel`` so the rest of the session keeps the real
+        accelerator bindings.
+        """
+        import importlib
+
+        saved_kernel = sys.modules.get("backfire_kernel")
+        sys.modules["backfire_kernel"] = None  # makes ``import backfire_kernel`` fail
+        try:
+            return importlib.reload(sys.modules[module_name]), saved_kernel
+        finally:
+            pass
+
+    @staticmethod
+    def _restore_with_kernel(module_name: str, saved_kernel) -> None:
+        import importlib
+
+        if saved_kernel is None:
+            sys.modules.pop("backfire_kernel", None)
+        else:
+            sys.modules["backfire_kernel"] = saved_kernel
+        importlib.reload(sys.modules[module_name])
+
+    def test_geometry_except_block_sets_flag_false(self):
+        name = "director_ai.core.cyber_physical.geometry"
+        module, saved = self._reload_without_kernel(name)
+        try:
+            # The except branch must set the flag False so the Python fallbacks
+            # run; a True here is the original bug that produced a NameError.
+            assert module._RUST_GEOM_AVAILABLE is False
+        finally:
+            self._restore_with_kernel(name, saved)
+        assert sys.modules[name]._RUST_GEOM_AVAILABLE is True
+
+    def test_kinematics_except_block_sets_flag_false(self):
+        name = "director_ai.core.cyber_physical.kinematics"
+        module, saved = self._reload_without_kernel(name)
+        try:
+            # The except branch must set the flag False so the Python fallbacks
+            # run; a True here is the original bug that produced a NameError.
+            assert module._RUST_IK_AVAILABLE is False
+            # The local rust_sum_f64 stub is defined and raises clearly if used.
+            with pytest.raises(RuntimeError, match="rust_sum_f64 is unavailable"):
+                module.rust_sum_f64([1.0, 2.0])
+        finally:
+            self._restore_with_kernel(name, saved)
+        assert sys.modules[name]._RUST_IK_AVAILABLE is True
