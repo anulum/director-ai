@@ -230,6 +230,8 @@ class DirectorConfig:
     server_port: int = 8080
     server_workers: int = 1
     cors_origins: str = ""
+    # Lifetime of a single-use browser WebSocket handshake ticket (seconds).
+    ws_ticket_ttl_seconds: float = 30.0
 
     # ONNX
     onnx_path: str = ""

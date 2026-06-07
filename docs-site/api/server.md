@@ -204,10 +204,32 @@ Set `api_keys` in config or via `DIRECTOR_API_KEYS` env var (comma-separated):
 DIRECTOR_API_KEYS=key1,key2 director-ai serve
 ```
 
-Clients send `X-API-Key: key1` header. Unauthenticated requests receive 401.
-The `/v1/stream` WebSocket endpoint enforces the same API-key requirement before
-accepting the socket. When `api_key_tenant_map` is configured, a key must be
-present in the map and any `X-Tenant-ID` claim must match the bound tenant.
+Clients send `X-API-Key: key1` or `Authorization: Bearer key1`. Unauthenticated
+requests receive 401. The `/v1/stream` WebSocket endpoint enforces the same
+API-key requirement before accepting the socket and accepts either header. When
+`api_key_tenant_map` is configured, a key must be present in the map and any
+`X-Tenant-ID` claim must match the bound tenant.
+
+### Browser WebSocket authentication (tickets)
+
+Browsers cannot set custom headers on the WebSocket handshake. An authenticated
+caller therefore exchanges its key for a short-lived, single-use ticket and
+connects with it as a query parameter:
+
+```bash
+# 1. Exchange the API key for a ticket (authenticated HTTP request).
+curl -s -X POST http://localhost:8080/v1/stream/ticket \
+  -H 'X-API-Key: key1'
+# -> {"ticket": "<opaque>", "expires_in": 30.0}
+
+# 2. Open the socket with the ticket (no headers needed).
+#    wss://host/v1/stream?ticket=<opaque>
+```
+
+Tickets are bound to the issuing key and tenant, expire after
+`ws_ticket_ttl_seconds` (default 30 s), and are consumed on first use, so they
+are materially safer than putting a long-lived key in the URL. With multiple
+server workers the socket must reach the issuing process (sticky sessions).
 
 ## WebSocket DoS controls
 

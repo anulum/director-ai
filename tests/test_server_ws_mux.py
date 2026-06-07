@@ -162,6 +162,78 @@ class TestWSAuthHeaders:
         assert exc.value.code == 1008
 
 
+class TestWSTicketAuth:
+    """Browser path: exchange an API key for a single-use WebSocket ticket."""
+
+    @staticmethod
+    def _auth_app():
+        cfg = DirectorConfig(
+            api_keys=["ws-key-1"],
+            use_nli=False,
+            llm_provider="mock",
+        )
+        return create_app(config=cfg)
+
+    def test_ticket_endpoint_requires_auth(self):
+        with TestClient(self._auth_app()) as client:
+            r = client.post("/v1/stream/ticket")
+        assert r.status_code == 401
+
+    def test_ticket_endpoint_issues_ticket(self):
+        with TestClient(self._auth_app()) as client:
+            r = client.post(
+                "/v1/stream/ticket",
+                headers={"X-API-Key": "ws-key-1"},
+            )
+        assert r.status_code == 200
+        body = r.json()
+        assert body["ticket"]
+        assert body["expires_in"] > 0
+
+    def test_ws_connect_with_ticket(self):
+        with TestClient(self._auth_app()) as client:
+            ticket = client.post(
+                "/v1/stream/ticket",
+                headers={"X-API-Key": "ws-key-1"},
+            ).json()["ticket"]
+            with client.websocket_connect(f"/v1/stream?ticket={ticket}") as ws:
+                ws.send_json({"prompt": "hi", "session_id": "t1"})
+                resp = ws.receive_json()
+                assert resp.get("session_id") == "t1"
+
+    def test_ticket_is_single_use(self):
+        with TestClient(self._auth_app()) as client:
+            ticket = client.post(
+                "/v1/stream/ticket",
+                headers={"X-API-Key": "ws-key-1"},
+            ).json()["ticket"]
+            with client.websocket_connect(f"/v1/stream?ticket={ticket}") as ws:
+                ws.send_json({"prompt": "hi", "session_id": "t2"})
+                ws.receive_json()
+            # The same ticket cannot be replayed.
+            with (
+                pytest.raises(WebSocketDisconnect) as exc,
+                client.websocket_connect(f"/v1/stream?ticket={ticket}") as ws,
+            ):
+                ws.send_json({"prompt": "hi"})
+            assert exc.value.code == 1008
+
+    def test_ws_rejects_bogus_ticket(self):
+        with TestClient(self._auth_app()) as client:
+            with (
+                pytest.raises(WebSocketDisconnect) as exc,
+                client.websocket_connect("/v1/stream?ticket=not-a-ticket") as ws,
+            ):
+                ws.send_json({"prompt": "hi"})
+            assert exc.value.code == 1008
+
+    def test_ticket_endpoint_400_when_no_keys(self):
+        app = create_app(config=DirectorConfig(api_keys=[], llm_provider="mock"))
+        with TestClient(app) as client:
+            r = client.post("/v1/stream/ticket")
+        assert r.status_code == 400
+
+
 class TestWSStreamingPreEgressHalt:
     """streaming_oversight scores each token before it is forwarded.
 

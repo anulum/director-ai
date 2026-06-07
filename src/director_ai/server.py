@@ -689,6 +689,12 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
         provided = _extract_request_api_key(request)
         return any(hmac.compare_digest(provided, k) for k in _valid_api_keys)
 
+    from .core.runtime.ws_ticket import WebSocketTicketRegistry
+
+    _ws_ticket_registry = WebSocketTicketRegistry(
+        ttl_seconds=getattr(cfg, "ws_ticket_ttl_seconds", 30.0),
+    )
+
     @app.middleware("http")
     async def _http_middleware(request: Request, call_next):
         """Apply request IDs, API-key auth, tenant binding, and metrics."""
@@ -2272,12 +2278,42 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
                 ws_per_ip.pop(client_ip, None)
             metrics.gauge_set("ws_active_connections", float(ws_conn_state["total"]))
 
+    @app.post("/v1/stream/ticket")
+    async def stream_ticket(request: Request):
+        """Issue a short-lived single-use ticket for a browser WebSocket connect.
+
+        Browsers cannot attach auth headers to the WebSocket handshake, so an
+        authenticated caller exchanges its key here for a ticket and connects to
+        ``/v1/stream?ticket=...``. This endpoint is not auth-exempt, so the
+        middleware enforces a valid key before a ticket is minted.
+        """
+        if not _valid_api_keys:
+            raise HTTPException(
+                400,
+                "Ticket auth is unnecessary: no API keys are configured",
+            )
+        api_key = _extract_request_api_key(request)
+        tenant_id = getattr(request.state, "tenant_id", "") or request.headers.get(
+            "X-Tenant-ID",
+            "",
+        )
+        ticket = _ws_ticket_registry.issue(api_key, tenant_id)
+        return {"ticket": ticket, "expires_in": _ws_ticket_registry.ttl_seconds}
+
     @app.websocket("/v1/stream")
     async def stream(ws: WebSocket):
         """Handle multiplexed WebSocket agent sessions."""
         ws_tenant_id = ""
+        _ticket_tenant = ""
         if _valid_api_keys:
             provided = _extract_api_key_from_headers(ws.headers)
+            if not provided:
+                # Browser path: no custom handshake headers are possible, so
+                # redeem a short-lived single-use ticket from the query string.
+                binding = _ws_ticket_registry.redeem(ws.query_params.get("ticket", ""))
+                if binding is not None:
+                    provided = binding.api_key
+                    _ticket_tenant = binding.tenant_id
             ws_key_valid = False
             for k in _valid_api_keys:
                 if hmac.compare_digest(provided, k):
@@ -2295,7 +2331,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
                     await ws.close(code=1008, reason="tenant mismatch")
                     return
         if not ws_tenant_id:
-            ws_tenant_id = ws.headers.get("X-Tenant-ID", "")
+            ws_tenant_id = _ticket_tenant or ws.headers.get("X-Tenant-ID", "")
 
         client_ip = ws.client.host if ws.client else ""
         if not await _ws_admit(client_ip):

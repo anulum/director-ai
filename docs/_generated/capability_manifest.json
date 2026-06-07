@@ -6,10 +6,10 @@
     "optional_extras": 53,
     "public_api_exports": 216,
     "public_documentation_pages": 158,
-    "python_model_classes": 783,
-    "python_model_source_modules": 348,
+    "python_model_classes": 785,
+    "python_model_source_modules": 349,
     "rust_pyo3_model_wrappers": 78,
-    "test_files": 439
+    "test_files": 440
   },
   "documentation": {
     "public_pages": [
@@ -3090,6 +3090,10 @@
         "path": "src/director_ai/core/labelling_cockpit/cockpit.py"
       },
       {
+        "name": "TicketBinding",
+        "path": "src/director_ai/core/runtime/ws_ticket.py"
+      },
+      {
         "name": "TokenEnergyCostEstimator",
         "path": "src/director_ai/core/sustainability/policy_adapter.py"
       },
@@ -3366,6 +3370,10 @@
         "path": "src/director_ai/core/retrieval/vector_store/vendors.py"
       },
       {
+        "name": "WebSocketTicketRegistry",
+        "path": "src/director_ai/core/runtime/ws_ticket.py"
+      },
+      {
         "name": "WindowStats",
         "path": "src/director_ai/_server_models.py"
       },
@@ -3609,6 +3617,7 @@
       "src/director_ai/core/runtime/session.py",
       "src/director_ai/core/runtime/streaming.py",
       "src/director_ai/core/runtime/structured_recovery.py",
+      "src/director_ai/core/runtime/ws_ticket.py",
       "src/director_ai/core/safety/audit.py",
       "src/director_ai/core/safety/audit_salt.py",
       "src/director_ai/core/safety/injection.py",
@@ -4561,6 +4570,7 @@
       "tests/test_wasm_browser_worker_smoke.py",
       "tests/test_wasm_release_package.py",
       "tests/test_wasm_runtime_priority.py",
+      "tests/test_ws_ticket.py",
       "tests/test_zk_attestation.py",
       "tests/test_zk_attestation_fuzz.py"
     ]
