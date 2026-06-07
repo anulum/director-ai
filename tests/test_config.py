@@ -61,6 +61,21 @@ class TestDirectorConfig:
         d = cfg.to_dict()
         assert d["llm_api_key"] == ""
 
+    def test_to_dict_redacts_license_secrets(self):
+        cfg = DirectorConfig(
+            license_key="LIC-SECRET-XYZ",
+            license_file="/etc/director/license.key",
+        )
+        d = cfg.to_dict()
+        assert d["license_key"] == "***"
+        assert d["license_file"] == "***"
+
+    def test_to_dict_empty_license_fields_not_redacted(self):
+        cfg = DirectorConfig(license_key="", license_file="")
+        d = cfg.to_dict()
+        assert d["license_key"] == ""
+        assert d["license_file"] == ""
+
     def test_production_mode_rejects_mock_llm_provider(self):
         with pytest.raises(ValueError, match="production_mode requires a real LLM"):
             DirectorConfig(production_mode=True, api_keys={"tenant-api-key"})

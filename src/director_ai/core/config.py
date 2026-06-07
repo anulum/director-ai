@@ -1420,6 +1420,8 @@ class DirectorConfig:
             "knowledge_write_hmac_keys",
             "audit_postgres_url",
             "redis_url",
+            "license_key",
+            "license_file",
         },
     )
 
