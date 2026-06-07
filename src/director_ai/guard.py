@@ -124,6 +124,7 @@ class ProductionGuard:
         self._preflight: AgentPreflightGuard | None = None
         self._risk_threshold: RiskAdaptiveThreshold | None = None
         self._labelling_cockpit: ActiveLabellingCockpit | None = None
+        self._temporal_consistency: object | None = None
 
     @classmethod
     def from_profile(
@@ -513,6 +514,27 @@ class ProductionGuard:
             with record_guard_decision(record):
                 pass
         return record
+
+    @property
+    def temporal_consistency(self):
+        """Cross-session structured-claim temporal consistency graph.
+
+        Persists across calls on this guard so claims recorded in one session are
+        checked against earlier sessions — the formal answer to "the system said
+        X yesterday and ¬X today". Record
+        :class:`~director_ai.core.temporal_consistency.TemporalClaim` objects and
+        read contradictions back. For single-valued predicates (one diagnosis per
+        patient) construct
+        :class:`~director_ai.core.temporal_consistency.TemporalConsistencyGraph`
+        directly with ``functional_predicates``.
+        """
+        if self._temporal_consistency is None:
+            from director_ai.core.temporal_consistency import (
+                TemporalConsistencyGraph,
+            )
+
+            self._temporal_consistency = TemporalConsistencyGraph()
+        return self._temporal_consistency
 
     def trajectory_monitor(self, specs: dict[str, object] | None = None):
         """Return a fresh LTL safety monitor for one agent trajectory.

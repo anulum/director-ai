@@ -2,14 +2,14 @@
   "SPDX-License-Identifier": "AGPL-3.0-or-later",
   "counts": {
     "github_workflows": 11,
-    "model_documentation_pages": 64,
+    "model_documentation_pages": 65,
     "optional_extras": 53,
     "public_api_exports": 216,
-    "public_documentation_pages": 159,
-    "python_model_classes": 799,
-    "python_model_source_modules": 352,
+    "public_documentation_pages": 160,
+    "python_model_classes": 802,
+    "python_model_source_modules": 353,
     "rust_pyo3_model_wrappers": 78,
-    "test_files": 441
+    "test_files": 442
   },
   "documentation": {
     "public_pages": [
@@ -70,6 +70,7 @@
       "docs-site/api/streaming.md",
       "docs-site/api/sustainability-scoring.md",
       "docs-site/api/synthetic-distillation.md",
+      "docs-site/api/temporal-consistency-graph.md",
       "docs-site/api/temporal-logic-monitor.md",
       "docs-site/api/trajectory-preflight.md",
       "docs-site/api/types.md",
@@ -250,6 +251,7 @@
       "streaming.md",
       "sustainability-scoring.md",
       "synthetic-distillation.md",
+      "temporal-consistency-graph.md",
       "temporal-logic-monitor.md",
       "trajectory-preflight.md",
       "types.md",
@@ -3080,8 +3082,20 @@
         "path": "src/director_ai/integrations/crewai_swarm.py"
       },
       {
+        "name": "TemporalClaim",
+        "path": "src/director_ai/core/temporal_consistency/graph.py"
+      },
+      {
+        "name": "TemporalConsistencyGraph",
+        "path": "src/director_ai/core/temporal_consistency/graph.py"
+      },
+      {
         "name": "TemporalConsistencyGuard",
         "path": "src/director_ai/core/multimodal_guard/guard.py"
+      },
+      {
+        "name": "TemporalContradiction",
+        "path": "src/director_ai/core/temporal_consistency/graph.py"
       },
       {
         "name": "TenantFactRequest",
@@ -3734,6 +3748,7 @@
       "src/director_ai/core/symbolic_chain/claims.py",
       "src/director_ai/core/symbolic_chain/prover.py",
       "src/director_ai/core/symbolic_chain/verifier.py",
+      "src/director_ai/core/temporal_consistency/graph.py",
       "src/director_ai/core/temporal_logic/agent_specs.py",
       "src/director_ai/core/temporal_logic/formula.py",
       "src/director_ai/core/temporal_logic/monitor.py",
@@ -4594,6 +4609,7 @@
       "tests/test_symbolic_chain.py",
       "tests/test_synthetic_distillation.py",
       "tests/test_task_scoring_paths.py",
+      "tests/test_temporal_consistency.py",
       "tests/test_temporal_freshness.py",
       "tests/test_temporal_logic.py",
       "tests/test_tenant.py",

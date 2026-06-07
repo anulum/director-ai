@@ -206,6 +206,7 @@ nav:
       - Evidence Packet (demo): api/evidence-packet.md
       - Defence Update Pipeline: api/defence-update-pipeline.md
       - Cross-Document Consistency Memory: api/cross-document-memory.md
+      - Temporal Consistency Graph: api/temporal-consistency-graph.md
       - Differentially Private Score Release: api/private-score-release.md
       - Federated Safety Signal Sharing: api/federated-safety-signals.md
       - Neuro-Symbolic Verifier: api/neuro-symbolic-verifier.md
