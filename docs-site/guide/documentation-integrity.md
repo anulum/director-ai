@@ -66,5 +66,5 @@ PY
   counted 611 missing normal-source public docstrings across 219 files, plus 11
   generated/proto docstring gaps across 2 files. Keep generated protobuf files
   out of manual cleanup unless the generation pipeline changes.
-- `docs/ROADMAP_2026_2027.md` is strategic context; `ROADMAP.md` is the
-  execution roadmap.
+- Long-range strategic context is tracked internally; `ROADMAP.md` is the
+  public execution roadmap.

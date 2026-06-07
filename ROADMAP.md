@@ -454,87 +454,11 @@ there or promoted into this roadmap with a concrete acceptance gate.
 - [x] Add automatic conflict reports when a new fact contradicts an existing
   signed fact, passport claim, or retraction record.
 
-### Future Differentiators (Planned)
-2026-05-20 reconciliation: sustainability scoring, agent passport registry,
-and the closed-loop physical grounding evaluator are implemented and marked
-complete below. 2026-06-02 adds a new strategic differentiation queue that
-is now tracked as active items in `docs/ROADMAP_STATUS.md`.
+### Differentiator Capabilities (Shipped)
 
-### Strategic Competitive Prioritisation (Open)
-
-2026-06-02: competitor landscape is strongest in SaaS polish, dashboards, drift
-detection, and selected benchmark specialisation; Director-AI should win on
-real-time streaming, local low-latency operation, and verifiable/scientific
-roots.
-
-1. **Unified Observability Dashboard (Critical / Core):**
-   - OTEL-first trace graph and a lightweight UI (or Langfuse-integrated path).
-   - Halt explanations, confidence attribution, drift alerts, and audit exports.
-   - EU AI Act Article 15 reporting exports the full structured technical
-     documentation (markdown and JSON) via `director-ai compliance report
-     --context FILE.json`, plus the audit log, cost, drift, and SOC2/ISO
-     readiness reports; a hosted/live dashboard UI remains the open item.
-2. **Online KB Evolution + Provenance:**
-   - Auto-grounding with counterfactual explanations.
-   - Human-feedback online calibration in the production path.
-   - Versioned/signed facts and tamper-evident Merkle commit history.
-3. **Conformal Prediction Routing + Uncertainty:**
-   - Local 95% target-coverage routing policy and deterministic evidence packet
-     are implemented.
-   - Remaining work: representative domain calibration, archived deployment
-     evidence, and operator sign-off for the live human-review or stronger-model
-     path.
-4. **Agent Trajectory Simulation + Safe Rollback:**
-   - Monte-Carlo pre-execution simulation, predictive pre-halt steering, and
-     native idempotent rollback hooks are implemented locally.
-   - Remaining work: live undo-backend integration, adversarial trajectory
-     stress testing against deployment traffic, and incident/change-management
-     sign-off.
-5. **Multi-Modal + Temporal Consistency:**
-   - Opt-in image/audio/video guard decisions, caption/metadata grounding,
-     temporal frame-consistency halts, and local evidence packet are implemented.
-   - Remaining work: external Vision-NLI or equivalent benchmark evidence, real
-     video/frame model validation, and deployment-specific modality sign-off.
-6. **Privacy-Preserving Federated Learning:**
-   - DP-noised safety-signal aggregation, tenant/category caps, minimum cohort
-     gating, additive secret sharing, and local evidence packet are implemented.
-   - Remaining work: external federation run, malicious-secure aggregation
-     review, and deployment-specific poisoning-resilience evidence.
-7. **Edge/Mobile Optimisation Path:**
-   - Local readiness contract and evidence packet now verify the tracked
-     quantised NLI, ONNX, Rust, WASM, deployment-doc, and latency-benchmark
-     surfaces for browser/embedded low-latency trials.
-   - `wasm-pack` build/test and package-digest validation are now locally
-     reproducible for the web target.
-   - Real headless Chrome module-Worker smoke now verifies the generated
-     web-target `backfire-wasm` package can load, pass a safe token, halt a bad
-     token, and keep the halt irrevocable inside a browser Worker.
-   - Remaining work: a quantised model artefact, mobile or embedded-device
-     smoke evidence, package-publish evidence, and deployment latency archive.
-8. **Auto-Redteam + Defence Genome Evolution:**
-   - Reviewed repeated adversarial-mining cycles, detection-uplift gates,
-     defence registry promotion, and local tenant-safe evidence packet are
-     implemented.
-   - Remaining work: live nightly run, operator-owned patch/model integration
-     sign-off, and external adversarial corpus evidence.
-9. **Formal + Symbolic Depth:**
-   - DPLL formula checks, Lean runner contract, Z3 optional-profile gate, code
-     contract ordering, and local tenant-safe evidence packet are implemented.
-   - Remaining work: external Lean proof run, actual Z3 packet under `[formal]`
-     in release evidence, and operator-owned math/code/numeric domain
-     contracts.
-
-**Corrections to make now (required):**
-- Enforce stricter layering: default path ultra-minimal; research modules disabled
-  by default with explicit opt-in.
-- Run an independent security audit before further roadmap expansion.
-- Publish public E2E benchmarks versus competitors on streaming and agent scenarios.
-- Simplify deployment to a one-command production profile + monitoring bundle:
-  production scaffold generation, authenticated monitoring, and
-  `director-ai production-check` validation are implemented; remaining work is
-  a sustained staging run with archived telemetry and operator sign-off.
-- Resolve async ordering remnants and validate multi-tenant sustained-load with
-  poisoning test coverage.
+Forward-looking competitive prioritisation, the competitor landscape, and the
+per-differentiator remaining-work plan are maintained internally and are not
+published here to avoid premature disclosure.
 
 - [x] Prototype native inference-server hooks for vLLM, TGI, and llama.cpp so the
   guard can intervene before unsafe tokens are sampled.

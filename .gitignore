@@ -36,10 +36,7 @@ docs/*
 !docs/index.rst
 !docs/api/
 !docs/_static/
-!docs/LAUNCH_POSTS.md
 !docs/ROADMAP_STATUS.md
-!docs/ROADMAP_2026_2027.md
-!docs/TECHNICAL_SPEC_V2.md
 !docs/API_REFERENCE.md
 !docs/DATA_PIPELINE.md
 !docs/BUILD_JUDGE_DATASET.md
