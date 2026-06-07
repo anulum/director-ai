@@ -198,6 +198,7 @@ nav:
       - Board-Level Guardrail KPIs: api/board-kpis.md
       - Zero-Trust Output Handling: api/zero-trust-output.md
       - Execution Rings (Action Authorisation): api/execution-rings.md
+      - Cryptographic Output Integrity: api/output-integrity.md
       - Conformal & Uncertainty Routing: api/uncertainty-routing.md
       - Operational Provenance Ledger: api/provenance-ledger.md
       - Mechanistic Interpretability (ReDeEP): api/mechanistic-interpretability.md

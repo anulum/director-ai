@@ -127,6 +127,9 @@ embeddings = [
 license = [
     "polar-sdk==0.31.3",
 ]
+crypto = [
+    "cryptography>=42,<47",
+]
 embed = [
     "sentence-transformers>=4,<6",
 ]

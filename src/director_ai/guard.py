@@ -130,6 +130,7 @@ class ProductionGuard:
         self._root_cause: object | None = None
         self._output_trust: object | None = None
         self._execution_rings: object | None = None
+        self._output_integrity: object | None = None
 
     @classmethod
     def from_profile(
@@ -596,6 +597,23 @@ class ProductionGuard:
                 cooling_period_seconds=cooling_period_seconds
             )
         return self._execution_rings
+
+    def output_integrity(self, *, signing_seed: bytes | None = None):
+        """Cryptographic integrity + non-repudiation for model outputs (ML09).
+
+        Signs an output with a detached Ed25519 signature a third party can
+        verify with only the public key, and records its digest in an append-only
+        tamper-evident
+        :class:`~director_ai.core.output_integrity.TamperEvidentLedger`. The
+        ledger is stdlib-only and always available; signing needs the optional
+        ``cryptography`` backend (``pip install director-ai[crypto]``). Supply a
+        32-byte ``signing_seed`` from a secret manager for a stable identity.
+        """
+        if self._output_integrity is None:
+            from director_ai.core.output_integrity import OutputIntegrityGuard
+
+            self._output_integrity = OutputIntegrityGuard(signing_seed=signing_seed)
+        return self._output_integrity
 
     @property
     def dp_retrieval(self):

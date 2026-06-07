@@ -2,14 +2,14 @@
   "SPDX-License-Identifier": "AGPL-3.0-or-later",
   "counts": {
     "github_workflows": 11,
-    "model_documentation_pages": 74,
-    "optional_extras": 53,
+    "model_documentation_pages": 75,
+    "optional_extras": 54,
     "public_api_exports": 216,
-    "public_documentation_pages": 169,
-    "python_model_classes": 843,
-    "python_model_source_modules": 367,
+    "public_documentation_pages": 170,
+    "python_model_classes": 849,
+    "python_model_source_modules": 370,
     "rust_pyo3_model_wrappers": 78,
-    "test_files": 453
+    "test_files": 454
   },
   "documentation": {
     "public_pages": [
@@ -64,6 +64,7 @@
       "docs-site/api/neuro-symbolic-compliance.md",
       "docs-site/api/neuro-symbolic-verifier.md",
       "docs-site/api/nli.md",
+      "docs-site/api/output-integrity.md",
       "docs-site/api/policy-evaluation.md",
       "docs-site/api/private-score-release.md",
       "docs-site/api/provenance-ledger.md",
@@ -254,6 +255,7 @@
       "neuro-symbolic-compliance.md",
       "neuro-symbolic-verifier.md",
       "nli.md",
+      "output-integrity.md",
       "policy-evaluation.md",
       "private-score-release.md",
       "provenance-ledger.md",
@@ -1976,6 +1978,10 @@
         "path": "src/director_ai/core/formal_verification/verifier.py"
       },
       {
+        "name": "LedgerEntry",
+        "path": "src/director_ai/core/output_integrity/ledger.py"
+      },
+      {
         "name": "LedgerEvent",
         "path": "src/director_ai/core/provenance/ledger.py"
       },
@@ -2086,6 +2092,10 @@
       {
         "name": "MinimumCoherence",
         "path": "src/director_ai/core/zk_attestation/statements.py"
+      },
+      {
+        "name": "MissingCryptoBackendError",
+        "path": "src/director_ai/core/output_integrity/signing.py"
       },
       {
         "name": "MockGenerator",
@@ -2362,6 +2372,14 @@
       {
         "name": "OutputExecutionRisk",
         "path": "src/director_ai/core/output_trust/guard.py"
+      },
+      {
+        "name": "OutputIntegrityGuard",
+        "path": "src/director_ai/core/output_integrity/guard.py"
+      },
+      {
+        "name": "OutputSigner",
+        "path": "src/director_ai/core/output_integrity/signing.py"
       },
       {
         "name": "OutputSink",
@@ -3036,6 +3054,10 @@
         "path": "src/director_ai/core/federated_privacy/secret_sharing.py"
       },
       {
+        "name": "SignedOutput",
+        "path": "src/director_ai/core/output_integrity/signing.py"
+      },
+      {
         "name": "SimpleKinematicModel",
         "path": "src/director_ai/core/cyber_physical/kinematics.py"
       },
@@ -3242,6 +3264,10 @@
       {
         "name": "TTSAdapter",
         "path": "src/director_ai/voice/adapters.py"
+      },
+      {
+        "name": "TamperEvidentLedger",
+        "path": "src/director_ai/core/output_integrity/ledger.py"
       },
       {
         "name": "TaskGuardResult",
@@ -3824,6 +3850,9 @@
       "src/director_ai/core/ontology/checker.py",
       "src/director_ai/core/ontology/graph.py",
       "src/director_ai/core/otel.py",
+      "src/director_ai/core/output_integrity/guard.py",
+      "src/director_ai/core/output_integrity/ledger.py",
+      "src/director_ai/core/output_integrity/signing.py",
       "src/director_ai/core/output_trust/encoders.py",
       "src/director_ai/core/output_trust/guard.py",
       "src/director_ai/core/output_trust/sinks.py",
@@ -4327,6 +4356,7 @@
       "autogen",
       "colbert",
       "crewai",
+      "crypto",
       "demo",
       "dev",
       "docs",
@@ -4692,6 +4722,7 @@
       "tests/test_optional_extra_lock_policy.py",
       "tests/test_orchestrator_environment_vertex_metadata.py",
       "tests/test_otel.py",
+      "tests/test_output_integrity.py",
       "tests/test_output_trust.py",
       "tests/test_paladin_mini.py",
       "tests/test_parent_child_backend.py",
