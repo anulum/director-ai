@@ -593,6 +593,21 @@ class ProductionGuard:
         )
         return FederatedCalibrationRound(start, **kwargs)
 
+    def robot_command_guard(self, constraints=(), **kwargs):
+        """Build an embodied-AI guard for an LLM-planned robot command sequence.
+
+        Verifies a whole plan before execution against per-action physical
+        constraints plus temporal caps (bounded step displacement and path
+        length). Warn-only by default; pass ``high_risk_enabled=True`` to block an
+        unsafe plan. Returns a fresh
+        :class:`~director_ai.core.cyber_physical.RobotCommandGuard`; pass
+        ``model``, ``high_risk_enabled``, ``max_step_displacement``, or
+        ``max_path_length`` via ``kwargs``.
+        """
+        from director_ai.core.cyber_physical import RobotCommandGuard
+
+        return RobotCommandGuard(constraints, **kwargs)
+
     def compliance_engine(self, policy):
         """Build a neuro-symbolic SMT compliance engine for ``policy``.
 

@@ -48,6 +48,7 @@ from .closed_loop import (
     PhysicalGroundingViolation,
     SensorStateSnapshot,
 )
+from .command_guard import PlanVerdict, RobotCommandGuard, StepViolation
 from .constraints import (
     PhysicalConstraint,
     SpatialConstraint,
@@ -83,7 +84,10 @@ __all__ = [
     "PhysicalGroundingLoopResult",
     "PhysicalGroundingStatus",
     "PhysicalGroundingViolation",
+    "PlanVerdict",
+    "RobotCommandGuard",
     "Ros2Adapter",
+    "StepViolation",
     "SensorStateSnapshot",
     "SimpleKinematicModel",
     "SpatialConstraint",

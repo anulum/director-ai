@@ -2,14 +2,14 @@
   "SPDX-License-Identifier": "AGPL-3.0-or-later",
   "counts": {
     "github_workflows": 11,
-    "model_documentation_pages": 70,
+    "model_documentation_pages": 71,
     "optional_extras": 53,
     "public_api_exports": 216,
-    "public_documentation_pages": 165,
-    "python_model_classes": 829,
-    "python_model_source_modules": 359,
+    "public_documentation_pages": 166,
+    "python_model_classes": 832,
+    "python_model_source_modules": 360,
     "rust_pyo3_model_wrappers": 78,
-    "test_files": 448
+    "test_files": 449
   },
   "documentation": {
     "public_pages": [
@@ -35,6 +35,7 @@
       "docs-site/api/director-safety-protocol.md",
       "docs-site/api/dp-rag-retrieval.md",
       "docs-site/api/edge-runtime-readiness.md",
+      "docs-site/api/embodied-ai-command-guard.md",
       "docs-site/api/enterprise.md",
       "docs-site/api/eval-trace.md",
       "docs-site/api/evidence-firewall.md",
@@ -221,6 +222,7 @@
       "director-safety-protocol.md",
       "dp-rag-retrieval.md",
       "edge-runtime-readiness.md",
+      "embodied-ai-command-guard.md",
       "enterprise.md",
       "eval-trace.md",
       "evidence-firewall.md",
@@ -2448,6 +2450,10 @@
         "path": "src/director_ai/core/retrieval/vector_store/vendors.py"
       },
       {
+        "name": "PlanVerdict",
+        "path": "src/director_ai/core/cyber_physical/command_guard.py"
+      },
+      {
         "name": "PoisonScanner",
         "path": "src/director_ai/core/evidence_firewall/poison.py"
       },
@@ -2812,6 +2818,10 @@
         "path": "src/director_ai/core/risk_threshold/policy.py"
       },
       {
+        "name": "RobotCommandGuard",
+        "path": "src/director_ai/core/cyber_physical/command_guard.py"
+      },
+      {
         "name": "RobustnessReport",
         "path": "src/director_ai/testing/adversarial_suite.py"
       },
@@ -3070,6 +3080,10 @@
       {
         "name": "StepVerdict",
         "path": "src/director_ai/agentic/loop_monitor.py"
+      },
+      {
+        "name": "StepViolation",
+        "path": "src/director_ai/core/cyber_physical/command_guard.py"
       },
       {
         "name": "StoredDocument",
@@ -3666,6 +3680,7 @@
       "src/director_ai/core/cyber_physical/adapters.py",
       "src/director_ai/core/cyber_physical/budget.py",
       "src/director_ai/core/cyber_physical/closed_loop.py",
+      "src/director_ai/core/cyber_physical/command_guard.py",
       "src/director_ai/core/cyber_physical/constraints.py",
       "src/director_ai/core/cyber_physical/geometry.py",
       "src/director_ai/core/cyber_physical/hook.py",
@@ -4670,6 +4685,7 @@
       "tests/test_review_queue.py",
       "tests/test_risk_threshold.py",
       "tests/test_roadmap_reconciliation.py",
+      "tests/test_robot_command_guard.py",
       "tests/test_root_cause.py",
       "tests/test_rules_scorer.py",
       "tests/test_run_judge_benchmark.py",

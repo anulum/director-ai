@@ -249,6 +249,7 @@ nav:
       - CLI: api/cli.md
       - Customer Model Factory: api/customer-model-factory.md
       - Cyber-Physical Grounding: api/cyber-physical.md
+      - Embodied-AI Robot Command Guard: api/embodied-ai-command-guard.md
       - Containment & Reality Anchor: api/containment.md
       - Cross-Org Passport: api/zk-attestation.md
       - Exceptions: api/exceptions.md

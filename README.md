@@ -191,13 +191,13 @@ For a buyer-facing positioning, start from [Market Value and Positioning](docs-s
 |---|---:|
 | Package version | 3.15.3 |
 | Public API exports | 216 |
-| Python capability source modules | 359 |
-| Python capability classes | 829 |
-| API documentation pages | 70 |
+| Python capability source modules | 360 |
+| Python capability classes | 832 |
+| API documentation pages | 71 |
 | Rust PyO3 bindings | 78 |
 | Optional extras | 53 |
-| Python test files | 448 |
-| Public documentation pages | 165 |
+| Python test files | 449 |
+| Public documentation pages | 166 |
 | GitHub Actions workflows | 11 |
 
 Evidence boundary: this snapshot is a static inventory. Performance, coverage, hardware, and scientific-fidelity claims require their own committed evidence artefacts.
