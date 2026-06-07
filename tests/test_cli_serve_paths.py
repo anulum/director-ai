@@ -371,3 +371,50 @@ class TestRunMode:
         cfg = DirectorConfig()
         resolved = _cli_serve._apply_run_mode(cfg, "")
         assert resolved.production_mode is False
+
+
+class TestResolveBindHost:
+    """The dev server binds to loopback unless a host is given or it is prod."""
+
+    @staticmethod
+    def _hardened_kwargs():
+        return {
+            "api_keys": ["writer-key"],
+            "llm_api_url": "https://llm.internal.example/v1",
+            "knowledge_write_hmac_keys": (
+                '{"kid-1":"signing-secret-at-least-32-chars-xx"}'
+            ),
+        }
+
+    def test_dev_defaults_to_loopback(self):
+        from director_ai.core.config import DirectorConfig
+
+        cfg = DirectorConfig()  # production_mode False, default host 0.0.0.0
+        assert _cli_serve._resolve_bind_host(cfg, "", False) == "127.0.0.1"
+
+    def test_explicit_host_wins_in_dev(self):
+        from director_ai.core.config import DirectorConfig
+
+        cfg = DirectorConfig()
+        assert (
+            _cli_serve._resolve_bind_host(cfg, "0.0.0.0", True) == "0.0.0.0"  # noqa: S104
+        )
+
+    def test_explicit_host_wins_for_custom_address(self):
+        from director_ai.core.config import DirectorConfig
+
+        cfg = DirectorConfig()
+        assert _cli_serve._resolve_bind_host(cfg, "192.0.2.10", True) == "192.0.2.10"
+
+    def test_production_keeps_configured_bind(self):
+        from director_ai.core.config import DirectorConfig
+
+        cfg = DirectorConfig(production_mode=True, **self._hardened_kwargs())
+        # Default server_host is the all-interfaces bind for reverse proxies.
+        assert _cli_serve._resolve_bind_host(cfg, "", False) == "0.0.0.0"  # noqa: S104
+
+    def test_production_respects_explicit_host(self):
+        from director_ai.core.config import DirectorConfig
+
+        cfg = DirectorConfig(production_mode=True, **self._hardened_kwargs())
+        assert _cli_serve._resolve_bind_host(cfg, "10.0.0.5", True) == "10.0.0.5"

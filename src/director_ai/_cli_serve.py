@@ -48,10 +48,28 @@ def _apply_run_mode(config, run_mode: str):
     return config
 
 
+def _resolve_bind_host(config, host: str, host_explicit: bool) -> str:
+    """Resolve the server bind host from the ``--host`` flag and run mode.
+
+    An explicit ``--host`` always wins. Otherwise a production config keeps its
+    configured bind (or all-interfaces for a reverse-proxy deployment) while a
+    dev config binds to loopback, so an unauthenticated dev server started with
+    ``serve --dev`` is not exposed on every interface. Operators who want LAN
+    access in dev opt in with ``--host 0.0.0.0``.
+    """
+    if host_explicit:
+        return host
+    if getattr(config, "production_mode", False):
+        return config.server_host or "0.0.0.0"  # nosec B104
+    return "127.0.0.1"
+
+
 def _cmd_serve(args: list[str]) -> None:
     port = 8080
-    # CLI default; production deployments override this via HOST or --host.
-    host = "0.0.0.0"  # nosec B104
+    # Bind host is resolved after the run mode is known: explicit --host wins;
+    # otherwise dev binds to loopback and production keeps its configured bind.
+    host = ""
+    host_explicit = False
     profile = "default"
     mode = ""
     workers = 1
@@ -84,6 +102,7 @@ def _cmd_serve(args: list[str]) -> None:
             i += 2
         elif args[i] == "--host" and i + 1 < len(args):
             host = args[i + 1]
+            host_explicit = True
             i += 2
         elif args[i] == "--profile" and i + 1 < len(args):
             profile = args[i + 1]
@@ -118,7 +137,8 @@ def _cmd_serve(args: list[str]) -> None:
     if mode:
         config = DirectorConfig(**{**config.__dict__, "mode": mode})
     config = _apply_run_mode(config, run_mode)
-    config.server_host = host
+    config.server_host = _resolve_bind_host(config, host, host_explicit)
+    host = config.server_host
     config.server_port = port
     if cors_origins:
         config.cors_origins = cors_origins
