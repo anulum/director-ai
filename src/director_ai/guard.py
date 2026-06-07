@@ -127,6 +127,7 @@ class ProductionGuard:
         self._temporal_consistency: object | None = None
         self._self_healing: object | None = None
         self._dp_retrieval: object | None = None
+        self._root_cause: object | None = None
 
     @classmethod
     def from_profile(
@@ -537,6 +538,25 @@ class ProductionGuard:
 
             self._temporal_consistency = TemporalConsistencyGraph()
         return self._temporal_consistency
+
+    @property
+    def root_cause_analyzer(self):
+        """Prescriptive mechanistic hallucination root-cause analyzer.
+
+        Consumes a
+        :class:`~director_ai.core.interpretability.MechanisticAttributionReport`
+        (from the ReDeEP attributor) and returns a tenant-safe diagnosis naming
+        the dominant failure mode (parametric-knowledge override, attention
+        ignoring evidence, underactive copying heads) with targeted fine-tuning
+        recommendations for the Customer Model Factory.
+        """
+        if self._root_cause is None:
+            from director_ai.core.interpretability import (
+                HallucinationRootCauseAnalyzer,
+            )
+
+            self._root_cause = HallucinationRootCauseAnalyzer()
+        return self._root_cause
 
     @property
     def dp_retrieval(self):

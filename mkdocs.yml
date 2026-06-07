@@ -198,6 +198,7 @@ nav:
       - Conformal & Uncertainty Routing: api/uncertainty-routing.md
       - Operational Provenance Ledger: api/provenance-ledger.md
       - Mechanistic Interpretability (ReDeEP): api/mechanistic-interpretability.md
+      - Hallucination Root-Cause Analysis: api/hallucination-root-cause.md
       - Evidence Firewall: api/evidence-firewall.md
       - Answer Bill of Materials: api/answer-bom.md
       - Streaming Repair: api/streaming-repair.md

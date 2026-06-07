@@ -2,14 +2,14 @@
   "SPDX-License-Identifier": "AGPL-3.0-or-later",
   "counts": {
     "github_workflows": 11,
-    "model_documentation_pages": 69,
+    "model_documentation_pages": 70,
     "optional_extras": 53,
     "public_api_exports": 216,
-    "public_documentation_pages": 164,
-    "python_model_classes": 826,
-    "python_model_source_modules": 358,
+    "public_documentation_pages": 165,
+    "python_model_classes": 829,
+    "python_model_source_modules": 359,
     "rust_pyo3_model_wrappers": 78,
-    "test_files": 447
+    "test_files": 448
   },
   "documentation": {
     "public_pages": [
@@ -47,6 +47,7 @@
       "docs-site/api/grpc.md",
       "docs-site/api/guard-control.md",
       "docs-site/api/guard.md",
+      "docs-site/api/hallucination-root-cause.md",
       "docs-site/api/human-review.md",
       "docs-site/api/index.md",
       "docs-site/api/ingestion.md",
@@ -232,6 +233,7 @@
       "grpc.md",
       "guard-control.md",
       "guard.md",
+      "hallucination-root-cause.md",
       "human-review.md",
       "index.md",
       "ingestion.md",
@@ -1570,6 +1572,10 @@
         "path": "src/director_ai/core/exceptions.py"
       },
       {
+        "name": "HallucinationRootCauseAnalyzer",
+        "path": "src/director_ai/core/interpretability/root_cause.py"
+      },
+      {
         "name": "HaltCorrectionContext",
         "path": "src/director_ai/core/runtime/correction.py"
       },
@@ -2686,6 +2692,10 @@
         "path": "src/director_ai/_server_models.py"
       },
       {
+        "name": "Recommendation",
+        "path": "src/director_ai/core/interpretability/root_cause.py"
+      },
+      {
         "name": "RedisGroundTruthStore",
         "path": "src/director_ai/enterprise/redis.py"
       },
@@ -2812,6 +2822,10 @@
       {
         "name": "RollbackOutcome",
         "path": "src/director_ai/core/trajectory/rollback.py"
+      },
+      {
+        "name": "RootCauseDiagnosis",
+        "path": "src/director_ai/core/interpretability/root_cause.py"
       },
       {
         "name": "Ros2Adapter",
@@ -3701,6 +3715,7 @@
       "src/director_ai/core/guard_control/no_go.py",
       "src/director_ai/core/ingestion/pipeline.py",
       "src/director_ai/core/interpretability/redeep.py",
+      "src/director_ai/core/interpretability/root_cause.py",
       "src/director_ai/core/irreversibility/forecaster.py",
       "src/director_ai/core/irreversibility/reversibility.py",
       "src/director_ai/core/kb_write_security.py",
@@ -4655,6 +4670,7 @@
       "tests/test_review_queue.py",
       "tests/test_risk_threshold.py",
       "tests/test_roadmap_reconciliation.py",
+      "tests/test_root_cause.py",
       "tests/test_rules_scorer.py",
       "tests/test_run_judge_benchmark.py",
       "tests/test_rust_compute.py",

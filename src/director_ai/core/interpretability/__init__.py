@@ -24,13 +24,21 @@ from .redeep import (
     MechanisticAttributionReport,
     MechanisticAttributor,
 )
+from .root_cause import (
+    HallucinationRootCauseAnalyzer,
+    Recommendation,
+    RootCauseDiagnosis,
+)
 
 __all__ = [
     "ActivationProvider",
+    "HallucinationRootCauseAnalyzer",
     "HeadContribution",
     "HeadSignal",
     "LayerContribution",
     "LayerSignal",
     "MechanisticAttributionReport",
     "MechanisticAttributor",
+    "Recommendation",
+    "RootCauseDiagnosis",
 ]
