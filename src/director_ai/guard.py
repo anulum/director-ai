@@ -514,6 +514,22 @@ class ProductionGuard:
                 pass
         return record
 
+    def trajectory_monitor(self, specs: dict[str, object] | None = None):
+        """Return a fresh LTL safety monitor for one agent trajectory.
+
+        Runs the built-in agent-safety specifications (tool calls eventually
+        verified, handoffs coherence-checked, no output after an injection, fact
+        claims eventually grounded) — the formal reading of EU AI Act Article 15
+        "continuous monitoring". Feed one
+        :class:`~director_ai.core.temporal_logic.StepObservation` per trajectory
+        step; pass ``specs`` to override or extend the default set. Each call
+        returns an independent monitor, so concurrent trajectories do not share
+        state.
+        """
+        from director_ai.core.temporal_logic import TrajectorySafetyMonitor
+
+        return TrajectorySafetyMonitor(specs)
+
     @property
     def scorer(self) -> CoherenceScorer:
         return self._scorer

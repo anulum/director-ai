@@ -2,14 +2,14 @@
   "SPDX-License-Identifier": "AGPL-3.0-or-later",
   "counts": {
     "github_workflows": 11,
-    "model_documentation_pages": 63,
+    "model_documentation_pages": 64,
     "optional_extras": 53,
     "public_api_exports": 216,
-    "public_documentation_pages": 158,
-    "python_model_classes": 785,
-    "python_model_source_modules": 349,
+    "public_documentation_pages": 159,
+    "python_model_classes": 799,
+    "python_model_source_modules": 352,
     "rust_pyo3_model_wrappers": 78,
-    "test_files": 440
+    "test_files": 441
   },
   "documentation": {
     "public_pages": [
@@ -70,6 +70,7 @@
       "docs-site/api/streaming.md",
       "docs-site/api/sustainability-scoring.md",
       "docs-site/api/synthetic-distillation.md",
+      "docs-site/api/temporal-logic-monitor.md",
       "docs-site/api/trajectory-preflight.md",
       "docs-site/api/types.md",
       "docs-site/api/uncertainty-routing.md",
@@ -249,6 +250,7 @@
       "streaming.md",
       "sustainability-scoring.md",
       "synthetic-distillation.md",
+      "temporal-logic-monitor.md",
       "trajectory-preflight.md",
       "types.md",
       "uncertainty-routing.md",
@@ -382,12 +384,20 @@
         "path": "src/director_ai/core/multi_scale_alignment/aligner.py"
       },
       {
+        "name": "Always",
+        "path": "src/director_ai/core/temporal_logic/formula.py"
+      },
+      {
         "name": "AnchorVerification",
         "path": "src/director_ai/core/containment/anchor.py"
       },
       {
         "name": "And",
         "path": "src/director_ai/core/formal_verification/formula.py"
+      },
+      {
+        "name": "And",
+        "path": "src/director_ai/core/temporal_logic/formula.py"
       },
       {
         "name": "AnswerBOM",
@@ -420,6 +430,10 @@
       {
         "name": "AsyncVoiceGuard",
         "path": "src/director_ai/voice/guard.py"
+      },
+      {
+        "name": "Atom",
+        "path": "src/director_ai/core/temporal_logic/formula.py"
       },
       {
         "name": "AttestationBackend",
@@ -1226,6 +1240,10 @@
         "path": "src/director_ai/core/labelling_cockpit/cockpit.py"
       },
       {
+        "name": "Eventually",
+        "path": "src/director_ai/core/temporal_logic/formula.py"
+      },
+      {
         "name": "EvidenceChunk",
         "path": "src/director_ai/core/types.py"
       },
@@ -1388,6 +1406,10 @@
       {
         "name": "FormalSymbolicEvidence",
         "path": "src/director_ai/core/customer_model_factory/release_gate.py"
+      },
+      {
+        "name": "Formula",
+        "path": "src/director_ai/core/temporal_logic/formula.py"
       },
       {
         "name": "FreshnessClaim",
@@ -1818,6 +1840,10 @@
         "path": "src/director_ai/integrations/providers.py"
       },
       {
+        "name": "LTLMonitor",
+        "path": "src/director_ai/core/temporal_logic/monitor.py"
+      },
+      {
         "name": "LabelItem",
         "path": "src/director_ai/core/labelling_cockpit/items.py"
       },
@@ -2110,6 +2136,10 @@
         "path": "src/director_ai/core/verification/neuro_symbolic.py"
       },
       {
+        "name": "Next",
+        "path": "src/director_ai/core/temporal_logic/formula.py"
+      },
+      {
         "name": "NoBreakoutEvents",
         "path": "src/director_ai/core/zk_attestation/statements.py"
       },
@@ -2128,6 +2158,10 @@
       {
         "name": "Not",
         "path": "src/director_ai/core/formal_verification/formula.py"
+      },
+      {
+        "name": "Not",
+        "path": "src/director_ai/core/temporal_logic/formula.py"
       },
       {
         "name": "NotionPlugin",
@@ -2208,6 +2242,10 @@
       {
         "name": "Or",
         "path": "src/director_ai/core/formal_verification/formula.py"
+      },
+      {
+        "name": "Or",
+        "path": "src/director_ai/core/temporal_logic/formula.py"
       },
       {
         "name": "PIIRedactionFinding",
@@ -2882,6 +2920,10 @@
         "path": "src/director_ai/core/cyber_physical/constraints.py"
       },
       {
+        "name": "SpecStatus",
+        "path": "src/director_ai/core/temporal_logic/agent_specs.py"
+      },
+      {
         "name": "Sphere",
         "path": "src/director_ai/core/cyber_physical/geometry.py"
       },
@@ -2908,6 +2950,10 @@
       {
         "name": "StatusResponse",
         "path": "src/director_ai/_server_models.py"
+      },
+      {
+        "name": "StepObservation",
+        "path": "src/director_ai/core/temporal_logic/agent_specs.py"
       },
       {
         "name": "StepVerdict",
@@ -3226,6 +3272,10 @@
         "path": "src/director_ai/core/trajectory/rollback.py"
       },
       {
+        "name": "TrajectorySafetyMonitor",
+        "path": "src/director_ai/core/temporal_logic/agent_specs.py"
+      },
+      {
         "name": "TrajectorySimulator",
         "path": "src/director_ai/core/trajectory/simulator.py"
       },
@@ -3282,6 +3332,10 @@
         "path": "src/director_ai/core/cyber_physical/kinematics.py"
       },
       {
+        "name": "Until",
+        "path": "src/director_ai/core/temporal_logic/formula.py"
+      },
+      {
         "name": "ValidationError",
         "path": "src/director_ai/core/exceptions.py"
       },
@@ -3316,6 +3370,10 @@
       {
         "name": "Verdict",
         "path": "src/director_ai/core/causal_verifier/counterfactual.py"
+      },
+      {
+        "name": "Verdict",
+        "path": "src/director_ai/core/temporal_logic/monitor.py"
       },
       {
         "name": "VerdictProducer",
@@ -3676,6 +3734,9 @@
       "src/director_ai/core/symbolic_chain/claims.py",
       "src/director_ai/core/symbolic_chain/prover.py",
       "src/director_ai/core/symbolic_chain/verifier.py",
+      "src/director_ai/core/temporal_logic/agent_specs.py",
+      "src/director_ai/core/temporal_logic/formula.py",
+      "src/director_ai/core/temporal_logic/monitor.py",
       "src/director_ai/core/tenant.py",
       "src/director_ai/core/trace_safe/embedder.py",
       "src/director_ai/core/trace_safe/oracle.py",
@@ -4534,6 +4595,7 @@
       "tests/test_synthetic_distillation.py",
       "tests/test_task_scoring_paths.py",
       "tests/test_temporal_freshness.py",
+      "tests/test_temporal_logic.py",
       "tests/test_tenant.py",
       "tests/test_tensorrt_export.py",
       "tests/test_test_surface_policy.py",

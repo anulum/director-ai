@@ -212,6 +212,7 @@ nav:
       - Byzantine-Resilient Consensus: api/byzantine-consensus.md
       - Standalone Interlock Kernel: api/interlock-kernel.md
       - Trajectory Preflight: api/trajectory-preflight.md
+      - Temporal-Logic Trajectory Monitor: api/temporal-logic-monitor.md
       - Self-Improving Guard Loop: api/self-improving-guard-loop.md
       - Recursive Meta-Guard: api/meta-guard.md
       - Synthetic Distillation: api/synthetic-distillation.md
