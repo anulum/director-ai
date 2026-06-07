@@ -28,6 +28,7 @@ import logging
 import threading
 import time
 import uuid
+from collections.abc import Mapping
 from contextlib import asynccontextmanager
 from typing import Any
 
@@ -164,7 +165,7 @@ def _check_fastapi() -> None:
         )
 
 
-def _extract_api_key_from_headers(headers) -> str:
+def _extract_api_key_from_headers(headers: Mapping[str, str]) -> str:
     """Return the caller API key from X-API-Key or Authorization: Bearer.
 
     Shared by the HTTP middleware and the WebSocket handshake so both transports

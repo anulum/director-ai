@@ -93,8 +93,9 @@ entries will score as grounded.
 
 **Mitigation**: KB writes support HMAC-signed entries with tamper
 detection. Set ``knowledge_write_require_signature=True`` and supply
-``knowledge_write_hmac_keys`` so unsigned or mis-signed writes are
-rejected; ``production_mode`` forces signature enforcement on. Combine
+``knowledge_write_hmac_keys`` so writes with a missing or invalid
+signature are rejected; ``production_mode`` forces signature
+enforcement on. Combine
 with ``TenantRouter`` strict ACLs on KB writes and ``AuditLogger`` to
 detect unexpected modifications. The opt-in pre-model **evidence
 firewall** additionally screens retrieved chunks before they reach the

@@ -386,35 +386,57 @@ class TestResolveBindHost:
             ),
         }
 
-    def test_dev_defaults_to_loopback(self):
+    def test_dev_defaults_to_loopback(self, monkeypatch):
         from director_ai.core.config import DirectorConfig
 
+        monkeypatch.delenv("DIRECTOR_SERVER_HOST", raising=False)
         cfg = DirectorConfig()  # production_mode False, default host 0.0.0.0
         assert _cli_serve._resolve_bind_host(cfg, "", False) == "127.0.0.1"
 
-    def test_explicit_host_wins_in_dev(self):
+    def test_explicit_host_wins_in_dev(self, monkeypatch):
         from director_ai.core.config import DirectorConfig
 
+        monkeypatch.delenv("DIRECTOR_SERVER_HOST", raising=False)
         cfg = DirectorConfig()
         assert (
             _cli_serve._resolve_bind_host(cfg, "0.0.0.0", True) == "0.0.0.0"  # noqa: S104
         )
 
-    def test_explicit_host_wins_for_custom_address(self):
+    def test_explicit_host_wins_for_custom_address(self, monkeypatch):
         from director_ai.core.config import DirectorConfig
 
+        monkeypatch.delenv("DIRECTOR_SERVER_HOST", raising=False)
         cfg = DirectorConfig()
         assert _cli_serve._resolve_bind_host(cfg, "192.0.2.10", True) == "192.0.2.10"
 
-    def test_production_keeps_configured_bind(self):
+    def test_env_host_honoured_in_dev(self, monkeypatch):
         from director_ai.core.config import DirectorConfig
 
+        # The container image sets DIRECTOR_SERVER_HOST=0.0.0.0; a dev-mode server
+        # must honour it (a container binds all interfaces; exposure is the port
+        # mapping's job) rather than overriding it with loopback.
+        monkeypatch.setenv("DIRECTOR_SERVER_HOST", "0.0.0.0")  # noqa: S104
+        cfg = DirectorConfig()
+        assert _cli_serve._resolve_bind_host(cfg, "", False) == "0.0.0.0"  # noqa: S104
+
+    def test_explicit_host_overrides_env(self, monkeypatch):
+        from director_ai.core.config import DirectorConfig
+
+        monkeypatch.setenv("DIRECTOR_SERVER_HOST", "0.0.0.0")  # noqa: S104
+        cfg = DirectorConfig()
+        assert _cli_serve._resolve_bind_host(cfg, "10.0.0.9", True) == "10.0.0.9"
+
+    def test_production_keeps_configured_bind(self, monkeypatch):
+        from director_ai.core.config import DirectorConfig
+
+        monkeypatch.delenv("DIRECTOR_SERVER_HOST", raising=False)
         cfg = DirectorConfig(production_mode=True, **self._hardened_kwargs())
         # Default server_host is the all-interfaces bind for reverse proxies.
         assert _cli_serve._resolve_bind_host(cfg, "", False) == "0.0.0.0"  # noqa: S104
 
-    def test_production_respects_explicit_host(self):
+    def test_production_respects_explicit_host(self, monkeypatch):
         from director_ai.core.config import DirectorConfig
 
+        monkeypatch.delenv("DIRECTOR_SERVER_HOST", raising=False)
         cfg = DirectorConfig(production_mode=True, **self._hardened_kwargs())
         assert _cli_serve._resolve_bind_host(cfg, "10.0.0.5", True) == "10.0.0.5"

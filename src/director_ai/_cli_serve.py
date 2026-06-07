@@ -13,6 +13,7 @@ Extracted from cli.py to reduce module size.
 from __future__ import annotations
 
 import json
+import os
 import sys
 
 
@@ -51,14 +52,20 @@ def _apply_run_mode(config, run_mode: str):
 def _resolve_bind_host(config, host: str, host_explicit: bool) -> str:
     """Resolve the server bind host from the ``--host`` flag and run mode.
 
-    An explicit ``--host`` always wins. Otherwise a production config keeps its
-    configured bind (or all-interfaces for a reverse-proxy deployment) while a
-    dev config binds to loopback, so an unauthenticated dev server started with
-    ``serve --dev`` is not exposed on every interface. Operators who want LAN
-    access in dev opt in with ``--host 0.0.0.0``.
+    Precedence: an explicit ``--host`` wins; then an explicit
+    ``DIRECTOR_SERVER_HOST`` environment variable (this is how the container
+    image requests an all-interfaces bind, which is correct inside a container
+    where exposure is controlled by the port mapping); then a production config
+    keeps its configured/all-interfaces bind for a reverse-proxy deployment;
+    otherwise a dev server binds to loopback so an unauthenticated ``serve --dev``
+    is not exposed on every interface. Operators who want LAN access in dev opt
+    in with ``--host 0.0.0.0`` or ``DIRECTOR_SERVER_HOST``.
     """
     if host_explicit:
         return host
+    env_host = os.environ.get("DIRECTOR_SERVER_HOST", "").strip()
+    if env_host:
+        return env_host
     if getattr(config, "production_mode", False):
         return config.server_host or "0.0.0.0"  # nosec B104
     return "127.0.0.1"
