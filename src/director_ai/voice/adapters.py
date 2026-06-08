@@ -201,7 +201,7 @@ class DeepgramAdapter(TTSAdapter):
         if self._client is not None:
             return self._client
         try:
-            from deepgram import DeepgramClient
+            from deepgram import AsyncDeepgramClient
         except ImportError:
             raise DependencyError(
                 "DeepgramAdapter requires the deepgram-sdk package: "
@@ -210,22 +210,16 @@ class DeepgramAdapter(TTSAdapter):
         kwargs: dict[str, Any] = {}
         if self._api_key:
             kwargs["api_key"] = self._api_key
-        self._client = DeepgramClient(**kwargs)
+        self._client = AsyncDeepgramClient(**kwargs)
         return self._client
 
     async def synthesise(self, text: str) -> AsyncIterator[bytes]:
         """Stream Deepgram audio bytes for approved text."""
         client = self._get_client()
-        options = {"model": self._model, "text": text}
-        response = await client.speak.asyncrest.v("1").stream_raw(options)
-        if hasattr(response, "__aiter__"):
-            async for chunk in response:
-                yield chunk
-        elif hasattr(response, "stream"):
-            for chunk in response.stream:
-                yield chunk
-        else:
-            yield response.content if hasattr(response, "content") else bytes(response)
+        # deepgram-sdk 7 replaced speak.asyncrest.v("1").stream_raw with the
+        # speak.v1.audio.generate async generator, which yields the audio bytes.
+        async for chunk in client.speak.v1.audio.generate(text=text, model=self._model):
+            yield chunk
 
     async def close(self) -> None:
         """Drop the cached Deepgram client reference."""

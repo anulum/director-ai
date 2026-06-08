@@ -303,7 +303,7 @@ class TestDeepgramAdapterHappyPath:
 
         mock_dg = MagicMock()
         mock_cls = MagicMock()
-        mock_dg.DeepgramClient = mock_cls
+        mock_dg.AsyncDeepgramClient = mock_cls
         with patch.dict("sys.modules", {"deepgram": mock_dg}):
             adapter = DeepgramAdapter(api_key="dg-key")
             adapter._client = None
@@ -316,7 +316,7 @@ class TestDeepgramAdapterHappyPath:
 
         mock_dg = MagicMock()
         mock_cls = MagicMock()
-        mock_dg.DeepgramClient = mock_cls
+        mock_dg.AsyncDeepgramClient = mock_cls
         with patch.dict("sys.modules", {"deepgram": mock_dg}):
             adapter = DeepgramAdapter()
             adapter._client = None
@@ -328,66 +328,24 @@ class TestDeepgramAdapterHappyPath:
         adapter._client = "cached"
         assert adapter._get_client() == "cached"
 
-    async def test_synthesise_async_iterable(self):
-        from unittest.mock import AsyncMock, MagicMock
+    async def test_synthesise_streams_generate(self):
+        from unittest.mock import MagicMock
 
         adapter = DeepgramAdapter(model="aura-zeus-en")
 
-        async def fake_stream():
+        captured: dict[str, object] = {}
+
+        async def fake_generate(*, text, model):
+            captured["text"] = text
+            captured["model"] = model
             yield b"dg1"
             yield b"dg2"
 
-        mock_response = fake_stream()
+        # deepgram-sdk 7: speak.v1.audio.generate is an async generator of bytes.
         mock_client = MagicMock()
-        mock_v = MagicMock()
-        mock_v.stream_raw = AsyncMock(return_value=mock_response)
-        mock_client.speak.asyncrest.v.return_value = mock_v
+        mock_client.speak.v1.audio.generate = fake_generate
         adapter._client = mock_client
 
         chunks = [c async for c in adapter.synthesise("Hi")]
         assert chunks == [b"dg1", b"dg2"]
-
-    async def test_synthesise_stream_attribute(self):
-        from unittest.mock import AsyncMock, MagicMock
-
-        adapter = DeepgramAdapter()
-        mock_response = MagicMock(spec=[])
-        mock_response.stream = [b"s1", b"s2"]
-        mock_client = MagicMock()
-        mock_v = MagicMock()
-        mock_v.stream_raw = AsyncMock(return_value=mock_response)
-        mock_client.speak.asyncrest.v.return_value = mock_v
-        adapter._client = mock_client
-
-        chunks = [c async for c in adapter.synthesise("Stream")]
-        assert chunks == [b"s1", b"s2"]
-
-    async def test_synthesise_content_fallback(self):
-        from unittest.mock import AsyncMock, MagicMock
-
-        adapter = DeepgramAdapter()
-        mock_response = MagicMock(spec=[])
-        mock_response.content = b"raw_content"
-        del mock_response.stream
-        mock_client = MagicMock()
-        mock_v = MagicMock()
-        mock_v.stream_raw = AsyncMock(return_value=mock_response)
-        mock_client.speak.asyncrest.v.return_value = mock_v
-        adapter._client = mock_client
-
-        chunks = [c async for c in adapter.synthesise("Content")]
-        assert chunks == [b"raw_content"]
-
-    async def test_synthesise_bytes_fallback(self):
-        from unittest.mock import AsyncMock, MagicMock
-
-        adapter = DeepgramAdapter()
-        mock_response = b"raw_bytes"
-        mock_client = MagicMock()
-        mock_v = MagicMock()
-        mock_v.stream_raw = AsyncMock(return_value=mock_response)
-        mock_client.speak.asyncrest.v.return_value = mock_v
-        adapter._client = mock_client
-
-        chunks = [c async for c in adapter.synthesise("Bytes")]
-        assert chunks == [b"raw_bytes"]
+        assert captured == {"text": "Hi", "model": "aura-zeus-en"}
