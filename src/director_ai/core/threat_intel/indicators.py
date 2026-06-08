@@ -21,9 +21,16 @@ import hashlib
 import re
 from dataclasses import dataclass, field
 from enum import StrEnum
+from functools import lru_cache
 from typing import Any
 
 __all__ = ["IndicatorType", "Severity", "ThreatIndicator"]
+
+
+@lru_cache(maxsize=4096)
+def _compiled_regex(pattern: str) -> re.Pattern[str]:
+    """Compile and cache a regex indicator pattern (shared across matches)."""
+    return re.compile(pattern)
 
 
 class IndicatorType(StrEnum):
@@ -80,10 +87,9 @@ class ThreatIndicator:
             raise ValueError("indicator pattern is required")
         if self.indicator_type is IndicatorType.REGEX:
             try:
-                compiled = re.compile(self.pattern)
+                _compiled_regex(self.pattern)
             except re.error as exc:
                 raise ValueError(f"invalid regex pattern: {exc}") from exc
-            object.__setattr__(self, "_compiled", compiled)
         if self.indicator_type is IndicatorType.SHA256 and not re.fullmatch(
             r"[0-9a-fA-F]{64}", self.pattern
         ):
@@ -94,7 +100,7 @@ class ThreatIndicator:
         if self.indicator_type is IndicatorType.SUBSTRING:
             return self.pattern.lower() in text.lower()
         if self.indicator_type is IndicatorType.REGEX:
-            return self._compiled.search(text) is not None
+            return _compiled_regex(self.pattern).search(text) is not None
         return hashlib.sha256(text.encode("utf-8")).hexdigest() == self.pattern.lower()
 
     def to_dict(self) -> dict[str, Any]:
