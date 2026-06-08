@@ -569,16 +569,47 @@ jobs:
       - name: Test
         run: cargo test --workspace
 
+  lean:
+    name: Lean Proofs (HaltMonitor)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+
+      # `sorry`/`admit` close any goal without a proof but only emit a *warning*
+      # under `lake build`, so a build could pass with an unproved theorem. Reject
+      # them outright before building, so the machine-checked guarantees cannot
+      # silently degrade into axioms. The proof-manifest contract test (theorem
+      # names ↔ .lean sources) already runs in the `test` job.
+      - name: Reject unproved goals (sorry/admit)
+        run: |
+          if grep -rnE '\b(sorry|admit)\b' formal/HaltMonitor/HaltMonitor/; then
+            echo "::error::Unproved goal (sorry/admit) found in Lean sources"
+            exit 1
+          fi
+
+      # Machine-checks the formally verified halt-monitor kernel. The proofs are
+      # core Lean 4 (no Mathlib — lake-manifest packages are empty), so the
+      # toolchain is read from formal/HaltMonitor/lean-toolchain and no cache is
+      # needed. A type error or failed proof fails the build.
+      - name: Build and check Lean proofs
+        uses: leanprover/lean-action@38fbc41a8c28c4cbaec22d7f7de508ec2e7c0dd9 # v1.5.0
+        with:
+          lake-package-directory: formal/HaltMonitor
+          build: true
+          test: false
+          lint: false
+          use-mathlib-cache: false
+
   discord-notify:
     name: Discord CI Notification
     runs-on: ubuntu-latest
-    needs: [lint, typecheck, test, test-extras, security, fuzz, sast, benchmark, rust]
+    needs: [lint, typecheck, test, test-extras, security, fuzz, sast, benchmark, rust, lean]
     if: always() && github.ref == 'refs/heads/main'
     steps:
       - name: Resolve overall result
         id: result
         run: |
-          RESULTS="${{ needs.lint.result }} ${{ needs.typecheck.result }} ${{ needs.test.result }} ${{ needs.test-extras.result }} ${{ needs.security.result }} ${{ needs.fuzz.result }} ${{ needs.sast.result }} ${{ needs.benchmark.result }} ${{ needs.rust.result }}"
+          RESULTS="${{ needs.lint.result }} ${{ needs.typecheck.result }} ${{ needs.test.result }} ${{ needs.test-extras.result }} ${{ needs.security.result }} ${{ needs.fuzz.result }} ${{ needs.sast.result }} ${{ needs.benchmark.result }} ${{ needs.rust.result }} ${{ needs.lean.result }}"
           if echo "$RESULTS" | grep -qE "failure|cancelled"; then
             echo "passed=false" >> "$GITHUB_OUTPUT"
           else
@@ -594,12 +625,13 @@ jobs:
           SAST: ${{ needs.sast.result }}
           BENCHMARK: ${{ needs.benchmark.result }}
           RUST: ${{ needs.rust.result }}
+          LEAN: ${{ needs.lean.result }}
 
       - name: Build job summary
         id: summary
         run: |
           icon() { case "$1" in success) echo "✅";; failure) echo "❌";; cancelled) echo "⏹️";; skipped) echo "⏭️";; *) echo "❓";; esac; }
-          S="$(icon "$LINT") lint  $(icon "$TYPECHECK") typecheck  $(icon "$TEST") test  $(icon "$TEST_EXTRAS") extras  $(icon "$SECURITY") security  $(icon "$FUZZ") fuzz  $(icon "$SAST") sast  $(icon "$BENCHMARK") bench  $(icon "$RUST") rust"
+          S="$(icon "$LINT") lint  $(icon "$TYPECHECK") typecheck  $(icon "$TEST") test  $(icon "$TEST_EXTRAS") extras  $(icon "$SECURITY") security  $(icon "$FUZZ") fuzz  $(icon "$SAST") sast  $(icon "$BENCHMARK") bench  $(icon "$RUST") rust  $(icon "$LEAN") lean"
           echo "jobs=$S" >> "$GITHUB_OUTPUT"
         env:
           LINT: ${{ needs.lint.result }}
@@ -611,6 +643,7 @@ jobs:
           SAST: ${{ needs.sast.result }}
           BENCHMARK: ${{ needs.benchmark.result }}
           RUST: ${{ needs.rust.result }}
+          LEAN: ${{ needs.lean.result }}
 
       - name: Post to Discord
         if: env.DISCORD_WEBHOOK_URL != ''
