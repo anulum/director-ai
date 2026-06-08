@@ -685,6 +685,22 @@ class ProductionGuard:
             self._threat_intel = ThreatIntelligenceMatcher()
         return self._threat_intel
 
+    def secure_aggregator(self, *, party_count: int):
+        """Secure multi-party aggregation of scores (additive secret sharing).
+
+        Each party secret-shares its value; the returned
+        :class:`~director_ai.core.federated_privacy.SecureAggregator` sums the
+        shares component-wise and reconstructs the multi-party total without ever
+        materialising any single party's value — scoring across confidential
+        knowledge bases without sharing the data. For dropout/threshold tolerance
+        (any ``t`` of ``n`` parties), use the package's Shamir helpers
+        (:func:`~director_ai.core.federated_privacy.shamir_split` /
+        :func:`~director_ai.core.federated_privacy.shamir_reconstruct`).
+        """
+        from director_ai.core.federated_privacy import SecureAggregator
+
+        return SecureAggregator(party_count=party_count)
+
     def byzantine_consensus(self, *, fault_tolerance: int = 1):
         """PBFT-style quorum over independent verifier votes.
 

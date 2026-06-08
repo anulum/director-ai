@@ -221,6 +221,7 @@ nav:
       - Federated Safety Signal Sharing: api/federated-safety-signals.md
       - Differentially Private RAG Retrieval: api/dp-rag-retrieval.md
       - Federated DP Calibration: api/federated-dp-calibration.md
+      - Secure Multi-Party Aggregation: api/secure-aggregation.md
       - Neuro-Symbolic Verifier: api/neuro-symbolic-verifier.md
       - Neuro-Symbolic Compliance (SMT): api/neuro-symbolic-compliance.md
       - Byzantine-Resilient Consensus: api/byzantine-consensus.md

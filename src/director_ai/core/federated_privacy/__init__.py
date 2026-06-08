@@ -41,6 +41,12 @@ from .aggregator import FederatedCounter, FederatedHistogram
 from .mechanisms import GaussianMechanism, LaplaceMechanism
 from .score_release import DifferentialPrivacyScoreReleaser, PrivacyScoreRelease
 from .secret_sharing import SecretShare, SecureAggregator, ShareError
+from .shamir import (
+    ShamirShare,
+    shamir_reconstruct,
+    shamir_split,
+    shamir_sum_shares,
+)
 from .signal_sharing import (
     DEFAULT_SIGNAL_CATEGORIES,
     FederatedSafetySignalAggregator,
@@ -61,5 +67,9 @@ __all__ = [
     "PrivacyScoreRelease",
     "SecretShare",
     "SecureAggregator",
+    "ShamirShare",
     "ShareError",
+    "shamir_reconstruct",
+    "shamir_split",
+    "shamir_sum_shares",
 ]

@@ -2,14 +2,14 @@
   "SPDX-License-Identifier": "AGPL-3.0-or-later",
   "counts": {
     "github_workflows": 11,
-    "model_documentation_pages": 79,
+    "model_documentation_pages": 80,
     "optional_extras": 54,
     "public_api_exports": 216,
-    "public_documentation_pages": 174,
-    "python_model_classes": 865,
-    "python_model_source_modules": 380,
+    "public_documentation_pages": 175,
+    "python_model_classes": 866,
+    "python_model_source_modules": 381,
     "rust_pyo3_model_wrappers": 78,
-    "test_files": 458
+    "test_files": 459
   },
   "documentation": {
     "public_pages": [
@@ -75,6 +75,7 @@
       "docs-site/api/safety-event-schema.md",
       "docs-site/api/sanitizer.md",
       "docs-site/api/scorer.md",
+      "docs-site/api/secure-aggregation.md",
       "docs-site/api/self-healing-controller.md",
       "docs-site/api/self-improving-guard-loop.md",
       "docs-site/api/server.md",
@@ -270,6 +271,7 @@
       "safety-event-schema.md",
       "sanitizer.md",
       "scorer.md",
+      "secure-aggregation.md",
       "self-healing-controller.md",
       "self-improving-guard-loop.md",
       "server.md",
@@ -3098,6 +3100,10 @@
         "path": "src/director_ai/core/threat_intel/indicators.py"
       },
       {
+        "name": "ShamirShare",
+        "path": "src/director_ai/core/federated_privacy/shamir.py"
+      },
+      {
         "name": "ShardedNLIScorer",
         "path": "src/director_ai/core/scoring/sharded_nli.py"
       },
@@ -3867,6 +3873,7 @@
       "src/director_ai/core/federated_privacy/mechanisms.py",
       "src/director_ai/core/federated_privacy/score_release.py",
       "src/director_ai/core/federated_privacy/secret_sharing.py",
+      "src/director_ai/core/federated_privacy/shamir.py",
       "src/director_ai/core/federated_privacy/signal_sharing.py",
       "src/director_ai/core/financial_services/banking_policy.py",
       "src/director_ai/core/finetune.py",
@@ -4906,6 +4913,7 @@
       "tests/test_server_ws_dos.py",
       "tests/test_server_ws_mux.py",
       "tests/test_session.py",
+      "tests/test_shamir.py",
       "tests/test_sharded_nli.py",
       "tests/test_signal_sharing.py",
       "tests/test_soc2_iso_readiness.py",
