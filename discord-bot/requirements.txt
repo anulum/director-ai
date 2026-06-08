@@ -4,9 +4,9 @@
 #
 #    pip-compile --generate-hashes --output-file=C:/Users/forti/AppData/Local/Temp/discord-bot-req.txt C:/Users/forti/AppData/Local/Temp/discord-bot-req.in
 #
-aiohappyeyeballs==2.6.1 \
-    --hash=sha256:c3f9d0113123803ccadfdf3f0faa505bc78e6a72d1cc4806cbd719826e943558 \
-    --hash=sha256:f349ba8f4b75cb25c99c5c2d84e997e485204d2902a9597802b0371f09331fb8
+aiohappyeyeballs==2.6.2 \
+    --hash=sha256:4708045e2d7a6c6bdf8aafa8ed39649eaf926a4543b54560659129e3365953c4 \
+    --hash=sha256:e202810ee718bd01fc6ef49e8ea53d023d5cb6b581076d7925aa499fa55dbe64
     # via aiohttp
 aiohttp==3.14.0 \
     --hash=sha256:02cb2ffbb7da32f82e21ad9952669c45bd88a80e0878264c2f59fe1c6fb2badd \
@@ -147,9 +147,9 @@ certifi==2026.2.25 \
     # via
     #   httpcore
     #   httpx
-discord-py==2.5.2 \
-    --hash=sha256:01cd362023bfea1a4a1d43f5280b5ef00cad2c7eba80098909f98bf28e578524 \
-    --hash=sha256:81f23a17c50509ffebe0668441cb80c139e74da5115305f70e27ce821361295a
+discord-py==2.7.1 \
+    --hash=sha256:24d5e6a45535152e4b98148a9dd6b550d25dc2c9fb41b6d670319411641249da \
+    --hash=sha256:849dca2c63b171146f3a7f3f8acc04248098e9e6203412ce3cf2745f284f7439
     # via -r C:/Users/forti/AppData/Local/Temp/discord-bot-req.in
 frozenlist==1.8.0 \
     --hash=sha256:0325024fe97f94c41c08872db482cf8ac4800d80e79222c6b0b7b162d5b13686 \
@@ -297,9 +297,9 @@ httpx==0.28.1 \
     --hash=sha256:75e98c5f16b0f35b567856f597f06ff2270a374470a5c2392242528e3e3e42fc \
     --hash=sha256:d909fcccc110f8c7faf814ca82a9a4d816bc5a6dbfea25d6591d6985b8ba59ad
     # via -r C:/Users/forti/AppData/Local/Temp/discord-bot-req.in
-idna==3.15 \
-    --hash=sha256:048adeaf8c2d788c40fee287673ccaa74c24ffd8dcf09ffa555a2fbb59f10ac8 \
-    --hash=sha256:ca962446ea538f7092a95e057da437618e886f4d349216d2b1e294abfdb65fdc
+idna==3.18 \
+    --hash=sha256:7f952cbe720b688055e3f87de14f5c3e5fdaa8bc3928985c4077ca689de849a2 \
+    --hash=sha256:ffb385a7e039654cef1ab9ef32c6fafe283c0c0467bba1d9029738ce4a14a848
     # via
     #   anyio
     #   httpx

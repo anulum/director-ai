@@ -65,11 +65,11 @@ llamaindex = [
     "llama-index-core>=0.10",
 ]
 server = [
-    "fastapi>=0.100,<1",
+    "fastapi>=0.100",
     "uvicorn>=0.23,<1",
-    "pydantic>=2.0,<3",
+    "pydantic>=2.0",
     "httpx>=0.27,<1",
-    "python-multipart>=0.0.7,<1",
+    "python-multipart>=0.0.7",
     "slowapi>=0.1.9,<1",
 ]
 # MiniCheck is not published on PyPI. Users who want the MiniCheck
@@ -179,7 +179,7 @@ moderation = [
     "detoxify>=0.5",
 ]
 demo = [
-    "gradio>=4.0",
+    "gradio<7,>=4.0",
 ]
 ingestion = [
     "pypdf>=3.0",
@@ -214,7 +214,7 @@ enterprise = [
     "psycopg2-binary>=2.9,<3",
 ]
 ui = [
-    "gradio>=4.0,<7",
+    "gradio<7,>=4.0,<7",
 ]
 reports = [
     "weasyprint>=60",
