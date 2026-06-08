@@ -129,6 +129,26 @@ class FederatedCalibrationRound:
         """Number of aggregated rounds applied so far."""
         return self._rounds
 
+    @property
+    def clip_norm(self) -> float:
+        """Per-tenant update clip bound (the DP sensitivity primitive)."""
+        return self._clip_norm
+
+    @property
+    def noise_multiplier(self) -> float:
+        """Gaussian noise scale as a multiple of the clip norm."""
+        return self._noise_multiplier
+
+    @property
+    def min_cohort(self) -> int:
+        """Minimum contributing tenants required to apply a round."""
+        return self._min_cohort
+
+    @property
+    def learning_rate(self) -> float:
+        """Step size applied to the DP-aggregated update each round."""
+        return self._lr
+
     def submit_update(self, *, tenant_id: str, update: float) -> None:
         """Submit one tenant's clipped local update for the pending round.
 

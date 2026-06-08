@@ -223,6 +223,7 @@ nav:
       - Unified DP-RAG Pipeline: api/dp-rag-pipeline.md
       - Rényi-DP Accountant: api/rdp-accountant.md
       - Federated DP Calibration: api/federated-dp-calibration.md
+      - Federated-DP Evidence: api/federated-dp-evidence.md
       - Secure Multi-Party Aggregation: api/secure-aggregation.md
       - Neuro-Symbolic Verifier: api/neuro-symbolic-verifier.md
       - Neuro-Symbolic Compliance (SMT): api/neuro-symbolic-compliance.md

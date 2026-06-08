@@ -769,6 +769,26 @@ class ProductionGuard:
         )
         return FederatedCalibrationRound(start, **kwargs)
 
+    def federated_dp_evidence(self, calibration_round=None, **kwargs):
+        """Build the formal-privacy + poisoning-resilience evidence for a round.
+
+        Wraps a
+        :class:`~director_ai.core.federated_dp.FederatedCalibrationRound` (the
+        given one, or a fresh :meth:`federated_calibration` built from ``kwargs``)
+        and produces its formal ``(ε, δ)`` bound (via the Rényi-DP accountant) and
+        the certified worst-case poisoning shift from clipping, plus a simulated
+        attack-vs-baseline check. Returns a
+        :class:`~director_ai.core.federated_dp.FederatedDPEvidence`.
+        """
+        from director_ai.core.federated_dp import FederatedDPEvidence
+
+        round_obj = (
+            self.federated_calibration(**kwargs)
+            if calibration_round is None
+            else calibration_round
+        )
+        return FederatedDPEvidence(round_obj)
+
     def robot_command_guard(self, constraints=(), **kwargs):
         """Build an embodied-AI guard for an LLM-planned robot command sequence.
 

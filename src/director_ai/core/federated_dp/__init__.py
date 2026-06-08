@@ -14,9 +14,19 @@ from .calibration import (
     FederatedCalibrationRound,
     RoundResult,
 )
+from .evidence import (
+    FederatedDPEvidence,
+    FederatedDPEvidencePacket,
+    PoisoningBound,
+    PoisoningSimulation,
+)
 
 __all__ = [
     "CohortTooSmallError",
     "FederatedCalibrationRound",
+    "FederatedDPEvidence",
+    "FederatedDPEvidencePacket",
+    "PoisoningBound",
+    "PoisoningSimulation",
     "RoundResult",
 ]

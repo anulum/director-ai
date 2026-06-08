@@ -2,14 +2,14 @@
   "SPDX-License-Identifier": "AGPL-3.0-or-later",
   "counts": {
     "github_workflows": 11,
-    "model_documentation_pages": 82,
+    "model_documentation_pages": 83,
     "optional_extras": 54,
     "public_api_exports": 216,
-    "public_documentation_pages": 177,
-    "python_model_classes": 873,
-    "python_model_source_modules": 384,
+    "public_documentation_pages": 178,
+    "python_model_classes": 877,
+    "python_model_source_modules": 385,
     "rust_pyo3_model_wrappers": 78,
-    "test_files": 461
+    "test_files": 462
   },
   "documentation": {
     "public_pages": [
@@ -46,6 +46,7 @@
       "docs-site/api/exceptions.md",
       "docs-site/api/execution-rings.md",
       "docs-site/api/federated-dp-calibration.md",
+      "docs-site/api/federated-dp-evidence.md",
       "docs-site/api/federated-safety-signals.md",
       "docs-site/api/financial-services.md",
       "docs-site/api/formal-code-verifiers.md",
@@ -244,6 +245,7 @@
       "exceptions.md",
       "execution-rings.md",
       "federated-dp-calibration.md",
+      "federated-dp-evidence.md",
       "federated-safety-signals.md",
       "financial-services.md",
       "formal-code-verifiers.md",
@@ -1444,6 +1446,14 @@
         "path": "src/director_ai/core/federated_privacy/aggregator.py"
       },
       {
+        "name": "FederatedDPEvidence",
+        "path": "src/director_ai/core/federated_dp/evidence.py"
+      },
+      {
+        "name": "FederatedDPEvidencePacket",
+        "path": "src/director_ai/core/federated_dp/evidence.py"
+      },
+      {
         "name": "FederatedHistogram",
         "path": "src/director_ai/core/federated_privacy/aggregator.py"
       },
@@ -2582,6 +2592,14 @@
       {
         "name": "PoisonScanner",
         "path": "src/director_ai/core/evidence_firewall/poison.py"
+      },
+      {
+        "name": "PoisoningBound",
+        "path": "src/director_ai/core/federated_dp/evidence.py"
+      },
+      {
+        "name": "PoisoningSimulation",
+        "path": "src/director_ai/core/federated_dp/evidence.py"
       },
       {
         "name": "PolarActivationInfo",
@@ -3902,6 +3920,7 @@
       "src/director_ai/core/execution_rings/gate.py",
       "src/director_ai/core/execution_rings/rings.py",
       "src/director_ai/core/federated_dp/calibration.py",
+      "src/director_ai/core/federated_dp/evidence.py",
       "src/director_ai/core/federated_privacy/accountant.py",
       "src/director_ai/core/federated_privacy/aggregator.py",
       "src/director_ai/core/federated_privacy/mechanisms.py",
@@ -4704,6 +4723,7 @@
       "tests/test_external_security_packet.py",
       "tests/test_fastapi_guard.py",
       "tests/test_federated_dp.py",
+      "tests/test_federated_dp_evidence.py",
       "tests/test_federated_privacy.py",
       "tests/test_federated_privacy_evidence.py",
       "tests/test_feedback_loop_detector.py",
