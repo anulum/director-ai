@@ -2,14 +2,14 @@
   "SPDX-License-Identifier": "AGPL-3.0-or-later",
   "counts": {
     "github_workflows": 11,
-    "model_documentation_pages": 80,
+    "model_documentation_pages": 81,
     "optional_extras": 54,
     "public_api_exports": 216,
-    "public_documentation_pages": 175,
-    "python_model_classes": 866,
-    "python_model_source_modules": 381,
+    "public_documentation_pages": 176,
+    "python_model_classes": 868,
+    "python_model_source_modules": 382,
     "rust_pyo3_model_wrappers": 78,
-    "test_files": 459
+    "test_files": 460
   },
   "documentation": {
     "public_pages": [
@@ -71,6 +71,7 @@
       "docs-site/api/private-score-release.md",
       "docs-site/api/provenance-ledger.md",
       "docs-site/api/rasp.md",
+      "docs-site/api/rdp-accountant.md",
       "docs-site/api/risk-adaptive-threshold.md",
       "docs-site/api/safety-event-schema.md",
       "docs-site/api/sanitizer.md",
@@ -267,6 +268,7 @@
       "private-score-release.md",
       "provenance-ledger.md",
       "rasp.md",
+      "rdp-accountant.md",
       "risk-adaptive-threshold.md",
       "safety-event-schema.md",
       "sanitizer.md",
@@ -1126,6 +1128,10 @@
       {
         "name": "DPBudgetExceededError",
         "path": "src/director_ai/core/dp_rag/retrieval.py"
+      },
+      {
+        "name": "DPGuarantee",
+        "path": "src/director_ai/core/federated_privacy/rdp_accountant.py"
       },
       {
         "name": "DailyUsage",
@@ -2832,6 +2838,10 @@
         "path": "src/director_ai/core/retrieval/vector_store/remanentia.py"
       },
       {
+        "name": "RenyiAccountant",
+        "path": "src/director_ai/core/federated_privacy/rdp_accountant.py"
+      },
+      {
         "name": "RepairAction",
         "path": "src/director_ai/core/streaming_repair/repair.py"
       },
@@ -3871,6 +3881,7 @@
       "src/director_ai/core/federated_privacy/accountant.py",
       "src/director_ai/core/federated_privacy/aggregator.py",
       "src/director_ai/core/federated_privacy/mechanisms.py",
+      "src/director_ai/core/federated_privacy/rdp_accountant.py",
       "src/director_ai/core/federated_privacy/score_release.py",
       "src/director_ai/core/federated_privacy/secret_sharing.py",
       "src/director_ai/core/federated_privacy/shamir.py",
@@ -4859,6 +4870,7 @@
       "tests/test_rag_integration.py",
       "tests/test_ragtruth_eval.py",
       "tests/test_rasp.py",
+      "tests/test_rdp_accountant.py",
       "tests/test_reasoning_verifier.py",
       "tests/test_redis_enterprise.py",
       "tests/test_report_generator.py",

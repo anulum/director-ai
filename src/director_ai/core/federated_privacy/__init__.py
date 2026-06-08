@@ -26,6 +26,10 @@ Three layers:
   budget across queries. Simple composition is the default; an
   ``advanced=True`` mode applies the Dwork-Rothblum-Vadhan bound
   for a tighter budget at larger query counts.
+* :class:`RenyiAccountant` — Rényi-DP accounting for tight
+  composition of the Gaussian mechanism (DP decoding / DP score
+  release), tracking RDP at a grid of orders and converting to
+  ``(ε, δ)``-DP via the Mironov (2017) bound.
 
 High-level helpers:
 
@@ -39,6 +43,7 @@ High-level helpers:
 from .accountant import AccountantEntry, PrivacyAccountant
 from .aggregator import FederatedCounter, FederatedHistogram
 from .mechanisms import GaussianMechanism, LaplaceMechanism
+from .rdp_accountant import DPGuarantee, RenyiAccountant, gaussian_rdp
 from .score_release import DifferentialPrivacyScoreReleaser, PrivacyScoreRelease
 from .secret_sharing import SecretShare, SecureAggregator, ShareError
 from .shamir import (
@@ -56,6 +61,7 @@ from .signal_sharing import (
 __all__ = [
     "AccountantEntry",
     "DEFAULT_SIGNAL_CATEGORIES",
+    "DPGuarantee",
     "DifferentialPrivacyScoreReleaser",
     "FederatedCounter",
     "FederatedHistogram",
@@ -65,6 +71,8 @@ __all__ = [
     "LaplaceMechanism",
     "PrivacyAccountant",
     "PrivacyScoreRelease",
+    "RenyiAccountant",
+    "gaussian_rdp",
     "SecretShare",
     "SecureAggregator",
     "ShamirShare",
