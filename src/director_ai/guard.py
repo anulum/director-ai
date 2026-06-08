@@ -634,6 +634,24 @@ class ProductionGuard:
             self._ml_bom = MachineLearningBOM()
         return self._ml_bom
 
+    def byzantine_consensus(self, *, fault_tolerance: int = 1):
+        """PBFT-style quorum over independent verifier votes.
+
+        Tolerates up to ``fault_tolerance`` Byzantine (compromised/malicious)
+        verifiers: it requires ``3f + 1`` independent votes and a ``2f + 1``
+        quorum for the same verdict, so ``f`` adversarial verifiers can neither
+        force a wrong decision nor block one the honest supermajority agrees on.
+        Builds a fresh
+        :class:`~director_ai.core.scoring.consensus.ByzantineFaultTolerantConsensus`
+        each call (it is stateless); feed it
+        :class:`~director_ai.core.scoring.consensus.BFTConsensusVote` objects.
+        """
+        from director_ai.core.scoring.consensus import (
+            ByzantineFaultTolerantConsensus,
+        )
+
+        return ByzantineFaultTolerantConsensus(fault_tolerance=fault_tolerance)
+
     @property
     def dp_retrieval(self):
         """Differentially private retrieval ranking with a per-tenant budget.

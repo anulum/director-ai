@@ -92,3 +92,25 @@ def test_result_to_dict_is_tenant_safe():
     assert payload["decision"] == "halt"
     assert "raw-prompt" not in str(payload)
     assert payload["evidence_refs"] == ("redacted", "proof://2", "proof://3")
+
+
+def test_production_guard_exposes_byzantine_consensus():
+    from director_ai.core.config import DirectorConfig
+    from director_ai.guard import ProductionGuard
+
+    guard = ProductionGuard(DirectorConfig(use_nli=False, llm_provider="mock"))
+    consensus = guard.byzantine_consensus(fault_tolerance=1)
+    assert isinstance(consensus, ByzantineFaultTolerantConsensus)
+    assert consensus.required_replicas == 4
+    assert consensus.quorum_size == 3
+    result = consensus.decide(
+        (
+            BFTConsensusVote("a", "allow", 0.1),
+            BFTConsensusVote("b", "allow", 0.2),
+            BFTConsensusVote("c", "allow", 0.0),
+            BFTConsensusVote("compromised", "halt", 0.9),
+        ),
+        policy_id="policy.bft",
+    )
+    assert result.decision == "allow"
+    assert result.byzantine_resilient is True
