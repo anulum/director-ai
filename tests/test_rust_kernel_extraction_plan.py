@@ -83,12 +83,14 @@ def test_proof_manifest_maps_existing_theorems_to_runtime_surfaces() -> None:
     assert (ROOT / str(manifest["model"])).is_file()
     assert (ROOT / str(manifest["properties"])).is_file()
     assert (ROOT / str(manifest["monotonicity"])).is_file()
+    assert (ROOT / str(manifest["coherence_score"])).is_file()
     assert (ROOT / str(manifest["python_surface"])).is_file()
+    assert (ROOT / str(manifest["scorer_surface"])).is_file()
     assert (ROOT / str(manifest["rust_surface"])).is_dir()
 
     theorems = manifest["theorems"]
     assert isinstance(theorems, list)
-    assert len(theorems) == 7
+    assert len(theorems) == 11
     for theorem in theorems:
         assert isinstance(theorem, dict)
         # Each theorem is declared in the .lean file the manifest points to.

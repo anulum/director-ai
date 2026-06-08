@@ -89,6 +89,16 @@ source packages, and the WASM artefact.
 | `passes_antitone` | Passing a stricter threshold implies passing any looser one. |
 | `run_all_pass_emitted` | If every item passes, the run emits the whole input. |
 | `run_threshold_monotone` | Lowering the threshold never turns an emitting stream into a halting one. |
+| `CoherenceScore.score_nonneg` | The composite coherence score is never negative. |
+| `CoherenceScore.score_le_one` | The composite coherence score never exceeds one. |
+| `CoherenceScore.score_mem_unit` | The composite coherence score always lies in `[0,1]`. |
+| `clampUnit_mem_unit` | The score clamp lands in `[0,1]` for any input, so the rescaling path cannot emit an out-of-range score. |
+
+The first seven theorems model the streaming-halt loop
+(`HaltMonitor.Core`/`Properties`/`Monotonicity`); the last four model the
+coherence scorer (`HaltMonitor.CoherenceScore`), giving the abstract `Score` a
+machine-checked unit-interval range that mirrors
+`CoherenceScorer.calculate_coherence` in `core/scoring/scorer.py`.
 
 The proof root stays outside user installation. It supports release evidence
 and contract fixtures; it is not part of the first-run path.

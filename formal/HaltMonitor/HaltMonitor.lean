@@ -9,3 +9,4 @@
 import HaltMonitor.Core
 import HaltMonitor.Properties
 import HaltMonitor.Monotonicity
+import HaltMonitor.CoherenceScore

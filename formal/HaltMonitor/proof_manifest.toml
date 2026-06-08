@@ -12,7 +12,9 @@ lean_toolchain = "formal/HaltMonitor/lean-toolchain"
 model = "formal/HaltMonitor/HaltMonitor/Core.lean"
 properties = "formal/HaltMonitor/HaltMonitor/Properties.lean"
 monotonicity = "formal/HaltMonitor/HaltMonitor/Monotonicity.lean"
+coherence_score = "formal/HaltMonitor/HaltMonitor/CoherenceScore.lean"
 python_surface = "src/director_ai/core/runtime/kernel.py"
+scorer_surface = "src/director_ai/core/scoring/scorer.py"
 rust_surface = "backfire-kernel/crates/backfire-core"
 fixture_family = "halt-monitor-contract"
 
@@ -57,3 +59,27 @@ name = "run_threshold_monotone"
 file = "formal/HaltMonitor/HaltMonitor/Monotonicity.lean"
 claim = "Lowering the threshold cannot turn an emitting stream into a halting one."
 contract = "threshold-monotone-emit"
+
+[[theorems]]
+name = "CoherenceScore.score_nonneg"
+file = "formal/HaltMonitor/HaltMonitor/CoherenceScore.lean"
+claim = "The composite coherence score is never negative."
+contract = "coherence-score-nonneg"
+
+[[theorems]]
+name = "CoherenceScore.score_le_one"
+file = "formal/HaltMonitor/HaltMonitor/CoherenceScore.lean"
+claim = "The composite coherence score never exceeds one."
+contract = "coherence-score-le-one"
+
+[[theorems]]
+name = "CoherenceScore.score_mem_unit"
+file = "formal/HaltMonitor/HaltMonitor/CoherenceScore.lean"
+claim = "The composite coherence score always lies in the unit interval [0,1]."
+contract = "coherence-score-unit-interval"
+
+[[theorems]]
+name = "clampUnit_mem_unit"
+file = "formal/HaltMonitor/HaltMonitor/CoherenceScore.lean"
+claim = "The score clamp lands in [0,1] for any input, so the rescaling path cannot emit an out-of-range score."
+contract = "coherence-clamp-unit-interval"
