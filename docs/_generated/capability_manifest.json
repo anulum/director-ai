@@ -2,14 +2,14 @@
   "SPDX-License-Identifier": "AGPL-3.0-or-later",
   "counts": {
     "github_workflows": 11,
-    "model_documentation_pages": 78,
+    "model_documentation_pages": 79,
     "optional_extras": 54,
     "public_api_exports": 216,
-    "public_documentation_pages": 173,
-    "python_model_classes": 860,
-    "python_model_source_modules": 377,
+    "public_documentation_pages": 174,
+    "python_model_classes": 865,
+    "python_model_source_modules": 380,
     "rust_pyo3_model_wrappers": 78,
-    "test_files": 457
+    "test_files": 458
   },
   "documentation": {
     "public_pages": [
@@ -84,6 +84,7 @@
       "docs-site/api/synthetic-distillation.md",
       "docs-site/api/temporal-consistency-graph.md",
       "docs-site/api/temporal-logic-monitor.md",
+      "docs-site/api/threat-intel.md",
       "docs-site/api/trajectory-preflight.md",
       "docs-site/api/types.md",
       "docs-site/api/uncertainty-routing.md",
@@ -278,6 +279,7 @@
       "synthetic-distillation.md",
       "temporal-consistency-graph.md",
       "temporal-logic-monitor.md",
+      "threat-intel.md",
       "trajectory-preflight.md",
       "types.md",
       "uncertainty-routing.md",
@@ -1800,6 +1802,10 @@
         "path": "src/director_ai/core/provenance/content_commitment.py"
       },
       {
+        "name": "IndicatorType",
+        "path": "src/director_ai/core/threat_intel/indicators.py"
+      },
+      {
         "name": "InferenceHookDecision",
         "path": "src/director_ai/integrations/inference_server_hooks.py"
       },
@@ -3088,6 +3094,10 @@
         "path": "src/director_ai/_server_models.py"
       },
       {
+        "name": "Severity",
+        "path": "src/director_ai/core/threat_intel/indicators.py"
+      },
+      {
         "name": "ShardedNLIScorer",
         "path": "src/director_ai/core/scoring/sharded_nli.py"
       },
@@ -3362,6 +3372,18 @@
       {
         "name": "TextRequest",
         "path": "src/director_ai/_server_models.py"
+      },
+      {
+        "name": "ThreatIndicator",
+        "path": "src/director_ai/core/threat_intel/indicators.py"
+      },
+      {
+        "name": "ThreatIntelligenceMatcher",
+        "path": "src/director_ai/core/threat_intel/matcher.py"
+      },
+      {
+        "name": "ThreatMatch",
+        "path": "src/director_ai/core/threat_intel/matcher.py"
       },
       {
         "name": "ThresholdAdjuster",
@@ -4035,6 +4057,9 @@
       "src/director_ai/core/temporal_logic/formula.py",
       "src/director_ai/core/temporal_logic/monitor.py",
       "src/director_ai/core/tenant.py",
+      "src/director_ai/core/threat_intel/indicators.py",
+      "src/director_ai/core/threat_intel/matcher.py",
+      "src/director_ai/core/threat_intel/stix.py",
       "src/director_ai/core/trace_safe/embedder.py",
       "src/director_ai/core/trace_safe/oracle.py",
       "src/director_ai/core/training/finetune.py",
@@ -4913,6 +4938,7 @@
       "tests/test_tenant.py",
       "tests/test_tensorrt_export.py",
       "tests/test_test_surface_policy.py",
+      "tests/test_threat_intel.py",
       "tests/test_tool_call_verifier.py",
       "tests/test_tools/test_capability_manifest.py",
       "tests/test_trace_safe.py",

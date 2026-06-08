@@ -133,6 +133,7 @@ class ProductionGuard:
         self._output_integrity: object | None = None
         self._ml_bom: object | None = None
         self._rasp: object | None = None
+        self._threat_intel: object | None = None
 
     @classmethod
     def from_profile(
@@ -666,6 +667,23 @@ class ProductionGuard:
         from director_ai.core.fuzzing import ContinuousFuzzer
 
         return ContinuousFuzzer(seed=seed)
+
+    @property
+    def threat_intel(self):
+        """Threat-intelligence IOC matching with attribution (STIX-aligned).
+
+        Register indicators directly or import them from a STIX 2.1 feed with
+        :func:`~director_ai.core.threat_intel.from_stix_bundle`, then
+        :meth:`~director_ai.core.threat_intel.ThreatIntelligenceMatcher.match`
+        prompts/responses against them to get every triggered indicator with its
+        attribution and severity — block *and* report "matches the APT29 kit".
+        Persists across calls so the indicator set accumulates.
+        """
+        if self._threat_intel is None:
+            from director_ai.core.threat_intel import ThreatIntelligenceMatcher
+
+            self._threat_intel = ThreatIntelligenceMatcher()
+        return self._threat_intel
 
     def byzantine_consensus(self, *, fault_tolerance: int = 1):
         """PBFT-style quorum over independent verifier votes.
