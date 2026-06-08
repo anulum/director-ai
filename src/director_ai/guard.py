@@ -653,6 +653,20 @@ class ProductionGuard:
             self._rasp = RuntimeSelfProtection()
         return self._rasp
 
+    def continuous_fuzzer(self, *, seed: int = 0):
+        """Mutation-based fuzzer that hunts for guard bypasses.
+
+        Where the static adversarial suite checks a fixed list, the returned
+        :class:`~director_ai.core.fuzzing.ContinuousFuzzer` mutates a seed corpus
+        of attacks (homoglyph, zero-width, leetspeak, delimiter, …) against a
+        ``predicate`` you supply — ``True`` = the guard flags it — and reports
+        every obfuscation that slipped through plus any seed the guard missed
+        outright. The ``seed`` makes a found bypass replayable as a regression.
+        """
+        from director_ai.core.fuzzing import ContinuousFuzzer
+
+        return ContinuousFuzzer(seed=seed)
+
     def byzantine_consensus(self, *, fault_tolerance: int = 1):
         """PBFT-style quorum over independent verifier votes.
 

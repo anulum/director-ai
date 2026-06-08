@@ -2,14 +2,14 @@
   "SPDX-License-Identifier": "AGPL-3.0-or-later",
   "counts": {
     "github_workflows": 11,
-    "model_documentation_pages": 77,
+    "model_documentation_pages": 78,
     "optional_extras": 54,
     "public_api_exports": 216,
-    "public_documentation_pages": 172,
-    "python_model_classes": 857,
-    "python_model_source_modules": 374,
+    "public_documentation_pages": 173,
+    "python_model_classes": 860,
+    "python_model_source_modules": 377,
     "rust_pyo3_model_wrappers": 78,
-    "test_files": 456
+    "test_files": 457
   },
   "documentation": {
     "public_pages": [
@@ -28,6 +28,7 @@
       "docs-site/api/config.md",
       "docs-site/api/conflict-aware-knowledge.md",
       "docs-site/api/containment.md",
+      "docs-site/api/continuous-fuzzing.md",
       "docs-site/api/correction-loop.md",
       "docs-site/api/cross-document-memory.md",
       "docs-site/api/customer-model-factory.md",
@@ -221,6 +222,7 @@
       "config.md",
       "conflict-aware-knowledge.md",
       "containment.md",
+      "continuous-fuzzing.md",
       "correction-loop.md",
       "cross-document-memory.md",
       "customer-model-factory.md",
@@ -626,6 +628,10 @@
         "path": "src/director_ai/core/autopoietic/builder.py"
       },
       {
+        "name": "Bypass",
+        "path": "src/director_ai/core/fuzzing/engine.py"
+      },
+      {
         "name": "ByzantineFaultTolerantConsensus",
         "path": "src/director_ai/core/scoring/consensus.py"
       },
@@ -940,6 +946,10 @@
       {
         "name": "ContinualEngine",
         "path": "src/director_ai/core/continual_adversarial/engine.py"
+      },
+      {
+        "name": "ContinuousFuzzer",
+        "path": "src/director_ai/core/fuzzing/engine.py"
       },
       {
         "name": "ContradictionExplainer",
@@ -1540,6 +1550,10 @@
       {
         "name": "FreshnessStatusResponse",
         "path": "src/director_ai/_server_models.py"
+      },
+      {
+        "name": "FuzzReport",
+        "path": "src/director_ai/core/fuzzing/engine.py"
       },
       {
         "name": "GaussianMechanism",
@@ -3841,6 +3855,9 @@
       "src/director_ai/core/formal_verification/dpll.py",
       "src/director_ai/core/formal_verification/formula.py",
       "src/director_ai/core/formal_verification/verifier.py",
+      "src/director_ai/core/fuzzing/corpus.py",
+      "src/director_ai/core/fuzzing/engine.py",
+      "src/director_ai/core/fuzzing/mutators.py",
       "src/director_ai/core/guard_control/decision.py",
       "src/director_ai/core/guard_control/no_go.py",
       "src/director_ai/core/ingestion/pipeline.py",
@@ -4638,6 +4655,7 @@
       "tests/test_frontierfail_packet.py",
       "tests/test_full_benchmark_campaign.py",
       "tests/test_fuzz.py",
+      "tests/test_fuzzing.py",
       "tests/test_gem_cli.py",
       "tests/test_gem_endpoints.py",
       "tests/test_gemma_aggrefact_cot.py",

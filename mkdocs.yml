@@ -201,6 +201,7 @@ nav:
       - Cryptographic Output Integrity: api/output-integrity.md
       - Supply-Chain ML-BOM: api/ml-bom.md
       - Runtime Self-Protection (RASP): api/rasp.md
+      - Continuous Guard Fuzzing: api/continuous-fuzzing.md
       - Conformal & Uncertainty Routing: api/uncertainty-routing.md
       - Operational Provenance Ledger: api/provenance-ledger.md
       - Mechanistic Interpretability (ReDeEP): api/mechanistic-interpretability.md
