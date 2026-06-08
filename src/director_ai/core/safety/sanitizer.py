@@ -127,7 +127,17 @@ _INJECTION_PATTERNS: list[tuple[str, re.Pattern]] = [
         "yaml_json_injection",
         re.compile(
             r"(!!python/(?:object(?::|/(?:apply|new):?)|module:?|name:?)|"
-            r"__import__\s*\([^)]*\)\s*(?:\.|;)|yaml\.unsafe_load)",
+            r"yaml\.unsafe_load)",
+            re.IGNORECASE,
+        ),
+    ),
+    (
+        # Python code-execution indicators are not a YAML vector; kept as a
+        # distinct, separately-weighted signal so it can be tuned independently
+        # and does not mislabel a hit as YAML injection.
+        "python_code_injection",
+        re.compile(
+            r"__import__\s*\([^)]*\)\s*(?:\.|;)",
             re.IGNORECASE,
         ),
     ),
@@ -145,6 +155,7 @@ _PATTERN_WEIGHTS: dict[str, float] = {
     "bidi_override": 0.7,
     "path_traversal": 0.8,
     "yaml_json_injection": 0.8,
+    "python_code_injection": 0.8,
 }
 
 _MAX_INPUT_LENGTH = 100_000

@@ -136,7 +136,19 @@ class TestInputSanitizerCheck:
         san = InputSanitizer()
         r = san.score("Python documents __import__ as an implementation detail.")
         assert "yaml_json_injection" not in r.matches
+        assert "python_code_injection" not in r.matches  # bare word, no call
         assert not r.blocked
+
+    def test_import_call_flagged_as_python_code_injection_not_yaml(self):
+        san = InputSanitizer()
+        r = san.score("run __import__('os').system('id')")
+        assert "python_code_injection" in r.matches
+        assert "yaml_json_injection" not in r.matches  # correctly relabelled
+
+    def test_yaml_object_apply_still_flagged_as_yaml_injection(self):
+        san = InputSanitizer()
+        r = san.score("payload: !!python/object/apply:os.system ['id']")
+        assert "yaml_json_injection" in r.matches
 
     @pytest.mark.parametrize(
         "text",
