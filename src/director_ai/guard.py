@@ -132,6 +132,7 @@ class ProductionGuard:
         self._execution_rings: object | None = None
         self._output_integrity: object | None = None
         self._ml_bom: object | None = None
+        self._rasp: object | None = None
 
     @classmethod
     def from_profile(
@@ -633,6 +634,24 @@ class ProductionGuard:
 
             self._ml_bom = MachineLearningBOM()
         return self._ml_bom
+
+    @property
+    def rasp(self):
+        """Runtime application self-protection from behavioural anomalies.
+
+        The last line of defence once input filters and guardrails are bypassed:
+        feed per-request behavioural metrics (request rate, payload size, halt
+        rate) to
+        :meth:`~director_ai.core.rasp.RuntimeSelfProtection.observe` and read back
+        a tenant-safe ok/watch/alert verdict scored by a dependency-free robust
+        (median/MAD) detector. Persists across calls so each metric's baseline
+        accumulates; the host decides whether to shed load or block.
+        """
+        if self._rasp is None:
+            from director_ai.core.rasp import RuntimeSelfProtection
+
+            self._rasp = RuntimeSelfProtection()
+        return self._rasp
 
     def byzantine_consensus(self, *, fault_tolerance: int = 1):
         """PBFT-style quorum over independent verifier votes.

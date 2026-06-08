@@ -2,14 +2,14 @@
   "SPDX-License-Identifier": "AGPL-3.0-or-later",
   "counts": {
     "github_workflows": 11,
-    "model_documentation_pages": 76,
+    "model_documentation_pages": 77,
     "optional_extras": 54,
     "public_api_exports": 216,
-    "public_documentation_pages": 171,
-    "python_model_classes": 853,
-    "python_model_source_modules": 372,
+    "public_documentation_pages": 172,
+    "python_model_classes": 857,
+    "python_model_source_modules": 374,
     "rust_pyo3_model_wrappers": 78,
-    "test_files": 455
+    "test_files": 456
   },
   "documentation": {
     "public_pages": [
@@ -69,6 +69,7 @@
       "docs-site/api/policy-evaluation.md",
       "docs-site/api/private-score-release.md",
       "docs-site/api/provenance-ledger.md",
+      "docs-site/api/rasp.md",
       "docs-site/api/risk-adaptive-threshold.md",
       "docs-site/api/safety-event-schema.md",
       "docs-site/api/sanitizer.md",
@@ -261,6 +262,7 @@
       "policy-evaluation.md",
       "private-score-release.md",
       "provenance-ledger.md",
+      "rasp.md",
       "risk-adaptive-threshold.md",
       "safety-event-schema.md",
       "sanitizer.md",
@@ -422,6 +424,14 @@
       {
         "name": "And",
         "path": "src/director_ai/core/temporal_logic/formula.py"
+      },
+      {
+        "name": "AnomalyScore",
+        "path": "src/director_ai/core/rasp/detector.py"
+      },
+      {
+        "name": "AnomalyVerdict",
+        "path": "src/director_ai/core/rasp/monitor.py"
       },
       {
         "name": "AnswerBOM",
@@ -2960,6 +2970,10 @@
         "path": "src/director_ai/enterprise/rules_dsl.py"
       },
       {
+        "name": "RuntimeSelfProtection",
+        "path": "src/director_ai/core/rasp/monitor.py"
+      },
+      {
         "name": "RustBackend",
         "path": "src/director_ai/core/scoring/backends.py"
       },
@@ -3182,6 +3196,10 @@
       {
         "name": "StreamingRepairer",
         "path": "src/director_ai/core/streaming_repair/repair.py"
+      },
+      {
+        "name": "StreamingRobustDetector",
+        "path": "src/director_ai/core/rasp/detector.py"
       },
       {
         "name": "StructuredRecoveryConfig",
@@ -3891,6 +3909,8 @@
       "src/director_ai/core/provenance/merkle.py",
       "src/director_ai/core/provenance/supersession.py",
       "src/director_ai/core/provenance/verifier.py",
+      "src/director_ai/core/rasp/detector.py",
+      "src/director_ai/core/rasp/monitor.py",
       "src/director_ai/core/retrieval/adaptive_router.py",
       "src/director_ai/core/retrieval/conflict_guard.py",
       "src/director_ai/core/retrieval/contextual_compression.py",
@@ -4788,6 +4808,7 @@
       "tests/test_query_decomposition.py",
       "tests/test_rag_integration.py",
       "tests/test_ragtruth_eval.py",
+      "tests/test_rasp.py",
       "tests/test_reasoning_verifier.py",
       "tests/test_redis_enterprise.py",
       "tests/test_report_generator.py",
