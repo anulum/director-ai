@@ -150,6 +150,18 @@ class TestComposition:
 
 
 class TestEpsilonConversion:
+    def test_empty_composition_is_zero_epsilon(self):
+        # No mechanism composed → trivially (0, δ)-DP, not the spurious
+        # ln(1/δ)/(α-1) residual the conversion formula gives at zero RDP mass.
+        acc = RenyiAccountant()
+        guarantee = acc.epsilon(delta=1e-5)
+        assert guarantee.epsilon == 0.0
+        assert guarantee.delta == 1e-5
+
+    def test_zero_step_gaussian_is_zero_epsilon(self):
+        acc = RenyiAccountant().compose_gaussian(noise_multiplier=2.0, steps=0)
+        assert acc.epsilon(delta=1e-6).epsilon == 0.0
+
     def test_matches_independent_reference(self):
         acc = RenyiAccountant()
         acc.compose_gaussian(noise_multiplier=1.0, steps=1)

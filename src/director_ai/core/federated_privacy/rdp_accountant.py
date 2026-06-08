@@ -180,9 +180,16 @@ class RenyiAccountant:
         For each order ``α`` the Mironov (2017, Prop. 3) bound is
         ``ε_RDP(α) + ln(1/δ) / (α − 1)``; the reported guarantee is the minimum
         over the grid (and the order achieving it).
+
+        An accountant with no composed mechanism (an all-zero RDP curve) is
+        trivially ``(0, δ)``-DP — nothing was released — so ``ε = 0`` is reported
+        directly rather than the spurious positive ``ln(1/δ) / (α − 1)`` residual
+        the conversion formula would give at zero RDP mass.
         """
         if not 0.0 < delta < 1.0:
             raise ValueError("delta must be in (0, 1)")
+        if all(rdp == 0.0 for rdp in self._rdp):
+            return DPGuarantee(epsilon=0.0, delta=delta, order=self._orders[-1])
         log_inv_delta = math.log(1.0 / delta)
         best_eps = math.inf
         best_order = self._orders[0]
