@@ -736,6 +736,21 @@ class ProductionGuard:
             self._dp_retrieval = DifferentiallyPrivateRetrieval(max_epsilon=10.0)
         return self._dp_retrieval
 
+    def dp_rag_pipeline(self, max_epsilon: float = 10.0, **kwargs):
+        """Build a unified DP-RAG pipeline metering one per-tenant budget.
+
+        Charges retrieval ranking, exponential-mechanism token decoding, and
+        coherence-score release against a single per-tenant ``(ε)`` accountant,
+        refusing any stage that would exceed ``max_epsilon`` before spending.
+        Each call returns a fresh
+        :class:`~director_ai.core.dp_rag.DPRagPipeline`; pass ``seed`` and the
+        per-stage sensitivities through ``kwargs`` for reproducible tests or
+        custom calibration.
+        """
+        from director_ai.core.dp_rag import DPRagPipeline
+
+        return DPRagPipeline(max_epsilon=max_epsilon, **kwargs)
+
     def federated_calibration(self, initial_value: float | None = None, **kwargs):
         """Build a federated DP calibration round for a shared parameter.
 

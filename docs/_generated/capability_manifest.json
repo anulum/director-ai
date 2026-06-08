@@ -2,14 +2,14 @@
   "SPDX-License-Identifier": "AGPL-3.0-or-later",
   "counts": {
     "github_workflows": 11,
-    "model_documentation_pages": 81,
+    "model_documentation_pages": 82,
     "optional_extras": 54,
     "public_api_exports": 216,
-    "public_documentation_pages": 176,
-    "python_model_classes": 868,
-    "python_model_source_modules": 382,
+    "public_documentation_pages": 177,
+    "python_model_classes": 873,
+    "python_model_source_modules": 384,
     "rust_pyo3_model_wrappers": 78,
-    "test_files": 460
+    "test_files": 461
   },
   "documentation": {
     "public_pages": [
@@ -35,6 +35,7 @@
       "docs-site/api/cyber-physical.md",
       "docs-site/api/defence-update-pipeline.md",
       "docs-site/api/director-safety-protocol.md",
+      "docs-site/api/dp-rag-pipeline.md",
       "docs-site/api/dp-rag-retrieval.md",
       "docs-site/api/edge-runtime-readiness.md",
       "docs-site/api/embodied-ai-command-guard.md",
@@ -232,6 +233,7 @@
       "cyber-physical.md",
       "defence-update-pipeline.md",
       "director-safety-protocol.md",
+      "dp-rag-pipeline.md",
       "dp-rag-retrieval.md",
       "edge-runtime-readiness.md",
       "embodied-ai-command-guard.md",
@@ -1132,6 +1134,18 @@
       {
         "name": "DPGuarantee",
         "path": "src/director_ai/core/federated_privacy/rdp_accountant.py"
+      },
+      {
+        "name": "DPRagPipeline",
+        "path": "src/director_ai/core/dp_rag/pipeline.py"
+      },
+      {
+        "name": "DPTokenChoice",
+        "path": "src/director_ai/core/dp_rag/decoding.py"
+      },
+      {
+        "name": "DPTokenDecoder",
+        "path": "src/director_ai/core/dp_rag/decoding.py"
       },
       {
         "name": "DailyUsage",
@@ -2558,6 +2572,10 @@
         "path": "src/director_ai/core/retrieval/vector_store/vendors.py"
       },
       {
+        "name": "PipelineRanking",
+        "path": "src/director_ai/core/dp_rag/pipeline.py"
+      },
+      {
         "name": "PlanVerdict",
         "path": "src/director_ai/core/cyber_physical/command_guard.py"
       },
@@ -3188,6 +3206,10 @@
       {
         "name": "StackelbergSolver",
         "path": "src/director_ai/core/swarm_equilibrium/solvers.py"
+      },
+      {
+        "name": "StageCharge",
+        "path": "src/director_ai/core/dp_rag/pipeline.py"
       },
       {
         "name": "StationaryDistribution",
@@ -3857,6 +3879,8 @@
       "src/director_ai/core/doc_chunker.py",
       "src/director_ai/core/doc_parser.py",
       "src/director_ai/core/doc_registry.py",
+      "src/director_ai/core/dp_rag/decoding.py",
+      "src/director_ai/core/dp_rag/pipeline.py",
       "src/director_ai/core/dp_rag/retrieval.py",
       "src/director_ai/core/edge/runtime_profile.py",
       "src/director_ai/core/embedding_tuner.py",
@@ -4655,6 +4679,7 @@
       "tests/test_doc_modules.py",
       "tests/test_doc_registry.py",
       "tests/test_dp_rag.py",
+      "tests/test_dp_rag_pipeline.py",
       "tests/test_drift_detector.py",
       "tests/test_dry_run_production.py",
       "tests/test_e2e_eval.py",

@@ -220,6 +220,7 @@ nav:
       - Differentially Private Score Release: api/private-score-release.md
       - Federated Safety Signal Sharing: api/federated-safety-signals.md
       - Differentially Private RAG Retrieval: api/dp-rag-retrieval.md
+      - Unified DP-RAG Pipeline: api/dp-rag-pipeline.md
       - Rényi-DP Accountant: api/rdp-accountant.md
       - Federated DP Calibration: api/federated-dp-calibration.md
       - Secure Multi-Party Aggregation: api/secure-aggregation.md
