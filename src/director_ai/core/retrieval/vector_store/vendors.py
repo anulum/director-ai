@@ -304,14 +304,17 @@ class QdrantBackend(VectorBackend):
         if self._embed_fn is None:
             raise ValueError("QdrantBackend requires embed_fn for text embedding")
         vector = self._embed_fn(text)
-        results = self._client.search(
+        # qdrant-client >= 1.10 removed Client.search; query_points is the
+        # supported API and returns a response whose .points are the hits.
+        response = self._client.query_points(
             collection_name=self._collection,
-            query_vector=vector,
+            query=vector,
             limit=n_results,
             query_filter=query_filter,
+            with_payload=True,
         )
         docs: list[dict[str, Any]] = []
-        for hit in results:
+        for hit in response.points:
             payload = hit.payload or {}
             docs.append(
                 {
@@ -326,7 +329,7 @@ class QdrantBackend(VectorBackend):
     def count(self) -> int:
         """Return Qdrant point count for the configured collection."""
         info = self._client.get_collection(self._collection)
-        return int(info.points_count)
+        return int(info.points_count or 0)
 
 
 class FAISSBackend(VectorBackend):

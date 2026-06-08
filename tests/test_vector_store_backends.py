@@ -267,12 +267,12 @@ class TestQdrantBackend:
                 score=0.4,
                 payload={"tenant_id": "tenant-a", "text": "answer"},
             )
-            backend._client.search.return_value = [hit]
+            backend._client.query_points.return_value = SimpleNamespace(points=[hit])
             result = backend.query("question", tenant_id="tenant-a")
 
         assert result[0]["id"] == "123"
         assert result[0]["distance"] == pytest.approx(0.6)
-        query_filter = backend._client.search.call_args.kwargs["query_filter"]
+        query_filter = backend._client.query_points.call_args.kwargs["query_filter"]
         assert isinstance(query_filter, FakeFilter)
         assert query_filter.must[0][1]["key"] == "tenant_id"
 
@@ -313,6 +313,50 @@ class TestQdrantBackend:
                 backend.add("doc-1", "tenant fact")
             with pytest.raises(ValueError, match="requires embed_fn"):
                 backend.query("tenant")
+
+    def test_qdrant_query_uses_query_points_api(self):
+        from director_ai.core.vector_store import QdrantBackend
+
+        mock_models = MagicMock()
+        mock_models.Filter = lambda **kwargs: ("filter", kwargs)
+        mock_models.FieldCondition = lambda **kwargs: ("field", kwargs)
+        mock_models.MatchValue = lambda **kwargs: ("match", kwargs)
+
+        backend = QdrantBackend.__new__(QdrantBackend)
+        backend._client = MagicMock()
+        backend._collection = "facts"
+        backend._embed_fn = lambda _t: [0.1, 0.2, 0.3]
+        hit = SimpleNamespace(
+            id=7, score=0.75, payload={"text": "grounded", "tenant_id": "t1"}
+        )
+        backend._client.query_points.return_value = SimpleNamespace(points=[hit])
+
+        with patch.dict("sys.modules", {"qdrant_client.models": mock_models}):
+            results = backend.query("question", n_results=5, tenant_id="t1")
+
+        # qdrant-client 1.x exposes query_points, not the removed search().
+        backend._client.search.assert_not_called()
+        kwargs = backend._client.query_points.call_args.kwargs
+        assert kwargs["query"] == [0.1, 0.2, 0.3]
+        assert kwargs["limit"] == 5
+        assert kwargs["query_filter"] is not None
+        assert results == [
+            {
+                "id": "7",
+                "text": "grounded",
+                "distance": pytest.approx(0.25),
+                "metadata": {"text": "grounded", "tenant_id": "t1"},
+            }
+        ]
+
+    def test_qdrant_count_handles_none_points(self):
+        from director_ai.core.vector_store import QdrantBackend
+
+        backend = QdrantBackend.__new__(QdrantBackend)
+        backend._client = MagicMock()
+        backend._collection = "facts"
+        backend._client.get_collection.return_value = SimpleNamespace(points_count=None)
+        assert backend.count() == 0
 
 
 class TestFAISSBackend:
