@@ -131,6 +131,7 @@ class ProductionGuard:
         self._output_trust: object | None = None
         self._execution_rings: object | None = None
         self._output_integrity: object | None = None
+        self._ml_bom: object | None = None
 
     @classmethod
     def from_profile(
@@ -614,6 +615,24 @@ class ProductionGuard:
 
             self._output_integrity = OutputIntegrityGuard(signing_seed=signing_seed)
         return self._output_integrity
+
+    @property
+    def ml_bom(self):
+        """Supply-chain bill of materials for the ML system (OWASP ASVS).
+
+        Record each model, dataset, and dependency with a SHA-256 digest and
+        provenance via
+        :class:`~director_ai.core.ml_bom.MachineLearningBOM`, then
+        :meth:`~director_ai.core.ml_bom.MachineLearningBOM.verify` the deployed
+        artefacts to detect a swapped or poisoned component. The BOM carries its
+        own digest so the inventory is itself tamper-evident. Persists on the
+        guard so components accumulate across calls.
+        """
+        if self._ml_bom is None:
+            from director_ai.core.ml_bom import MachineLearningBOM
+
+            self._ml_bom = MachineLearningBOM()
+        return self._ml_bom
 
     @property
     def dp_retrieval(self):

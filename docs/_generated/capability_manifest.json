@@ -2,14 +2,14 @@
   "SPDX-License-Identifier": "AGPL-3.0-or-later",
   "counts": {
     "github_workflows": 11,
-    "model_documentation_pages": 75,
+    "model_documentation_pages": 76,
     "optional_extras": 54,
     "public_api_exports": 216,
-    "public_documentation_pages": 170,
-    "python_model_classes": 849,
-    "python_model_source_modules": 370,
+    "public_documentation_pages": 171,
+    "python_model_classes": 853,
+    "python_model_source_modules": 372,
     "rust_pyo3_model_wrappers": 78,
-    "test_files": 454
+    "test_files": 455
   },
   "documentation": {
     "public_pages": [
@@ -60,6 +60,7 @@
       "docs-site/api/labelling-cockpit.md",
       "docs-site/api/mechanistic-interpretability.md",
       "docs-site/api/meta-guard.md",
+      "docs-site/api/ml-bom.md",
       "docs-site/api/multimodal-checks.md",
       "docs-site/api/neuro-symbolic-compliance.md",
       "docs-site/api/neuro-symbolic-verifier.md",
@@ -251,6 +252,7 @@
       "labelling-cockpit.md",
       "mechanistic-interpretability.md",
       "meta-guard.md",
+      "ml-bom.md",
       "multimodal-checks.md",
       "neuro-symbolic-compliance.md",
       "neuro-symbolic-verifier.md",
@@ -800,6 +802,10 @@
       {
         "name": "ComplianceVerdict",
         "path": "src/director_ai/core/neuro_symbolic/engine.py"
+      },
+      {
+        "name": "ComponentType",
+        "path": "src/director_ai/core/ml_bom/components.py"
       },
       {
         "name": "ComputeQuota",
@@ -2028,6 +2034,14 @@
       {
         "name": "LoraGuardrailTrainer",
         "path": "src/director_ai/core/self_evolving/trainer.py"
+      },
+      {
+        "name": "MLBOMComponent",
+        "path": "src/director_ai/core/ml_bom/components.py"
+      },
+      {
+        "name": "MachineLearningBOM",
+        "path": "src/director_ai/core/ml_bom/bom.py"
       },
       {
         "name": "ManagedTrainingRecord",
@@ -3598,6 +3612,10 @@
         "path": "src/director_ai/core/trajectory/simulator.py"
       },
       {
+        "name": "VerificationReport",
+        "path": "src/director_ai/core/ml_bom/bom.py"
+      },
+      {
         "name": "VerificationResult",
         "path": "src/director_ai/core/scoring/verified_scorer.py"
       },
@@ -3830,6 +3848,8 @@
       "src/director_ai/core/meta_guard/guard.py",
       "src/director_ai/core/meta_guard/log.py",
       "src/director_ai/core/metrics.py",
+      "src/director_ai/core/ml_bom/bom.py",
+      "src/director_ai/core/ml_bom/components.py",
       "src/director_ai/core/model_revisions.py",
       "src/director_ai/core/multi_scale_alignment/aligner.py",
       "src/director_ai/core/multi_scale_alignment/conflict.py",
@@ -4685,6 +4705,7 @@
       "tests/test_meta_guard.py",
       "tests/test_metrics.py",
       "tests/test_middleware.py",
+      "tests/test_ml_bom.py",
       "tests/test_model_benchmark_packages.py",
       "tests/test_model_package_vertex_campaign.py",
       "tests/test_model_revision_policy.py",
