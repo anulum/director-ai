@@ -35,16 +35,19 @@ try:
     from backfire_kernel import rust_two_link_ik as _rust_two_link_ik
 
     _RUST_IK_AVAILABLE = True
-except ImportError:  # pragma: no cover — pure-Python fallback path
+except ImportError:  # pragma: no cover — mandatory accelerator
 
     def rust_sum_f64(_values: list[float]) -> float:
         raise RuntimeError("backfire_kernel rust_sum_f64 is unavailable")
 
-    # The accelerator is absent: flag False so the analytical two-link IK and
-    # ``_sum_float`` route to their pure-Python fallbacks (the documented
-    # final-floor path), rather than entering the Rust branch and hitting a
-    # NameError on the undefined ``_rust_two_link_ik`` binding.
-    _RUST_IK_AVAILABLE = False
+    def _rust_two_link_ik(*_args: object) -> object:
+        raise RuntimeError("backfire_kernel rust_two_link_ik is unavailable")
+
+    # Mandatory-accelerator policy: keep the flag True and supply stubs that raise
+    # a clear RuntimeError, so a missing kernel fails closed through
+    # mandatory_execution rather than degrading silently (consistent with the rest
+    # of the codebase). Replaces the prior NameError on the undefined binding.
+    _RUST_IK_AVAILABLE = True
 
 
 class UnsupportedKinematicsError(NotImplementedError):

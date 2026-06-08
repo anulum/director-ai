@@ -38,12 +38,27 @@ try:
     )
 
     _RUST_GEOM_AVAILABLE = True
-except ImportError:  # pragma: no cover — pure-Python fallback path
-    # The accelerator is absent: flag False so every method routes to its
-    # pure-Python collision fallback below (the documented final-floor path),
-    # rather than entering the Rust branch and hitting a NameError on the
-    # undefined ``_rust_*`` bindings.
-    _RUST_GEOM_AVAILABLE = False
+except ImportError:  # pragma: no cover — mandatory accelerator
+    # Mandatory-accelerator policy (see core/mandatory.py): keep the flag True and
+    # supply stubs that raise a clear RuntimeError, so a missing kernel fails
+    # closed through mandatory_execution rather than degrading silently. Matches
+    # the rest of the codebase (sanitizer, scorers, …); a NameError on undefined
+    # bindings is replaced by a clean, attributable failure.
+    _RUST_GEOM_AVAILABLE = True
+
+    def _rust_aabb_contains(*_args: object) -> bool:
+        raise RuntimeError("backfire_kernel rust_aabb_contains is unavailable")
+
+    def _rust_sphere_contains(*_args: object) -> bool:
+        raise RuntimeError("backfire_kernel rust_sphere_contains is unavailable")
+
+    def _rust_sphere_intersects_aabb(*_args: object) -> bool:
+        raise RuntimeError("backfire_kernel rust_sphere_intersects_aabb is unavailable")
+
+    def _rust_sphere_intersects_sphere(*_args: object) -> bool:
+        raise RuntimeError(
+            "backfire_kernel rust_sphere_intersects_sphere is unavailable"
+        )
 
 
 @dataclass(frozen=True)

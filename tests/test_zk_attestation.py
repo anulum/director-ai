@@ -1343,30 +1343,3 @@ class TestPassport:
                 issuer_keys={"org": _KEY_A},
                 backends={"": CommitmentBackend(key=_KEY_A)},
             )
-
-
-class TestKernelAbsentMerkleFallback:
-    """The merkle helpers must use pure Python when the accelerator is absent.
-
-    ``mandatory_execution`` re-raises, so with ``_RUST_MERKLE_AVAILABLE`` left
-    True and the ``_rust_merkle_*`` bindings undefined a kernel-absent process
-    would raise NameError instead of reaching the RFC-6962 Python fallback.
-    The except block sets the flag False to route to that fallback.
-    """
-
-    def test_merkle_fallback_without_rust_bindings(self, monkeypatch):
-        monkeypatch.setattr(commitment_mod, "_RUST_MERKLE_AVAILABLE", False)
-        for name in (
-            "_rust_merkle_root",
-            "_rust_merkle_auth_path",
-            "_rust_merkle_walk_path",
-        ):
-            monkeypatch.delattr(commitment_mod, name, raising=False)
-
-        leaves = [bytes([i]) * 32 for i in range(5)]  # odd-length tree
-        root = commitment_mod._merkle_root(leaves)
-        path = commitment_mod._auth_path(leaves, 3)
-        walked = commitment_mod._walk_path(leaves[3], 3, path)
-
-        assert len(root) == 32
-        assert walked == root  # auth path recomputes the same root, no NameError

@@ -56,13 +56,22 @@ try:
     )
 
     _RUST_MERKLE_AVAILABLE = True
-except ImportError:  # pragma: no cover — pure-Python fallback path
-    # The accelerator is absent: flag False so the RFC-6962 merkle helpers below
-    # (_merkle_root / _auth_path / _walk_path) use their pure-Python branch — the
-    # documented final-floor — instead of entering the Rust branch and raising a
-    # NameError on the undefined ``_rust_merkle_*`` bindings (mandatory_execution
-    # re-raises, so the fallback after the ``with`` is otherwise unreachable).
-    _RUST_MERKLE_AVAILABLE = False
+except ImportError:  # pragma: no cover — mandatory accelerator
+    # Mandatory-accelerator policy: keep the flag True and supply stubs that raise
+    # a clear RuntimeError, so a missing kernel fails closed through
+    # mandatory_execution rather than degrading silently (consistent with the rest
+    # of the codebase). Replaces the prior NameError on the undefined bindings.
+    _RUST_MERKLE_AVAILABLE = True
+
+    def _rust_merkle_root(*_args: object) -> object:
+        raise RuntimeError("backfire_kernel rust_merkle_root is unavailable")
+
+    def _rust_merkle_auth_path(*_args: object) -> object:
+        raise RuntimeError("backfire_kernel rust_merkle_auth_path is unavailable")
+
+    def _rust_merkle_walk_path(*_args: object) -> object:
+        raise RuntimeError("backfire_kernel rust_merkle_walk_path is unavailable")
+
 
 HistorySample = Mapping[str, object]
 """Canonical shape of a committed sample — a plain mapping. The
