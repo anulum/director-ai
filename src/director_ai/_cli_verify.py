@@ -341,9 +341,11 @@ def _cmd_compliance(args: list[str]) -> None:
             "Usage: director-ai compliance <subcommand> [options]\n"
             "\n"
             "Subcommands:\n"
-            "  report  [--db PATH] [--since TS] [--until TS] [--format md|json|html]\n"
+            "  report  [--db PATH] [--since TS] [--until TS]\n"
+            "          [--format md|json|html|pdf] [--output FILE.pdf]\n"
             "          [--context FILE.json]  Full Article 15 documentation when an\n"
-            "          operator context file is supplied\n"
+            "          operator context file is supplied; pdf writes to --output\n"
+            "          (default compliance_report.pdf)\n"
             "  status  [--db PATH]   Quick summary\n"
             "  drift   [--db PATH]   Drift detection analysis\n",
         )
@@ -356,6 +358,7 @@ def _cmd_compliance(args: list[str]) -> None:
     since = None
     until = None
     context_path = None
+    output_path = None
 
     i = 0
     while i < len(rest):
@@ -373,6 +376,9 @@ def _cmd_compliance(args: list[str]) -> None:
             i += 2
         elif rest[i] == "--context" and i + 1 < len(rest):
             context_path = rest[i + 1]
+            i += 2
+        elif rest[i] == "--output" and i + 1 < len(rest):
+            output_path = rest[i + 1]
             i += 2
         else:
             i += 1
@@ -419,24 +425,31 @@ def _cmd_compliance(args: list[str]) -> None:
                     indent=2,
                 )
             )
-        elif fmt == "html":
-            from director_ai.compliance.report_templates import render_compliance_html
-
-            html = render_compliance_html(
-                {
-                    "title": "EU AI Act Article 15 Report",
-                    "period": f"{since or 'start'} to {until or 'now'}",
-                    "hallucination_rate": report.overall_hallucination_rate,
-                    "total_reviews": report.total_interactions,
-                    "approved_count": getattr(report, "approved_count", 0),
-                    "rejected_count": getattr(report, "rejected_count", 0),
-                    "avg_score": report.avg_score,
-                    "avg_latency_ms": getattr(report, "avg_latency_ms", 0),
-                    "drift_detected": report.drift_detected,
-                    "models": getattr(report, "model_breakdown", []),
-                }
+        elif fmt in ("html", "pdf"):
+            from director_ai.compliance.report_templates import (
+                render_compliance_html,
+                render_compliance_pdf,
             )
-            print(html)
+
+            report_data = {
+                "title": "EU AI Act Article 15 Report",
+                "period": f"{since or 'start'} to {until or 'now'}",
+                "hallucination_rate": report.overall_hallucination_rate,
+                "total_reviews": report.total_interactions,
+                "approved_count": getattr(report, "approved_count", 0),
+                "rejected_count": getattr(report, "rejected_count", 0),
+                "avg_score": report.avg_score,
+                "avg_latency_ms": getattr(report, "avg_latency_ms", 0),
+                "drift_detected": report.drift_detected,
+                "models": getattr(report, "model_breakdown", []),
+            }
+            if fmt == "html":
+                print(render_compliance_html(report_data))
+            else:
+                out = output_path or "compliance_report.pdf"
+                with open(out, "wb") as fh:
+                    fh.write(render_compliance_pdf(report_data))
+                print(f"Wrote PDF compliance report to {out}")
         else:
             print(report.to_markdown())
 

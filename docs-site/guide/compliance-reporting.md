@@ -180,6 +180,21 @@ director-ai compliance report --db audit.db --context article15.json  # markdown
 Without `--context`, `--format json` still emits the compact metrics summary for
 quick checks; with it, the command emits the complete Article 15 record.
 
+### PDF export (`reports` extra)
+
+For a regulator- or auditor-facing document, render the report straight to PDF.
+This needs the `reports` extra (`pip install 'director-ai[reports]'`, which pulls
+in WeasyPrint); the PDF inherits the same print-ready layout as the HTML report:
+
+```bash
+director-ai compliance report --db audit.db --format pdf --output article15.pdf
+```
+
+In code, `director_ai.compliance.report_templates` exposes `render_compliance_pdf`,
+`render_cost_pdf`, and `render_swarm_pdf` (each returns PDF `bytes`), plus the
+generic `html_to_pdf(html)` for any of the HTML renderers. Without the extra
+installed, these raise `DependencyError` with the install hint.
+
 ## Integration with Gateway
 
 When director-ai runs as a proxy/gateway, every LLM call gets automatically scored and logged. The compliance reporter reads from the same audit database.

@@ -29,11 +29,17 @@ from __future__ import annotations
 import html as html_mod
 from datetime import UTC, datetime
 
+from director_ai.core.exceptions import DependencyError
+
 __all__ = [
+    "html_to_pdf",
     "render_compliance_html",
     "render_compliance_markdown",
+    "render_compliance_pdf",
     "render_cost_html",
+    "render_cost_pdf",
     "render_swarm_html",
+    "render_swarm_pdf",
 ]
 
 _CSS = """
@@ -241,3 +247,41 @@ def render_swarm_html(data: dict) -> str:
 
 <footer>Director-AI Swarm Report | ANULUM Institute | {_now_iso()}</footer>
 </body></html>"""
+
+
+def html_to_pdf(html: str) -> bytes:
+    """Render an HTML report string to PDF bytes via WeasyPrint.
+
+    The HTML renderers above already inline the report ``_CSS``, so the PDF
+    inherits the same print-ready layout. Requires the ``reports`` extra
+    (``pip install 'director-ai[reports]'``); raises :class:`DependencyError`
+    when WeasyPrint is not installed.
+    """
+    try:
+        from weasyprint import HTML
+    except ImportError:
+        raise DependencyError(
+            "PDF report rendering requires WeasyPrint: "
+            "pip install 'director-ai[reports]'"
+        ) from None
+    pdf: bytes = HTML(string=html).write_pdf()
+    return pdf
+
+
+def render_compliance_pdf(data: dict) -> bytes:
+    """Render the EU AI Act Article 15 compliance report as a PDF document.
+
+    Regulator- and auditor-ready: same content and layout as
+    :func:`render_compliance_html`, emitted as a self-contained PDF.
+    """
+    return html_to_pdf(render_compliance_html(data))
+
+
+def render_cost_pdf(data: dict) -> bytes:
+    """Render the cost report (see :func:`render_cost_html`) as a PDF document."""
+    return html_to_pdf(render_cost_html(data))
+
+
+def render_swarm_pdf(data: dict) -> bytes:
+    """Render the swarm health report (see :func:`render_swarm_html`) as a PDF."""
+    return html_to_pdf(render_swarm_html(data))

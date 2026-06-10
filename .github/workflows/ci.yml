@@ -137,6 +137,7 @@ jobs:
           - "dev,langchain"
           - "dev,llamaindex"
           - "dev,voice"
+          - "dev,reports"
     steps:
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
 
@@ -145,6 +146,12 @@ jobs:
           python-version: "3.12"
 
       - uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+
+      - name: Install WeasyPrint system libraries
+        if: contains(matrix.extras, 'reports')
+        # WeasyPrint renders text via Pango; these are its only native deps on
+        # Debian/Ubuntu (it no longer needs cairo since v53).
+        run: sudo apt-get update && sudo apt-get install -y libpango-1.0-0 libpangoft2-1.0-0
 
       - name: Install with extras
         run: |
@@ -262,6 +269,15 @@ jobs:
 
               assert AsyncVoiceGuard and TTSAdapter
               print("voice OK")
+          if "reports" in extras:
+              from director_ai.compliance.report_templates import (
+                  html_to_pdf,
+                  render_compliance_pdf,
+              )
+
+              assert render_compliance_pdf
+              assert html_to_pdf("<h1>ci</h1>").startswith(b"%PDF")
+              print("reports OK")
           PY
 
       - name: Run tests with coverage
@@ -351,6 +367,11 @@ jobs:
                 tests/test_voice_guard.py
                 tests/test_voice_pipeline.py
               )
+              ;;
+          esac
+          case ",${{ matrix.extras }}," in
+            *,reports,*)
+              TEST_TARGETS+=(tests/test_report_templates.py)
               ;;
           esac
           if [ "${#TEST_TARGETS[@]}" -eq 0 ]; then

@@ -191,3 +191,51 @@ class TestSwarmHTML:
     def test_empty_data(self):
         html = render_swarm_html({})
         assert "<!DOCTYPE html>" in html
+
+
+class TestPdf:
+    """PDF rendering via WeasyPrint (the ``reports`` extra)."""
+
+    def test_html_to_pdf_emits_pdf_bytes(self):
+        pytest = __import__("pytest")
+        pytest.importorskip("weasyprint")
+        from director_ai.compliance.report_templates import html_to_pdf
+
+        pdf = html_to_pdf(render_compliance_html(_COMPLIANCE_DATA))
+        assert isinstance(pdf, bytes)
+        assert pdf.startswith(b"%PDF")
+        assert len(pdf) > 1000  # a real multi-section document, not a stub
+
+    def test_render_compliance_pdf(self):
+        pytest = __import__("pytest")
+        pytest.importorskip("weasyprint")
+        from director_ai.compliance.report_templates import render_compliance_pdf
+
+        assert render_compliance_pdf(_COMPLIANCE_DATA).startswith(b"%PDF")
+
+    def test_render_cost_pdf(self):
+        pytest = __import__("pytest")
+        pytest.importorskip("weasyprint")
+        from director_ai.compliance.report_templates import render_cost_pdf
+
+        assert render_cost_pdf(_COST_DATA).startswith(b"%PDF")
+
+    def test_render_swarm_pdf(self):
+        pytest = __import__("pytest")
+        pytest.importorskip("weasyprint")
+        from director_ai.compliance.report_templates import render_swarm_pdf
+
+        assert render_swarm_pdf(_SWARM_DATA).startswith(b"%PDF")
+
+    def test_missing_weasyprint_raises_dependency_error(self, monkeypatch):
+        import sys
+
+        pytest = __import__("pytest")
+        from director_ai.compliance.report_templates import html_to_pdf
+        from director_ai.core.exceptions import DependencyError
+
+        # Force the lazy `from weasyprint import HTML` to fail regardless of
+        # whether the optional extra is installed.
+        monkeypatch.setitem(sys.modules, "weasyprint", None)
+        with pytest.raises(DependencyError, match="director-ai\\[reports\\]"):
+            html_to_pdf("<h1>x</h1>")
