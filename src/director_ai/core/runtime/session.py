@@ -22,6 +22,7 @@ import uuid
 from dataclasses import dataclass
 
 from .contradiction_tracker import ContradictionReport, ContradictionTracker
+from .intent_drift import IntentDriftInterlock
 
 __all__ = ["ConversationSession", "Turn"]
 
@@ -43,10 +44,20 @@ class ConversationSession:
     ----------
     max_turns : int — maximum turns retained (FIFO eviction).
     session_id : str | None — auto-generated UUID if not provided.
+    track_intent_drift : bool — when True, attach an
+        :class:`~director_ai.core.runtime.intent_drift.IntentDriftInterlock`
+        (exposed as ``intent_drift``) so the scorer accumulates a long-context
+        drift state across turns. Off by default.
 
     """
 
-    def __init__(self, max_turns: int = 20, session_id: str | None = None) -> None:
+    def __init__(
+        self,
+        max_turns: int = 20,
+        session_id: str | None = None,
+        *,
+        track_intent_drift: bool = False,
+    ) -> None:
         if max_turns < 1:
             raise ValueError(f"max_turns must be >= 1, got {max_turns}")
         self.session_id = session_id or str(uuid.uuid4())
@@ -55,6 +66,9 @@ class ConversationSession:
         self._lock = threading.Lock()
         self._turn_counter = 0
         self._contradiction_tracker = ContradictionTracker(max_turns=max_turns)
+        self.intent_drift: IntentDriftInterlock | None = (
+            IntentDriftInterlock() if track_intent_drift else None
+        )
 
     def add_turn(self, prompt: str, response: str, score: float) -> Turn:
         """Append a turn, evicting oldest if at capacity."""

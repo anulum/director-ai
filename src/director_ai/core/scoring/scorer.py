@@ -1723,6 +1723,7 @@ class CoherenceScorer:
                 )
             if cross_turn is not None:
                 result[1].cross_turn_divergence = cross_turn
+            contradiction_trend = 0.0
             if session is not None:
                 if self._nli and self._nli.model_available:
                     try:
@@ -1730,6 +1731,7 @@ class CoherenceScorer:
                             action, lambda p, h: self._nli.score(p, h)
                         )
                         result[1].contradiction_index = report.contradiction_index
+                        contradiction_trend = report.trend
                     except Exception:
                         self.logger.warning(
                             "Contradiction tracking failed", exc_info=True
@@ -1745,6 +1747,16 @@ class CoherenceScorer:
                     if inj_fail_closed:
                         raise
                     self.logger.warning("Injection detection failed", exc_info=True)
+            # Long-context intent-drift interlock (opt-in on the session)
+            interlock = getattr(session, "intent_drift", None)
+            if interlock is not None:
+                drift = interlock.update(
+                    intent_divergence=cross_turn if cross_turn is not None else 0.0,
+                    injection_risk=result[1].injection_risk or 0.0,
+                    contradiction_trend=contradiction_trend,
+                )
+                result[1].intent_drift_risk = drift.drift_risk
+                result[1].intent_drift_triggered = drift.triggered
 
             span.set_attribute("coherence.score", result[1].score)
             span.set_attribute("coherence.approved", result[0])

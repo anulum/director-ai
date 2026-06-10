@@ -128,6 +128,9 @@ class CoherenceScore:
     reasoning_harm_category: str | None = None  # HarmCategory.value, or None
     reasoning_rationale: str | None = None
     reasoning_confidence: float | None = None  # 0-1
+    # Long-context intent-drift interlock (None unless the session tracks it)
+    intent_drift_risk: float | None = None  # 0-1 accumulated drift
+    intent_drift_triggered: bool | None = None  # slow-burn jailbreak tripped
 
     # -- Claim-Level Provenance (Gem 2) ------------------------------------
 
