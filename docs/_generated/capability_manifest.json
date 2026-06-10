@@ -6,10 +6,10 @@
     "optional_extras": 54,
     "public_api_exports": 216,
     "public_documentation_pages": 182,
-    "python_model_classes": 894,
-    "python_model_source_modules": 392,
+    "python_model_classes": 898,
+    "python_model_source_modules": 393,
     "rust_pyo3_model_wrappers": 78,
-    "test_files": 471
+    "test_files": 472
   },
   "documentation": {
     "public_pages": [
@@ -1430,6 +1430,10 @@
         "path": "src/director_ai/core/continual_adversarial/engine.py"
       },
       {
+        "name": "ExchangeTurn",
+        "path": "src/director_ai/core/citation_grounding/transcript.py"
+      },
+      {
         "name": "ExecutionRing",
         "path": "src/director_ai/core/execution_rings/rings.py"
       },
@@ -1628,6 +1632,10 @@
       {
         "name": "Gene",
         "path": "src/director_ai/core/defense_genome/genome.py"
+      },
+      {
+        "name": "Generator",
+        "path": "src/director_ai/core/citation_grounding/transcript.py"
       },
       {
         "name": "GeneratorError",
@@ -2296,6 +2304,10 @@
       {
         "name": "MuJoCoAdapter",
         "path": "src/director_ai/core/cyber_physical/adapters.py"
+      },
+      {
+        "name": "MultiTurnRunner",
+        "path": "src/director_ai/core/citation_grounding/transcript.py"
       },
       {
         "name": "MultiVectorBackend",
@@ -3686,6 +3698,10 @@
         "path": "src/director_ai/core/trajectory/simulator.py"
       },
       {
+        "name": "Transcript",
+        "path": "src/director_ai/core/citation_grounding/transcript.py"
+      },
+      {
         "name": "TraversalPolicy",
         "path": "src/director_ai/core/knowledge_graph/policy.py"
       },
@@ -3940,6 +3956,7 @@
       "src/director_ai/core/citation_grounding/citations.py",
       "src/director_ai/core/citation_grounding/fetch.py",
       "src/director_ai/core/citation_grounding/judge.py",
+      "src/director_ai/core/citation_grounding/transcript.py",
       "src/director_ai/core/config.py",
       "src/director_ai/core/containment/anchor.py",
       "src/director_ai/core/containment/detector.py",
@@ -5104,6 +5121,7 @@
       "tests/test_trajectory_rollback.py",
       "tests/test_trajectory_rollback_evidence.py",
       "tests/test_trajectory_simulator.py",
+      "tests/test_transcript.py",
       "tests/test_tune.py",
       "tests/test_types.py",
       "tests/test_uncertainty_router.py",

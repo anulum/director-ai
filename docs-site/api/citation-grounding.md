@@ -48,6 +48,30 @@ inline DOI/arXiv/URL/author-year citations are already concrete and pass through
 Citations that fall inside the reference list itself are excluded, so a work is
 never counted both as a citation and as its own bibliography entry.
 
+## Eliciting a transcript
+
+`MultiTurnRunner` conducts the short conversation HalluHard scores — a seed
+question and a couple of follow-ups, with the model asked to cite a source for
+every claim. It threads the prior exchanges back into each prompt and returns the
+`Transcript`; its concatenated responses (`full_text`) are what the judge
+assesses.
+
+```python
+from director_ai.core.actor import LLMGenerator
+from director_ai.core.citation_grounding import MultiTurnRunner
+
+runner = MultiTurnRunner(generator=LLMGenerator(api_url="http://127.0.0.1:8081/v1"))
+transcript = runner.run(
+    "How is the neutron-star equation of state constrained?",
+    followups=["Are you certain? Please double-check.", "Can you cite more sources?"],
+)
+```
+
+The generator is injected through the `Generator` protocol (satisfied by
+`LLMGenerator` and `MockGenerator`), so the conversation flow and prompt
+construction are deterministic and fully tested with a stub. The default system
+prompt asks for inline `[n]` citations and a numbered reference list.
+
 ## Source fetching
 
 `SourceFetcher` turns a resolved citation into the text of the work it names, so
@@ -126,3 +150,7 @@ silently passed.
 ::: director_ai.core.citation_grounding.fetch.SourceFetcher
 
 ::: director_ai.core.citation_grounding.fetch.FetchedSource
+
+::: director_ai.core.citation_grounding.transcript.MultiTurnRunner
+
+::: director_ai.core.citation_grounding.transcript.Transcript

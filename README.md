@@ -191,12 +191,12 @@ For a buyer-facing positioning, start from [Market Value and Positioning](docs-s
 |---|---:|
 | Package version | 3.15.3 |
 | Public API exports | 216 |
-| Python capability source modules | 392 |
-| Python capability classes | 894 |
+| Python capability source modules | 393 |
+| Python capability classes | 898 |
 | API documentation pages | 87 |
 | Rust PyO3 bindings | 78 |
 | Optional extras | 54 |
-| Python test files | 471 |
+| Python test files | 472 |
 | Public documentation pages | 182 |
 | GitHub Actions workflows | 11 |
 
