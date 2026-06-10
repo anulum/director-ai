@@ -30,6 +30,7 @@ production failure events.
 from .engine import ContinualEngine, EvolveReport
 from .failure import FailureEvent, FailureStore
 from .miner import FailurePattern, PatternMiner
+from .redteam_engine import MutationStrategy, Mutator, RedTeamEngine
 from .scorer import (
     AdversaryScorer,
     PerceptronAdversaryScorer,
@@ -46,8 +47,11 @@ __all__ = [
     "FailureEvent",
     "FailurePattern",
     "FailureStore",
+    "MutationStrategy",
+    "Mutator",
     "PatternMiner",
     "PerceptronAdversaryScorer",
+    "RedTeamEngine",
     "SuiteVersion",
     "TrainedAdversaryScorer",
 ]

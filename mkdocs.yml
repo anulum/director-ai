@@ -215,6 +215,7 @@ nav:
       - OpenTelemetry Eval Trace: api/eval-trace.md
       - Evidence Packet (demo): api/evidence-packet.md
       - Defence Update Pipeline: api/defence-update-pipeline.md
+      - Proactive Red-Team Engine: api/redteam-engine.md
       - Cross-Document Consistency Memory: api/cross-document-memory.md
       - Temporal Consistency Graph: api/temporal-consistency-graph.md
       - Differentially Private Score Release: api/private-score-release.md

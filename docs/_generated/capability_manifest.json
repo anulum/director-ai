@@ -2,14 +2,14 @@
   "SPDX-License-Identifier": "AGPL-3.0-or-later",
   "counts": {
     "github_workflows": 11,
-    "model_documentation_pages": 83,
+    "model_documentation_pages": 84,
     "optional_extras": 54,
     "public_api_exports": 216,
-    "public_documentation_pages": 178,
-    "python_model_classes": 878,
-    "python_model_source_modules": 386,
+    "public_documentation_pages": 179,
+    "python_model_classes": 881,
+    "python_model_source_modules": 387,
     "rust_pyo3_model_wrappers": 78,
-    "test_files": 463
+    "test_files": 464
   },
   "documentation": {
     "public_pages": [
@@ -74,6 +74,7 @@
       "docs-site/api/provenance-ledger.md",
       "docs-site/api/rasp.md",
       "docs-site/api/rdp-accountant.md",
+      "docs-site/api/redteam-engine.md",
       "docs-site/api/risk-adaptive-threshold.md",
       "docs-site/api/safety-event-schema.md",
       "docs-site/api/sanitizer.md",
@@ -273,6 +274,7 @@
       "provenance-ledger.md",
       "rasp.md",
       "rdp-accountant.md",
+      "redteam-engine.md",
       "risk-adaptive-threshold.md",
       "safety-event-schema.md",
       "sanitizer.md",
@@ -2294,6 +2296,14 @@
         "path": "src/director_ai/core/multimodal_guard/adapter.py"
       },
       {
+        "name": "MutationStrategy",
+        "path": "src/director_ai/core/continual_adversarial/redteam_engine.py"
+      },
+      {
+        "name": "Mutator",
+        "path": "src/director_ai/core/continual_adversarial/redteam_engine.py"
+      },
+      {
         "name": "NLIScorer",
         "path": "src/director_ai/core/scoring/nli.py"
       },
@@ -2848,6 +2858,10 @@
       {
         "name": "Recommendation",
         "path": "src/director_ai/core/interpretability/root_cause.py"
+      },
+      {
+        "name": "RedTeamEngine",
+        "path": "src/director_ai/core/continual_adversarial/redteam_engine.py"
       },
       {
         "name": "RedisGroundTruthStore",
@@ -3873,6 +3887,7 @@
       "src/director_ai/core/continual_adversarial/engine.py",
       "src/director_ai/core/continual_adversarial/failure.py",
       "src/director_ai/core/continual_adversarial/miner.py",
+      "src/director_ai/core/continual_adversarial/redteam_engine.py",
       "src/director_ai/core/continual_adversarial/scorer.py",
       "src/director_ai/core/continual_adversarial/suite.py",
       "src/director_ai/core/customer_model_factory/benchmark_selection.py",
@@ -4924,6 +4939,7 @@
       "tests/test_rdp_accountant.py",
       "tests/test_reasoning_verifier.py",
       "tests/test_redis_enterprise.py",
+      "tests/test_redteam_engine.py",
       "tests/test_report_generator.py",
       "tests/test_report_templates.py",
       "tests/test_request_processor.py",
