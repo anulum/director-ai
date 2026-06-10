@@ -6,10 +6,10 @@
     "optional_extras": 54,
     "public_api_exports": 216,
     "public_documentation_pages": 182,
-    "python_model_classes": 887,
-    "python_model_source_modules": 390,
+    "python_model_classes": 891,
+    "python_model_source_modules": 391,
     "rust_pyo3_model_wrappers": 78,
-    "test_files": 469
+    "test_files": 470
   },
   "documentation": {
     "public_pages": [
@@ -722,6 +722,10 @@
         "path": "src/director_ai/core/provenance/facts.py"
       },
       {
+        "name": "CitationGroundingJudge",
+        "path": "src/director_ai/core/citation_grounding/judge.py"
+      },
+      {
         "name": "CitationKind",
         "path": "src/director_ai/core/citation_grounding/citations.py"
       },
@@ -740,6 +744,10 @@
       {
         "name": "ClaimAttribution",
         "path": "src/director_ai/core/types.py"
+      },
+      {
+        "name": "ClaimGrounding",
+        "path": "src/director_ai/core/citation_grounding/judge.py"
       },
       {
         "name": "ClaimRecord",
@@ -1648,6 +1656,10 @@
       {
         "name": "GroundingHook",
         "path": "src/director_ai/core/cyber_physical/hook.py"
+      },
+      {
+        "name": "GroundingReport",
+        "path": "src/director_ai/core/citation_grounding/judge.py"
       },
       {
         "name": "GroundingVerdict",
@@ -3138,6 +3150,10 @@
         "path": "src/director_ai/core/autopoietic/testsuite.py"
       },
       {
+        "name": "Scorer",
+        "path": "src/director_ai/core/citation_grounding/judge.py"
+      },
+      {
         "name": "ScorerBackend",
         "path": "src/director_ai/core/scoring/backends.py"
       },
@@ -3910,6 +3926,7 @@
       "src/director_ai/core/causal_verifier/graph.py",
       "src/director_ai/core/causal_verifier/intervention.py",
       "src/director_ai/core/citation_grounding/citations.py",
+      "src/director_ai/core/citation_grounding/judge.py",
       "src/director_ai/core/config.py",
       "src/director_ai/core/containment/anchor.py",
       "src/director_ai/core/containment/detector.py",
@@ -4808,6 +4825,7 @@
       "tests/test_gemma_aggrefact_logprob_routed.py",
       "tests/test_gemma_aggrefact_routed.py",
       "tests/test_gemma_aggrefact_self_consistency.py",
+      "tests/test_grounding_judge.py",
       "tests/test_grpc_api_docs.py",
       "tests/test_grpc_scoring.py",
       "tests/test_grpc_server.py",

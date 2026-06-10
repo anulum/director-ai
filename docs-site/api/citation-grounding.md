@@ -48,6 +48,35 @@ inline DOI/arXiv/URL/author-year citations are already concrete and pass through
 Citations that fall inside the reference list itself are excluded, so a work is
 never counted both as a citation and as its own bibliography entry.
 
+## Grounding judge
+
+`CitationGroundingJudge` decides whether each assertion in an answer is grounded
+in what it cites — the core of the HalluHard groundedness metric. The answer is
+split into sentence-level assertions; each is matched to the citations occurring
+within it; and the cited sources' text is scored against the assertion with an
+NLI scorer. An assertion is **grounded** only when it carries a citation *and*
+the cited material entails it. An uncited factual sentence, or one whose cited
+source fails to support it, is a hallucination.
+
+```python
+from director_ai.core import NLIScorer
+from director_ai.core.citation_grounding import CitationGroundingJudge
+
+judge = CitationGroundingJudge(scorer=NLIScorer(use_nli=True), support_threshold=0.6)
+report = judge.assess(answer, sources)  # sources: {identifier: fetched_text}
+
+print(report.grounded_fraction, report.citation_coverage)
+for claim in report.hallucinated:
+    print("ungrounded:", claim.claim)
+```
+
+The judge is backend-agnostic — it accepts anything exposing
+`score(premise, hypothesis) -> float` (the `Scorer` protocol, satisfied by
+`NLIScorer`), so its logic is fully exercised in tests with a stub and no model.
+A citation whose identifier is missing from `sources` (the fetch failed)
+contributes no evidence, so the assertion is judged ungrounded rather than
+silently passed.
+
 ## Full API
 
 ::: director_ai.core.citation_grounding.citations.resolve_citations
@@ -59,3 +88,9 @@ never counted both as a citation and as its own bibliography entry.
 ::: director_ai.core.citation_grounding.citations.Citation
 
 ::: director_ai.core.citation_grounding.citations.CitationKind
+
+::: director_ai.core.citation_grounding.judge.CitationGroundingJudge
+
+::: director_ai.core.citation_grounding.judge.GroundingReport
+
+::: director_ai.core.citation_grounding.judge.ClaimGrounding

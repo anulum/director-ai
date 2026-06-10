@@ -20,10 +20,20 @@ from .citations import (
     parse_reference_section,
     resolve_citations,
 )
+from .judge import (
+    CitationGroundingJudge,
+    ClaimGrounding,
+    GroundingReport,
+    Scorer,
+)
 
 __all__ = [
     "Citation",
+    "CitationGroundingJudge",
     "CitationKind",
+    "ClaimGrounding",
+    "GroundingReport",
+    "Scorer",
     "extract_inline_citations",
     "parse_reference_section",
     "resolve_citations",

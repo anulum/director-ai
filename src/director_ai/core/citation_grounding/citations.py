@@ -40,6 +40,7 @@ __all__ = [
     "CitationKind",
     "extract_inline_citations",
     "parse_reference_section",
+    "reference_section_start",
     "resolve_citations",
 ]
 
@@ -175,6 +176,17 @@ def extract_inline_citations(text: str) -> list[Citation]:
     return found
 
 
+def reference_section_start(text: str) -> int:
+    """Character index where the trailing reference section begins.
+
+    Returns ``len(text)`` when there is no *References* / *Bibliography* heading,
+    so callers can treat ``text[:reference_section_start(text)]`` as the answer
+    body in every case.
+    """
+    section = _SECTION_RE.search(text)
+    return section.start() if section is not None else len(text)
+
+
 def parse_reference_section(text: str) -> dict[str, str]:
     """Map each numeric reference label to its concrete identifier.
 
@@ -207,8 +219,7 @@ def resolve_citations(text: str) -> list[Citation]:
     counted both as a citation and as its own bibliography entry.
     """
     refs = parse_reference_section(text)
-    section = _SECTION_RE.search(text)
-    body_end = section.start() if section is not None else len(text)
+    body_end = reference_section_start(text)
 
     resolved: list[Citation] = []
     for cite in extract_inline_citations(text):
