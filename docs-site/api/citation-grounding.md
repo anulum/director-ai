@@ -48,6 +48,34 @@ inline DOI/arXiv/URL/author-year citations are already concrete and pass through
 Citations that fall inside the reference list itself are excluded, so a work is
 never counted both as a citation and as its own bibliography entry.
 
+## Source fetching
+
+`SourceFetcher` turns a resolved citation into the text of the work it names, so
+that text can be scored as evidence:
+
+| Citation kind | Source |
+| --- | --- |
+| arXiv | the arXiv API (`export.arxiv.org/api/query`) → title + abstract |
+| DOI | the Crossref REST API (`api.crossref.org/works/…`) → title + abstract (JATS markup stripped) |
+| URL | fetched directly and parsed by [`doc_parser.parse`](ingestion.md) (PDF / HTML / text) |
+| author-year / numeric | no retrievable endpoint → unsuccessful fetch |
+
+```python
+from director_ai.core.citation_grounding import SourceFetcher, resolve_citations
+
+fetcher = SourceFetcher(mailto="you@example.org")  # mailto → Crossref polite pool
+citations = resolve_citations(answer)
+sources = fetcher.fetch_all(citations)  # {identifier: text}, ready for the judge
+```
+
+The HTTP layer is injected through the `HttpGetter` protocol, so URL
+construction, the Crossref/arXiv response parsing, the markup stripping, and the
+content-type dispatch are all deterministic and fully tested with a stub — no
+network is touched in tests. A non-200 response, a network exception, or a
+missing/empty abstract yields an unsuccessful `FetchedSource` rather than raising,
+and `fetch_all` keeps only the successful, non-empty results (de-duplicating
+identifiers).
+
 ## Grounding judge
 
 `CitationGroundingJudge` decides whether each assertion in an answer is grounded
@@ -94,3 +122,7 @@ silently passed.
 ::: director_ai.core.citation_grounding.judge.GroundingReport
 
 ::: director_ai.core.citation_grounding.judge.ClaimGrounding
+
+::: director_ai.core.citation_grounding.fetch.SourceFetcher
+
+::: director_ai.core.citation_grounding.fetch.FetchedSource

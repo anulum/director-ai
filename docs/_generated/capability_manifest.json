@@ -6,10 +6,10 @@
     "optional_extras": 54,
     "public_api_exports": 216,
     "public_documentation_pages": 182,
-    "python_model_classes": 891,
-    "python_model_source_modules": 391,
+    "python_model_classes": 894,
+    "python_model_source_modules": 392,
     "rust_pyo3_model_wrappers": 78,
-    "test_files": 470
+    "test_files": 471
   },
   "documentation": {
     "public_pages": [
@@ -1538,6 +1538,10 @@
         "path": "src/director_ai/core/self_evolving/feedback.py"
       },
       {
+        "name": "FetchedSource",
+        "path": "src/director_ai/core/citation_grounding/fetch.py"
+      },
+      {
         "name": "FieldMeta",
         "path": "src/director_ai/ui/_field_groups.py"
       },
@@ -1812,6 +1816,10 @@
       {
         "name": "HttpEmbeddingResponseError",
         "path": "src/director_ai/core/retrieval/vector_store/http_embedding.py"
+      },
+      {
+        "name": "HttpGetter",
+        "path": "src/director_ai/core/citation_grounding/fetch.py"
       },
       {
         "name": "HuggingFaceProvider",
@@ -3258,6 +3266,10 @@
         "path": "src/director_ai/core/provenance/credibility.py"
       },
       {
+        "name": "SourceFetcher",
+        "path": "src/director_ai/core/citation_grounding/fetch.py"
+      },
+      {
         "name": "SourceResponse",
         "path": "src/director_ai/_server_models.py"
       },
@@ -3926,6 +3938,7 @@
       "src/director_ai/core/causal_verifier/graph.py",
       "src/director_ai/core/causal_verifier/intervention.py",
       "src/director_ai/core/citation_grounding/citations.py",
+      "src/director_ai/core/citation_grounding/fetch.py",
       "src/director_ai/core/citation_grounding/judge.py",
       "src/director_ai/core/config.py",
       "src/director_ai/core/containment/anchor.py",
@@ -5052,6 +5065,7 @@
       "tests/test_signal_sharing.py",
       "tests/test_simpleqa_eval.py",
       "tests/test_soc2_iso_readiness.py",
+      "tests/test_source_fetch.py",
       "tests/test_starter_presets.py",
       "tests/test_stats.py",
       "tests/test_streaming.py",

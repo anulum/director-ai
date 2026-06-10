@@ -18,8 +18,10 @@ from .citations import (
     CitationKind,
     extract_inline_citations,
     parse_reference_section,
+    reference_section_start,
     resolve_citations,
 )
+from .fetch import FetchedSource, HttpGetter, SourceFetcher
 from .judge import (
     CitationGroundingJudge,
     ClaimGrounding,
@@ -32,9 +34,13 @@ __all__ = [
     "CitationGroundingJudge",
     "CitationKind",
     "ClaimGrounding",
+    "FetchedSource",
     "GroundingReport",
+    "HttpGetter",
     "Scorer",
+    "SourceFetcher",
     "extract_inline_citations",
     "parse_reference_section",
+    "reference_section_start",
     "resolve_citations",
 ]
