@@ -344,6 +344,19 @@ CUAD-RAGBench documents (full legal contracts) exceeded 6GB VRAM during chunked 
 
 FreshQA's high FPR is expected: without ground-truth context, the NLI model cannot verify consistency and defaults to flagging. The 98.6% catch rate on false-premise questions demonstrates detection of factual impossibilities.
 
+### SimpleQA (factual grounding)
+
+[SimpleQA](https://arxiv.org/abs/2411.04368) (OpenAI, Wei et al. 2024) ships 4,326 short fact-seeking questions, each with one graded reference answer — `(problem, answer)` pairs, not graded model outputs. The `benchmarks/simpleqa_eval.py` harness turns this into a guardrail evaluation by grounding each question's gold answer and scoring two responses: the gold answer (a grounded positive that should be approved) and the gold answer of a different question (a real, fluent, factually wrong negative that should be halted). Only the pairing is constructed; both responses are genuine SimpleQA strings.
+
+```bash
+# Headline numbers require a model-backed NLI backend (DeBERTa, ~2 GB):
+python -m benchmarks.simpleqa_eval --max-samples 500 --nli
+# Or evaluate from a local copy without network:
+python -m benchmarks.simpleqa_eval --source path/to/simpleqa.jsonl --nli
+```
+
+The composite decision is dominated by logical divergence, so a model-backed run is required for meaningful catch-rate / FPR / F1; the dependency-free path is for the fast tests only. Measured numbers will be published here once a full NLI run is recorded under `benchmarks/results/`.
+
 ---
 
 ## Competitive Positioning

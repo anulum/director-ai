@@ -119,6 +119,16 @@ def _run_suite(model_name: str | None, max_samples: int | None) -> dict:
     except ImportError:
         logger.info("=== freshqa === SKIPPED (missing datasets)")
 
+    # SimpleQA factual grounding (requires datasets)
+    try:
+        from benchmarks.simpleqa_eval import run_simpleqa
+
+        logger.info("=== simpleqa ===")
+        sq = run_simpleqa(max_samples=max_samples, use_nli=model_name is not None)
+        results["simpleqa"] = sq.to_dict()
+    except ImportError:
+        logger.info("=== simpleqa === SKIPPED (missing datasets)")
+
     results["total_time_seconds"] = round(time.time() - t_total, 1)
     return results
 
@@ -142,6 +152,9 @@ def _print_comparison_table(all_results: dict[str, dict]) -> None:
         ("freshqa", "catch_rate", "FreshQA Catch Rate"),
         ("freshqa", "precision", "FreshQA Precision"),
         ("freshqa", "f1", "FreshQA F1"),
+        ("simpleqa", "catch_rate", "SimpleQA Catch Rate"),
+        ("simpleqa", "false_positive_rate", "SimpleQA FP Rate (lower=better)"),
+        ("simpleqa", "f1", "SimpleQA F1"),
     ]
 
     models = list(all_results.keys())
