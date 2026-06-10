@@ -233,6 +233,7 @@ nav:
       - Trajectory Preflight: api/trajectory-preflight.md
       - Temporal-Logic Trajectory Monitor: api/temporal-logic-monitor.md
       - Self-Improving Guard Loop: api/self-improving-guard-loop.md
+      - Tier-6 Reasoning Escalation: api/reasoning-escalation.md
       - Recursive Meta-Guard: api/meta-guard.md
       - Synthetic Distillation: api/synthetic-distillation.md
       - Multimodal Checks: api/multimodal-checks.md

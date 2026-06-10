@@ -123,6 +123,11 @@ class CoherenceScore:
     verified_claim_count: int = 0
     verified_contradicted_count: int = 0
     verified_fabricated_count: int = 0
+    # Tier-6 causal-LM reasoning escalation (None unless the tier fired)
+    reasoning_escalated: bool | None = None
+    reasoning_harm_category: str | None = None  # HarmCategory.value, or None
+    reasoning_rationale: str | None = None
+    reasoning_confidence: float | None = None  # 0-1
 
     # -- Claim-Level Provenance (Gem 2) ------------------------------------
 

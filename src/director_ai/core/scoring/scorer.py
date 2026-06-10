@@ -36,6 +36,7 @@ from ._task_scoring import (
     summarization_factual_divergence,
 )
 from .nli import NLIScorer, nli_available
+from .reasoning_scorer import ReasoningScorer
 
 try:
     from backfire_kernel import (
@@ -133,6 +134,11 @@ class CoherenceScorer:
         cache=None,
         nli_max_length=512,
         nli_revision=None,
+        reasoning_enabled=False,
+        reasoning_provider="",
+        reasoning_model="",
+        reasoning_model_revision=None,
+        reasoning_escalation_margin=0.15,
     ):
         if not (0.0 <= threshold <= 1.0):
             raise ValueError(f"threshold must be in [0, 1], got {threshold}")
@@ -305,6 +311,17 @@ class CoherenceScorer:
         self._llm_judge_enabled = self._judge.enabled
         self._llm_judge_provider = llm_judge_provider
         self._llm_judge_threshold = llm_judge_confidence_threshold
+
+        # Tier-6 reasoning escalation (composed — see reasoning_scorer.py).
+        # Disabled by default; fires only on borderline scores when enabled.
+        self._reasoning = ReasoningScorer(
+            provider=reasoning_provider if reasoning_enabled else "",
+            model=reasoning_model,
+            model_revision=reasoning_model_revision,
+            escalation_margin=reasoning_escalation_margin,
+            device=nli_device,
+            privacy_mode=privacy_mode,
+        )
 
         # Injection detection: set via enable_injection_detection()
         self._injection_lock = threading.Lock()
@@ -1484,6 +1501,52 @@ class CoherenceScorer:
             return False, score
         return score.approved, score
 
+    def _apply_reasoning_tier(
+        self,
+        result: tuple[bool, CoherenceScore],
+        prompt: str,
+        action: str,
+        evidence,
+        *,
+        threshold: float,
+    ) -> tuple[bool, CoherenceScore]:
+        """Consult the Tier-6 reasoning escalation on a borderline verdict.
+
+        Fires only when the composite score sits within the reasoning tier's
+        margin of *threshold*. A parsed verdict blends into the score and tags
+        the result with rationale + harm category; an unavailable backend or an
+        unparseable reply leaves the lower-tier verdict untouched. Approval then
+        requires both the blended score to clear the threshold *and* the
+        reasoning verdict to approve, so a confident safety rejection halts a
+        borderline output."""
+        _approved, score = result
+        if not self._reasoning.should_escalate(score.score, centre=threshold):
+            return result
+        source = self._verified_source_from_evidence(evidence) if evidence else ""
+        if not isinstance(source, str):
+            source = ""
+        verdict = self._reasoning.reason(
+            prompt,
+            action,
+            score.score,
+            task_type=score.detected_task_type or "default",
+            evidence_text=source,
+            redactor=self._redactor,
+        )
+        if verdict is None:
+            return result
+        score.reasoning_escalated = True
+        score.reasoning_confidence = verdict.confidence
+        score.reasoning_rationale = verdict.rationale
+        score.reasoning_harm_category = (
+            verdict.harm_category.value if verdict.harm_category is not None else None
+        )
+        if verdict.adjusted_score is not None:
+            score.score = verdict.adjusted_score
+        new_approved = score.score >= threshold and verdict.approved
+        score.approved = new_approved
+        return new_approved, score
+
     # â"€â"€ Composite scoring â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 
     def _score_cache_scope(self, session=None, tenant_id: str = "") -> str:
@@ -1650,6 +1713,14 @@ class CoherenceScorer:
                 task_type=task_type,
                 threshold=effective_threshold,
             )
+            if self._reasoning.enabled:
+                result = self._apply_reasoning_tier(
+                    result,
+                    prompt,
+                    action,
+                    evidence,
+                    threshold=effective_threshold,
+                )
             if cross_turn is not None:
                 result[1].cross_turn_divergence = cross_turn
             if session is not None:

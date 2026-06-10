@@ -2,14 +2,14 @@
   "SPDX-License-Identifier": "AGPL-3.0-or-later",
   "counts": {
     "github_workflows": 11,
-    "model_documentation_pages": 84,
+    "model_documentation_pages": 85,
     "optional_extras": 54,
     "public_api_exports": 216,
-    "public_documentation_pages": 179,
-    "python_model_classes": 881,
-    "python_model_source_modules": 387,
+    "public_documentation_pages": 180,
+    "python_model_classes": 883,
+    "python_model_source_modules": 388,
     "rust_pyo3_model_wrappers": 78,
-    "test_files": 465
+    "test_files": 466
   },
   "documentation": {
     "public_pages": [
@@ -74,6 +74,7 @@
       "docs-site/api/provenance-ledger.md",
       "docs-site/api/rasp.md",
       "docs-site/api/rdp-accountant.md",
+      "docs-site/api/reasoning-escalation.md",
       "docs-site/api/redteam-engine.md",
       "docs-site/api/risk-adaptive-threshold.md",
       "docs-site/api/safety-event-schema.md",
@@ -274,6 +275,7 @@
       "provenance-ledger.md",
       "rasp.md",
       "rdp-accountant.md",
+      "reasoning-escalation.md",
       "redteam-engine.md",
       "risk-adaptive-threshold.md",
       "safety-event-schema.md",
@@ -2828,6 +2830,10 @@
         "path": "src/director_ai/core/verification/reasoning_verifier.py"
       },
       {
+        "name": "ReasoningScorer",
+        "path": "src/director_ai/core/scoring/reasoning_scorer.py"
+      },
+      {
         "name": "ReasoningStep",
         "path": "src/director_ai/core/formal_verification/verifier.py"
       },
@@ -2838,6 +2844,10 @@
       {
         "name": "ReasoningVerdict",
         "path": "src/director_ai/core/formal_verification/verifier.py"
+      },
+      {
+        "name": "ReasoningVerdict",
+        "path": "src/director_ai/core/scoring/reasoning_scorer.py"
       },
       {
         "name": "ReasoningVerdict",
@@ -4099,6 +4109,7 @@
       "src/director_ai/core/scoring/meta_confidence.py",
       "src/director_ai/core/scoring/model_choices.py",
       "src/director_ai/core/scoring/nli.py",
+      "src/director_ai/core/scoring/reasoning_scorer.py",
       "src/director_ai/core/scoring/rules_scorer.py",
       "src/director_ai/core/scoring/scorer.py",
       "src/director_ai/core/scoring/sharded_nli.py",
@@ -4937,6 +4948,7 @@
       "tests/test_ragtruth_eval.py",
       "tests/test_rasp.py",
       "tests/test_rdp_accountant.py",
+      "tests/test_reasoning_scorer.py",
       "tests/test_reasoning_verifier.py",
       "tests/test_redis_enterprise.py",
       "tests/test_redteam_engine.py",

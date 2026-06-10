@@ -160,6 +160,17 @@ class DirectorConfig:
     llm_judge_model_revision: str = ""
     privacy_mode: bool = False
 
+    # Tier-6 reasoning escalation (causal-LM safety chain-of-thought above NLI).
+    # Fires only when the composite score is within the margin of the decision
+    # boundary, so median latency is unchanged. With an openai/anthropic
+    # provider, the borderline prompt/response is sent to that provider
+    # (respect privacy_mode); "local" loads a causal-LM with transformers.
+    reasoning_enabled: bool = False
+    reasoning_provider: str = ""  # "openai" | "anthropic" | "local"
+    reasoning_model: str = ""
+    reasoning_model_revision: str = ""
+    reasoning_escalation_margin: float = 0.15
+
     # Scorer backend: "deberta", "onnx", "minicheck", "hybrid", "lite", "rust"
     # "auto" picks best available: rust > onnx > deberta > nli-lite > lite
     scorer_backend: str = "auto"
@@ -1186,6 +1197,11 @@ class DirectorConfig:
             "llm_judge_provider": self.llm_judge_provider,
             "llm_judge_model": judge_model,
             "llm_judge_model_revision": self.llm_judge_model_revision or None,
+            "reasoning_enabled": self.reasoning_enabled,
+            "reasoning_provider": self.reasoning_provider,
+            "reasoning_model": self.reasoning_model,
+            "reasoning_model_revision": self.reasoning_model_revision or None,
+            "reasoning_escalation_margin": self.reasoning_escalation_margin,
             "privacy_mode": self.privacy_mode,
             "ground_truth_store": store,
             "onnx_batch_size": self.onnx_batch_size,
