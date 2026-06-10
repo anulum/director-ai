@@ -528,6 +528,16 @@ class NLIScorer:
 
     _BACKENDS = ("deberta", "minicheck", "onnx", "lite")
 
+    # MiniCheck library variant name → pinned HuggingFace checkpoint. The variant
+    # string is what the ``minicheck`` package's ``MiniCheck(model_name=...)``
+    # accepts; the checkpoint is used for the immutable revision pin and the
+    # manual DeBERTa fallback loader. Ordered fast/small → slow/accurate.
+    _MINICHECK_CKPTS = {
+        "deberta-v3-large": "lytang/MiniCheck-DeBERTa-v3-Large",
+        "flan-t5-large": "lytang/MiniCheck-Flan-T5-Large",
+        "Bespoke-MiniCheck-7B": "bespokelabs/Bespoke-MiniCheck-7B",
+    }
+
     def __init__(
         self,
         use_model: bool = True,
@@ -543,6 +553,7 @@ class NLIScorer:
         cost_per_token: float = _DEFAULT_COST_PER_TOKEN,
         lora_adapter_path: str | None = None,
         revision: str | None = None,
+        minicheck_variant: str = "deberta-v3-large",
     ) -> None:
         # Accept ScorerBackend instance directly
         self._custom_backend = None
@@ -587,6 +598,12 @@ class NLIScorer:
         self._label_indices: tuple[int, int] | None = None
         self._lora_adapter_path = lora_adapter_path
         self._revision = revision
+        if minicheck_variant not in self._MINICHECK_CKPTS:
+            raise ValueError(
+                f"minicheck_variant must be one of "
+                f"{tuple(self._MINICHECK_CKPTS)}, got {minicheck_variant!r}",
+            )
+        self._minicheck_variant = minicheck_variant
 
     @property
     def _backend_ready(self) -> bool:
@@ -743,19 +760,25 @@ class NLIScorer:
             except ImportError:
                 from minicheck.minicheck import MiniCheck
 
+            variant = self._minicheck_variant
             try:
                 self._minicheck = MiniCheck(
-                    model_name="deberta-v3-large",
+                    model_name=variant,
                     cache_dir=self._cache_dir,
                 )
             except (RuntimeError, ValueError):
+                if variant != "deberta-v3-large":
+                    # The manual reconstruction below is DeBERTa-specific
+                    # (sequence-classification head); larger variants such as
+                    # Bespoke-MiniCheck-7B are causal LMs the package must load.
+                    raise
                 # device_map="auto" fails on ROCm/older torch — load manually
                 logger.info("MiniCheck device_map=auto failed, loading manually")
                 self._minicheck = MiniCheck.__new__(MiniCheck)
                 from minicheck.inference import Inferencer
 
                 inf = Inferencer.__new__(Inferencer)
-                inf.model_name = "deberta-v3-large"
+                inf.model_name = variant
                 inf.max_model_len = 2048
                 inf.batch_size = 16
 
@@ -766,7 +789,7 @@ class NLIScorer:
                     AutoTokenizer,
                 )
 
-                ckpt = "lytang/MiniCheck-DeBERTa-v3-Large"
+                ckpt = self._MINICHECK_CKPTS[variant]
                 mc_rev = _resolve_revision(ckpt)
                 config = AutoConfig.from_pretrained(
                     ckpt,

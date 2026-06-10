@@ -20,6 +20,8 @@ DEFAULT_NLI_MODEL_REVISION = "0430e3509dbd28d2dff7a117c0eae25359ff3e80"
 MODEL_REVISION_REGISTRY: dict[str, str] = {
     DEFAULT_NLI_MODEL: DEFAULT_NLI_MODEL_REVISION,
     "lytang/MiniCheck-DeBERTa-v3-Large": "2f2d01a54fa022a7ffadb76260e1ea8bc88c82bb",
+    "lytang/MiniCheck-Flan-T5-Large": "96eafd01cee2d16cf81aaa2fb226b14f422a37b3",
+    "bespokelabs/Bespoke-MiniCheck-7B": "1ed7786bcda3fa1dc35f7c4ed9e3f36b785d33b8",
     "distilbert-base-uncased": "12040accade4e8a0f71eabdb258fecc2e7e948be",
     "bert-base-uncased": "86b5e0934494bd15c9632b12f734a8a67f723594",
     "MoritzLaurer/DeBERTa-v3-large-mnli-fever-anli-ling-wanli": (

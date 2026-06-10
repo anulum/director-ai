@@ -178,6 +178,15 @@ class DirectorConfig:
     # Multi-GPU NLI sharding (comma-separated, e.g. "cuda:0,cuda:1")
     nli_devices: str = ""
 
+    # NLI precision tier. minicheck_variant selects the MiniCheck checkpoint
+    # ("deberta-v3-large" 0.4B fast → "Bespoke-MiniCheck-7B" most accurate);
+    # nli_torch_dtype ("float16"/"bfloat16"/"float32") and nli_quantize_8bit
+    # trade memory/latency for precision. Empty strings = library defaults.
+    minicheck_variant: str = "deberta-v3-large"
+    nli_torch_dtype: str = ""
+    nli_quantize_8bit: bool = False
+    nli_device: str = ""
+
     # Vector store
     vector_backend: str = "memory"
     embedding_model: str = "BAAI/bge-large-en-v1.5"
@@ -902,6 +911,37 @@ class DirectorConfig:
                 "metrics_enabled": False,
                 "profile": "embed",
             },
+            # MiniCheck precision ladder: same fact-grounding backend at three
+            # latency/accuracy/memory tiers (fp16 0.4B → fp32 0.4B → 8-bit 7B).
+            "minicheck-fast": {
+                "use_nli": True,
+                "scorer_backend": "minicheck",
+                "minicheck_variant": "deberta-v3-large",
+                "nli_torch_dtype": "float16",
+                "coherence_threshold": 0.5,
+                "max_candidates": 1,
+                "metrics_enabled": True,
+                "profile": "minicheck-fast",
+            },
+            "minicheck-balanced": {
+                "use_nli": True,
+                "scorer_backend": "minicheck",
+                "minicheck_variant": "deberta-v3-large",
+                "coherence_threshold": 0.5,
+                "max_candidates": 1,
+                "metrics_enabled": True,
+                "profile": "minicheck-balanced",
+            },
+            "minicheck-accurate": {
+                "use_nli": True,
+                "scorer_backend": "minicheck",
+                "minicheck_variant": "Bespoke-MiniCheck-7B",
+                "nli_quantize_8bit": True,
+                "coherence_threshold": 0.5,
+                "max_candidates": 1,
+                "metrics_enabled": True,
+                "profile": "minicheck-accurate",
+            },
         }
         if name not in profiles:
             raise ValueError(
@@ -1202,6 +1242,10 @@ class DirectorConfig:
             "reasoning_model": self.reasoning_model,
             "reasoning_model_revision": self.reasoning_model_revision or None,
             "reasoning_escalation_margin": self.reasoning_escalation_margin,
+            "minicheck_variant": self.minicheck_variant,
+            "nli_quantize_8bit": self.nli_quantize_8bit,
+            "nli_torch_dtype": self.nli_torch_dtype or None,
+            "nli_device": self.nli_device or None,
             "privacy_mode": self.privacy_mode,
             "ground_truth_store": store,
             "onnx_batch_size": self.onnx_batch_size,
@@ -1624,6 +1668,33 @@ _PROFILE_METADATA: dict[str, ProfileMetadata] = {
         calibration_command=(
             "director-ai tune --profile summarization --input labelled_traces.jsonl"
         ),
+    ),
+    "minicheck-fast": ProfileMetadata(
+        name="minicheck-fast",
+        intended_workload="High-throughput fact grounding with the 0.4B MiniCheck "
+        "DeBERTa checkpoint in float16.",
+        validation_status="MiniCheck fact-grounding backend, fp16 latency tier",
+        expected_false_halt_risk="medium; tune thresholds per corpus",
+        required_dependencies=("nli", "minicheck"),
+        notes="Lowest latency and memory; pip install minicheck.",
+    ),
+    "minicheck-balanced": ProfileMetadata(
+        name="minicheck-balanced",
+        intended_workload="Default-precision fact grounding with the 0.4B MiniCheck "
+        "DeBERTa checkpoint.",
+        validation_status="MiniCheck fact-grounding backend, full-precision tier",
+        expected_false_halt_risk="medium; tune thresholds per corpus",
+        required_dependencies=("nli", "minicheck"),
+        notes="Balances latency and accuracy; pip install minicheck.",
+    ),
+    "minicheck-accurate": ProfileMetadata(
+        name="minicheck-accurate",
+        intended_workload="Highest-accuracy fact grounding with the 7B "
+        "Bespoke-MiniCheck checkpoint in 8-bit.",
+        validation_status="MiniCheck 7B backend, 8-bit accuracy tier",
+        expected_false_halt_risk="lower than smaller variants; still tune per corpus",
+        required_dependencies=("nli", "minicheck", "bitsandbytes"),
+        notes="Needs a GPU with ~8 GB; pip install minicheck bitsandbytes.",
     ),
 }
 

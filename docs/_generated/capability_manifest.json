@@ -9,7 +9,7 @@
     "python_model_classes": 885,
     "python_model_source_modules": 389,
     "rust_pyo3_model_wrappers": 78,
-    "test_files": 467
+    "test_files": 468
   },
   "documentation": {
     "public_pages": [
@@ -4875,6 +4875,7 @@
       "tests/test_meta_guard.py",
       "tests/test_metrics.py",
       "tests/test_middleware.py",
+      "tests/test_minicheck_variants.py",
       "tests/test_ml_bom.py",
       "tests/test_model_benchmark_packages.py",
       "tests/test_model_package_vertex_campaign.py",

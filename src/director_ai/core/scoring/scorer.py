@@ -139,6 +139,7 @@ class CoherenceScorer:
         reasoning_model="",
         reasoning_model_revision=None,
         reasoning_escalation_margin=0.15,
+        minicheck_variant="deberta-v3-large",
     ):
         if not (0.0 <= threshold <= 1.0):
             raise ValueError(f"threshold must be in [0, 1], got {threshold}")
@@ -256,7 +257,9 @@ class CoherenceScorer:
                 onnx_flush_timeout_ms=onnx_flush_timeout_ms,
                 max_length=nli_max_length,
                 revision=nli_revision,
+                minicheck_variant=minicheck_variant,
             )
+        self._minicheck_variant = minicheck_variant
         self._privacy_mode = privacy_mode
         self._redactor = PIIRedactor(enabled=privacy_mode)
         self._parallel_pool: ThreadPoolExecutor | None = None
@@ -560,7 +563,13 @@ class CoherenceScorer:
             return self._minicheck_nli
 
         try:
-            mc = NLIScorer(use_model=True, backend="minicheck")
+            mc = NLIScorer(
+                use_model=True,
+                backend="minicheck",
+                minicheck_variant=getattr(
+                    self, "_minicheck_variant", "deberta-v3-large"
+                ),
+            )
             if mc._ensure_minicheck():
                 self._minicheck_nli = mc
                 self.logger.info("MiniCheck auto-routing enabled for summarisation")
