@@ -2,14 +2,14 @@
   "SPDX-License-Identifier": "AGPL-3.0-or-later",
   "counts": {
     "github_workflows": 11,
-    "model_documentation_pages": 86,
+    "model_documentation_pages": 87,
     "optional_extras": 54,
     "public_api_exports": 216,
-    "public_documentation_pages": 181,
-    "python_model_classes": 885,
-    "python_model_source_modules": 389,
+    "public_documentation_pages": 182,
+    "python_model_classes": 887,
+    "python_model_source_modules": 390,
     "rust_pyo3_model_wrappers": 78,
-    "test_files": 468
+    "test_files": 469
   },
   "documentation": {
     "public_pages": [
@@ -24,6 +24,7 @@
       "docs-site/api/cache.md",
       "docs-site/api/canary-facts.md",
       "docs-site/api/causal-attribution.md",
+      "docs-site/api/citation-grounding.md",
       "docs-site/api/cli.md",
       "docs-site/api/config.md",
       "docs-site/api/conflict-aware-knowledge.md",
@@ -226,6 +227,7 @@
       "cache.md",
       "canary-facts.md",
       "causal-attribution.md",
+      "citation-grounding.md",
       "cli.md",
       "config.md",
       "conflict-aware-knowledge.md",
@@ -712,8 +714,16 @@
         "path": "src/director_ai/core/evidence_firewall/firewall.py"
       },
       {
+        "name": "Citation",
+        "path": "src/director_ai/core/citation_grounding/citations.py"
+      },
+      {
         "name": "CitationFact",
         "path": "src/director_ai/core/provenance/facts.py"
+      },
+      {
+        "name": "CitationKind",
+        "path": "src/director_ai/core/citation_grounding/citations.py"
       },
       {
         "name": "CitationStatusSignal",
@@ -3899,6 +3909,7 @@
       "src/director_ai/core/causal_verifier/counterfactual.py",
       "src/director_ai/core/causal_verifier/graph.py",
       "src/director_ai/core/causal_verifier/intervention.py",
+      "src/director_ai/core/citation_grounding/citations.py",
       "src/director_ai/core/config.py",
       "src/director_ai/core/containment/anchor.py",
       "src/director_ai/core/containment/detector.py",
@@ -4662,6 +4673,7 @@
       "tests/test_chroma_integration.py",
       "tests/test_chunked_nli.py",
       "tests/test_ci_optional_extras_matrix.py",
+      "tests/test_citations.py",
       "tests/test_claim_provenance.py",
       "tests/test_cli.py",
       "tests/test_cli_bench_paths.py",
