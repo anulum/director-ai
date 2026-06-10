@@ -486,13 +486,16 @@ jobs:
         run: bandit -r src/director_ai/ -c pyproject.toml
 
       - name: Run Semgrep
-        # Enforcing (no continue-on-error): the codebase is Semgrep-clean under
-        # p/python + p/security-audit, with the handful of false positives
-        # suppressed inline via justified `# nosemgrep` comments. A new real
-        # blocking finding now fails the build. Note: the rulesets are fetched
-        # live from the registry, so a future ruleset update can surface a new
-        # finding without a code change — triage it (fix or justified nosemgrep)
-        # rather than re-adding continue-on-error.
+        # Enforcing (no continue-on-error), scoped via `.semgrepignore` to the
+        # shipped library `src/director_ai/` (matching the Bandit scope above).
+        # That tree is Semgrep-clean under p/python + p/security-audit, with the
+        # handful of false positives suppressed inline via justified `# nosemgrep`
+        # comments; a new real blocking finding there now fails the build. Dev/CI
+        # tooling, training launchers, benchmark harnesses, generated protobuf,
+        # and tests are excluded (accepted dev-script patterns, not shipped risk).
+        # The rulesets are registry-live, so a future ruleset update can surface a
+        # new finding in src/ — triage it (fix or justified nosemgrep) rather than
+        # re-adding continue-on-error.
         uses: returntocorp/semgrep-action@713efdd345f3035192eaa63f56867b88e63e4e5d # v1
         with:
           config: p/python p/security-audit

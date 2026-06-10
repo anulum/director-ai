@@ -1,0 +1,18 @@
+# Scope the enforcing Semgrep SAST gate to the shipped library (src/director_ai/),
+# matching the Bandit scope (`bandit -r src/director_ai/`). The excluded trees are
+# dev/CI tooling, training launchers, benchmark harnesses, generated protobuf, and
+# tests — not production code paths, and their findings (subprocess shell=True in
+# training launchers, pickle in model-training scripts, generated Go unsafe
+# blocks) are accepted dev-script patterns rather than shipped-code risks.
+tools/
+benchmarks/
+training/
+scripts/
+gateway/
+tests/
+examples/
+docs/
+docs-site/
+formal/
+backfire-kernel/
+packages/
