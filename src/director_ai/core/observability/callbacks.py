@@ -133,6 +133,8 @@ class TokenTraceEmitter:
             try:
                 cb.on_token(event)
             except Exception as exc:  # pragma: no cover — defensive
+                # Logs the callback class name + its raised exception, no secrets.
+                # nosemgrep: python.lang.security.audit.logging.logger-credential-leak.python-logger-credential-disclosure
                 logger.warning(
                     "token trace callback %s raised %s", type(cb).__name__, exc
                 )
@@ -147,6 +149,8 @@ class TokenTraceEmitter:
                     summary=summary,
                 )
             except Exception as exc:  # pragma: no cover — defensive
+                # Logs the callback class name + its raised exception, no secrets.
+                # nosemgrep: python.lang.security.audit.logging.logger-credential-leak.python-logger-credential-disclosure
                 logger.warning(
                     "token trace callback %s end raised %s",
                     type(cb).__name__,

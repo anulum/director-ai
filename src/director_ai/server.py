@@ -789,6 +789,8 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
                 # Tenant isolation without key binding is advisory only.
                 claimed = request.headers.get("X-Tenant-ID", "")
                 if claimed:
+                    # api_key_hash is a SHA-256 digest (see above), not the key.
+                    # nosemgrep: python.lang.security.audit.logging.logger-credential-leak.python-logger-credential-disclosure
                     logger.debug(
                         "Unbound tenant claim: %s (api_key=%s)", claimed, api_key_hash
                     )
@@ -1867,21 +1869,30 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
         approval_rate = (
             f"{s['approved'] / s['total'] * 100:.1f}%" if s["total"] else "N/A"
         )
+        rows = [
+            ("Total Reviews", s["total"]),
+            ("Approved", s["approved"]),
+            ("Rejected", s["rejected"]),
+            ("Halted", s["halted"]),
+            ("Approval Rate", approval_rate),
+            ("Avg Score", s["avg_score"] or "N/A"),
+            ("Avg Latency", f"{s['avg_latency_ms'] or 'N/A'} ms"),
+        ]
+        # Internal aggregate metrics only (integers/floats from the stats store,
+        # never request input), and the endpoint serves PlainTextResponse — there
+        # is no user-controlled data and no HTML-rendering context to inject into.
+        table_rows = "".join(
+            # nosemgrep: python.django.security.injection.raw-html-format.raw-html-format
+            f"<tr><th>{label}</th><td>{value}</td></tr>"
+            for label, value in rows
+        )
         return (
             "<!DOCTYPE html><html><head><title>Director-AI Dashboard</title>"
             "<style>body{font-family:monospace;max-width:600px;margin:40px auto;}"
             "table{border-collapse:collapse;width:100%;}td,th{border:1px solid #ccc;"
             "padding:8px;text-align:left;}</style></head><body>"
             "<h1>Director-AI Dashboard</h1>"
-            "<table>"
-            f"<tr><th>Total Reviews</th><td>{s['total']}</td></tr>"
-            f"<tr><th>Approved</th><td>{s['approved']}</td></tr>"
-            f"<tr><th>Rejected</th><td>{s['rejected']}</td></tr>"
-            f"<tr><th>Halted</th><td>{s['halted']}</td></tr>"
-            f"<tr><th>Approval Rate</th><td>{approval_rate}</td></tr>"
-            f"<tr><th>Avg Score</th><td>{s['avg_score'] or 'N/A'}</td></tr>"
-            f"<tr><th>Avg Latency</th><td>{s['avg_latency_ms'] or 'N/A'} ms</td></tr>"
-            "</table></body></html>"
+            f"<table>{table_rows}</table></body></html>"
         )
 
     # -- Compliance endpoints (EU AI Act Article 15) --------------------
