@@ -357,6 +357,20 @@ python -m benchmarks.simpleqa_eval --source path/to/simpleqa.jsonl --nli
 
 The composite decision is dominated by logical divergence, so a model-backed run is required for meaningful catch-rate / FPR / F1; the dependency-free path is for the fast tests only. Measured numbers will be published here once a full NLI run is recorded under `benchmarks/results/`.
 
+### HalluHard (citation grounding)
+
+[HalluHard](https://arxiv.org/abs/2602.01031) (EPFL) scores whether a model's multi-turn answers cite sources that actually support their factual claims. The `benchmarks/halluhard_eval.py` harness ties together the four `core.citation_grounding` components: for each seed question it runs a model through a short conversation (asking for inline citations), resolves the citations in the transcript, fetches the cited sources (arXiv API / Crossref / URL), and judges each assertion grounded only when its cited source entails it. It reports grounded-rate, citation-coverage, and hallucination-rate.
+
+```bash
+# Needs a model under test (OpenAI-style endpoint) + a local HalluHard JSONL
+# from epfml/halluhard, and a model-backed NLI scorer for the grounding judge:
+python -m benchmarks.halluhard_eval \
+    --source research_questions_all.jsonl \
+    --api-url http://127.0.0.1:8081/v1 --nli --max-samples 50
+```
+
+Unlike the NLI benchmarks, this is a standalone tool (it generates fresh transcripts and fetches cited sources over the network), so it is not part of the `run_all` suite. The generator, scorer, and fetcher are injected, so the orchestration is fully tested offline with stubs.
+
 ---
 
 ## Competitive Positioning

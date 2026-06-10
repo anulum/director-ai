@@ -9,7 +9,7 @@
     "python_model_classes": 898,
     "python_model_source_modules": 393,
     "rust_pyo3_model_wrappers": 78,
-    "test_files": 472
+    "test_files": 473
   },
   "documentation": {
     "public_pages": [
@@ -4862,6 +4862,7 @@
       "tests/test_guard_control.py",
       "tests/test_guardrails_ai_integration.py",
       "tests/test_hallubench_eval.py",
+      "tests/test_halluhard_eval.py",
       "tests/test_halt_evidence.py",
       "tests/test_handoff_scorer.py",
       "tests/test_hardened_auto.py",
