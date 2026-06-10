@@ -87,6 +87,32 @@ Per-claim verdicts:
 
 See [Injection Detector](injection-detector.md) for full API reference.
 
+## HarmBench category taxonomy
+
+Each detector reports its own free-string category — the sanitizer emits pattern
+names, the toxicity detector emits Detoxify labels, the PII detector emits entity
+types. `HarmCategory` is the canonical seven-class HarmBench taxonomy and
+`to_harm_category()` normalises any of those strings onto it, so policy rules,
+threat-intel correlation, and compliance reports can speak one vocabulary
+regardless of which detector fired.
+
+```python
+from director_ai.core.safety import HarmCategory, to_harm_category
+
+to_harm_category("identity_hate")            # HarmCategory.HATE_AND_ABUSE
+to_harm_category("self_harm_encouragement")  # HarmCategory.VIOLENCE_AND_SELF_HARM
+to_harm_category("benign_topic")             # None (no confident mapping)
+```
+
+`SanitizeResult.category` carries the dominant signal's `HarmCategory` (always
+`PROMPT_SECURITY` for the injection patterns, `None` when nothing fired). The
+seven categories: Illicit Activities, Hate & Abuse, PII & IP, Prompt Security,
+Sexual Content, Misinformation, Violence & Self-Harm.
+
+::: director_ai.core.safety.harm_taxonomy.HarmCategory
+
+::: director_ai.core.safety.harm_taxonomy.to_harm_category
+
 ## Full API
 
 ::: director_ai.core.safety.sanitizer.InputSanitizer

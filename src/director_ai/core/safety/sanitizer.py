@@ -33,6 +33,7 @@ import unicodedata
 from dataclasses import dataclass, field
 
 from ..mandatory import mandatory_execution
+from .harm_taxonomy import HarmCategory, to_harm_category
 
 __all__ = ["InputSanitizer", "SanitizeResult"]
 
@@ -173,6 +174,8 @@ class SanitizeResult:
     pattern: str = ""
     suspicion_score: float = 0.0
     matches: list[str] = field(default_factory=list)
+    category: HarmCategory | None = None
+    """HarmBench category of the dominant signal (``None`` when nothing fired)."""
 
 
 class InputSanitizer:
@@ -230,6 +233,7 @@ class InputSanitizer:
                 pattern="unicode",
                 suspicion_score=1.0,
                 matches=["unicode"],
+                category=HarmCategory.PROMPT_SECURITY,
             )
 
         base64_payload = _contains_base64_payload(text)
@@ -257,12 +261,14 @@ class InputSanitizer:
 
         clamped = min(total, 1.0)
         blocked = clamped >= self.block_threshold
+        dominant = py_matched[0] if py_matched else ""
         return SanitizeResult(
             blocked=blocked,
-            reason=py_matched[0] if py_matched else "",
-            pattern=py_matched[0] if py_matched else "",
+            reason=dominant,
+            pattern=dominant,
             suspicion_score=clamped,
             matches=py_matched,
+            category=to_harm_category(dominant) if dominant else None,
         )
 
     def check(self, text: str) -> SanitizeResult:

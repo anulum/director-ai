@@ -6,10 +6,10 @@
     "optional_extras": 54,
     "public_api_exports": 216,
     "public_documentation_pages": 178,
-    "python_model_classes": 877,
-    "python_model_source_modules": 385,
+    "python_model_classes": 878,
+    "python_model_source_modules": 386,
     "rust_pyo3_model_wrappers": 78,
-    "test_files": 462
+    "test_files": 463
   },
   "documentation": {
     "public_pages": [
@@ -1712,6 +1712,10 @@
       {
         "name": "HardwareProfileRegistry",
         "path": "src/director_ai/core/sustainability/policy_adapter.py"
+      },
+      {
+        "name": "HarmCategory",
+        "path": "src/director_ai/core/safety/harm_taxonomy.py"
       },
       {
         "name": "HashBagCrossModalVerifier",
@@ -4056,6 +4060,7 @@
       "src/director_ai/core/runtime/ws_ticket.py",
       "src/director_ai/core/safety/audit.py",
       "src/director_ai/core/safety/audit_salt.py",
+      "src/director_ai/core/safety/harm_taxonomy.py",
       "src/director_ai/core/safety/injection.py",
       "src/director_ai/core/safety/moderation/detectors.py",
       "src/director_ai/core/safety/moderation/pii.py",
@@ -4763,6 +4768,7 @@
       "tests/test_halt_evidence.py",
       "tests/test_handoff_scorer.py",
       "tests/test_hardened_auto.py",
+      "tests/test_harm_taxonomy.py",
       "tests/test_haystack_integration.py",
       "tests/test_heavy_dependency_supply_chain.py",
       "tests/test_hf_space_app_safety.py",

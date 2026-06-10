@@ -6,11 +6,14 @@
 # Contact: www.anulum.li | protoscience@anulum.li
 # safety subpackage
 
+from .harm_taxonomy import HarmCategory, to_harm_category
 from .injection import InjectionDetector
 from .sanitizer import InputSanitizer, SanitizeResult
 
 __all__ = [
+    "HarmCategory",
     "InjectionDetector",
     "InputSanitizer",
     "SanitizeResult",
+    "to_harm_category",
 ]
