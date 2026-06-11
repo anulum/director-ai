@@ -121,6 +121,7 @@ markdown_extensions:
 
 nav:
   - Home: index.md
+  - Director-Lite (3 lines): lite.md
   - Getting Started:
       - Quickstart: quickstart.md
       - Notebook Gallery: notebook-gallery.md

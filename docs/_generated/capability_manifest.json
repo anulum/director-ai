@@ -4,12 +4,12 @@
     "github_workflows": 11,
     "model_documentation_pages": 88,
     "optional_extras": 54,
-    "public_api_exports": 216,
-    "public_documentation_pages": 185,
-    "python_model_classes": 906,
-    "python_model_source_modules": 396,
+    "public_api_exports": 218,
+    "public_documentation_pages": 186,
+    "python_model_classes": 907,
+    "python_model_source_modules": 397,
     "rust_pyo3_model_wrappers": 78,
-    "test_files": 478
+    "test_files": 479
   },
   "documentation": {
     "public_pages": [
@@ -192,6 +192,7 @@
       "docs-site/integrations/semantic-kernel.md",
       "docs-site/integrations/vercel-ai.md",
       "docs-site/licensing.md",
+      "docs-site/lite.md",
       "docs-site/notebook-gallery.md",
       "docs-site/pricing.md",
       "docs-site/privacy.md",
@@ -3390,6 +3391,10 @@
         "path": "src/director_ai/core/swarm_equilibrium/game.py"
       },
       {
+        "name": "StreamGuard",
+        "path": "src/director_ai/lite.py"
+      },
+      {
         "name": "StreamSession",
         "path": "src/director_ai/core/runtime/streaming.py"
       },
@@ -4318,6 +4323,7 @@
       "src/director_ai/integrations/voice.py",
       "src/director_ai/interlock.py",
       "src/director_ai/knowledge_api.py",
+      "src/director_ai/lite.py",
       "src/director_ai/middleware/api_key.py",
       "src/director_ai/middleware/rate_limit.py",
       "src/director_ai/proto/converters.py",
@@ -4570,6 +4576,7 @@
     "Soc2IsoControl",
     "Soc2IsoReadinessReport",
     "StoredDocument",
+    "StreamGuard",
     "StreamSession",
     "StreamingKernel",
     "StructuredRecoveryConfig",
@@ -4619,6 +4626,7 @@
     "register_vector_backend",
     "score",
     "score_temporal_freshness",
+    "streaming_guard",
     "tune",
     "utc_timestamp",
     "validate_director_safety_signal",
@@ -4950,6 +4958,7 @@
       "tests/test_lazy_enterprise_import.py",
       "tests/test_license.py",
       "tests/test_license_edge_cases.py",
+      "tests/test_lite.py",
       "tests/test_lite_scorer.py",
       "tests/test_lite_scorer_v2_eval.py",
       "tests/test_lite_scorer_v2_eval_runner.py",
