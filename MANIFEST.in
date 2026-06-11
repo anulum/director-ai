@@ -1,5 +1,50 @@
 include LICENSE
 include README.md
 include CHANGELOG.md
-include NOTICE
+include NOTICE.md
 recursive-include src *.py *.pyi *.pkl
+
+# Open-core release: keep the BUSL-1.1 advanced & labs packages out of the PyPI
+# sdist too (they remain source-available in the git repository). The wheel
+# excludes them via pyproject [tool.setuptools.packages.find].exclude.
+prune src/director_ai/agentic
+prune src/director_ai/compliance
+prune src/director_ai/enterprise
+prune src/director_ai/experimental
+prune src/director_ai/ui
+prune src/director_ai/voice
+prune src/director_ai/core/agent_identity
+prune src/director_ai/core/autopoietic
+prune src/director_ai/core/citation_grounding
+prune src/director_ai/core/continual_adversarial
+prune src/director_ai/core/customer_model_factory
+prune src/director_ai/core/defense_genome
+prune src/director_ai/core/dp_rag
+prune src/director_ai/core/emergence_oracle
+prune src/director_ai/core/execution_rings
+prune src/director_ai/core/federated_dp
+prune src/director_ai/core/financial_services
+prune src/director_ai/core/fuzzing
+prune src/director_ai/core/interpretability
+prune src/director_ai/core/meta_guard
+prune src/director_ai/core/ml_bom
+prune src/director_ai/core/multimodal_guard
+prune src/director_ai/core/multi_scale_alignment
+prune src/director_ai/core/neuro_symbolic
+prune src/director_ai/core/ontology
+prune src/director_ai/core/output_integrity
+prune src/director_ai/core/output_trust
+prune src/director_ai/core/rasp
+prune src/director_ai/core/routing
+prune src/director_ai/core/self_evolving
+prune src/director_ai/core/self_healing
+prune src/director_ai/core/streaming_repair
+prune src/director_ai/core/sustainability
+prune src/director_ai/core/swarm_economics
+prune src/director_ai/core/swarm_equilibrium
+prune src/director_ai/core/symbolic_chain
+prune src/director_ai/core/temporal_consistency
+prune src/director_ai/core/temporal_logic
+prune src/director_ai/core/threat_intel
+prune src/director_ai/core/trace_safe
+prune src/director_ai/core/trajectory
