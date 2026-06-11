@@ -304,6 +304,7 @@ nav:
       - Agent Trajectory Preflight: cookbook/agent-trajectory-preflight.md
       - Case Studies: cookbook/case-studies.md
   - Benchmarks: benchmarks.md
+  - Comparison: comparison.md
   - Benchmark Fixtures:
       - External Validation Report: benchmarks/external-validation-report.md
       - Multilingual Corpus: benchmarks/multilingual-corpus.md
