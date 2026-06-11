@@ -21,6 +21,12 @@ Resolution order:
 3. A legacy default with a one-time warning — preserved so that existing
    audit logs remain comparable after the patch lands. Set one of the
    variables above to silence the warning and rotate the salt.
+
+In **strict mode** (``strict=True`` or ``DIRECTOR_AUDIT_SALT_STRICT`` truthy) the
+legacy default is refused outright: with no per-installation salt configured,
+:func:`get_audit_salt` raises instead of returning the shared constant. The
+server enforces this whenever ``production_mode`` is on, so a production
+deployment cannot silently share one salt across tenants/installations.
 """
 
 from __future__ import annotations
@@ -35,6 +41,13 @@ logger = logging.getLogger("DirectorAI.AuditSalt")
 _LEGACY_DEFAULT = b"director-ai-audit-v1"
 _ENV_VAR = "DIRECTOR_AUDIT_SALT"
 _ENV_FILE = "DIRECTOR_AUDIT_SALT_FILE"
+_ENV_STRICT = "DIRECTOR_AUDIT_SALT_STRICT"
+_TRUTHY = frozenset({"1", "true", "yes", "on"})
+
+
+def _strict_from_env() -> bool:
+    return os.environ.get(_ENV_STRICT, "").strip().lower() in _TRUTHY
+
 
 _warn_lock = threading.Lock()
 _warned = False
@@ -62,11 +75,14 @@ def reset_warning_for_tests() -> None:
         _warned = False
 
 
-def get_audit_salt() -> bytes:
+def get_audit_salt(*, strict: bool = False) -> bytes:
     """Return the audit-log salt for this installation.
 
-    Always returns a non-empty bytes value so call sites never need to
-    branch on absence.
+    Returns a non-empty bytes value so call sites never need to branch on
+    absence. When ``strict`` (or ``DIRECTOR_AUDIT_SALT_STRICT`` is truthy) and no
+    per-installation salt is configured, raises :class:`RuntimeError` instead of
+    returning the shared legacy default — used to fail a production deployment
+    fast rather than silently weaken tenant isolation.
     """
     env_value = os.environ.get(_ENV_VAR)
     if env_value:
@@ -83,6 +99,12 @@ def get_audit_salt() -> bytes:
         if not content:
             raise RuntimeError(f"{_ENV_FILE}={env_file!r} is empty")
         return content.encode("utf-8")
+    if strict or _strict_from_env():
+        raise RuntimeError(
+            f"No per-installation audit salt configured. Set {_ENV_VAR} or "
+            f"{_ENV_FILE}; the shared legacy default is refused in strict/"
+            f"production mode (rainbow-table / cross-tenant correlation risk)."
+        )
     _warn_legacy_once()
     return _LEGACY_DEFAULT
 

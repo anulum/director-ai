@@ -372,9 +372,12 @@ class TestServerOperationalReadiness:
         assert revision_health["ok"] is False
         assert revision_health["checks"]["nli"]["status"] == "error"
 
-    def test_production_mode_requires_knowledge_router(self):
+    def test_production_mode_requires_knowledge_router(self, monkeypatch):
         from unittest.mock import patch
 
+        # A production server fail-fasts without a per-installation audit salt;
+        # set one so this test reaches the knowledge-router requirement it covers.
+        monkeypatch.setenv("DIRECTOR_AUDIT_SALT", "test-installation-salt")
         config = DirectorConfig(
             use_nli=False,
             production_mode=True,

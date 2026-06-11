@@ -359,6 +359,13 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
             cfg = DirectorConfig.from_env()
     else:
         cfg = config
+
+    # Fail fast: a production deployment must carry a per-installation audit salt,
+    # never the shared legacy default (cross-tenant fingerprint correlation).
+    from .core.safety.audit_salt import get_audit_salt
+
+    get_audit_salt(strict=cfg.production_mode)
+
     _start_time = time.monotonic()
     _state: dict = {}
 

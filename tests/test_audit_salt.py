@@ -28,6 +28,7 @@ from director_ai.core.safety.audit_salt import get_audit_salt, reset_warning_for
 def _isolate_env(monkeypatch):
     monkeypatch.delenv("DIRECTOR_AUDIT_SALT", raising=False)
     monkeypatch.delenv("DIRECTOR_AUDIT_SALT_FILE", raising=False)
+    monkeypatch.delenv("DIRECTOR_AUDIT_SALT_STRICT", raising=False)
     reset_warning_for_tests()
     yield
     reset_warning_for_tests()
@@ -131,6 +132,77 @@ class TestMiddlewareHashIntegration:
         monkeypatch.setenv("DIRECTOR_AUDIT_SALT", "explicit-salt")
         expected = hmac.new(b"explicit-salt", b"sk-xyz", "sha512").hexdigest()[:16]
         assert _hash_key("sk-xyz") == expected
+
+
+class TestStrictMode:
+    """Strict mode refuses the shared legacy default (production fail-fast)."""
+
+    def test_strict_arg_raises_without_salt(self):
+        with pytest.raises(RuntimeError, match="No per-installation audit salt"):
+            get_audit_salt(strict=True)
+
+    def test_strict_env_raises_without_salt(self, monkeypatch):
+        monkeypatch.setenv("DIRECTOR_AUDIT_SALT_STRICT", "1")
+        with pytest.raises(RuntimeError, match="No per-installation audit salt"):
+            get_audit_salt()
+
+    @pytest.mark.parametrize("value", ["true", "YES", "On"])
+    def test_strict_env_truthy_variants(self, monkeypatch, value):
+        monkeypatch.setenv("DIRECTOR_AUDIT_SALT_STRICT", value)
+        with pytest.raises(RuntimeError):
+            get_audit_salt()
+
+    def test_strict_with_env_salt_returns(self, monkeypatch):
+        monkeypatch.setenv("DIRECTOR_AUDIT_SALT", "prod-secret")
+        assert get_audit_salt(strict=True) == b"prod-secret"
+
+    def test_strict_with_env_file_returns(self, monkeypatch, tmp_path):
+        f = tmp_path / "salt"
+        f.write_text("file-secret")
+        monkeypatch.setenv("DIRECTOR_AUDIT_SALT_FILE", str(f))
+        assert get_audit_salt(strict=True) == b"file-secret"
+
+    def test_non_strict_still_falls_back(self):
+        assert get_audit_salt(strict=False) == b"director-ai-audit-v1"
+
+    def test_strict_env_falsey_allows_fallback(self, monkeypatch):
+        monkeypatch.setenv("DIRECTOR_AUDIT_SALT_STRICT", "0")
+        assert get_audit_salt() == b"director-ai-audit-v1"
+
+
+class TestProductionServerFailFast:
+    """create_app must refuse to build a production server without a real salt."""
+
+    @staticmethod
+    def _prod_cfg():
+        from director_ai.core.config import DirectorConfig
+
+        return DirectorConfig(
+            production_mode=True,
+            api_keys='["sk-test"]',
+            llm_api_url="https://llm.internal.example/v1",
+            knowledge_write_hmac_keys='{"kid-1":"signing-secret-at-least-32-chars-xx"}',
+        )
+
+    def test_production_without_salt_raises(self):
+        from director_ai.server import create_app
+
+        with pytest.raises(RuntimeError, match="audit salt"):
+            create_app(self._prod_cfg())
+
+    def test_production_with_salt_builds(self, monkeypatch):
+        from director_ai.server import create_app
+
+        monkeypatch.setenv("DIRECTOR_AUDIT_SALT", "prod-installation-salt")
+        app = create_app(self._prod_cfg())
+        assert app is not None
+
+    def test_non_production_builds_without_salt(self):
+        from director_ai.core.config import DirectorConfig
+        from director_ai.server import create_app
+
+        app = create_app(DirectorConfig(llm_provider="mock"))
+        assert app is not None
 
 
 def test_module_api_exports():
