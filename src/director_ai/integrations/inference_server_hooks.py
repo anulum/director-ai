@@ -13,10 +13,14 @@ from __future__ import annotations
 import math
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field
-from typing import Literal
+from typing import TYPE_CHECKING, Literal
 
 from director_ai.core.safety_event import SafetyEvent
-from director_ai.core.trajectory import PreHaltSteeringDecision
+
+if TYPE_CHECKING:
+    # Advanced-tier (BUSL-1.1) type used only in annotations; not required at
+    # runtime, so the Apache core wheel does not need core.trajectory installed.
+    from director_ai.core.trajectory import PreHaltSteeringDecision
 
 InferenceServerName = Literal["vllm", "tgi", "llama_cpp"]
 ScoreFn = Callable[[str], float]

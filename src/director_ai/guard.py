@@ -58,10 +58,6 @@ from director_ai.core.canary import (
 )
 from director_ai.core.config import DirectorConfig
 from director_ai.core.eval_trace import eval_record_from_guard, record_guard_decision
-from director_ai.core.financial_services import (
-    BankingPolicyReport,
-    assess_banking_response,
-)
 from director_ai.core.labelling_cockpit import ActiveLabellingCockpit
 from director_ai.core.risk_threshold import (
     RiskAdaptiveThreshold,
@@ -69,11 +65,15 @@ from director_ai.core.risk_threshold import (
     RiskThresholdDecision,
 )
 from director_ai.core.scoring.verified_scorer import VerifiedScorer
-from director_ai.core.streaming_repair import RepairResult
 from director_ai.core.types import CoherenceScore, InjectionResult
 
 if TYPE_CHECKING:
+    # Advanced-tier (BUSL-1.1) types used only in annotations — runtime imports
+    # are lazy inside the methods that need them, so the Apache core wheel does
+    # not require these modules to be installed.
+    from director_ai.core.financial_services import BankingPolicyReport
     from director_ai.core.safety.injection import InjectionDetector
+    from director_ai.core.streaming_repair import RepairResult
 
 logger = logging.getLogger("DirectorAI.Guard")
 
@@ -294,6 +294,13 @@ class ProductionGuard:
             raise ValueError(
                 "sector_policy must be one of: banking, financial-services"
             )
+        try:
+            from director_ai.core.financial_services import assess_banking_response
+        except ModuleNotFoundError as exc:  # pragma: no cover - advanced tier only
+            raise RuntimeError(
+                "sector_policy checks require the advanced tier "
+                "(director_ai.core.financial_services is not installed)."
+            ) from exc
         return assess_banking_response(
             prompt,
             response,
@@ -494,7 +501,13 @@ class ProductionGuard:
         Returns a :class:`RepairResult` with the corrected text, per-clause
         actions, and a tenant-safe repair event per fix.
         """
-        from director_ai.core.streaming_repair import StreamingRepairer
+        try:
+            from director_ai.core.streaming_repair import StreamingRepairer
+        except ModuleNotFoundError as exc:  # pragma: no cover - advanced tier only
+            raise RuntimeError(
+                "repair_stream requires the advanced tier "
+                "(director_ai.core.streaming_repair is not installed)."
+            ) from exc
 
         def _score_clause(clause: str) -> float:
             return self._scorer.review(prompt, clause, tenant_id=tenant_id)[1].score
