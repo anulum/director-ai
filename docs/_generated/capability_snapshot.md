@@ -13,7 +13,7 @@
 | Rust PyO3 bindings | 78 |
 | Optional extras | 54 |
 | Python test files | 475 |
-| Public documentation pages | 183 |
+| Public documentation pages | 184 |
 | GitHub Actions workflows | 11 |
 
 Evidence boundary: this snapshot is a static inventory. Performance, coverage, hardware, and scientific-fidelity claims require their own committed evidence artefacts.

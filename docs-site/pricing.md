@@ -148,6 +148,19 @@ stands behind them; the core that does the catching is free.
 
 ---
 
+## :material-heart: Prefer to support directly?
+
+Not ready for a licence but the project helps you? Donations directly fund
+development and are genuinely appreciated:
+
+- :material-credit-card: [PayPal](https://www.paypal.com/donate?hosted_button_id=4X5F6DNT934HY)
+- :material-cellphone: [TWINT](https://go.twint.ch/1/e/tw?tw=acq.lJTAypb8SL2s8vPg7fL0ubi2C220ajOH0BEQn1aKfEJIiIakLpt8jlEv8XdQ9tCp.)
+- :material-bank: **Bank transfer** — IBAN (CHF) `CH14 8080 8002 1898 7544 1` · IBAN (EUR) `CH66 8080 8002 8173 6061 8`
+- :material-bitcoin: **Crypto** — BTC `bc1qg48gdmrjrjumn6fqltvt0cf0w6nvs0wggy37zd` · ETH `0xd9b07F617bEff4aC9CAdC2a13Dd631B1980905FF` · LTC `ltc1q886tmvtlnj86kmg2urd8f5td3lmfh32xtpdrut`
+- :material-github: [GitHub Sponsors](https://github.com/sponsors/anulum)
+
+---
+
 ## :material-frequently-asked-questions: Questions
 
 ??? question "What exactly is free?"
