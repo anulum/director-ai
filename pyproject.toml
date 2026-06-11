@@ -322,11 +322,70 @@ Changelog = "https://github.com/anulum/director-ai/blob/main/CHANGELOG.md"
 Documentation = "https://anulum.github.io/director-ai"
 Discussions = "https://discord.gg/JvMdKv49"
 
+[tool.setuptools]
+# Do not sweep every git-tracked file into the wheel as package data — that would
+# re-introduce the excluded BUSL packages' .py files. Only the explicitly declared
+# package-data below ships; package source for the included (Apache core) packages
+# is included as normal.
+include-package-data = false
+
 [tool.setuptools.packages.find]
 where = ["src"]
+# Open-core release: the public PyPI wheel ships only the Apache-2.0 core. The
+# BUSL-1.1 advanced & labs packages below stay source-available in the repo but
+# are excluded from the published wheel. The core imports standalone without them
+# (verified via the basic-wheel import simulation); advanced features raise a
+# friendly "advanced tier required" error when invoked in a core-only install.
+exclude = [
+    "director_ai.agentic*",
+    "director_ai.compliance*",
+    "director_ai.enterprise*",
+    "director_ai.experimental*",
+    "director_ai.ui*",
+    "director_ai.voice*",
+    "director_ai.core.agent_identity*",
+    "director_ai.core.autopoietic*",
+    "director_ai.core.citation_grounding*",
+    "director_ai.core.continual_adversarial*",
+    "director_ai.core.customer_model_factory*",
+    "director_ai.core.defense_genome*",
+    "director_ai.core.dp_rag*",
+    "director_ai.core.emergence_oracle*",
+    "director_ai.core.execution_rings*",
+    "director_ai.core.federated_dp*",
+    "director_ai.core.financial_services*",
+    "director_ai.core.fuzzing*",
+    "director_ai.core.interpretability*",
+    "director_ai.core.meta_guard*",
+    "director_ai.core.ml_bom*",
+    "director_ai.core.multimodal_guard*",
+    "director_ai.core.multi_scale_alignment*",
+    "director_ai.core.neuro_symbolic*",
+    "director_ai.core.ontology*",
+    "director_ai.core.output_integrity*",
+    "director_ai.core.output_trust*",
+    "director_ai.core.rasp*",
+    "director_ai.core.routing*",
+    "director_ai.core.self_evolving*",
+    "director_ai.core.self_healing*",
+    "director_ai.core.streaming_repair*",
+    "director_ai.core.sustainability*",
+    "director_ai.core.swarm_economics*",
+    "director_ai.core.swarm_equilibrium*",
+    "director_ai.core.symbolic_chain*",
+    "director_ai.core.temporal_consistency*",
+    "director_ai.core.temporal_logic*",
+    "director_ai.core.threat_intel*",
+    "director_ai.core.trace_safe*",
+    "director_ai.core.trajectory*",
+]
 
 [tool.setuptools.package-data]
-director_ai = ["core/models/*.json"]
+director_ai = [
+    "py.typed",
+    "core/models/*.json",
+    "proto/**/*.pyi",
+]
 
 [tool.ruff]
 line-length = 88
