@@ -9,7 +9,9 @@
 
 from __future__ import annotations
 
+import logging
 import sys
+import warnings
 from types import SimpleNamespace
 from unittest.mock import Mock
 
@@ -114,6 +116,45 @@ def test_external_judge_applies_privacy_redactor_before_call(monkeypatch):
     assert result > 0.4
     assert "Alice" not in captured["messages"][1]["content"]
     assert "[REDACTED]" in captured["messages"][1]["content"]
+
+
+# -- External data-egress warning (0H) ---------------------------------------
+
+
+@pytest.mark.parametrize("provider", ["openai", "anthropic"])
+def test_external_provider_warns_on_construction(provider):
+    with pytest.warns(UserWarning, match="EXTERNAL"):
+        LLMJudge(provider=provider, model="m")
+
+
+def test_warning_reports_privacy_mode_off():
+    with pytest.warns(UserWarning, match="OFF \\(no redaction\\)"):
+        LLMJudge(provider="openai")
+
+
+def test_warning_reports_privacy_mode_on():
+    with pytest.warns(UserWarning, match="on \\(PII redacted\\)"):
+        LLMJudge(provider="openai", privacy_mode=True)
+
+
+def test_local_provider_does_not_warn():
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        LLMJudge(provider="local")  # no model → no load, no egress
+        LLMJudge(provider="")
+    assert not [w for w in caught if "EXTERNAL" in str(w.message)]
+
+
+def test_external_egress_is_logged(monkeypatch, caplog):
+    judge = LLMJudge(provider="openai", model="gpt-4o-mini")
+    monkeypatch.setattr(
+        judge,
+        "_call_llm_judge",
+        lambda m, msgs, fb: '{"verdict": "YES", "confidence": 80}',
+    )
+    with caplog.at_level(logging.INFO, logger="DirectorAI"):
+        judge._llm_judge_check("prompt", "response", 0.4)
+    assert any("external egress to openai" in r.message for r in caplog.records)
 
 
 def test_anthropic_call_uses_system_prompt_and_reports_usage(monkeypatch):

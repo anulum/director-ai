@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import logging
 import time
+import warnings
 from typing import Any, cast
 
 from ..metrics import metrics
@@ -28,6 +29,9 @@ LLM_JUDGE_DISAGREE_DIVERGENCE = 0.8
 LLM_JUDGE_LLM_WEIGHT = 0.3  # nli_w = 1.0 - llm_w * judge_conf
 
 logger = logging.getLogger("DirectorAI")
+
+# Providers that send prompt+response off the host to a third-party API.
+_EXTERNAL_PROVIDERS = frozenset({"openai", "anthropic"})
 
 
 class LLMJudge:
@@ -88,6 +92,17 @@ class LLMJudge:
         self._judge_cache: dict[int, float] = {}
         self._privacy_mode = privacy_mode
         self._cost_callback = cost_callback
+
+        if provider in _EXTERNAL_PROVIDERS:
+            egress_warning = (
+                f"LLM-as-judge is set to the EXTERNAL '{provider}' provider: a "
+                f"truncated prompt+response (<=500 chars) is sent to {provider} on "
+                f"each escalation. Do not enable on sensitive or regulated data "
+                f"without review. privacy_mode="
+                f"{'on (PII redacted)' if privacy_mode else 'OFF (no redaction)'}."
+            )
+            warnings.warn(egress_warning, stacklevel=2)
+            logger.warning(egress_warning)
 
         # Local DeBERTa-base judge model
         self._local_judge_model: Any | None = None
@@ -302,9 +317,17 @@ class LLMJudge:
 
         p_text = prompt[:500]
         r_text = response[:500]
-        if self._privacy_mode and redactor is not None:
+        redacted = self._privacy_mode and redactor is not None
+        if redacted:
             p_text = redactor(p_text)
             r_text = redactor(r_text)
+
+        logger.info(
+            "LLM-judge external egress to %s (model=%s, redacted=%s)",
+            self.provider,
+            model,
+            redacted,
+        )
 
         judge_messages = self._build_judge_messages(p_text, r_text, nli_score)
         with trace_judge(provider=self.provider or "external") as span:
