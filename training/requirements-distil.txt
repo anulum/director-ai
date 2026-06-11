@@ -575,9 +575,9 @@ cuda-pathfinder==1.5.4 \
 cuda-toolkit==13.0.2 \
     --hash=sha256:b198824cf2f54003f50d64ada3a0f184b42ca0846c1c94192fa269ecd97a66eb
     # via torch
-datasets==3.6.0 \
-    --hash=sha256:1b2bf43b19776e2787e181cfd329cb0ca1a358ea014780c3581e0f276375e041 \
-    --hash=sha256:25000c4a2c0873a710df127d08a202a06eab7bf42441a6bc278b499c2f72cd1b
+datasets==5.0.0 \
+    --hash=sha256:7dd34927a0fd7046e98aad5cb9430e699c373238a15befa7b9bf22b991a7fee6 \
+    --hash=sha256:83dbbbdb07a33b82192b8c419deb18739b138ee2ce1a322d55ce6b100954ec1a
     # via -r training/requirements-distil.in
 dill==0.3.8 \
     --hash=sha256:3ebe3c479ad625c4553aca177444d89b486b1d84982eeacded644afc0cf797ca \
@@ -837,7 +837,9 @@ httpcore==1.0.9 \
 httpx==0.28.1 \
     --hash=sha256:75e98c5f16b0f35b567856f597f06ff2270a374470a5c2392242528e3e3e42fc \
     --hash=sha256:d909fcccc110f8c7faf814ca82a9a4d816bc5a6dbfea25d6591d6985b8ba59ad
-    # via huggingface-hub
+    # via
+    #   datasets
+    #   huggingface-hub
 huggingface-hub==1.18.0 \
     --hash=sha256:729be4a976fb706dcc02d176bcda8a3f32bdf21a294e8f4b3dda6fbcbc9c1ab1 \
     --hash=sha256:f0c5ecd1ef8c6a60f86f61ee278f2c1570ba9e279c9f54de9094210723b3613b
