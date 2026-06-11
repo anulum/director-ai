@@ -181,15 +181,35 @@ nav:
       - DSPy / Instructor: integrations/dspy.md
   - Specifications:
       - Director Safety Telemetry v1: specs/director-safety-telemetry-v1.md
-  - API Reference:
+  - Core API:
       - Overview: api/index.md
       - guard / score / get_score: api/guard.md
       - CoherenceScorer: api/scorer.md
       - StreamingKernel: api/streaming.md
-      - Correction Loop: api/correction-loop.md
+      - NLI Backends: api/nli.md
+      - Fallback Model Registry: api/model-fallback.md
+      - Score Cache: api/cache.md
+      - Input Sanitizer: api/sanitizer.md
+      - Injection Detector: api/injection-detector.md
+      - VectorGroundTruthStore: api/vector-store.md
+      - Document Ingestion Pipeline: api/ingestion.md
+      - Knowledge API: api/knowledge.md
+      - VerifiedScorer: api/verified-scorer.md
+      - Answer Bill of Materials: api/answer-bom.md
+      - Evidence Packet (demo): api/evidence-packet.md
+      - Agent / MCP Preflight Guard: api/agent-preflight.md
       - Human Review Queue: api/human-review.md
       - Guard Control: api/guard-control.md
       - Policy Evaluation: api/policy-evaluation.md
+      - Correction Loop: api/correction-loop.md
+      - DirectorConfig: api/config.md
+      - Types & Dataclasses: api/types.md
+      - CoherenceAgent: api/agent.md
+      - BatchProcessor: api/batch.md
+      - REST Server: api/server.md
+      - CLI: api/cli.md
+      - Exceptions: api/exceptions.md
+  - Advanced & Labs:
       - Causal Attribution Graph: api/causal-attribution.md
       - Adaptive Threshold Learning: api/adaptive-threshold.md
       - Risk-Adaptive Thresholding: api/risk-adaptive-threshold.md
@@ -208,12 +228,9 @@ nav:
       - Mechanistic Interpretability (ReDeEP): api/mechanistic-interpretability.md
       - Hallucination Root-Cause Analysis: api/hallucination-root-cause.md
       - Evidence Firewall: api/evidence-firewall.md
-      - Answer Bill of Materials: api/answer-bom.md
       - Streaming Repair: api/streaming-repair.md
       - Counterfactual Canary Facts: api/canary-facts.md
-      - Agent / MCP Preflight Guard: api/agent-preflight.md
       - OpenTelemetry Eval Trace: api/eval-trace.md
-      - Evidence Packet (demo): api/evidence-packet.md
       - Defence Update Pipeline: api/defence-update-pipeline.md
       - Proactive Red-Team Engine: api/redteam-engine.md
       - Cross-Document Consistency Memory: api/cross-document-memory.md
@@ -246,30 +263,14 @@ nav:
       - Financial Services Policy: api/financial-services.md
       - Sustainability Scoring: api/sustainability-scoring.md
       - Agent Passport Registry: api/agent-passport-registry.md
-      - CoherenceAgent: api/agent.md
       - Conflict-Aware Knowledge Checks: api/conflict-aware-knowledge.md
-      - VectorGroundTruthStore: api/vector-store.md
-      - Document Ingestion Pipeline: api/ingestion.md
-      - BatchProcessor: api/batch.md
-      - DirectorConfig: api/config.md
-      - Types & Dataclasses: api/types.md
-      - NLI Backends: api/nli.md
-      - Fallback Model Registry: api/model-fallback.md
-      - Score Cache: api/cache.md
-      - Input Sanitizer: api/sanitizer.md
-      - Injection Detector: api/injection-detector.md
       - Enterprise: api/enterprise.md
-      - VerifiedScorer: api/verified-scorer.md
-      - Knowledge API: api/knowledge.md
-      - REST Server: api/server.md
       - gRPC Server: api/grpc.md
-      - CLI: api/cli.md
       - Customer Model Factory: api/customer-model-factory.md
       - Cyber-Physical Grounding: api/cyber-physical.md
       - Embodied-AI Robot Command Guard: api/embodied-ai-command-guard.md
       - Containment & Reality Anchor: api/containment.md
       - Cross-Org Passport: api/zk-attestation.md
-      - Exceptions: api/exceptions.md
   - Deployment:
       - Production Guide: deployment/production.md
       - Docker: deployment/docker.md
