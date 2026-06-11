@@ -7,7 +7,7 @@
     "public_api_exports": 218,
     "public_documentation_pages": 187,
     "python_model_classes": 907,
-    "python_model_source_modules": 397,
+    "python_model_source_modules": 398,
     "rust_pyo3_model_wrappers": 78,
     "test_files": 479
   },
@@ -2565,15 +2565,15 @@
       },
       {
         "name": "PIIRedactionFinding",
-        "path": "src/director_ai/enterprise/redactor.py"
+        "path": "src/director_ai/core/redactor.py"
       },
       {
         "name": "PIIRedactionReport",
-        "path": "src/director_ai/enterprise/redactor.py"
+        "path": "src/director_ai/core/redactor.py"
       },
       {
         "name": "PIIRedactor",
-        "path": "src/director_ai/enterprise/redactor.py"
+        "path": "src/director_ai/core/redactor.py"
       },
       {
         "name": "PairwiseAgreement",
@@ -4153,6 +4153,7 @@
       "src/director_ai/core/provenance/verifier.py",
       "src/director_ai/core/rasp/detector.py",
       "src/director_ai/core/rasp/monitor.py",
+      "src/director_ai/core/redactor.py",
       "src/director_ai/core/retrieval/adaptive_router.py",
       "src/director_ai/core/retrieval/conflict_guard.py",
       "src/director_ai/core/retrieval/contextual_compression.py",

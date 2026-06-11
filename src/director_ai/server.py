@@ -405,7 +405,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
                 block_threshold=cfg.sanitizer_block_threshold,
             )
 
-        from .enterprise.redactor import PIIRedactor
+        from .core.redactor import PIIRedactor
 
         app.state._state["redactor"] = PIIRedactor(enabled=cfg.redact_pii)
         if cfg.redact_pii:

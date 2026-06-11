@@ -7,13 +7,13 @@
 # Director-Class AI — safety moderation package
 
 """Additional PII and toxicity detectors beyond regex-only
-:class:`director_ai.enterprise.redactor.PIIRedactor`.
+:class:`director_ai.core.redactor.PIIRedactor`.
 
 Two detector families live here:
 
 * :mod:`.pii` — :class:`PresidioPIIDetector` (Microsoft Presidio NER
   plus recogniser rules) and :class:`RegexPIIDetector` (the
-  dependency-free baseline, extended from the enterprise redactor's
+  dependency-free baseline, extended from the core redactor's
   pattern list).
 * :mod:`.toxicity` — :class:`DetoxifyDetector` (Unitary
   ``detoxify`` multilingual classifier) and

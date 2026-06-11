@@ -9,7 +9,7 @@
 """Two PII detectors that implement :class:`ModerationDetector`.
 
 * :class:`RegexPIIDetector` extends the pattern list shipped by
-  :class:`director_ai.enterprise.redactor.PIIRedactor` with IBAN,
+  :class:`director_ai.core.redactor.PIIRedactor` with IBAN,
   passport, and IPv4 addresses; it has no optional dependencies and
   is the production default.
 * :class:`PresidioPIIDetector` wraps Microsoft Presidio

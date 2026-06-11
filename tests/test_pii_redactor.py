@@ -10,7 +10,7 @@
 
 from __future__ import annotations
 
-from director_ai.enterprise.redactor import PIIRedactor
+from director_ai.core.redactor import PIIRedactor
 
 
 def test_redact_with_report_masks_stable_categories_and_counts_findings() -> None:
@@ -90,3 +90,10 @@ def test_overlapping_matches_keep_longest_first_without_double_redaction() -> No
     assert report.redacted_text == "Use [CARD]."
     assert report.category_counts == {"card": 1}
     assert len(report.findings) == 1
+
+
+def test_enterprise_redactor_shim_reexports_core() -> None:
+    # Back-compat: the old import path still resolves to the moved core class.
+    from director_ai.enterprise.redactor import PIIRedactor as ShimRedactor
+
+    assert ShimRedactor is PIIRedactor

@@ -199,7 +199,7 @@ inventory below is reference for the deeper surface, navigable under
 |---|---:|
 | Package version | 3.15.3 |
 | Public API exports | 218 |
-| Python capability source modules | 397 |
+| Python capability source modules | 398 |
 | Python capability classes | 907 |
 | API documentation pages | 88 |
 | Rust PyO3 bindings | 78 |

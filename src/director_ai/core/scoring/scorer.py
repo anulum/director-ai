@@ -16,7 +16,6 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import cast
 
-from ...enterprise.redactor import PIIRedactor
 from ..cache import ScoreCache
 from ..mandatory import mandatory_execution
 from ..metrics import metrics
@@ -27,6 +26,7 @@ from ..otel import (
     trace_retrieval,
     trace_review,
 )
+from ..redactor import PIIRedactor
 from ..types import CoherenceScore, EvidenceChunk, ScoringEvidence
 from ._llm_judge import LLMJudge
 from ._task_scoring import (
