@@ -137,6 +137,11 @@ class DirectorConfig:
     nli_model_artifact_uri: str = ""
     nli_model_revision: str = "0430e3509dbd28d2dff7a117c0eae25359ff3e80"
     nli_max_length: int = 512  # >512 for long-context models (Longformer, BigBird)
+    # When True, resolve nli_model through the fallback registry at build time:
+    # if the primary is delisted/unreachable on the Hub, degrade to a vetted
+    # alternate NLI model instead of the heuristic floor. Probes the Hub at
+    # startup, so it is off by default.
+    model_fallback_enabled: bool = False
     max_candidates: int = 3
     history_window: int = 5
 
@@ -1223,14 +1228,24 @@ class DirectorConfig:
 
         resolved_backend = self._resolve_scorer_backend()
 
+        nli_model = self.nli_model
+        nli_revision = self.nli_model_revision or None
+        if self.model_fallback_enabled:
+            from .model_registry import FallbackModelRegistry
+
+            resolved = FallbackModelRegistry().resolve(
+                "nli", nli_model, primary_revision=nli_revision
+            )
+            nli_model, nli_revision = resolved.model_id, resolved.revision
+
         kw: dict = {
             "threshold": self.coherence_threshold,
             "use_nli": self.use_nli,
             "require_model_backed_nli": self.coherence_require_model_backed_nli,
             "scorer_backend": resolved_backend,
             "soft_limit": self.soft_limit,
-            "nli_model": self.nli_model,
-            "nli_revision": self.nli_model_revision or None,
+            "nli_model": nli_model,
+            "nli_revision": nli_revision,
             "nli_max_length": self.nli_max_length,
             "llm_judge_enabled": self.llm_judge_enabled,
             "llm_judge_confidence_threshold": self.llm_judge_confidence_threshold,

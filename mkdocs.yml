@@ -254,6 +254,7 @@ nav:
       - DirectorConfig: api/config.md
       - Types & Dataclasses: api/types.md
       - NLI Backends: api/nli.md
+      - Fallback Model Registry: api/model-fallback.md
       - Score Cache: api/cache.md
       - Input Sanitizer: api/sanitizer.md
       - Injection Detector: api/injection-detector.md

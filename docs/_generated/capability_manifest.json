@@ -2,14 +2,14 @@
   "SPDX-License-Identifier": "AGPL-3.0-or-later",
   "counts": {
     "github_workflows": 11,
-    "model_documentation_pages": 87,
+    "model_documentation_pages": 88,
     "optional_extras": 54,
     "public_api_exports": 216,
-    "public_documentation_pages": 182,
-    "python_model_classes": 898,
-    "python_model_source_modules": 393,
+    "public_documentation_pages": 183,
+    "python_model_classes": 901,
+    "python_model_source_modules": 394,
     "rust_pyo3_model_wrappers": 78,
-    "test_files": 473
+    "test_files": 474
   },
   "documentation": {
     "public_pages": [
@@ -66,6 +66,7 @@
       "docs-site/api/mechanistic-interpretability.md",
       "docs-site/api/meta-guard.md",
       "docs-site/api/ml-bom.md",
+      "docs-site/api/model-fallback.md",
       "docs-site/api/multimodal-checks.md",
       "docs-site/api/neuro-symbolic-compliance.md",
       "docs-site/api/neuro-symbolic-verifier.md",
@@ -269,6 +270,7 @@
       "mechanistic-interpretability.md",
       "meta-guard.md",
       "ml-bom.md",
+      "model-fallback.md",
       "multimodal-checks.md",
       "neuro-symbolic-compliance.md",
       "neuro-symbolic-verifier.md",
@@ -564,6 +566,10 @@
       {
         "name": "AutopoieticEngine",
         "path": "src/director_ai/core/autopoietic/engine.py"
+      },
+      {
+        "name": "AvailabilityProbe",
+        "path": "src/director_ai/core/model_registry.py"
       },
       {
         "name": "BFTConsensusResult",
@@ -1468,6 +1474,10 @@
       {
         "name": "FailureStore",
         "path": "src/director_ai/core/continual_adversarial/failure.py"
+      },
+      {
+        "name": "FallbackModelRegistry",
+        "path": "src/director_ai/core/model_registry.py"
       },
       {
         "name": "FederatedCalibrationRound",
@@ -2970,6 +2980,10 @@
         "path": "src/director_ai/core/retrieval/vector_store/composite.py"
       },
       {
+        "name": "ResolvedModel",
+        "path": "src/director_ai/core/model_registry.py"
+      },
+      {
         "name": "ResourcePool",
         "path": "src/director_ai/core/swarm_economics/pool.py"
       },
@@ -4065,6 +4079,7 @@
       "src/director_ai/core/metrics.py",
       "src/director_ai/core/ml_bom/bom.py",
       "src/director_ai/core/ml_bom/components.py",
+      "src/director_ai/core/model_registry.py",
       "src/director_ai/core/model_revisions.py",
       "src/director_ai/core/multi_scale_alignment/aligner.py",
       "src/director_ai/core/multi_scale_alignment/conflict.py",
@@ -4940,6 +4955,7 @@
       "tests/test_ml_bom.py",
       "tests/test_model_benchmark_packages.py",
       "tests/test_model_package_vertex_campaign.py",
+      "tests/test_model_registry.py",
       "tests/test_model_revision_policy.py",
       "tests/test_moderation.py",
       "tests/test_multi_hook_trace_attribution.py",
