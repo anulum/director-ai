@@ -1,6 +1,6 @@
 # ─────────────────────────────────────────────────────────────────────
 # Director-Class AI — Production Docker Image
-# (C) 1998-2026 Miroslav Sotek. All rights reserved.
+# © 1998-2026 Miroslav Sotek. All rights reserved.
 # License: Apache-2.0
 # ─────────────────────────────────────────────────────────────────────
 #

@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 # Commercial license available
-# Copyright (c) Concepts 1996-2026 Miroslav Sotek. All rights reserved.
-# Copyright (c) Code 2020-2026 Miroslav Sotek. All rights reserved.
+# Copyright © Concepts 1996-2026 Miroslav Sotek. All rights reserved.
+# Copyright © Code 2020-2026 Miroslav Sotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI - Scorer model choice tests

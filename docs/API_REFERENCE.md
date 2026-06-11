@@ -461,6 +461,6 @@ director-ai production-check --path director_guard  # validate production scaffo
 
 **Organization**: Anulum CH&LI / Anulum Institute
 **Author**: Miroslav Sotek -- ORCID [0009-0009-3560-0851](https://orcid.org/0009-0009-3560-0851)
-**Copyright**: (C) 1998-2026 Miroslav Sotek. All rights reserved.
+**Copyright**: © 1998-2026 Miroslav Sotek. All rights reserved.
 **Website**: [www.anulum.li](https://www.anulum.li)
 **License**: Apache-2.0 core / BUSL-1.1 advanced | Commercial licensing available

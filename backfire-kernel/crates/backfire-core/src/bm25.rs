@@ -7,7 +7,7 @@
 // Director-Class AI — bm25
 // ─────────────────────────────────────────────────────────────────────
 // Director-Class AI — Backfire Kernel BM25 Retrieval Engine (Rust)
-// (C) 1998-2026 Miroslav Šotek. All rights reserved.
+// © 1998-2026 Miroslav Šotek. All rights reserved.
 // License: Apache-2.0
 // ─────────────────────────────────────────────────────────────────────
 //! BM25 sparse retrieval engine for the HybridBackend.

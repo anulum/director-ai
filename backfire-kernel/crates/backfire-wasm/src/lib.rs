@@ -7,7 +7,7 @@
 // Director-Class AI — lib
 // ─────────────────────────────────────────────────────────────────────
 // Director-Class AI — Backfire WASM Edge
-// (C) 1998-2026 Miroslav Šotek. All rights reserved.
+// © 1998-2026 Miroslav Šotek. All rights reserved.
 // License: Apache-2.0
 // ─────────────────────────────────────────────────────────────────────
 

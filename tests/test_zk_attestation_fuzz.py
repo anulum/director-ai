@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-# Copyright (c) 2020-2026 Miroslav Sotek
+# Copyright © 2020-2026 Miroslav Sotek
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
 # Project: Director-Class AI

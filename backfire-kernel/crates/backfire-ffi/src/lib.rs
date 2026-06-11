@@ -7,7 +7,7 @@
 // Director-Class AI — lib
 // ─────────────────────────────────────────────────────────────────────
 // Director-Class AI — Backfire Kernel PyO3 FFI Bindings
-// (C) 1998-2026 Miroslav Šotek. All rights reserved.
+// © 1998-2026 Miroslav Šotek. All rights reserved.
 // License: Apache-2.0
 // ─────────────────────────────────────────────────────────────────────
 // Note: #[deny(unsafe_code)] not applied — PyO3 proc macros generate

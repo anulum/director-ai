@@ -7,7 +7,7 @@
 // Director-Class AI — signals
 // ─────────────────────────────────────────────────────────────────────
 // Director-Class AI — Backfire Kernel Verification Signals (Rust)
-// (C) 1998-2026 Miroslav Šotek. All rights reserved.
+// © 1998-2026 Miroslav Šotek. All rights reserved.
 // License: Apache-2.0
 // ─────────────────────────────────────────────────────────────────────
 //! Fast verification signal functions for the VerifiedScorer.

@@ -7,7 +7,7 @@
 // Director-Class AI — lib
 // ─────────────────────────────────────────────────────────────────────
 // Director-Class AI — SSGF Geometry Engine
-// (C) 1998-2026 Miroslav Šotek. All rights reserved.
+// © 1998-2026 Miroslav Šotek. All rights reserved.
 // License: Apache-2.0
 // ─────────────────────────────────────────────────────────────────────
 #![deny(unsafe_code)]
