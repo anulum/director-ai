@@ -203,7 +203,7 @@ inventory below is reference for the deeper surface, navigable under
 | Python capability classes | 907 |
 | API documentation pages | 88 |
 | Rust PyO3 bindings | 78 |
-| Optional extras | 54 |
+| Optional extras | 57 |
 | Python test files | 479 |
 | Public documentation pages | 186 |
 | GitHub Actions workflows | 11 |
@@ -401,11 +401,21 @@ Also available: LangChain, LlamaIndex, LangGraph, Haystack, CrewAI, Semantic Ker
 
 ## Installation
 
+Three buyer-facing bundles cover most needs — no need to assemble extras by hand:
+
 ```bash
-pip install "director-ai[nli]"                    # recommended — NLI model scoring (75.6% BA)
+pip install director-ai                            # core: rule-based + heuristic + streaming halt (zero ML deps)
+pip install "director-ai[recommended]"             # production guardrail: NLI scoring + RAG + REST API
+pip install "director-ai[integrations]"            # framework adapters (LangChain, LlamaIndex, LangGraph, …)
+pip install "director-ai[all]"                     # the common capability set in one shot
+```
+
+Or pick granular extras for fine control:
+
+```bash
+pip install "director-ai[nli]"                     # NLI model scoring (75.6% BA)
 pip install "director-ai[embed]"                   # embedding scorer (~65% BA, CPU-only, 3ms)
-pip install director-ai                            # rule-based + heuristic (zero ML deps, <1ms)
-pip install "director-ai[nli,vector,server]"       # production stack with RAG + REST API
+pip install "director-ai[nli,vector,server]"       # equivalent to [recommended]
 pip install "director-ai[ui]"                      # config wizard (Gradio web UI)
 pip install "director-ai[reports]"                 # PDF/HTML compliance reports
 pip install "director-ai[physical]"                # MuJoCo physical adapter runtime

@@ -3,7 +3,7 @@
   "counts": {
     "github_workflows": 11,
     "model_documentation_pages": 88,
-    "optional_extras": 54,
+    "optional_extras": 57,
     "public_api_exports": 218,
     "public_documentation_pages": 186,
     "python_model_classes": 907,
@@ -4641,6 +4641,7 @@
   ],
   "packaging": {
     "optional_extras": [
+      "all",
       "anthropic",
       "auto-kb",
       "autogen",
@@ -4664,6 +4665,7 @@
       "ingestion-gdrive",
       "ingestion-notion",
       "ingestion-s3",
+      "integrations",
       "langchain",
       "langfuse",
       "langgraph",
@@ -4682,6 +4684,7 @@
       "presidio",
       "qdrant",
       "quantize",
+      "recommended",
       "reports",
       "reranker",
       "research",

@@ -46,6 +46,36 @@ dependencies = [
 backfire-kernel = { path = "backfire-kernel/crates/backfire-ffi" }
 
 [project.optional-dependencies]
+# --- Buyer-facing bundles -------------------------------------------------
+# Three entry points that compose the granular extras below, so you do not have
+# to assemble them by hand. The granular extras stay available for fine control.
+recommended = [
+    "director-ai[nli]",
+    "director-ai[vector]",
+    "director-ai[server]",
+]
+integrations = [
+    "director-ai[langchain]",
+    "director-ai[llamaindex]",
+    "director-ai[langgraph]",
+    "director-ai[haystack]",
+    "director-ai[crewai]",
+    "director-ai[autogen]",
+]
+all = [
+    "director-ai[recommended]",
+    "director-ai[integrations]",
+    "director-ai[onnx]",
+    "director-ai[reranker]",
+    "director-ai[embeddings]",
+    "director-ai[minicheck]",
+    "director-ai[grpc]",
+    "director-ai[otel]",
+    "director-ai[moderation]",
+    "director-ai[presidio]",
+    "director-ai[toxicity]",
+]
+# --- Granular extras ------------------------------------------------------
 nli = [
     "torch>=2.8,<3",
     "transformers>=5.0.0rc3,<6",

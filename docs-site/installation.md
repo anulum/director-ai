@@ -1,5 +1,17 @@
 # Installation
 
+## Buyer-facing bundles
+
+Three bundles compose the granular extras so you do not have to assemble them by
+hand. The granular extras (below) remain available for fine control.
+
+```bash
+pip install director-ai                  # core: scoring + streaming halt, zero ML deps
+pip install "director-ai[recommended]"   # production guardrail: NLI + RAG + REST API
+pip install "director-ai[integrations]"  # framework adapters (LangChain, LlamaIndex, …)
+pip install "director-ai[all]"           # the common capability set in one shot
+```
+
 ## Base Package
 
 ```bash

@@ -11,7 +11,7 @@
 | Python capability classes | 907 |
 | API documentation pages | 88 |
 | Rust PyO3 bindings | 78 |
-| Optional extras | 54 |
+| Optional extras | 57 |
 | Python test files | 479 |
 | Public documentation pages | 186 |
 | GitHub Actions workflows | 11 |
