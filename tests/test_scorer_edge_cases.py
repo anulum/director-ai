@@ -393,7 +393,11 @@ class TestScorerCoverageGaps:
         minicheck = scorer._get_minicheck_scorer()
 
         assert minicheck is scorer._get_minicheck_scorer()
-        assert minicheck.kwargs == {"use_model": True, "backend": "minicheck"}
+        assert minicheck.kwargs == {
+            "use_model": True,
+            "backend": "minicheck",
+            "minicheck_variant": "deberta-v3-large",
+        }
 
         class FailingMiniCheck:
             def __init__(self, **kwargs):

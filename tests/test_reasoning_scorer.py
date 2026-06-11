@@ -13,7 +13,7 @@ HarmBench category mapping, the ``"none"`` sentinel, malformed/non-dict JSON,
 out-of-range and non-numeric confidence, issue-list coercion), the
 confidence-scaled blend (approve raises, reject lowers, clamped), provider
 dispatch local-vs-API, ``reason`` end-to-end with a faked backend including the
-unavailable/unparseable short-circuits, ``ReasoningVerdict.to_dict``, and the
+unavailable/unparsable short-circuits, ``ReasoningVerdict.to_dict``, and the
 ``CoherenceScorer`` wiring: default-off neutrality plus the on-path that flips a
 borderline verdict and tags it with rationale + harm category.
 """

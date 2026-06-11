@@ -1524,7 +1524,7 @@ class CoherenceScorer:
         Fires only when the composite score sits within the reasoning tier's
         margin of *threshold*. A parsed verdict blends into the score and tags
         the result with rationale + harm category; an unavailable backend or an
-        unparseable reply leaves the lower-tier verdict untouched. Approval then
+        unparsable reply leaves the lower-tier verdict untouched. Approval then
         requires both the blended score to clear the threshold *and* the
         reasoning verdict to approve, so a confident safety rejection halts a
         borderline output."""
