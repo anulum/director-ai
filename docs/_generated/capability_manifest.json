@@ -6,10 +6,10 @@
     "optional_extras": 54,
     "public_api_exports": 216,
     "public_documentation_pages": 185,
-    "python_model_classes": 905,
+    "python_model_classes": 906,
     "python_model_source_modules": 396,
     "rust_pyo3_model_wrappers": 78,
-    "test_files": 477
+    "test_files": 478
   },
   "documentation": {
     "public_pages": [
@@ -1588,6 +1588,10 @@
       {
         "name": "FirewallContext",
         "path": "src/director_ai/core/evidence_firewall/policy.py"
+      },
+      {
+        "name": "FirewallDecision",
+        "path": "src/director_ai/guard.py"
       },
       {
         "name": "FirewallPolicy",
@@ -4896,6 +4900,7 @@
       "tests/test_grpc_scoring.py",
       "tests/test_grpc_server.py",
       "tests/test_guard_control.py",
+      "tests/test_guard_firewall.py",
       "tests/test_guardrails_ai_integration.py",
       "tests/test_hallubench_eval.py",
       "tests/test_halluhard_eval.py",

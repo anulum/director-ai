@@ -91,6 +91,38 @@ class GuardResult:
     uncertainty_action: str | None = None
 
 
+@dataclass(frozen=True)
+class FirewallDecision:
+    """Unified output of :meth:`ProductionGuard.firewall`.
+
+    One pass over a response runs every enabled guard — hallucination
+    (coherence), prompt injection, and content moderation (PII + toxicity) — and
+    folds them into a single block/allow decision. ``blocked`` is ``True`` when
+    any guard fires; ``reasons`` lists why, and the per-guard fields carry the
+    detail for an audit trail.
+    """
+
+    blocked: bool
+    approved: bool
+    coherence: CoherenceScore
+    injection_detected: bool
+    injection_risk: float
+    moderation_flags: tuple[str, ...]
+    reasons: tuple[str, ...]
+
+    def to_dict(self) -> dict[str, object]:
+        """Tenant-safe summary (no raw response text)."""
+        return {
+            "blocked": self.blocked,
+            "approved": self.approved,
+            "coherence_score": round(self.coherence.score, 4),
+            "injection_detected": self.injection_detected,
+            "injection_risk": round(self.injection_risk, 4),
+            "moderation_flags": list(self.moderation_flags),
+            "reasons": list(self.reasons),
+        }
+
+
 class ProductionGuard:
     """Batteries-included guardrail for production deployments.
 
@@ -119,6 +151,7 @@ class ProductionGuard:
         self._feedback: Any = None
         self._uncertainty_router: Any = None
         self._injection_detector: InjectionDetector | None = None
+        self._moderation_detectors: Any = None
         self._canary_registry: CanaryRegistry | None = None
         self._canary_detector: CanaryDetector | None = None
         self._preflight: AgentPreflightGuard | None = None
@@ -338,6 +371,89 @@ class ProductionGuard:
             response=response,
             user_query=user_query,
             system_prompt=system_prompt,
+        )
+
+    def set_moderation_detectors(self, detectors: list[Any]) -> None:
+        """Override the moderation detectors used by :meth:`firewall`.
+
+        Each detector must implement ``analyse(text) -> ModerationResult``. The
+        default is the dependency-free regex PII + keyword toxicity pair; swap in
+        ``PresidioPIIDetector`` / ``DetoxifyDetector`` for stronger coverage.
+        """
+        self._moderation_detectors = list(detectors)
+
+    def _ensure_moderation(self) -> list[Any]:
+        """Lazily build the default dependency-free moderation detectors."""
+        if self._moderation_detectors is None:
+            from director_ai.core.safety.moderation import (
+                KeywordToxicityDetector,
+                RegexPIIDetector,
+            )
+
+            self._moderation_detectors = [
+                RegexPIIDetector(),
+                KeywordToxicityDetector(),
+            ]
+        detectors: list[Any] = list(self._moderation_detectors)
+        return detectors
+
+    def firewall(
+        self,
+        prompt: str,
+        response: str,
+        *,
+        system_prompt: str = "",
+        check_injection: bool = True,
+        moderate: bool = True,
+    ) -> FirewallDecision:
+        """Run every enabled guard in one pass and fold them into one decision.
+
+        Composes the hallucination guard (coherence), the prompt-injection
+        detector, and the content-moderation detectors (PII + toxicity) over a
+        single ``(prompt, response)`` pair. ``blocked`` is ``True`` when any
+        guard fires; ``reasons`` explains which. Injection and moderation can be
+        toggled off for latency-sensitive paths.
+        """
+        result = self.check(prompt, response)
+        reasons: list[str] = []
+        if not result.approved:
+            reasons.append(
+                f"hallucination: coherence {result.score:.3f} below threshold"
+            )
+
+        injection_detected = False
+        injection_risk = 0.0
+        if check_injection:
+            inj = self.check_injection(
+                intent=prompt,
+                response=response,
+                user_query=prompt,
+                system_prompt=system_prompt,
+            )
+            injection_detected = inj.injection_detected
+            injection_risk = inj.injection_risk
+            if injection_detected:
+                reasons.append(f"prompt injection: risk {injection_risk:.3f}")
+
+        moderation_flags: list[str] = []
+        if moderate:
+            for detector in self._ensure_moderation():
+                mod = detector.analyse(response)
+                if mod.flagged:
+                    moderation_flags.append(mod.detector)
+                    reasons.append(
+                        f"moderation: {mod.detector} flagged {len(mod.matches)} match(es)"
+                    )
+
+        blocked = bool(reasons)
+        return FirewallDecision(
+            blocked=blocked,
+            approved=result.approved,
+            coherence=result.coherence,
+            injection_detected=injection_detected,
+            injection_risk=injection_risk,
+            moderation_flags=tuple(moderation_flags),
+            reasons=tuple(reasons),
         )
 
     def verify_tool(
