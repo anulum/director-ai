@@ -68,6 +68,40 @@ External security test packet:
 Execution gate:
 [`security/EXTERNAL_SECURITY_TEST_RUNBOOK.md`](security/EXTERNAL_SECURITY_TEST_RUNBOOK.md).
 
+## Known Open Advisories (no upstream fix available)
+
+Two transitive dependencies carry advisories for which **no patched release
+exists**, so they cannot be resolved by upgrade. Both are assessed as
+**not exploitable in Director-AI's execution path**; each is left as an open,
+tracked Dependabot alert and will be upgraded the moment a fixed version ships.
+
+### chromadb — CVE-2026-45829 / GHSA-f4j7-r4q5-qw2c (critical)
+
+Pre-authentication code injection via the ChromaDB **server's** collections
+endpoint when a request supplies a malicious model repository with
+`trust_remote_code=true`. Vulnerable range `>=1.0.0, <=1.5.9`; the latest PyPI
+release (1.5.9) is the top of that range, so there is no fixed version.
+
+**Exposure: effectively nil.** chromadb is an optional vector backend. The
+`ChromaBackend` integration uses chromadb in **embedded** mode only
+(`PersistentClient(path=…)` / in-memory `Client()`), never `HttpClient` against a
+running server and never `trust_remote_code` — the vulnerable code path (the
+server's HTTP collections endpoint) is not reachable from Director-AI.
+
+### torch — GHSA-rrmf-rvhw-rf47 (low)
+
+Memory corruption through `torch.jit.script`. Vulnerable range `<= 2.12.0`; no
+patched release exists.
+
+**Exposure: effectively nil.** Director-AI does not call `torch.jit.script` (the
+only reference is a deprecation-warning suppression comment, not an invocation),
+so the vulnerable function is never reached.
+
+When the NLI model repository itself becomes unavailable on the Hub, the opt-in
+**fallback model registry** (`DirectorConfig.model_fallback_enabled`) degrades to
+a vetted, revision-pinned alternate model rather than failing — narrowing the
+supply-chain availability surface.
+
 ## Residual Risks (documented for transparency)
 
 ### Regex-based injection detection (Stage 1) bypass
@@ -135,9 +169,12 @@ attack surface. A compromised upstream package could execute arbitrary
 code at model-load time.
 
 **Mitigation**: ``MODEL_REGISTRY`` with pinned revision SHAs.
-``use_model=False`` fallback available. SBOM generation in release
+``use_model=False`` fallback available. The opt-in fallback model registry
+(``model_fallback_enabled``) degrades to a vetted, revision-pinned alternate
+model if the primary is delisted on the Hub. SBOM generation in release
 pipeline. Sigstore signing of published packages. Consider airgapped
-deployment for highest-security environments.
+deployment for highest-security environments. Currently open, no-fix
+advisories are tracked under *Known Open Advisories* above.
 
 Deployment notes for torch, transformers, ONNX Runtime, Chroma, and other
 heavy optional packages live in

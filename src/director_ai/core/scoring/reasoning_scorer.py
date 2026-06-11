@@ -38,10 +38,16 @@ from __future__ import annotations
 
 import json
 import logging
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import Any, cast
 
 from ..safety.harm_taxonomy import HarmCategory, to_harm_category
+
+# A PII redactor: maps a text span to its redacted form.
+Redactor = Callable[[str], str]
+# A cost sink: receives (model, prompt_tokens, completion_tokens) per API call.
+CostCallback = Callable[[str, int, int], None]
 
 __all__ = ["ReasoningScorer", "ReasoningVerdict"]
 
@@ -121,7 +127,7 @@ class ReasoningScorer:
         device: str | None = None,
         privacy_mode: bool = False,
         max_new_tokens: int = 256,
-        cost_callback=None,
+        cost_callback: CostCallback | None = None,
     ) -> None:
         if not 0.0 < escalation_margin <= 0.5:
             raise ValueError("escalation_margin must be in (0, 0.5]")
@@ -167,7 +173,7 @@ class ReasoningScorer:
         *,
         task_type: str = "default",
         evidence_text: str = "",
-        redactor=None,
+        redactor: Redactor | None = None,
     ) -> ReasoningVerdict | None:
         """Run the reasoning tier and return a structured verdict.
 
@@ -196,7 +202,7 @@ class ReasoningScorer:
         score: float,
         task_type: str,
         evidence_text: str,
-        redactor,
+        redactor: Redactor | None,
     ) -> str | None:
         p_text, r_text, e_text = prompt[:1500], response[:1500], evidence_text[:1500]
         if self._privacy_mode and redactor is not None:
