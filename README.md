@@ -161,7 +161,7 @@ to run a scoped pilot.
 
 ### Core capabilities
 
-- **Token-level streaming halt** — severs output mid-generation when coherence degrades. Not post-hoc review.
+- **Token-level streaming halt** — severs output mid-generation when coherence degrades. Not post-hoc review. Publicly shipped and [Zenodo-deposited](https://doi.org/10.5281/zenodo.18822166) in early 2026, ahead of the streaming-guardrail literature.
 - **Dual-entropy scoring** — NLI contradiction detection (0.4B DeBERTa) + RAG fact-checking against your knowledge base.
 - **Selectable scorer models** — choose a benchmarked local scorer profile for the latency/accuracy trade-off you need, without changing the guarded LLM provider.
 - **Customer Model Factory primitives** — validate customer-owned guardrail
