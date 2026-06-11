@@ -123,6 +123,7 @@ def main(argv: list[str] | None = None) -> None:
         "cost-report": _cmd_cost_report,
         "evidence": _cmd_evidence,
         "verify-evidence": _cmd_verify_evidence,
+        "verify-audit": _cmd_verify_audit,
     }
 
     if cmd not in commands:
@@ -167,7 +168,8 @@ def _print_help() -> None:
         "  kpis --input F [--format text|markdown|json]  Board-level guardrail KPIs\n"
         "  cost-report [--format F]  Token cost report (text|json|html)\n"
         "  evidence [--emit DIR]  Run the narrow demo, emit a verifiable packet\n"
-        "  verify-evidence <DIR>  Verify an emitted evidence packet\n",
+        "  verify-evidence <DIR>  Verify an emitted evidence packet\n"
+        "  verify-audit <FILE>  Verify an audit log's tamper-evident hash chain\n",
     )
 
 
@@ -805,6 +807,37 @@ def _cmd_verify_evidence(args: list[str]) -> None:
         print(f"Evidence packet VERIFIED: {target}")
     else:
         print(f"Evidence packet INVALID ({reason}): {target}")
+        sys.exit(1)
+
+
+def _cmd_verify_audit(args: list[str]) -> None:
+    """Verify the tamper-evident hash chain of an audit JSONL log.
+
+    Usage: director-ai verify-audit <audit.jsonl> [--secret KEY]
+    (the secret defaults to DIRECTOR_AUDIT_HMAC_SECRET; it must match the one
+    that wrote the log for the HMAC tags to validate).
+    """
+    if not args:
+        print("Usage: director-ai verify-audit <audit.jsonl> [--secret KEY]")
+        sys.exit(1)
+    path = Path(args[0])
+    if not path.exists():
+        print(f"Error: audit log not found at {path}")
+        sys.exit(1)
+
+    secret = None
+    if "--secret" in args:
+        idx = args.index("--secret")
+        if idx + 1 < len(args):
+            secret = args[idx + 1]
+
+    from director_ai.core.safety.audit import AuditLogger
+
+    ok, bad_index = AuditLogger(hmac_secret=secret).verify_chain(path)
+    if ok:
+        print(f"Audit chain VERIFIED: {path}")
+    else:
+        print(f"Audit chain TAMPERED at entry {bad_index}: {path}")
         sys.exit(1)
 
 
