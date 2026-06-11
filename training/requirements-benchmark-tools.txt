@@ -116,9 +116,9 @@ coverage==7.14.0 \
     --hash=sha256:fb609b3658479e33f9516d46f1a89dbb9b6c261366e3a11844a96ec487533dae \
     --hash=sha256:fcaba850dd317c65423a9d63d88f9573c53b00354d6dd95724576cc98a131595
     # via pytest-cov
-hypothesis==6.151.10 \
-    --hash=sha256:6c9565af8b4aa3a080b508f66ce9c2a77dd613c7e9073e27fc7e4ef9f45f8a27 \
-    --hash=sha256:b0d7728f0c8c2be009f89fcdd6066f70c5439aa0f94adbb06e98261d05f49b05
+hypothesis==6.155.2 \
+    --hash=sha256:ae36880287c9c5defe9f199d3d2b67d9947a4da2a46e6c57373cbdf2345b20e1 \
+    --hash=sha256:c85ce6dcd630a90ce501f1d1dd1bc84b97f5649ca8a27e134c8cbf5aa480b1a5
     # via -r training/requirements-benchmark-tools.in
 iniconfig==2.3.0 \
     --hash=sha256:c76315c77db068650d49c5b56314774a7804df16fee4402c1f19d6d15d8c4730 \
