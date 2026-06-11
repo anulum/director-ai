@@ -2,7 +2,7 @@
 # ─────────────────────────────────────────────────────────────────────
 # Director-Class AI — GPU Training Script (UpCloud L40S)
 # © 1998–2026 Miroslav Šotek. All rights reserved.
-# License: GNU AGPL v3 | Commercial licensing available
+# License: Apache-2.0
 # ─────────────────────────────────────────────────────────────────────
 #
 # Run on UpCloud GPU-8xCPU-64GB-1xL40S (€1.11/h, fi-hel2).

@@ -1,5 +1,5 @@
 {
-  "SPDX-License-Identifier": "AGPL-3.0-or-later",
+  "SPDX-License-Identifier": "Apache-2.0 AND BUSL-1.1",
   "counts": {
     "github_workflows": 11,
     "model_documentation_pages": 88,
@@ -136,7 +136,6 @@
       "docs-site/deployment/supply-chain.md",
       "docs-site/deployment/wasm-runtime.md",
       "docs-site/glossary.md",
-      "docs-site/guide/agpl-compliance.md",
       "docs-site/guide/architecture.md",
       "docs-site/guide/compliance-reporting.md",
       "docs-site/guide/config.md",
@@ -166,6 +165,7 @@
       "docs-site/guide/rust-benchmarks.md",
       "docs-site/guide/rust-ffi.md",
       "docs-site/guide/scoring.md",
+      "docs-site/guide/source-availability.md",
       "docs-site/guide/streaming-overhead.md",
       "docs-site/guide/streaming.md",
       "docs-site/guide/structured-verification.md",
@@ -4669,9 +4669,7 @@
     ]
   },
   "project": {
-    "license": {
-      "text": "AGPL-3.0-or-later"
-    },
+    "license": "Apache-2.0 AND BUSL-1.1",
     "name": "director-ai",
     "readme": "README.md",
     "requires_python": ">=3.11",

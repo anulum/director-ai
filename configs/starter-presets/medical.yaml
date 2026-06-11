@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: AGPL-3.0-or-later
+# SPDX-License-Identifier: Apache-2.0
 # Director-AI starter preset: biomedical or clinical fact review.
 # High-stakes use requires curated KB grounding and domain calibration.
 profile: medical

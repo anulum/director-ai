@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: AGPL-3.0-or-later
+# SPDX-License-Identifier: Apache-2.0
 # Commercial license available
 # © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
@@ -600,7 +600,7 @@ def build_app() -> gr.Blocks:
             "---\n"
             "[GitHub](https://github.com/anulum/director-ai) | "
             "[PyPI](https://pypi.org/project/director-ai/) | "
-            "AGPL-3.0",
+            "Apache-2.0",
         )
 
     return app

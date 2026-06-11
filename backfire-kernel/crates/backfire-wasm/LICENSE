@@ -1,4 +1,4 @@
-SPDX-License-Identifier: AGPL-3.0-or-later
+SPDX-License-Identifier: Apache-2.0
 Commercial licence available
 © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
 © Code 2020–2026 Miroslav Šotek. All rights reserved.
@@ -6,7 +6,7 @@ ORCID: 0009-0009-3560-0851
 Contact: www.anulum.li | protoscience@anulum.li
 Director-Class AI — backfire-wasm licence notice
 
-backfire-wasm is licensed under GNU AGPL-3.0-or-later.
+backfire-wasm is licensed under Apache-2.0.
 
 The full repository licence text is available in the root `LICENSE` file of
 the Director-AI source tree. Commercial licensing is available from the contact

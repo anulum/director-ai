@@ -1,6 +1,6 @@
 # Director-AI Rust FFI Pipeline (Backfire Kernel)
 
-> **Crate**: `backfire-kernel` | **Version**: 3.15.3 | **License**: GNU AGPL v3
+> **Crate**: `backfire-kernel` | **Version**: 3.15.3 | **License**: Apache-2.0
 >
 > © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
 > © Code 2020–2026 Miroslav Šotek. All rights reserved.

@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: AGPL-3.0-or-later
+# SPDX-License-Identifier: Apache-2.0
 # Commercial license available
 # © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
@@ -540,7 +540,7 @@ class ReadyResponse(BaseModel):
 
 
 class SourceResponse(BaseModel):
-    """AGPL source-compliance response."""
+    """Source-availability response."""
 
     license: str
     version: str = ""
@@ -548,8 +548,6 @@ class SourceResponse(BaseModel):
     tier: str = ""
     repository_url: str = ""
     instructions: str = ""
-    agpl_obligation: str = ""
-    agpl_section: str = ""
 
 
 class ConfigResponse(BaseModel):

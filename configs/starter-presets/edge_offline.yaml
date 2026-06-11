@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: AGPL-3.0-or-later
+# SPDX-License-Identifier: Apache-2.0
 # Director-AI starter preset: low-latency edge or offline deployments.
 # No heavyweight model loading; use for approximate local screening.
 profile: edge_offline

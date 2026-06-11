@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: AGPL-3.0-or-later
+# SPDX-License-Identifier: Apache-2.0
 # Commercial license available
 # © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
@@ -28,7 +28,7 @@ LARGE_DIR = BASE / "output" / "deberta-v3-large-hallucination"
 LARGE_REPO = "anulum/deberta-v3-large-hallucination"
 LARGE_CARD = """\
 ---
-license: agpl-3.0
+license: apache-2.0
 language: en
 tags:
   - hallucination-detection
@@ -67,7 +67,7 @@ score = scorer.score("The capital of France is Paris.", "Paris is in Germany.")
 
 ## License
 
-AGPL-3.0 | Commercial licensing: [anulum.li](https://www.anulum.li)
+Apache-2.0 (core) / BUSL-1.1 (advanced) | Commercial licensing: [anulum.li](https://www.anulum.li)
 """
 
 if LARGE_DIR.exists():
@@ -89,7 +89,7 @@ BASE_DIR = BASE / "output" / "deberta-v3-base-hallucination"
 BASE_REPO = "anulum/deberta-v3-base-hallucination"
 BASE_CARD = """\
 ---
-license: agpl-3.0
+license: apache-2.0
 language: en
 tags:
   - hallucination-detection
@@ -131,7 +131,7 @@ score = scorer.score("The capital of France is Paris.", "Paris is in Germany.")
 
 ## License
 
-AGPL-3.0 | Commercial licensing: [anulum.li](https://www.anulum.li)
+Apache-2.0 (core) / BUSL-1.1 (advanced) | Commercial licensing: [anulum.li](https://www.anulum.li)
 """
 
 if BASE_DIR.exists():
@@ -155,7 +155,7 @@ DATA_DIR = BASE / "data"
 DATA_REPO = "anulum/director-ai-training-data"
 DATA_CARD = """\
 ---
-license: agpl-3.0
+license: apache-2.0
 language: en
 tags:
   - hallucination-detection
@@ -181,7 +181,7 @@ Combined training data for hallucination detection models used in
 
 ## License
 
-AGPL-3.0 | Commercial licensing: [anulum.li](https://www.anulum.li)
+Apache-2.0 (core) / BUSL-1.1 (advanced) | Commercial licensing: [anulum.li](https://www.anulum.li)
 """
 
 if DATA_DIR.exists():

@@ -177,7 +177,7 @@ bypass the queue.
 | `POST` | `/v1/batch` | Batch review/process |
 | `GET` | `/v1/health` | Liveness probe (version, mode, uptime) |
 | `GET` | `/v1/ready` | Readiness probe (503 if NLI not loaded) |
-| `GET` | `/v1/source` | AGPL §13 source access |
+| `GET` | `/v1/source` | Source-availability pointer |
 | `GET` | `/v1/config` | Config introspection |
 | `GET` | `/v1/metrics` | JSON metrics |
 | `GET` | `/v1/metrics/prometheus` | Prometheus text format |

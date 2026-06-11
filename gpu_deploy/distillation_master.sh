@@ -2,7 +2,7 @@
 # ─────────────────────────────────────────────────────────────────────
 # Director-Class AI — Distillation Master Runner (Phase 4A)
 # © 1998–2026 Miroslav Šotek. All rights reserved.
-# License: GNU AGPL v3 | Commercial licensing available
+# License: Apache-2.0
 # ─────────────────────────────────────────────────────────────────────
 #
 # Runs on UpCloud L40S (48GB VRAM) or equivalent.

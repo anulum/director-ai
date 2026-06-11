@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: AGPL-3.0-or-later
+# SPDX-License-Identifier: Apache-2.0
 # Commercial license available
 # Copyright (c) Concepts 1996-2026 Miroslav Sotek. All rights reserved.
 # Copyright (c) Code 2020-2026 Miroslav Sotek. All rights reserved.

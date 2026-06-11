@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-License-Identifier: Apache-2.0
 // Commercial license available
 // © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
 // © Code 2020–2026 Miroslav Šotek. All rights reserved.
@@ -8,7 +8,7 @@
 // ─────────────────────────────────────────────────────────────────────
 // Director-Class AI — SSGF Geometry Engine
 // (C) 1998-2026 Miroslav Šotek. All rights reserved.
-// License: GNU AGPL v3 | Commercial licensing available
+// License: Apache-2.0
 // ─────────────────────────────────────────────────────────────────────
 #![deny(unsafe_code)]
 //! Stochastic Synthesis of Geometric Fields (SSGF).

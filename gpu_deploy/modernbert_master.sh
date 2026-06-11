@@ -2,7 +2,7 @@
 # ─────────────────────────────────────────────────────────────────────
 # Director-Class AI — ModernBERT Autonomous Training Pipeline
 # © 1998–2026 Miroslav Šotek. All rights reserved.
-# License: GNU AGPL v3 | Commercial licensing available
+# License: Apache-2.0
 # ─────────────────────────────────────────────────────────────────────
 #
 # Autonomous pipeline: probe checkpoint → train → eval at 3 lengths.

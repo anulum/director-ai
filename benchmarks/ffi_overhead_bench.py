@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: AGPL-3.0-or-later
+# SPDX-License-Identifier: Apache-2.0
 # © 1998–2026 Miroslav Šotek. All rights reserved.
 """Quantify PyO3 FFI overhead: Rust-native vs Python-via-FFI round-trip.
 

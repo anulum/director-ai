@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: AGPL-3.0-or-later
+# SPDX-License-Identifier: Apache-2.0
 # Cloud Build source upload filter
 #
 # Without this file, ``gcloud builds submit`` would fall back to

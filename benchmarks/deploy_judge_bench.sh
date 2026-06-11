@@ -2,7 +2,7 @@
 # ─────────────────────────────────────────────────────────────────────
 # Director-AI — UpCloud Local Judge Benchmark Deployment
 # © 1998–2026 Miroslav Šotek. All rights reserved.
-# License: GNU AGPL v3 | Commercial licensing available
+# License: Apache-2.0
 # ─────────────────────────────────────────────────────────────────────
 #
 # Deploys an UpCloud L40S GPU server, uploads the trained judge model,

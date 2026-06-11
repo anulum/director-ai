@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# SPDX-License-Identifier: AGPL-3.0-or-later
+# SPDX-License-Identifier: Apache-2.0
 # Commercial license available
 # Copyright 2020-2026 Miroslav Sotek
 """Enforce module-specific test-surface naming policy.

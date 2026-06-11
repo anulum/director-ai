@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Relicense to an open-core model: the core is now Apache-2.0 (free for any use,
+  including production and closed-source) and the advanced & labs tier is
+  BUSL-1.1 (source-available, free for non-production, converting to Apache-2.0
+  on each file's change date). The previous AGPL-3.0 licence is dropped.
+- Add `LICENSES/Apache-2.0.txt` and `LICENSES/BUSL-1.1.txt`; the repository is
+  REUSE-compliant with a per-file `SPDX-License-Identifier` on every source file.
+- Set the root `LICENSE` to Apache-2.0 and update `pyproject` to
+  `Apache-2.0 AND BUSL-1.1`.
+- Reframe the `/v1/source` endpoint from an AGPL §13 obligation to a
+  source-availability transparency convenience; it now reports the open-core
+  licence. Rename the operator guide to `guide/source-availability.md`.
+
 ## [3.15.3] — 2026-06-05
 
 - Refresh public version surface from 3.15.2 to 3.15.3 across package metadata, README,

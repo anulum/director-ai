@@ -1,24 +1,24 @@
-# SPDX-License-Identifier: AGPL-3.0-or-later
+# SPDX-License-Identifier: Apache-2.0
 version = 1
 
-# --- Source code (AGPL) ---
+# --- Source code (Apache-2.0) ---
 
 [[annotations]]
 path = ["src/**", "tests/**", "benchmarks/**", "tools/**"]
 SPDX-FileCopyrightText = "1998-2026 Miroslav Šotek <protoscience@anulum.li>"
-SPDX-License-Identifier = "AGPL-3.0-or-later"
+SPDX-License-Identifier = "Apache-2.0"
 
 [[annotations]]
 path = ["backfire-kernel/**", "demo/**", "discord-bot/**", "examples/**", "training/**", "proto/**", "scripts/**"]
 SPDX-FileCopyrightText = "1998-2026 Miroslav Šotek <protoscience@anulum.li>"
-SPDX-License-Identifier = "AGPL-3.0-or-later"
+SPDX-License-Identifier = "Apache-2.0"
 
 [[annotations]]
 path = [".github/**", ".githooks/**", ".local/**"]
 SPDX-FileCopyrightText = "1998-2026 Miroslav Šotek <protoscience@anulum.li>"
-SPDX-License-Identifier = "AGPL-3.0-or-later"
+SPDX-License-Identifier = "Apache-2.0"
 
-# --- Root config/text files (AGPL) ---
+# --- Root config/text files (Apache-2.0) ---
 
 [[annotations]]
 path = [
@@ -27,7 +27,7 @@ path = [
     "*.sh", "*.proto",
 ]
 SPDX-FileCopyrightText = "1998-2026 Miroslav Šotek <protoscience@anulum.li>"
-SPDX-License-Identifier = "AGPL-3.0-or-later"
+SPDX-License-Identifier = "Apache-2.0"
 
 [[annotations]]
 path = [
@@ -37,21 +37,21 @@ path = [
     "CITATION.cff", "Makefile",
 ]
 SPDX-FileCopyrightText = "1998-2026 Miroslav Šotek <protoscience@anulum.li>"
-SPDX-License-Identifier = "AGPL-3.0-or-later"
+SPDX-License-Identifier = "Apache-2.0"
 
-# --- Binary/model artifacts (AGPL) ---
+# --- Binary/model artifacts (Apache-2.0) ---
 
 [[annotations]]
 path = ["*.arrow", "*.pt", "*.safetensors", "*.onnx", "*.npz", "*.tmp"]
 SPDX-FileCopyrightText = "1998-2026 Miroslav Šotek <protoscience@anulum.li>"
-SPDX-License-Identifier = "AGPL-3.0-or-later"
+SPDX-License-Identifier = "Apache-2.0"
 
-# --- Cached model snapshots (third-party, AGPL annotation for REUSE coverage) ---
+# --- Cached model snapshots (third-party, Apache-2.0 annotation for REUSE coverage) ---
 
 [[annotations]]
 path = ["ckpts/**"]
 SPDX-FileCopyrightText = "1998-2026 Miroslav Šotek <protoscience@anulum.li>"
-SPDX-License-Identifier = "AGPL-3.0-or-later"
+SPDX-License-Identifier = "Apache-2.0"
 
 # --- Documentation & media (CC-BY-4.0) ---
 
@@ -60,7 +60,7 @@ path = ["docs/**", "docs-site/**", "notebooks/**", "*.png", "*.svg", "*.jpg"]
 SPDX-FileCopyrightText = "1998-2026 Miroslav Šotek <protoscience@anulum.li>"
 SPDX-License-Identifier = "CC-BY-4.0"
 
-# --- Deployment, infra, configs, schemas, gateways, generated artefacts (AGPL) ---
+# --- Deployment, infra, configs, schemas, gateways, generated artefacts (Apache-2.0) ---
 
 [[annotations]]
 path = [
@@ -69,4 +69,9 @@ path = [
     "formal/**", "director_guard/**", "security/**", ".gcloudignore",
 ]
 SPDX-FileCopyrightText = "1998-2026 Miroslav Šotek <protoscience@anulum.li>"
-SPDX-License-Identifier = "AGPL-3.0-or-later"
+SPDX-License-Identifier = "Apache-2.0"
+
+[[annotations]]
+path = ".semgrepignore"
+SPDX-FileCopyrightText = "2020-2026 Miroslav Šotek"
+SPDX-License-Identifier = "Apache-2.0"

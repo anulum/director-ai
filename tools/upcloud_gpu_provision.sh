@@ -2,7 +2,7 @@
 # ─────────────────────────────────────────────────────────────────────
 # Director-Class AI — UpCloud GPU Server Provisioner (retry loop)
 # © 1998–2026 Miroslav Šotek. All rights reserved.
-# License: GNU AGPL v3 | Commercial licensing available
+# License: Apache-2.0
 # ─────────────────────────────────────────────────────────────────────
 #
 # Polls UpCloud API for GPU availability. When a slot opens, creates

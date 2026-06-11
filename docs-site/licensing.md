@@ -1,8 +1,8 @@
 # Licensing & Pricing
 
 <div class="hero-subtitle" style="font-size: 1.15em; color: var(--md-default-fg-color--light); margin-bottom: 2em;">
-Every feature. Every integration. Free under AGPL-3.0.<br/>
-Commercial license removes the source disclosure obligation.
+Open core under Apache-2.0 — free for any use, including production.<br/>
+Advanced &amp; Labs under BUSL-1.1 — free to evaluate; a commercial licence unlocks production.
 </div>
 
 ---
@@ -86,26 +86,31 @@ Commercial license removes the source disclosure obligation.
 
 ## :material-compare: What's the Difference?
 
-All tiers — including AGPL free — get the **same product**. Every feature, every integration.
+The **Apache-2.0 core** is free for everyone, in production, with no strings. The
+commercial tiers add a production licence for the **BUSL-1.1 Advanced & Labs**
+capabilities, plus support and SLAs.
 
-| | :material-open-source-initiative: AGPL (Free) | :material-account: Indie | :material-account-group: Pro | :material-office-building: Enterprise |
+| | :material-open-source-initiative: Free | :material-account: Indie | :material-account-group: Pro | :material-office-building: Enterprise |
 |---|:---:|:---:|:---:|:---:|
-| **Core scorer + streaming halt** | :material-check: | :material-check: | :material-check: | :material-check: |
-| **NLI + RAG backends** | :material-check: | :material-check: | :material-check: | :material-check: |
-| **VerifiedScorer (5-signal)** | :material-check: | :material-check: | :material-check: | :material-check: |
-| **6 framework integrations** | :material-check: | :material-check: | :material-check: | :material-check: |
-| **REST / gRPC server** | :material-check: | :material-check: | :material-check: | :material-check: |
-| **ONNX + Rust kernel** | :material-check: | :material-check: | :material-check: | :material-check: |
-| **Multi-tenant + Policy + Audit** | :material-check: | :material-check: | :material-check: | :material-check: |
+| **Core scorer + streaming halt** (Apache-2.0) | :material-check: | :material-check: | :material-check: | :material-check: |
+| **NLI + RAG backends** (Apache-2.0) | :material-check: | :material-check: | :material-check: | :material-check: |
+| **6 framework integrations** (Apache-2.0) | :material-check: | :material-check: | :material-check: | :material-check: |
+| **REST / gRPC server** (Apache-2.0) | :material-check: | :material-check: | :material-check: | :material-check: |
+| **ONNX + Rust kernel** (Apache-2.0) | :material-check: | :material-check: | :material-check: | :material-check: |
+| **Core in production / closed-source** | :material-check: | :material-check: | :material-check: | :material-check: |
 | | | | | |
-| **Must disclose source code** | **Yes** | No | No | No |
-| **Deployments** | Unlimited | 1 prod | Unlimited | Unlimited |
+| **Advanced & Labs** (BUSL-1.1) | Eval only | :material-check: | :material-check: | :material-check: |
+| **Advanced & Labs in production** | — | :material-check: | :material-check: | :material-check: |
+| **Deployments** | Core: unlimited | 1 prod | Unlimited | Unlimited |
 | **Support** | GitHub Issues | Email (48h) | Slack (4h) | Dedicated engineer |
 | **SLA** | — | — | 99.5% | 99.9% |
 | **Custom fine-tuning** | — | — | — | :material-check: |
 
 !!! quote "Our philosophy"
-    We don't gate features behind the commercial license. We gate the *obligation to disclose source code*. If your product is open-source or internal-only, AGPL is the right choice. If you're building proprietary software, the commercial license is for you.
+    The core guardrail is genuinely open: Apache-2.0, free in production, no
+    disclosure obligation. We monetise the *advanced and labs* tier — the deeper
+    capabilities under BUSL-1.1 — and the support around it. Evaluate everything
+    for free; pay only when an advanced capability goes to production.
 
 ---
 
@@ -171,32 +176,54 @@ for durable processing.
 
 ---
 
-## :material-open-source-initiative: Open Source — AGPL-3.0
+## :material-open-source-initiative: Open Core — Apache-2.0
 
-The entire Director-AI package is licensed under [AGPL-3.0-or-later](https://www.gnu.org/licenses/agpl-3.0.html).
+The Director-AI **core** — the guardrail engine, 5-tier scoring (rules →
+embeddings → NLI), SDK guard, FastAPI middleware, REST/gRPC server, injection
+detection, streaming halt, and the agent/MCP preflight guard — is licensed under
+[Apache-2.0](https://www.apache.org/licenses/LICENSE-2.0).
 
-**You can:** use it freely for research, personal projects, open-source software, and internal tools. Self-host without restrictions. Modify and redistribute under AGPL terms.
+**You can:** use it freely for anything, including production and closed-source
+products. Self-host without restrictions. Modify and redistribute. No
+source-disclosure obligation.
 
-**The obligation:** if you expose Director-AI to users over a network (SaaS), you must release your source code under AGPL-3.0. A commercial license removes this obligation.
+## :material-flask: Advanced & Labs — BUSL-1.1
+
+The advanced capabilities (under `core/<advanced>/`, `enterprise/`, `voice/`,
+`ui/`, `experimental/`, `compliance/`, `agentic/`) are **source-available** under
+[BUSL-1.1](https://mariadb.com/bsl11/).
+
+**You can:** read the source, evaluate, and use it for free in any
+**non-production** setting. Each file automatically converts to Apache-2.0 on its
+change date.
+
+**The obligation:** production and hosted/SaaS use of the advanced tier requires
+a commercial licence (the tiers above).
 
 ---
 
 ## :material-frequently-asked-questions: FAQ
 
 ??? question "Can I use Director-AI in academic research?"
-    Yes. AGPL-3.0 permits research use. If you publish code that includes Director-AI, release it under AGPL-3.0 or a compatible license.
+    Yes. The Apache-2.0 core is free for any use. The BUSL-1.1 advanced tier is
+    free for non-production research and evaluation; a published deployment that
+    serves external users on the advanced tier would need a commercial licence.
 
 ??? question "Can I use it in my SaaS product?"
-    Under AGPL-3.0, you must open-source the parts of your service that use Director-AI. If you prefer not to, purchase a commercial license.
+    The Apache-2.0 core: yes, freely, including closed-source SaaS. The BUSL-1.1
+    advanced tier in a hosted/production service requires a commercial licence.
 
 ??? question "Can I use the free version for internal tools?"
-    Yes. Internal use within an organization is fine under AGPL. The copyleft trigger is *distribution* or *network interaction* with external users.
+    The Apache-2.0 core: yes, without restriction. The BUSL-1.1 advanced tier is
+    free for non-production internal use; production use needs a commercial licence.
 
 ??? question "Do I need a license for evaluation or prototyping?"
-    No. Evaluate freely under AGPL-3.0. Purchase a commercial license when you ship to production.
+    No. The core is Apache-2.0, and the advanced tier is free to evaluate under
+    BUSL-1.1. Buy a commercial licence when an advanced capability ships to production.
 
 ??? question "What about contributions?"
-    Contributors retain copyright. By contributing, you agree to license your contribution under AGPL-3.0 per [CONTRIBUTING.md](https://github.com/anulum/director-ai/blob/main/CONTRIBUTING.md).
+    Contributors retain copyright. Contributions to the Apache-2.0 core are
+    accepted under Apache-2.0 per [CONTRIBUTING.md](https://github.com/anulum/director-ai/blob/main/CONTRIBUTING.md).
 
 ---
 

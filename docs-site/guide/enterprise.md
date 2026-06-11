@@ -1,6 +1,7 @@
 # Enterprise Modules
 
-Three modules ship with the open-source package (AGPL-3.0) and are also included in commercial tiers.
+Three modules ship in the source-available Advanced & Labs tier (BUSL-1.1): free
+to evaluate, with a commercial licence required for production use.
 
 ## TenantRouter
 
@@ -56,15 +57,18 @@ import director_ai  # fast — enterprise modules not loaded
 router = director_ai.TenantRouter()
 ```
 
-## When to Use Commercial vs AGPL
+## When You Need a Commercial Licence
+
+These modules are BUSL-1.1. The Apache-2.0 core is always free; the table below
+covers the **Advanced & Labs** tier only.
 
 | Scenario | License |
 |----------|---------|
-| Internal tool, source stays private | Commercial (Indie+) |
-| Open-source project | AGPL-3.0 (free) |
-| SaaS with source disclosure | AGPL-3.0 (free) |
-| SaaS without source disclosure | Commercial (Pro+) |
-| Research / academic | AGPL-3.0 (free) |
+| Evaluation / prototyping | BUSL-1.1 (free) |
+| Research / academic, non-production | BUSL-1.1 (free) |
+| Non-production internal use | BUSL-1.1 (free) |
+| Production internal tool | Commercial (Indie+) |
+| Production SaaS | Commercial (Pro+) |
 | Multi-tenant production with SLA | Commercial (Enterprise) |
 
 See [Licensing](../licensing.md) for pricing.

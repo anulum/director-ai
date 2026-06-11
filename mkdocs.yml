@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: AGPL-3.0-or-later
+# SPDX-License-Identifier: Apache-2.0
 # Commercial license available
 # © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
@@ -160,7 +160,7 @@ nav:
       - Verification Gems: guide/verification-gems.md
       - Architecture: guide/architecture.md
       - Enterprise: guide/enterprise.md
-      - AGPL Compliance: guide/agpl-compliance.md
+      - Source Availability: guide/source-availability.md
       - Failure Case Studies: guide/failure-case-studies.md
       - Feature Depth Assessment: guide/feature-depth-assessment.md
       - Documentation Integrity: guide/documentation-integrity.md

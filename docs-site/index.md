@@ -1,5 +1,5 @@
 <!--
-SPDX-License-Identifier: AGPL-3.0-or-later
+SPDX-License-Identifier: Apache-2.0
 Commercial license available
 © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
 © Code 2020–2026 Miroslav Šotek. All rights reserved.
@@ -26,7 +26,8 @@ Director-Class AI — Documentation landing page
 ![Ruff](https://img.shields.io/badge/code%20style-ruff-261230.svg)
 ![mypy](https://img.shields.io/badge/types-mypy-blue.svg)
 ![Sigstore](https://img.shields.io/badge/signing-Sigstore-purple.svg)
-[![License](https://img.shields.io/badge/license-AGPL--3.0-blue)](https://github.com/anulum/director-ai/blob/main/LICENSE)
+[![Core License](https://img.shields.io/badge/core-Apache--2.0-green)](https://github.com/anulum/director-ai/blob/main/LICENSES/Apache-2.0.txt)
+[![Advanced License](https://img.shields.io/badge/advanced-BUSL--1.1-blue)](https://github.com/anulum/director-ai/blob/main/LICENSES/BUSL-1.1.txt)
 [![OpenSSF Best Practices](https://www.bestpractices.dev/projects/12102/badge)](https://www.bestpractices.dev/projects/12102)
 [![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/anulum/director-ai/badge)](https://securityscorecards.dev/viewer/?uri=github.com/anulum/director-ai)
 [![DOI](https://zenodo.org/badge/doi/10.5281/zenodo.18822167.svg)](https://doi.org/10.5281/zenodo.18822167)
@@ -209,7 +210,10 @@ See [CONTRIBUTING.md](https://github.com/anulum/director-ai/blob/main/CONTRIBUTI
 
 ## License
 
-AGPL-3.0 for open source / research. [Commercial licensing](licensing.md) available at [anulum.li](https://www.anulum.li).
+Open core: the **Apache-2.0** core is free for any use, including production; the
+**BUSL-1.1** advanced & labs tier is source-available and free for non-production.
+[Commercial licensing](licensing.md) for the advanced tier is available at
+[anulum.li](https://www.anulum.li).
 
 ---
 

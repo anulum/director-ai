@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: AGPL-3.0-or-later
+# SPDX-License-Identifier: Apache-2.0
 # Commercial license available
 # © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
@@ -151,7 +151,7 @@ def test_health_dev_no_keys_returns_detail():
 
 
 def test_source_commercial_hides_tier_and_version():
-    """Commercial mode waives AGPL §13; it must not leak tier or version."""
+    """Commercial mode reports only the licence type, never tier or version."""
     from types import SimpleNamespace
 
     with TestClient(_noauth_app()) as client:
@@ -165,7 +165,6 @@ def test_source_commercial_hides_tier_and_version():
     assert r.status_code == 200
     data = r.json()
     assert data["license"] == "commercial"
-    assert data["agpl_obligation"] == "waived"
     assert not data.get("tier")
     assert not data.get("version")
 
@@ -365,7 +364,7 @@ def test_dashboard_renders_with_prometheus():
     assert "Dashboard" in r.text
 
 
-# â”€â”€ AGPL Â§13 source endpoint tests â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# -- Source-availability endpoint tests --------------------------------------
 
 
 def test_source_returns_200():
@@ -373,9 +372,8 @@ def test_source_returns_200():
         r = client.get("/v1/source")
     assert r.status_code == 200
     data = r.json()
-    assert data["license"] == "AGPL-3.0-or-later"
+    assert data["license"] == "Apache-2.0 AND BUSL-1.1"
     assert "repository_url" in data
-    assert data["agpl_section"] == "13"
 
 
 def test_source_exempt_from_auth():
@@ -396,7 +394,7 @@ def test_source_disabled_returns_404():
     assert r.status_code == 404
 
 
-def test_bare_license_key_does_not_waive_agpl(monkeypatch, tmp_path):
+def test_bare_license_key_stays_open_core(monkeypatch, tmp_path):
     monkeypatch.setenv("HOME", str(tmp_path))
     monkeypatch.setenv(
         "DIRECTOR_LICENSE_KEY",
@@ -411,8 +409,9 @@ def test_bare_license_key_does_not_waive_agpl(monkeypatch, tmp_path):
 
     assert source.status_code == 200
     data = source.json()
-    assert data["license"] == "AGPL-3.0-or-later"
-    assert data["agpl_section"] == "13"
+    # A bare key (no signed file) does not activate commercial mode: the
+    # endpoint still reports the open-core licence, not "commercial".
+    assert data["license"] == "Apache-2.0 AND BUSL-1.1"
 
 
 def test_source_custom_repo_url():

@@ -136,5 +136,8 @@ The package lives in `src/director_ai/` with two profiles:
 
 ## License
 
-By contributing, you agree that your contributions will be licensed under
-AGPL-3.0-or-later. Commercial licensing also available — see [licensing](docs-site/licensing.md) for details.
+Director-AI is open core: the core is Apache-2.0 and the advanced & labs tier is
+BUSL-1.1. Contributions target the **Apache-2.0 core** and are accepted under
+Apache-2.0. By contributing, you agree to license your contribution under the
+same terms as the file it touches. See [licensing](docs-site/licensing.md) for
+the full model.

@@ -3,38 +3,40 @@
 © 1998–2026 Miroslav Šotek. All rights reserved.
 Contact: www.anulum.li | protoscience@anulum.li
 
-## Dual Licensing
+## Open-Core Licensing
 
-Director-AI is available under two license options:
+Director-AI is open core. Every source file carries an SPDX
+`SPDX-License-Identifier`, and the repository is
+[REUSE](https://reuse.software/)-compliant (`reuse lint`).
 
-### Open Source — AGPL-3.0-or-later
+### Core — Apache-2.0
 
-The full source code is licensed under the
-[GNU Affero General Public License v3.0](LICENSE). Under AGPL-3.0:
+The guardrail engine, 5-tier scoring (rules → embeddings → NLI), SDK guard,
+FastAPI middleware, REST/gRPC server, injection detection, streaming halt, and
+the agent/MCP preflight guard are licensed under
+[Apache-2.0](LICENSES/Apache-2.0.txt). Free for any use, including production and
+closed-source products, with no source-disclosure obligation.
 
-- You may use, modify, and distribute Director-AI freely.
-- If you run a modified version as a network service, you must make
-  your source code available to users of that service.
-- All derivative works must also be licensed under AGPL-3.0.
+### Advanced & Labs — BUSL-1.1
 
-### Commercial License
+The advanced capabilities (under `core/<advanced>/`, `enterprise/`, `voice/`,
+`ui/`, `experimental/`, `compliance/`, `agentic/`) are source-available under
+[BUSL-1.1](LICENSES/BUSL-1.1.txt). Free for non-production and evaluation use;
+each file converts to Apache-2.0 on its change date. A commercial license is
+available for organisations that:
 
-A proprietary license is available for organisations that:
-
-- Cannot comply with AGPL-3.0 copyleft requirements
-- Need to embed Director-AI in closed-source products
-- Require SLA-backed support, indemnification, or custom builds
+- Run the advanced tier in production or as a hosted/SaaS service
+- Need SLA-backed support, indemnification, or custom builds
 
 Contact [protoscience@anulum.li](mailto:protoscience@anulum.li) for terms.
 
-## AGPL-3.0 Boundary Clarification
+## License Boundary
 
-| Use Case | License Required |
-|----------|-----------------|
-| Academic research with published results | AGPL-3.0 (free) |
-| Internal R&D not exposed as a service | AGPL-3.0 (free) |
-| SaaS / cloud service using Director-AI | AGPL-3.0 (must release source) **or** Commercial |
-| Embedded in closed-source product | Commercial |
+| Use Case | License |
+|----------|---------|
+| Core in any setting (research, internal, production, closed-source) | Apache-2.0 (free) |
+| Advanced & Labs — evaluation / non-production | BUSL-1.1 (free) |
+| Advanced & Labs — production or SaaS | Commercial |
 
 ## Third-Party Components
 

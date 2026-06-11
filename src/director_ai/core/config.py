@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: AGPL-3.0-or-later
+# SPDX-License-Identifier: Apache-2.0
 # Commercial license available
 # © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
@@ -380,7 +380,7 @@ class DirectorConfig:
     stats_backend: str = "prometheus"
     stats_db_path: str = "~/.director-ai/stats.db"
 
-    # AGPL Â§13 source code endpoint
+    # Source-availability endpoint (transparency convenience)
     source_endpoint_enabled: bool = True
     source_repository_url: str = "https://github.com/anulum/director-ai"
 

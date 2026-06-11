@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: AGPL-3.0-or-later
+# SPDX-License-Identifier: Apache-2.0
 # Director-AI starter preset: STEM fact-heavy workflows.
 # Use with curated papers, lab notes, or technical references in the vector store.
 profile: stem_fact_heavy

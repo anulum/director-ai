@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: AGPL-3.0-or-later
+# SPDX-License-Identifier: Apache-2.0
 # Director-AI starter preset: high-stakes medical review.
 # Requires curated KB grounding, audit retention, and local calibration.
 profile: high_stakes_medical_review

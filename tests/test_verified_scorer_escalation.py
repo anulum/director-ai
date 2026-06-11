@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: AGPL-3.0-or-later
+# SPDX-License-Identifier: Apache-2.0
 # Commercial license available
 # Copyright 2020-2026 Miroslav Sotek
 # Director-Class AI -- default-path verified scorer escalation tests

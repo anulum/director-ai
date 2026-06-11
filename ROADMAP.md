@@ -55,7 +55,7 @@ there or promoted into this roadmap with a concrete acceptance gate.
 - `strict_mode` reject in CoherenceScorer
 - `guard()` SDK interceptor with duck-type provider detection
 - Persistent stats backend (SQLite)
-- AGPL §13 `/v1/source` compliance endpoint
+- `/v1/source` source-availability endpoint
 
 ## v2.3.0
 

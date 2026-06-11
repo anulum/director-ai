@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: AGPL-3.0-or-later
+# SPDX-License-Identifier: Apache-2.0
 # Commercial license available
 # © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
@@ -30,7 +30,7 @@ REPO_ID = "anulum/deberta-v3-large-hallucination"
 
 MODEL_CARD = """\
 ---
-license: agpl-3.0
+license: apache-2.0
 language: en
 tags:
   - hallucination-detection
@@ -70,7 +70,7 @@ score = scorer.score("The capital of France is Paris.", "Paris is in Germany.")
 
 ## License
 
-AGPL-3.0 — commercial licensing available via [anulum.li](https://www.anulum.li).
+Apache-2.0 — commercial licensing for the advanced tier available via [anulum.li](https://www.anulum.li).
 """
 
 

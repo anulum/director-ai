@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: AGPL-3.0-or-later
+# SPDX-License-Identifier: Apache-2.0
 # Commercial licence available
 # Concepts 1996-2026 Miroslav Sotek. All rights reserved.
 # Code 2020-2026 Miroslav Sotek. All rights reserved.
@@ -43,9 +43,9 @@ operator_control = "Restrict at the reverse proxy when exposed beyond a trusted 
 path = "/v1/source"
 method = "GET"
 default_auth = "exempt"
-purpose = "AGPL Section 13 source offer for network users."
-internet_policy = "Publish only where the service must offer network source access"
-allowed_payload = "Licence class, version, repository URL, clone instruction, and AGPL section."
+purpose = "Source-availability pointer for network users (transparency convenience)."
+internet_policy = "Publish where the service wishes to advertise its source location"
+allowed_payload = "Licence class, version, repository URL, and clone instruction."
 operator_control = "Set source_endpoint_enabled=false only where the licence and deployment model permit it."
 
 [[endpoints]]

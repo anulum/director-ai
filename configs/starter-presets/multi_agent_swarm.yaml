@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: AGPL-3.0-or-later
+# SPDX-License-Identifier: Apache-2.0
 # Director-AI starter preset: multi-agent swarm supervision.
 # Emphasizes observability and review queue batching for repeated agent turns.
 profile: multi_agent_swarm

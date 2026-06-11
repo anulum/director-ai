@@ -7,7 +7,7 @@ sdk: gradio
 sdk_version: "6.7.0"
 app_file: app.py
 pinned: false
-license: agpl-3.0
+license: apache-2.0
 short_description: Real-time LLM hallucination guardrail
 ---
 

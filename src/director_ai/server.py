@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: AGPL-3.0-or-later
+# SPDX-License-Identifier: Apache-2.0
 # Commercial license available
 # © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
@@ -381,7 +381,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
         elif lic.is_trial:
             logger.info("Director-AI Ă˘â‚¬â€ť Trial license (expires %s)", lic.expires)
         else:
-            logger.info("Director-AI Ă˘â‚¬â€ť AGPL-3.0-or-later (community)")
+            logger.info("Director-AI Ă˘â‚¬â€ť open core: Apache-2.0 + BUSL-1.1")
 
         logger.info("Starting Director-AI server")
 
@@ -850,7 +850,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
         elif lic and lic.is_trial:
             extra = {"license": "trial", "expires": lic.expires}
         else:
-            extra = {"license": "agpl"}
+            extra = {"license": "open-core"}
 
         if not _request_authenticated(request):
             # Unauthenticated callers get liveness + licence type only; the
@@ -886,11 +886,16 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
             )
         return {"ready": True}
 
-    # Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬ AGPL Ă‚Â§13 source endpoint Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬
+    # -- Source-availability endpoint ----------------------------------------
 
     @app.get("/v1/source", response_model=SourceResponse)
     async def source(request: Request):
-        """Return source-availability metadata for AGPL or commercial mode."""
+        """Return source-availability metadata for the running deployment.
+
+        Open core: the Apache-2.0 core and the source-available BUSL-1.1 advanced
+        tier are both published upstream. This endpoint is a transparency
+        convenience, not a licence obligation.
+        """
         import director_ai
 
         lic = getattr(request.app.state, "_license", None)
@@ -899,23 +904,18 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
                 raise HTTPException(
                     404, "Source endpoint disabled (commercial license)"
                 )
-            # AGPL §13 source obligation is waived under a commercial licence,
-            # so nothing needs publishing here. Do not leak the commercial tier
-            # or the build version on this auth-exempt endpoint.
-            return {
-                "license": "commercial",
-                "agpl_obligation": "waived",
-            }
+            # Do not leak the commercial tier or the build version on this
+            # auth-exempt endpoint.
+            return {"license": "commercial"}
 
         if not cfg.source_endpoint_enabled:
             raise HTTPException(404, "Source endpoint disabled")
 
         return {
-            "license": "AGPL-3.0-or-later",
+            "license": "Apache-2.0 AND BUSL-1.1",
             "version": director_ai.__version__,
             "repository_url": cfg.source_repository_url,
             "instructions": f"git clone {cfg.source_repository_url}",
-            "agpl_section": "13",
         }
 
     # Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬ Review Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬

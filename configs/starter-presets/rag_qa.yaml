@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: AGPL-3.0-or-later
+# SPDX-License-Identifier: Apache-2.0
 # Director-AI starter preset: retrieval-grounded question answering.
 # Requires a populated vector store or external retrieval backend.
 profile: rag_qa

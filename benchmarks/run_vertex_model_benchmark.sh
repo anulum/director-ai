@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# SPDX-License-Identifier: AGPL-3.0-or-later
+# SPDX-License-Identifier: Apache-2.0
 # Director-AI — Vertex AI managed model-choice benchmark runner
 #
 # Builds the benchmark image and submits a Vertex CustomJob that

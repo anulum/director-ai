@@ -1,5 +1,5 @@
 <!--
-SPDX-License-Identifier: AGPL-3.0-or-later
+SPDX-License-Identifier: Apache-2.0
 Commercial license available
 © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
 © Code 2020–2026 Miroslav Šotek. All rights reserved.
@@ -48,7 +48,7 @@ Production-ready FastAPI server exposing Director-AI scoring over HTTP.
 | `GET` | `/v1/config` | Config introspection |
 | `GET` | `/v1/metrics` | Metrics as JSON |
 | `GET` | `/v1/metrics/prometheus` | Prometheus-compatible metrics |
-| `GET` | `/v1/source` | Source code URL (AGPL compliance) |
+| `GET` | `/v1/source` | Source-availability pointer |
 | `WS` | `/v1/stream` | WebSocket streaming oversight |
 | `POST` | `/v1/knowledge/upload` | Upload file → parse → chunk → embed |
 | `POST` | `/v1/knowledge/ingest` | Ingest raw text → chunk → embed |

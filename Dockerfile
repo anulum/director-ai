@@ -1,7 +1,7 @@
 # ─────────────────────────────────────────────────────────────────────
 # Director-Class AI — Production Docker Image
 # (C) 1998-2026 Miroslav Sotek. All rights reserved.
-# License: GNU AGPL v3 | Commercial licensing available
+# License: Apache-2.0
 # ─────────────────────────────────────────────────────────────────────
 #
 # Build:
@@ -59,7 +59,7 @@ FROM python:3.11-slim@sha256:d6e4d224f70f9e0172a06a3a2eba2f768eb146811a349278b38
 LABEL maintainer="Miroslav Sotek <protoscience@anulum.li>"
 LABEL description="Director-AI — Real-time LLM hallucination guardrail"
 LABEL org.opencontainers.image.source="https://github.com/anulum/director-ai"
-LABEL org.opencontainers.image.license="AGPL-3.0-or-later"
+LABEL org.opencontainers.image.license="Apache-2.0 AND BUSL-1.1"
 
 WORKDIR /app
 

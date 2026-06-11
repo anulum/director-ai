@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: AGPL-3.0-or-later
+# SPDX-License-Identifier: Apache-2.0
 # Director-AI starter preset: code generation and tool-output review.
 # Pair with structured verifiers for JSON, numeric, and tool-call outputs.
 profile: code_generation

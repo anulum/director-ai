@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: AGPL-3.0-or-later
+# SPDX-License-Identifier: Apache-2.0
 .DEFAULT_GOAL := help
 .PHONY: help test python-only-check test-rust test-julia test-lean test-go test-wasm test-all proto wasm-build lint fmt docs docs-build bench clean build preflight preflight-fast bandit sast install-hooks docker-build docker-run backup julia-instantiate grpc-scoring ab-bench
 

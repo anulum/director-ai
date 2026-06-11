@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# SPDX-License-Identifier: AGPL-3.0-or-later
+# SPDX-License-Identifier: Apache-2.0
 # Tag a release and create a local git bundle backup.
 # Usage: bash tools/tag-and-backup.sh v2.9.0
 set -euo pipefail

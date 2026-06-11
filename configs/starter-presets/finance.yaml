@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: AGPL-3.0-or-later
+# SPDX-License-Identifier: Apache-2.0
 # Director-AI starter preset: finance and regulatory review.
 # High false-halt risk without a curated KB and local calibration.
 profile: finance

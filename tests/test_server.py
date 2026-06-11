@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: AGPL-3.0-or-later
+# SPDX-License-Identifier: Apache-2.0
 # Commercial license available
 # © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
@@ -438,7 +438,11 @@ class TestServerCoverageGaps:
             )
             response = client.get("/v1/source")
             assert response.status_code == 200
-            assert response.json()["agpl_obligation"] == "waived"
+            body = response.json()
+            assert body["license"] == "commercial"
+            # The auth-exempt endpoint must not leak the commercial tier/licensee.
+            assert body.get("tier", "") == ""
+            assert body.get("licensee", "") == ""
 
         disabled_cfg = self._fast_config()
         disabled_cfg.source_endpoint_enabled = False

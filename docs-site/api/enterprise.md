@@ -168,14 +168,18 @@ entries = logger.query(tenant_id="tenant_a", since="2026-01-01")
 
 ## License Matrix
 
+The enterprise module is part of the **Advanced & Labs** tier, licensed under
+**BUSL-1.1** (source-available).
+
 | Use Case | License Required |
 |----------|-----------------|
-| Open-source project | AGPL-3.0 (free) |
-| Internal tools | AGPL-3.0 (free) |
-| SaaS product | Commercial license |
-| Proprietary embedding | Commercial license |
+| Evaluation / prototyping | BUSL-1.1 (free) |
+| Non-production internal use | BUSL-1.1 (free) |
+| Production deployment | Commercial license |
+| Hosted / SaaS product | Commercial license |
 
-See [Licensing](../licensing.md) for pricing and terms.
+The Apache-2.0 core, by contrast, is free in production. See
+[Licensing](../licensing.md) for pricing and terms.
 
 ## Full API
 

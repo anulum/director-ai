@@ -23,7 +23,7 @@ Metric: macro-averaged balanced accuracy (standard for [LLM-AggreFact](https://l
 | 3 | FactCG-DeBERTa-L (paper) | 77.2% | 0.4B | No | — | MIT |
 | 4 | Granite Guardian 3.3 (IBM) | 76.5% | 8B | No | — | Apache 2.0 |
 | 5 | GPT-4o | 75.9% | ~200B | No | API | Proprietary |
-| **6** | **Director-AI (FactCG)** | **75.86%** | **0.4B** | **Yes** | **0.5 ms** | **AGPL v3** |
+| **6** | **Director-AI (FactCG)** | **75.86%** | **0.4B** | **Yes** | **0.5 ms** | **Apache-2.0 / BUSL-1.1** |
 | 7 | MiniCheck-Flan-T5-L | 75.0% | 0.8B | No | ~120 ms | MIT |
 | 8 | MiniCheck-DeBERTa-L | 74.1% | 0.4B | No | ~120 ms | MIT |
 | 9 | Paladin-mini (Microsoft) | 73.1% | 3.8B | No | — | Phi-4 license |
@@ -385,7 +385,7 @@ Unlike the NLI benchmarks, this is a standalone tool (it generates fresh transcr
 | **AggreFact BA** | 75.86% (0.4B) | N/A | N/A | N/A | N/A |
 | **E2E catch rate** | 90.7% (hybrid) | N/A | N/A | N/A | N/A |
 | **Integrations** | LC/LI/LG/HS/CrewAI | LangChain | Python | LC/LI | Python |
-| **License** | AGPL v3 | Apache 2.0 | Apache 2.0 | Apache 2.0 | MIT |
+| **License** | Apache-2.0 / BUSL-1.1 | Apache 2.0 | Apache 2.0 | Apache 2.0 | MIT |
 
 ### Other Systems (Different Benchmarks)
 

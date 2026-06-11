@@ -43,20 +43,19 @@ Security concerns for Director-AI:
 - **No pickle.load of untrusted data** in any module
 - **CI security audit**: `pip-audit` runs on every push
 
-## AGPL-3.0 Compliance
+## Licensing
 
-Director-AI is licensed under GNU AGPL v3. Key obligations:
+Director-AI is open core:
 
-1. **Source disclosure**: if you modify Director-AI and deploy it as a
-   network service, you must make your modified source available to users
-   of that service under the same license.
-2. **Commercial alternative**: a commercial license is available for
-   organisations that cannot comply with AGPL requirements. Contact
-   protoscience@anulum.li.
-3. **Dependency compatibility**: all runtime dependencies are
-   permissively licensed (MIT/Apache-2.0/BSD). The AGPL obligation
-   applies to Director-AI code, not to your application code that calls
-   it through the public API.
+1. **Core — Apache-2.0**: the guardrail engine and supporting surfaces are
+   permissively licensed and free for any use, including production and
+   closed-source products, with no source-disclosure obligation.
+2. **Advanced & Labs — BUSL-1.1**: source-available; free for non-production and
+   evaluation, with each file converting to Apache-2.0 on its change date.
+   Production or hosted use of the advanced tier needs a commercial license —
+   contact protoscience@anulum.li.
+3. **Dependency compatibility**: all runtime dependencies are permissively
+   licensed (MIT/Apache-2.0/BSD), compatible with both tiers.
 
 ## Known Limitations
 

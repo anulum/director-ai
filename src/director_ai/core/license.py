@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: AGPL-3.0-or-later
+# SPDX-License-Identifier: Apache-2.0
 # Commercial license available
 # © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
@@ -175,7 +175,8 @@ def load_license() -> LicenseInfo:
     2. DIRECTOR_LICENSE_KEY env var (syntax check only; does not activate)
     3. DIRECTOR_LICENSE_FILE env var (path to signed JSON)
     4. ~/.director-ai/license.json (default file location)
-    5. Falls back to community (AGPL) tier
+    5. Falls back to the open-core community tier (Apache-2.0 core + BUSL-1.1
+       advanced, free for non-production)
     """
     key = os.environ.get("DIRECTOR_LICENSE_KEY", "").strip()
     if key:
@@ -213,11 +214,11 @@ def load_license() -> LicenseInfo:
             logger.info("License: %s (default file)", info.message)
             return info
 
-    logger.info("License: AGPL-3.0-or-later (community)")
+    logger.info("License: open core (Apache-2.0 + BUSL-1.1, community)")
     return LicenseInfo(
         tier="community",
         valid=True,
-        message="AGPL-3.0-or-later (no commercial license)",
+        message="open core: Apache-2.0 + BUSL-1.1 (no commercial license)",
     )
 
 

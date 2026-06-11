@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: AGPL-3.0-or-later
+# SPDX-License-Identifier: Apache-2.0
 # Commercial license available
 # © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
@@ -17,7 +17,7 @@ description = "Real-time LLM hallucination guardrail — NLI + RAG fact-checking
 authors = [
     {name = "Miroslav Šotek", email = "protoscience@anulum.li"}
 ]
-license = {text = "AGPL-3.0-or-later"}
+license = "Apache-2.0 AND BUSL-1.1"
 readme = "README.md"
 requires-python = ">=3.11"
 keywords = [
@@ -26,7 +26,6 @@ keywords = [
     "openai", "anthropic", "langchain",
 ]
 classifiers = [
-    "License :: OSI Approved :: GNU Affero General Public License v3 or later (AGPLv3+)",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",

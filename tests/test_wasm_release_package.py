@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: AGPL-3.0-or-later
+# SPDX-License-Identifier: Apache-2.0
 # Commercial license available
 # © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
@@ -24,7 +24,7 @@ def _write_package(package_dir) -> None:
         "type": "module",
         "description": "WebAssembly bindings",
         "version": "0.1.1",
-        "license": "AGPL-3.0-or-later",
+        "license": "Apache-2.0",
         "repository": {
             "type": "git",
             "url": "https://github.com/anulum/director-ai",
@@ -53,7 +53,7 @@ def test_wasm_release_package_accepts_complete_package(tmp_path) -> None:
     assert report.ready is True
     assert report.package_name == "backfire-wasm"
     assert report.package_type == "module"
-    assert report.licence == "AGPL-3.0-or-later"
+    assert report.licence == "Apache-2.0"
     assert report.repository == "https://github.com/anulum/director-ai"
     assert len(report.files) == len(REQUIRED_FILES)
     assert all(len(file.sha256) == 64 for file in report.files)

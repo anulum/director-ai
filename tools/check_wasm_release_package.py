@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# SPDX-License-Identifier: AGPL-3.0-or-later
+# SPDX-License-Identifier: Apache-2.0
 # Commercial license available
 # © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
@@ -188,7 +188,7 @@ def _validate_metadata(
     expected = {
         "name": "backfire-wasm",
         "type": "module",
-        "license": "AGPL-3.0-or-later",
+        "license": "Apache-2.0",
         "main": "backfire_wasm.js",
         "types": "backfire_wasm.d.ts",
     }

@@ -2,7 +2,7 @@
 # ---------------------------------------------------------------------
 # Director-AI — JarvisLabs GPU Benchmark Bootstrap
 # © 1998–2026 Miroslav Šotek. All rights reserved.
-# License: GNU AGPL v3 | Commercial licensing available
+# License: Apache-2.0
 # ---------------------------------------------------------------------
 # Run on a fresh JarvisLabs instance (Ubuntu + NVIDIA driver preinstalled).
 # Clones repo, installs deps, exports ONNX model, runs cross-GPU benchmark.

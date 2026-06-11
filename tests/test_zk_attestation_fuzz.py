@@ -1,10 +1,10 @@
-# SPDX-License-Identifier: AGPL-3.0-or-later
+# SPDX-License-Identifier: Apache-2.0
 # Copyright (c) 2020-2026 Miroslav Sotek
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
 # Project: Director-Class AI
 # File: zk attestation property fuzz tests
-# License: AGPL-3.0-or-later; commercial terms available
+# License: Apache-2.0
 
 """Property tests for cross-org attestation commitments and passports."""
 

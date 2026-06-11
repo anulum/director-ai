@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: AGPL-3.0-or-later
+# SPDX-License-Identifier: Apache-2.0
 # Director-AI starter preset: voice agents and low-latency dialogue.
 # Keeps heavyweight scoring off by default for real-time conversational turns.
 profile: voice_agents

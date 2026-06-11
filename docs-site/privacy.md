@@ -99,7 +99,7 @@ We protect data through:
 - Encrypted email (TLS in transit)
 - SSH key authentication for all infrastructure
 - No plaintext credential storage
-- AGPL-3.0 open-source code subject to public audit
+- Apache-2.0 / BUSL-1.1 source-available code subject to public audit
 
 ## 9. Children
 

@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: AGPL-3.0-or-later
+# SPDX-License-Identifier: Apache-2.0
 # Director-AI — Cloud Build config for the benchmark container
 #
 # Invoked by benchmarks/run_vertex_benchmarks.sh:

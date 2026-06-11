@@ -1,6 +1,6 @@
 # Director-AI API Reference
 
-> **Version**: 3.15.3 | **License**: GNU AGPL v3 | Commercial licensing available
+> **Version**: 3.15.3 | **License**: Apache-2.0 core / BUSL-1.1 advanced | Commercial licensing available
 >
 > **Note**: The canonical API docs are at [anulum.github.io/director-ai](https://anulum.github.io/director-ai/api/). This file is a legacy reference.
 
@@ -463,4 +463,4 @@ director-ai production-check --path director_guard  # validate production scaffo
 **Author**: Miroslav Sotek -- ORCID [0009-0009-3560-0851](https://orcid.org/0009-0009-3560-0851)
 **Copyright**: (C) 1998-2026 Miroslav Sotek. All rights reserved.
 **Website**: [www.anulum.li](https://www.anulum.li)
-**License**: GNU AGPL v3 | Commercial licensing available
+**License**: Apache-2.0 core / BUSL-1.1 advanced | Commercial licensing available

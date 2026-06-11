@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: AGPL-3.0-or-later
+# SPDX-License-Identifier: Apache-2.0
 # Commercial license available
 # Copyright (c) Concepts 1996-2026 Miroslav Sotek. All rights reserved.
 # Copyright (c) Code 2020-2026 Miroslav Sotek. All rights reserved.
@@ -245,7 +245,7 @@ def _write_portable_fixture(repo: Path) -> None:
                 'version = "1.2.3"',
                 'requires-python = ">=3.11"',
                 'readme = "README.md"',
-                'license = "AGPL-3.0-or-later"',
+                'license = "Apache-2.0"',
                 "",
                 "[project.optional-dependencies]",
                 'analysis = ["numpy"]',

@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "description": "Vercel AI SDK middleware for Director-AI REST review gates",
   "type": "module",
-  "license": "AGPL-3.0-or-later",
+  "license": "Apache-2.0",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "files": [

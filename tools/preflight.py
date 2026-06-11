@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# SPDX-License-Identifier: AGPL-3.0-or-later
+# SPDX-License-Identifier: Apache-2.0
 """Pre-push preflight gate — mirrors CI checks locally.
 
 Gates (must match ci.yml):
