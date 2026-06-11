@@ -1,0 +1,74 @@
+# SPDX-License-Identifier: Apache-2.0
+# Commercial license available
+name: "Director-AI Guardrail Gate"
+description: >-
+  Fail a CI run when the Director-AI hallucination guardrail's quality on your
+  labelled eval set drops below a threshold. Token-level guardrail, run as a
+  quality gate.
+branding:
+  icon: "shield"
+  color: "blue"
+
+inputs:
+  dataset:
+    description: "Path to a JSONL file of {prompt, response, expected} cases (expected: approve|reject)."
+    required: true
+  min-accuracy:
+    description: "Minimum overall accuracy (0-1). The gate fails below this."
+    required: false
+    default: "0.9"
+  min-catch-rate:
+    description: "Optional minimum hallucination catch rate (0-1) on reject-labelled cases."
+    required: false
+    default: ""
+  max-false-halt:
+    description: "Optional maximum false-halt rate (0-1) on approve-labelled cases."
+    required: false
+    default: ""
+  profile:
+    description: "Optional Director-AI config profile (e.g. medical, finance, legal)."
+    required: false
+    default: ""
+  output:
+    description: "Optional path to write the JSON gate report (for CI artefacts)."
+    required: false
+    default: ""
+  extras:
+    description: "pip extra to install with director-ai (e.g. nli, vector). Use 'none' to skip extras."
+    required: false
+    default: "nli"
+  version:
+    description: "director-ai version spec to install (e.g. '', '==3.15.3', '>=3.15')."
+    required: false
+    default: ""
+  python-version:
+    description: "Python version to set up."
+    required: false
+    default: "3.12"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ inputs.python-version }}
+
+    - name: Install Director-AI
+      shell: bash
+      run: |
+        if [ "${{ inputs.extras }}" = "none" ] || [ -z "${{ inputs.extras }}" ]; then
+          pip install "director-ai${{ inputs.version }}"
+        else
+          pip install "director-ai[${{ inputs.extras }}]${{ inputs.version }}"
+        fi
+
+    - name: Run guardrail gate
+      shell: bash
+      run: |
+        args=(--dataset "${{ inputs.dataset }}" --min-accuracy "${{ inputs.min-accuracy }}")
+        [ -n "${{ inputs.min-catch-rate }}" ] && args+=(--min-catch-rate "${{ inputs.min-catch-rate }}")
+        [ -n "${{ inputs.max-false-halt }}" ] && args+=(--max-false-halt "${{ inputs.max-false-halt }}")
+        [ -n "${{ inputs.profile }}" ] && args+=(--profile "${{ inputs.profile }}")
+        [ -n "${{ inputs.output }}" ] && args+=(--output "${{ inputs.output }}")
+        director-ai ci-gate "${args[@]}"

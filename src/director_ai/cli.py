@@ -39,6 +39,7 @@ from ._cli_bench import (
     _cmd_tune,
     _cmd_validate_data,
 )
+from ._cli_gate import _cmd_ci_gate
 from ._cli_ingest import _INGEST_MAX_FILE_SIZE, _cmd_ingest
 from ._cli_production import _cmd_production_check
 from ._cli_train import _cmd_train
@@ -95,6 +96,7 @@ def main(argv: list[str] | None = None) -> None:
         "batch": _cmd_batch,
         "ingest": _cmd_ingest,
         "eval": _cmd_eval,
+        "ci-gate": _cmd_ci_gate,
         "bench": _cmd_bench,
         "tune": _cmd_tune,
         "train": _cmd_train,
@@ -146,6 +148,7 @@ def _print_help() -> None:
         "  batch <file.jsonl>    Batch process (max 10K prompts, <100MB)\n"
         "  ingest <file>         Ingest documents (txt/md/pdf/docx/html/csv)\n"
         "  eval [--dataset D]    Run NLI benchmark suite\n"
+        "  ci-gate --dataset F --min-accuracy R  Fail CI when guard quality drops\n"
         "  bench [--dataset D] [--seed N] [--output F]  Run regression benchmarks\n"
         "  tune <file.jsonl>|--dataset D [--output config.yaml]  Tune profile overlay\n"
         "  train submit [options]  Submit or dry-run a managed training job\n"

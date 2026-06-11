@@ -5,11 +5,11 @@
     "model_documentation_pages": 88,
     "optional_extras": 54,
     "public_api_exports": 216,
-    "public_documentation_pages": 184,
-    "python_model_classes": 901,
-    "python_model_source_modules": 394,
+    "public_documentation_pages": 185,
+    "python_model_classes": 905,
+    "python_model_source_modules": 396,
     "rust_pyo3_model_wrappers": 78,
-    "test_files": 475
+    "test_files": 476
   },
   "documentation": {
     "public_pages": [
@@ -137,6 +137,7 @@
       "docs-site/deployment/wasm-runtime.md",
       "docs-site/glossary.md",
       "docs-site/guide/architecture.md",
+      "docs-site/guide/ci-gate.md",
       "docs-site/guide/compliance-reporting.md",
       "docs-site/guide/config.md",
       "docs-site/guide/customer-model-factory.md",
@@ -691,6 +692,10 @@
       {
         "name": "CarlaAdapter",
         "path": "src/director_ai/core/cyber_physical/adapters.py"
+      },
+      {
+        "name": "CaseOutcome",
+        "path": "src/director_ai/ci_gate.py"
       },
       {
         "name": "CausalAttributionGraph",
@@ -1405,6 +1410,10 @@
         "path": "src/director_ai/core/labelling_cockpit/cockpit.py"
       },
       {
+        "name": "EvalCase",
+        "path": "src/director_ai/ci_gate.py"
+      },
+      {
         "name": "Eventually",
         "path": "src/director_ai/core/temporal_logic/formula.py"
       },
@@ -1635,6 +1644,14 @@
       {
         "name": "FuzzReport",
         "path": "src/director_ai/core/fuzzing/engine.py"
+      },
+      {
+        "name": "GateReport",
+        "path": "src/director_ai/ci_gate.py"
+      },
+      {
+        "name": "GateThresholds",
+        "path": "src/director_ai/ci_gate.py"
       },
       {
         "name": "GaussianMechanism",
@@ -3915,6 +3932,7 @@
     ],
     "python_source_modules": [
       "src/director_ai/_cli_bench.py",
+      "src/director_ai/_cli_gate.py",
       "src/director_ai/_cli_ingest.py",
       "src/director_ai/_cli_production.py",
       "src/director_ai/_cli_serve.py",
@@ -3927,6 +3945,7 @@
       "src/director_ai/agentic/loop_monitor.py",
       "src/director_ai/agentic/swarm_guardian.py",
       "src/director_ai/agentic/swarm_metrics.py",
+      "src/director_ai/ci_gate.py",
       "src/director_ai/cli.py",
       "src/director_ai/compliance/audit_log.py",
       "src/director_ai/compliance/cost_analyser.py",
@@ -4733,6 +4752,7 @@
       "tests/test_causal_verifier.py",
       "tests/test_chroma_integration.py",
       "tests/test_chunked_nli.py",
+      "tests/test_ci_gate.py",
       "tests/test_ci_optional_extras_matrix.py",
       "tests/test_citations.py",
       "tests/test_claim_provenance.py",
