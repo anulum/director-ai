@@ -570,6 +570,22 @@ Commercial licences for the advanced tier:
 [anulum.li/licensing](https://www.anulum.li/licensing) ·
 [director.class.ai@anulum.li](mailto:director.class.ai@anulum.li)
 
+## Support the project
+
+Director-AI is built and maintained independently. If it helps you, the best
+ways to keep the work going are:
+
+- **Buy a licence** for the advanced tier — see
+  [anulum.li/licensing](https://www.anulum.li/licensing). This directly funds
+  development and gets you production rights, support, and SLAs.
+- **Sponsor or donate** — [GitHub Sponsors](https://github.com/sponsors/anulum).
+  Every contribution, large or small, is genuinely appreciated and goes straight
+  into keeping the project alive and moving.
+- **Spread the word** — star the repo, write up your use case, or tell a team
+  that needs a real-time hallucination guardrail.
+
+Thank you for supporting independent, open-core AI safety work.
+
 ## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md). Contributions to the Apache-2.0 core are
