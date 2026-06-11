@@ -1,8 +1,9 @@
-# Licensing & Pricing
+# Licensing
 
 <div class="hero-subtitle" style="font-size: 1.15em; color: var(--md-default-fg-color--light); margin-bottom: 2em;">
-Open core under Apache-2.0 — free for any use, including production.<br/>
-Advanced &amp; Labs under BUSL-1.1 — free to evaluate; a commercial licence unlocks production.
+The licence model. Open core under Apache-2.0 — free for any use, including production.<br/>
+Advanced &amp; Labs under BUSL-1.1 — free to evaluate; a commercial licence unlocks production.<br/>
+Looking for tiers and prices? See the <a href="pricing.md">Pricing page</a>.
 </div>
 
 ---
@@ -29,101 +30,16 @@ Advanced &amp; Labs under BUSL-1.1 — free to evaluate; a commercial licence un
 
 ---
 
-## :material-currency-usd: Commercial License Tiers
+## :material-currency-usd: Tiers & prices
 
-=== ":material-account: Indie — CHF 49/mo"
+Commercial tiers, the usage-based API, and the side-by-side comparison live on
+the dedicated **[Pricing page](pricing.md)** — one source of truth for prices.
 
-    **For:** Solo developers, internal tools, side projects.
+In short: the **Apache-2.0 core** is free for everyone, in production, with no
+strings; the commercial tiers add a production licence for the **BUSL-1.1
+Advanced & Labs** capabilities plus support and SLAs.
 
-    - 1 production deployment
-    - Email support (48h response)
-    - Same-day updates
-    - All features included
-
-    **Founding Member: CHF 29/mo** (40% off, locked permanently)
-
-    [Buy Indie :material-cart:](https://polar.sh/checkout/polar_c_gmuEUUV0VUIsmnm8ZzPJnmrYISFg5oXzualxI11Lgxn){ .md-button .md-button--primary }
-
-=== ":material-account-group: Pro — CHF 199/mo"
-
-    **For:** Teams shipping LLM features to production.
-
-    - Unlimited deployments
-    - Slack priority support (4h response)
-    - 99.5% SLA
-    - All features included
-
-    **Founding Member: CHF 99/mo** (50% off, locked permanently)
-
-    [Buy Pro :material-cart:](https://polar.sh/checkout/polar_c_kLbfbCFJhyubFxzax8JNLw8WZU8T4IveHPlMo0kpxOZ){ .md-button .md-button--primary }
-
-=== ":material-infinity: Perpetual — CHF 999"
-
-    **For:** One-time purchase, no subscription.
-
-    - Equivalent to Indie tier
-    - 12 months of updates included
-    - No recurring payments, ever
-    - All features included
-
-    [Buy Perpetual :material-license:](https://polar.sh/checkout/polar_c_VW7ClxyB6axih6mu9NqWlh6OgeAVJl4GVDgFW0QePtZ){ .md-button .md-button--primary }
-
-=== ":material-office-building: Enterprise"
-
-    **For:** Regulated industries, multi-tenant SaaS, high volume.
-
-    - Dedicated support engineer + private Slack/Teams channel
-    - Custom SLA (99.9%+ uptime)
-    - On-prem / air-gapped deployment support
-    - SOC2 / HIPAA compliance documentation
-    - Custom NLI model fine-tuning on your domain data
-    - Quarterly architecture review calls
-    - Roadmap input: vote on features that matter to you
-
-    [Contact Us :material-email:](mailto:director.class.ai@anulum.li?subject=Director-AI%20Enterprise%20Inquiry){ .md-button .md-button--primary }
-
----
-
-## :material-compare: What's the Difference?
-
-The **Apache-2.0 core** is free for everyone, in production, with no strings. The
-commercial tiers add a production licence for the **BUSL-1.1 Advanced & Labs**
-capabilities, plus support and SLAs.
-
-| | :material-open-source-initiative: Free | :material-account: Indie | :material-account-group: Pro | :material-office-building: Enterprise |
-|---|:---:|:---:|:---:|:---:|
-| **Core scorer + streaming halt** (Apache-2.0) | :material-check: | :material-check: | :material-check: | :material-check: |
-| **NLI + RAG backends** (Apache-2.0) | :material-check: | :material-check: | :material-check: | :material-check: |
-| **6 framework integrations** (Apache-2.0) | :material-check: | :material-check: | :material-check: | :material-check: |
-| **REST / gRPC server** (Apache-2.0) | :material-check: | :material-check: | :material-check: | :material-check: |
-| **ONNX + Rust kernel** (Apache-2.0) | :material-check: | :material-check: | :material-check: | :material-check: |
-| **Core in production / closed-source** | :material-check: | :material-check: | :material-check: | :material-check: |
-| | | | | |
-| **Advanced & Labs** (BUSL-1.1) | Eval only | :material-check: | :material-check: | :material-check: |
-| **Advanced & Labs in production** | — | :material-check: | :material-check: | :material-check: |
-| **Deployments** | Core: unlimited | 1 prod | Unlimited | Unlimited |
-| **Support** | GitHub Issues | Email (48h) | Slack (4h) | Dedicated engineer |
-| **SLA** | — | — | 99.5% | 99.9% |
-| **Custom fine-tuning** | — | — | — | :material-check: |
-
-!!! quote "Our philosophy"
-    The core guardrail is genuinely open: Apache-2.0, free in production, no
-    disclosure obligation. We monetise the *advanced and labs* tier — the deeper
-    capabilities under BUSL-1.1 — and the support around it. Evaluate everything
-    for free; pay only when an advanced capability goes to production.
-
----
-
-## :material-api: Usage-Based API (Coming Q2 2026)
-
-For teams that prefer pay-per-use over fixed licensing:
-
-| Volume | Per 1,000 checks | |
-|--------|:---:|---|
-| First 5,000/month | **Free** | No credit card needed |
-| 5,001 — 50,000 | CHF 2.50 | ~CHF 0.0025 per check |
-| 50,001 — 500,000 | CHF 1.50 | Volume discount |
-| 500,000+ | Custom | [Contact us](mailto:director.class.ai@anulum.li) |
+[See pricing :material-arrow-right:](pricing.md){ .md-button .md-button--primary }
 
 Self-hosted deployments use the license tiers above.
 
