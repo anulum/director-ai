@@ -15,7 +15,7 @@ Director-Class AI — Repository overview
 <h1 align="center">Director-AI</h1>
 
 <p align="center">
-  <strong>Real-time LLM hallucination guardrail — NLI + RAG fact-checking with token-level streaming halt</strong>
+  <strong>Stop an LLM or agent before it acts on a hallucination — token-level streaming halt, NLI + RAG grounding, and a sealed audit trail</strong>
 </p>
 
 <p align="center">
@@ -75,7 +75,7 @@ The system was built to solve a specific internal need: **real-time hallucinatio
 
 **Distribution boundary:** this public repository contains the open core,
 public SDKs, public integrations, baseline evaluation surfaces, and general
-documentation. The complete Director-Class AI product also includes proprietary
+documentation. The complete Director-AI product also includes proprietary
 commercial extensions that are not published here, including customer-specific
 implementation packages, sector-specific tuning/evaluation packs, private
 deployment recipes, and customer-owned knowledge-base adaptation work. Those
@@ -83,7 +83,7 @@ materials are provided only under separate commercial agreements and must be
 validated against the customer's own governed data, controls, and acceptance
 criteria before any customer-specific performance claim is made.
 
-> **Active Development** — APIs may evolve. The core guardrail engine, 5-tier scoring (rules → embeddings → NLI), SDK guard, FastAPI middleware, REST/gRPC servers, injection detection, SaaS middleware (API keys + rate limiting), advanced RAG, multi-agent swarm guardian, config wizard, and compliance reports are functional and tested (8253 passing tests in the latest full local coverage run). Rust-accelerated compute paths shipped in the v3.12 line and remain part of the current release surface.
+> **Active Development** — APIs may evolve. The shipped core — the guardrail engine and 5-tier scoring (rules → embeddings → NLI), the SDK guard, FastAPI middleware, REST server, injection detection, the token-level streaming halt, and the agent/MCP preflight guard — is functional and tested (8253 passing tests in the latest full local coverage run). Deeper and experimental capabilities live under **Advanced & Labs** in the docs. Rust-accelerated compute paths shipped in the v3.12 line and remain part of the current release surface.
 
 ---
 
