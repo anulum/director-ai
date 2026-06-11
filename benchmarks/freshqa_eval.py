@@ -81,14 +81,13 @@ def run_freshqa(
         sample = E2ESample(
             task="freshqa",
             context="",
-            question=question,
             response=answer,
             is_hallucinated=is_hallucinated,
             approved=approved,
-            score=score.score,
+            coherence_score=score.score,
             latency_ms=elapsed * 1000,
         )
-        metrics.add(sample)
+        metrics.samples.append(sample)
 
     return metrics
 
@@ -103,5 +102,5 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     results = run_freshqa(max_samples=args.max_samples, use_nli=args.nli)
-    print_e2e_results(results, "FreshQA")
+    print_e2e_results(results)
     save_results(results.to_dict(), "freshqa_results.json")
