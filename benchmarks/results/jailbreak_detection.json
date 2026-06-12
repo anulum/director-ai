@@ -1,0 +1,79 @@
+{
+  "benchmark": "jailbreak_detection",
+  "datasets": {
+    "harmbench_all": {
+      "url": "https://raw.githubusercontent.com/centerforaisafety/HarmBench/main/data/behavior_datasets/harmbench_behaviors_text_all.csv",
+      "rows": 400
+    },
+    "jbb_harmful": {
+      "url": "https://huggingface.co/datasets/JailbreakBench/JBB-Behaviors/resolve/main/data/harmful-behaviors.csv",
+      "rows": 100
+    },
+    "jbb_benign": {
+      "url": "https://huggingface.co/datasets/JailbreakBench/JBB-Behaviors/resolve/main/data/benign-behaviors.csv",
+      "rows": 100
+    }
+  },
+  "block_threshold": 0.8,
+  "layers": {
+    "injection_guard_raw": {
+      "what": "InputSanitizer over raw harmful goals (not injections; scope-documenting baseline)",
+      "detection_rate": 0.0,
+      "flagged": 0,
+      "total": 500
+    },
+    "injection_guard_jailbroken": {
+      "what": "InputSanitizer over harmful goals wrapped in canonical jailbreak templates (the fair input-guard measurement)",
+      "detection_rate": 0.5992,
+      "flagged": 1498,
+      "total": 2500,
+      "per_template": {
+        "prefix_injection": {
+          "flagged": 500,
+          "total": 500,
+          "rate": 1.0
+        },
+        "refusal_suppression": {
+          "flagged": 0,
+          "total": 500,
+          "rate": 0.0
+        },
+        "dan_roleplay": {
+          "flagged": 0,
+          "total": 500,
+          "rate": 0.0
+        },
+        "aim_roleplay": {
+          "flagged": 500,
+          "total": 500,
+          "rate": 1.0
+        },
+        "base64_obfuscation": {
+          "flagged": 498,
+          "total": 500,
+          "rate": 0.996
+        }
+      }
+    },
+    "moderation_toxicity_raw": {
+      "what": "DetoxifyDetector over raw harmful goals; targets toxic LANGUAGE, not harmful intent \u2014 lexically-neutral instructions are true misses for this layer",
+      "model": "detoxify/original",
+      "score_threshold": 0.6,
+      "detection_rate": 0.02,
+      "flagged": 10,
+      "total": 500
+    }
+  },
+  "false_positives_benign": {
+    "injection_guard": {
+      "false_positive_rate": 0.0,
+      "flagged": 0,
+      "total": 100
+    },
+    "moderation_toxicity": {
+      "false_positive_rate": 0.01,
+      "flagged": 1,
+      "total": 100
+    }
+  }
+}

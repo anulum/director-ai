@@ -70,9 +70,33 @@ guards. Director-AI spans both — runtime guard **and** CI eval.
 | Hallucination / RAG eval | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | partial |
 | Self-host / OSS | ✅ | partial | partial | ✅ | ✅ | ✅ | ✅ |
 
+## Adversarial-benchmark numbers (HarmBench + JailbreakBench)
+
+Measured by `benchmarks/jailbreak_detection.py` over the public
+[HarmBench](https://github.com/centerforaisafety/HarmBench) (400 behaviours) and
+[JailbreakBench](https://github.com/JailbreakBench/jailbreakbench) (100 harmful +
+100 benign) sets. Director-AI is a hallucination + prompt-injection guardrail,
+not a harmful-content refusal classifier, so each layer is reported separately,
+measured on the input it is designed for — no single headline number that would
+flatter or mislead.
+
+| Layer | What it measures | Result |
+|---|---|---|
+| Input guard — raw harmful goals | injection patterns in plain harmful requests | 0.0% (0/500) — a plain harmful request is not an injection; this is the honest scope baseline |
+| Input guard — jailbreak-wrapped | same goals wrapped in five canonical jailbreak templates | **59.9%** (1498/2500) |
+| └ prefix injection / AIM / base64 | | 100% / 100% / 99.6% |
+| └ refusal suppression / DAN | | 0% / 0% — pattern families not yet covered |
+| Toxicity moderation — raw harmful | detoxify on the raw goals | 2.0% (10/500) — detoxify targets toxic *language*, not harmful *intent*, so lexically-neutral instructions are true misses for this layer |
+| False positives — benign (input guard) | 100 benign JailbreakBench requests | **0.0%** (0/100) |
+| False positives — benign (toxicity) | 100 benign JailbreakBench requests | 1.0% (1/100) |
+
+The input guard catches three of the five standard jailbreak families outright
+at a 0% benign false-positive rate; refusal-suppression and DAN-style role-play
+are not yet covered and are tracked as pattern-coverage work. We publish the
+gaps rather than a rounded-up aggregate.
+
 ## Where we're honest about the roadmap
 
-We publish what we don't have yet, too: a **cloud SaaS** offering, **published
-adversarial-benchmark numbers** (HarmBench / Jailbreak Bench), and **long-context
-moderation beyond the 512-token model window** are on the roadmap. Everything in
-the tables above is in the repository today.
+We publish what we don't have yet, too: a **cloud SaaS** offering and
+**long-context moderation beyond the 512-token model window** are on the roadmap.
+Everything in the tables above is in the repository today.

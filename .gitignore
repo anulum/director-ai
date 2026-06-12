@@ -177,6 +177,7 @@ benchmarks/results/*
 !benchmarks/results/medical_eval.json
 !benchmarks/results/finance_eval.json
 !benchmarks/results/legal_eval.json
+!benchmarks/results/jailbreak_detection.json
 benchmarks/.cache/
 benchmarks/*.jsonl
 benchmarks/heldout/
