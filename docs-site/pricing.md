@@ -126,7 +126,7 @@ The measured differences, from the committed
 
 | | Director-AI | NeMo Guardrails | GuardrailsAI | SelfCheckGPT |
 |---|:---:|:---:|:---:|:---:|
-| **Token-level streaming halt** | :material-check: **only us** | :material-close: | :material-close: | :material-close: |
+| **Token-level streaming halt** _(experimental, under calibration)_ | :material-flask: | :material-close: | :material-close: | :material-close: |
 | **NLI latency / pair** | **~0.9 ms** | 50–300 ms + LLM | 2.26 s | 5–10 s |
 | **Offline / local** | :material-check: | :material-close: | :material-close: | :material-close: |
 | **Self-hosted core price** | **CHF 0** | free | free | free |

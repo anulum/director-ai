@@ -83,7 +83,7 @@ def _run_guard(cadence_label: str, n_tokens: int, iterations: int, **kwargs) -> 
         kernel.stream_tokens(iter(tokens), coherence_cb)
         times.append(time.perf_counter() - t0)
         last_cb_count = cb_count
-        kernel._active = True
+        kernel.reactivate()  # re-arm via the public API; never poke _active
         accumulated = ""
 
     avg_s = sum(times) / len(times)

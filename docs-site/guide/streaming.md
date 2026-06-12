@@ -1,5 +1,16 @@
 # Streaming Halt
 
+!!! warning "Experimental — not a production gate yet"
+    The token-level streaming halt is **opt-in and under active calibration.**
+    On our own false-halt benchmark (`benchmarks/streaming_false_halt_bench.py`,
+    135 grounded passages) it cannot yet separate hallucinated from correct
+    streaming text without a high false-halt rate: the coherence scores of
+    correct and incorrect partial text overlap, so any threshold that catches
+    the hallucinations also halts a large fraction of correct answers. The
+    production-validated path is **response-level scoring** (`/v1/review`,
+    benchmarked on LLM-AggreFact). Do not rely on the streaming halt as a
+    production safety gate until this is resolved.
+
 ## Overview
 
 `StreamingKernel` monitors coherence by re-scoring the accumulated text

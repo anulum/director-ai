@@ -15,7 +15,7 @@ Director-Class AI — Repository overview
 <h1 align="center">Director-AI</h1>
 
 <p align="center">
-  <strong>Stop an LLM or agent before it acts on a hallucination — token-level streaming halt, NLI + RAG grounding, and a sealed audit trail</strong>
+  <strong>Catch an LLM or agent hallucination before it ships — NLI + RAG grounding, a sealed audit trail, and an experimental token-level streaming halt</strong>
 </p>
 
 <p align="center">
@@ -56,7 +56,7 @@ The seven steps the packet records:
 2. Ask the LLM a policy question.
 3. A **grounded** answer is approved.
 4. A **hallucinated** answer is blocked.
-5. Streaming halts before an unsafe completion.
+5. (Experimental) streaming oversight is exercised on the token stream.
 6. An evidence JSON (Answer Bill of Materials + OpenTelemetry eval record) is emitted.
 7. The decision is written to the audit log.
 
@@ -84,13 +84,13 @@ materials are provided only under separate commercial agreements and must be
 validated against the customer's own governed data, controls, and acceptance
 criteria before any customer-specific performance claim is made.
 
-> **Active Development** — APIs may evolve. The shipped core — the guardrail engine and 5-tier scoring (rules → embeddings → NLI), the SDK guard, FastAPI middleware, REST server, injection detection, the token-level streaming halt, and the agent/MCP preflight guard — is functional and tested (8253 passing tests in the latest full local coverage run). Deeper and experimental capabilities live under **Advanced & Labs** in the docs. Rust-accelerated compute paths shipped in the v3.12 line and remain part of the current release surface.
+> **Active Development** — APIs may evolve. The production-validated core — the guardrail engine and 5-tier scoring (rules → embeddings → NLI), the SDK guard, FastAPI middleware, REST server, injection detection, and the agent/MCP preflight guard — is functional and tested (8253 passing tests in the latest full local coverage run); its response-level hallucination accuracy is benchmarked on LLM-AggreFact. The **token-level streaming halt is experimental**: on our own false-halt benchmark it cannot yet separate hallucinated from correct streaming text without a high false-halt rate, so it is opt-in and under calibration — do not rely on it as a production gate yet. Deeper and experimental capabilities live under **Advanced & Labs** in the docs. Rust-accelerated compute paths shipped in the v3.12 line and remain part of the current release surface.
 
 ---
 
 ## What It Does
 
-Director-AI sits between your LLM and the user. It scores every output for hallucination — and can halt generation mid-stream when coherence drops.
+Director-AI sits between your LLM and the user. It scores every output for hallucination against governed facts before the answer ships. (An experimental mode can also halt generation mid-stream when coherence drops — see the development note above for its current limits.)
 
 ```mermaid
 graph LR
@@ -116,16 +116,18 @@ It is a guardrail runtime for factual-risk control:
 
 - **Before output reaches users:** score a candidate answer against governed
   facts, NLI contradiction signals, retrieval evidence, and structured checks.
-- **While output is streaming:** stop a token stream when coherence drops
-  instead of waiting for post-hoc review.
+- **While output is streaming (experimental):** an opt-in mode can stop a token
+  stream when coherence drops, but it is under calibration — see the development
+  note above before relying on it.
 - **Inside agent workflows:** inspect tool outputs, handoffs, and trajectory
   steps before downstream action.
 - **For operators:** emit tenant-safe evidence, metrics, halt reasons, and
   compliance packets that can be reviewed without exposing raw customer data.
 
-The strongest open-core value is the combination of real-time streaming halt,
-local low-latency execution, RAG/NLI verification, Rust acceleration, REST/gRPC
-deployment surfaces, and evidence-first documentation. The commercial value is
+The strongest open-core value is the combination of response-level RAG/NLI
+verification, local low-latency execution, Rust acceleration, REST/gRPC
+deployment surfaces, and evidence-first documentation (the real-time streaming
+halt is experimental — see the development note above). The commercial value is
 reducing factual incidents in high-consequence workflows while giving teams a
 portable control layer across models, providers, and deployment targets.
 
@@ -161,7 +163,8 @@ to run a scoped pilot.
 
 ### Core capabilities
 
-- **Token-level streaming halt** — severs output mid-generation when coherence degrades. Not post-hoc review. Publicly shipped and [Zenodo-deposited](https://doi.org/10.5281/zenodo.18822166) in early 2026, ahead of the streaming-guardrail literature.
+- **Response-level grounding** — scores a candidate answer against governed facts with NLI contradiction signals and retrieval evidence; benchmarked on LLM-AggreFact. This is the production-validated path.
+- **Token-level streaming halt (experimental)** — re-scores accumulated text during generation and can sever output mid-stream when coherence degrades. The mechanism was [Zenodo-deposited](https://doi.org/10.5281/zenodo.18822166) in early 2026, but on our own false-halt benchmark it does not yet separate hallucinated from correct text without a high false-halt rate; it is opt-in and under calibration, not a production gate.
 - **Dual-entropy scoring** — NLI contradiction detection (0.4B DeBERTa) + RAG fact-checking against your knowledge base.
 - **Selectable scorer models** — choose a benchmarked local scorer profile for the latency/accuracy trade-off you need, without changing the guarded LLM provider.
 - **Customer Model Factory primitives** — validate customer-owned guardrail
@@ -199,12 +202,12 @@ inventory below is reference for the deeper surface, navigable under
 |---|---:|
 | Package version | 3.15.3 |
 | Public API exports | 218 |
-| Python capability source modules | 399 |
-| Python capability classes | 910 |
+| Python capability source modules | 400 |
+| Python capability classes | 911 |
 | API documentation pages | 88 |
 | Rust PyO3 bindings | 78 |
 | Optional extras | 57 |
-| Python test files | 482 |
+| Python test files | 483 |
 | Public documentation pages | 188 |
 | GitHub Actions workflows | 11 |
 

@@ -64,10 +64,15 @@ def test_streaming_callbacks_treat_argument_as_accumulated_text() -> None:
         "Water science prompt",
     )
 
-    assert coherence_cb("Water boils") == 0.5
+    # The callback now runs the accumulated text through the production
+    # StreamingCoherenceGate: a short opening fragment passes on a grace score
+    # without scoring, and an unfinished claim (no terminal punctuation) holds
+    # that score — the model is only asked to judge a completed claim.
+    assert coherence_cb("Water boils") == 1.0
+    assert coherence_cb("Water boils at 100 degrees Celsius") == 1.0
     assert calls == []
 
-    accumulated = "Water boils at 100 degrees Celsius"
+    accumulated = "Water boils at 100 degrees Celsius."
     assert coherence_cb(accumulated) == 0.875
     assert calls == [("Water science prompt", accumulated)]
 

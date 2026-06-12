@@ -1296,16 +1296,17 @@ def _make_callbacks(scorer, prompt: str):
     """Factory to avoid B023 closure-in-loop binding issues.
 
     ``coherence_cb`` receives the **accumulated text so far** (not the
-    individual token) from ``StreamingKernel.stream_tokens``.  Short
-    accumulated text (< 4 words) gets a grace score of 0.5 because
-    heuristic scoring on fragments is unreliable.
+    individual token) from ``StreamingKernel.stream_tokens`` and runs it
+    through the production :class:`StreamingCoherenceGate`, so the benchmark
+    measures the same claim-boundary gating the server's ``agent.stream`` uses
+    rather than scoring every half-finished fragment.
     """
+    from director_ai.core.runtime.streaming_gate import StreamingCoherenceGate
+
+    gate = StreamingCoherenceGate(lambda text: scorer.review(prompt, text)[1].score)
 
     def coherence_cb(text: str) -> float:
-        if len(text.split()) < 4:
-            return 0.5
-        _, sc = scorer.review(prompt, text)
-        return sc.score
+        return gate.update(text)
 
     def evidence_cb(text: str) -> str | None:
         _, sc = scorer.review(prompt, text)

@@ -19,6 +19,7 @@ from .actor import LLMGenerator, MockGenerator
 from .retrieval.knowledge import GroundTruthStore
 from .runtime.kernel import HaltMonitor
 from .runtime.streaming import StreamingKernel
+from .runtime.streaming_gate import StreamingCoherenceGate
 from .scoring.scorer import CoherenceScorer
 from .types import HaltEvidence, ReviewResult
 
@@ -472,6 +473,14 @@ class CoherenceAgent:
         Uses sliding window, trend detection, and hard/soft halt from
         ``StreamingKernel``. Yields ``(token, coherence)`` tuples.
         Halting stops future tokens but does not retract delivered ones.
+
+        Experimental. The coherence scores of correct and hallucinated partial
+        text overlap, so the halt cannot yet separate them without a high
+        false-halt rate (see ``benchmarks/streaming_false_halt_bench.py``).
+        Coherence is re-scored only at claim boundaries via
+        :class:`StreamingCoherenceGate` to avoid scoring half-finished
+        sentences, but this does not resolve the underlying signal overlap. Use
+        the response-level scorer for production gating until calibrated.
         """
         if not isinstance(prompt, str) or not prompt.strip():
             raise ValueError("prompt must be a non-empty string")
@@ -485,14 +494,21 @@ class CoherenceAgent:
         self.streaming_kernel.reset_state()
         accumulated: list[str] = []
 
-        def _coherence_cb(token: str) -> float:
-            accumulated.append(token)
-            text = " ".join(accumulated)
+        def _score_text(text: str) -> float:
             try:
                 _, score = self.scorer.review(prompt, text, tenant_id=tenant_id)
             except TypeError:
                 _, score = self.scorer.review(prompt, text)
             return float(score.score)
+
+        # Gate re-scoring to complete claims: NLI/RAG coherence on a half-finished
+        # sentence dips below the hard limit and false-halts correct text, so the
+        # model judges a finished claim and the score holds between boundaries.
+        gate = StreamingCoherenceGate(_score_text)
+
+        def _coherence_cb(token: str) -> float:
+            accumulated.append(token)
+            return gate.update(" ".join(accumulated))
 
         async for token in self.generator.stream_tokens(prompt):  # pragma: no branch
             score = _coherence_cb(token)

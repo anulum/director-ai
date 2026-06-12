@@ -1,10 +1,12 @@
 # How Director-AI compares
 
-Director-AI is unusual: it is a **real-time runtime guardrail** *and* a **CI eval
-gate** in one tool. Most alternatives are one or the other. Its defining feature
-— a **token-level streaming halt** that stops output *before* a hallucination
-finishes generating — is, to our knowledge, not offered by any of the tools
-below.
+Director-AI is unusual: it is a **response-level runtime guardrail** *and* a
+**CI eval gate** in one tool, with its hallucination accuracy benchmarked on
+LLM-AggreFact. It also ships an **experimental token-level streaming halt** that
+re-scores output during generation — a mechanism we deposited early, but which on
+our own false-halt benchmark cannot yet separate hallucinated from correct
+streaming text without a high false-halt rate. It is opt-in and under
+calibration; treat the rows below for it as experimental, not a production claim.
 
 !!! note "About this page"
     Competitor entries are compiled from public vendor materials and third-party
@@ -18,7 +20,7 @@ Apache-2.0 package vs the commercial BUSL-1.1 advanced tier.
 
 | Capability | Free (Apache-2.0 core) | Advanced (BUSL-1.1) |
 |---|:---:|:---:|
-| Token-level streaming halt | ✅ | |
+| Token-level streaming halt (experimental) | 🧪 | |
 | 5-tier scoring (rules → embeddings → NLI) | ✅ | |
 | RAG grounding + vector store | ✅ | |
 | Prompt-injection detection (regex + NLI) | ✅ | |
@@ -43,7 +45,7 @@ commercial licence. See [Pricing](pricing.md) and [Licensing](licensing.md).
 
 | | Director-AI | Galileo | GA Guard | NeMo Guardrails | Llama Guard 4 | Future AGI |
 |---|:---:|:---:|:---:|:---:|:---:|:---:|
-| **Token-level streaming halt** | ✅ | post-hoc | — | — | — | token-prefix |
+| **Token-level streaming halt** _(experimental)_ | 🧪 | post-hoc | — | — | — | token-prefix |
 | Self-host / open weights | ✅ | — | partial | ✅ | ✅ | hosted |
 | Offline / air-gapped | ✅ | — | partial | partial | ✅ | — |
 | Injection (semantic NLI) | ✅ | ✅ | ✅ | partial | ✅ | ✅ |
@@ -63,7 +65,7 @@ guards. Director-AI spans both — runtime guard **and** CI eval.
 | | Director-AI | Braintrust | Patronus | Arize | Promptfoo | Giskard | Guardrails AI |
 |---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
 | Real-time runtime guard | ✅ | — | partial | — | — | — | ✅ |
-| Token-level streaming halt | ✅ | — | — | — | — | — | — |
+| Token-level streaming halt (experimental) | 🧪 | — | — | — | — | — | — |
 | CI eval gate | ✅ | ✅ | partial | partial | ✅ | partial | partial |
 | Automated red-teaming | ✅ | — | partial | — | ✅ | ✅ | partial |
 | Observability / tracing | ✅ | ✅ | partial | ✅ | partial | partial | partial |

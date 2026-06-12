@@ -6,10 +6,10 @@
     "optional_extras": 57,
     "public_api_exports": 218,
     "public_documentation_pages": 188,
-    "python_model_classes": 910,
-    "python_model_source_modules": 399,
+    "python_model_classes": 911,
+    "python_model_source_modules": 400,
     "rust_pyo3_model_wrappers": 78,
-    "test_files": 482
+    "test_files": 483
   },
   "documentation": {
     "public_pages": [
@@ -3413,6 +3413,10 @@
         "path": "src/director_ai/core/runtime/streaming.py"
       },
       {
+        "name": "StreamingCoherenceGate",
+        "path": "src/director_ai/core/runtime/streaming_gate.py"
+      },
+      {
         "name": "StreamingKernel",
         "path": "src/director_ai/core/runtime/streaming.py"
       },
@@ -4209,6 +4213,7 @@
       "src/director_ai/core/runtime/review_queue.py",
       "src/director_ai/core/runtime/session.py",
       "src/director_ai/core/runtime/streaming.py",
+      "src/director_ai/core/runtime/streaming_gate.py",
       "src/director_ai/core/runtime/structured_recovery.py",
       "src/director_ai/core/runtime/ws_ticket.py",
       "src/director_ai/core/safety/audit.py",
@@ -5164,6 +5169,7 @@
       "tests/test_streaming.py",
       "tests/test_streaming_debug.py",
       "tests/test_streaming_false_halt_benchmark_quality.py",
+      "tests/test_streaming_gate.py",
       "tests/test_streaming_halt_evidence.py",
       "tests/test_streaming_nli_failure.py",
       "tests/test_streaming_repair.py",

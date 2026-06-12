@@ -320,6 +320,7 @@ class TestLiveStreaming:
             assert isinstance(coh, float)
 
     def test_stream_halts_on_low_coherence(self):
+        from collections.abc import AsyncIterator
         from unittest.mock import MagicMock
 
         from director_ai.core import CoherenceScore
@@ -332,6 +333,26 @@ class TestLiveStreaming:
         )
         agent = CoherenceAgent(_scorer=mock_scorer)
 
+        # Two claims. The guard scores at the claim boundary (a half-finished
+        # sentence cannot be NLI-scored), so it must halt at the end of the first
+        # bad claim and never deliver any token of the second.
+        class _TwoClaimGenerator:
+            async def stream_tokens(self, prompt: str) -> AsyncIterator[str]:
+                for word in [
+                    "the",
+                    "moon",
+                    "is",
+                    "made",
+                    "of",
+                    "cheese.",
+                    "second",
+                    "claim",
+                    "here",
+                ]:
+                    yield word
+
+        agent.generator = _TwoClaimGenerator()
+
         async def run():
             pairs = []
             async for tok, coh in agent.stream("bad query"):
@@ -339,9 +360,11 @@ class TestLiveStreaming:
             return pairs
 
         pairs = asyncio.run(run())
-        # Should halt early (first token has coherence 0.1 < hard_limit 0.5)
-        assert len(pairs) == 1
-        assert pairs[0][1] < 0.5
+        tokens = [t for t, _ in pairs]
+        # halted at the first claim boundary: "cheese." delivered, "second" not
+        assert tokens[-1] == "cheese."
+        assert "second" not in tokens
+        assert pairs[-1][1] < 0.5  # the completed claim scored below the hard limit
 
     def test_stream_rejects_empty_prompt(self):
         from director_ai.core.agent import CoherenceAgent
