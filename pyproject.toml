@@ -508,3 +508,10 @@ ignore_errors = true
 [[tool.mypy.overrides]]
 module = "tests.*"
 disallow_untyped_defs = false
+
+[tool.uv]
+# Keep protobuf on the 6.x line for every supported Python so the committed
+# gRPC gencode (6.31.1) matches the runtime. crewai 1.x pulls google-api-core,
+# whose grpc extra otherwise drags grpcio-status down to 1.71.2 (protobuf<6) on
+# Python <3.14, splitting the universal lock and breaking the stubs.
+constraint-dependencies = ["grpcio-status>=1.81.0", "protobuf>=6.31.1"]
