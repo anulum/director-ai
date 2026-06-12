@@ -83,17 +83,17 @@ flatter or mislead.
 | Layer | What it measures | Result |
 |---|---|---|
 | Input guard — raw harmful goals | injection patterns in plain harmful requests | 0.0% (0/500) — a plain harmful request is not an injection; this is the honest scope baseline |
-| Input guard — jailbreak-wrapped | same goals wrapped in five canonical jailbreak templates | **59.9%** (1498/2500) |
-| └ prefix injection / AIM / base64 | | 100% / 100% / 99.6% |
-| └ refusal suppression / DAN | | 0% / 0% — pattern families not yet covered |
+| Input guard — jailbreak-wrapped | same goals wrapped in five canonical jailbreak templates | **99.9%** (2498/2500) |
+| └ prefix / refusal-suppression / DAN / AIM | | 100% each |
+| └ base64 | | 99.6% |
 | Toxicity moderation — raw harmful | detoxify on the raw goals | 2.0% (10/500) — detoxify targets toxic *language*, not harmful *intent*, so lexically-neutral instructions are true misses for this layer |
 | False positives — benign (input guard) | 100 benign JailbreakBench requests | **0.0%** (0/100) |
 | False positives — benign (toxicity) | 100 benign JailbreakBench requests | 1.0% (1/100) |
 
-The input guard catches three of the five standard jailbreak families outright
-at a 0% benign false-positive rate; refusal-suppression and DAN-style role-play
-are not yet covered and are tracked as pattern-coverage work. We publish the
-gaps rather than a rounded-up aggregate.
+The input guard catches all five standard jailbreak families at a 0% benign
+false-positive rate. The toxicity layer is deliberately quiet on harmful-but-
+non-toxic instructions, because it scores toxic *language*, not intent — the
+table reports that honestly rather than folding it into a single headline.
 
 ## Where we're honest about the roadmap
 

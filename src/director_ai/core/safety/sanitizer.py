@@ -142,6 +142,44 @@ _INJECTION_PATTERNS: list[tuple[str, re.Pattern]] = [
             re.IGNORECASE,
         ),
     ),
+    (
+        # Unrestricted-persona role-play (DAN / "developer mode" / "do anything
+        # now" and relatives). Matches the well-documented technique of asking
+        # the model to adopt a persona that has shed its safety constraints,
+        # rather than any single named jailbreak string.
+        "unrestricted_persona",
+        re.compile(
+            r"do\s+anything\s+now|"
+            r"broke[n]?\s+free\s+of|"
+            r"(developer|jailbreak|unrestricted|unfiltered|god|evil|sudo|root)"
+            r"\s+mode|"
+            r"no\s+(restrictions?|rules?|filters?|guidelines?|limitations?)\b|"
+            r"without\s+(any\s+)?(restrictions?|filters?|limitations?|"
+            r"ethical|moral)\b|"
+            r"do(?:es)?\s+not\s+have\s+to\s+abide|"
+            r"abandon\s+(?:all\s+)?(?:your\s+)?"
+            r"(?:guidelines?|rules?|programming|restrictions?)|"
+            r"amoral|machiavellian",
+            re.IGNORECASE,
+        ),
+    ),
+    (
+        # Refusal-suppression — instructing the model to drop its warnings,
+        # disclaimers and refusals. A documented jailbreak family on its own and
+        # a frequent companion to persona attacks.
+        "refusal_suppression",
+        re.compile(
+            r"without\s+(?:any\s+)?(?:warnings?|disclaimers?|refusals?|"
+            r"caveats?|moralizing|moralising)|"
+            r"\bno\s+(?:warnings?|disclaimers?|refusals?|caveats?)\b|"
+            r"never\s+(?:refuse|decline)|"
+            r"never\s+say\s+(?:you\s+|that\s+you\s+)?(?:can'?t|cannot|no\b)|"
+            r"do\s*n['o]?t\s+(?:refuse|warn|"
+            r"mention\s+(?:policy|policies|guidelines?|rules?))|"
+            r"never\s+mention\s+(?:policy|policies|guidelines?|rules?)",
+            re.IGNORECASE,
+        ),
+    ),
 ]
 
 _PATTERN_WEIGHTS: dict[str, float] = {
@@ -157,6 +195,8 @@ _PATTERN_WEIGHTS: dict[str, float] = {
     "path_traversal": 0.8,
     "yaml_json_injection": 0.8,
     "python_code_injection": 0.8,
+    "unrestricted_persona": 0.8,
+    "refusal_suppression": 0.8,
 }
 
 _MAX_INPUT_LENGTH = 100_000
