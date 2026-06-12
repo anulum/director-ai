@@ -326,7 +326,7 @@ the full surface.
 | Component | Path | Purpose |
 |-----------|------|---------|
 | **Rust `backfire-kernel`** | `backfire-kernel/` | 28 hot-path compute functions via PyO3 — scorer / injection / safety-hook primitives with pure-Python fallbacks |
-| **Go gateway** | `gateway/go/` | High-concurrency HTTP front door with auth, rate limit, audit, optional scoring sidecar |
+| **Go gateway** _(experimental)_ | `gateway/go/` | High-concurrency HTTP front door (auth, rate limit, audit). A passthrough proxy today; Python scoring integration is in progress (Phase 3) |
 | **`director.v1` wire schema** | `schemas/proto/` | Frozen protobuf messages shared by Python and Go |
 | **CoherenceScoring gRPC** | `src/director_ai/grpc_scoring.py` | `ScoreClaim` unary + `ScoreStream` bidi RPCs over `director.v1` |
 | **Julia threshold tuner** | `tools/julia_tuner/` | Offline bootstrap + Bayesian threshold analysis with uncertainty bands |

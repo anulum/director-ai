@@ -18,6 +18,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Reframe the `/v1/source` endpoint from an AGPL §13 obligation to a
   source-availability transparency convenience; it now reports the open-core
   licence. Rename the operator guide to `guide/source-availability.md`.
+- **Breaking:** the published PyPI wheel and sdist now ship only the Apache-2.0
+  core. The BUSL-1.1 advanced & labs modules (enterprise, voice, ui, experimental,
+  compliance, agentic, and the advanced core subpackages) stay source-available
+  in the repository but are no longer included in the PyPI distribution; invoking
+  an advanced capability in a core-only install raises a clear "advanced tier
+  required" error.
+- Add **Director-Lite**: `from director_ai import StreamGuard` / `streaming_guard`
+  — a zero-config, three-line entry point to the token-level streaming halt.
+- Add a **unified firewall decision** (`ProductionGuard.firewall`) that runs the
+  hallucination, prompt-injection, and content-moderation guards in one pass.
+- Add a **CI quality gate**: `director-ai ci-gate` and a composite GitHub Action
+  that fail a build when guard quality on a labelled set drops below a threshold.
+- Add a **tamper-evident hash chain** to the audit log, with `director-ai
+  verify-audit` to verify it.
+- Add three buyer-facing install bundles: `[recommended]`, `[integrations]`,
+  `[all]`.
+- Security: fail fast on a missing per-installation audit salt in production
+  mode; warn loudly when the LLM-as-judge sends data to an external provider.
+- Move the PII redactor to `director_ai.core.redactor`; the old
+  `director_ai.enterprise.redactor` path keeps working via a re-export shim.
+- Docs: dedicated Pricing and Comparison pages; a Support/donations section.
 
 ## [3.15.3] — 2026-06-05
 
