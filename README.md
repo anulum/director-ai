@@ -601,6 +601,15 @@ project alive and moving. Ways to help:
 
 Thank you for supporting independent, open-core AI safety work.
 
+## Community
+
+- **Chat** — [Discord](https://discord.gg/38HsXDYqy).
+- **Questions, ideas, show-and-tell** —
+  [GitHub Discussions](https://github.com/anulum/director-ai/discussions).
+- **Bugs and feature requests** —
+  [GitHub Issues](https://github.com/anulum/director-ai/issues).
+- **Commercial and licensing enquiries** — protoscience@anulum.li.
+
 ## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md). Contributions to the Apache-2.0 core are

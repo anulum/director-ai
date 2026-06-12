@@ -126,7 +126,7 @@ there or promoted into this roadmap with a concrete acceptance gate.
 - `RedisGroundTruthStore.retrieve_context()` implementation with Redis Vector Search (RediSearch)
 - Redis connection pooling, TTL management, batch `add_many()`/`retrieve_batch()`
 
-### WASM Edge Runtime (Prioritised)
+### WASM Edge Runtime (Done)
 - CI pipeline builds `backfire-wasm` and uploads `.wasm` + JS glue artefacts
 - Browser and Worker deployment guide lives in `docs-site/deployment/wasm-runtime.md`
 - Release priority and host target matrix live in `requirements/wasm_release_plan.toml`
