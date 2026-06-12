@@ -1697,6 +1697,33 @@ dependencies = [
 ]
 
 [package.optional-dependencies]
+all = [
+    { name = "chromadb" },
+    { name = "crewai" },
+    { name = "detoxify" },
+    { name = "fastapi" },
+    { name = "grpcio" },
+    { name = "grpcio-tools" },
+    { name = "haystack-ai" },
+    { name = "httpx" },
+    { name = "langchain-core" },
+    { name = "langgraph" },
+    { name = "langsmith" },
+    { name = "litellm" },
+    { name = "llama-index-core" },
+    { name = "onnx" },
+    { name = "onnxruntime" },
+    { name = "opentelemetry-api" },
+    { name = "presidio-analyzer" },
+    { name = "protobuf" },
+    { name = "pydantic" },
+    { name = "python-multipart" },
+    { name = "sentence-transformers" },
+    { name = "slowapi" },
+    { name = "torch" },
+    { name = "transformers" },
+    { name = "uvicorn" },
+]
 anthropic = [
     { name = "anthropic" },
 ]
@@ -1801,6 +1828,15 @@ ingestion-notion = [
 ingestion-s3 = [
     { name = "boto3" },
 ]
+integrations = [
+    { name = "crewai" },
+    { name = "haystack-ai" },
+    { name = "langchain-core" },
+    { name = "langgraph" },
+    { name = "langsmith" },
+    { name = "litellm" },
+    { name = "llama-index-core" },
+]
 langchain = [
     { name = "langchain-core" },
     { name = "langsmith" },
@@ -1860,6 +1896,18 @@ qdrant = [
 quantize = [
     { name = "accelerate" },
     { name = "bitsandbytes" },
+]
+recommended = [
+    { name = "chromadb" },
+    { name = "fastapi" },
+    { name = "httpx" },
+    { name = "pydantic" },
+    { name = "python-multipart" },
+    { name = "sentence-transformers" },
+    { name = "slowapi" },
+    { name = "torch" },
+    { name = "transformers" },
+    { name = "uvicorn" },
 ]
 reports = [
     { name = "jinja2" },
@@ -1934,6 +1982,26 @@ requires-dist = [
     { name = "deepgram-sdk", marker = "extra == 'voice'", specifier = ">=3.0" },
     { name = "detoxify", marker = "extra == 'moderation'", specifier = ">=0.5" },
     { name = "detoxify", marker = "extra == 'toxicity'", specifier = ">=0.5" },
+    { name = "director-ai", extras = ["autogen"], marker = "extra == 'integrations'" },
+    { name = "director-ai", extras = ["crewai"], marker = "extra == 'integrations'" },
+    { name = "director-ai", extras = ["embeddings"], marker = "extra == 'all'" },
+    { name = "director-ai", extras = ["grpc"], marker = "extra == 'all'" },
+    { name = "director-ai", extras = ["haystack"], marker = "extra == 'integrations'" },
+    { name = "director-ai", extras = ["integrations"], marker = "extra == 'all'" },
+    { name = "director-ai", extras = ["langchain"], marker = "extra == 'integrations'" },
+    { name = "director-ai", extras = ["langgraph"], marker = "extra == 'integrations'" },
+    { name = "director-ai", extras = ["llamaindex"], marker = "extra == 'integrations'" },
+    { name = "director-ai", extras = ["minicheck"], marker = "extra == 'all'" },
+    { name = "director-ai", extras = ["moderation"], marker = "extra == 'all'" },
+    { name = "director-ai", extras = ["nli"], marker = "extra == 'recommended'" },
+    { name = "director-ai", extras = ["onnx"], marker = "extra == 'all'" },
+    { name = "director-ai", extras = ["otel"], marker = "extra == 'all'" },
+    { name = "director-ai", extras = ["presidio"], marker = "extra == 'all'" },
+    { name = "director-ai", extras = ["recommended"], marker = "extra == 'all'" },
+    { name = "director-ai", extras = ["reranker"], marker = "extra == 'all'" },
+    { name = "director-ai", extras = ["server"], marker = "extra == 'recommended'" },
+    { name = "director-ai", extras = ["toxicity"], marker = "extra == 'all'" },
+    { name = "director-ai", extras = ["vector"], marker = "extra == 'recommended'" },
     { name = "elasticsearch", marker = "extra == 'elasticsearch'", specifier = ">=8.0,<9" },
     { name = "elevenlabs", marker = "extra == 'voice'", specifier = ">=1.0" },
     { name = "faiss-cpu", marker = "extra == 'faiss'", specifier = ">=1.7" },
@@ -2030,7 +2098,7 @@ requires-dist = [
     { name = "weaviate-client", marker = "extra == 'weaviate'", specifier = ">=4.0" },
     { name = "z3-solver", marker = "extra == 'formal'", specifier = ">=4.12,<5" },
 ]
-provides-extras = ["nli", "vector", "openai", "anthropic", "langchain", "llamaindex", "server", "minicheck", "voice", "onnx", "tensorrt", "grpc", "physical", "formal", "finetune", "quantize", "pinecone", "weaviate", "qdrant", "faiss", "elasticsearch", "reranker", "embeddings", "license", "crypto", "embed", "nli-lite", "langgraph", "haystack", "crewai", "guardrails", "docs", "otel", "langfuse", "presidio", "toxicity", "moderation", "demo", "ingestion", "ingestion-s3", "ingestion-notion", "ingestion-gdrive", "auto-kb", "colbert", "rust", "enterprise", "ui", "reports", "autogen", "research", "train", "managed-training", "security", "dev"]
+provides-extras = ["recommended", "integrations", "all", "nli", "vector", "openai", "anthropic", "langchain", "llamaindex", "server", "minicheck", "voice", "onnx", "tensorrt", "grpc", "physical", "formal", "finetune", "quantize", "pinecone", "weaviate", "qdrant", "faiss", "elasticsearch", "reranker", "embeddings", "license", "crypto", "embed", "nli-lite", "langgraph", "haystack", "crewai", "guardrails", "docs", "otel", "langfuse", "presidio", "toxicity", "moderation", "demo", "ingestion", "ingestion-s3", "ingestion-notion", "ingestion-gdrive", "auto-kb", "colbert", "rust", "enterprise", "ui", "reports", "autogen", "research", "train", "managed-training", "security", "dev"]
 
 [[package]]
 name = "dirtyjson"
