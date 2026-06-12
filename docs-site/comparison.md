@@ -105,6 +105,14 @@ The model stage is what makes the guard hold up against attacks it has not seen,
 at a 0.2% benign false-positive rate. ROT13 and payload-splitting remain weak and
 are tracked as open work; we publish them rather than rounding the aggregate up.
 
+This stage is **optional, off by default, and still being improved.** The default
+classifier is chosen for a near-zero benign false-positive rate: other public
+models reach higher recall only by flagging 17-58% of *legitimate* traffic, which
+is unusable. A higher-recall, low-FPR option (Meta Prompt Guard 2) is gated and
+non-permissive but configurable as an opt-in. See the
+[prompt-injection guard guide](guide/prompt-guard.md) for the model bake-off and
+roadmap.
+
 ## Where we're honest about the roadmap
 
 We publish what we don't have yet, too: a **cloud SaaS** offering and

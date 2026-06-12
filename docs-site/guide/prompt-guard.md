@@ -1,5 +1,11 @@
 # Prompt-injection & jailbreak input guard
 
+> **Status: optional, default off, and actively being improved.** The model
+> stage is opt-in (`prompt_guard_model_enabled`, off by default) and needs the
+> `nli` extra. The numbers below are a fixed point on today's default model, not
+> a finished story — see [Choosing the model stage](#choosing-the-model-stage)
+> and [Roadmap](#roadmap).
+
 Director-AI screens incoming prompts for prompt-injection and jailbreak attempts
 before they reach the scorer or your model. The guard has two stages:
 
@@ -53,6 +59,54 @@ app = create_app(cfg)
 If the model cannot load (no `transformers`, download blocked), the server logs a
 warning and **degrades to the pattern stage** rather than failing startup — the
 guard never silently disappears.
+
+## Choosing the model stage
+
+The default is `protectai/deberta-v3-base-prompt-injection-v2` for one reason:
+**it is the only permissively-licensed, ungated classifier we tested that does
+not wreck the benign false-positive rate.** Running several public classifiers
+through `benchmarks/jailbreak_detection.py` on the same prompts:
+
+| Model | PAIR | GCG | Benign FPR | Usable |
+|---|---|---|---|---|
+| ProtectAI deberta v2 (default) | 37% | 65% | **0%** | yes |
+| deepset deberta-injection | 98% | 100% | **58%** | no — blocks most real traffic |
+| katanemo Arch-Guard | 10% | 98% | 17% | no |
+| jackhhao jailbreak-classifier | 20% | 52% | 8% | marginal |
+
+The high-recall models buy their detection with a false-positive rate that would
+reject 1-in-6 to more than half of legitimate requests — a guard that unusable
+is worse than none. The default trades raw recall for a benign FPR near zero.
+
+**Higher recall *with* low FPR exists** — Meta's
+[Llama Prompt Guard 2](https://huggingface.co/meta-llama/Llama-Prompt-Guard-2-86M)
+reports 97.5% recall at 1% FPR. It is gated and under the Llama Community
+Licence, so it is not the open-core default, but the model id is configurable, so
+you can opt into it once you have accepted its licence and gated access:
+
+```python
+cfg = DirectorConfig(
+    prompt_guard_model_enabled=True,
+    prompt_guard_model_id="meta-llama/Llama-Prompt-Guard-2-86M",
+)
+```
+
+No prompt guard is unbeatable: published work
+([arXiv:2510.01529](https://arxiv.org/abs/2510.01529)) bypasses production guards
+including Meta's. Treat this stage as defence-in-depth, not a perimeter.
+
+## Roadmap
+
+This module is new and not finished. Tracked work to raise detection without
+sacrificing the benign FPR:
+
+- evaluate Meta Prompt Guard 2 through our own harness (it is gated, so the
+  number above is Meta's, on their private benchmark — not yet our JBB run);
+- a tuned decision threshold and an ensemble that keeps the FPR floor;
+- direct coverage for the current weak spots — ROT13 / cipher decoding and
+  payload-splitting — in the pattern stage;
+- optional fine-tuning of a permissively-licensed classifier on public
+  jailbreak corpora, guarding against benchmark overfit.
 
 ## Using the guard directly
 
