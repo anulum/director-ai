@@ -4702,7 +4702,9 @@
       "weaviate"
     ],
     "shipped_package_data": [
-      "core/models/*.json"
+      "py.typed",
+      "core/models/*.json",
+      "proto/**/*.pyi"
     ]
   },
   "project": {
