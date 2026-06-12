@@ -199,13 +199,13 @@ inventory below is reference for the deeper surface, navigable under
 |---|---:|
 | Package version | 3.15.3 |
 | Public API exports | 218 |
-| Python capability source modules | 398 |
-| Python capability classes | 907 |
+| Python capability source modules | 399 |
+| Python capability classes | 910 |
 | API documentation pages | 88 |
 | Rust PyO3 bindings | 78 |
 | Optional extras | 57 |
-| Python test files | 479 |
-| Public documentation pages | 187 |
+| Python test files | 482 |
+| Public documentation pages | 188 |
 | GitHub Actions workflows | 11 |
 
 Evidence boundary: this snapshot is a static inventory. Performance, coverage, hardware, and scientific-fidelity claims require their own committed evidence artefacts.

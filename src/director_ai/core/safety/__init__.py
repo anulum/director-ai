@@ -8,12 +8,22 @@
 
 from .harm_taxonomy import HarmCategory, to_harm_category
 from .injection import InjectionDetector
+from .prompt_guard import (
+    DEFAULT_PROMPT_GUARD_MODEL,
+    LayeredPromptGuard,
+    PromptInjectionModel,
+    PromptScreenResult,
+)
 from .sanitizer import InputSanitizer, SanitizeResult
 
 __all__ = [
+    "DEFAULT_PROMPT_GUARD_MODEL",
     "HarmCategory",
     "InjectionDetector",
     "InputSanitizer",
+    "LayeredPromptGuard",
+    "PromptInjectionModel",
+    "PromptScreenResult",
     "SanitizeResult",
     "to_harm_category",
 ]

@@ -137,6 +137,7 @@ nav:
   - User Guide:
       - Scoring: guide/scoring.md
       - Streaming Halt: guide/streaming.md
+      - Prompt-Injection Guard: guide/prompt-guard.md
       - Threshold Tuning: guide/threshold-tuning.md
       - KB Ingestion: guide/kb-ingestion.md
       - CI Quality Gate: guide/ci-gate.md

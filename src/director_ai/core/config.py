@@ -312,6 +312,15 @@ class DirectorConfig:
     injection_require_model_backed_nli: bool = False
     injection_fail_closed_on_error: bool = False
 
+    # Model-backed prompt-injection / jailbreak input screen (opt-in).
+    # When enabled, the request-path input sanitizer is wrapped in a
+    # LayeredPromptGuard whose model stage catches adaptive jailbreaks
+    # (GCG/PAIR) the patterns miss. Requires the ``nli`` extra (transformers);
+    # the model id defaults to ProtectAI's Apache-2.0, ungated classifier.
+    prompt_guard_model_enabled: bool = False
+    prompt_guard_model_id: str = "protectai/deberta-v3-base-prompt-injection-v2"
+    prompt_guard_threshold: float = 0.5
+
     # Multi-modal hallucination guard (opt-in; only active when the
     # experimental hooks flag is set AND at least one modality is enabled).
     multimodal_enabled_modalities: tuple[str, ...] = ()

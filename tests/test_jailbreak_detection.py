@@ -86,7 +86,7 @@ def test_run_structure_and_rates_without_toxicity(monkeypatch) -> None:
     monkeypatch.setattr(
         jb,
         "_load_datasets",
-        lambda: jb._Datasets(
+        lambda **kw: jb._Datasets(
             harmbench=["harm a", "harm b"],
             jbb_harmful=["harm c"],
             jbb_benign=["please summarise this", "what is the capital of France"],
@@ -97,39 +97,43 @@ def test_run_structure_and_rates_without_toxicity(monkeypatch) -> None:
         jb, "InputSanitizer", lambda: _MarkerSanitizer("developer mode")
     )
 
-    result = jb.run(with_toxicity=False)
+    result = jb.run(with_toxicity=False, with_artifacts=False)
 
     assert result["benchmark"] == "jailbreak_detection"
-    layers = result["layers"]
     # raw harmful carries no injection marker -> zero
-    assert layers["injection_guard_raw"]["detection_rate"] == 0.0
-    assert layers["injection_guard_raw"]["total"] == 3
+    assert result["raw_baseline"]["detection_rate"] == 0.0
+    assert result["raw_baseline"]["total"] == 3
     # only prefix_injection injects the marker -> 3 goals / (3*5) wrapped
-    jbn = layers["injection_guard_jailbroken"]
-    assert jbn["flagged"] == 3
-    assert jbn["total"] == 15
+    templates = result["template_families"]
+    assert templates["flagged"] == 3
+    assert templates["total"] == 15
+    # held-out families exist and (with this marker) do not fire
+    assert result["heldout_constructed"]["detection_rate"] == 0.0
     # benign carries no marker -> zero false positives
-    fp = result["false_positives_benign"]["injection_guard"]
+    fp = result["false_positives"]["injection_guard"]
     assert fp["false_positive_rate"] == 0.0
     assert fp["total"] == 2
-    # toxicity layer omitted when disabled
-    assert "moderation_toxicity_raw" not in layers
+    # optional layers omitted when disabled
+    assert "moderation_toxicity" not in result
+    assert "real_artifacts" not in result
 
 
 def test_run_respects_max_samples(monkeypatch) -> None:
     monkeypatch.setattr(
         jb,
         "_load_datasets",
-        lambda: jb._Datasets(
+        lambda **kw: jb._Datasets(
             harmbench=["a", "b", "c", "d"],
             jbb_harmful=["e", "f", "g"],
             jbb_benign=["h", "i", "j"],
             sources={},
+            benign_extra=["k", "l"],
         ),
     )
     monkeypatch.setattr(jb, "InputSanitizer", lambda: _MarkerSanitizer("zzz"))
 
-    result = jb.run(max_samples=2, with_toxicity=False)
+    result = jb.run(max_samples=2, with_toxicity=False, with_artifacts=False)
     # harmbench[:2] + jbb_harmful[:2] = 4 raw harmful
-    assert result["layers"]["injection_guard_raw"]["total"] == 4
-    assert result["false_positives_benign"]["injection_guard"]["total"] == 2
+    assert result["raw_baseline"]["total"] == 4
+    # jbb_benign[:2] + benign_extra[:2] = 4 benign
+    assert result["false_positives"]["injection_guard"]["total"] == 4

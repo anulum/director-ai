@@ -72,28 +72,38 @@ guards. Director-AI spans both — runtime guard **and** CI eval.
 
 ## Adversarial-benchmark numbers (HarmBench + JailbreakBench)
 
-Measured by `benchmarks/jailbreak_detection.py` over the public
-[HarmBench](https://github.com/centerforaisafety/HarmBench) (400 behaviours) and
+Measured by `benchmarks/jailbreak_detection.py --with-model` over the public
+[HarmBench](https://github.com/centerforaisafety/HarmBench) (400 behaviours),
 [JailbreakBench](https://github.com/JailbreakBench/jailbreakbench) (100 harmful +
-100 benign) sets. Director-AI is a hallucination + prompt-injection guardrail,
-not a harmful-content refusal classifier, so each layer is reported separately,
-measured on the input it is designed for — no single headline number that would
-flatter or mislead.
+500 benign incl. an Alpaca sample), and the **real published attack artifacts**
+(PAIR, GCG, DSN, random-search; the prompts an independent tester would use).
+The guard measured is `LayeredPromptGuard`: the pattern `InputSanitizer` plus a
+model stage (ProtectAI `deberta-v3-base-prompt-injection-v2`, Apache-2.0,
+enabled with `prompt_guard_model_enabled`). A prompt is blocked if either fires.
 
-| Layer | What it measures | Result |
+We report every family separately — including the ones we are weak on — so the
+numbers reproduce under an independent re-run rather than flattering the product.
+
+| Attack family | What it is | Detection |
 |---|---|---|
-| Input guard — raw harmful goals | injection patterns in plain harmful requests | 0.0% (0/500) — a plain harmful request is not an injection; this is the honest scope baseline |
-| Input guard — jailbreak-wrapped | same goals wrapped in five canonical jailbreak templates | **99.9%** (2498/2500) |
-| └ prefix / refusal-suppression / DAN / AIM | | 100% each |
-| └ base64 | | 99.6% |
-| Toxicity moderation — raw harmful | detoxify on the raw goals | 2.0% (10/500) — detoxify targets toxic *language*, not harmful *intent*, so lexically-neutral instructions are true misses for this layer |
-| False positives — benign (input guard) | 100 benign JailbreakBench requests | **0.0%** (0/100) |
-| False positives — benign (toxicity) | 100 benign JailbreakBench requests | 1.0% (1/100) |
+| Canonical templates | prefix / refusal-suppression / DAN / AIM / base64 | **100.0%** (2500/2500) |
+| **Real artifacts (aggregate)** | published PAIR/GCG/DSN/random-search prompts | **74.9%** (286/382) |
+| └ random-search | optimised black-box | 100% |
+| └ DSN | | 89% |
+| └ GCG | gradient-optimised suffix | 64% |
+| └ PAIR | LLM-crafted persuasion | 40% |
+| Held-out evasion (aggregate) | families never used to tune a pattern | 57.2% (1145/2000) |
+| └ many-shot / leetspeak | | 100% / 87% |
+| └ ROT13 / payload-split | **weak spots, disclosed** | 31% / 11% |
+| Raw harmful goals (baseline) | plain harmful requests — not injections | 0.0% (0/500) |
+| Toxicity moderation — raw harmful | detoxify; targets toxic *language*, not intent | 2.0% |
+| **False positives — benign** | 500 benign (JailbreakBench + Alpaca) | **0.2%** (1/500) |
 
-The input guard catches all five standard jailbreak families at a 0% benign
-false-positive rate. The toxicity layer is deliberately quiet on harmful-but-
-non-toxic instructions, because it scores toxic *language*, not intent — the
-table reports that honestly rather than folding it into a single headline.
+Without the model stage the pattern guard alone scores 0% on every real artifact
+and held-out family — patterns only catch the vocabulary they were written for.
+The model stage is what makes the guard hold up against attacks it has not seen,
+at a 0.2% benign false-positive rate. ROT13 and payload-splitting remain weak and
+are tracked as open work; we publish them rather than rounding the aggregate up.
 
 ## Where we're honest about the roadmap
 

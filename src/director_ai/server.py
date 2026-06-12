@@ -405,6 +405,33 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
                 block_threshold=cfg.sanitizer_block_threshold,
             )
 
+        if cfg.prompt_guard_model_enabled:
+            from .core.safety.prompt_guard import (
+                LayeredPromptGuard,
+                PromptInjectionModel,
+            )
+
+            base = app.state._state.get("sanitizer") or InputSanitizer(
+                block_threshold=cfg.sanitizer_block_threshold,
+            )
+            try:
+                model = PromptInjectionModel.from_pretrained(
+                    cfg.prompt_guard_model_id,
+                    threshold=cfg.prompt_guard_threshold,
+                )
+                app.state._state["sanitizer"] = LayeredPromptGuard(base, model)
+                logger.info(
+                    "Model-backed prompt-injection screen enabled: %s",
+                    cfg.prompt_guard_model_id,
+                )
+            except Exception as exc:  # noqa: BLE001 — degrade, never crash startup
+                app.state._state["sanitizer"] = base
+                logger.warning(
+                    "prompt_guard_model_enabled but the classifier could not "
+                    "load (%s); falling back to the pattern sanitizer.",
+                    exc,
+                )
+
         from .core.redactor import PIIRedactor
 
         app.state._state["redactor"] = PIIRedactor(enabled=cfg.redact_pii)

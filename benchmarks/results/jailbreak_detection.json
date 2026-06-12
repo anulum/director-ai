@@ -1,5 +1,6 @@
 {
   "benchmark": "jailbreak_detection",
+  "guard": "LayeredPromptGuard: InputSanitizer patterns + protectai/deberta-v3-base-prompt-injection-v2 classifier (blocked if either fires)",
   "datasets": {
     "harmbench_all": {
       "url": "https://raw.githubusercontent.com/centerforaisafety/HarmBench/main/data/behavior_datasets/harmbench_behaviors_text_all.csv",
@@ -12,68 +13,138 @@
     "jbb_benign": {
       "url": "https://huggingface.co/datasets/JailbreakBench/JBB-Behaviors/resolve/main/data/benign-behaviors.csv",
       "rows": 100
+    },
+    "alpaca_benign": {
+      "url": "https://raw.githubusercontent.com/tatsu-lab/stanford_alpaca/main/alpaca_data.json",
+      "rows": 400
     }
   },
-  "block_threshold": 0.8,
-  "layers": {
-    "injection_guard_raw": {
-      "what": "InputSanitizer over raw harmful goals (not injections; scope-documenting baseline)",
-      "detection_rate": 0.0,
-      "flagged": 0,
-      "total": 500
-    },
-    "injection_guard_jailbroken": {
-      "what": "InputSanitizer over harmful goals wrapped in canonical jailbreak templates (the fair input-guard measurement)",
-      "detection_rate": 0.9992,
-      "flagged": 2498,
-      "total": 2500,
-      "per_template": {
-        "prefix_injection": {
-          "flagged": 500,
-          "total": 500,
-          "rate": 1.0
-        },
-        "refusal_suppression": {
-          "flagged": 500,
-          "total": 500,
-          "rate": 1.0
-        },
-        "dan_roleplay": {
-          "flagged": 500,
-          "total": 500,
-          "rate": 1.0
-        },
-        "aim_roleplay": {
-          "flagged": 500,
-          "total": 500,
-          "rate": 1.0
-        },
-        "base64_obfuscation": {
-          "flagged": 498,
-          "total": 500,
-          "rate": 0.996
-        }
+  "block_threshold": 0.5,
+  "raw_baseline": {
+    "what": "sanitizer over raw harmful goals \u2014 not injections",
+    "detection_rate": 0.0,
+    "flagged": 0,
+    "total": 500
+  },
+  "template_families": {
+    "what": "five canonical jailbreak templates the patterns target \u2014 known-technique coverage, not a robustness claim",
+    "detection_rate": 1.0,
+    "flagged": 2500,
+    "total": 2500,
+    "per_family": {
+      "prefix_injection": {
+        "flagged": 500,
+        "total": 500,
+        "rate": 1.0
+      },
+      "refusal_suppression": {
+        "flagged": 500,
+        "total": 500,
+        "rate": 1.0
+      },
+      "dan_roleplay": {
+        "flagged": 500,
+        "total": 500,
+        "rate": 1.0
+      },
+      "aim_roleplay": {
+        "flagged": 500,
+        "total": 500,
+        "rate": 1.0
+      },
+      "base64_obfuscation": {
+        "flagged": 500,
+        "total": 500,
+        "rate": 1.0
       }
-    },
-    "moderation_toxicity_raw": {
-      "what": "DetoxifyDetector over raw harmful goals; targets toxic LANGUAGE, not harmful intent \u2014 lexically-neutral instructions are true misses for this layer",
-      "model": "detoxify/original",
-      "score_threshold": 0.6,
-      "detection_rate": 0.02,
-      "flagged": 10,
-      "total": 500
     }
   },
-  "false_positives_benign": {
+  "heldout_constructed": {
+    "what": "evasion families NOT used to design any pattern \u2014 the honest ceiling of a regex guard",
+    "detection_rate": 0.5725,
+    "flagged": 1145,
+    "total": 2000,
+    "per_family": {
+      "rot13": {
+        "flagged": 156,
+        "total": 500,
+        "rate": 0.312
+      },
+      "leetspeak": {
+        "flagged": 434,
+        "total": 500,
+        "rate": 0.868
+      },
+      "payload_split": {
+        "flagged": 55,
+        "total": 500,
+        "rate": 0.11
+      },
+      "many_shot": {
+        "flagged": 500,
+        "total": 500,
+        "rate": 1.0
+      }
+    }
+  },
+  "false_positives": {
     "injection_guard": {
-      "false_positive_rate": 0.0,
-      "flagged": 0,
-      "total": 100
+      "what": "benign prompts (500 = JailbreakBench benign + Alpaca sample)",
+      "false_positive_rate": 0.002,
+      "fpr_95ci_upper": 0.002,
+      "flagged": 1,
+      "total": 500
     },
     "moderation_toxicity": {
-      "false_positive_rate": 0.01,
+      "false_positive_rate": 0.002,
+      "fpr_95ci_upper": 0.002,
       "flagged": 1,
-      "total": 100
+      "total": 500
     }
+  },
+  "caveats": [
+    "The guard combines patterns with a learned classifier; it still has a ceiling \u2014 an adaptive attacker optimising against this exact model can drive detection down. Numbers are a fixed point.",
+    "Director-AI's core value is hallucination detection and the streaming halt; this harness measures the input pre-filter only.",
+    "A 0/N false-positive count has a ~3/N 95% upper bound (rule of three); see fpr_95ci_upper."
+  ],
+  "real_artifacts": {
+    "what": "actual published adversarial prompts (JailbreakBench artifacts, vicuna-13b) \u2014 GCG appends gibberish suffixes a regex cannot match, so a low number here is expected and disclosed",
+    "detection_rate": 0.7487,
+    "flagged": 286,
+    "total": 382,
+    "per_attack": {
+      "PAIR": {
+        "loaded": true,
+        "flagged": 33,
+        "total": 82,
+        "rate": 0.4024
+      },
+      "GCG": {
+        "loaded": true,
+        "flagged": 64,
+        "total": 100,
+        "rate": 0.64
+      },
+      "DSN": {
+        "loaded": true,
+        "flagged": 89,
+        "total": 100,
+        "rate": 0.89
+      },
+      "random_search": {
+        "loaded": true,
+        "flagged": 100,
+        "total": 100,
+        "rate": 1.0
+      }
+    }
+  },
+  "moderation_toxicity": {
+    "what": "detoxify over raw harmful goals; targets toxic LANGUAGE, not harmful intent \u2014 lexically-neutral instructions are true misses",
+    "model": "detoxify/original",
+    "score_threshold": 0.6,
+    "detection_rate": 0.02,
+    "flagged": 10,
+    "total": 500
   }
 }

@@ -5,11 +5,11 @@
     "model_documentation_pages": 88,
     "optional_extras": 57,
     "public_api_exports": 218,
-    "public_documentation_pages": 187,
-    "python_model_classes": 907,
-    "python_model_source_modules": 398,
+    "public_documentation_pages": 188,
+    "python_model_classes": 910,
+    "python_model_source_modules": 399,
     "rust_pyo3_model_wrappers": 78,
-    "test_files": 479
+    "test_files": 482
   },
   "documentation": {
     "public_pages": [
@@ -160,6 +160,7 @@
       "docs-site/guide/presets.md",
       "docs-site/guide/product-overview.md",
       "docs-site/guide/production-guard.md",
+      "docs-site/guide/prompt-guard.md",
       "docs-site/guide/quantization.md",
       "docs-site/guide/runtime-boundaries.md",
       "docs-site/guide/runtime-extraction-evaluation.md",
@@ -2132,6 +2133,10 @@
         "path": "src/director_ai/core/interpretability/redeep.py"
       },
       {
+        "name": "LayeredPromptGuard",
+        "path": "src/director_ai/core/safety/prompt_guard.py"
+      },
+      {
         "name": "LeanBackend",
         "path": "src/director_ai/core/formal_verification/verifier.py"
       },
@@ -2852,8 +2857,16 @@
         "path": "src/director_ai/core/config.py"
       },
       {
+        "name": "PromptInjectionModel",
+        "path": "src/director_ai/core/safety/prompt_guard.py"
+      },
+      {
         "name": "PromptRiskScorer",
         "path": "src/director_ai/core/routing/scorer.py"
+      },
+      {
+        "name": "PromptScreenResult",
+        "path": "src/director_ai/core/safety/prompt_guard.py"
       },
       {
         "name": "ProvenanceChain",
@@ -4206,6 +4219,7 @@
       "src/director_ai/core/safety/moderation/pii.py",
       "src/director_ai/core/safety/moderation/toxicity.py",
       "src/director_ai/core/safety/policy.py",
+      "src/director_ai/core/safety/prompt_guard.py",
       "src/director_ai/core/safety/sanitizer.py",
       "src/director_ai/core/safety_event.py",
       "src/director_ai/core/safety_protocol.py",
@@ -4947,6 +4961,7 @@
       "tests/test_intent_drift.py",
       "tests/test_interlock_kernel.py",
       "tests/test_irreversibility.py",
+      "tests/test_jailbreak_detection.py",
       "tests/test_json_verifier.py",
       "tests/test_judge_common.py",
       "tests/test_kb_health.py",
@@ -5060,6 +5075,7 @@
       "tests/test_production_asserts.py",
       "tests/test_production_guard.py",
       "tests/test_production_scaffold_check.py",
+      "tests/test_prompt_guard.py",
       "tests/test_prompt_risk_routing.py",
       "tests/test_proto_serialization.py",
       "tests/test_provenance.py",
@@ -5132,6 +5148,7 @@
       "tests/test_server_feedback.py",
       "tests/test_server_helpers.py",
       "tests/test_server_multimodal.py",
+      "tests/test_server_prompt_guard.py",
       "tests/test_server_tenant.py",
       "tests/test_server_ws_dos.py",
       "tests/test_server_ws_mux.py",
