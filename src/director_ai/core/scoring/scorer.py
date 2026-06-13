@@ -14,7 +14,7 @@ import re
 import threading
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
-from typing import cast
+from typing import Any, cast
 
 from ..cache import ScoreCache
 from ..mandatory import mandatory_execution
@@ -37,6 +37,7 @@ from ._task_scoring import (
 )
 from .nli import NLIScorer, nli_available
 from .reasoning_scorer import ReasoningScorer
+from .scorer_config import ScorerConfig
 
 try:
     from backfire_kernel import (
@@ -332,6 +333,26 @@ class CoherenceScorer:
         self._injection_fail_closed = False
         self._nli_fallback_lock = threading.Lock()
         self._nli_fallback_incident_stages: set[str] = set()
+
+    @classmethod
+    def from_config(
+        cls,
+        config: ScorerConfig,
+        *,
+        ground_truth_store: Any = None,
+        cache: Any = None,
+    ) -> CoherenceScorer:
+        """Build a scorer from a grouped :class:`ScorerConfig`.
+
+        Value settings come from *config*; the runtime dependencies
+        (``ground_truth_store`` and ``cache``) are injected separately so the
+        config stays serialisable. Equivalent to the per-argument constructor.
+        """
+        return cls(
+            ground_truth_store=ground_truth_store,
+            cache=cache,
+            **config.to_kwargs(),
+        )
 
     # -- Backward-compat proxies for judge internals (used by tests) ----
 
