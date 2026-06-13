@@ -6,10 +6,10 @@
     "optional_extras": 57,
     "public_api_exports": 218,
     "public_documentation_pages": 188,
-    "python_model_classes": 911,
-    "python_model_source_modules": 400,
+    "python_model_classes": 922,
+    "python_model_source_modules": 403,
     "rust_pyo3_model_wrappers": 78,
-    "test_files": 483
+    "test_files": 487
   },
   "documentation": {
     "public_pages": [
@@ -321,6 +321,10 @@
         "path": "src/director_ai/middleware/api_key.py"
       },
       {
+        "name": "AWSSecretsManagerBackend",
+        "path": "src/director_ai/core/secrets.py"
+      },
+      {
         "name": "AccountantEntry",
         "path": "src/director_ai/core/federated_privacy/accountant.py"
       },
@@ -575,6 +579,10 @@
       {
         "name": "AvailabilityProbe",
         "path": "src/director_ai/core/model_registry.py"
+      },
+      {
+        "name": "AzureKeyVaultBackend",
+        "path": "src/director_ai/core/secrets.py"
       },
       {
         "name": "BFTConsensusResult",
@@ -1197,6 +1205,10 @@
         "path": "src/director_ai/core/training/finetune_validator.py"
       },
       {
+        "name": "DatadogLogsSink",
+        "path": "src/director_ai/core/safety/siem.py"
+      },
+      {
         "name": "DatasetTypeClassifier",
         "path": "src/director_ai/core/scoring/meta_classifier.py"
       },
@@ -1377,6 +1389,10 @@
         "path": "src/director_ai/core/retrieval/vector_store/vendors.py"
       },
       {
+        "name": "ElasticsearchSink",
+        "path": "src/director_ai/core/safety/siem.py"
+      },
+      {
         "name": "ElevenLabsAdapter",
         "path": "src/director_ai/voice/adapters.py"
       },
@@ -1407,6 +1423,10 @@
       {
         "name": "EntityGroundingRule",
         "path": "src/director_ai/core/scoring/rules_scorer.py"
+      },
+      {
+        "name": "EnvSecretsBackend",
+        "path": "src/director_ai/core/secrets.py"
       },
       {
         "name": "ErrorBreakdown",
@@ -3229,6 +3249,10 @@
         "path": "src/director_ai/core/scoring/backends.py"
       },
       {
+        "name": "ScorerConfig",
+        "path": "src/director_ai/core/scoring/scorer_config.py"
+      },
+      {
         "name": "ScorerModelChoice",
         "path": "src/director_ai/core/scoring/model_choices.py"
       },
@@ -3241,8 +3265,20 @@
         "path": "src/director_ai/core/types.py"
       },
       {
+        "name": "SecretNotFoundError",
+        "path": "src/director_ai/core/secrets.py"
+      },
+      {
         "name": "SecretShare",
         "path": "src/director_ai/core/federated_privacy/secret_sharing.py"
+      },
+      {
+        "name": "SecretsBackend",
+        "path": "src/director_ai/core/secrets.py"
+      },
+      {
+        "name": "SecretsProvider",
+        "path": "src/director_ai/core/secrets.py"
       },
       {
         "name": "SectorEvidenceMapping",
@@ -3355,6 +3391,10 @@
       {
         "name": "Sphere",
         "path": "src/director_ai/core/cyber_physical/geometry.py"
+      },
+      {
+        "name": "SplunkHECSink",
+        "path": "src/director_ai/core/safety/siem.py"
       },
       {
         "name": "StabilityReport",
@@ -3845,6 +3885,10 @@
         "path": "src/director_ai/core/formal_verification/formula.py"
       },
       {
+        "name": "VaultSecretsBackend",
+        "path": "src/director_ai/core/secrets.py"
+      },
+      {
         "name": "Vec3",
         "path": "src/director_ai/core/cyber_physical/geometry.py"
       },
@@ -4226,6 +4270,7 @@
       "src/director_ai/core/safety/policy.py",
       "src/director_ai/core/safety/prompt_guard.py",
       "src/director_ai/core/safety/sanitizer.py",
+      "src/director_ai/core/safety/siem.py",
       "src/director_ai/core/safety_event.py",
       "src/director_ai/core/safety_protocol.py",
       "src/director_ai/core/sanitizer.py",
@@ -4246,9 +4291,11 @@
       "src/director_ai/core/scoring/reasoning_scorer.py",
       "src/director_ai/core/scoring/rules_scorer.py",
       "src/director_ai/core/scoring/scorer.py",
+      "src/director_ai/core/scoring/scorer_config.py",
       "src/director_ai/core/scoring/sharded_nli.py",
       "src/director_ai/core/scoring/temporal_freshness.py",
       "src/director_ai/core/scoring/verified_scorer.py",
+      "src/director_ai/core/secrets.py",
       "src/director_ai/core/self_evolving/adversarial.py",
       "src/director_ai/core/self_evolving/calibration.py",
       "src/director_ai/core/self_evolving/evolver.py",
@@ -4935,6 +4982,7 @@
       "tests/test_grpc_server.py",
       "tests/test_guard_control.py",
       "tests/test_guard_firewall.py",
+      "tests/test_guard_pii_redaction.py",
       "tests/test_guardrails_ai_integration.py",
       "tests/test_hallubench_eval.py",
       "tests/test_halluhard_eval.py",
@@ -5133,11 +5181,13 @@
       "tests/test_sanitizer.py",
       "tests/test_sbom_generation.py",
       "tests/test_scorer_backend.py",
+      "tests/test_scorer_config.py",
       "tests/test_scorer_edge_cases.py",
       "tests/test_scorer_model_choices.py",
       "tests/test_scorer_validation.py",
       "tests/test_sdk_guard.py",
       "tests/test_sdk_guard_real_sdk.py",
+      "tests/test_secrets.py",
       "tests/test_security_exceptions.py",
       "tests/test_security_hardening.py",
       "tests/test_security_physical_risks.py",
@@ -5160,6 +5210,7 @@
       "tests/test_session.py",
       "tests/test_shamir.py",
       "tests/test_sharded_nli.py",
+      "tests/test_siem.py",
       "tests/test_signal_sharing.py",
       "tests/test_simpleqa_eval.py",
       "tests/test_soc2_iso_readiness.py",

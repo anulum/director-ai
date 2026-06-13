@@ -11,3 +11,5 @@ comando = "comando"
 ignora = "ignora"
 responde = "responde"
 confirme = "confirme"
+# Proper noun: HashiCorp Vault (camelCase tokenises to "Hashi" + "Corp")
+Hashi = "Hashi"
