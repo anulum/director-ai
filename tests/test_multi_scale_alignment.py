@@ -293,6 +293,22 @@ class TestAlignerRustSums:
         aligner = HierarchicalAligner(scorers=_four_scorers())
         assert aligner.scales == ("agent", "swarm", "org", "planetary")
 
+    def test_sum_float_empty_short_circuits(self):
+        # Empty input returns 0.0 before any accelerator dispatch.
+        assert aligner_mod._sum_float([]) == 0.0
+
+    def test_sum_float_python_path_when_rust_absent(self, monkeypatch):
+        # _RUST False -> the pure-Python sum() branch, no mandatory guard.
+        monkeypatch.setattr(aligner_mod, "_RUST_MULTI_SCALE", False)
+        assert aligner_mod._sum_float([0.25, 0.25, 0.5]) == pytest.approx(1.0)
+
+
+class TestScaleScoreTableContains:
+    def test_contains_present_and_absent(self):
+        table = ScaleScoreTable(scores={"agent": 0.9, "org": 0.7})
+        assert "agent" in table
+        assert "swarm" not in table
+
 
 # --- ScaleConflictDetector ----------------------------------------
 
