@@ -19,7 +19,7 @@
 //!
 //! # FFI Safety
 //!
-//! - GIL acquired via `Python::with_gil` before every Python callback.
+//! - GIL acquired via `Python::attach` before every Python callback.
 //! - Python exceptions → safe Rust defaults (0.0 for scores, None for strings).
 //! - No borrowed references escape the GIL lock scope.
 //! - All config validated before storage (`BackfireConfig::validate()`).
@@ -63,7 +63,7 @@ mod safety_hooks;
 // ─── PyBackfireConfig ───────────────────────────────────────────────
 
 /// Python-visible configuration for the Backfire Kernel.
-#[pyclass(name = "BackfireConfig")]
+#[pyclass(name = "BackfireConfig", from_py_object)]
 #[derive(Clone)]
 struct PyBackfireConfig {
     inner: BackfireConfig,
@@ -143,7 +143,7 @@ impl PyBackfireConfig {
 // ─── PyCoherenceScore ───────────────────────────────────────────────
 
 /// Python-visible coherence score result.
-#[pyclass(name = "CoherenceScore")]
+#[pyclass(name = "CoherenceScore", from_py_object)]
 #[derive(Clone)]
 struct PyCoherenceScore {
     inner: CoherenceScore,
@@ -204,7 +204,7 @@ impl PyCoherenceScore {
 // ─── PyStreamSession ────────────────────────────────────────────────
 
 /// Python-visible streaming session trace.
-#[pyclass(name = "StreamSession")]
+#[pyclass(name = "StreamSession", from_py_object)]
 #[derive(Clone)]
 struct PyStreamSession {
     inner: StreamSession,
@@ -299,11 +299,11 @@ impl PySafetyKernel {
         &self,
         py: Python<'_>,
         tokens: Vec<String>,
-        coherence_callback: PyObject,
+        coherence_callback: Py<PyAny>,
     ) -> PyResult<String> {
         let token_refs: Vec<&str> = tokens.iter().map(|s| s.as_str()).collect();
         let cb = |token: &str| -> f64 {
-            Python::with_gil(|py| match coherence_callback.call1(py, (token,)) {
+            Python::attach(|py| match coherence_callback.call1(py, (token,)) {
                 Ok(result) => result.extract::<f64>(py).unwrap_or(0.0),
                 Err(_) => 0.0,
             })
@@ -354,11 +354,11 @@ impl PyStreamingKernel {
         &self,
         py: Python<'_>,
         tokens: Vec<String>,
-        coherence_callback: PyObject,
+        coherence_callback: Py<PyAny>,
     ) -> PyResult<PyStreamSession> {
         let token_refs: Vec<&str> = tokens.iter().map(|s| s.as_str()).collect();
         let cb = |token: &str| -> f64 {
-            Python::with_gil(|py| match coherence_callback.call1(py, (token,)) {
+            Python::attach(|py| match coherence_callback.call1(py, (token,)) {
                 Ok(result) => result.extract::<f64>(py).unwrap_or(0.0),
                 Err(_) => 0.0,
             })
@@ -373,11 +373,11 @@ impl PyStreamingKernel {
         &self,
         py: Python<'_>,
         tokens: Vec<String>,
-        coherence_callback: PyObject,
+        coherence_callback: Py<PyAny>,
     ) -> PyResult<String> {
         let token_refs: Vec<&str> = tokens.iter().map(|s| s.as_str()).collect();
         let cb = |token: &str| -> f64 {
-            Python::with_gil(|py| match coherence_callback.call1(py, (token,)) {
+            Python::attach(|py| match coherence_callback.call1(py, (token,)) {
                 Ok(result) => result.extract::<f64>(py).unwrap_or(0.0),
                 Err(_) => 0.0,
             })
@@ -423,14 +423,14 @@ impl PyCoherenceScorer {
     #[pyo3(signature = (config = None, nli_callback = None, knowledge_callback = None))]
     fn new(
         config: Option<PyBackfireConfig>,
-        nli_callback: Option<PyObject>,
-        knowledge_callback: Option<PyObject>,
+        nli_callback: Option<Py<PyAny>>,
+        knowledge_callback: Option<Py<PyAny>>,
     ) -> PyResult<Self> {
         let cfg = config.map(|c| c.inner).unwrap_or_default();
 
         let nli: Arc<dyn backfire_core::nli::NliBackend> = match nli_callback {
             Some(cb) => Arc::new(ExternalNli::new(move |premise: &str, hypothesis: &str| {
-                Python::with_gil(|py| match cb.call1(py, (premise, hypothesis)) {
+                Python::attach(|py| match cb.call1(py, (premise, hypothesis)) {
                     Ok(result) => result.extract::<f64>(py).unwrap_or(0.5),
                     Err(_) => 0.5,
                 })
@@ -441,7 +441,7 @@ impl PyCoherenceScorer {
         let knowledge: Arc<dyn backfire_core::knowledge::GroundTruthStore> =
             match knowledge_callback {
                 Some(cb) => Arc::new(ExternalKnowledge::new(move |query: &str| {
-                    Python::with_gil(|py| match cb.call1(py, (query,)) {
+                    Python::attach(|py| match cb.call1(py, (query,)) {
                         Ok(result) => result.extract::<Option<String>>(py).unwrap_or(None),
                         Err(_) => None,
                     })
@@ -528,9 +528,9 @@ impl PyUPDEStepper {
 
     /// Create initial state with given phases.
     #[staticmethod]
-    fn create_state(theta: Vec<f64>) -> PyResult<PyObject> {
+    fn create_state(theta: Vec<f64>) -> PyResult<Py<PyAny>> {
         let state = UPDEState::new(theta);
-        Python::with_gil(|py| {
+        Python::attach(|py| {
             let dict = PyDict::new(py);
             dict.set_item("theta", state.theta.clone())?;
             dict.set_item("dtheta_dt", state.dtheta_dt.clone())?;
@@ -543,9 +543,9 @@ impl PyUPDEStepper {
 
     /// Create random initial state.
     #[staticmethod]
-    fn random_state() -> PyResult<PyObject> {
+    fn random_state() -> PyResult<Py<PyAny>> {
         let state = UPDEState::random(N_LAYERS);
-        Python::with_gil(|py| {
+        Python::attach(|py| {
             let dict = PyDict::new(py);
             dict.set_item("theta", state.theta.clone())?;
             dict.set_item("dtheta_dt", state.dtheta_dt.clone())?;
@@ -557,13 +557,13 @@ impl PyUPDEStepper {
     }
 
     /// Advance by n_steps. Returns dict with theta, dtheta_dt, t, r_global, step_count.
-    fn run(&mut self, theta: Vec<f64>, n_steps: u64) -> PyResult<PyObject> {
+    fn run(&mut self, theta: Vec<f64>, n_steps: u64) -> PyResult<Py<PyAny>> {
         let state = UPDEState::new(theta);
         let result = self
             .inner
             .run(&state, n_steps)
             .map_err(PyValueError::new_err)?;
-        Python::with_gil(|py| {
+        Python::attach(|py| {
             let dict = PyDict::new(py);
             dict.set_item("theta", result.theta.clone())?;
             dict.set_item("dtheta_dt", result.dtheta_dt.clone())?;
@@ -600,13 +600,13 @@ impl PySECFunctional {
         theta: Vec<f64>,
         theta_prev: Option<Vec<f64>>,
         dt: f64,
-    ) -> PyResult<PyObject> {
+    ) -> PyResult<Py<PyAny>> {
         let prev_ref = theta_prev.as_deref();
         let result = self
             .inner
             .evaluate(&theta, prev_ref, dt)
             .map_err(PyValueError::new_err)?;
-        Python::with_gil(|py| {
+        Python::attach(|py| {
             let dict = PyDict::new(py);
             dict.set_item("v", result.v)?;
             dict.set_item("v_normalised", result.v_normalised)?;
@@ -703,7 +703,7 @@ impl PyL16Controller {
         p_h1: f64,
         h_frob: f64,
         dt: f64,
-    ) -> PyResult<PyObject> {
+    ) -> PyResult<Py<PyAny>> {
         let costs = L16CostInputs {
             c7_symbolic: c7,
             c8_phase: c8,
@@ -714,7 +714,7 @@ impl PyL16Controller {
         let result = self
             .inner
             .step(&theta, &[], 0, &[], 0, r_global, plv, &costs, dt);
-        Python::with_gil(|py| {
+        Python::attach(|py| {
             let dict = PyDict::new(py);
             dict.set_item("lambda7", result.lambda7)?;
             dict.set_item("lambda8", result.lambda8)?;
@@ -854,7 +854,7 @@ impl PyPGBOEngine {
     }
 
     /// Compute PGBO from current phases. Returns dict with u_mu, h_munu, u_norm, h_frob.
-    fn compute(&mut self, py: Python<'_>, theta: Vec<f64>, dt: f64) -> PyResult<PyObject> {
+    fn compute(&mut self, py: Python<'_>, theta: Vec<f64>, dt: f64) -> PyResult<Py<PyAny>> {
         self.inner.compute(&theta, dt);
         let dict = PyDict::new(py);
         dict.set_item("u_mu", self.inner.u_mu.clone())?;
@@ -956,7 +956,7 @@ impl PySSGFEngine {
     }
 
     /// Run n outer-cycle steps. Returns list of step log dicts.
-    fn run(&mut self, py: Python<'_>, n_outer: usize) -> PyResult<PyObject> {
+    fn run(&mut self, py: Python<'_>, n_outer: usize) -> PyResult<Py<PyAny>> {
         let logs = self.inner.run(n_outer);
         let list = pyo3::types::PyList::empty(py);
         for log in &logs {
@@ -982,7 +982,7 @@ impl PySSGFEngine {
     }
 
     /// Execute one outer-cycle step. Returns step log dict.
-    fn outer_step(&mut self, py: Python<'_>) -> PyResult<PyObject> {
+    fn outer_step(&mut self, py: Python<'_>) -> PyResult<Py<PyAny>> {
         let log = self.inner.outer_step();
         let dict = PyDict::new(py);
         dict.set_item("step", log.step)?;
@@ -1004,7 +1004,7 @@ impl PySSGFEngine {
     }
 
     /// Get audio mapping from current state.
-    fn audio_mapping(&self, py: Python<'_>) -> PyResult<PyObject> {
+    fn audio_mapping(&self, py: Python<'_>) -> PyResult<Py<PyAny>> {
         let m = self.inner.audio_mapping();
         let dict = PyDict::new(py);
         dict.set_item("r_global", m.r_global)?;
