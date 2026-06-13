@@ -329,6 +329,21 @@ class TestSplitConformal:
         q = split_conformal_threshold([-1.0, 2.0], target_coverage=0.5)
         assert 0.0 <= q <= 1.0
 
+    def test_python_quantile_when_rust_absent(self, monkeypatch):
+        # When the accelerator was never imported (_RUST False), the function
+        # takes the pure-Python order-statistic branch directly — no
+        # mandatory_execution guard, so it returns rather than propagating.
+        monkeypatch.setattr(compiler_mod, "_RUST_POLICY_COMPILER", False)
+        q = split_conformal_threshold([0.1, 0.2, 0.3], target_coverage=0.9)
+        # n=3, q_index = min(max(int(0.9*4 - 1), 0), 2) = 2 -> sorted[2] = 0.3
+        assert q == pytest.approx(0.3)
+
+    def test_python_quantile_clamps_index_when_rust_absent(self, monkeypatch):
+        monkeypatch.setattr(compiler_mod, "_RUST_POLICY_COMPILER", False)
+        # target_coverage 0.99 on n=2 forces the index past the end -> clamp.
+        q = split_conformal_threshold([0.2, 0.7], target_coverage=0.99)
+        assert q == pytest.approx(0.7)
+
 
 # --- PolicyRegistry --------------------------------------------------
 
