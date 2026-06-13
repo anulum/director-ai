@@ -349,6 +349,15 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
     """Create and configure the FastAPI application."""
     _check_fastapi()
 
+    # Bridge managed secrets (Vault / AWS / Azure) into the environment before
+    # any config, license, or audit-salt read, so existing os.environ.get(...)
+    # call sites resolve from the backend. No-op for the default env backend.
+    from .core.secrets import hydrate_managed_secrets
+
+    loaded_secrets = hydrate_managed_secrets()
+    if loaded_secrets:
+        logger.info("Loaded %d managed secret(s) from backend", len(loaded_secrets))
+
     if config is None:
         import os
 
