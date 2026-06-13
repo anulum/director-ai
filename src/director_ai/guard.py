@@ -59,6 +59,7 @@ from director_ai.core.canary import (
 from director_ai.core.config import DirectorConfig
 from director_ai.core.eval_trace import eval_record_from_guard, record_guard_decision
 from director_ai.core.labelling_cockpit import ActiveLabellingCockpit
+from director_ai.core.redactor import PIIRedactor
 from director_ai.core.risk_threshold import (
     RiskAdaptiveThreshold,
     RiskFactors,
@@ -143,6 +144,12 @@ class ProductionGuard:
             use_nli=self._config.use_nli,
         )
         self._verified = VerifiedScorer()
+        # PII redaction parity with the REST server: when redact_pii is set, the
+        # SDK path scrubs prompt + response before scoring, so direct guard use
+        # does not leak PII that the server would have redacted.
+        self._redactor = PIIRedactor(
+            enabled=bool(getattr(self._config, "redact_pii", False)),
+        )
         # Calibration pieces are lazily installed by
         # :meth:`enable_calibration`; declare them as optionals
         # up-front so the later assignments do not narrow.
@@ -237,6 +244,9 @@ class ProductionGuard:
         human_review_acknowledged: bool = False,
     ) -> GuardResult:
         """Score a response and return a GuardResult with optional policy checks."""
+        if self._redactor.enabled:
+            prompt = self._redactor.redact(prompt)
+            response = self._redactor.redact(response)
         sector_report = self._evaluate_sector_policy(
             sector_policy=sector_policy,
             prompt=prompt,
