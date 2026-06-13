@@ -298,3 +298,50 @@ class TestConformalPerformanceDoc:
             "is_reliable",
         ]:
             assert hasattr(pi, field), f"Missing: {field}"
+
+
+class TestQuantileFallback:
+    """The pure-Python split-conformal quantile is the floor of the chain.
+
+    In CI the Rust kernel is usually present, so these force the two fallback
+    paths: the accelerator being absent, and the accelerator raising.
+    """
+
+    def test_python_fallback_when_rust_absent(self, monkeypatch):
+        # _RUST_CONFORMAL False -> _compute_quantile takes the Python branch.
+        monkeypatch.setattr(conformal_mod, "_RUST_CONFORMAL", False)
+        scores = [0.5 + i * 0.02 for i in range(10)]
+        labels = [bool(i % 2) for i in range(10)]
+        cp = ConformalPredictor(coverage=0.9, min_samples=5)
+        cp.calibrate(scores, labels)
+        residuals = sorted(
+            abs(max(0.0, min(1.0, 1.0 - s)) - (1.0 if lab else 0.0))
+            for s, lab in zip(scores, labels, strict=True)
+        )
+        import math
+
+        q_idx = min(math.ceil((10 + 1) * 0.9) - 1, 9)
+        # The Python fallback computed the split-conformal quantile directly.
+        assert cp._quantile == pytest.approx(residuals[q_idx])
+
+    def test_python_fallback_when_rust_raises(self, monkeypatch):
+        # Rust present but raises -> except branch logs and falls back to Python.
+        monkeypatch.setattr(conformal_mod, "_RUST_CONFORMAL", True)
+
+        def _boom(_residuals, _coverage):
+            raise RuntimeError("rust kernel exploded")
+
+        monkeypatch.setattr(conformal_mod, "rust_conformal_quantile", _boom)
+        scores = [0.4 + i * 0.03 for i in range(12)]
+        labels = [i < 6 for i in range(12)]
+        cp = ConformalPredictor(coverage=0.8, min_samples=5)
+        cp.calibrate(scores, labels)
+        # Falls back cleanly to a valid (non-None) quantile, no exception escapes.
+        pi = cp.predict(0.5)
+        assert pi.upper >= pi.point_estimate >= pi.lower
+
+    def test_python_quantile_index_clamped(self):
+        # High coverage on a tiny set forces q_idx past n-1 -> clamp to last.
+        residuals = [0.1, 0.4, 0.9]
+        q = ConformalPredictor._python_quantile(list(residuals), 0.99)
+        assert q == 0.9  # ceil((3+1)*0.99)-1 = 3 -> clamped to index 2
