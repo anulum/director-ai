@@ -4,12 +4,12 @@
     "github_workflows": 11,
     "model_documentation_pages": 88,
     "optional_extras": 57,
-    "public_api_exports": 219,
-    "public_documentation_pages": 191,
-    "python_model_classes": 938,
-    "python_model_source_modules": 408,
-    "rust_pyo3_model_wrappers": 79,
-    "test_files": 501
+    "public_api_exports": 220,
+    "public_documentation_pages": 192,
+    "python_model_classes": 940,
+    "python_model_source_modules": 409,
+    "rust_pyo3_model_wrappers": 80,
+    "test_files": 502
   },
   "documentation": {
     "public_pages": [
@@ -148,6 +148,7 @@
       "docs-site/guide/eu-ai-act-whitepaper.md",
       "docs-site/guide/evidence.md",
       "docs-site/guide/failure-case-studies.md",
+      "docs-site/guide/fallacy-detection.md",
       "docs-site/guide/feature-depth-assessment.md",
       "docs-site/guide/forecasting.md",
       "docs-site/guide/guardrail-landscape.md",
@@ -1542,6 +1543,14 @@
       {
         "name": "FailureStore",
         "path": "src/director_ai/core/continual_adversarial/failure.py"
+      },
+      {
+        "name": "FallacyMatch",
+        "path": "src/director_ai/core/verification/fallacy_detector.py"
+      },
+      {
+        "name": "FallacyResult",
+        "path": "src/director_ai/core/verification/fallacy_detector.py"
       },
       {
         "name": "FallbackModelRegistry",
@@ -4422,6 +4431,7 @@
       "src/director_ai/core/types.py",
       "src/director_ai/core/vector_store.py",
       "src/director_ai/core/verification/code_verifier.py",
+      "src/director_ai/core/verification/fallacy_detector.py",
       "src/director_ai/core/verification/json_verifier.py",
       "src/director_ai/core/verification/math_consistency.py",
       "src/director_ai/core/verification/neuro_symbolic.py",
@@ -4519,6 +4529,7 @@
       "rust_confusion_counts_threshold",
       "rust_coverage_from_divergences",
       "rust_derive_challenge_indices",
+      "rust_detect_fallacies",
       "rust_detect_task_type",
       "rust_ema_update",
       "rust_entity_overlap",
@@ -4749,6 +4760,7 @@
     "create_app",
     "create_grpc_server",
     "create_knowledge_router",
+    "detect_fallacies",
     "director_safety_signal_from_event",
     "evaluate_policy_variants",
     "export_onnx",
@@ -5024,6 +5036,7 @@
       "tests/test_experimental_namespace.py",
       "tests/test_explainability.py",
       "tests/test_external_security_packet.py",
+      "tests/test_fallacy_detector.py",
       "tests/test_fastapi_guard.py",
       "tests/test_federated_dp.py",
       "tests/test_federated_dp_evidence.py",

@@ -22,6 +22,7 @@ import re
 from dataclasses import dataclass, field
 
 from ..mandatory import mandatory_execution
+from .fallacy_detector import FallacyMatch, detect_fallacies
 from .math_consistency import ArithmeticCheck, verify_arithmetic
 
 __all__ = [
@@ -112,6 +113,7 @@ class ReasoningChainResult:
     chain_valid: bool = True
     issues_found: int = 0
     math_errors: list[ArithmeticCheck] = field(default_factory=list)
+    fallacies: list[FallacyMatch] = field(default_factory=list)
 
     @property
     def non_sequiturs(self) -> list[ReasoningVerdict]:
@@ -219,6 +221,7 @@ def verify_reasoning_chain(
     support_threshold: float = 0.3,
     *,
     check_math: bool = True,
+    check_fallacies: bool = True,
 ) -> ReasoningChainResult:
     """Verify the logical structure of a reasoning chain.
 
@@ -236,13 +239,19 @@ def verify_reasoning_chain(
         (``3 + 4 = 8`` and friends) via
         :func:`~director_ai.core.verification.math_consistency.verify_arithmetic`;
         any wrong equation counts as a chain issue.
+    check_fallacies : bool
+        When True (default), also flag informal-fallacy markers via
+        :func:`~director_ai.core.verification.fallacy_detector.detect_fallacies`.
+        These are reported on ``fallacies`` as a heuristic signal and, being
+        lower-precision than the structural checks, do not affect ``chain_valid``.
 
     Returns
     -------
     ReasoningChainResult
-        Per-step verdicts, arithmetic errors, and overall chain validity.
+        Per-step verdicts, arithmetic errors, fallacy markers, and chain validity.
     """
     math_errors = verify_arithmetic(text).errors if check_math else []
+    fallacies = detect_fallacies(text).matches if check_fallacies else []
     steps = extract_steps(text)
     if len(steps) < 2:
         return ReasoningChainResult(
@@ -250,6 +259,7 @@ def verify_reasoning_chain(
             chain_valid=not math_errors,
             issues_found=len(math_errors),
             math_errors=math_errors,
+            fallacies=fallacies,
         )
 
     verdicts: list[ReasoningVerdict] = []
@@ -343,4 +353,5 @@ def verify_reasoning_chain(
         chain_valid=issues == 0,
         issues_found=issues,
         math_errors=math_errors,
+        fallacies=fallacies,
     )

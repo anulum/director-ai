@@ -1,0 +1,17 @@
+{
+  "benchmark": "fallacy_detection",
+  "detection": {
+    "n": 20,
+    "accuracy": 1.0,
+    "control_false_positive_rate": 0.0,
+    "n_controls": 5
+  },
+  "backends": {
+    "rust_available": true,
+    "parity_rust_equals_python": true,
+    "rust_texts_per_sec": 677356.4,
+    "python_texts_per_sec": 121698.5,
+    "rust_speedup": 5.566,
+    "fastest": "rust"
+  }
+}

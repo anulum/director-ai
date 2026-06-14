@@ -211,9 +211,14 @@ from .types import (
     ScoringEvidence,
 )
 from .verification.code_verifier import CodeCheckResult, verify_code
-from .verification.json_verifier import StructuredVerificationResult, verify_json
 
 # --- Verification ---
+from .verification.fallacy_detector import (
+    FallacyMatch,
+    FallacyResult,
+    detect_fallacies,
+)
+from .verification.json_verifier import StructuredVerificationResult, verify_json
 from .verification.math_consistency import (
     MathConsistencyResult,
     verify_arithmetic,
@@ -384,11 +389,14 @@ __all__ = [
     "PredictionInterval",
     # Verification (Phase 5)
     "CodeCheckResult",
+    "FallacyMatch",
+    "FallacyResult",
     "FieldVerdict",
     "MathConsistencyResult",
     "NumericVerificationResult",
     "StructuredVerificationResult",
     "ToolCallResult",
+    "detect_fallacies",
     "verify_arithmetic",
     "verify_code",
     "verify_json",

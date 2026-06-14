@@ -1281,6 +1281,11 @@ fn rust_eval_arithmetic(expr: &str) -> f64 {
 }
 
 #[pyfunction]
+fn rust_detect_fallacies(text: &str) -> Vec<(String, String)> {
+    backfire_core::compute::detect_fallacies(text)
+}
+
+#[pyfunction]
 fn rust_softmax(logits: Vec<f64>, cols: usize) -> Vec<f64> {
     backfire_core::compute::softmax(&logits, cols)
 }
@@ -1660,6 +1665,7 @@ fn backfire_kernel(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(rust_build_chunks, m)?)?;
     m.add_function(wrap_pyfunction!(rust_word_overlap, m)?)?;
     m.add_function(wrap_pyfunction!(rust_eval_arithmetic, m)?)?;
+    m.add_function(wrap_pyfunction!(rust_detect_fallacies, m)?)?;
     m.add_function(wrap_pyfunction!(rust_softmax, m)?)?;
     m.add_function(wrap_pyfunction!(rust_probs_to_divergence, m)?)?;
     m.add_function(wrap_pyfunction!(rust_probs_to_confidence, m)?)?;

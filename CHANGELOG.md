@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Add **informal-fallacy detection**
+  (`director_ai.core.verification.fallacy_detector.detect_fallacies`): flags the
+  surface markers of eight fallacy families (ad hominem, appeal to authority,
+  bandwagon, false dichotomy, hasty generalisation, slippery slope, appeal to
+  emotion, post hoc) in a reasoning chain. Wired into `verify_reasoning_chain`
+  (new `check_fallacies` flag and `fallacies` field); as a lower-precision
+  heuristic it is reported but does not affect `chain_valid`. The marker scan runs
+  through a new Rust `rust_detect_fallacies` kernel
+  (`backfire_core::compute::detect_fallacies`) with a bit-exact pure-Python regex
+  pass (lookaround/backreference-free patterns so both engines agree). Benchmarked
+  in `benchmarks/fallacy_detection.py` (accuracy 1.00 / control FPR 0.00 on the
+  marker set, Rust↔Python parity exact, Rust ~5.6× faster); documented in
+  `docs-site/guide/fallacy-detection.md`.
 - Add **chain-of-thought arithmetic verification**
   (`director_ai.core.verification.math_consistency.verify_arithmetic`): extracts
   stated equations (`3 + 4 = 8`, `12 × 5 = 60`, `(120 - 20) / 4 equals 25`),

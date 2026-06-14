@@ -285,6 +285,11 @@ _LAZY_IMPORTS: dict[str, tuple[str, str]] = {
         ".core.verification.math_consistency",
         "verify_arithmetic",
     ),
+    # Informal-fallacy detection
+    "detect_fallacies": (
+        ".core.verification.fallacy_detector",
+        "detect_fallacies",
+    ),
     # Agentic loop monitoring (Phase 5)
     "LoopMonitor": (".agentic.loop_monitor", "LoopMonitor"),
     # Conformal prediction (Phase 5)
