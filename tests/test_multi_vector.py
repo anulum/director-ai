@@ -225,3 +225,8 @@ class TestBenchmark:
             b.query("topic details", n_results=3)
         ms = (time.perf_counter() - t0) * 1000 / 100
         assert ms < 50  # per-query
+
+
+def test_summary_sentences_must_be_at_least_one():
+    with pytest.raises(ValueError, match="summary_sentences must be at least 1"):
+        _make_backend(summary_sentences=0)

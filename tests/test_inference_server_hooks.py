@@ -450,3 +450,8 @@ def _steering_decision(
         evidence_refs=("trajectory:7",),
         guard_decision=guard,
     )
+
+
+def test_policy_rejects_non_finite_steering_bias() -> None:
+    with pytest.raises(ValueError, match="steering_bias_logit must be finite"):
+        InferenceServerHookPolicy(steering_bias_logit=float("nan"))

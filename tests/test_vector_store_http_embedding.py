@@ -607,3 +607,20 @@ def test_director_config_builds_remanentia_store() -> None:
 def test_director_config_remanentia_requires_base_url() -> None:
     with pytest.raises(ValueError, match="remanentia_base_url"):
         DirectorConfig(vector_backend="remanentia", remanentia_base_url="")
+
+
+def test_sum_float_rust_and_python_paths(monkeypatch):
+    import director_ai.core.retrieval.vector_store.http_embedding as he
+
+    monkeypatch.setattr(he, "_RUST_HTTP_EMBED", True)
+    calls = {"n": 0}
+
+    def _sum(values: list[float]) -> float:
+        calls["n"] += 1
+        return sum(values)
+
+    monkeypatch.setattr(he, "rust_sum_f64", _sum, raising=True)
+    assert he._sum_float([1.0, 2.0, 3.0]) == pytest.approx(6.0)
+    assert calls["n"] == 1
+    monkeypatch.setattr(he, "_RUST_HTTP_EMBED", False)
+    assert he._sum_float([]) == 0.0
