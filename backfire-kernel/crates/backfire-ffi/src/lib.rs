@@ -1276,6 +1276,11 @@ fn rust_word_overlap(text_a: &str, text_b: &str) -> f64 {
 }
 
 #[pyfunction]
+fn rust_eval_arithmetic(expr: &str) -> f64 {
+    backfire_core::compute::eval_arithmetic(expr)
+}
+
+#[pyfunction]
 fn rust_softmax(logits: Vec<f64>, cols: usize) -> Vec<f64> {
     backfire_core::compute::softmax(&logits, cols)
 }
@@ -1654,6 +1659,7 @@ fn backfire_kernel(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(rust_split_sentences, m)?)?;
     m.add_function(wrap_pyfunction!(rust_build_chunks, m)?)?;
     m.add_function(wrap_pyfunction!(rust_word_overlap, m)?)?;
+    m.add_function(wrap_pyfunction!(rust_eval_arithmetic, m)?)?;
     m.add_function(wrap_pyfunction!(rust_softmax, m)?)?;
     m.add_function(wrap_pyfunction!(rust_probs_to_divergence, m)?)?;
     m.add_function(wrap_pyfunction!(rust_probs_to_confidence, m)?)?;

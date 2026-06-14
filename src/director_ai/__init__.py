@@ -280,6 +280,11 @@ _LAZY_IMPORTS: dict[str, tuple[str, str]] = {
     "DriftResult": (".compliance.drift_detector", "DriftResult"),
     # Numeric verification (Phase 5)
     "verify_numeric": (".core.verification.numeric_verifier", "verify_numeric"),
+    # Arithmetic-equation verification
+    "verify_arithmetic": (
+        ".core.verification.math_consistency",
+        "verify_arithmetic",
+    ),
     # Agentic loop monitoring (Phase 5)
     "LoopMonitor": (".agentic.loop_monitor", "LoopMonitor"),
     # Conformal prediction (Phase 5)

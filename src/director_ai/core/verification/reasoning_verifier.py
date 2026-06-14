@@ -22,6 +22,7 @@ import re
 from dataclasses import dataclass, field
 
 from ..mandatory import mandatory_execution
+from .math_consistency import ArithmeticCheck, verify_arithmetic
 
 __all__ = [
     "ReasoningStep",
@@ -110,6 +111,7 @@ class ReasoningChainResult:
     verdicts: list[ReasoningVerdict] = field(default_factory=list)
     chain_valid: bool = True
     issues_found: int = 0
+    math_errors: list[ArithmeticCheck] = field(default_factory=list)
 
     @property
     def non_sequiturs(self) -> list[ReasoningVerdict]:
@@ -215,6 +217,8 @@ def verify_reasoning_chain(
     text: str,
     score_fn=None,
     support_threshold: float = 0.3,
+    *,
+    check_math: bool = True,
 ) -> ReasoningChainResult:
     """Verify the logical structure of a reasoning chain.
 
@@ -227,15 +231,26 @@ def verify_reasoning_chain(
         If None, uses Jaccard word overlap heuristic.
     support_threshold : float
         Maximum divergence for a step to be considered supported.
+    check_math : bool
+        When True (default), also verify the explicit arithmetic in the chain
+        (``3 + 4 = 8`` and friends) via
+        :func:`~director_ai.core.verification.math_consistency.verify_arithmetic`;
+        any wrong equation counts as a chain issue.
 
     Returns
     -------
     ReasoningChainResult
-        Per-step verdicts with overall chain validity.
+        Per-step verdicts, arithmetic errors, and overall chain validity.
     """
+    math_errors = verify_arithmetic(text).errors if check_math else []
     steps = extract_steps(text)
     if len(steps) < 2:
-        return ReasoningChainResult(steps_found=len(steps))
+        return ReasoningChainResult(
+            steps_found=len(steps),
+            chain_valid=not math_errors,
+            issues_found=len(math_errors),
+            math_errors=math_errors,
+        )
 
     verdicts: list[ReasoningVerdict] = []
     issues = 0
@@ -321,9 +336,11 @@ def verify_reasoning_chain(
                 )
                 issues += 1
 
+    issues += len(math_errors)
     return ReasoningChainResult(
         steps_found=len(steps),
         verdicts=verdicts,
         chain_valid=issues == 0,
         issues_found=issues,
+        math_errors=math_errors,
     )

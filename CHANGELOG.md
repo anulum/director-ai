@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Add **chain-of-thought arithmetic verification**
+  (`director_ai.core.verification.math_consistency.verify_arithmetic`): extracts
+  stated equations (`3 + 4 = 8`, `12 × 5 = 60`, `(120 - 20) / 4 equals 25`),
+  evaluates the left side and flags any that does not equal its asserted result.
+  Wired into `verify_reasoning_chain` (new `check_math` flag and `math_errors`
+  field) so step-logic and arithmetic are checked together. The evaluator runs
+  through a new Rust `rust_eval_arithmetic` kernel
+  (`backfire_core::compute::eval_arithmetic`) with a bit-exact pure-Python `ast`
+  fallback (same IEEE-754 doubles, precedence, character set; non-finite → NaN on
+  both). Benchmarked in `benchmarks/math_consistency.py` (detection accuracy 1.00,
+  Rust↔Python parity exact, Rust ~16× faster); documented in
+  `docs-site/guide/math-verification.md`.
 - Add **live temporal-claim refresh** (`director_ai.core.scoring.temporal_refresh`,
   wired as `ProductionGuard.refresh_temporal(text)` / `temporal_refresher`): takes
   the claims flagged stale by temporal-freshness scoring, queries a live

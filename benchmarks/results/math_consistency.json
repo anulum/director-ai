@@ -1,0 +1,21 @@
+{
+  "benchmark": "math_consistency",
+  "detection": {
+    "n": 12,
+    "accuracy": 1.0,
+    "error_precision": 1.0,
+    "error_recall": 1.0,
+    "tp": 6,
+    "fp": 0,
+    "tn": 6,
+    "fn": 0
+  },
+  "backends": {
+    "rust_available": true,
+    "parity_rust_equals_python": true,
+    "rust_exprs_per_sec": 2710562.5,
+    "python_exprs_per_sec": 165327.6,
+    "rust_speedup": 16.395,
+    "fastest": "rust"
+  }
+}

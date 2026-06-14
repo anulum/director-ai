@@ -4,12 +4,12 @@
     "github_workflows": 11,
     "model_documentation_pages": 88,
     "optional_extras": 57,
-    "public_api_exports": 218,
-    "public_documentation_pages": 190,
-    "python_model_classes": 936,
-    "python_model_source_modules": 407,
-    "rust_pyo3_model_wrappers": 78,
-    "test_files": 500
+    "public_api_exports": 219,
+    "public_documentation_pages": 191,
+    "python_model_classes": 938,
+    "python_model_source_modules": 408,
+    "rust_pyo3_model_wrappers": 79,
+    "test_files": 501
   },
   "documentation": {
     "public_pages": [
@@ -153,6 +153,7 @@
       "docs-site/guide/guardrail-landscape.md",
       "docs-site/guide/kb-ingestion.md",
       "docs-site/guide/market-value-and-positioning.md",
+      "docs-site/guide/math-verification.md",
       "docs-site/guide/meta-confidence.md",
       "docs-site/guide/migration-v2-v3.md",
       "docs-site/guide/onboarding.md",
@@ -481,6 +482,10 @@
       {
         "name": "Arith",
         "path": "src/director_ai/core/neuro_symbolic/expression.py"
+      },
+      {
+        "name": "ArithmeticCheck",
+        "path": "src/director_ai/core/verification/math_consistency.py"
       },
       {
         "name": "Article15Report",
@@ -2265,6 +2270,10 @@
       {
         "name": "ManagedTrainingRecord",
         "path": "src/director_ai/finetune_api.py"
+      },
+      {
+        "name": "MathConsistencyResult",
+        "path": "src/director_ai/core/verification/math_consistency.py"
       },
       {
         "name": "MaximumHaltRate",
@@ -4414,6 +4423,7 @@
       "src/director_ai/core/vector_store.py",
       "src/director_ai/core/verification/code_verifier.py",
       "src/director_ai/core/verification/json_verifier.py",
+      "src/director_ai/core/verification/math_consistency.py",
       "src/director_ai/core/verification/neuro_symbolic.py",
       "src/director_ai/core/verification/numeric_verifier.py",
       "src/director_ai/core/verification/reasoning_verifier.py",
@@ -4512,6 +4522,7 @@
       "rust_detect_task_type",
       "rust_ema_update",
       "rust_entity_overlap",
+      "rust_eval_arithmetic",
       "rust_extract_reasoning_steps",
       "rust_has_suspicious_unicode",
       "rust_heuristic_factual_divergence",
@@ -4762,6 +4773,7 @@
     "validate_director_safety_signal",
     "validate_finetune_data",
     "validate_safety_event_payload",
+    "verify_arithmetic",
     "verify_code",
     "verify_json",
     "verify_numeric",
@@ -5126,6 +5138,7 @@
       "tests/test_loop_monitor.py",
       "tests/test_managed_training_jobs.py",
       "tests/test_mandatory_runtime_policy.py",
+      "tests/test_math_consistency.py",
       "tests/test_mechanistic_interpretability.py",
       "tests/test_meta_classifier.py",
       "tests/test_meta_confidence.py",

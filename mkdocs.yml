@@ -140,6 +140,7 @@ nav:
       - Prompt-Injection Guard: guide/prompt-guard.md
       - Hallucination Forecasting: guide/forecasting.md
       - Temporal Claim Refresh: guide/temporal-refresh.md
+      - Math Verification: guide/math-verification.md
       - Threshold Tuning: guide/threshold-tuning.md
       - KB Ingestion: guide/kb-ingestion.md
       - CI Quality Gate: guide/ci-gate.md

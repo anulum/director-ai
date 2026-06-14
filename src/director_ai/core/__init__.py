@@ -212,13 +212,17 @@ from .types import (
 )
 from .verification.code_verifier import CodeCheckResult, verify_code
 from .verification.json_verifier import StructuredVerificationResult, verify_json
+
+# --- Verification ---
+from .verification.math_consistency import (
+    MathConsistencyResult,
+    verify_arithmetic,
+)
 from .verification.neuro_symbolic import (
     NeuroSymbolicVerificationResult,
     NeuroSymbolicVerifier,
     NeuroSymbolicVerifierInput,
 )
-
-# --- Verification ---
 from .verification.numeric_verifier import NumericVerificationResult, verify_numeric
 from .verification.reasoning_verifier import verify_reasoning_chain
 from .verification.tool_call_verifier import ToolCallResult, verify_tool_call
@@ -381,9 +385,11 @@ __all__ = [
     # Verification (Phase 5)
     "CodeCheckResult",
     "FieldVerdict",
+    "MathConsistencyResult",
     "NumericVerificationResult",
     "StructuredVerificationResult",
     "ToolCallResult",
+    "verify_arithmetic",
     "verify_code",
     "verify_json",
     "verify_numeric",
