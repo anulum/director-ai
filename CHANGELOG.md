@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Add `benchmarks/pii_redaction.py`: span-level precision/recall for the PII
+  detector across all eight categories, plus a Rust-vs-Python backend comparison.
+  Measured: the `backfire_kernel.PiiScanner` (RegexSet) path is ~3.5× the
+  pure-Python regex throughput and produces identical spans (parity); detector
+  precision 0.94 / recall 1.00 on the labelled corpus. Documented in
+  `docs-site/guide/rust-acceleration.md`.
 - Add an opt-in **contradiction-driven streaming halt**: at each completed claim
   the text is scored for `P(contradiction)` from a three-class NLI model against
   the retrieved grounding and halts only on a genuine contradiction, so a

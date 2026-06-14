@@ -2,7 +2,7 @@
 
 *Added in v3.11.0*
 
-Director-AI optionally accelerates hot-path functions via the Rust-based Backfire Kernel. When installed, six functions dispatch to compiled Rust code automatically. When not installed, Python fallbacks run transparently.
+Director-AI optionally accelerates hot-path functions via the Rust-based Backfire Kernel. When installed, several hot-path functions dispatch to compiled Rust code automatically. When not installed, Python fallbacks run transparently.
 
 ## Install
 
@@ -55,6 +55,24 @@ results = bm25.query("water temperature", n_results=3)
 for doc_id, score in results:
     print(f"{doc_id}: {score:.4f}")
 ```
+
+### PII Detection
+
+`RegexPIIDetector` (and `PIIRedactor`) batch all PII patterns behind a single
+Rust `RegexSet` via `backfire_kernel.PiiScanner`, scanning each text in one pass.
+
+| Function | Python | Rust | Speedup | Called |
+|----------|--------|------|---------|-------|
+| PII scan (8 categories) | ~79k texts/s | ~277k texts/s | 3.5x | per redaction / moderation check |
+
+Measured by `benchmarks/pii_redaction.py` (`prefer_rust=True` vs `False`): the
+Rust and Python paths produce identical `(category, start, end)` spans (parity),
+and on the labelled corpus the detector scores precision 0.94 / recall 1.00
+(span-level, across the eight categories). Unlike simple reductions — where FFI
+marshalling can make Rust slower — the multi-pattern `RegexSet` scan is a genuine
+win. The detector falls back to the pure-Python regex path transparently when the
+kernel is not installed; choose the path explicitly with
+`RegexPIIDetector(prefer_rust=...)`.
 
 ## When Rust Helps
 

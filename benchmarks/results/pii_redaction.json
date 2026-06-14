@@ -1,0 +1,88 @@
+{
+  "benchmark": "pii_redaction",
+  "n_samples": 21,
+  "accuracy": {
+    "overall": {
+      "precision": 0.9444,
+      "recall": 1.0,
+      "f1": 0.9714,
+      "tp": 17,
+      "fp": 1,
+      "fn": 0
+    },
+    "per_category": {
+      "credit_card": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "tp": 2,
+        "fp": 0,
+        "fn": 0
+      },
+      "email": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "tp": 4,
+        "fp": 0,
+        "fn": 0
+      },
+      "iban": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "tp": 1,
+        "fp": 0,
+        "fn": 0
+      },
+      "ipv4": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "tp": 2,
+        "fp": 0,
+        "fn": 0
+      },
+      "passport": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "tp": 1,
+        "fp": 0,
+        "fn": 0
+      },
+      "phi": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "tp": 2,
+        "fp": 0,
+        "fn": 0
+      },
+      "phone": {
+        "precision": 0.75,
+        "recall": 1.0,
+        "f1": 0.8571,
+        "tp": 3,
+        "fp": 1,
+        "fn": 0
+      },
+      "ssn": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "tp": 2,
+        "fp": 0,
+        "fn": 0
+      }
+    }
+  },
+  "backends": {
+    "rust_available": true,
+    "parity_rust_equals_python": true,
+    "rust_texts_per_sec": 276895.8,
+    "python_texts_per_sec": 78531.4,
+    "rust_speedup": 3.526,
+    "fastest": "rust"
+  }
+}
