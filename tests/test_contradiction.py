@@ -9,9 +9,10 @@
 from __future__ import annotations
 
 import pytest
-import torch
 
-from director_ai.core.scoring.contradiction import (
+torch = pytest.importorskip("torch")
+
+from director_ai.core.scoring.contradiction import (  # noqa: E402
     ContradictionResult,
     ContradictionScorer,
 )
