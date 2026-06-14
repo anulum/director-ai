@@ -126,3 +126,25 @@ class TestGuardWiring:
         r = dp.rank(_ITEMS, tenant_id="t1", epsilon=1.0)
         assert isinstance(r, PrivateRanking)
         assert dp.spent("t1") == pytest.approx(1.0)
+
+
+def test_rng_from_seed_and_gumbel_redraw():
+    import random as _random
+
+    from director_ai.core.dp_rag.decoding import _gumbel, _rng_from_seed
+
+    assert isinstance(_rng_from_seed(42), _random.Random)
+    assert isinstance(_rng_from_seed(None), _random.SystemRandom)
+
+    class _Rng:
+        def __init__(self, seq):
+            self._seq = list(seq)
+            self._i = 0
+
+        def random(self):
+            v = self._seq[self._i]
+            self._i += 1
+            return v
+
+    # first draw 0.0 forces the open-interval re-draw, then 0.5 is accepted
+    assert isinstance(_gumbel(_Rng([0.0, 0.5])), float)

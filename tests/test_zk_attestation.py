@@ -1343,3 +1343,14 @@ class TestPassport:
                 issuer_keys={"org": _KEY_A},
                 backends={"": CommitmentBackend(key=_KEY_A)},
             )
+
+
+def test_zk_sum_float_rust_and_python(monkeypatch):
+    import director_ai.core.zk_attestation.backends as zk
+
+    monkeypatch.setattr(zk, "_RUST_ZK_ATTESTATION", True)
+    monkeypatch.setattr(zk, "rust_sum_f64", lambda v: sum(v), raising=True)
+    assert zk._sum_float([1.0, 2.0]) == pytest.approx(3.0)
+    monkeypatch.setattr(zk, "_RUST_ZK_ATTESTATION", False)
+    assert zk._sum_float([]) == 0.0
+    assert zk._sum_float([1.0, 2.0, 3.0]) == pytest.approx(6.0)

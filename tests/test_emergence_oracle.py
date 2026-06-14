@@ -437,3 +437,19 @@ class TestGraphRustSums:
         )
         graph = InteractionGraph.from_events(_pipeline_events())
         assert graph.in_weight("b") == 1
+
+
+def test_mean_clustering_and_sum_float_paths(monkeypatch):
+    import director_ai.core.emergence_oracle.graph as g
+
+    graph = g.InteractionGraph()
+    graph._add_edge("a", "b")
+    graph._add_edge("b", "c")
+    graph._add_edge("a", "c")
+    assert graph.mean_clustering() > 0.0
+
+    monkeypatch.setattr(g, "_RUST_GRAPH", True)
+    monkeypatch.setattr(g, "rust_sum_f64", lambda v: sum(v), raising=True)
+    assert g._sum_float([1.0, 2.0]) == pytest.approx(3.0)
+    monkeypatch.setattr(g, "_RUST_GRAPH", False)
+    assert g._sum_float([]) == 0.0
