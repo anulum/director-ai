@@ -614,3 +614,21 @@ class TestPerformance:
             d.detect(intent="Test prompt.", response=response)
         per_call_ms = (time.perf_counter() - t0) / 10 * 1000
         assert per_call_ms < 50
+
+
+def test_fail_closed_when_model_backed_nli_lost_after_construction():
+    # A detector that requires model-backed NLI is built while the backend is
+    # available, then loses it mid-life (model eviction / OOM unload). Every
+    # NLI-using entry point must fail closed rather than silently degrade.
+    nli = MagicMock()
+    nli.model_available = True
+    nli.backend = "deberta"
+    detector = InjectionDetector(nli_scorer=nli, require_model_backed_nli=True)
+
+    nli.model_available = False
+    with pytest.raises(RuntimeError, match="model-backed NLI"):
+        detector.detect(intent="answer the question", response="a claim")
+    with pytest.raises(RuntimeError, match="model-backed NLI"):
+        detector._decompose("a claim")
+    with pytest.raises(RuntimeError, match="model-backed NLI"):
+        detector._bidirectional_nli_batch("answer the question", ["a claim"])
