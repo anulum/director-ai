@@ -174,6 +174,7 @@ class ProductionGuard:
         self._ml_bom: object | None = None
         self._rasp: object | None = None
         self._threat_intel: object | None = None
+        self._forecaster: object | None = None
 
     @classmethod
     def from_profile(
@@ -774,6 +775,37 @@ class ProductionGuard:
 
             self._ml_bom = MachineLearningBOM()
         return self._ml_bom
+
+    def _ensure_forecaster(self):
+        if self._forecaster is None:
+            from director_ai.core.forecasting import (
+                ForecastHistory,
+                HallucinationForecaster,
+            )
+
+            self._forecaster = HallucinationForecaster(history=ForecastHistory())
+        return self._forecaster
+
+    def forecast(self, prompt: str):
+        """Forecast a prompt's hallucination risk *before* generation.
+
+        Runs one step ahead of every response-side guard: scores the incoming
+        *prompt* against three signals — under-specification (ambiguity), lexical
+        coverage by the facts this guard's :class:`GroundTruthStore` would
+        retrieve, and the online hallucination rate of past prompts of the same
+        shape — and returns a
+        :class:`~director_ai.core.forecasting.ForecastResult` with a risk in
+        ``[0, 1]`` plus a ``proceed`` / ``ground`` / ``human_review``
+        recommendation. The forecaster (and its outcome history) persists across
+        calls so the pattern signal accumulates; feed observed outcomes back with
+        ``guard.forecast_history.record(prompt, hallucinated=...)``.
+        """
+        return self._ensure_forecaster().forecast(prompt, store=self._store)
+
+    @property
+    def forecast_history(self):
+        """The forecaster's online outcome memory (created on first use)."""
+        return self._ensure_forecaster().history
 
     @property
     def rasp(self):

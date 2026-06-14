@@ -1,0 +1,19 @@
+{
+  "benchmark": "hallucination_forecast",
+  "separation": {
+    "n_prompts": 10,
+    "mean_risk_low": 0.432,
+    "mean_risk_high": 0.6693,
+    "risk_gap": 0.2373,
+    "ranking_auroc": 0.72,
+    "band_accuracy": 0.9
+  },
+  "backends": {
+    "rust_available": true,
+    "parity_rust_equals_python": true,
+    "rust_pairs_per_sec": 361820.7,
+    "python_pairs_per_sec": 569692.5,
+    "rust_speedup": 0.635,
+    "fastest": "python"
+  }
+}

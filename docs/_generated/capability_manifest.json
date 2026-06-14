@@ -5,11 +5,11 @@
     "model_documentation_pages": 88,
     "optional_extras": 57,
     "public_api_exports": 218,
-    "public_documentation_pages": 188,
-    "python_model_classes": 926,
-    "python_model_source_modules": 405,
+    "public_documentation_pages": 189,
+    "python_model_classes": 929,
+    "python_model_source_modules": 406,
     "rust_pyo3_model_wrappers": 78,
-    "test_files": 497
+    "test_files": 499
   },
   "documentation": {
     "public_pages": [
@@ -149,6 +149,7 @@
       "docs-site/guide/evidence.md",
       "docs-site/guide/failure-case-studies.md",
       "docs-site/guide/feature-depth-assessment.md",
+      "docs-site/guide/forecasting.md",
       "docs-site/guide/guardrail-landscape.md",
       "docs-site/guide/kb-ingestion.md",
       "docs-site/guide/market-value-and-positioning.md",
@@ -1649,6 +1650,14 @@
         "path": "src/director_ai/core/irreversibility/forecaster.py"
       },
       {
+        "name": "ForecastHistory",
+        "path": "src/director_ai/core/forecasting/hallucination_forecaster.py"
+      },
+      {
+        "name": "ForecastResult",
+        "path": "src/director_ai/core/forecasting/hallucination_forecaster.py"
+      },
+      {
         "name": "FormalCodeVerificationResult",
         "path": "src/director_ai/core/formal_verification/adapter.py"
       },
@@ -1779,6 +1788,10 @@
       {
         "name": "HallucinationError",
         "path": "src/director_ai/core/exceptions.py"
+      },
+      {
+        "name": "HallucinationForecaster",
+        "path": "src/director_ai/core/forecasting/hallucination_forecaster.py"
       },
       {
         "name": "HallucinationRootCauseAnalyzer",
@@ -4151,6 +4164,7 @@
       "src/director_ai/core/finetune.py",
       "src/director_ai/core/finetune_benchmark.py",
       "src/director_ai/core/finetune_validator.py",
+      "src/director_ai/core/forecasting/hallucination_forecaster.py",
       "src/director_ai/core/formal_verification/adapter.py",
       "src/director_ai/core/formal_verification/cnf.py",
       "src/director_ai/core/formal_verification/dpll.py",
@@ -4897,6 +4911,7 @@
       "tests/test_contradiction_injection.py",
       "tests/test_contradiction_recall.py",
       "tests/test_contradiction_tracker.py",
+      "tests/test_core_moved_imports.py",
       "tests/test_correction_loop.py",
       "tests/test_cors_reverse_proxy_policy.py",
       "tests/test_cost_analyser.py",
@@ -5010,6 +5025,7 @@
       "tests/test_guard_pii_redaction.py",
       "tests/test_guardrails_ai_integration.py",
       "tests/test_hallubench_eval.py",
+      "tests/test_hallucination_forecaster.py",
       "tests/test_halluhard_eval.py",
       "tests/test_halt_evidence.py",
       "tests/test_handoff_scorer.py",

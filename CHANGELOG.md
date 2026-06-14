@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Add a pre-generation **hallucination forecaster** (`director_ai.core.forecasting`,
+  wired as `ProductionGuard.forecast(prompt)`): scores an incoming prompt before
+  generation from three signals — under-specification (ambiguity), lexical
+  coverage by the facts the `GroundTruthStore` would retrieve, and the online
+  hallucination rate of past prompts of the same shape — and returns a risk in
+  `[0, 1]` with a `proceed` / `ground` / `human_review` recommendation. The
+  knowledge-base-coverage signal runs through the Rust `rust_word_overlap` kernel
+  with a bit-exact pure-Python fallback. Benchmarked in
+  `benchmarks/hallucination_forecast.py` (mean risk 0.43 grounded vs 0.67
+  ungrounded, ranking AUROC 0.72, band accuracy 0.90, Rust↔Python parity exact);
+  documented in `docs-site/guide/forecasting.md`.
 - Report the contradiction-halt model in `DirectorConfig.model_revision_health()`
   (so `director-ai verify` surfaces its pinned-revision health under a
   `contradiction` check when `streaming_contradiction_halt` is enabled) and add
