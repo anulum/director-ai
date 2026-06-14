@@ -1525,6 +1525,12 @@ class DirectorConfig:
                     judge_model if self.llm_judge_provider == "local" else "",
                     self.llm_judge_model_revision or None,
                 ),
+                "contradiction": (
+                    self.streaming_contradiction_model
+                    if self.streaming_contradiction_halt
+                    else "",
+                    None,
+                ),
             }
         )
 

@@ -54,6 +54,11 @@ Mirror the pinned model revisions:
 | `nli` | `yaxili96/FactCG-DeBERTa-v3-Large` | `0430e3509dbd28d2dff7a117c0eae25359ff3e80` | `models/hf/yaxili96/FactCG-DeBERTa-v3-Large` |
 | `embedding` | `BAAI/bge-large-en-v1.5` | `d4aa6901d3a41ba39fb536a557fa166f842b0e09` | `models/hf/BAAI/bge-large-en-v1.5` |
 | `reranker` | `cross-encoder/ms-marco-MiniLM-L-6-v2` | `c5ee24cb16019beea0893ab7796b1df96625c6b8` | `models/hf/cross-encoder/ms-marco-MiniLM-L-6-v2` |
+| `contradiction` (opt-in) | `MoritzLaurer/DeBERTa-v3-large-mnli-fever-anli-ling-wanli` | `b3546ea6b0346eb6f8d5d68b13c7dc6d0376b3d7` | `models/hf/MoritzLaurer/DeBERTa-v3-large-mnli-fever-anli-ling-wanli` |
+
+The `contradiction` row is only required when the contradiction-driven streaming
+halt is enabled (`streaming_contradiction_halt`); `director-ai verify` reports
+its revision health under the `contradiction` check.
 
 The ONNX directory must contain:
 

@@ -88,3 +88,16 @@ def test_model_revision_health_preserves_local_model_paths(tmp_path) -> None:
 
     assert report["ok"] is True
     assert report["checks"]["local_judge"]["status"] == "local"
+
+
+def test_config_health_reports_contradiction_model_when_enabled() -> None:
+    from director_ai.core.config import DirectorConfig
+
+    enabled = DirectorConfig(streaming_contradiction_halt=True)
+    checks = enabled.model_revision_health()["checks"]
+    assert checks["contradiction"]["status"] == "pinned"
+    assert checks["contradiction"]["revision"]
+
+    disabled = DirectorConfig(streaming_contradiction_halt=False)
+    off_checks = disabled.model_revision_health()["checks"]
+    assert off_checks["contradiction"]["status"] == "skipped"

@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Report the contradiction-halt model in `DirectorConfig.model_revision_health()`
+  (so `director-ai verify` surfaces its pinned-revision health under a
+  `contradiction` check when `streaming_contradiction_halt` is enabled) and add
+  its mirror row to the air-gapped-deployment model table.
 - Add `benchmarks/pii_redaction.py`: span-level precision/recall for the PII
   detector across all eight categories, plus a Rust-vs-Python backend comparison.
   Measured: the `backfire_kernel.PiiScanner` (RegexSet) path is ~3.5× the
