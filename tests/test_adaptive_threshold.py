@@ -240,3 +240,13 @@ def test_rust_posterior_type_error_is_mandatory_failure(monkeypatch):
     learner.observe_batch(_feedback())
     with pytest.raises(TypeError, match="ffi signature mismatch"):
         _ = learner.arm(0.4).posterior_mean
+
+
+def test_posterior_mean_python_fallback(monkeypatch):
+    # With the Rust kernel disabled, posterior_mean uses the pure-Python
+    # Beta mean alpha / (alpha + beta).
+    monkeypatch.setattr(adaptive_mod, "_RUST_ADAPTIVE", False)
+    arm = AdaptiveThresholdArm(threshold=0.5)
+    arm.observe(ThresholdFeedback(score=0.9, human_approved=True))
+    arm.observe(ThresholdFeedback(score=0.1, human_approved=False))
+    assert arm.posterior_mean == pytest.approx(arm.alpha / (arm.alpha + arm.beta))

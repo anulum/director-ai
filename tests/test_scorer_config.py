@@ -80,6 +80,7 @@ def test_to_kwargs_round_trips():
     "bad",
     [
         {"threshold": 1.5},
+        {"soft_limit": 1.5},  # soft_limit out of [0, 1]
         {"soft_limit": 0.2, "threshold": 0.5},  # soft_limit < threshold
         {"w_logic": 2.0},
         {"history_window": 0},
