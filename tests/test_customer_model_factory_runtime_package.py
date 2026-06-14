@@ -212,6 +212,23 @@ def test_runtime_package_blocks_not_ready_evidence_pack():
     )
 
 
+def test_runtime_package_blocks_not_ready_deployment_manifest():
+    import dataclasses
+
+    not_ready_deployment = dataclasses.replace(_deployment(), ready=False)
+    package = build_customer_runtime_package(
+        runtime_id="runtime-customer-alpha-bad-deployment",
+        deployment_manifest=not_ready_deployment,
+        evidence_pack=_evidence_pack(),
+        runtime_mode="offline_private",
+    )
+
+    assert package.ready is False
+    assert any(
+        finding["code"] == "deployment_not_ready" for finding in package.findings
+    )
+
+
 def test_runtime_package_blocks_mismatched_customer_boundaries():
     payload = _evidence_pack().to_dict()
     payload["tenant_id"] = "wrong-tenant"
