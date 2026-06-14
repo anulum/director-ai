@@ -1,0 +1,15 @@
+{
+  "benchmark": "hallucination_economics",
+  "decision": {
+    "n": 6,
+    "accuracy": 1.0
+  },
+  "value": {
+    "guarded_scenarios": 5,
+    "mean_loss_avoided": 205.3455
+  },
+  "throughput": {
+    "decisions_per_sec": 33411.4
+  },
+  "backend": "python-deterministic (decision arithmetic; no kernel)"
+}

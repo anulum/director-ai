@@ -29,6 +29,12 @@ length heuristic.
 """
 
 from .budget import BudgetEntry, RiskBudget
+from .economics import (
+    DEFAULT_ACTIONS,
+    EconomicDecision,
+    GuardAction,
+    HallucinationEconomics,
+)
 from .router import RiskRouter, RiskScorerProtocol, RoutingDecision
 from .scorer import PromptRiskScorer, RiskComponents
 from .uncertainty_router import (
@@ -38,7 +44,11 @@ from .uncertainty_router import (
 )
 
 __all__ = [
+    "DEFAULT_ACTIONS",
     "BudgetEntry",
+    "EconomicDecision",
+    "GuardAction",
+    "HallucinationEconomics",
     "PromptRiskScorer",
     "RiskBudget",
     "RiskComponents",

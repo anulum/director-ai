@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Add **hallucination economics**
+  (`director_ai.core.routing.HallucinationEconomics`): selects the guard action
+  whose expected total cost is lowest for a request, where
+  `expected_cost = action.cost + risk · (1 - action.catch) · hallucination_cost`
+  over a configurable action menu (skip / heuristic / NLI / escalate / human
+  review). Returns the chosen action, expected cost, per-action breakdown,
+  residual risk, and the *value* (expected loss avoided versus doing nothing), so
+  guarding is justified as a value driver rather than a fixed cost. Wired as
+  `ProductionGuard.guard_economics(risk, hallucination_cost=...)` and the
+  `ProductionGuard.economics` property. 100% module tests; benchmark
+  `benchmarks/hallucination_economics.py` (decision accuracy 1.00, ~33k
+  decisions/s); documented in `docs-site/guide/hallucination-economics.md`.
 - Add **cross-model consensus**
   (`director_ai.core.consensus.CrossModelConsensus`): scores a panel of several
   models' answers to one prompt, returning a consensus in `[0, 1]`, an

@@ -5,11 +5,11 @@
     "model_documentation_pages": 88,
     "optional_extras": 57,
     "public_api_exports": 221,
-    "public_documentation_pages": 195,
-    "python_model_classes": 949,
-    "python_model_source_modules": 412,
+    "public_documentation_pages": 196,
+    "python_model_classes": 952,
+    "python_model_source_modules": 413,
     "rust_pyo3_model_wrappers": 80,
-    "test_files": 505
+    "test_files": 506
   },
   "documentation": {
     "public_pages": [
@@ -154,6 +154,7 @@
       "docs-site/guide/feature-depth-assessment.md",
       "docs-site/guide/forecasting.md",
       "docs-site/guide/guardrail-landscape.md",
+      "docs-site/guide/hallucination-economics.md",
       "docs-site/guide/kb-ingestion.md",
       "docs-site/guide/market-value-and-positioning.md",
       "docs-site/guide/math-verification.md",
@@ -1424,6 +1425,10 @@
         "path": "src/director_ai/core/scoring/temporal_refresh.py"
       },
       {
+        "name": "EconomicDecision",
+        "path": "src/director_ai/core/routing/economics.py"
+      },
+      {
         "name": "EconomicRiskScorer",
         "path": "src/director_ai/core/swarm_economics/scorer.py"
       },
@@ -1812,6 +1817,10 @@
         "path": "src/director_ai/integrations/autogen_swarm.py"
       },
       {
+        "name": "GuardAction",
+        "path": "src/director_ai/core/routing/economics.py"
+      },
+      {
         "name": "GuardDecision",
         "path": "src/director_ai/core/guard_control/decision.py"
       },
@@ -1834,6 +1843,10 @@
       {
         "name": "GuardrailTrainer",
         "path": "src/director_ai/core/self_evolving/trainer.py"
+      },
+      {
+        "name": "HallucinationEconomics",
+        "path": "src/director_ai/core/routing/economics.py"
       },
       {
         "name": "HallucinationError",
@@ -4362,6 +4375,7 @@
       "src/director_ai/core/risk_threshold/factors.py",
       "src/director_ai/core/risk_threshold/policy.py",
       "src/director_ai/core/routing/budget.py",
+      "src/director_ai/core/routing/economics.py",
       "src/director_ai/core/routing/router.py",
       "src/director_ai/core/routing/scorer.py",
       "src/director_ai/core/routing/uncertainty_router.py",
@@ -5125,6 +5139,7 @@
       "tests/test_guard_pii_redaction.py",
       "tests/test_guardrails_ai_integration.py",
       "tests/test_hallubench_eval.py",
+      "tests/test_hallucination_economics.py",
       "tests/test_hallucination_forecaster.py",
       "tests/test_halluhard_eval.py",
       "tests/test_halt_evidence.py",

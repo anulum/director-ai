@@ -177,6 +177,7 @@ class ProductionGuard:
         self._forecaster: object | None = None
         self._temporal_refresher: object | None = None
         self._cross_model: object | None = None
+        self._economics: object | None = None
 
     @classmethod
     def from_profile(
@@ -872,6 +873,36 @@ class ProductionGuard:
 
             self._cross_model = CrossModelConsensus(nli=nli)
         return self._cross_model.consensus(responses)
+
+    @property
+    def economics(self):
+        """Cost-risk guard-action selector (created on first use).
+
+        A :class:`~director_ai.core.routing.HallucinationEconomics` over the
+        default action tiers; set ``self._economics`` directly or call with a
+        custom menu for per-deployment cost models.
+        """
+        if self._economics is None:
+            from director_ai.core.routing import HallucinationEconomics
+
+            self._economics = HallucinationEconomics()
+        return self._economics
+
+    def guard_economics(self, risk: float, *, hallucination_cost: float | None = None):
+        """Pick the expected-cost-minimising guard action for a request.
+
+        Treats guarding as an economic decision: given the request's
+        hallucination *risk* in ``[0, 1]`` (for example
+        ``guard.forecast(prompt).risk``) and the business cost of a hallucination
+        reaching the user, returns a
+        :class:`~director_ai.core.routing.EconomicDecision` naming the cheapest
+        action (skip / heuristic / NLI / escalate / human review), its expected
+        cost, the per-action breakdown, and the *value* — the expected loss
+        guarding avoids versus doing nothing — so the guard can be justified as a
+        value driver. Override the per-request stakes with *hallucination_cost*
+        (e.g. higher for medical or financial domains).
+        """
+        return self.economics.decide(risk, hallucination_cost=hallucination_cost)
 
     @property
     def rasp(self):
