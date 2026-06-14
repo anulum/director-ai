@@ -175,6 +175,7 @@ class ProductionGuard:
         self._rasp: object | None = None
         self._threat_intel: object | None = None
         self._forecaster: object | None = None
+        self._temporal_refresher: object | None = None
 
     @classmethod
     def from_profile(
@@ -684,6 +685,45 @@ class ProductionGuard:
 
             self._temporal_consistency = TemporalConsistencyGraph()
         return self._temporal_consistency
+
+    @property
+    def temporal_refresher(self):
+        """Live web-search refresher for stale temporal claims.
+
+        Where :attr:`temporal_consistency` checks claims against this system's own
+        history, the refresher checks them against the live web: it scores a
+        response for staleness, then for each flagged claim (a named office-holder,
+        a statistic, a record) queries a search provider and reports whether
+        current sources still support it. Persists across calls. By default it runs
+        the dependency-free lexical triage; inject an NLI
+        :class:`~director_ai.core.scoring.contradiction.ContradictionScorer` via
+        ``TemporalRefresher(nli=...)`` for adjudicated ``contradicted`` verdicts.
+        """
+        if self._temporal_refresher is None:
+            from director_ai.core.scoring.temporal_refresh import TemporalRefresher
+
+            self._temporal_refresher = TemporalRefresher()
+        return self._temporal_refresher
+
+    def refresh_temporal(
+        self,
+        text: str,
+        *,
+        source_timestamp: float | None = None,
+        max_age_days: float = 180,
+        domain: str = "",
+    ):
+        """Score *text* for staleness and live-refresh its stale claims.
+
+        Convenience wrapper over :attr:`temporal_refresher` that returns a
+        :class:`~director_ai.core.scoring.temporal_refresh.RefreshReport`.
+        """
+        return self.temporal_refresher.refresh_response(
+            text,
+            source_timestamp=source_timestamp,
+            max_age_days=max_age_days,
+            domain=domain,
+        )
 
     @property
     def root_cause_analyzer(self):

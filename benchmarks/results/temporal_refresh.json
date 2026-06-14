@@ -1,0 +1,26 @@
+{
+  "benchmark": "temporal_refresh",
+  "parser": {
+    "hits_parsed": 2,
+    "first_url": "https://en.wikipedia.org/wiki/Sam_Altman",
+    "parses_per_sec": 42286.3
+  },
+  "backends": {
+    "rust_available": true,
+    "parity_rust_equals_python": true,
+    "rust_pairs_per_sec": 703481.9,
+    "python_pairs_per_sec": 742244.1,
+    "rust_speedup": 0.948,
+    "fastest": "python"
+  },
+  "lexical_drift": {
+    "n": 10,
+    "accuracy": 0.9,
+    "drift_precision": 1.0,
+    "drift_recall": 0.8,
+    "tp": 4,
+    "fp": 0,
+    "tn": 5,
+    "fn": 1
+  }
+}

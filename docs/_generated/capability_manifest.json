@@ -5,11 +5,11 @@
     "model_documentation_pages": 88,
     "optional_extras": 57,
     "public_api_exports": 218,
-    "public_documentation_pages": 189,
-    "python_model_classes": 929,
-    "python_model_source_modules": 406,
+    "public_documentation_pages": 190,
+    "python_model_classes": 936,
+    "python_model_source_modules": 407,
     "rust_pyo3_model_wrappers": 78,
-    "test_files": 499
+    "test_files": 500
   },
   "documentation": {
     "public_pages": [
@@ -173,6 +173,7 @@
       "docs-site/guide/streaming-overhead.md",
       "docs-site/guide/streaming.md",
       "docs-site/guide/structured-verification.md",
+      "docs-site/guide/temporal-refresh.md",
       "docs-site/guide/threshold-tuning.md",
       "docs-site/guide/troubleshooting.md",
       "docs-site/guide/verification-gems.md",
@@ -778,6 +779,10 @@
         "path": "src/director_ai/core/answer_bom/manifest.py"
       },
       {
+        "name": "ClaimRefresh",
+        "path": "src/director_ai/core/scoring/temporal_refresh.py"
+      },
+      {
         "name": "ClaimRelation",
         "path": "src/director_ai/core/symbolic_chain/claims.py"
       },
@@ -1008,6 +1013,10 @@
       {
         "name": "ContinuousFuzzer",
         "path": "src/director_ai/core/fuzzing/engine.py"
+      },
+      {
+        "name": "ContradictionEngine",
+        "path": "src/director_ai/core/scoring/temporal_refresh.py"
       },
       {
         "name": "ContradictionExplainer",
@@ -1380,6 +1389,10 @@
       {
         "name": "DryRunTTSAdapter",
         "path": "src/director_ai/voice/demo.py"
+      },
+      {
+        "name": "DuckDuckGoSearchProvider",
+        "path": "src/director_ai/core/scoring/temporal_refresh.py"
       },
       {
         "name": "EconomicRiskScorer",
@@ -3030,6 +3043,10 @@
         "path": "src/director_ai/enterprise/redis.py"
       },
       {
+        "name": "RefreshReport",
+        "path": "src/director_ai/core/scoring/temporal_refresh.py"
+      },
+      {
         "name": "RegexPIIDetector",
         "path": "src/director_ai/core/safety/moderation/pii.py"
       },
@@ -3292,6 +3309,10 @@
       {
         "name": "ScoringEvidence",
         "path": "src/director_ai/core/types.py"
+      },
+      {
+        "name": "SearchHit",
+        "path": "src/director_ai/core/scoring/temporal_refresh.py"
       },
       {
         "name": "SecretNotFoundError",
@@ -3616,6 +3637,10 @@
       {
         "name": "TemporalContradiction",
         "path": "src/director_ai/core/temporal_consistency/graph.py"
+      },
+      {
+        "name": "TemporalRefresher",
+        "path": "src/director_ai/core/scoring/temporal_refresh.py"
       },
       {
         "name": "TenantFactRequest",
@@ -3998,6 +4023,10 @@
         "path": "src/director_ai/core/retrieval/vector_store/vendors.py"
       },
       {
+        "name": "WebSearchProvider",
+        "path": "src/director_ai/core/scoring/temporal_refresh.py"
+      },
+      {
         "name": "WebSocketTicketRegistry",
         "path": "src/director_ai/core/runtime/ws_ticket.py"
       },
@@ -4326,6 +4355,7 @@
       "src/director_ai/core/scoring/scorer_config.py",
       "src/director_ai/core/scoring/sharded_nli.py",
       "src/director_ai/core/scoring/temporal_freshness.py",
+      "src/director_ai/core/scoring/temporal_refresh.py",
       "src/director_ai/core/scoring/verified_scorer.py",
       "src/director_ai/core/secrets.py",
       "src/director_ai/core/self_evolving/adversarial.py",
@@ -5286,6 +5316,7 @@
       "tests/test_temporal_consistency.py",
       "tests/test_temporal_freshness.py",
       "tests/test_temporal_logic.py",
+      "tests/test_temporal_refresh.py",
       "tests/test_tenant.py",
       "tests/test_tensorrt_export.py",
       "tests/test_test_surface_policy.py",

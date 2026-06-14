@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Add **live temporal-claim refresh** (`director_ai.core.scoring.temporal_refresh`,
+  wired as `ProductionGuard.refresh_temporal(text)` / `temporal_refresher`): takes
+  the claims flagged stale by temporal-freshness scoring, queries a live
+  web-search provider (DuckDuckGo HTML, no API key), and reports whether current
+  sources still support each one. The verdict is adjudicated by an injected NLI
+  `ContradictionScorer` when present (`contradicted` / `supported`, the reliable
+  path) and falls back to a lexical subject/value triage otherwise
+  (`drift_suspected`); the retrieved evidence is always returned. The HTTP layer
+  is injected through the `HttpGetter` protocol (parser tested without a network)
+  and the `topical_overlap` diagnostic runs through the Rust `rust_word_overlap`
+  kernel with a bit-exact Python fallback. BUSL-1.1 (advanced tier). Benchmarked
+  in `benchmarks/temporal_refresh.py` (parser ~42k/s, Rust↔Python parity exact,
+  lexical drift precision 1.00 / recall 0.80 on clean cases); documented in
+  `docs-site/guide/temporal-refresh.md`.
 - Add a pre-generation **hallucination forecaster** (`director_ai.core.forecasting`,
   wired as `ProductionGuard.forecast(prompt)`): scores an incoming prompt before
   generation from three signals — under-specification (ambiguity), lexical
