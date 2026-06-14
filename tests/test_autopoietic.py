@@ -493,6 +493,19 @@ class TestRegistry:
         active = reg.active()
         assert active is not None and active.version == 1
 
+    def test_rollback_trims_history_to_limit(self):
+        # Rollback archives the current active entry; the history must stay
+        # capped at history_size.
+        reg = ModuleRegistry(history_size=2)
+        bp = ModuleBlueprint(kind="length", length_saturation=10)
+        scorer = ModuleBuilder().build(bp)
+        result = ModuleTestSuite(samples=_toy_corpus()).evaluate(scorer)
+        for version in (1, 2, 3):
+            reg.promote(version=version, blueprint=bp, scorer=scorer, result=result)
+        reg.rollback(version=1)
+        assert reg.active().version == 1
+        assert len(reg.history()) <= 2
+
     def test_monotonic_version_enforced(self):
         reg = ModuleRegistry()
         bp = ModuleBlueprint(kind="length", length_saturation=10)

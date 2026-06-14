@@ -1110,3 +1110,14 @@ class TestCarlaAdapter:
 
         assert verdict.allowed
         assert verdict.violations == ()
+
+
+def test_ros2_adapter_inverse_returns_joint_tuple():
+    # A configured IK callable returning joint angles is normalised to a
+    # float tuple (the success path of Ros2Adapter.inverse).
+    adapter = Ros2Adapter(
+        node=object(), inverse_kinematics=lambda _target: [0.1, 0.2, 0.3]
+    )
+    result = adapter.inverse(Vec3(1.0, 0.0, 0.0))
+    assert result == (0.1, 0.2, 0.3)
+    assert all(isinstance(angle, float) for angle in result)
