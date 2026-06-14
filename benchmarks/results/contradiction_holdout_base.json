@@ -1,0 +1,36 @@
+{
+  "benchmark": "contradiction_holdout",
+  "model": "MoritzLaurer/DeBERTa-v3-large-mnli-fever-anli-ling-wanli",
+  "device": "cuda:0 (NVIDIA GeForce GTX 1060 6GB)",
+  "n_eval": 6321,
+  "n_contradiction": 2589,
+  "n_neutral": 1449,
+  "n_entailment": 2283,
+  "auc_contradiction_vs_other": 0.8235,
+  "thresholds": {
+    "0.1": {
+      "recall_contradiction": 0.5485,
+      "false_halt_all": 0.0828,
+      "false_halt_neutral": 0.1291,
+      "false_halt_entailment": 0.0534
+    },
+    "0.2": {
+      "recall_contradiction": 0.5207,
+      "false_halt_all": 0.0654,
+      "false_halt_neutral": 0.1014,
+      "false_halt_entailment": 0.0425
+    },
+    "0.3": {
+      "recall_contradiction": 0.5044,
+      "false_halt_all": 0.0557,
+      "false_halt_neutral": 0.0835,
+      "false_halt_entailment": 0.0381
+    },
+    "0.5": {
+      "recall_contradiction": 0.477,
+      "false_halt_all": 0.0458,
+      "false_halt_neutral": 0.0683,
+      "false_halt_entailment": 0.0315
+    }
+  }
+}

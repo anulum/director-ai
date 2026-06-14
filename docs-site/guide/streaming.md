@@ -430,3 +430,29 @@ remains an opt-in experimental gate rather than a default; a model fine-tuned on
 the contradiction-vs-unsupported boundary is the path to higher recall. Reproduce
 with `python -m benchmarks.contradiction_recall` and
 `python -m benchmarks.contradiction_aggrefact` (`--device 0` for GPU).
+
+### Fine-tuned held-out result
+
+A LoRA fine-tune of the same base (`MoritzLaurer/DeBERTa-v3-large-mnli-...`) on
+the AggreFact-derived contradiction set — supported → entailment, injected →
+contradiction, unsupported and cross-document → neutral — is evaluated
+leakage-free on the held-out eval split (6,321 pairs; 2,589 contradiction, 1,449
+neutral, 2,283 entailment) with the production halt rule `P(contradiction) ≥
+threshold`. The split was held out at dataset-build time, so the base and the
+fine-tuned model are compared on identical, unseen data:
+
+| Threshold | Recall (base → fine-tuned) | False-halt (base → fine-tuned) |
+|---|---|---|
+| 0.1 | 0.548 → **0.981** | 0.083 → 0.146 |
+| 0.2 | 0.521 → **0.974** | 0.065 → 0.099 |
+| 0.3 | 0.504 → **0.967** | 0.056 → 0.080 |
+| 0.5 | 0.477 → **0.958** | 0.046 → 0.059 |
+
+AUC (contradiction vs. entailment+neutral) rises **0.82 → 0.99**. The fine-tune
+roughly doubles contradiction recall at a modest false-halt increase, confirming
+the fine-tuning path predicted above. The adapter is trained locally
+(`python -m training.train_contradiction`); the held-out comparison is
+`python -m training.eval_contradiction_holdout --tag base|finetuned`, with results
+in `benchmarks/results/contradiction_holdout_{base,finetuned}.json`. Promoting the
+fine-tuned weights to the shipped default requires publishing the merged model;
+until then the off-the-shelf base remains the configured `ContradictionScorer`.

@@ -1,0 +1,36 @@
+{
+  "benchmark": "contradiction_holdout",
+  "model": "/media/anulum/GOTM/aaa_God_of_the_Math_Collection/03_CODE/DIRECTOR-AI/training/output/contradiction-lora-merged",
+  "device": "cuda:0 (NVIDIA GeForce GTX 1060 6GB)",
+  "n_eval": 6321,
+  "n_contradiction": 2589,
+  "n_neutral": 1449,
+  "n_entailment": 2283,
+  "auc_contradiction_vs_other": 0.9885,
+  "thresholds": {
+    "0.1": {
+      "recall_contradiction": 0.9807,
+      "false_halt_all": 0.146,
+      "false_halt_neutral": 0.1546,
+      "false_halt_entailment": 0.1406
+    },
+    "0.2": {
+      "recall_contradiction": 0.9741,
+      "false_halt_all": 0.0989,
+      "false_halt_neutral": 0.1063,
+      "false_halt_entailment": 0.0942
+    },
+    "0.3": {
+      "recall_contradiction": 0.9672,
+      "false_halt_all": 0.0801,
+      "false_halt_neutral": 0.0863,
+      "false_halt_entailment": 0.0762
+    },
+    "0.5": {
+      "recall_contradiction": 0.9575,
+      "false_halt_all": 0.0589,
+      "false_halt_neutral": 0.0676,
+      "false_halt_entailment": 0.0534
+    }
+  }
+}
