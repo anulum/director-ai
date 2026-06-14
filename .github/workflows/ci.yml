@@ -95,9 +95,9 @@ jobs:
           pip install --no-deps -e .
 
       - name: Run tests with coverage
-        # Temporary gate at 90% — to be raised back to 97% once module-specific
-        # specialised tests land for the new differentiator/audit modules.
-        run: pytest tests/ -v --tb=short --cov=director_ai --cov-report=term-missing --cov-report=xml --cov-fail-under=90
+        # Gate at 97%: module-specific tests for the new modules have landed and
+        # the full-suite total is 97.07% (measured 2026-06-14).
+        run: pytest tests/ -v --tb=short --cov=director_ai --cov-report=term-missing --cov-report=xml --cov-fail-under=97
 
       - name: Verify pure-Python import
         if: matrix.python-version == '3.12'
