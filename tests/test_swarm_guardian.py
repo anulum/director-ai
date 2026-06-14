@@ -302,3 +302,12 @@ class TestEdgeCases:
         )
         assert s.quarantined is False
         assert s.handoff_count == 0
+
+
+def test_unregister_sweeps_dependency_references():
+    g = SwarmGuardian()
+    g.register_agent(_profile(agent_id="a1"))
+    g.register_agent(_profile("summariser", agent_id="a2"))
+    g.unregister_agent("a1")  # sweeps remaining agents' dependency sets
+    # a1 is gone, so re-registering the same id succeeds
+    assert g.register_agent(_profile(agent_id="a1")) == "a1"

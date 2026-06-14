@@ -383,3 +383,10 @@ class TestAutoGenReplyGuard:
         assert fake_guardian.kwargs["message"] == "plain structured"
         assert fake_guardian.kwargs["sender"] == "sender-name"
         assert fake_guardian.kwargs["recipients"] == ["recipient-name"]
+
+
+def test_latest_autogen_message_returns_empty_without_dict():
+    from director_ai.integrations.autogen_swarm import _latest_autogen_message
+
+    assert _latest_autogen_message([]) == {}
+    assert _latest_autogen_message([1, "x", None]) == {}

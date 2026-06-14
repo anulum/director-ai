@@ -357,6 +357,14 @@ class TestDefenseRegistry:
         assert len(history) == 2
         assert [s.label for s in history] == ["v2", "v3"]
 
+    def test_rollback_to_trims_history(self):
+        reg = DefenseRegistry(history_size=2)
+        for v in (1, 2, 3):
+            reg.promote(defense=self._defence(), version=v, label=f"v{v}")
+        reg.rollback_to(label="v1")
+        assert reg.active().version == 1
+        assert len(reg.history()) <= 2
+
     def test_rollback_to_label(self):
         reg = DefenseRegistry()
         reg.promote(defense=self._defence(0.1), version=1, label="bad")
