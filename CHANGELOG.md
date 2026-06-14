@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Add **cross-model consensus**
+  (`director_ai.core.consensus.CrossModelConsensus`): scores a panel of several
+  models' answers to one prompt, returning a consensus in `[0, 1]`, an
+  `accept` / `review` / `escalate` recommendation, the pairwise agreement matrix,
+  and the diverging claim pairs as evidence. Pairwise agreement is semantic
+  (`1 - max` directional `P(contradiction)`) when an NLI scorer is supplied and
+  lexical Jaccard overlap otherwise; divergences are reported at claim level with
+  contradiction evidence. Wired as `ProductionGuard.cross_model_consensus(...)`.
+  Lexical agreement uses the Rust `rust_word_overlap` fast path with a bit-exact
+  Python fallback. 100% module tests; benchmark
+  `benchmarks/cross_model_consensus.py` (lexical discrimination 1.00, parity
+  exact, ~114k panels/s); documented in
+  `docs-site/guide/cross-model-consensus.md`.
 - Add **per-segment adaptive thresholds**
   (`director_ai.core.calibration.segmented_threshold.SegmentedThresholdLearner`):
   learns a separate halt threshold per domain, model, or tenant by wrapping the

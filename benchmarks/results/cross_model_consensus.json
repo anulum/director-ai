@@ -1,0 +1,16 @@
+{
+  "benchmark": "cross_model_consensus",
+  "discrimination": {
+    "n": 5,
+    "accuracy": 1.0
+  },
+  "parity": {
+    "pairs": 8,
+    "bit_exact": true,
+    "kernel_active": true
+  },
+  "throughput": {
+    "consensus_per_sec": 114298.4
+  },
+  "backend": "rust_word_overlap kernel with bit-exact Python Jaccard fallback"
+}

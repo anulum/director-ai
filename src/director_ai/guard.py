@@ -176,6 +176,7 @@ class ProductionGuard:
         self._threat_intel: object | None = None
         self._forecaster: object | None = None
         self._temporal_refresher: object | None = None
+        self._cross_model: object | None = None
 
     @classmethod
     def from_profile(
@@ -846,6 +847,31 @@ class ProductionGuard:
     def forecast_history(self):
         """The forecaster's online outcome memory (created on first use)."""
         return self._ensure_forecaster().history
+
+    def cross_model_consensus(self, responses, *, nli=None):
+        """Measure agreement across several models' answers to one prompt.
+
+        Scores a *panel* rather than a single response: given the same question
+        answered by two or more models (each a
+        :class:`~director_ai.core.consensus.ModelResponse` of ``model_id`` +
+        ``text``), returns a
+        :class:`~director_ai.core.consensus.ConsensusResult` with a consensus in
+        ``[0, 1]``, an ``accept`` / ``review`` / ``escalate`` recommendation, the
+        pairwise agreement matrix, and the specific diverging claim pairs as
+        evidence.
+
+        Pass an NLI contradiction scorer as *nli* (e.g.
+        :meth:`director_ai.core.scoring.contradiction.ContradictionScorer.from_pretrained`)
+        to get semantic, claim-level divergence with contradiction evidence;
+        without one the consensus falls back to lexical Jaccard agreement and the
+        single least-agreeing answer pair. The engine (and any supplied scorer)
+        persists on the guard across calls.
+        """
+        if self._cross_model is None or nli is not None:
+            from director_ai.core.consensus import CrossModelConsensus
+
+            self._cross_model = CrossModelConsensus(nli=nli)
+        return self._cross_model.consensus(responses)
 
     @property
     def rasp(self):

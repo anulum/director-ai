@@ -5,11 +5,11 @@
     "model_documentation_pages": 88,
     "optional_extras": 57,
     "public_api_exports": 221,
-    "public_documentation_pages": 194,
-    "python_model_classes": 944,
-    "python_model_source_modules": 411,
+    "public_documentation_pages": 195,
+    "python_model_classes": 949,
+    "python_model_source_modules": 412,
     "rust_pyo3_model_wrappers": 80,
-    "test_files": 504
+    "test_files": 505
   },
   "documentation": {
     "public_pages": [
@@ -142,6 +142,7 @@
       "docs-site/guide/citation-tracing.md",
       "docs-site/guide/compliance-reporting.md",
       "docs-site/guide/config.md",
+      "docs-site/guide/cross-model-consensus.md",
       "docs-site/guide/customer-model-factory.md",
       "docs-site/guide/documentation-integrity.md",
       "docs-site/guide/enterprise.md",
@@ -960,6 +961,10 @@
       },
       {
         "name": "ConsensusResult",
+        "path": "src/director_ai/core/consensus/cross_model_consensus.py"
+      },
+      {
+        "name": "ConsensusResult",
         "path": "src/director_ai/core/scoring/consensus.py"
       },
       {
@@ -1025,6 +1030,10 @@
       {
         "name": "ContinuousFuzzer",
         "path": "src/director_ai/core/fuzzing/engine.py"
+      },
+      {
+        "name": "ContradictionEngine",
+        "path": "src/director_ai/core/consensus/cross_model_consensus.py"
       },
       {
         "name": "ContradictionEngine",
@@ -1145,6 +1154,10 @@
       {
         "name": "CrossModalVerifier",
         "path": "src/director_ai/core/multimodal_guard/verifier.py"
+      },
+      {
+        "name": "CrossModelConsensus",
+        "path": "src/director_ai/core/consensus/cross_model_consensus.py"
       },
       {
         "name": "CrossOrgPassport",
@@ -1361,6 +1374,10 @@
       {
         "name": "DistilledNLIBackendWrapper",
         "path": "src/director_ai/core/scoring/backends.py"
+      },
+      {
+        "name": "Divergence",
+        "path": "src/director_ai/core/consensus/cross_model_consensus.py"
       },
       {
         "name": "DocRecord",
@@ -2377,6 +2394,10 @@
       {
         "name": "ModelPricing",
         "path": "src/director_ai/compliance/cost_analyser.py"
+      },
+      {
+        "name": "ModelResponse",
+        "path": "src/director_ai/core/consensus/cross_model_consensus.py"
       },
       {
         "name": "ModelResponse",
@@ -4158,6 +4179,7 @@
       "src/director_ai/core/citation_grounding/judge.py",
       "src/director_ai/core/citation_grounding/transcript.py",
       "src/director_ai/core/config.py",
+      "src/director_ai/core/consensus/cross_model_consensus.py",
       "src/director_ai/core/containment/anchor.py",
       "src/director_ai/core/containment/detector.py",
       "src/director_ai/core/containment/guard.py",
@@ -4999,6 +5021,7 @@
       "tests/test_crewai_swarm.py",
       "tests/test_cross_document_memory.py",
       "tests/test_cross_language_contracts.py",
+      "tests/test_cross_model_consensus.py",
       "tests/test_custom_rules_dsl.py",
       "tests/test_customer_model_factory_benchmark_selection.py",
       "tests/test_customer_model_factory_compliance_gate.py",
