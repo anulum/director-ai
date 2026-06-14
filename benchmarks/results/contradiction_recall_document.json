@@ -1,0 +1,63 @@
+{
+  "benchmark": "contradiction_recall",
+  "model": "MoritzLaurer/DeBERTa-v3-large-mnli-fever-anli-ling-wanli",
+  "device": "cuda:0 (NVIDIA GeForce GTX 1060 6GB)",
+  "granularity": "document",
+  "top_k": null,
+  "n_supported_seen": 22832,
+  "n_injectable": 18140,
+  "n_injected_variants": 25882,
+  "injection_strategy_counts": {
+    "negation": 15583,
+    "antonym": 4792,
+    "numeric": 4526,
+    "quantifier": 981
+  },
+  "signal": "injected=clean contradiction (recall), original=supported (false-halt)",
+  "auc_injected_vs_original": 0.8243,
+  "overall": {
+    "n_supported": 18140,
+    "n_inconsistent": 25882,
+    "auc_contra_vs_inconsistent": 0.8243,
+    "thresholds": {
+      "0.1": {
+        "false_halt_rate": 0.089,
+        "recall": 0.5493
+      },
+      "0.2": {
+        "false_halt_rate": 0.067,
+        "recall": 0.5154
+      },
+      "0.3": {
+        "false_halt_rate": 0.0426,
+        "recall": 0.485
+      },
+      "0.5": {
+        "false_halt_rate": 0.0337,
+        "recall": 0.4514
+      }
+    }
+  },
+  "recall_by_strategy": {
+    "antonym": {
+      "n": 4792,
+      "recall@0.2": 0.4096,
+      "mean_contradiction": 0.3446
+    },
+    "negation": {
+      "n": 15583,
+      "recall@0.2": 0.532,
+      "mean_contradiction": 0.4763
+    },
+    "numeric": {
+      "n": 4526,
+      "recall@0.2": 0.5866,
+      "mean_contradiction": 0.5241
+    },
+    "quantifier": {
+      "n": 981,
+      "recall@0.2": 0.4404,
+      "mean_contradiction": 0.3789
+    }
+  }
+}

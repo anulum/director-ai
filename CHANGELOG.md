@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Add an opt-in **contradiction-driven streaming halt**: at each completed claim
+  the text is scored for `P(contradiction)` from a three-class NLI model against
+  the retrieved grounding and halts only on a genuine contradiction, so a
+  correct-but-unsupported claim is no longer false-halted. Enable with
+  `streaming_contradiction_halt` (off by default; needs the `nli` extra);
+  configurable `streaming_contradiction_threshold` and
+  `streaming_contradiction_device`.
+- Add contradiction benchmarks: `benchmarks/contradiction_aggrefact.py`
+  (`--device` / `--granularity` / `--top-k`), `benchmarks/contradiction_recall.py`
+  (clean injected-contradiction recall vs false-halt, with `--model` / `--tag`),
+  and `benchmarks/contradiction_injection.py` (counterfactual contradiction
+  generation).
 - Relicense to an open-core model: the core is now Apache-2.0 (free for any use,
   including production and closed-source) and the advanced & labs tier is
   BUSL-1.1 (source-available, free for non-production, converting to Apache-2.0

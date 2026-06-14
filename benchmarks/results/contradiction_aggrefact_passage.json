@@ -1,0 +1,287 @@
+{
+  "benchmark": "contradiction_aggrefact",
+  "model": "MoritzLaurer/DeBERTa-v3-large-mnli-fever-anli-ling-wanli",
+  "device": "cuda:0 (NVIDIA GeForce GTX 1060 6GB)",
+  "n_total": 29320,
+  "granularity": "passage",
+  "top_k": 2,
+  "signal": "P(contradiction); label 1=supported (false-halt), 0=unsupported (recall lower bound)",
+  "overall": {
+    "n_supported": 22832,
+    "n_inconsistent": 6488,
+    "auc_contra_vs_inconsistent": 0.6177,
+    "thresholds": {
+      "0.1": {
+        "false_halt_rate": 0.1116,
+        "recall": 0.2364
+      },
+      "0.2": {
+        "false_halt_rate": 0.0944,
+        "recall": 0.2039
+      },
+      "0.3": {
+        "false_halt_rate": 0.0851,
+        "recall": 0.1871
+      },
+      "0.5": {
+        "false_halt_rate": 0.0734,
+        "recall": 0.1634
+      }
+    }
+  },
+  "per_dataset": {
+    "AggreFact-CNN": {
+      "n_supported": 501,
+      "n_inconsistent": 57,
+      "auc_contra_vs_inconsistent": 0.5995,
+      "thresholds": {
+        "0.1": {
+          "false_halt_rate": 0.1677,
+          "recall": 0.3158
+        },
+        "0.2": {
+          "false_halt_rate": 0.0978,
+          "recall": 0.2632
+        },
+        "0.3": {
+          "false_halt_rate": 0.0838,
+          "recall": 0.2281
+        },
+        "0.5": {
+          "false_halt_rate": 0.0539,
+          "recall": 0.193
+        }
+      }
+    },
+    "AggreFact-XSum": {
+      "n_supported": 285,
+      "n_inconsistent": 273,
+      "auc_contra_vs_inconsistent": 0.6217,
+      "thresholds": {
+        "0.1": {
+          "false_halt_rate": 0.1263,
+          "recall": 0.2527
+        },
+        "0.2": {
+          "false_halt_rate": 0.0982,
+          "recall": 0.2051
+        },
+        "0.3": {
+          "false_halt_rate": 0.0772,
+          "recall": 0.1868
+        },
+        "0.5": {
+          "false_halt_rate": 0.0632,
+          "recall": 0.1355
+        }
+      }
+    },
+    "ClaimVerify": {
+      "n_supported": 789,
+      "n_inconsistent": 299,
+      "auc_contra_vs_inconsistent": 0.5026,
+      "thresholds": {
+        "0.1": {
+          "false_halt_rate": 0.1229,
+          "recall": 0.1572
+        },
+        "0.2": {
+          "false_halt_rate": 0.1027,
+          "recall": 0.1271
+        },
+        "0.3": {
+          "false_halt_rate": 0.0849,
+          "recall": 0.1104
+        },
+        "0.5": {
+          "false_halt_rate": 0.0735,
+          "recall": 0.087
+        }
+      }
+    },
+    "ExpertQA": {
+      "n_supported": 2971,
+      "n_inconsistent": 731,
+      "auc_contra_vs_inconsistent": 0.5174,
+      "thresholds": {
+        "0.1": {
+          "false_halt_rate": 0.0885,
+          "recall": 0.104
+        },
+        "0.2": {
+          "false_halt_rate": 0.0687,
+          "recall": 0.0807
+        },
+        "0.3": {
+          "false_halt_rate": 0.0549,
+          "recall": 0.0684
+        },
+        "0.5": {
+          "false_halt_rate": 0.0448,
+          "recall": 0.0492
+        }
+      }
+    },
+    "FactCheck-GPT": {
+      "n_supported": 376,
+      "n_inconsistent": 1190,
+      "auc_contra_vs_inconsistent": 0.595,
+      "thresholds": {
+        "0.1": {
+          "false_halt_rate": 0.117,
+          "recall": 0.2496
+        },
+        "0.2": {
+          "false_halt_rate": 0.1011,
+          "recall": 0.2202
+        },
+        "0.3": {
+          "false_halt_rate": 0.0824,
+          "recall": 0.2034
+        },
+        "0.5": {
+          "false_halt_rate": 0.0718,
+          "recall": 0.1756
+        }
+      }
+    },
+    "Lfqa": {
+      "n_supported": 1121,
+      "n_inconsistent": 790,
+      "auc_contra_vs_inconsistent": 0.5104,
+      "thresholds": {
+        "0.1": {
+          "false_halt_rate": 0.0901,
+          "recall": 0.1329
+        },
+        "0.2": {
+          "false_halt_rate": 0.0678,
+          "recall": 0.1127
+        },
+        "0.3": {
+          "false_halt_rate": 0.0624,
+          "recall": 0.1063
+        },
+        "0.5": {
+          "false_halt_rate": 0.05,
+          "recall": 0.0899
+        }
+      }
+    },
+    "RAGTruth": {
+      "n_supported": 15102,
+      "n_inconsistent": 1269,
+      "auc_contra_vs_inconsistent": 0.5517,
+      "thresholds": {
+        "0.1": {
+          "false_halt_rate": 0.1153,
+          "recall": 0.227
+        },
+        "0.2": {
+          "false_halt_rate": 0.1011,
+          "recall": 0.1962
+        },
+        "0.3": {
+          "false_halt_rate": 0.0934,
+          "recall": 0.1781
+        },
+        "0.5": {
+          "false_halt_rate": 0.0822,
+          "recall": 0.1655
+        }
+      }
+    },
+    "Reveal": {
+      "n_supported": 400,
+      "n_inconsistent": 1310,
+      "auc_contra_vs_inconsistent": 0.776,
+      "thresholds": {
+        "0.1": {
+          "false_halt_rate": 0.0675,
+          "recall": 0.3855
+        },
+        "0.2": {
+          "false_halt_rate": 0.05,
+          "recall": 0.3412
+        },
+        "0.3": {
+          "false_halt_rate": 0.05,
+          "recall": 0.3168
+        },
+        "0.5": {
+          "false_halt_rate": 0.045,
+          "recall": 0.2847
+        }
+      }
+    },
+    "TofuEval-MediaS": {
+      "n_supported": 554,
+      "n_inconsistent": 172,
+      "auc_contra_vs_inconsistent": 0.5539,
+      "thresholds": {
+        "0.1": {
+          "false_halt_rate": 0.1065,
+          "recall": 0.1686
+        },
+        "0.2": {
+          "false_halt_rate": 0.0921,
+          "recall": 0.1279
+        },
+        "0.3": {
+          "false_halt_rate": 0.0812,
+          "recall": 0.1163
+        },
+        "0.5": {
+          "false_halt_rate": 0.0704,
+          "recall": 0.1105
+        }
+      }
+    },
+    "TofuEval-MeetB": {
+      "n_supported": 622,
+      "n_inconsistent": 150,
+      "auc_contra_vs_inconsistent": 0.5717,
+      "thresholds": {
+        "0.1": {
+          "false_halt_rate": 0.1254,
+          "recall": 0.28
+        },
+        "0.2": {
+          "false_halt_rate": 0.1045,
+          "recall": 0.26
+        },
+        "0.3": {
+          "false_halt_rate": 0.0932,
+          "recall": 0.2533
+        },
+        "0.5": {
+          "false_halt_rate": 0.0772,
+          "recall": 0.2267
+        }
+      }
+    },
+    "Wice": {
+      "n_supported": 111,
+      "n_inconsistent": 247,
+      "auc_contra_vs_inconsistent": 0.5674,
+      "thresholds": {
+        "0.1": {
+          "false_halt_rate": 0.1622,
+          "recall": 0.2348
+        },
+        "0.2": {
+          "false_halt_rate": 0.1441,
+          "recall": 0.1903
+        },
+        "0.3": {
+          "false_halt_rate": 0.1261,
+          "recall": 0.17
+        },
+        "0.5": {
+          "false_halt_rate": 0.0811,
+          "recall": 0.1377
+        }
+      }
+    }
+  }
+}

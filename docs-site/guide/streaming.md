@@ -381,3 +381,52 @@ launching Gradio.
 - **Hosted API constraints**: When using OpenAI/Anthropic providers, the
   scorer re-runs the full NLI pipeline on the accumulated text. There is
   no server-side per-token scoring.
+
+## Contradiction-driven halt (opt-in)
+
+The coherence halt above folds *unsupported* into *divergence*
+(`divergence = P(contradiction) + 0.5·P(neutral)`), so a correct-but-unmentioned
+claim scores low and is wrongly halted. The contradiction-driven halt instead
+fires only when a completed claim **contradicts** the retrieved grounding — a
+correct-but-unsupported claim is neutral, not a contradiction, so it is allowed.
+
+How it works:
+
+- tokens accumulate until a claim boundary (`ends_claim`, shared with
+  `StreamingCoherenceGate`); only complete claims reach the scorer;
+- the claim is scored for `P(contradiction)` from a three-class NLI model
+  (`ContradictionScorer`) against each retrieved grounding fact, and the
+  strongest contradiction decides;
+- an ungrounded claim (no retrieval hit) never halts — an absent fact is not a
+  contradiction.
+
+Enable it on the server via configuration (opt-in, off by default; needs the
+`nli` extra):
+
+```python
+DirectorConfig(
+    streaming_contradiction_halt=True,
+    streaming_contradiction_threshold=0.2,   # P(contradiction) to halt
+    streaming_contradiction_device=-1,        # CUDA index, -1 = CPU
+)
+```
+
+### Measured behaviour
+
+On synthesised, unambiguous contradictions
+(`benchmarks/contradiction_recall.py`, 25,882 injected variants of supported
+LLM-AggreFact claims) the off-the-shelf NLI model reaches **AUC 0.82** with
+**recall 51.5 %** of true contradictions at a **6.7 % false-halt** rate on the
+originals (threshold 0.2). Against the raw AggreFact *unsupported* class
+(`benchmarks/contradiction_aggrefact.py`) recall reads ~19 %, but that is a
+lower bound: the unsupported class mixes genuine contradictions with
+merely-unsupported claims, which a contradiction detector deliberately does not
+fire on. Passage-level grounding (`--granularity passage`) does not help — the
+max over several passages adds noise and raises false-halt without lifting
+recall.
+
+The off-the-shelf model caps near 51 % recall on clean contradictions, so this
+remains an opt-in experimental gate rather than a default; a model fine-tuned on
+the contradiction-vs-unsupported boundary is the path to higher recall. Reproduce
+with `python -m benchmarks.contradiction_recall` and
+`python -m benchmarks.contradiction_aggrefact` (`--device 0` for GPU).

@@ -13,6 +13,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+import re
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -23,6 +24,71 @@ logger = logging.getLogger("DirectorAI.Benchmark")
 CACHE_DIR = Path(__file__).parent / ".cache"
 RESULTS_DIR = Path(__file__).parent / "results"
 LABEL_NAMES = ["entailment", "neutral", "contradiction"]
+
+# Sentence splitting for passage-level grounding. The whole-document premise
+# truncates long contexts and dilutes the contradiction signal; splitting the
+# document into sentence passages and scoring the claim against the most
+# relevant ones mirrors the production halt, which scores a claim against each
+# retrieved fact and takes the strongest contradiction.
+# "no"/"fig"/"al" are deliberately excluded: "No." commonly starts a sentence
+# and merging it with the next sentence loses a passage boundary.
+_ABBREV_RE = re.compile(
+    r"\b(mr|mrs|ms|dr|prof|sr|jr|st|vs|etc|inc|ltd|co|u\.s|u\.k|e\.g|i\.e)\.",
+    re.IGNORECASE,
+)
+_SENT_SPLIT = re.compile(r"(?<=[.!?])\s+")
+_WORD_RE = re.compile(r"[a-z0-9]+")
+
+
+def split_passages(text: str, *, min_words: int = 3) -> list[str]:
+    """Split *text* into sentence passages, preferring the Rust splitter.
+
+    Uses ``backfire_kernel.rust_split_sentences`` when the compiled kernel is
+    importable, otherwise an abbreviation- and decimal-aware regex fallback so
+    the benchmark runs with or without the Rust extension built. Passages with
+    fewer than *min_words* words are dropped — too short to ground a claim.
+    """
+    try:
+        from backfire_kernel import rust_split_sentences
+
+        sents = [s.strip() for s in rust_split_sentences(text) if s.strip()]
+    except ImportError:
+        protected = _ABBREV_RE.sub(
+            lambda m: m.group(0).replace(".", "\x00"), text
+        )
+        protected = re.sub(
+            r"(\d)\.(\d)", lambda m: m.group(1) + "\x00" + m.group(2), protected
+        )
+        sents = [
+            s.replace("\x00", ".").strip()
+            for s in _SENT_SPLIT.split(protected)
+            if s.strip()
+        ]
+    return [s for s in sents if len(s.split()) >= min_words]
+
+
+def _lexical_tokens(text: str) -> set[str]:
+    return set(_WORD_RE.findall(text.lower()))
+
+
+def select_relevant_passages(
+    doc: str, claim: str, *, top_k: int = 5, min_words: int = 3
+) -> list[str]:
+    """Return the *top_k* document passages most lexically relevant to *claim*.
+
+    Ranks sentence passages by token-overlap count with the claim — a cheap,
+    deterministic stand-in for the production retriever's top-k facts — so the
+    contradiction scorer sees focused grounding instead of a truncated whole
+    document. Returns every passage when there are *top_k* or fewer.
+    """
+    passages = split_passages(doc, min_words=min_words)
+    if len(passages) <= top_k:
+        return passages
+    claim_tokens = _lexical_tokens(claim)
+    ranked = sorted(
+        passages, key=lambda p: len(_lexical_tokens(p) & claim_tokens), reverse=True
+    )
+    return ranked[:top_k]
 
 
 @dataclass

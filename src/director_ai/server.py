@@ -463,6 +463,13 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
             if cfg.llm_api_key:
                 agent_kwargs["api_key"] = cfg.llm_api_key
             logger.info("LLM provider: %s", cfg.llm_provider)
+        contradiction_halt = cfg.build_contradiction_halt(store)
+        if contradiction_halt is not None:
+            agent_kwargs["contradiction_halt"] = contradiction_halt
+            logger.info(
+                "Contradiction-driven streaming halt enabled (threshold=%.2f)",
+                cfg.streaming_contradiction_threshold,
+            )
         agent = CoherenceAgent(**agent_kwargs)
         batch_proc = BatchProcessor(agent, max_concurrency=cfg.batch_max_concurrency)
 

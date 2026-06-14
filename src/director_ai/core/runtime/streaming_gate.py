@@ -31,10 +31,15 @@ from __future__ import annotations
 
 from collections.abc import Callable
 
-__all__ = ["StreamingCoherenceGate"]
+__all__ = ["StreamingCoherenceGate", "ends_claim"]
 
 # Sentence / claim terminators after which a re-score is meaningful.
 _CLAIM_ENDINGS: tuple[str, ...] = (".", "!", "?", ";", ":")
+
+
+def ends_claim(text: str) -> bool:
+    """True when *text* ends on sentence/claim punctuation (a claim boundary)."""
+    return text.rstrip().endswith(_CLAIM_ENDINGS)
 
 
 class StreamingCoherenceGate:

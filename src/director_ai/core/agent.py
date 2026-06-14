@@ -19,13 +19,14 @@ from .actor import LLMGenerator, MockGenerator
 from .retrieval.knowledge import GroundTruthStore
 from .runtime.kernel import HaltMonitor
 from .runtime.streaming import StreamingKernel
-from .runtime.streaming_gate import StreamingCoherenceGate
+from .runtime.streaming_gate import StreamingCoherenceGate, ends_claim
 from .scoring.scorer import CoherenceScorer
 from .types import HaltEvidence, ReviewResult
 
 if TYPE_CHECKING:
     from .containment import ContainmentGuard, RealityAnchor
     from .cyber_physical import GroundingHook, GroundingVerdict, PhysicalAction
+    from .runtime.contradiction_halt import ContradictionHalt
     from .zk_attestation import (
         CrossOrgPassport,
         PassportVerdict,
@@ -84,6 +85,7 @@ class CoherenceAgent:
         passport_verifier: PassportVerifier | None = None,
         physical_action_mode: str = "warn",
         allow_physical_action_blocking: bool = False,
+        contradiction_halt: ContradictionHalt | None = None,
     ):
         self.logger = logging.getLogger("CoherenceAgent")
         self.fallback = fallback
@@ -143,6 +145,10 @@ class CoherenceAgent:
         self.passport_verifier = passport_verifier
         self.physical_action_mode = physical_action_mode
         self.allow_physical_action_blocking = allow_physical_action_blocking
+        # Opt-in contradiction-driven streaming halt (the working real-time
+        # halt). When set, stream() halts on a claim that contradicts retrieved
+        # grounding instead of using the coherence kernel.
+        self.contradiction_halt = contradiction_halt
 
     def _build_scorer(self, use_nli):
         """Construct scorer, preferring Rust backend when installed."""
@@ -489,6 +495,28 @@ class CoherenceAgent:
             result = self.process(prompt, tenant_id=tenant_id)
             for word in result.output.split():
                 yield word, result.coherence.score if result.coherence else 0.0
+            return
+
+        contradiction_halt = getattr(self, "contradiction_halt", None)
+        if contradiction_halt is not None:
+            # Working real-time halt: at each completed claim, halt when the
+            # claim contradicts retrieved grounding. Coherence ≈ 1 − P(contra)
+            # is yielded for observability; it is held between claim boundaries.
+            claim_tokens: list[str] = []
+            last_contra = 0.0
+            async for token in self.generator.stream_tokens(prompt):
+                claim_tokens.append(token)
+                if ends_claim(token):
+                    decision = contradiction_halt.should_halt(
+                        " ".join(claim_tokens).strip(),
+                    )
+                    last_contra = decision.contradiction
+                    claim_tokens = []
+                    yield token, 1.0 - last_contra
+                    if decision.halt:
+                        return
+                else:
+                    yield token, 1.0 - last_contra
             return
 
         self.streaming_kernel.reset_state()

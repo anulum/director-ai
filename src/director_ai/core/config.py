@@ -137,6 +137,16 @@ class DirectorConfig:
     nli_model_artifact_uri: str = ""
     nli_model_revision: str = "0430e3509dbd28d2dff7a117c0eae25359ff3e80"
     nli_max_length: int = 512  # >512 for long-context models (Longformer, BigBird)
+    # Contradiction-driven streaming halt — the working real-time halt. Opt-in:
+    # halts when a completed claim contradicts retrieved KB facts
+    # (P(contradiction) from a 3-class NLI), instead of the coherence halt which
+    # false-halts correct-but-unsupported streaming text. Needs the nli extra.
+    streaming_contradiction_halt: bool = False
+    streaming_contradiction_model: str = (
+        "MoritzLaurer/DeBERTa-v3-large-mnli-fever-anli-ling-wanli"
+    )
+    streaming_contradiction_threshold: float = 0.2
+    streaming_contradiction_device: int = -1  # CUDA index; -1 runs on CPU
     # When True, resolve nli_model through the fallback registry at build time:
     # if the primary is delisted/unreachable on the Hub, degrade to a vetted
     # alternate NLI model instead of the heuristic floor. Probes the Hub at
@@ -1461,6 +1471,37 @@ class DirectorConfig:
                 "Configured injection_require_model_backed_nli=True, but scorer could not initialize a model-backed NLI backend for injection detection",
             )
         return scorer
+
+    def build_contradiction_halt(self, store=None):
+        """Build the opt-in contradiction-driven streaming halt, or ``None``.
+
+        Returns ``None`` when ``streaming_contradiction_halt`` is off, or when
+        the NLI extra is missing / the model cannot load — the caller then keeps
+        the coherence halt instead of failing startup, matching the prompt-guard
+        degrade path. The halt scores each completed streamed claim against the
+        store's retrieved grounding and stops on a contradiction.
+        """
+        if not self.streaming_contradiction_halt:
+            return None
+        from .runtime.contradiction_halt import ContradictionHalt
+        from .scoring.contradiction import ContradictionScorer
+
+        if store is None:
+            store = self.build_store()
+        try:
+            scorer = ContradictionScorer.from_pretrained(
+                self.streaming_contradiction_model,
+                device=self.streaming_contradiction_device,
+                threshold=self.streaming_contradiction_threshold,
+            )
+        except Exception as exc:  # noqa: BLE001 — degrade, never crash startup
+            logger.warning(
+                "streaming_contradiction_halt enabled but the contradiction "
+                "model could not load (%s); keeping the coherence halt.",
+                exc,
+            )
+            return None
+        return ContradictionHalt(scorer, store.retrieve_context)
 
     def model_revision_health(self) -> dict[str, object]:
         """Return non-network health for configured model revision pins."""
