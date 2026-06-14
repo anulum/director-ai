@@ -164,3 +164,13 @@ def test_report_serialisation_omits_raw_customer_text() -> None:
 def test_financial_services_public_surface_stays_outside_private_factory() -> None:
     assert "assess_banking_response" in financial_services_exports
     assert not hasattr(cmf, "assess_banking_response")
+
+
+def test_money_claim_without_evidence_flags_citation_required() -> None:
+    # A monetary claim with no supporting evidence refs must be flagged as
+    # requiring a citation.
+    report = assess_banking_response(
+        prompt="How much of my balance is protected?",
+        response="Your deposits are insured up to $250,000 per account.",
+    )
+    assert "citation_required" in _codes(report)

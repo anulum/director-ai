@@ -94,6 +94,16 @@ class TestTenantRouterScorer:
         h = scorer.calculate_factual_divergence("sky color?", "The sky is blue")
         assert h < 0.5
 
+    def test_get_scorer_uses_active_model_path(self):
+        # With an active tenant model, its model_path is threaded into the
+        # scorer build (use_nli=False keeps it from loading at construction).
+        router = TenantRouter()
+        router.set_model("acme", "v1", "/models/acme-v1")
+        router.activate_model("acme", "v1")
+        assert router.get_active_model("acme").model_path == "/models/acme-v1"
+        scorer = router.get_scorer("acme", threshold=0.5, use_nli=False)
+        assert scorer is not None
+
 
 class TestModelVersion:
     def test_defaults(self):
