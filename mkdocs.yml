@@ -142,6 +142,7 @@ nav:
       - Temporal Claim Refresh: guide/temporal-refresh.md
       - Math Verification: guide/math-verification.md
       - Fallacy Detection: guide/fallacy-detection.md
+      - Citation Tracing: guide/citation-tracing.md
       - Threshold Tuning: guide/threshold-tuning.md
       - KB Ingestion: guide/kb-ingestion.md
       - CI Quality Gate: guide/ci-gate.md

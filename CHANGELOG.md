@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Add **citation tracing**
+  (`director_ai.core.verification.citation_tracer.trace_citations`): segments a
+  reasoning chain into claim sentences and attaches each inline citation (DOI,
+  arXiv, URL, numeric marker, author-year) to the claim it sits in, reporting
+  per-claim citations, coverage, and uncited claims. Deterministic
+  character-offset mapping over the existing citation parser. Wired into
+  `verify_reasoning_chain` (opt-in `check_citations` flag and `citation_trace`
+  field; advisory, does not affect `chain_valid`). 100% module tests; benchmark
+  `benchmarks/citation_tracing.py` (attachment accuracy 1.00); documented in
+  `docs-site/guide/citation-tracing.md`.
 - Add **informal-fallacy detection**
   (`director_ai.core.verification.fallacy_detector.detect_fallacies`): flags the
   surface markers of eight fallacy families (ad hominem, appeal to authority,

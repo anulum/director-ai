@@ -4,12 +4,12 @@
     "github_workflows": 11,
     "model_documentation_pages": 88,
     "optional_extras": 57,
-    "public_api_exports": 220,
-    "public_documentation_pages": 192,
-    "python_model_classes": 940,
-    "python_model_source_modules": 409,
+    "public_api_exports": 221,
+    "public_documentation_pages": 193,
+    "python_model_classes": 942,
+    "python_model_source_modules": 410,
     "rust_pyo3_model_wrappers": 80,
-    "test_files": 502
+    "test_files": 503
   },
   "documentation": {
     "public_pages": [
@@ -139,6 +139,7 @@
       "docs-site/glossary.md",
       "docs-site/guide/architecture.md",
       "docs-site/guide/ci-gate.md",
+      "docs-site/guide/citation-tracing.md",
       "docs-site/guide/compliance-reporting.md",
       "docs-site/guide/config.md",
       "docs-site/guide/customer-model-factory.md",
@@ -775,6 +776,10 @@
       {
         "name": "ClaimAttribution",
         "path": "src/director_ai/core/types.py"
+      },
+      {
+        "name": "ClaimCitation",
+        "path": "src/director_ai/core/verification/citation_tracer.py"
       },
       {
         "name": "ClaimGrounding",
@@ -3769,6 +3774,10 @@
         "path": "src/director_ai/core/trace_safe/embedder.py"
       },
       {
+        "name": "TraceResult",
+        "path": "src/director_ai/core/verification/citation_tracer.py"
+      },
+      {
         "name": "TraceSafeOracle",
         "path": "src/director_ai/core/trace_safe/oracle.py"
       },
@@ -4430,6 +4439,7 @@
       "src/director_ai/core/tuner.py",
       "src/director_ai/core/types.py",
       "src/director_ai/core/vector_store.py",
+      "src/director_ai/core/verification/citation_tracer.py",
       "src/director_ai/core/verification/code_verifier.py",
       "src/director_ai/core/verification/fallacy_detector.py",
       "src/director_ai/core/verification/json_verifier.py",
@@ -4780,6 +4790,7 @@
     "score",
     "score_temporal_freshness",
     "streaming_guard",
+    "trace_citations",
     "tune",
     "utc_timestamp",
     "validate_director_safety_signal",
@@ -4927,6 +4938,7 @@
       "tests/test_chunked_nli.py",
       "tests/test_ci_gate.py",
       "tests/test_ci_optional_extras_matrix.py",
+      "tests/test_citation_tracer.py",
       "tests/test_citations.py",
       "tests/test_claim_provenance.py",
       "tests/test_cli.py",

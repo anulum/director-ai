@@ -210,9 +210,14 @@ from .types import (
     ReviewResult,
     ScoringEvidence,
 )
-from .verification.code_verifier import CodeCheckResult, verify_code
 
 # --- Verification ---
+from .verification.citation_tracer import (
+    ClaimCitation,
+    TraceResult,
+    trace_citations,
+)
+from .verification.code_verifier import CodeCheckResult, verify_code
 from .verification.fallacy_detector import (
     FallacyMatch,
     FallacyResult,
@@ -388,15 +393,18 @@ __all__ = [
     "OnlineCalibrator",
     "PredictionInterval",
     # Verification (Phase 5)
+    "ClaimCitation",
     "CodeCheckResult",
     "FallacyMatch",
     "FallacyResult",
     "FieldVerdict",
     "MathConsistencyResult",
+    "TraceResult",
     "NumericVerificationResult",
     "StructuredVerificationResult",
     "ToolCallResult",
     "detect_fallacies",
+    "trace_citations",
     "verify_arithmetic",
     "verify_code",
     "verify_json",

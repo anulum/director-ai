@@ -22,6 +22,7 @@ import re
 from dataclasses import dataclass, field
 
 from ..mandatory import mandatory_execution
+from .citation_tracer import TraceResult, trace_citations
 from .fallacy_detector import FallacyMatch, detect_fallacies
 from .math_consistency import ArithmeticCheck, verify_arithmetic
 
@@ -114,6 +115,7 @@ class ReasoningChainResult:
     issues_found: int = 0
     math_errors: list[ArithmeticCheck] = field(default_factory=list)
     fallacies: list[FallacyMatch] = field(default_factory=list)
+    citation_trace: TraceResult | None = None
 
     @property
     def non_sequiturs(self) -> list[ReasoningVerdict]:
@@ -222,6 +224,7 @@ def verify_reasoning_chain(
     *,
     check_math: bool = True,
     check_fallacies: bool = True,
+    check_citations: bool = False,
 ) -> ReasoningChainResult:
     """Verify the logical structure of a reasoning chain.
 
@@ -244,14 +247,22 @@ def verify_reasoning_chain(
         :func:`~director_ai.core.verification.fallacy_detector.detect_fallacies`.
         These are reported on ``fallacies`` as a heuristic signal and, being
         lower-precision than the structural checks, do not affect ``chain_valid``.
+    check_citations : bool
+        When True (default False, since most chains carry no citations), trace
+        claims to their inline citations via
+        :func:`~director_ai.core.verification.citation_tracer.trace_citations`;
+        the result is reported on ``citation_trace`` and does not affect
+        ``chain_valid``.
 
     Returns
     -------
     ReasoningChainResult
-        Per-step verdicts, arithmetic errors, fallacy markers, and chain validity.
+        Per-step verdicts, arithmetic errors, fallacy markers, optional citation
+        trace, and chain validity.
     """
     math_errors = verify_arithmetic(text).errors if check_math else []
     fallacies = detect_fallacies(text).matches if check_fallacies else []
+    citation_trace = trace_citations(text) if check_citations else None
     steps = extract_steps(text)
     if len(steps) < 2:
         return ReasoningChainResult(
@@ -260,6 +271,7 @@ def verify_reasoning_chain(
             issues_found=len(math_errors),
             math_errors=math_errors,
             fallacies=fallacies,
+            citation_trace=citation_trace,
         )
 
     verdicts: list[ReasoningVerdict] = []
@@ -354,4 +366,5 @@ def verify_reasoning_chain(
         issues_found=issues,
         math_errors=math_errors,
         fallacies=fallacies,
+        citation_trace=citation_trace,
     )

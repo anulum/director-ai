@@ -290,6 +290,11 @@ _LAZY_IMPORTS: dict[str, tuple[str, str]] = {
         ".core.verification.fallacy_detector",
         "detect_fallacies",
     ),
+    # Citation tracing
+    "trace_citations": (
+        ".core.verification.citation_tracer",
+        "trace_citations",
+    ),
     # Agentic loop monitoring (Phase 5)
     "LoopMonitor": (".agentic.loop_monitor", "LoopMonitor"),
     # Conformal prediction (Phase 5)
