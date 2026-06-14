@@ -301,3 +301,9 @@ def test_dataset_sum_propagates_mandatory_rust_failure(monkeypatch):
 
     with pytest.raises(TypeError, match="ffi signature mismatch"):
         contract_mod._sum_int([1])
+
+
+def test_duplicate_trace_id_is_flagged():
+    rows = [_row("dup-1", "train"), _row("dup-1", "train")]
+    report = validate_customer_trace_dataset(rows, _workspace())
+    assert any(f.code == "duplicate_trace_id" for f in report.findings)

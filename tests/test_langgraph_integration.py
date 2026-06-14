@@ -145,3 +145,12 @@ class TestConditionalEdge:
         )
         assert edge({"director_ai_approved": True}) == "done"
         assert edge({"director_ai_approved": False}) == "regenerate"
+
+
+def test_latest_message_content_reads_object_attribute():
+    from types import SimpleNamespace
+
+    from director_ai.integrations.langgraph import _latest_message_content
+
+    state = {"messages": [SimpleNamespace(content="hello from object")]}
+    assert _latest_message_content(state) == "hello from object"

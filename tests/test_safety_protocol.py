@@ -171,3 +171,20 @@ def test_lazy_import_export() -> None:
     from director_ai import DirectorSafetySignal as RootDirectorSafetySignal
 
     assert RootDirectorSafetySignal is DirectorSafetySignal
+
+
+def test_validate_rejects_bad_protocol_version_and_raw_payload():
+    signal = director_safety_signal_from_event(
+        _event(), producer_id="runtime-alpha", framework="generic-agent"
+    )
+    payload = signal.to_transport_dict()
+
+    bad_version = json.loads(json.dumps(payload))
+    bad_version["protocol_version"] = "0.0.0"
+    with pytest.raises(ValueError, match="protocol_version"):
+        validate_director_safety_signal(bad_version)
+
+    bad_privacy = json.loads(json.dumps(payload))
+    bad_privacy["privacy"]["raw_payload_included"] = True
+    with pytest.raises(ValueError, match="raw payloads must not be included"):
+        validate_director_safety_signal(bad_privacy)

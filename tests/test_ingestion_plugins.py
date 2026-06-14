@@ -814,3 +814,23 @@ class TestGoogleDrive:
         )
         assert written == 1
         assert store.records[0]["metadata"]["mime_type"] == "text/plain"
+
+
+def test_store_add_falls_back_when_metadata_kwarg_unsupported():
+    from director_ai.core.retrieval.ingestion.base import _store_add
+
+    calls: list[str] = []
+
+    class _RichStore:
+        def add(self, **kw):  # accepts metadata
+            calls.append("rich")
+
+    class _LegacyStore:
+        def add(self, *a, **kw):
+            if "metadata" in kw:
+                raise TypeError("legacy store has no metadata kwarg")
+            calls.append("legacy")
+
+    _store_add(_RichStore(), "k", "v", {"m": 1}, "t")
+    _store_add(_LegacyStore(), "k", "v", {"m": 1}, "t")
+    assert calls == ["rich", "legacy"]

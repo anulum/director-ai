@@ -97,3 +97,11 @@ def test_enterprise_redactor_shim_reexports_core() -> None:
     from director_ai.enterprise.redactor import PIIRedactor as ShimRedactor
 
     assert ShimRedactor is PIIRedactor
+
+
+def test_redactor_call_builds_default_detector_and_redacts() -> None:
+    # No explicit detectors -> _resolve_detectors builds the default; __call__
+    # delegates to redact.
+    redactor = PIIRedactor(prefer_rust=False)
+    out = redactor("Reach me at alice@example.com please")
+    assert "alice@example.com" not in out

@@ -257,3 +257,12 @@ class TestAsyncVoiceGuardCoverageGaps:
         results = [r async for r in guard.feed_stream(async_tokens())]
         assert results[-1].halted
         assert len(results) < 10
+
+
+def test_async_voice_guard_rejects_non_positive_max_context_tokens():
+    import pytest
+
+    from director_ai.voice.guard import AsyncVoiceGuard
+
+    with pytest.raises(ValueError, match="max_context_tokens must be positive"):
+        AsyncVoiceGuard(use_nli=False, max_context_tokens=0)

@@ -412,3 +412,12 @@ class TestDefenseRegistry:
         # 400 promotions total; one stays active, the other 399
         # live in history (capped at 1_000 so none are evicted).
         assert len(reg.history()) == 399
+
+
+def test_apply_handles_empty_and_too_short_char_swap():
+    from director_ai.core.defense_genome.genome import Gene, _apply
+
+    swap = Gene(operator="char_swap", parameter=0)
+    assert _apply("", swap) == ""  # empty-text guard
+    assert _apply("a", swap) == "a"  # char_swap needs >= 2 characters
+    assert _apply("abcd", swap) == "bacd"  # swaps indices 0 and 1

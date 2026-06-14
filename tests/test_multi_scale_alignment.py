@@ -402,3 +402,16 @@ class TestConflictDetector:
         conflicts = detector.detect(observed)
         # Wider scope first.
         assert conflicts[0].scales == ("org", "agent")
+
+
+def test_scale_conflict_detector_threshold_and_wider_first():
+    from director_ai.core.multi_scale_alignment.conflict import (
+        ScaleConflictDetector,
+        _wider_first,
+    )
+
+    assert ScaleConflictDetector().threshold is None
+    # order[a] <= order[b] -> swap so the wider scale comes first
+    assert _wider_first("agent", "swarm") == ("swarm", "agent")
+    # order[a] > order[b] -> already wider-first
+    assert _wider_first("swarm", "agent") == ("swarm", "agent")

@@ -266,3 +266,19 @@ def test_training_manifest_schema_is_machine_readable():
         "on_prem",
         "local_pilot",
     ]
+
+
+def test_training_manifest_local_lane_accepts_file_uri():
+    report = _ready_report()
+    manifest = build_training_manifest(
+        package_id="cmf-local-pilot",
+        dataset_report=report,
+        lane=TrainingLane.LOCAL_PILOT,
+        base_model_id="microsoft/deberta-v3-small",
+        base_model_revision="abcdef1234567890abcdef1234567890abcdef12",
+        output_uri="file:///srv/models/cmf-local-pilot",
+        hyperparameters={"epochs": 3, "batch_size": 8, "learning_rate": 1e-5},
+        objective_profile="zero_silent_unsafe_pass",
+    )
+    assert manifest.ready is True
+    assert manifest.lane == TrainingLane.LOCAL_PILOT
