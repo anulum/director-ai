@@ -227,9 +227,7 @@ def test_forecast_history_signal_raises_risk_and_rationale() -> None:
 
 
 def test_forecast_zero_weights_yield_zero_risk() -> None:
-    f = HallucinationForecaster(
-        weight_ambiguity=0.0, weight_kb=0.0, weight_history=0.0
-    )
+    f = HallucinationForecaster(weight_ambiguity=0.0, weight_kb=0.0, weight_history=0.0)
     result = f.forecast("tell me something")
     assert result.risk == 0.0
     assert result.recommendation == "proceed"

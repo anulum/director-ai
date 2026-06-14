@@ -91,7 +91,9 @@ class SegmentedThresholdLearner:
         }
         if promote_after is not None and promote_after < 1:
             raise ValueError("promote_after must be positive")
-        self._promote_after = promote_after if promote_after is not None else min_samples
+        self._promote_after = (
+            promote_after if promote_after is not None else min_samples
+        )
         self._base_seed = random_seed
         self._seed_counter = 0
         self._segments: dict[str, AdaptiveThresholdLearner] = {}

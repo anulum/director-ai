@@ -54,16 +54,56 @@ _DDG_FRAGMENT = b"""
 
 # (response, top-result text, drift expected) — clean position cases.
 _LABELLED: list[tuple[str, str, bool]] = [
-    ("The CEO of OpenAI is Sam Altman.", "Sam Altman - Wikipedia: Sam Altman is CEO of OpenAI", False),
-    ("The CEO of Apple is Tim Cook.", "Tim Cook - Apple Leadership: Tim Cook is CEO of Apple", False),
-    ("The CEO of Microsoft is Satya Nadella.", "Satya Nadella is the chief executive of Microsoft", False),
-    ("The CEO of Tesla is Elon Musk.", "Elon Musk leads Tesla as chief executive officer", False),
-    ("The CEO of NVIDIA is Jensen Huang.", "Jensen Huang is the founder and CEO of NVIDIA", False),
-    ("The CEO of Twitter is Jack Dorsey.", "Linda Yaccarino - Wikipedia: Linda Yaccarino is CEO of X", True),
-    ("The CEO of Google is Eric Schmidt.", "Sundar Pichai is the chief executive of Google", True),
-    ("The CEO of Disney is Bob Chapek.", "Bob Iger returned as Disney chief executive", True),
-    ("The CEO of Starbucks is Kevin Johnson.", "Brian Niccol is the chief executive of Starbucks", True),
-    ("The CEO of Intel is Pat Gelsinger.", "Lip-Bu Tan is the chief executive of Intel", True),
+    (
+        "The CEO of OpenAI is Sam Altman.",
+        "Sam Altman - Wikipedia: Sam Altman is CEO of OpenAI",
+        False,
+    ),
+    (
+        "The CEO of Apple is Tim Cook.",
+        "Tim Cook - Apple Leadership: Tim Cook is CEO of Apple",
+        False,
+    ),
+    (
+        "The CEO of Microsoft is Satya Nadella.",
+        "Satya Nadella is the chief executive of Microsoft",
+        False,
+    ),
+    (
+        "The CEO of Tesla is Elon Musk.",
+        "Elon Musk leads Tesla as chief executive officer",
+        False,
+    ),
+    (
+        "The CEO of NVIDIA is Jensen Huang.",
+        "Jensen Huang is the founder and CEO of NVIDIA",
+        False,
+    ),
+    (
+        "The CEO of Twitter is Jack Dorsey.",
+        "Linda Yaccarino - Wikipedia: Linda Yaccarino is CEO of X",
+        True,
+    ),
+    (
+        "The CEO of Google is Eric Schmidt.",
+        "Sundar Pichai is the chief executive of Google",
+        True,
+    ),
+    (
+        "The CEO of Disney is Bob Chapek.",
+        "Bob Iger returned as Disney chief executive",
+        True,
+    ),
+    (
+        "The CEO of Starbucks is Kevin Johnson.",
+        "Brian Niccol is the chief executive of Starbucks",
+        True,
+    ),
+    (
+        "The CEO of Intel is Pat Gelsinger.",
+        "Lip-Bu Tan is the chief executive of Intel",
+        True,
+    ),
 ]
 
 
@@ -121,7 +161,9 @@ def backend_comparison(repeats: int) -> dict:
         "parity_rust_equals_python": parity,
         "rust_pairs_per_sec": round(rust_tps, 1),
         "python_pairs_per_sec": round(py_tps, 1),
-        "rust_speedup": round(rust_tps / py_tps, 3) if (py_tps and rust_available) else None,
+        "rust_speedup": round(rust_tps / py_tps, 3)
+        if (py_tps and rust_available)
+        else None,
         "fastest": "rust" if (rust_available and rust_tps >= py_tps) else "python",
     }
 

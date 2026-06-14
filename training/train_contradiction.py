@@ -137,13 +137,16 @@ def main() -> None:
     eval_ds = dataset["eval"].select(range(min(args.eval_cap, len(dataset["eval"]))))
     logger.info(
         "train=%d eval=%d lr=%.1e rank=%d epochs=%d max_len=%d",
-        len(train_ds), len(eval_ds), args.lr, args.rank, args.epochs, args.max_length,
+        len(train_ds),
+        len(eval_ds),
+        args.lr,
+        args.rank,
+        args.epochs,
+        args.max_length,
     )
 
     tokenizer = AutoTokenizer.from_pretrained(BASE_MODEL, use_fast=False)
-    model = AutoModelForSequenceClassification.from_pretrained(
-        BASE_MODEL, num_labels=3
-    )
+    model = AutoModelForSequenceClassification.from_pretrained(BASE_MODEL, num_labels=3)
 
     lora_config = LoraConfig(
         task_type=TaskType.SEQ_CLS,
@@ -227,9 +230,7 @@ def main() -> None:
         callbacks=[EarlyStoppingCallback(early_stopping_patience=4)],
     )
 
-    device = (
-        torch.cuda.get_device_name(0) if torch.cuda.is_available() else "cpu"
-    )
+    device = torch.cuda.get_device_name(0) if torch.cuda.is_available() else "cpu"
     logger.info("Starting contradiction LoRA fine-tune on %s", device)
     trainer.train()
 

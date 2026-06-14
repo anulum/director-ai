@@ -43,9 +43,7 @@ LABEL_NEUTRAL = 1
 LABEL_CONTRADICTION = 2
 
 _AGGREFACT = (
-    Path(__file__).resolve().parent.parent
-    / "benchmarks"
-    / "aggrefact_test.jsonl"
+    Path(__file__).resolve().parent.parent / "benchmarks" / "aggrefact_test.jsonl"
 )
 
 
@@ -111,9 +109,7 @@ def build_examples(
             )
             neutral_seen += 1
 
-    examples.extend(
-        _cross_doc_neutrals(supported, cross_doc_neutral)
-    )
+    examples.extend(_cross_doc_neutrals(supported, cross_doc_neutral))
     return examples
 
 
@@ -145,8 +141,7 @@ def _cross_doc_neutrals(supported: list[dict], count: int) -> list[dict]:
 
 def _load(max_samples: int | None) -> list[dict]:
     rows = [
-        json.loads(line)
-        for line in _AGGREFACT.read_text(encoding="utf-8").splitlines()
+        json.loads(line) for line in _AGGREFACT.read_text(encoding="utf-8").splitlines()
     ]
     return rows[:max_samples] if max_samples is not None else rows
 
@@ -202,7 +197,9 @@ def main() -> None:
     )
     dataset = DatasetDict({"train": split["train"], "eval": split["test"]})
     dataset.save_to_disk(args.out_dir)
-    print(f"saved train={len(dataset['train'])} eval={len(dataset['eval'])} -> {args.out_dir}")
+    print(
+        f"saved train={len(dataset['train'])} eval={len(dataset['eval'])} -> {args.out_dir}"
+    )
 
 
 if __name__ == "__main__":

@@ -40,7 +40,11 @@ def test_supported_row_yields_entailment_plus_contradictions():
 
 def test_unsupported_row_yields_neutral():
     rows = [
-        {"doc": "Some grounding text here today.", "claim": "Unrelated stuff.", "label": "0"}
+        {
+            "doc": "Some grounding text here today.",
+            "claim": "Unrelated stuff.",
+            "label": "0",
+        }
     ]
     ex = build_examples(rows, ContradictionInjector())
     assert len(ex) == 1
@@ -87,6 +91,8 @@ def test_cross_doc_neutral_pairs_claims_with_other_documents():
 
 
 def test_cross_doc_neutral_zero_when_too_few_supported():
-    rows = [{"doc": "Only one supported doc here.", "claim": "One claim.", "label": "1"}]
+    rows = [
+        {"doc": "Only one supported doc here.", "claim": "One claim.", "label": "1"}
+    ]
     ex = build_examples(rows, ContradictionInjector(), cross_doc_neutral=5)
     assert not [e for e in ex if e["source"] == "cross_doc_neutral"]

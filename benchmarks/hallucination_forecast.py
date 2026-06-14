@@ -62,7 +62,9 @@ _LABELLED: list[tuple[str, str]] = [
 
 
 def _separation(forecaster: HallucinationForecaster, store) -> dict:
-    scored = [(label, forecaster.forecast(prompt, store=store)) for prompt, label in _LABELLED]
+    scored = [
+        (label, forecaster.forecast(prompt, store=store)) for prompt, label in _LABELLED
+    ]
     lows = [r.risk for label, r in scored if label == "low"]
     highs = [r.risk for label, r in scored if label == "high"]
 
@@ -123,15 +125,15 @@ def _backend_comparison(repeats: int) -> dict:
     finally:
         hf._RUST_FORECAST, hf.rust_word_overlap = saved_flag, saved_fn
 
-    parity = all(
-        abs(r - p) < 1e-9 for r, p in zip(rust_vals, py_vals, strict=True)
-    )
+    parity = all(abs(r - p) < 1e-9 for r, p in zip(rust_vals, py_vals, strict=True))
     return {
         "rust_available": rust_available,
         "parity_rust_equals_python": parity,
         "rust_pairs_per_sec": round(rust_tps, 1),
         "python_pairs_per_sec": round(py_tps, 1),
-        "rust_speedup": round(rust_tps / py_tps, 3) if (py_tps and rust_available) else None,
+        "rust_speedup": round(rust_tps / py_tps, 3)
+        if (py_tps and rust_available)
+        else None,
         "fastest": "rust" if (rust_available and rust_tps >= py_tps) else "python",
     }
 

@@ -167,9 +167,7 @@ class TestGuardWiring:
 
 
 def test_round_exposes_configured_hyperparameters():
-    rnd = _round(
-        clip_norm=0.3, noise_multiplier=2.0, min_cohort=4, learning_rate=0.25
-    )
+    rnd = _round(clip_norm=0.3, noise_multiplier=2.0, min_cohort=4, learning_rate=0.25)
     assert rnd.clip_norm == pytest.approx(0.3)
     assert rnd.noise_multiplier == pytest.approx(2.0)
     assert rnd.min_cohort == 4

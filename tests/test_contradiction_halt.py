@@ -179,9 +179,7 @@ def test_build_contradiction_halt_degrades_when_model_unavailable(monkeypatch):
     def _boom(*args, **kwargs):
         raise ImportError("no transformers")
 
-    monkeypatch.setattr(
-        contra_mod.ContradictionScorer, "from_pretrained", _boom
-    )
+    monkeypatch.setattr(contra_mod.ContradictionScorer, "from_pretrained", _boom)
     cfg = DirectorConfig(streaming_contradiction_halt=True)
     # Model cannot load → keep the coherence halt, never crash startup.
     assert cfg.build_contradiction_halt(_StubStore()) is None

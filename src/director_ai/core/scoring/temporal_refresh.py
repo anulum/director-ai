@@ -80,9 +80,7 @@ _DDG_HTML_URL = "https://html.duckduckgo.com/html/"
 _RESULT_ANCHOR_RE = re.compile(
     r'<a[^>]*class="result__a"[^>]*href="([^"]+)"[^>]*>(.*?)</a>', re.S
 )
-_RESULT_SNIPPET_RE = re.compile(
-    r'<a[^>]*class="result__snippet"[^>]*>(.*?)</a>', re.S
-)
+_RESULT_SNIPPET_RE = re.compile(r'<a[^>]*class="result__snippet"[^>]*>(.*?)</a>', re.S)
 _TAG_RE = re.compile(r"<[^>]+>")
 _WS_RE = re.compile(r"\s+")
 # Tokens dropped when turning a claim span into a search query.
@@ -259,15 +257,15 @@ class DuckDuckGoSearchProvider:
     and the HTML parsing are testable without a network.
     """
 
-    def __init__(self, *, http: HttpGetter | None = None, timeout: float = 10.0) -> None:
+    def __init__(
+        self, *, http: HttpGetter | None = None, timeout: float = 10.0
+    ) -> None:
         self._http = http if http is not None else _HttpxGetter(timeout)
 
     def search(self, query: str, *, max_results: int) -> list[SearchHit]:
         url = f"{_DDG_HTML_URL}?q={_quote(query)}"
         try:
-            status, body, _ = self._http.get(
-                url, headers={"User-Agent": _USER_AGENT}
-            )
+            status, body, _ = self._http.get(url, headers={"User-Agent": _USER_AGENT})
         except Exception:  # noqa: BLE001 - network failure → no evidence
             return []
         if status != 200 or not body:
@@ -314,7 +312,9 @@ class TemporalRefresher:
             raise ValueError("support_threshold must be in [0, 1]")
         if max_results < 1:
             raise ValueError("max_results must be >= 1")
-        self._provider = provider if provider is not None else DuckDuckGoSearchProvider()
+        self._provider = (
+            provider if provider is not None else DuckDuckGoSearchProvider()
+        )
         self._nli = nli
         self._staleness_threshold = staleness_threshold
         self._support_threshold = support_threshold
@@ -360,7 +360,9 @@ class TemporalRefresher:
             subject_text = re.sub(r"\b[\d][\d,.%]*\b", " ", context)
             subject = subject_text
             value = _numeric_tokens(context)
-        query_tokens = [t for t in subject.split() if t.lower().strip(".,?!") not in _QUERY_NOISE]
+        query_tokens = [
+            t for t in subject.split() if t.lower().strip(".,?!") not in _QUERY_NOISE
+        ]
         query = " ".join(query_tokens).strip() or subject.strip() or claim.text.strip()
         return query, value
 
@@ -381,9 +383,7 @@ class TemporalRefresher:
                 self._nli.contradiction(ev, context) for ev in evidence_texts
             )
             verdict = (
-                "contradicted"
-                if contradiction >= self._nli.threshold
-                else "supported"
+                "contradicted" if contradiction >= self._nli.threshold else "supported"
             )
             return verdict, "nli", round(coverage, 4), topical, round(contradiction, 4)
 
@@ -392,10 +392,14 @@ class TemporalRefresher:
         # Lexical heuristic: the asserted value must appear in the single
         # highest-ranked result (the current authority). Pooling all hits lets a
         # historical mention mask drift; this is triage, not adjudication.
-        verdict = "supported" if coverage >= self._support_threshold else "drift_suspected"
+        verdict = (
+            "supported" if coverage >= self._support_threshold else "drift_suspected"
+        )
         return verdict, "lexical", coverage, topical, 0.0
 
-    def refresh(self, result: FreshnessResult, *, source_text: str = "") -> RefreshReport:
+    def refresh(
+        self, result: FreshnessResult, *, source_text: str = ""
+    ) -> RefreshReport:
         """Refresh every sufficiently-stale claim in *result*.
 
         Pass ``source_text`` (the original response) so position claim spans can
@@ -451,9 +455,7 @@ class TemporalRefresher:
         return self.refresh(FreshnessResult(claims=list(claims)))
 
 
-_USER_AGENT = (
-    "Mozilla/5.0 (X11; Linux x86_64) director-ai-temporal-refresh/1.0"
-)
+_USER_AGENT = "Mozilla/5.0 (X11; Linux x86_64) director-ai-temporal-refresh/1.0"
 
 
 def _quote(query: str) -> str:

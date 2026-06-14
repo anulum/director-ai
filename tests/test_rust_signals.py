@@ -243,12 +243,24 @@ class TestRustPythonParity:
     """
 
     _CORPUS = [
-        ("The transformer uses self-attention.", "Transformers rely on self-attention layers."),
-        ("Water boils at 100 degrees.", "At sea level water boils at one hundred degrees Celsius."),
+        (
+            "The transformer uses self-attention.",
+            "Transformers rely on self-attention layers.",
+        ),
+        (
+            "Water boils at 100 degrees.",
+            "At sea level water boils at one hundred degrees Celsius.",
+        ),
         ("The capital is Berlin.", "A recipe for soup with carrots and onions."),
-        ("Diffusion models generate images.", "Diffusion models iteratively denoise images."),
+        (
+            "Diffusion models generate images.",
+            "Diffusion models iteratively denoise images.",
+        ),
         ("The cat does not sleep here today.", "The cat sleeps here every day now."),
-        ("I don't agree with the published claim.", "I do agree with the published claim."),
+        (
+            "I don't agree with the published claim.",
+            "I do agree with the published claim.",
+        ),
     ]
 
     @staticmethod

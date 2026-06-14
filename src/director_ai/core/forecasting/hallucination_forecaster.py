@@ -71,9 +71,36 @@ _VAGUE_TERMS = frozenset(
 )
 _STOPWORDS = frozenset(
     {
-        "the", "a", "an", "is", "are", "was", "were", "of", "to", "in", "on",
-        "for", "and", "or", "do", "does", "what", "how", "why", "when", "who",
-        "tell", "me", "about", "please", "can", "you", "give", "i", "it",
+        "the",
+        "a",
+        "an",
+        "is",
+        "are",
+        "was",
+        "were",
+        "of",
+        "to",
+        "in",
+        "on",
+        "for",
+        "and",
+        "or",
+        "do",
+        "does",
+        "what",
+        "how",
+        "why",
+        "when",
+        "who",
+        "tell",
+        "me",
+        "about",
+        "please",
+        "can",
+        "you",
+        "give",
+        "i",
+        "it",
     }
 )
 
@@ -130,7 +157,9 @@ class ForecastHistory:
         words = _WORD_RE.findall(prompt.lower())
         lead = words[0] if words else ""
         content = [w for w in words if w not in _STOPWORDS]
-        bucket = "short" if len(content) < 4 else "medium" if len(content) < 12 else "long"
+        bucket = (
+            "short" if len(content) < 4 else "medium" if len(content) < 12 else "long"
+        )
         anchored = "anchored" if _has_anchor(prompt) else "vague"
         return f"{lead}|{bucket}|{anchored}"
 
@@ -239,9 +268,7 @@ class HallucinationForecaster:
             risk = 0.0
         else:
             risk = (
-                w_amb * ambiguity
-                + w_kb * kb_risk
-                + w_hist * (history_rate or 0.0)
+                w_amb * ambiguity + w_kb * kb_risk + w_hist * (history_rate or 0.0)
             ) / total
         risk = max(0.0, min(1.0, risk))
 

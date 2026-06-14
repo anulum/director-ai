@@ -50,10 +50,7 @@ _DATA = Path(__file__).resolve().parent / "aggrefact_test.jsonl"
 
 
 def _load_supported(max_samples: int | None) -> list[dict]:
-    rows = [
-        json.loads(line)
-        for line in _DATA.read_text(encoding="utf-8").splitlines()
-    ]
+    rows = [json.loads(line) for line in _DATA.read_text(encoding="utf-8").splitlines()]
     supported = [r for r in rows if int(r["label"]) == 1]
     return supported[:max_samples] if max_samples is not None else supported
 
@@ -86,12 +83,18 @@ def run(
 
     scorer = ContradictionScorer.from_pretrained(model_id, device=device)
     orig_scores = _score_rows(
-        scorer, original_rows, granularity=granularity, top_k=top_k,
+        scorer,
+        original_rows,
+        granularity=granularity,
+        top_k=top_k,
         batch_size=batch_size,
     )
     print("  scored originals; scoring injected", flush=True)
     inj_scores = _score_rows(
-        scorer, injected_rows, granularity=granularity, top_k=top_k,
+        scorer,
+        injected_rows,
+        granularity=granularity,
+        top_k=top_k,
         batch_size=batch_size,
     )
 

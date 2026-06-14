@@ -64,7 +64,15 @@ def test_python_eval_non_finite_and_overflow_are_nan(python_only):
 
 
 def test_rust_and_python_eval_parity():
-    cases = ["3 + 4", "2 + 3 * 4", "(120 - 20) / 4", "12 × 5", "10 / 3", "1,000 + 1", "1 / 0"]
+    cases = [
+        "3 + 4",
+        "2 + 3 * 4",
+        "(120 - 20) / 4",
+        "12 × 5",
+        "10 / 3",
+        "1,000 + 1",
+        "1 / 0",
+    ]
     rust = [mc._eval_arithmetic(c) for c in cases]
     saved_flag, saved_fn = mc._RUST_MATH, mc.rust_eval_arithmetic
     mc._RUST_MATH, mc.rust_eval_arithmetic = False, None
@@ -97,7 +105,9 @@ def test_equals_word_variants():
 
 
 def test_prose_without_operator_is_ignored():
-    result = verify_arithmetic("The temperature is 25 degrees and the CEO is Sam Altman.")
+    result = verify_arithmetic(
+        "The temperature is 25 degrees and the CEO is Sam Altman."
+    )
     assert result.equations_found == 0 and result.valid is True
 
 
@@ -122,11 +132,15 @@ def test_thousands_separator_and_currency():
 
 def test_tolerance_controls_match():
     assert verify_arithmetic("1 / 3 = 0.3333", abs_tol=1e-3).valid is True
-    assert verify_arithmetic("1 / 3 = 0.3333", abs_tol=1e-9, rel_tol=1e-9).valid is False
+    assert (
+        verify_arithmetic("1 / 3 = 0.3333", abs_tol=1e-9, rel_tol=1e-9).valid is False
+    )
 
 
 def test_arithmetic_check_dataclass_fields():
-    check = ArithmeticCheck(expression="3 + 4 = 8", claimed=8.0, computed=7.0, correct=False)
+    check = ArithmeticCheck(
+        expression="3 + 4 = 8", claimed=8.0, computed=7.0, correct=False
+    )
     assert check.correct is False and check.computed == 7.0
 
 

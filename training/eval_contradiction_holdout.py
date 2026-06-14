@@ -67,9 +67,7 @@ def run(model_id: str, *, device: int = -1, batch_size: int = 64) -> dict:
             "recall_contradiction": round(
                 sum(1 for s in contra if s >= thr) / len(contra), 4
             ),
-            "false_halt_all": round(
-                sum(1 for s in other if s >= thr) / len(other), 4
-            ),
+            "false_halt_all": round(sum(1 for s in other if s >= thr) / len(other), 4),
             "false_halt_neutral": round(
                 sum(1 for s in neutral if s >= thr) / len(neutral), 4
             ),

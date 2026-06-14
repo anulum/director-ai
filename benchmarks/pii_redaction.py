@@ -35,8 +35,14 @@ from director_ai.core.safety.moderation.pii import RegexPIIDetector
 
 # (text, [(category, pii_substring), ...]) — each substring must occur once.
 _LABELLED: list[tuple[str, list[tuple[str, str]]]] = [
-    ("Email me at alice.smith@example.com today.", [("email", "alice.smith@example.com")]),
-    ("Card on file 4111 1111 1111 1111 expires soon.", [("credit_card", "4111 1111 1111 1111")]),
+    (
+        "Email me at alice.smith@example.com today.",
+        [("email", "alice.smith@example.com")],
+    ),
+    (
+        "Card on file 4111 1111 1111 1111 expires soon.",
+        [("credit_card", "4111 1111 1111 1111")],
+    ),
     ("Her SSN is 123-45-6789 per the form.", [("ssn", "123-45-6789")]),
     ("Call the desk at (555) 123-4567 before noon.", [("phone", "(555) 123-4567")]),
     ("Patient record MRN: AB12345 was updated.", [("phi", "MRN: AB12345")]),
@@ -57,7 +63,10 @@ _LABELLED: list[tuple[str, list[tuple[str, str]]]] = [
     ),
     ("Tax id on the W-2 reads 987-65-4321 exactly.", [("ssn", "987-65-4321")]),
     ("Logs show a hit from 10.0.42.7 overnight.", [("ipv4", "10.0.42.7")]),
-    ("Send invoices to billing@vendor.co.uk please.", [("email", "billing@vendor.co.uk")]),
+    (
+        "Send invoices to billing@vendor.co.uk please.",
+        [("email", "billing@vendor.co.uk")],
+    ),
     ("DOB: 1984-02-29 noted in the chart.", [("phi", "DOB: 1984-02-29")]),
     ("Reception line 212.555.0198 rings through.", [("phone", "212.555.0198")]),
     # Negatives — must produce no PII finding.
@@ -85,11 +94,7 @@ def _detected_spans(detector, text: str) -> set[tuple[str, int, int]]:
 def _prf(tp: int, fp: int, fn: int) -> dict[str, float]:
     precision = tp / (tp + fp) if (tp + fp) else 1.0
     recall = tp / (tp + fn) if (tp + fn) else 1.0
-    f1 = (
-        2 * precision * recall / (precision + recall)
-        if (precision + recall)
-        else 0.0
-    )
+    f1 = 2 * precision * recall / (precision + recall) if (precision + recall) else 0.0
     return {
         "precision": round(precision, 4),
         "recall": round(recall, 4),

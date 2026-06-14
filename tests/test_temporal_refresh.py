@@ -83,7 +83,9 @@ class _StubNLI:
 
 
 def _position_claim(text="The CEO of Twitter is", risk=0.8):
-    return FreshnessClaim(text=text, claim_type="position", staleness_risk=risk, reason="r")
+    return FreshnessClaim(
+        text=text, claim_type="position", staleness_risk=risk, reason="r"
+    )
 
 
 # --------------------------------------------------------------------------- #
@@ -126,7 +128,9 @@ def test_strip_markup():
 
 
 def test_resolve_ddg_redirect_href():
-    href = "//duckduckgo.com/l/?uddg=https%3A%2F%2Fen.wikipedia.org%2Fwiki%2FX&amp;rut=z"
+    href = (
+        "//duckduckgo.com/l/?uddg=https%3A%2F%2Fen.wikipedia.org%2Fwiki%2FX&amp;rut=z"
+    )
     assert tr._resolve_ddg_href(href) == "https://en.wikipedia.org/wiki/X"
 
 
@@ -136,7 +140,10 @@ def test_resolve_bare_and_plain_hrefs():
 
 
 def test_resolve_ddg_redirect_without_uddg_param():
-    assert tr._resolve_ddg_href("//duckduckgo.com/l/?rut=z") == "https://duckduckgo.com/l/?rut=z"
+    assert (
+        tr._resolve_ddg_href("//duckduckgo.com/l/?rut=z")
+        == "https://duckduckgo.com/l/?rut=z"
+    )
 
 
 def test_ddg_hits_parsing_and_cap():
@@ -169,9 +176,22 @@ def test_provider_parses_results_and_builds_query_url():
 
 
 def test_provider_non_200_and_empty_body_and_error_return_empty():
-    assert DuckDuckGoSearchProvider(http=_StubGetter(status=503)).search("q", max_results=3) == []
-    assert DuckDuckGoSearchProvider(http=_StubGetter(body=b"")).search("q", max_results=3) == []
-    assert DuckDuckGoSearchProvider(http=_StubGetter(raise_exc=True)).search("q", max_results=3) == []
+    assert (
+        DuckDuckGoSearchProvider(http=_StubGetter(status=503)).search(
+            "q", max_results=3
+        )
+        == []
+    )
+    assert (
+        DuckDuckGoSearchProvider(http=_StubGetter(body=b"")).search("q", max_results=3)
+        == []
+    )
+    assert (
+        DuckDuckGoSearchProvider(http=_StubGetter(raise_exc=True)).search(
+            "q", max_results=3
+        )
+        == []
+    )
 
 
 # --------------------------------------------------------------------------- #
@@ -195,8 +215,13 @@ def test_refresher_rejects_bad_config(kwargs):
 def test_claim_context_widens_with_source_text():
     claim = _position_claim()
     assert TemporalRefresher._claim_context(claim, "") == "The CEO of Twitter is"
-    assert TemporalRefresher._claim_context(claim, "Unrelated text") == "The CEO of Twitter is"
-    ctx = TemporalRefresher._claim_context(claim, "The CEO of Twitter is Jack Dorsey. Next.")
+    assert (
+        TemporalRefresher._claim_context(claim, "Unrelated text")
+        == "The CEO of Twitter is"
+    )
+    ctx = TemporalRefresher._claim_context(
+        claim, "The CEO of Twitter is Jack Dorsey. Next."
+    )
     assert ctx == "The CEO of Twitter is Jack Dorsey."
 
 
@@ -220,7 +245,9 @@ def test_subject_and_value_position_and_statistic():
 def test_subject_query_falls_back_when_all_noise():
     # A claim whose content is entirely stop words still yields a non-empty query.
     refresher = TemporalRefresher(provider=_StubProvider([]))
-    noise = FreshnessClaim(text="the of a an", claim_type="record", staleness_risk=0.6, reason="r")
+    noise = FreshnessClaim(
+        text="the of a an", claim_type="record", staleness_risk=0.6, reason="r"
+    )
     query, value = refresher._subject_and_value(noise, "the of a an")
     assert query == "the of a an" and value == set()
 
@@ -231,7 +258,9 @@ def test_subject_query_falls_back_when_all_noise():
 
 
 def _hits_yaccarino():
-    return [SearchHit("Linda Yaccarino - Wikipedia", "Linda Yaccarino is CEO of X", "u", 0)]
+    return [
+        SearchHit("Linda Yaccarino - Wikipedia", "Linda Yaccarino is CEO of X", "u", 0)
+    ]
 
 
 def _hits_altman():
@@ -249,7 +278,9 @@ def test_verdict_nli_contradicted_and_supported():
     src = "The CEO of Twitter is Jack Dorsey."
     fr = FreshnessResult(claims=[_position_claim()])
 
-    high = TemporalRefresher(provider=_StubProvider(_hits_yaccarino()), nli=_StubNLI(0.9))
+    high = TemporalRefresher(
+        provider=_StubProvider(_hits_yaccarino()), nli=_StubNLI(0.9)
+    )
     r_high = high.refresh(fr, source_text=src).refreshes[0]
     assert r_high.verdict == "contradicted" and r_high.verdict_source == "nli"
     assert r_high.contradiction == pytest.approx(0.9)
@@ -262,7 +293,9 @@ def test_verdict_nli_contradicted_and_supported():
 def test_verdict_lexical_drift_and_supported():
     fr = FreshnessResult(claims=[_position_claim()])
     drift = TemporalRefresher(provider=_StubProvider(_hits_yaccarino()))
-    r_drift = drift.refresh(fr, source_text="The CEO of Twitter is Jack Dorsey.").refreshes[0]
+    r_drift = drift.refresh(
+        fr, source_text="The CEO of Twitter is Jack Dorsey."
+    ).refreshes[0]
     assert r_drift.verdict == "drift_suspected" and r_drift.verdict_source == "lexical"
 
     ok = TemporalRefresher(provider=_StubProvider(_hits_altman()))
@@ -287,7 +320,9 @@ def test_verdict_review_when_no_value_and_no_nli():
 
 
 def test_refresh_skips_claims_below_staleness_threshold():
-    fresh = FreshnessClaim(text="x is", claim_type="position", staleness_risk=0.1, reason="r")
+    fresh = FreshnessClaim(
+        text="x is", claim_type="position", staleness_risk=0.1, reason="r"
+    )
     refresher = TemporalRefresher(provider=_StubProvider(_hits_altman()))
     report = refresher.refresh(FreshnessResult(claims=[fresh]))
     assert report.checked == 0 and report.skipped == 1 and report.refreshes == []
@@ -310,8 +345,12 @@ def test_report_buckets():
     report = RefreshReport(
         refreshes=[
             ClaimRefresh(_position_claim(), "q", "supported", "nli", 1.0, 0.2, 0.0, ()),
-            ClaimRefresh(_position_claim(), "q", "drift_suspected", "lexical", 0.0, 0.1, 0.0, ()),
-            ClaimRefresh(_position_claim(), "q", "contradicted", "nli", 0.0, 0.1, 0.9, ()),
+            ClaimRefresh(
+                _position_claim(), "q", "drift_suspected", "lexical", 0.0, 0.1, 0.0, ()
+            ),
+            ClaimRefresh(
+                _position_claim(), "q", "contradicted", "nli", 0.0, 0.1, 0.9, ()
+            ),
         ]
     )
     assert len(report.supported) == 1

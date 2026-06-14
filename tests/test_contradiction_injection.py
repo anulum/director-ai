@@ -90,9 +90,7 @@ def test_custom_strategy_order_restricts_to_numeric():
 
 
 def test_inject_batch():
-    results = _inj().inject_batch(
-        ["Revenue rose sharply.", "Birds sang quietly."]
-    )
+    results = _inj().inject_batch(["Revenue rose sharply.", "Birds sang quietly."])
     assert [r.changed for r in results] == [True, False]
 
 

@@ -53,9 +53,7 @@ def split_passages(text: str, *, min_words: int = 3) -> list[str]:
 
         sents = [s.strip() for s in rust_split_sentences(text) if s.strip()]
     except ImportError:
-        protected = _ABBREV_RE.sub(
-            lambda m: m.group(0).replace(".", "\x00"), text
-        )
+        protected = _ABBREV_RE.sub(lambda m: m.group(0).replace(".", "\x00"), text)
         protected = re.sub(
             r"(\d)\.(\d)", lambda m: m.group(1) + "\x00" + m.group(2), protected
         )

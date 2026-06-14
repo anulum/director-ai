@@ -75,7 +75,9 @@ def detection_accuracy() -> dict:
     return {
         "n": len(_LABELLED),
         "accuracy": round(hits / len(_LABELLED), 4),
-        "control_false_positive_rate": round(fp_controls / n_controls, 4) if n_controls else 0.0,
+        "control_false_positive_rate": round(fp_controls / n_controls, 4)
+        if n_controls
+        else 0.0,
         "n_controls": n_controls,
     }
 
@@ -109,7 +111,9 @@ def backend_comparison(repeats: int) -> dict:
         "parity_rust_equals_python": parity,
         "rust_texts_per_sec": round(rust_tps, 1),
         "python_texts_per_sec": round(py_tps, 1),
-        "rust_speedup": round(rust_tps / py_tps, 3) if (py_tps and rust_available) else None,
+        "rust_speedup": round(rust_tps / py_tps, 3)
+        if (py_tps and rust_available)
+        else None,
         "fastest": "rust" if (rust_available and rust_tps >= py_tps) else "python",
     }
 

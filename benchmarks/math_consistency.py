@@ -119,7 +119,9 @@ def backend_comparison(repeats: int) -> dict:
         "parity_rust_equals_python": parity,
         "rust_exprs_per_sec": round(rust_tps, 1),
         "python_exprs_per_sec": round(py_tps, 1),
-        "rust_speedup": round(rust_tps / py_tps, 3) if (py_tps and rust_available) else None,
+        "rust_speedup": round(rust_tps / py_tps, 3)
+        if (py_tps and rust_available)
+        else None,
         "fastest": "rust" if (rust_available and rust_tps >= py_tps) else "python",
     }
 

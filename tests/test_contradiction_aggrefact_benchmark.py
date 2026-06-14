@@ -68,9 +68,7 @@ class _KeywordScorer:
 def test_score_rows_document_uses_whole_doc():
     scorer = _KeywordScorer({"full document text here": 0.7})
     rows = [{"doc": "full document text here", "claim": "c", "label": "0"}]
-    scores = _score_rows(
-        scorer, rows, granularity="document", top_k=5, batch_size=8
-    )
+    scores = _score_rows(scorer, rows, granularity="document", top_k=5, batch_size=8)
     assert scores == [0.7]
 
 
@@ -84,9 +82,7 @@ def test_score_rows_passage_takes_max_over_passages():
         }
     )
     rows = [{"doc": doc, "claim": "profit grew all year", "label": "0"}]
-    scores = _score_rows(
-        scorer, rows, granularity="passage", top_k=5, batch_size=8
-    )
+    scores = _score_rows(scorer, rows, granularity="passage", top_k=5, batch_size=8)
     assert scores == [0.85]
 
 
@@ -95,7 +91,5 @@ def test_score_rows_passage_ungrounded_scores_zero():
     # is never consulted for that row.
     scorer = _KeywordScorer({"x": 0.99})
     rows = [{"doc": "Hi. Ok.", "claim": "anything", "label": "0"}]
-    scores = _score_rows(
-        scorer, rows, granularity="passage", top_k=5, batch_size=8
-    )
+    scores = _score_rows(scorer, rows, granularity="passage", top_k=5, batch_size=8)
     assert scores == [0.0]

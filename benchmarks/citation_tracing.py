@@ -53,7 +53,9 @@ _LABELLED: list[tuple[str, int]] = [
 
 def attachment_accuracy() -> dict:
     hits = sum(
-        1 for text, expected in _LABELLED if len(trace_citations(text).cited) == expected
+        1
+        for text, expected in _LABELLED
+        if len(trace_citations(text).cited) == expected
     )
     return {"n": len(_LABELLED), "accuracy": round(hits / len(_LABELLED), 4)}
 

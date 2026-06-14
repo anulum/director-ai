@@ -78,7 +78,9 @@ def _python_eval(expr: str) -> float:
     normalised, thousands separators dropped, ``+ - * /`` with standard precedence
     over IEEE-754 doubles. Any non-arithmetic input returns ``NaN``.
     """
-    normalised = expr.replace("×", "*").replace("·", "*").replace("÷", "/").replace(",", "")
+    normalised = (
+        expr.replace("×", "*").replace("·", "*").replace("÷", "/").replace(",", "")
+    )
     # Mirror the Rust tokeniser's accepted character set exactly (digits, the four
     # operators, parentheses, decimal point, whitespace). This rejects scientific
     # notation, names, etc. so the two backends agree bit-for-bit.
@@ -145,7 +147,9 @@ def _parse_rhs(raw: str) -> float:
     return float(raw.replace("$", "").replace(",", ""))
 
 
-def _is_close(computed: float, claimed: float, *, rel_tol: float, abs_tol: float) -> bool:
+def _is_close(
+    computed: float, claimed: float, *, rel_tol: float, abs_tol: float
+) -> bool:
     return math.isclose(computed, claimed, rel_tol=rel_tol, abs_tol=abs_tol)
 
 
