@@ -298,3 +298,12 @@ def test_check_document_without_scoring_allows_and_skip_same_document(tmp_path) 
     assert same_doc_report.decision == "allow"
     assert same_doc_report.checked_documents == 1
     assert same_doc_report.conflicts == ()
+
+
+def test_python_word_overlap_is_jaccard():
+    # Pure-Python fallback (the Rust path bypasses it when the kernel is
+    # present): Jaccard token overlap, with empty inputs scoring 0.
+    overlap = CrossDocumentConsistencyMemory._python_word_overlap
+    assert overlap("the quick brown fox", "the lazy brown dog") == pytest.approx(2 / 6)
+    assert overlap("", "anything here") == 0.0
+    assert overlap("no shared tokens", "completely different words") == 0.0
