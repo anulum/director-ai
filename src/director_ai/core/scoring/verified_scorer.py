@@ -97,7 +97,6 @@ _NEG_WORDS = frozenset(
         "shouldn't",
         "couldn't",
         "doesn't",
-        "don't",
         "didn't",
         "hasn't",
         "haven't",
@@ -710,8 +709,13 @@ def _traceability(claim: str, source: str) -> float:
     if _RUST_SIGNALS:
         with mandatory_execution(__name__, component="mandatory accelerated path"):
             return float(rust_traceability(claim, source))
-    claim_words = set(re.findall(r"\w+", claim.lower())) - _STOP_WORDS - _NEG_WORDS
-    source_words = set(re.findall(r"\w+", source.lower())) - _STOP_WORDS - _NEG_WORDS
+    # Mirror the Rust ``signals::traceability`` kernel exactly: whitespace-split
+    # tokens (``to_lower_words``), then drop stop and negation words. The Rust and
+    # Python stop/negation sets are kept identical (see the parity test); using
+    # ``\w+`` here instead would split hyphens/contractions and strip trailing
+    # punctuation, diverging from the kernel.
+    claim_words = set(claim.lower().split()) - _STOP_WORDS - _NEG_WORDS
+    source_words = set(source.lower().split()) - _STOP_WORDS - _NEG_WORDS
     if not claim_words:
         return 1.0
     return len(claim_words & source_words) / len(claim_words)

@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Fix a Rust/Python parity gap in `verified_scorer`: the Python fallbacks for
+  `_traceability` and `_negation_flip` now use whitespace tokenisation and a
+  negation set identical to the Rust `signals` kernel (previously `_traceability`
+  split on `\w+` and the negation set carried an extra `don't`), so the fallback
+  reproduces the accelerated path bit-for-bit. Adds a Rust↔Python parity
+  regression test.
 - Add **citation tracing**
   (`director_ai.core.verification.citation_tracer.trace_citations`): segments a
   reasoning chain into claim sentences and attaches each inline citation (DOI,

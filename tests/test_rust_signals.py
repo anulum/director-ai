@@ -230,3 +230,50 @@ class TestBM25RustFallback:
         hybrid.add("d1", "Some content here")
         results = hybrid.query("", n_results=3)
         assert isinstance(results, list)
+
+
+class TestRustPythonParity:
+    r"""The Python fallbacks must reproduce the Rust kernels bit-for-bit.
+
+    Regression guard for a divergence found 2026-06-14: ``_traceability`` used
+    ``\w+`` tokenisation (splitting hyphens, stripping trailing punctuation) and
+    the negation set carried an extra ``don't``, while the Rust kernels use
+    whitespace tokens and a matching set. Both are aligned to whitespace tokens
+    now; this locks them together.
+    """
+
+    _CORPUS = [
+        ("The transformer uses self-attention.", "Transformers rely on self-attention layers."),
+        ("Water boils at 100 degrees.", "At sea level water boils at one hundred degrees Celsius."),
+        ("The capital is Berlin.", "A recipe for soup with carrots and onions."),
+        ("Diffusion models generate images.", "Diffusion models iteratively denoise images."),
+        ("The cat does not sleep here today.", "The cat sleeps here every day now."),
+        ("I don't agree with the published claim.", "I do agree with the published claim."),
+    ]
+
+    @staticmethod
+    def _python(fn, *args):
+        import director_ai.core.scoring.verified_scorer as vs
+
+        saved = vs._RUST_SIGNALS
+        vs._RUST_SIGNALS = False
+        try:
+            return fn(*args)
+        finally:
+            vs._RUST_SIGNALS = saved
+
+    def test_traceability_rust_python_parity(self):
+        import director_ai.core.scoring.verified_scorer as vs
+
+        for claim, source in self._CORPUS:
+            rust = _traceability(claim, source)
+            python = self._python(vs._traceability, claim, source)
+            assert rust == python, (claim, rust, python)
+
+    def test_negation_flip_rust_python_parity(self):
+        import director_ai.core.scoring.verified_scorer as vs
+
+        for claim, source in self._CORPUS:
+            rust = _negation_flip(claim, source)
+            python = self._python(vs._negation_flip, claim, source)
+            assert rust == python, (claim, rust, python)
