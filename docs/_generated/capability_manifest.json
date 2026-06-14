@@ -6,10 +6,10 @@
     "optional_extras": 57,
     "public_api_exports": 218,
     "public_documentation_pages": 188,
-    "python_model_classes": 922,
-    "python_model_source_modules": 403,
+    "python_model_classes": 926,
+    "python_model_source_modules": 405,
     "rust_pyo3_model_wrappers": 78,
-    "test_files": 487
+    "test_files": 497
   },
   "documentation": {
     "public_pages": [
@@ -1017,6 +1017,14 @@
         "path": "src/director_ai/core/causal_verifier/contradiction_explainer.py"
       },
       {
+        "name": "ContradictionHalt",
+        "path": "src/director_ai/core/runtime/contradiction_halt.py"
+      },
+      {
+        "name": "ContradictionHaltDecision",
+        "path": "src/director_ai/core/runtime/contradiction_halt.py"
+      },
+      {
         "name": "ContradictionKeywordRule",
         "path": "src/director_ai/core/scoring/rules_scorer.py"
       },
@@ -1031,6 +1039,14 @@
       {
         "name": "ContradictionReport",
         "path": "src/director_ai/core/runtime/contradiction_tracker.py"
+      },
+      {
+        "name": "ContradictionResult",
+        "path": "src/director_ai/core/scoring/contradiction.py"
+      },
+      {
+        "name": "ContradictionScorer",
+        "path": "src/director_ai/core/scoring/contradiction.py"
       },
       {
         "name": "ContradictionTracker",
@@ -4249,6 +4265,7 @@
       "src/director_ai/core/routing/uncertainty_router.py",
       "src/director_ai/core/runtime/async_streaming.py",
       "src/director_ai/core/runtime/batch.py",
+      "src/director_ai/core/runtime/contradiction_halt.py",
       "src/director_ai/core/runtime/contradiction_tracker.py",
       "src/director_ai/core/runtime/correction.py",
       "src/director_ai/core/runtime/human_review.py",
@@ -4281,6 +4298,7 @@
       "src/director_ai/core/scoring/_task_scoring.py",
       "src/director_ai/core/scoring/backends.py",
       "src/director_ai/core/scoring/consensus.py",
+      "src/director_ai/core/scoring/contradiction.py",
       "src/director_ai/core/scoring/distilled_scorer.py",
       "src/director_ai/core/scoring/embed_scorer.py",
       "src/director_ai/core/scoring/lite_scorer.py",
@@ -4828,6 +4846,7 @@
       "tests/test_autopoietic_blueprint.py",
       "tests/test_backends.py",
       "tests/test_backfire_kernel_release_contract.py",
+      "tests/test_build_contradiction_dataset.py",
       "tests/test_build_judge_dataset.py",
       "tests/test_byzantine_consensus.py",
       "tests/test_cache.py",
@@ -4871,7 +4890,12 @@
       "tests/test_content_moderation_wrapper.py",
       "tests/test_contextual_compression.py",
       "tests/test_continual_adversarial.py",
+      "tests/test_contradiction.py",
+      "tests/test_contradiction_aggrefact_benchmark.py",
       "tests/test_contradiction_explainer.py",
+      "tests/test_contradiction_halt.py",
+      "tests/test_contradiction_injection.py",
+      "tests/test_contradiction_recall.py",
       "tests/test_contradiction_tracker.py",
       "tests/test_correction_loop.py",
       "tests/test_cors_reverse_proxy_policy.py",
@@ -4917,6 +4941,7 @@
       "tests/test_doc_chunker.py",
       "tests/test_doc_chunker_model_cache.py",
       "tests/test_doc_modules.py",
+      "tests/test_doc_parser.py",
       "tests/test_doc_registry.py",
       "tests/test_dp_rag.py",
       "tests/test_dp_rag_pipeline.py",
@@ -5113,6 +5138,8 @@
       "tests/test_physical_extra_boundary.py",
       "tests/test_physical_grounding_closed_loop.py",
       "tests/test_physical_grounding_evaluator.py",
+      "tests/test_pii_redaction_benchmark.py",
+      "tests/test_pii_redaction_parity.py",
       "tests/test_pii_redactor.py",
       "tests/test_pilot_onboarding_example.py",
       "tests/test_pint_replication_packet.py",
@@ -5165,6 +5192,7 @@
       "tests/test_root_cause.py",
       "tests/test_rules_scorer.py",
       "tests/test_run_judge_benchmark.py",
+      "tests/test_runtime_session.py",
       "tests/test_rust_compute.py",
       "tests/test_rust_fallback_floor.py",
       "tests/test_rust_fallback_paths.py",
