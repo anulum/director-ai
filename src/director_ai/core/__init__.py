@@ -49,6 +49,10 @@ from .calibration.conformal import (
 )
 from .calibration.feedback_store import FeedbackStore
 from .calibration.online_calibrator import CalibrationReport, OnlineCalibrator
+from .calibration.segmented_threshold import (
+    SegmentedThresholdLearner,
+    SegmentRecommendation,
+)
 from .config import DirectorConfig, ProfileMetadata
 from .edge import (
     EdgeRuntimeCheck,
@@ -281,6 +285,8 @@ __all__ = [
     "AdaptiveThresholdLearner",
     "AdaptiveThresholdRecommendation",
     "AdaptiveThresholdReport",
+    "SegmentRecommendation",
+    "SegmentedThresholdLearner",
     "AsyncStreamingKernel",
     "AttributionEdge",
     "AttributionNode",

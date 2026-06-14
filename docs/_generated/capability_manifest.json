@@ -5,11 +5,11 @@
     "model_documentation_pages": 88,
     "optional_extras": 57,
     "public_api_exports": 221,
-    "public_documentation_pages": 193,
-    "python_model_classes": 942,
-    "python_model_source_modules": 410,
+    "public_documentation_pages": 194,
+    "python_model_classes": 944,
+    "python_model_source_modules": 411,
     "rust_pyo3_model_wrappers": 80,
-    "test_files": 503
+    "test_files": 504
   },
   "documentation": {
     "public_pages": [
@@ -172,6 +172,7 @@
       "docs-site/guide/rust-benchmarks.md",
       "docs-site/guide/rust-ffi.md",
       "docs-site/guide/scoring.md",
+      "docs-site/guide/segmented-thresholds.md",
       "docs-site/guide/source-availability.md",
       "docs-site/guide/streaming-overhead.md",
       "docs-site/guide/streaming.md",
@@ -3362,6 +3363,14 @@
         "path": "src/director_ai/core/federated_privacy/secret_sharing.py"
       },
       {
+        "name": "SegmentRecommendation",
+        "path": "src/director_ai/core/calibration/segmented_threshold.py"
+      },
+      {
+        "name": "SegmentedThresholdLearner",
+        "path": "src/director_ai/core/calibration/segmented_threshold.py"
+      },
+      {
         "name": "SelfEvolver",
         "path": "src/director_ai/core/self_evolving/evolver.py"
       },
@@ -4137,6 +4146,7 @@
       "src/director_ai/core/calibration/conformal.py",
       "src/director_ai/core/calibration/feedback_store.py",
       "src/director_ai/core/calibration/online_calibrator.py",
+      "src/director_ai/core/calibration/segmented_threshold.py",
       "src/director_ai/core/canary/detector.py",
       "src/director_ai/core/canary/registry.py",
       "src/director_ai/core/causal_verifier/contradiction_explainer.py",
@@ -5303,6 +5313,7 @@
       "tests/test_security_exceptions.py",
       "tests/test_security_hardening.py",
       "tests/test_security_physical_risks.py",
+      "tests/test_segmented_threshold.py",
       "tests/test_self_evolving.py",
       "tests/test_self_healing.py",
       "tests/test_self_improving_guard_loop.py",

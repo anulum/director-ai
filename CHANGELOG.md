@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Add **per-segment adaptive thresholds**
+  (`director_ai.core.calibration.segmented_threshold.SegmentedThresholdLearner`):
+  learns a separate halt threshold per domain, model, or tenant by wrapping the
+  global `AdaptiveThresholdLearner` with a routing layer. Each segment accumulates
+  its own human-labelled feedback and earns its own threshold; a global pool sees
+  every observation so a cold segment (fewer than `promote_after` observations)
+  falls back to the pooled recommendation. `recommend(segment=...)` returns a
+  `SegmentRecommendation` with the decision source. The Beta-posterior arithmetic
+  and its Rust `rust_beta_posterior_mean` fast path are inherited unchanged.
+  Benchmarked in `benchmarks/segmented_threshold.py` (segmentation lift +0.06 mean
+  approval accuracy on a divergent three-segment workload); documented in
+  `docs-site/guide/segmented-thresholds.md`.
 - Fix a Rust/Python parity gap in `verified_scorer`: the Python fallbacks for
   `_traceability` and `_negation_flip` now use whitespace tokenisation and a
   negation set identical to the Rust `signals` kernel (previously `_traceability`
