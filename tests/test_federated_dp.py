@@ -164,3 +164,13 @@ class TestGuardWiring:
         assert rnd.value == DirectorConfig().coherence_threshold
         rnd.submit_update(tenant_id="t1", update=0.05)
         assert isinstance(rnd.aggregate(), RoundResult)
+
+
+def test_round_exposes_configured_hyperparameters():
+    rnd = _round(
+        clip_norm=0.3, noise_multiplier=2.0, min_cohort=4, learning_rate=0.25
+    )
+    assert rnd.clip_norm == pytest.approx(0.3)
+    assert rnd.noise_multiplier == pytest.approx(2.0)
+    assert rnd.min_cohort == 4
+    assert rnd.learning_rate == pytest.approx(0.25)

@@ -342,3 +342,24 @@ class TestBundledArtefact:
 
 def test_backward_compat_alias():
     assert MetaClassifier is DatasetTypeClassifier
+
+
+def test_sum_float_rust_and_python_paths(monkeypatch):
+    import director_ai.core.scoring.meta_classifier as meta_mod
+
+    # Accelerated path: force the Rust flag on and delegate to a stub so the
+    # branch is exercised without depending on the compiled kernel.
+    monkeypatch.setattr(meta_mod, "_RUST_META", True)
+    calls = {"n": 0}
+
+    def _sum(values: list[float]) -> float:
+        calls["n"] += 1
+        return sum(values)
+
+    monkeypatch.setattr(meta_mod, "rust_sum_f64", _sum, raising=True)
+    assert meta_mod._sum_float([1.0, 2.0, 3.5]) == pytest.approx(6.5)
+    assert calls["n"] == 1
+    # Pure-Python fallback when the kernel is unavailable.
+    monkeypatch.setattr(meta_mod, "_RUST_META", False)
+    assert meta_mod._sum_float([1.0, 2.0, 3.5]) == pytest.approx(6.5)
+    assert meta_mod._sum_float([]) == 0.0

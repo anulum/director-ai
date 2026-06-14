@@ -530,3 +530,28 @@ class TestSwarmEconomicsRustSums:
         assert scorer_mod._sum_float([]) == 0.0
         monkeypatch.setattr(scorer_mod, "_RUST_SWARM_ECON", False)
         assert scorer_mod._sum_float([0.25, 0.75]) == pytest.approx(1.0)
+
+
+class TestTragedyDetectorRustSums:
+    """The TragedyDetector module has its own _sum_float accelerator path."""
+
+    def test_rust_sum_kernel_is_used_when_available(self, monkeypatch):
+        import director_ai.core.swarm_economics.detector as detector_mod
+
+        monkeypatch.setattr(detector_mod, "_RUST_SWARM_ECON_DETECTOR", True)
+        called = {"count": 0}
+
+        def _sum(values: list[float]) -> float:
+            called["count"] += 1
+            return sum(values)
+
+        monkeypatch.setattr(detector_mod, "rust_sum_f64", _sum, raising=True)
+        assert detector_mod._sum_float([0.5, 1.5]) == pytest.approx(2.0)
+        assert called["count"] == 1
+
+    def test_sum_float_python_fallback(self, monkeypatch):
+        import director_ai.core.swarm_economics.detector as detector_mod
+
+        monkeypatch.setattr(detector_mod, "_RUST_SWARM_ECON_DETECTOR", False)
+        assert detector_mod._sum_float([]) == 0.0
+        assert detector_mod._sum_float([1.0, 2.0, 3.0]) == pytest.approx(6.0)
