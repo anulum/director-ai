@@ -124,6 +124,13 @@ class TestPolicy:
         merged = a.merge(b)
         assert merged.allowed_roles == frozenset({"admin"})
 
+    def test_merge_keeps_restriction_when_other_is_unrestricted(self):
+        # Symmetric to the above: a restricts, b is empty (= any). The
+        # restriction must survive rather than widening to "any".
+        restricted = TraversalPolicy(allowed_roles=frozenset({"admin"}))
+        merged = restricted.merge(TraversalPolicy.allow_all())
+        assert merged.allowed_roles == frozenset({"admin"})
+
     def test_merge_tenant_is_or(self):
         a = TraversalPolicy(require_same_tenant=False)
         b = TraversalPolicy(require_same_tenant=True)

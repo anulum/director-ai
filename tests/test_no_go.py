@@ -218,3 +218,15 @@ def test_no_go_policy_blocks_on_lower_of_default_and_envelope_thresholds() -> No
     assert verdict.decision == "block"
     assert verdict.reason == "no_go_threshold_exceeded"
     assert verdict.requires_human_review is True
+
+
+def test_no_go_policy_rejects_out_of_range_threshold() -> None:
+    with pytest.raises(ValueError, match=r"default_threshold must be in \[0, 1\]"):
+        NoGoPolicy(default_threshold=1.5)
+    with pytest.raises(ValueError, match=r"irreversible_threshold must be in \[0, 1\]"):
+        NoGoPolicy(irreversible_threshold=-0.1)
+
+
+def test_no_go_policy_rejects_non_finite_threshold() -> None:
+    with pytest.raises(ValueError, match=r"default_threshold must be in"):
+        NoGoPolicy(default_threshold=float("nan"))

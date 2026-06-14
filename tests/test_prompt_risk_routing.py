@@ -346,6 +346,13 @@ class TestRiskBudget:
         with pytest.raises(ValueError):
             RiskBudget().set_allowance("x", 0.0)
 
+    def test_allowance_for_reports_override_and_global_default(self):
+        b = RiskBudget(allowance=3.0, default_allowances={"seeded": 7.0})
+        assert b.allowance_for("unknown") == 3.0  # global default
+        assert b.allowance_for("seeded") == 7.0  # constructor override
+        b.set_allowance("vip", 25.0)
+        assert b.allowance_for("vip") == 25.0  # runtime override
+
 
 # --- RiskRouter -----------------------------------------------------
 

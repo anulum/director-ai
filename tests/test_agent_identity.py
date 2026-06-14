@@ -343,6 +343,19 @@ class TestAuditChain:
         assert b.parent_hash == a.event_hash
         assert a.parent_hash == "0" * 64
 
+    def test_canonical_event_sorts_keys_and_compacts(self):
+        # The canonical form must be deterministic (sorted keys, no
+        # whitespace) so the event_hash is stable across dict orderings.
+        entry = AuditEntry(
+            index=0,
+            timestamp=1.0,
+            event={"b": 2, "a": 1},
+            event_hash="h",
+            parent_hash="p",
+            tag="t",
+        )
+        assert entry.canonical_event() == b'{"a":1,"b":2}'
+
     def test_verify_on_clean_chain(self):
         chain = self._chain()
         chain.append({"kind": "a"})
