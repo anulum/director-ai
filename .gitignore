@@ -199,6 +199,9 @@ ckpts/
 !/training/_upload_all.py
 !/training/build_judge_dataset.py
 !/training/data_pipeline.py
+!/training/build_contradiction_dataset.py
+!/training/train_contradiction.py
+!/training/eval_contradiction_holdout.py
 !/training/distil_factcg.py
 !/training/distil_v5_cloud.py
 !/training/lite_scorer_v2_vertex_runner.py
