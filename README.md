@@ -202,12 +202,12 @@ inventory below is reference for the deeper surface, navigable under
 |---|---:|
 | Package version | 3.15.3 |
 | Public API exports | 221 |
-| Python capability source modules | 417 |
+| Python capability source modules | 418 |
 | Python capability classes | 966 |
 | API documentation pages | 88 |
 | Rust PyO3 bindings | 82 |
 | Optional extras | 57 |
-| Python test files | 512 |
+| Python test files | 515 |
 | Public documentation pages | 198 |
 | GitHub Actions workflows | 12 |
 

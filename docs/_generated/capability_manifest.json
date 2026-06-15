@@ -7,9 +7,9 @@
     "public_api_exports": 221,
     "public_documentation_pages": 198,
     "python_model_classes": 966,
-    "python_model_source_modules": 417,
+    "python_model_source_modules": 418,
     "rust_pyo3_model_wrappers": 82,
-    "test_files": 512
+    "test_files": 515
   },
   "documentation": {
     "public_pages": [
@@ -4525,6 +4525,7 @@
       "src/director_ai/core/temporal_logic/formula.py",
       "src/director_ai/core/temporal_logic/monitor.py",
       "src/director_ai/core/tenant.py",
+      "src/director_ai/core/text_overlap.py",
       "src/director_ai/core/threat_intel/indicators.py",
       "src/director_ai/core/threat_intel/matcher.py",
       "src/director_ai/core/threat_intel/stix.py",
@@ -5303,6 +5304,7 @@
       "tests/test_neuro_symbolic.py",
       "tests/test_neuro_symbolic_verifier.py",
       "tests/test_new_integrations.py",
+      "tests/test_new_modules_properties.py",
       "tests/test_nli_backend_contracts.py",
       "tests/test_nli_export.py",
       "tests/test_nli_integration.py",
@@ -5476,6 +5478,7 @@
       "tests/test_tenant.py",
       "tests/test_tensorrt_export.py",
       "tests/test_test_surface_policy.py",
+      "tests/test_text_overlap.py",
       "tests/test_threat_intel.py",
       "tests/test_tool_call_verifier.py",
       "tests/test_tools/test_capability_manifest.py",
@@ -5515,6 +5518,7 @@
       "tests/test_zk_attestation.py",
       "tests/test_zk_attestation_fuzz.py",
       "tests/test_zk_bulletproof_range.py",
+      "tests/test_zk_new_backends_fuzz.py",
       "tests/test_zk_schnorr.py"
     ]
   },
