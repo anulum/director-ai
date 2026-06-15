@@ -904,6 +904,24 @@ class ProductionGuard:
         """
         return self.economics.decide(risk, hallucination_cost=hallucination_cost)
 
+    def new_swarm_monitor(self, *, nli=None, contradiction_threshold=None):
+        """Create a stateful cross-agent cascade-coherence monitor.
+
+        Returns a fresh
+        :class:`~director_ai.core.swarm_coherence.SwarmCoherenceMonitor` for one
+        multi-agent cascade: feed each agent's output to ``monitor.observe(agent_id,
+        text)`` in turn and it checks the new claims against every earlier agent's
+        established claims, halting the cascade (``update.halted``) on the first
+        cross-agent contradiction so downstream agents never consume a poisoned
+        context. Pass an NLI scorer as *nli* for contradiction detection (a fresh
+        monitor per cascade keeps each conversation's state isolated).
+        """
+        from director_ai.core.swarm_coherence import SwarmCoherenceMonitor
+
+        return SwarmCoherenceMonitor(
+            nli=nli, contradiction_threshold=contradiction_threshold
+        )
+
     @property
     def rasp(self):
         """Runtime application self-protection from behavioural anomalies.

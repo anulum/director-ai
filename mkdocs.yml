@@ -145,6 +145,7 @@ nav:
       - Citation Tracing: guide/citation-tracing.md
       - Cross-Model Consensus: guide/cross-model-consensus.md
       - Hallucination Economics: guide/hallucination-economics.md
+      - Swarm Coherence: guide/swarm-coherence.md
       - Threshold Tuning: guide/threshold-tuning.md
       - Per-Segment Thresholds: guide/segmented-thresholds.md
       - KB Ingestion: guide/kb-ingestion.md

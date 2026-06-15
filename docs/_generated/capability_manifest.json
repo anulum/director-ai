@@ -5,11 +5,11 @@
     "model_documentation_pages": 88,
     "optional_extras": 57,
     "public_api_exports": 221,
-    "public_documentation_pages": 196,
-    "python_model_classes": 952,
-    "python_model_source_modules": 413,
+    "public_documentation_pages": 197,
+    "python_model_classes": 957,
+    "python_model_source_modules": 414,
     "rust_pyo3_model_wrappers": 80,
-    "test_files": 506
+    "test_files": 507
   },
   "documentation": {
     "public_pages": [
@@ -179,6 +179,7 @@
       "docs-site/guide/streaming-overhead.md",
       "docs-site/guide/streaming.md",
       "docs-site/guide/structured-verification.md",
+      "docs-site/guide/swarm-coherence.md",
       "docs-site/guide/temporal-refresh.md",
       "docs-site/guide/threshold-tuning.md",
       "docs-site/guide/troubleshooting.md",
@@ -415,6 +416,10 @@
       {
         "name": "AgentEconomicState",
         "path": "src/director_ai/core/swarm_economics/pool.py"
+      },
+      {
+        "name": "AgentMessage",
+        "path": "src/director_ai/core/swarm_coherence/cascade_monitor.py"
       },
       {
         "name": "AgentPassport",
@@ -717,6 +722,10 @@
         "path": "src/director_ai/core/cyber_physical/adapters.py"
       },
       {
+        "name": "CascadeContradiction",
+        "path": "src/director_ai/core/swarm_coherence/cascade_monitor.py"
+      },
+      {
         "name": "CaseOutcome",
         "path": "src/director_ai/ci_gate.py"
       },
@@ -839,6 +848,10 @@
       {
         "name": "CoherenceScoringService",
         "path": "src/director_ai/grpc_scoring.py"
+      },
+      {
+        "name": "CoherenceUpdate",
+        "path": "src/director_ai/core/swarm_coherence/cascade_monitor.py"
       },
       {
         "name": "CohortTooSmallError",
@@ -1039,6 +1052,10 @@
       {
         "name": "ContradictionEngine",
         "path": "src/director_ai/core/scoring/temporal_refresh.py"
+      },
+      {
+        "name": "ContradictionEngine",
+        "path": "src/director_ai/core/swarm_coherence/cascade_monitor.py"
       },
       {
         "name": "ContradictionExplainer",
@@ -3641,6 +3658,10 @@
         "path": "src/director_ai/core/sustainability/policy_adapter.py"
       },
       {
+        "name": "SwarmCoherenceMonitor",
+        "path": "src/director_ai/core/swarm_coherence/cascade_monitor.py"
+      },
+      {
         "name": "SwarmEquilibriumScorer",
         "path": "src/director_ai/core/swarm_equilibrium/scorer.py"
       },
@@ -4450,6 +4471,7 @@
       "src/director_ai/core/sustainability/forecaster.py",
       "src/director_ai/core/sustainability/policy_adapter.py",
       "src/director_ai/core/sustainability/quota.py",
+      "src/director_ai/core/swarm_coherence/cascade_monitor.py",
       "src/director_ai/core/swarm_economics/bargaining.py",
       "src/director_ai/core/swarm_economics/detector.py",
       "src/director_ai/core/swarm_economics/pool.py",
@@ -5393,6 +5415,7 @@
       "tests/test_sustainability_forecaster.py",
       "tests/test_sustainability_policy_adapter.py",
       "tests/test_sustained_load_evidence.py",
+      "tests/test_swarm_coherence.py",
       "tests/test_swarm_economics.py",
       "tests/test_swarm_equilibrium.py",
       "tests/test_swarm_guardian.py",

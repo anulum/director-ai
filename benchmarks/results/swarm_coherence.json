@@ -1,0 +1,16 @@
+{
+  "benchmark": "swarm_coherence",
+  "cascade": {
+    "n": 4,
+    "accuracy": 1.0
+  },
+  "parity": {
+    "pairs": 3,
+    "bit_exact": true,
+    "kernel_active": true
+  },
+  "throughput": {
+    "observe_per_sec": 210481.3
+  },
+  "backend": "rust_word_overlap kernel with bit-exact Python fallback"
+}

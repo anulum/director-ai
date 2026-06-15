@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Add **swarm-level coherence**
+  (`director_ai.core.swarm_coherence.SwarmCoherenceMonitor`): a stateful monitor
+  for multi-agent cascades that checks each agent's claims against every earlier
+  agent's established claims with an injected NLI scorer and halts the cascade on
+  the first cross-agent contradiction, before a downstream agent consumes the
+  poisoned context. Claims from the same agent are never compared against each
+  other; each flagged conflict carries evidence (which agent, which claims,
+  contradiction strength, topical overlap). Wired as
+  `ProductionGuard.new_swarm_monitor(...)`. Topical overlap uses the Rust
+  `rust_word_overlap` fast path with a bit-exact Python fallback. 100% module
+  tests; benchmark `benchmarks/swarm_coherence.py` (cascade-halt correctness
+  1.00, parity exact, ~210k observe/s); documented in
+  `docs-site/guide/swarm-coherence.md`.
 - Add **hallucination economics**
   (`director_ai.core.routing.HallucinationEconomics`): selects the guard action
   whose expected total cost is lowest for a request, where
