@@ -87,3 +87,17 @@ def test_python_fallback_when_kernel_absent(monkeypatch):
     big = " ".join(["w"] * 1200)
     # even above the threshold, with no kernel it must still return the Python value
     assert word_overlap(big, big, large_input_words=1000) == 1.0
+
+
+@pytest.mark.parametrize("exc", [RuntimeError, ValueError, TypeError])
+def test_rust_path_failure_is_mandatory(monkeypatch, exc):
+    """A failure in the dispatched Rust path is re-raised, never silently swallowed."""
+
+    def _boom(_a, _b):
+        raise exc("ffi fail")
+
+    monkeypatch.setattr(to, "_RUST_WORD_OVERLAP", True)
+    monkeypatch.setattr(to, "rust_word_overlap", _boom)
+    big = " ".join(["w"] * 1200)
+    with pytest.raises(exc, match="ffi"):
+        word_overlap(big, big, large_input_words=1000)
