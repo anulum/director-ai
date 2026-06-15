@@ -32,18 +32,7 @@ import time
 from collections import Counter
 from dataclasses import dataclass, field
 
-from director_ai.core.mandatory import mandatory_execution
-
-try:
-    from backfire_kernel import rust_word_overlap
-
-    _RUST_LOOP_MONITOR = True
-except ImportError:
-    _RUST_LOOP_MONITOR = True
-
-    def rust_word_overlap(_goal: str, _action_desc: str) -> float:
-        raise RuntimeError("backfire_kernel rust_word_overlap is unavailable")
-
+from director_ai.core.text_overlap import word_overlap
 
 __all__ = ["LoopMonitor", "StepVerdict", "LoopStatus"]
 
@@ -243,18 +232,8 @@ class LoopMonitor:
         Returns 0.0 (perfectly aligned) to 1.0 (completely off-topic).
         For production use, replace with NLI-based scorer.
         """
-        if _RUST_LOOP_MONITOR:
-            with mandatory_execution(
-                __name__,
-                component="mandatory agentic loop Rust kernel",
-            ):
-                similarity = float(rust_word_overlap(goal, action_desc))
-        else:
-            goal_words = set(goal.lower().split())
-            action_words = set(action_desc.lower().split())
-            if not goal_words or not action_words:
-                return 1.0
-            intersection = goal_words & action_words
-            union = goal_words | action_words
-            similarity = len(intersection) / len(union) if union else 0.0
+        # Delegates to the shared measured-fast-path word-overlap helper (pure
+        # Python below a large-input threshold, Rust above it). Empty inputs give
+        # 0.0 overlap -> maximal 1.0 drift, as before.
+        similarity = word_overlap(goal, action_desc, logger_name=__name__)
         return 1.0 - similarity

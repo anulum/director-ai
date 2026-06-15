@@ -10,9 +10,6 @@ from __future__ import annotations
 
 import hashlib
 
-import pytest
-
-import director_ai.agentic.loop_monitor as loop_monitor_mod
 from director_ai.agentic.loop_monitor import LoopMonitor
 
 
@@ -188,47 +185,8 @@ class TestJaccardDrift:
         score = LoopMonitor._jaccard_drift("find revenue data", "find sales data")
         assert 0.0 < score < 1.0
 
-    def test_python_fallback_jaccard_paths(self, monkeypatch):
-        monkeypatch.setattr(loop_monitor_mod, "_RUST_LOOP_MONITOR", False)
-
-        assert LoopMonitor._jaccard_drift("find revenue", "find revenue") == 0.0
-        assert LoopMonitor._jaccard_drift("find revenue", "delete database") == 1.0
-        assert (
-            0.0
-            < LoopMonitor._jaccard_drift(
-                "find revenue data",
-                "find sales data",
-            )
-            < 1.0
-        )
-
-    def test_python_fallback_empty_inputs(self, monkeypatch):
-        monkeypatch.setattr(loop_monitor_mod, "_RUST_LOOP_MONITOR", False)
-
-        assert LoopMonitor._jaccard_drift("", "test") == 1.0
-        assert LoopMonitor._jaccard_drift("test", "") == 1.0
-
     def test_empty_strings(self):
+        # _jaccard_drift now delegates to the shared text_overlap helper (dispatch
+        # covered by test_text_overlap); empty inputs give 0 overlap -> 1.0 drift.
         assert LoopMonitor._jaccard_drift("", "test") == 1.0
         assert LoopMonitor._jaccard_drift("test", "") == 1.0
-
-    def test_rust_delegation(self, monkeypatch):
-        monkeypatch.setattr(loop_monitor_mod, "_RUST_LOOP_MONITOR", True)
-        monkeypatch.setattr(
-            loop_monitor_mod,
-            "rust_word_overlap",
-            lambda goal, action: 0.8 if goal and action else 0.0,
-            raising=False,
-        )
-        score = LoopMonitor._jaccard_drift("find revenue", "find revenue quickly")
-        assert score == pytest.approx(0.2)
-
-    def test_rust_delegation_empty_inputs(self, monkeypatch):
-        monkeypatch.setattr(loop_monitor_mod, "_RUST_LOOP_MONITOR", True)
-        monkeypatch.setattr(
-            loop_monitor_mod,
-            "rust_word_overlap",
-            lambda goal, action: 0.0,
-            raising=False,
-        )
-        assert LoopMonitor._jaccard_drift("", "test") == 1.0
