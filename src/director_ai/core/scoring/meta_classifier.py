@@ -26,13 +26,14 @@ from pathlib import Path
 import numpy as np
 
 from ..mandatory import mandatory_execution
+from ..text_overlap import word_overlap
 
 logger = logging.getLogger("DirectorAI.MetaClassifier")
 
 _CLASSIFIER_FORMAT = "director.dataset_type_classifier.v1"
 
 try:
-    from backfire_kernel import rust_sum_f64, rust_word_overlap
+    from backfire_kernel import rust_sum_f64
 
     _RUST_META = True
 except ImportError:
@@ -105,16 +106,13 @@ TEXT_FEATURE_COLS = [
 
 
 def _word_overlap(text_a: str, text_b: str) -> float:
-    """Return lexical Jaccard overlap in ``[0, 1]``."""
-    if _RUST_META:
-        with mandatory_execution(__name__, component="mandatory accelerated path"):
-            return float(rust_word_overlap(text_a, text_b))
-    words_a = set(text_a.lower().split())
-    words_b = set(text_b.lower().split())
-    if not words_a or not words_b:
-        return 0.0
-    union = words_a | words_b
-    return len(words_a & words_b) / len(union) if union else 0.0
+    """Return lexical Jaccard overlap in ``[0, 1]``.
+
+    Delegates to the shared measured-fast-path helper: pure Python below a large
+    -input threshold (faster for these claim-sized inputs), the Rust kernel only
+    above it. See :mod:`director_ai.core.text_overlap`.
+    """
+    return word_overlap(text_a, text_b, logger_name=__name__)
 
 
 def extract_features(

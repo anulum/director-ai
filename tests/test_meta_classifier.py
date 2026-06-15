@@ -90,58 +90,14 @@ class TestExtractFeatures:
         assert feat["confidence"] == 0.0
 
 
-class TestWordOverlapRustDelegation:
-    def test_python_fallback_overlap(self, monkeypatch):
-        import director_ai.core.meta_classifier as meta_mod
-
-        monkeypatch.setattr(meta_mod, "_RUST_META", False)
+class TestWordOverlap:
+    # The Python/Rust dispatch now lives in the shared
+    # director_ai.core.text_overlap helper (covered by test_text_overlap); these
+    # tests pin the overlap *values* the meta-classifier relies on.
+    def test_overlap_values(self):
         assert _word_overlap("alpha beta", "alpha gamma") == pytest.approx(1.0 / 3.0)
         assert _word_overlap("", "alpha gamma") == 0.0
-
-    def test_rust_overlap_delegation(self, monkeypatch):
-        import director_ai.core.meta_classifier as meta_mod
-
-        monkeypatch.setattr(meta_mod, "_RUST_META", True)
-        monkeypatch.setattr(
-            meta_mod,
-            "rust_word_overlap",
-            lambda text_a, text_b: 0.75 if text_a and text_b else 0.0,
-            raising=False,
-        )
-        assert _word_overlap("alpha", "beta") == 0.75
-
-    def test_rust_overlap_exception_falls_back_to_python(self, monkeypatch):
-        import director_ai.core.meta_classifier as meta_mod
-
-        monkeypatch.setattr(meta_mod, "_RUST_META", True)
-
-        def _boom(_a, _b):
-            raise RuntimeError("ffi fail")
-
-        monkeypatch.setattr(meta_mod, "rust_word_overlap", _boom, raising=False)
-        assert _word_overlap("alpha beta", "alpha gamma") == pytest.approx(1.0 / 3.0)
-
-    def test_rust_overlap_non_runtime_exception_falls_back_to_python(self, monkeypatch):
-        import director_ai.core.meta_classifier as meta_mod
-
-        monkeypatch.setattr(meta_mod, "_RUST_META", True)
-
-        def _boom(_a, _b):
-            raise ValueError("ffi fail")
-
-        monkeypatch.setattr(meta_mod, "rust_word_overlap", _boom, raising=False)
-        assert _word_overlap("alpha beta", "alpha gamma") == pytest.approx(1.0 / 3.0)
-
-    def test_rust_overlap_type_error_falls_back_to_python(self, monkeypatch):
-        import director_ai.core.meta_classifier as meta_mod
-
-        monkeypatch.setattr(meta_mod, "_RUST_META", True)
-
-        def _boom(_a, _b):
-            raise TypeError("ffi fail")
-
-        monkeypatch.setattr(meta_mod, "rust_word_overlap", _boom, raising=False)
-        assert _word_overlap("alpha beta", "alpha gamma") == pytest.approx(1.0 / 3.0)
+        assert _word_overlap("alpha beta", "alpha beta") == 1.0
 
     def test_extract_features_uses_overlap_helper(self, monkeypatch):
         import director_ai.core.meta_classifier as meta_mod
