@@ -11,6 +11,17 @@
 Primary dataset source: ``wandb/RAGTruth-processed`` on HuggingFace.
 Fallback source: ``flowaicom/RAGTruth_test``.
 
+**Honest standing (2026-06-15).** On RAGTruth example-level we are *behind* the
+specialised baseline: our last committed NLI run scored **F1 0.44** (catch 0.49,
+FPR 0.41, n=2700, `results/ragtruth_nli_results.json`), whereas the open-source
+token-level baseline **LettuceDetect reports F1 ~0.79** (arXiv 2502.17125). This
+contrasts with our strong AggreFact standing (#6, 75.6 BAcc) and is a genuine
+open weak point. Likely cause: this harness scores the *whole multi-sentence
+response* in one pass, but FactCG/MiniCheck are *claim-level* fact-checkers — they
+should decompose the response into atomic claims, score each against the context,
+and flag the response if any claim is unsupported. A decompose-then-aggregate
+variant + a GPU re-run is the open task before drawing a model-quality conclusion.
+
 Usage::
 
     python -m benchmarks.ragtruth_eval --max-samples 100
