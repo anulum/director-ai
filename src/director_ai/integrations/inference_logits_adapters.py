@@ -122,7 +122,7 @@ class LogitsHaltProcessor:
             InferenceHookRequest(
                 server=self._hook.server,
                 accumulated_text=text,
-                candidate_token="",
+                candidate_token="",  # nosec B106 - LLM generation token, not a credential
                 token_id=self._eos,
                 request_id=self._request_id,
                 tenant_id=self._tenant_id,

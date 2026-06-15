@@ -29,12 +29,14 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass, field
+from typing import TYPE_CHECKING
 
-from ..citation_grounding.citations import (
-    Citation,
-    reference_section_start,
-    resolve_citations,
-)
+if TYPE_CHECKING:
+    # ``Citation`` is used only as a (PEP 563 string) annotation here, so the
+    # advanced BUSL-1.1 citation_grounding package is not needed to import this
+    # module — the Apache-2.0 core wheel excludes it. ``trace_citations`` imports
+    # the runtime helpers lazily and raises a clear error if the tier is absent.
+    from ..citation_grounding.citations import Citation
 
 __all__ = [
     "ClaimCitation",
@@ -99,6 +101,16 @@ def trace_citations(text: str) -> TraceResult:
     Returns a :class:`TraceResult` with one :class:`ClaimCitation` per claim
     sentence in the body (the reference section, if any, is excluded).
     """
+    try:
+        from ..citation_grounding.citations import (
+            reference_section_start,
+            resolve_citations,
+        )
+    except ImportError as exc:  # pragma: no cover - only without the advanced tier
+        raise ImportError(
+            "citation tracing requires the advanced citation-grounding module "
+            "(BUSL-1.1), which is absent from the Apache-2.0 core wheel"
+        ) from exc
     body_end = reference_section_start(text)
     citations = [c for c in resolve_citations(text) if c.start < body_end]
     spans = _sentence_spans(text[:body_end])
