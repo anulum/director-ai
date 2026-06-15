@@ -91,6 +91,48 @@ Scores one candidate token and returns a server-neutral action.
 Tunes the decision: `hard_limit`, `block_token_id`, `block_logit`,
 `steering_bias_logit`, `halt_reason`, `tenant_safe_explanation`.
 
+## Drop-in logits processors (vLLM / TGI / llama.cpp)
+
+`director_ai.integrations.inference_logits_adapters` wires the hook into each
+server's real per-step contract — `(token_ids, logits) -> logits` — so it is a
+drop-in logits processor rather than glue you write yourself. At a claim boundary
+the adapter decodes the text so far, scores it, and on a halt decision masks
+every logit except the end-of-sequence token, which makes the server stop on its
+next step. Between claim boundaries it passes the logits through untouched.
+
+```python
+from director_ai.integrations.inference_server_hooks import build_inference_server_hook
+from director_ai.integrations.inference_logits_adapters import build_vllm_logits_processor
+
+hook = build_inference_server_hook("vllm", score_fn=my_coherence_score, hard_limit=0.4)
+processor = build_vllm_logits_processor(
+    hook, decode_fn=tokenizer.decode, eos_token_id=tokenizer.eos_token_id
+)
+# vLLM:        SamplingParams(logits_processors=[processor])
+# TGI / HF:    LogitsProcessorList([processor])         (build_tgi_logits_processor)
+# llama.cpp:   Llama(..., logits_processor=processor)   (build_llama_cpp_logits_processor)
+```
+
+The adapter only needs `len()`, indexing, and item assignment on `logits`, so a
+Python list, a NumPy array, and a torch tensor all work — no torch or server SDK
+is imported. The halt is sticky (once tripped, every later step stays halted) and
+emits a tenant-safe `SafetyEvent` to an optional `on_halt` sink.
+
+### Measured overhead
+
+`benchmarks/inference_hook_overhead.py` (heuristic scorer, no model; results in
+`benchmarks/results/inference_hook_overhead.json`):
+
+| Step | p50 | When it applies |
+|---|---|---|
+| Pass-through / token | **0.39 µs** | every token between claim boundaries |
+| Allow at boundary (1 local score) | **~128 µs** | once per completed claim |
+| EOS mask (vocab 32k / 128k) | 0.6 ms / 2.4 ms | one-off, only when a halt fires |
+
+Steady-state per-token overhead is sub-microsecond; the coherence score is paid
+only at claim boundaries, and the EOS mask (a pure-Python loop here) is a one-off
+that a vectorised tensor write reduces to microseconds in production.
+
 ## Predictive pre-halt steering (advanced tier)
 
 `InferenceServerHook.steer(request, steering_decision, logits)` applies a

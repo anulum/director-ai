@@ -5,11 +5,11 @@
     "model_documentation_pages": 88,
     "optional_extras": 57,
     "public_api_exports": 221,
-    "public_documentation_pages": 198,
-    "python_model_classes": 966,
-    "python_model_source_modules": 418,
+    "public_documentation_pages": 199,
+    "python_model_classes": 967,
+    "python_model_source_modules": 419,
     "rust_pyo3_model_wrappers": 82,
-    "test_files": 516
+    "test_files": 518
   },
   "documentation": {
     "public_pages": [
@@ -197,6 +197,7 @@
       "docs-site/integrations/fastapi-guard.md",
       "docs-site/integrations/guardrails-ai.md",
       "docs-site/integrations/haystack.md",
+      "docs-site/integrations/inference-server-hooks.md",
       "docs-site/integrations/langchain.md",
       "docs-site/integrations/langgraph.md",
       "docs-site/integrations/llamaindex.md",
@@ -2321,6 +2322,10 @@
       {
         "name": "LocalTrainingBackend",
         "path": "src/director_ai/core/training/jobs.py"
+      },
+      {
+        "name": "LogitsHaltProcessor",
+        "path": "src/director_ai/integrations/inference_logits_adapters.py"
       },
       {
         "name": "LoopMonitor",
@@ -4579,6 +4584,7 @@
       "src/director_ai/integrations/fastapi_guard.py",
       "src/director_ai/integrations/guardrails_ai.py",
       "src/director_ai/integrations/haystack.py",
+      "src/director_ai/integrations/inference_logits_adapters.py",
       "src/director_ai/integrations/inference_server_hooks.py",
       "src/director_ai/integrations/langchain.py",
       "src/director_ai/integrations/langchain_callback.py",
@@ -5224,6 +5230,8 @@
       "tests/test_hybrid_hardening.py",
       "tests/test_hyde_backend.py",
       "tests/test_import_guard.py",
+      "tests/test_inference_hook_overhead.py",
+      "tests/test_inference_logits_adapters.py",
       "tests/test_inference_server_hooks.py",
       "tests/test_ingest.py",
       "tests/test_ingestion_pipeline.py",

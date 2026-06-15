@@ -1,0 +1,32 @@
+{
+  "benchmark": "inference_hook_overhead",
+  "scorer": "CoherenceScorer (heuristic, use_nli=False), local",
+  "repeats": 3000,
+  "pass_through_per_token": {
+    "n": 3000,
+    "p50_us": 0.387,
+    "p95_us": 0.449,
+    "mean_us": 0.407
+  },
+  "allow_at_boundary": {
+    "n": 3000,
+    "p50_us": 128.352,
+    "p95_us": 194.556,
+    "mean_us": 136.782
+  },
+  "eos_mask_by_vocab": {
+    "32000": {
+      "n": 300,
+      "p50_us": 623.714,
+      "p95_us": 961.461,
+      "mean_us": 681.427
+    },
+    "128256": {
+      "n": 300,
+      "p50_us": 2373.853,
+      "p95_us": 3097.5,
+      "mean_us": 2474.345
+    }
+  },
+  "note": "Per-token overhead added by the Director-AI logits adapter only (detokenisation is the server's cost). The EOS mask is a one-off at halt, not a per-token cost."
+}
