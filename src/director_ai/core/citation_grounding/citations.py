@@ -71,13 +71,19 @@ _ARXIV_RE = re.compile(
 _URL_RE = re.compile(r"https?://[^\s\]\)<>\"']*[^\s\]\)<>\"'.,;:]")
 _NUMERIC_RE = re.compile(r"\[(\d+(?:\s*[-,]\s*\d+)*)\]")
 # ``(Name, YEAR)`` / ``(Name et al., YEAR)`` / ``(Name and Other, YEAR)``.
+# Whitespace and letter runs are bounded (``{0,N}`` not ``*``/``+``) so the
+# patterns cannot backtrack polynomially on adversarial inputs with long space
+# runs (CodeQL py/polynomial-redos); the bounds far exceed any real citation.
 _AUTHOR_YEAR_RE = re.compile(
-    r"\(([A-Z][A-Za-z.'’-]+(?:\s+(?:et al\.?|and|&)\s*[A-Za-z.'’-]*)?),?\s+"
+    r"\(([A-Z][A-Za-z.'’-]{1,40}(?:\s{1,4}(?:et al\.?|and|&)\s{0,4}"
+    r"[A-Za-z.'’-]{0,40})?),?\s{1,4}"
     r"(\d{4}[a-z]?)\)"
 )
 # A reference-list line: a leading ``[n]`` / ``n.`` / ``n)`` label.
-_REF_LABEL_RE = re.compile(r"^\s*(?:\[(\d+)\]|(\d+)[.)])\s+(.*)$")
-_SECTION_RE = re.compile(r"(?im)^\s*(references|bibliography|works cited)\s*:?\s*$")
+_REF_LABEL_RE = re.compile(r"^[ \t]{0,8}(?:\[(\d+)\]|(\d+)[.)])[ \t]{1,8}(.*)$")
+_SECTION_RE = re.compile(
+    r"(?im)^[ \t]{0,8}(references|bibliography|works cited)[ \t]{0,8}:?[ \t]{0,8}$"
+)
 
 
 @dataclass(frozen=True)

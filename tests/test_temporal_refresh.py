@@ -139,6 +139,22 @@ def test_resolve_ddg_redirect_without_uddg_param():
     )
 
 
+def test_lookalike_host_is_not_treated_as_duckduckgo():
+    # A host that merely contains 'duckduckgo.com' as a substring must not be
+    # unwrapped as a DuckDuckGo redirect (incomplete-url-substring-sanitization).
+    href = "//duckduckgo.com.evil.test/l/?uddg=https%3A%2F%2Fattacker.test%2Fx"
+    # Returned unchanged (normalised to https), NOT the decoded uddg target.
+    assert (
+        tr._resolve_ddg_href(href)
+        == "https://duckduckgo.com.evil.test/l/?uddg=https%3A%2F%2Fattacker.test%2Fx"
+    )
+
+
+def test_genuine_ddg_subdomain_still_resolves():
+    href = "//html.duckduckgo.com/l/?uddg=https%3A%2F%2Fen.wikipedia.org%2Fwiki%2FY"
+    assert tr._resolve_ddg_href(href) == "https://en.wikipedia.org/wiki/Y"
+
+
 def test_ddg_hits_parsing_and_cap():
     hits = tr._ddg_hits(_DDG_HTML, max_results=5)
     assert len(hits) == 2

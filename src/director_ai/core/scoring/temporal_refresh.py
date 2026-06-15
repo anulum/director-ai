@@ -129,7 +129,13 @@ def _resolve_ddg_href(href: str) -> str:
     """
     clean = _html.unescape(href).strip()
     split = urlsplit(clean if "//" not in clean[:2] else "https:" + clean)
-    if "duckduckgo.com" in split.netloc and split.path.startswith("/l/"):
+    # Exact host match (strip any user:pass@/:port) so a look-alike host such as
+    # ``duckduckgo.com.evil.test`` cannot be mistaken for DuckDuckGo (CodeQL
+    # py/incomplete-url-substring-sanitization).
+    host = split.netloc.rsplit("@", 1)[-1].split(":", 1)[0].lower()
+    if (host == "duckduckgo.com" or host.endswith(".duckduckgo.com")) and (
+        split.path.startswith("/l/")
+    ):
         target = parse_qs(split.query).get("uddg", [])
         if target:
             return unquote(target[0])

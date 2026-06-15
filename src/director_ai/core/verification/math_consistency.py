@@ -58,9 +58,12 @@ _AST_OPS: dict[type[ast.AST], Callable[..., float]] = {
 }
 
 # left = right | left equals [to] right | left is equal to right
+# The LHS body and whitespace runs are bounded ({0,N} not *) so the pattern
+# cannot backtrack polynomially on long digit/space runs (CodeQL
+# py/polynomial-redos); 200 chars far exceeds any real arithmetic expression.
 _EQUATION_RE = re.compile(
-    r"(?P<lhs>[\d(][\d\s,.+\-*/×÷·()]*?[\d)])\s*"
-    r"(?:=|equals?(?:\s+to)?|is\s+equal\s+to)\s*"
+    r"(?P<lhs>[\d(][\d\s,.+\-*/×÷·()]{0,200}?[\d)])\s{0,4}"
+    r"(?:=|equals?(?:\s{1,4}to)?|is\s{1,4}equal\s{1,4}to)\s{0,4}"
     r"(?P<rhs>-?\$?(?:\d{1,3}(?:,\d{3})+(?:\.\d+)?|\d+(?:\.\d+)?))",
     re.IGNORECASE,
 )
