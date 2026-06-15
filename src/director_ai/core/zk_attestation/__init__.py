@@ -15,9 +15,9 @@ bundle of typed :class:`AttestationStatement` claims, each backed
 by a cryptographic proof that B's :class:`PassportVerifier` can
 check offline.
 
-This package ships one real backend — :class:`CommitmentBackend`
-— and a :class:`ZkSnarkBackend` protocol for pluggable zk-SNARK
-adapters.
+This package ships two real backends — :class:`CommitmentBackend`
+and :class:`SchnorrAttestationBackend` — plus a
+:class:`ZkSnarkBackend` protocol for pluggable zk-SNARK adapters.
 
 * **CommitmentBackend** is a cryptographic commitment scheme
   (Merkle tree of HMAC-committed samples + challenge-based
@@ -26,6 +26,14 @@ adapters.
   it ``zk`` would be dishonest. It is suitable when the two orgs
   already trust a minimal protocol round-trip (commit → receive
   challenge → open revealed indices).
+* **SchnorrAttestationBackend** seals each sample contribution in
+  an additively-homomorphic Pedersen commitment and proves the
+  aggregate opening with a non-interactive Schnorr proof, so the
+  individual sample values stay hidden (perfect hiding) while the
+  aggregate and the threshold decision are checkable. It reveals
+  the aggregate value itself; hiding that too (revealing only
+  "threshold met") needs a zero-knowledge range proof, which is
+  the :class:`ZkSnarkBackend` plug-in's job.
 * **ZkSnarkBackend** is a Protocol for real zk-SNARK adapters
   (groth16 via arkworks / gnark / bellman) brought in as
   entry-points or direct subclass. Shipping such a backend is
@@ -50,6 +58,14 @@ from .passport import (
     PassportVerdict,
     PassportVerifier,
 )
+from .schnorr import (
+    DEFAULT_PARAMETERS,
+    AggregateAttestation,
+    PedersenParameters,
+    SchnorrAttestationBackend,
+    SchnorrProof,
+    pedersen_commit,
+)
 from .statements import (
     AttestationStatement,
     DomainExperience,
@@ -59,6 +75,8 @@ from .statements import (
 )
 
 __all__ = [
+    "DEFAULT_PARAMETERS",
+    "AggregateAttestation",
     "AttestationBackend",
     "AttestationStatement",
     "CommitmentBackend",
@@ -72,8 +90,12 @@ __all__ = [
     "PassportIssuer",
     "PassportVerdict",
     "PassportVerifier",
+    "PedersenParameters",
+    "SchnorrAttestationBackend",
+    "SchnorrProof",
     "ZkSnarkBackend",
     "commit_samples",
     "open_indices",
+    "pedersen_commit",
     "verify_opening",
 ]

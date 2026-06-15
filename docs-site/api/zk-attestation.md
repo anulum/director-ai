@@ -162,3 +162,43 @@ verdict = agent.verify_passport(incoming_passport)
 
 `verify_passport` raises `RuntimeError` when no verifier is attached
 — the check is opt-in.
+
+## `SchnorrAttestationBackend` (zero-knowledge of sample values)
+
+The `CommitmentBackend` proves a statement by opening a random subset of
+samples — sound, but it reveals those raw samples. `SchnorrAttestationBackend`
+hides them. Each sample's contribution `v_i` is sealed in an additively
+homomorphic Pedersen commitment `C_i = g^{v_i}·h^{r_i} (mod p)` over a
+prime-order group with `log_g h` unknown, so a commitment is perfectly hiding.
+By homomorphism the product of the per-sample commitments is a commitment to the
+aggregate `A = Σ v_i`; the prover reveals only `A` and a non-interactive Schnorr
+proof of knowledge of the blinding `R` in `(∏ C_i)·g^{-A} = h^R` (Fiat-Shamir
+over SHA-256).
+
+```python
+from director_ai.core.zk_attestation import (
+    SchnorrAttestationBackend, MinimumCoherence,
+)
+
+backend = SchnorrAttestationBackend()
+statement = MinimumCoherence(name="coherence", threshold=0.8, samples_min=8)
+proof = backend.prove(statement, samples)        # private samples in, ZK proof out
+accepted, reason = backend.verify(statement, proof)
+```
+
+What it hides and what it does not, stated plainly:
+
+- **hidden:** every individual sample value and blinding (perfect hiding);
+- **revealed:** the aggregate `A` and the public statement/threshold;
+- **not proven here:** that the committed `v_i` are honest evaluations of real
+  samples — compose with the spot-checking `CommitmentBackend`, or a real SNARK,
+  for that. Hiding the aggregate itself (revealing only "threshold met") needs a
+  zero-knowledge range proof (Bulletproofs / SNARK), which is the
+  `ZkSnarkBackend` plug-in's job.
+
+The default group is a generated 2048-bit safe prime; `PedersenParameters` are
+re-verified (primality of `p` and `q = (p-1)/2`, subgroup membership of the
+generators) at construction, so a corrupted constant fails fast. Measured with
+`python -m benchmarks.zk_schnorr`: soundness/completeness checks pass, prove and
+verify are single modular-exponentiation-bound operations over the 2048-bit
+group (see `benchmarks/results/zk_schnorr.json`).

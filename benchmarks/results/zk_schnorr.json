@@ -1,0 +1,18 @@
+{
+  "benchmark": "zk_schnorr",
+  "correctness": {
+    "checks": 3,
+    "correct": 1.0
+  },
+  "latency": {
+    "samples": 16,
+    "prove_ms": 389.659,
+    "verify_ms": 61.884
+  },
+  "proof_size": {
+    "samples": 16,
+    "group_elements": 18,
+    "modulus_bits": 2048
+  },
+  "backend": "pedersen-schnorr NIZK over a 2048-bit safe-prime group"
+}

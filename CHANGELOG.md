@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Add **zero-knowledge attestation backend**
+  (`director_ai.core.zk_attestation.SchnorrAttestationBackend`): seals each
+  sample's statement contribution in an additively-homomorphic Pedersen
+  commitment over a 2048-bit safe-prime group and proves the aggregate opening
+  with a non-interactive Schnorr proof (Fiat-Shamir over SHA-256), so individual
+  sample values stay hidden (perfect hiding) while the aggregate and the
+  statement threshold remain verifiable. Complements the existing
+  `CommitmentBackend`, which reveals opened samples. The group parameters are
+  re-verified (primality of `p` and `q = (p-1)/2`, subgroup membership) at
+  construction. The aggregate value itself is revealed; hiding it (revealing only
+  "threshold met") remains the documented `ZkSnarkBackend` range-proof plug-in.
+  100% module tests (47, covering completeness, soundness against tampered
+  aggregate/commitment/response, homomorphism, hiding, context binding, and
+  parameter validation); benchmark `benchmarks/zk_schnorr.py`; documented in
+  `docs-site/api/zk-attestation.md`.
 - Add **swarm-level coherence**
   (`director_ai.core.swarm_coherence.SwarmCoherenceMonitor`): a stateful monitor
   for multi-agent cascades that checks each agent's claims against every earlier
