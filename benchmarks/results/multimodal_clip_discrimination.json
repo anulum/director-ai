@@ -1,0 +1,23 @@
+{
+  "benchmark": "multimodal_clip_discrimination",
+  "colours": [
+    "blue",
+    "green",
+    "red",
+    "yellow"
+  ],
+  "clip": {
+    "available": false,
+    "reason": "No module named 'open_clip'. Install with: pip install director-ai[multimodal]"
+  },
+  "hashbag_baseline": {
+    "available": true,
+    "n_matched": 4,
+    "n_mismatched": 12,
+    "mean_matched": 0.0,
+    "mean_mismatched": 0.0,
+    "gap": 0.0,
+    "pairwise_auc": 0.5
+  },
+  "note": "Matched = correct-colour caption, mismatched = other-colour captions. A semantic backend separates them (gap > 0, AUC -> 1); the byte hash-bag cannot relate image bytes to text and shows no separation."
+}

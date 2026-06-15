@@ -124,3 +124,66 @@ class TestBuildHashbagAdapter:
     def test_empty_enabled_rejected(self):
         with pytest.raises(ValueError, match="at least one enabled modality"):
             build_hashbag_adapter(enabled_modalities=())
+
+
+# -- CLIP adapter wiring (injected loader; no open_clip/torch/model download) -
+
+
+class TestBuildClipAdapter:
+    """build_clip_adapter wires real CLIP image encoder/verifier through one
+    shared model; the loader is injected so the wiring is verified offline."""
+
+    @staticmethod
+    def _stub_loader_factory():
+        calls = []
+
+        def loader(model_name, pretrained, device):
+            calls.append((model_name, pretrained, device))
+            # (model, preprocess, tokenizer, dim) — opaque stubs are enough for
+            # construction; encode/verify (which need torch) are not exercised.
+            return object(), object(), object(), 16
+
+        return loader, calls
+
+    def test_loader_called_with_configured_model_and_returns_adapter(self):
+        from director_ai.core.multimodal_guard import (
+            MultimodalVerifierAdapter,
+            build_clip_adapter,
+        )
+
+        loader, calls = self._stub_loader_factory()
+        adapter = build_clip_adapter(
+            enabled_modalities=("image", "audio"),
+            benchmarked_modalities=("image",),
+            model_name="ViT-L-14",
+            pretrained="laion2b_s32b_b82k",
+            device="cpu",
+            loader=loader,
+        )
+        assert isinstance(adapter, MultimodalVerifierAdapter)
+        assert calls == [("ViT-L-14", "laion2b_s32b_b82k", "cpu")]
+
+    def test_image_path_uses_clip_encoder_and_verifier(self):
+        from director_ai.core.multimodal_guard import build_clip_adapter
+        from director_ai.core.multimodal_guard.encoders import TorchCLIPImageEncoder
+        from director_ai.core.multimodal_guard.verifier import (
+            TorchCLIPCrossModalVerifier,
+        )
+
+        loader, _calls = self._stub_loader_factory()
+        adapter = build_clip_adapter(enabled_modalities=("image",), loader=loader)
+        guard = adapter._image_guard  # noqa: SLF001 - wiring assertion
+        assert isinstance(guard._encoder, TorchCLIPImageEncoder)  # noqa: SLF001
+        assert isinstance(guard._verifier, TorchCLIPCrossModalVerifier)  # noqa: SLF001
+
+    def test_default_loader_without_open_clip_raises_install_hint(self):
+        # open_clip is not a core dependency; the default loader must point the
+        # operator at the [multimodal] extra rather than fail obscurely.
+        import importlib.util
+
+        from director_ai.core.multimodal_guard.factory import _default_clip_loader
+
+        if importlib.util.find_spec("open_clip") is not None:
+            pytest.skip("open_clip is installed; the ImportError path is not taken")
+        with pytest.raises(ImportError, match=r"director-ai\[multimodal\]"):
+            _default_clip_loader("ViT-B-32", "openai", "cpu")

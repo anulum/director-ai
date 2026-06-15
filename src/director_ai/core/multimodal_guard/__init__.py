@@ -45,7 +45,7 @@ from .adapter import (
 )
 from .claim import MultimodalClaim
 from .encoders import HashBagImageEncoder, ImageEncoder, TorchCLIPImageEncoder
-from .factory import build_hashbag_adapter
+from .factory import build_clip_adapter, build_hashbag_adapter
 from .guard import MultimodalGuard, MultimodalVerdict, TemporalConsistencyGuard
 from .verifier import (
     CrossModalVerifier,
@@ -68,6 +68,7 @@ __all__ = [
     "TemporalConsistencyGuard",
     "TorchCLIPCrossModalVerifier",
     "TorchCLIPImageEncoder",
+    "build_clip_adapter",
     "build_hashbag_adapter",
     "text_bag_similarity",
 ]

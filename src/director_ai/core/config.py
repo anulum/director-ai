@@ -342,6 +342,12 @@ class DirectorConfig:
     multimodal_grounding_floor: float = 0.4
     multimodal_grounding_allow_threshold: float = 0.75
     multimodal_embedding_dim: int = 512
+    # Image backend: "hashbag" (dependency-free FNV baseline, default) or "clip"
+    # (open_clip semantic vision via director-ai[multimodal]).
+    multimodal_backend: str = "hashbag"
+    multimodal_clip_model: str = "ViT-B-32"
+    multimodal_clip_pretrained: str = "openai"
+    multimodal_clip_device: str = "cpu"
     multimodal_policy_id: str = "multimodal-default"
     multimodal_calibrated_threshold: float = 0.5
     multimodal_no_go_threshold: float = 0.9

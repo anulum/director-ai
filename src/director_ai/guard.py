@@ -985,25 +985,48 @@ class ProductionGuard:
         :meth:`check_multimodal` for semantic verification.
         """
         if self._multimodal is None:
-            from director_ai.core.multimodal_guard import build_hashbag_adapter
-
             cfg = self._config
             if not cfg.multimodal_enabled_modalities:
                 raise RuntimeError(
                     "multimodal guard is disabled; set "
                     "multimodal_enabled_modalities in the config to enable it"
                 )
-            self._multimodal = build_hashbag_adapter(
-                enabled_modalities=cfg.multimodal_enabled_modalities,
-                benchmarked_modalities=cfg.multimodal_benchmarked_modalities,
-                dim=cfg.multimodal_embedding_dim,
-                hallucination_threshold=cfg.multimodal_hallucination_threshold,
-                consistency_threshold=cfg.multimodal_consistency_threshold,
-                temporal_alpha=cfg.multimodal_temporal_alpha,
-                temporal_floor=cfg.multimodal_temporal_floor,
-                grounding_floor=cfg.multimodal_grounding_floor,
-                grounding_allow_threshold=cfg.multimodal_grounding_allow_threshold,
-            )
+            if cfg.multimodal_backend == "clip":
+                from director_ai.core.multimodal_guard import build_clip_adapter
+
+                self._multimodal = build_clip_adapter(
+                    enabled_modalities=cfg.multimodal_enabled_modalities,
+                    benchmarked_modalities=cfg.multimodal_benchmarked_modalities,
+                    model_name=cfg.multimodal_clip_model,
+                    pretrained=cfg.multimodal_clip_pretrained,
+                    device=cfg.multimodal_clip_device,
+                    text_dim=cfg.multimodal_embedding_dim,
+                    hallucination_threshold=cfg.multimodal_hallucination_threshold,
+                    consistency_threshold=cfg.multimodal_consistency_threshold,
+                    temporal_alpha=cfg.multimodal_temporal_alpha,
+                    temporal_floor=cfg.multimodal_temporal_floor,
+                    grounding_floor=cfg.multimodal_grounding_floor,
+                    grounding_allow_threshold=cfg.multimodal_grounding_allow_threshold,
+                )
+            elif cfg.multimodal_backend == "hashbag":
+                from director_ai.core.multimodal_guard import build_hashbag_adapter
+
+                self._multimodal = build_hashbag_adapter(
+                    enabled_modalities=cfg.multimodal_enabled_modalities,
+                    benchmarked_modalities=cfg.multimodal_benchmarked_modalities,
+                    dim=cfg.multimodal_embedding_dim,
+                    hallucination_threshold=cfg.multimodal_hallucination_threshold,
+                    consistency_threshold=cfg.multimodal_consistency_threshold,
+                    temporal_alpha=cfg.multimodal_temporal_alpha,
+                    temporal_floor=cfg.multimodal_temporal_floor,
+                    grounding_floor=cfg.multimodal_grounding_floor,
+                    grounding_allow_threshold=cfg.multimodal_grounding_allow_threshold,
+                )
+            else:
+                raise RuntimeError(
+                    f"unknown multimodal_backend {cfg.multimodal_backend!r}; "
+                    "expected 'hashbag' or 'clip'"
+                )
         return self._multimodal
 
     def check_multimodal(self, request, *, adapter=None):

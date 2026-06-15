@@ -83,3 +83,48 @@ def test_disabled_modality_in_request_rejected():
     guard = _guard(enabled=("image",), benchmarked=("image",))
     with pytest.raises(ValueError):
         guard.check_multimodal(_request(modality="audio"))  # not enabled
+
+
+# -- backend selection (hashbag default vs CLIP) ------------------------------
+
+
+def test_clip_backend_routes_to_build_clip_adapter(monkeypatch):
+    import director_ai.core.multimodal_guard as mm
+
+    sentinel = object()
+    captured = {}
+
+    def fake_build_clip_adapter(**kwargs):
+        captured.update(kwargs)
+        return sentinel
+
+    monkeypatch.setattr(mm, "build_clip_adapter", fake_build_clip_adapter)
+    guard = ProductionGuard(
+        config=DirectorConfig(
+            use_nli=False,
+            multimodal_enabled_modalities=("image",),
+            multimodal_backend="clip",
+            multimodal_clip_model="ViT-B-16",
+        )
+    )
+    assert guard.multimodal_adapter is sentinel
+    assert captured["model_name"] == "ViT-B-16"
+    assert captured["enabled_modalities"] == ("image",)
+
+
+def test_unknown_backend_raises():
+    guard = ProductionGuard(
+        config=DirectorConfig(
+            use_nli=False,
+            multimodal_enabled_modalities=("image",),
+            multimodal_backend="bogus",
+        )
+    )
+    with pytest.raises(RuntimeError, match="unknown multimodal_backend"):
+        _ = guard.multimodal_adapter
+
+
+def test_hashbag_remains_the_default_backend():
+    guard = _guard()
+    # The default backend builds a working hash-bag adapter (no exception).
+    assert guard.multimodal_adapter is not None
