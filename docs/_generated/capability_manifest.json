@@ -9,7 +9,7 @@
     "python_model_classes": 966,
     "python_model_source_modules": 418,
     "rust_pyo3_model_wrappers": 82,
-    "test_files": 514
+    "test_files": 515
   },
   "documentation": {
     "public_pages": [
@@ -5448,6 +5448,7 @@
       "tests/test_starter_presets.py",
       "tests/test_stats.py",
       "tests/test_streaming.py",
+      "tests/test_streaming_contradiction_halt_bench.py",
       "tests/test_streaming_debug.py",
       "tests/test_streaming_false_halt_benchmark_quality.py",
       "tests/test_streaming_gate.py",
