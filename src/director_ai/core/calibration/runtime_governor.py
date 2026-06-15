@@ -42,8 +42,13 @@ from __future__ import annotations
 import time
 from collections.abc import Callable
 from dataclasses import dataclass, field
+from typing import TYPE_CHECKING
 
 from director_ai.core.calibration.segmented_threshold import SegmentedThresholdLearner
+
+if TYPE_CHECKING:
+    from director_ai.core.calibration.conformal import PredictionInterval
+    from director_ai.core.routing.uncertainty_router import UncertaintyRouter
 
 __all__ = [
     "ThresholdChange",
@@ -113,7 +118,7 @@ class RuntimeThresholdGovernor:
     current_threshold: float
     max_step: float = 0.05
     auto_apply: bool = False
-    uncertainty_router: object | None = None
+    uncertainty_router: UncertaintyRouter | None = None
     uncertainty_penalty: float = 0.1
     clock: Callable[[], float] = time.monotonic
     _live: dict[str, float] = field(default_factory=dict, repr=False)
@@ -234,7 +239,7 @@ class RuntimeThresholdGovernor:
         )
 
     def effective_threshold(
-        self, segment: str, *, interval: object | None = None
+        self, segment: str, *, interval: PredictionInterval | None = None
     ) -> EffectiveThreshold:
         """Return the threshold to use now, tightened on conformal uncertainty."""
         base = self.live_threshold(segment)

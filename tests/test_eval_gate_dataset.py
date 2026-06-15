@@ -49,9 +49,7 @@ def test_rules_profile_gate_passes_workflow_thresholds():
     report = run_eval_gate(
         cases,
         scorer,
-        GateThresholds(
-            min_accuracy=0.9, min_catch_rate=0.9, max_false_halt_rate=0.1
-        ),
+        GateThresholds(min_accuracy=0.9, min_catch_rate=0.9, max_false_halt_rate=0.1),
     )
     assert report.passed, report.failures
     assert os.environ["HF_HUB_OFFLINE"] == "1"
