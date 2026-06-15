@@ -1,0 +1,45 @@
+{
+  "benchmark": "competitor_guard_latency",
+  "workload_pairs": 5,
+  "repeats": 200,
+  "frameworks": [
+    {
+      "framework": "director-ai",
+      "operation": "CoherenceScorer.review (heuristic, local grounding decision, no LLM)",
+      "available": true,
+      "makes_local_grounding_decision": true,
+      "n": 1000,
+      "p50_ms": 0.1371,
+      "p95_ms": 0.2212,
+      "mean_ms": 0.1471,
+      "min_ms": 0.0947,
+      "max_ms": 0.6718
+    },
+    {
+      "framework": "guardrails-ai",
+      "operation": "Guard().parse (framework parse overhead; grounding validators are Hub/LLM-backed)",
+      "makes_local_grounding_decision": false,
+      "available": true,
+      "n": 1000,
+      "p50_ms": 0.9828,
+      "p95_ms": 1.5015,
+      "mean_ms": 1.0686,
+      "min_ms": 0.8167,
+      "max_ms": 7.08
+    },
+    {
+      "framework": "nemo-guardrails",
+      "operation": "RailsConfig.from_content (config-load overhead; rails require an LLM to decide)",
+      "makes_local_grounding_decision": false,
+      "note": "NeMo rails are LLM-bound: production per-call latency is dominated by an LLM round-trip.",
+      "available": true,
+      "n": 200,
+      "p50_ms": 0.7007,
+      "p95_ms": 1.1876,
+      "mean_ms": 0.7715,
+      "min_ms": 0.5603,
+      "max_ms": 1.4949
+    }
+  ],
+  "caveat": "Measures local framework overhead, not LLM latency. Only Director-AI makes a grounding decision locally; Guardrails AI grounding validators and all NeMo rails require an LLM call, adding its full round-trip on top of the numbers shown."
+}
