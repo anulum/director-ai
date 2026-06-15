@@ -1,0 +1,59 @@
+# SPDX-License-Identifier: Apache-2.0
+# © 1998–2026 Miroslav Šotek. All rights reserved.
+# Contact: www.anulum.li | protoscience@anulum.li
+name: Eval Gate
+
+# Block a regression in guard quality on every PR: score a committed labelled
+# set with the offline heuristic scorer (no model download, no network) and fail
+# if accuracy, hallucination catch rate, or false-halt rate cross the bar.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  eval-gate:
+    name: Guard quality gate
+    runs-on: ubuntu-latest
+    env:
+      # Pure offline heuristic scoring: no Hugging Face Hub probe, no model load.
+      HF_HUB_OFFLINE: "1"
+      TRANSFORMERS_OFFLINE: "1"
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+
+      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
+        with:
+          python-version: "3.12"
+
+      - name: Install (core, no model deps)
+        run: |
+          pip install --require-hashes --no-deps -r requirements/ci-dev.txt
+          pip install --no-deps -e .
+
+      - name: Run eval gate
+        run: |
+          python -m director_ai.cli ci-gate \
+            --dataset benchmarks/eval_gate_cases.jsonl \
+            --profile rules \
+            --min-accuracy 0.9 \
+            --min-catch-rate 0.9 \
+            --max-false-halt 0.1 \
+            --output eval-gate-report.json
+
+      - name: Upload gate report
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: eval-gate-report
+          path: eval-gate-report.json
+          if-no-files-found: ignore

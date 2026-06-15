@@ -184,6 +184,7 @@ benchmarks/heldout/
 !benchmarks/multilingual_corpus.jsonl
 !benchmarks/frontierfail_cases.jsonl
 !benchmarks/pint_seed_cases.jsonl
+!benchmarks/eval_gate_cases.jsonl
 benchmarks/forge_ab_results.json
 
 # =====================================================================

@@ -207,9 +207,9 @@ inventory below is reference for the deeper surface, navigable under
 | API documentation pages | 88 |
 | Rust PyO3 bindings | 82 |
 | Optional extras | 57 |
-| Python test files | 510 |
+| Python test files | 511 |
 | Public documentation pages | 198 |
-| GitHub Actions workflows | 11 |
+| GitHub Actions workflows | 12 |
 
 Evidence boundary: this snapshot is a static inventory. Performance, coverage, hardware, and scientific-fidelity claims require their own committed evidence artefacts.
 <!-- capability-snapshot:end -->

@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Add a **pull-request eval gate** (`.github/workflows/eval-gate.yml`): every PR
+  and push to `main` scores the committed `benchmarks/eval_gate_cases.jsonl`
+  through `director-ai ci-gate --profile rules` with the offline heuristic scorer
+  (no model download, no Hugging Face Hub probe — `HF_HUB_OFFLINE`) and fails when
+  accuracy, hallucination catch rate, or false-halt rate cross the bar, blocking a
+  guard-quality regression. A regression test pins the dataset and thresholds in
+  the main suite.
 - Add **runtime threshold governor**
   (`director_ai.core.calibration.runtime_governor.RuntimeThresholdGovernor`):
   the change-management overlay that applies per-segment learned thresholds to

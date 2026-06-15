@@ -1,7 +1,7 @@
 {
   "SPDX-License-Identifier": "Apache-2.0 AND BUSL-1.1",
   "counts": {
-    "github_workflows": 11,
+    "github_workflows": 12,
     "model_documentation_pages": 88,
     "optional_extras": 57,
     "public_api_exports": 221,
@@ -9,7 +9,7 @@
     "python_model_classes": 966,
     "python_model_source_modules": 417,
     "rust_pyo3_model_wrappers": 82,
-    "test_files": 510
+    "test_files": 511
   },
   "documentation": {
     "public_pages": [
@@ -4994,6 +4994,7 @@
       ".github/workflows/codeql.yml",
       ".github/workflows/docker.yml",
       ".github/workflows/docs.yml",
+      ".github/workflows/eval-gate.yml",
       ".github/workflows/nightly-red-team.yml",
       ".github/workflows/pre-commit.yml",
       ".github/workflows/publish.yml",
@@ -5149,6 +5150,7 @@
       "tests/test_emergence_oracle.py",
       "tests/test_enterprise.py",
       "tests/test_enterprise_modules.py",
+      "tests/test_eval_gate_dataset.py",
       "tests/test_eval_trace.py",
       "tests/test_evidence.py",
       "tests/test_evidence_firewall.py",
