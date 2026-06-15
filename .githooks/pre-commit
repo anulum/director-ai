@@ -10,7 +10,7 @@
 set -eu
 
 blocked_patterns='(^|/)(\.coordination|docs/internal|04_ARCANE_SAPIENCE|ARCHIVE|BACKUP|MODELS)(/|$)|(^|/)\.env($|\.)|(^|/)\.coverage($|\.)|(^|/)coverage\.xml$|(^|/).*\.(pem|key|log)$|(^|/)id_(rsa|ed25519)$|(^|/)(credentials?|secrets?|tokens?)(/|$|[._-])'
-allowed_patterns='(^|/)discord-bot/\.env\.example$|(^|/)src/.*/secret_sharing\.py$|(^|/)benchmarks/models/.*/tokenizer(_config)?\.json$'
+allowed_patterns='(^|/)discord-bot/\.env\.example$|(^|/)src/.*/secret_sharing\.py$|(^|/)src/director_ai/core/secrets\.py$|(^|/)tests/test_secrets\.py$|(^|/)benchmarks/models/.*/tokenizer(_config)?\.json$'
 agent_identity_names='C[o]dex|OpenA[I]|ChatG[P]T|Cl[a]ude|G[e]mini|Anthr[o]pic'
 agent_identity_patterns="(^|[^[:alnum:]_])(generated|written|created|implemented|authored|produced|made)[[:space:]]+(by|with|using)[[:space:]]+(${agent_identity_names})([^[:alnum:]_]|$)|(^|[^[:alnum:]_])(${agent_identity_names})[[:space:]]+(generated|wrote|created|implemented|authored|produced|made)([^[:alnum:]_]|$)"
 google_api_prefix='AI''za'

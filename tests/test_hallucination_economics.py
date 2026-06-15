@@ -194,3 +194,36 @@ def test_guard_economics_low_risk_skips():
     d = guard.guard_economics(0.01)
     assert d.action == "skip"
     assert d.worth_guarding is False
+
+
+# ── Property-based invariants (hypothesis) ───────────────────────────────────
+
+from hypothesis import given, settings  # noqa: E402
+from hypothesis import strategies as st  # noqa: E402
+
+_RISK = st.floats(min_value=0.0, max_value=1.0, allow_nan=False, allow_infinity=False)
+_COST = st.floats(min_value=0.0, max_value=1e6, allow_nan=False, allow_infinity=False)
+
+
+@given(risk=_RISK, cost=_COST)
+@settings(max_examples=200, deadline=None)
+def test_economics_decision_is_consistent(risk, cost):
+    decision = HallucinationEconomics().decide(risk, hallucination_cost=cost)
+    names = {a.name for a in DEFAULT_ACTIONS}
+    assert decision.action in names
+    assert decision.expected_cost >= 0.0
+    assert decision.residual_risk >= 0.0
+    # the chosen action is never worse than doing nothing (skip is in the menu)
+    assert decision.expected_cost <= decision.baseline_cost + 1e-6
+    # value is the loss avoided versus the no-guard baseline
+    assert decision.value >= -1e-6
+    if decision.worth_guarding:
+        assert decision.value > 0.0
+
+
+@given(risk=_RISK, cost=_COST)
+@settings(max_examples=100, deadline=None)
+def test_expected_cost_matches_breakdown_minimum(risk, cost):
+    decision = HallucinationEconomics().decide(risk, hallucination_cost=cost)
+    best = min(c for _, c in decision.breakdown)
+    assert decision.expected_cost == best

@@ -97,12 +97,13 @@ def test_sanitizer_sum_rust_failure_raises(monkeypatch):
         mod._sum_int([1, 2, 3])
 
 
-def test_agentic_loop_monitor_rust_failure_raises(monkeypatch):
-    """Agentic goal-drift checks must fail when the mandatory kernel fails."""
+def test_agentic_loop_monitor_jaccard_drift_values():
+    """Goal-drift now delegates to the shared text_overlap helper, whose Rust
+    path mandatory-failure is enforced in test_text_overlap. Here we pin the
+    drift arithmetic: 1.0 - Jaccard similarity."""
     import director_ai.agentic.loop_monitor as mod
 
-    monkeypatch.setattr(mod, "_RUST_LOOP_MONITOR", True)
-    monkeypatch.setattr(mod, "rust_word_overlap", _raise_kernel_unavailable)
-
-    with pytest.raises(RuntimeError, match="kernel unavailable"):
-        mod.LoopMonitor._jaccard_drift("write report", "open calculator")
+    # No shared words -> 0.0 similarity -> maximal 1.0 drift.
+    assert mod.LoopMonitor._jaccard_drift("write report", "open calculator") == 1.0
+    # Identical tokens -> full similarity -> 0.0 drift.
+    assert mod.LoopMonitor._jaccard_drift("write report", "write report") == 0.0

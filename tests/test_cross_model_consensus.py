@@ -316,3 +316,38 @@ def test_guard_cross_model_consensus_engine_persists():
     first = guard._cross_model
     guard.cross_model_consensus(_responses(("a", "x y z"), ("b", "x y z")))
     assert guard._cross_model is first  # reused when no new nli supplied
+
+
+# ── Property-based invariants (hypothesis) ───────────────────────────────────
+
+from hypothesis import given, settings  # noqa: E402
+from hypothesis import strategies as st  # noqa: E402
+
+_TEXT = st.text(alphabet="abcdefghijklmnopqrstuvwxyz ", min_size=1, max_size=40).filter(
+    lambda s: s.strip()
+)
+
+
+@given(texts=st.lists(_TEXT, min_size=2, max_size=6))
+@settings(max_examples=120, deadline=None)
+def test_consensus_is_bounded_and_matrix_symmetric(texts):
+    panel = [ModelResponse(f"m{i}", t) for i, t in enumerate(texts)]
+    res = CrossModelConsensus().consensus(panel)
+    assert 0.0 <= res.consensus <= 1.0
+    assert res.n_models == len(texts)
+    matrix = res.agreement_matrix
+    for i in range(len(texts)):
+        assert matrix[i][i] == 1.0
+        for j in range(len(texts)):
+            assert matrix[i][j] == matrix[j][i]
+            assert 0.0 <= matrix[i][j] <= 1.0
+    assert res.recommendation in ("accept", "review", "escalate")
+
+
+@given(text=_TEXT, n=st.integers(min_value=2, max_value=5))
+@settings(max_examples=60, deadline=None)
+def test_identical_responses_reach_full_consensus(text, n):
+    panel = [ModelResponse(f"m{i}", text) for i in range(n)]
+    res = CrossModelConsensus().consensus(panel)
+    assert res.consensus == 1.0
+    assert res.recommendation == "accept"

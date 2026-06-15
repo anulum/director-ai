@@ -257,3 +257,45 @@ def test_multiple_contradictions_sorted_strongest_first():
     assert len(update.contradictions) == 2
     assert update.contradictions[0].contradiction == pytest.approx(0.95)
     assert update.contradictions[1].contradiction == pytest.approx(0.6)
+
+
+# ── Property-based invariants (hypothesis) ───────────────────────────────────
+
+from hypothesis import given, settings  # noqa: E402
+from hypothesis import strategies as st  # noqa: E402
+
+_TEXT = st.text(alphabet="abcdefghijklmnopqrstuvwxyz ", min_size=1, max_size=40).filter(
+    lambda s: s.strip()
+)
+# A claim with >= 3 words (so _split_claims keeps it), built without filtering.
+_WORD = st.text(alphabet="abcdefghijklmnopqrstuvwxyz", min_size=2, max_size=8)
+_CLAIM = st.lists(_WORD, min_size=3, max_size=8).map(lambda ws: " ".join(ws) + ".")
+
+
+@given(texts=st.lists(_TEXT, min_size=1, max_size=6))
+@settings(max_examples=120, deadline=None)
+def test_lexical_swarm_never_flags_and_coherence_bounded(texts):
+    mon = SwarmCoherenceMonitor()  # no NLI -> never flags contradictions
+    last = None
+    for i, t in enumerate(texts):
+        last = mon.observe(f"agent{i}", t)
+        assert 0.0 <= last.coherence <= 1.0
+        assert last.halted is False
+        assert last.contradictions == ()
+    assert last is not None
+
+
+@given(
+    prior=_CLAIM,
+    new=_CLAIM,
+    tail=st.lists(_TEXT, max_size=3),
+)
+@settings(max_examples=60, deadline=None)
+def test_swarm_stays_halted_once_contradiction_seen(prior, new, tail):
+    mon = SwarmCoherenceMonitor(nli=_StubNLI({(prior, new): 0.95, (new, prior): 0.95}))
+    mon.observe("a", prior)
+    update = mon.observe("b", new)
+    if update.halted:
+        # monotonic: every later observation stays halted
+        for i, t in enumerate(tail):
+            assert mon.observe(f"c{i}", t).halted is True

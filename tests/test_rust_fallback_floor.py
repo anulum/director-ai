@@ -21,11 +21,12 @@ from __future__ import annotations
 import numpy as np
 
 
-def test_knowledge_word_overlap_python_floor(monkeypatch) -> None:
+def test_knowledge_word_overlap_python_floor() -> None:
     from director_ai.core.retrieval import knowledge
 
-    monkeypatch.setattr(knowledge, "_RUST_KNOWLEDGE", False)
-    # Jaccard of {"a","b","c"} vs {"b","c","d"} = 2/4 = 0.5.
+    # _word_overlap delegates to the shared text_overlap helper, which runs the
+    # pure-Python Jaccard for inputs below the large-input threshold — no kernel
+    # flag to force. Jaccard of {"a","b","c"} vs {"b","c","d"} = 2/4 = 0.5.
     assert knowledge._word_overlap("a b c", "b c d") == 0.5
     assert knowledge._word_overlap("", "x") == 0.0
 
@@ -77,9 +78,8 @@ def test_doc_chunker_sum_python_floor(monkeypatch) -> None:
 
 def test_rust_flags_are_boolean() -> None:
     # The flags must always be plain booleans so the no-Rust floor is reachable.
-    from director_ai.core.retrieval import doc_chunker, knowledge
+    from director_ai.core.retrieval import doc_chunker
     from director_ai.core.scoring import nli
 
-    assert isinstance(knowledge._RUST_KNOWLEDGE, bool)
     assert isinstance(nli._RUST_NLI, bool)
     assert isinstance(doc_chunker._RUST_DOC_CHUNKER, bool)

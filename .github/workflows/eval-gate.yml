@@ -35,9 +35,11 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Install (core, no model deps)
+      - name: Install (core + Rust kernel, no model deps)
         run: |
           pip install --require-hashes --no-deps -r requirements/ci-dev.txt
+          maturin build --release --manifest-path backfire-kernel/crates/backfire-ffi/Cargo.toml --out dist/backfire-kernel
+          python -m pip install --no-deps --no-index dist/backfire-kernel/backfire_kernel-0.1.1-*.whl
           pip install --no-deps -e .
 
       - name: Run eval gate

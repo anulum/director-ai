@@ -281,10 +281,9 @@ class TestFallbackIncidentConcurrency:
         )
 
 
-def test_vector_store_evidence_falls_back_to_keyword_chunks_when_vector_query_misses(
-    monkeypatch,
-) -> None:
-    import director_ai.core.retrieval.knowledge as knowledge
+def test_vector_store_evidence_falls_back_to_keyword_chunks_when_vector_query_misses() -> (
+    None
+):
     from director_ai.core.scorer import CoherenceScorer
     from director_ai.core.vector_store import InMemoryBackend, VectorGroundTruthStore
 
@@ -292,7 +291,6 @@ def test_vector_store_evidence_falls_back_to_keyword_chunks_when_vector_query_mi
         def query(self, text, n_results=3, tenant_id=""):
             return []
 
-    monkeypatch.setattr(knowledge, "_RUST_KNOWLEDGE", False)
     store = VectorGroundTruthStore(backend=EmptyVectorBackend())
     store.add_fact("sky", "The sky is blue.")
     scorer = CoherenceScorer(use_nli=False, ground_truth_store=store)
