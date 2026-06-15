@@ -3,7 +3,7 @@
   "counts": {
     "github_workflows": 12,
     "model_documentation_pages": 88,
-    "optional_extras": 57,
+    "optional_extras": 58,
     "public_api_exports": 221,
     "public_documentation_pages": 199,
     "python_model_classes": 967,
@@ -4956,6 +4956,7 @@
       "managed-training",
       "minicheck",
       "moderation",
+      "multimodal",
       "nli",
       "nli-lite",
       "onnx",

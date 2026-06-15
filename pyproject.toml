@@ -265,6 +265,11 @@ managed-training = [
     "google-cloud-aiplatform>=1.133",
     "google-cloud-storage>=2.14",
 ]
+multimodal = [
+    "open_clip_torch>=2.24,<4",
+    "torchvision>=0.15",
+    "pillow>=10,<13",
+]
 security = [
     "cyclonedx-bom>=4.0",
     "hypothesis>=6.0",
