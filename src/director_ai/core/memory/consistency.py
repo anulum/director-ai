@@ -21,18 +21,7 @@ from pathlib import Path
 from time import time
 from typing import Any
 
-from ..mandatory import mandatory_execution
-
-try:
-    from backfire_kernel import rust_word_overlap
-
-    _RUST_CONSISTENCY = True
-except Exception:  # pragma: no cover - mandatory dependency
-    _RUST_CONSISTENCY = True
-
-    def rust_word_overlap(_text_a: str, _text_b: str) -> float:
-        raise RuntimeError("backfire_kernel rust_word_overlap is unavailable")
-
+from ..text_overlap import word_overlap
 
 __all__ = [
     "CrossDocumentConflict",
@@ -192,22 +181,10 @@ class CrossDocumentConsistencyMemory:
         self._conn.row_factory = sqlite3.Row
         self._init_schema()
 
-    @staticmethod
-    def _python_word_overlap(text_a: str, text_b: str) -> float:
-        words_a = set(text_a.lower().split())
-        words_b = set(text_b.lower().split())
-        if not words_a or not words_b:
-            return 0.0
-        union = words_a | words_b
-        if not union:
-            return 0.0
-        return len(words_a & words_b) / len(union)
-
     def _builtin_similarity(self, text_a: str, text_b: str) -> float:
-        if _RUST_CONSISTENCY:
-            with mandatory_execution(__name__, component="mandatory accelerated path"):
-                return _validate_score(float(rust_word_overlap(text_a, text_b)))
-        return _validate_score(self._python_word_overlap(text_a, text_b))
+        # Delegates to the shared measured-fast-path word-overlap helper (pure
+        # Python below a large-input threshold, Rust above it).
+        return _validate_score(word_overlap(text_a, text_b, logger_name=__name__))
 
     def _init_schema(self) -> None:
         """Create the durable cross-document memory schema."""

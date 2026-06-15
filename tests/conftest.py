@@ -74,7 +74,6 @@ _MANDATORY_ACCELERATOR_FAILURE_NODEIDS = frozenset(
     line.strip()
     for line in """
 tests/test_continual_adversarial.py::TestContinualRustSums::test_rust_sum_type_error_falls_back
-tests/test_cross_document_memory.py::test_builtin_similarity_type_error_falls_back_to_python
 tests/test_cyber_physical.py::TestAABB::test_contains_rust_exception_falls_back_to_python
 tests/test_cyber_physical.py::TestAABB::test_contains_rust_non_runtime_exception_falls_back_to_python
 tests/test_cyber_physical.py::TestSimpleKinematicModel::test_inverse_rust_exception_falls_back_to_python

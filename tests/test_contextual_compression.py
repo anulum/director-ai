@@ -17,7 +17,6 @@ from unittest.mock import MagicMock
 
 import pytest
 
-import director_ai.core.retrieval.contextual_compression as compression_mod
 from director_ai.core.retrieval.contextual_compression import (
     ContextualCompressionBackend,
     _heuristic_compress,
@@ -51,66 +50,12 @@ class TestKeywordOverlap:
     def test_empty_sentence(self):
         assert _keyword_overlap("query", "") == 0.0
 
-    def test_rust_overlap_delegation(self, monkeypatch):
-        monkeypatch.setattr(compression_mod, "_RUST_COMPRESSION", True)
-        monkeypatch.setattr(
-            compression_mod,
-            "rust_word_overlap",
-            lambda query, sentence: 0.7 if query and sentence else 0.0,
-            raising=False,
-        )
-        assert _keyword_overlap("refund", "refund policy sentence") == 0.7
-
-    def test_python_overlap_fallback_when_rust_unavailable(self, monkeypatch):
-        monkeypatch.setattr(compression_mod, "_RUST_COMPRESSION", False)
+    def test_overlap_value(self):
+        # _keyword_overlap now delegates to the shared text_overlap helper
+        # (dispatch + mandatory-failure covered by test_text_overlap).
         assert _keyword_overlap("refund policy", "refund process") == pytest.approx(
             1.0 / 3.0
         )
-
-    def test_rust_overlap_exception_is_mandatory_failure(self, monkeypatch):
-        monkeypatch.setattr(compression_mod, "_RUST_COMPRESSION", True)
-
-        def _boom(_query, _sentence):
-            raise RuntimeError("ffi fail")
-
-        monkeypatch.setattr(
-            compression_mod,
-            "rust_word_overlap",
-            _boom,
-            raising=False,
-        )
-        with pytest.raises(RuntimeError, match="ffi"):
-            _keyword_overlap("refund policy", "refund process")
-
-    def test_rust_overlap_non_runtime_exception_is_mandatory_failure(self, monkeypatch):
-        monkeypatch.setattr(compression_mod, "_RUST_COMPRESSION", True)
-
-        def _boom(_query, _sentence):
-            raise ValueError("ffi fail")
-
-        monkeypatch.setattr(
-            compression_mod,
-            "rust_word_overlap",
-            _boom,
-            raising=False,
-        )
-        with pytest.raises(ValueError, match="ffi"):
-            _keyword_overlap("refund policy", "refund process")
-
-    def test_rust_overlap_type_error_is_mandatory_failure(self, monkeypatch):
-        monkeypatch.setattr(compression_mod, "_RUST_COMPRESSION", True)
-
-        def _boom(_query, _sentence):
-            raise TypeError("ffi signature mismatch")
-
-        monkeypatch.setattr(
-            compression_mod,
-            "rust_word_overlap",
-            _boom,
-            raising=False,
-        )
-        with pytest.raises(TypeError, match="ffi signature mismatch"):
-            _keyword_overlap("refund policy", "refund process")
 
 
 # ── Heuristic compression ─────────────────────────────────────────────

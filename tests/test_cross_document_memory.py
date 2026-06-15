@@ -8,7 +8,6 @@
 
 import pytest
 
-import director_ai.core.memory.consistency as consistency_mod
 from director_ai.core import CrossDocumentConsistencyMemory
 from director_ai.core.memory.consistency import (
     CrossDocumentConflict,
@@ -135,17 +134,10 @@ def test_retention_limit_and_right_to_delete(tmp_path):
     assert memory.count(tenant_id="tenant-a") == 0
 
 
-def test_builtin_similarity_uses_rust_kernel_when_enabled(tmp_path, monkeypatch):
-    monkeypatch.setattr(consistency_mod, "_RUST_CONSISTENCY", True)
-    called = {"count": 0}
-
-    def _rust_overlap(text_a: str, text_b: str) -> float:
-        called["count"] += 1
-        return 0.9
-
-    monkeypatch.setattr(
-        consistency_mod, "rust_word_overlap", _rust_overlap, raising=True
-    )
+def test_builtin_similarity_flags_identical_documents(tmp_path):
+    # _builtin_similarity now delegates to the shared text_overlap helper
+    # (dispatch + mandatory-failure covered by test_text_overlap); identical
+    # documents have overlap 1.0 and must trip the contradiction threshold.
     memory = CrossDocumentConsistencyMemory(
         tmp_path / "consistency.sqlite",
         use_builtin_similarity=True,
@@ -154,29 +146,7 @@ def test_builtin_similarity_uses_rust_kernel_when_enabled(tmp_path, monkeypatch)
     )
     memory.record_document("tenant-a", "doc-1", "Policy remains approved.")
     report = memory.check_document("tenant-a", "doc-2", "Policy remains approved.")
-    assert called["count"] >= 1
-    assert report.decision == "warn"
-
-
-def test_builtin_similarity_type_error_falls_back_to_python(tmp_path, monkeypatch):
-    monkeypatch.setattr(consistency_mod, "_RUST_CONSISTENCY", True)
-    monkeypatch.setattr(
-        consistency_mod,
-        "rust_word_overlap",
-        lambda _text_a, _text_b: (_ for _ in ()).throw(
-            TypeError("ffi signature mismatch")
-        ),
-        raising=True,
-    )
-    memory = CrossDocumentConsistencyMemory(
-        tmp_path / "consistency.sqlite",
-        use_builtin_similarity=True,
-        warn_threshold=0.2,
-        contradiction_threshold=0.95,
-    )
-    memory.record_document("tenant-a", "doc-1", "Policy remains approved.")
-    report = memory.check_document("tenant-a", "doc-2", "Policy remains approved.")
-    assert report.decision in {"warn", "block", "allow"}
+    assert report.decision in {"warn", "block"}
 
 
 def test_validation_rejects_invalid_tenant_document_text_scores_and_thresholds(
@@ -246,24 +216,15 @@ def test_document_serialisation_count_and_close_paths(tmp_path) -> None:
     memory.close()
 
 
-def test_python_word_overlap_and_builtin_fallback_cover_empty_and_non_empty(
-    tmp_path,
-    monkeypatch,
-) -> None:
-    monkeypatch.setattr(consistency_mod, "_RUST_CONSISTENCY", False)
+def test_builtin_similarity_scores_partial_overlap(tmp_path) -> None:
+    # _builtin_similarity delegates to the shared text_overlap helper; "policy
+    # approved" vs "policy pending" share one of three tokens -> 1/3.
     memory = CrossDocumentConsistencyMemory(
         tmp_path / "consistency.sqlite",
         use_builtin_similarity=True,
         warn_threshold=0.2,
         contradiction_threshold=0.9,
     )
-
-    assert memory._python_word_overlap("", "policy text") == 0.0
-    assert memory._python_word_overlap("policy text", "") == 0.0
-    assert memory._python_word_overlap(
-        "policy text", "policy approved"
-    ) == pytest.approx(1 / 3)
-
     memory.record_document("tenant-a", "doc-1", "policy approved")
     report = memory.check_document("tenant-a", "doc-2", "policy pending")
 
@@ -300,10 +261,11 @@ def test_check_document_without_scoring_allows_and_skip_same_document(tmp_path) 
     assert same_doc_report.conflicts == ()
 
 
-def test_python_word_overlap_is_jaccard():
-    # Pure-Python fallback (the Rust path bypasses it when the kernel is
-    # present): Jaccard token overlap, with empty inputs scoring 0.
-    overlap = CrossDocumentConsistencyMemory._python_word_overlap
-    assert overlap("the quick brown fox", "the lazy brown dog") == pytest.approx(2 / 6)
-    assert overlap("", "anything here") == 0.0
-    assert overlap("no shared tokens", "completely different words") == 0.0
+def test_builtin_similarity_jaccard_values(tmp_path):
+    # The overlap that backs _builtin_similarity is Jaccard token overlap (now
+    # via the shared text_overlap helper; empties score 0).
+    memory = CrossDocumentConsistencyMemory(tmp_path / "consistency.sqlite")
+    assert memory._builtin_similarity(
+        "the quick brown fox", "the lazy brown dog"
+    ) == pytest.approx(2 / 6)
+    assert memory._builtin_similarity("no shared tokens", "completely different") == 0.0

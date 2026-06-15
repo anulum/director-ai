@@ -37,20 +37,9 @@ from typing import Any
 
 from director_ai.core.retrieval.vector_store import VectorBackend
 
-from ..mandatory import mandatory_execution
+from ..text_overlap import word_overlap
 
 logger = logging.getLogger("DirectorAI.Compression")
-
-try:
-    from backfire_kernel import rust_word_overlap
-
-    _RUST_COMPRESSION = True
-except ImportError:
-    _RUST_COMPRESSION = True
-
-    def rust_word_overlap(_query: str, _sentence: str) -> float:
-        raise RuntimeError("backfire_kernel rust_word_overlap is unavailable")
-
 
 __all__ = ["ContextualCompressionBackend"]
 
@@ -58,15 +47,12 @@ _SENT_SPLIT = re.compile(r"(?<=[.!?])\s+")
 
 
 def _keyword_overlap(query: str, sentence: str) -> float:
-    """Jaccard word overlap between query and sentence."""
-    if _RUST_COMPRESSION:
-        with mandatory_execution(__name__, component="mandatory accelerated path"):
-            return float(rust_word_overlap(query, sentence))
-    q_words = set(query.lower().split())
-    s_words = set(sentence.lower().split())
-    if not q_words or not s_words:
-        return 0.0
-    return len(q_words & s_words) / len(q_words | s_words)
+    """Jaccard word overlap between query and sentence.
+
+    Delegates to the shared measured-fast-path helper (pure Python below a large
+    -input threshold, Rust above it). See :mod:`director_ai.core.text_overlap`.
+    """
+    return word_overlap(query, sentence, logger_name=__name__)
 
 
 def _heuristic_compress(query: str, text: str, threshold: float) -> str:
