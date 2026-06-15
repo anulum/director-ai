@@ -70,11 +70,11 @@ from .passport import (
     PassportVerifier,
 )
 from .schnorr import (
-    DEFAULT_PARAMETERS,
     AggregateAttestation,
     PedersenParameters,
     SchnorrAttestationBackend,
     SchnorrProof,
+    default_parameters,
     pedersen_commit,
 )
 from .statements import (
@@ -84,6 +84,19 @@ from .statements import (
     MinimumCoherence,
     NoBreakoutEvents,
 )
+
+
+def __getattr__(name: str) -> object:
+    """Lazily expose ``DEFAULT_PARAMETERS`` so importing this package stays cheap.
+
+    Building the default group runs a primality re-check (a few 2048-bit modular
+    exponentiations); deferring it keeps ``from director_ai.core.zk_attestation
+    import CommitmentBackend`` fast for callers that never touch the Schnorr group.
+    """
+    if name == "DEFAULT_PARAMETERS":
+        return default_parameters()
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
 
 __all__ = [
     "DEFAULT_PARAMETERS",
@@ -111,5 +124,6 @@ __all__ = [
     "min_aggregate_for",
     "open_indices",
     "pedersen_commit",
+    "default_parameters",
     "verify_opening",
 ]

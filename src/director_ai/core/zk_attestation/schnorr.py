@@ -58,7 +58,8 @@ __all__ = [
     "SchnorrProof",
     "AggregateAttestation",
     "SchnorrAttestationBackend",
-    "DEFAULT_PARAMETERS",
+    "DEFAULT_PARAMETERS",  # noqa: F822 — provided lazily via module __getattr__
+    "default_parameters",
 ]
 
 # Generated 2048-bit safe prime p = 2q + 1 (q prime); re-verified at construction.
@@ -151,7 +152,28 @@ def _build_default_parameters() -> PedersenParameters:
     return params
 
 
-DEFAULT_PARAMETERS = _build_default_parameters()
+_DEFAULT_PARAMETERS: PedersenParameters | None = None
+
+
+def default_parameters() -> PedersenParameters:
+    """Return the shared default group, building (and self-verifying) it once.
+
+    The group's primality re-check is a few 2048-bit modular exponentiations, so
+    it is built lazily on first use and cached — importing this module stays
+    cheap, and the cost is paid only by a caller that actually needs a default
+    ``PedersenParameters``.
+    """
+    global _DEFAULT_PARAMETERS
+    if _DEFAULT_PARAMETERS is None:
+        _DEFAULT_PARAMETERS = _build_default_parameters()
+    return _DEFAULT_PARAMETERS
+
+
+def __getattr__(name: str) -> object:
+    """Lazily expose ``DEFAULT_PARAMETERS`` without paying its cost at import."""
+    if name == "DEFAULT_PARAMETERS":
+        return default_parameters()
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 
 def pedersen_commit(value: int, blind: int, params: PedersenParameters) -> int:
@@ -244,7 +266,7 @@ class SchnorrAttestationBackend:
         a deterministic source.
     """
 
-    parameters: PedersenParameters = field(default_factory=lambda: DEFAULT_PARAMETERS)
+    parameters: PedersenParameters = field(default_factory=default_parameters)
     rng: object = field(default=None)
     kind: str = field(default="schnorr-pedersen", init=False)
 
