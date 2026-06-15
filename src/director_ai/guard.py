@@ -922,6 +922,54 @@ class ProductionGuard:
             nli=nli, contradiction_threshold=contradiction_threshold
         )
 
+    def new_threshold_governor(
+        self,
+        *,
+        candidate_thresholds: tuple[float, ...] | None = None,
+        max_step: float = 0.05,
+        auto_apply: bool = False,
+        with_uncertainty_router: bool = True,
+    ):
+        """Build a runtime threshold governor seeded from this guard's threshold.
+
+        Wires the per-segment
+        :class:`~director_ai.core.calibration.SegmentedThresholdLearner` into a
+        :class:`~director_ai.core.calibration.runtime_governor.RuntimeThresholdGovernor`
+        that applies learned thresholds to the live runtime under a
+        change-management overlay: bounded stepping (``max_step``), human-approval
+        gating (unless ``auto_apply``), and an audit history. ``current_threshold``
+        is this guard's ``coherence_threshold``; the candidate grid defaults to
+        ``0.1 … 0.9``. With ``with_uncertainty_router`` (default) the governor's
+        ``effective_threshold`` tightens on a wide/unreliable conformal interval.
+        Returns a fresh governor so each deployment keeps its own live state and
+        audit trail.
+        """
+        from director_ai.core.calibration.runtime_governor import (
+            RuntimeThresholdGovernor,
+        )
+        from director_ai.core.calibration.segmented_threshold import (
+            SegmentedThresholdLearner,
+        )
+
+        current = self._config.coherence_threshold
+        if candidate_thresholds is None:
+            candidate_thresholds = tuple(round(0.1 * i, 1) for i in range(1, 10))
+        learner = SegmentedThresholdLearner(
+            candidate_thresholds=candidate_thresholds, current_threshold=current
+        )
+        router = None
+        if with_uncertainty_router:
+            from director_ai.core.routing import UncertaintyRouter
+
+            router = UncertaintyRouter()
+        return RuntimeThresholdGovernor(
+            learner=learner,
+            current_threshold=current,
+            max_step=max_step,
+            auto_apply=auto_apply,
+            uncertainty_router=router,
+        )
+
     @property
     def rasp(self):
         """Runtime application self-protection from behavioural anomalies.

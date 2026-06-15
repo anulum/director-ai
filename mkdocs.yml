@@ -148,6 +148,7 @@ nav:
       - Swarm Coherence: guide/swarm-coherence.md
       - Threshold Tuning: guide/threshold-tuning.md
       - Per-Segment Thresholds: guide/segmented-thresholds.md
+      - Runtime Threshold Governor: guide/runtime-threshold-governor.md
       - KB Ingestion: guide/kb-ingestion.md
       - CI Quality Gate: guide/ci-gate.md
       - Evidence & Fallback: guide/evidence.md

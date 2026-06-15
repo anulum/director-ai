@@ -5,11 +5,11 @@
     "model_documentation_pages": 88,
     "optional_extras": 57,
     "public_api_exports": 221,
-    "public_documentation_pages": 197,
-    "python_model_classes": 963,
-    "python_model_source_modules": 416,
+    "public_documentation_pages": 198,
+    "python_model_classes": 966,
+    "python_model_source_modules": 417,
     "rust_pyo3_model_wrappers": 82,
-    "test_files": 509
+    "test_files": 510
   },
   "documentation": {
     "public_pages": [
@@ -170,6 +170,7 @@
       "docs-site/guide/quantization.md",
       "docs-site/guide/runtime-boundaries.md",
       "docs-site/guide/runtime-extraction-evaluation.md",
+      "docs-site/guide/runtime-threshold-governor.md",
       "docs-site/guide/rust-acceleration.md",
       "docs-site/guide/rust-benchmarks.md",
       "docs-site/guide/rust-ffi.md",
@@ -1472,6 +1473,10 @@
       {
         "name": "EdgeRuntimeReadiness",
         "path": "src/director_ai/core/edge/runtime_profile.py"
+      },
+      {
+        "name": "EffectiveThreshold",
+        "path": "src/director_ai/core/calibration/runtime_governor.py"
       },
       {
         "name": "ElasticsearchBackend",
@@ -3330,6 +3335,10 @@
         "path": "src/director_ai/core/rasp/monitor.py"
       },
       {
+        "name": "RuntimeThresholdGovernor",
+        "path": "src/director_ai/core/calibration/runtime_governor.py"
+      },
+      {
         "name": "RustBackend",
         "path": "src/director_ai/core/scoring/backends.py"
       },
@@ -3806,6 +3815,10 @@
         "path": "src/director_ai/core/training/tuner.py"
       },
       {
+        "name": "ThresholdChange",
+        "path": "src/director_ai/core/calibration/runtime_governor.py"
+      },
+      {
         "name": "ThresholdFeedback",
         "path": "src/director_ai/core/calibration/adaptive_threshold.py"
       },
@@ -4225,6 +4238,7 @@
       "src/director_ai/core/calibration/conformal.py",
       "src/director_ai/core/calibration/feedback_store.py",
       "src/director_ai/core/calibration/online_calibrator.py",
+      "src/director_ai/core/calibration/runtime_governor.py",
       "src/director_ai/core/calibration/segmented_threshold.py",
       "src/director_ai/core/canary/detector.py",
       "src/director_ai/core/canary/registry.py",
@@ -5374,6 +5388,7 @@
       "tests/test_root_cause.py",
       "tests/test_rules_scorer.py",
       "tests/test_run_judge_benchmark.py",
+      "tests/test_runtime_governor.py",
       "tests/test_runtime_session.py",
       "tests/test_rust_compute.py",
       "tests/test_rust_fallback_floor.py",

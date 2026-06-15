@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Add **runtime threshold governor**
+  (`director_ai.core.calibration.runtime_governor.RuntimeThresholdGovernor`):
+  the change-management overlay that applies per-segment learned thresholds to
+  the live runtime under control — a change is proposed only once a segment has
+  its own evidence, each applied change moves at most `max_step` toward the
+  recommendation (no jumps), human-approval-gated recommendations are held until
+  `apply(..., approve=True)` (unless `auto_apply`), and every applied change is
+  audited. `effective_threshold(segment, interval=...)` tightens the live
+  threshold on a wide/unreliable conformal interval via the `UncertaintyRouter`.
+  Wired as `ProductionGuard.new_threshold_governor(...)`, completing the F5
+  adaptive-thresholding runtime integration and the conformal/uncertainty tie-in.
+  100% module tests (26); benchmark `benchmarks/runtime_governor.py` (gating
+  correctness 1.00, bounded convergence, ~100k proposals/s); documented in
+  `docs-site/guide/runtime-threshold-governor.md`.
 - Add **aggregate-hiding range-proof attestation backend**
   (`director_ai.core.zk_attestation.BulletproofRangeBackend`): proves an
   aggregate over hidden per-sample values meets a public threshold while

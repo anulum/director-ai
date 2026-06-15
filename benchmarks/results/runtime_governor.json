@@ -1,0 +1,16 @@
+{
+  "benchmark": "runtime_governor",
+  "gating": {
+    "n": 4,
+    "accuracy": 1.0
+  },
+  "convergence": {
+    "target": 0.9,
+    "max_step": 0.05,
+    "steps": 8
+  },
+  "throughput": {
+    "proposals_per_sec": 101141.3
+  },
+  "backend": "python-deterministic (change-management control flow)"
+}
