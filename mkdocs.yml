@@ -180,6 +180,7 @@ nav:
       - Troubleshooting: guide/troubleshooting.md
       - Migration (v2→v3): guide/migration-v2-v3.md
   - Integrations:
+      - Inference-Server Hooks (vLLM/TGI/llama.cpp): integrations/inference-server-hooks.md
       - LLM SDK Guard: integrations/sdk-guard.md
       - FastAPI Middleware: integrations/fastapi-guard.md
       - Vercel AI SDK: integrations/vercel-ai.md
