@@ -1,0 +1,64 @@
+{
+  "benchmark": "word_overlap_crossover",
+  "measurement": "relative, non-isolated (Python vs Rust, same process)",
+  "kernel_available": true,
+  "sustained_crossover_words": null,
+  "recommended_default": "python",
+  "rows": [
+    {
+      "words": 5,
+      "py_us": 2.1346,
+      "rust_us": 1.5058,
+      "speedup": 1.418
+    },
+    {
+      "words": 10,
+      "py_us": 2.7829,
+      "rust_us": 3.8469,
+      "speedup": 0.723
+    },
+    {
+      "words": 20,
+      "py_us": 7.4984,
+      "rust_us": 8.2042,
+      "speedup": 0.914
+    },
+    {
+      "words": 50,
+      "py_us": 15.1908,
+      "rust_us": 21.4598,
+      "speedup": 0.708
+    },
+    {
+      "words": 100,
+      "py_us": 42.7955,
+      "rust_us": 47.5782,
+      "speedup": 0.899
+    },
+    {
+      "words": 200,
+      "py_us": 66.8232,
+      "rust_us": 82.7668,
+      "speedup": 0.807
+    },
+    {
+      "words": 500,
+      "py_us": 170.5371,
+      "rust_us": 186.2729,
+      "speedup": 0.916
+    },
+    {
+      "words": 1000,
+      "py_us": 305.759,
+      "rust_us": 309.9752,
+      "speedup": 0.986
+    },
+    {
+      "words": 2000,
+      "py_us": 437.3403,
+      "rust_us": 548.7667,
+      "speedup": 0.797
+    }
+  ],
+  "note": "sustained_crossover_words is the smallest input size at which Rust is faster and stays faster for all larger sizes; None means no size where Rust reliably wins, so the runtime default for these call sites should be pure Python (their inputs sit in the 10-500-word range)."
+}
