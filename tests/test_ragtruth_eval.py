@@ -127,3 +127,51 @@ def test_evaluate_decomposed_min_coverage_threshold_tunes_sensitivity() -> None:
     )
     assert strict.tp == 1  # flagged
     assert lenient.fn == 1  # passed (missed)
+
+
+class TestRowLabel:
+    """``_row_label`` must read the real ``wandb/RAGTruth-processed`` schema.
+
+    The raw ``hallucination_labels`` field arrives as a JSON *string* (``"[]"``
+    for grounded rows), so a plain truthiness test treats every grounded row as
+    hallucinated — the bug that made the whole test split look 100% positive.
+    """
+
+    def test_grounded_json_string_is_negative(self) -> None:
+        # "[]" is a non-empty string but an empty span list -> grounded.
+        assert ragtruth_eval._row_label({"hallucination_labels": "[]"}) is False
+
+    def test_hallucinated_json_string_is_positive(self) -> None:
+        row = {"hallucination_labels": '[{"start": 0, "end": 4}]'}
+        assert ragtruth_eval._row_label(row) is True
+
+    def test_processed_counts_drive_label(self) -> None:
+        conflict = {"hallucination_labels_processed": {"evident_conflict": 1}}
+        baseless = {"hallucination_labels_processed": {"baseless_info": 1}}
+        clean = {"hallucination_labels_processed": {"evident_conflict": 0}}
+        assert ragtruth_eval._row_label(conflict) is True
+        assert ragtruth_eval._row_label(baseless) is True
+        assert ragtruth_eval._row_label(clean) is False
+
+    def test_explicit_bool_label_takes_precedence(self) -> None:
+        # A falsey explicit label must win over a populated span list.
+        row = {"label": 0, "hallucination_labels": '[{"x": 1}]'}
+        assert ragtruth_eval._row_label(row) is False
+        assert ragtruth_eval._row_label({"is_hallucinated": 1}) is True
+
+    def test_native_list_span_annotation(self) -> None:
+        assert ragtruth_eval._row_label({"hallucination_labels": [{"x": 1}]}) is True
+        assert ragtruth_eval._row_label({"hallucination_labels": []}) is False
+
+
+class TestHasSpanAnnotation:
+    def test_malformed_json_falls_back_to_string_emptiness(self) -> None:
+        assert ragtruth_eval._has_span_annotation("not-json") is True
+        assert ragtruth_eval._has_span_annotation("   ") is False
+        assert ragtruth_eval._has_span_annotation("null") is False
+        assert ragtruth_eval._has_span_annotation("{}") is False
+
+    def test_parsed_empty_and_nonempty(self) -> None:
+        assert ragtruth_eval._has_span_annotation("[]") is False
+        assert ragtruth_eval._has_span_annotation('[{"a": 1}]') is True
+        assert ragtruth_eval._has_span_annotation(None) is False

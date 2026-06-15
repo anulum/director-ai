@@ -31,6 +31,7 @@ Usage::
 
 from __future__ import annotations
 
+import json
 import logging
 import time
 from collections.abc import Callable, Sequence
@@ -140,14 +141,32 @@ def run_ragtruth(
 
 
 def _row_label(item: dict) -> bool:
-    """RAGTruth example-level hallucination label across the known schemas."""
+    """RAGTruth example-level hallucination label across the known schemas.
+
+    A row is hallucinated when it carries any span annotation. The processed
+    counts (``evident_conflict`` / ``baseless_info``) and the raw
+    ``hallucination_labels`` span list agree exactly on ``wandb/RAGTruth-processed``
+    (943/2700 positive on the test split), so either signal is authoritative. The
+    raw field is a JSON *string* (``"[]"`` for grounded), which must be parsed —
+    a truthiness test on the string treats every grounded row as positive.
+    """
+    explicit = item.get("label", item.get("is_hallucinated"))
+    if explicit is not None:
+        return bool(explicit)
     labels = item.get("hallucination_labels_processed", {}) or {}
-    return bool(
-        item.get("label", item.get("is_hallucinated", 0))
-        or labels.get("evident_conflict", 0)
-        or labels.get("baseless_info", 0)
-        or item.get("hallucination_labels")
-    )
+    if labels.get("evident_conflict", 0) or labels.get("baseless_info", 0):
+        return True
+    return _has_span_annotation(item.get("hallucination_labels"))
+
+
+def _has_span_annotation(raw: object) -> bool:
+    """True when the raw ``hallucination_labels`` field holds a non-empty span list."""
+    if isinstance(raw, str):
+        try:
+            raw = json.loads(raw)
+        except (ValueError, TypeError):
+            return bool(raw.strip()) and raw.strip() not in ("[]", "null", "{}")
+    return bool(raw)
 
 
 def evaluate_decomposed(
