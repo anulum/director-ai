@@ -22,6 +22,7 @@ import re
 from dataclasses import dataclass, field
 
 from ..mandatory import mandatory_execution
+from ..text_overlap import word_overlap
 from .citation_tracer import TraceResult, trace_citations
 from .fallacy_detector import FallacyMatch, detect_fallacies
 from .math_consistency import ArithmeticCheck, verify_arithmetic
@@ -37,7 +38,6 @@ try:
     from backfire_kernel import (
         rust_extract_reasoning_steps,
         rust_split_sentences,
-        rust_word_overlap,
     )
 
     _RUST_REASONING = True
@@ -51,9 +51,6 @@ except ImportError:
 
     def rust_split_sentences(_text: str) -> list[str]:
         raise RuntimeError("backfire_kernel rust_split_sentences is unavailable")
-
-    def rust_word_overlap(_text_a: str, _text_b: str) -> float:
-        raise RuntimeError("backfire_kernel rust_word_overlap is unavailable")
 
 
 _STEP_PATTERNS = [
@@ -203,18 +200,13 @@ def extract_steps(text: str) -> list[ReasoningStep]:
 def _word_overlap(a: str, b: str) -> float:
     """Jaccard word overlap as a heuristic for logical support.
 
-    Strips trailing punctuation from each token so that sentence-
-    boundary artefacts (e.g. ``"round."`` vs ``"round"``) do not
-    reduce the overlap score.
+    Delegates to the shared measured-fast-path helper
+    (:mod:`director_ai.core.text_overlap`): pure Python below a large-input
+    threshold, the Rust kernel above it. Tokens are case-folded and
+    whitespace-split with punctuation retained — the same tokenisation the kernel
+    used in production, so the score is unchanged.
     """
-    if _RUST_REASONING:
-        with mandatory_execution(__name__, component="mandatory accelerated path"):
-            return float(rust_word_overlap(a, b))
-    wa = {w.strip(".,;:!?\"'()[]") for w in a.lower().split()} - {""}
-    wb = {w.strip(".,;:!?\"'()[]") for w in b.lower().split()} - {""}
-    if not wa or not wb:
-        return 0.0
-    return len(wa & wb) / len(wa | wb)
+    return word_overlap(a, b, logger_name=__name__)
 
 
 def verify_reasoning_chain(

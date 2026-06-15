@@ -258,8 +258,10 @@ class TestVerifyReasoningChain:
         unsupported = [v for v in result.verdicts if v.verdict != "supported"]
         assert len(unsupported) >= 1
 
-    def test_word_overlap_falls_back_when_rust_ffi_raises(self, monkeypatch):
-        monkeypatch.setattr(reasoning_mod, "_RUST_REASONING", True)
+    def test_word_overlap_drives_step_support(self, monkeypatch):
+        # _word_overlap now delegates to the shared text_overlap helper (dispatch
+        # and mandatory-failure propagation covered by test_text_overlap); a
+        # reasoning chain whose steps repeat the same claim is well-supported.
         monkeypatch.setattr(
             reasoning_mod,
             "rust_extract_reasoning_steps",
@@ -270,70 +272,6 @@ class TestVerifyReasoningChain:
             reasoning_mod,
             "rust_split_sentences",
             lambda text: [s.strip() for s in text.split(".") if s.strip()],
-            raising=False,
-        )
-        monkeypatch.setattr(
-            reasoning_mod,
-            "rust_word_overlap",
-            lambda _a, _b: (_ for _ in ()).throw(RuntimeError("ffi fail")),
-            raising=False,
-        )
-        text = (
-            "1. The policy improves reliability for users.\n"
-            "2. The policy improves reliability for users.\n"
-            "3. Therefore we should adopt the policy."
-        )
-        result = verify_reasoning_chain(text, support_threshold=0.8)
-        assert result.steps_found >= 2
-
-    def test_word_overlap_falls_back_when_rust_ffi_raises_non_runtime(
-        self, monkeypatch
-    ):
-        monkeypatch.setattr(reasoning_mod, "_RUST_REASONING", True)
-        monkeypatch.setattr(
-            reasoning_mod,
-            "rust_extract_reasoning_steps",
-            lambda _text: [],
-            raising=False,
-        )
-        monkeypatch.setattr(
-            reasoning_mod,
-            "rust_split_sentences",
-            lambda text: [s.strip() for s in text.split(".") if s.strip()],
-            raising=False,
-        )
-        monkeypatch.setattr(
-            reasoning_mod,
-            "rust_word_overlap",
-            lambda _a, _b: (_ for _ in ()).throw(ValueError("ffi fail")),
-            raising=False,
-        )
-        text = (
-            "1. The policy improves reliability for users.\n"
-            "2. The policy improves reliability for users.\n"
-            "3. Therefore we should adopt the policy."
-        )
-        result = verify_reasoning_chain(text, support_threshold=0.8)
-        assert result.steps_found >= 2
-
-    def test_word_overlap_falls_back_when_rust_ffi_raises_type_error(self, monkeypatch):
-        monkeypatch.setattr(reasoning_mod, "_RUST_REASONING", True)
-        monkeypatch.setattr(
-            reasoning_mod,
-            "rust_extract_reasoning_steps",
-            lambda _text: [],
-            raising=False,
-        )
-        monkeypatch.setattr(
-            reasoning_mod,
-            "rust_split_sentences",
-            lambda text: [s.strip() for s in text.split(".") if s.strip()],
-            raising=False,
-        )
-        monkeypatch.setattr(
-            reasoning_mod,
-            "rust_word_overlap",
-            lambda _a, _b: (_ for _ in ()).throw(TypeError("ffi signature mismatch")),
             raising=False,
         )
         text = (
