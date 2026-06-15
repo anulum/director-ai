@@ -26,17 +26,23 @@ Usage::
 
     python -m benchmarks.ragtruth_eval --max-samples 100
     python -m benchmarks.ragtruth_eval --nli --max-samples 50
+    python -m benchmarks.ragtruth_eval --decomposed --max-samples 100   # the fix
 """
 
 from __future__ import annotations
 
 import logging
 import time
+from collections.abc import Callable, Sequence
 
 from benchmarks._common import save_results
 from benchmarks.e2e_eval import E2EMetrics, E2ESample, print_e2e_results
 
 logger = logging.getLogger("DirectorAI.Benchmark.RAGTruth")
+
+# A coverage function maps (context, response) to grounded-claim coverage in
+# [0, 1]; lower coverage = more unsupported claims = more likely hallucinated.
+CoverageFn = Callable[[str, str], float]
 
 
 def _load_ragtruth(max_samples: int | None = None) -> list[dict]:
@@ -133,6 +139,84 @@ def run_ragtruth(
     return metrics
 
 
+def _row_label(item: dict) -> bool:
+    """RAGTruth example-level hallucination label across the known schemas."""
+    labels = item.get("hallucination_labels_processed", {}) or {}
+    return bool(
+        item.get("label", item.get("is_hallucinated", 0))
+        or labels.get("evident_conflict", 0)
+        or labels.get("baseless_info", 0)
+        or item.get("hallucination_labels")
+    )
+
+
+def evaluate_decomposed(
+    items: Sequence[dict],
+    coverage_fn: CoverageFn,
+    *,
+    min_coverage: float = 1.0,
+) -> E2EMetrics:
+    """Decompose-then-aggregate scoring: a response is flagged hallucinated when
+    its grounded-claim coverage drops below *min_coverage* (i.e. at least one
+    decomposed claim is unsupported) — the claim-level use FactCG/MiniCheck expect.
+
+    ``coverage_fn(context, response)`` returns coverage in [0, 1]; injected in
+    tests so the aggregation is verified without a model.
+    """
+    metrics = E2EMetrics()
+    for item in items:
+        context = item.get("source_text", item.get("context", "")) or ""
+        question = item.get("question", item.get("query", "")) or ""
+        response = item.get("response", item.get("output", "")) or ""
+        if not response:
+            continue
+        t0 = time.perf_counter()
+        coverage = float(coverage_fn(context, response))
+        elapsed = (time.perf_counter() - t0) * 1000
+        metrics.samples.append(
+            E2ESample(
+                task="ragtruth",
+                context=context,
+                response=response,
+                is_hallucinated=_row_label(item),
+                # approved = fully grounded; below min_coverage -> flagged.
+                approved=coverage >= min_coverage,
+                coherence_score=coverage,
+                latency_ms=elapsed,
+                has_evidence=bool(context) and bool(question),
+            )
+        )
+    return metrics
+
+
+def run_ragtruth_decomposed(
+    max_samples: int | None = None,
+    *,
+    support_threshold: float = 0.6,
+    min_coverage: float = 1.0,
+    nli_model: str | None = None,
+) -> E2EMetrics:
+    """Claim-decomposed RAGTruth run using the NLI scorer's claim-coverage path.
+
+    For each response, ``NLIScorer.score_claim_coverage`` splits it into atomic
+    claims and scores each against the context; the response is flagged when any
+    claim is unsupported (coverage < ``min_coverage``).
+    """
+    from director_ai.core.scoring.nli import NLIScorer
+
+    nli = NLIScorer(model_name=nli_model) if nli_model else NLIScorer()
+
+    def coverage_fn(context: str, response: str) -> float:
+        coverage, _divs, _claims = nli.score_claim_coverage(
+            context, response, support_threshold=support_threshold
+        )
+        return coverage
+
+    items = _load_ragtruth(max_samples)
+    logger.info("Loaded %d RAGTruth samples (decomposed)", len(items))
+    return evaluate_decomposed(items, coverage_fn, min_coverage=min_coverage)
+
+
 if __name__ == "__main__":
     import argparse
 
@@ -140,8 +224,21 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="RAGTruth benchmark")
     parser.add_argument("--max-samples", type=int, default=None)
     parser.add_argument("--nli", action="store_true")
+    parser.add_argument(
+        "--decomposed",
+        action="store_true",
+        help="Claim-decomposed scoring (the fix for the whole-response gap).",
+    )
+    parser.add_argument("--min-coverage", type=float, default=1.0)
     args = parser.parse_args()
 
-    results = run_ragtruth(max_samples=args.max_samples, use_nli=args.nli)
+    if args.decomposed:
+        results = run_ragtruth_decomposed(
+            max_samples=args.max_samples, min_coverage=args.min_coverage
+        )
+        out_name = "ragtruth_decomposed_results.json"
+    else:
+        results = run_ragtruth(max_samples=args.max_samples, use_nli=args.nli)
+        out_name = "ragtruth_results.json"
     print_e2e_results(results)
-    save_results(results.to_dict(), "ragtruth_results.json")
+    save_results(results.to_dict(), out_name)

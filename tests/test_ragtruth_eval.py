@@ -79,3 +79,51 @@ def test_run_ragtruth_maps_labels_and_appends_samples(monkeypatch) -> None:
     assert metrics.total == 1
     assert metrics.samples[0].is_hallucinated is True
     assert metrics.samples[0].approved is False
+
+
+def test_evaluate_decomposed_flags_low_coverage_responses() -> None:
+    # Decompose-then-aggregate: a response is flagged when grounded-claim coverage
+    # drops below min_coverage. Stub coverage_fn keys off a marker so no model is
+    # needed; verify the confusion matrix maps coverage -> approved correctly.
+    rows = [
+        # hallucinated label, low coverage -> should be caught (not approved)
+        {"context": "c", "output": "bad claim", "hallucination_labels": [{"x": 1}]},
+        # grounded label, full coverage -> should pass (approved)
+        {"context": "c", "output": "good claim", "hallucination_labels": []},
+        # hallucinated label but full coverage -> a miss (approved despite label)
+        {"context": "c", "output": "good claim", "hallucination_labels": [{"x": 1}]},
+    ]
+
+    def coverage_fn(_context: str, response: str) -> float:
+        return 0.5 if "bad" in response else 1.0
+
+    metrics = ragtruth_eval.evaluate_decomposed(rows, coverage_fn, min_coverage=1.0)
+    assert metrics.total == 3
+    # row 0: hallucinated + coverage 0.5 < 1.0 -> not approved -> caught (tp)
+    assert metrics.tp == 1
+    # row 1: grounded + coverage 1.0 -> approved -> true negative
+    assert metrics.tn == 1
+    # row 2: hallucinated + coverage 1.0 -> approved -> false negative (missed)
+    assert metrics.fn == 1
+    assert metrics.fp == 0
+
+
+def test_evaluate_decomposed_skips_empty_response() -> None:
+    rows = [{"context": "c", "output": "", "hallucination_labels": []}]
+    metrics = ragtruth_eval.evaluate_decomposed(
+        rows, lambda _c, _r: 1.0, min_coverage=1.0
+    )
+    assert metrics.total == 0
+
+
+def test_evaluate_decomposed_min_coverage_threshold_tunes_sensitivity() -> None:
+    rows = [{"context": "c", "output": "x", "hallucination_labels": [{"x": 1}]}]
+    # coverage 0.8: with min_coverage 1.0 it is flagged; with 0.5 it passes.
+    strict = ragtruth_eval.evaluate_decomposed(
+        rows, lambda _c, _r: 0.8, min_coverage=1.0
+    )
+    lenient = ragtruth_eval.evaluate_decomposed(
+        rows, lambda _c, _r: 0.8, min_coverage=0.5
+    )
+    assert strict.tp == 1  # flagged
+    assert lenient.fn == 1  # passed (missed)
