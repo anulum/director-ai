@@ -94,8 +94,13 @@ def _default_clip_loader(model_name: str, pretrained: str, device: str):
             "build_clip_adapter requires open_clip_torch + torch + Pillow. "
             "Install with: pip install director-ai[multimodal]",
         ) from exc
+    # The original OpenAI CLIP weights were trained with QuickGELU; open_clip's
+    # default activation differs, which it warns about and which subtly degrades
+    # the embeddings. Force QuickGELU for the OpenAI tag so the model matches how
+    # it was trained.
+    force_quick_gelu = pretrained == "openai" and "quickgelu" not in model_name.lower()
     model, _, preprocess = open_clip.create_model_and_transforms(
-        model_name, pretrained=pretrained
+        model_name, pretrained=pretrained, force_quick_gelu=force_quick_gelu
     )
     model = model.to(device).eval()
     tokenizer = open_clip.get_tokenizer(model_name)
