@@ -2,7 +2,11 @@
 
 Director-AI is unusual: it is a **response-level runtime guardrail** *and* a
 **CI eval gate** in one tool, with its hallucination accuracy benchmarked on
-LLM-AggreFact. It also ships an **experimental token-level streaming halt** that
+LLM-AggreFact. Its default grounding model (FactCG-DeBERTa-Large, 0.4B) sits at
+**75.6 balanced accuracy on the public [LLM-AggreFact leaderboard](https://llm-aggrefact.github.io/)**
+— the strongest sub-1B model there and within ~2 points of the 7B leader
+(Bespoke-MiniCheck-7B, 77.4), which Director-AI can also load as a higher-tier
+backend. Accuracy-per-parameter is the headline; raw top accuracy is not. It also ships an **experimental token-level streaming halt** that
 re-scores output during generation — a mechanism we deposited early, but which on
 our own false-halt benchmark cannot yet separate hallucinated from correct
 streaming text without a high false-halt rate. It is opt-in and under
@@ -50,12 +54,26 @@ commercial licence. See [Pricing](pricing.md) and [Licensing](licensing.md).
 | Offline / air-gapped | ✅ | — | partial | partial | ✅ | — |
 | Injection (semantic NLI) | ✅ | ✅ | ✅ | partial | ✅ | ✅ |
 | PII / toxicity | ✅ | ✅ | ✅ | partial | ✅ | ✅ |
-| Multimodal | ✅ | ✅ | ✅ | — | partial | ✅ |
+| Multimodal | 🧪 | ✅ | ✅ | — | partial | ✅ |
 | Tamper-evident audit | ✅ | partial | partial | — | — | partial |
 | Multi-tenant (OSS tier) | ✅ | partial | partial | — | — | partial |
 | Swarm / multi-agent guarding | ✅ | partial | — | — | — | — |
 | Cloud SaaS | roadmap | ✅ | ✅ | ✅ | n/a | ✅ |
 | Licence | Apache-2.0 + BUSL-1.1 | proprietary | proprietary | Apache-2.0 | open weights | proprietary |
+
+!!! warning "Honest scope of these rows"
+    - **Multimodal (🧪):** the default image backend is a non-semantic byte
+      hash-bag (no discrimination on our own benchmark); a real CLIP backend ships
+      via `director-ai[multimodal]` but is **not yet benchmarked against the
+      vendors above** on a standard image dataset. Treat as experimental.
+    - **Token-level detection is not unique to us.** Open-source
+      [LettuceDetect](https://github.com/KRLabsOrg/LettuceDetect) does token-level
+      hallucination-span classification (RAGTruth F1 ≈ 79%); our differentiation
+      is halting *during generation* (pre-sampling / streaming), not the
+      token-granularity itself — and that halt is still experimental.
+    - The **pre-sampling inference-server hook** uses vLLM/TGI/llama.cpp's standard
+      logits-processor mechanism (not a Director-AI invention); our contribution is
+      wiring the grounding/contradiction guard into it cleanly across the three.
 
 ## vs eval / observability / red-teaming tools
 

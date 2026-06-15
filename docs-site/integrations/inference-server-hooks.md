@@ -21,6 +21,15 @@ callback. The same hook drives vLLM, TGI, and llama.cpp.
 For anyone running vLLM, TGI, or llama.cpp in production, the pre-sampling hook
 is the tightest place to enforce a guard.
 
+!!! note "Mechanism vs contribution"
+    Pre-sampling logits processing is a **standard server feature**, not a
+    Director-AI invention — vLLM ships a
+    [custom logits-processor API](https://docs.vllm.ai/en/latest/features/custom_logitsprocs/),
+    and others embed safety classifiers the same way. Director-AI's contribution
+    is wiring its grounding / contradiction guard into that mechanism cleanly and
+    identically across vLLM, TGI, and llama.cpp, with claim-boundary gating and a
+    tenant-safe audit event — not the hook point itself.
+
 ## Quickstart
 
 ```python
