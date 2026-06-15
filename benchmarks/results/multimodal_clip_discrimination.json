@@ -7,8 +7,13 @@
     "yellow"
   ],
   "clip": {
-    "available": false,
-    "reason": "No module named 'open_clip'. Install with: pip install director-ai[multimodal]"
+    "n_matched": 4,
+    "n_mismatched": 12,
+    "mean_matched": 0.6486,
+    "mean_mismatched": 0.6219,
+    "gap": 0.0266,
+    "pairwise_auc": 1.0,
+    "available": true
   },
   "hashbag_baseline": {
     "available": true,
