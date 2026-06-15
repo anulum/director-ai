@@ -39,13 +39,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import Protocol, runtime_checkable
 
-try:
-    from backfire_kernel import rust_word_overlap
-
-    _RUST_CONSENSUS = True
-except ImportError:  # pragma: no cover - exercised on installs without the kernel
-    rust_word_overlap = None
-    _RUST_CONSENSUS = False
+from ..text_overlap import word_overlap
 
 __all__ = [
     "ContradictionEngine",
@@ -76,18 +70,12 @@ class ContradictionEngine(Protocol):
 
 
 def _lexical_overlap(text_a: str, text_b: str) -> float:
-    """Lexical Jaccard overlap in ``[0, 1]`` (Rust fast path or Python).
+    """Lexical Jaccard overlap in ``[0, 1]``.
 
-    The Python fallback mirrors the Rust ``rust_word_overlap`` kernel exactly —
-    case-folded, whitespace-split, punctuation retained on the token — so the two
-    backends are bit-for-bit identical and the dispatch is purely a speed choice.
+    Delegates to the shared measured-fast-path helper (pure Python below a large
+    -input threshold, Rust above it). See :mod:`director_ai.core.text_overlap`.
     """
-    if _RUST_CONSENSUS and rust_word_overlap is not None:
-        return float(rust_word_overlap(text_a, text_b))
-    words_a = set(text_a.lower().split())
-    words_b = set(text_b.lower().split())
-    union = words_a | words_b
-    return len(words_a & words_b) / len(union) if union else 0.0
+    return word_overlap(text_a, text_b, logger_name=__name__)
 
 
 def _split_claims(text: str, *, min_words: int = 3, cap: int = 24) -> list[str]:

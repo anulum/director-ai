@@ -43,31 +43,11 @@ def test_lexical_overlap_rust_path_matches_expected_jaccard() -> None:
     assert hf._lexical_overlap("a b c", "b c d") == pytest.approx(0.5)
 
 
-def test_lexical_overlap_python_fallback_parity(monkeypatch) -> None:
-    monkeypatch.setattr(hf, "_RUST_FORECAST", False)
-    monkeypatch.setattr(hf, "rust_word_overlap", None)
-    assert hf._lexical_overlap("a b c", "b c d") == pytest.approx(0.5)
-
-
-def test_lexical_overlap_python_fallback_empty_returns_zero(monkeypatch) -> None:
-    monkeypatch.setattr(hf, "_RUST_FORECAST", False)
-    monkeypatch.setattr(hf, "rust_word_overlap", None)
+def test_lexical_overlap_empty_returns_zero() -> None:
+    # _lexical_overlap delegates to the shared text_overlap helper; dispatch and
+    # Python/Rust parity are covered by test_text_overlap.
     assert hf._lexical_overlap("", "anything") == 0.0
     assert hf._lexical_overlap("anything", "") == 0.0
-
-
-def test_rust_and_python_overlap_agree_across_cases(monkeypatch) -> None:
-    cases = [
-        ("the capital of france", "capital of france is paris"),
-        ("photosynthesis in plants", "plants convert light to energy"),
-        ("disjoint tokens here", "completely different words there"),
-    ]
-    rust = [hf._lexical_overlap(a, b) for a, b in cases]
-    monkeypatch.setattr(hf, "_RUST_FORECAST", False)
-    monkeypatch.setattr(hf, "rust_word_overlap", None)
-    py = [hf._lexical_overlap(a, b) for a, b in cases]
-    for r, p in zip(rust, py, strict=True):
-        assert r == pytest.approx(p)
 
 
 # --------------------------------------------------------------------------- #

@@ -94,24 +94,11 @@ def test_lexical_overlap_rust_python_parity(a, b):
     assert _lexical_overlap(a, b) == pytest.approx(expected)
 
 
-@pytest.mark.parametrize("a,b", _PARITY_CASES)
-def test_lexical_overlap_python_fallback_matches_rust(a, b, monkeypatch):
-    """Forcing the kernel off yields the same value as the dispatched path."""
-    from director_ai.core.consensus import cross_model_consensus as cmc
-
-    dispatched = _lexical_overlap(a, b)
-    monkeypatch.setattr(cmc, "_RUST_CONSENSUS", False)
-    monkeypatch.setattr(cmc, "rust_word_overlap", None)
-    assert cmc._lexical_overlap(a, b) == pytest.approx(dispatched)
-
-
-def test_lexical_overlap_python_fallback_empty_returns_zero(monkeypatch):
-    from director_ai.core.consensus import cross_model_consensus as cmc
-
-    monkeypatch.setattr(cmc, "_RUST_CONSENSUS", False)
-    monkeypatch.setattr(cmc, "rust_word_overlap", None)
-    assert cmc._lexical_overlap("", "") == 0.0
-    assert cmc._lexical_overlap("only one side", "") == 0.0
+def test_lexical_overlap_empty_returns_zero():
+    # _lexical_overlap delegates to the shared text_overlap helper; dispatch and
+    # Python/Rust parity are covered by test_text_overlap.
+    assert _lexical_overlap("", "") == 0.0
+    assert _lexical_overlap("only one side", "") == 0.0
 
 
 # ── agreement ──────────────────────────────────────────────────────────────

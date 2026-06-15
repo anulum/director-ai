@@ -47,16 +47,13 @@ def test_split_claims_filters_and_caps():
     )
 
 
-def test_lexical_overlap_parity_and_fallback(monkeypatch):
-    from director_ai.core.swarm_coherence import cascade_monitor as cm
-
-    dispatched = _lexical_overlap("alpha beta gamma", "alpha beta delta")
-    monkeypatch.setattr(cm, "_RUST_SWARM", False)
-    monkeypatch.setattr(cm, "rust_word_overlap", None)
-    assert cm._lexical_overlap("alpha beta gamma", "alpha beta delta") == pytest.approx(
-        dispatched
+def test_lexical_overlap_values():
+    # _lexical_overlap delegates to the shared text_overlap helper; dispatch and
+    # Python/Rust parity are covered by test_text_overlap.
+    assert _lexical_overlap("alpha beta gamma", "alpha beta delta") == pytest.approx(
+        2 / 4
     )
-    assert cm._lexical_overlap("", "") == 0.0
+    assert _lexical_overlap("", "") == 0.0
 
 
 # ── coherent cascade ─────────────────────────────────────────────────────────

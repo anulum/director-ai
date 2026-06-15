@@ -93,17 +93,10 @@ def _position_claim(text="The CEO of Twitter is", risk=0.8):
 # --------------------------------------------------------------------------- #
 
 
-def test_lexical_overlap_rust_and_python_parity(monkeypatch):
-    rust = tr._lexical_overlap("a b c", "b c d")
-    monkeypatch.setattr(tr, "_RUST_REFRESH", False)
-    monkeypatch.setattr(tr, "rust_word_overlap", None)
-    py = tr._lexical_overlap("a b c", "b c d")
-    assert rust == pytest.approx(py) == pytest.approx(0.5)
-
-
-def test_lexical_overlap_python_empty(monkeypatch):
-    monkeypatch.setattr(tr, "_RUST_REFRESH", False)
-    monkeypatch.setattr(tr, "rust_word_overlap", None)
+def test_lexical_overlap_values():
+    # _lexical_overlap delegates to the shared text_overlap helper; dispatch and
+    # Python/Rust parity are covered by test_text_overlap.
+    assert tr._lexical_overlap("a b c", "b c d") == pytest.approx(0.5)
     assert tr._lexical_overlap("", "x") == 0.0
 
 
