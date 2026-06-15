@@ -27,6 +27,13 @@ MODEL_REVISION_REGISTRY: dict[str, str] = {
     "MoritzLaurer/DeBERTa-v3-large-mnli-fever-anli-ling-wanli": (
         "b3546ea6b0346eb6f8d5d68b13c7dc6d0376b3d7"
     ),
+    # Multilingual NLI (~100 languages, MIT) for non-English grounding/injection
+    # detection where the English-centric defaults and Stage-1 patterns do not
+    # reach; Stage-1 regex cannot scale to every language, so semantic NLI is the
+    # multilingual lever.
+    "MoritzLaurer/mDeBERTa-v3-base-xnli-multilingual-nli-2mil7": (
+        "b5113eb38ab63efdd7f280f8c144ea8b13f978ce"
+    ),
     "roberta-large-mnli": "2a8f12d27941090092df78e4ba6f0928eb5eac98",
     "microsoft/deberta-v3-base": "8ccc9b6f36199bec6961081d44eb72fb3f7353f3",
     "microsoft/deberta-v3-small": "a36c739020e01763fe789b4b85e2df55d6180012",

@@ -133,11 +133,23 @@ _INJECTION_PATTERNS: list[tuple[str, re.Pattern]] = [
     (
         "instruction_override",
         re.compile(
+            # English
             r"ignore\s+(all\s+)?(previous|prior|above|earlier)\s+"
             r"(instructions?|rules?|context|prompts?)|"
             r"ignore\s+the\s+user|"
-            r"ignoriere\s+alle\s+fr[üu]heren\s+anweisungen|"
-            r"ignora\s+la\s+policy",
+            r"disregard\s+(all\s+)?(previous|prior|above)\s+(instructions?|rules?)|"
+            # German
+            r"ignoriere\s+(alle\s+)?(fr[üu]heren|vorherigen)\s+anweisungen|"
+            # Spanish
+            r"ignora\s+(todas\s+)?las\s+instrucciones\s+(anteriores|previas)|"
+            r"ignora\s+la\s+policy|"
+            # French
+            r"(ignore[zr]?|oublie[zr]?)\s+(toutes\s+)?les\s+instructions\s+"
+            r"(pr[ée]c[ée]dentes|ant[ée]rieures)|"
+            # Portuguese
+            r"ignore\s+(todas\s+)?as\s+instru[çc][õo]es\s+anteriores|"
+            # Italian
+            r"ignora\s+(tutte\s+)?le\s+istruzioni\s+precedenti",
             re.IGNORECASE,
         ),
     ),

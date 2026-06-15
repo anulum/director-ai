@@ -138,3 +138,13 @@ and the streaming halt — operates on model **responses** and is independent of
 this screen. The numbers above measure the input pre-filter only; they are a
 fixed point against the published attacks, not a guarantee against an adaptive
 attacker optimising directly against this exact classifier.
+
+## Multilingual coverage
+
+Stage 1 (`InputSanitizer`) recognises the instruction-override family in English,
+German, Spanish, French, Portuguese, and Italian, and defangs homoglyph,
+zero-width, and ROT13 obfuscation before matching. Regex cannot scale to every
+language, so non-Latin scripts (Cyrillic, CJK, Arabic) rely on the semantic
+Stage 2: configure a multilingual NLI backend —
+`MoritzLaurer/mDeBERTa-v3-base-xnli-multilingual-nli-2mil7` (~100 languages, MIT,
+revision-pinned in the model registry) — when non-English traffic is expected.
