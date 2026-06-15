@@ -82,6 +82,10 @@ class _DetectorConfig:
     stage1_weight: float = 0.3
     traceability_floor: float = 0.15
     require_model_backed_nli: bool = False
+    # DoS guard for direct library callers (the REST layer caps the request at
+    # 500k separately). A response longer than this is truncated before claim
+    # decomposition so an oversized input cannot blow up per-claim NLI cost.
+    max_response_length: int = 100_000
 
 
 class InjectionDetector:
@@ -107,6 +111,11 @@ class InjectionDetector:
         Expected normal intent divergence for on-topic responses (default 0.4).
     stage1_weight : float
         Weight of InputSanitizer score in combined score (default 0.3).
+    max_response_length : int
+        Maximum response length (characters) analysed before truncation
+        (default 100_000). A DoS guard for direct library callers that bypass
+        the REST request-size limit; oversized responses are truncated, not
+        rejected, so a decision is still made over the leading content.
     """
 
     def __init__(
@@ -119,9 +128,12 @@ class InjectionDetector:
         baseline_divergence: float = 0.4,
         stage1_weight: float = 0.3,
         require_model_backed_nli: bool = False,
+        max_response_length: int = 100_000,
     ) -> None:
         self._nli = nli_scorer
         self._sanitizer = sanitizer
+        if max_response_length <= 0:
+            raise ValueError("max_response_length must be positive")
         self._cfg = _DetectorConfig(
             injection_threshold=injection_threshold,
             drift_threshold=drift_threshold,
@@ -129,6 +141,7 @@ class InjectionDetector:
             baseline_divergence=baseline_divergence,
             stage1_weight=stage1_weight,
             require_model_backed_nli=require_model_backed_nli,
+            max_response_length=max_response_length,
         )
         if self._cfg.require_model_backed_nli and not self._has_model_backed_nli():
             raise RuntimeError(
@@ -167,6 +180,17 @@ class InjectionDetector:
             raise RuntimeError(
                 "InjectionDetector requires model-backed NLI, but no model-backed backend is available",
             )
+        # DoS guard: bound per-claim NLI work for direct callers that bypass the
+        # REST request-size limit. Truncate (do not reject) so legitimate large
+        # responses still get a decision over their leading content.
+        if len(response) > self._cfg.max_response_length:
+            logger.warning(
+                "Response of %d chars exceeds max_response_length %d; "
+                "truncating before analysis (DoS guard).",
+                len(response),
+                self._cfg.max_response_length,
+            )
+            response = response[: self._cfg.max_response_length]
         effective_intent = self._build_intent(intent, user_query, system_prompt)
 
         # Stage 1: fast pattern-based check

@@ -632,3 +632,39 @@ def test_fail_closed_when_model_backed_nli_lost_after_construction():
         detector._decompose("a claim")
     with pytest.raises(RuntimeError, match="model-backed NLI"):
         detector._bidirectional_nli_batch("answer the question", ["a claim"])
+
+
+# -- max_response_length DoS guard --------------------------------------------
+
+
+class TestMaxResponseLengthGuard:
+    """Direct library callers bypass the REST 500k request cap; detect() must
+    bound its own per-claim work so an oversized response cannot blow up NLI."""
+
+    def test_constructor_rejects_non_positive_cap(self):
+        with pytest.raises(ValueError, match="max_response_length"):
+            InjectionDetector(max_response_length=0)
+        with pytest.raises(ValueError, match="max_response_length"):
+            InjectionDetector(max_response_length=-1)
+
+    def test_oversized_response_is_truncated_with_warning(self, caplog):
+        detector = InjectionDetector(max_response_length=200)
+        huge = "This is a benign factual sentence. " * 500  # ~17.5k chars
+        with caplog.at_level("WARNING", logger="DirectorAI.Injection"):
+            result = detector.detect(intent="summarise the topic", response=huge)
+        assert isinstance(result, InjectionResult)
+        assert any("truncating" in rec.message.lower() for rec in caplog.records)
+
+    def test_response_within_cap_is_not_truncated(self, caplog):
+        detector = InjectionDetector(max_response_length=100_000)
+        with caplog.at_level("WARNING", logger="DirectorAI.Injection"):
+            detector.detect(intent="summarise", response="A short grounded claim.")
+        assert not any("truncating" in rec.message.lower() for rec in caplog.records)
+
+    def test_truncation_bounds_claim_count(self):
+        # 1000 short sentences over a tiny cap must analyse only the leading slice,
+        # so the decomposed claim count stays far below the untruncated total.
+        detector = InjectionDetector(max_response_length=120)
+        many = "Fact number one is here. " * 1000
+        result = detector.detect(intent="list facts", response=many)
+        assert result.total_claims <= 6  # ~120 chars / ~24 chars per sentence
