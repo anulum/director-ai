@@ -105,17 +105,25 @@ supply-chain availability surface.
 
 ### Regex-based injection detection (Stage 1) bypass
 
-``InputSanitizer`` Stage 1 uses regex pattern matching. Sophisticated
-adversaries can bypass it via:
-- Unicode homoglyphs (Cyrillic а vs Latin a)
-- Zero-width characters inserted between keywords
-- Base64 or ROT13 encoding of instructions
-- Prompt-level obfuscation (indirect references)
+``InputSanitizer`` Stage 1 uses regex pattern matching. Before matching it
+**defangs** the input — NFKC normalisation, null/control/zero-width stripping,
+Cyrillic/Greek homoglyph folding to ASCII — and additionally scans the
+ROT13-decoded form, so the classic literal-evasion vectors are caught at Stage 1:
+- Unicode homoglyphs (Cyrillic а vs Latin a) — folded before matching
+- Zero-width characters inserted between keywords — stripped before matching
+- ROT13-encoded instructions — re-scanned in clear
+- Base64 payloads — detected by a dedicated decoder check
 
-**Mitigation**: Stage 2 (``InjectionDetector``) uses NLI divergence
-scoring to detect the *effect* of injection in the output regardless
-of encoding. The dual-stage design means Stage 1 is a fast filter,
-not the primary defence. Enable both stages for production.
+The folding is conservative (only ASCII-confusable code points), so benign Latin
+and non-Latin prose is not false-halted. The residual Stage 1 gap is **semantic /
+prompt-level obfuscation** (indirect references that contain no literal attack
+phrase in any encoding).
+
+**Mitigation for the residual**: Stage 2 (``InjectionDetector``) uses bidirectional
+NLI divergence scoring to detect the *effect* of injection regardless of phrasing,
+and the optional model-backed Stage 1 classifier (``prompt_guard``) adds
+adaptive-attack coverage. Stage 1 remains a fast filter, not the sole defence —
+enable all stages for production.
 
 ### Knowledge base poisoning
 

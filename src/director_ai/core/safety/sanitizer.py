@@ -28,6 +28,7 @@ from __future__ import annotations
 
 import base64
 import binascii
+import codecs
 import re
 import unicodedata
 from dataclasses import dataclass, field
@@ -49,6 +50,83 @@ except ImportError:
 
     def rust_sum_i64(_values: list[int]) -> int:
         raise RuntimeError("backfire_kernel rust_sum_i64 is unavailable")
+
+
+# Cyrillic / Greek letters that render as Latin ASCII letters. NFKC does NOT fold
+# these (they are distinct scripts), so a single homoglyph defeats the literal
+# injection patterns — "іgnore previous instructions" (Cyrillic і) slips through.
+# Folding them to ASCII before the patterns run closes that evasion. Only the
+# ASCII-confusable subset is mapped, so legitimate Cyrillic/Greek prose keeps its
+# structure and does not spuriously spell English attack phrases.
+_CONFUSABLES: dict[str, str] = {
+    # Cyrillic lower
+    "а": "a",
+    "е": "e",
+    "о": "o",
+    "р": "p",
+    "с": "c",
+    "х": "x",
+    "у": "y",
+    "і": "i",
+    "ј": "j",
+    "ѕ": "s",
+    "к": "k",
+    "м": "m",
+    "н": "h",
+    "т": "t",
+    "в": "b",
+    "г": "r",
+    "п": "n",
+    # Cyrillic upper
+    "А": "A",
+    "Е": "E",
+    "О": "O",
+    "Р": "P",
+    "С": "C",
+    "Х": "X",
+    "У": "Y",
+    "І": "I",
+    "Ј": "J",
+    "Ѕ": "S",
+    "К": "K",
+    "М": "M",
+    "Н": "H",
+    "Т": "T",
+    "В": "B",
+    "Г": "R",
+    "П": "N",
+    # Greek
+    "ο": "o",
+    "α": "a",
+    "ν": "v",
+    "ρ": "p",
+    "ε": "e",
+    "τ": "t",
+    "κ": "k",
+    "ι": "i",
+    "Ο": "O",
+    "Α": "A",
+    "Ρ": "P",
+    "Ε": "E",
+    "Τ": "T",
+    "Κ": "K",
+    "Ι": "I",
+    "Β": "B",
+    "Η": "H",
+    "Μ": "M",
+    "Ν": "N",
+}
+_CONFUSABLE_TABLE = str.maketrans(_CONFUSABLES)
+
+
+def _fold_confusables(text: str) -> str:
+    """Map Cyrillic/Greek ASCII-lookalike letters to their Latin equivalents."""
+    return text.translate(_CONFUSABLE_TABLE)
+
+
+def _rot13(text: str) -> str:
+    """ROT13 the text so a ROT13-encoded instruction is re-scanned in clear."""
+    return codecs.encode(text, "rot_13")
 
 
 _INJECTION_PATTERNS: list[tuple[str, re.Pattern]] = [
@@ -283,6 +361,11 @@ class InputSanitizer:
         # but production blocking must follow the curated allow/deny contract
         # below to avoid false positives and missed multilingual seeds.
         allowlisted = self._is_allowlisted(text)
+        # Match against the raw text plus defanged/decoded variants so homoglyph,
+        # zero-width, and ROT13 obfuscations that defeat the literal patterns are
+        # still caught. Benign ASCII text only adds its ROT13 form (gibberish that
+        # matches no English pattern), so detections rise without new false halts.
+        variants = self._scan_variants(text)
         py_matched: list[str] = []
         total = 0.0
         if base64_payload:
@@ -292,7 +375,7 @@ class InputSanitizer:
             total += weight
             py_matched.append("base64_payload")
         for name, pat in self._patterns:
-            if pat.search(text):
+            if any(pat.search(variant) for variant in variants):
                 weight = self._weights.get(name, 0.5)
                 if allowlisted:
                     weight *= 0.1  # reduce but don't skip — prevents full bypass
@@ -314,6 +397,24 @@ class InputSanitizer:
     def check(self, text: str) -> SanitizeResult:
         """Backward-compatible hard-block check. Calls score() internally."""
         return self.score(text)
+
+    @staticmethod
+    def defang(text: str) -> str:
+        """Canonical matching form: scrub (NFKC + strip control/zero-width) then
+        fold Cyrillic/Greek homoglyphs to ASCII, so obfuscated injections collapse
+        to the literal phrasing the patterns recognise."""
+        return _fold_confusables(InputSanitizer.scrub(text))
+
+    @classmethod
+    def _scan_variants(cls, text: str) -> tuple[str, ...]:
+        """Raw text plus defanged and ROT13-decoded forms, de-duplicated."""
+        variants = [text]
+        seen = {text}
+        for candidate in (cls.defang(text), _rot13(text), _rot13(cls.defang(text))):
+            if candidate not in seen:
+                seen.add(candidate)
+                variants.append(candidate)
+        return tuple(variants)
 
     @staticmethod
     def scrub(text: str) -> str:
