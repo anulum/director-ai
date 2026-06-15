@@ -572,27 +572,18 @@ class TestSignalImplementations:
             lambda claim, source: 0.75 if claim in source else 0.0,
             raising=False,
         )
-        monkeypatch.setattr(
-            verified_mod,
-            "rust_word_overlap",
-            lambda text_a, text_b: 0.33 if text_a and text_b else 0.0,
-            raising=False,
-        )
 
         assert _entity_overlap("a", "b") == 0.25
         assert _numerical_consistency("42", "42") is True
         assert _negation_flip("not same", "same")
         assert _traceability("claim", "source claim") == 0.75
-        assert _word_overlap("alpha", "beta") == 0.33
+        # _word_overlap now delegates to the shared text_overlap helper (covered
+        # by test_text_overlap); its value is exercised below and in the fallback.
+        assert _word_overlap("alpha beta", "alpha gamma") == pytest.approx(1.0 / 3.0)
 
-    def test_fallback_matchers_delegate_to_word_overlap(self, monkeypatch):
-        monkeypatch.setattr(verified_mod, "_RUST_SIGNALS", True)
-        monkeypatch.setattr(
-            verified_mod,
-            "rust_word_overlap",
-            lambda claim, src: 0.95 if "target" in src else 0.05,
-            raising=False,
-        )
+    def test_fallback_matchers_use_word_overlap(self, monkeypatch):
+        # _word_overlap delegates to the shared helper; drive ranking with real
+        # lexical overlap. The claim shares "target source" with index 1.
         monkeypatch.setattr(
             verified_mod,
             "rust_entity_overlap",
@@ -607,15 +598,15 @@ class TestSignalImplementations:
         )
         vs = VerifiedScorer()
         best_idx, divergence = vs._find_best_match(
-            "some claim",
-            ["irrelevant source", "target source sentence"],
+            "target source claim",
+            ["irrelevant unrelated text", "target source sentence"],
         )
         assert best_idx == 1
-        assert divergence == pytest.approx(0.05)
+        assert divergence < 1.0  # some overlap with the target source
 
         spans = vs._find_top_k_matches(
-            "some claim",
-            ["irrelevant source", "target source sentence", "another source"],
+            "target source claim",
+            ["irrelevant unrelated text", "target source sentence", "another none"],
             k=2,
         )
-        assert [s.index for s in spans] == [1, 0]
+        assert spans[0].index == 1  # the highest-overlap source ranks first

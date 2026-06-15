@@ -28,6 +28,7 @@ from dataclasses import dataclass, field
 from typing import Literal, Protocol, cast
 
 from ..mandatory import mandatory_execution
+from ..text_overlap import word_overlap
 
 logger = logging.getLogger("DirectorAI.VerifiedScorer")
 
@@ -40,7 +41,6 @@ try:
         rust_sum_f64,
         rust_sum_i64,
         rust_traceability,
-        rust_word_overlap,
     )
 
     _RUST_SIGNALS = True
@@ -67,9 +67,6 @@ except ImportError:
 
     def rust_traceability(_claim: str, _source: str) -> float:
         raise RuntimeError("backfire_kernel rust_traceability is unavailable")
-
-    def rust_word_overlap(_text_a: str, _text_b: str) -> float:
-        raise RuntimeError("backfire_kernel rust_word_overlap is unavailable")
 
 
 _SENT_SPLIT = re.compile(r"(?<=[.!?])\s+")
@@ -722,16 +719,12 @@ def _traceability(claim: str, source: str) -> float:
 
 
 def _word_overlap(text_a: str, text_b: str) -> float:
-    """Jaccard lexical overlap in ``[0, 1]`` for two texts."""
-    if _RUST_SIGNALS:
-        with mandatory_execution(__name__, component="mandatory accelerated path"):
-            return float(rust_word_overlap(text_a, text_b))
-    words_a = set(text_a.lower().split())
-    words_b = set(text_b.lower().split())
-    if not words_a or not words_b:
-        return 0.0
-    union = words_a | words_b
-    return len(words_a & words_b) / len(union) if union else 0.0
+    """Jaccard lexical overlap in ``[0, 1]`` for two texts.
+
+    Delegates to the shared measured-fast-path helper (pure Python below a large
+    -input threshold, Rust above it). See :mod:`director_ai.core.text_overlap`.
+    """
+    return word_overlap(text_a, text_b, logger_name=__name__)
 
 
 def _sum_int(values: list[int]) -> int:

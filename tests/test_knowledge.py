@@ -16,7 +16,6 @@ from __future__ import annotations
 
 import pytest
 
-import director_ai.core.knowledge as knowledge_mod
 from director_ai.core.knowledge import GroundTruthStore
 
 
@@ -131,70 +130,12 @@ class TestGroundTruthStore:
         result = store.retrieve_context("refund policy details", top_k=1)
         assert result == "policy hit"
 
-    def test_rust_overlap_delegation(self, monkeypatch):
-        monkeypatch.setattr(knowledge_mod, "_RUST_KNOWLEDGE", True)
-        monkeypatch.setattr(
-            knowledge_mod,
-            "rust_word_overlap",
-            lambda text_a, text_b: 0.9 if "policy" in text_b else 0.1,
-            raising=False,
-        )
-        store = GroundTruthStore()
-        store.add("refund policy", "policy first")
-        store.add("refund timeline", "timeline second")
-        result = store.retrieve_context("refund details", top_k=1)
-        assert result == "policy first"
-
-    def test_rust_overlap_exception_falls_back_to_python(self, monkeypatch):
-        monkeypatch.setattr(knowledge_mod, "_RUST_KNOWLEDGE", True)
-
-        def _boom(_text_a, _text_b):
-            raise RuntimeError("ffi fail")
-
-        monkeypatch.setattr(
-            knowledge_mod,
-            "rust_word_overlap",
-            _boom,
-            raising=False,
-        )
+    def test_retrieval_ranks_by_word_overlap(self):
+        # _word_overlap now delegates to the shared director_ai.core.text_overlap
+        # helper (dispatch + fallback covered by test_text_overlap); this pins the
+        # retrieval ranking that relies on the overlap value.
         store = GroundTruthStore()
         store.add("refund policy", "policy first")
         store.add("weather report", "weather second")
-        result = store.retrieve_context("refund details", top_k=1)
-        assert result == "policy first"
-
-    def test_rust_overlap_non_runtime_exception_falls_back_to_python(self, monkeypatch):
-        monkeypatch.setattr(knowledge_mod, "_RUST_KNOWLEDGE", True)
-
-        def _boom(_text_a, _text_b):
-            raise ValueError("ffi fail")
-
-        monkeypatch.setattr(
-            knowledge_mod,
-            "rust_word_overlap",
-            _boom,
-            raising=False,
-        )
-        store = GroundTruthStore()
-        store.add("refund policy", "policy first")
-        store.add("weather report", "weather second")
-        result = store.retrieve_context("refund details", top_k=1)
-        assert result == "policy first"
-
-    def test_rust_overlap_type_error_falls_back_to_python(self, monkeypatch):
-        monkeypatch.setattr(knowledge_mod, "_RUST_KNOWLEDGE", True)
-
-        def _boom(_text_a, _text_b):
-            raise TypeError("ffi fail")
-
-        monkeypatch.setattr(
-            knowledge_mod,
-            "rust_word_overlap",
-            _boom,
-            raising=False,
-        )
-        store = GroundTruthStore()
-        store.add("refund policy", "policy first")
-        store.add("weather report", "weather second")
-        result = store.retrieve_context("refund details", top_k=1)
+        result = store.retrieve_context("refund policy", top_k=1)
         assert result == "policy first"
