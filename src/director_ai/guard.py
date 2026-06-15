@@ -178,6 +178,7 @@ class ProductionGuard:
         self._temporal_refresher: object | None = None
         self._cross_model: object | None = None
         self._economics: object | None = None
+        self._multimodal: object | None = None
 
     @classmethod
     def from_profile(
@@ -868,11 +869,13 @@ class ProductionGuard:
         single least-agreeing answer pair. The engine (and any supplied scorer)
         persists on the guard across calls.
         """
-        if self._cross_model is None or nli is not None:
-            from director_ai.core.consensus import CrossModelConsensus
+        from director_ai.core.consensus import CrossModelConsensus
 
-            self._cross_model = CrossModelConsensus(nli=nli)
-        return self._cross_model.consensus(responses)
+        engine = self._cross_model
+        if not isinstance(engine, CrossModelConsensus) or nli is not None:
+            engine = CrossModelConsensus(nli=nli)
+            self._cross_model = engine
+        return engine.consensus(responses)
 
     @property
     def economics(self):
@@ -969,6 +972,65 @@ class ProductionGuard:
             auto_apply=auto_apply,
             uncertainty_router=router,
         )
+
+    @property
+    def multimodal_adapter(self):
+        """In-process multimodal verifier (created on first use).
+
+        Builds the dependency-free hash-bag
+        :class:`~director_ai.core.multimodal_guard.MultimodalVerifierAdapter` from
+        the guard's ``multimodal_*`` config. Requires
+        ``multimodal_enabled_modalities`` to be set (the guard is opt-in); raises
+        otherwise. Pass a torch/CLIP-backed adapter to
+        :meth:`check_multimodal` for semantic verification.
+        """
+        if self._multimodal is None:
+            from director_ai.core.multimodal_guard import build_hashbag_adapter
+
+            cfg = self._config
+            if not cfg.multimodal_enabled_modalities:
+                raise RuntimeError(
+                    "multimodal guard is disabled; set "
+                    "multimodal_enabled_modalities in the config to enable it"
+                )
+            self._multimodal = build_hashbag_adapter(
+                enabled_modalities=cfg.multimodal_enabled_modalities,
+                benchmarked_modalities=cfg.multimodal_benchmarked_modalities,
+                dim=cfg.multimodal_embedding_dim,
+                hallucination_threshold=cfg.multimodal_hallucination_threshold,
+                consistency_threshold=cfg.multimodal_consistency_threshold,
+                temporal_alpha=cfg.multimodal_temporal_alpha,
+                temporal_floor=cfg.multimodal_temporal_floor,
+                grounding_floor=cfg.multimodal_grounding_floor,
+                grounding_allow_threshold=cfg.multimodal_grounding_allow_threshold,
+            )
+        return self._multimodal
+
+    def check_multimodal(self, request, *, adapter=None):
+        """Verify a text claim against paired image / audio / video evidence.
+
+        The in-process counterpart of the ``/v1/multimodal/check`` endpoint:
+        scores a
+        :class:`~director_ai.core.multimodal_guard.MultimodalCheckRequest` with
+        the configured (or supplied) adapter and returns a tenant-safe
+        :class:`~director_ai.core.multimodal_guard.MultimodalCheckResult` carrying
+        the shared allow/warn/halt decision. Modalities enabled but not in
+        ``multimodal_benchmarked_modalities`` resolve to ``warn`` rather than a
+        scored decision, so an unbenchmarked modality never silently passes.
+        """
+        from director_ai.core.guard_control import RiskEnvelope
+
+        cfg = self._config
+        used = adapter if adapter is not None else self.multimodal_adapter
+        risk_envelope = RiskEnvelope(
+            action_category="multimodal",
+            reversibility="reversible",
+            domain="general",
+            calibrated_threshold=getattr(cfg, "multimodal_calibrated_threshold", 0.5),
+            no_go_threshold=getattr(cfg, "multimodal_no_go_threshold", 0.9),
+        )
+        policy_id = getattr(cfg, "multimodal_policy_id", "multimodal-default")
+        return used.check(request, risk_envelope=risk_envelope, policy_id=policy_id)
 
     @property
     def rasp(self):

@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Add an **in-process multimodal guard path**: `ProductionGuard.check_multimodal`
+  and the lazily-built `ProductionGuard.multimodal_adapter` expose the multimodal
+  hallucination check to library callers, not only the `/v1/multimodal/check`
+  REST endpoint. The adapter is built from the `multimodal_*` config (the
+  dependency-free hash-bag verifier — no torch); the guard stays opt-in (raises
+  unless `multimodal_enabled_modalities` is set) and an enabled-but-unbenchmarked
+  modality resolves to `warn`, never a silent `allow`. A torch/CLIP-backed adapter
+  can be injected per call for semantic verification.
+- Fix a latent typing error in `ProductionGuard.cross_model_consensus` (the cached
+  engine is now narrowed before use).
 - Add a **pull-request eval gate** (`.github/workflows/eval-gate.yml`): every PR
   and push to `main` scores the committed `benchmarks/eval_gate_cases.jsonl`
   through `director-ai ci-gate --profile rules` with the offline heuristic scorer

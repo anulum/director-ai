@@ -90,6 +90,37 @@ The request carries `modality`, `claim_text`, `media_ref`, the modality payload
 `caption_text` / `metadata`. The response is the tenant-safe `GuardDecision`
 (`allow` / `warn` / `halt`); it never echoes raw media, transcript, or claim text.
 
+## In-process live path
+
+Besides the `/v1/multimodal/check` REST endpoint, the guard exposes the check
+in-process so a library caller does not need the server:
+
+```python
+from director_ai.core.config import DirectorConfig
+from director_ai.guard import ProductionGuard
+from director_ai.core.multimodal_guard import MultimodalCheckRequest
+
+guard = ProductionGuard(config=DirectorConfig(
+    multimodal_enabled_modalities=("image",),
+    multimodal_benchmarked_modalities=("image",),
+))
+result = guard.check_multimodal(MultimodalCheckRequest(
+    modality="image",
+    claim_text="a tabby cat on a sofa",
+    media_ref="img://catalogue/1",
+    image_bytes=image_payload,
+))
+print(result.guard_decision.decision)   # allow / warn / halt
+```
+
+`guard.multimodal_adapter` is built lazily from the `multimodal_*` config (the
+dependency-free hash-bag adapter — no torch). The guard is opt-in: it raises
+unless `multimodal_enabled_modalities` is set, and an enabled-but-unbenchmarked
+modality resolves to `warn`, never a silent `allow`. Pass a torch/CLIP-backed
+adapter as `guard.check_multimodal(request, adapter=...)` for semantic
+verification. The same tenant-safe `MultimodalCheckResult` is returned as the
+endpoint.
+
 ## Full API
 
 ::: director_ai.core.multimodal_guard.adapter.MultimodalCheckRequest
