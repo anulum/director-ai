@@ -7,6 +7,6 @@
 # Director-AI benchmark container build/test tools.
 
 maturin==1.12.6
-pytest==9.0.3
+pytest==9.1.0
 hypothesis==6.151.10
 pytest-cov==7.1.0
