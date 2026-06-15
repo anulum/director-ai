@@ -29,6 +29,7 @@ func isolateEnv(t *testing.T) {
 		"DIRECTOR_API_KEYS",
 		"DIRECTOR_AUDIT_SALT",
 		"DIRECTOR_AUDIT_SALT_FILE",
+		"DIRECTOR_AUDIT_SALT_STRICT",
 		"DIRECTOR_AUDIT_LOG",
 		"DIRECTOR_ALLOW_HTTP_UPSTREAM",
 	} {
@@ -164,5 +165,57 @@ func TestSplitKeys_Trims(t *testing.T) {
 		if got[i] != want[i] {
 			t.Errorf("[%d] = %q; want %q", i, got[i], want[i])
 		}
+	}
+}
+
+func TestLoad_StrictRefusesLegacyAuditSalt(t *testing.T) {
+	isolateEnv(t)
+	t.Setenv("DIRECTOR_AUDIT_SALT_STRICT", "1")
+	if _, err := Load(); err == nil {
+		t.Fatal("expected Load to refuse the legacy default salt in strict mode")
+	}
+}
+
+func TestLoad_StrictAcceptsExplicitAuditSalt(t *testing.T) {
+	isolateEnv(t)
+	t.Setenv("DIRECTOR_AUDIT_SALT_STRICT", "true")
+	t.Setenv("DIRECTOR_AUDIT_SALT", "a-real-deployment-secret-salt")
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("unexpected error with explicit salt under strict mode: %v", err)
+	}
+	if string(cfg.AuditSalt) != "a-real-deployment-secret-salt" {
+		t.Errorf("AuditSalt = %q; want the explicit value", cfg.AuditSalt)
+	}
+}
+
+func TestLoad_StrictAcceptsSaltFile(t *testing.T) {
+	isolateEnv(t)
+	dir := t.TempDir()
+	path := filepath.Join(dir, "salt")
+	if err := os.WriteFile(path, []byte("  file-provided-salt  \n"), 0o600); err != nil {
+		t.Fatalf("write salt file: %v", err)
+	}
+	t.Setenv("DIRECTOR_AUDIT_SALT_STRICT", "1")
+	t.Setenv("DIRECTOR_AUDIT_SALT_FILE", path)
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("unexpected error with salt file under strict mode: %v", err)
+	}
+	if string(cfg.AuditSalt) != "file-provided-salt" {
+		t.Errorf("AuditSalt = %q; want trimmed file contents", cfg.AuditSalt)
+	}
+}
+
+func TestLoad_NonStrictKeepsLegacyAuditSalt(t *testing.T) {
+	isolateEnv(t)
+	// An explicit falsey strict flag must not refuse the dev default.
+	t.Setenv("DIRECTOR_AUDIT_SALT_STRICT", "0")
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if string(cfg.AuditSalt) != legacyAuditSalt {
+		t.Errorf("AuditSalt = %q; want legacy default in non-strict mode", cfg.AuditSalt)
 	}
 }

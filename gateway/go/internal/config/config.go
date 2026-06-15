@@ -14,6 +14,7 @@ package config
 import (
 	"errors"
 	"fmt"
+	"log"
 	"os"
 	"strconv"
 	"strings"
@@ -119,9 +120,24 @@ func Load() (*Config, error) {
 		cfg.APIKeys = splitKeys(raw)
 	}
 
-	salt := resolveAuditSalt()
+	salt, usedLegacy := resolveAuditSalt()
 	if len(salt) == 0 {
 		return nil, errors.New("audit salt resolved to empty value")
+	}
+	if usedLegacy {
+		// The legacy default salt is predictable, so audit fingerprints become
+		// forgeable/correlatable. Refuse it in strict mode (mirrors the Python
+		// get_audit_salt(strict=production_mode) fail-fast); warn otherwise.
+		if auditSaltStrict() {
+			return nil, errors.New(
+				"refusing the legacy default audit salt in strict mode: set " +
+					"DIRECTOR_AUDIT_SALT or DIRECTOR_AUDIT_SALT_FILE",
+			)
+		}
+		log.Println(
+			"WARNING: using the legacy default audit salt; set DIRECTOR_AUDIT_SALT " +
+				"(or DIRECTOR_AUDIT_SALT_FILE) before production",
+		)
 	}
 	cfg.AuditSalt = salt
 
@@ -146,22 +162,35 @@ func splitKeys(raw string) []string {
 	return out
 }
 
-func resolveAuditSalt() []byte {
+// resolveAuditSalt returns the audit salt and whether it fell back to the
+// legacy default (an explicit env value or salt file is preferred).
+func resolveAuditSalt() (salt []byte, usedLegacy bool) {
 	if explicit := os.Getenv("DIRECTOR_AUDIT_SALT"); explicit != "" {
-		return []byte(explicit)
+		return []byte(explicit), false
 	}
 	if path := os.Getenv("DIRECTOR_AUDIT_SALT_FILE"); path != "" {
 		data, err := os.ReadFile(path)
 		if err != nil {
-			return nil
+			return nil, false
 		}
 		trimmed := strings.TrimSpace(string(data))
 		if trimmed == "" {
-			return nil
+			return nil, false
 		}
-		return []byte(trimmed)
+		return []byte(trimmed), false
 	}
-	return []byte(legacyAuditSalt)
+	return []byte(legacyAuditSalt), true
+}
+
+// auditSaltStrict reports whether DIRECTOR_AUDIT_SALT_STRICT is set truthy, in
+// which case the legacy default salt is refused (production fail-fast).
+func auditSaltStrict() bool {
+	v := strings.TrimSpace(os.Getenv("DIRECTOR_AUDIT_SALT_STRICT"))
+	if v == "" {
+		return false
+	}
+	strict, err := strconv.ParseBool(v)
+	return err == nil && strict
 }
 
 func envOr(key, fallback string) string {
