@@ -202,3 +202,42 @@ generators) at construction, so a corrupted constant fails fast. Measured with
 `python -m benchmarks.zk_schnorr`: soundness/completeness checks pass, prove and
 verify are single modular-exponentiation-bound operations over the 2048-bit
 group (see `benchmarks/results/zk_schnorr.json`).
+
+## `BulletproofRangeBackend` (zero-knowledge of the aggregate too)
+
+The Schnorr backend hides the individual values but still reveals the aggregate.
+`BulletproofRangeBackend` hides the aggregate as well: it proves `Σ vᵢ ≥
+threshold` while disclosing neither the values nor their sum — only the public
+threshold and the pass/fail decision.
+
+Each sample value is sealed in a Ristretto Pedersen commitment `Cᵢ`. By
+homomorphism the published commitments sum to `C_agg = Σ Cᵢ`, a commitment to the
+aggregate. The prover forms `C_d = C_agg − threshold·B` (a commitment to
+`d = aggregate − threshold`) and a dalek **Bulletproof** proves `d ∈ [0, 2^bits)`,
+i.e. `aggregate ≥ threshold`. The verifier recomputes `C_d` from the published
+per-sample commitments, so the range proof is bound to the real committed data —
+a prover cannot prove the bound against fabricated values.
+
+```python
+from director_ai.core.zk_attestation import (
+    BulletproofRangeBackend, MinimumCoherence,
+)
+
+backend = BulletproofRangeBackend()                       # 32-bit range default
+statement = MinimumCoherence(name="coherence", threshold=0.8, samples_min=8)
+proof = backend.prove(statement, samples)                 # raises if the bar is not met
+accepted, reason = backend.verify(statement, proof)       # neither values nor aggregate leak
+```
+
+- **hidden:** every sample value *and* the aggregate;
+- **revealed:** the public threshold and the accept/reject decision;
+- **bound to data:** the range proof verifies against the recomputed aggregate
+  commitment, not a free-floating value, so a false "threshold met" is unprovable.
+
+This backend is **Rust-only** — the Bulletproof and Ristretto arithmetic live in
+the `backfire_kernel` extension (dalek `bulletproofs`); there is no pure-Python
+fallback, because a correct, constant-time Bulletproof in Python would be neither
+safe nor practical, and construction raises if the kernel is absent. A proof is
+~600 bytes regardless of sample count; measured with
+`python -m benchmarks.zk_bulletproof_range` (see
+`benchmarks/results/zk_bulletproof_range.json`).

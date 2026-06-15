@@ -6,10 +6,10 @@
     "optional_extras": 57,
     "public_api_exports": 221,
     "public_documentation_pages": 197,
-    "python_model_classes": 961,
-    "python_model_source_modules": 415,
-    "rust_pyo3_model_wrappers": 80,
-    "test_files": 508
+    "python_model_classes": 963,
+    "python_model_source_modules": 416,
+    "rust_pyo3_model_wrappers": 82,
+    "test_files": 509
   },
   "documentation": {
     "public_pages": [
@@ -684,6 +684,10 @@
       {
         "name": "BuildError",
         "path": "src/director_ai/core/autopoietic/builder.py"
+      },
+      {
+        "name": "BulletproofRangeBackend",
+        "path": "src/director_ai/core/zk_attestation/bulletproof_range.py"
       },
       {
         "name": "Bypass",
@@ -3054,6 +3058,10 @@
         "path": "src/director_ai/core/emergence_oracle/spectrum.py"
       },
       {
+        "name": "RangeAttestation",
+        "path": "src/director_ai/core/zk_attestation/bulletproof_range.py"
+      },
+      {
         "name": "RateLimitMiddleware",
         "path": "src/director_ai/middleware/rate_limit.py"
       },
@@ -4535,6 +4543,7 @@
       "src/director_ai/core/verification/types.py",
       "src/director_ai/core/verified_scorer.py",
       "src/director_ai/core/zk_attestation/backends.py",
+      "src/director_ai/core/zk_attestation/bulletproof_range.py",
       "src/director_ai/core/zk_attestation/commitment.py",
       "src/director_ai/core/zk_attestation/passport.py",
       "src/director_ai/core/zk_attestation/schnorr.py",
@@ -4620,6 +4629,8 @@
       "rust_beta_posterior_mean",
       "rust_bidirectional_divergence",
       "rust_build_chunks",
+      "rust_bulletproof_prove_threshold",
+      "rust_bulletproof_verify_threshold",
       "rust_conformal_quantile",
       "rust_confusion_counts_threshold",
       "rust_coverage_from_divergences",
@@ -5485,6 +5496,7 @@
       "tests/test_ws_ticket.py",
       "tests/test_zk_attestation.py",
       "tests/test_zk_attestation_fuzz.py",
+      "tests/test_zk_bulletproof_range.py",
       "tests/test_zk_schnorr.py"
     ]
   },

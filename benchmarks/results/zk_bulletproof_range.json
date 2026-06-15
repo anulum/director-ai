@@ -1,0 +1,19 @@
+{
+  "benchmark": "zk_bulletproof_range",
+  "correctness": {
+    "checks": 3,
+    "correct": 1.0
+  },
+  "latency": {
+    "samples": 16,
+    "prove_ms": 4.619,
+    "verify_ms": 1.161
+  },
+  "proof_size": {
+    "samples": 16,
+    "proof_bytes": 608,
+    "commitments": 16,
+    "bits": 32
+  },
+  "backend": "dalek bulletproofs range proof over Ristretto (aggregate hidden)"
+}

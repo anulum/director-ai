@@ -15,9 +15,9 @@ bundle of typed :class:`AttestationStatement` claims, each backed
 by a cryptographic proof that B's :class:`PassportVerifier` can
 check offline.
 
-This package ships two real backends — :class:`CommitmentBackend`
-and :class:`SchnorrAttestationBackend` — plus a
-:class:`ZkSnarkBackend` protocol for pluggable zk-SNARK adapters.
+This package ships three real backends — :class:`CommitmentBackend`,
+:class:`SchnorrAttestationBackend`, and :class:`BulletproofRangeBackend` —
+plus a :class:`ZkSnarkBackend` protocol for pluggable zk-SNARK adapters.
 
 * **CommitmentBackend** is a cryptographic commitment scheme
   (Merkle tree of HMAC-committed samples + challenge-based
@@ -34,10 +34,16 @@ and :class:`SchnorrAttestationBackend` — plus a
   the aggregate value itself; hiding that too (revealing only
   "threshold met") needs a zero-knowledge range proof, which is
   the :class:`ZkSnarkBackend` plug-in's job.
+* **BulletproofRangeBackend** hides the aggregate too. It commits
+  each sample on Ristretto, sums the commitments homomorphically,
+  and uses a Bulletproof (dalek ``bulletproofs`` via the
+  ``backfire_kernel`` extension) to prove the committed aggregate
+  clears the public threshold while revealing neither the values
+  nor their sum — only "threshold met". Rust-only (no Python
+  fallback); the threshold stays public.
 * **ZkSnarkBackend** is a Protocol for real zk-SNARK adapters
   (groth16 via arkworks / gnark / bellman) brought in as
-  entry-points or direct subclass. Shipping such a backend is
-  out of scope for this package: the Protocol and the verifier
+  entry-points or direct subclass. The Protocol and the verifier
   wiring live here so an operator can slot one in without
   touching :class:`PassportVerifier`.
 """
@@ -45,6 +51,11 @@ and :class:`SchnorrAttestationBackend` — plus a
 from __future__ import annotations
 
 from .backends import AttestationBackend, CommitmentBackend, ZkSnarkBackend
+from .bulletproof_range import (
+    BulletproofRangeBackend,
+    RangeAttestation,
+    min_aggregate_for,
+)
 from .commitment import (
     CommitmentProof,
     MerkleCommitment,
@@ -79,6 +90,7 @@ __all__ = [
     "AggregateAttestation",
     "AttestationBackend",
     "AttestationStatement",
+    "BulletproofRangeBackend",
     "CommitmentBackend",
     "CommitmentProof",
     "CrossOrgPassport",
@@ -91,10 +103,12 @@ __all__ = [
     "PassportVerdict",
     "PassportVerifier",
     "PedersenParameters",
+    "RangeAttestation",
     "SchnorrAttestationBackend",
     "SchnorrProof",
     "ZkSnarkBackend",
     "commit_samples",
+    "min_aggregate_for",
     "open_indices",
     "pedersen_commit",
     "verify_opening",

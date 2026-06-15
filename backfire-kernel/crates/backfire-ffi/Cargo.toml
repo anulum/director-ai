@@ -26,6 +26,10 @@ backfire-ssgf = { path = "../backfire-ssgf" }
 pyo3 = { workspace = true }
 sha2 = { workspace = true }
 hmac = { workspace = true }
+bulletproofs = "5.0"
+curve25519-dalek = "4.1"
+merlin = "3"
+rand = "0.8"
 
 [lints]
 workspace = true

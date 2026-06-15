@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Add **aggregate-hiding range-proof attestation backend**
+  (`director_ai.core.zk_attestation.BulletproofRangeBackend`): proves an
+  aggregate over hidden per-sample values meets a public threshold while
+  revealing neither the individual values nor their sum — only "threshold met".
+  Each value is committed on Ristretto; the homomorphic sum of the published
+  commitments, shifted by the threshold, is shown to hide a non-negative value
+  via a dalek Bulletproof, so the proof is bound to the real committed data and a
+  false claim is unprovable. New Rust kernels `rust_bulletproof_prove_threshold`
+  / `rust_bulletproof_verify_threshold` (dalek `bulletproofs` over Ristretto) in
+  `backfire_kernel`; the backend is Rust-only (no Python fallback) and raises if
+  the kernel is absent. 100% module tests (23, covering completeness, soundness
+  against tampered commitments/proof bytes, unprovable false statements, hiding,
+  context binding, and field validation); benchmark
+  `benchmarks/zk_bulletproof_range.py` (~600-byte proof, prove/verify in single
+  -digit ms); documented in `docs-site/api/zk-attestation.md`.
 - Add **zero-knowledge attestation backend**
   (`director_ai.core.zk_attestation.SchnorrAttestationBackend`): seals each
   sample's statement contribution in an additively-homomorphic Pedersen

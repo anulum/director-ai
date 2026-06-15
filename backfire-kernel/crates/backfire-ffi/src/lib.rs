@@ -59,6 +59,7 @@ use backfire_physics::{
 use backfire_ssgf::{SSGFConfig, SSGFEngine};
 
 mod safety_hooks;
+mod zk_range;
 
 // ─── PyBackfireConfig ───────────────────────────────────────────────
 
@@ -1643,6 +1644,15 @@ fn backfire_kernel(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<PyPGBOEngine>()?;
     // SSGF geometry engine
     m.add_class::<PySSGFEngine>()?;
+    // Zero-knowledge range-proof attestation (Bulletproofs over Ristretto)
+    m.add_function(wrap_pyfunction!(
+        zk_range::rust_bulletproof_prove_threshold,
+        m
+    )?)?;
+    m.add_function(wrap_pyfunction!(
+        zk_range::rust_bulletproof_verify_threshold,
+        m
+    )?)?;
     // Verification signals (Rust-accelerated)
     m.add_function(wrap_pyfunction!(rust_entity_overlap, m)?)?;
     m.add_function(wrap_pyfunction!(rust_numerical_consistency, m)?)?;
