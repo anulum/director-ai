@@ -247,3 +247,6 @@ docs/internal/gemini/
 
 # Multi-agent coordination metadata (local audit snapshot, never committed)
 .agent_metadata.json
+
+# Director-Class AI — separate commercial product, developed here, own repo on ship
+director_class_ai/
