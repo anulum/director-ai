@@ -87,9 +87,9 @@ class TestRustPythonParity:
         resp = "wrong ok wrong phrase here"
         offsets = [(0, 5), (6, 8), (9, 14), (15, 21), (22, 26)]
         scores = [0.99, 0.1, 0.97, 0.96, 0.2]
-        assert merge_flagged_spans(offsets, scores, resp, 0.95) == _merge_flagged_spans_py(
+        assert merge_flagged_spans(
             offsets, scores, resp, 0.95
-        )
+        ) == _merge_flagged_spans_py(offsets, scores, resp, 0.95)
 
     def test_fallback_to_python_floor_when_rust_absent(self, monkeypatch) -> None:
         # Force the Python-floor branch of the dispatcher and confirm it is taken.
