@@ -10,7 +10,7 @@
 | Python capability source modules | 420 |
 | Python capability classes | 970 |
 | API documentation pages | 88 |
-| Rust PyO3 bindings | 82 |
+| Rust PyO3 bindings | 83 |
 | Optional extras | 58 |
 | Python test files | 520 |
 | Public documentation pages | 200 |

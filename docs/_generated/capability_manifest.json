@@ -8,7 +8,7 @@
     "public_documentation_pages": 200,
     "python_model_classes": 970,
     "python_model_source_modules": 420,
-    "rust_pyo3_model_wrappers": 82,
+    "rust_pyo3_model_wrappers": 83,
     "test_files": 520
   },
   "documentation": {
@@ -4683,6 +4683,7 @@
       "rust_lite_score",
       "rust_lite_score_batch",
       "rust_mean",
+      "rust_merge_flagged_spans",
       "rust_merkle_auth_path",
       "rust_merkle_root",
       "rust_merkle_walk_path",
