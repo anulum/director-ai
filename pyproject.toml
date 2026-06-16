@@ -486,6 +486,20 @@ module = "director_ai.voice.*"
 disallow_untyped_defs = true
 disallow_incomplete_defs = true
 
+# Subpackages migrated to full strict typing (incremental rollout towards a
+# global strict profile). Each entry is verified clean under `mypy --strict`.
+[[tool.mypy.overrides]]
+module = "director_ai.agentic.*"
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+disallow_untyped_calls = true
+disallow_untyped_decorators = true
+disallow_any_generics = true
+warn_return_any = true
+no_implicit_reexport = true
+strict_equality = true
+warn_unused_ignores = true
+
 [tool.bandit]
 exclude_dirs = ["tests", "benchmarks"]
 # B101: assert used in tests only (excluded above)

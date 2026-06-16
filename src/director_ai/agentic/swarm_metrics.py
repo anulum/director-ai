@@ -114,7 +114,7 @@ class SwarmMetrics:
             rec.quarantined = True
             rec.quarantine_count += 1
 
-    def report(self) -> dict:
+    def report(self) -> dict[str, object]:
         """Generate a metrics report.
 
         Returns
@@ -134,7 +134,7 @@ class SwarmMetrics:
                 ),
             }
 
-            agents: dict[str, dict] = {}
+            agents: dict[str, dict[str, object]] = {}
             for aid, rec in self._agents.items():
                 mean_score = rec.total_score / rec.handoffs if rec.handoffs else 0.0
                 hall_rate = rec.flagged / rec.handoffs if rec.handoffs else 0.0

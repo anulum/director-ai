@@ -35,7 +35,7 @@ from dataclasses import dataclass, field
 __all__ = ["AgentProfile", "ROLE_DEFAULTS"]
 
 # Role → default overrides. Keys must match AgentProfile field names.
-ROLE_DEFAULTS: dict[str, dict] = {
+ROLE_DEFAULTS: dict[str, dict[str, object]] = {
     "researcher": {
         "coherence_threshold": 0.65,
         "max_steps": 100,
@@ -140,7 +140,7 @@ class AgentProfile:
             )
 
     @classmethod
-    def for_role(cls, role: str, **overrides) -> AgentProfile:
+    def for_role(cls, role: str, **overrides: object) -> AgentProfile:
         """Create a profile with role-based defaults.
 
         Looks up ``ROLE_DEFAULTS[role]`` for sensible defaults, then
@@ -161,9 +161,11 @@ class AgentProfile:
         defaults["role"] = role
         defaults["agent_id"] = overrides.pop("agent_id", _next_id(role))
         defaults.update(overrides)
-        return cls(**defaults)
+        # Dynamic construction: role defaults + overrides resolve to the declared
+        # dataclass fields at runtime; mypy cannot match object values statically.
+        return cls(**defaults)  # type: ignore[arg-type]
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict[str, object]:
         """Serialise to a plain dict (JSON-safe)."""
         return {
             "agent_id": self.agent_id,
@@ -177,6 +179,8 @@ class AgentProfile:
         }
 
     @classmethod
-    def from_dict(cls, data: dict) -> AgentProfile:
+    def from_dict(cls, data: dict[str, object]) -> AgentProfile:
         """Deserialise from a plain dict."""
-        return cls(**{k: v for k, v in data.items() if k in cls.__dataclass_fields__})
+        # Values are filtered to the declared dataclass fields before construction;
+        # mypy cannot statically match object values to the typed fields.
+        return cls(**{k: v for k, v in data.items() if k in cls.__dataclass_fields__})  # type: ignore[arg-type]

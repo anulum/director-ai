@@ -30,6 +30,7 @@ from __future__ import annotations
 import hashlib
 import time
 from collections import Counter
+from collections.abc import Callable
 from dataclasses import dataclass, field
 
 from director_ai.core.text_overlap import word_overlap
@@ -92,8 +93,8 @@ class LoopMonitor:
         max_wall_seconds: float = 300.0,
         circular_threshold: int = 3,
         goal_drift_threshold: float = 0.6,
-        goal_drift_scorer=None,
-    ):
+        goal_drift_scorer: Callable[[str, str], float] | None = None,
+    ) -> None:
         self._goal = goal
         self._max_steps = max_steps
         self._max_tokens = max_tokens
