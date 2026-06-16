@@ -96,7 +96,7 @@ def merge_flagged_spans(
     max_score = 0.0
     cur_start = cur_end = -1
     cur_max = 0.0
-    for (cs, ce), score in zip(offsets, scores):
+    for (cs, ce), score in zip(offsets, scores, strict=True):
         max_score = max(max_score, score)
         if score < threshold or ce <= cs:
             continue
@@ -107,7 +107,9 @@ def merge_flagged_spans(
         else:
             if cur_end >= 0:
                 spans.append(
-                    HallucinatedSpan(cur_start, cur_end, response[cur_start:cur_end], cur_max)
+                    HallucinatedSpan(
+                        cur_start, cur_end, response[cur_start:cur_end], cur_max
+                    )
                 )
             cur_start, cur_end, cur_max = cs, ce, score
     if cur_end >= 0:
@@ -167,7 +169,9 @@ class HallucinationSpanDetector:
 
         pinned = resolve_model_revision(model_id, revision)
         tokenizer = AutoTokenizer.from_pretrained(model_id, revision=pinned)
-        model = AutoModelForTokenClassification.from_pretrained(model_id, revision=pinned)
+        model = AutoModelForTokenClassification.from_pretrained(
+            model_id, revision=pinned
+        )
         model.eval()
         if device >= 0 and torch.cuda.is_available():
             model.to(f"cuda:{device}")

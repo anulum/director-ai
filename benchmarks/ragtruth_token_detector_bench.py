@@ -99,7 +99,10 @@ def run(max_samples: int | None = None) -> dict:
         "recall": rec,
         "balanced_accuracy": (tpr + tnr) / 2,
         "false_positive_rate": fp / (fp + tn) if fp + tn else 0.0,
-        "tp": tp, "fp": fp, "tn": tn, "fn": fn,
+        "tp": tp,
+        "fp": fp,
+        "tn": tn,
+        "fn": fn,
         "latency_ms_p50": latencies[len(latencies) // 2] if latencies else 0.0,
         "latency_ms_mean": sum(latencies) / len(latencies) if latencies else 0.0,
         "reference": {"lettucedetect_example_f1": 0.7922, "nli_decompose_f1": 0.366},
@@ -116,7 +119,9 @@ def _print(r: dict) -> None:
     print(f"  balanced acc : {r['balanced_accuracy']:.4f}")
     print(f"  FPR          : {r['false_positive_rate']:.4f}")
     print(f"  latency p50  : {r['latency_ms_p50']:.1f} ms")
-    print(f"  (LettuceDetect example F1 = {r['reference']['lettucedetect_example_f1']})")
+    print(
+        f"  (LettuceDetect example F1 = {r['reference']['lettucedetect_example_f1']})"
+    )
 
 
 if __name__ == "__main__":

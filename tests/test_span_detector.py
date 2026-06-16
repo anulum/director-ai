@@ -12,7 +12,6 @@ import pytest
 
 from director_ai.core.scoring.span_detector import (
     DEFAULT_SPAN_MODEL,
-    HallucinatedSpan,
     HallucinationSpanDetector,
     SpanDetection,
     merge_flagged_spans,
@@ -224,7 +223,9 @@ class TestGuardWiring:
         monkeypatch.setattr(
             "director_ai.core.scoring.span_detector.HallucinationSpanDetector"
             ".from_pretrained",
-            classmethod(lambda cls, model_id, **kw: fake_from_pretrained(model_id, **kw)),
+            classmethod(
+                lambda cls, model_id, **kw: fake_from_pretrained(model_id, **kw)
+            ),
         )
         guard = self._guard(
             span_detection_enabled=True,
