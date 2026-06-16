@@ -22,12 +22,12 @@ test-julia: ## Run Julia threshold-tuner tests
 
 test-wasm: ## Build + test the backfire-wasm edge runtime
 	cd backfire-kernel/crates/backfire-wasm && \
-		CARGO_TARGET_DIR=$${CARGO_TARGET_DIR:-/media/anulum/724AA8E84AA8AA75/linux_data/rust-target} \
+		CARGO_TARGET_DIR=$${CARGO_TARGET_DIR:-/media/anulum/GOTM/_caches/rust-target} \
 		wasm-pack test --node
 
 wasm-build: ## Build the backfire-wasm web module (pkg/)
 	cd backfire-kernel/crates/backfire-wasm && \
-		CARGO_TARGET_DIR=$${CARGO_TARGET_DIR:-/media/anulum/724AA8E84AA8AA75/linux_data/rust-target} \
+		CARGO_TARGET_DIR=$${CARGO_TARGET_DIR:-/media/anulum/GOTM/_caches/rust-target} \
 		wasm-pack build --target web --release
 
 test-lean: ## Build Lean 4 formal models (HaltMonitor)

@@ -340,12 +340,12 @@ parallelism benefit far outweighs this overhead.
 ### TMPDIR Requirement
 
 The multi-GPU pipeline creates temporary dataset shards on disk. On systems
-where the root partition is small (e.g. 93 GB with most storage on a
-separate NTFS volume), the `TMPDIR` environment variable must point to
-a partition with sufficient space:
+where the root partition is small with most storage on a separate working
+drive, the `TMPDIR` environment variable must point to a partition with
+sufficient space:
 
 ```bash
-export TMPDIR=/media/anulum/724AA8E84AA8AA75/linux_data/tmp
+export TMPDIR=/media/anulum/GOTM/_scratch/tmp
 python training/build_judge_dataset.py --num-gpus 3 --gpu-offset 1
 ```
 

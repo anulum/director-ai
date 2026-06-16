@@ -40,8 +40,8 @@ The default artefact weighs ~110 KB uncompressed (`*.wasm`) plus
 ~12 KB of JS glue. `wasm-opt -Oz` is run by `wasm-pack` during a
 release build.
 
-Cargo cache lives on NTFS per the project convention — set
-`CARGO_TARGET_DIR=/media/anulum/724AA8E84AA8AA75/linux_data/rust-target`
+Cargo cache lives on the Samsung working drive per the project convention — set
+`CARGO_TARGET_DIR=/media/anulum/GOTM/_caches/rust-target`
 before running to avoid hammering the root partition.
 
 ## Testing
