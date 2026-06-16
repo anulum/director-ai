@@ -6,7 +6,7 @@
     "optional_extras": 58,
     "public_api_exports": 221,
     "public_documentation_pages": 200,
-    "python_model_classes": 970,
+    "python_model_classes": 971,
     "python_model_source_modules": 420,
     "rust_pyo3_model_wrappers": 83,
     "test_files": 520
@@ -1694,6 +1694,10 @@
       },
       {
         "name": "FieldMeta",
+        "path": "src/director_ai/ui/_field_groups.py"
+      },
+      {
+        "name": "FieldMetaDict",
         "path": "src/director_ai/ui/_field_groups.py"
       },
       {

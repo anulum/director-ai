@@ -302,6 +302,59 @@ class TestQdrantBackend:
 
             QdrantBackend(url="localhost")
 
+    def test_qdrant_init_constructs_client_and_ensures_collection(self):
+        mock_qc = MagicMock()
+        mock_models = MagicMock()
+        mock_models.VectorParams = lambda **kwargs: ("vector", kwargs)
+        mock_models.Distance.COSINE = "cosine"
+
+        with patch.dict(
+            "sys.modules",
+            {"qdrant_client": mock_qc, "qdrant_client.models": mock_models},
+        ):
+            from director_ai.core.vector_store import QdrantBackend
+
+            backend = QdrantBackend(
+                url="qhost",
+                port=1234,
+                collection_name="facts",
+                vector_size=7,
+                embed_fn=lambda text: [0.0] * 7,
+            )
+
+        mock_qc.QdrantClient.assert_called_once_with(host="qhost", port=1234)
+        backend._client.get_collection.assert_called_once_with("facts")
+        backend._client.create_collection.assert_not_called()
+
+    def test_qdrant_add_requires_embed_fn(self):
+        from director_ai.core.vector_store import QdrantBackend
+
+        backend = QdrantBackend.__new__(QdrantBackend)
+        backend._client = MagicMock()
+        backend._collection = "facts"
+        backend._embed_fn = None
+
+        with pytest.raises(ValueError, match="requires embed_fn"):
+            backend.add("d1", "text")
+
+    def test_qdrant_add_upserts_embedded_point(self):
+        from director_ai.core.vector_store import QdrantBackend
+
+        mock_models = MagicMock()
+        mock_models.PointStruct = lambda **kwargs: ("point", kwargs)
+
+        backend = QdrantBackend.__new__(QdrantBackend)
+        backend._client = MagicMock()
+        backend._collection = "facts"
+        backend._embed_fn = lambda text: [0.1, 0.2]
+
+        with patch.dict("sys.modules", {"qdrant_client.models": mock_models}):
+            backend.add("d1", "hello", {"k": "v"})
+
+        backend._client.upsert.assert_called_once()
+        kwargs = backend._client.upsert.call_args.kwargs
+        assert kwargs["collection_name"] == "facts"
+
     def test_ensure_collection_creates_missing_collection_and_query_filters(self):
         from director_ai.core.vector_store import QdrantBackend
 
