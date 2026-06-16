@@ -41,12 +41,16 @@ guard = ProductionGuard(config=DirectorConfig(span_detection_enabled=True))
 
 result = guard.detect_spans(
     context="The restaurant serves Chinese and Szechuan dishes.",
-    response="It serves Szechuan dishes and offers outdoor seating.",
+    response="It serves Szechuan dishes. The head chef won three Michelin stars in 2019.",
 )
 result.hallucinated          # True
-[(s.text, s.score) for s in result.spans]
-# -> [("and offers outdoor seating", 0.98)]
+[s.text for s in result.spans]
+# -> [' chef won', ' Michelin', ' in 2019']   # the fabricated detail, unsupported by the context
 ```
+
+The default operating point flags a token only at `P(hallucinated) >= 0.95`
+(`span_token_threshold`). A borderline addition that scores just under the cut is
+left unflagged; lower the threshold to trade precision for recall.
 
 Direct use without the guard:
 
