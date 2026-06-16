@@ -5,11 +5,11 @@
     "model_documentation_pages": 88,
     "optional_extras": 58,
     "public_api_exports": 221,
-    "public_documentation_pages": 199,
-    "python_model_classes": 967,
-    "python_model_source_modules": 419,
+    "public_documentation_pages": 200,
+    "python_model_classes": 970,
+    "python_model_source_modules": 420,
     "rust_pyo3_model_wrappers": 82,
-    "test_files": 519
+    "test_files": 520
   },
   "documentation": {
     "public_pages": [
@@ -177,6 +177,7 @@
       "docs-site/guide/scoring.md",
       "docs-site/guide/segmented-thresholds.md",
       "docs-site/guide/source-availability.md",
+      "docs-site/guide/span-detection.md",
       "docs-site/guide/streaming-overhead.md",
       "docs-site/guide/streaming.md",
       "docs-site/guide/structured-verification.md",
@@ -1876,6 +1877,10 @@
         "path": "src/director_ai/core/self_evolving/trainer.py"
       },
       {
+        "name": "HallucinatedSpan",
+        "path": "src/director_ai/core/scoring/span_detector.py"
+      },
+      {
         "name": "HallucinationEconomics",
         "path": "src/director_ai/core/routing/economics.py"
       },
@@ -1890,6 +1895,10 @@
       {
         "name": "HallucinationRootCauseAnalyzer",
         "path": "src/director_ai/core/interpretability/root_cause.py"
+      },
+      {
+        "name": "HallucinationSpanDetector",
+        "path": "src/director_ai/core/scoring/span_detector.py"
       },
       {
         "name": "HaltCorrectionContext",
@@ -3552,6 +3561,10 @@
         "path": "src/director_ai/core/scoring/verified_scorer.py"
       },
       {
+        "name": "SpanDetection",
+        "path": "src/director_ai/core/scoring/span_detector.py"
+      },
+      {
         "name": "SpatialConstraint",
         "path": "src/director_ai/core/cyber_physical/constraints.py"
       },
@@ -4491,6 +4504,7 @@
       "src/director_ai/core/scoring/scorer.py",
       "src/director_ai/core/scoring/scorer_config.py",
       "src/director_ai/core/scoring/sharded_nli.py",
+      "src/director_ai/core/scoring/span_detector.py",
       "src/director_ai/core/scoring/temporal_freshness.py",
       "src/director_ai/core/scoring/temporal_refresh.py",
       "src/director_ai/core/scoring/verified_scorer.py",
@@ -5456,6 +5470,7 @@
       "tests/test_simpleqa_eval.py",
       "tests/test_soc2_iso_readiness.py",
       "tests/test_source_fetch.py",
+      "tests/test_span_detector.py",
       "tests/test_starter_presets.py",
       "tests/test_stats.py",
       "tests/test_streaming.py",
