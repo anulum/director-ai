@@ -27,6 +27,7 @@ from __future__ import annotations
 
 import dataclasses
 from dataclasses import fields as dc_fields
+from typing import Any, TypedDict
 
 __all__ = ["get_field_groups", "FieldMeta", "FIELD_GROUPS"]
 
@@ -110,6 +111,17 @@ _TYPE_WIDGETS: dict[type, str] = {
 }
 
 
+class FieldMetaDict(TypedDict):
+    """Serialised field metadata consumed by the wizard UI."""
+
+    name: str
+    group: str
+    type: str
+    default: Any
+    widget: str
+    description: str
+
+
 class FieldMeta:
     """Metadata for a single config field."""
 
@@ -120,7 +132,7 @@ class FieldMeta:
         name: str,
         group: str,
         field_type: type,
-        default,
+        default: Any,
         widget: str,
         description: str = "",
     ) -> None:
@@ -131,7 +143,7 @@ class FieldMeta:
         self.widget = widget
         self.description = description
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> FieldMetaDict:
         return {
             "name": self.name,
             "group": self.group,
@@ -156,7 +168,7 @@ def _infer_widget(field_type: type) -> str:
     return _TYPE_WIDGETS.get(field_type, "text")
 
 
-def get_field_groups() -> dict[str, list[dict]]:
+def get_field_groups() -> dict[str, list[FieldMetaDict]]:
     """Introspect ``DirectorConfig`` and group fields for UI rendering.
 
     Returns a dict mapping group name → list of field metadata dicts.
@@ -164,7 +176,7 @@ def get_field_groups() -> dict[str, list[dict]]:
     """
     from director_ai.core.config import DirectorConfig
 
-    groups: dict[str, list[dict]] = {}
+    groups: dict[str, list[FieldMetaDict]] = {}
 
     for f in dc_fields(DirectorConfig):
         group = _classify_field(f.name)

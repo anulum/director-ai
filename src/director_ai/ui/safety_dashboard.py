@@ -595,8 +595,10 @@ def parse_dashboard_records(
     return records, errors
 
 
-def _feedback_tune_samples(feedback_jsonl: str) -> tuple[list[dict], list[str]]:
-    samples: list[dict] = []
+def _feedback_tune_samples(
+    feedback_jsonl: str,
+) -> tuple[list[dict[str, object]], list[str]]:
+    samples: list[dict[str, object]] = []
     errors: list[str] = []
 
     for line_no, item in _jsonl_items(feedback_jsonl, label="feedback", errors=errors):

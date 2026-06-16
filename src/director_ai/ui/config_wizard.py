@@ -487,7 +487,7 @@ def launch_gradio(port: int = 7860, share: bool = False) -> None:
 
     groups = get_field_groups()
 
-    def build_config(**kwargs) -> str:
+    def build_config(**kwargs: Any) -> str:
         overrides = {k: v for k, v in kwargs.items() if v is not None}
         return generate_yaml(overrides)
 
