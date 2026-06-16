@@ -334,7 +334,12 @@ class TestQdrantBackend:
         backend._collection = "facts"
         backend._embed_fn = None
 
-        with pytest.raises(ValueError, match="requires embed_fn"):
+        # add() imports qdrant_client.models before the embed_fn guard, so the
+        # module must resolve even when the qdrant extra is not installed.
+        with (
+            patch.dict("sys.modules", {"qdrant_client.models": MagicMock()}),
+            pytest.raises(ValueError, match="requires embed_fn"),
+        ):
             backend.add("d1", "text")
 
     def test_qdrant_add_upserts_embedded_point(self):
