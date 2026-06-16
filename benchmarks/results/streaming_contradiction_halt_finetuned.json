@@ -1,0 +1,722 @@
+{
+  "benchmark": "streaming_contradiction_halt",
+  "gate": "contradiction",
+  "model": "/media/anulum/GOTM/_scratch/director_contradiction/contradiction-merged",
+  "device": "cuda:0 (NVIDIA GeForce GTX 1060 6GB)",
+  "threshold": 0.2,
+  "n_good": 135,
+  "n_bad": 3,
+  "halt_quality": {
+    "true_positives": 0,
+    "false_positives": 0,
+    "true_negatives": 135,
+    "false_negatives": 3,
+    "halt_precision": 0.0,
+    "halt_recall": 0.0,
+    "false_halt_rate": 0.0,
+    "token_of_halt_accuracy": 0.0,
+    "median_halt_latency_tokens": 0.0,
+    "token_tolerance": 8
+  },
+  "wall_ms": 11305.65,
+  "per_good": [
+    {
+      "id": "water_boiling",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "speed_of_light",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "dna_structure",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "gravity_earth",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "photosynthesis",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "human_chromosomes",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "blood_types",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "newtons_third_law",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "mitochondria",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "celsius_fahrenheit",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "ozone_layer",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "pi_value",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "iron_rust",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "planck_constant",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "helium_properties",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "insulin_function",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "hubble_expansion",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "avogadro_number",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "diamond_structure",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "hemoglobin_transport",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "entropy_thermodynamics",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "schwarzschild_radius",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "periodic_table_groups",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "refraction_snell",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "krebs_cycle",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "continental_drift",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "covalent_bond",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "star_lifecycle",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "redshift_doppler",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "electronegativity",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "neuron_action_potential",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "cosmic_microwave_background",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "ideal_gas_law",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "chromosome_meiosis",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "magnetic_field_earth",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "roman_empire_fall",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "french_revolution",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "magna_carta",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "silk_road",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "nile_river",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "industrial_revolution",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "dead_sea",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "great_wall_china",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "amazon_rainforest",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "renaissance_period",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "magellan_circumnavigation",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "sahara_desert",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "treaty_westphalia",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "panama_canal",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "antibiotics_penicillin",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "blood_pressure",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "kidney_filtration",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "vitamin_d_synthesis",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "immune_tcells",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "liver_functions",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "heart_chambers",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "bone_remodeling",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "vaccination_mechanism",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "gut_microbiome",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "tcp_ip_protocol",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "transistor_mosfet",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "public_key_crypto",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "relational_database",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "turing_machine",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "dns_resolution",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "machine_learning_gradient",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "version_control_git",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "virtualization_hypervisor",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "container_orchestration",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "compound_interest",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "supply_demand",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "gdp_definition",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "inflation_cpi",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "central_bank_rates",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "bond_yield",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "balance_sheet",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "diversification_risk",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "exchange_rate_factors",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "marginal_utility",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "constitution_separation",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "habeas_corpus",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "tort_law",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "contract_elements",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "international_law_sources",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "shakespeare_works",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "impressionism_art",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "sonata_form",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "novel_elements",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "baroque_architecture",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "maillard_reaction",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "vitamin_c_sources",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "fermentation_food",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "omega3_fatty_acids",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "sodium_intake",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "marathon_distance",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "olympic_rings",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "chess_rules",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "swimming_strokes",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "offside_rule_football",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "tennis_scoring",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "conv_vaccine_schedule",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "conv_mortgage_rates",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "conv_recycling_process",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "conv_sleep_stages",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "conv_tax_brackets",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "conv_coffee_origins",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "conv_blood_types",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "conv_earthquake_scales",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "conv_wifi_standards",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "conv_composting_basics",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "explain_plate_tectonics",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "explain_immune_response",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "explain_encryption",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "explain_photovoltaics",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "explain_gdp_calculation",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "explain_mendelian_genetics",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "explain_supply_demand",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "explain_water_cycle",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "explain_transistors",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "explain_antibiotics",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "summary_french_revolution",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "summary_dna_discovery",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "summary_periodic_table",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "summary_moon_landing",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "summary_internet_history",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "summary_germ_theory",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "summary_continental_drift",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "summary_printing_press",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "summary_relativity",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "summary_penicillin",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "edge_water_formula",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "edge_earth_satellite",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "edge_gold_symbol",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "edge_speed_sound",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "edge_jupiter_largest",
+      "halted": false,
+      "contradiction": 0.0
+    }
+  ],
+  "per_bad": [
+    {
+      "id": "wrong_boiling",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 3,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_light_speed",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 6,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_dna",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 3,
+      "contradiction": 0.0
+    }
+  ]
+}

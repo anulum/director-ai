@@ -23,14 +23,17 @@ contradiction), so the halt can act on contradiction alone. On the false-halt
 benchmark this separates cleanly — correct primary claims sit at p95 ≈ 0.01
 contradiction while hallucinations land at 0.37-0.98.
 
-Default model: ``anulum/director-contradiction-deberta-v3-large`` — a three-class
-NLI head fine-tuned for this halt. On the held-out contradiction set it lifts the
-contradiction-vs-other AUC from 0.824 (base
-``MoritzLaurer/DeBERTa-v3-large-mnli-fever-anli-ling-wanli``) to 0.989, raising
-recall at a 0.2 threshold from 0.52 to 0.97 at a 9.9% false-halt rate. The base
-model stays in the fallback chain. Revisions are pinned via the model-revision
-registry. ``transformers`` is an optional import — installs without it keep the
-rest of the package working and get a clear error if they ask for the model.
+Default model: ``MoritzLaurer/DeBERTa-v3-large-mnli-fever-anli-ling-wanli``
+(MIT, ungated, with an ONNX export for low-latency serving). On the streaming
+false-halt benchmark it catches 2 of 3 contradiction passages at a 1.5%
+false-halt rate. A contradiction LoRA fine-tune
+(``anulum/director-contradiction-deberta-v3-large``) scores AUC 0.989 on its own
+held-out split but does *not* generalise to this gate's input — short retrieved
+fact fragments as the premise — where it returns P(contradiction) ~0.01 even for
+blatant contradictions and catches 0 of 3, so it is published but not the default.
+Revisions are pinned via the model-revision registry. ``transformers`` is an
+optional import — installs without it keep the rest of the package working and
+get a clear error if they ask for the model.
 """
 
 from __future__ import annotations
@@ -47,7 +50,7 @@ __all__ = [
     "DEFAULT_CONTRADICTION_MODEL",
 ]
 
-DEFAULT_CONTRADICTION_MODEL = "anulum/director-contradiction-deberta-v3-large"
+DEFAULT_CONTRADICTION_MODEL = "MoritzLaurer/DeBERTa-v3-large-mnli-fever-anli-ling-wanli"
 # Default halt threshold: correct claims sit far below this on the benchmark
 # (p95 ≈ 0.01); hallucinations land well above it.
 DEFAULT_CONTRADICTION_THRESHOLD = 0.2

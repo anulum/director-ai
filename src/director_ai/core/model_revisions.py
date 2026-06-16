@@ -27,8 +27,10 @@ MODEL_REVISION_REGISTRY: dict[str, str] = {
     "MoritzLaurer/DeBERTa-v3-large-mnli-fever-anli-ling-wanli": (
         "b3546ea6b0346eb6f8d5d68b13c7dc6d0376b3d7"
     ),
-    # Contradiction NLI fine-tuned for the streaming halt (held-out AUC 0.989 vs
-    # the base 0.824). Same three-class head; default contradiction signal.
+    # Contradiction LoRA fine-tune: AUC 0.989 on its own held-out split but it
+    # does not generalise to the streaming halt's short-fact premises (catches 0
+    # of 3 contradiction passages there), so it is pinned/available but NOT the
+    # default — the base MoritzLaurer model above remains the contradiction signal.
     "anulum/director-contradiction-deberta-v3-large": (
         "69105bd40b040fb89deacba6bb5235279475128d"
     ),
