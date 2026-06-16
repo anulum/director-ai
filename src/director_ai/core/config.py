@@ -190,6 +190,19 @@ class DirectorConfig:
     # "auto" picks best available: rust > onnx > deberta > nli-lite > lite
     scorer_backend: str = "auto"
 
+    # Token-level hallucinated-span detector (opt-in). The response/claim-level
+    # scorer above judges whole answers; this ModernBERT token classifier flags
+    # the short unsupported spans inside a RAG response (RAGTruth-style). Enabling
+    # it loads an extra model, so it is off by default and exposed via
+    # ``DirectorGuard.detect_spans``.
+    span_detection_enabled: bool = False
+    span_model: str = "anulum/director-ragtruth-token-modernbert"
+    span_model_revision: str = ""
+    span_token_threshold: float = 0.95
+    span_min_tokens: int = 1
+    span_max_length: int = 1024
+    span_device: int = -1
+
     # Multi-GPU NLI sharding (comma-separated, e.g. "cuda:0,cuda:1")
     nli_devices: str = ""
 

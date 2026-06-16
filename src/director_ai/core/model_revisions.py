@@ -27,6 +27,16 @@ MODEL_REVISION_REGISTRY: dict[str, str] = {
     "MoritzLaurer/DeBERTa-v3-large-mnli-fever-anli-ling-wanli": (
         "b3546ea6b0346eb6f8d5d68b13c7dc6d0376b3d7"
     ),
+    # Contradiction NLI fine-tuned for the streaming halt (held-out AUC 0.989 vs
+    # the base 0.824). Same three-class head; default contradiction signal.
+    "anulum/director-contradiction-deberta-v3-large": (
+        "69105bd40b040fb89deacba6bb5235279475128d"
+    ),
+    # Token-level RAGTruth hallucinated-span detector (ModernBERT). Example-level
+    # F1 0.763 / balanced accuracy 0.814 on the balanced test split.
+    "anulum/director-ragtruth-token-modernbert": (
+        "0d5bfc21044de07f764c99a9ca1094ccd516de93"
+    ),
     # Multilingual NLI (~100 languages, MIT) for non-English grounding/injection
     # detection where the English-centric defaults and Stage-1 patterns do not
     # reach; Stage-1 regex cannot scale to every language, so semantic NLI is the

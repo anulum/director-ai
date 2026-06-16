@@ -137,6 +137,7 @@ nav:
   - User Guide:
       - Scoring: guide/scoring.md
       - Streaming Halt: guide/streaming.md
+      - Span Detection: guide/span-detection.md
       - Prompt-Injection Guard: guide/prompt-guard.md
       - Hallucination Forecasting: guide/forecasting.md
       - Temporal Claim Refresh: guide/temporal-refresh.md

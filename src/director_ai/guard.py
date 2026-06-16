@@ -179,6 +179,7 @@ class ProductionGuard:
         self._cross_model: object | None = None
         self._economics: object | None = None
         self._multimodal: object | None = None
+        self._span_detector: object | None = None
 
     @classmethod
     def from_profile(
@@ -1028,6 +1029,46 @@ class ProductionGuard:
                     "expected 'hashbag' or 'clip'"
                 )
         return self._multimodal
+
+    @property
+    def span_detector(self):
+        """Token-level hallucinated-span detector (created on first use).
+
+        Loads the ModernBERT token classifier named by ``span_model`` and flags
+        the unsupported spans inside a RAG response — the span-level signal the
+        response/claim-level scorer cannot isolate. Opt-in: requires
+        ``span_detection_enabled`` in the config; raises otherwise.
+        """
+        if self._span_detector is None:
+            cfg = self._config
+            if not cfg.span_detection_enabled:
+                raise RuntimeError(
+                    "span detection is disabled; set span_detection_enabled in "
+                    "the config to enable it"
+                )
+            from director_ai.core.scoring.span_detector import (
+                HallucinationSpanDetector,
+            )
+
+            self._span_detector = HallucinationSpanDetector.from_pretrained(
+                cfg.span_model,
+                revision=cfg.span_model_revision or None,
+                device=cfg.span_device,
+                token_threshold=cfg.span_token_threshold,
+                min_tokens=cfg.span_min_tokens,
+                max_length=cfg.span_max_length,
+            )
+        return self._span_detector
+
+    def detect_spans(self, context: str, response: str):
+        """Flag the hallucinated spans of *response* against *context*.
+
+        Returns a
+        :class:`~director_ai.core.scoring.span_detector.SpanDetection` with the
+        character spans the token detector judged unsupported. Requires
+        ``span_detection_enabled``.
+        """
+        return self.span_detector.detect(context, response)
 
     def check_multimodal(self, request, *, adapter=None):
         """Verify a text claim against paired image / audio / video evidence.
