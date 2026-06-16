@@ -10,9 +10,12 @@ from __future__ import annotations
 
 import hashlib
 import logging
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from ..text_overlap import word_overlap
+
+if TYPE_CHECKING:
+    from ..types import EvidenceChunk
 
 __all__ = ["GroundTruthStore"]
 
@@ -37,9 +40,9 @@ class GroundTruthStore:
         "vibrana symmetry": "13-fold",
     }
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.logger = logging.getLogger("DirectorAI.GroundTruthStore")
-        self.facts = {}
+        self.facts: dict[str, str] = {}
         self._revision = 0
 
     @classmethod
@@ -90,7 +93,7 @@ class GroundTruthStore:
         query: str,
         top_k: int = 3,
         tenant_id: str = "",
-    ) -> list:
+    ) -> list[EvidenceChunk]:
         from ..types import EvidenceChunk
 
         context_str = self.retrieve_context(query, tenant_id=tenant_id)
