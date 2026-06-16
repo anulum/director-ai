@@ -35,6 +35,13 @@ from typing import Any
 
 from ..model_revisions import resolve_model_revision
 
+try:  # pragma: no cover - optional acceleration
+    from backfire_kernel import rust_merge_flagged_spans
+
+    _RUST_SPAN_MERGE = True
+except ImportError:  # pragma: no cover - Python floor when the accelerator is absent
+    _RUST_SPAN_MERGE = False
+
 __all__ = [
     "DEFAULT_SPAN_MODEL",
     "HallucinatedSpan",
@@ -90,7 +97,29 @@ def merge_flagged_spans(
     whose character ranges touch or overlap — collapse into one span; a small gap
     of non-flagged whitespace between two flagged tokens is bridged so a single
     hallucinated phrase is not split on its spaces.
+
+    The token-probability→span reduction runs through the Rust accelerator
+    (``backfire_kernel.rust_merge_flagged_spans``) when it is installed and falls
+    back to the bit-identical pure-Python floor below otherwise. The Rust path
+    returns ``(start, end, score)`` triples and the response text is sliced here,
+    so span extraction is identical on either path.
     """
+    if _RUST_SPAN_MERGE:
+        raw, flagged, max_score = rust_merge_flagged_spans(
+            offsets, scores, response, threshold
+        )
+        spans = [HallucinatedSpan(s, e, response[s:e], score) for s, e, score in raw]
+        return spans, flagged, max_score
+    return _merge_flagged_spans_py(offsets, scores, response, threshold)
+
+
+def _merge_flagged_spans_py(
+    offsets: list[tuple[int, int]],
+    scores: list[float],
+    response: str,
+    threshold: float,
+) -> tuple[list[HallucinatedSpan], int, float]:
+    """Pure-Python floor for :func:`merge_flagged_spans` (see its contract)."""
     spans: list[HallucinatedSpan] = []
     flagged = 0
     max_score = 0.0

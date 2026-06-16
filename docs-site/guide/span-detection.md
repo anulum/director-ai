@@ -69,6 +69,24 @@ detection.coverage           # fraction of response tokens flagged
 | `span_max_length` | `1024` | context+response token budget |
 | `span_device` | `-1` | CUDA device index, `-1` for CPU |
 
+## Performance
+
+The transformer forward pass dominates the cost, but the token-probability →
+character-span reduction that follows it has a Rust path
+(`backfire_kernel.rust_merge_flagged_spans`) with a bit-identical pure-Python
+floor. The detector uses the accelerator transparently when it is installed and
+falls back to Python otherwise — span output is identical either way (a
+20,000-case differential check finds no drift), so the Rust build is an
+optimisation, never a correctness dependency.
+
+Measured by `benchmarks/rust_compute_bench.py` (functional evidence — shared
+workstation, not an isolated claim-grade run):
+
+| reduction input | Python floor | Rust path | speedup |
+|---|---|---|---|
+| 30-token response | 4.32 µs | 1.68 µs | 2.6× |
+| 400-token response | 59.52 µs | 22.04 µs | 2.7× |
+
 ## Where it fits
 
 This is a span-level *grounding* signal, complementary to the real-time

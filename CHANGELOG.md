@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Add a **Rust path for the span detector's token-probability → character-span
+  reduction** (`backfire_kernel.rust_merge_flagged_spans`, delegating to
+  `backfire_core::compute::merge_flagged_spans`). `merge_flagged_spans` now
+  dispatches Rust-first with a bit-identical pure-Python floor, so the accelerator
+  is an optimisation and never a correctness dependency; the whitespace bridge
+  matches Python `str.isspace()` exactly. Measured 2.6–2.7× on the reduction
+  (`benchmarks/rust_compute_bench.py`, functional evidence).
+
 - Add an **in-process multimodal guard path**: `ProductionGuard.check_multimodal`
   and the lazily-built `ProductionGuard.multimodal_adapter` expose the multimodal
   hallucination check to library callers, not only the `/v1/multimodal/check`

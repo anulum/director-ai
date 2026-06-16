@@ -8,12 +8,16 @@
 
 from __future__ import annotations
 
+import random
+
 import pytest
 
+import director_ai.core.scoring.span_detector as span_module
 from director_ai.core.scoring.span_detector import (
     DEFAULT_SPAN_MODEL,
     HallucinationSpanDetector,
     SpanDetection,
+    _merge_flagged_spans_py,
     merge_flagged_spans,
 )
 
@@ -73,6 +77,51 @@ class TestMergeFlaggedSpans:
         resp = "edge"
         spans, flagged, _ = merge_flagged_spans([(0, 4)], [0.95], resp, 0.95)
         assert flagged == 1 and len(spans) == 1
+
+
+class TestRustPythonParity:
+    """The Rust accelerator and the Python floor must agree bit-for-bit."""
+
+    def test_python_floor_matches_default_dispatch(self) -> None:
+        # The floor produces the same spans/flagged/max as the public dispatcher.
+        resp = "wrong ok wrong phrase here"
+        offsets = [(0, 5), (6, 8), (9, 14), (15, 21), (22, 26)]
+        scores = [0.99, 0.1, 0.97, 0.96, 0.2]
+        assert merge_flagged_spans(offsets, scores, resp, 0.95) == _merge_flagged_spans_py(
+            offsets, scores, resp, 0.95
+        )
+
+    def test_fallback_to_python_floor_when_rust_absent(self, monkeypatch) -> None:
+        # Force the Python-floor branch of the dispatcher and confirm it is taken.
+        monkeypatch.setattr(span_module, "_RUST_SPAN_MERGE", False)
+        resp = "Paris is wrong here"
+        offsets = [(0, 5), (6, 8), (9, 14), (15, 19)]
+        scores = [0.1, 0.2, 0.99, 0.96]
+        spans, flagged, mx = merge_flagged_spans(offsets, scores, resp, 0.95)
+        assert flagged == 2
+        assert [s.text for s in spans] == ["wrong here"]
+        assert mx == pytest.approx(0.99)
+
+    def test_differential_sweep_rust_vs_floor(self) -> None:
+        # A seeded random sweep over varied offsets, thresholds, and a charset that
+        # includes Unicode and C0 separators (the str.isspace edge) finds no drift.
+        if not span_module._RUST_SPAN_MERGE:  # pragma: no cover - accelerator absent
+            pytest.skip("Rust span-merge accelerator not installed")
+        rng = random.Random(20260616)
+        charset = "ab cd.ef\n\t\x1f  xyz,"
+        for _ in range(3000):
+            resp = "".join(rng.choice(charset) for _ in range(rng.randint(0, 50)))
+            offsets, scores, pos = [], [], 0
+            while pos < len(resp) and len(offsets) < 30:
+                cs = pos
+                ce = min(len(resp), pos + rng.randint(0, 3))
+                offsets.append((cs, ce))
+                scores.append(round(rng.random(), 3))
+                pos = ce + rng.randint(0, 2)
+            threshold = rng.choice([0.0, 0.5, 0.95, 1.0])
+            assert merge_flagged_spans(offsets, scores, resp, threshold) == (
+                _merge_flagged_spans_py(offsets, scores, resp, threshold)
+            ), (offsets, scores, repr(resp), threshold)
 
 
 class TestSpanDetection:

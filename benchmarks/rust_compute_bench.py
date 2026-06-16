@@ -30,6 +30,7 @@ from __future__ import annotations
 import argparse
 import json
 import math
+import random
 import re
 import statistics
 import time
@@ -37,6 +38,11 @@ import unicodedata
 from pathlib import Path
 
 import numpy as np
+
+from director_ai.core.scoring.span_detector import (
+    _merge_flagged_spans_py,
+    merge_flagged_spans,
+)
 
 RESULTS_DIR = Path(__file__).parent / "results"
 
@@ -122,6 +128,29 @@ def _make_probs_data(rows: int, cols: int = 3) -> np.ndarray:
     raw = _make_softmax_data(rows, cols)
     e = np.exp(raw - raw.max(axis=1, keepdims=True))
     return e / e.sum(axis=1, keepdims=True)
+
+
+def _make_span_merge_data(
+    n_tokens: int, seed: int
+) -> tuple[list[tuple[int, int]], list[float], str]:
+    """A space-joined response with per-token character offsets and scores.
+
+    Offsets are aligned to the joined string exactly as a fast tokenizer's
+    ``offset_mapping`` would be, so the merge reduction runs on realistic input.
+    """
+    rng = random.Random(seed)
+    words = ["fact", "the", "data", "score", "value", "claim", "model", "span"]
+    parts: list[str] = []
+    offsets: list[tuple[int, int]] = []
+    scores: list[float] = []
+    pos = 0
+    for _ in range(n_tokens):
+        w = rng.choice(words)
+        parts.append(w)
+        offsets.append((pos, pos + len(w)))
+        scores.append(round(rng.random(), 3))
+        pos += len(w) + 1  # single space between tokens
+    return offsets, scores, " ".join(parts)
 
 
 # ─── Python fallbacks ────────────────────────────────────────────────
@@ -588,6 +617,10 @@ def main():
     pr_small_flat = probs_small.flatten().tolist()
     pr_large_flat = probs_large.flatten().tolist()
 
+    # Span-merge reduction data (short response vs full-context response).
+    span_small = _make_span_merge_data(30, seed=11)
+    span_large = _make_span_merge_data(400, seed=12)
+
     benchmarks = [
         {
             "name": "sanitizer_score",
@@ -732,6 +765,28 @@ def main():
             "py_args": (LITE_BATCH_PAIRS,),
             "rs_fn": rust_fns["lite_score_batch"] if rust_fns else None,
             "rs_args": (LITE_BATCH_PAIRS,),
+        },
+        {
+            "name": "merge_flagged_spans (30 tok)",
+            "description": (
+                "Token-probability → span reduction + HallucinatedSpan build, "
+                "short response (dispatcher vs Python floor)"
+            ),
+            "py_fn": _merge_flagged_spans_py,
+            "py_args": (*span_small, 0.95),
+            "rs_fn": merge_flagged_spans if rust_fns else None,
+            "rs_args": (*span_small, 0.95),
+        },
+        {
+            "name": "merge_flagged_spans (400 tok)",
+            "description": (
+                "Token-probability → span reduction + HallucinatedSpan build, "
+                "full context (dispatcher vs Python floor)"
+            ),
+            "py_fn": _merge_flagged_spans_py,
+            "py_args": (*span_large, 0.95),
+            "rs_fn": merge_flagged_spans if rust_fns else None,
+            "rs_args": (*span_large, 0.95),
         },
     ]
 

@@ -1324,6 +1324,17 @@ fn rust_aggregate_chunk_scores(
 }
 
 #[pyfunction]
+fn rust_merge_flagged_spans(
+    offsets: Vec<(i64, i64)>,
+    scores: Vec<f64>,
+    response: &str,
+    threshold: f64,
+) -> (Vec<(i64, i64, f64)>, usize, f64) {
+    let response_chars: Vec<char> = response.chars().collect();
+    backfire_core::compute::merge_flagged_spans(&offsets, &scores, &response_chars, threshold)
+}
+
+#[pyfunction]
 fn rust_aggregate_chunk_scores_confidence_weighted(
     flat_scores: Vec<f64>,
     flat_confidences: Vec<f64>,
@@ -1680,6 +1691,7 @@ fn backfire_kernel(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(rust_probs_to_divergence, m)?)?;
     m.add_function(wrap_pyfunction!(rust_probs_to_confidence, m)?)?;
     m.add_function(wrap_pyfunction!(rust_aggregate_chunk_scores, m)?)?;
+    m.add_function(wrap_pyfunction!(rust_merge_flagged_spans, m)?)?;
     m.add_function(wrap_pyfunction!(
         rust_aggregate_chunk_scores_confidence_weighted,
         m
