@@ -27,9 +27,10 @@ import logging
 import time
 from collections import defaultdict
 
-from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 from starlette.requests import Request
-from starlette.responses import JSONResponse
+from starlette.responses import JSONResponse, Response
+from starlette.types import ASGIApp
 
 logger = logging.getLogger("DirectorAI.RateLimit")
 
@@ -83,7 +84,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
 
     def __init__(
         self,
-        app,
+        app: ASGIApp,
         requests_per_minute: int = 60,
         burst: int | None = None,
     ) -> None:
@@ -100,7 +101,11 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
             self._burst,
         )
 
-    async def dispatch(self, request: Request, call_next):
+    async def dispatch(
+        self,
+        request: Request,
+        call_next: RequestResponseEndpoint,
+    ) -> Response:
         """Check rate limit before forwarding."""
         if request.url.path in _EXEMPT_PATHS:
             return await call_next(request)

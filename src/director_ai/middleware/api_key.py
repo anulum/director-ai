@@ -29,9 +29,10 @@ import os
 from collections.abc import Callable
 from pathlib import Path
 
-from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 from starlette.requests import Request
-from starlette.responses import JSONResponse
+from starlette.responses import JSONResponse, Response
+from starlette.types import ASGIApp
 
 logger = logging.getLogger("DirectorAI.APIKey")
 
@@ -58,10 +59,10 @@ class APIKeyMiddleware(BaseHTTPMiddleware):
 
     def __init__(
         self,
-        app,
+        app: ASGIApp,
         keys: set[str] | None = None,
         keys_file: str = "",
-        on_reject: Callable | None = None,
+        on_reject: Callable[[Request], Response] | None = None,
     ) -> None:
         super().__init__(app)
         self._keys = self._load_keys(keys, keys_file)
@@ -85,7 +86,11 @@ class APIKeyMiddleware(BaseHTTPMiddleware):
                         result.update(line.split())
         return result
 
-    async def dispatch(self, request: Request, call_next):
+    async def dispatch(
+        self,
+        request: Request,
+        call_next: RequestResponseEndpoint,
+    ) -> Response:
         """Check API key before forwarding to the application."""
         # Exempt paths
         if request.url.path in _EXEMPT_PATHS:
