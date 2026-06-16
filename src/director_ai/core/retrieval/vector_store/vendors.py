@@ -19,6 +19,7 @@ from __future__ import annotations
 import logging
 import threading
 from typing import Any
+from urllib.parse import urlparse
 
 from .base import VectorBackend
 
@@ -136,6 +137,8 @@ class WeaviateBackend(VectorBackend):
         api_key: str | None = None,
         class_name: str = "DirectorFact",
         embed_fn: Any = None,
+        grpc_port: int = 50051,
+        grpc_host: str | None = None,
     ) -> None:
         try:
             import weaviate
@@ -144,8 +147,24 @@ class WeaviateBackend(VectorBackend):
                 "WeaviateBackend requires weaviate-client. "
                 "Install with: pip install director-ai[weaviate]",
             ) from e
-        auth = weaviate.auth.AuthApiKey(api_key) if api_key else None
-        self._client = weaviate.Client(url=url, auth_client_secret=auth)
+        # weaviate-client v4 opens an HTTP + gRPC connection on construction
+        # (the v3 ``weaviate.Client(url=...)`` surface was removed). Derive the
+        # HTTP host/port/scheme from ``url`` and pair it with the gRPC endpoint.
+        parsed = urlparse(url)
+        http_secure = parsed.scheme == "https"
+        http_host = parsed.hostname or "localhost"
+        http_port = parsed.port or (443 if http_secure else 8080)
+        auth = weaviate.classes.init.Auth.api_key(api_key) if api_key else None
+        self._client = weaviate.connect_to_custom(
+            http_host=http_host,
+            http_port=http_port,
+            http_secure=http_secure,
+            grpc_host=grpc_host or http_host,
+            grpc_port=grpc_port,
+            grpc_secure=http_secure,
+            auth_credentials=auth,
+        )
+        self._weaviate = weaviate
         self._class_name = class_name
         self._embed_fn = embed_fn
         self._count = 0
@@ -156,17 +175,16 @@ class WeaviateBackend(VectorBackend):
         text: str,
         metadata: dict[str, Any] | None = None,
     ) -> None:
-        """Create one Weaviate object with optional explicit vector."""
+        """Insert one object with an optional explicit vector (v4 collections API)."""
 
         props = {"text": text, "doc_id": doc_id, **(metadata or {})}
-        kwargs: dict[str, Any] = {
-            "data_object": props,
-            "class_name": self._class_name,
-            "uuid": doc_id,
-        }
-        if self._embed_fn:  # pragma: no branch
-            kwargs["vector"] = self._embed_fn(text)
-        self._client.data_object.create(**kwargs)
+        vector = self._embed_fn(text) if self._embed_fn else None
+        collection = self._client.collections.get(self._class_name)
+        collection.data.insert(
+            properties=props,
+            uuid=self._weaviate.util.generate_uuid5(doc_id),
+            vector=vector,
+        )
         self._count += 1
 
     def query(
@@ -175,43 +193,41 @@ class WeaviateBackend(VectorBackend):
         n_results: int = 3,
         tenant_id: str = "",
     ) -> list[dict[str, Any]]:
-        """Query Weaviate with near-vector or near-text search."""
+        """Near-vector or near-text search via the v4 collections API."""
 
-        where_filter = None
-        if tenant_id:
-            where_filter = {
-                "path": ["tenant_id"],
-                "operator": "Equal",
-                "valueText": tenant_id,
-            }
-
-        query_builder = self._client.query.get(self._class_name, ["text", "doc_id"])
-        if self._embed_fn:
-            vector = self._embed_fn(text)
-            query_builder = query_builder.with_near_vector({"vector": vector})
-        else:
-            query_builder = query_builder.with_near_text({"concepts": [text]})
-
-        query_builder = query_builder.with_limit(n_results).with_additional(
-            ["distance", "id"],
+        query_classes = self._weaviate.classes.query
+        filters = (
+            query_classes.Filter.by_property("tenant_id").equal(tenant_id)
+            if tenant_id
+            else None
         )
+        return_metadata = query_classes.MetadataQuery(distance=True)
+        collection = self._client.collections.get(self._class_name)
+        if self._embed_fn:
+            response = collection.query.near_vector(
+                near_vector=self._embed_fn(text),
+                limit=n_results,
+                filters=filters,
+                return_metadata=return_metadata,
+            )
+        else:
+            response = collection.query.near_text(
+                query=text,
+                limit=n_results,
+                filters=filters,
+                return_metadata=return_metadata,
+            )
 
-        if where_filter:
-            query_builder = query_builder.with_where(where_filter)
-
-        result = query_builder.do()
         docs: list[dict[str, Any]] = []
-        items = result.get("data", {}).get("Get", {}).get(self._class_name, [])
-        for item in items:
-            extra = item.get("_additional", {})
+        for obj in response.objects:
+            props = dict(obj.properties)
+            distance = getattr(obj.metadata, "distance", None)
             docs.append(
                 {
-                    "id": extra.get("id", item.get("doc_id", "")),
-                    "text": item.get("text", ""),
-                    "distance": float(extra.get("distance", 0.0)),
-                    "metadata": {
-                        k: v for k, v in item.items() if k not in ("_additional",)
-                    },
+                    "id": props.get("doc_id", str(obj.uuid)),
+                    "text": props.get("text", ""),
+                    "distance": float(distance) if distance is not None else 0.0,
+                    "metadata": props,
                 },
             )
         return docs
@@ -356,6 +372,9 @@ class FAISSBackend(VectorBackend):
             ) from e
 
         self._faiss = faiss
+        # Both index kinds derive from ``faiss.Index``; annotate the base so the
+        # flat and IVF branches share one declared type.
+        self._index: faiss.Index
         if index_type == "ivf":
             quantizer = faiss.IndexFlatIP(vector_size)
             self._index = faiss.IndexIVFFlat(quantizer, vector_size, 16)

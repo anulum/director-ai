@@ -115,41 +115,38 @@ class TestWeaviateBackend:
 
             WeaviateBackend(url="http://weaviate:8080", api_key="secret")
 
-        mock_weaviate.auth.AuthApiKey.assert_called_once_with("secret")
-        mock_weaviate.Client.assert_called_once_with(
-            url="http://weaviate:8080",
-            auth_client_secret=mock_weaviate.auth.AuthApiKey.return_value,
+        mock_weaviate.classes.init.Auth.api_key.assert_called_once_with("secret")
+        mock_weaviate.connect_to_custom.assert_called_once_with(
+            http_host="weaviate",
+            http_port=8080,
+            http_secure=False,
+            grpc_host="weaviate",
+            grpc_port=50051,
+            grpc_secure=False,
+            auth_credentials=mock_weaviate.classes.init.Auth.api_key.return_value,
         )
 
-    def test_weaviate_query_applies_tenant_filter_and_doc_id_fallback(self):
+    def test_weaviate_query_applies_tenant_filter_and_returns_doc_id(self):
         from director_ai.core.vector_store import WeaviateBackend
 
         backend = WeaviateBackend.__new__(WeaviateBackend)
         backend._client = MagicMock()
+        backend._weaviate = MagicMock()
         backend._class_name = "Fact"
         backend._embed_fn = None
         backend._count = 0
 
-        query = MagicMock()
-        backend._client.query.get.return_value = query
-        query.with_near_text.return_value = query
-        query.with_limit.return_value = query
-        query.with_additional.return_value = query
-        query.with_where.return_value = query
-        query.do.return_value = {
-            "data": {
-                "Get": {
-                    "Fact": [
-                        {
-                            "text": "tenant fact",
-                            "doc_id": "doc-1",
-                            "tenant_id": "tenant-a",
-                            "_additional": {"distance": 0.25},
-                        }
-                    ]
-                }
-            }
-        }
+        obj = SimpleNamespace(
+            properties={
+                "text": "tenant fact",
+                "doc_id": "doc-1",
+                "tenant_id": "tenant-a",
+            },
+            uuid="obj-uuid",
+            metadata=SimpleNamespace(distance=0.25),
+        )
+        collection = backend._client.collections.get.return_value
+        collection.query.near_text.return_value = SimpleNamespace(objects=[obj])
 
         result = backend.query("tenant", tenant_id="tenant-a")
 
@@ -165,8 +162,16 @@ class TestWeaviateBackend:
                 },
             }
         ]
-        query.with_where.assert_called_once_with(
-            {"path": ["tenant_id"], "operator": "Equal", "valueText": "tenant-a"}
+        query_classes = backend._weaviate.classes.query
+        query_classes.Filter.by_property.assert_called_once_with("tenant_id")
+        query_classes.Filter.by_property.return_value.equal.assert_called_once_with(
+            "tenant-a"
+        )
+        collection.query.near_text.assert_called_once_with(
+            query="tenant",
+            limit=3,
+            filters=query_classes.Filter.by_property.return_value.equal.return_value,
+            return_metadata=query_classes.MetadataQuery.return_value,
         )
 
     def test_weaviate_add_uses_embedding_vector_when_configured(self):
@@ -178,52 +183,113 @@ class TestWeaviateBackend:
         backend._embed_fn = lambda text: [0.4, 0.6]
         backend._count = 0
 
+        backend._weaviate = MagicMock()
+
         backend.add("doc-1", "embedded fact", {"tenant_id": "tenant-a"})
 
-        backend._client.data_object.create.assert_called_once_with(
-            data_object={
+        collection = backend._client.collections.get.return_value
+        collection.data.insert.assert_called_once_with(
+            properties={
                 "text": "embedded fact",
                 "doc_id": "doc-1",
                 "tenant_id": "tenant-a",
             },
-            class_name="Fact",
-            uuid="doc-1",
+            uuid=backend._weaviate.util.generate_uuid5.return_value,
             vector=[0.4, 0.6],
         )
+        backend._weaviate.util.generate_uuid5.assert_called_once_with("doc-1")
         assert backend.count() == 1
 
-    def test_weaviate_query_prefers_additional_id_over_doc_id(self):
+    def test_weaviate_query_falls_back_to_object_uuid_without_doc_id(self):
         from director_ai.core.vector_store import WeaviateBackend
 
         backend = WeaviateBackend.__new__(WeaviateBackend)
         backend._client = MagicMock()
+        backend._weaviate = MagicMock()
         backend._class_name = "Fact"
         backend._embed_fn = lambda text: [0.2, 0.8]
         backend._count = 0
 
-        query = MagicMock()
-        backend._client.query.get.return_value = query
-        query.with_near_vector.return_value = query
-        query.with_limit.return_value = query
-        query.with_additional.return_value = query
-        query.do.return_value = {
-            "data": {
-                "Get": {
-                    "Fact": [
-                        {
-                            "text": "vector fact",
-                            "doc_id": "doc-original",
-                            "_additional": {"id": "uuid-1", "distance": 0.5},
-                        }
-                    ]
-                }
-            }
-        }
+        obj = SimpleNamespace(
+            properties={"text": "vector fact"},
+            uuid="uuid-1",
+            metadata=SimpleNamespace(distance=0.5),
+        )
+        collection = backend._client.collections.get.return_value
+        collection.query.near_vector.return_value = SimpleNamespace(objects=[obj])
 
         result = backend.query("vector", n_results=1)
 
-        query.with_near_vector.assert_called_once_with({"vector": [0.2, 0.8]})
+        collection.query.near_vector.assert_called_once_with(
+            near_vector=[0.2, 0.8],
+            limit=1,
+            filters=None,
+            return_metadata=backend._weaviate.classes.query.MetadataQuery.return_value,
+        )
         assert result[0]["id"] == "uuid-1"
+        assert result[0]["distance"] == 0.5
+
+    def test_weaviate_init_without_key_parses_https_and_explicit_grpc(self):
+        mock_weaviate = MagicMock()
+
+        with patch.dict("sys.modules", {"weaviate": mock_weaviate}):
+            from director_ai.core.vector_store import WeaviateBackend
+
+            WeaviateBackend(url="https://secure.example", grpc_host="grpc.example")
+
+        mock_weaviate.classes.init.Auth.api_key.assert_not_called()
+        mock_weaviate.connect_to_custom.assert_called_once_with(
+            http_host="secure.example",
+            http_port=443,
+            http_secure=True,
+            grpc_host="grpc.example",
+            grpc_port=50051,
+            grpc_secure=True,
+            auth_credentials=None,
+        )
+
+    def test_weaviate_add_without_embedding_inserts_without_vector(self):
+        from director_ai.core.vector_store import WeaviateBackend
+
+        backend = WeaviateBackend.__new__(WeaviateBackend)
+        backend._client = MagicMock()
+        backend._weaviate = MagicMock()
+        backend._class_name = "Fact"
+        backend._embed_fn = None
+        backend._count = 0
+
+        backend.add("doc-1", "plain fact")
+
+        collection = backend._client.collections.get.return_value
+        collection.data.insert.assert_called_once_with(
+            properties={"text": "plain fact", "doc_id": "doc-1"},
+            uuid=backend._weaviate.util.generate_uuid5.return_value,
+            vector=None,
+        )
+        assert backend.count() == 1
+
+    def test_weaviate_query_defaults_distance_when_metadata_missing(self):
+        from director_ai.core.vector_store import WeaviateBackend
+
+        backend = WeaviateBackend.__new__(WeaviateBackend)
+        backend._client = MagicMock()
+        backend._weaviate = MagicMock()
+        backend._class_name = "Fact"
+        backend._embed_fn = None
+        backend._count = 0
+
+        obj = SimpleNamespace(
+            properties={"text": "no distance", "doc_id": "doc-9"},
+            uuid="obj-uuid",
+            metadata=SimpleNamespace(distance=None),
+        )
+        collection = backend._client.collections.get.return_value
+        collection.query.near_text.return_value = SimpleNamespace(objects=[obj])
+
+        result = backend.query("anything")
+
+        assert result[0]["distance"] == 0.0
+        assert result[0]["id"] == "doc-9"
 
 
 class TestQdrantBackend:
