@@ -177,6 +177,17 @@ is largest on benign text, which dominates production traffic.
 The mixed corpora show the worst case where every pattern hits and
 the scanner must actually walk.
 
+`benchmarks/pii_redaction.py` runs a second span-level labelled-corpus check over
+21 samples covering email, credit card, SSN, phone, PHI, IBAN, passport, IPv4,
+and negative texts. On the committed 2026-06-18 run, Director's default detector
+reported precision 0.9444 / recall 1.0000 / F1 0.9714, with Rust and Python
+paths producing identical `(category, start, end)` spans. The same corpus is
+also evaluated through optional Presidio when installed; that comparison
+reported precision 0.8462 / recall 0.6471 / F1 0.7333 after Presidio entity
+labels were normalised to Director's stable categories. This is a regression
+corpus and backend-comparison artifact, not an external certification claim.
+Raw data lands in `benchmarks/results/pii_redaction.json`.
+
 `PIIRedactor` uses this detector path by default and exposes
 `redact_with_report()` for production audit metadata. Reports contain stable
 replacement categories, offsets, detector names, scores, and aggregate counts,

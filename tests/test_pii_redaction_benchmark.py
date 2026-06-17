@@ -10,7 +10,18 @@ from __future__ import annotations
 
 import pytest
 
-from benchmarks.pii_redaction import _gold_spans, _prf, evaluate
+import benchmarks.pii_redaction as pii_redaction_benchmark
+from benchmarks.pii_redaction import (
+    _gold_spans,
+    _normalise_presidio_category,
+    _presidio_comparison,
+    _prf,
+    evaluate,
+)
+from director_ai.core.safety.moderation.detectors import (
+    ModerationMatch,
+    ModerationResult,
+)
 from director_ai.core.safety.moderation.pii import RegexPIIDetector
 
 
@@ -51,3 +62,42 @@ def test_evaluate_detects_and_scores_against_gold():
     assert result["overall"]["recall"] == 1.0
     assert result["per_category"]["email"]["tp"] == 1
     assert result["per_category"]["credit_card"]["tp"] == 1
+
+
+def test_normalise_presidio_category_to_director_taxonomy():
+    assert _normalise_presidio_category("EMAIL_ADDRESS") == "email"
+    assert _normalise_presidio_category("PHONE_NUMBER") == "phone"
+    assert _normalise_presidio_category("US_SSN") == "ssn"
+    assert _normalise_presidio_category("IBAN_CODE") == "iban"
+    assert _normalise_presidio_category("IP_ADDRESS") == "ipv4"
+    assert _normalise_presidio_category("URL") == "unknown"
+
+
+def test_presidio_comparison_uses_normalised_categories(monkeypatch):
+    class StubPresidioDetector:
+        def analyse(self, text: str) -> ModerationResult:
+            return ModerationResult(
+                detector="pii_presidio",
+                matches=[
+                    ModerationMatch(
+                        detector="pii_presidio",
+                        category="EMAIL_ADDRESS",
+                        start=text.index("alice@example.com"),
+                        end=text.index("alice@example.com") + len("alice@example.com"),
+                        text=text,
+                    )
+                ],
+            )
+
+    monkeypatch.setattr(
+        pii_redaction_benchmark.PresidioPIIDetector,
+        "from_default_engine",
+        classmethod(lambda cls: StubPresidioDetector()),
+    )
+    result = _presidio_comparison(
+        [("Contact alice@example.com today", [("email", "alice@example.com")])]
+    )
+
+    assert result["available"] is True
+    assert result["accuracy"]["overall"]["precision"] == 1.0
+    assert result["accuracy"]["overall"]["recall"] == 1.0

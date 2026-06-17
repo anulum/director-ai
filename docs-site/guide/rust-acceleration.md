@@ -63,16 +63,18 @@ Rust `RegexSet` via `backfire_kernel.PiiScanner`, scanning each text in one pass
 
 | Function | Python | Rust | Speedup | Called |
 |----------|--------|------|---------|-------|
-| PII scan (8 categories) | ~79k texts/s | ~277k texts/s | 3.5x | per redaction / moderation check |
+| PII scan (8 categories) | ~76k texts/s | ~322k texts/s | 4.2x | per redaction / moderation check |
 
 Measured by `benchmarks/pii_redaction.py` (`prefer_rust=True` vs `False`): the
 Rust and Python paths produce identical `(category, start, end)` spans (parity),
 and on the labelled corpus the detector scores precision 0.94 / recall 1.00
-(span-level, across the eight categories). Unlike simple reductions — where FFI
-marshalling can make Rust slower — the multi-pattern `RegexSet` scan is a genuine
-win. The detector falls back to the pure-Python regex path transparently when the
-kernel is not installed; choose the path explicitly with
-`RegexPIIDetector(prefer_rust=...)`.
+(span-level, across the eight categories). The same 21-sample regression corpus
+also records the optional Presidio comparison when installed; the 2026-06-18 run
+reported Presidio precision 0.85 / recall 0.65 / F1 0.73 after entity-label
+normalisation. Unlike simple reductions — where FFI marshalling can make Rust
+slower — the multi-pattern `RegexSet` scan is a genuine win. The detector falls
+back to the pure-Python regex path transparently when the kernel is not
+installed; choose the path explicitly with `RegexPIIDetector(prefer_rust=...)`.
 
 ## When Rust Helps
 

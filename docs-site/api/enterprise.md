@@ -12,7 +12,10 @@ from director_ai.enterprise import TenantRouter, Policy, AuditLogger
 payloads leave the tenant boundary. The default path is dependency-free regex
 PII detection with the Rust scanner used automatically when the
 `backfire-kernel` wheel is present. Presidio can still be added as an optional
-detector for named-entity enrichment in regulated deployments.
+detector for named-entity enrichment in regulated deployments; the committed
+PII benchmark records Director and Presidio span-level precision/recall on the
+same labelled corpus so operators can compare detector behavior before enabling
+the optional stack.
 
 ```python
 from director_ai.enterprise import PIIRedactor
