@@ -384,9 +384,9 @@ pydantic-core==2.41.5 \
     --hash=sha256:f41eb9797986d6ebac5e8edff36d5cef9de40def462311b3eb3eeded1431e425 \
     --hash=sha256:f547144f2966e1e16ae626d8ce72b4cfa0caedc7fa28052001c94fb2fcaa1c52
     # via pydantic
-python-multipart==0.0.32 \
-    --hash=sha256:be54b7f3fa167bb83e4fcd936b887b708f4e57fe75911c02aebf53efaf8d938e \
-    --hash=sha256:ff6d3f776f16878c894e52e107296ffc890e913c611b1a4ec6c44e2821fe2e23
+python-multipart==0.0.31 \
+    --hash=sha256:8408153d68a9773291fc1da39a8b85a50044bddbabd2dd72e9229776b7b15e28 \
+    --hash=sha256:fc631183bb13e56db3158a4909908dfb2e23565286744e798241e63750e5d680
     # via director-ai (pyproject.toml)
 requests==2.33.0 \
     --hash=sha256:3324635456fa185245e24865e810cecec7b4caf933d7eb133dcde67d48cee69b \
