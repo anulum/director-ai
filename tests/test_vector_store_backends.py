@@ -1338,7 +1338,10 @@ def test_chroma_backend_initialises_persistent_collection_with_embedding_functio
     collection = MagicMock()
     client = MagicMock()
     client.get_or_create_collection.return_value = collection
-    chromadb = types.SimpleNamespace(PersistentClient=MagicMock(return_value=client))
+    chromadb = types.SimpleNamespace(
+        PersistentClient=MagicMock(return_value=client),
+        HttpClient=MagicMock(side_effect=AssertionError("HTTP Chroma is forbidden")),
+    )
 
     class _EmbeddingFunction:
         def __init__(self, model_name):
@@ -1364,6 +1367,7 @@ def test_chroma_backend_initialises_persistent_collection_with_embedding_functio
         )
 
     chromadb.PersistentClient.assert_called_once_with(path="/tmp/director-ai-chroma")
+    chromadb.HttpClient.assert_not_called()
     kwargs = client.get_or_create_collection.call_args.kwargs
     assert kwargs["name"] == "facts"
     assert kwargs["embedding_function"].model_name == "local/embedder"
@@ -1378,7 +1382,10 @@ def test_chroma_backend_uses_ephemeral_client_and_warns_without_embedding_extra(
     collection = MagicMock()
     client = MagicMock()
     client.get_or_create_collection.return_value = collection
-    chromadb = types.SimpleNamespace(Client=MagicMock(return_value=client))
+    chromadb = types.SimpleNamespace(
+        Client=MagicMock(return_value=client),
+        HttpClient=MagicMock(side_effect=AssertionError("HTTP Chroma is forbidden")),
+    )
 
     with patch.dict(
         sys.modules,
@@ -1390,6 +1397,7 @@ def test_chroma_backend_uses_ephemeral_client_and_warns_without_embedding_extra(
         backend = vector_store.ChromaBackend(embedding_model="local/embedder")
 
     chromadb.Client.assert_called_once_with()
+    chromadb.HttpClient.assert_not_called()
     client.get_or_create_collection.assert_called_once_with(name="director_ai_facts")
     assert "sentence-transformers not installed" in caplog.text
     assert backend._collection is collection
@@ -1401,12 +1409,16 @@ def test_chroma_backend_initialises_without_embedding_model():
     collection = MagicMock()
     client = MagicMock()
     client.get_or_create_collection.return_value = collection
-    chromadb = types.SimpleNamespace(Client=MagicMock(return_value=client))
+    chromadb = types.SimpleNamespace(
+        Client=MagicMock(return_value=client),
+        HttpClient=MagicMock(side_effect=AssertionError("HTTP Chroma is forbidden")),
+    )
 
     with patch.dict(sys.modules, {"chromadb": chromadb}):
         backend = vector_store.ChromaBackend(collection_name="facts")
 
     chromadb.Client.assert_called_once_with()
+    chromadb.HttpClient.assert_not_called()
     client.get_or_create_collection.assert_called_once_with(name="facts")
     assert backend._collection is collection
 

@@ -79,13 +79,22 @@ tracked Dependabot alert and will be upgraded the moment a fixed version ships.
 Pre-authentication code injection via the ChromaDB **server's** collections
 endpoint when a request supplies a malicious model repository with
 `trust_remote_code=true`. Vulnerable range `>=1.0.0, <=1.5.9`; the latest PyPI
-release (1.5.9) is the top of that range, so there is no fixed version.
+release (1.5.9, re-verified from PyPI on 2026-06-18) is the top of that range,
+so there is no fixed version.
 
 **Exposure: effectively nil.** chromadb is an optional vector backend. The
 `ChromaBackend` integration uses chromadb in **embedded** mode only
 (`PersistentClient(path=…)` / in-memory `Client()`), never `HttpClient` against a
 running server and never `trust_remote_code` — the vulnerable code path (the
-server's HTTP collections endpoint) is not reachable from Director-AI.
+server's HTTP collections endpoint) is not reachable from Director-AI. This
+embedded-only boundary is covered by vector-store unit tests so future Chroma
+adapter changes cannot accidentally switch to the server client path.
+
+Dependabot PR #114 is not a safe remediation for this advisory: it bumps
+chromadb only to 1.5.9, still inside the vulnerable no-fix range, and its
+generated lockfile is invalid for the CI `uv` parser. Keep the alert open until
+an upstream fixed release exists, then regenerate and verify the vector extra
+lock from current `main`.
 
 ### torch — GHSA-rrmf-rvhw-rf47 (low)
 

@@ -136,6 +136,13 @@ class SentenceTransformerBackend(VectorBackend):
 class ChromaBackend(VectorBackend):
     """ChromaDB backend for production vector search.
 
+    Director uses Chroma in embedded mode only. The backend constructs either
+    ``chromadb.PersistentClient(path=...)`` for local persistence or
+    ``chromadb.Client()`` for ephemeral in-process storage; it never constructs
+    an HTTP client or forwards remote-code execution flags. That boundary keeps
+    server-only Chroma advisories outside Director's execution path while the
+    optional dependency remains open to operator-managed upgrades.
+
     Requires ``pip install chromadb sentence-transformers``.
     """
 
