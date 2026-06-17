@@ -479,7 +479,7 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Install Bandit
+      - name: Install SAST tools
         run: pip install --require-hashes -r requirements/ci-sast.txt
 
       - name: Run Bandit
@@ -493,12 +493,12 @@ jobs:
         # real blocking finding there fails the build. Dev/CI tooling, training
         # launchers, benchmark harnesses, generated protobuf, and tests are
         # excluded (accepted dev-script patterns, not shipped risk). Uses the
-        # maintained Semgrep CLI directly — the legacy returntocorp/semgrep-action
-        # is deprecated and was failing on infra, not on a code finding. The
-        # rulesets are registry-live, so a future ruleset update can surface a new
+        # maintained Semgrep CLI from the hash-pinned SAST lock; the legacy
+        # returntocorp/semgrep-action is deprecated and was failing on infra,
+        # not on a code finding. The rulesets are registry-live, so a future
+        # ruleset update can surface a new
         # finding in src/ — triage it (fix or justified nosemgrep), do not silence.
         run: |
-          python -m pip install semgrep
           semgrep scan --config p/python --config p/security-audit \
             --error --metrics off src/director_ai/
         env:
