@@ -57,3 +57,15 @@ def test_public_roadmap_has_single_unchecked_item_after_reconciliation() -> None
     assert unchecked == [
         "- [ ] Run an external security test focused on streaming paths and tenant isolation"
     ]
+
+
+def test_internal_todo_surface_has_single_canonical_file() -> None:
+    """Keep stale internal TODO mirrors from reappearing."""
+    canonical = Path("docs/internal/TODO_CONSOLIDATED.md")
+    stale_mirror = Path("docs/internal/TODO.md")
+    status = _read("docs/ROADMAP_STATUS.md")
+
+    assert canonical.exists()
+    assert not stale_mirror.exists()
+    assert "docs/internal/TODO_CONSOLIDATED.md" in status
+    assert "docs/internal/TODO.md" not in status
