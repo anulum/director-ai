@@ -1,8 +1,12 @@
 # LlamaIndex
 
 ```bash
-pip install director-ai[llamaindex]
+pip install director-ai
 ```
+
+The `llamaindex` extra is intentionally empty while upstream
+`llama-index-core` pulls an `nltk` release with no patched security path. Install
+a safe LlamaIndex SDK version separately when upstream resolves that dependency.
 
 ## As Node Postprocessor
 

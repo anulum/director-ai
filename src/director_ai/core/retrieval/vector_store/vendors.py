@@ -590,7 +590,7 @@ class ColBERTBackend(VectorBackend):
     across all token pairs — much more accurate than single-vector
     bi-encoders for partial and domain-specific matches.
 
-    Requires ``pip install ragatouille``.
+    Requires a separately installed safe RAGatouille stack.
     """
 
     def __init__(
@@ -604,7 +604,9 @@ class ColBERTBackend(VectorBackend):
         except ImportError as e:
             raise ImportError(
                 "ColBERTBackend requires ragatouille. "
-                "Install with: pip install ragatouille",
+                "Install a safe ragatouille release separately; "
+                "director-ai[colbert] is intentionally empty while the "
+                "upstream stack pulls a vulnerable nltk dependency.",
             ) from e
         self._model = RAGPretrainedModel.from_pretrained(model_name)
         self._index_name = index_name

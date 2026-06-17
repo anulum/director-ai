@@ -391,7 +391,10 @@ pp = DirectorAIPostprocessor(threshold=0.6)
 pp.validate_response(query, response_text)  # returns (approved, score)
 ```
 
-Requires `pip install director-ai[llamaindex]`.
+Requires `pip install director-ai`. The `llamaindex` extra is intentionally
+empty while upstream `llama-index-core` pulls an `nltk` release with no patched
+security path; install a safe LlamaIndex SDK version separately when upstream
+resolves that dependency.
 
 ---
 

@@ -91,8 +91,11 @@ langchain = [
     "langsmith>=0.8.0",
 ]
 llamaindex = [
-    "llama-index-core>=0.10",
 ]
+# llama-index-core currently pulls nltk<=3.9.4, which GitHub flags under
+# GHSA-p4gq-832x-fm9v with no patched nltk release. Keep the integration code
+# and extra name stable, but do not install the vulnerable optional stack until
+# upstream ships a safe dependency path.
 server = [
     "fastapi>=0.100,<1",
     "uvicorn>=0.23,<1",
@@ -233,8 +236,11 @@ auto-kb = [
     "google-api-python-client>=2.100",
 ]
 colbert = [
-    "ragatouille>=0.0.8",
 ]
+# ragatouille currently pulls llama-index -> nltk<=3.9.4, which GitHub flags
+# under GHSA-p4gq-832x-fm9v with no patched nltk release. Keep the ColBERT
+# backend and extra name stable, but do not install this optional stack until
+# upstream ships a safe dependency path.
 rust = []
 enterprise = [
     "redis>=4.5,<9",
