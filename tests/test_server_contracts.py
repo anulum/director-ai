@@ -200,6 +200,35 @@ def test_batch_process_review_and_error_contracts() -> None:
     assert bad_runtime.status_code == 500
 
 
+def test_batch_rejects_aggregate_text_dos_before_processing() -> None:
+    class FailingBatch:
+        async def process_batch_async(self, prompts, tenant_id: str = ""):
+            raise AssertionError("oversized prompt batch reached processor")
+
+        async def review_batch_async(self, pairs, tenant_id: str = ""):
+            raise AssertionError("oversized response batch reached processor")
+
+    with _client() as client:
+        client.app.state._state["batch"] = FailingBatch()
+        prompt_over_budget = client.post(
+            "/v1/batch",
+            json={"task": "process", "prompts": ["x" * 1001 for _ in range(1000)]},
+        )
+        response_over_budget = client.post(
+            "/v1/batch",
+            json={
+                "task": "review",
+                "prompts": ["p" for _ in range(1000)],
+                "responses": ["x" * 2001 for _ in range(1000)],
+            },
+        )
+
+    assert prompt_over_budget.status_code == 422
+    assert "aggregate prompt characters exceed" in prompt_over_budget.text
+    assert response_over_budget.status_code == 422
+    assert "aggregate response characters exceed" in response_over_budget.text
+
+
 def test_batch_review_banking_policy_blocks_approved_result_without_raw_text_leak() -> (
     None
 ):

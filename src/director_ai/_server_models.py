@@ -17,10 +17,12 @@ from typing import Annotated as _Annotated
 from typing import Any
 from typing import Literal as _Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 _MAX_PROMPT_CHARS = 100_000
 _MAX_RESPONSE_CHARS = 500_000
+_MAX_BATCH_PROMPT_CHARS = 1_000_000
+_MAX_BATCH_RESPONSE_CHARS = 2_000_000
 _MAX_SECTOR_POLICY_REFS = 64
 _MAX_SECTOR_POLICY_REF_CHARS = 512
 
@@ -126,6 +128,23 @@ class BatchRequest(BaseModel):
         False,
         description="Whether the operator workflow already attached human review",
     )
+
+    @model_validator(mode="after")
+    def _enforce_aggregate_text_budget(self) -> BatchRequest:
+        prompt_chars = sum(len(prompt) for prompt in self.prompts)
+        if prompt_chars > _MAX_BATCH_PROMPT_CHARS:
+            raise ValueError(
+                "aggregate prompt characters exceed "
+                f"{_MAX_BATCH_PROMPT_CHARS} char batch limit"
+            )
+
+        response_chars = sum(len(response) for response in self.responses)
+        if response_chars > _MAX_BATCH_RESPONSE_CHARS:
+            raise ValueError(
+                "aggregate response characters exceed "
+                f"{_MAX_BATCH_RESPONSE_CHARS} char batch limit"
+            )
+        return self
 
 
 class ReviewResponse(BaseModel):

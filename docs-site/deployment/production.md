@@ -153,6 +153,13 @@ Each worker gets its own scorer instance. The NLI model is loaded once per worke
     use one of those, the main server's Redis-backed limiter, or a reverse
     proxy/API gateway for multi-instance enforcement.
 
+!!! note "Request-size and NLI-cost limits"
+    The REST server rejects oversized text before sanitizer, redaction, batch
+    workers, or NLI scoring. Single `/v1/process` prompts are capped at 100,000
+    characters, single review responses at 500,000 characters, `/v1/batch`
+    prompt text at 1,000,000 aggregate characters, and `/v1/batch` response
+    text at 2,000,000 aggregate characters.
+
 ### GPU Sharing
 
 For multi-worker GPU sharing, load the model once and share via torch multiprocessing:
