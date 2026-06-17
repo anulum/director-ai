@@ -18,6 +18,14 @@ babel==2.18.0 \
     --hash=sha256:b80b99a14bd085fcacfa15c9165f651fbb3406e66cc603abf11c5750937c992d \
     --hash=sha256:e2b422b277c2b9a9630c1d7903c2a00d0830c409c59ac8cae9081c92f1aeba35
     # via mkdocs-material
+backfire-kernel==0.1.1 \
+    --hash=sha256:1100445794d67fb3708d998ab84ca0106d10f19ca36a544e87ea06e5e8deaf0a \
+    --hash=sha256:2112d922210ebd7e67d885a90337c65de7797e2c0e546e5c88a030145a2f56f7 \
+    --hash=sha256:6b3c171bffff0cdb9822d29303a6cc80f343b2814ce822b9393cee5fdf30525e \
+    --hash=sha256:86733e2f09486b0bc86f7279975f0d9206bd688dae5835c503d7dc18d21929ca \
+    --hash=sha256:8e3d72b41e4ccadcb2ec6383110d999d36df9f30f00eda2f96b61b2a1ff60f0e \
+    --hash=sha256:adc0a664d18a249aecd5e3cbd45926790a59efaaf729d2c65a6c934c5d4105aa
+    # via director-ai (pyproject.toml)
 backrefs==6.2 \
     --hash=sha256:08aa7fae530c6b2361d7bdcbda1a7c454e330cc9dbcd03f5c23205e430e5c3be \
     --hash=sha256:0fdc7b012420b6b144410342caeb8adc54c6866cf12064abc9bb211302e496f8 \
@@ -31,9 +39,9 @@ beautifulsoup4==4.14.3 \
     --hash=sha256:0918bfe44902e6ad8d57732ba310582e98da931428d231a5ecb9e7c703a735bb \
     --hash=sha256:6292b1c5186d356bba669ef9f7f051757099565ad9ada5dd630bd9de5fa7fb86
     # via nbconvert
-bleach==6.3.0 \
-    --hash=sha256:6f3b91b1c0a02bb9a78b5a454c92506aa0fdf197e1d5e114d2e00c6f64306d22 \
-    --hash=sha256:fe10ec77c93ddf3d13a73b035abaac7a9f5e436513864ccdad516693213c65d6
+bleach==6.4.0 \
+    --hash=sha256:4202482733d85cedd04e59fcb2f89f4e4c7c385a78d3c3c23c30446843a37452 \
+    --hash=sha256:4b6b6a54fff2e69a3dde9d21cc6301220bee3c3cb792187d11403fd795031081
     # via nbconvert
 certifi==2026.2.25 \
     --hash=sha256:027692e4402ad994f1c42e52a4997a9763c646b73e4096e4d5d6db8af1d6f0fa \
