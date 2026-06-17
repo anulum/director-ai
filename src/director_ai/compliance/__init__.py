@@ -9,10 +9,14 @@
 from .audit_log import AuditEntry, AuditLog
 from .drift_detector import DriftDetector, DriftResult
 from .readiness import (
+    HipaaDeploymentObligation,
+    HipaaDocumentationPacket,
     ReadinessStatus,
     Soc2IsoControl,
     Soc2IsoReadinessReport,
+    build_hipaa_documentation_packet,
     build_soc2_iso_readiness_report,
+    default_hipaa_obligations,
     default_readiness_controls,
 )
 from .reporter import Article15Report, Article15TemplateContext, ComplianceReporter
@@ -25,9 +29,13 @@ __all__ = [
     "ComplianceReporter",
     "DriftDetector",
     "DriftResult",
+    "HipaaDeploymentObligation",
+    "HipaaDocumentationPacket",
     "ReadinessStatus",
     "Soc2IsoControl",
     "Soc2IsoReadinessReport",
+    "build_hipaa_documentation_packet",
     "build_soc2_iso_readiness_report",
+    "default_hipaa_obligations",
     "default_readiness_controls",
 ]

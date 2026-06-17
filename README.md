@@ -201,9 +201,9 @@ inventory below is reference for the deeper surface, navigable under
 | Surface | Current inventory |
 |---|---:|
 | Package version | 3.15.3 |
-| Public API exports | 221 |
+| Public API exports | 224 |
 | Python capability source modules | 420 |
-| Python capability classes | 974 |
+| Python capability classes | 976 |
 | API documentation pages | 88 |
 | Rust PyO3 bindings | 83 |
 | Optional extras | 58 |

@@ -205,9 +205,12 @@ See [Online Calibration Guide](../guide/online-calibration.md).
 | `ComplianceReporter` | `compliance.reporter` | Article 15 report generator |
 | `Article15Report` | `compliance.reporter` | Structured report with metrics, drift, incidents |
 | `Article15TemplateContext` | `compliance.reporter` | Operator-supplied Article 15 technical documentation context |
-| `Soc2IsoReadinessReport` | `compliance.readiness` | Tenant-safe SOC 2 / ISO 27001 readiness report |
-| `Soc2IsoControl` | `compliance.readiness` | One readiness control mapped to SOC 2 and ISO 27001 evidence |
+| `Soc2IsoReadinessReport` | `compliance.readiness` | Tenant-safe SOC 2 / ISO 27001 readiness report with SOC 2 Type I path guidance |
+| `Soc2IsoControl` | `compliance.readiness` | One readiness control mapped to SOC 2, ISO 27001, and optional HIPAA Security Rule evidence |
+| `HipaaDocumentationPacket` | `compliance.readiness` | Tenant-safe HIPAA documentation readiness packet |
+| `HipaaDeploymentObligation` | `compliance.readiness` | Operator-owned HIPAA obligation with 45 CFR Part 164 references |
 | `build_soc2_iso_readiness_report()` | `compliance.readiness` | Default or operator-supplied readiness report builder |
+| `build_hipaa_documentation_packet()` | `compliance.readiness` | Default or operator-supplied HIPAA documentation packet builder |
 | `build_observability_operations_report()` | `ui.safety_dashboard` | Tenant-safe halt forensics, drift alerts, controls, and compliance-export packet |
 | `ComplianceExportRef` | `ui.safety_dashboard` | Compliance export reference included without serialising artefact contents |
 | `DriftDetector` | `compliance.drift_detector` | Statistical drift detection (two-proportion z-test) |

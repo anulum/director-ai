@@ -62,6 +62,13 @@ Before deploying Director-AI to production, verify each item:
 - [ ] Review CORS origins — default is empty; public browser deployments need exact `https://` origins
 - [ ] Ensure caller credentials are not logged or exposed in responses
 
+## Compliance Evidence
+
+- [ ] Generate Article 15 documentation from the deployment audit database when the deployment is regulated or high-risk
+- [ ] Generate the SOC 2 / ISO 27001 readiness report and attach dated evidence references for every warning or failing control
+- [ ] For healthcare or ePHI-adjacent deployments, generate the HIPAA documentation packet and attach operator-owned evidence for risk analysis, business associate review, access controls, audit review, incident response, and contingency planning
+- [ ] Confirm no compliance packet contains raw PHI, raw prompt/response text, credentials, or raw security evidence
+
 ## Recovery
 
 - [ ] Create a git bundle backup before release or incident-response changes.

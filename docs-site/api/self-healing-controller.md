@@ -7,7 +7,7 @@ audited — there is no blind self-mutation.
 
 ## How it relates to online calibration
 
-[`OnlineCalibrator`](online-calibration.md) computes a recommended threshold from
+[`OnlineCalibrator`](../guide/online-calibration.md) computes a recommended threshold from
 the durable feedback store. The self-healing controller closes that loop: it
 takes labelled outcomes, proposes an update, **gates the deploy on a holdout
 split**, and provides **auto-rollback** — the safety machinery that lets

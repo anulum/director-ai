@@ -61,19 +61,23 @@ context = Article15TemplateContext(
 print(report.to_article15_markdown(context))
 ```
 
-## SOC 2 / ISO 27001 Readiness
+## SOC 2 / ISO 27001 / HIPAA Readiness
 
 `build_soc2_iso_readiness_report()` generates a tenant-safe readiness crosswalk
 for customer security reviews. It maps Director-AI evidence references to SOC 2
 Trust Services Criteria categories and ISO/IEC 27001:2022 Annex A-style control
-references, then produces JSON, Markdown, and Trust Console control rows. This
-is readiness evidence only; it is not a SOC 2 report, ISO/IEC 27001
-certification, or auditor opinion.
+references, then produces JSON, Markdown, and Trust Console control rows. The
+same control rows can carry HIPAA Security Rule references where product
+evidence supports the mapping. This is readiness evidence only; it is not a SOC
+2 report, ISO/IEC 27001 certification, HIPAA legal advice, OCR determination, or
+auditor opinion.
 
 ```python
 from director_ai.compliance import (
+    HipaaDeploymentObligation,
     ReadinessStatus,
     Soc2IsoControl,
+    build_hipaa_documentation_packet,
     build_soc2_iso_readiness_report,
 )
 
@@ -84,6 +88,7 @@ report = build_soc2_iso_readiness_report(
             title="Tenant authentication and access isolation",
             soc2_criteria=("security", "confidentiality"),
             iso27001_refs=("A.5.15", "A.8.3"),
+            hipaa_security_refs=("45 CFR 164.308(a)(4)", "45 CFR 164.312(a)(1)"),
             status=ReadinessStatus.PASS,
             evidence_refs=("tests/test_server_auth.py", "tests/test_enterprise.py"),
             owner="security",
@@ -104,9 +109,58 @@ assert payload["privacy"] == {
 ```
 
 The default catalogue covers tenant isolation, PII redaction, monitoring,
-incident review, vulnerability evidence, and change management. Controls can be
-overridden per deployment so operators can add auditor-owned evidence references
-without serialising raw evidence or customer payloads.
+incident review, vulnerability evidence, and change management. It also exposes
+a SOC 2 Type I path: define the system boundary, attach dated evidence,
+remediate or document warnings, and freeze the observation point only after an
+independent auditor or authorised internal exception accepts the packet.
+Controls can be overridden per deployment so operators can add auditor-owned
+evidence references without serialising raw evidence or customer payloads.
+
+`build_hipaa_documentation_packet()` adds the deployment-owned HIPAA
+documentation layer around the readiness report. It is based on the Security
+Rule structure described by HHS: administrative, physical, and technical
+safeguards for electronic protected health information, with the operative rule
+text in 45 CFR Part 164 Subpart C. The packet records references and required
+operator actions; it never includes raw PHI, raw interaction text, or raw
+security evidence.
+
+```python
+packet = build_hipaa_documentation_packet(
+    generated_at="2026-06-18T08:00:00Z",
+    obligations=[
+        HipaaDeploymentObligation(
+            obligation_id="HIPAA-AUD-01",
+            title="Audit controls and activity review",
+            hipaa_security_refs=("45 CFR 164.312(b)",),
+            status=ReadinessStatus.PASS,
+            evidence_refs=("tests/test_audit_chain.py",),
+            operator_action="Enable audit review and retain reviewer sign-off.",
+        ),
+    ],
+    phi_handling_summary=(
+        "Default exports exclude raw PHI; deployment evidence stays in the "
+        "operator-controlled evidence store."
+    ),
+)
+
+hipaa_payload = packet.to_dict()
+hipaa_markdown = packet.to_markdown()
+
+assert hipaa_payload["privacy"] == {
+    "payload_classification": "tenant_safe",
+    "raw_phi_included": False,
+    "raw_interaction_text_included": False,
+    "raw_security_evidence_included": False,
+    "hipaa_compliance_claimed": False,
+}
+```
+
+Default HIPAA obligations cover risk analysis and risk management, business
+associate agreement review, audit controls and activity review, access control,
+incident response, and contingency planning. The packet intentionally marks most
+deployment obligations as `warning` until the operator attaches environment
+evidence such as identity-provider controls, ePHI data-flow inventory, backup
+restore tests, incident contacts, and agreement records.
 
 ## What the Report Contains
 

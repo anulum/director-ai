@@ -4,9 +4,9 @@
     "github_workflows": 12,
     "model_documentation_pages": 88,
     "optional_extras": 58,
-    "public_api_exports": 221,
+    "public_api_exports": 224,
     "public_documentation_pages": 200,
-    "python_model_classes": 974,
+    "python_model_classes": 976,
     "python_model_source_modules": 420,
     "rust_pyo3_model_wrappers": 83,
     "test_files": 520
@@ -1979,6 +1979,14 @@
       {
         "name": "HierarchicalAligner",
         "path": "src/director_ai/core/multi_scale_alignment/aligner.py"
+      },
+      {
+        "name": "HipaaDeploymentObligation",
+        "path": "src/director_ai/compliance/readiness.py"
+      },
+      {
+        "name": "HipaaDocumentationPacket",
+        "path": "src/director_ai/compliance/readiness.py"
       },
       {
         "name": "HistogramRelease",
@@ -4816,6 +4824,8 @@
     "HaltMonitor",
     "HaltTraceAttribution",
     "HandoffScorer",
+    "HipaaDeploymentObligation",
+    "HipaaDocumentationPacket",
     "HumanReviewCase",
     "HumanReviewDecision",
     "HumanReviewQueue",
@@ -4910,6 +4920,7 @@
     "WeaviateBackend",
     "benchmark_finetuned_model",
     "build_causal_attribution_graph",
+    "build_hipaa_documentation_packet",
     "build_inference_server_hook",
     "build_soc2_iso_readiness_report",
     "clear_model_cache",

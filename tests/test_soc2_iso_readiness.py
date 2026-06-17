@@ -13,8 +13,10 @@ import json
 import pytest
 
 from director_ai.compliance import (
+    HipaaDeploymentObligation,
     ReadinessStatus,
     Soc2IsoControl,
+    build_hipaa_documentation_packet,
     build_soc2_iso_readiness_report,
 )
 
@@ -63,6 +65,8 @@ def test_readiness_report_scores_controls_and_exports_trust_controls() -> None:
         "raw_security_evidence_included": False,
         "certification_claimed": False,
     }
+    assert payload["soc2_type_i_path"]
+    assert payload["controls"][0]["hipaa_security_refs"] == []
     assert trust_controls[0].control == "SOC2/ISO SEC-01: Tenant access control"
     assert trust_controls[0].status == "passed"
     assert trust_controls[1].status == "warning"
@@ -81,6 +85,14 @@ def test_default_catalogue_covers_product_readiness_surfaces() -> None:
         "VULN-01",
         "CHANGE-01",
     }.issubset(control_ids)
+    hipaa_refs = {
+        ref for control in payload["controls"] for ref in control["hipaa_security_refs"]
+    }
+    assert {
+        "45 CFR 164.308(a)(1)(ii)(B)",
+        "45 CFR 164.308(a)(1)(ii)(D)",
+        "45 CFR 164.312(a)(1)",
+    }.issubset(hipaa_refs)
     assert payload["summary"]["risk_level"] == "attention_required"
     assert payload["disclaimer"] == (
         "Readiness evidence only; this is not a SOC 2 report, ISO/IEC 27001 "
@@ -117,8 +129,11 @@ def test_readiness_markdown_renders_summary_and_control_rows() -> None:
     assert summary["risk_level"] == "critical"
     assert summary["readiness_score"] == 0.0
     assert "# SOC 2 / ISO 27001 Readiness" in markdown
+    assert "## SOC 2 Type I Path" in markdown
     assert "- Failures: 1" in markdown
-    assert "| SEC-02 | Credential rotation | failing | security | A.5.17 |" in markdown
+    assert (
+        "| SEC-02 | Credential rotation | failing | security | A.5.17 |  |" in markdown
+    )
     assert "| NA-01 | Legacy data centre controls | not_applicable |" in markdown
 
 
@@ -151,6 +166,7 @@ def test_report_is_tenant_safe_and_does_not_serialize_raw_evidence() -> None:
         ({"title": "  "}, "title"),
         ({"soc2_criteria": ("unknown",)}, "soc2"),
         ({"iso27001_refs": ("5.15",)}, "iso27001"),
+        ({"hipaa_security_refs": ("164.312(a)(1)",)}, "hipaa"),
         ({"evidence_refs": ()}, "evidence_refs"),
         ({"status": "maybe"}, "status"),
     ],
@@ -171,3 +187,112 @@ def test_control_validation_rejects_invalid_operator_input(
 
     with pytest.raises(ValueError, match=message):
         Soc2IsoControl(**base)
+
+
+def test_hipaa_documentation_packet_is_tenant_safe_and_bounded() -> None:
+    packet = build_hipaa_documentation_packet(
+        generated_at="2026-06-18T08:00:00Z",
+        obligations=[
+            HipaaDeploymentObligation(
+                obligation_id="HIPAA-AUD-01",
+                title="Audit controls and activity review",
+                hipaa_security_refs=(
+                    "45 CFR 164.308(a)(1)(ii)(D)",
+                    "45 CFR 164.312(b)",
+                ),
+                status=ReadinessStatus.PASS,
+                evidence_refs=("tests/test_audit_chain.py",),
+                operator_action="Enable audit review and retain reviewer sign-off.",
+                raw_evidence="Patient name Jane Example appeared in a trace.",
+            ),
+            HipaaDeploymentObligation(
+                obligation_id="HIPAA-BAA-01",
+                title="Business associate agreement review",
+                hipaa_security_refs=("45 CFR 164.308(b)(1)",),
+                status=ReadinessStatus.WARNING,
+                evidence_refs=("docs-site/privacy.md",),
+                operator_action="Complete role analysis before processing ePHI.",
+            ),
+        ],
+        phi_handling_summary="No raw PHI is included in this packet.",
+    )
+
+    payload = packet.to_dict()
+    markdown = packet.to_markdown()
+    encoded = json.dumps(payload, sort_keys=True)
+
+    assert payload["summary"] == {
+        "total_obligations": 2,
+        "passed": 1,
+        "warnings": 1,
+        "failures": 0,
+        "not_applicable": 0,
+        "readiness_score": 0.5,
+        "risk_level": "attention_required",
+        "baa_required": True,
+    }
+    assert payload["privacy"] == {
+        "payload_classification": "tenant_safe",
+        "raw_phi_included": False,
+        "raw_interaction_text_included": False,
+        "raw_security_evidence_included": False,
+        "hipaa_compliance_claimed": False,
+    }
+    assert "Jane Example" not in encoded
+    assert "raw_evidence" not in encoded
+    assert "not legal advice" in payload["disclaimer"]
+    assert "# HIPAA Documentation Readiness" in markdown
+    assert "45 CFR 164.312(b)" in markdown
+
+
+def test_default_hipaa_packet_records_operator_owned_obligations() -> None:
+    packet = build_hipaa_documentation_packet(
+        generated_at="2026-06-18T08:00:00Z",
+        baa_required=False,
+    )
+    payload = packet.to_dict()
+    obligation_ids = {
+        obligation["obligation_id"] for obligation in payload["obligations"]
+    }
+
+    assert {
+        "HIPAA-RA-01",
+        "HIPAA-BAA-01",
+        "HIPAA-AUD-01",
+        "HIPAA-ACCESS-01",
+        "HIPAA-INC-01",
+        "HIPAA-BACKUP-01",
+    }.issubset(obligation_ids)
+    assert payload["summary"]["baa_required"] is False
+    assert payload["summary"]["risk_level"] == "attention_required"
+    assert payload["soc2_iso_readiness"]["privacy"]["certification_claimed"] is False
+
+
+@pytest.mark.parametrize(
+    ("kwargs", "message"),
+    [
+        ({"obligation_id": "bad id"}, "obligation_id"),
+        ({"title": " "}, "title"),
+        ({"hipaa_security_refs": ()}, "hipaa"),
+        ({"hipaa_security_refs": ("164.308(a)(1)",)}, "hipaa"),
+        ({"evidence_refs": ()}, "evidence_refs"),
+        ({"operator_action": " "}, "operator_action"),
+        ({"status": "unknown"}, "status"),
+    ],
+)
+def test_hipaa_obligation_validation_rejects_invalid_operator_input(
+    kwargs: dict[str, object],
+    message: str,
+) -> None:
+    base = {
+        "obligation_id": "HIPAA-AUD-01",
+        "title": "Audit controls",
+        "hipaa_security_refs": ("45 CFR 164.312(b)",),
+        "status": "passed",
+        "evidence_refs": ("tests/test_audit_chain.py",),
+        "operator_action": "Enable audit review.",
+    }
+    base.update(kwargs)
+
+    with pytest.raises(ValueError, match=message):
+        HipaaDeploymentObligation(**base)

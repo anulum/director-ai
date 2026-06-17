@@ -289,8 +289,9 @@ The only token cost is the optional LLM-as-judge escalation path.
 Pre-built at `deploy/observability/grafana-dashboard.json` with 9 panels.
 For deployment gates, pair Grafana with the tenant-safe operations packet from
 `director_ai.ui.build_observability_operations_report()` so halt forensics,
-drift alerts, readiness controls, and Article 15/SOC 2 evidence references are
-reviewable without exposing raw prompts or responses.
+drift alerts, readiness controls, and Article 15/SOC 2/HIPAA evidence
+references are reviewable without exposing raw prompts, responses, PHI, or raw
+security evidence.
 
 ---
 

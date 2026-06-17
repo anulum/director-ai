@@ -272,9 +272,21 @@ _LAZY_IMPORTS: dict[str, tuple[str, str]] = {
         ".compliance.readiness",
         "Soc2IsoReadinessReport",
     ),
+    "HipaaDeploymentObligation": (
+        ".compliance.readiness",
+        "HipaaDeploymentObligation",
+    ),
+    "HipaaDocumentationPacket": (
+        ".compliance.readiness",
+        "HipaaDocumentationPacket",
+    ),
     "build_soc2_iso_readiness_report": (
         ".compliance.readiness",
         "build_soc2_iso_readiness_report",
+    ),
+    "build_hipaa_documentation_packet": (
+        ".compliance.readiness",
+        "build_hipaa_documentation_packet",
     ),
     "DriftDetector": (".compliance.drift_detector", "DriftDetector"),
     "DriftResult": (".compliance.drift_detector", "DriftResult"),
