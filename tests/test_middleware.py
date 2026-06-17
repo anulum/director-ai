@@ -13,14 +13,21 @@ burst, retry-after), and middleware integration with FastAPI TestClient.
 
 from __future__ import annotations
 
+import builtins
 import time
 
+import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from starlette.responses import JSONResponse
 
 from director_ai.middleware.api_key import APIKeyMiddleware, _extract_key, _hash_key
-from director_ai.middleware.rate_limit import RateLimitMiddleware, _TokenBucket
+from director_ai.middleware.rate_limit import (
+    InMemoryRateLimitStore,
+    RateLimitMiddleware,
+    RedisRateLimitStore,
+    _TokenBucket,
+)
 
 # ── _extract_key ────────────────────────────────────────────────────────
 
@@ -186,9 +193,18 @@ class TestAPIKeyMiddleware:
 # ── RateLimitMiddleware integration ─────────────────────────────────────
 
 
-def _app_with_rate_limit(rpm: int = 60, burst: int | None = None) -> FastAPI:
+def _app_with_rate_limit(
+    rpm: int = 60,
+    burst: int | None = None,
+    store: InMemoryRateLimitStore | None = None,
+) -> FastAPI:
     app = FastAPI()
-    app.add_middleware(RateLimitMiddleware, requests_per_minute=rpm, burst=burst)
+    app.add_middleware(
+        RateLimitMiddleware,
+        requests_per_minute=rpm,
+        burst=burst,
+        store=store,
+    )
 
     @app.get("/health")
     def health():
@@ -229,3 +245,29 @@ class TestRateLimitMiddleware:
         if r.status_code == 429:
             assert "Retry-After" in r.headers
             assert "retry_after_seconds" in r.json()
+
+    def test_injected_store_is_shared_across_app_instances(self):
+        store = InMemoryRateLimitStore(burst=1, refill_rate=1.0)
+        client_a = TestClient(_app_with_rate_limit(store=store))
+        client_b = TestClient(_app_with_rate_limit(store=store))
+
+        assert client_a.get("/v1/score").status_code == 200
+        r = client_b.get("/v1/score")
+        assert r.status_code == 429
+        assert "Retry-After" in r.headers
+
+    def test_redis_store_import_guard(self, monkeypatch):
+        real_import = builtins.__import__
+
+        def guarded_import(name, *args, **kwargs):
+            if name == "redis":
+                raise ImportError("blocked")
+            return real_import(name, *args, **kwargs)
+
+        monkeypatch.setattr(builtins, "__import__", guarded_import)
+        with pytest.raises(ImportError, match="Redis-backed rate limiting"):
+            RedisRateLimitStore(
+                "redis://localhost:6379/0",
+                burst=1,
+                refill_rate=1.0,
+            )

@@ -149,9 +149,9 @@ Each worker gets its own scorer instance. The NLI model is loaded once per worke
     number of processes. Set `redis_url` so the server's SlowAPI limiter uses
     Redis for a single global limit; the server logs a warning at startup when
     `server_workers > 1` and no `redis_url` is set. The standalone
-    `RateLimitMiddleware` is always per-process — for multi-instance enforcement
-    use the main server's Redis-backed limiter (or enforce limits at the reverse
-    proxy / API gateway).
+    `RateLimitMiddleware` also accepts `redis_url` or an injected shared store;
+    use one of those, the main server's Redis-backed limiter, or a reverse
+    proxy/API gateway for multi-instance enforcement.
 
 ### GPU Sharing
 

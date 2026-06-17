@@ -5,7 +5,7 @@
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI — Rate limiting middleware
-"""In-memory sliding-window rate limiter for the SaaS API.
+"""Token-bucket rate limiter for the SaaS API.
 
 Limits requests per API key (from ``request.state.api_key_hash``,
 set by ``APIKeyMiddleware``) or per IP if no key is present.
@@ -18,6 +18,7 @@ Usage::
         RateLimitMiddleware,
         requests_per_minute=60,
         burst=10,
+        redis_url="redis://localhost:6379/0",
     )
 """
 
@@ -26,6 +27,7 @@ from __future__ import annotations
 import logging
 import time
 from collections import defaultdict
+from typing import Any, Protocol
 
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 from starlette.requests import Request
@@ -68,6 +70,112 @@ class _TokenBucket:
         return (1.0 - self.tokens) / self.refill_rate
 
 
+class RateLimitStore(Protocol):
+    """Shared token-bucket storage used by ``RateLimitMiddleware``."""
+
+    def consume(self, client_id: str) -> tuple[bool, float]:
+        """Consume one request token and return ``(allowed, retry_after)``."""
+
+
+class InMemoryRateLimitStore:
+    """Per-process token-bucket storage."""
+
+    def __init__(self, *, burst: int, refill_rate: float) -> None:
+        self._burst = burst
+        self._refill_rate = refill_rate
+        self._buckets: dict[str, _TokenBucket] = defaultdict(
+            lambda: _TokenBucket(self._burst, self._refill_rate)
+        )
+
+    def consume(self, client_id: str) -> tuple[bool, float]:
+        """Consume one token from the local process bucket."""
+        bucket = self._buckets[client_id]
+        if bucket.consume():
+            return True, 0.0
+        return False, bucket.retry_after
+
+
+class RedisRateLimitStore:
+    """Redis-backed shared token-bucket storage.
+
+    The Lua script keeps the refill and consume operation atomic across workers
+    and service instances.
+    """
+
+    _SCRIPT = """
+local key = KEYS[1]
+local capacity = tonumber(ARGV[1])
+local refill_rate = tonumber(ARGV[2])
+local now = tonumber(ARGV[3])
+local ttl_ms = tonumber(ARGV[4])
+
+local state = redis.call("HMGET", key, "tokens", "last")
+local tokens = tonumber(state[1])
+local last = tonumber(state[2])
+if tokens == nil then
+  tokens = capacity
+  last = now
+end
+
+local elapsed = now - last
+if elapsed < 0 then
+  elapsed = 0
+end
+tokens = math.min(capacity, tokens + (elapsed * refill_rate))
+last = now
+
+local allowed = 0
+local retry_after = 0
+if tokens >= 1 then
+  tokens = tokens - 1
+  allowed = 1
+else
+  retry_after = (1 - tokens) / refill_rate
+end
+
+redis.call("HSET", key, "tokens", tokens, "last", last)
+redis.call("PEXPIRE", key, ttl_ms)
+return {allowed, retry_after}
+"""
+
+    def __init__(
+        self,
+        redis_url: str,
+        *,
+        burst: int,
+        refill_rate: float,
+        prefix: str = "dai:rate:",
+    ) -> None:
+        try:
+            import redis
+        except ImportError as exc:  # pragma: no cover - exercised by import guard
+            raise ImportError(
+                "Redis-backed rate limiting requires the redis package. "
+                "Install with: pip install director-ai[enterprise]",
+            ) from exc
+        self._client = redis.from_url(redis_url, decode_responses=True)
+        self._burst = burst
+        self._refill_rate = refill_rate
+        self._prefix = prefix
+        self._ttl_ms = max(int((burst / refill_rate) * 2000), 1000)
+
+    def consume(self, client_id: str) -> tuple[bool, float]:
+        """Consume one token from the shared Redis bucket."""
+        key = self._prefix + client_id
+        raw: Any = self._client.eval(
+            self._SCRIPT,
+            1,
+            key,
+            self._burst,
+            self._refill_rate,
+            time.time(),
+            self._ttl_ms,
+        )
+        allowed = bool(int(raw[0]))
+        retry_after = float(raw[1])
+        return allowed, retry_after
+
+
 class RateLimitMiddleware(BaseHTTPMiddleware):
     """Per-key token-bucket rate limiter.
 
@@ -80,6 +188,11 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
     burst : int
         Maximum burst size (bucket capacity). Defaults to
         ``requests_per_minute // 6`` (10-second burst window).
+    redis_url : str
+        Optional Redis URL for a shared bucket across workers/instances.
+    store : RateLimitStore
+        Optional injected store for tests or custom deployments. Overrides
+        ``redis_url`` and the default in-memory store.
     """
 
     def __init__(
@@ -87,18 +200,36 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         app: ASGIApp,
         requests_per_minute: int = 60,
         burst: int | None = None,
+        redis_url: str = "",
+        redis_prefix: str = "dai:rate:",
+        store: RateLimitStore | None = None,
     ) -> None:
         super().__init__(app)
         self._rpm = requests_per_minute
         self._burst = burst or max(requests_per_minute // 6, 1)
         self._refill_rate = requests_per_minute / 60.0
-        self._buckets: dict[str, _TokenBucket] = defaultdict(
-            lambda: _TokenBucket(self._burst, self._refill_rate)
+        resolved_store = store
+        if resolved_store is None and redis_url:
+            resolved_store = RedisRateLimitStore(
+                redis_url,
+                burst=self._burst,
+                refill_rate=self._refill_rate,
+                prefix=redis_prefix,
+            )
+        if resolved_store is None:
+            resolved_store = InMemoryRateLimitStore(
+                burst=self._burst,
+                refill_rate=self._refill_rate,
+            )
+        self._store: RateLimitStore = resolved_store
+        storage_kind = (
+            "custom" if store is not None else "redis" if redis_url else "in-memory"
         )
         logger.info(
-            "RateLimitMiddleware: %d req/min, burst=%d",
+            "RateLimitMiddleware: %d req/min, burst=%d, store=%s",
             self._rpm,
             self._burst,
+            storage_kind,
         )
 
     async def dispatch(
@@ -115,9 +246,8 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         if client_id is None:
             client_id = request.client.host if request.client else "unknown"
 
-        bucket = self._buckets[client_id]
-        if not bucket.consume():
-            retry = bucket.retry_after
+        allowed, retry = self._store.consume(client_id)
+        if not allowed:
             logger.warning(
                 "Rate limit exceeded for %s (retry_after=%.1fs)",
                 client_id[:8],

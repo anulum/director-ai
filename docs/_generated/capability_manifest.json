@@ -6,7 +6,7 @@
     "optional_extras": 58,
     "public_api_exports": 221,
     "public_documentation_pages": 200,
-    "python_model_classes": 971,
+    "python_model_classes": 974,
     "python_model_source_modules": 420,
     "rust_pyo3_model_wrappers": 83,
     "test_files": 520
@@ -2073,6 +2073,10 @@
         "path": "src/director_ai/core/self_evolving/feedback.py"
       },
       {
+        "name": "InMemoryRateLimitStore",
+        "path": "src/director_ai/middleware/rate_limit.py"
+      },
+      {
         "name": "InclusionProof",
         "path": "src/director_ai/core/provenance/content_commitment.py"
       },
@@ -3089,6 +3093,10 @@
         "path": "src/director_ai/middleware/rate_limit.py"
       },
       {
+        "name": "RateLimitStore",
+        "path": "src/director_ai/middleware/rate_limit.py"
+      },
+      {
         "name": "ReadinessStatus",
         "path": "src/director_ai/compliance/readiness.py"
       },
@@ -3151,6 +3159,10 @@
       {
         "name": "RedisGroundTruthStore",
         "path": "src/director_ai/enterprise/redis.py"
+      },
+      {
+        "name": "RedisRateLimitStore",
+        "path": "src/director_ai/middleware/rate_limit.py"
       },
       {
         "name": "RedisScoreCache",
