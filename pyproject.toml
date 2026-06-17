@@ -157,7 +157,7 @@ embeddings = [
     "sentence-transformers>=4,<6",
 ]
 license = [
-    "polar-sdk==0.31.3",
+    "polar-sdk==0.31.7",
 ]
 crypto = [
     "cryptography>=42,<49",
@@ -211,7 +211,7 @@ moderation = [
     "detoxify>=0.5",
 ]
 demo = [
-    "gradio>=4.0",
+    "gradio<7,>=4.0",
 ]
 ingestion = [
     "pypdf>=3.0",
@@ -249,7 +249,7 @@ enterprise = [
     "psycopg2-binary>=2.9,<3",
 ]
 ui = [
-    "gradio>=4.0,<7",
+    "gradio<7,>=4.0,<7",
 ]
 reports = [
     "weasyprint>=60",
