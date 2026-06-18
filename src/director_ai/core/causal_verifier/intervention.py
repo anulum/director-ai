@@ -35,6 +35,7 @@ class Intervention:
     fixes: Mapping[str, object]
 
     def __post_init__(self) -> None:
+        """Validate that the intervention fixes at least one variable."""
         if not self.fixes:
             raise ValueError("Intervention.fixes must be non-empty")
 

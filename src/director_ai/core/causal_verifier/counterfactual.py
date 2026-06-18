@@ -6,9 +6,7 @@
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI — CounterfactualVerifier
 
-"""Generate a handful of counterfactual branches around a decision
-point and report which branches preserve a caller-supplied safety
-invariant.
+"""Generate counterfactual branches around safety decisions.
 
 The verifier is the glue that turns the :class:`CausalGraph` +
 :class:`Intervention` primitives into an actionable safety check.
@@ -31,6 +29,7 @@ except Exception:  # pragma: no cover - mandatory dependency
     _RUST_COUNTERFACTUAL = True
 
     def rust_sum_i64(_values: list[int]) -> int:
+        """Raise when the Rust integer summation accelerator is unavailable."""
         raise RuntimeError("backfire_kernel rust_sum_i64 is unavailable")
 
 
@@ -82,16 +81,17 @@ class Verdict:
 
     @property
     def unsafe(self) -> int:
+        """Return the number of unsafe counterfactual branches."""
         return self.total - self.safe
 
     @property
     def safety_rate(self) -> float:
+        """Return the fraction of branches that satisfy the invariant."""
         return self.safe / self.total if self.total else 0.0
 
 
 class CounterfactualVerifier:
-    """Run a set of interventions and grade each against a safety
-    invariant.
+    """Run interventions and grade each against a safety invariant.
 
     Parameters
     ----------
@@ -117,8 +117,7 @@ class CounterfactualVerifier:
         inputs: Mapping[str, object],
         branches: Iterable[tuple[str, Intervention]],
     ) -> Verdict:
-        """Evaluate each ``(label, intervention)`` branch and
-        aggregate the results.
+        """Evaluate labelled interventions and aggregate the results.
 
         Raises :class:`ValueError` when the branch list is empty —
         a verdict over zero branches has no operational meaning.

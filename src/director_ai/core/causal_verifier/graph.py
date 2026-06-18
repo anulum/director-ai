@@ -27,8 +27,10 @@ StructuralEq = Callable[[Mapping[str, object]], object]
 
 
 class GraphCycleError(ValueError):
-    """Raised when adding an edge would create a cycle. Carries the
-    offending edge for operator-facing error messages."""
+    """Raise when adding an edge would create a cycle.
+
+    The error message carries the offending edge for operator-facing reports.
+    """
 
 
 @dataclass(frozen=True)
@@ -84,9 +86,11 @@ class CausalGraph:
         return tuple(self._nodes.keys())
 
     def parents(self, name: str) -> tuple[str, ...]:
+        """Return parent variable names for ``name``."""
         return self._nodes[name].parents
 
     def equation(self, name: str) -> StructuralEq:
+        """Return the structural equation registered for ``name``."""
         return self._nodes[name].equation
 
     def topological_order(self) -> tuple[str, ...]:

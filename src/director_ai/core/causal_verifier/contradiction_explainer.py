@@ -70,6 +70,7 @@ class ContradictionExplanation:
     rationale: str
 
     def __post_init__(self) -> None:
+        """Validate contradiction explanation bounds."""
         if self.chunk_index < 0:
             raise ValueError("chunk_index must be non-negative")
         _unit_interval("score", self.score)
