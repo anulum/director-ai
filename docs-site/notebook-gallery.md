@@ -17,6 +17,7 @@ implementation track, and required optional extras. Each row links to the local
 notebook in the repository and the matching Google Colab launcher.
 
 If you are evaluating commercial fit before opening a notebook, start with
+[Applications and Market Map](guide/applications-and-market-map.md), then read
 [Product Overview](guide/product-overview.md). If you are running a governed
 pilot, pair the notebook path with [Evaluation Onboarding](guide/onboarding.md)
 so the pilot produces useful evidence instead of a demo-only result.
@@ -31,6 +32,16 @@ so the pilot produces useful evidence instead of a demo-only result.
 | SDK or framework integration | Provider Adapters, LangChain Integration, Production Guardrails |
 | Domain or regulated example | Medical RAG Chatbot, Domain Presets, Verification Gems |
 | Enterprise pilot evidence | Batch Processing, Enterprise Multi-Tenant, Custom Fine-Tuning |
+
+## Notebook-To-Market Map
+
+| Market question | Notebook path | Evidence produced |
+|---|---|---|
+| Can the guard reject a known false answer? | Quickstart, Coherence Engine | Approved/rejected pair with score and evidence |
+| Can it protect streamed output? | Streaming Oversight, Streaming Halt Deep Dive | Halt metadata for a completed contradictory claim |
+| Can it ground private knowledge? | Vector Store, Vector RAG Pipeline | Retrieved chunks tied to a verdict |
+| Can it fit an existing stack? | Provider Adapters, LangChain Integration, Production Guardrails | Wrapped SDK/framework call path |
+| Can it support a governed pilot? | Batch Processing, Enterprise Multi-Tenant, Custom Fine-Tuning | Threshold, tenant, deployment, and adaptation evidence |
 
 | Track | Notebook | Audience | Use Case | Time | Extras | Colab |
 |-------|----------|----------|----------|------|--------|-------|

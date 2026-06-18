@@ -76,3 +76,53 @@ def test_public_architecture_collapses_internal_decision_maps() -> None:
     assert "internal planning records" in doc
     assert "Safety Surface Map" not in doc
     assert "Responsibility Consolidation Map" not in doc
+
+
+def test_public_docs_explain_market_applications_and_onboarding_spine() -> None:
+    """Keep the public docs understandable for buyers and first-time builders."""
+
+    map_doc = _doc("docs-site/guide/applications-and-market-map.md")
+    readme = _doc("README.md")
+    landing = _doc("docs-site/index.md")
+    api_index = _doc("docs-site/api/index.md")
+    tutorials = _doc("docs-site/tutorials.md")
+    gallery = _doc("docs-site/notebook-gallery.md")
+
+    for required in (
+        "factual-coherence control plane",
+        "What The Software Is",
+        "Who Needs It",
+        "Application Lanes",
+        "Market Value",
+        "What Ships Publicly",
+        "First Evidence Packet",
+        "Director-Lite",
+        "Director-AI",
+        "Director-Class AI",
+        "Customer support",
+        "Enterprise knowledge assistant",
+        "Regulated review",
+        "Streaming assistant",
+        "Agent workflow",
+        "Evaluation pipeline",
+        "Platform deployment",
+    ):
+        assert required in map_doc
+
+    for surface in (readme, landing, api_index, tutorials, gallery):
+        assert "Applications and Market Map" in surface
+
+
+def test_priority_notebooks_carry_product_context() -> None:
+    """Notebook first cells must state the application and market context."""
+
+    quickstart = _doc("notebooks/quickstart.ipynb")
+    production = _doc("notebooks/09_production_guardrails.ipynb")
+    enterprise = _doc("notebooks/14_enterprise_multi_tenant.ipynb")
+
+    assert "Market lanes" in quickstart
+    assert "applications-and-market-map.md" in quickstart
+    assert "market question" in production
+    assert "wrapped SDK path" in production
+    assert "value beyond a local demo" in enterprise
+    assert "tenant isolation" in enterprise

@@ -161,15 +161,17 @@ sector packs, deployment recipes, tuning data, and acceptance evidence belong
 to commercial implementation work and must be validated against the customer's
 own governed data.
 
-Start with the [Product Overview](docs-site/guide/product-overview.md) for the
-market and application map, then use [Evaluation Onboarding](docs-site/guide/onboarding.md)
-to run a scoped pilot.
+Start with the [Applications and Market Map](docs-site/guide/applications-and-market-map.md)
+for a plain-language explanation of what the software is, who uses it, and where
+it creates commercial value. Then read the
+[Product Overview](docs-site/guide/product-overview.md) and use
+[Evaluation Onboarding](docs-site/guide/onboarding.md) to run a scoped pilot.
 
 ## Choose Your Path
 
 | Reader | First 30 minutes | Evidence to produce |
 |---|---|---|
-| Product or market evaluator | Read [Product Overview](docs-site/guide/product-overview.md), [Market Value](docs-site/guide/market-value-and-positioning.md), and [Guardrail Landscape](docs-site/guide/guardrail-landscape.md) | One-page use case, risk surface, and competing control options |
+| Product or market evaluator | Read [Applications and Market Map](docs-site/guide/applications-and-market-map.md), [Product Overview](docs-site/guide/product-overview.md), [Market Value](docs-site/guide/market-value-and-positioning.md), and [Guardrail Landscape](docs-site/guide/guardrail-landscape.md) | One-page use case, risk surface, and competing control options |
 | Developer | Run [Quickstart](docs-site/quickstart.md), then wrap an SDK client with [`guard()`](docs-site/api/guard.md) | One known-good answer approved and one known-bad answer rejected |
 | RAG engineer | Run [KB Ingestion](docs-site/guide/kb-ingestion.md) and [Vector Store](docs-site/api/vector-store.md) | Retrieval chunks tied to a rejection or approval |
 | Platform operator | Read [Production Guide](docs-site/deployment/production.md), [Metrics](docs-site/deployment/metrics.md), and [Runbooks](docs-site/deployment/runbooks.md) | Authenticated service, metrics scrape, and rollback/escalation path |
@@ -236,7 +238,7 @@ inventory below is reference for the deeper surface, navigable under
 | Rust PyO3 bindings | 83 |
 | Optional extras | 58 |
 | Python test files | 527 |
-| Public documentation pages | 202 |
+| Public documentation pages | 203 |
 | GitHub Actions workflows | 12 |
 
 Evidence boundary: this snapshot is a static inventory. Performance, coverage, hardware, and scientific-fidelity claims require their own committed evidence artefacts.

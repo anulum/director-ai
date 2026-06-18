@@ -20,7 +20,7 @@ checklist.
 
 | Goal | Start with | Then read |
 |---|---|---|
-| Understand the product | [Product Overview](guide/product-overview.md) | [Why Director-AI](guide/why-director-ai.md) |
+| Understand the product | [Applications and Market Map](guide/applications-and-market-map.md) | [Product Overview](guide/product-overview.md) |
 | Score one answer | `score()` example below | [Scoring](guide/scoring.md) |
 | Wrap an existing app | `guard()` example below | [SDK Guard](integrations/sdk-guard.md) |
 | Protect a RAG bot | `director-ai[vector]` | [KB Ingestion](guide/kb-ingestion.md) |

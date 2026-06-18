@@ -28,6 +28,10 @@ The common risk pattern is the same across all of these:
 Director-AI closes that gap with stream-aware fact grounding and auditable
 fallback controls.
 
+For a concise map of audiences, application lanes, public package boundaries,
+and the first evidence packet, see
+[Applications and Market Map](applications-and-market-map.md).
+
 The streaming moat is the contradiction-driven halt: completed claims are
 checked against governed facts during generation, and contradictory claims can
 halt before the stream continues. Unsupported-but-not-contradictory claims are

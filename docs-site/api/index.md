@@ -44,7 +44,8 @@ Choose the API by the boundary you control:
 | Enforce finance-sector policy checks | Financial Services Policy API | [Financial Services Policy API](financial-services.md) |
 
 For the product and pilot context around these APIs, see
-[Product Overview](../guide/product-overview.md) and
+[Applications and Market Map](../guide/applications-and-market-map.md),
+[Product Overview](../guide/product-overview.md), and
 [Evaluation Onboarding](../guide/onboarding.md).
 
 ## Quick Navigation

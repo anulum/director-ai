@@ -71,7 +71,7 @@ connects those controls to LLM output.
 
 | Goal | Path | Result |
 |---|---|---|
-| Understand the product | [Product Overview](guide/product-overview.md) → [Market Value](guide/market-value-and-positioning.md) | Clear map of applications, value, and evidence boundaries |
+| Understand the product | [Applications and Market Map](guide/applications-and-market-map.md) → [Product Overview](guide/product-overview.md) → [Market Value](guide/market-value-and-positioning.md) | Clear map of applications, value, and evidence boundaries |
 | Try it in code | [Quickstart](quickstart.md) → [guard API](api/guard.md) | One answer scored and one SDK call guarded |
 | See notebooks | [Notebook Gallery](notebook-gallery.md) → [Tutorials](tutorials.md) | Role-based notebook path for evaluator, RAG, streaming, or production work |
 | Plan a pilot | [Evaluation Onboarding](guide/onboarding.md) → [Production Guide](deployment/production.md) | Pilot checklist, acceptance criteria, and operational evidence plan |
@@ -101,9 +101,13 @@ incidents in high-consequence LLM flows:
 See **[Market Value and Positioning](guide/market-value-and-positioning.md)** for a
 decision-focused buyer view.
 
+For the fastest plain-language explanation of what Director-AI is, who uses it,
+what ships publicly, and where it creates market value, start with
+**[Applications and Market Map](guide/applications-and-market-map.md)**.
+
 | Reader | Start Here | What You Get |
 |---|---|---|
-| Evaluator | [Product Overview](guide/product-overview.md) | Problem, applications, value, evidence boundaries |
+| Evaluator | [Applications and Market Map](guide/applications-and-market-map.md) | Problem, applications, value, evidence boundaries |
 | New pilot team | [Evaluation Onboarding](guide/onboarding.md) | First pilot shape, install path, validation checklist |
 | Builder | [Quickstart](quickstart.md) | In-process guard and SDK wrapping |
 | Platform operator | [Production Guide](deployment/production.md) | REST/proxy deployment, monitoring, runbooks |

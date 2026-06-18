@@ -13,7 +13,9 @@ Director-Class AI — Tutorials
 Interactive Jupyter notebooks covering Director-AI from first principles to production deployment. Every notebook runs in Google Colab with zero local setup.
 
 For a buyer- and use-case-oriented index across every published notebook, see
-the [Notebook Gallery](notebook-gallery.md).
+the [Notebook Gallery](notebook-gallery.md). For the product and commercial
+context behind the notebook tracks, start with
+[Applications and Market Map](guide/applications-and-market-map.md).
 
 ## What The Tutorial Set Covers
 
@@ -53,6 +55,16 @@ For a non-notebook pilot checklist, use [Evaluation Onboarding](guide/onboarding
 | Integrations | A real SDK or framework path can be wrapped without changing the model provider |
 | Evaluation | A labelled set can drive threshold and regression-gate decisions |
 | Enterprise | Tenant, auth, metrics, and deployment controls are visible before rollout |
+
+## Tutorial-To-Application Map
+
+| Application | Recommended tutorial path | Pilot proof |
+|---|---|---|
+| Customer support | Quickstart → Production Guardrails → Domain Presets | Policy answer allowed, unsupported policy answer rejected |
+| Enterprise RAG | Vector Store → Vector RAG Pipeline → Batch Processing | Retrieved evidence attached to pass/fail verdicts |
+| Streaming assistant | Streaming Oversight → Streaming Halt Deep Dive | Completed contradictory claim halts before continuation |
+| Regulated review | Medical RAG Chatbot → Verification Gems → Evaluation Pipelines | Human-review examples and threshold evidence |
+| Platform deployment | Production Guardrails → Enterprise Multi-Tenant | Auth, tenant, audit, metrics, and rollback surfaces visible |
 
 ## Learning Path
 

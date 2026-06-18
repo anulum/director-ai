@@ -23,6 +23,10 @@ The core product question is simple:
 Director-AI answers that question with an auditable verdict, a score, and the
 evidence that drove the decision.
 
+For the shortest cross-functional explanation, including market lanes and what
+ships in each tier, read [Applications and Market Map](applications-and-market-map.md)
+before this deeper product overview.
+
 ## Product Thesis
 
 LLM adoption is moving from chat experiments into workflows that affect
