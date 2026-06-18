@@ -140,6 +140,7 @@ def test_lite_scorer_v2_evidence_recorder_writes_valid_packet(
     assert packet["heldout_eval_rows"] == 1200
     assert packet["latency_p95_ms"] == 6.8
     assert validate_lite_scorer_v2_plan(tmp_path) == []
+    assert validate_lite_scorer_v2_plan(tmp_path, require_recorded_evidence=True) == []
 
 
 def test_lite_scorer_v2_evidence_recorder_rejects_missing_artifact(

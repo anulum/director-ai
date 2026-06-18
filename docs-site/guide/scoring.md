@@ -142,6 +142,19 @@ The current evidence placeholder is `benchmarks/lite_scorer_v2_evidence_packet.t
 all evidence statuses remain `pending` until a trained student artefact is
 evaluated.
 
+Use the validator in two modes:
+
+```bash
+python tools/validate_lite_scorer_v2_plan.py
+python tools/validate_lite_scorer_v2_plan.py --require-recorded-evidence
+```
+
+The first command preserves the no-claim placeholder and claim-surface guard.
+The second command is the R2 release-evidence gate: it requires recorded or
+validated student, teacher, ONNX, held-out evaluation, quantized latency,
+model-card, and benchmark-review statuses. A pending packet may stay in the
+repository for planning, but it cannot close Lite Scorer v2 evidence.
+
 After training a student artefact, measure it with
 `tools/eval_lite_scorer_v2.py`, then record the evidence packet with
 `tools/record_lite_scorer_v2_evidence.py`. The evaluator calculates held-out

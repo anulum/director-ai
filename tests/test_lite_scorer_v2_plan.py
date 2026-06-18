@@ -28,6 +28,23 @@ def test_lite_scorer_v2_plan_validates_current_package() -> None:
     assert validate_lite_scorer_v2_plan(ROOT) == []
 
 
+def test_lite_scorer_v2_release_gate_reports_pending_evidence() -> None:
+    errors = validate_lite_scorer_v2_plan(ROOT, require_recorded_evidence=True)
+
+    assert (
+        "benchmarks/lite_scorer_v2_evidence_packet.toml: student_artifact_status must be recorded or validated for release evidence"
+        in errors
+    )
+    assert (
+        "benchmarks/lite_scorer_v2_evidence_packet.toml: heldout_eval_status must be recorded or validated for release evidence"
+        in errors
+    )
+    assert (
+        "benchmarks/lite_scorer_v2_evidence_packet.toml: benchmark_claim_review_status must be recorded or validated for release evidence"
+        in errors
+    )
+
+
 def test_lite_scorer_v2_plan_rejects_public_score_claim(tmp_path: Path) -> None:
     (tmp_path / "benchmarks").mkdir()
     (tmp_path / "docs-site" / "guide").mkdir(parents=True)

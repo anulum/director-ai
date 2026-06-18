@@ -57,6 +57,15 @@ REQUIRED_STUDENTS = {"minilm_l6", "mobilebert", "distilbert"}
 ALLOWED_STATUS = {"design_ready", "training_ready", "validated"}
 ALLOWED_EVIDENCE_STATUS = {"pending", "recorded", "validated"}
 RECORDED_STATUS = {"recorded", "validated"}
+EVIDENCE_STATUS_KEYS = (
+    "student_artifact_status",
+    "teacher_artifact_status",
+    "heldout_eval_status",
+    "onnx_export_status",
+    "quantized_latency_status",
+    "model_card_status",
+    "benchmark_claim_review_status",
+)
 SHA256 = re.compile(r"^[0-9a-f]{64}$")
 UNVERIFIED_CLAIM = re.compile(
     r"(?:~\s*70\s*%\s*BA|70\s*%\s*BA|5\s*ms\s*CPU|5ms\s*CPU)",
@@ -353,7 +362,22 @@ def _validate_recorded_evidence(
     return errors
 
 
-def _validate_evidence_packet(root: Path, data: dict[str, Any]) -> list[str]:
+def _require_recorded_evidence_packet(packet: dict[str, Any], label: Path) -> list[str]:
+    errors: list[str] = []
+    for key in EVIDENCE_STATUS_KEYS:
+        if packet[key] not in RECORDED_STATUS:
+            errors.append(
+                f"{label}: {key} must be recorded or validated for release evidence"
+            )
+    return errors
+
+
+def _validate_evidence_packet(
+    root: Path,
+    data: dict[str, Any],
+    *,
+    require_recorded_evidence: bool,
+) -> list[str]:
     packet_ref = data.get("evidence_packet")
     if not isinstance(packet_ref, str):
         return [f"{PLAN}: evidence_packet must be a string path"]
@@ -378,17 +402,11 @@ def _validate_evidence_packet(root: Path, data: dict[str, Any]) -> list[str]:
     if not isinstance(boundary, str) or "no public score claim" not in boundary.lower():
         errors.append(f"{label}: claim_boundary must state no public score claim")
 
-    for key in (
-        "student_artifact_status",
-        "teacher_artifact_status",
-        "heldout_eval_status",
-        "onnx_export_status",
-        "quantized_latency_status",
-        "model_card_status",
-        "benchmark_claim_review_status",
-    ):
+    for key in EVIDENCE_STATUS_KEYS:
         if packet[key] not in ALLOWED_EVIDENCE_STATUS:
             errors.append(f"{label}: unsupported {key} {packet[key]!r}")
+    if require_recorded_evidence:
+        errors.extend(_require_recorded_evidence_packet(packet, label))
     rows = data.get("minimum_real_eval_rows")
     minimum_real_eval_rows = rows if isinstance(rows, int) else 1000
     errors.extend(_validate_recorded_evidence(packet, label, minimum_real_eval_rows))
@@ -409,13 +427,40 @@ def _validate_claim_surfaces(root: Path) -> list[str]:
     return errors
 
 
-def validate_lite_scorer_v2_plan(root: Path) -> list[str]:
+def validate_lite_scorer_v2_plan(
+    root: Path,
+    *,
+    require_recorded_evidence: bool = False,
+) -> list[str]:
+    """Validate the Lite Scorer v2 plan and optional release evidence gate.
+
+    Parameters
+    ----------
+    root:
+        Repository root containing the Lite Scorer v2 plan and evidence packet.
+    require_recorded_evidence:
+        When true, every release-relevant evidence status must be ``recorded``
+        or ``validated``. The default accepts the pending no-claim packet used
+        while training and review artefacts are still being produced.
+
+    Returns
+    -------
+    list[str]
+        Human-readable validation errors. An empty list means the checked
+        policy surface is valid.
+    """
     root = root.resolve()
     data, errors = _load_plan(root / PLAN)
     if errors:
         return errors
     errors.extend(_validate_plan(data))
-    errors.extend(_validate_evidence_packet(root, data))
+    errors.extend(
+        _validate_evidence_packet(
+            root,
+            data,
+            require_recorded_evidence=require_recorded_evidence,
+        )
+    )
     errors.extend(_validate_claim_surfaces(root))
     return errors
 
@@ -429,9 +474,20 @@ def main(argv: list[str] | None = None) -> int:
         type=Path,
         help="Repository root containing benchmarks/lite_scorer_v2_plan.toml",
     )
+    parser.add_argument(
+        "--require-recorded-evidence",
+        action="store_true",
+        help=(
+            "Require student, teacher, ONNX, held-out eval, quantized latency, "
+            "model-card, and benchmark-review statuses to be recorded or validated."
+        ),
+    )
     args = parser.parse_args(argv)
 
-    errors = validate_lite_scorer_v2_plan(args.root)
+    errors = validate_lite_scorer_v2_plan(
+        args.root,
+        require_recorded_evidence=args.require_recorded_evidence,
+    )
     if errors:
         for error in errors:
             print(error, file=sys.stderr)
