@@ -65,7 +65,12 @@ def test_internal_todo_surface_has_single_canonical_file() -> None:
     stale_mirror = Path("docs/internal/TODO.md")
     status = _read("docs/ROADMAP_STATUS.md")
 
-    assert canonical.exists()
+    # docs/internal is intentionally ignored and absent from fresh CI checkouts.
+    # Local agent checkouts keep the canonical file; public CI can only enforce
+    # that public tracked roadmap surfaces point to the canonical internal path
+    # and do not recreate the stale mirror.
+    if canonical.exists():
+        assert "Consolidated Internal TODO" in canonical.read_text(encoding="utf-8")
     assert not stale_mirror.exists()
     assert "docs/internal/TODO_CONSOLIDATED.md" in status
     assert "docs/internal/TODO.md" not in status

@@ -260,10 +260,14 @@ jobs:
               assert langchain_core
               print("langchain OK")
           if "llamaindex" in extras:
-              import llama_index.core
+              # The integration adapter stays importable without the optional
+              # upstream stack. The llama-index-core package is deliberately not
+              # installed while its dependency chain pulls an unpatched nltk
+              # advisory; see pyproject.toml next to the empty extra.
+              from director_ai.integrations.llamaindex import DirectorAIPostprocessor
 
-              assert llama_index.core
-              print("llamaindex OK")
+              assert DirectorAIPostprocessor
+              print("llamaindex adapter OK")
           if "voice" in extras:
               from director_ai.voice import AsyncVoiceGuard, TTSAdapter
 
