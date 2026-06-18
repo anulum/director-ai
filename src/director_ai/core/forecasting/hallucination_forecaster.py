@@ -35,6 +35,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass, field
+from typing import Protocol
 
 from ..text_overlap import word_overlap
 
@@ -99,6 +100,14 @@ _STOPWORDS = frozenset(
 )
 
 
+class _RetrievalStore(Protocol):
+    """Typed retrieval boundary used for forecasting KB coverage."""
+
+    def retrieve_context(self, prompt: str) -> str | None:
+        """Return semicolon-separated grounding facts for ``prompt``."""
+        ...
+
+
 def _lexical_overlap(text_a: str, text_b: str) -> float:
     """Lexical Jaccard overlap in ``[0, 1]``.
 
@@ -140,6 +149,7 @@ class ForecastHistory:
 
     @staticmethod
     def signature(prompt: str) -> str:
+        """Return the coarse prompt-shape signature used for history lookup."""
         words = _WORD_RE.findall(prompt.lower())
         lead = words[0] if words else ""
         content = [w for w in words if w not in _STOPWORDS]
@@ -150,11 +160,13 @@ class ForecastHistory:
         return f"{lead}|{bucket}|{anchored}"
 
     def record(self, prompt: str, *, hallucinated: bool) -> None:
+        """Record one observed hallucination outcome for ``prompt``."""
         entry = self._counts.setdefault(self.signature(prompt), [0, 0])
         entry[0] += 1 if hallucinated else 0
         entry[1] += 1
 
     def rate(self, prompt: str) -> float | None:
+        """Return the historical hallucination rate for ``prompt`` shape."""
         entry = self._counts.get(self.signature(prompt))
         if entry is None or entry[1] == 0:
             return None
@@ -162,7 +174,7 @@ class ForecastHistory:
 
 
 def _has_anchor(prompt: str) -> bool:
-    """True when the prompt carries a concrete anchor: a digit or a proper noun."""
+    """Return whether the prompt carries a digit or likely proper noun."""
     if any(ch.isdigit() for ch in prompt):
         return True
     tokens = prompt.split()
@@ -200,6 +212,7 @@ class HallucinationForecaster:
     _content_floor: int = field(default=4, repr=False)
 
     def __post_init__(self) -> None:
+        """Validate weights, thresholds, and no-KB prior."""
         for name in ("weight_ambiguity", "weight_kb", "weight_history"):
             if getattr(self, name) < 0:
                 raise ValueError(f"{name} must be non-negative")
@@ -226,7 +239,7 @@ class HallucinationForecaster:
         )
         return max(0.0, min(1.0, score))
 
-    def kb_coverage(self, prompt: str, store) -> float | None:
+    def kb_coverage(self, prompt: str, store: _RetrievalStore | None) -> float | None:
         """Best lexical overlap of *prompt* with the facts *store* would retrieve."""
         if store is None:
             return None
@@ -235,7 +248,9 @@ class HallucinationForecaster:
             return 0.0
         return max(_lexical_overlap(prompt, fact) for fact in facts)
 
-    def forecast(self, prompt: str, *, store=None) -> ForecastResult:
+    def forecast(
+        self, prompt: str, *, store: _RetrievalStore | None = None
+    ) -> ForecastResult:
         """Return a :class:`ForecastResult` for *prompt*."""
         ambiguity = self.ambiguity(prompt)
         coverage = self.kb_coverage(prompt, store)

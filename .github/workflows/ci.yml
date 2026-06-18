@@ -62,10 +62,14 @@ jobs:
           src/director_ai/core/consensus
           src/director_ai/core/edge
           src/director_ai/core/eval_trace
+          src/director_ai/core/evaluation
           src/director_ai/core/evidence_packet
+          src/director_ai/core/forecasting
+          src/director_ai/core/ingestion
           src/director_ai/core/execution_rings
           src/director_ai/core/guard_control
           src/director_ai/core/irreversibility
+          src/director_ai/core/memory
           src/director_ai/core/meta_guard
           src/director_ai/core/ml_bom
           src/director_ai/core/output_integrity
@@ -73,6 +77,7 @@ jobs:
           src/director_ai/core/risk_threshold
           src/director_ai/core/safety_event.py
           src/director_ai/core/safety_protocol.py
+          src/director_ai/core/self_healing
           src/director_ai/core/stats.py
           src/director_ai/core/sustainability
           src/director_ai/core/swarm_coherence

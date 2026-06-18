@@ -54,6 +54,7 @@ class LabelledPolicySample:
     metadata: Mapping[str, str] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
+        """Validate prompt, response, score, and metadata values."""
         if not self.prompt.strip():
             raise ValueError("prompt is required")
         if not self.response.strip():
@@ -79,6 +80,7 @@ class PolicyVariant:
     metadata: Mapping[str, str] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
+        """Validate threshold policy parameters and metadata values."""
         if not self.name.strip():
             raise ValueError("variant name is required")
         if not 0.0 <= self.threshold <= 1.0:
@@ -115,6 +117,7 @@ class PolicyVariantResult:
     fn: int
 
     def to_dict(self) -> dict[str, Any]:
+        """Return a serialisable metrics record for this policy variant."""
         return {
             "name": self.name,
             "threshold": self.threshold,
@@ -144,12 +147,14 @@ class PolicyEvaluationReport:
     public_claim_reason: str
 
     def variant(self, name: str) -> PolicyVariantResult:
+        """Return the result for ``name`` or raise :class:`KeyError`."""
         for result in self.results:
             if result.name == name:
                 return result
         raise KeyError(name)
 
     def to_dict(self) -> dict[str, Any]:
+        """Return a serialisable evaluation report."""
         return {
             "sample_count": self.sample_count,
             "datasets": list(self.datasets),

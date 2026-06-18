@@ -51,6 +51,7 @@ class LabelledOutcome:
     domain: str = ""
 
     def __post_init__(self) -> None:
+        """Validate the outcome score range."""
         if not math.isfinite(self.score) or not 0.0 <= self.score <= 1.0:
             raise ValueError("score must be a finite value in [0, 1]")
 
@@ -68,6 +69,7 @@ class TuningConfig:
     threshold_max: float = 1.0
 
     def __post_init__(self) -> None:
+        """Validate tuning split, sample, tolerance, and threshold bounds."""
         if not 0.0 < self.holdout_fraction < 1.0:
             raise ValueError("holdout_fraction must be in (0, 1)")
         if self.min_samples < 2:
@@ -96,7 +98,7 @@ class PolicyUpdate:
         return self.action in (ACCEPT, ROLLBACK)
 
     def to_dict(self) -> dict[str, object]:
-        """Serialisable audit record."""
+        """Return a serialisable audit record."""
         return {
             "action": self.action,
             "old_threshold": self.old_threshold,
