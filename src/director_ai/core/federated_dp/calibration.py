@@ -49,7 +49,7 @@ class RoundResult:
     noise_scale: float
 
     def to_dict(self) -> dict[str, float | int]:
-        """Serialisable round summary (no per-tenant updates)."""
+        """Return a serialisable round summary without per-tenant updates."""
         return {
             "previous_value": self.previous_value,
             "new_value": self.new_value,

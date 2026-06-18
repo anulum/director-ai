@@ -609,6 +609,8 @@ module = [
     "director_ai.core.exceptions",
     "director_ai.core.evidence_packet",
     "director_ai.core.evidence_packet.*",
+    "director_ai.core.federated_dp",
+    "director_ai.core.federated_dp.*",
     "director_ai.core.federated_privacy",
     "director_ai.core.federated_privacy.*",
     "director_ai.core.forecasting",
