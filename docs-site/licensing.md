@@ -35,19 +35,21 @@ Looking for tiers and prices? See the <a href="pricing.md">Pricing page</a>.
 Commercial tiers, the usage-based API, and the side-by-side comparison live on
 the dedicated **[Pricing page](pricing.md)** — one source of truth for prices.
 
-In short: the **Apache-2.0 core** is free for everyone, in production, with no
-strings; the commercial tiers add a production licence for the **BUSL-1.1
-Advanced & Labs** capabilities plus support and SLAs.
+In short: `director-ai-lite` is the free PyPI adoption package; the
+**Apache-2.0 core** in `director-ai` is free for everyone, in production, with
+no strings; the commercial tiers add a production licence for the **BUSL-1.1
+Advanced & Labs** capabilities plus support and SLAs; Director-Class AI is the
+premium implementation and evidence programme, not a separate Python wheel.
 
 | Route | Licence status | Support | Production use |
 |---|---|---|---|
-| **Free OSS** | Apache-2.0 core | Community / self-support | Allowed, including closed-source products |
-| **Pro self-host** | Commercial licence for BUSL-1.1 advanced tier | Slack priority support, 99.5 % SLA | Allowed for self-hosted production and internal platforms |
-| **Enterprise** | Commercial licence with negotiated terms | Dedicated support engineer, custom SLA, tuning and architecture reviews | Allowed for regulated, air-gapped, multi-tenant, or procurement-heavy deployments |
+| **Director-Lite** | Free package; Apache-2.0 adoption surface | Community / self-support | Allowed, including closed-source products |
+| **Director-AI Pro self-host** | Commercial licence for BUSL-1.1 advanced tier | Priority support, 99.5 % support target | Allowed for self-hosted production and internal platforms |
+| **Director-Class AI** | Commercial licence with negotiated terms | Dedicated support engineer, custom SLA, tuning and architecture reviews | Allowed for regulated, air-gapped, multi-tenant, or procurement-heavy deployments |
 
 [See pricing :material-arrow-right:](pricing.md){ .md-button .md-button--primary }
 
-Self-hosted deployments use the license tiers above.
+Self-hosted deployments use the licence tiers above.
 
 ---
 
@@ -155,7 +157,7 @@ a commercial licence (the tiers above).
 
 [Request Free Pilot :material-flask:](mailto:director.class.ai@anulum.li?subject=Director-AI%20Free%20Pilot%20Request&body=Company:%0AUse%20case:%0AApprox.%20LLM%20call%20volume/day:%0A){ .md-button .md-button--primary }
 &nbsp;&nbsp;
-[Buy License :material-cart:](https://polar.sh/checkout/polar_c_gmuEUUV0VUIsmnm8ZzPJnmrYISFg5oXzualxI11Lgxn){ .md-button }
+[Request USD Checkout :material-cart:](mailto:director.class.ai@anulum.li?subject=Director-AI%20USD%20Checkout){ .md-button }
 &nbsp;&nbsp;
 [Contact Us :material-email:](mailto:director.class.ai@anulum.li?subject=Director-AI%20Inquiry){ .md-button }
 

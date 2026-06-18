@@ -2,24 +2,61 @@
 
 <div class="hero-subtitle" style="font-size: 1.2em; color: var(--md-default-fg-color--light); margin-bottom: 1.5em;">
 The core is free — forever, in production, no strings.<br/>
-Pay only when you put the advanced tier into production, or when you want support behind it.
+Pay when you need Advanced & Labs in production, managed deployment, or support behind it.
 </div>
 
 !!! tip "The wedge"
-    Director-AI is the only guardrail that severs the token stream **before** a
-    hallucination finishes generating — a seatbelt that deploys before the crash,
-    not an incident report after it. Detection is too late; you pay for prevention.
+    The free package proves the wedge: contradiction-driven streaming halt with
+    governed facts. The paid tiers add production entitlement, deployment help,
+    customer evidence, and the premium Director-Class AI category.
 
 ---
 
-## :material-gift: Free — Apache-2.0 core
+## :material-layers-outline: What ships where
 
-**CHF 0. Forever. Including production and closed-source.**
+| Tier | Install / delivery | Price | What ships |
+|---|---|---:|---|
+| **Director-Lite** | `pip install director-ai-lite` | **USD 0** | Three-line `guard()` facade, `StreamGuard`, model-free heuristic default, facts/RAG handoff, optional NLI upgrade |
+| **Director-AI** | `pip install director-ai` | Apache core free; **Pro USD 199/mo** for Advanced & Labs production use | Full open-core runtime: SDK guard, REST/gRPC server, framework integrations, evidence packets, contradiction halt, commercial licence path |
+| **Director-Class AI** | Commercial engagement | **Custom** | Premium category: managed/on-prem deployment, customer-specific sector packs, tuning/evaluation, evidence reviews, SLA, procurement support |
 
-The open core is genuinely free, not a crippled trial:
+PyPI promotes the whole ladder but only distributes code packages. Publish and
+push users into `director-ai-lite` for the smallest first run, then upgrade them
+to `director-ai` when they need the full runtime. Director-Class AI is not a
+separate wheel; it is the premium implementation and evidence programme around
+the software.
+
+## :material-gift: Director-Lite — free package
+
+**USD 0. Forever. Including production and closed-source.**
+
+The first public adoption path is intentionally small:
+
+```bash
+pip install director-ai-lite
+```
+
+- :material-check: Three-line `director_ai_lite.guard()` front door
+- :material-check: `StreamGuard` streaming halt facade
+- :material-check: Model-free heuristic default
+- :material-check: Facts/RAG handoff through the canonical Director-AI runtime
+- :material-check: Optional `director-ai-lite[nli]` upgrade path
+
+This is the free tier we promote hardest on PyPI because it shows the core
+streaming value without asking users to understand the full platform.
+
+## :material-package-variant: Director-AI — full open-core runtime
+
+The full package remains available:
+
+```bash
+pip install director-ai
+```
+
+The Apache-2.0 core is genuinely free, not a crippled trial:
 
 - :material-check: Coherence guardrail engine + 5-tier scoring (rules → embeddings → NLI)
-- :material-check: Token-level **streaming halt**
+- :material-check: Contradiction-driven **streaming halt**
 - :material-check: SDK guard, FastAPI middleware, REST/gRPC server
 - :material-check: Prompt-injection detection, agent/MCP preflight guard
 - :material-check: ONNX + Rust-accelerated compute paths
@@ -43,7 +80,7 @@ without paying anyone. [Get started](quickstart.md){ .md-button }
 
 ---
 
-## :material-currency-usd: Commercial tiers — advanced tier in production
+## :material-currency-usd: Commercial tiers — USD
 
 The **Advanced & Labs** capabilities are source-available under BUSL-1.1: free to
 read and evaluate, free in non-production. A commercial licence unlocks them in
@@ -51,11 +88,11 @@ production and hosted/SaaS deployments, and adds support and SLAs.
 
 | Path | Price | Package | Choose it when |
 |---|---:|---|---|
-| **Free OSS** | CHF 0 | Apache-2.0 core: guard engine, streaming halt, server, SDK and framework integrations | You only need the open core, including closed-source production use |
-| **Pro self-host** | CHF 199/mo | BUSL-1.1 advanced tier production licence, unlimited deployments, Slack priority support, 99.5 % SLA | You run Director-AI inside your own product or internal platform |
-| **Enterprise** | Custom | Pro self-host plus support engineer, on-prem/air-gapped help, custom tuning, architecture reviews, custom SLA | You need regulated deployment support, domain adaptation, or procurement/SLA terms |
+| **Director-Lite** | USD 0 | Free PyPI package and Apache-2.0 adoption path | You want the smallest streaming-halt integration |
+| **Director-AI Pro self-host** | USD 199/mo | BUSL-1.1 advanced-tier production licence, unlimited deployments, priority support, 99.5 % support target | You run Director-AI inside your own product or internal platform |
+| **Director-Class AI** | Custom | Pro self-host plus managed/on-prem help, customer-specific tuning, evidence packs, architecture reviews, custom SLA | You need regulated deployment support, domain adaptation, procurement terms, or a new premium AI assurance category |
 
-ROI threshold: at CHF 199/mo, Pro self-host costs less than one hour of senior
+ROI threshold: at USD 199/mo, Pro self-host costs less than one hour of senior
 incident response in most regulated teams. One prevented fabricated citation,
 incorrect policy quote, or wrong numerical answer can pay for the licence.
 
@@ -63,45 +100,45 @@ incorrect policy quote, or wrong numerical answer can pay for the licence.
     Founding Members keep **40–50 % off, locked permanently**, plus direct access
     to the maintainer. Once 10 spots fill, prices move to the standard tier.
 
-=== ":material-account: Indie — CHF 49/mo"
+=== ":material-package-variant: Director-Lite — USD 0"
 
-    **For:** solo developers, internal tools, side projects.
+    **For:** developers who need the first working streaming-halt integration.
 
-    - 1 production deployment of the advanced tier
-    - Email support (48 h response)
-    - Same-day updates
-    - Every feature included
+    - `pip install director-ai-lite`
+    - three-line `guard()` facade
+    - model-free default
+    - optional NLI/RAG upgrade path
+    - community/self-support
 
-    **Founding Member: CHF 29/mo** (40 % off, locked)
+    [Install Director-Lite :material-download:](lite.md){ .md-button .md-button--primary }
 
-    [Buy Indie :material-cart:](https://polar.sh/checkout/polar_c_gmuEUUV0VUIsmnm8ZzPJnmrYISFg5oXzualxI11Lgxn){ .md-button .md-button--primary }
+=== ":material-account-group: Director-AI Pro — USD 199/mo"
 
-=== ":material-account-group: Pro — CHF 199/mo"
-
-    **For:** teams shipping LLM features to production.
+    **For:** teams shipping governed LLM features to production.
 
     - Unlimited deployments
-    - Slack priority support (4 h response)
-    - 99.5 % SLA
-    - Every feature included
+    - Advanced & Labs production entitlement
+    - Priority support
+    - 99.5 % support target
+    - self-hosted and air-gapped deployment path
 
-    **Founding Member: CHF 99/mo** (50 % off, locked)
+    **Founding Member: USD 99/mo** (50 % off, locked)
 
-    [Buy Pro :material-cart:](https://polar.sh/checkout/polar_c_kLbfbCFJhyubFxzax8JNLw8WZU8T4IveHPlMo0kpxOZ){ .md-button .md-button--primary }
+    [Request USD checkout :material-cart:](mailto:director.class.ai@anulum.li?subject=Director-AI%20Pro%20USD%20Checkout){ .md-button .md-button--primary }
 
-=== ":material-infinity: Perpetual — CHF 999"
+=== ":material-infinity: Director-AI Perpetual — USD 999"
 
     **For:** one-time purchase, no subscription.
 
-    - Equivalent to the Indie tier
+    - Equivalent to Pro self-host entitlement for one deployment
     - 12 months of updates included
     - No recurring payments, ever
 
-    [Buy Perpetual :material-license:](https://polar.sh/checkout/polar_c_VW7ClxyB6axih6mu9NqWlh6OgeAVJl4GVDgFW0QePtZ){ .md-button .md-button--primary }
+    [Request perpetual checkout :material-license:](mailto:director.class.ai@anulum.li?subject=Director-AI%20Perpetual%20USD%20Checkout){ .md-button .md-button--primary }
 
-=== ":material-office-building: Enterprise — talk to us"
+=== ":material-office-building: Director-Class AI — custom"
 
-    **For:** regulated industries, multi-tenant SaaS, high volume.
+    **For:** regulated industries, multi-tenant SaaS, high volume, and premium assurance programmes.
 
     - Dedicated support engineer + private Slack/Teams channel
     - Custom SLA (99.9 %+)
@@ -110,7 +147,7 @@ incorrect policy quote, or wrong numerical answer can pay for the licence.
     - Custom NLI fine-tuning on your domain data
     - Quarterly architecture reviews + roadmap input
 
-    [Contact us :material-email:](mailto:director.class.ai@anulum.li?subject=Director-AI%20Enterprise){ .md-button .md-button--primary }
+    [Contact us :material-email:](mailto:director.class.ai@anulum.li?subject=Director-Class%20AI%20Enterprise){ .md-button .md-button--primary }
 
 ---
 
@@ -121,8 +158,8 @@ For teams that prefer pay-per-use over fixed licensing:
 | Volume / month | Per 1,000 checks | |
 |---|:---:|---|
 | First 5,000 | **Free** | no card needed |
-| 5,001 – 50,000 | CHF 2.50 | ~CHF 0.0025 / check |
-| 50,001 – 500,000 | CHF 1.50 | volume discount |
+| 5,001 – 50,000 | USD 2.50 | ~USD 0.0025 / check |
+| 50,001 – 500,000 | USD 1.50 | volume discount |
 | 500,000+ | Custom | [contact us](mailto:director.class.ai@anulum.li) |
 
 Self-hosted deployments use the licence tiers above.
@@ -136,11 +173,11 @@ The measured differences, from the committed
 
 | | Director-AI | NeMo Guardrails | GuardrailsAI | SelfCheckGPT |
 |---|:---:|:---:|:---:|:---:|
-| **Token-level streaming halt** _(experimental, under calibration)_ | :material-flask: | :material-close: | :material-close: | :material-close: |
+| **Token-level streaming halt** | :material-check: | :material-close: | :material-close: | :material-close: |
 | **GPU NLI latency / pair** | **~0.9 ms** | LLM-bound | LLM-bound | 5–10 s |
 | **Local guard benchmark p50 / p95** | **0.124 / 0.200 ms** | 0.818 / 1.418 ms config-load + LLM | 0.659 / 0.996 ms parse + LLM | not run in this harness |
 | **Offline / local** | :material-check: | :material-close: | :material-close: | :material-close: |
-| **Self-hosted core price** | **CHF 0** | free | free | free |
+| **Self-hosted core price** | **USD 0** | free | free | free |
 | **AggreFact balanced acc.** | 75.6 % (0.4 B) | N/A | N/A | N/A |
 
 The local guard benchmark was produced on 2026-06-18 on host `aaarthuus`
@@ -180,9 +217,14 @@ development and are genuinely appreciated:
 ## :material-frequently-asked-questions: Questions
 
 ??? question "What exactly is free?"
-    The entire **Apache-2.0 core** — including the streaming halt, scoring, server,
-    and integrations — for any use, including closed-source production. Only the
-    **BUSL-1.1 advanced & labs** tier needs a commercial licence for production.
+    `director-ai-lite` is free. The Apache-2.0 core in `director-ai` is also free
+    for any use, including closed-source production. Only the BUSL-1.1 Advanced
+    & Labs tier needs a commercial licence for production.
+
+??? question "Will PyPI promote all tiers?"
+    Yes. PyPI should explain the ladder and link to pricing. It distributes the
+    `director-ai-lite` and `director-ai` packages; Director-Class AI is promoted
+    there as the premium service/category, not as a separate wheel.
 
 ??? question "Do I need a licence to evaluate?"
     No. The core is Apache-2.0; the advanced tier is free to read and evaluate
@@ -202,7 +244,7 @@ For the full legal model, see [Licensing](licensing.md).
 
 [Free pilot :material-flask:](mailto:director.class.ai@anulum.li?subject=Director-AI%20Free%20Pilot){ .md-button .md-button--primary }
 &nbsp;&nbsp;
-[Buy a licence :material-cart:](https://polar.sh/checkout/polar_c_gmuEUUV0VUIsmnm8ZzPJnmrYISFg5oXzualxI11Lgxn){ .md-button }
+[Request USD checkout :material-cart:](mailto:director.class.ai@anulum.li?subject=Director-AI%20USD%20Checkout){ .md-button }
 &nbsp;&nbsp;
 [Talk to us :material-email:](mailto:director.class.ai@anulum.li?subject=Director-AI%20Inquiry){ .md-button }
 

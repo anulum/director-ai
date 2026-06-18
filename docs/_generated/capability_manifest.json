@@ -9,7 +9,7 @@
     "python_model_classes": 976,
     "python_model_source_modules": 420,
     "rust_pyo3_model_wrappers": 83,
-    "test_files": 523
+    "test_files": 524
   },
   "documentation": {
     "public_pages": [
@@ -5407,6 +5407,7 @@
       "tests/test_pre_halt_steering.py",
       "tests/test_precommit_exposure_guard.py",
       "tests/test_prepare_threshold_data.py",
+      "tests/test_pricing_tier_boundary_docs.py",
       "tests/test_private_score_release.py",
       "tests/test_production_asserts.py",
       "tests/test_production_guard.py",

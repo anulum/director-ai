@@ -15,7 +15,7 @@ Director-Class AI — Repository overview
 <h1 align="center">Director-AI</h1>
 
 <p align="center">
-  <strong>Catch an LLM or agent hallucination before it ships — NLI + RAG grounding, a sealed audit trail, and an experimental token-level streaming halt</strong>
+  <strong>Catch an LLM or agent hallucination before it ships — NLI + RAG grounding, a sealed audit trail, and contradiction-driven streaming halt</strong>
 </p>
 
 <p align="center">
@@ -37,6 +37,21 @@ Director-Class AI — Repository overview
 </p>
 
 ---
+
+## Product Ladder
+
+| Tier | Install / delivery | Price | Ships |
+|---|---|---:|---|
+| **Director-Lite** | `pip install director-ai-lite` | USD 0 | Three-line streaming halt facade, model-free heuristic default, facts/RAG handoff, optional NLI upgrade |
+| **Director-AI** | `pip install director-ai` | Free core; paid Pro for Advanced & Labs production use | Open-core runtime: `guard()`, REST/gRPC server, SDK and framework integrations, evidence packets, contradiction halt, production licence path |
+| **Director-Class AI** | Commercial engagement | Custom | Premium category: managed deployment, customer-specific sector packs, tuning/evaluation, evidence reviews, SLA, procurement support |
+
+PyPI is the adoption front door. `director-ai-lite` is the free package we
+publish and promote first for the smallest useful experience; `director-ai`
+remains the full open-core package and the technical base for paid Pro
+self-hosting. Director-Class AI is promoted from PyPI and the docs, but it is
+not a separate wheel: it is the premium implementation and evidence programme
+around the software.
 
 ## The one-command demo
 
@@ -84,13 +99,13 @@ materials are provided only under separate commercial agreements and must be
 validated against the customer's own governed data, controls, and acceptance
 criteria before any customer-specific performance claim is made.
 
-> **Active Development** — APIs may evolve. The production-validated core — the guardrail engine and 5-tier scoring (rules → embeddings → NLI), the SDK guard, FastAPI middleware, REST server, injection detection, and the agent/MCP preflight guard — is functional and tested (8253 passing tests in the latest full local coverage run); its response-level hallucination accuracy is benchmarked on LLM-AggreFact. The **token-level streaming halt is experimental**: on our own false-halt benchmark it cannot yet separate hallucinated from correct streaming text without a high false-halt rate, so it is opt-in and under calibration — do not rely on it as a production gate yet. Deeper and experimental capabilities live under **Advanced & Labs** in the docs. Rust-accelerated compute paths shipped in the v3.12 line and remain part of the current release surface.
+> **Active Development** — APIs may evolve. The production-validated core — the guardrail engine and 5-tier scoring (rules → embeddings → NLI), the SDK guard, FastAPI middleware, REST server, injection detection, contradiction-driven streaming halt, and the agent/MCP preflight guard — is functional and tested. Response-level hallucination accuracy is benchmarked on LLM-AggreFact; streaming-halt evidence is recorded in `benchmarks/results/streaming_contradiction_halt_base.json`. Deeper capabilities live under **Advanced & Labs** in the docs. Rust-accelerated compute paths shipped in the v3.12 line and remain part of the current release surface.
 
 ---
 
 ## What It Does
 
-Director-AI sits between your LLM and the user. It scores every output for hallucination against governed facts before the answer ships. (An experimental mode can also halt generation mid-stream when coherence drops — see the development note above for its current limits.)
+Director-AI sits between your LLM and the user. It scores every output for hallucination against governed facts before the answer ships. The streaming path halts completed streamed claims when they contradict retrieved grounding facts.
 
 ```mermaid
 graph LR
@@ -116,18 +131,17 @@ It is a guardrail runtime for factual-risk control:
 
 - **Before output reaches users:** score a candidate answer against governed
   facts, NLI contradiction signals, retrieval evidence, and structured checks.
-- **While output is streaming (experimental):** an opt-in mode can stop a token
-  stream when coherence drops, but it is under calibration — see the development
-  note above before relying on it.
+- **While output is streaming:** contradiction-driven streaming halt can stop a
+  token stream when a completed claim contradicts governed facts.
 - **Inside agent workflows:** inspect tool outputs, handoffs, and trajectory
   steps before downstream action.
 - **For operators:** emit tenant-safe evidence, metrics, halt reasons, and
   compliance packets that can be reviewed without exposing raw customer data.
 
 The strongest open-core value is the combination of response-level RAG/NLI
-verification, local low-latency execution, Rust acceleration, REST/gRPC
-deployment surfaces, and evidence-first documentation (the real-time streaming
-halt is experimental — see the development note above). The commercial value is
+verification, contradiction-driven streaming halt, local low-latency execution,
+Rust acceleration, REST/gRPC deployment surfaces, and evidence-first documentation.
+The commercial value is
 reducing factual incidents in high-consequence workflows while giving teams a
 portable control layer across models, providers, and deployment targets.
 
@@ -164,7 +178,7 @@ to run a scoped pilot.
 ### Core capabilities
 
 - **Response-level grounding** — scores a candidate answer against governed facts with NLI contradiction signals and retrieval evidence; benchmarked on LLM-AggreFact. This is the production-validated path.
-- **Token-level streaming halt (experimental)** — re-scores accumulated text during generation and can sever output mid-stream when coherence degrades. The mechanism was [Zenodo-deposited](https://doi.org/10.5281/zenodo.18822166) in early 2026, but on our own false-halt benchmark it does not yet separate hallucinated from correct text without a high false-halt rate; it is opt-in and under calibration, not a production gate.
+- **Token-level streaming halt** — contradiction-driven streaming halt scores completed streamed claims against retrieved facts and can sever output when a claim contradicts governed knowledge. The current local evidence is `benchmarks/results/streaming_contradiction_halt_base.json`; unsupported-but-not-contradictory additions remain a response-review concern.
 - **Dual-entropy scoring** — NLI contradiction detection (0.4B DeBERTa) + RAG fact-checking against your knowledge base.
 - **Selectable scorer models** — choose a benchmarked local scorer profile for the latency/accuracy trade-off you need, without changing the guarded LLM provider.
 - **Customer Model Factory primitives** — validate customer-owned guardrail
@@ -207,7 +221,7 @@ inventory below is reference for the deeper surface, navigable under
 | API documentation pages | 88 |
 | Rust PyO3 bindings | 83 |
 | Optional extras | 58 |
-| Python test files | 523 |
+| Python test files | 524 |
 | Public documentation pages | 201 |
 | GitHub Actions workflows | 12 |
 
@@ -590,10 +604,14 @@ Director-AI is built and maintained independently. Purchases and donations
 directly fund continued development — they are genuinely appreciated and keep the
 project alive and moving. Ways to help:
 
-- **Buy a licence** for the advanced tier —
+- **Start free** with Director-Lite —
+  `pip install director-ai-lite`. This is the PyPI-first adoption package.
+- **Buy Director-AI Pro** for Advanced & Labs production use —
   [anulum.li/licensing](https://www.anulum.li/licensing) /
   [pricing](https://anulum.github.io/director-ai/pricing/). Gets you production
-  rights, support, and SLAs.
+  rights for the advanced tier, support, and a self-hosted deployment path.
+- **Engage Director-Class AI** for premium deployment, tuning, evidence reviews,
+  and custom SLA work.
 - **Sponsor** — [GitHub Sponsors](https://github.com/sponsors/anulum).
 - **Donate** — any amount helps:
   - [PayPal](https://www.paypal.com/donate?hosted_button_id=4X5F6DNT934HY)

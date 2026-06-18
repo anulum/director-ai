@@ -29,3 +29,15 @@ scorer to `StreamGuard`.
 This package intentionally remains a thin distribution wrapper. The canonical
 runtime implementation lives in `director_ai.lite` so bug fixes, type behavior,
 and halt semantics stay identical between the full and Lite installs.
+
+## Upgrade path
+
+| Tier | Install / delivery | Use it for |
+|---|---|---|
+| Director-Lite | `pip install director-ai-lite` | Free first-run streaming halt facade |
+| Director-AI | `pip install director-ai` | Full open-core runtime, REST/gRPC, SDK integrations, evidence packets, Pro self-host path |
+| Director-Class AI | Commercial engagement | Managed/on-prem deployment, customer-specific tuning, evidence reviews, SLA, procurement support |
+
+PyPI promotes all three tiers, but only the first two are Python packages.
+Director-Class AI is the premium implementation and evidence programme around
+the software.
