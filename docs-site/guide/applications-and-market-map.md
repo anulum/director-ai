@@ -28,12 +28,13 @@ The runtime combines:
 - governed facts from inline rules, document ingestion, or vector retrieval;
 - configurable scorers, including rules, embeddings, NLI, and structured
   verification;
-- contradiction-driven streaming halt for completed streamed claims;
+- response-level factual-coherence scoring, with opt-in contradiction-driven
+  streaming halt for completed streamed claims;
 - SDK, framework, REST, gRPC, inference-server, and voice integration surfaces;
 - tenant-safe evidence, audit, metrics, and forensics records.
 
 The smallest useful path is `director-ai-lite`, which exposes a three-line
-streaming halt facade for free-tier adoption. The full `director-ai` package is
+guard facade for free-tier adoption. The full `director-ai` package is
 the open-core runtime. Director-Class AI is the commercial implementation and
 evidence programme around governed customer deployments; it is not a separate
 wheel.
@@ -90,7 +91,7 @@ inside LLM output flow.
 
 | Surface | Public package/docs | Commercial extension boundary |
 |---|---|---|
-| Director-Lite | `director-ai-lite`, three-line halt facade, free onboarding | None required for free-tier use |
+| Director-Lite | `director-ai-lite`, three-line guard facade, free onboarding | None required for free-tier use |
 | Director-AI | `director-ai`, open-core SDK, scorers, APIs, integrations, evidence packet, docs | Paid Pro use for Advanced & Labs production deployment |
 | Director-Class AI | Promoted in docs and PyPI positioning | Customer-specific deployment, sector packs, evidence reviews, tuning, and SLA |
 

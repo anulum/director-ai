@@ -22,7 +22,7 @@ Choose the API by the boundary you control:
 | Boundary you own | Use | Why |
 |---|---|---|
 | Application code | `guard()`, `score()`, `CoherenceScorer` | Smallest path to reject or annotate one output |
-| Token stream | `StreamingKernel`, `AsyncStreamingKernel`, `/v1/stream` | Stop partial output before completion |
+| Token stream | `StreamingKernel`, `AsyncStreamingKernel`, `/v1/stream` | Route contradictory partial output before completion |
 | Knowledge base | `DocumentIngestionPipeline`, `VectorGroundTruthStore` | Tie verdicts to governed private facts |
 | Shared service | REST server or gRPC server | Centralise auth, tenant binding, metrics, and rollout controls |
 | Evaluation pipeline | `BatchProcessor`, policy evaluation, conformal routing | Compare thresholds, models, and regression gates |
@@ -34,7 +34,7 @@ Choose the API by the boundary you control:
 |---|---|---|
 | Protect an existing SDK client | `guard()` | [guard / score / get_score](guard.md) |
 | Score one prompt and answer | `score()` | [guard / score / get_score](guard.md#score) |
-| Halt streamed tokens | `StreamingKernel` | [StreamingKernel](streaming.md) |
+| Route streamed contradictions | `StreamingKernel` | [StreamingKernel](streaming.md) |
 | Build an agent workflow | `CoherenceAgent` | [CoherenceAgent](agent.md) |
 | Process evaluation batches | `BatchProcessor` | [BatchProcessor](batch.md) |
 | Serve over HTTP | REST server | [REST Server](server.md) |
@@ -57,14 +57,14 @@ For the product and pilot context around these APIs, see
 | [`guard()`](guard.md) | `director_ai` | Wrap an LLM SDK client with coherence scoring |
 | [`score()`](guard.md#score) | `director_ai` | Score a single prompt/response pair |
 | [`get_score()`](guard.md#get_score) | `director_ai` | Retrieve last score from `on_fail="metadata"` |
-| [`VoiceGuard`](../guide/voice-ai.md) | `director_ai.integrations.voice` | Real-time token filter for voice AI / TTS pipelines |
+| [`VoiceGuard`](../guide/voice-ai.md) | `director_ai.integrations.voice` | TTS scoring boundary with opt-in streaming contradiction halt |
 
 ### Core Classes
 
 | Class | Module | Purpose |
 |-------|--------|---------|
 | [`CoherenceScorer`](scorer.md) | `director_ai.core.scoring.scorer` | Dual-entropy coherence scoring engine |
-| [`StreamingKernel`](streaming.md) | `director_ai.core.runtime.streaming` | Token-level streaming halt |
+| [`StreamingKernel`](streaming.md) | `director_ai.core.runtime.streaming` | Opt-in streaming contradiction halt |
 | [`AsyncStreamingKernel`](streaming.md#async) | `director_ai.core.runtime.async_streaming` | Async variant of StreamingKernel |
 | [`HumanReviewQueue`](human-review.md) | `director_ai.core.runtime.human_review` | Durable reviewer approval, retry, and release gate |
 | [`NoGoPolicy`](guard-control.md) | `director_ai.core.guard_control` | Calibrated no-go policy with default irreversibility forecasting |

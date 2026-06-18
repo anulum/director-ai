@@ -32,11 +32,11 @@ For a concise map of audiences, application lanes, public package boundaries,
 and the first evidence packet, see
 [Applications and Market Map](applications-and-market-map.md).
 
-The streaming moat is the contradiction-driven halt: completed claims are
-checked against governed facts during generation, and contradictory claims can
-halt before the stream continues. Unsupported-but-not-contradictory claims are
-handled by the response-level review path because absence of evidence is not the
-same signal as contradiction.
+The streaming interlock is contradiction-driven: completed claims are checked
+against governed facts during generation, and contradictory claims can halt
+before the stream continues. Unsupported-but-not-contradictory claims are
+handled by the response-level review path because absence of evidence is not
+the same signal as contradiction.
 
 ## Commercial value by lane
 

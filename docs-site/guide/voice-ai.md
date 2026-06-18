@@ -1,8 +1,13 @@
 # Voice AI Integration
 
-Real-time hallucination prevention for text-to-speech pipelines. `VoiceGuard` sits between your LLM and TTS engine, scoring tokens as they arrive and halting the stream before hallucinated content reaches the speaker.
+Response-level factual-coherence scoring for text-to-speech pipelines, with an
+opt-in streaming contradiction interlock. `VoiceGuard` sits between your LLM
+and TTS engine, scores the growing text against governed facts, and can route
+contradictory output before it reaches the speaker.
 
-Once words are spoken, you can't unsay them. `VoiceGuard` ensures they don't get spoken in the first place.
+Once words are spoken, you can't unsay them. Use `VoiceGuard` as an evidence
+boundary: score, route, and record the decision instead of relying on an
+unreviewed LLM stream.
 
 ## Quick Start
 
@@ -32,7 +37,10 @@ LLM tokens ──→ VoiceGuard.feed() ──→ TTS engine ──→ speaker
                     └─ halted=True    → stream stopped, recovery text spoken
 ```
 
-`VoiceGuard` accumulates tokens and periodically scores the growing text against your knowledge base. Three halt mechanisms run simultaneously:
+`VoiceGuard` accumulates tokens and periodically scores the growing text
+against your knowledge base. The streaming halt path is an interlock for
+contradictions, not a standalone production accuracy guarantee. Three halt
+mechanisms run simultaneously:
 
 | Mechanism | Trigger | Behavior |
 |-----------|---------|----------|

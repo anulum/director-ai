@@ -227,8 +227,10 @@ Evidence coverage: 100%. Avg latency: 15.8 ms (p95: 40 ms).
 | GPT-4o-mini | Dialogue | 200 | 99.0% | 95.0% | 51.0% | 67.4% | 1.3 s |
 | **GPT-4o-mini** | **Overall** | **600** | **90.3%** | **63.7%** | **58.7%** | **71.1%** | **2.3 s** |
 
-Hybrid mode improves catch rate from **46.7% to 90.7%** (+94% relative).
-QA task achieves production-grade precision (95-96%) at 3-4% FPR. The
+Hybrid mode improves catch rate from **46.7% to 90.7%** (+94% relative),
+but carries a **64.0%** overall false-positive rate on this packet. The QA
+subset achieves high precision (95-96%) at 3-4% FPR; summarisation and
+dialogue remain false-positive-heavy and are not production defaults. The
 GPT-4o-mini matched Claude Sonnet 4 on this test set at lower response
 latency.
 
@@ -380,10 +382,10 @@ Unlike the NLI benchmarks, this is a standalone tool (it generates fresh transcr
 | **Approach** | NLI + RAG + hybrid judge | LLM self-consistency | Fine-tuned LLM | LLM-as-judge | Multi-call LLM |
 | **Model size** | 0.4B + optional LLM | LLM-dependent | 8–70B | LLM-dependent | LLM-dependent |
 | **Latency** | 0.5 ms (L40S FP16); 0.124 / 0.200 ms p50/p95 local guard on i5-11600K | 0.818 / 1.418 ms config-load + LLM round trip | 1–10 s | 0.659 / 0.996 ms parse overhead + LLM round trip | 5–10 s |
-| **Streaming halt** | Yes (token-level) | No | No | No | No |
+| **Streaming contradiction halt** | Opt-in | No | No | No | No |
 | **Offline/local** | Yes (NLI mode) | No | Yes (GPU) | No | No |
 | **AggreFact BA** | 75.86% (0.4B) | N/A | N/A | N/A | N/A |
-| **E2E catch rate** | 90.7% (hybrid) | N/A | N/A | N/A | N/A |
+| **E2E catch rate** | 46.7% NLI-only; 90.7% hybrid with 64.0% FPR | N/A | N/A | N/A | N/A |
 | **Integrations** | LC/LI/LG/HS/CrewAI | LangChain | Python | LC/LI | Python |
 | **License** | Apache-2.0 / BUSL-1.1 | Apache 2.0 | Apache 2.0 | Apache 2.0 | MIT |
 
@@ -413,12 +415,12 @@ These systems publish results on benchmarks other than LLM-AggreFact. Scores are
 
 ## Where Director-AI Wins
 
-1. **Only streaming guardrail** — token-level halt, zero competitors offer this
+1. **Opt-in streaming interlock** — contradiction halt for grounded streaming deployments; response-level scoring remains the production gate
 2. **Sub-millisecond latency** — 0.5 ms/pair on L40S FP16 (measured, batch=32)
 3. **Competitive against local frontier-judge comparisons** - 75.8-75.86% BA using the FactCG-DeBERTa-v3-Large model family
 4. **$0 per-call cost** — vs $0.07–$1.40/1K for API-based competitors
 5. **0.4B params** — runs on consumer hardware (GTX 1060: 14.6 ms/pair)
-6. **90.7% E2E catch rate (hybrid)** — NLI + LLM judge catches 9/10 hallucinations (HaluEval, 600 traces)
+6. **90.7% E2E catch rate (hybrid)** — NLI + LLM judge catches 9/10 hallucinations in the HaluEval trace set, but with 64.0% overall FPR and multi-second latency
 7. **95–96% QA precision at 3–4% FPR** — production-grade on QA tasks (HaluEval hybrid mode)
 8. **Tested SDK integrations** - guard() verified with OpenAI and Anthropic SDKs (2026-03-20)
 

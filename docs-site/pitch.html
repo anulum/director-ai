@@ -3,15 +3,15 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Director-AI — Real-time LLM Hallucination Guardrail</title>
-<meta name="description" content="Token-level streaming halt for LLM hallucinations. NLI + RAG fact-checking against your knowledge base. Enterprise-ready, open-source.">
-<meta property="og:title" content="Director-AI — Stop LLM Hallucinations in Real Time">
-<meta property="og:description" content="The only guardrail that halts LLM output mid-stream when coherence drops. NLI + RAG dual scoring against your own knowledge base.">
+<title>Director-AI — Response-Level LLM Hallucination Guardrail</title>
+<meta name="description" content="Response-level LLM hallucination guardrail. NLI + RAG fact-checking against your knowledge base with audit evidence.">
+<meta property="og:title" content="Director-AI — Response-Level LLM Hallucination Guardrail">
+<meta property="og:description" content="NLI + RAG scoring against your own knowledge base, with sealed evidence and opt-in streaming contradiction checks.">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://anulum.github.io/director-ai/pitch">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Director-AI — Real-time LLM Hallucination Guardrail">
-<meta name="twitter:description" content="Token-level streaming halt. NLI + RAG scoring. Enterprise-ready.">
+<meta name="twitter:title" content="Director-AI — Response-Level LLM Hallucination Guardrail">
+<meta name="twitter:description" content="Response-level hallucination scoring. NLI + RAG evidence.">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 :root{--bg:#0a0a0f;--surface:#12121a;--border:#1e1e2e;--text:#e0e0e8;--muted:#8888a0;--accent:#4f8eff;--accent2:#22d3ee;--green:#34d399;--red:#f87171;--orange:#fb923c}
@@ -125,8 +125,8 @@ th,td{padding:8px}
 <div class="diff-grid">
 <div class="diff-card">
 <div class="icon">&#9889;</div>
-<h3>Token-Level Streaming Halt</h3>
-<p>Not post-hoc review. The safety kernel monitors coherence token-by-token and severs output the moment it degrades. No other guardrail does this.</p>
+<h3>Opt-in Streaming Interlock</h3>
+<p>Response-level scoring is the production gate. Streaming contradiction checks add an optional interlock for governed token streams when the evidence profile fits.</p>
 </div>
 <div class="diff-card">
 <div class="icon">&#128274;</div>
@@ -212,7 +212,7 @@ engine = index.as_query_engine(
 </tbody>
 </table>
 <div class="honest">
-<p><strong>Honest assessment:</strong> 75.8% balanced accuracy ranks 4th on the LLM-AggreFact leaderboard — within 1.6pp of the top-scoring 7B model while using only 0.4B params. Director-AI's unique value is the system: NLI + KB facts + streaming token-level halt. No competitor offers real-time streaming gating. CPU latency (~575 ms with source chunking) drops to ~50-80 ms on GPU.</p>
+<p><strong>Honest assessment:</strong> 75.8% balanced accuracy ranks 4th on the LLM-AggreFact leaderboard — within 1.6pp of the top-scoring 7B model while using only 0.4B params. Director-AI's production gate is response-level NLI + KB evidence. Streaming contradiction halt is opt-in and evidence-bound, not a standalone hallucination-prevention claim. CPU latency (~575 ms with source chunking) drops to ~50-80 ms on GPU.</p>
 </div>
 </div>
 </section>
@@ -268,7 +268,7 @@ engine = index.as_query_engine(
 <li>On-prem / air-gapped</li>
 <li>SOC2 / HIPAA ready</li>
 <li>Dedicated engineer</li>
-<li>Custom NLI fine-tunes</li>
+<li>Customer evidence reviews</li>
 </ul>
 </div>
 </div>

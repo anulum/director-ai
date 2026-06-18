@@ -12,7 +12,7 @@ graph TD
         GUARD["guard() / CoherenceScorer"]
         NLI["NLI Model<br/>(ONNX / PyTorch / CPU)"]
         CACHE["ScoreCache<br/>(LRU + TTL)"]
-        STREAM["StreamingKernel<br/>(token-level halt)"]
+        STREAM["StreamingKernel<br/>(opt-in contradiction halt)"]
     end
 
     subgraph "Knowledge Base"

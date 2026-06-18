@@ -33,7 +33,9 @@ Security concerns for Director-AI:
 ## Security Measures
 
 - **Dual-entropy scoring**: NLI contradiction detection + RAG fact-checking
-- **Streaming halt**: token-level coherence monitoring with three halt mechanisms
+- **Opt-in streaming contradiction halt**: completed streamed claims can be
+  checked against retrieved grounding facts; this is an interlock for grounded
+  streaming deployments, not the sole production gate
 - **Safety kernel**: hardware-level output interlock with emergency stop
 - **Two-stage prompt injection detection**: Stage 1 — `InputSanitizer` detects instruction overrides, role-play injections, delimiter tricks, output manipulation, and data exfiltration attempts; scrubs null bytes, control chars, and homoglyphs. Stage 2 — `InjectionDetector` measures output divergence from original intent via bidirectional NLI scoring; catches injection effects regardless of encoding; per-claim attribution with grounded/drifted/injected verdicts
 - **YAML policy engine**: `Policy` blocks forbidden phrases, enforces length limits, requires citations, and evaluates custom regex rules

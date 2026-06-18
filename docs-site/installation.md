@@ -6,8 +6,8 @@ Three bundles compose the granular extras so you do not have to assemble them by
 hand. The granular extras (below) remain available for fine control.
 
 ```bash
-pip install director-ai                  # core: scoring + streaming halt, zero ML deps
-pip install director-ai-lite             # smallest first-run facade for streaming halt
+pip install director-ai                  # core: scoring + opt-in streaming checks, zero ML deps
+pip install director-ai-lite             # smallest first-run guard facade
 pip install "director-ai[recommended]"   # production guardrail: NLI + RAG + REST API
 pip install "director-ai[integrations]"  # framework adapters (LangChain, LlamaIndex, …)
 pip install "director-ai[all]"           # the common capability set in one shot
@@ -27,8 +27,7 @@ Includes: coherence scorer, streaming kernel, safety kernel, ground truth store,
 pip install director-ai-lite
 ```
 
-Use this package when the first install should expose only the streaming-halt
-front door:
+Use this package when the first install should expose only the guard facade:
 
 ```python
 from director_ai_lite import guard
@@ -128,7 +127,7 @@ and quickstart must remain usable without these extras.
 
 | Extra | Command | Adds |
 |-------|---------|------|
-| `finetune` | `pip install director-ai[finetune]` | Domain-specific NLI fine-tuning (torch, transformers, datasets) |
+| `finetune` | `pip install director-ai[finetune]` | Experimental model-adaptation tooling for evidence-gated evaluation work; not a default production accuracy claim |
 | `grpc` | `pip install director-ai[grpc]` | gRPC server (grpcio, protobuf) |
 | `physical` | `pip install director-ai[physical]` | MuJoCo adapter support; ROS 2 and CARLA use their vendor installs behind the same runtime boundary |
 | `server` | `pip install director-ai[server]` | FastAPI server |

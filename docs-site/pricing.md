@@ -6,9 +6,9 @@ Pay when you need Advanced & Labs in production, managed deployment, or support 
 </div>
 
 !!! tip "The wedge"
-    The free package proves the wedge: contradiction-driven streaming halt with
-    governed facts. The paid tiers add production entitlement, deployment help,
-    customer evidence, and the premium Director-Class AI category.
+    The free package proves the wedge: response-level factual-coherence scoring
+    with governed facts. The paid tiers add production entitlement, deployment
+    help, customer evidence, and the premium Director-Class AI category.
 
 ---
 
@@ -16,8 +16,8 @@ Pay when you need Advanced & Labs in production, managed deployment, or support 
 
 | Tier | Install / delivery | Price | What ships |
 |---|---|---:|---|
-| **Director-Lite** | `pip install director-ai-lite` | **USD 0** | Three-line `guard()` facade, `StreamGuard`, model-free heuristic default, facts/RAG handoff, optional NLI upgrade |
-| **Director-AI** | `pip install director-ai` | Apache core free; **Pro USD 199/mo** for Advanced & Labs production use | Full open-core runtime: SDK guard, REST/gRPC server, framework integrations, evidence packets, contradiction halt, commercial licence path |
+| **Director-Lite** | `pip install director-ai-lite` | **USD 0** | Three-line `guard()` facade, model-free heuristic default, facts/RAG handoff, optional NLI upgrade |
+| **Director-AI** | `pip install director-ai` | Apache core free; **Pro USD 199/mo** for Advanced & Labs production use | Full open-core runtime: SDK guard, REST/gRPC server, framework integrations, evidence packets, opt-in streaming contradiction halt, commercial licence path |
 | **Director-Class AI** | Commercial engagement | **Custom** | Premium category: managed/on-prem deployment, customer-specific sector packs, tuning/evaluation, evidence reviews, SLA, procurement support |
 
 PyPI promotes the whole ladder but only distributes code packages. Publish and
@@ -37,13 +37,13 @@ pip install director-ai-lite
 ```
 
 - :material-check: Three-line `director_ai_lite.guard()` front door
-- :material-check: `StreamGuard` streaming halt facade
+- :material-check: response-level guard facade
 - :material-check: Model-free heuristic default
 - :material-check: Facts/RAG handoff through the canonical Director-AI runtime
 - :material-check: Optional `director-ai-lite[nli]` upgrade path
 
 This is the free tier we promote hardest on PyPI because it shows the core
-streaming value without asking users to understand the full platform.
+guardrail value without asking users to understand the full platform.
 
 ## :material-package-variant: Director-AI — full open-core runtime
 
@@ -56,7 +56,7 @@ pip install director-ai
 The Apache-2.0 core is genuinely free, not a crippled trial:
 
 - :material-check: Coherence guardrail engine + 5-tier scoring (rules → embeddings → NLI)
-- :material-check: Contradiction-driven **streaming halt**
+- :material-check: Opt-in contradiction-driven streaming halt
 - :material-check: SDK guard, FastAPI middleware, REST/gRPC server
 - :material-check: Prompt-injection detection, agent/MCP preflight guard
 - :material-check: ONNX + Rust-accelerated compute paths
@@ -88,7 +88,7 @@ production and hosted/SaaS deployments, and adds support and SLAs.
 
 | Path | Price | Package | Choose it when |
 |---|---:|---|---|
-| **Director-Lite** | USD 0 | Free PyPI package and Apache-2.0 adoption path | You want the smallest streaming-halt integration |
+| **Director-Lite** | USD 0 | Free PyPI package and Apache-2.0 adoption path | You want the smallest response-level guard integration |
 | **Director-AI Pro self-host** | USD 199/mo | BUSL-1.1 advanced-tier production licence, unlimited deployments, priority support, 99.5 % support target | You run Director-AI inside your own product or internal platform |
 | **Director-Class AI** | Custom | Pro self-host plus managed/on-prem help, customer-specific tuning, evidence packs, architecture reviews, custom SLA | You need regulated deployment support, domain adaptation, procurement terms, or a new premium AI assurance category |
 
@@ -102,7 +102,7 @@ incorrect policy quote, or wrong numerical answer can pay for the licence.
 
 === ":material-package-variant: Director-Lite — USD 0"
 
-    **For:** developers who need the first working streaming-halt integration.
+    **For:** developers who need the first working response-level guard integration.
 
     - `pip install director-ai-lite`
     - three-line `guard()` facade
@@ -144,7 +144,7 @@ incorrect policy quote, or wrong numerical answer can pay for the licence.
     - Custom SLA (99.9 %+)
     - On-prem / air-gapped deployment support
     - SOC 2 / HIPAA compliance documentation
-    - Custom NLI fine-tuning on your domain data
+    - Customer-specific evaluation, threshold tuning, and model-adaptation evidence
     - Quarterly architecture reviews + roadmap input
 
     [Contact us :material-email:](mailto:director.class.ai@anulum.li?subject=Director-Class%20AI%20Enterprise){ .md-button .md-button--primary }
@@ -173,7 +173,7 @@ The measured differences, from the committed
 
 | | Director-AI | NeMo Guardrails | GuardrailsAI | SelfCheckGPT |
 |---|:---:|:---:|:---:|:---:|
-| **Token-level streaming halt** | :material-check: | :material-close: | :material-close: | :material-close: |
+| **Opt-in streaming contradiction halt** | :material-check: | :material-close: | :material-close: | :material-close: |
 | **GPU NLI latency / pair** | **~0.9 ms** | LLM-bound | LLM-bound | 5–10 s |
 | **Local guard benchmark p50 / p95** | **0.124 / 0.200 ms** | 0.818 / 1.418 ms config-load + LLM | 0.659 / 0.996 ms parse + LLM | not run in this harness |
 | **Offline / local** | :material-check: | :material-close: | :material-close: | :material-close: |
@@ -184,9 +184,9 @@ The local guard benchmark was produced on 2026-06-18 on host `aaarthuus`
 (Ubuntu 24.04.4, Linux 6.17, ASRock H510 Pro BTC+, 11th Gen Intel Core
 i5-11600K, 12 logical CPUs) and is stored in
 `benchmarks/results/competitor_guard_latency.json` with
-`non_isolated_local_regression` metadata. Prevention happens during generation,
-on a 0.4 B model, on commodity hardware — the others score after the fact, or
-need a second large LLM in the loop.
+`non_isolated_local_regression` metadata. The local path runs on a 0.4 B model
+on commodity hardware. Response-level scoring is the production gate; streaming
+contradiction halt is an opt-in interlock for grounded streaming deployments.
 
 ---
 
@@ -198,19 +198,6 @@ number or citation can invalidate everything downstream. The cost of catching it
 error next to the cost of one bad answer reaching a customer, a regulator, or a
 court. The commercial tiers price the advanced safeguards and the support that
 stands behind them; the core that does the catching is free.
-
----
-
-## :material-heart: Prefer to support directly?
-
-Not ready for a licence but the project helps you? Donations directly fund
-development and are genuinely appreciated:
-
-- :material-credit-card: [PayPal](https://www.paypal.com/donate?hosted_button_id=4X5F6DNT934HY)
-- :material-cellphone: [TWINT](https://go.twint.ch/1/e/tw?tw=acq.lJTAypb8SL2s8vPg7fL0ubi2C220ajOH0BEQn1aKfEJIiIakLpt8jlEv8XdQ9tCp.)
-- :material-bank: **Bank transfer** — IBAN (CHF) `CH14 8080 8002 1898 7544 1` · IBAN (EUR) `CH66 8080 8002 8173 6061 8`
-- :material-bitcoin: **Crypto** — BTC `bc1qg48gdmrjrjumn6fqltvt0cf0w6nvs0wggy37zd` · ETH `0xd9b07F617bEff4aC9CAdC2a13Dd631B1980905FF` · LTC `ltc1q886tmvtlnj86kmg2urd8f5td3lmfh32xtpdrut`
-- :material-github: [GitHub Sponsors](https://github.com/sponsors/anulum)
 
 ---
 

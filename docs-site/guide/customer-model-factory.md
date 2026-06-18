@@ -6,7 +6,7 @@ designed for enterprise evidence review: every promotion decision is bound to
 customer, workspace, tenant, deployment, artefact hash, and explicit blocker
 records.
 
-customer-specific accuracy claims require package-specific benchmark evidence.
+Customer-specific accuracy claims require package-specific benchmark evidence.
 The factory can enforce zero silent unsafe passes as an objective profile, but
 that is a scoped package control, not a universal accuracy claim.
 

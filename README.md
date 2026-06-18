@@ -15,7 +15,7 @@ Director-Class AI — Repository overview
 <h1 align="center">Director-AI</h1>
 
 <p align="center">
-  <strong>Catch an LLM or agent hallucination before it ships — NLI + RAG grounding, a sealed audit trail, and contradiction-driven streaming halt</strong>
+  <strong>Response-level LLM hallucination guardrail — NLI + RAG grounding, sealed audit evidence, and opt-in streaming contradiction checks</strong>
 </p>
 
 <p align="center">
@@ -42,8 +42,8 @@ Director-Class AI — Repository overview
 
 | Tier | Install / delivery | Price | Ships |
 |---|---|---:|---|
-| **Director-Lite** | `pip install director-ai-lite` | USD 0 | Three-line streaming halt facade, model-free heuristic default, facts/RAG handoff, optional NLI upgrade |
-| **Director-AI** | `pip install director-ai` | Free core; paid Pro for Advanced & Labs production use | Open-core runtime: `guard()`, REST/gRPC server, SDK and framework integrations, evidence packets, contradiction halt, production licence path |
+| **Director-Lite** | `pip install director-ai-lite` | USD 0 | Three-line guard facade, model-free heuristic default, facts/RAG handoff, optional NLI upgrade |
+| **Director-AI** | `pip install director-ai` | Free core; paid Pro for Advanced & Labs production use | Open-core runtime: `guard()`, REST/gRPC server, SDK and framework integrations, evidence packets, opt-in streaming contradiction halt, production licence path |
 | **Director-Class AI** | Commercial engagement | Custom | Premium category: managed deployment, customer-specific sector packs, tuning/evaluation, evidence reviews, SLA, procurement support |
 
 PyPI is the adoption front door. `director-ai-lite` is the free package we
@@ -85,7 +85,7 @@ needs the model-backed scorer from the `[nli]` extra.)
 
 Director-AI is an internal research tool developed at [ANULUM Institute](https://www.anulum.li) as part of the [God of the Math Collection](https://www.anulum.li) (GOTM) — a multi-project scientific computing ecosystem spanning neuroscience, plasma physics, stochastic computing, and AI safety.
 
-The system was built to solve a specific internal need: **real-time hallucination detection for LLM outputs used in scientific pipelines**, where a single fabricated number or citation can invalidate downstream analysis. The core is open source under Apache-2.0; the advanced and labs capabilities are source-available under BUSL-1.1.
+The system was built to solve a specific internal need: **response-level hallucination detection for LLM outputs used in scientific pipelines**, where a single fabricated number or citation can invalidate downstream analysis. The core is open source under Apache-2.0; the advanced and labs capabilities are source-available under BUSL-1.1.
 
 **Team:** ANULUM maintains a research team (intentionally undisclosed). GitHub automation and repository maintenance are handled by the owner. Contributions to the Apache-2.0 core are welcome under the Apache-2.0 terms.
 
@@ -99,19 +99,19 @@ materials are provided only under separate commercial agreements and must be
 validated against the customer's own governed data, controls, and acceptance
 criteria before any customer-specific performance claim is made.
 
-> **Active Development** — APIs may evolve. The production-validated core — the guardrail engine and 5-tier scoring (rules → embeddings → NLI), the SDK guard, FastAPI middleware, REST server, injection detection, contradiction-driven streaming halt, and the agent/MCP preflight guard — is functional and tested. Response-level hallucination accuracy is benchmarked on LLM-AggreFact; streaming-halt evidence is recorded in `benchmarks/results/streaming_contradiction_halt_base.json`. Deeper capabilities live under **Advanced & Labs** in the docs. Rust-accelerated compute paths shipped in the v3.12 line and remain part of the current release surface.
+> **Active Development** — APIs may evolve. The production-validated core is response-level scoring: the guardrail engine and 5-tier scoring (rules → embeddings → NLI), the SDK guard, FastAPI middleware, REST server, injection detection, and the agent/MCP preflight guard. Response-level hallucination accuracy is benchmarked on LLM-AggreFact and HaluEval-style end-to-end traces. The streaming contradiction halt is opt-in and evidence-bound; current local evidence is recorded in `benchmarks/results/streaming_contradiction_halt_base.json` and should not be used as the sole production gate. Deeper capabilities live under **Advanced & Labs** in the docs. Rust-accelerated compute paths shipped in the v3.12 line and remain part of the current release surface.
 
 ---
 
 ## What It Does
 
-Director-AI sits between your LLM and the user. It scores every output for hallucination against governed facts before the answer ships. The streaming path halts completed streamed claims when they contradict retrieved grounding facts.
+Director-AI sits between your LLM and the user. It scores completed outputs for hallucination against governed facts before the answer ships. The optional streaming path can halt completed streamed claims when they contradict retrieved grounding facts, but response-level scoring remains the primary production gate.
 
 ```mermaid
 graph LR
     LLM["LLM<br/>(any provider)"] --> D["Director-AI"]
     D --> S["Scorer<br/>NLI + RAG"]
-    D --> K["StreamingKernel<br/>token-level halt"]
+    D --> K["StreamingGate<br/>optional contradiction halt"]
     S --> V{Approved?}
     K --> V
     V -->|Yes| U["User"]
@@ -194,7 +194,7 @@ an output.
 ### Core capabilities
 
 - **Response-level grounding** — scores a candidate answer against governed facts with NLI contradiction signals and retrieval evidence; benchmarked on LLM-AggreFact. This is the production-validated path.
-- **Token-level streaming halt** — contradiction-driven streaming halt scores completed streamed claims against retrieved facts and can sever output when a claim contradicts governed knowledge. The current local evidence is `benchmarks/results/streaming_contradiction_halt_base.json`; unsupported-but-not-contradictory additions remain a response-review concern.
+- **Opt-in streaming contradiction halt** — scores completed streamed claims against retrieved facts and can sever output when a claim contradicts governed knowledge. Current local evidence is `benchmarks/results/streaming_contradiction_halt_base.json` (`non_isolated_local_regression`, 135 good / 3 bad cases); unsupported-but-not-contradictory additions remain a response-review concern, and this path is not the sole production gate.
 - **Dual-entropy scoring** — NLI contradiction detection (0.4B DeBERTa) + RAG fact-checking against your knowledge base.
 - **Selectable scorer models** — choose a benchmarked local scorer profile for the latency/accuracy trade-off you need, without changing the guarded LLM provider.
 - **Customer Model Factory primitives** — validate customer-owned guardrail
@@ -437,7 +437,7 @@ Also available: LangChain, LlamaIndex, LangGraph, Haystack, CrewAI, Semantic Ker
 Three buyer-facing bundles cover most needs — no need to assemble extras by hand:
 
 ```bash
-pip install director-ai                            # core: rule-based + heuristic + streaming halt (zero ML deps)
+pip install director-ai                            # core: rule-based + heuristic scoring (zero ML deps)
 pip install "director-ai[recommended]"             # production guardrail: NLI scoring + RAG + REST API
 pip install "director-ai[integrations]"            # framework adapters (LangChain, LlamaIndex, LangGraph, …)
 pip install "director-ai[all]"                     # the common capability set in one shot
@@ -448,7 +448,7 @@ Or pick granular extras for fine control:
 ```bash
 pip install "director-ai[nli]"                     # NLI model scoring (75.6% BA)
 pip install "director-ai[embed]"                   # embedding scorer (~65% BA, CPU-only, 3ms)
-pip install director-ai-lite                       # 3-line streaming halt facade
+pip install director-ai-lite                       # 3-line guard facade
 pip install "director-ai[nli,vector,server]"       # equivalent to [recommended]
 pip install "director-ai[ui]"                      # config wizard (Gradio web UI)
 pip install "director-ai[reports]"                 # PDF/HTML compliance reports
@@ -559,9 +559,14 @@ Reproduction manifest:
 
 Be aware of these before deploying:
 
+- **Default NLI-only end-to-end catch rate is 46.7% on the committed HaluEval-style trace set**: use this as a calibration baseline, not a finished enterprise claim. Hybrid judge mode reaches 90.7% catch rate on the same family but has 64.0% overall FPR and multi-second latency; it needs threshold tuning and task scoping before production use.
+- **RAGTruth NLI-only performance is weak**: the committed L40S run reports 49.3% catch rate, 40.9% FPR, 39.3% precision, and 43.7% F1. Treat RAGTruth as an open accuracy lane, not a solved product claim.
+- **FreshQA without grounding over-rejects**: the committed FreshQA run reports 98.6% catch rate but 97.8% FPR. Do not use ungrounded FreshQA catch rate as a buyer claim.
+- **Fine-tuning is not a current sales capability**: the NLI fine-tuning survey shows 22/23 fine-tunes regressed against the FactCG baseline. Customer Model Factory work must start from evaluation, thresholds, packaging, and evidence review; any customer-specific tuning claim requires new held-out evidence.
 - **Heuristic fallback is weak**: Without `[nli]`, scoring uses word-overlap (~55% accuracy). Not recommended for production.
 - **Summarisation FPR is 10.5%**: Reduced from 95% via bidirectional NLI + baseline calibration (v3.5). Still too high for some use cases — tune thresholds per domain.
 - **NLI needs KB grounding**: Without a knowledge base, stock regulated-domain profiles over-reject badly in checked artifacts (PubMedQA FPR=100%, FinanceBench FPR=100% at t=0.30). Treat them as calibration starting points.
+- **Streaming halt is evidence-bound**: contradiction-driven streaming halt is opt-in. The current contradiction benchmark reports 1.48% false-halt rate on 135 known-good passages and 66.7% recall on a 3-case bad-passage smoke set under non-isolated local conditions. It is useful as a guarded contradiction interlock, not as a standalone hallucination-prevention claim.
 - **ONNX CPU is slow**: 383 ms/pair without GPU. Use `onnxruntime-gpu` for production.
 - **Long documents need ≥16 GB VRAM**: Chunked NLI on legal/financial docs exceeds 6 GB.
 - **LLM-as-judge sends data externally**: When enabled, truncated prompt+response (500 chars) go to the configured provider. Off by default.

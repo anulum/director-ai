@@ -83,7 +83,7 @@ statement is:
 | Harm and policy moderation | Primary | Depends on configured model | Primary | Complementary |
 | Grounded factuality scoring | Usually limited | Depends on configured checks | Limited to service-specific features | Primary |
 | Private RAG evidence links | Usually no | Possible with integration work | Platform-specific | Yes |
-| Token-level streaming halt | Usually no | Usually post-call or flow-level | Often complete-response only | Yes, contradiction-driven |
+| Streaming contradiction halt | Usually no | Usually post-call or flow-level | Often complete-response only | Opt-in, contradiction-driven |
 | Local/offline scoring path | Often yes for open models | Depends on model provider | No | Yes |
 | API/proxy/SDK deployment | Varies | Yes | Managed service APIs | Yes |
 | Customer-specific evidence packs | Usually no | Operator-built | Platform-specific | Yes |

@@ -95,7 +95,7 @@ The package lives in `src/director_ai/` with two profiles:
 | `core/scoring/` | `nli.py` | `NLIScorer` | DeBERTa NLI backend |
 | `core/scoring/` | `lite_scorer.py` | `LiteScorer` | Heuristic-only scorer |
 | `core/runtime/` | `kernel.py` | `HaltMonitor` | Output interlock |
-| `core/runtime/` | `streaming.py` | `StreamingKernel` | Token-level streaming halt |
+| `core/runtime/` | `streaming.py` | `StreamingKernel` | Opt-in streaming contradiction halt |
 | `core/runtime/` | `async_streaming.py` | `AsyncStreamingKernel` | Non-blocking async streaming |
 | `core/runtime/` | `batch.py` | `BatchProcessor` | Parallel candidate evaluation |
 | `core/retrieval/` | `knowledge.py` | `GroundTruthStore` | In-memory fact store |

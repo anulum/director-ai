@@ -6,11 +6,11 @@ LLM-AggreFact. Its default grounding model (FactCG-DeBERTa-Large, 0.4B) sits at
 **75.6 balanced accuracy on the public [LLM-AggreFact leaderboard](https://llm-aggrefact.github.io/)**
 — the strongest sub-1B model there and within ~2 points of the 7B leader
 (Bespoke-MiniCheck-7B, 77.4), which Director-AI can also load as a higher-tier
-backend. Accuracy-per-parameter is the headline; raw top accuracy is not. It also ships an **experimental token-level streaming halt** that
-re-scores output during generation — a mechanism we deposited early, but which on
-our own false-halt benchmark cannot yet separate hallucinated from correct
-streaming text without a high false-halt rate. It is opt-in and under
-calibration; treat the rows below for it as experimental, not a production claim.
+backend. Accuracy-per-parameter is the headline; raw top accuracy is not. It
+also ships an **opt-in streaming contradiction halt** that re-scores output
+during generation. Treat that surface as an evidence-bound interlock: useful
+for governed contradiction handling, but not the default production accuracy
+claim.
 
 !!! note "About this page"
     Competitor entries are compiled from public vendor materials and third-party
@@ -24,7 +24,7 @@ Apache-2.0 package vs the commercial BUSL-1.1 advanced tier.
 
 | Capability | Free (Apache-2.0 core) | Advanced (BUSL-1.1) |
 |---|:---:|:---:|
-| Token-level streaming halt (experimental) | 🧪 | |
+| Streaming contradiction halt (opt-in) | ✅ | |
 | 5-tier scoring (rules → embeddings → NLI) | ✅ | |
 | RAG grounding + vector store | ✅ | |
 | Prompt-injection detection (regex + NLI) | ✅ | |
@@ -49,7 +49,7 @@ commercial licence. See [Pricing](pricing.md) and [Licensing](licensing.md).
 
 | | Director-AI | Galileo | GA Guard | NeMo Guardrails | Llama Guard 4 | Future AGI |
 |---|:---:|:---:|:---:|:---:|:---:|:---:|
-| **Token-level streaming halt** _(experimental)_ | 🧪 | post-hoc | — | — | — | token-prefix |
+| **Streaming contradiction halt** _(opt-in)_ | ✅ | post-hoc | — | — | — | token-prefix |
 | Self-host / open weights | ✅ | — | partial | ✅ | ✅ | hosted |
 | Offline / air-gapped | ✅ | — | partial | partial | ✅ | — |
 | Injection (semantic NLI) | ✅ | ✅ | ✅ | partial | ✅ | ✅ |
@@ -70,7 +70,8 @@ commercial licence. See [Pricing](pricing.md) and [Licensing](licensing.md).
       [LettuceDetect](https://github.com/KRLabsOrg/LettuceDetect) does token-level
       hallucination-span classification (RAGTruth F1 ≈ 79%); our differentiation
       is halting *during generation* (pre-sampling / streaming), not the
-      token-granularity itself — and that halt is still experimental.
+      token-granularity itself. Keep that claim tied to the committed
+      false-halt diagnostics, not to a generic hallucination-prevention claim.
     - The **pre-sampling inference-server hook** uses vLLM/TGI/llama.cpp's standard
       logits-processor mechanism (not a Director-AI invention); our contribution is
       wiring the grounding/contradiction guard into it cleanly across the three.
@@ -83,7 +84,7 @@ guards. Director-AI spans both — runtime guard **and** CI eval.
 | | Director-AI | Braintrust | Patronus | Arize | Promptfoo | Giskard | Guardrails AI |
 |---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
 | Real-time runtime guard | ✅ | — | partial | — | — | — | ✅ |
-| Token-level streaming halt (experimental) | 🧪 | — | — | — | — | — | — |
+| Streaming contradiction halt (opt-in) | ✅ | — | — | — | — | — | — |
 | CI eval gate | ✅ | ✅ | partial | partial | ✅ | partial | partial |
 | Automated red-teaming | ✅ | — | partial | — | ✅ | ✅ | partial |
 | Observability / tracing | ✅ | ✅ | partial | ✅ | partial | partial | partial |

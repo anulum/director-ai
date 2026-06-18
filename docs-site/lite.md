@@ -1,11 +1,8 @@
-# Director-Lite — streaming halt in 3 lines
+# Director-Lite — guard facade in 3 lines
 
-Director-AI's one differentiator is the **token-level streaming halt**: it stops
-a model's output *before* a hallucination finishes generating — a seatbelt that
-deploys before the crash, not an incident report after it.
-
-`director_ai.lite` is the 30-second front door to exactly that. No model
-download, no knowledge-base wiring, no config.
+`director_ai.lite` is the 30-second front door to response-level factual
+coherence checks and opt-in streaming contradiction checks. No model download,
+no knowledge-base wiring, no config.
 
 Install the standalone first-run package when the public surface should be this
 facade only:
@@ -29,9 +26,10 @@ so the full and Lite installs share halt semantics, type behavior, and upgrade
 paths.
 
 !!! info "Priority"
-    Director-AI publicly shipped token-level streaming halt in early 2026 and
-    [deposited it on Zenodo](https://doi.org/10.5281/zenodo.18822166) (March
-    2026) — ahead of the streaming-guardrail research literature.
+    Director-AI publicly shipped streaming contradiction-halt surfaces in early
+    2026 and [deposited the related artefact on Zenodo](https://doi.org/10.5281/zenodo.18822166)
+    (March 2026). Treat that as provenance for the mechanism, not as a
+    standalone production accuracy claim.
 
 ```python
 from director_ai import StreamGuard

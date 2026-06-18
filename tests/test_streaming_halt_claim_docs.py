@@ -43,7 +43,10 @@ def test_market_docs_keep_unsupported_vs_contradiction_boundary() -> None:
         _read_doc("docs-site/guide/guardrail-landscape.md")
     )
 
-    assert "The streaming moat is the contradiction-driven halt" in market
+    assert "factual-coherence gate" in market
+    assert "The streaming moat" not in market
+    assert "streaming interlock is contradiction-driven" in market
+    assert "contradiction signals can be applied during streaming" in market
     assert "absence of evidence is not the same signal as contradiction" in market
-    assert "Yes, contradiction-driven" in landscape
+    assert "Opt-in, contradiction-driven" in landscape
     assert "coverage of every unsupported addition" in landscape

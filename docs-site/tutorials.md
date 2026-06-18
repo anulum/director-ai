@@ -22,8 +22,8 @@ context behind the notebook tracks, start with
 The notebooks are organised as a product learning path, not as isolated demos:
 
 - **Foundations:** scoring, evidence, and the coherence engine.
-- **Application controls:** SDK guard, streaming halt, domain presets, and
-  structured verification.
+- **Application controls:** SDK guard, opt-in streaming contradiction halt,
+  domain presets, and structured verification.
 - **RAG and domain applications:** vector-backed facts, medical examples, and
   integration adapters.
 - **Production and evaluation:** batch processing, multi-tenant deployment,

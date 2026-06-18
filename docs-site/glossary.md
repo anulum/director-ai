@@ -101,10 +101,10 @@ Key terms used throughout Director-AI documentation.
 :   The `soft_limit` threshold. Scores between `threshold` and `soft_limit` trigger a warning but don't reject. See [Threshold Tuning](guide/threshold-tuning.md).
 
 **Streaming Halt**
-:   Director-AI's signature feature: stopping LLM token generation mid-stream when coherence drops below threshold. See [Streaming Halt](guide/streaming.md).
+:   Opt-in contradiction interlock for streamed output. It can route or stop a stream when a scored window crosses the configured halt threshold, but response-level scoring remains the default production gate. See [Streaming Halt](guide/streaming.md).
 
 **Streaming Kernel**
-:   The `StreamingKernel` class that wraps a token stream and injects coherence checks every N tokens. See [API — StreamingKernel](api/streaming.md).
+:   The `StreamingKernel` class that wraps a token stream and injects coherence checks every N tokens for contradiction-scoped routing. See [API — StreamingKernel](api/streaming.md).
 
 **Threshold**
 :   The coherence score cutoff (0–1). Responses below this are rejected. Domain-dependent: 0.55 for support, 0.5 default, and 0.30 starter thresholds for medical/finance/legal before local calibration. See [Threshold Tuning](guide/threshold-tuning.md).

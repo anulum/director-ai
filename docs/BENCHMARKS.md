@@ -46,6 +46,12 @@ Director-AI uses a 5-tier scoring pyramid. Each tier trades latency for accuracy
 
 ### Full NLI (Tier 5) — AggreFact Breakdown
 
+This table reports the LLM-AggreFact per-dataset balanced-accuracy breakdown.
+The `RAGTruth` row is the RAGTruth subset as represented inside the
+LLM-AggreFact benchmark. It is not the standalone RAGTruth hallucination-span
+benchmark; standalone RAGTruth evidence is reported in `docs-site/benchmarks.md`
+and currently remains an open accuracy lane.
+
 Model: `yaxili96/FactCG-DeBERTa-v3-Large` at threshold 0.46.
 
 | Dataset | Samples | BA |

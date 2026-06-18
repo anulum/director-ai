@@ -36,7 +36,7 @@ Director-AI uses the same default scorer family and adds:
 - SDK guard and direct scoring APIs;
 - REST, gRPC, middleware, and proxy deployment surfaces;
 - RAG evidence integration;
-- token-level streaming halt;
+- opt-in streaming contradiction halt;
 - structured verification;
 - injection detection;
 - audit and compliance artefacts;

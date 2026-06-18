@@ -8,7 +8,7 @@
 docs_dir: docs-site
 strict: false
 site_name: Director-AI
-site_description: Real-time LLM hallucination guardrail — NLI + RAG fact-checking with token-level streaming halt
+site_description: Response-level LLM hallucination guardrail — NLI + RAG fact-checking with audit evidence
 site_url: https://anulum.github.io/director-ai
 site_author: Miroslav Šotek
 repo_url: https://github.com/anulum/director-ai

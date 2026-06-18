@@ -42,7 +42,7 @@ def test_customer_model_factory_guide_documents_operator_workflow():
         "tools/verify_customer_model_factory_compliance.py",
         "tools/verify_customer_model_factory_docs_freeze.py",
         "tools/verify_public_sector_boundary.py",
-        "customer-specific accuracy claims require package-specific benchmark evidence",
+        "Customer-specific accuracy claims require package-specific benchmark evidence",
     }
     assert required_tokens <= set(_matched_tokens(guide, required_tokens))
 
