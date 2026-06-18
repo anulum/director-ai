@@ -50,6 +50,28 @@ coherence = 1.0 - (W_LOGIC × H_logical + W_FACT × H_factual)
 
 The score is in [0.0, 1.0]. Higher = more coherent.
 
+### Heuristic Orchestration
+
+When NLI is unavailable or disabled, `CoherenceScorer` still uses the same
+logical/factual score shape. The no-model path now separates route selection
+from component scoring:
+
+- dialogue: route-specific factual divergence when a loaded NLI scorer is
+  available for dialogue calibration.
+- summarisation: factual-only summarisation divergence when prompt-as-premise
+  or summarisation auto-routing is active with NLI.
+- factual-only: skips logical divergence when `w_logic` is effectively zero.
+- parallel components: computes logical and factual heuristic divergences
+  concurrently for the default no-model path.
+
+The weighted combiner applies the no-KB calibration only when the factual score
+is neutral, no retrieval evidence is present, and the score did not come from
+the dialogue route. Local non-isolated regression evidence for this
+orchestration path is recorded by
+`python -m benchmarks.heuristic_coherence_pipeline`; the output lives at
+`benchmarks/results/heuristic_coherence_pipeline.json` and does not make a
+latency claim.
+
 ## Thresholds
 
 | Parameter | Default | Purpose |

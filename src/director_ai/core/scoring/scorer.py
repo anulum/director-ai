@@ -36,6 +36,12 @@ from ._task_scoring import (
     dialogue_factual_divergence,
     summarization_factual_divergence,
 )
+from .heuristic_coherence import (
+    HeuristicCoherenceInputs,
+    HeuristicCoherenceRoute,
+    combine_weighted_coherence,
+    select_heuristic_coherence_route,
+)
 from .nli import NLIScorer, nli_available
 from .reasoning_scorer import ReasoningScorer
 from .scorer_config import ScorerConfig
@@ -1306,44 +1312,31 @@ class CoherenceScorer:
             self._detect_task_type(prompt, action) if _nli_available else "default"
         )
 
-        # -- Dialogue path: bidirectional NLI + baseline calibration ----
-        # Logical entailment is meaningless for dialogue (a question
-        # doesn’t entail its answer).  Standard NLI gives ~0.92 divergence
-        # for correct responses.  The dialogue path uses min(fwd, rev) with
-        # baseline calibration to bring FPR from 97.5% -> 4.5% at t=0.50.
-        _is_dialogue = (
-            self._auto_dialogue_profile
-            and not self._use_prompt_as_premise
-            and _nli_available
-            and _task_type == "dialogue"
+        route = select_heuristic_coherence_route(
+            HeuristicCoherenceInputs(
+                auto_dialogue_profile=self._auto_dialogue_profile,
+                use_prompt_as_premise=self._use_prompt_as_premise,
+                nli_available=_nli_available,
+                task_type=_task_type,
+                w_logic=self.W_LOGIC,
+            )
         )
 
-        # -- Summarization path: bidirectional NLI + claim coverage -----
-        # Abstractive rephrasing causes forward NLI to over-reject.  The
-        # reverse direction (summary->document) catches paraphrases.
-        # Auto-routes when task is detected as summarization, OR when
-        # explicitly configured via _use_prompt_as_premise + W_LOGIC=0.
-        _is_summarization = _nli_available and (
-            (self._use_prompt_as_premise and self.W_LOGIC < 1e-9)
-            or (_task_type == "summarization" and self._auto_dialogue_profile)
-        )
-
-        if _is_dialogue:
+        if route is HeuristicCoherenceRoute.DIALOGUE:
             h_logic = 0.0
             h_fact, evidence = self._dialogue_factual_divergence(
                 prompt,
                 action,
                 tenant_id,
             )
-        elif _is_summarization:
+        elif route is HeuristicCoherenceRoute.SUMMARISATION:
             h_logic = 0.0
             h_fact, evidence = self._summarization_factual_divergence(
                 prompt,
                 action,
                 tenant_id,
             )
-        # Short-circuit: skip logical divergence when W_LOGIC is zero.
-        elif self.W_LOGIC < 1e-9:
+        elif route is HeuristicCoherenceRoute.FACTUAL_ONLY:
             h_logic = 0.0
             h_fact, evidence = self.calculate_factual_divergence_with_evidence(
                 prompt,
@@ -1383,23 +1376,15 @@ class CoherenceScorer:
                         )
                 raise
             h_fact, evidence = future_fact.result()
-        total_divergence = self.W_LOGIC * h_logic + self.W_FACT * h_fact
-        coherence = 1.0 - total_divergence
-
-        # Without KB context, h_fact is DIVERGENCE_NEUTRAL (0.5) and scores
-        # compress to [lo, hi] (e.g. [0.2, 0.8] for default weights).
-        # Rescale to [0, 1] so thresholds are meaningful.  With KB context
-        # the factual component carries real signal and no rescaling is needed.
-        nli_available = self._nli is not None and self._nli.model_available
-        fact_is_neutral = abs(h_fact - DIVERGENCE_NEUTRAL) < 1e-9
-        if nli_available and fact_is_neutral and evidence is None and not _is_dialogue:
-            # Theoretical range without KB: score ∈ [1-W_L-W_F*0.5, 1-W_F*0.5]
-            # Default W_L=0.6, W_F=0.4 → [0.2, 0.8].  Map to [0, 1].
-            lo = 1.0 - self.W_LOGIC - self.W_FACT * DIVERGENCE_NEUTRAL
-            hi = 1.0 - self.W_FACT * DIVERGENCE_NEUTRAL
-            span = hi - lo
-            if span > 1e-9:
-                coherence = max(0.0, min(1.0, (coherence - lo) / span))
+        coherence = combine_weighted_coherence(
+            h_logic=h_logic,
+            h_factual=h_fact,
+            w_logic=self.W_LOGIC,
+            w_fact=self.W_FACT,
+            nli_available=_nli_available,
+            evidence_present=evidence is not None,
+            dialogue_route=route is HeuristicCoherenceRoute.DIALOGUE,
+        )
 
         return h_logic, h_fact, coherence, evidence
 
