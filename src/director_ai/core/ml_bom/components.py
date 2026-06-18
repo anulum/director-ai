@@ -65,6 +65,7 @@ class MLBOMComponent:
     license: str = ""
 
     def __post_init__(self) -> None:
+        """Validate required identity fields and SHA-256 digest shape."""
         if not self.name.strip():
             raise ValueError("component name is required")
         if not self.version.strip():

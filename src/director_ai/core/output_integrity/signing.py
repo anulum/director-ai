@@ -41,7 +41,7 @@ class MissingCryptoBackendError(RuntimeError):
     """Raised when Ed25519 signing is requested without the ``cryptography`` backend."""
 
 
-def _load_ed25519():
+def _load_ed25519() -> Any:
     try:
         from cryptography.hazmat.primitives.asymmetric import ed25519
     except ImportError as exc:
@@ -91,7 +91,7 @@ class OutputSigner:
     code it).
     """
 
-    def __init__(self, seed: bytes | None = None):
+    def __init__(self, seed: bytes | None = None) -> None:
         if seed is not None and len(seed) != 32:
             raise ValueError("Ed25519 seed must be exactly 32 bytes")
         self._seed = seed

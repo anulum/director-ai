@@ -53,6 +53,10 @@ PY
   explain what is safe to serialise and what stays out of tenant-safe metadata.
 - Deployment and benchmark pages must say when an artefact is a fixture,
   replication packet, or unofficial smoke result.
+- The CI docstring ratchet currently blocks pydocstyle `D` regressions for the
+  strict-typed modules listed in `.github/workflows/ci.yml`: `core/config.py`,
+  `core/scoring/scorer.py`, `core/edge`, `core/ml_bom`, and
+  `core/output_integrity`.
 
 ## Current Known Boundaries
 
@@ -65,6 +69,9 @@ PY
   active Vertex Lite Scorer v2 run is evaluated. The live 2026-05-18 audit
   counted 611 missing normal-source public docstrings across 219 files, plus 11
   generated/proto docstring gaps across 2 files. Keep generated protobuf files
-  out of manual cleanup unless the generation pipeline changes.
+  out of manual cleanup unless the generation pipeline changes. As of
+  2026-06-18, `core/edge`, `core/ml_bom`, and `core/output_integrity` have been
+  added to the same blocking docstring ratchet as `core/config.py` and
+  `core/scoring/scorer.py`.
 - Long-range strategic context is tracked internally; `ROADMAP.md` is the
   public execution roadmap.

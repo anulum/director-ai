@@ -46,12 +46,10 @@ class EdgeRuntimeCheck:
     @property
     def passed(self) -> bool:
         """Return whether this check is satisfied."""
-
         return self.status == "pass"
 
     def to_dict(self) -> dict[str, Any]:
         """Serialise the check to stable JSON-safe data."""
-
         return {
             "name": self.name,
             "status": self.status,
@@ -77,7 +75,6 @@ class EdgeRuntimeReadiness:
 
     def to_dict(self) -> dict[str, Any]:
         """Serialise the readiness report to stable JSON-safe data."""
-
         return {
             "schema_version": self.schema_version,
             "target_id": self.target_id,
@@ -92,13 +89,11 @@ class EdgeRuntimeReadiness:
 
     def check_map(self) -> dict[str, EdgeRuntimeCheck]:
         """Return checks keyed by stable check name."""
-
         return {check.name: check for check in self.checks}
 
 
 def probe_backfire_kernel_symbols() -> tuple[str, ...]:
     """Return available Python symbols from the Rust accelerator package."""
-
     if importlib.util.find_spec("backfire_kernel") is None:
         return ()
     module = importlib.import_module("backfire_kernel")
@@ -117,7 +112,6 @@ def build_edge_runtime_readiness(
     import_probe: bool = True,
 ) -> EdgeRuntimeReadiness:
     """Build a deterministic readiness profile for one edge runtime target."""
-
     repo = Path(repo_root).resolve()
     wasm_plan = _load_toml(repo / "requirements" / "wasm_release_plan.toml")
     onnx_plan = _load_toml(repo / "requirements" / "onnx_wheel_targets.toml")

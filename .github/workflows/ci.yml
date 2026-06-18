@@ -50,8 +50,15 @@ jobs:
       - name: Lint (ruff)
         run: ruff check src/ tests/ examples/
 
-      - name: Docstring ratchet (config and scorer)
-        run: ruff check src/director_ai/core/config.py src/director_ai/core/scoring/scorer.py --select D
+      - name: Docstring ratchet (strict-typed modules)
+        run: >-
+          ruff check
+          src/director_ai/core/config.py
+          src/director_ai/core/scoring/scorer.py
+          src/director_ai/core/edge
+          src/director_ai/core/ml_bom
+          src/director_ai/core/output_integrity
+          --select D
 
   typecheck:
     name: Type Check
