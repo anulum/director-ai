@@ -108,6 +108,7 @@ jobs:
           src/director_ai/core/swarm_equilibrium
           src/director_ai/core/symbolic_chain
           src/director_ai/core/temporal_consistency
+          src/director_ai/core/temporal_logic
           src/director_ai/core/tenant.py
           src/director_ai/core/text_overlap.py
           src/director_ai/core/threat_intel

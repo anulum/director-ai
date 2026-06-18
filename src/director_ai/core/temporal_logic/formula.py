@@ -67,6 +67,7 @@ class Atom(Formula):
     name: str
 
     def __str__(self) -> str:
+        """Return the atom name."""
         return self.name
 
 
@@ -77,6 +78,7 @@ class Not(Formula):
     operand: Formula
 
     def __str__(self) -> str:
+        """Return the symbolic negation form."""
         return f"¬{self.operand}"
 
 
@@ -87,6 +89,7 @@ class And(Formula):
     operands: frozenset[Formula]
 
     def __str__(self) -> str:
+        """Return the sorted symbolic conjunction form."""
         return "(" + " ∧ ".join(sorted(str(o) for o in self.operands)) + ")"
 
 
@@ -97,6 +100,7 @@ class Or(Formula):
     operands: frozenset[Formula]
 
     def __str__(self) -> str:
+        """Return the sorted symbolic disjunction form."""
         return "(" + " ∨ ".join(sorted(str(o) for o in self.operands)) + ")"
 
 
@@ -107,6 +111,7 @@ class Next(Formula):
     operand: Formula
 
     def __str__(self) -> str:
+        """Return the symbolic next-state form."""
         return f"X {self.operand}"
 
 
@@ -117,6 +122,7 @@ class Always(Formula):
     operand: Formula
 
     def __str__(self) -> str:
+        """Return the symbolic globally form."""
         return f"G {self.operand}"
 
 
@@ -127,6 +133,7 @@ class Eventually(Formula):
     operand: Formula
 
     def __str__(self) -> str:
+        """Return the symbolic eventually form."""
         return f"F {self.operand}"
 
 
@@ -138,6 +145,7 @@ class Until(Formula):
     right: Formula
 
     def __str__(self) -> str:
+        """Return the symbolic until form."""
         return f"({self.left} U {self.right})"
 
 
@@ -211,7 +219,7 @@ def implies(antecedent: Formula, consequent: Formula) -> Formula:
 
 
 def G(formula: Formula) -> Formula:  # noqa: N802 — LTL operator name
-    """``Always`` (globally) ``formula``."""
+    """Build ``Always`` (globally) ``formula``."""
     if formula is TOP:
         return TOP
     if formula is BOTTOM:

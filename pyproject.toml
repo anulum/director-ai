@@ -649,6 +649,8 @@ module = [
     "director_ai.core.symbolic_chain.*",
     "director_ai.core.temporal_consistency",
     "director_ai.core.temporal_consistency.*",
+    "director_ai.core.temporal_logic",
+    "director_ai.core.temporal_logic.*",
     "director_ai.core.tenant",
     "director_ai.core.text_overlap",
     "director_ai.core.threat_intel",
