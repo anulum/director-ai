@@ -72,6 +72,7 @@ class RiskThresholdPolicy:
     historical_fpr_weight: float = 0.15
 
     def __post_init__(self) -> None:
+        """Validate threshold bounds."""
         for name in ("base_threshold", "min_threshold", "max_threshold"):
             value = getattr(self, name)
             if not 0.0 <= value <= 1.0:

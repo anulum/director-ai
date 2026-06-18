@@ -56,16 +56,20 @@ jobs:
           src/director_ai/core/config.py
           src/director_ai/core/scoring/scorer.py
           src/director_ai/core/containment
+          src/director_ai/core/consensus
           src/director_ai/core/edge
           src/director_ai/core/execution_rings
           src/director_ai/core/guard_control
           src/director_ai/core/irreversibility
+          src/director_ai/core/meta_guard
           src/director_ai/core/ml_bom
           src/director_ai/core/output_integrity
           src/director_ai/core/output_trust
+          src/director_ai/core/risk_threshold
           src/director_ai/core/safety_event.py
           src/director_ai/core/safety_protocol.py
           src/director_ai/core/stats.py
+          src/director_ai/core/sustainability
           src/director_ai/core/swarm_coherence
           src/director_ai/core/swarm_equilibrium
           src/director_ai/core/symbolic_chain

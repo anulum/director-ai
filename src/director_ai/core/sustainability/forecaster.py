@@ -36,9 +36,11 @@ except Exception:  # pragma: no cover - mandatory dependency
     _RUST_FORECAST = True
 
     def rust_conformal_quantile(_residuals: list[float], _coverage: float) -> float:
+        """Raise because the mandatory Rust conformal quantile kernel is unavailable."""
         raise RuntimeError("backfire_kernel rust_conformal_quantile is unavailable")
 
     def rust_ema_update(_previous: float | None, _value: float, _alpha: float) -> float:
+        """Raise because the mandatory Rust EMA update kernel is unavailable."""
         raise RuntimeError("backfire_kernel rust_ema_update is unavailable")
 
 
@@ -54,6 +56,7 @@ class PredictionInterval:
 
     @property
     def width(self) -> float:
+        """Return the interval width."""
         return self.upper - self.lower
 
 
@@ -95,14 +98,16 @@ class ConformalDemandForecaster:
 
     @property
     def last_forecast(self) -> float | None:
+        """Return the current EMA point forecast, if initialized."""
         with self._lock:
             return self._ema
 
     def observe(self, demand: float) -> None:
-        """Record one day's observed demand. The residual is
-        measured against the current EMA before the EMA is
-        updated so the stored residuals are honest
-        out-of-sample differences."""
+        """Record one day's observed demand.
+
+        Measure the residual against the current EMA before updating the EMA so
+        stored residuals remain honest out-of-sample differences.
+        """
         if demand < 0:
             raise ValueError("demand must be non-negative")
         with self._lock:
@@ -115,8 +120,9 @@ class ConformalDemandForecaster:
 
         Raises :class:`ValueError` when no observations have been
         recorded. When fewer than ``min_samples`` residuals are
-        available the interval collapses to ``[point, point]`` so
-        the caller sees "no uncertainty estimate yet"."""
+        available the interval collapses to ``[point, point]`` so the caller
+        sees "no uncertainty estimate yet".
+        """
         if not 0.0 < coverage < 1.0:
             raise ValueError("coverage must be in (0, 1)")
         with self._lock:
@@ -153,6 +159,7 @@ class ConformalDemandForecaster:
         )
 
     def reset(self) -> None:
+        """Clear residual history and the current EMA forecast."""
         with self._lock:
             self._residuals.clear()
             self._ema = None

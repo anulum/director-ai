@@ -40,6 +40,7 @@ class DailyUsage:
     consumed: float
 
     def __post_init__(self) -> None:
+        """Validate tenant identity and consumed amount."""
         if not self.tenant_id:
             raise QuotaError("tenant_id must be non-empty")
         if self.consumed < 0:
@@ -84,12 +85,15 @@ class ComputeQuota:
 
     @property
     def daily_limit(self) -> float:
+        """Return the configured per-tenant daily limit."""
         return self._daily_limit
 
     def current_day(self) -> int:
+        """Return the day index for the current clock value."""
         return self._day_resolver(float(self._clock()))
 
     def remaining_today(self, tenant_id: str) -> float:
+        """Return remaining quota for ``tenant_id`` today."""
         if not tenant_id:
             raise QuotaError("tenant_id must be non-empty")
         with self._lock:
@@ -98,8 +102,10 @@ class ComputeQuota:
         return max(0.0, self._daily_limit - used)
 
     def consume(self, *, tenant_id: str, amount: float) -> DailyUsage:
-        """Atomically debit ``amount`` from ``tenant_id``'s daily
-        bucket. Raises when the draw would cross the daily limit."""
+        """Atomically debit ``amount`` from ``tenant_id``'s daily bucket.
+
+        Raise when the draw would cross the daily limit.
+        """
         if not tenant_id:
             raise QuotaError("tenant_id must be non-empty")
         if amount <= 0:
@@ -120,9 +126,10 @@ class ComputeQuota:
             return DailyUsage(tenant_id=tenant_id, day=today, consumed=amount)
 
     def usage_history(self, tenant_id: str) -> tuple[DailyUsage, ...]:
-        """Return this tenant's usage as an ordered tuple oldest
-        → newest day. Aggregates multiple consumes on the same
-        day into a single record."""
+        """Return this tenant's usage from oldest to newest day.
+
+        Aggregate multiple consumes on the same day into a single record.
+        """
         if not tenant_id:
             raise QuotaError("tenant_id must be non-empty")
         with self._lock:
@@ -134,6 +141,7 @@ class ComputeQuota:
         )
 
     def reset(self, tenant_id: str | None = None) -> None:
+        """Clear all usage or only one tenant's usage."""
         with self._lock:
             if tenant_id is None:
                 self._usage.clear()

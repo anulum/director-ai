@@ -63,10 +63,14 @@ class ContradictionEngine(Protocol):
     in ``[0, 1]`` and a ``threshold`` for the halt/flag decision.
     """
 
-    def contradiction(self, premise: str, hypothesis: str) -> float: ...
+    def contradiction(self, premise: str, hypothesis: str) -> float:
+        """Return the directional contradiction probability for two texts."""
+        ...
 
     @property
-    def threshold(self) -> float: ...
+    def threshold(self) -> float:
+        """Return the contradiction threshold used for flagging."""
+        ...
 
 
 def _lexical_overlap(text_a: str, text_b: str) -> float:
@@ -157,6 +161,7 @@ class CrossModelConsensus:
     max_divergences: int = 12
 
     def __post_init__(self) -> None:
+        """Validate consensus thresholds and result bounds."""
         if not 0.0 <= self.escalate_threshold <= self.accept_threshold <= 1.0:
             raise ValueError("require 0 <= escalate_threshold <= accept_threshold <= 1")
         if self.divergence_threshold is not None and not (

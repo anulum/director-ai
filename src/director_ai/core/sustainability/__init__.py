@@ -6,8 +6,9 @@
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI — long-horizon sustainability budget
 
-"""Multi-day compute quota with conformal demand forecasting and
-carbon-aware throttling.
+"""Coordinate quota, demand forecasting, and carbon-aware throttling.
+
+Provide multi-day compute quota management with conformal demand forecasting.
 
 * :class:`ComputeQuota` — per-tenant multi-day budget. Day
   boundaries come from a caller-supplied clock so the quota

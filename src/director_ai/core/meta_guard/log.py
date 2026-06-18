@@ -52,6 +52,7 @@ class ScoringDecision:
     tenant_id: str = ""
 
     def __post_init__(self) -> None:
+        """Validate the stored scoring decision fields."""
         if not self.prompt_hash:
             raise ValueError("prompt_hash must be non-empty")
         if not 0.0 <= self.score <= 1.0:
@@ -118,9 +119,11 @@ class DecisionLog:
         ground_truth: float | None = None,
         tenant_id: str = "",
     ) -> ScoringDecision:
-        """Build the identifier from ``prompt`` (hashed when
-        ``hash_prompts`` is on) and append. Returns the stored
-        decision so callers can log or inspect it downstream."""
+        """Build the identifier from ``prompt`` and append it.
+
+        Hash the prompt when ``hash_prompts`` is on. Return the stored decision
+        so callers can log or inspect it downstream.
+        """
         if not prompt:
             raise ValueError("prompt must be non-empty")
         identifier = self._hasher(prompt) if self._hash_prompts else prompt
@@ -136,6 +139,7 @@ class DecisionLog:
         return decision
 
     def __len__(self) -> int:
+        """Return the number of retained decisions."""
         with self._lock:
             return len(self._log)
 
@@ -150,8 +154,9 @@ class DecisionLog:
         last_n: int | None = None,
         since_seconds: float | None = None,
     ) -> tuple[ScoringDecision, ...]:
-        """Windowed view. Exactly one of ``last_n`` / ``since_seconds``
-        must be supplied.
+        """Return a windowed view of retained decisions.
+
+        Exactly one of ``last_n`` / ``since_seconds`` must be supplied.
 
         ``last_n`` returns the most recent ``n`` decisions (clamped
         to the log size). ``since_seconds`` returns every decision
@@ -177,9 +182,11 @@ class DecisionLog:
     def iter_windowed(
         self, *, last_n: int | None = None, since_seconds: float | None = None
     ) -> Iterator[ScoringDecision]:
-        """Iterator variant of :meth:`window` — identical semantics,
-        streams to avoid materialising the tuple when the caller
-        only needs a single pass."""
+        """Iterate over a :meth:`window` result.
+
+        Semantics are identical to :meth:`window`, but callers that only need a
+        single pass can avoid holding a second local tuple.
+        """
         yield from self.window(last_n=last_n, since_seconds=since_seconds)
 
 

@@ -6,8 +6,9 @@
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI — recursive self-referential meta-guard
 
-"""Monitor the guardrail's own decisions and auto-adjust its
-thresholds when its scoring behaviour drifts away from the
+"""Monitor the guardrail's own scoring decisions.
+
+Auto-adjust thresholds when scoring behaviour drifts away from the
 calibration distribution.
 
 Four pieces:

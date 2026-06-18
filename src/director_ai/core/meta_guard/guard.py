@@ -6,9 +6,10 @@
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI — MetaGuard orchestrator
 
-"""Bind a :class:`DecisionLog`, :class:`MetaAnalyzer`, and
-:class:`ThresholdAdjuster` into a single ``.record(...)`` entry
-point.
+"""Bind meta-guard components into one record entry point.
+
+Compose a :class:`DecisionLog`, :class:`MetaAnalyzer`, and
+:class:`ThresholdAdjuster` into a single ``.record(...)`` entry point.
 
 The orchestrator lets the caller fold new scoring decisions in as
 they happen. Every ``record`` call returns a :class:`MetaVerdict`
@@ -33,6 +34,7 @@ except ImportError:  # pragma: no cover - mandatory dependency
     _RUST_META_GUARD = True
 
     def rust_sum_i64(_values: list[int]) -> int:
+        """Raise because the mandatory Rust integer summation kernel is unavailable."""
         raise RuntimeError("backfire_kernel rust_sum_i64 is unavailable")
 
 
@@ -79,6 +81,7 @@ class MetaGuardProductionPolicy:
     max_duplicate_prompt_fraction: float = 0.4
 
     def __post_init__(self) -> None:
+        """Validate production gate fractions."""
         _validate_fraction("min_labelled_fraction", self.min_labelled_fraction)
         _validate_fraction(
             "max_single_tenant_fraction", self.max_single_tenant_fraction
@@ -140,6 +143,7 @@ class MetaVerdict:
 
     @property
     def adjusted(self) -> bool:
+        """Return whether this verdict includes a threshold update."""
         return self.thresholds is not None
 
 
@@ -184,10 +188,12 @@ class MetaGuard:
 
     @property
     def adjuster(self) -> ThresholdAdjuster | None:
+        """Return the configured threshold adjuster, if any."""
         return self._adjuster
 
     @property
     def log(self) -> DecisionLog:
+        """Return the decision log used by this guard."""
         return self._log
 
     def record(
@@ -227,8 +233,10 @@ class MetaGuard:
         )
 
     def latest_analysis(self) -> MetaAnalysis:
-        """Run the analyser over the current window without
-        recording anything."""
+        """Run the analyser over the current window.
+
+        No new scoring decision is recorded.
+        """
         window = self._log.window(last_n=self._window)
         return self._analyzer.analyse(window)
 

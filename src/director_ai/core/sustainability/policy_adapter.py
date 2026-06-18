@@ -28,9 +28,11 @@ except Exception:  # pragma: no cover - mandatory dependency
     _RUST_SUSTAINABILITY_POLICY = True
 
     def rust_sum_f64(_values: list[float]) -> float:
+        """Raise because the mandatory Rust float summation kernel is unavailable."""
         raise RuntimeError("backfire_kernel rust_sum_f64 is unavailable")
 
     def rust_sum_i64(_values: list[int]) -> int:
+        """Raise because the mandatory Rust integer summation kernel is unavailable."""
         raise RuntimeError("backfire_kernel rust_sum_i64 is unavailable")
 
 

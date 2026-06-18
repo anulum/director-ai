@@ -42,15 +42,19 @@ except Exception:  # pragma: no cover - mandatory dependency
     _RUST_CARBON = True
 
     def rust_percentile_rank(_values: list[float], _value: float) -> float:
+        """Raise because the mandatory Rust percentile kernel is unavailable."""
         raise RuntimeError("backfire_kernel rust_percentile_rank is unavailable")
 
     def rust_mean(_values: list[float]) -> float:
+        """Raise because the mandatory Rust mean kernel is unavailable."""
         raise RuntimeError("backfire_kernel rust_mean is unavailable")
 
     def rust_sum_i64(_values: list[int]) -> int:
+        """Raise because the mandatory Rust integer summation kernel is unavailable."""
         raise RuntimeError("backfire_kernel rust_sum_i64 is unavailable")
 
     def rust_sum_f64(_values: list[float]) -> float:
+        """Raise because the mandatory Rust float summation kernel is unavailable."""
         raise RuntimeError("backfire_kernel rust_sum_f64 is unavailable")
 
 
@@ -62,6 +66,7 @@ class CarbonReading:
     intensity: float
 
     def __post_init__(self) -> None:
+        """Validate reading timestamp and intensity."""
         if self.timestamp < 0:
             raise ValueError("timestamp must be non-negative")
         if self.intensity < 0:
@@ -104,29 +109,34 @@ class CarbonIntensityTracker:
         self._readings: deque[CarbonReading] = deque(maxlen=window_size)
 
     def record(self, reading: CarbonReading) -> None:
+        """Append one carbon-intensity reading."""
         with self._lock:
             self._readings.append(reading)
 
     def record_many(self, readings: Iterable[CarbonReading]) -> None:
+        """Append multiple carbon-intensity readings."""
         with self._lock:
             for reading in readings:
                 self._readings.append(reading)
 
     def current(self) -> float:
+        """Return the latest intensity or the configured fallback."""
         with self._lock:
             if not self._readings:
                 return self._fallback
             return self._readings[-1].intensity
 
     def window(self) -> tuple[CarbonReading, ...]:
+        """Return a snapshot of retained readings."""
         with self._lock:
             return tuple(self._readings)
 
     def percentile(self, value: float) -> float:
-        """Return the fraction of window readings with
-        intensity ``<= value``. Returns 1.0 when the window is
-        empty (caller should treat as "high intensity"
-        fallback)."""
+        """Return the fraction of window readings at or below ``value``.
+
+        Return ``1.0`` when the window is empty so callers can treat the result
+        as the high-intensity fallback.
+        """
         with self._lock:
             if not self._readings:
                 return 1.0
@@ -142,6 +152,7 @@ class CarbonIntensityTracker:
             return below / len(intensities)
 
     def mean(self) -> float:
+        """Return the mean intensity or the configured fallback."""
         with self._lock:
             if not self._readings:
                 return self._fallback

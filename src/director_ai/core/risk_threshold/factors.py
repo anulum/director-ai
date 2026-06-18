@@ -72,6 +72,7 @@ class RiskFactors:
     historical_fpr: float = 0.0
 
     def __post_init__(self) -> None:
+        """Validate bounded continuous risk factors."""
         _check_unit("tenant_risk", self.tenant_risk)
         _check_unit("retrieval_confidence", self.retrieval_confidence)
         _check_unit("action_reversibility", self.action_reversibility)

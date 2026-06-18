@@ -40,9 +40,11 @@ except Exception:  # pragma: no cover - mandatory dependency
     _RUST_META_GUARD = True
 
     def rust_sum_f64(_values: list[float]) -> float:
+        """Raise because the mandatory Rust summation kernel is unavailable."""
         raise RuntimeError("backfire_kernel rust_sum_f64 is unavailable")
 
     def rust_mean(_values: list[float]) -> float:
+        """Raise because the mandatory Rust mean kernel is unavailable."""
         raise RuntimeError("backfire_kernel rust_mean is unavailable")
 
 
@@ -69,6 +71,7 @@ class MetaAnalysis:
 
     @property
     def any_alarm(self) -> bool:
+        """Return whether any drift channel fired."""
         return self.page_hinkley_alarm or self.brier_alarm or self.action_alarm
 
 
@@ -155,6 +158,7 @@ class MetaAnalyzer:
         self._min_window = min_window
 
     def analyse(self, window: Sequence[ScoringDecision]) -> MetaAnalysis:
+        """Analyse a decision window and return drift statistics."""
         n = len(window)
         if n == 0:
             return MetaAnalysis(

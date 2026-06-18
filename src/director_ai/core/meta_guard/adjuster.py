@@ -36,6 +36,7 @@ class ThresholdBundle:
     halt_threshold: float
 
     def __post_init__(self) -> None:
+        """Validate the warn/halt threshold ordering."""
         if not 0.0 <= self.warn_threshold < self.halt_threshold <= 1.0:
             raise ValueError(
                 "thresholds must satisfy 0 <= warn < halt <= 1; got "
@@ -108,12 +109,15 @@ class ThresholdAdjuster:
 
     @property
     def current(self) -> ThresholdBundle:
+        """Return the currently active threshold bundle."""
         return self._current
 
     def observe(self, analysis: MetaAnalysis) -> ThresholdBundle | None:
-        """Fold ``analysis`` into the hysteresis state machine and
-        return a new :class:`ThresholdBundle` when the adjuster
-        has crossed its strike target; otherwise ``None``."""
+        """Fold ``analysis`` into the hysteresis state machine.
+
+        Return a new :class:`ThresholdBundle` when the adjuster has crossed its
+        strike target; otherwise return ``None``.
+        """
         direction = self._classify(analysis)
         if direction == 0:
             self._last_direction = 0

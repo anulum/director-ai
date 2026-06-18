@@ -6,8 +6,9 @@
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI — SustainabilityBudget
 
-"""Compose the quota + forecaster + carbon tracker into one
-allow/block decision.
+"""Compose sustainability signals into one allow/block decision.
+
+Use the quota, demand forecaster, and carbon tracker together.
 
 Three branches fire:
 
