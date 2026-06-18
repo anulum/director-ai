@@ -19,6 +19,7 @@ for deterministic overlap checks.
 from __future__ import annotations
 
 import re
+from collections.abc import Callable
 from dataclasses import dataclass, field
 
 from ..mandatory import mandatory_execution
@@ -116,10 +117,12 @@ class ReasoningChainResult:
 
     @property
     def non_sequiturs(self) -> list[ReasoningVerdict]:
+        """Return steps whose conclusion does not follow from prior steps."""
         return [v for v in self.verdicts if v.verdict == "non_sequitur"]
 
     @property
     def unsupported_leaps(self) -> list[ReasoningVerdict]:
+        """Return steps that introduce claims without supporting premises."""
         return [v for v in self.verdicts if v.verdict == "unsupported_leap"]
 
 
@@ -211,7 +214,7 @@ def _word_overlap(a: str, b: str) -> float:
 
 def verify_reasoning_chain(
     text: str,
-    score_fn=None,
+    score_fn: Callable[[str, str], float] | None = None,
     support_threshold: float = 0.3,
     *,
     check_math: bool = True,

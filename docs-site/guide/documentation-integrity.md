@@ -71,8 +71,7 @@ PY
   `core/symbolic_chain`, `core/temporal_consistency`, `core/tenant.py`,
   `core/text_overlap.py`,
   `core/threat_intel`, `core/trace_safe`, `core/types.py`, `core/vector_store.py`,
-  `core/verification/code_verifier.py`, `core/verification/json_verifier.py`,
-  and `core/verification/tool_call_verifier.py`.
+  and `core/verification`.
 
 ## Current Known Boundaries
 
@@ -96,8 +95,9 @@ PY
   findings; the retrieval compatibility-shim ratchet reduced it to 1,023
   findings; the license and tenant ratchet reduced it to 1,019 findings; the
   backend, policy, and secrets ratchet reduced it to 1,011 findings; the core
-  package export and verification-export ratchet reduced it to 1,010 findings.
-  Keep generated protobuf files out of manual cleanup unless the
+  package export and verification-export ratchet reduced it to 1,010 findings;
+  the full verification package ratchet reduced it to 994 findings. Keep
+  generated protobuf files out of manual cleanup unless the
   generation pipeline changes. As of 2026-06-18, `core/__init__.py`,
   `core/_device.py`, `core/_heuristics.py`, `core/attribution`, `core/backends.py`,
   `core/calibration`, `core/canary`, `core/containment`, `core/consensus`, `core/doc_chunker.py`,
@@ -113,9 +113,7 @@ PY
   `core/swarm_coherence`, `core/swarm_equilibrium`, `core/symbolic_chain`,
   `core/temporal_consistency`, `core/tenant.py`, `core/text_overlap.py`,
   `core/threat_intel`, `core/trace_safe`, `core/types.py`,
-  `core/vector_store.py`, `core/verification/code_verifier.py`,
-  `core/verification/json_verifier.py`, and
-  `core/verification/tool_call_verifier.py` have been added to the same
+  `core/vector_store.py`, and `core/verification` have been added to the same
   blocking docstring ratchet as `core/config.py` and `core/scoring/scorer.py`.
 - Repo-wide strict mypy remains open. The live 2026-06-18 measurement for
   `mypy --strict src/director_ai` found 621 errors in 93 files. The configured

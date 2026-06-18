@@ -70,6 +70,7 @@ class ClaimCitation:
 
     @property
     def cited(self) -> bool:
+        """Return whether this claim has at least one attached citation."""
         return bool(self.citations)
 
 
@@ -81,10 +82,12 @@ class TraceResult:
 
     @property
     def cited(self) -> list[ClaimCitation]:
+        """Return claim sentences that carry at least one citation."""
         return [c for c in self.claims if c.cited]
 
     @property
     def uncited(self) -> list[ClaimCitation]:
+        """Return claim sentences without attached citations."""
         return [c for c in self.claims if not c.cited]
 
     @property

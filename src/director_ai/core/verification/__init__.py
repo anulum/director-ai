@@ -5,3 +5,5 @@
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
 # verification subpackage — structured output verification for agentic workflows
+
+"""Structured output, reasoning, citation, numeric, and code verifiers."""

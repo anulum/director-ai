@@ -103,9 +103,7 @@ jobs:
           src/director_ai/core/trace_safe
           src/director_ai/core/types.py
           src/director_ai/core/vector_store.py
-          src/director_ai/core/verification/code_verifier.py
-          src/director_ai/core/verification/json_verifier.py
-          src/director_ai/core/verification/tool_call_verifier.py
+          src/director_ai/core/verification
           --select D
 
   typecheck:

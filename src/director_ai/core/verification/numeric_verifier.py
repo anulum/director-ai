@@ -109,12 +109,14 @@ class NumericVerificationResult:
 
     @property
     def error_count(self) -> int:
+        """Return the number of numeric issues marked as errors."""
         return _sum_int(
             [1 if issue.severity == "error" else 0 for issue in self.issues]
         )
 
     @property
     def warning_count(self) -> int:
+        """Return the number of numeric issues marked as warnings."""
         return _sum_int(
             [1 if issue.severity == "warning" else 0 for issue in self.issues]
         )

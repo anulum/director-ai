@@ -129,10 +129,12 @@ class FallacyResult:
 
     @property
     def clean(self) -> bool:
+        """Return whether the scan found no fallacy markers."""
         return not self.matches
 
     @property
     def types(self) -> list[str]:
+        """Return unique fallacy families in scan order."""
         seen: list[str] = []
         for match in self.matches:
             if match.fallacy_type not in seen:

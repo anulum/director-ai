@@ -41,6 +41,7 @@ class NeuroSymbolicVerifierInput:
     evidence_ref: str = ""
 
     def __post_init__(self) -> None:
+        """Validate text, score, and immutable symbolic-step storage."""
         if not str(self.text).strip():
             raise ValueError("text must be non-empty")
         _unit_score(self.neural_score)
@@ -62,11 +63,13 @@ class NeuroSymbolicVerificationResult:
     metadata: dict[str, Any] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
+        """Validate decision and normalize reasons to an immutable tuple."""
         if self.decision not in {"allow", "warn", "reject"}:
             raise ValueError(f"unsupported decision {self.decision!r}")
         object.__setattr__(self, "reasons", tuple(self.reasons))
 
     def to_dict(self, *, include_text: bool = False) -> dict[str, Any]:
+        """Serialize the combined decision without text unless requested."""
         return {
             "decision": self.decision,
             "neural_score": self.neural_score,
@@ -103,6 +106,7 @@ class NeuroSymbolicVerifier:
         self,
         item: NeuroSymbolicVerifierInput,
     ) -> NeuroSymbolicVerificationResult:
+        """Return a combined neural, numeric, and symbolic decision."""
         reasons: list[str] = []
         numeric_result = verify_numeric(item.text) if self._run_numeric else None
         if numeric_result is not None and not numeric_result.valid:

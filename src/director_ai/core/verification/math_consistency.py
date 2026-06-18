@@ -139,10 +139,12 @@ class MathConsistencyResult:
 
     @property
     def errors(self) -> list[ArithmeticCheck]:
+        """Return asserted equations whose computed value disagrees."""
         return [c for c in self.checks if not c.correct]
 
     @property
     def equations_found(self) -> int:
+        """Return the number of recognized equations in the text."""
         return len(self.checks)
 
 
