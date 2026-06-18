@@ -6,7 +6,7 @@
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI — Input Sanitizer (Prompt Injection Hardening)
 
-"""Detect and score prompt injection attacks targeting the knowledge base.
+r"""Detect and score prompt injection attacks targeting the knowledge base.
 
 Catches instruction overrides, role-play injections, encoding tricks,
 and suspiciously structured inputs before they reach the scorer or KB.
@@ -129,7 +129,7 @@ def _rot13(text: str) -> str:
     return codecs.encode(text, "rot_13")
 
 
-_INJECTION_PATTERNS: list[tuple[str, re.Pattern]] = [
+_INJECTION_PATTERNS: list[tuple[str, re.Pattern[str]]] = [
     (
         "instruction_override",
         re.compile(
@@ -412,9 +412,12 @@ class InputSanitizer:
 
     @staticmethod
     def defang(text: str) -> str:
-        """Canonical matching form: scrub (NFKC + strip control/zero-width) then
-        fold Cyrillic/Greek homoglyphs to ASCII, so obfuscated injections collapse
-        to the literal phrasing the patterns recognise."""
+        """Return the canonical matching form for injection patterns.
+
+        The sanitizer scrubs control/zero-width characters, normalises Unicode,
+        and folds Cyrillic/Greek homoglyphs to ASCII so obfuscated injections
+        collapse to the literal phrasing the patterns recognise.
+        """
         return _fold_confusables(InputSanitizer.scrub(text))
 
     @classmethod

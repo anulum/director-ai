@@ -611,6 +611,8 @@ module = [
     "director_ai.core.policy",
     "director_ai.core.risk_threshold",
     "director_ai.core.risk_threshold.*",
+    "director_ai.core.safety",
+    "director_ai.core.safety.*",
     "director_ai.core.safety_event",
     "director_ai.core.safety_protocol",
     "director_ai.core.secrets",

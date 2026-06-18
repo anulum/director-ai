@@ -143,11 +143,11 @@ class RegexPIIDetector(ModerationDetector):
 
 
 def _build_rust_scanner(patterns: list[tuple[str, str]]) -> Any | None:
-    """Build a ``backfire_kernel.PiiScanner`` when the Rust extension
-    is importable. Returns ``None`` otherwise so the Python regex
-    path remains the authoritative fallback — this keeps the
-    detector operable on any machine, with or without the Rust
-    wheel installed.
+    """Build a Rust PII scanner when the extension is importable.
+
+    Return ``None`` otherwise so the Python regex path remains the authoritative
+    fallback. This keeps the detector operable on any machine, with or without
+    the Rust wheel installed.
     """
     try:
         from backfire_kernel import PiiScanner as _PiiScanner
@@ -190,10 +190,11 @@ class PresidioPIIDetector(ModerationDetector):
 
     @classmethod
     def from_default_engine(cls, **kwargs: Any) -> PresidioPIIDetector:
-        """Build an adapter backed by a stock
-        ``presidio_analyzer.AnalyzerEngine``. Raises
-        :class:`ImportError` with install instructions if Presidio is
-        not available."""
+        """Build an adapter backed by a stock Presidio AnalyzerEngine.
+
+        Raises :class:`ImportError` with install instructions if Presidio is not
+        available.
+        """
         try:
             from presidio_analyzer import AnalyzerEngine
         except ImportError as exc:

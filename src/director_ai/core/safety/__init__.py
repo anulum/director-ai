@@ -6,6 +6,8 @@
 # Contact: www.anulum.li | protoscience@anulum.li
 # safety subpackage
 
+"""Safety primitives for prompt screening, injection detection, and harm mapping."""
+
 from .harm_taxonomy import HarmCategory, to_harm_category
 from .injection import InjectionDetector
 from .prompt_guard import (

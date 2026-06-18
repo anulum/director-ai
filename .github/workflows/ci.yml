@@ -87,6 +87,7 @@ jobs:
           src/director_ai/core/output_trust
           src/director_ai/core/policy.py
           src/director_ai/core/risk_threshold
+          src/director_ai/core/safety
           src/director_ai/core/safety_event.py
           src/director_ai/core/safety_protocol.py
           src/director_ai/core/secrets.py

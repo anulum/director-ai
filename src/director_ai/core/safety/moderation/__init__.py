@@ -6,8 +6,7 @@
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI — safety moderation package
 
-"""Additional PII and toxicity detectors beyond regex-only
-:class:`director_ai.core.redactor.PIIRedactor`.
+"""PII and toxicity detectors beyond the regex-only redactor.
 
 Two detector families live here:
 

@@ -95,6 +95,7 @@ class SplunkHECSink:
         return env
 
     def write(self, entry: AuditEntry) -> None:
+        """Send one audit entry to Splunk HEC."""
         resp = requests.post(
             self._endpoint,
             headers=self._headers,
@@ -105,6 +106,7 @@ class SplunkHECSink:
         resp.raise_for_status()
 
     def write_batch(self, entries: list[AuditEntry]) -> None:
+        """Send audit entries to Splunk HEC as concatenated event envelopes."""
         if not entries:
             return
         # Splunk HEC accepts concatenated event objects in one request body.
@@ -151,9 +153,11 @@ class DatadogLogsSink:
         }
 
     def write(self, entry: AuditEntry) -> None:
+        """Send one audit entry to Datadog Logs."""
         self.write_batch([entry])
 
     def write_batch(self, entries: list[AuditEntry]) -> None:
+        """Send audit entries to Datadog Logs in one intake request."""
         if not entries:
             return
         resp = requests.post(
@@ -195,6 +199,7 @@ class ElasticsearchSink:
             self._headers["Authorization"] = f"ApiKey {api_key}"
 
     def write(self, entry: AuditEntry) -> None:
+        """Index one audit entry as an Elasticsearch document."""
         resp = requests.post(
             f"{self._base}/{self._index}/_doc",
             headers=self._headers,
@@ -206,6 +211,7 @@ class ElasticsearchSink:
         resp.raise_for_status()
 
     def write_batch(self, entries: list[AuditEntry]) -> None:
+        """Index audit entries with the Elasticsearch bulk API."""
         if not entries:
             return
         import json as _json

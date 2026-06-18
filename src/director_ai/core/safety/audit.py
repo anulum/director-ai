@@ -75,6 +75,7 @@ class AuditEntry:
     chain_tag: str = ""
 
     def to_json(self) -> str:
+        """Serialise the audit entry as compact JSON for JSONL sinks."""
         return json.dumps(asdict(self), separators=(",", ":"))
 
 

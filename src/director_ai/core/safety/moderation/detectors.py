@@ -63,9 +63,11 @@ class ModerationDetector(ABC):
 
     @abstractmethod
     def analyse(self, text: str) -> ModerationResult:
-        """Return every match found in ``text``. Must be side-effect
-        free: calling ``analyse`` twice on the same input must
-        produce the same matches (model-based detectors that change
-        weights between calls should expose that behaviour through
-        a separate method)."""
+        """Return every match found in ``text``.
+
+        Implementations must be side-effect free: calling ``analyse`` twice on
+        the same input must produce the same matches. Model-based detectors that
+        change weights between calls should expose that behaviour through a
+        separate method.
+        """
         ...  # pragma: no cover

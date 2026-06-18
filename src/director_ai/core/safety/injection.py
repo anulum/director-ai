@@ -24,6 +24,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
+from typing import Any
 
 from ..mandatory import mandatory_execution
 from ..scoring.verified_scorer import _entity_overlap, _traceability
@@ -49,6 +50,7 @@ except ImportError:
         _reverse_divs: list[float],
         _baseline: float,
     ) -> list[tuple[float, float, float]]:
+        """Raise when the Rust divergence accelerator is unavailable."""
         raise RuntimeError(
             "backfire_kernel rust_bidirectional_divergence is unavailable"
         )
@@ -58,14 +60,17 @@ except ImportError:
         _traceabilities: list[float],
         _entity_matches: list[float],
         _sanitizer_score: float,
-        **_kwargs,
+        **_kwargs: Any,
     ) -> tuple[list[tuple[int, float]], float, float, bool]:
+        """Raise when the Rust injection-verdict accelerator is unavailable."""
         raise RuntimeError("backfire_kernel rust_injection_verdict is unavailable")
 
     def rust_split_sentences(_text: str) -> list[str]:
+        """Raise when the Rust sentence-splitting accelerator is unavailable."""
         raise RuntimeError("backfire_kernel rust_split_sentences is unavailable")
 
     def rust_sum_f64(_values: list[float]) -> float:
+        """Raise when the Rust floating-point summation accelerator is unavailable."""
         raise RuntimeError("backfire_kernel rust_sum_f64 is unavailable")
 
     _RUST_INJECTION = True
@@ -120,8 +125,8 @@ class InjectionDetector:
 
     def __init__(
         self,
-        nli_scorer=None,
-        sanitizer=None,
+        nli_scorer: Any = None,
+        sanitizer: Any = None,
         injection_threshold: float = 0.7,
         drift_threshold: float = 0.6,
         injection_claim_threshold: float = 0.75,

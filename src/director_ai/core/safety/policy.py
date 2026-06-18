@@ -6,7 +6,7 @@
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI — YAML Policy Engine
 
-"""Declarative policy enforcement for LLM output.
+r"""Declarative policy enforcement for LLM output.
 
 Load rules from a YAML file (or dict) and check responses for
 forbidden phrases, required citations, length limits, and regex patterns.
@@ -39,7 +39,7 @@ from __future__ import annotations
 import re
 from collections.abc import Iterable
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:  # pragma: no cover
     from .moderation.detectors import ModerationDetector
@@ -68,22 +68,23 @@ class Policy:
     """
 
     forbidden: list[str] = field(default_factory=list)
-    patterns: list[dict] = field(default_factory=list)
+    patterns: list[dict[str, Any]] = field(default_factory=list)
     max_length: int = 0
     required_citations_pattern: str = ""
     required_citations_min: int = 0
     moderation_detectors: list[ModerationDetector] = field(default_factory=list)
 
-    _compiled_forbidden: list[re.Pattern] = field(
+    _compiled_forbidden: list[re.Pattern[str]] = field(
         default_factory=list,
         repr=False,
     )
-    _compiled_patterns: list[tuple[str, re.Pattern, str]] = field(
+    _compiled_patterns: list[tuple[str, re.Pattern[str], str]] = field(
         default_factory=list,
         repr=False,
     )
 
     def __post_init__(self) -> None:
+        """Compile policy phrases and regex rules before evaluation."""
         self._compiled_forbidden = [
             re.compile(re.escape(phrase), re.IGNORECASE) for phrase in self.forbidden
         ]
@@ -102,7 +103,7 @@ class Policy:
                 self._compiled_patterns.append((name, compiled, action))
 
     @classmethod
-    def from_dict(cls, data: dict) -> Policy:
+    def from_dict(cls, data: dict[str, Any]) -> Policy:
         """Build a Policy from a plain dict (parsed YAML)."""
         forbidden = data.get("forbidden", [])
         patterns = data.get("patterns", [])
@@ -191,10 +192,11 @@ class Policy:
         self,
         detectors: Iterable[ModerationDetector],
     ) -> Policy:
-        """Return a copy of the policy with the supplied moderation
-        detectors appended. The Policy dataclass is otherwise
-        immutable-by-convention; this helper avoids awkward
-        ``dataclasses.replace`` calls in application code."""
+        """Return a copy with the supplied moderation detectors appended.
+
+        The Policy dataclass is otherwise immutable-by-convention; this helper
+        avoids awkward ``dataclasses.replace`` calls in application code.
+        """
         new = Policy(
             forbidden=list(self.forbidden),
             patterns=list(self.patterns),

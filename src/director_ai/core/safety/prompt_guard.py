@@ -6,8 +6,7 @@
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI — model-backed prompt-injection / jailbreak input screen
 
-"""A model-backed classifier for jailbreak and prompt-injection *input*
-prompts, and a layered guard that runs it after the pattern sanitizer.
+"""Model-backed jailbreak and prompt-injection input screening.
 
 The pattern :class:`~director_ai.core.safety.sanitizer.InputSanitizer` catches
 the documented jailbreak vocabulary (DAN, "ignore previous instructions",
@@ -178,6 +177,7 @@ class LayeredPromptGuard:
         self._model = model
 
     def screen(self, text: str) -> PromptScreenResult:
+        """Screen one prompt through pattern and optional model stages."""
         pattern = self._sanitizer.score(text)
         if pattern.blocked:
             # Known attack — do not pay for model inference.
@@ -207,11 +207,14 @@ class LayeredPromptGuard:
         )
 
     def screen_many(self, prompts: Sequence[str]) -> list[PromptScreenResult]:
+        """Screen prompts in order and return one result per prompt."""
         return [self.screen(p) for p in prompts]
 
     def check(self, text: str) -> PromptScreenResult:
-        """Alias for :meth:`screen` — the result exposes ``blocked`` and
-        ``reason``, so a :class:`LayeredPromptGuard` is a drop-in replacement
-        for an :class:`InputSanitizer` on the server request path.
+        """Alias :meth:`screen` for sanitizer-compatible request paths.
+
+        The result exposes ``blocked`` and ``reason``, so a
+        :class:`LayeredPromptGuard` is a drop-in replacement for an
+        :class:`InputSanitizer` on the server request path.
         """
         return self.screen(text)

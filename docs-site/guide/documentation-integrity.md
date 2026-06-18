@@ -96,7 +96,8 @@ PY
   findings; the license and tenant ratchet reduced it to 1,019 findings; the
   backend, policy, and secrets ratchet reduced it to 1,011 findings; the core
   package export and verification-export ratchet reduced it to 1,010 findings;
-  the full verification package ratchet reduced it to 994 findings. Keep
+  the full verification package ratchet reduced it to 994 findings; the safety
+  package ratchet reduced it to 964 findings. Keep
   generated protobuf files out of manual cleanup unless the
   generation pipeline changes. As of 2026-06-18, `core/__init__.py`,
   `core/_device.py`, `core/_heuristics.py`, `core/attribution`, `core/backends.py`,
@@ -107,7 +108,8 @@ PY
   `core/execution_rings`, `core/guard_control`, `core/irreversibility`,
   `core/knowledge.py`, `core/license.py`, `core/mandatory.py`, `core/memory`,
   `core/meta_guard`, `core/ml_bom`, `core/output_integrity`, `core/output_trust`,
-  `core/policy.py`, `core/risk_threshold`, `core/safety_event.py`,
+  `core/policy.py`, `core/risk_threshold`, `core/safety`,
+  `core/safety_event.py`,
   `core/safety_protocol.py`, `core/secrets.py`, `core/self_healing`,
   `core/stats.py`, `core/sustainability`,
   `core/swarm_coherence`, `core/swarm_equilibrium`, `core/symbolic_chain`,

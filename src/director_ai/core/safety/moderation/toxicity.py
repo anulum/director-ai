@@ -246,11 +246,11 @@ class DetoxifyDetector(ModerationDetector):
 
 
 def _build_rust_scanner(patterns: list[tuple[str, str]]) -> Any | None:
-    """Instantiate a ``backfire_kernel.PiiScanner`` on the supplied
-    patterns, or return ``None`` when the Rust wheel is not
-    available. ``PiiScanner`` is the Rust multi-pattern regex
-    engine; the name tracks its first use site but the scanner
-    itself is content-agnostic.
+    """Instantiate a Rust multi-pattern scanner for toxicity patterns.
+
+    Return ``None`` when the Rust wheel is not available. ``PiiScanner`` is the
+    Rust multi-pattern regex engine; the name tracks its first use site but the
+    scanner itself is content-agnostic.
     """
     try:
         from backfire_kernel import PiiScanner as _RustScanner
