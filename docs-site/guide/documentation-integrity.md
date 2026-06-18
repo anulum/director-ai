@@ -62,12 +62,13 @@ PY
   `core/eval_trace`, `core/evaluation`, `core/exceptions.py`,
   `core/evidence_packet`, `core/forecasting`, `core/ingestion`,
   `core/execution_rings`, `core/guard_control`, `core/irreversibility`,
-  `core/knowledge.py`, `core/mandatory.py`, `core/memory`,
+  `core/knowledge.py`, `core/license.py`, `core/mandatory.py`, `core/memory`,
   `core/meta_guard`, `core/ml_bom`, `core/output_integrity`,
   `core/output_trust`, `core/risk_threshold`, `core/safety_event.py`,
   `core/safety_protocol.py`, `core/self_healing`, `core/stats.py`,
   `core/sustainability`, `core/swarm_coherence`, `core/swarm_equilibrium`,
-  `core/symbolic_chain`, `core/temporal_consistency`, `core/text_overlap.py`,
+  `core/symbolic_chain`, `core/temporal_consistency`, `core/tenant.py`,
+  `core/text_overlap.py`,
   `core/threat_intel`, `core/trace_safe`, `core/types.py`, and
   `core/vector_store.py`.
 
@@ -91,7 +92,8 @@ PY
   evaluation, forecasting, ingestion, memory, and self-healing ratchet reduced
   it to 1,033 findings; the core utility-file ratchet reduced it to 1,028
   findings; the retrieval compatibility-shim ratchet reduced it to 1,023
-  findings. Keep generated protobuf files out of manual cleanup unless the
+  findings; the license and tenant ratchet reduced it to 1,019 findings. Keep
+  generated protobuf files out of manual cleanup unless the
   generation pipeline changes. As of 2026-06-18, `core/_device.py`,
   `core/_heuristics.py`, `core/attribution`, `core/calibration`, `core/canary`,
   `core/containment`, `core/consensus`, `core/doc_chunker.py`,
@@ -99,14 +101,15 @@ PY
   `core/eval_trace`, `core/evaluation`, `core/exceptions.py`,
   `core/evidence_packet`, `core/forecasting`, `core/ingestion`,
   `core/execution_rings`, `core/guard_control`, `core/irreversibility`,
-  `core/knowledge.py`, `core/mandatory.py`, `core/memory`, `core/meta_guard`,
-  `core/ml_bom`, `core/output_integrity`, `core/output_trust`,
+  `core/knowledge.py`, `core/license.py`, `core/mandatory.py`, `core/memory`,
+  `core/meta_guard`, `core/ml_bom`, `core/output_integrity`, `core/output_trust`,
   `core/risk_threshold`, `core/safety_event.py`, `core/safety_protocol.py`,
   `core/self_healing`, `core/stats.py`, `core/sustainability`,
   `core/swarm_coherence`, `core/swarm_equilibrium`, `core/symbolic_chain`,
-  `core/temporal_consistency`, `core/text_overlap.py`, `core/threat_intel`,
-  `core/trace_safe`, `core/types.py`, and `core/vector_store.py` have been
-  added to the same blocking docstring ratchet as `core/config.py` and
+  `core/temporal_consistency`, `core/tenant.py`, `core/text_overlap.py`,
+  `core/threat_intel`, `core/trace_safe`, `core/types.py`, and
+  `core/vector_store.py` have been added to the same blocking docstring ratchet
+  as `core/config.py` and
   `core/scoring/scorer.py`.
 - Repo-wide strict mypy remains open. The live 2026-06-18 measurement for
   `mypy --strict src/director_ai` found 621 errors in 93 files. The configured

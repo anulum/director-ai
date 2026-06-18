@@ -30,6 +30,7 @@ import threading
 import time
 from dataclasses import asdict, dataclass
 from pathlib import Path
+from typing import Any
 
 from .retrieval.knowledge import GroundTruthStore
 from .retrieval.vector_store import (
@@ -111,7 +112,7 @@ class TenantRouter:
         self,
         tenant_id: str,
         backend_type: str = "memory",
-        **kwargs,
+        **kwargs: Any,
     ) -> VectorGroundTruthStore:
         """Get or create a tenant-isolated VectorGroundTruthStore.
 
@@ -136,7 +137,7 @@ class TenantRouter:
     def _build_vector_backend(
         tenant_id: str,
         backend_type: str,
-        **kwargs,
+        **kwargs: Any,
     ) -> VectorBackend:
         if backend_type == "memory":
             return InMemoryBackend()

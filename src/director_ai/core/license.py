@@ -42,6 +42,8 @@ def _signing_secret() -> bytes:
 
 @dataclass(frozen=True)
 class LicenseInfo:
+    """Validated license state returned by local license checks."""
+
     tier: str = "community"
     licensee: str = ""
     email: str = ""
@@ -54,14 +56,17 @@ class LicenseInfo:
 
     @property
     def is_commercial(self) -> bool:
+        """Return whether the license unlocks paid deployment rights."""
         return self.valid and self.tier in ("indie", "pro", "enterprise")
 
     @property
     def is_trial(self) -> bool:
+        """Return whether the license is an active trial license."""
         return self.valid and self.tier == "trial"
 
     @property
     def expired(self) -> bool:
+        """Return whether the license expiry is missing or already past."""
         if not self.expires:
             return False
         try:
@@ -228,7 +233,7 @@ def generate_license(
     email: str,
     days: int = 365,
     deployments: int = 1,
-) -> dict:
+) -> dict[str, str | int]:
     """Generate a signed license file (for admin/sales use).
 
     Returns a dict ready to be written as JSON.
@@ -238,7 +243,7 @@ def generate_license(
     now = datetime.now(UTC)
     from datetime import timedelta
 
-    payload = {
+    payload: dict[str, str | int] = {
         "key": f"DAI-{tier.upper()}-{uuid.uuid4()}",
         "tier": tier.lower(),
         "licensee": licensee,
