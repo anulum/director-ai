@@ -1,8 +1,34 @@
 {
   "benchmark": "streaming_contradiction_halt",
+  "benchmark_context": {
+    "command": [
+      "/media/anulum/GOTM/aaa_God_of_the_Math_Collection/03_CODE/DIRECTOR-AI/.venv/bin/python",
+      "-m",
+      "benchmarks.streaming_contradiction_halt_bench",
+      "--model",
+      "MoritzLaurer/DeBERTa-v3-large-mnli-fever-anli-ling-wanli",
+      "--threshold",
+      "0.2",
+      "--device",
+      "-1",
+      "--tag",
+      "base"
+    ],
+    "host": "aaarthuus",
+    "machine": "x86_64",
+    "processor": "x86_64",
+    "python": "3.12.13",
+    "platform": "Linux-6.17.0-35-generic-x86_64-with-glibc2.39",
+    "load_average": [
+      11.9897,
+      7.4531,
+      6.3921
+    ],
+    "isolation": "non_isolated_local_regression"
+  },
   "gate": "contradiction",
   "model": "MoritzLaurer/DeBERTa-v3-large-mnli-fever-anli-ling-wanli",
-  "device": "cuda:0 (NVIDIA GeForce GTX 1060 6GB)",
+  "device": "cpu",
   "threshold": 0.2,
   "n_good": 135,
   "n_bad": 3,
@@ -18,7 +44,7 @@
     "median_halt_latency_tokens": 7.5,
     "token_tolerance": 8
   },
-  "wall_ms": 8177.42,
+  "wall_ms": 216670.31,
   "per_good": [
     {
       "id": "water_boiling",
@@ -248,7 +274,7 @@
     {
       "id": "magellan_circumnavigation",
       "halted": true,
-      "contradiction": 0.50390625
+      "contradiction": 0.5029296875
     },
     {
       "id": "sahara_desert",
@@ -633,7 +659,7 @@
     {
       "id": "summary_periodic_table",
       "halted": true,
-      "contradiction": 0.80615234375
+      "contradiction": 0.80712890625
     },
     {
       "id": "summary_moon_landing",

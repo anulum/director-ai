@@ -7,17 +7,30 @@ checks run.
 
 ## The Streaming Problem
 
-Every major LLM provider defaults to streaming. OpenAI, Anthropic, Google — they all send tokens as they're generated. Users see the response character by character.
+Every major LLM provider defaults to streaming. OpenAI, Anthropic, Google — they
+all send tokens as they are generated. Users see the response character by
+character.
 
-Post-hoc guardrails check *after* generation completes. By then, the user already read the hallucination. The damage is done: a wrong medication dosage displayed for 3 seconds, a fabricated legal citation copied into a brief, an incorrect refund policy quoted to an angry customer.
+Post-hoc guardrails check *after* generation completes. By then, the user may
+already have read the unsupported claim: a wrong medication dosage displayed for
+3 seconds, a fabricated legal citation copied into a brief, or an incorrect
+refund policy quoted to a customer.
 
-The industry standard — generate first, check later — is a UX failure.
+The industry standard — generate first, check later — is the wrong UX boundary
+for fact-critical streams.
 
 ## What Director-AI Does Differently
 
-Director-AI scores coherence **as tokens arrive**, not after the full response is assembled.
+Director-AI makes factual coherence a control point before output is accepted,
+stored, routed, or acted on.
 
-**Token-level halt.** `StreamingKernel` evaluates every N tokens against your knowledge base. If coherence drops below threshold mid-stream, generation stops immediately. The user never sees the hallucinated content.
+**Token-level halt.** The production streaming signal is contradiction-driven:
+completed streamed claims are checked against retrieved facts and the stream
+halts when a claim contradicts governed knowledge. The latest local benchmark
+artifact (`benchmarks/results/streaming_contradiction_halt_base.json`) reports
+2/135 false halts and 2/3 caught contradiction passages on the small streaming
+suite; broader held-out contradiction evidence is recorded in
+`benchmarks/results/contradiction_holdout_finetuned.json`.
 
 **Dual-entropy scoring.** Two independent signals:
 
@@ -26,7 +39,9 @@ Director-AI scores coherence **as tokens arrive**, not after the full response i
 
 The final score combines both: `coherence = 1 - (0.6 * H_logical + 0.4 * H_factual)`.
 
-**Evidence on rejection.** Every halt includes the specific KB chunks that contradicted the response. No black-box "this was flagged" — your users (or your QA team) see exactly *why*.
+**Evidence on rejection.** Every halt includes the specific KB chunks that
+contradicted the response. No black-box "this was flagged" — your users or QA
+team see exactly why.
 
 **0.4B parameters, sub-millisecond latency.** FactCG-DeBERTa-v3-Large runs at 0.5 ms/pair on an L40S (FP16, batch=32). No API calls, no metering, no rate limits.
 
@@ -51,7 +66,7 @@ You can (and should) combine Director-AI with these tools. Director-AI guards fa
 | Your Situation | Recommendation |
 |----------------|----------------|
 | RAG chatbot with a knowledge base | Director-AI with `VectorGroundTruthStore` — [KB Ingestion guide](kb-ingestion.md) |
-| Streaming LLM responses to users | Director-AI `StreamingKernel` — [Streaming guide](../guide/streaming.md) |
+| Streaming LLM responses to users | Director-AI contradiction-driven `StreamingKernel` — [Streaming guide](streaming.md) |
 | LLM agent making multi-step decisions | Director-AI `CoherenceAgent` — [API reference](../api/agent.md) |
 | Customer support bot with product facts | Director-AI with domain-specific KB — [Support cookbook](../cookbook/customer-support.md) |
 | Medical / legal / finance compliance | Director-AI with curated KB plus a tuned profile; stock regulated profiles are calibration starting points |

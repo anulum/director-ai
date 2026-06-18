@@ -23,7 +23,7 @@ boundaries with :func:`ends_claim`, and runs the contradiction check on each
 freshly completed claim. The metrics mirror the original bench so the two are
 directly comparable:
 
-* false-halt rate  — fraction of *correct* passages wrongly halted;
+* false-halt rate  — fraction of *correct* passages halted;
 * recall           — fraction of *hallucinated* passages caught;
 * token-of-halt accuracy / latency — how close the halt token is to the labelled
   contradiction token.
@@ -38,7 +38,10 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
+import platform
 import statistics
+import sys
 import time
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass
@@ -179,6 +182,30 @@ def _build_halt(model_id: str, threshold: float, device: int):
     return make_check, scorer.threshold
 
 
+def _runtime_metadata() -> dict[str, object]:
+    """Return host context for non-isolated local benchmark evidence."""
+
+    try:
+        load_avg = tuple(round(value, 4) for value in os.getloadavg())
+    except OSError:
+        load_avg = ()
+    return {
+        "command": [
+            sys.executable,
+            "-m",
+            "benchmarks.streaming_contradiction_halt_bench",
+            *sys.argv[1:],
+        ],
+        "host": platform.node(),
+        "machine": platform.machine(),
+        "processor": platform.processor(),
+        "python": platform.python_version(),
+        "platform": platform.platform(),
+        "load_average": load_avg,
+        "isolation": "non_isolated_local_regression",
+    }
+
+
 def run_benchmark(
     model_id: str,
     *,
@@ -227,6 +254,7 @@ def run_benchmark(
 
     return {
         "benchmark": "streaming_contradiction_halt",
+        "benchmark_context": _runtime_metadata(),
         "gate": "contradiction",
         "model": model_id,
         "device": _device_label(device),

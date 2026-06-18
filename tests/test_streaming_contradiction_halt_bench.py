@@ -19,6 +19,7 @@ from __future__ import annotations
 from benchmarks.streaming_contradiction_halt_bench import (
     StreamHaltOutcome,
     _aggregate,
+    _runtime_metadata,
     stream_until_contradiction,
 )
 from benchmarks.streaming_false_halt_bench import _tokenize_simple
@@ -142,3 +143,11 @@ def test_aggregate_empty_sets_are_safe() -> None:
     assert m["false_halt_rate"] == 0.0
     assert m["halt_recall"] == 0.0
     assert m["halt_precision"] == 0.0
+
+
+def test_runtime_metadata_labels_non_isolated_evidence() -> None:
+    meta = _runtime_metadata()
+    assert meta["isolation"] == "non_isolated_local_regression"
+    assert isinstance(meta["command"], list)
+    assert meta["python"]
+    assert meta["platform"]

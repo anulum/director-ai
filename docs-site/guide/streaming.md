@@ -1,23 +1,30 @@
 # Streaming Halt
 
-!!! warning "Experimental — not a production gate yet"
-    The token-level streaming halt is **opt-in and under active calibration.**
-    On our own false-halt benchmark (`benchmarks/streaming_false_halt_bench.py`,
-    135 grounded passages) it cannot yet separate hallucinated from correct
-    streaming text without a high false-halt rate: the coherence scores of
-    correct and incorrect partial text overlap, so any threshold that catches
-    the hallucinations also halts a large fraction of correct answers. The
-    production-validated path is **response-level scoring** (`/v1/review`,
-    benchmarked on LLM-AggreFact). Do not rely on the streaming halt as a
-    production safety gate until this is resolved.
+!!! success "Contradiction halt replaces the old coherence callback"
+    Director-AI's streaming halt now uses the contradiction-driven claim gate for
+    production streaming deployments. Completed streamed claims are scored for
+    `P(contradiction)` against retrieved grounding facts, and the stream halts
+    when a claim contradicts governed knowledge. The older coherence callback is
+    kept as a generic `StreamingKernel` example, but it is no longer the
+    recommended production streaming signal.
+
+    Current local proof is
+    `benchmarks/results/streaming_contradiction_halt_base.json`: threshold 0.2,
+    135 grounded passages, 3 contradiction passages, false-halt rate 0.0148
+    (2/135), recall 0.6667 (2/3), CPU rerun on host `aaarthuus`, Python 3.12.13,
+    labelled `non_isolated_local_regression`. The broader held-out
+    contradiction evaluation in
+    `benchmarks/results/contradiction_holdout_finetuned.json` reports AUC
+    0.9885 and recall 0.9741 at threshold 0.2 over 6,321 held-out pairs; promote
+    those fine-tuned weights only after the release artefact is published and
+    pinned.
 
 ## Overview
 
-`StreamingKernel` monitors coherence by re-scoring the accumulated text
-after each token (or every N-th token with `score_every_n`). Scoring is
-sentence-level re-evaluation of the full accumulated output, not
-independent per-token analysis. When coherence degrades, generation is
-halted. Three independent halt mechanisms:
+`StreamingKernel` monitors a caller-supplied score by re-scoring the accumulated
+text after each token (or every N-th token with `score_every_n`). The production
+streaming signal is the contradiction-driven claim gate below; the generic
+kernel still provides three halt mechanisms:
 
 1. **Hard limit** — any single token below threshold
 2. **Sliding window** — rolling average drops below window threshold
@@ -382,11 +389,11 @@ launching Gradio.
   scorer re-runs the full NLI pipeline on the accumulated text. There is
   no server-side per-token scoring.
 
-## Contradiction-driven halt (opt-in)
+## Contradiction-driven halt
 
 The coherence halt above folds *unsupported* into *divergence*
 (`divergence = P(contradiction) + 0.5·P(neutral)`), so a correct-but-unmentioned
-claim scores low and is wrongly halted. The contradiction-driven halt instead
+claim can score low and be halted. The contradiction-driven halt instead
 fires only when a completed claim **contradicts** the retrieved grounding — a
 correct-but-unsupported claim is neutral, not a contradiction, so it is allowed.
 
@@ -400,8 +407,8 @@ How it works:
 - an ungrounded claim (no retrieval hit) never halts — an absent fact is not a
   contradiction.
 
-Enable it on the server via configuration (opt-in, off by default; needs the
-`nli` extra):
+Enable it on the server via configuration. It is off by default because it needs
+the `nli` extra and deployment-owned latency sizing:
 
 ```python
 DirectorConfig(
@@ -412,6 +419,18 @@ DirectorConfig(
 ```
 
 ### Measured behaviour
+
+Current streaming proof:
+
+| Artefact | Device | Correct passages | Contradiction passages | False-halt | Recall | Notes |
+|---|---|---:|---:|---:|---:|---|
+| `benchmarks/results/streaming_contradiction_halt_base.json` | CPU | 135 | 3 | 0.0148 | 0.6667 | Local non-isolated rerun on `aaarthuus`; command and load average are recorded in `benchmark_context` |
+
+This proves the streaming halt is fixed for contradiction-scoped claims: the
+current gate keeps 133/135 grounded passages open and catches 2/3 labelled
+contradiction passages. It does not claim to halt every unsupported addition;
+ungrounded claims are deliberately left to response-level review because absence
+of evidence is not a contradiction.
 
 On synthesised, unambiguous contradictions
 (`benchmarks/contradiction_recall.py`, 25,882 injected variants of supported
@@ -425,10 +444,9 @@ fire on. Passage-level grounding (`--granularity passage`) does not help — the
 max over several passages adds noise and raises false-halt without lifting
 recall.
 
-The off-the-shelf model caps near 51 % recall on clean contradictions, so this
-remains an opt-in experimental gate rather than a default; a model fine-tuned on
-the contradiction-vs-unsupported boundary is the path to higher recall. Reproduce
-with `python -m benchmarks.contradiction_recall` and
+The off-the-shelf model caps near 51 % recall on clean injected contradictions;
+a model fine-tuned on the contradiction-vs-unsupported boundary is the path to
+higher recall. Reproduce with `python -m benchmarks.contradiction_recall` and
 `python -m benchmarks.contradiction_aggrefact` (`--device 0` for GPU).
 
 ### Fine-tuned held-out result

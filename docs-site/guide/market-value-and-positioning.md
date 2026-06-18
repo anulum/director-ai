@@ -8,8 +8,8 @@
 
 ## Why teams buy this
 
-Most teams adopt LLMs because they improve speed. They only need to fail on one
-high-risk output to lose trust.
+Most teams adopt LLMs because they improve speed. One high-risk output can be
+enough to lose trust.
 
 Director-AI reduces that risk where decisions are fact-critical:
 
@@ -19,7 +19,7 @@ Director-AI reduces that risk where decisions are fact-critical:
 - multi-agent systems that execute tools,
 - and internal documentation intelligence.
 
-The common failure mode is the same across all of these:
+The common risk pattern is the same across all of these:
 
 1. a response is partially correct;
 2. one unsupported claim is injected;
@@ -27,6 +27,12 @@ The common failure mode is the same across all of these:
 
 Director-AI closes that gap with stream-aware fact grounding and auditable
 fallback controls.
+
+The streaming moat is the contradiction-driven halt: completed claims are
+checked against governed facts during generation, and contradictory claims can
+halt before the stream continues. Unsupported-but-not-contradictory claims are
+handled by the response-level review path because absence of evidence is not the
+same signal as contradiction.
 
 ## Commercial value by lane
 
@@ -45,8 +51,8 @@ It is a **factual-coherence gate**.
 
 Compared with alternatives, its positioning is explicit:
 
-- **vs prompt-only guardrails**: stronger verification because signals are applied
-  during streaming, not only after completion;
+- **vs prompt-only guardrails**: stronger verification because contradiction
+  signals can be applied during streaming, not only after completion;
 - **vs LLM-judge wrappers**: lower cost and deterministic controls in
   NLI/zero-dependency modes;
 - **vs moderation-only stacks**: explicit fact provenance and evidence linking at

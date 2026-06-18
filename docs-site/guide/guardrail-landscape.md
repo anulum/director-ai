@@ -10,8 +10,8 @@
 
 Last reviewed: 2026-06-02.
 
-LLM guardrails are not one product category. They cover several different
-failure modes, and a system that performs well in one category may not protect
+LLM guardrails are not one product category. They cover several different risk
+surfaces, and a system that performs well in one category may not protect
 another category at all. Director-AI is positioned as a factual-coherence and
 evidence-control layer, not as a replacement for moderation, access control, or
 human review.
@@ -83,7 +83,7 @@ statement is:
 | Harm and policy moderation | Primary | Depends on configured model | Primary | Complementary |
 | Grounded factuality scoring | Usually limited | Depends on configured checks | Limited to service-specific features | Primary |
 | Private RAG evidence links | Usually no | Possible with integration work | Platform-specific | Yes |
-| Token-level streaming halt | Usually no | Usually post-call or flow-level | Often complete-response only | Yes |
+| Token-level streaming halt | Usually no | Usually post-call or flow-level | Often complete-response only | Yes, contradiction-driven |
 | Local/offline scoring path | Often yes for open models | Depends on model provider | No | Yes |
 | API/proxy/SDK deployment | Varies | Yes | Managed service APIs | Yes |
 | Customer-specific evidence packs | Usually no | Operator-built | Platform-specific | Yes |
@@ -105,6 +105,9 @@ Keep these statements separate in external material:
    claims.
 6. Customer-specific acceptance results, which require customer data and
    customer approval criteria.
+7. Contradiction-driven streaming-halt results, which prove the replacement
+   streaming signal for contradiction-scoped claims but should not be reworded as
+   coverage of every unsupported addition.
 
 ## Sources To Recheck Before External Claims
 
