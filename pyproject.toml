@@ -620,6 +620,8 @@ module = [
     "director_ai.core.irreversibility",
     "director_ai.core.irreversibility.*",
     "director_ai.core.knowledge",
+    "director_ai.core.labelling_cockpit",
+    "director_ai.core.labelling_cockpit.*",
     "director_ai.core.license",
     "director_ai.core.mandatory",
     "director_ai.core.memory",

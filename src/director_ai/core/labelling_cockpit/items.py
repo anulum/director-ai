@@ -57,6 +57,7 @@ class LabelItem:
     response: str = ""
 
     def __post_init__(self) -> None:
+        """Validate item identity, score bounds, and optional label."""
         if not self.item_id.strip():
             raise ValueError("item_id is required")
         if not math.isfinite(self.score) or not 0.0 <= self.score <= 1.0:

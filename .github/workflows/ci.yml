@@ -87,6 +87,7 @@ jobs:
           src/director_ai/core/guard_control
           src/director_ai/core/irreversibility
           src/director_ai/core/knowledge.py
+          src/director_ai/core/labelling_cockpit
           src/director_ai/core/license.py
           src/director_ai/core/mandatory.py
           src/director_ai/core/memory
