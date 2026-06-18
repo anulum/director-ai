@@ -101,14 +101,15 @@ PY
   ratchet reduced it to 943 findings; the agent-preflight package ratchet
   reduced it to 941 findings; the answer-BOM package ratchet reduced it to 939
   findings; the autopoietic package ratchet reduced it to 909 findings; the
-  causal-verifier package ratchet reduced it to 897 findings. Keep
+  causal-verifier package ratchet reduced it to 897 findings; the
+  citation-grounding package ratchet reduced it to 889 findings. Keep
   generated protobuf files out of manual cleanup unless the
   generation pipeline changes. As of 2026-06-18, `core/__init__.py`,
   `core/_device.py`, `core/_heuristics.py`, `core/agent_identity`,
   `core/agent_preflight`, `core/answer_bom`, `core/attribution`,
   `core/autopoietic`, `core/backends.py`,
   `core/calibration`, `core/canary`, `core/causal_verifier`,
-  `core/containment`, `core/consensus`, `core/doc_chunker.py`,
+  `core/citation_grounding`, `core/containment`, `core/consensus`, `core/doc_chunker.py`,
   `core/doc_parser.py`, `core/doc_registry.py`, `core/edge`,
   `core/eval_trace`, `core/evaluation`, `core/exceptions.py`,
   `core/evidence_packet`, `core/forecasting`, `core/ingestion`,

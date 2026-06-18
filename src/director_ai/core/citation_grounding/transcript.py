@@ -49,9 +49,9 @@ DEFAULT_SYSTEM_PROMPT = (
 class Generator(Protocol):
     """A text generator returning candidate dicts with a ``text`` key."""
 
-    def generate_candidates(
-        self, prompt: str, n: int
-    ) -> Sequence[Mapping[str, Any]]: ...  # pragma: no cover
+    def generate_candidates(self, prompt: str, n: int) -> Sequence[Mapping[str, Any]]:
+        """Generate up to ``n`` candidate responses for ``prompt``."""
+        ...  # pragma: no cover
 
 
 @dataclass(frozen=True)
@@ -62,6 +62,7 @@ class ExchangeTurn:
     response: str
 
     def to_dict(self) -> dict[str, str]:
+        """Serialise the exchange turn for transcript reports."""
         return {"prompt": self.prompt, "response": self.response}
 
 
@@ -77,6 +78,7 @@ class Transcript:
         return "\n\n".join(t.response for t in self.turns if t.response)
 
     def to_dict(self) -> dict[str, object]:
+        """Serialise every exchange turn in this transcript."""
         return {"turns": [t.to_dict() for t in self.turns]}
 
 

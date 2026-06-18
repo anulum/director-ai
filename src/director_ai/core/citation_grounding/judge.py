@@ -46,7 +46,9 @@ _MIN_CLAIM_WORDS = 4
 class Scorer(Protocol):
     """Anything that scores divergence: ``0`` = entailment, ``1`` = contradiction."""
 
-    def score(self, premise: str, hypothesis: str) -> float: ...  # pragma: no cover
+    def score(self, premise: str, hypothesis: str) -> float:
+        """Return divergence for ``hypothesis`` against ``premise``."""
+        ...  # pragma: no cover
 
 
 @dataclass(frozen=True)
@@ -60,6 +62,7 @@ class ClaimGrounding:
     cited: tuple[str, ...] = ()  # resolved identifiers cited by this claim
 
     def to_dict(self) -> dict[str, object]:
+        """Serialise this claim-grounding result for reports."""
         return {
             "claim": self.claim,
             "has_citation": self.has_citation,
@@ -77,6 +80,7 @@ class GroundingReport:
 
     @property
     def total(self) -> int:
+        """Return the number of assertions in the report."""
         return len(self.claims)
 
     @property
@@ -99,6 +103,7 @@ class GroundingReport:
         return tuple(c for c in self.claims if not c.grounded)
 
     def to_dict(self) -> dict[str, object]:
+        """Serialise this grounding report without source text."""
         return {
             "total": self.total,
             "grounded_fraction": round(self.grounded_fraction, 4),

@@ -65,6 +65,7 @@ jobs:
           src/director_ai/core/calibration
           src/director_ai/core/canary
           src/director_ai/core/causal_verifier
+          src/director_ai/core/citation_grounding
           src/director_ai/core/config.py
           src/director_ai/core/scoring/scorer.py
           src/director_ai/core/containment

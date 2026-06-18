@@ -591,6 +591,8 @@ module = [
     "director_ai.core.canary.*",
     "director_ai.core.causal_verifier",
     "director_ai.core.causal_verifier.*",
+    "director_ai.core.citation_grounding",
+    "director_ai.core.citation_grounding.*",
     "director_ai.core.consensus",
     "director_ai.core.consensus.*",
     "director_ai.core.doc_chunker",
