@@ -123,9 +123,10 @@ class BehavioralFingerprint:
         return self._state[feature].stddev
 
     def z_score(self, feature: str, value: float) -> float:
-        """Return the z-score of ``value`` against the running
-        distribution of ``feature``. ``0.0`` when the feature has
-        fewer than :attr:`min_samples` samples or zero variance.
+        """Return a feature value's z-score against the running distribution.
+
+        Returns ``0.0`` when the feature has fewer than :attr:`min_samples`
+        samples or zero variance.
         """
         if feature not in self._state:
             return 0.0
@@ -140,8 +141,11 @@ class BehavioralFingerprint:
 
 @dataclass(frozen=True)
 class IdentityAnomaly:
-    """Result of an :meth:`IdentityMonitor.evaluate` call when the
-    observation drifts past the z-score threshold."""
+    """Result from an observation that exceeds the z-score threshold.
+
+    Instances are returned by :meth:`IdentityMonitor.evaluate` when the
+    observation drifts past the configured anomaly gate.
+    """
 
     feature: str
     z_score: float

@@ -69,6 +69,7 @@ class AgentPassport:
     signature: str = ""
 
     def __post_init__(self) -> None:
+        """Validate identity fields and issue/expiry timestamp ordering."""
         if not self.agent_id:
             raise ValueError("agent_id must be non-empty")
         if not self.role:
@@ -83,10 +84,12 @@ class AgentPassport:
             raise ValueError("expires_at must be >= issued_at")
 
     def canonical(self) -> bytes:
-        """Deterministic JSON-encoded bytes used as the HMAC
-        payload. Excludes the signature itself and uses sorted
-        keys + compact separators so bit-for-bit reproducibility
-        is guaranteed across Python versions and platforms."""
+        """Return deterministic JSON bytes used as the HMAC payload.
+
+        The canonical form excludes the signature itself and uses sorted keys
+        plus compact separators so bytes are reproducible across Python
+        versions and platforms.
+        """
         data = asdict(self)
         data.pop("signature", None)
         return json.dumps(data, sort_keys=True, separators=(",", ":")).encode("utf-8")
@@ -172,10 +175,11 @@ class PassportSigner:
         return replace(partial, signature=signature)
 
     def verify(self, passport: AgentPassport) -> None:
-        """Raise :class:`PassportVerificationError` when the
-        passport is expired, carries an unknown key id, or fails
-        signature comparison. Returns ``None`` on success so the
-        caller's ``try``/``except`` is the branching path."""
+        """Validate a passport or raise :class:`PassportVerificationError`.
+
+        Verification fails when the passport is expired, carries an unknown key
+        id, lacks a signature, or fails constant-time signature comparison.
+        """
         if not passport.signature:
             raise PassportVerificationError("passport has no signature")
         key = self._resolve_key(passport.key_id)
@@ -188,9 +192,10 @@ class PassportSigner:
             )
 
     def is_valid(self, passport: AgentPassport) -> bool:
-        """Boolean wrapper for :meth:`verify`. Useful in
-        expression contexts; prefer :meth:`verify` when the
-        caller needs the failure reason."""
+        """Return whether :meth:`verify` accepts the passport.
+
+        Prefer :meth:`verify` when the caller needs the failure reason.
+        """
         try:
             self.verify(passport)
         except PassportVerificationError:
@@ -198,9 +203,11 @@ class PassportSigner:
         return True
 
     def rotate(self, *, new_active_key: bytes, new_active_key_id: str) -> None:
-        """Promote a new key to active and move the previous one
-        into the inactive set so outstanding passports signed
-        under it still verify."""
+        """Promote a new signing key while preserving old-key verification.
+
+        The previous active key moves into the inactive set so outstanding
+        passports signed under it still verify.
+        """
         if len(new_active_key) < 32:
             raise ValueError("new_active_key must be at least 32 bytes")
         if not new_active_key_id:
@@ -223,4 +230,5 @@ class PassportSigner:
 
     @property
     def active_key_id(self) -> str:
+        """Return the key id used for newly issued passports."""
         return self._active_key_id

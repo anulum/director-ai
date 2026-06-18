@@ -47,6 +47,7 @@ class AuditEntry:
     tag: str
 
     def canonical_event(self) -> bytes:
+        """Return canonical event JSON bytes used for event hashing."""
         return json.dumps(self.event, sort_keys=True, separators=(",", ":")).encode(
             "utf-8"
         )
@@ -91,17 +92,21 @@ class AuditChain:
             return entry
 
     def __len__(self) -> int:
+        """Return the number of entries currently held in the chain."""
         with self._lock:
             return len(self._entries)
 
     def snapshot(self) -> tuple[AuditEntry, ...]:
+        """Return an immutable snapshot of the current audit entries."""
         with self._lock:
             return tuple(self._entries)
 
     def verify(self) -> tuple[bool, int | None]:
-        """Return ``(ok, first_bad_index)``. ``ok`` is ``False`` when
-        any entry has been tampered with; ``first_bad_index`` is
-        the 0-based index of the tampered entry (``None`` on success).
+        """Return the chain validity and first tampered entry index.
+
+        ``ok`` is ``False`` when any entry has been tampered with;
+        ``first_bad_index`` is the 0-based index of the tampered entry
+        (``None`` on success).
         """
         with self._lock:
             entries = tuple(self._entries)

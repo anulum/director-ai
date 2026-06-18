@@ -97,10 +97,12 @@ PY
   backend, policy, and secrets ratchet reduced it to 1,011 findings; the core
   package export and verification-export ratchet reduced it to 1,010 findings;
   the full verification package ratchet reduced it to 994 findings; the safety
-  package ratchet reduced it to 964 findings. Keep
+  package ratchet reduced it to 964 findings; the agent-identity package
+  ratchet reduced it to 943 findings. Keep
   generated protobuf files out of manual cleanup unless the
   generation pipeline changes. As of 2026-06-18, `core/__init__.py`,
-  `core/_device.py`, `core/_heuristics.py`, `core/attribution`, `core/backends.py`,
+  `core/_device.py`, `core/_heuristics.py`, `core/agent_identity`,
+  `core/attribution`, `core/backends.py`,
   `core/calibration`, `core/canary`, `core/containment`, `core/consensus`, `core/doc_chunker.py`,
   `core/doc_parser.py`, `core/doc_registry.py`, `core/edge`,
   `core/eval_trace`, `core/evaluation`, `core/exceptions.py`,

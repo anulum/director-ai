@@ -6,8 +6,7 @@
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI — persistent agent identity + behavioral provenance
 
-"""Cryptographically signed agent passports plus a behavioural
-fingerprint so the guardrail can detect identity hijacking.
+"""Signed agent passports plus behavioural identity-hijack detection.
 
 * :class:`AgentPassport` — immutable identity record with role,
   tenant, capabilities, issued-at / expires-at timestamps, and

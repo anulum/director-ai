@@ -23,9 +23,11 @@ except Exception:  # pragma: no cover - mandatory dependency
     _RUST_AGENT_IDENTITY = True
 
     def rust_mean(_values: list[float]) -> float:
+        """Raise when the Rust mean accelerator is unavailable."""
         raise RuntimeError("backfire_kernel rust_mean is unavailable")
 
     def rust_sum_f64(_values: list[float]) -> float:
+        """Raise when the Rust floating-point summation accelerator is unavailable."""
         raise RuntimeError("backfire_kernel rust_sum_f64 is unavailable")
 
 
@@ -68,6 +70,7 @@ class CoherenceHistoryEntry:
     decision: str
 
     def __post_init__(self) -> None:
+        """Validate event reference, coherence score, and decision label."""
         if not self.event_ref.strip():
             raise ValueError("event_ref must be non-empty")
         _validate_unit_interval("coherence_score", self.coherence_score)
