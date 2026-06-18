@@ -175,6 +175,20 @@ to run a scoped pilot.
 | Platform operator | Read [Production Guide](docs-site/deployment/production.md), [Metrics](docs-site/deployment/metrics.md), and [Runbooks](docs-site/deployment/runbooks.md) | Authenticated service, metrics scrape, and rollback/escalation path |
 | Enterprise pilot owner | Use [Evaluation Onboarding](docs-site/guide/onboarding.md) and [Notebook Gallery](docs-site/notebook-gallery.md) | Labelled sample, threshold decision, false-positive examples, owner sign-off |
 
+## Evidence-first deployment surfaces
+
+The public core is not only a scorer. It ships the surfaces operators need to
+prove what happened, where the guard ran, and which boundary stopped or allowed
+an output.
+
+| Surface | What it gives operators | Start here |
+|---|---|---|
+| Evidence packet CLI | A sealed local demo packet that approves one grounded answer, rejects one hallucinated answer, and verifies the packet digest | `director-ai evidence --emit evidence/` then `director-ai verify-evidence evidence/` |
+| Voice Guard | Token filtering and guarded TTS/STT pipeline adapters for voice AI flows | [Voice AI](docs-site/guide/voice-ai.md) |
+| Inference-server hooks | Pre-sampling reject/mask hooks for vLLM, TGI, and llama.cpp deployments | [Inference-server hooks](docs-site/integrations/inference-server-hooks.md) |
+| Supply-chain controls | Model/dependency provenance, SBOM/ML-BOM surfaces, and deployment pinning guidance | [Supply chain](docs-site/deployment/supply-chain.md) |
+| Guardrail forensics | Tenant-safe missed-case reports for score, evidence, model revision, and operator action review | [Guardrail forensics](docs-site/api/guardrail-forensics.md) |
+
 ### Core capabilities
 
 - **Response-level grounding** — scores a candidate answer against governed facts with NLI contradiction signals and retrieval evidence; benchmarked on LLM-AggreFact. This is the production-validated path.
@@ -598,30 +612,16 @@ Commercial licences for the advanced tier:
 [anulum.li/licensing](https://www.anulum.li/licensing) ·
 [director.class.ai@anulum.li](mailto:director.class.ai@anulum.li)
 
-## Support the project
+## Support and commercial paths
 
-Director-AI is built and maintained independently. Purchases and donations
-directly fund continued development — they are genuinely appreciated and keep the
-project alive and moving. Ways to help:
-
-- **Start free** with Director-Lite —
-  `pip install director-ai-lite`. This is the PyPI-first adoption package.
-- **Buy Director-AI Pro** for Advanced & Labs production use —
-  [anulum.li/licensing](https://www.anulum.li/licensing) /
-  [pricing](https://anulum.github.io/director-ai/pricing/). Gets you production
-  rights for the advanced tier, support, and a self-hosted deployment path.
-- **Engage Director-Class AI** for premium deployment, tuning, evidence reviews,
-  and custom SLA work.
-- **Sponsor** — [GitHub Sponsors](https://github.com/sponsors/anulum).
-- **Donate** — any amount helps:
-  - [PayPal](https://www.paypal.com/donate?hosted_button_id=4X5F6DNT934HY)
-  - [TWINT](https://go.twint.ch/1/e/tw?tw=acq.lJTAypb8SL2s8vPg7fL0ubi2C220ajOH0BEQn1aKfEJIiIakLpt8jlEv8XdQ9tCp.)
-  - **Bank transfer** — IBAN (CHF): `CH14 8080 8002 1898 7544 1` · IBAN (EUR): `CH66 8080 8002 8173 6061 8`
-  - **Crypto** — BTC: `bc1qg48gdmrjrjumn6fqltvt0cf0w6nvs0wggy37zd` · ETH: `0xd9b07F617bEff4aC9CAdC2a13Dd631B1980905FF` · LTC: `ltc1q886tmvtlnj86kmg2urd8f5td3lmfh32xtpdrut`
-- **Spread the word** — star the repo, write up your use case, or tell a team
-  that needs a real-time hallucination guardrail.
-
-Thank you for supporting independent, open-core AI safety work.
+- **Start free:** `pip install director-ai-lite`.
+- **Use the full open core:** `pip install director-ai`.
+- **Buy Director-AI Pro:** production rights for Advanced & Labs, support, and a
+  self-hosted deployment path via [pricing](https://anulum.github.io/director-ai/pricing/)
+  or [licensing](https://www.anulum.li/licensing).
+- **Engage Director-Class AI:** managed deployment, tuning, evidence reviews,
+  procurement support, and SLA work.
+- **Sponsor the public core:** [GitHub Sponsors](https://github.com/sponsors/anulum).
 
 ## Community
 

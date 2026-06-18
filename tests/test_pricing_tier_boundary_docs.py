@@ -52,3 +52,27 @@ def test_lite_package_readme_points_to_upgrade_path() -> None:
     assert "Director-AI" in doc
     assert "Director-Class AI" in doc
     assert "only the first two are Python packages" in doc
+
+
+def test_readme_leads_with_evidence_and_buried_differentiators() -> None:
+    doc = _doc("README.md")
+
+    assert "Evidence-first deployment surfaces" in doc
+    assert "Voice Guard" in doc
+    assert "Inference-server hooks" in doc
+    assert "Supply-chain controls" in doc
+    assert "director-ai evidence --emit" in doc
+    assert "docs-site/deployment/supply-chain.md" in doc
+    assert "PayPal" not in doc
+    assert "TWINT" not in doc
+    assert "Crypto" not in doc
+
+
+def test_public_architecture_collapses_internal_decision_maps() -> None:
+    doc = _doc("ARCHITECTURE.md")
+
+    assert "Public Runtime Boundary" in doc
+    assert "Ownership Boundary" in doc
+    assert "internal planning records" in doc
+    assert "Safety Surface Map" not in doc
+    assert "Responsibility Consolidation Map" not in doc

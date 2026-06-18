@@ -45,6 +45,19 @@ The open repository contains the public core and evidence surface. Commercial
 work can add customer-specific sector packs, deployment recipes, tuning data,
 and acceptance evidence under a separate agreement.
 
+## Evidence-first Surfaces
+
+Director-AI's buyer-visible differentiators are the deployment and evidence
+surfaces around the scorer:
+
+| Surface | Role in a deployment |
+|---|---|
+| Evidence packet CLI | Gives evaluators a sealed approve/reject packet and an integrity verifier before a pilot starts. |
+| Voice Guard | Applies the same token and stream controls to voice AI and TTS/STT pipelines. |
+| Inference-server hooks | Lets operators reject or mask unsafe tokens before sampling in vLLM, TGI, and llama.cpp. |
+| Supply-chain controls | Keeps dependency, model, SBOM, ML-BOM, and release-pinning evidence visible during deployment review. |
+| Guardrail forensics | Produces tenant-safe missed-case reports for score, evidence state, model revision, and recommended operator action. |
+
 ## What It Is For
 
 Director-AI is built for teams that already use LLMs in workflows where a wrong

@@ -15,9 +15,8 @@ the Python path stands on its own without any of them.
 
 ## Shipped Today - 2026-04-29
 
-- The Safety Surface Map is now the public boundary between default halt
-  coverage, opt-in runtime hooks, advanced runtime paths, and disabled research
-  modules.
+- The public runtime boundary now separates the default Python guardrail path
+  from opt-in runtimes and advanced integration surfaces.
 - `CoherenceAgent` hook wiring now covers containment guards, containment
   anchors, physical-grounding hooks, and passport verifiers as optional
   constructor inputs.
@@ -200,129 +199,43 @@ director-ai/
 | Julia    | `tools/julia_tuner/` | offline threshold tuning with uncertainty bands |
 | Lean 4   | `formal/HaltMonitor/` | machine-checked proof that no sub-threshold token is emitted |
 
-## Safety Surface Map
+## Public Runtime Boundary
 
-The safety surface is intentionally split into default, opt-in, advanced, and
-research-only layers. A module listed in the tree above is not automatically
-part of the default halt path; it must appear in the default layer below or be
-configured explicitly by the caller.
+The default supported path is the Python guardrail runtime: `guard()`,
+`CoherenceScorer`, knowledge-base grounding, streaming halt, REST/gRPC service
+surfaces, audit records, and tenant-safe evidence. Optional runtimes are
+enabled deliberately through extras, environment variables, or separate build
+commands. A module listed in the directory map is not automatically part of the
+default halt path.
 
-### Default halt path
+Use the deployment guides for operator decisions:
 
-These components are active in the normal Python path used by `guard()`,
-`CoherenceAgent`, the FastAPI server, and the proxy unless the caller chooses a
-lighter profile:
+- [Production deployment](docs-site/deployment/production.md) for REST/proxy
+  service setup, authentication, metrics, and runbooks.
+- [Runtime boundaries](docs-site/guide/runtime-boundaries.md) for optional
+  dependency and runtime isolation.
+- [Inference-server hooks](docs-site/integrations/inference-server-hooks.md) for
+  pre-sampling vLLM, TGI, and llama.cpp integration.
+- [Voice AI](docs-site/guide/voice-ai.md) for guarded voice and TTS/STT flows.
+- [Supply chain](docs-site/deployment/supply-chain.md) for dependency, model,
+  SBOM, ML-BOM, and release-pinning controls.
 
-| Layer | Components | Default responsibility |
-|-------|------------|------------------------|
-| Input filtering | `InputSanitizer`, regex injection checks, PII detectors when enabled by policy | Reject or redact unsafe input before generation/scoring. |
-| Factual scoring | `CoherenceScorer`, `NLIScorer` when `[nli]` is installed, `GroundTruthStore`, `VectorGroundTruthStore` | Score logical and factual consistency against configured facts. |
-| Interlock | `HaltMonitor`, `StreamingKernel` | Stop output when the coherence floor, window average, or trend rule fails. |
-| Evidence | `HaltEvidence`, `HaltTraceAttribution`, counterfactual halt diagnostics, top-K contradictory chunks, scorer metadata | Carry machine-readable reason data, trace attribution, single-fact diagnostics, and halt margins into API responses, logs, and OpenTelemetry spans. |
-| Audit | `AuditLogger`, hashed prompt metadata, tenant ids | Persist tenant-safe records for review and compliance reporting. |
+## Ownership Boundary
 
-### Scientific deployment hook decision table
+Public APIs should keep ownership simple:
 
-Start with the default halt path, then add only the hooks that match the
-deployment risk. Research modules stay disabled until there is a named test
-packet and rollback path for that deployment.
+- runtime halt belongs to `runtime.kernel`, `runtime.streaming`, and
+  `runtime.async_streaming`;
+- scoring belongs to `core.scoring`;
+- retrieved facts and vector stores belong to `core.retrieval`;
+- tenant-safe halt and evaluation records belong to `core.types` and
+  `core.observability`;
+- signed fact and model provenance belongs to `core.provenance`;
+- optional physical, passport, formal, voice, and inference-server integrations
+  remain opt-in runtime surfaces.
 
-| Deployment need | Enable first | Add when needed | Keep disabled until |
-|-----------------|--------------|-----------------|---------------------|
-| Factual RAG or paper QA | `CoherenceScorer`, `[nli]`, `GroundTruthStore` or `VectorGroundTruthStore`, `HaltMonitor` | `InjectionDetector`, structured verifiers, audit logging | Physical hooks, passports, and experimental modules |
-| Public API or proxy | Default halt path, `InputSanitizer`, `AuditLogger`, tenant ids | `InjectionDetector`, OpenTelemetry spans, review queue | Cross-org passports and physical adapters |
-| Multi-agent tool workflow | Default halt path, structured verifiers, trace attribution | `ContainmentGuard`, `RealityAnchor`, `PassportVerifier` for hand-off | Self-evolving, swarm, and autopoietic research modules |
-| Lab automation or robotics | Default halt path plus dry physical-action review outside the live actuator path | `GroundingHook` after per-tenant budgets, adapter isolation, and action replay tests | Blocking real-world actions without the high-risk physical flag and external test packet |
-| Cross-organisation hand-off | Default halt path plus signed audit records | `PassportVerifier` with pinned issuer keys and Merkle proof checks | zk proof backends until fuzzing and cross-language contract tests pass |
-| Research evaluation | Default halt path with fixed datasets and repeatable seeds | `director_ai.experimental` hooks one at a time | Any hook without a rollback plan or validation card |
-
-### Opt-in runtime hooks
-
-These hooks are implemented and tested, but they are inert until passed to the
-agent, selected through configuration, or installed through the matching extra:
-
-| Hook | Activation boundary | Role |
-|------|---------------------|------|
-| `InjectionDetector` | Stage 2 detector selected in policy/config | NLI-based intent-drift detection after regex filtering. |
-| `ReviewQueue` | Continuous batching config | Coalesce scorer calls for higher-throughput services. |
-| `AsyncStreamingKernel` | Async voice or streaming integration | Async token oversight with timeout and cancellation handling. |
-| `InferenceServerHook` | vLLM, TGI, or llama.cpp adapter calls `check()` before accepting a candidate token | Mask or reject a candidate token and emit one `SafetyEvent` with `hook_scope="inference_server"`. |
-| `ContainmentGuard` + `RealityAnchor` | `CoherenceAgent(containment_guard=..., containment_anchor=...)` | Verify anchored execution scope and block breakout findings. |
-| `GroundingHook` | `CoherenceAgent(grounding_hook=...)` | Check a proposed physical action against kinematics and constraints. |
-| `PassportVerifier` | `CoherenceAgent(passport_verifier=...)` | Verify cross-org attestation bundles before agent hand-off. |
-| Structured verifiers | `verify_json`, `verify_tool_call`, `verify_code`, `verify_numeric`, `verify_reasoning_chain` | Validate structured outputs on explicit request. |
-| Observability callbacks | tracing config or callback list | Emit token traces and spans without changing halt decisions. |
-
-### CoherenceAgent hook wiring
-
-`CoherenceAgent` remains usable without optional hooks. When a deployment
-passes hook instances explicitly, the agent wires them as follows:
-
-| Hook input | Runtime effect |
-|------------|----------------|
-| `containment_guard` + `containment_anchor` | Check each completed output against the anchored execution scope before returning it. |
-| `grounding_hook` | Validate proposed physical actions against kinematic and constraint checks through `verify_physical_action`. |
-| `passport_verifier` | Validate cross-organisation passport bundles through `verify_passport` before agent hand-off. |
-
-### Advanced runtime surface
-
-These paths are operationally useful but outside the default support surface.
-They must be enabled through extras, Compose profiles, separate build commands,
-or deployment-specific configuration:
-
-| Surface | Boundary |
-|---------|----------|
-| Rust `backfire-kernel` | `[rust]`, `maturin`, or packaged wheel; Python fallback remains valid. |
-| Go gateway | Separate `gateway/go` build and gRPC scoring sidecar. |
-| Julia tuner | Offline score-log analytics only. |
-| Lean proof artefacts | Separate `lake build`; proof surface does not run in the Python API. |
-| ONNX/TensorRT | `[onnx]`/GPU deployment paths and exported model artefacts. |
-| Voice adapters | `[voice]` plus provider-specific credentials and TTS/STT packages. |
-| Vector DB vendors | `[vector]` plus selected backend dependency and deployment config. |
-
-### Research modules disabled by default
-
-These modules are not default halt coverage. Treat them as research or
-advanced integration points until a roadmap item promotes them into one of the
-layers above. Public access goes through `director_ai.experimental`, which
-requires either `DIRECTOR_AI_ENABLE_EXPERIMENTAL_HOOKS=1` or an explicit
-`enable_experimental_hooks()` call before loading a hook:
-
-```python
-from director_ai import experimental
-
-experimental.enable_experimental_hooks()
-trajectory = experimental.load_hook("trajectory")
-```
-
-| Area | Modules |
-|------|---------|
-| Pre-action simulation | `trajectory`, `trace_safe`, `causal_verifier`, `irreversibility` |
-| Semantic consistency | `symbolic_chain`, `ontology`, `multimodal_guard`, `knowledge_graph` |
-| Self-monitoring and adaptation | `meta_guard`, `self_evolving`, `defense_genome`, `continual_adversarial`, `autopoietic` |
-| Swarm and organisation-level checks | `swarm_equilibrium`, `emergence_oracle`, `multi_scale_alignment`, `swarm_economics` |
-| Provenance and privacy | `agent_identity`, `provenance`, `formal_verification`, `federated_privacy`, `zk_attestation` research backends |
-| Resource policy | `sustainability` |
-
-## Responsibility Consolidation Map
-
-This map is the public ownership boundary for overlapping safety modules. It
-does not remove imports or change runtime behaviour. It tells contributors
-which module should own new APIs, and which surfaces should be folded into that
-owner before they are promoted out of the research layer.
-
-| Named responsibility | Canonical owner | Overlapping modules | Deprecation direction |
-|----------------------|-----------------|---------------------|-----------------------|
-| Runtime halt and stream interlock | `runtime.kernel`, `runtime.streaming`, `runtime.async_streaming` | `kernel.py` compatibility aliases, trace-safe stop decisions | Keep `HaltMonitor`/`StreamingKernel` as the only default halt API. Other modules may emit risk signals, not independent halt contracts. |
-| Halt evidence and trace attribution | `types.HaltEvidence`, `observability`, future `SafetyEvent` schema | ad hoc evidence fields in streaming, containment, attestation, trajectory, ontology | Fold all hook-specific explanations into `SafetyEvent` and attach it to `HaltEvidence`; do not add new per-hook evidence formats. |
-| Counterfactual diagnostics | `causal_verifier`, `types.CounterfactualHaltDiagnostic` | trace-safe oracle diagnostics, CoherenceAgent counterfactual helpers, ontology contradiction explanations | Keep graph/intervention logic in `causal_verifier`; other modules should call it or emit inputs for it. |
-| Adaptive defence updates | `continual_adversarial` plus `defense_genome` registry | `self_evolving`, `meta_guard`, `autopoietic` | Treat `meta_guard` as monitor-only and `self_evolving` as a gated trainer. New defence changes should flow through a reviewed registry/update pipeline. |
-| Provenance and signed facts | `provenance` | `agent_identity`, `zk_attestation`, KB Merkle snapshots | `provenance` owns fact/citation integrity. `agent_identity` owns public passports. `zk_attestation` remains an advanced proof backend behind those APIs. |
-| Cross-org agent hand-off | `agent_identity` | `zk_attestation.passport`, provenance chains, federated privacy summaries | Public hand-off APIs should be passport-centred; direct proof-backend APIs remain advanced integration points. |
-| Pre-action physical risk | `cyber_physical` | `trajectory`, `irreversibility`, `containment` | `cyber_physical` owns kinematic checks. `trajectory` and `irreversibility` provide risk inputs. `containment` owns scope anchoring, not physical simulation. |
-| Multi-agent and organisation-level risk | `multi_scale_alignment` | `swarm_equilibrium`, `emergence_oracle`, `swarm_economics` | Promote a single future swarm-risk report; keep game, emergence, and economic scorers as internal contributors. |
-| Multimodal factual grounding | `multimodal_guard` | `symbolic_chain`, `ontology`, knowledge-graph checks | `multimodal_guard` owns media claim extraction and verification. Symbolic and ontology modules provide optional consistency checks. |
-| Resource and sustainability policy | `sustainability` | routing budgets, review queue backpressure, tenant quotas | Keep carbon, cost, and long-horizon budget policy in `sustainability`; operational throttles report into it. |
+Detailed ownership and consolidation notes stay in internal planning records;
+the public architecture page keeps only the stable runtime boundary.
 
 ## Data Flow
 
