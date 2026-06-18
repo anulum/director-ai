@@ -82,6 +82,7 @@ jobs:
           src/director_ai/core/federated_dp
           src/director_ai/core/federated_privacy
           src/director_ai/core/forecasting
+          src/director_ai/core/fuzzing
           src/director_ai/core/ingestion
           src/director_ai/core/execution_rings
           src/director_ai/core/guard_control
@@ -99,6 +100,7 @@ jobs:
           src/director_ai/core/policy.py
           src/director_ai/core/policy_compiler
           src/director_ai/core/provenance
+          src/director_ai/core/rasp
           src/director_ai/core/risk_threshold
           src/director_ai/core/safety
           src/director_ai/core/safety_event.py
