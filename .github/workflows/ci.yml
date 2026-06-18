@@ -56,6 +56,7 @@ jobs:
           src/director_ai/core/_device.py
           src/director_ai/core/_heuristics.py
           src/director_ai/core/attribution
+          src/director_ai/core/backends.py
           src/director_ai/core/calibration
           src/director_ai/core/canary
           src/director_ai/core/config.py
@@ -83,9 +84,11 @@ jobs:
           src/director_ai/core/ml_bom
           src/director_ai/core/output_integrity
           src/director_ai/core/output_trust
+          src/director_ai/core/policy.py
           src/director_ai/core/risk_threshold
           src/director_ai/core/safety_event.py
           src/director_ai/core/safety_protocol.py
+          src/director_ai/core/secrets.py
           src/director_ai/core/self_healing
           src/director_ai/core/stats.py
           src/director_ai/core/sustainability

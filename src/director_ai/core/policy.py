@@ -5,6 +5,9 @@
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
 # Backward-compat shim: director_ai.core.policy -> director_ai.core.safety.policy
+
+"""Compatibility import path for safety policy helpers."""
+
 import importlib as _il
 import sys as _sys
 

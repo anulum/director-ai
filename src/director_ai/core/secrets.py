@@ -91,7 +91,9 @@ class SecretNotFoundError(KeyError):
 class SecretsBackend(Protocol):
     """Resolve a secret value by name. Returns ``None`` when absent."""
 
-    def get_secret(self, name: str) -> str | None: ...
+    def get_secret(self, name: str) -> str | None:
+        """Return ``name`` from the backend, or ``None`` when absent."""
+        ...
 
 
 class EnvSecretsBackend:
@@ -106,6 +108,7 @@ class EnvSecretsBackend:
         self._prefix = prefix
 
     def get_secret(self, name: str) -> str | None:
+        """Return ``name`` from ``os.environ`` with the configured prefix."""
         value = os.environ.get(self._prefix + name)
         return value if value else None
 
@@ -164,6 +167,7 @@ class VaultSecretsBackend:
         return self._client
 
     def get_secret(self, name: str) -> str | None:
+        """Return ``name`` from Vault KV v2 using field/path overrides."""
         client = self._get_client()
         path = self._path_map.get(name, self._path)
         field = self._field_map.get(name, name)
@@ -223,6 +227,7 @@ class AWSSecretsManagerBackend:
         return self._client
 
     def get_secret(self, name: str) -> str | None:
+        """Return ``name`` from AWS Secrets Manager."""
         import json
 
         client = self._get_client()
@@ -300,6 +305,7 @@ class AzureKeyVaultBackend:
         return self._client
 
     def get_secret(self, name: str) -> str | None:
+        """Return ``name`` from Azure Key Vault."""
         client = self._get_client()
         azure_name = self._name_map.get(name) or self._azurify(name)
         try:
@@ -345,6 +351,7 @@ class SecretsProvider:
 
     @property
     def backend(self) -> SecretsBackend:
+        """Return the backend used for uncached secret resolution."""
         return self._backend
 
     def _now(self) -> float:
