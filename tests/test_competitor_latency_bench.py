@@ -22,6 +22,7 @@ import sys
 from benchmarks.competitor_latency_bench import (
     WORKLOAD,
     _run_competitor,
+    _runtime_metadata,
     run_benchmark,
     summarise,
     time_director_ai,
@@ -90,6 +91,36 @@ def test_run_competitor_takes_last_stdout_line() -> None:
     assert out == {"available": True}
 
 
+def test_run_competitor_disables_external_telemetry() -> None:
+    snippet = (
+        "import json, os; "
+        "print(json.dumps({"
+        "'guardrails': os.environ.get('GUARDRAILS_DISABLE_TELEMETRY'), "
+        "'otel': os.environ.get('OTEL_SDK_DISABLED')"
+        "}))"
+    )
+    out = _run_competitor(sys.executable, snippet)
+    assert out == {"guardrails": "true", "otel": "true"}
+
+
+def test_runtime_metadata_records_local_regression_boundary() -> None:
+    meta = _runtime_metadata(repeats=3, competitor_python="/tmp/competitor-python")
+    assert meta["benchmark_isolation"] == "non_isolated_local_regression"
+    assert meta["python_executable"] == sys.executable
+    assert meta["competitor_python"] == "/tmp/competitor-python"
+    assert meta["command"][-3:] == [
+        "3",
+        "--competitor-python",
+        "/tmp/competitor-python",
+    ]
+    assert "generated_at_utc" in meta
+    assert "platform" in meta
+    assert "hostname" in meta
+    assert "hardware_model" in meta
+    assert "baseboard_model" in meta
+    assert "cpu_model" in meta
+
+
 # --------------------------------------------------------------------------- #
 # time_director_ai (in-process, local, no model)                              #
 # --------------------------------------------------------------------------- #
@@ -112,6 +143,9 @@ def test_time_director_ai_runs_locally() -> None:
 def test_run_benchmark_degrades_when_competitor_python_absent() -> None:
     result = run_benchmark(repeats=1, competitor_python="/no/such/python")
     by = {f["framework"]: f for f in result["frameworks"]}
+    assert result["schema_version"] == 2
+    assert result["metadata"]["benchmark_isolation"] == "non_isolated_local_regression"
+    assert result["workload_pairs"] == len(result["workload"]) == len(WORKLOAD)
     assert by["director-ai"]["available"] is True
     assert by["guardrails-ai"]["available"] is False
     assert by["nemo-guardrails"]["available"] is False

@@ -127,13 +127,19 @@ The measured differences, from the committed
 | | Director-AI | NeMo Guardrails | GuardrailsAI | SelfCheckGPT |
 |---|:---:|:---:|:---:|:---:|
 | **Token-level streaming halt** _(experimental, under calibration)_ | :material-flask: | :material-close: | :material-close: | :material-close: |
-| **NLI latency / pair** | **~0.9 ms** | 50–300 ms + LLM | 2.26 s | 5–10 s |
+| **GPU NLI latency / pair** | **~0.9 ms** | LLM-bound | LLM-bound | 5–10 s |
+| **Local guard benchmark p50 / p95** | **0.124 / 0.200 ms** | 0.818 / 1.418 ms config-load + LLM | 0.659 / 0.996 ms parse + LLM | not run in this harness |
 | **Offline / local** | :material-check: | :material-close: | :material-close: | :material-close: |
 | **Self-hosted core price** | **CHF 0** | free | free | free |
 | **AggreFact balanced acc.** | 75.6 % (0.4 B) | N/A | N/A | N/A |
 
-Prevention happens during generation, on a 0.4 B model, on commodity hardware —
-the others score after the fact, or need a second large LLM in the loop.
+The local guard benchmark was produced on 2026-06-18 on host `aaarthuus`
+(Ubuntu 24.04.4, Linux 6.17, ASRock H510 Pro BTC+, 11th Gen Intel Core
+i5-11600K, 12 logical CPUs) and is stored in
+`benchmarks/results/competitor_guard_latency.json` with
+`non_isolated_local_regression` metadata. Prevention happens during generation,
+on a 0.4 B model, on commodity hardware — the others score after the fact, or
+need a second large LLM in the loop.
 
 ---
 

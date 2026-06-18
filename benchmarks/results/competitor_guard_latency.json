@@ -1,7 +1,60 @@
 {
   "benchmark": "competitor_guard_latency",
+  "schema_version": 2,
   "workload_pairs": 5,
   "repeats": 200,
+  "metadata": {
+    "generated_at_utc": "2026-06-18T02:28:57.457463+00:00",
+    "python_version": "3.12.13",
+    "python_executable": "/media/anulum/GOTM/aaa_God_of_the_Math_Collection/03_CODE/DIRECTOR-AI/.venv/bin/python",
+    "platform": "Linux-6.17.0-35-generic-x86_64-with-glibc2.39",
+    "processor": "x86_64",
+    "hostname": "aaarthuus",
+    "hardware_vendor": "To Be Filled By O.E.M.",
+    "hardware_model": "To Be Filled By O.E.M.",
+    "baseboard_vendor": "ASRock",
+    "baseboard_model": "H510 Pro BTC+",
+    "cpu_model": "11th Gen Intel(R) Core(TM) i5-11600K @ 3.90GHz",
+    "cpu_count": 12,
+    "load_average": {
+      "1m": 5.4189,
+      "5m": 5.7769,
+      "15m": 4.9053
+    },
+    "benchmark_isolation": "non_isolated_local_regression",
+    "competitor_python": "/media/anulum/GOTM/_scratch/venv-bench-competitors/bin/python",
+    "command": [
+      "/media/anulum/GOTM/aaa_God_of_the_Math_Collection/03_CODE/DIRECTOR-AI/.venv/bin/python",
+      "-m",
+      "benchmarks.competitor_latency_bench",
+      "--repeats",
+      "200",
+      "--competitor-python",
+      "/media/anulum/GOTM/_scratch/venv-bench-competitors/bin/python"
+    ]
+  },
+  "workload": [
+    {
+      "prompt": "What is the boiling point of water?",
+      "response": "Water boils at 100 degrees Celsius at standard atmospheric pressure."
+    },
+    {
+      "prompt": "How fast is light?",
+      "response": "The speed of light in a vacuum is approximately 299,792 kilometres per second."
+    },
+    {
+      "prompt": "Describe DNA base pairing.",
+      "response": "Adenine pairs with thymine and guanine pairs with cytosine in DNA."
+    },
+    {
+      "prompt": "What is Earth's gravity?",
+      "response": "Earth's surface gravitational acceleration is about 9.81 metres per second squared."
+    },
+    {
+      "prompt": "Summarise photosynthesis.",
+      "response": "Photosynthesis converts carbon dioxide and water into glucose using sunlight in chloroplasts."
+    }
+  ],
   "frameworks": [
     {
       "framework": "director-ai",
@@ -9,11 +62,11 @@
       "available": true,
       "makes_local_grounding_decision": true,
       "n": 1000,
-      "p50_ms": 0.1371,
-      "p95_ms": 0.2212,
-      "mean_ms": 0.1471,
-      "min_ms": 0.0947,
-      "max_ms": 0.6718
+      "p50_ms": 0.1244,
+      "p95_ms": 0.2004,
+      "mean_ms": 0.1351,
+      "min_ms": 0.0925,
+      "max_ms": 0.6025
     },
     {
       "framework": "guardrails-ai",
@@ -21,11 +74,11 @@
       "makes_local_grounding_decision": false,
       "available": true,
       "n": 1000,
-      "p50_ms": 0.9828,
-      "p95_ms": 1.5015,
-      "mean_ms": 1.0686,
-      "min_ms": 0.8167,
-      "max_ms": 7.08
+      "p50_ms": 0.6589,
+      "p95_ms": 0.9956,
+      "mean_ms": 0.7067,
+      "min_ms": 0.5517,
+      "max_ms": 1.8362
     },
     {
       "framework": "nemo-guardrails",
@@ -34,11 +87,11 @@
       "note": "NeMo rails are LLM-bound: production per-call latency is dominated by an LLM round-trip.",
       "available": true,
       "n": 200,
-      "p50_ms": 0.7007,
-      "p95_ms": 1.1876,
-      "mean_ms": 0.7715,
-      "min_ms": 0.5603,
-      "max_ms": 1.4949
+      "p50_ms": 0.8183,
+      "p95_ms": 1.4181,
+      "mean_ms": 0.877,
+      "min_ms": 0.5855,
+      "max_ms": 2.578
     }
   ],
   "caveat": "Measures local framework overhead, not LLM latency. Only Director-AI makes a grounding decision locally; Guardrails AI grounding validators and all NeMo rails require an LLM call, adding its full round-trip on top of the numbers shown."

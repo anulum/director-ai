@@ -39,11 +39,16 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import platform
 import statistics
-import subprocess
+
+# Benchmark-only subprocess runner; snippets are fixed in this module.
+import subprocess  # nosec B404
 import sys
 import time
+from datetime import UTC, datetime
 from pathlib import Path
+from typing import Any
 
 RESULTS_DIR = Path(__file__).parent / "results"
 
@@ -132,12 +137,12 @@ except Exception as exc:  # pragma: no cover - exercised only without the lib
     raise SystemExit(0)
 g = Guard()
 for _p, r in WORKLOAD:
-    g.parse(r)
+    g.parse(llm_output=r)
 samples = []
 for _ in range(REPEATS):
     for _p, r in WORKLOAD:
         t0 = time.perf_counter()
-        g.parse(r)
+        g.parse(llm_output=r)
         samples.append((time.perf_counter() - t0) * 1000)
 ordered = sorted(samples)
 print(json.dumps({{
@@ -187,9 +192,18 @@ def _run_competitor(python_exe: str, snippet: str) -> dict:
             "reason": f"competitor python not found: {python_exe}",
         }
     try:
-        proc = subprocess.run(
+        env = os.environ.copy()
+        env.update(
+            {
+                "GUARDRAILS_DISABLE_TELEMETRY": "true",
+                "OTEL_SDK_DISABLED": "true",
+            }
+        )
+        # Fixed snippet body with shell=False; python_exe is a benchmark input.
+        proc = subprocess.run(  # nosec B603
             [python_exe, "-c", snippet],
             capture_output=True,
+            env=env,
             text=True,
             timeout=600,
             check=False,
@@ -235,11 +249,84 @@ def time_nemo(repeats: int, python_exe: str) -> dict:
     }
 
 
-def run_benchmark(repeats: int, competitor_python: str) -> dict:
+def _load_average() -> dict[str, float] | None:
+    """Return the Unix load average when the host exposes it.
+
+    Benchmark artifacts need to be auditable as local regression evidence, not
+    claim-grade isolated lab results. Recording host load with the result makes
+    that boundary explicit and gives future runs enough context to spot obvious
+    workstation contention.
+    """
+
+    try:
+        one, five, fifteen = os.getloadavg()
+    except (AttributeError, OSError):
+        return None
+    return {"1m": round(one, 4), "5m": round(five, 4), "15m": round(fifteen, 4)}
+
+
+def _read_first_line(path: Path) -> str | None:
+    """Read a short host metadata file when present."""
+
+    try:
+        return path.read_text(encoding="utf-8").strip().splitlines()[0]
+    except (OSError, IndexError):
+        return None
+
+
+def _cpu_model() -> str | None:
+    """Return the Linux CPU model name when available."""
+
+    try:
+        for line in Path("/proc/cpuinfo").read_text(encoding="utf-8").splitlines():
+            if line.startswith("model name"):
+                return line.split(":", maxsplit=1)[1].strip()
+    except OSError:
+        return None
+    return None
+
+
+def _runtime_metadata(repeats: int, competitor_python: str) -> dict[str, Any]:
+    """Return reproducibility metadata for the current local benchmark run."""
+
+    return {
+        "generated_at_utc": datetime.now(tz=UTC).isoformat(),
+        "python_version": platform.python_version(),
+        "python_executable": sys.executable,
+        "platform": platform.platform(),
+        "processor": platform.processor(),
+        "hostname": platform.node(),
+        "hardware_vendor": _read_first_line(Path("/sys/class/dmi/id/sys_vendor")),
+        "hardware_model": _read_first_line(Path("/sys/class/dmi/id/product_name")),
+        "baseboard_vendor": _read_first_line(Path("/sys/class/dmi/id/board_vendor")),
+        "baseboard_model": _read_first_line(Path("/sys/class/dmi/id/board_name")),
+        "cpu_model": _cpu_model(),
+        "cpu_count": os.cpu_count(),
+        "load_average": _load_average(),
+        "benchmark_isolation": "non_isolated_local_regression",
+        "competitor_python": competitor_python,
+        "command": [
+            sys.executable,
+            "-m",
+            "benchmarks.competitor_latency_bench",
+            "--repeats",
+            str(repeats),
+            "--competitor-python",
+            competitor_python,
+        ],
+    }
+
+
+def run_benchmark(repeats: int, competitor_python: str) -> dict[str, Any]:
     return {
         "benchmark": "competitor_guard_latency",
+        "schema_version": 2,
         "workload_pairs": len(WORKLOAD),
         "repeats": repeats,
+        "metadata": _runtime_metadata(repeats, competitor_python),
+        "workload": [
+            {"prompt": prompt, "response": response} for prompt, response in WORKLOAD
+        ],
         "frameworks": [
             time_director_ai(repeats),
             time_guardrails_ai(repeats, competitor_python),
@@ -268,7 +355,7 @@ def main() -> None:
     result = run_benchmark(args.repeats, args.competitor_python)
     RESULTS_DIR.mkdir(parents=True, exist_ok=True)
     out = RESULTS_DIR / "competitor_guard_latency.json"
-    out.write_text(json.dumps(result, indent=2), encoding="utf-8")
+    out.write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
 
     print(f"\nGuard-decision latency ({args.repeats} repeats x {len(WORKLOAD)} pairs):")
     for fw in result["frameworks"]:

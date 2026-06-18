@@ -379,13 +379,22 @@ Unlike the NLI benchmarks, this is a standalone tool (it generates fresh transcr
 |---------|-------------|----------------|------|-------------|-------------|
 | **Approach** | NLI + RAG + hybrid judge | LLM self-consistency | Fine-tuned LLM | LLM-as-judge | Multi-call LLM |
 | **Model size** | 0.4B + optional LLM | LLM-dependent | 8–70B | LLM-dependent | LLM-dependent |
-| **Latency** | 0.5 ms (L40S FP16) | 50–300 ms + LLM | 1–10 s | 2.26 s | 5–10 s |
+| **Latency** | 0.5 ms (L40S FP16); 0.124 / 0.200 ms p50/p95 local guard on i5-11600K | 0.818 / 1.418 ms config-load + LLM round trip | 1–10 s | 0.659 / 0.996 ms parse overhead + LLM round trip | 5–10 s |
 | **Streaming halt** | Yes (token-level) | No | No | No | No |
 | **Offline/local** | Yes (NLI mode) | No | Yes (GPU) | No | No |
 | **AggreFact BA** | 75.86% (0.4B) | N/A | N/A | N/A | N/A |
 | **E2E catch rate** | 90.7% (hybrid) | N/A | N/A | N/A | N/A |
 | **Integrations** | LC/LI/LG/HS/CrewAI | LangChain | Python | LC/LI | Python |
 | **License** | Apache-2.0 / BUSL-1.1 | Apache 2.0 | Apache 2.0 | Apache 2.0 | MIT |
+
+Local competitor-latency evidence is committed at
+`benchmarks/results/competitor_guard_latency.json`. The 2026-06-18 run used
+`benchmarks.competitor_latency_bench --repeats 200` on host `aaarthuus`
+(Ubuntu 24.04.4, Linux 6.17, ASRock H510 Pro BTC+, 11th Gen Intel Core
+i5-11600K, 12 logical CPUs) and is labelled
+`non_isolated_local_regression` with load-average metadata. The NeMo Guardrails
+and Guardrails AI numbers above are local framework probes; their comparable
+production grounding paths still add the configured LLM round trip.
 
 ### Other Systems (Different Benchmarks)
 
