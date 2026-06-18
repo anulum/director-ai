@@ -49,6 +49,16 @@ The **Advanced & Labs** capabilities are source-available under BUSL-1.1: free t
 read and evaluate, free in non-production. A commercial licence unlocks them in
 production and hosted/SaaS deployments, and adds support and SLAs.
 
+| Path | Price | Package | Choose it when |
+|---|---:|---|---|
+| **Free OSS** | CHF 0 | Apache-2.0 core: guard engine, streaming halt, server, SDK and framework integrations | You only need the open core, including closed-source production use |
+| **Pro self-host** | CHF 199/mo | BUSL-1.1 advanced tier production licence, unlimited deployments, Slack priority support, 99.5 % SLA | You run Director-AI inside your own product or internal platform |
+| **Enterprise** | Custom | Pro self-host plus support engineer, on-prem/air-gapped help, custom tuning, architecture reviews, custom SLA | You need regulated deployment support, domain adaptation, or procurement/SLA terms |
+
+ROI threshold: at CHF 199/mo, Pro self-host costs less than one hour of senior
+incident response in most regulated teams. One prevented fabricated citation,
+incorrect policy quote, or wrong numerical answer can pay for the licence.
+
 !!! tip "Founding Member — 10 spots, permanent lock"
     Founding Members keep **40–50 % off, locked permanently**, plus direct access
     to the maintainer. Once 10 spots fill, prices move to the standard tier.

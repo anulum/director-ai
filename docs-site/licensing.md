@@ -39,6 +39,12 @@ In short: the **Apache-2.0 core** is free for everyone, in production, with no
 strings; the commercial tiers add a production licence for the **BUSL-1.1
 Advanced & Labs** capabilities plus support and SLAs.
 
+| Route | Licence status | Support | Production use |
+|---|---|---|---|
+| **Free OSS** | Apache-2.0 core | Community / self-support | Allowed, including closed-source products |
+| **Pro self-host** | Commercial licence for BUSL-1.1 advanced tier | Slack priority support, 99.5 % SLA | Allowed for self-hosted production and internal platforms |
+| **Enterprise** | Commercial licence with negotiated terms | Dedicated support engineer, custom SLA, tuning and architecture reviews | Allowed for regulated, air-gapped, multi-tenant, or procurement-heavy deployments |
+
 [See pricing :material-arrow-right:](pricing.md){ .md-button .md-button--primary }
 
 Self-hosted deployments use the license tiers above.
