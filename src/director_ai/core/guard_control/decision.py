@@ -80,6 +80,7 @@ class RiskEnvelope:
     no_go_threshold: float
 
     def __post_init__(self) -> None:
+        """Validate risk labels and threshold bounds."""
         if self.action_category not in _ACTION_CATEGORIES:
             raise ValueError(f"unsupported action_category {self.action_category!r}")
         if self.reversibility not in _REVERSIBILITY:
@@ -115,6 +116,7 @@ class VerifierSignal:
     failure_mode: str = ""
 
     def __post_init__(self) -> None:
+        """Validate verifier identity, modality, score, interval, and latency."""
         if not self.verifier.strip():
             raise ValueError("verifier is required")
         if self.modality not in _MODALITIES:
@@ -159,6 +161,7 @@ class GuardDecision:
     attributes: Mapping[str, str] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
+        """Validate decision metadata and normalise tenant-safe collections."""
         if self.decision not in _DECISIONS:
             raise ValueError(f"unsupported decision {self.decision!r}")
         _validate_unit_interval("risk_score", self.risk_score)

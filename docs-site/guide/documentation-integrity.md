@@ -55,8 +55,9 @@ PY
   replication packet, or unofficial smoke result.
 - The CI docstring ratchet currently blocks pydocstyle `D` regressions for the
   strict-typed modules listed in `.github/workflows/ci.yml`: `core/config.py`,
-  `core/scoring/scorer.py`, `core/containment`, `core/edge`, `core/ml_bom`,
-  `core/output_integrity`, and `core/output_trust`.
+  `core/scoring/scorer.py`, `core/containment`, `core/edge`,
+  `core/guard_control`, `core/ml_bom`, `core/output_integrity`, and
+  `core/output_trust`.
 
 ## Current Known Boundaries
 
@@ -65,13 +66,23 @@ PY
   benchmark-claim review, and evidence packet are recorded.
 - The independent external security report remains open until a returned
   `security-validation/` evidence directory passes the validator.
-- Repo-wide public docstring debt remains open and should resume after the
-  active Vertex Lite Scorer v2 run is evaluated. The live 2026-05-18 audit
-  counted 611 missing normal-source public docstrings across 219 files, plus 11
-  generated/proto docstring gaps across 2 files. Keep generated protobuf files
-  out of manual cleanup unless the generation pipeline changes. As of
-  2026-06-18, `core/containment`, `core/edge`, `core/ml_bom`,
-  `core/output_integrity`, and `core/output_trust` have been added to the same
-  blocking docstring ratchet as `core/config.py` and `core/scoring/scorer.py`.
+- Repo-wide public docstring debt remains open. The live 2026-06-18 measurement
+  for `ruff check src/director_ai --select D --statistics` counted 1,175
+  pydocstyle findings after generated-file excludes. The guard-control ratchet
+  reduced the live count to 1,171 findings in the same command. Keep generated
+  protobuf files out of manual cleanup unless the generation pipeline changes.
+  As of 2026-06-18, `core/containment`, `core/edge`, `core/guard_control`,
+  `core/ml_bom`, `core/output_integrity`, and `core/output_trust` have been
+  added to the same blocking docstring ratchet as `core/config.py` and
+  `core/scoring/scorer.py`.
+- Repo-wide strict mypy remains open. The live 2026-06-18 measurement for
+  `mypy --strict src/director_ai` found 621 errors in 93 files. The configured
+  CI mypy command remains clean across 512 source files, so strict mode is being
+  raised package by package until the global command can replace the moderate
+  profile.
+- The full-suite coverage gate is currently green. The live 2026-06-18 run of
+  `pytest tests/ -q --tb=short --cov=director_ai --cov-report=term-missing --cov-report=xml --cov-fail-under=97`
+  passed with 10,697 tests, 29 skips, and 97.50% total coverage. Remaining
+  coverage debt to 100% is 753 missed statements and 563 partial branches.
 - Long-range strategic context is tracked internally; `ROADMAP.md` is the
   public execution roadmap.

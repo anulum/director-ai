@@ -48,6 +48,7 @@ class ReviewedIrreversibilityThreshold:
     approved: bool = True
 
     def __post_init__(self) -> None:
+        """Validate reviewed-threshold provenance and approval state."""
         _validate_threshold("threshold", self.threshold)
         _validate_threshold("coverage", self.coverage)
         if not self.source_ref.strip():
