@@ -74,6 +74,7 @@ class DirectorSafetySignal:
     extensions: Mapping[str, str] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
+        """Validate the transport envelope and tenant-safe extension metadata."""
         if self.protocol_version != DIRECTOR_SAFETY_PROTOCOL_VERSION:
             raise ValueError("unsupported protocol_version")
         if not self.signal_id.strip():

@@ -183,6 +183,7 @@ class SafetyEvent:
     attributes: dict[str, str] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
+        """Validate event identity, scores, scope, decision, and safe metadata."""
         if self.schema_version != SAFETY_EVENT_SCHEMA_VERSION:
             raise ValueError("unsupported SafetyEvent schema_version")
         if not self.event_id.strip():

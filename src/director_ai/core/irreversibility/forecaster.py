@@ -39,14 +39,17 @@ except Exception:  # pragma: no cover - mandatory dependency
         _n: int,
         _confidence: float,
     ) -> tuple[float, float]:
+        """Raise when the mandatory Rust Wilson interval helper is unavailable."""
         raise RuntimeError("backfire_kernel rust_wilson_score_interval is unavailable")
 
     def rust_standard_normal_quantile(_p: float) -> float:
+        """Raise when the mandatory Rust normal-quantile helper is unavailable."""
         raise RuntimeError(
             "backfire_kernel rust_standard_normal_quantile is unavailable"
         )
 
     def rust_product_f64(_values: list[float]) -> float:
+        """Raise when the mandatory Rust floating-point product helper is unavailable."""
         raise RuntimeError("backfire_kernel rust_product_f64 is unavailable")
 
 
@@ -161,10 +164,11 @@ class IrreversibilityForecaster:
 
 
 def _wilson_score(p_hat: float, n: int, confidence: float) -> tuple[float, float]:
-    """Wilson score interval — well-behaved at p near 0 / 1 where
-    the normal approximation collapses.
+    """Return a Wilson score interval for a binomial point estimate.
 
-    ``z`` is the standard normal quantile for (1 + confidence) / 2.
+    The interval remains well-behaved near 0 and 1 where the normal
+    approximation collapses. ``z`` is the standard normal quantile for
+    ``(1 + confidence) / 2``.
     """
     if n <= 0:
         return (0.0, 0.0)
@@ -182,9 +186,11 @@ def _wilson_score(p_hat: float, n: int, confidence: float) -> tuple[float, float
 
 
 def _standard_normal_quantile(p: float) -> float:
-    """Inverse of the standard-normal CDF using the Beasley-Springer /
-    Moro rational approximation. Accurate to about 1e-4 across
-    ``p`` in ``[0.001, 0.999]`` — enough for Wilson-interval math.
+    """Return the inverse standard-normal CDF.
+
+    The pure-Python path uses the Beasley-Springer/Moro rational approximation.
+    It is accurate to about 1e-4 across ``p`` in ``[0.001, 0.999]``, enough for
+    Wilson-interval math.
     """
     if not 0.0 < p < 1.0:
         raise ValueError(f"p must be in (0, 1); got {p!r}")

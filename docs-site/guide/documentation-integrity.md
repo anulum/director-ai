@@ -56,8 +56,10 @@ PY
 - The CI docstring ratchet currently blocks pydocstyle `D` regressions for the
   strict-typed modules listed in `.github/workflows/ci.yml`: `core/config.py`,
   `core/scoring/scorer.py`, `core/containment`, `core/edge`,
-  `core/guard_control`, `core/ml_bom`, `core/output_integrity`, and
-  `core/output_trust`.
+  `core/execution_rings`, `core/guard_control`, `core/irreversibility`,
+  `core/ml_bom`, `core/output_integrity`, `core/output_trust`,
+  `core/safety_event.py`, `core/safety_protocol.py`, `core/stats.py`, and
+  `core/text_overlap.py`.
 
 ## Current Known Boundaries
 
@@ -69,11 +71,15 @@ PY
 - Repo-wide public docstring debt remains open. The live 2026-06-18 measurement
   for `ruff check src/director_ai --select D --statistics` counted 1,175
   pydocstyle findings after generated-file excludes. The guard-control ratchet
-  reduced the live count to 1,171 findings in the same command. Keep generated
-  protobuf files out of manual cleanup unless the generation pipeline changes.
-  As of 2026-06-18, `core/containment`, `core/edge`, `core/guard_control`,
-  `core/ml_bom`, `core/output_integrity`, and `core/output_trust` have been
-  added to the same blocking docstring ratchet as `core/config.py` and
+  reduced the live count to 1,171 findings in the same command; the
+  execution-ring, irreversibility, safety-event, safety-protocol, stats, and
+  text-overlap ratchet reduced it to 1,156 findings. Keep generated protobuf
+  files out of manual cleanup unless the generation pipeline changes. As of
+  2026-06-18, `core/containment`, `core/edge`, `core/execution_rings`,
+  `core/guard_control`, `core/irreversibility`, `core/ml_bom`,
+  `core/output_integrity`, `core/output_trust`, `core/safety_event.py`,
+  `core/safety_protocol.py`, `core/stats.py`, and `core/text_overlap.py` have
+  been added to the same blocking docstring ratchet as `core/config.py` and
   `core/scoring/scorer.py`.
 - Repo-wide strict mypy remains open. The live 2026-06-18 measurement for
   `mypy --strict src/director_ai` found 621 errors in 93 files. The configured

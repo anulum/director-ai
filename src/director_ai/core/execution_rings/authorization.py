@@ -55,6 +55,7 @@ class AuthorizationEvidence:
     cooling_elapsed_seconds: float = 0.0
 
     def __post_init__(self) -> None:
+        """Validate the elapsed cooling-period evidence."""
         if self.cooling_elapsed_seconds < 0:
             raise ValueError("cooling_elapsed_seconds must be non-negative")
 

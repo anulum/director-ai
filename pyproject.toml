@@ -570,6 +570,27 @@ strict_equality = true
 warn_unused_ignores = true
 
 [[tool.mypy.overrides]]
+module = [
+    "director_ai.core.execution_rings",
+    "director_ai.core.execution_rings.*",
+    "director_ai.core.irreversibility",
+    "director_ai.core.irreversibility.*",
+    "director_ai.core.safety_event",
+    "director_ai.core.safety_protocol",
+    "director_ai.core.stats",
+    "director_ai.core.text_overlap",
+]
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+disallow_untyped_calls = true
+disallow_untyped_decorators = true
+disallow_any_generics = true
+warn_return_any = true
+no_implicit_reexport = true
+strict_equality = true
+warn_unused_ignores = true
+
+[[tool.mypy.overrides]]
 module = "director_ai.core.edge.*"
 disallow_untyped_defs = true
 disallow_incomplete_defs = true

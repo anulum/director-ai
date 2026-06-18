@@ -25,14 +25,17 @@ from typing import Protocol, runtime_checkable
 
 @dataclass(frozen=True)
 class ReversibilityScore:
-    """Scored action. ``score`` is the probability the action is
-    reversible; ``1 - score`` is the irreversibility that the
-    forecaster accumulates."""
+    """Scored action with reversible probability and rationale.
+
+    ``score`` is the probability the action is reversible; ``1 - score`` is the
+    irreversibility that the forecaster accumulates.
+    """
 
     score: float
     reason: str
 
     def __post_init__(self) -> None:
+        """Validate the reversibility score and its explanation."""
         if not 0.0 <= self.score <= 1.0:
             raise ValueError(
                 f"ReversibilityScore.score must be in [0, 1]; got {self.score!r}"
@@ -43,17 +46,21 @@ class ReversibilityScore:
 
 @runtime_checkable
 class ReversibilityEstimator(Protocol):
-    """Score one action. Callers pass a free-form string plus an
-    optional ``context`` mapping (tenant, prior state, etc.) that
-    richer estimators may consume. The Protocol requires only
-    ``action``; ``context`` is optional."""
+    """Score one action.
+
+    Callers pass a free-form string plus an optional ``context`` mapping
+    (tenant, prior state, etc.) that richer estimators may consume. The Protocol
+    requires only ``action``; ``context`` is optional.
+    """
 
     def score(
         self,
         action: str,
         *,
         context: Mapping[str, object] | None = None,
-    ) -> ReversibilityScore: ...
+    ) -> ReversibilityScore:
+        """Return the reversible probability for one action."""
+        ...
 
 
 _DEFAULT_IRREVERSIBLE_MARKERS: tuple[str, ...] = (
@@ -121,6 +128,7 @@ class RuleReversibility:
         *,
         context: Mapping[str, object] | None = None,
     ) -> ReversibilityScore:
+        """Return a marker-based reversibility score for one action."""
         _ = context  # reserved for richer estimators
         if not action or not action.strip():
             return ReversibilityScore(score=self._baseline, reason="empty action")

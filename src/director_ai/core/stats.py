@@ -65,7 +65,7 @@ class StatsStore:
         )
         self._conn.commit()
 
-    def summary(self, since: float | None = None) -> dict:
+    def summary(self, since: float | None = None) -> dict[str, int | float | None]:
         """Return aggregate review counters since the optional timestamp."""
         clause = "WHERE timestamp >= ?" if since else ""
         params = (since,) if since else ()
@@ -90,7 +90,7 @@ class StatsStore:
             else None,
         }
 
-    def hourly_breakdown(self, days: int = 7) -> list[dict]:
+    def hourly_breakdown(self, days: int = 7) -> list[dict[str, int | float | None]]:
         """Return hourly review aggregates for the trailing day window."""
         since = time.time() - days * 86400
         rows = self._conn.execute(
