@@ -7,6 +7,27 @@ deploys before the crash, not an incident report after it.
 `director_ai.lite` is the 30-second front door to exactly that. No model
 download, no knowledge-base wiring, no config.
 
+Install the standalone first-run package when the public surface should be this
+facade only:
+
+```bash
+pip install director-ai-lite
+```
+
+```python
+from director_ai_lite import guard
+
+result = guard(
+    token_stream,
+    facts={"capital": "Paris is the capital of France."},
+    prompt="What is the capital of France?",
+)
+```
+
+The standalone package delegates to the same `director_ai.lite` implementation,
+so the full and Lite installs share halt semantics, type behavior, and upgrade
+paths.
+
 !!! info "Priority"
     Director-AI publicly shipped token-level streaming halt in early 2026 and
     [deposited it on Zenodo](https://doi.org/10.5281/zenodo.18822166) (March

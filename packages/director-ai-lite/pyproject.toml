@@ -1,0 +1,73 @@
+# SPDX-License-Identifier: Apache-2.0
+# Commercial license available
+# © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
+# © Code 2020–2026 Miroslav Šotek. All rights reserved.
+# ORCID: 0009-0009-3560-0851
+# Contact: www.anulum.li | protoscience@anulum.li
+# Director-Class AI — Director-Lite package metadata
+
+[build-system]
+requires = ["setuptools>=42", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "director-ai-lite"
+version = "3.15.3"
+description = "Three-line Director-AI streaming halt facade for model-free first runs"
+authors = [
+    {name = "Miroslav Šotek", email = "protoscience@anulum.li"}
+]
+license = "Apache-2.0 AND BUSL-1.1"
+readme = "README.md"
+requires-python = ">=3.11"
+keywords = [
+    "llm",
+    "hallucination",
+    "guardrail",
+    "streaming",
+    "streaming-halt",
+    "director-ai",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+dependencies = [
+    "director-ai>=3.15.3,<4",
+]
+
+[project.optional-dependencies]
+nli = [
+    "director-ai[nli]>=3.15.3,<4",
+]
+rag = [
+    "director-ai[vector]>=3.15.3,<4",
+]
+server = [
+    "director-ai[server]>=3.15.3,<4",
+]
+recommended = [
+    "director-ai[recommended]>=3.15.3,<4",
+]
+
+[project.urls]
+Homepage = "https://www.anulum.li"
+Repository = "https://github.com/anulum/director-ai"
+Documentation = "https://anulum.github.io/director-ai/lite/"
+Issues = "https://github.com/anulum/director-ai/issues"
+
+[tool.setuptools]
+include-package-data = false
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+director_ai_lite = ["py.typed"]

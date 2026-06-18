@@ -207,7 +207,7 @@ inventory below is reference for the deeper surface, navigable under
 | API documentation pages | 88 |
 | Rust PyO3 bindings | 83 |
 | Optional extras | 58 |
-| Python test files | 521 |
+| Python test files | 522 |
 | Public documentation pages | 201 |
 | GitHub Actions workflows | 12 |
 
@@ -418,6 +418,7 @@ Or pick granular extras for fine control:
 ```bash
 pip install "director-ai[nli]"                     # NLI model scoring (75.6% BA)
 pip install "director-ai[embed]"                   # embedding scorer (~65% BA, CPU-only, 3ms)
+pip install director-ai-lite                       # 3-line streaming halt facade
 pip install "director-ai[nli,vector,server]"       # equivalent to [recommended]
 pip install "director-ai[ui]"                      # config wizard (Gradio web UI)
 pip install "director-ai[reports]"                 # PDF/HTML compliance reports

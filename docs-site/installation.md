@@ -7,6 +7,7 @@ hand. The granular extras (below) remain available for fine control.
 
 ```bash
 pip install director-ai                  # core: scoring + streaming halt, zero ML deps
+pip install director-ai-lite             # smallest first-run facade for streaming halt
 pip install "director-ai[recommended]"   # production guardrail: NLI + RAG + REST API
 pip install "director-ai[integrations]"  # framework adapters (LangChain, LlamaIndex, …)
 pip install "director-ai[all]"           # the common capability set in one shot
@@ -19,6 +20,29 @@ pip install director-ai
 ```
 
 Includes: coherence scorer, streaming kernel, safety kernel, ground truth store, heuristic scoring.
+
+## Director-Lite Package
+
+```bash
+pip install director-ai-lite
+```
+
+Use this package when the first install should expose only the streaming-halt
+front door:
+
+```python
+from director_ai_lite import guard
+
+result = guard(
+    token_stream,
+    facts={"capital": "Paris is the capital of France."},
+    prompt="What is the capital of France?",
+)
+```
+
+`director-ai-lite` is a thin distribution wrapper around `director_ai.lite`; the
+halt implementation, heuristic scorer, optional model-backed scorer path, and
+session object are the same code used by the full `director-ai` package.
 
 ## Supported Default Path
 
