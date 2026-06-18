@@ -21,7 +21,12 @@ import json
 import logging
 import os
 from dataclasses import dataclass, field
-from typing import cast
+from typing import TYPE_CHECKING, Any, cast
+
+if TYPE_CHECKING:
+    from .retrieval.knowledge import GroundTruthStore
+    from .runtime.contradiction_halt import ContradictionHalt
+    from .scoring.scorer import CoherenceScorer
 
 __all__ = ["DirectorConfig", "ProfileMetadata"]
 
@@ -477,6 +482,7 @@ class DirectorConfig:
     extra: dict[str, str] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
+        """Apply profile-derived defaults and validate configuration bounds."""
         if self.mode not in ("general", "grounded", "auto"):
             raise ValueError(
                 f"mode must be 'general', 'grounded', or 'auto', got {self.mode!r}"
@@ -703,7 +709,7 @@ class DirectorConfig:
         Reads ``DIRECTOR_<FIELD>`` env vars (case-insensitive field matching).
         Example: ``DIRECTOR_COHERENCE_THRESHOLD=0.7``
         """
-        kwargs: dict = {}
+        kwargs: dict[str, Any] = {}
         field_map = {f.name.upper(): f for f in cls.__dataclass_fields__.values()}
 
         for key, value in os.environ.items():
@@ -763,7 +769,7 @@ class DirectorConfig:
         - ``"thorough"`` — NLI + RAG scoring, higher accuracy.
         - ``"research"`` — NLI + RAG + reranker, all scoring modules enabled.
         """
-        profiles: dict[str, dict] = {
+        profiles: dict[str, dict[str, Any]] = {
             "fast": {
                 "use_nli": False,
                 "coherence_threshold": 0.5,
@@ -1034,7 +1040,7 @@ class DirectorConfig:
             handler.setFormatter(_JsonFormatter())
             root.handlers = [handler]
 
-    def build_store(self):
+    def build_store(self) -> GroundTruthStore:
         """Construct a VectorGroundTruthStore from config fields.
 
         In ``general`` mode, returns a bare GroundTruthStore (no vector backend).
@@ -1178,11 +1184,11 @@ class DirectorConfig:
         if self.hyde_enabled:
             from .retrieval.hyde import HyDEBackend
 
-            kw_hyde: dict = {}
             if self.hyde_prompt_template:
-                kw_hyde["template"] = self.hyde_prompt_template
-            # Generator will be injected by build_scorer() or by the user
-            backend = HyDEBackend(base=backend, **kw_hyde)
+                backend = HyDEBackend(base=backend, template=self.hyde_prompt_template)
+            else:
+                # Generator will be injected by build_scorer() or by the user.
+                backend = HyDEBackend(base=backend)
             logger.info("HyDE retrieval enabled")
 
         if self.query_decomposition_enabled:
@@ -1252,7 +1258,7 @@ class DirectorConfig:
         logger.info("Auto scorer: selected 'lite' (no NLI available)")
         return "lite"
 
-    def build_scorer(self, store=None):
+    def build_scorer(self, store: GroundTruthStore | None = None) -> CoherenceScorer:
         """Construct a CoherenceScorer wired to all relevant config fields."""
         from .metrics import metrics
         from .scoring.scorer import CoherenceScorer
@@ -1276,7 +1282,7 @@ class DirectorConfig:
             )
             nli_model, nli_revision = resolved.model_id, resolved.revision
 
-        kw: dict = {
+        kw: dict[str, Any] = {
             "threshold": self.coherence_threshold,
             "use_nli": self.use_nli,
             "require_model_backed_nli": self.coherence_require_model_backed_nli,
@@ -1491,7 +1497,10 @@ class DirectorConfig:
             )
         return scorer
 
-    def build_contradiction_halt(self, store=None):
+    def build_contradiction_halt(
+        self,
+        store: GroundTruthStore | None = None,
+    ) -> ContradictionHalt | None:
         """Build the opt-in contradiction-driven streaming halt, or ``None``.
 
         Returns ``None`` when ``streaming_contradiction_halt`` is off, or when
@@ -1603,9 +1612,9 @@ class DirectorConfig:
         },
     )
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict[str, object]:
         """Serialize to a plain dict (safe for JSON/API responses)."""
-        d = {}
+        d: dict[str, object] = {}
         for fld in self.__dataclass_fields__:
             val = getattr(self, fld)
             if fld in self._REDACTED_FIELDS and val:

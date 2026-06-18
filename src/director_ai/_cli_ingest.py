@@ -56,12 +56,19 @@ def _cmd_ingest(args: list[str]) -> None:
         sys.exit(1)
 
     from director_ai.core.config import DirectorConfig
+    from director_ai.core.retrieval.vector_store import VectorGroundTruthStore
 
     cfg = DirectorConfig.from_env()
     if persist_dir:
         cfg.vector_backend = "chroma"
         cfg.chroma_persist_dir = persist_dir
     store = cfg.build_store()
+    if not isinstance(store, VectorGroundTruthStore):
+        print(
+            "Error: ingest requires a vector-backed store; set "
+            "DIRECTOR_MODE=grounded or use --persist <dir>.",
+        )
+        sys.exit(1)
 
     text_exts = {".txt", ".md", ".json", ".jsonl", ".xml", ".markdown"}
     parsed_exts = {".pdf", ".docx", ".html", ".htm", ".csv"}
