@@ -6,12 +6,14 @@
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI — Shared Types (Coherence Engine)
 
+"""Shared dataclasses returned by Director-AI scoring and guard pipelines."""
+
 from __future__ import annotations
 
 import logging
 import math
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from .safety_event import SafetyEvent
@@ -117,7 +119,7 @@ class CoherenceScore:
         None  # best retrieval distance (0=no match, 1=exact)
     )
     injection_risk: float | None = None  # 0-1, intent-grounded injection risk
-    verified_result: dict | None = None  # atomic VerifiedScorer payload
+    verified_result: dict[str, Any] | None = None  # atomic VerifiedScorer payload
     verified_approved: bool | None = None
     verified_coverage: float | None = None
     verified_claim_count: int = 0
@@ -160,7 +162,7 @@ class CoherenceScore:
         """Claims not supported by any source — the hallucinated ones."""
         return [a for a in self.attributions if not a.supported]
 
-    def claim_provenance(self) -> list[dict]:
+    def claim_provenance(self) -> list[dict[str, str | bool | float | int]]:
         """Structured provenance for each claim.
 
         Returns a list of dicts, one per claim::
@@ -218,7 +220,9 @@ class InjectionResult:
     input_sanitizer_score: float  # Stage 1 (InputSanitizer) suspicion
     combined_score: float  # weighted Stage1 + Stage2
 
-    def to_dict(self) -> dict:
+    def to_dict(
+        self,
+    ) -> dict[str, bool | float | int | list[dict[str, str | float | int]]]:
         """Serialise to JSON-safe dict."""
         return {
             "injection_detected": self.injection_detected,

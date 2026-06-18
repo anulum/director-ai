@@ -6,8 +6,9 @@
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI — Torch device selection helper
 
-"""Pick a PyTorch device that the installed PyTorch binary can
-actually run kernels on.
+"""Pick a PyTorch device compatible with the installed PyTorch binary.
+
+Return only devices that can actually run kernels.
 
 ``torch.cuda.is_available()`` returns ``True`` for any CUDA GPU the
 driver can see, including devices whose compute capability is below
@@ -32,6 +33,7 @@ import logging
 import os
 import threading
 import warnings
+from typing import Any
 
 logger = logging.getLogger("DirectorAI.Device")
 
@@ -101,8 +103,7 @@ def _visible_device_count() -> int:
 
 
 def select_torch_device(preferred: str | None = None) -> str:
-    """Return a PyTorch device string that the installed binary can
-    run kernels on.
+    """Return a PyTorch device string compatible with this binary.
 
     Honour ``DIRECTOR_FORCE_CPU=1`` regardless of what GPUs are
     visible — operators on noisy test environments appreciate a
@@ -164,7 +165,7 @@ def _cuda_usable_for(device: str) -> bool:
         return False
 
 
-def _cuda_available(torch_mod) -> bool:
+def _cuda_available(torch_mod: Any) -> bool:
     """Probe CUDA availability without surfacing noisy driver-init warnings."""
     with warnings.catch_warnings():
         warnings.filterwarnings(
@@ -176,8 +177,10 @@ def _cuda_available(torch_mod) -> bool:
 
 
 def _warn_once_unsupported(count: int, min_cap: tuple[int, int]) -> None:
-    """Emit one log line per unique (count, min_cap) pair so
-    stream output does not balloon when many callers fall back."""
+    """Emit one log line per unique ``(count, min_cap)`` pair.
+
+    Avoid ballooning stream output when many callers fall back to CPU.
+    """
     key = hash((count, min_cap))
     with _warn_lock:
         if key in _warned_unsupported:

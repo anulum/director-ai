@@ -54,18 +54,20 @@ PY
 - Deployment and benchmark pages must say when an artefact is a fixture,
   replication packet, or unofficial smoke result.
 - The CI docstring ratchet currently blocks pydocstyle `D` regressions for the
-  strict-typed modules listed in `.github/workflows/ci.yml`: `core/attribution`,
-  `core/calibration`, `core/canary`, `core/config.py`,
+  strict-typed modules listed in `.github/workflows/ci.yml`: `core/_device.py`,
+  `core/_heuristics.py`, `core/attribution`, `core/calibration`, `core/canary`,
+  `core/config.py`,
   `core/scoring/scorer.py`, `core/containment`, `core/consensus`, `core/edge`,
-  `core/eval_trace`, `core/evaluation`, `core/evidence_packet`,
+  `core/eval_trace`, `core/evaluation`, `core/exceptions.py`,
+  `core/evidence_packet`,
   `core/forecasting`, `core/ingestion`, `core/execution_rings`,
-  `core/guard_control`, `core/irreversibility`, `core/memory`,
+  `core/guard_control`, `core/irreversibility`, `core/mandatory.py`, `core/memory`,
   `core/meta_guard`, `core/ml_bom`, `core/output_integrity`,
   `core/output_trust`, `core/risk_threshold`, `core/safety_event.py`,
   `core/safety_protocol.py`, `core/self_healing`, `core/stats.py`,
   `core/sustainability`, `core/swarm_coherence`, `core/swarm_equilibrium`,
   `core/symbolic_chain`, `core/temporal_consistency`, `core/text_overlap.py`,
-  `core/threat_intel`, and `core/trace_safe`.
+  `core/threat_intel`, `core/trace_safe`, and `core/types.py`.
 
 ## Current Known Boundaries
 
@@ -85,19 +87,22 @@ PY
   ratchet reduced it to 1,052 findings; the attribution, calibration, canary,
   eval-trace, and evidence-packet ratchet reduced it to 1,046 findings; the
   evaluation, forecasting, ingestion, memory, and self-healing ratchet reduced
-  it to 1,033 findings. Keep generated protobuf files out of manual cleanup
-  unless the generation pipeline changes. As of 2026-06-18,
-  `core/attribution`, `core/calibration`, `core/canary`, `core/containment`,
-  `core/consensus`, `core/edge`, `core/eval_trace`, `core/evaluation`,
-  `core/evidence_packet`, `core/forecasting`, `core/ingestion`,
-  `core/execution_rings`, `core/guard_control`, `core/irreversibility`,
+  it to 1,033 findings; the core utility-file ratchet reduced it to 1,028
+  findings. Keep generated protobuf files out of manual cleanup unless the
+  generation pipeline changes. As of 2026-06-18, `core/_device.py`,
+  `core/_heuristics.py`, `core/attribution`, `core/calibration`, `core/canary`,
+  `core/containment`, `core/consensus`, `core/edge`, `core/eval_trace`,
+  `core/evaluation`, `core/exceptions.py`, `core/evidence_packet`,
+  `core/forecasting`, `core/ingestion`, `core/execution_rings`,
+  `core/guard_control`, `core/irreversibility`, `core/mandatory.py`,
   `core/memory`, `core/meta_guard`, `core/ml_bom`, `core/output_integrity`,
   `core/output_trust`, `core/risk_threshold`, `core/safety_event.py`,
   `core/safety_protocol.py`, `core/self_healing`, `core/stats.py`,
   `core/sustainability`, `core/swarm_coherence`, `core/swarm_equilibrium`,
   `core/symbolic_chain`, `core/temporal_consistency`, `core/text_overlap.py`,
-  `core/threat_intel`, and `core/trace_safe` have been added to the same
-  blocking docstring ratchet as `core/config.py` and `core/scoring/scorer.py`.
+  `core/threat_intel`, `core/trace_safe`, and `core/types.py` have been added
+  to the same blocking docstring ratchet as `core/config.py` and
+  `core/scoring/scorer.py`.
 - Repo-wide strict mypy remains open. The live 2026-06-18 measurement for
   `mypy --strict src/director_ai` found 621 errors in 93 files. The configured
   CI mypy command remains clean across 512 source files, so strict mode is being

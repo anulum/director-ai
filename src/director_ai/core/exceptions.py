@@ -14,6 +14,14 @@ callers can catch the entire family with a single except clause.
 
 from __future__ import annotations
 
+from typing import Protocol
+
+
+class _ScoreLike(Protocol):
+    """Score payload surface used when formatting guardrail exceptions."""
+
+    score: float
+
 
 class DirectorAIError(Exception):
     """Base exception for all Director-Class AI errors."""
@@ -50,7 +58,7 @@ class NumericalError(PhysicsError):
 class HallucinationError(DirectorAIError):
     """Raised when a guarded LLM response fails coherence scoring."""
 
-    def __init__(self, query: str, response: str, score):
+    def __init__(self, query: str, response: str, score: _ScoreLike) -> None:
         self.query = query
         self.response = response
         self.score = score
@@ -62,7 +70,7 @@ class HallucinationError(DirectorAIError):
 class InjectionDetectedError(DirectorAIError):
     """Raised when a guarded LLM response is flagged for prompt injection."""
 
-    def __init__(self, query: str, response: str, score):
+    def __init__(self, query: str, response: str, score: object) -> None:
         self.query = query
         self.response = response
         self.score = score

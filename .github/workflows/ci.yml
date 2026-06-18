@@ -53,6 +53,8 @@ jobs:
       - name: Docstring ratchet (strict-typed modules)
         run: >-
           ruff check
+          src/director_ai/core/_device.py
+          src/director_ai/core/_heuristics.py
           src/director_ai/core/attribution
           src/director_ai/core/calibration
           src/director_ai/core/canary
@@ -63,12 +65,14 @@ jobs:
           src/director_ai/core/edge
           src/director_ai/core/eval_trace
           src/director_ai/core/evaluation
+          src/director_ai/core/exceptions.py
           src/director_ai/core/evidence_packet
           src/director_ai/core/forecasting
           src/director_ai/core/ingestion
           src/director_ai/core/execution_rings
           src/director_ai/core/guard_control
           src/director_ai/core/irreversibility
+          src/director_ai/core/mandatory.py
           src/director_ai/core/memory
           src/director_ai/core/meta_guard
           src/director_ai/core/ml_bom
@@ -87,6 +91,7 @@ jobs:
           src/director_ai/core/text_overlap.py
           src/director_ai/core/threat_intel
           src/director_ai/core/trace_safe
+          src/director_ai/core/types.py
           --select D
 
   typecheck:
