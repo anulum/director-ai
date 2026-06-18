@@ -50,6 +50,9 @@ jobs:
       - name: Lint (ruff)
         run: ruff check src/ tests/ examples/
 
+      - name: Docstring ratchet (scorer)
+        run: ruff check src/director_ai/core/scoring/scorer.py --select D
+
   typecheck:
     name: Type Check
     runs-on: ubuntu-latest

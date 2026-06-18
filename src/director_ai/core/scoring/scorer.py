@@ -5,6 +5,7 @@
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI — Coherence Scorer (Weighted NLI Divergence)
+"""Composite scoring pipeline for response-level hallucination checks."""
 
 from __future__ import annotations
 
@@ -106,42 +107,49 @@ class CoherenceScorer:
 
     def __init__(
         self,
-        threshold=0.5,
-        history_window=5,
-        use_nli=None,
-        ground_truth_store=None,
-        nli_model=None,
-        soft_limit=None,
-        w_logic=None,
-        w_fact=None,
-        strict_mode=False,
-        require_model_backed_nli=False,
-        cache_size=0,
-        cache_ttl=300.0,
-        nli_quantize_8bit=False,
-        nli_device=None,
-        nli_torch_dtype=None,
-        llm_judge_enabled=False,
-        llm_judge_confidence_threshold=0.3,
-        llm_judge_provider="",
-        llm_judge_model="",
-        llm_judge_model_revision=None,
-        scorer_backend="deberta",
-        onnx_path=None,
-        nli_devices=None,
-        onnx_batch_size=16,
-        onnx_flush_timeout_ms=10.0,
-        privacy_mode=False,
-        cache=None,
-        nli_max_length=512,
-        nli_revision=None,
-        reasoning_enabled=False,
-        reasoning_provider="",
-        reasoning_model="",
-        reasoning_model_revision=None,
-        reasoning_escalation_margin=0.15,
-        minicheck_variant="deberta-v3-large",
-    ):
+        threshold: float = 0.5,
+        history_window: int = 5,
+        use_nli: bool | None = None,
+        ground_truth_store: Any | None = None,
+        nli_model: str | None = None,
+        soft_limit: float | None = None,
+        w_logic: float | None = None,
+        w_fact: float | None = None,
+        strict_mode: bool = False,
+        require_model_backed_nli: bool = False,
+        cache_size: int = 0,
+        cache_ttl: float = 300.0,
+        nli_quantize_8bit: bool = False,
+        nli_device: str | None = None,
+        nli_torch_dtype: str | None = None,
+        llm_judge_enabled: bool = False,
+        llm_judge_confidence_threshold: float = 0.3,
+        llm_judge_provider: str = "",
+        llm_judge_model: str = "",
+        llm_judge_model_revision: str | None = None,
+        scorer_backend: str = "deberta",
+        onnx_path: str | None = None,
+        nli_devices: list[str] | None = None,
+        onnx_batch_size: int = 16,
+        onnx_flush_timeout_ms: float = 10.0,
+        privacy_mode: bool = False,
+        cache: ScoreCache | None = None,
+        nli_max_length: int = 512,
+        nli_revision: str | None = None,
+        reasoning_enabled: bool = False,
+        reasoning_provider: str = "",
+        reasoning_model: str = "",
+        reasoning_model_revision: str | None = None,
+        reasoning_escalation_margin: float = 0.15,
+        minicheck_variant: str = "deberta-v3-large",
+    ) -> None:
+        """Initialise backend, cache, threshold, and escalation state.
+
+        The constructor preserves the historical keyword surface while routing
+        each backend option into one review pipeline. It validates score bounds,
+        soft-limit ordering, and divergence weights before creating model or
+        cache state.
+        """
         if not (0.0 <= threshold <= 1.0):
             raise ValueError(f"threshold must be in [0, 1], got {threshold}")
 
@@ -177,12 +185,13 @@ class CoherenceScorer:
                 raise ValueError(
                     f"w_logic + w_fact must equal 1.0, got {self.W_LOGIC + self.W_FACT}",
                 )
-        self.history = []
+        self.history: list[str] = []
         self.window = history_window
         self.ground_truth_store = ground_truth_store
         self.logger = logging.getLogger("DirectorAI")
         self._history_lock = threading.Lock()
 
+        self.cache: ScoreCache | None
         if cache is not None:
             self.cache = cache
         elif cache_size > 0:
@@ -291,12 +300,12 @@ class CoherenceScorer:
         self._qa_premise_ratio = 0.7
         self._confidence_weighted_agg = False
         self._meta_classifier_path = ""
-        self._meta_classifier = None
+        self._meta_classifier: Any | None = None
         self._meta_classifier_lock = threading.Lock()
-        self._adaptive_router = None  # set via enable_adaptive_retrieval()
+        self._adaptive_router: Any | None = None  # set via enable_adaptive_retrieval()
         self._adaptive_threshold_fail_closed = False
         self._dry_run = False  # when True, log but never reject
-        self._cost_analyser = (
+        self._cost_analyser: Any | None = (
             None  # set by config.build_scorer() when cost_tracking_enabled
         )
 
@@ -329,7 +338,7 @@ class CoherenceScorer:
 
         # Injection detection: set via enable_injection_detection()
         self._injection_lock = threading.Lock()
-        self._injection_detector = None
+        self._injection_detector: Any | None = None
         self._injection_fail_closed = False
         self._nli_fallback_lock = threading.Lock()
         self._nli_fallback_incident_stages: set[str] = set()
@@ -357,31 +366,31 @@ class CoherenceScorer:
     # -- Backward-compat proxies for judge internals (used by tests) ----
 
     @property
-    def _local_judge_model(self):
+    def _local_judge_model(self) -> Any:
         return self._judge._local_judge_model
 
     @_local_judge_model.setter
-    def _local_judge_model(self, value):
+    def _local_judge_model(self, value: Any) -> None:
         self._judge._local_judge_model = value
 
     @property
-    def _local_judge_tokenizer(self):
+    def _local_judge_tokenizer(self) -> Any:
         return self._judge._local_judge_tokenizer
 
     @_local_judge_tokenizer.setter
-    def _local_judge_tokenizer(self, value):
+    def _local_judge_tokenizer(self, value: Any) -> None:
         self._judge._local_judge_tokenizer = value
 
     @property
-    def _local_judge_device(self):
+    def _local_judge_device(self) -> Any:
         return self._judge._local_judge_device
 
     @_local_judge_device.setter
-    def _local_judge_device(self, value):
+    def _local_judge_device(self, value: Any) -> None:
         self._judge._local_judge_device = value
 
     @property
-    def _judge_cache(self):
+    def _judge_cache(self) -> Any:
         return self._judge._judge_cache
 
     # Names mirror the class-constant style on :class:`LLMJudge`
@@ -391,11 +400,11 @@ class CoherenceScorer:
     _JUDGE_RETRY_MAX = property(lambda self: self._judge._JUDGE_RETRY_MAX)
 
     @property
-    def _llm_judge_model(self):
+    def _llm_judge_model(self) -> str:
         return self._judge.model
 
     @property
-    def _task_judge_thresholds(self):
+    def _task_judge_thresholds(self) -> dict[str, float]:
         return self._judge.task_judge_thresholds
 
     def _local_judge_check(self, prompt: str, response: str, nli_score: float) -> float:
@@ -409,7 +418,7 @@ class CoherenceScorer:
 
     @staticmethod
     def _minicheck_claim_coverage(
-        mc_scorer,
+        mc_scorer: Any,
         source: str,
         summary: str,
     ) -> tuple[float, list[float], list[str]]:
@@ -425,6 +434,7 @@ class CoherenceScorer:
             self._parallel_pool = None
 
     def __del__(self) -> None:
+        """Release the lazily-created parallel scoring pool during teardown."""
         pool = getattr(self, "_parallel_pool", None)
         if pool is not None:
             pool.shutdown(wait=False)
@@ -437,7 +447,7 @@ class CoherenceScorer:
 
     _BUNDLED_CLASSIFIER = "models/dataset_type_classifier.json"
 
-    def _get_meta_classifier(self):
+    def _get_meta_classifier(self) -> Any | None:
         """Lazy-load trained meta-classifier from pickle."""
         if self._meta_classifier is not None:
             return self._meta_classifier
@@ -607,8 +617,8 @@ class CoherenceScorer:
         text_output: str,
         tenant_id: str = "",
         *,
-        _inner_agg=None,
-        _outer_agg=None,
+        _inner_agg: str | None = None,
+        _outer_agg: str | None = None,
     ) -> tuple[float, ScoringEvidence | None]:
         """Score summarisation directly against the source prompt."""
         del tenant_id
@@ -708,12 +718,12 @@ class CoherenceScorer:
             "Injection detection enabled (threshold=%.2f)", injection_threshold
         )
 
-    def _get_injection_detector(self):
+    def _get_injection_detector(self) -> Any | None:
         """Return the InjectionDetector if enabled, else None."""
         with self._injection_lock:
             return self._injection_detector
 
-    def _get_injection_runtime_state(self):
+    def _get_injection_runtime_state(self) -> tuple[Any | None, bool]:
         """Return (detector, fail_closed) snapshot atomically."""
         with self._injection_lock:
             return self._injection_detector, self._injection_fail_closed
@@ -766,13 +776,13 @@ class CoherenceScorer:
 
     def calculate_factual_divergence(
         self,
-        prompt,
-        text_output,
+        prompt: str,
+        text_output: str,
         tenant_id: str = "",
         *,
-        _inner_agg=None,
-        _outer_agg=None,
-    ):
+        _inner_agg: str | None = None,
+        _outer_agg: str | None = None,
+    ) -> float:
         """Check output against the Ground Truth Store.
 
         Returns 0.0 (aligned) to 1.0 (hallucinated).
@@ -929,12 +939,12 @@ class CoherenceScorer:
 
     def calculate_factual_divergence_with_evidence(
         self,
-        prompt,
-        text_output,
+        prompt: str,
+        text_output: str,
         tenant_id: str = "",
         *,
-        _inner_agg=None,
-        _outer_agg=None,
+        _inner_agg: str | None = None,
+        _outer_agg: str | None = None,
     ) -> tuple[float, ScoringEvidence | None]:
         """Like calculate_factual_divergence but also returns evidence."""
         fact_inner = _inner_agg if _inner_agg is not None else self._fact_inner_agg
@@ -1134,7 +1144,7 @@ class CoherenceScorer:
         return nli_score, evidence
 
     @staticmethod
-    def _heuristic_factual(context, text_output):
+    def _heuristic_factual(context: str, text_output: str) -> float:
         """Word-overlap factual divergence with negation and entity checks.
 
         Install [nli] for production scoring.
@@ -1176,12 +1186,12 @@ class CoherenceScorer:
 
     def calculate_logical_divergence(
         self,
-        prompt,
-        text_output,
+        prompt: str,
+        text_output: str,
         *,
-        _inner_agg=None,
-        _outer_agg=None,
-    ):
+        _inner_agg: str | None = None,
+        _outer_agg: str | None = None,
+    ) -> float:
         """Compute logical contradiction probability via NLI.
 
         When strict_mode is True and NLI is unavailable, returns 0.9 (reject).
@@ -1239,7 +1249,7 @@ class CoherenceScorer:
         )
 
     @staticmethod
-    def _heuristic_logical(text_output, prompt=""):
+    def _heuristic_logical(text_output: str, prompt: str = "") -> float:
         """Keyword + word-overlap logical divergence (no-NLI fallback).
 
         Install [nli] for production-grade scoring.
@@ -1266,7 +1276,12 @@ class CoherenceScorer:
 
     # â"€â"€ Shared helpers â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 
-    def _heuristic_coherence(self, prompt, action, tenant_id: str = ""):
+    def _heuristic_coherence(
+        self,
+        prompt: str,
+        action: str,
+        tenant_id: str = "",
+    ) -> tuple[float, float, float, ScoringEvidence | None]:
         """Compute coherence components.
 
         Returns (h_logical, h_factual, coherence, evidence).
@@ -1390,14 +1405,14 @@ class CoherenceScorer:
 
     def _finalise_review(
         self,
-        coherence,
-        h_logic,
-        h_fact,
-        action,
-        evidence=None,
-        threshold_override=None,
-        detected_task_type=None,
-        escalated_to_judge=None,
+        coherence: float,
+        h_logic: float,
+        h_fact: float,
+        action: str,
+        evidence: ScoringEvidence | None = None,
+        threshold_override: float | None = None,
+        detected_task_type: str | None = None,
+        escalated_to_judge: bool | None = None,
     ) -> tuple[bool, CoherenceScore]:
         """Build CoherenceScore, gate on threshold, update history.
 
@@ -1548,7 +1563,7 @@ class CoherenceScorer:
         result: tuple[bool, CoherenceScore],
         prompt: str,
         action: str,
-        evidence,
+        evidence: ScoringEvidence | None,
         *,
         threshold: float,
     ) -> tuple[bool, CoherenceScore]:
@@ -1560,7 +1575,8 @@ class CoherenceScorer:
         unparsable reply leaves the lower-tier verdict untouched. Approval then
         requires both the blended score to clear the threshold *and* the
         reasoning verdict to approve, so a confident safety rejection halts a
-        borderline output."""
+        borderline output.
+        """
         _approved, score = result
         if not self._reasoning.should_escalate(score.score, centre=threshold):
             return result
@@ -1591,7 +1607,9 @@ class CoherenceScorer:
 
     # â"€â"€ Composite scoring â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 
-    def _score_cache_scope(self, session=None, tenant_id: str = "") -> str:
+    def _score_cache_scope(
+        self, session: Any | None = None, tenant_id: str = ""
+    ) -> str:
         """Build cache scope from conversation and mutable grounding state."""
         scope_parts = []
         if session is not None and len(session) > 0:
@@ -1601,7 +1619,7 @@ class CoherenceScorer:
             scope_parts.append(f"store:{store.cache_scope(tenant_id=tenant_id)}")
         return "\x1f".join(scope_parts)
 
-    def compute_divergence(self, prompt, action):
+    def compute_divergence(self, prompt: str, action: str) -> float:
         """Compute composite divergence (lower is better).
 
         Weighted sum: ``W_LOGIC * H_logical + W_FACT * H_factual``.
@@ -1621,16 +1639,24 @@ class CoherenceScorer:
         self,
         prompt: str,
         action: str,
-        session=None,
+        session: Any | None = None,
         tenant_id: str = "",
     ) -> tuple[bool, CoherenceScore]:
         """Score an action and decide whether to approve it.
 
         Parameters
         ----------
+        prompt : str
+            Source prompt, user request, or retrieved question that frames the
+            response under review.
+        action : str
+            Candidate model output to score against the prompt and any
+            configured grounding store.
         session : ConversationSession | None – when provided, cross-turn
             divergence is blended into the logical score and the turn is
             recorded after scoring.
+        tenant_id : str
+            Tenant scope for cache keys and tenant-aware grounding stores.
 
         """
         with trace_review() as span:
@@ -1987,7 +2013,7 @@ class CoherenceScorer:
         self,
         prompt: str,
         action: str,
-        session=None,
+        session: Any | None = None,
         tenant_id: str = "",
     ) -> tuple[bool, CoherenceScore]:
         """Async version of review() – offloads NLI inference to a thread pool."""

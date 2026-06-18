@@ -84,6 +84,7 @@ class TenantRouter:
 
     @property
     def tenant_ids(self) -> list[str]:
+        """Return tenant ids that currently have in-memory stores."""
         with self._lock:
             return list(self._stores.keys())
 
@@ -254,14 +255,11 @@ class TenantRouter:
         """Build a CoherenceScorer scoped to this tenant's KB and model."""
         active = self.get_active_model(tenant_id)
         nli_model = active.model_path if active else None
-        kwargs = {}
-        if nli_model:
-            kwargs["nli_model"] = nli_model
         return CoherenceScorer(
             threshold=threshold,
             ground_truth_store=self.get_store(tenant_id),
             use_nli=use_nli,
-            **kwargs,
+            nli_model=nli_model,
         )
 
     def save_manifest(self, path: str | Path) -> None:
@@ -286,7 +284,7 @@ class TenantRouter:
         return count
 
     def fact_count(self, tenant_id: str) -> int:
-        """Number of facts in a tenant's store."""
+        """Return the number of facts in a tenant's store."""
         with self._lock:
             store = self._stores.get(tenant_id)
             return len(store.facts) if store else 0
