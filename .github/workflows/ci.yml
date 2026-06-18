@@ -73,6 +73,7 @@ jobs:
           src/director_ai/core/doc_chunker.py
           src/director_ai/core/doc_parser.py
           src/director_ai/core/doc_registry.py
+          src/director_ai/core/dp_rag
           src/director_ai/core/edge
           src/director_ai/core/eval_trace
           src/director_ai/core/evaluation

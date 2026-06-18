@@ -6,10 +6,10 @@
     "optional_extras": 58,
     "public_api_exports": 224,
     "public_documentation_pages": 203,
-    "python_model_classes": 978,
-    "python_model_source_modules": 421,
+    "python_model_classes": 980,
+    "python_model_source_modules": 422,
     "rust_pyo3_model_wrappers": 83,
-    "test_files": 527
+    "test_files": 529
   },
   "documentation": {
     "public_pages": [
@@ -1987,6 +1987,14 @@
       {
         "name": "HealthResponse",
         "path": "src/director_ai/_server_models.py"
+      },
+      {
+        "name": "HeuristicCoherenceInputs",
+        "path": "src/director_ai/core/scoring/heuristic_coherence.py"
+      },
+      {
+        "name": "HeuristicCoherenceRoute",
+        "path": "src/director_ai/core/scoring/heuristic_coherence.py"
       },
       {
         "name": "HierarchicalAligner",
@@ -4531,6 +4539,7 @@
       "src/director_ai/core/scoring/contradiction.py",
       "src/director_ai/core/scoring/distilled_scorer.py",
       "src/director_ai/core/scoring/embed_scorer.py",
+      "src/director_ai/core/scoring/heuristic_coherence.py",
       "src/director_ai/core/scoring/lite_scorer.py",
       "src/director_ai/core/scoring/meta_classifier.py",
       "src/director_ai/core/scoring/meta_confidence.py",
@@ -5282,6 +5291,8 @@
       "tests/test_harm_taxonomy.py",
       "tests/test_haystack_integration.py",
       "tests/test_heavy_dependency_supply_chain.py",
+      "tests/test_heuristic_coherence_benchmark.py",
+      "tests/test_heuristic_coherence_pipeline.py",
       "tests/test_hf_space_app_safety.py",
       "tests/test_hf_space_demo.py",
       "tests/test_human_review_queue.py",

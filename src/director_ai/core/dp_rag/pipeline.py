@@ -154,7 +154,7 @@ class DPRagPipeline:
         return acc.cumulative_epsilon() if acc is not None else 0.0
 
     def stage_log(self, tenant_id: str = "") -> tuple[StageCharge, ...]:
-        """The per-stage charges recorded for a tenant, in order."""
+        """Return the per-stage charges recorded for a tenant, in order."""
         tid = _validate_tenant_id(tenant_id)
         return tuple(self._stage_log.get(tid, ()))
 

@@ -5,8 +5,11 @@
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI — Differentially Private RAG
-"""Differentially private RAG: retrieval ranking, token decoding, and a unified
-per-tenant privacy budget across the pipeline."""
+"""Expose differentially private RAG retrieval, decoding, and accounting.
+
+The package provides retrieval ranking, token decoding, and a unified
+per-tenant privacy budget across the pipeline.
+"""
 
 from __future__ import annotations
 
