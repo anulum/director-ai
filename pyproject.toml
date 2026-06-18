@@ -581,6 +581,9 @@ module = [
     "director_ai.core.canary.*",
     "director_ai.core.consensus",
     "director_ai.core.consensus.*",
+    "director_ai.core.doc_chunker",
+    "director_ai.core.doc_parser",
+    "director_ai.core.doc_registry",
     "director_ai.core.execution_rings",
     "director_ai.core.execution_rings.*",
     "director_ai.core.eval_trace",
@@ -596,6 +599,7 @@ module = [
     "director_ai.core.ingestion.*",
     "director_ai.core.irreversibility",
     "director_ai.core.irreversibility.*",
+    "director_ai.core.knowledge",
     "director_ai.core.mandatory",
     "director_ai.core.memory",
     "director_ai.core.memory.*",
@@ -624,6 +628,7 @@ module = [
     "director_ai.core.trace_safe",
     "director_ai.core.trace_safe.*",
     "director_ai.core.types",
+    "director_ai.core.vector_store",
 ]
 disallow_untyped_defs = true
 disallow_incomplete_defs = true

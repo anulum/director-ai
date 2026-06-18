@@ -62,6 +62,9 @@ jobs:
           src/director_ai/core/scoring/scorer.py
           src/director_ai/core/containment
           src/director_ai/core/consensus
+          src/director_ai/core/doc_chunker.py
+          src/director_ai/core/doc_parser.py
+          src/director_ai/core/doc_registry.py
           src/director_ai/core/edge
           src/director_ai/core/eval_trace
           src/director_ai/core/evaluation
@@ -72,6 +75,7 @@ jobs:
           src/director_ai/core/execution_rings
           src/director_ai/core/guard_control
           src/director_ai/core/irreversibility
+          src/director_ai/core/knowledge.py
           src/director_ai/core/mandatory.py
           src/director_ai/core/memory
           src/director_ai/core/meta_guard
@@ -92,6 +96,7 @@ jobs:
           src/director_ai/core/threat_intel
           src/director_ai/core/trace_safe
           src/director_ai/core/types.py
+          src/director_ai/core/vector_store.py
           --select D
 
   typecheck:

@@ -5,6 +5,9 @@
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
 # Backward-compat shim: director_ai.core.knowledge -> director_ai.core.retrieval.knowledge
+
+"""Compatibility import path for retrieval knowledge helpers."""
+
 import importlib as _il
 import sys as _sys
 

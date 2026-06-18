@@ -5,6 +5,9 @@
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
 # Backward-compat shim: director_ai.core.vector_store -> director_ai.core.retrieval.vector_store
+
+"""Compatibility import path for retrieval vector store helpers."""
+
 import importlib as _il
 import sys as _sys
 
