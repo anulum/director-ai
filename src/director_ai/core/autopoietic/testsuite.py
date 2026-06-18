@@ -34,6 +34,7 @@ except Exception:  # pragma: no cover - mandatory dependency
     _RUST_TESTSUITE = True
 
     def rust_sum_f64(_values: list[float]) -> float:
+        """Raise when the Rust floating-point summation accelerator is unavailable."""
         raise RuntimeError("backfire_kernel rust_sum_f64 is unavailable")
 
 
@@ -49,6 +50,7 @@ class ScoredSample:
     label: float
 
     def __post_init__(self) -> None:
+        """Validate sample prompt presence and label bounds."""
         if not self.prompt:
             raise ValueError("ScoredSample.prompt must be non-empty")
         if not 0.0 <= self.label <= 1.0:
@@ -69,9 +71,11 @@ class SuiteResult:
 
     @property
     def ok(self) -> bool:
-        """``True`` when every sample scored without errors or
-        timeouts — the engine refuses to promote an unreliable
-        module even if its metrics look good."""
+        """Return whether every sample scored without errors or timeouts.
+
+        The engine refuses to promote an unreliable module even if its metrics
+        look good.
+        """
         return self.timed_out == 0 and self.exceptions == 0
 
 
@@ -100,6 +104,7 @@ class ModuleTestSuite:
         self._sandbox = sandbox or BoundedSandbox(timeout_seconds=0.5)
 
     def evaluate(self, scorer: Scorer) -> SuiteResult:
+        """Evaluate a scorer against every sample in the reference corpus."""
         predictions: list[float] = []
         labels: list[float] = []
         timeouts = 0
@@ -137,8 +142,7 @@ class ModuleTestSuite:
 
 
 def _spearman(a: Sequence[float], b: Sequence[float]) -> float:
-    """Spearman rank correlation — Pearson on rank-transformed
-    inputs, tie-corrected via average ranks.
+    """Compute Spearman rank correlation with average-rank tie correction.
 
     Returns 0.0 when either input has zero variance (no
     meaningful correlation to report).

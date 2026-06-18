@@ -71,6 +71,7 @@ class ModuleRegistry:
         scorer: Scorer,
         result: SuiteResult,
     ) -> None:
+        """Promote a built scorer as the active module version."""
         entry = _RegistryEntry(
             version=version,
             blueprint=blueprint,
@@ -89,6 +90,7 @@ class ModuleRegistry:
             self._active = entry
 
     def rollback(self, *, version: int) -> None:
+        """Restore an archived module version as the active entry."""
         with self._lock:
             match = next(
                 (e for e in reversed(self._history) if e.version == version),
@@ -103,10 +105,12 @@ class ModuleRegistry:
             self._active = match
 
     def active(self) -> _RegistryEntry | None:
+        """Return the currently active registry entry, if any."""
         with self._lock:
             return self._active
 
     def history(self) -> tuple[_RegistryEntry, ...]:
+        """Return archived registry entries in insertion order."""
         with self._lock:
             return tuple(self._history)
 
@@ -166,9 +170,10 @@ class AutopoieticEngine:
         self._next_version = 1
 
     def seed(self, blueprint: ModuleBlueprint) -> EvolutionCycle:
-        """Install ``blueprint`` as the incumbent without running a
-        mutation. Required before :meth:`cycle` can promote a
-        successor."""
+        """Install ``blueprint`` as the incumbent before mutation cycles.
+
+        This must run before :meth:`cycle` can promote a successor.
+        """
         scorer = self._builder.build(blueprint)
         result = self._test_suite.evaluate(scorer)
         version = self._next_version
@@ -193,11 +198,11 @@ class AutopoieticEngine:
         *,
         seed: int = 0,
     ) -> EvolutionCycle:
-        """Apply one sampler-drawn mutation, evaluate the result,
-        promote on success.
+        """Apply one sampler-drawn mutation and promote on success.
 
-        Raises :class:`ValueError` when the registry has no
-        incumbent — call :meth:`seed` first."""
+        Raises :class:`ValueError` when the registry has no incumbent; call
+        :meth:`seed` first.
+        """
         current = self._registry.active()
         if current is None:
             raise ValueError("no incumbent — call seed() first")
@@ -234,8 +239,11 @@ class AutopoieticEngine:
         cycles: int,
         seed: int = 0,
     ) -> tuple[EvolutionCycle, ...]:
-        """Convenience loop. Raises :class:`ValueError` if
-        ``cycles <= 0`` so the caller has an honest loop bound."""
+        """Run a bounded sequence of mutation cycles.
+
+        Raises :class:`ValueError` when ``cycles <= 0`` so the caller has an
+        honest loop bound.
+        """
         if cycles <= 0:
             raise ValueError("cycles must be positive")
         reports: list[EvolutionCycle] = []
@@ -256,4 +264,5 @@ class AutopoieticEngine:
 
     @property
     def registry(self) -> ModuleRegistry:
+        """Return the registry that owns active and archived modules."""
         return self._registry

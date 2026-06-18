@@ -6,8 +6,7 @@
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI — ModuleBuilder + BoundedSandbox
 
-"""Materialise a :class:`ModuleBlueprint` into a callable and
-invoke it under a wall-clock timeout.
+"""Materialise :class:`ModuleBlueprint` scorers and run them with timeouts.
 
 The builder compiles every blueprint family into a closed-form
 pure Python function. No ``eval`` / ``exec`` — the generated
@@ -31,9 +30,11 @@ except ImportError:
     _RUST_AUTOPOIETIC = True
 
     def rust_sum_i64(_values: list[int]) -> int:
+        """Raise when the Rust integer summation accelerator is unavailable."""
         raise RuntimeError("backfire_kernel rust_sum_i64 is unavailable")
 
     def rust_word_overlap(_text_a: str, _text_b: str) -> float:
+        """Raise when the Rust word-overlap accelerator is unavailable."""
         raise RuntimeError("backfire_kernel rust_word_overlap is unavailable")
 
 
@@ -55,6 +56,7 @@ class ModuleBuilder:
     """Compile a :class:`ModuleBlueprint` into a scorer."""
 
     def build(self, blueprint: ModuleBlueprint) -> Scorer:
+        """Compile one validated blueprint into a callable scorer."""
         if blueprint.kind == "length":
             return self._build_length(blueprint)
         if blueprint.kind == "marker_count":
@@ -160,6 +162,7 @@ class BoundedSandbox:
         self._timeout = timeout_seconds
 
     def run(self, scorer: Scorer, prompt: str) -> float:
+        """Run a scorer against one prompt and return a clamped score."""
         result = _SandboxResult(value=None, error=None)
         completed = threading.Event()
 

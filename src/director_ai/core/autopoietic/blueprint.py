@@ -41,6 +41,7 @@ except Exception:  # pragma: no cover - mandatory dependency
     _RUST_BLUEPRINT = True
 
     def rust_sum_f64(_values: list[float]) -> float:
+        """Raise when the Rust floating-point summation accelerator is unavailable."""
         raise RuntimeError("backfire_kernel rust_sum_f64 is unavailable")
 
 
@@ -65,6 +66,7 @@ class EnsembleComponent:
     blueprint: ModuleBlueprint
 
     def __post_init__(self) -> None:
+        """Validate that the ensemble component has a non-negative weight."""
         if self.weight < 0.0:
             raise ValueError(f"weight must be non-negative; got {self.weight!r}")
 
@@ -105,6 +107,7 @@ class ModuleBlueprint:
     components: tuple[EnsembleComponent, ...] = ()
 
     def __post_init__(self) -> None:
+        """Validate kind-specific blueprint parameters."""
         if self.kind not in _VALID_KINDS:
             raise ValueError(
                 f"kind must be one of {sorted(_VALID_KINDS)}; got {self.kind!r}"
@@ -173,6 +176,7 @@ class ArchitectureMutation:
     delta: float = 0.0
 
     def apply(self, blueprint: ModuleBlueprint) -> ModuleBlueprint:
+        """Apply this bounded mutation to a compatible blueprint."""
         if self.kind == "bump_length":
             if blueprint.kind != "length":
                 raise ValueError("bump_length requires a 'length' blueprint")
@@ -201,9 +205,11 @@ class ArchitectureMutation:
 
 
 def _rebalance(blueprint: ModuleBlueprint, index: int, delta: float) -> ModuleBlueprint:
-    """Apply ``delta`` to the weight at ``index`` and
-    redistribute the opposite sign evenly across the remaining
-    components, clamping to ``[0, 1]`` everywhere."""
+    """Rebalance ensemble weights after applying ``delta`` to one component.
+
+    The opposite sign is redistributed evenly across remaining components, with
+    every weight clamped to ``[0, 1]`` before final normalisation.
+    """
     components = blueprint.components
     target_weight = max(0.0, min(1.0, components[index].weight + delta))
     applied_delta = target_weight - components[index].weight

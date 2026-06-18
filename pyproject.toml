@@ -582,6 +582,8 @@ module = [
     "director_ai.core.answer_bom.*",
     "director_ai.core.attribution",
     "director_ai.core.attribution.*",
+    "director_ai.core.autopoietic",
+    "director_ai.core.autopoietic.*",
     "director_ai.core.backends",
     "director_ai.core.calibration",
     "director_ai.core.calibration.*",

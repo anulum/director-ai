@@ -6,9 +6,7 @@
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI — autopoietic architecture evolution
 
-"""Meta-layer that auto-generates candidate scorer modules,
-evaluates them against a reference corpus under bounded
-execution, and hot-swaps the winners into service.
+"""Generate, evaluate, and hot-swap bounded scorer module candidates.
 
 The package centres on typed, parameter-driven module recipes
 rather than free-form code generation. A :class:`ModuleBlueprint`
