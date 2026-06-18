@@ -2,14 +2,14 @@
   "SPDX-License-Identifier": "Apache-2.0 AND BUSL-1.1",
   "counts": {
     "github_workflows": 12,
-    "model_documentation_pages": 88,
+    "model_documentation_pages": 89,
     "optional_extras": 58,
     "public_api_exports": 224,
-    "public_documentation_pages": 201,
-    "python_model_classes": 976,
-    "python_model_source_modules": 420,
+    "public_documentation_pages": 202,
+    "python_model_classes": 978,
+    "python_model_source_modules": 421,
     "rust_pyo3_model_wrappers": 83,
-    "test_files": 524
+    "test_files": 526
   },
   "documentation": {
     "public_pages": [
@@ -54,6 +54,7 @@
       "docs-site/api/grpc.md",
       "docs-site/api/guard-control.md",
       "docs-site/api/guard.md",
+      "docs-site/api/guardrail-forensics.md",
       "docs-site/api/hallucination-root-cause.md",
       "docs-site/api/human-review.md",
       "docs-site/api/index.md",
@@ -276,6 +277,7 @@
       "grpc.md",
       "guard-control.md",
       "guard.md",
+      "guardrail-forensics.md",
       "hallucination-root-cause.md",
       "human-review.md",
       "index.md",
@@ -1748,6 +1750,14 @@
       {
         "name": "ForecastResult",
         "path": "src/director_ai/core/forecasting/hallucination_forecaster.py"
+      },
+      {
+        "name": "ForensicsCase",
+        "path": "src/director_ai/core/observability/forensics.py"
+      },
+      {
+        "name": "ForensicsReport",
+        "path": "src/director_ai/core/observability/forensics.py"
       },
       {
         "name": "FormalCodeVerificationResult",
@@ -4418,6 +4428,7 @@
       "src/director_ai/core/neuro_symbolic/expression.py",
       "src/director_ai/core/nli.py",
       "src/director_ai/core/observability/callbacks.py",
+      "src/director_ai/core/observability/forensics.py",
       "src/director_ai/core/observability/kpi_report.py",
       "src/director_ai/core/observability/kpis.py",
       "src/director_ai/core/observability/tracing.py",
@@ -5106,6 +5117,7 @@
       "tests/test_claim_provenance.py",
       "tests/test_cli.py",
       "tests/test_cli_bench_paths.py",
+      "tests/test_cli_forensics.py",
       "tests/test_cli_ingest_formats.py",
       "tests/test_cli_kpis.py",
       "tests/test_cli_new_commands.py",
@@ -5370,6 +5382,7 @@
       "tests/test_notebook_gallery.py",
       "tests/test_numeric_verifier.py",
       "tests/test_observability.py",
+      "tests/test_observability_forensics.py",
       "tests/test_observability_kpi_report.py",
       "tests/test_observability_kpis.py",
       "tests/test_observability_pack.py",

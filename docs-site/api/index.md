@@ -211,6 +211,8 @@ See [Online Calibration Guide](../guide/online-calibration.md).
 | `HipaaDeploymentObligation` | `compliance.readiness` | Operator-owned HIPAA obligation with 45 CFR Part 164 references |
 | `build_soc2_iso_readiness_report()` | `compliance.readiness` | Default or operator-supplied readiness report builder |
 | `build_hipaa_documentation_packet()` | `compliance.readiness` | Default or operator-supplied HIPAA documentation packet builder |
+| `build_forensics_report()` | `core.observability.forensics` | Tenant-safe scorer-miss report over eval records plus reviewer labels |
+| `ForensicsReport` | `core.observability.forensics` | Miss counts, per-scorer/model/domain grouping, and per-case operator actions |
 | `build_observability_operations_report()` | `ui.safety_dashboard` | Tenant-safe halt forensics, drift alerts, controls, and compliance-export packet |
 | `ComplianceExportRef` | `ui.safety_dashboard` | Compliance export reference included without serialising artefact contents |
 | `DriftDetector` | `compliance.drift_detector` | Statistical drift detection (two-proportion z-test) |

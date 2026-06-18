@@ -8,7 +8,7 @@
 
 # Roadmap Status Reconciliation
 
-Last reconciled: 2026-06-07
+Last reconciled: 2026-06-18
 
 This file is the public status index for distinguishing active roadmap work
 from completed, blocked, stale, and speculative planning material. The
@@ -36,7 +36,7 @@ validation records, and release documentation.
 | R3 | FrontierFail broader sourced production-failure corpus | Partly implemented: FrontierFail seed packet now includes synthetic regressions plus public incident intake rows with dated evidence, category/domain/publisher/evidence-reference diversity gates, public metadata requirements, and no public benchmark eligibility claim | Additional public incidents, external corpus-quality review, preserved validation outputs, and a claim-guarded benchmark card |
 | R4 | PINT official upstream run and evidence | Open | Official upstream dataset execution, preserved outputs, and claim-guarded benchmark card |
 | R5 | Hugging Face Space live deployment push | Open/manual | Published Space URL plus deployment smoke evidence |
-| R6 | Polar storefront environment-specific live deployment smoke | Open/environment-specific | Live checkout, portal, webhook, and licence validation smoke records without committed secrets |
+| R6 | Polar storefront environment-specific live deployment smoke | Open/environment-specific; pricing is USD-first and request-checkout mail links remain in place until matching USD Polar products are created and smoked | Live USD checkout, portal, webhook, and licence validation smoke records without committed secrets |
 | R7 | AggreFact leaderboard submission | Submitted by email on 2026-06-02; awaiting maintainer response | Maintainer response, submission acknowledgement, or upstream pull-request URL |
 
 ## Completed Queues

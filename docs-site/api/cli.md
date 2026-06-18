@@ -88,6 +88,17 @@ director-ai export --format onnx --output ./models/onnx/
 director-ai export --format tensorrt --output ./models/trt/
 ```
 
+### Guardrail Forensics
+
+```bash
+# Explain reviewed misses from tenant-safe eval records
+director-ai forensics --input eval_records.json --format markdown
+```
+
+The input is either a JSON array of eval records or an object with a `records`
+array. It may include `director.eval.*` attributes from the eval-trace layer plus
+reviewer labels such as `label: "hallucination"` or `label: "grounded"`.
+
 ### Fine-Tuning
 
 ```bash

@@ -232,6 +232,7 @@ nav:
       - Self-Healing Threshold Controller: api/self-healing-controller.md
       - Active Labelling Cockpit: api/labelling-cockpit.md
       - Board-Level Guardrail KPIs: api/board-kpis.md
+      - Guardrail Forensics: api/guardrail-forensics.md
       - Zero-Trust Output Handling: api/zero-trust-output.md
       - Execution Rings (Action Authorisation): api/execution-rings.md
       - Cryptographic Output Integrity: api/output-integrity.md

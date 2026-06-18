@@ -26,6 +26,13 @@ from .callbacks import (
     TokenTraceEmitter,
     TokenTraceEvent,
 )
+from .forensics import (
+    ForensicsCase,
+    ForensicsReport,
+    build_forensics_report,
+    render_forensics_markdown,
+    render_forensics_text,
+)
 from .kpi_report import (
     KpiTargets,
     kpi_statuses,
@@ -37,15 +44,20 @@ from .kpis import KpiReport, compute_kpis
 from .tracing import trace_token
 
 __all__ = [
+    "ForensicsCase",
+    "ForensicsReport",
     "KpiReport",
     "KpiTargets",
     "LangfuseTokenCallback",
     "TokenTraceCallback",
     "TokenTraceEmitter",
     "TokenTraceEvent",
+    "build_forensics_report",
     "compute_kpis",
     "kpi_statuses",
     "overall_status",
+    "render_forensics_markdown",
+    "render_forensics_text",
     "render_markdown",
     "render_text",
     "trace_token",

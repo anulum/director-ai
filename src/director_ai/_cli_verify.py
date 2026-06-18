@@ -891,6 +891,88 @@ def _cmd_kpis(args: list[str]) -> None:
         print(render_text(report, targets=targets))
 
 
+def _cmd_forensics(args: list[str]) -> None:
+    """Render scorer-miss forensics from tenant-safe eval records."""
+    input_path = None
+    fmt = "text"
+    i = 0
+    while i < len(args):
+        if args[i] == "--input" and i + 1 < len(args):
+            input_path = args[i + 1]
+            i += 2
+        elif args[i] == "--format" and i + 1 < len(args):
+            fmt = args[i + 1]
+            i += 2
+        else:
+            i += 1
+
+    if input_path is None:
+        print(
+            "Usage: director-ai forensics --input <records.json> "
+            "[--format text|markdown|json]"
+        )
+        sys.exit(1)
+    if fmt not in ("text", "markdown", "json"):
+        print(f"Unknown format '{fmt}'. Choose from: text, markdown, json")
+        sys.exit(1)
+
+    from pathlib import Path
+
+    records_path = Path(input_path)
+    if not records_path.exists():
+        print(f"Error: input records not found at {records_path}")
+        sys.exit(1)
+
+    try:
+        payload = json.loads(records_path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        print(f"Error: invalid JSON in {records_path}: {exc}")
+        sys.exit(1)
+
+    try:
+        records = _forensics_records_from_payload(payload)
+    except ValueError as exc:
+        print(f"Error: invalid forensics input: {exc}")
+        sys.exit(1)
+
+    from director_ai.core.observability.forensics import (
+        build_forensics_report,
+        render_forensics_markdown,
+        render_forensics_text,
+    )
+
+    try:
+        report = build_forensics_report(records)
+    except (TypeError, ValueError) as exc:
+        print(f"Error: invalid forensics record: {exc}")
+        sys.exit(1)
+
+    if fmt == "json":
+        print(json.dumps(report.to_dict(), indent=2))
+    elif fmt == "markdown":
+        print(render_forensics_markdown(report))
+    else:
+        print(render_forensics_text(report))
+
+
+def _forensics_records_from_payload(payload: object) -> list[Mapping[str, object]]:
+    """Return record mappings from either a list or ``{"records": [...]}``."""
+
+    records_obj: object
+    if isinstance(payload, Mapping):
+        records_obj = payload.get("records", [])
+    else:
+        records_obj = payload
+    if not isinstance(records_obj, list):
+        raise ValueError("records must be a JSON array")
+    records: list[Mapping[str, object]] = []
+    for record in records_obj:
+        if not isinstance(record, Mapping):
+            raise ValueError("each record must be a JSON object")
+        records.append(record)
+    return records
+
+
 def _cmd_adversarial_test(args: list[str]) -> None:
     """Run adversarial robustness test against the guardrail."""
     from director_ai.core.config import DirectorConfig
