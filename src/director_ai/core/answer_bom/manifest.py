@@ -84,6 +84,7 @@ class ClaimRecord:
     policy_refs: tuple[str, ...] = field(default_factory=tuple)
 
     def __post_init__(self) -> None:
+        """Validate the verdict, support score, and immutable tuple fields."""
         if self.verdict not in CLAIM_VERDICTS:
             raise ValueError(f"unsupported claim verdict {self.verdict!r}")
         if not math.isfinite(self.support) or not 0.0 <= self.support <= 1.0:
@@ -156,6 +157,7 @@ class AnswerBOM:
     schema_version: str = ANSWER_BOM_SCHEMA_VERSION
 
     def __post_init__(self) -> None:
+        """Validate manifest identity fields and fill a missing timestamp."""
         if self.schema_version != ANSWER_BOM_SCHEMA_VERSION:
             raise ValueError("unsupported AnswerBOM schema_version")
         if not self.answer_id.strip():

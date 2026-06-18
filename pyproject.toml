@@ -578,6 +578,8 @@ module = [
     "director_ai.core.agent_identity.*",
     "director_ai.core.agent_preflight",
     "director_ai.core.agent_preflight.*",
+    "director_ai.core.answer_bom",
+    "director_ai.core.answer_bom.*",
     "director_ai.core.attribution",
     "director_ai.core.attribution.*",
     "director_ai.core.backends",
