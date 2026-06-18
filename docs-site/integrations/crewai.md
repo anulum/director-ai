@@ -4,21 +4,35 @@
 pip install director-ai[crewai]
 ```
 
+For central Cloud Run review service deployment and Vercel AI SDK client wiring,
+use the tracked `deploy/agent-frameworks` templates and the
+[Agent Framework Deploy Pack](agent-framework-deploy.md).
+
 ## Agent Tool
 
 ```python
 from director_ai.integrations.crewai import DirectorAITool
-from crewai import Agent
+from crewai import Agent, Crew, Task
 
 guard_tool = DirectorAITool(
-    facts={"company": "Founded in 2020", "revenue": "$10M ARR"},
+    facts={"refund": "Customers can request a refund within 30 days."},
 )
 
 agent = Agent(
     role="Research Analyst",
     tools=[guard_tool],
     goal="Verify all claims before reporting",
+    backstory="Checks factual claims against the approved knowledge base.",
 )
+
+task = Task(
+    description="Answer the refund-policy question and verify the final claim.",
+    expected_output="A verified refund-policy answer.",
+    agent=agent,
+)
+
+crew = Crew(agents=[agent], tasks=[task])
+result = crew.kickoff()
 ```
 
 ## Tool Input Format

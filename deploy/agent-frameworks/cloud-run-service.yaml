@@ -1,0 +1,46 @@
+# SPDX-License-Identifier: Apache-2.0
+# Director-AI agent-framework Cloud Run service template.
+# Replace PROJECT_ID, REGION, and SERVICE_ACCOUNT before applying.
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: director-ai-agent-frameworks
+  annotations:
+    run.googleapis.com/ingress: all
+    run.googleapis.com/launch-stage: GA
+spec:
+  template:
+    metadata:
+      annotations:
+        autoscaling.knative.dev/minScale: "0"
+        autoscaling.knative.dev/maxScale: "10"
+        run.googleapis.com/cpu-throttling: "false"
+        run.googleapis.com/execution-environment: gen2
+    spec:
+      serviceAccountName: director-ai-runtime@PROJECT_ID.iam.gserviceaccount.com
+      containerConcurrency: 16
+      timeoutSeconds: 300
+      containers:
+        - image: REGION-docker.pkg.dev/PROJECT_ID/director-ai/director-ai:agent-frameworks
+          ports:
+            - name: http1
+              containerPort: 8080
+          env:
+            - name: DIRECTOR_PROFILE
+              value: thorough
+            - name: DIRECTOR_WORKERS
+              value: "2"
+            - name: DIRECTOR_API_KEYS
+              valueFrom:
+                secretKeyRef:
+                  name: director-api-keys
+                  key: latest
+            - name: DIRECTOR_KB_SIGNING_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: director-kb-signing-key
+                  key: latest
+          resources:
+            limits:
+              cpu: "2"
+              memory: 2Gi

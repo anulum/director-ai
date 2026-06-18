@@ -5,11 +5,11 @@
     "model_documentation_pages": 88,
     "optional_extras": 58,
     "public_api_exports": 224,
-    "public_documentation_pages": 200,
+    "public_documentation_pages": 201,
     "python_model_classes": 976,
     "python_model_source_modules": 420,
     "rust_pyo3_model_wrappers": 83,
-    "test_files": 520
+    "test_files": 521
   },
   "documentation": {
     "public_pages": [
@@ -192,6 +192,7 @@
       "docs-site/guide/why-director-ai.md",
       "docs-site/index.md",
       "docs-site/installation.md",
+      "docs-site/integrations/agent-framework-deploy.md",
       "docs-site/integrations/autogen.md",
       "docs-site/integrations/crewai.md",
       "docs-site/integrations/dspy.md",
@@ -5062,6 +5063,7 @@
       "tests/test_advanced_coherence.py",
       "tests/test_adversarial_suite.py",
       "tests/test_agent.py",
+      "tests/test_agent_framework_deploy_pack.py",
       "tests/test_agent_identity.py",
       "tests/test_agent_passport_registry.py",
       "tests/test_agent_preflight.py",

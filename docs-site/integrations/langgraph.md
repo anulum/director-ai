@@ -4,6 +4,10 @@
 pip install director-ai[langgraph]
 ```
 
+For a shared Cloud Run review service plus Vercel client wiring, use the tracked
+`deploy/agent-frameworks` templates and the
+[Agent Framework Deploy Pack](agent-framework-deploy.md).
+
 ## Guardrail Node
 
 ```python
@@ -11,7 +15,7 @@ from director_ai.integrations.langgraph import (
     director_ai_node,
     director_ai_conditional_edge,
 )
-from langgraph.graph import StateGraph
+from langgraph.graph import END, START, StateGraph
 
 graph = StateGraph(dict)
 graph.add_node("generate", llm_node)
@@ -22,6 +26,7 @@ graph.add_node("guardrail", director_ai_node(
 graph.add_node("retry", retry_node)
 graph.add_node("output", output_node)
 
+graph.add_edge(START, "generate")
 graph.add_edge("generate", "guardrail")
 graph.add_conditional_edges(
     "guardrail",
@@ -29,7 +34,10 @@ graph.add_conditional_edges(
         approved_node="output",
         rejected_node="retry",
     ),
+    ["output", "retry"],
 )
+graph.add_edge("output", END)
+app = graph.compile()
 ```
 
 ## State Keys

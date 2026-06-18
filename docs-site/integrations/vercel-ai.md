@@ -4,6 +4,10 @@ Director-AI ships a TypeScript bridge for the Vercel AI SDK middleware API.
 It uses `wrapLanguageModel()` and reviews model output through the Director-AI
 REST `/v1/review` endpoint.
 
+For a tracked Cloud Run service template and Vercel app `vercel.json`, use
+`deploy/agent-frameworks` and the
+[Agent Framework Deploy Pack](agent-framework-deploy.md).
+
 ```bash
 cd packages/vercel-ai
 npm install
