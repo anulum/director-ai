@@ -571,6 +571,7 @@ warn_unused_ignores = true
 
 [[tool.mypy.overrides]]
 module = [
+    "director_ai.core",
     "director_ai.core._device",
     "director_ai.core._heuristics",
     "director_ai.core.attribution",
@@ -634,6 +635,9 @@ module = [
     "director_ai.core.trace_safe.*",
     "director_ai.core.types",
     "director_ai.core.vector_store",
+    "director_ai.core.verification.code_verifier",
+    "director_ai.core.verification.json_verifier",
+    "director_ai.core.verification.tool_call_verifier",
 ]
 disallow_untyped_defs = true
 disallow_incomplete_defs = true

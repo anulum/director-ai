@@ -26,7 +26,7 @@ from __future__ import annotations
 
 import json
 import re
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from typing import Any, cast
 
 from ..mandatory import mandatory_execution
@@ -43,12 +43,15 @@ except ImportError:  # pragma: no cover - mandatory dependency
         raise RuntimeError("backfire_kernel rust_sum_i64 is unavailable")
 
 
-__all__ = ["verify_json"]
+__all__ = ["StructuredVerificationResult", "verify_json"]
 
 _NUMERIC_RE = re.compile(r"^-?\d+(\.\d+)?([eE][+-]?\d+)?$")
 
 
-def _extract_fields(data, prefix: str = "") -> list[tuple[str, object]]:
+JsonSchema = Mapping[str, Any]
+
+
+def _extract_fields(data: Any, prefix: str = "") -> list[tuple[str, object]]:
     """Flatten a nested dict/list into (dotted_path, value) pairs."""
     fields: list[tuple[str, object]] = []
     if isinstance(data, dict):
@@ -97,14 +100,14 @@ def _check_schema_type(value: Any, expected_type: str | list[str] | None) -> boo
 
 def _validate_schema(
     data: Any,
-    schema: dict,
+    schema: JsonSchema,
     prefix: str = "",
 ) -> list[FieldVerdict]:
     """Validate data against a JSON Schema subset (no $ref resolution)."""
     return _validate_value(data, schema, prefix or "$")
 
 
-def _validate_value(value: Any, schema: dict, path: str) -> list[FieldVerdict]:
+def _validate_value(value: Any, schema: JsonSchema, path: str) -> list[FieldVerdict]:
     verdicts: list[FieldVerdict] = []
     expected_type = schema.get("type")
 
@@ -141,8 +144,8 @@ def _validate_value(value: Any, schema: dict, path: str) -> list[FieldVerdict]:
     if isinstance(value, dict) and (
         schema.get("type") == "object" or "properties" in schema or "required" in schema
     ):
-        properties = schema.get("properties", {})
-        required = set(schema.get("required", []))
+        properties = cast(Mapping[str, JsonSchema], schema.get("properties", {}))
+        required = set(cast(list[str], schema.get("required", [])))
 
         for key in required:
             if key not in value:
@@ -176,10 +179,12 @@ def _validate_value(value: Any, schema: dict, path: str) -> list[FieldVerdict]:
 
     if isinstance(value, list) and schema.get("type") == "array":
         item_schema = schema.get("items")
-        if isinstance(item_schema, dict):
+        if isinstance(item_schema, Mapping):
             for index, item in enumerate(value):
                 verdicts.extend(
-                    _validate_value(item, item_schema, f"{path}[{index}]"),
+                    _validate_value(
+                        item, cast(JsonSchema, item_schema), f"{path}[{index}]"
+                    ),
                 )
         return verdicts
 
@@ -231,9 +236,9 @@ def _pydantic_verdicts(data: Any, model: Any) -> list[FieldVerdict]:
 
 def verify_json(
     text: str,
-    schema: dict | None = None,
-    score_fn=None,
-    pydantic_model=None,
+    schema: JsonSchema | None = None,
+    score_fn: Callable[[str], float] | None = None,
+    pydantic_model: Any = None,
 ) -> StructuredVerificationResult:
     """Verify a JSON string for structure, schema, and optional value grounding.
 
@@ -322,6 +327,7 @@ def verify_json(
 
 
 def _sum_int(values: list[int]) -> int:
+    """Return the sum through the mandatory accelerated path."""
     if _RUST_JSON_VERIFY:
         with mandatory_execution(__name__, component="mandatory accelerated path"):
             return int(rust_sum_i64(values))

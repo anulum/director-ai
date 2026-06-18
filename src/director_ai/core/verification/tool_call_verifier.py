@@ -32,9 +32,15 @@ Usage::
 
 from __future__ import annotations
 
+from collections.abc import Callable, Mapping, Sequence
+from typing import Any, TypeAlias
+
 from .types import FieldVerdict, ToolCallResult
 
-__all__ = ["verify_tool_call"]
+__all__ = ["ToolCallResult", "verify_tool_call"]
+
+ToolManifest: TypeAlias = Mapping[str, Mapping[str, Any]]
+ExecutionLog: TypeAlias = Sequence[Mapping[str, Any]]
 
 _JSON_SCHEMA_TYPE_MAP: dict[str, type | tuple[type, ...]] = {
     "string": str,
@@ -48,11 +54,11 @@ _JSON_SCHEMA_TYPE_MAP: dict[str, type | tuple[type, ...]] = {
 
 def verify_tool_call(
     function_name: str,
-    arguments: dict,
+    arguments: Mapping[str, Any],
     claimed_result: str = "",
-    manifest: dict | None = None,
-    execution_log: list[dict] | None = None,
-    score_fn=None,
+    manifest: ToolManifest | None = None,
+    execution_log: ExecutionLog | None = None,
+    score_fn: Callable[[str, str], float] | None = None,
 ) -> ToolCallResult:
     """Verify a tool/function call against a manifest and optional execution log.
 

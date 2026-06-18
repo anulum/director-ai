@@ -21,6 +21,8 @@ All public symbols are re-exported here for backward compatibility::
     from director_ai.core import CoherenceScorer, HaltMonitor, ...
 """
 
+from typing import NoReturn
+
 # --- Scoring ---
 # --- Core-level modules (not moved) ---
 from .actor import LLMGenerator, MockGenerator
@@ -439,7 +441,7 @@ _MOVED_TO_ENTERPRISE = {
 }
 
 
-def __getattr__(name: str):
+def __getattr__(name: str) -> NoReturn:
     if name in _MOVED_TO_ENTERPRISE:
         raise ImportError(
             f"{name} moved to director_ai.enterprise in v3.0. "

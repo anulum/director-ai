@@ -4,7 +4,7 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-"""Code output verification — syntax, imports, and hallucinated API detection.
+r"""Code output verification — syntax, imports, and hallucinated API detection.
 
 Verifies generated code for structural correctness:
 1. Syntax validation (Python via ast, JSON via json.loads)
@@ -27,7 +27,7 @@ import sys
 
 from .types import CodeCheckResult
 
-__all__ = ["verify_code"]
+__all__ = ["CodeCheckResult", "verify_code"]
 
 # stdlib modules (Python 3.11+) — not exhaustive but covers common cases
 _STDLIB_MODULES = (
