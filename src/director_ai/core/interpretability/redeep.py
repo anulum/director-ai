@@ -72,6 +72,7 @@ class LayerSignal:
     external_attention: float
 
     def __post_init__(self) -> None:
+        """Reject a negative layer index and range-check both unit signals."""
         if self.layer_index < 0:
             raise ValueError("layer_index must be non-negative")
         _unit_interval("ffn_knowledge", self.ffn_knowledge)
@@ -87,6 +88,7 @@ class HeadSignal:
     copying_score: float
 
     def __post_init__(self) -> None:
+        """Reject negative layer/head indices and range-check ``copying_score``."""
         if self.layer_index < 0:
             raise ValueError("layer_index must be non-negative")
         if self.head_index < 0:
@@ -132,9 +134,13 @@ class ActivationProvider(Protocol):
     and MLP activations; tests inject fixed signals.
     """
 
-    def layer_signals(self) -> Sequence[LayerSignal]: ...  # pragma: no cover
+    def layer_signals(self) -> Sequence[LayerSignal]:
+        """Return the per-layer FFN-knowledge and external-attention signals."""
+        ...  # pragma: no cover
 
-    def head_signals(self) -> Sequence[HeadSignal]: ...  # pragma: no cover
+    def head_signals(self) -> Sequence[HeadSignal]:
+        """Return the per-head copying scores for the analysed response."""
+        ...  # pragma: no cover
 
 
 class MechanisticAttributor:

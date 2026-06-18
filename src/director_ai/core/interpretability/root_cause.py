@@ -41,7 +41,7 @@ class Recommendation:
     targets: tuple[str, ...]
 
     def to_dict(self) -> dict[str, object]:
-        """Serialisable recommendation."""
+        """Return the recommendation as a JSON-serialisable dict."""
         return {
             "cause": self.cause,
             "action": self.action,

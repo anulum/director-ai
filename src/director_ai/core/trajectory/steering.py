@@ -39,6 +39,7 @@ class PreHaltSteeringDecision:
     guard_decision: GuardDecision
 
     def __post_init__(self) -> None:
+        """Reject an unknown steering action and require a non-empty reason."""
         if self.action not in {"proceed", "escalate", "halt"}:
             raise ValueError(f"unsupported steering action {self.action!r}")
         if not self.reason.strip():

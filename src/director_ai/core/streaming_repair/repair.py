@@ -69,6 +69,7 @@ class RepairAction:
     reason: str = ""
 
     def __post_init__(self) -> None:
+        """Reject an unknown action code and freeze ``evidence_ids`` to a tuple."""
         if self.action not in (_KEEP, _REWRITE, _REDACT):
             raise ValueError(f"unsupported repair action {self.action!r}")
         object.__setattr__(self, "evidence_ids", tuple(self.evidence_ids))

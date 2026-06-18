@@ -6,8 +6,7 @@
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI — Evidence firewall
 
-"""Run the admission checks over a set of retrieved chunks before the model
-sees them.
+"""Run the admission checks over retrieved chunks before the model sees them.
 
 :class:`EvidenceFirewall` is the single entry point. It maps each retrieved
 chunk to a :class:`ChunkVerdict` (admitted or quarantined, with the per-check

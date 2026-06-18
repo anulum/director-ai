@@ -70,6 +70,7 @@ class RetrievedChunk:
     metadata: Mapping[str, Any]
 
     def __post_init__(self) -> None:
+        """Copy the metadata mapping so the frozen chunk owns an isolated dict."""
         object.__setattr__(self, "metadata", dict(self.metadata))
 
     @classmethod
@@ -107,8 +108,10 @@ class RetrievedChunk:
 
     @property
     def has_provenance(self) -> bool:
-        """Whether any provenance marker is present (digest, version, or
-        verified signature)."""
+        """Whether any provenance marker is present.
+
+        A digest, a version, or a verified signature each counts.
+        """
         if self.signature_verified:
             return True
         if str(self.metadata.get(_VERSION_KEY, "")).strip():

@@ -49,6 +49,7 @@ class RollbackHandle:
     metadata: Mapping[str, str] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
+        """Require the ids and freeze evidence refs and tenant-safe metadata."""
         if not self.rollback_id.strip():
             raise ValueError("rollback_id is required")
         if not self.action_id.strip():
@@ -82,6 +83,7 @@ class RollbackOutcome:
     error_type: str = ""
 
     def __post_init__(self) -> None:
+        """Reject an unknown status code and require ``rollback_id``."""
         if self.status not in {
             "not_required",
             "armed",

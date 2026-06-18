@@ -53,21 +53,28 @@ class Actor(Protocol):
     """
 
     def sample(self, prompt: str, seed: int) -> list[str]:
-        """Draw a token list for ``prompt``. Must be deterministic
-        given ``seed`` so the preflight decision is reproducible."""
+        """Draw a token list for ``prompt``.
+
+        Must be deterministic given ``seed`` so the preflight decision is
+        reproducible.
+        """
         ...  # pragma: no cover
 
 
 class VerdictProducer(Protocol):
-    """Any object exposing ``.review(prompt, action)`` returning
-    ``(approved: bool, CoherenceScore-like)``. The existing
-    :class:`director_ai.core.scoring.scorer.CoherenceScorer` fits
-    the protocol without modification.
+    """Adapter protocol for a per-action verdict producer.
+
+    Any object exposing ``.review(prompt, action)`` returning
+    ``(approved: bool, CoherenceScore-like)`` satisfies it; the existing
+    :class:`director_ai.core.scoring.scorer.CoherenceScorer` fits the
+    protocol without modification.
     """
 
     def review(
         self, prompt: str, action: str, tenant_id: str = ""
-    ) -> tuple[bool, object]: ...  # pragma: no cover
+    ) -> tuple[bool, object]:
+        """Return ``(approved, score)`` for ``action`` taken after ``prompt``."""
+        ...  # pragma: no cover
 
 
 @dataclass(frozen=True)
@@ -82,6 +89,7 @@ class TrajectoryResult:
 
     @property
     def text(self) -> str:
+        """Return the drawn tokens joined into a single string."""
         return "".join(self.tokens)
 
 
@@ -102,12 +110,14 @@ class PreflightVerdict:
 
     @property
     def min_coherence(self) -> float:
+        """Return the lowest final coherence across the simulated trajectories."""
         if not self.trajectories:
             return 0.0
         return min(t.final_coherence for t in self.trajectories)
 
     @property
     def max_coherence(self) -> float:
+        """Return the highest final coherence across the simulated trajectories."""
         if not self.trajectories:
             return 0.0
         return max(t.final_coherence for t in self.trajectories)

@@ -118,6 +118,7 @@ class PoisonScanner:
         self.threshold = threshold
 
     def __call__(self, text: str) -> float:
+        """Return the raw poison score for ``text`` in ``[0, 1]``."""
         return default_poison_scan(text)
 
     def is_poisoned(self, text: str) -> bool:

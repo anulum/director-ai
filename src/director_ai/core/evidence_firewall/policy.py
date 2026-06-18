@@ -6,8 +6,7 @@
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI — Evidence firewall policy
 
-"""Policy, request context, and per-check outcome types for the evidence
-firewall.
+"""Policy, request context, and per-check outcome types for the evidence firewall.
 
 The firewall runs on retrieved chunks *before* they reach the model. A
 :class:`FirewallPolicy` says which of the eight admission checks are enforced
@@ -50,6 +49,7 @@ class CheckOutcome:
     reason: str = ""
 
     def __post_init__(self) -> None:
+        """Require a check name and forbid a reason on a passing outcome."""
         if not self.name.strip():
             raise ValueError("check name is required")
         if self.passed and self.reason:
@@ -87,6 +87,7 @@ class FirewallContext:
     authorised_tenants: frozenset[str] = field(default_factory=frozenset)
 
     def __post_init__(self) -> None:
+        """Reject a negative timestamp and default the authorised-tenant set."""
         if self.now_unix < 0.0:
             raise ValueError("now_unix must be non-negative")
         if not self.authorised_tenants:
@@ -169,6 +170,7 @@ class FirewallPolicy:
     enforce_use_case: bool = False
 
     def __post_init__(self) -> None:
+        """Range-check the maximum age bound and the poison threshold."""
         if self.max_age_seconds < 0.0:
             raise ValueError("max_age_seconds must be non-negative")
         if not 0.0 <= self.poison_threshold <= 1.0:
