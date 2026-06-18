@@ -79,6 +79,7 @@ jobs:
           src/director_ai/core/evaluation
           src/director_ai/core/exceptions.py
           src/director_ai/core/evidence_packet
+          src/director_ai/core/federated_privacy
           src/director_ai/core/forecasting
           src/director_ai/core/ingestion
           src/director_ai/core/execution_rings

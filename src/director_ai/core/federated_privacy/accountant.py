@@ -38,6 +38,7 @@ except Exception:  # pragma: no cover - mandatory dependency
     _RUST_ACCOUNTANT = True
 
     def rust_sum_f64(_values: list[float]) -> float:
+        """Report that the Rust floating-point sum helper is unavailable."""
         raise RuntimeError("backfire_kernel rust_sum_f64 is unavailable")
 
 
@@ -89,21 +90,26 @@ class PrivacyAccountant:
 
     @property
     def mode(self) -> str:
+        """Return the active composition mode."""
         with self._lock:
             return self._mode
 
     def use_basic(self) -> None:
+        """Switch subsequent projections to basic composition."""
         with self._lock:
             self._mode = "basic"
 
     def use_advanced(self) -> None:
+        """Switch subsequent projections to advanced composition."""
         with self._lock:
             self._mode = "advanced"
 
     def charge(self, entry: AccountantEntry) -> None:
-        """Record ``entry`` and raise :class:`ValueError` when the
-        post-charge total would exceed the budget under the
-        active composition mode."""
+        """Record an accountant entry.
+
+        Raises :class:`ValueError` when the post-charge total would exceed the
+        configured budget under the active composition mode.
+        """
         if entry.epsilon < 0 or entry.delta < 0:
             raise ValueError("entry epsilon / delta must be non-negative")
         with self._lock:
@@ -122,26 +128,29 @@ class PrivacyAccountant:
             self._entries.append(entry)
 
     def cumulative_epsilon(self) -> float:
+        """Return the projected cumulative ``ε`` under the active mode."""
         with self._lock:
             return self._project_epsilon(self._entries)
 
     def cumulative_delta(self) -> float:
+        """Return the projected cumulative ``δ`` under basic composition."""
         with self._lock:
             return self._project_delta(self._entries)
 
     def entries(self) -> tuple[AccountantEntry, ...]:
+        """Return an immutable snapshot of recorded entries."""
         with self._lock:
             return tuple(self._entries)
 
     def epsilon_advanced(self, *, target_delta: float) -> float:
-        """Compute the advanced-composition ``ε`` for the
-        currently-recorded homogeneous epsilon entries.
+        """Compute the advanced-composition ``ε``.
 
         Raises :class:`ValueError` when the entries are not all
         identical in ``ε`` (advanced composition requires
         homogeneous mechanisms — callers wanting heterogeneous
         bounds fall back to the RDP / zCDP accountants which are
-        out of scope here)."""
+        out of scope here).
+        """
         if not 0.0 < target_delta < 1.0:
             raise ValueError("target_delta must be in (0, 1)")
         with self._lock:

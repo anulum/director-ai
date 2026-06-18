@@ -83,16 +83,17 @@ class LaplaceMechanism:
 
     @property
     def scale(self) -> float:
-        """The Laplace ``b`` parameter. Equals
-        ``sensitivity / epsilon`` (and ``0.0`` when the query has
-        zero sensitivity — a trivial query that needs no noise)."""
+        """Return the Laplace ``b`` parameter.
+
+        Equals ``sensitivity / epsilon`` and returns ``0.0`` when the query has
+        zero sensitivity, a trivial query that needs no noise.
+        """
         if self._params.sensitivity == 0.0:
             return 0.0
         return self._params.sensitivity / self._params.epsilon
 
     def noise(self) -> float:
-        """Draw one Laplace sample with mean 0 and scale
-        :attr:`scale`."""
+        """Draw one Laplace sample with mean 0 and scale :attr:`scale`."""
         scale = self.scale
         if scale == 0.0:
             return 0.0

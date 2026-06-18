@@ -46,11 +46,13 @@ class PrivacyScoreRelease:
 
     @property
     def approved_at_threshold(self) -> bool | None:
+        """Return the threshold decision for the released score, if configured."""
         if self.threshold is None:
             return None
         return self.released_score >= self.threshold
 
     def to_dict(self) -> dict[str, Any]:
+        """Return a tenant-safe payload with the raw score suppressed."""
         return {
             "released_score": self.released_score,
             "raw_score": None,
@@ -101,10 +103,12 @@ class DifferentialPrivacyScoreReleaser:
 
     @property
     def epsilon(self) -> float:
+        """Return the per-release privacy loss parameter."""
         return self._mechanism.epsilon
 
     @property
     def sensitivity(self) -> float:
+        """Return the declared score sensitivity."""
         return self._mechanism.sensitivity
 
     def release_score(
@@ -115,6 +119,7 @@ class DifferentialPrivacyScoreReleaser:
         tenant_id: str = "",
         threshold: float | None = None,
     ) -> PrivacyScoreRelease:
+        """Release a clamped, Laplace-noised coherence score."""
         raw_score = _unit_interval(score, "score")
         release_label = str(label).strip()
         if not release_label:

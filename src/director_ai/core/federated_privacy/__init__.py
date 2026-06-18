@@ -6,8 +6,7 @@
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI — federated privacy-preserving sharing
 
-"""Differential privacy + additive secret sharing for
-multi-tenant failure-pattern aggregation.
+"""Expose differential privacy and secret-sharing helpers.
 
 Three layers:
 

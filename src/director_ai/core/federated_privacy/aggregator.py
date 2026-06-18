@@ -33,6 +33,7 @@ except Exception:  # pragma: no cover - mandatory dependency
     _RUST_AGGREGATOR = True
 
     def rust_sum_i64(_values: list[int]) -> int:
+        """Report that the Rust integer sum helper is unavailable."""
         raise RuntimeError("backfire_kernel rust_sum_i64 is unavailable")
 
 
@@ -103,6 +104,7 @@ class FederatedCounter:
         self._contributions: dict[str, int] = {}
 
     def submit(self, *, tenant_id: str, count: int) -> None:
+        """Add one tenant's non-negative count to the pending release."""
         if not tenant_id:
             raise ValueError("tenant_id must be non-empty")
         if count < 0:
@@ -113,13 +115,16 @@ class FederatedCounter:
             )
 
     def reset(self) -> None:
+        """Discard all pending tenant contributions."""
         with self._lock:
             self._contributions.clear()
 
     def release(self) -> CounterRelease:
-        """Release the noisy sum. Charges the accountant, applies
-        the Laplace mechanism, and clears the per-tenant
-        contributions so the next release starts fresh."""
+        """Release the noisy count sum.
+
+        Charges the accountant, applies the Laplace mechanism, and clears the
+        per-tenant contributions so the next release starts fresh.
+        """
         with self._lock:
             raw_sum = _sum_int(list(self._contributions.values()))
             submissions = len(self._contributions)
@@ -216,6 +221,7 @@ class FederatedHistogram:
         self._contributions: dict[str, int] = {c: 0 for c in cat_tuple}
 
     def submit(self, *, tenant_id: str, category: str, count: int = 1) -> None:
+        """Add one tenant's count to a configured histogram category."""
         if not tenant_id:
             raise ValueError("tenant_id must be non-empty")
         if category not in self._contributions:
@@ -226,11 +232,13 @@ class FederatedHistogram:
             self._contributions[category] += count
 
     def reset(self) -> None:
+        """Reset every category count to zero."""
         with self._lock:
             for category in self._categories:
                 self._contributions[category] = 0
 
     def release(self) -> HistogramRelease:
+        """Release DP-noised counts for all configured categories."""
         with self._lock:
             raw_counts = dict(self._contributions)
             submissions = _sum_int(list(raw_counts.values()))

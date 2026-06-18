@@ -44,6 +44,7 @@ class ShamirShare:
     modulus: int = field(default=DEFAULT_MODULUS)
 
     def __post_init__(self) -> None:
+        """Validate field modulus, point coordinates, and threshold."""
         if self.modulus <= 0:
             raise ShareError("modulus must be positive")
         if self.x <= 0:
@@ -71,8 +72,7 @@ def shamir_split(
     seed: int | None = None,
     allow_insecure_seed: bool = False,
 ) -> tuple[ShamirShare, ...]:
-    """Split ``secret`` into ``party_count`` shares, any ``threshold`` of which
-    reconstruct it.
+    """Split ``secret`` into threshold-reconstructable shares.
 
     ``seed`` makes the split reproducible only with ``allow_insecure_seed=True``;
     production code must leave it unset so the system CSPRNG fires.

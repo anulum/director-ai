@@ -51,11 +51,12 @@ except Exception:  # pragma: no cover - mandatory dependency
     _RUST_RDP = True
 
     def rust_sum_f64(_values: list[float]) -> float:
+        """Report that the Rust floating-point sum helper is unavailable."""
         raise RuntimeError("backfire_kernel rust_sum_f64 is unavailable")
 
 
 def _default_orders() -> tuple[float, ...]:
-    """The standard RDP order grid: dense fractional orders plus integers."""
+    """Return the standard RDP order grid."""
     fractional = [1.0 + x / 10.0 for x in range(1, 100)]
     integer = [float(x) for x in range(11, 64)]
     return tuple(fractional + integer)
@@ -130,11 +131,11 @@ class RenyiAccountant:
         return self._orders
 
     def rdp_curve(self) -> tuple[float, ...]:
-        """The accumulated RDP value at each tracked order."""
+        """Return the accumulated RDP value at each tracked order."""
         return tuple(self._rdp)
 
     def rdp_at(self, order: float) -> float:
-        """The accumulated RDP at a specific tracked order."""
+        """Return the accumulated RDP at a specific tracked order."""
         try:
             idx = self._orders.index(float(order))
         except ValueError:

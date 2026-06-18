@@ -36,8 +36,11 @@ DEFAULT_MODULUS = (1 << 127) - 1
 
 
 class ShareError(ValueError):
-    """Raised when a share structure is malformed (mismatched
-    party count, negative shares, or aggregate inconsistency)."""
+    """Report malformed secret-share structures.
+
+    Covers mismatched party counts, negative shares, and aggregate
+    inconsistencies.
+    """
 
 
 class _RandRange(Protocol):
@@ -63,6 +66,7 @@ class SecretShare:
     modulus: int = field(default=DEFAULT_MODULUS)
 
     def __post_init__(self) -> None:
+        """Validate share count, modulus, and share bounds."""
         if len(self.values) < 2:
             raise ShareError("SecretShare requires at least two parties")
         if self.modulus <= 0:
@@ -73,6 +77,7 @@ class SecretShare:
 
     @property
     def party_count(self) -> int:
+        """Return the number of parties represented by this share."""
         return len(self.values)
 
 
@@ -84,8 +89,7 @@ def split(
     seed: int | None = None,
     allow_insecure_seed: bool = False,
 ) -> SecretShare:
-    """Split ``secret`` into ``party_count`` additive shares
-    modulo ``modulus``.
+    """Split ``secret`` into additive shares.
 
     ``seed`` makes the split reproducible only when
     ``allow_insecure_seed=True``. Production code should leave
@@ -165,6 +169,7 @@ class SecureAggregator:
         self._submissions = 0
 
     def submit(self, share: SecretShare) -> None:
+        """Add one party's share vector to the aggregate."""
         if share.party_count != self._party_count:
             raise ShareError(
                 f"share has {share.party_count} parties; aggregator "
@@ -180,12 +185,14 @@ class SecureAggregator:
 
     @property
     def submissions(self) -> int:
+        """Return the number of submitted share vectors."""
         return self._submissions
 
     def reconstruct(self) -> int:
-        """Return the sum of every submitted secret modulo
-        ``modulus``. Raises :class:`ShareError` when no party
-        has submitted."""
+        """Return the sum of every submitted secret modulo ``modulus``.
+
+        Raises :class:`ShareError` when no party has submitted.
+        """
         if self._submissions == 0:
             raise ShareError("no submissions yet")
         total = 0
@@ -194,6 +201,7 @@ class SecureAggregator:
         return total
 
     def reset(self) -> None:
+        """Clear accumulated shares and submission count."""
         self._accumulator = [0] * self._party_count
         self._submissions = 0
 
@@ -206,9 +214,10 @@ def split_many(
     seed: int | None = None,
     allow_insecure_seed: bool = False,
 ) -> tuple[SecretShare, ...]:
-    """Convenience helper: split a whole list of secrets with
-    independent seeds so the per-secret shares are uncorrelated.
-    Returns one :class:`SecretShare` per secret."""
+    """Split a list of secrets with independent random shares.
+
+    Returns one :class:`SecretShare` per secret.
+    """
     if not secrets:
         raise ShareError("secrets must be non-empty")
     rng = _rng_from_seed(seed, allow_insecure_seed=allow_insecure_seed)
