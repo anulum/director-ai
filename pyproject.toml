@@ -628,6 +628,8 @@ module = [
     "director_ai.core.memory.*",
     "director_ai.core.meta_guard",
     "director_ai.core.meta_guard.*",
+    "director_ai.core.observability",
+    "director_ai.core.observability.*",
     "director_ai.core.policy",
     "director_ai.core.risk_threshold",
     "director_ai.core.risk_threshold.*",

@@ -59,8 +59,11 @@ class TokenTraceEvent:
     extra: dict[str, Any] = field(default_factory=dict)
 
     def token_hash(self) -> str:
-        """SHA-256 truncated fingerprint of the token text — useful for
-        callbacks that must log a stable ID without the raw text."""
+        """Return a truncated SHA-256 fingerprint for the token.
+
+        Callbacks use this stable identifier when they must correlate token
+        events without logging the raw token text.
+        """
         return hashlib.sha256(self.token.encode("utf-8")).hexdigest()[:16]
 
 
@@ -75,7 +78,7 @@ class TokenTraceCallback(ABC):
     def on_stream_end(
         self, *, tenant_id: str, request_id: str, summary: dict[str, Any]
     ) -> None:
-        """Optional — called once when the stream completes.
+        """Handle stream completion for callbacks without a custom hook.
 
         The default implementation records a debug log line and
         returns. Making it ``abstractmethod`` would force every
@@ -113,22 +116,29 @@ class TokenTraceEmitter:
         self._callbacks.append(callback)
 
     def unregister(self, callback: TokenTraceCallback) -> None:
-        """Remove a previously registered callback. Missing entries are
-        silently ignored so idempotent lifecycle hooks remain safe."""
+        """Remove a previously registered callback.
+
+        Missing entries are silently ignored so idempotent lifecycle hooks
+        remain safe.
+        """
         if callback in self._callbacks:
             self._callbacks.remove(callback)
 
     def __len__(self) -> int:
+        """Return the number of registered callbacks."""
         return len(self._callbacks)
 
     @property
     def enabled(self) -> bool:
+        """Return whether at least one callback is registered."""
         return bool(self._callbacks)
 
     def emit(self, event: TokenTraceEvent) -> None:
-        """Dispatch ``event`` to every callback. Exceptions are
-        caught and logged — the scoring stream must not be aborted
-        by a broken observer."""
+        """Dispatch ``event`` to every callback.
+
+        Exceptions are caught and logged so the scoring stream is not aborted by
+        a broken observer.
+        """
         for cb in self._callbacks:
             try:
                 cb.on_token(event)
@@ -209,6 +219,7 @@ class LangfuseTokenCallback(TokenTraceCallback):
         return trace
 
     def on_token(self, event: TokenTraceEvent) -> None:
+        """Record one token event on the matching Langfuse trace."""
         trace = self._trace_for(event.request_id, event.tenant_id)
         payload: dict[str, Any] = {
             "index": event.index,
@@ -236,6 +247,7 @@ class LangfuseTokenCallback(TokenTraceCallback):
     def on_stream_end(
         self, *, tenant_id: str, request_id: str, summary: dict[str, Any]
     ) -> None:
+        """Update and release the Langfuse trace for a completed stream."""
         key = request_id or "anonymous"
         trace = self._traces.pop(key, None)
         if trace is None:

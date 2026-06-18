@@ -64,7 +64,6 @@ class ForensicsCase:
 
     def to_dict(self) -> dict[str, str | int | float | bool]:
         """Return a JSON-compatible tenant-safe case payload."""
-
         return {
             "case_id": self.case_id,
             "outcome": self.outcome,
@@ -101,7 +100,6 @@ class ForensicsReport:
 
     def to_dict(self) -> dict[str, Any]:
         """Return a JSON-compatible report payload."""
-
         return {
             "total_records": self.total_records,
             "labelled_records": self.labelled_records,
@@ -132,7 +130,6 @@ def build_forensics_report(records: Sequence[Mapping[str, object]]) -> Forensics
         function accepts both ``director.eval.*`` keys and plain aliases such as
         ``approved`` or ``label`` so exports can be joined without rewriting.
     """
-
     cases = tuple(
         _case_from_record(record, index) for index, record in enumerate(records)
     )
@@ -155,7 +152,6 @@ def build_forensics_report(records: Sequence[Mapping[str, object]]) -> Forensics
 
 def render_forensics_markdown(report: ForensicsReport) -> str:
     """Render a Markdown scorer-miss report for operator review."""
-
     lines = [
         "# Guardrail Forensics",
         "",
@@ -202,7 +198,6 @@ def render_forensics_markdown(report: ForensicsReport) -> str:
 
 def render_forensics_text(report: ForensicsReport) -> str:
     """Render a plain-text scorer-miss report for CLI output."""
-
     lines = [
         "Guardrail Forensics",
         f"  total_records: {report.total_records}",

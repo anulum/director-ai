@@ -22,13 +22,27 @@ not need their own branches.
 from __future__ import annotations
 
 import logging
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from importlib.util import find_spec
+from typing import Any, Protocol, cast
 
 from ..otel import _get_tracer, _NoopSpan
 
 logger = logging.getLogger(__name__)
+
+
+class _SpanStarter(Protocol):
+    """Tracer subset required to open token child spans."""
+
+    def start_as_current_span(self, name: str) -> Any:
+        """Open a context manager for a named span."""
+        ...
+
+
+def _current_tracer() -> _SpanStarter | None:
+    get_tracer = cast("Callable[[], _SpanStarter | None]", _get_tracer)
+    return get_tracer()
 
 
 def _probe_otel_available() -> bool:
@@ -60,13 +74,14 @@ def trace_token(
     tenant_id: str = "",
     request_id: str = "",
 ) -> Iterator[object]:
-    """Open a child span for one token. ``token`` is not set as an
-    attribute — it may contain the model's raw output, which is
-    typically inappropriate for log aggregators. Callers that need
-    the token text should record a hash instead and keep the raw
-    text out of the span.
+    """Open a child span for one token.
+
+    ``token`` is not set as an attribute because it may contain the model's raw
+    output, which is typically inappropriate for log aggregators. Callers that
+    need the token text should record a hash instead and keep the raw text out
+    of the span.
     """
-    tracer = _get_tracer()
+    tracer = _current_tracer()
     if tracer is None:
         yield _NoopSpan()
         return

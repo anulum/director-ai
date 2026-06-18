@@ -93,6 +93,7 @@ jobs:
           src/director_ai/core/memory
           src/director_ai/core/meta_guard
           src/director_ai/core/ml_bom
+          src/director_ai/core/observability
           src/director_ai/core/output_integrity
           src/director_ai/core/output_trust
           src/director_ai/core/policy.py

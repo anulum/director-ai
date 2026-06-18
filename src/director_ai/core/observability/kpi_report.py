@@ -36,6 +36,7 @@ class KpiTargets:
     watch_fraction: float = 0.8
 
     def __post_init__(self) -> None:
+        """Validate KPI target bounds before classification."""
         if not 0.0 <= self.max_false_positive_rate <= 1.0:
             raise ValueError("max_false_positive_rate must be in [0, 1]")
         if not 0.0 <= self.min_halt_precision <= 1.0:
