@@ -105,6 +105,7 @@ class BreakoutDetector:
     max_text_length: int = 64_000
 
     def __post_init__(self) -> None:
+        """Validate scan bounds and precompile host matching once."""
         if self.max_text_length < 0:
             raise ValueError("max_text_length must be non-negative")
         if any(not p for p in self.anti_anchor_phrases):

@@ -74,6 +74,7 @@ class RealityAnchor:
     mac: str
 
     def __post_init__(self) -> None:
+        """Validate anchor identity, scope, timestamp, nonce, and MAC shape."""
         if not self.session_id:
             raise ValueError("session_id must be non-empty")
         if not self.issuer:
@@ -143,6 +144,7 @@ class ContainmentAttestor:
     clock: object = field(default=time.time)
 
     def __post_init__(self) -> None:
+        """Validate attestor key strength, issuer, freshness, and clock source."""
         if len(self.key) < _MIN_KEY_LEN:
             raise ValueError(
                 f"HMAC key must be at least {_MIN_KEY_LEN} bytes (got {len(self.key)})"

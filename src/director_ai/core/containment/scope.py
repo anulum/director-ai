@@ -16,7 +16,7 @@ real users, real money, real physical systems.
 
 from __future__ import annotations
 
-from typing import Literal, cast, get_args
+from typing import Literal, get_args
 
 ContainmentScope = Literal[
     "sandbox",
@@ -37,7 +37,7 @@ _ALL_SCOPES: tuple[ContainmentScope, ...] = get_args(ContainmentScope)
 
 
 def scope_allows_real_effects(scope: ContainmentScope) -> bool:
-    """True when actions taken under *scope* may affect real users.
+    """Return whether actions under *scope* may affect real users.
 
     Only ``production`` returns True. ``shadow`` sees real traffic
     but its outputs are suppressed, so from the agent's perspective
@@ -47,14 +47,13 @@ def scope_allows_real_effects(scope: ContainmentScope) -> bool:
 
 
 def validate_scope(scope: str) -> ContainmentScope:
-    """Narrow a plain string into the :data:`ContainmentScope`
-    literal. Raises :class:`ValueError` on unknown labels.
+    """Narrow a plain string into the :data:`ContainmentScope` literal.
+
+    Raises :class:`ValueError` on unknown labels.
     """
     if scope not in _ALL_SCOPES:
         known = ", ".join(_ALL_SCOPES)
         raise ValueError(
             f"unknown containment scope {scope!r}; expected one of {known}"
         )
-    # The runtime check above proves membership in the literal —
-    # ``cast`` documents that narrowing to the static checker.
-    return cast(ContainmentScope, scope)
+    return scope

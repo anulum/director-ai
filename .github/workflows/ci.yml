@@ -55,9 +55,11 @@ jobs:
           ruff check
           src/director_ai/core/config.py
           src/director_ai/core/scoring/scorer.py
+          src/director_ai/core/containment
           src/director_ai/core/edge
           src/director_ai/core/ml_bom
           src/director_ai/core/output_integrity
+          src/director_ai/core/output_trust
           --select D
 
   typecheck:

@@ -6,8 +6,7 @@
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI — containment guard (attestor + detector compose)
 
-"""Single entry-point that composes :class:`ContainmentAttestor`
-with :class:`BreakoutDetector`.
+"""Compose :class:`ContainmentAttestor` with :class:`BreakoutDetector`.
 
 The gateway calls :meth:`ContainmentGuard.check` before every
 outbound action; the returned :class:`ContainmentVerdict` tells
@@ -46,6 +45,7 @@ class ContainmentVerdict:
 
     @property
     def allowed(self) -> bool:
+        """Return whether the decision allows the proposed action."""
         return self.decision == "allow"
 
 
