@@ -27,8 +27,7 @@ _ZERO_HASH = "0" * 64
 
 
 class HmacChainError(ValueError):
-    """Raised when the chain's HMAC or parent hash fails
-    verification."""
+    """Raise when the chain's HMAC or parent hash fails verification."""
 
 
 @dataclass(frozen=True)
@@ -76,16 +75,21 @@ class ProvenanceChain:
             return entry
 
     def snapshot(self) -> tuple[ProvenanceEntry, ...]:
+        """Return a point-in-time copy of every chain entry."""
         with self._lock:
             return tuple(self._entries)
 
     def __len__(self) -> int:
+        """Return the number of entries in the chain."""
         with self._lock:
             return len(self._entries)
 
     def verify(self) -> tuple[bool, int | None]:
-        """Return ``(ok, first_bad_index)``. Walks the entire
-        chain re-deriving each parent hash and HMAC tag."""
+        """Return ``(ok, first_bad_index)`` after replaying the chain.
+
+        Verification walks the entire chain and re-derives each parent hash and
+        HMAC tag.
+        """
         with self._lock:
             entries = tuple(self._entries)
         previous_hash = _ZERO_HASH

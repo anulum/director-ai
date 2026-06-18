@@ -34,6 +34,7 @@ class SourceScore:
     observation_count: int
 
     def __post_init__(self) -> None:
+        """Validate score bounds and observation cardinality."""
         if not 0.0 <= self.score <= 1.0:
             raise ValueError(f"score must be in [0, 1]; got {self.score!r}")
         if self.observation_count < 0:
@@ -73,10 +74,12 @@ class SourceCredibility:
         self._scores: dict[str, SourceScore] = {}
 
     def observe(self, source_id: str, signal: float) -> SourceScore:
-        """Fold ``signal`` in ``[0, 1]`` into the source's running
-        score. The signal's weight is computed from the elapsed
-        time since the last update — ancient observations decay
-        via the half-life before the new signal is merged."""
+        """Fold ``signal`` into the source's running score.
+
+        The signal's weight is computed from the elapsed time since the last
+        update; ancient observations decay via the half-life before the new
+        signal is merged.
+        """
         if not source_id:
             raise ValueError("source_id must be non-empty")
         if not 0.0 <= signal <= 1.0:
@@ -125,8 +128,7 @@ class SourceCredibility:
         return decay * existing.score + (1.0 - decay) * self._prior
 
     def snapshot(self) -> tuple[SourceScore, ...]:
-        """Return every tracked source's current record. Useful
-        for audit and dashboards."""
+        """Return every tracked source record for audit and dashboards."""
         with self._lock:
             return tuple(self._scores.values())
 

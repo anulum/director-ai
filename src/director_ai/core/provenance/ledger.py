@@ -90,6 +90,7 @@ class LedgerEvent:
     tag: str
 
     def __post_init__(self) -> None:
+        """Validate event type, chunk leaves, and chain index."""
         if self.event_type not in _EVENT_TYPES:
             raise ValueError(
                 f"event_type must be one of {sorted(_EVENT_TYPES)}; "
@@ -220,8 +221,11 @@ class KnowledgeProvenanceLedger:
         removed_chunk_ids: Sequence[str] = (),
         supersedes: Sequence[str] = (),
     ) -> LedgerEvent:
-        """Append an ``update`` event admitting new chunks and retiring the
-        previous revision's ``removed_chunk_ids``."""
+        """Append an ``update`` event.
+
+        The event admits new chunks and retires the previous revision's
+        ``removed_chunk_ids``.
+        """
         return self._append(
             event_type="update",
             doc_id=doc_id,
@@ -352,6 +356,7 @@ class KnowledgeProvenanceLedger:
             return tuple(self._events)
 
     def __len__(self) -> int:
+        """Return the number of ledger events."""
         with self._lock:
             return len(self._events)
 

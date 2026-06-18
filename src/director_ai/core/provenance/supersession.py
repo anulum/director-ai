@@ -69,6 +69,7 @@ class SupersessionCandidate:
     evidence_ref: str
 
     def __post_init__(self) -> None:
+        """Validate candidate identity and score bounds."""
         if not self.superseded_doc_id:
             raise ValueError("superseded_doc_id must be non-empty")
         _unit_interval("score", self.score)

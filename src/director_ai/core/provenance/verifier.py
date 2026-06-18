@@ -6,8 +6,7 @@
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI — ProvenanceVerifier
 
-"""Compose :class:`MerkleTree` + :class:`ProvenanceChain` +
-:class:`SourceCredibility` into a single verify-and-score API.
+"""Compose Merkle roots, HMAC chaining, and credibility scoring.
 
 The verifier takes a response's fact list and returns a
 :class:`ProvenanceVerdict` with:
@@ -29,6 +28,7 @@ try:  # pragma: no cover - optional acceleration
 except ImportError:  # pragma: no cover - mandatory accelerator guard
 
     def rust_mean(_values: list[float]) -> float:
+        """Fail closed when the optional Rust mean kernel is unavailable."""
         raise RuntimeError("backfire_kernel rust_mean is unavailable")
 
 
@@ -60,12 +60,12 @@ class ProvenanceVerdict:
 
     @property
     def all_ok(self) -> bool:
+        """Return whether every fact passed integrity and credibility checks."""
         return not self.failures
 
 
 class ProvenanceVerifier:
-    """Verify a response's citation set and fold it into the
-    provenance chain.
+    """Verify a response's citation set and fold it into the provenance chain.
 
     Parameters
     ----------
@@ -92,6 +92,7 @@ class ProvenanceVerifier:
         self._min_source_score = min_source_score
 
     def verify(self, facts: Sequence[CitationFact]) -> ProvenanceVerdict:
+        """Verify fact integrity, source credibility, and chain inclusion."""
         if not facts:
             raise ValueError("facts must be non-empty")
         verdicts: list[FactVerdict] = []

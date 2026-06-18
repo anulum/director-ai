@@ -633,6 +633,8 @@ module = [
     "director_ai.core.policy",
     "director_ai.core.policy_compiler",
     "director_ai.core.policy_compiler.*",
+    "director_ai.core.provenance",
+    "director_ai.core.provenance.*",
     "director_ai.core.risk_threshold",
     "director_ai.core.risk_threshold.*",
     "director_ai.core.safety",

@@ -6,8 +6,7 @@
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI — CitationFact
 
-"""One citation: a source id, the content it cited, a timestamp,
-and a SHA-256 hash of the canonical content for tamper detection.
+"""Model one cited source span with a tamper-detecting content hash.
 
 The fact intentionally stores the raw ``content`` string as well
 as the hash — the hash is the stable handle used by every
@@ -28,7 +27,7 @@ class FactVerificationError(ValueError):
 
 @dataclass(frozen=True)
 class CitationFact:
-    """One cited fact.
+    r"""One cited fact.
 
     ``source_id`` and ``content`` are caller-supplied. ``timestamp``
     defaults to ``time.time()`` at construction. ``content_hash``
@@ -43,6 +42,7 @@ class CitationFact:
     content_hash: str = ""
 
     def __post_init__(self) -> None:
+        """Validate identity fields and derive or check the content hash."""
         if not self.source_id:
             raise ValueError("source_id must be non-empty")
         if not self.content:
@@ -61,9 +61,10 @@ class CitationFact:
             )
 
     def verify_integrity(self) -> None:
-        """Raise :class:`FactVerificationError` when the stored
-        hash no longer matches the canonical content. Callers
-        run this after deserialising from an untrusted store."""
+        """Raise when the stored hash no longer matches canonical content.
+
+        Callers run this after deserialising from an untrusted store.
+        """
         canonical = _canonical(self.source_id, self.content)
         expected = hashlib.sha256(canonical).hexdigest()
         if self.content_hash != expected:
@@ -73,7 +74,9 @@ class CitationFact:
 
 
 def _canonical(source_id: str, content: str) -> bytes:
-    """``source_id || 0x1f || content`` encoded UTF-8 — the unit
-    separator rules out collisions between ``("ab", "cd")`` and
-    ``("abc", "d")``."""
+    """Return ``source_id || 0x1f || content`` encoded as UTF-8.
+
+    The unit separator rules out collisions between ``("ab", "cd")`` and
+    ``("abc", "d")``.
+    """
     return f"{source_id}\x1f{content}".encode()

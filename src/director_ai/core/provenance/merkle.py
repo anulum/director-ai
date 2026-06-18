@@ -44,6 +44,7 @@ class MerkleProof:
     root_hash: str
 
     def verify(self) -> bool:
+        """Return whether this proof folds back to ``root_hash``."""
         current = self.leaf_hash
         for sibling, sibling_on_right in self.path:
             if sibling_on_right:
@@ -77,18 +78,23 @@ class MerkleTree:
 
     @property
     def root(self) -> str:
+        """Return the Merkle root hash."""
         return self._levels[-1][0]
 
     @property
     def leaf_count(self) -> int:
+        """Return the number of facts committed by the tree."""
         return len(self._facts)
 
     def facts(self) -> tuple[CitationFact, ...]:
+        """Return the committed facts in leaf order."""
         return self._facts
 
     def proof_for(self, fact: CitationFact) -> MerkleProof:
-        """Return the inclusion proof for ``fact``. Raises
-        :class:`ValueError` when the fact is not in the tree."""
+        """Return the inclusion proof for ``fact``.
+
+        Raises :class:`ValueError` when the fact is not in the tree.
+        """
         try:
             index = self._facts.index(fact)
         except ValueError as exc:
@@ -119,8 +125,7 @@ class MerkleTree:
 
 
 def _combine_level(level: list[str]) -> list[str]:
-    """Fold a level up one step, duplicating the last node when
-    the level has an odd count."""
+    """Fold a level up one step, duplicating the last odd node."""
     padded = list(level)
     if len(padded) % 2 == 1:
         padded.append(padded[-1])

@@ -90,6 +90,7 @@ class InclusionProof:
     root: bytes
 
     def __post_init__(self) -> None:
+        """Validate the opened leaf, index, and Merkle root digest."""
         if not self.leaf:
             raise ValueError("leaf must be non-empty")
         if self.index < 0:
