@@ -57,6 +57,7 @@ jobs:
           src/director_ai/core/_device.py
           src/director_ai/core/_heuristics.py
           src/director_ai/core/agent_identity
+          src/director_ai/core/agent_preflight
           src/director_ai/core/attribution
           src/director_ai/core/backends.py
           src/director_ai/core/calibration

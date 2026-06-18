@@ -50,6 +50,7 @@ class PreflightDecision:
     metadata: dict[str, str] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
+        """Validate and normalise a tenant-safe preflight decision."""
         if not self.hook.strip():
             raise ValueError("hook is required")
         if self.decision not in DECISIONS:

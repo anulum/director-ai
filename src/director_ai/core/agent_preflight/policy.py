@@ -44,6 +44,7 @@ class PreflightPolicy:
     allowed_handoff_targets: frozenset[str] = field(default_factory=frozenset)
 
     def __post_init__(self) -> None:
+        """Validate thresholds and normalise handoff targets."""
         if not 0.0 <= self.reversibility_threshold <= 1.0:
             raise ValueError("reversibility_threshold must be in [0, 1]")
         object.__setattr__(

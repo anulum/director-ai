@@ -576,6 +576,8 @@ module = [
     "director_ai.core._heuristics",
     "director_ai.core.agent_identity",
     "director_ai.core.agent_identity.*",
+    "director_ai.core.agent_preflight",
+    "director_ai.core.agent_preflight.*",
     "director_ai.core.attribution",
     "director_ai.core.attribution.*",
     "director_ai.core.backends",
