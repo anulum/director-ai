@@ -42,6 +42,7 @@ class StrategyProfile:
     choices: tuple[str, ...]
 
     def __post_init__(self) -> None:
+        """Validate that every positional strategy choice is non-empty."""
         if not self.choices:
             raise ValueError("StrategyProfile.choices must be non-empty")
         for c in self.choices:
@@ -64,6 +65,7 @@ class NormalFormGame:
     payoffs: Mapping[StrategyProfile, tuple[float, ...]] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
+        """Validate player, strategy, profile, and payoff-table consistency."""
         if len(self.players) < 2:
             raise ValueError("a game needs at least two players")
         if len(set(self.players)) != len(self.players):
@@ -117,9 +119,10 @@ class NormalFormGame:
     def best_responses(
         self, opponent_profile: StrategyProfile, player: str
     ) -> tuple[str, ...]:
-        """Return the strategies that maximise ``player``'s payoff
-        holding all other players at ``opponent_profile``. Returns
-        the full set — a player may have ties at the best response.
+        """Return strategies that maximise one player's payoff.
+
+        All other players remain fixed at ``opponent_profile``. The full set is
+        returned because a player may have ties at the best response.
         """
         if player not in self.players:
             raise ValueError(f"unknown player {player!r}")

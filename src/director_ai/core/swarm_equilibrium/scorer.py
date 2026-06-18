@@ -6,8 +6,7 @@
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI — SwarmEquilibriumScorer
 
-"""Score an observed :class:`StrategyProfile` against a game's
-Nash / Stackelberg equilibria.
+"""Score an observed profile against a game's equilibria.
 
 The scorer takes a game, an observed profile, and an optional
 Stackelberg leader. It reports:
@@ -37,9 +36,11 @@ except Exception:  # pragma: no cover - mandatory dependency
     _RUST_SWARM_EQ = True
 
     def rust_mean(_values: list[float]) -> float:
+        """Raise when the mandatory Rust mean helper is unavailable."""
         raise RuntimeError("backfire_kernel rust_mean is unavailable")
 
     def rust_sum_f64(_values: list[float]) -> float:
+        """Raise when the mandatory Rust sum helper is unavailable."""
         raise RuntimeError("backfire_kernel rust_sum_f64 is unavailable")
 
 
@@ -61,8 +62,7 @@ class StabilityReport:
 
 
 class SwarmEquilibriumScorer:
-    """Compose :class:`NashSolver` and :class:`StackelbergSolver`
-    into a single scorer.
+    """Compose Nash and Stackelberg solvers into one scorer.
 
     Parameters
     ----------
@@ -100,6 +100,7 @@ class SwarmEquilibriumScorer:
         observed: StrategyProfile,
         leader: str | None = None,
     ) -> StabilityReport:
+        """Return equilibrium stability evidence for an observed profile."""
         game.payoffs[observed]  # raises KeyError on an unknown profile
         nash_profiles = self._nash.equilibria(game)
         deviation = self._nash.deviation_gain(game, observed)
@@ -120,9 +121,9 @@ class SwarmEquilibriumScorer:
         )
 
     def mean_nash_payoff(self, game: NormalFormGame, player: str) -> float:
-        """Average Nash-equilibrium payoff for ``player`` across
-        every pure equilibrium. Returns ``nan`` when no pure
-        equilibrium exists so callers branch on
+        """Return one player's average payoff across pure Nash equilibria.
+
+        Returns ``nan`` when no pure equilibrium exists so callers branch on
         :func:`math.isnan` rather than swallowing a silent zero.
         """
         if player not in game.players:

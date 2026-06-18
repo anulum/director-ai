@@ -66,7 +66,13 @@ jobs:
           src/director_ai/core/safety_event.py
           src/director_ai/core/safety_protocol.py
           src/director_ai/core/stats.py
+          src/director_ai/core/swarm_coherence
+          src/director_ai/core/swarm_equilibrium
+          src/director_ai/core/symbolic_chain
+          src/director_ai/core/temporal_consistency
           src/director_ai/core/text_overlap.py
+          src/director_ai/core/threat_intel
+          src/director_ai/core/trace_safe
           --select D
 
   typecheck:

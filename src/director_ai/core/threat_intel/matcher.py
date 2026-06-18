@@ -93,6 +93,6 @@ class ThreatIntelligenceMatcher:
         return any(ind.matches(text) for ind in self._indicators.values())
 
     def attributions(self, text: str) -> tuple[str, ...]:
-        """The distinct, non-empty attributions of indicators firing on ``text``."""
+        """Return distinct non-empty attributions of indicators firing on ``text``."""
         seen = {m.attribution for m in self.match(text) if m.attribution}
         return tuple(sorted(seen))

@@ -43,20 +43,25 @@ class ConsistencyReport:
 
     @property
     def is_consistent(self) -> bool:
+        """Return whether the prover found no contradictions."""
         return self.status == "consistent"
 
 
 @runtime_checkable
 class ProverBackend(Protocol):
-    """Contract for anything that can decide the consistency of a
-    claim set. Callers pass the full set each time — provers are
-    stateless so the backend can be swapped live."""
+    """Decide consistency for a full claim set.
+
+    Callers pass the full set each time; provers are stateless so the backend can
+    be swapped live.
+    """
 
     def check(
         self,
         claims: Iterable[Claim],
         relations: Iterable[ClaimRelation],
-    ) -> ConsistencyReport: ...
+    ) -> ConsistencyReport:
+        """Return the consistency report for claims and relations."""
+        ...
 
 
 class GraphProver:
@@ -82,6 +87,7 @@ class GraphProver:
         claims: Iterable[Claim],
         relations: Iterable[ClaimRelation],
     ) -> ConsistencyReport:
+        """Return graph-closure consistency for claims and relations."""
         claim_list = list(claims)
         relation_list = list(relations)
         conflicts: list[tuple[str, str, str]] = []

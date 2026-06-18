@@ -54,10 +54,14 @@ _WORD_RE = re.compile(r"[a-zA-Z0-9']+")
 class ContradictionEngine(Protocol):
     """An NLI contradiction scorer (duck-typed against ``ContradictionScorer``)."""
 
-    def contradiction(self, premise: str, hypothesis: str) -> float: ...
+    def contradiction(self, premise: str, hypothesis: str) -> float:
+        """Return the contradiction probability for one ordered sentence pair."""
+        ...
 
     @property
-    def threshold(self) -> float: ...
+    def threshold(self) -> float:
+        """Return the scorer threshold used for contradiction decisions."""
+        ...
 
 
 def _lexical_overlap(text_a: str, text_b: str) -> float:
@@ -144,6 +148,7 @@ class SwarmCoherenceMonitor:
     _halted: bool = field(default=False, repr=False)
 
     def __post_init__(self) -> None:
+        """Validate threshold and claim-retention bounds."""
         if self.contradiction_threshold is not None and not (
             0.0 <= self.contradiction_threshold <= 1.0
         ):

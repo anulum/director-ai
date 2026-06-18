@@ -49,6 +49,7 @@ except ImportError:  # pragma: no cover - mandatory accelerator guard
     _RUST_TRACE_ORACLE = True
 
     def rust_sum_f64(_values: list[float]) -> float:
+        """Raise when the mandatory Rust sum helper is unavailable."""
         raise RuntimeError("backfire_kernel rust_sum_f64 is unavailable")
 
 
@@ -140,6 +141,7 @@ class TraceSafeOracle:
 
     @property
     def n_samples(self) -> int:
+        """Return the number of labelled exemplars in the corpus."""
         return len(self._samples)
 
     def classify(self, trace: str) -> TraceVerdict:

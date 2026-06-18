@@ -45,4 +45,5 @@ class NeuralSymbolicVerifier:
         claims: Iterable[Claim],
         relations: Iterable[ClaimRelation],
     ) -> ConsistencyReport:
+        """Return symbolic consistency for extracted claims and relations."""
         return self._prover.check(claims, relations)

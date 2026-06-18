@@ -6,8 +6,7 @@
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI — swarm equilibrium scorer
 
-"""Nash / Stackelberg equilibrium analysis for small inter-agent
-games.
+"""Analyse Nash and Stackelberg equilibria for small inter-agent games.
 
 When a multi-agent system commits to a joint action, the guard
 asks two questions. First, is the observed joint profile a

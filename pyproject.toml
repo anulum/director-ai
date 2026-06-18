@@ -578,7 +578,19 @@ module = [
     "director_ai.core.safety_event",
     "director_ai.core.safety_protocol",
     "director_ai.core.stats",
+    "director_ai.core.swarm_coherence",
+    "director_ai.core.swarm_coherence.*",
+    "director_ai.core.swarm_equilibrium",
+    "director_ai.core.swarm_equilibrium.*",
+    "director_ai.core.symbolic_chain",
+    "director_ai.core.symbolic_chain.*",
+    "director_ai.core.temporal_consistency",
+    "director_ai.core.temporal_consistency.*",
     "director_ai.core.text_overlap",
+    "director_ai.core.threat_intel",
+    "director_ai.core.threat_intel.*",
+    "director_ai.core.trace_safe",
+    "director_ai.core.trace_safe.*",
 ]
 disallow_untyped_defs = true
 disallow_incomplete_defs = true

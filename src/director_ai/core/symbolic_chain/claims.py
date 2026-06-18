@@ -41,6 +41,7 @@ class Claim:
     negated: bool = False
 
     def __post_init__(self) -> None:
+        """Validate claim identity and audit text."""
         if not self.id:
             raise ValueError("Claim.id must be non-empty")
         if not self.text:
@@ -61,6 +62,7 @@ class ClaimRelation:
     kind: ClaimRelationKind
 
     def __post_init__(self) -> None:
+        """Validate relation kind and endpoint identities."""
         if self.kind not in _VALID_RELATIONS:
             raise ValueError(
                 f"ClaimRelation.kind must be one of {sorted(_VALID_RELATIONS)}; "

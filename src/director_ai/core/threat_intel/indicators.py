@@ -81,6 +81,7 @@ class ThreatIndicator:
     labels: tuple[str, ...] = field(default_factory=tuple)
 
     def __post_init__(self) -> None:
+        """Validate indicator identity, pattern, and type-specific shape."""
         if not self.id.strip():
             raise ValueError("indicator id is required")
         if not self.pattern.strip():

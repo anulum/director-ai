@@ -46,6 +46,7 @@ class NashEquilibrium:
     mixed_strategies: dict[str, dict[str, float]] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
+        """Validate the equilibrium kind and its matching payload."""
         if self.kind not in {"pure", "mixed"}:
             raise ValueError(f"kind must be 'pure' or 'mixed'; got {self.kind!r}")
         if self.kind == "pure" and self.profile is None:
@@ -55,8 +56,7 @@ class NashEquilibrium:
 
 
 class NashSolver:
-    """Find pure and mixed Nash equilibria of a
-    :class:`NormalFormGame`.
+    """Find pure and mixed Nash equilibria of a normal-form game.
 
     Parameters
     ----------
@@ -85,10 +85,10 @@ class NashSolver:
         return tuple(equilibria)
 
     def mixed_equilibrium_2x2(self, game: NormalFormGame) -> NashEquilibrium | None:
-        """Return the interior mixed-strategy Nash equilibrium of a
-        2x2 two-player game, or ``None`` when the closed-form
-        solution lies outside the simplex (i.e. a pure equilibrium
-        dominates).
+        """Return the interior mixed-strategy Nash equilibrium for a 2x2 game.
+
+        Returns ``None`` when the closed-form solution lies outside the simplex,
+        meaning a pure equilibrium dominates.
         """
         if len(game.players) != 2:
             return None
@@ -145,16 +145,15 @@ class NashSolver:
         )
 
     def equilibria(self, game: NormalFormGame) -> tuple[NashEquilibrium, ...]:
-        """Every equilibrium: pure set first, then a mixed 2x2
-        result if applicable."""
+        """Return every equilibrium, with pure equilibria before a mixed result."""
         pures = self.pure_equilibria(game)
         mixed = self.mixed_equilibrium_2x2(game)
         return pures + ((mixed,) if mixed is not None else ())
 
     def deviation_gain(self, game: NormalFormGame, profile: StrategyProfile) -> float:
-        """Largest unilateral payoff improvement any single player
-        can achieve by deviating from ``profile``. Zero when
-        ``profile`` is a Nash equilibrium.
+        """Return the largest unilateral payoff improvement from a profile.
+
+        The value is zero when ``profile`` is a Nash equilibrium.
         """
         current = [game.payoff(profile, p) for p in game.players]
         worst_gain = 0.0
@@ -186,14 +185,13 @@ class StackelbergSolver:
         self._eps = eps
 
     def solve(self, game: NormalFormGame, *, leader: str) -> NashEquilibrium:
-        """Return the subgame-perfect equilibrium with ``leader``
-        moving first. The follower best-responds to the leader's
-        commitment; the leader picks the commitment that
-        maximises their own payoff given the induced follower
-        response. Ties between follower best responses are broken
-        in favour of the leader (the leader picks the follower
-        response that is best for the leader, a standard
-        Stackelberg assumption)."""
+        """Return the subgame-perfect equilibrium with ``leader`` moving first.
+
+        The follower best-responds to the leader's commitment; the leader picks
+        the commitment that maximises their own payoff given the induced
+        follower response. Ties between follower best responses are broken in
+        favour of the leader, which is the standard Stackelberg assumption.
+        """
         if len(game.players) != 2:
             raise ValueError("Stackelberg solver handles two-player games")
         if leader not in game.players:

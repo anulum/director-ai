@@ -39,6 +39,7 @@ except ImportError:  # pragma: no cover - mandatory accelerator guard
     _RUST_TRACE_EMBEDDER = True
 
     def rust_sum_f64(_values: list[float]) -> float:
+        """Raise when the mandatory Rust sum helper is unavailable."""
         raise RuntimeError("backfire_kernel rust_sum_f64 is unavailable")
 
 
@@ -48,13 +49,14 @@ _WORD_RE = re.compile(r"[a-z0-9]+")
 
 
 class TraceEmbedder(ABC):
-    """Protocol — ``embed(text)`` returns a tuple of floats whose
-    L2 norm is 1."""
+    """Embed text into a fixed-length unit-norm vector."""
 
     dim: int
 
     @abstractmethod
-    def embed(self, text: str) -> tuple[float, ...]: ...  # pragma: no cover
+    def embed(self, text: str) -> tuple[float, ...]:
+        """Return the embedding vector for ``text``."""
+        ...  # pragma: no cover
 
 
 class HashBagEmbedder(TraceEmbedder):
@@ -89,6 +91,7 @@ class HashBagEmbedder(TraceEmbedder):
         self._lowercase = lowercase
 
     def embed(self, text: str) -> tuple[float, ...]:
+        """Return a deterministic hashing-trick embedding for ``text``."""
         tokens = self._tokenise(text)
         if not tokens:
             return tuple([0.0] * self.dim)
@@ -111,8 +114,11 @@ class HashBagEmbedder(TraceEmbedder):
 
 
 def _bucket(token: str, dim: int) -> int:
-    """Stable FNV-1a bucket. Avoids ``hash()`` whose per-process
-    salt makes embeddings non-reproducible across restarts."""
+    """Return a stable FNV-1a feature bucket.
+
+    This avoids ``hash()``, whose per-process salt makes embeddings
+    non-reproducible across restarts.
+    """
     h = _FNV_OFFSET
     for byte in token.encode("utf-8"):
         h ^= byte

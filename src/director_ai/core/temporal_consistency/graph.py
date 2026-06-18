@@ -72,6 +72,7 @@ class TemporalClaim:
     claim_id: str = ""
 
     def __post_init__(self) -> None:
+        """Validate required claim fields, tenant id, and finite timestamp."""
         object.__setattr__(self, "subject", _require_non_empty("subject", self.subject))
         object.__setattr__(
             self, "predicate", _require_non_empty("predicate", self.predicate)
@@ -230,7 +231,9 @@ class TemporalConsistencyGraph:
         ]
         return removed
 
-    def report(self, *, tenant_id: str = "", include_text: bool = False) -> dict:
+    def report(
+        self, *, tenant_id: str = "", include_text: bool = False
+    ) -> dict[str, Any]:
         """Return a tenant-safe consistency report for a tenant."""
         tid = _validate_tenant_id(tenant_id)
         conflicts = self.contradictions(tenant_id=tid)

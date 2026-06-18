@@ -58,8 +58,10 @@ PY
   `core/scoring/scorer.py`, `core/containment`, `core/edge`,
   `core/execution_rings`, `core/guard_control`, `core/irreversibility`,
   `core/ml_bom`, `core/output_integrity`, `core/output_trust`,
-  `core/safety_event.py`, `core/safety_protocol.py`, `core/stats.py`, and
-  `core/text_overlap.py`.
+  `core/safety_event.py`, `core/safety_protocol.py`, `core/stats.py`,
+  `core/swarm_coherence`, `core/swarm_equilibrium`, `core/symbolic_chain`,
+  `core/temporal_consistency`, `core/text_overlap.py`, `core/threat_intel`, and
+  `core/trace_safe`.
 
 ## Current Known Boundaries
 
@@ -73,14 +75,17 @@ PY
   pydocstyle findings after generated-file excludes. The guard-control ratchet
   reduced the live count to 1,171 findings in the same command; the
   execution-ring, irreversibility, safety-event, safety-protocol, stats, and
-  text-overlap ratchet reduced it to 1,156 findings. Keep generated protobuf
-  files out of manual cleanup unless the generation pipeline changes. As of
-  2026-06-18, `core/containment`, `core/edge`, `core/execution_rings`,
-  `core/guard_control`, `core/irreversibility`, `core/ml_bom`,
-  `core/output_integrity`, `core/output_trust`, `core/safety_event.py`,
-  `core/safety_protocol.py`, `core/stats.py`, and `core/text_overlap.py` have
-  been added to the same blocking docstring ratchet as `core/config.py` and
-  `core/scoring/scorer.py`.
+  text-overlap ratchet reduced it to 1,156 findings; the swarm, symbolic,
+  temporal-consistency, threat-intel, and trace-safe ratchet reduced it to 1,115
+  findings. Keep generated protobuf files out of manual cleanup unless the
+  generation pipeline changes. As of 2026-06-18, `core/containment`,
+  `core/edge`, `core/execution_rings`, `core/guard_control`,
+  `core/irreversibility`, `core/ml_bom`, `core/output_integrity`,
+  `core/output_trust`, `core/safety_event.py`, `core/safety_protocol.py`,
+  `core/stats.py`, `core/swarm_coherence`, `core/swarm_equilibrium`,
+  `core/symbolic_chain`, `core/temporal_consistency`, `core/text_overlap.py`,
+  `core/threat_intel`, and `core/trace_safe` have been added to the same
+  blocking docstring ratchet as `core/config.py` and `core/scoring/scorer.py`.
 - Repo-wide strict mypy remains open. The live 2026-06-18 measurement for
   `mypy --strict src/director_ai` found 621 errors in 93 files. The configured
   CI mypy command remains clean across 512 source files, so strict mode is being
