@@ -80,8 +80,10 @@ class FeedbackStore:
         conn.commit()
 
     def _require_conn(self) -> sqlite3.Connection:
-        """Return the live connection. Raises :class:`RuntimeError`
-        when the store has already been closed."""
+        """Return the live connection.
+
+        Raise :class:`RuntimeError` when the store has already been closed.
+        """
         if self._conn is None:
             raise RuntimeError("feedback store is closed")
         return self._conn
@@ -130,7 +132,7 @@ class FeedbackStore:
                 "human_approved, timestamp, domain, review_id, tenant_id "
                 "FROM corrections"
             )
-            params: list = []
+            params: list[str | int] = []
             if domain is not None:
                 query += " WHERE domain = ?"
                 params.append(domain)
@@ -183,7 +185,7 @@ class FeedbackStore:
                        FROM corrections
                        WHERE guardrail_approved != human_approved
                        ORDER BY timestamp DESC"""
-            params: list = []
+            params: list[int] = []
             if limit > 0:
                 query += " LIMIT ?"
                 params.append(limit)
@@ -204,7 +206,7 @@ class FeedbackStore:
             for r in rows
         ]
 
-    def export_training_data(self) -> list[dict]:
+    def export_training_data(self) -> list[dict[str, str | int]]:
         """Export corrections as training data dicts for fine-tuning."""
         corrections = self.get_corrections()
         return [
@@ -225,16 +227,16 @@ class FeedbackStore:
         domain: str | None = None,
         *,
         include_text: bool = True,
-    ) -> list[dict]:
+    ) -> list[dict[str, str | float | bool | int]]:
         """Export canonical calibration rows for analytics and MLOps.
 
         The schema is intentionally explicit and versioned so downstream
         systems can consume the dataset without inferring boolean semantics
         from historical training-export fields.
         """
-        rows = []
+        rows: list[dict[str, str | float | bool | int]] = []
         for correction in self.get_corrections(limit=limit, domain=domain):
-            row = {
+            row: dict[str, str | float | bool | int] = {
                 "schema_version": "director-ai.calibration-feedback.v1",
                 "prompt": correction.prompt if include_text else "",
                 "response": correction.response if include_text else "",

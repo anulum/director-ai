@@ -53,11 +53,16 @@ jobs:
       - name: Docstring ratchet (strict-typed modules)
         run: >-
           ruff check
+          src/director_ai/core/attribution
+          src/director_ai/core/calibration
+          src/director_ai/core/canary
           src/director_ai/core/config.py
           src/director_ai/core/scoring/scorer.py
           src/director_ai/core/containment
           src/director_ai/core/consensus
           src/director_ai/core/edge
+          src/director_ai/core/eval_trace
+          src/director_ai/core/evidence_packet
           src/director_ai/core/execution_rings
           src/director_ai/core/guard_control
           src/director_ai/core/irreversibility

@@ -571,10 +571,20 @@ warn_unused_ignores = true
 
 [[tool.mypy.overrides]]
 module = [
+    "director_ai.core.attribution",
+    "director_ai.core.attribution.*",
+    "director_ai.core.calibration",
+    "director_ai.core.calibration.*",
+    "director_ai.core.canary",
+    "director_ai.core.canary.*",
     "director_ai.core.consensus",
     "director_ai.core.consensus.*",
     "director_ai.core.execution_rings",
     "director_ai.core.execution_rings.*",
+    "director_ai.core.eval_trace",
+    "director_ai.core.eval_trace.*",
+    "director_ai.core.evidence_packet",
+    "director_ai.core.evidence_packet.*",
     "director_ai.core.irreversibility",
     "director_ai.core.irreversibility.*",
     "director_ai.core.meta_guard",

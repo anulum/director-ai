@@ -17,8 +17,9 @@ metadata rather than OTLP spans (LangSmith, Ragas).
 
 from __future__ import annotations
 
-from contextlib import contextmanager
-from typing import Any
+from collections.abc import Callable, Iterator
+from contextlib import AbstractContextManager, contextmanager
+from typing import Any, Protocol, cast
 
 from ..otel import _get_tracer, _NoopSpan
 from .attributes import GUARD_DECISION_SPAN, guard_decision_attributes
@@ -26,28 +27,45 @@ from .attributes import GUARD_DECISION_SPAN, guard_decision_attributes
 __all__ = ["eval_record_from_guard", "record_guard_decision"]
 
 
+class _SpanLike(Protocol):
+    """Span interface needed by the eval-trace bridge."""
+
+    def set_attribute(self, key: str, value: object) -> None:
+        """Attach one primitive attribute to the span."""
+        ...
+
+
+class _TracerLike(Protocol):
+    """Tracer interface used without importing optional OTel SDK types."""
+
+    def start_as_current_span(self, name: str) -> AbstractContextManager[_SpanLike]:
+        """Open a current span context manager."""
+        ...
+
+
 @contextmanager
 def record_guard_decision(
     attributes: dict[str, str | int | float | bool],
     *,
     span_name: str = GUARD_DECISION_SPAN,
-):
+) -> Iterator[_SpanLike]:
     """Open a span for a guard decision and attach the eval attributes.
 
     A no-op attribute sink is yielded when the OpenTelemetry SDK is not
     installed, so callers can always use this unconditionally.
     """
-    tracer = _get_tracer()
+    get_tracer = cast(Callable[[], _TracerLike | None], _get_tracer)
+    tracer = get_tracer()
     if tracer is None:
-        span = _NoopSpan()
+        noop_span = _NoopSpan()
         for key, value in attributes.items():
-            span.set_attribute(key, value)
-        yield span
+            noop_span.set_attribute(key, value)
+        yield noop_span
         return
-    with tracer.start_as_current_span(span_name) as span:
+    with tracer.start_as_current_span(span_name) as active_span:
         for key, value in attributes.items():
-            span.set_attribute(key, value)
-        yield span
+            active_span.set_attribute(key, value)
+        yield active_span
 
 
 def eval_record_from_guard(

@@ -5,3 +5,5 @@
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
 # calibration subpackage — online threshold calibration from production feedback
+
+"""Calibrate guardrail thresholds from labelled production feedback."""

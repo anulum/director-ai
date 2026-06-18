@@ -221,7 +221,6 @@ def build_causal_attribution_graph(
     evidence: CoherenceScore | ScoringEvidence | HaltEvidence,
 ) -> CausalAttributionGraph:
     """Build a causal attribution graph from Director-AI evidence objects."""
-
     if isinstance(evidence, CoherenceScore):
         return _build_score_graph(evidence)
     if isinstance(evidence, ScoringEvidence):

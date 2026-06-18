@@ -22,7 +22,7 @@ from __future__ import annotations
 import logging
 import math
 from dataclasses import dataclass
-from typing import Literal
+from typing import Literal, Protocol
 
 __all__ = [
     "ConformalPredictor",
@@ -34,6 +34,24 @@ __all__ = [
 
 RoutingAction = Literal["allow", "human_review", "escalate", "reject"]
 _logger = logging.getLogger(__name__)
+
+
+class _FeedbackEntry(Protocol):
+    """Typed subset consumed from legacy feedback stores."""
+
+    human_label: bool | None
+    score: float
+    approved: bool
+    human_override: bool | None
+
+
+class _FeedbackStore(Protocol):
+    """Typed feedback-store boundary used for conformal calibration."""
+
+    def query(self) -> list[_FeedbackEntry]:
+        """Return feedback entries ordered by the store implementation."""
+        ...
+
 
 try:
     from backfire_kernel import rust_conformal_quantile
@@ -218,7 +236,7 @@ class ConformalPredictor:
         self._labels.append(not correct_label)
         self._quantile = self._compute_quantile()
 
-    def calibrate_from_feedback(self, feedback_store) -> None:
+    def calibrate_from_feedback(self, feedback_store: _FeedbackStore) -> None:
         """Calibrate from a FeedbackStore instance.
 
         Reads all entries where human_label is not None and uses

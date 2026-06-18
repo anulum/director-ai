@@ -125,6 +125,7 @@ class RuntimeThresholdGovernor:
     _history: list[ThresholdChange] = field(default_factory=list, repr=False)
 
     def __post_init__(self) -> None:
+        """Validate live-threshold bounds and uncertainty policy."""
         if not 0.0 <= self.current_threshold <= 1.0:
             raise ValueError("current_threshold must be in [0, 1]")
         if not 0.0 < self.max_step <= 1.0:
@@ -133,7 +134,7 @@ class RuntimeThresholdGovernor:
             raise ValueError("uncertainty_penalty must be in [0, 1]")
 
     def live_threshold(self, segment: str) -> float:
-        """The threshold *segment* is currently using."""
+        """Return the threshold currently used for ``segment``."""
         return self._live.get(segment, self.current_threshold)
 
     def observe(self, *, segment: str, score: float, human_approved: bool) -> None:
