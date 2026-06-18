@@ -39,6 +39,7 @@ except Exception:  # pragma: no cover - mandatory dependency
     _RUST_POLICY_COMPILER = True
 
     def rust_conformal_quantile(_residuals: list[float], _coverage: float) -> float:
+        """Fail closed when the mandatory Rust conformal kernel is unavailable."""
         raise RuntimeError("backfire_kernel rust_conformal_quantile is unavailable")
 
 
@@ -63,13 +64,15 @@ class PolicyBundle:
     rules: tuple[CompiledRule, ...] = field(default_factory=tuple)
 
     def to_policy(self) -> Policy:
-        """Turn the bundle into a runtime :class:`Policy`. Local
-        import avoids an import cycle — ``safety.policy`` may
-        eventually want to reference the compiler."""
+        """Turn the bundle into a runtime :class:`Policy`.
+
+        Local import avoids an import cycle because ``safety.policy`` may
+        eventually want to reference the compiler.
+        """
         from director_ai.core.safety.policy import Policy
 
         forbidden: list[str] = []
-        patterns: list[dict] = []
+        patterns: list[dict[str, str]] = []
         max_length = 0
         required_citations_pattern = ""
         required_citations_min = 0
@@ -132,9 +135,7 @@ class PolicyCompiler:
         scores: Sequence[float],
         target_coverage: float = 0.90,
     ) -> PolicyBundle:
-        """Return a new bundle with thresholds on each rule set to
-        the split-conformal α-quantile of ``scores`` (empirical
-        non-conformity scores from a held-out set, in ``[0, 1]``).
+        """Return a bundle calibrated from held-out non-conformity scores.
 
         A single threshold is applied to every threshold-bearing
         rule in the bundle — per-rule calibration sets are a

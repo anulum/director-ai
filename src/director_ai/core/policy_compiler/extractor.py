@@ -45,14 +45,15 @@ _PATTERN_RULE = re.compile(
 
 @runtime_checkable
 class RuleExtractor(Protocol):
-    """Contract for anything that turns a compliance document into
-    a list of :class:`CompiledRule`."""
+    """Contract for compliance-document rule extractors."""
 
-    def extract(self, document: str) -> list[CompiledRule]: ...
+    def extract(self, document: str) -> list[CompiledRule]:
+        """Extract compiled rules from one compliance document."""
+        ...
 
 
 class RegexRuleExtractor:
-    """Deterministic regex-based extractor.
+    r"""Deterministic regex-based extractor.
 
     Recognises four phrasings used by most compliance style guides:
 
@@ -75,6 +76,7 @@ class RegexRuleExtractor:
         self._source = source
 
     def extract(self, document: str) -> list[CompiledRule]:
+        """Extract built-in policy-rule forms from ``document``."""
         if not document or not document.strip():
             return []
         rules: list[CompiledRule] = []
@@ -132,8 +134,10 @@ class RegexRuleExtractor:
 
 
 def _dedup(rules: Iterable[CompiledRule]) -> list[CompiledRule]:
-    """Deduplicate by ID while preserving insertion order — the same
-    phrase occurring twice in a document should yield one rule."""
+    """Deduplicate by ID while preserving insertion order.
+
+    The same phrase occurring twice in a document should yield one rule.
+    """
     seen: set[str] = set()
     out: list[CompiledRule] = []
     for r in rules:

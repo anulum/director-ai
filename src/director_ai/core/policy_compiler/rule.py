@@ -6,9 +6,11 @@
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI — compiled rule data model
 
-"""Compiled-rule dataclass shared by the extractor, compiler, and
-registry. Kept in its own module so both :mod:`extractor` and
-:mod:`compiler` can import it without a circular dependency."""
+"""Share compiled-rule data between extractor, compiler, and registry.
+
+The dataclass lives in this small module so :mod:`extractor` and
+:mod:`compiler` can import it without creating a circular dependency.
+"""
 
 from __future__ import annotations
 
@@ -65,6 +67,7 @@ class CompiledRule:
     source: str = ""
 
     def __post_init__(self) -> None:
+        """Validate rule kind, action, threshold, and identifiers."""
         if self.kind not in _VALID_KINDS:
             raise ValueError(
                 f"CompiledRule.kind must be one of {sorted(_VALID_KINDS)}; "

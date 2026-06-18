@@ -6,8 +6,7 @@
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI — policy compiler package
 
-"""Compile free-text compliance documents into :class:`Policy`
-modules the rest of the stack can enforce.
+"""Compile free-text compliance documents into enforceable policies.
 
 Four pieces:
 
@@ -28,9 +27,10 @@ Four pieces:
   enabled.
 """
 
-from .compiler import CompiledRule, PolicyBundle, PolicyCompiler
+from .compiler import PolicyBundle, PolicyCompiler
 from .extractor import RegexRuleExtractor, RuleExtractor
 from .registry import PolicyRegistry
+from .rule import CompiledRule
 
 __all__ = [
     "CompiledRule",

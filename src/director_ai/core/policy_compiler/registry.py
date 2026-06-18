@@ -65,9 +65,11 @@ class PolicyRegistry:
             self._bundles[name] = bundle
 
     def active(self, name: str) -> PolicyBundle | None:
-        """Return the currently active bundle for ``name``, or
-        ``None`` when nothing has been registered yet. Cheap — a
-        single dict lookup under the lock."""
+        """Return the currently active bundle for ``name``.
+
+        Returns ``None`` when nothing has been registered yet. The lookup is a
+        single dictionary read under the registry lock.
+        """
         with self._lock:
             return self._bundles.get(name)
 
@@ -77,8 +79,10 @@ class PolicyRegistry:
             return tuple(self._bundles.keys())
 
     def unregister(self, name: str) -> bool:
-        """Remove ``name`` from the registry. Returns ``True`` when
-        a bundle was removed, ``False`` when the name was not
-        registered."""
+        """Remove ``name`` from the registry.
+
+        Returns ``True`` when a bundle was removed and ``False`` when the name
+        was not registered.
+        """
         with self._lock:
             return self._bundles.pop(name, None) is not None
