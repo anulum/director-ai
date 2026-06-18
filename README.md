@@ -221,7 +221,7 @@ inventory below is reference for the deeper surface, navigable under
 | API documentation pages | 89 |
 | Rust PyO3 bindings | 83 |
 | Optional extras | 58 |
-| Python test files | 526 |
+| Python test files | 527 |
 | Public documentation pages | 202 |
 | GitHub Actions workflows | 12 |
 

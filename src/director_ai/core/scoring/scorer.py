@@ -1354,7 +1354,19 @@ class CoherenceScorer:
                 _inner_agg=fact_ia,
                 _outer_agg=fact_oa,
             )
-            h_logic = future_logic.result()
+            try:
+                h_logic = future_logic.result()
+            except Exception:
+                if not future_fact.cancel():
+                    try:
+                        future_fact.result()
+                    except Exception:
+                        self.logger.debug(
+                            "Suppressed factual-divergence future exception "
+                            "after logical-divergence failure.",
+                            exc_info=True,
+                        )
+                raise
             h_fact, evidence = future_fact.result()
         total_divergence = self.W_LOGIC * h_logic + self.W_FACT * h_fact
         coherence = 1.0 - total_divergence
