@@ -26,7 +26,8 @@ from __future__ import annotations
 
 import json
 import logging
-from typing import TYPE_CHECKING
+from collections.abc import Awaitable, Callable
+from typing import TYPE_CHECKING, Any
 
 from director_ai.core import CoherenceScorer, GroundTruthStore
 
@@ -66,7 +67,7 @@ class DirectorGuard:
 
     def __init__(
         self,
-        app,
+        app: Any,
         *,
         threshold: float = 0.6,
         facts: dict[str, str] | None = None,
@@ -76,7 +77,7 @@ class DirectorGuard:
         on_fail: str = "warn",
         injection_detection: bool = False,
         injection_threshold: float = 0.7,
-    ):
+    ) -> None:
         if on_fail not in ("warn", "reject"):
             raise ValueError(f"on_fail must be 'warn' or 'reject', got {on_fail!r}")
         self.app = app
@@ -97,7 +98,13 @@ class DirectorGuard:
             use_nli=use_nli,
         )
 
-    async def __call__(self, scope, receive, send):
+    async def __call__(
+        self,
+        scope: dict[str, Any],
+        receive: Callable[[], Awaitable[dict[str, Any]]],
+        send: Callable[[dict[str, Any]], Awaitable[None]],
+    ) -> None:
+        """Gate POST responses on guarded paths, passing other traffic through."""
         if scope["type"] != "http":
             await self.app(scope, receive, send)
             return
@@ -123,7 +130,7 @@ class DirectorGuard:
         request_body = b"".join(request_chunks)
         body_sent = False
 
-        async def replay_receive():
+        async def replay_receive() -> dict[str, Any]:
             """Replay the buffered request body to the downstream ASGI app."""
             nonlocal body_sent
             if not body_sent:
@@ -137,10 +144,10 @@ class DirectorGuard:
 
         # Buffer response
         response_status = 200
-        response_headers_raw: list = []
+        response_headers_raw: list[Any] = []
         response_body = bytearray()
 
-        async def buffered_send(message):
+        async def buffered_send(message: dict[str, Any]) -> None:
             """Capture downstream response events for guard scoring."""
             nonlocal response_status, response_headers_raw
             if message["type"] == "http.response.start":

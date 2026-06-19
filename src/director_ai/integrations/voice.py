@@ -29,6 +29,7 @@ from __future__ import annotations
 
 import threading
 from collections import deque
+from collections.abc import Iterable
 from dataclasses import dataclass
 
 from director_ai.core.retrieval.knowledge import GroundTruthStore
@@ -75,18 +76,18 @@ class VoiceGuard:
 
     def __init__(
         self,
-        facts=None,
-        store=None,
-        threshold=0.3,
-        score_every=4,
-        hard_limit=0.25,
-        window_size=8,
-        soft_halt=True,
-        recovery="I need to verify that information. One moment.",
-        use_nli=True,
-        prompt="",
-        max_context_tokens=4096,
-    ):
+        facts: dict[str, str] | None = None,
+        store: GroundTruthStore | None = None,
+        threshold: float = 0.3,
+        score_every: int = 4,
+        hard_limit: float = 0.25,
+        window_size: int = 8,
+        soft_halt: bool = True,
+        recovery: str = "I need to verify that information. One moment.",
+        use_nli: bool = True,
+        prompt: str = "",
+        max_context_tokens: int = 4096,
+    ) -> None:
         if max_context_tokens <= 0:
             raise ValueError("max_context_tokens must be positive")
         if store is not None:
@@ -120,10 +121,12 @@ class VoiceGuard:
 
     @property
     def accumulated_text(self) -> str:
+        """Return the text accumulated across fed tokens so far."""
         return "".join(self._tokens)
 
     @property
     def halted(self) -> bool:
+        """Return whether the session has halted on a coherence failure."""
         return self._halted
 
     def set_prompt(self, prompt: str) -> None:
@@ -244,7 +247,7 @@ class VoiceGuard:
             coherence=score,
         )
 
-    def feed_all(self, tokens) -> list[VoiceToken]:
+    def feed_all(self, tokens: Iterable[str]) -> list[VoiceToken]:
         """Feed multiple tokens, return results. Stops after halt."""
         results = []
         for token in tokens:

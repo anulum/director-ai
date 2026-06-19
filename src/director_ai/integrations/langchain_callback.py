@@ -85,7 +85,7 @@ class CoherenceCallbackHandler(BaseCallbackHandler):
         )
         self.raise_on_failure = raise_on_failure
         self.last_score: CoherenceScore | None = None
-        self.scores: list = []
+        self.scores: list[CoherenceScore] = []
         self._current_prompt: str = ""
 
     def on_llm_start(

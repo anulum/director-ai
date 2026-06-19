@@ -34,6 +34,7 @@ Wiring (vLLM)::
 from __future__ import annotations
 
 from collections.abc import Callable, MutableSequence, Sequence
+from typing import Any
 
 from director_ai.core.runtime.streaming_gate import ends_claim
 from director_ai.core.safety_event import SafetyEvent
@@ -147,7 +148,7 @@ def build_vllm_logits_processor(
     hook: InferenceServerHook,
     decode_fn: DecodeFn,
     eos_token_id: int,
-    **kwargs,
+    **kwargs: Any,
 ) -> LogitsHaltProcessor:
     """Build a vLLM ``logits_processors`` entry from a ``"vllm"`` hook."""
     _require_server(hook, "vllm")
@@ -158,7 +159,7 @@ def build_tgi_logits_processor(
     hook: InferenceServerHook,
     decode_fn: DecodeFn,
     eos_token_id: int,
-    **kwargs,
+    **kwargs: Any,
 ) -> LogitsHaltProcessor:
     """Build a TGI / Hugging Face ``LogitsProcessor`` from a ``"tgi"`` hook."""
     _require_server(hook, "tgi")
@@ -169,7 +170,7 @@ def build_llama_cpp_logits_processor(
     hook: InferenceServerHook,
     decode_fn: DecodeFn,
     eos_token_id: int,
-    **kwargs,
+    **kwargs: Any,
 ) -> LogitsHaltProcessor:
     """Build a llama-cpp-python ``logits_processor`` from a ``"llama_cpp"`` hook."""
     _require_server(hook, "llama_cpp")

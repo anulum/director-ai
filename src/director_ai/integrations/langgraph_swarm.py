@@ -61,7 +61,7 @@ def guardian_edge(
     to_agent: str,
     context_key: str = "context",
     message_key: str = "messages",
-) -> Callable:
+) -> Callable[..., Any]:
     """Create a LangGraph conditional edge function.
 
     Returns a function suitable for ``graph.add_conditional_edges()``.

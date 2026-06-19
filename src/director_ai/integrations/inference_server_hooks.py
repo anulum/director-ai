@@ -50,6 +50,7 @@ class InferenceHookRequest:
     metadata: Mapping[str, str] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
+        """Validate the configured inference server name."""
         _validate_server(self.server)
         if self.token_id is not None and self.token_id < 0:
             raise ValueError("token_id must be non-negative")
@@ -77,6 +78,7 @@ class InferenceServerHookPolicy:
     tenant_safe_explanation: str = "Candidate token rejected before sampling."
 
     def __post_init__(self) -> None:
+        """Validate the hard-limit and decode-interval bounds."""
         if not math.isfinite(self.hard_limit):
             raise ValueError("hard_limit must be finite")
         if self.hard_limit < 0.0 or self.hard_limit > 1.0:

@@ -19,6 +19,7 @@ import asyncio
 import inspect
 import json
 import logging
+from collections.abc import AsyncIterator, Iterator
 from contextvars import ContextVar, copy_context
 from typing import Any, cast
 
@@ -216,8 +217,8 @@ def guard(
     return client
 
 
-def _has_openai_shape(client) -> bool:
-    """True if client exposes ``client.chat.completions.create`` callable."""
+def _has_openai_shape(client: Any) -> bool:
+    """Return True if client exposes ``client.chat.completions.create`` callable."""
     chat = getattr(client, "chat", None)
     if chat is None:
         return False
@@ -227,8 +228,8 @@ def _has_openai_shape(client) -> bool:
     return callable(getattr(completions, "create", None))
 
 
-def _has_anthropic_shape(client) -> bool:
-    """True if client exposes ``client.messages.create`` without ``client.chat``."""
+def _has_anthropic_shape(client: Any) -> bool:
+    """Return True if client exposes ``client.messages.create`` without ``client.chat``."""
     if getattr(client, "chat", None) is not None:
         return False
     messages = getattr(client, "messages", None)
@@ -237,7 +238,7 @@ def _has_anthropic_shape(client) -> bool:
     return callable(getattr(messages, "create", None))
 
 
-def _extract_prompt(messages: list[dict]) -> str:
+def _extract_prompt(messages: list[dict[str, Any]]) -> str:
     """Pull the user prompt from a messages array."""
     for msg in reversed(messages):
         if msg.get("role") == "user":
@@ -252,7 +253,9 @@ def _extract_prompt(messages: list[dict]) -> str:
     return " ".join(str(m.get("content", "")) for m in messages)
 
 
-def _handle_failure(on_fail, query, response_text, score):
+def _handle_failure(
+    on_fail: str, query: str, response_text: str, score: Any
+) -> None:
     """Apply the configured hallucination failure policy."""
     if on_fail == "raise":
         raise HallucinationError(query, response_text, score)
@@ -266,7 +269,9 @@ def _handle_failure(on_fail, query, response_text, score):
         _score_var.set(score)
 
 
-def _handle_injection_failure(on_fail, query, response_text, score):
+def _handle_injection_failure(
+    on_fail: str, query: str, response_text: str, score: Any
+) -> None:
     """Handle a detected injection — mirrors _handle_failure semantics."""
     if on_fail == "raise":
         raise InjectionDetectedError(query, response_text, score)
@@ -281,7 +286,13 @@ def _handle_injection_failure(on_fail, query, response_text, score):
         _score_var.set(score)
 
 
-def _check_injection(on_fail, query, response_text, cs, injection_threshold):
+def _check_injection(
+    on_fail: str,
+    query: str,
+    response_text: str,
+    cs: Any,
+    injection_threshold: float | None,
+) -> None:
     """Check injection risk on a scored response and handle failure."""
     if injection_threshold is None:
         return
@@ -290,8 +301,15 @@ def _check_injection(on_fail, query, response_text, cs, injection_threshold):
         _handle_injection_failure(on_fail, query, response_text, cs)
 
 
-def _score_and_gate(scorer, on_fail, query, response_text, *, injection_threshold=None):
-    """Synchronously score a response and enforce hallucination/injection gates."""
+def _score_and_gate(
+    scorer: Any,
+    on_fail: str,
+    query: str,
+    response_text: str,
+    *,
+    injection_threshold: float | None = None,
+) -> Any:
+    """Score a response synchronously and enforce hallucination/injection gates."""
     result = scorer.review(query, response_text)
     if asyncio.iscoroutine(result):
         try:
@@ -317,8 +335,13 @@ def _score_and_gate(scorer, on_fail, query, response_text, *, injection_threshol
 
 
 async def _ascore_and_gate(
-    scorer, on_fail, query, response_text, *, injection_threshold=None
-):
+    scorer: Any,
+    on_fail: str,
+    query: str,
+    response_text: str,
+    *,
+    injection_threshold: float | None = None,
+) -> Any:
     """Asynchronously score a response and enforce hallucination/injection gates."""
     result = scorer.review(query, response_text)
     if asyncio.iscoroutine(result):
@@ -345,7 +368,14 @@ class _OpenAICompletionsProxy:
     re-assigning a method on an existing class definition.
     """
 
-    def __init__(self, original, scorer, on_fail, *, injection_threshold=None):
+    def __init__(
+        self,
+        original: Any,
+        scorer: Any,
+        on_fail: str,
+        *,
+        injection_threshold: float | None = None,
+    ) -> None:
         self._original = original
         self._scorer = scorer
         self._on_fail = on_fail
@@ -356,7 +386,7 @@ class _OpenAICompletionsProxy:
             else self._sync_create
         )
 
-    def _sync_create(self, **kwargs):
+    def _sync_create(self, **kwargs: Any) -> Any:
         """Create a guarded synchronous chat completion."""
         prompt = _extract_prompt(kwargs.get("messages", []))
         streaming = kwargs.get("stream", False)
@@ -381,13 +411,15 @@ class _OpenAICompletionsProxy:
         )
         return response
 
-    async def _acreate_entry(self, **kwargs):
+    async def _acreate_entry(self, **kwargs: Any) -> Any:
         """Create a guarded asynchronous chat completion."""
         prompt = _extract_prompt(kwargs.get("messages", []))
         streaming = kwargs.get("stream", False)
         return await self._acreate(prompt, streaming, kwargs)
 
-    async def _acreate(self, prompt, streaming, kwargs):
+    async def _acreate(
+        self, prompt: str, streaming: bool, kwargs: dict[str, Any]
+    ) -> Any:
         """Await the original chat-completion call and gate the response."""
         response = await self._original.create(**kwargs)
         if streaming:
@@ -408,11 +440,11 @@ class _OpenAICompletionsProxy:
         )
         return response
 
-    def __getattr__(self, name):
+    def __getattr__(self, name: str) -> Any:
         return getattr(self._original, name)
 
 
-def _openai_response_text(response) -> str:
+def _openai_response_text(response: Any) -> str:
     """Extract assistant text from a chat completion response."""
     choices = getattr(response, "choices", None)
     if not choices:
@@ -422,7 +454,7 @@ def _openai_response_text(response) -> str:
     return content if isinstance(content, str) else ""
 
 
-def _extract_stream_delta(chunk) -> str | None:
+def _extract_stream_delta(chunk: Any) -> str | None:
     """Extract text delta content from a streaming chat chunk."""
     choices = getattr(chunk, "choices", None)
     if not choices:
@@ -435,16 +467,24 @@ def _extract_stream_delta(chunk) -> str | None:
 class _GuardedOpenAIStream:
     """Wraps an OpenAI stream with periodic coherence checks."""
 
-    def __init__(self, stream, scorer, on_fail, prompt, *, injection_threshold=None):
+    def __init__(
+        self,
+        stream: Any,
+        scorer: Any,
+        on_fail: str,
+        prompt: str,
+        *,
+        injection_threshold: float | None = None,
+    ) -> None:
         self._stream = stream
         self._scorer = scorer
         self._on_fail = on_fail
         self._prompt = prompt
-        self._buffer = []
+        self._buffer: list[str] = []
         self._token_count = 0
         self._injection_threshold = injection_threshold
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[Any]:
         for chunk in self._stream:
             delta = _extract_stream_delta(chunk)
             if delta:
@@ -455,10 +495,10 @@ class _GuardedOpenAIStream:
             yield chunk
         self._final_check()
 
-    def __aiter__(self):
+    def __aiter__(self) -> AsyncIterator[Any]:
         return self._aiter_impl()
 
-    async def _aiter_impl(self):
+    async def _aiter_impl(self) -> AsyncIterator[Any]:
         """Iterate an async chat stream while buffering emitted text."""
         async for chunk in self._stream:
             delta = _extract_stream_delta(chunk)
@@ -470,12 +510,12 @@ class _GuardedOpenAIStream:
             yield chunk
         await self._afinal_check()
 
-    async def _aperiodic_check(self):
+    async def _aperiodic_check(self) -> None:
         """Run an asynchronous periodic score check for buffered text."""
         text = "".join(self._buffer)
         await _ascore_and_gate(self._scorer, self._on_fail, self._prompt, text)
 
-    async def _afinal_check(self):
+    async def _afinal_check(self) -> None:
         """Run the final asynchronous score check for buffered text."""
         text = "".join(self._buffer)
         if text:
@@ -487,14 +527,14 @@ class _GuardedOpenAIStream:
                 injection_threshold=self._injection_threshold,
             )
 
-    def _periodic_check(self):
+    def _periodic_check(self) -> None:
         """Run a synchronous periodic score check for buffered text."""
         text = "".join(self._buffer)
         approved, cs = self._scorer.review(self._prompt, text)
         if not approved:
             _handle_failure(self._on_fail, self._prompt, text, cs)
 
-    def _final_check(self):
+    def _final_check(self) -> None:
         """Run the final synchronous score check for buffered text."""
         text = "".join(self._buffer)
         if text:
@@ -517,7 +557,14 @@ class _AnthropicMessagesProxy:
     :class:`_OpenAICompletionsProxy`.
     """
 
-    def __init__(self, original, scorer, on_fail, *, injection_threshold=None):
+    def __init__(
+        self,
+        original: Any,
+        scorer: Any,
+        on_fail: str,
+        *,
+        injection_threshold: float | None = None,
+    ) -> None:
         self._original = original
         self._scorer = scorer
         self._on_fail = on_fail
@@ -528,7 +575,7 @@ class _AnthropicMessagesProxy:
             else self._sync_create
         )
 
-    def _sync_create(self, **kwargs):
+    def _sync_create(self, **kwargs: Any) -> Any:
         """Create a guarded synchronous vendor message."""
         prompt = _extract_prompt(kwargs.get("messages", []))
         streaming = kwargs.get("stream", False)
@@ -553,13 +600,15 @@ class _AnthropicMessagesProxy:
         )
         return response
 
-    async def _acreate_entry(self, **kwargs):
+    async def _acreate_entry(self, **kwargs: Any) -> Any:
         """Create a guarded asynchronous vendor message."""
         prompt = _extract_prompt(kwargs.get("messages", []))
         streaming = kwargs.get("stream", False)
         return await self._acreate(prompt, streaming, kwargs)
 
-    async def _acreate(self, prompt, streaming, kwargs):
+    async def _acreate(
+        self, prompt: str, streaming: bool, kwargs: dict[str, Any]
+    ) -> Any:
         """Await the original vendor-message call and gate the response."""
         response = await self._original.create(**kwargs)
         if streaming:
@@ -580,11 +629,11 @@ class _AnthropicMessagesProxy:
         )
         return response
 
-    def __getattr__(self, name):
+    def __getattr__(self, name: str) -> Any:
         return getattr(self._original, name)
 
 
-def _anthropic_response_text(response) -> str:
+def _anthropic_response_text(response: Any) -> str:
     """Extract text from a vendor message response."""
     content = getattr(response, "content", None)
     if not content:
@@ -593,7 +642,7 @@ def _anthropic_response_text(response) -> str:
     return text if isinstance(text, str) else ""
 
 
-def _extract_anthropic_event_text(event) -> str | None:
+def _extract_anthropic_event_text(event: Any) -> str | None:
     """Extract text content from a vendor stream event."""
     text = getattr(event, "text", None)
     if text:
@@ -608,16 +657,24 @@ def _extract_anthropic_event_text(event) -> str | None:
 class _GuardedAnthropicStream:
     """Wraps an Anthropic stream with periodic coherence checks."""
 
-    def __init__(self, stream, scorer, on_fail, prompt, *, injection_threshold=None):
+    def __init__(
+        self,
+        stream: Any,
+        scorer: Any,
+        on_fail: str,
+        prompt: str,
+        *,
+        injection_threshold: float | None = None,
+    ) -> None:
         self._stream = stream
         self._scorer = scorer
         self._on_fail = on_fail
         self._prompt = prompt
-        self._buffer = []
+        self._buffer: list[str] = []
         self._token_count = 0
         self._injection_threshold = injection_threshold
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[Any]:
         for event in self._stream:
             text = _extract_anthropic_event_text(event)
             if text:
@@ -628,10 +685,10 @@ class _GuardedAnthropicStream:
             yield event
         self._final_check()
 
-    def __aiter__(self):
+    def __aiter__(self) -> AsyncIterator[Any]:
         return self._aiter_impl()
 
-    async def _aiter_impl(self):
+    async def _aiter_impl(self) -> AsyncIterator[Any]:
         """Iterate an async vendor stream while buffering emitted text."""
         async for event in self._stream:
             text = _extract_anthropic_event_text(event)
@@ -643,12 +700,12 @@ class _GuardedAnthropicStream:
             yield event
         await self._afinal_check()
 
-    async def _aperiodic_check(self):
+    async def _aperiodic_check(self) -> None:
         """Run an asynchronous periodic score check for buffered text."""
         text = "".join(self._buffer)
         await _ascore_and_gate(self._scorer, self._on_fail, self._prompt, text)
 
-    async def _afinal_check(self):
+    async def _afinal_check(self) -> None:
         """Run the final asynchronous score check for buffered text."""
         text = "".join(self._buffer)
         if text:
@@ -660,14 +717,14 @@ class _GuardedAnthropicStream:
                 injection_threshold=self._injection_threshold,
             )
 
-    def _periodic_check(self):
+    def _periodic_check(self) -> None:
         """Run a synchronous periodic score check for buffered text."""
         text = "".join(self._buffer)
         approved, cs = self._scorer.review(self._prompt, text)
         if not approved:
             _handle_failure(self._on_fail, self._prompt, text, cs)
 
-    def _final_check(self):
+    def _final_check(self) -> None:
         """Run the final synchronous score check for buffered text."""
         text = "".join(self._buffer)
         if text:
@@ -683,14 +740,14 @@ class _GuardedAnthropicStream:
 # â”€â”€ Bedrock proxy â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
-def _has_bedrock_shape(client) -> bool:
-    """True if client exposes ``converse()`` and ``invoke_model()`` (boto3 Bedrock)."""
+def _has_bedrock_shape(client: Any) -> bool:
+    """Return True if client exposes ``converse()`` and ``invoke_model()`` (boto3 Bedrock)."""
     return callable(getattr(client, "converse", None)) and callable(
         getattr(client, "invoke_model", None),
     )
 
 
-def _bedrock_response_text(response: dict) -> str:
+def _bedrock_response_text(response: dict[str, Any]) -> str:
     """Extract text from Bedrock Converse API response."""
     output = response.get("output") if isinstance(response, dict) else None
     message = output.get("message") if isinstance(output, dict) else None
@@ -701,7 +758,7 @@ def _bedrock_response_text(response: dict) -> str:
     return text if isinstance(text, str) else ""
 
 
-def _extract_bedrock_prompt(messages: list[dict]) -> str:
+def _extract_bedrock_prompt(messages: list[dict[str, Any]]) -> str:
     """Extract the user prompt from Bedrock Converse messages."""
     for msg in reversed(messages):
         if msg.get("role") == "user":
@@ -715,7 +772,7 @@ def _extract_bedrock_prompt(messages: list[dict]) -> str:
     return ""
 
 
-def _extract_bedrock_stream_delta(event: dict) -> str | None:
+def _extract_bedrock_stream_delta(event: dict[str, Any]) -> str | None:
     """Extract text delta content from a Bedrock stream event."""
     block = event.get("contentBlockDelta") if isinstance(event, dict) else None
     delta = block.get("delta") if isinstance(block, dict) else None
@@ -726,13 +783,20 @@ def _extract_bedrock_stream_delta(event: dict) -> str | None:
 class _BedrockProxy:
     """Wraps a boto3 Bedrock Runtime client with coherence scoring."""
 
-    def __init__(self, client, scorer, on_fail, *, injection_threshold=None):
+    def __init__(
+        self,
+        client: Any,
+        scorer: Any,
+        on_fail: str,
+        *,
+        injection_threshold: float | None = None,
+    ) -> None:
         self._client = client
         self._scorer = scorer
         self._on_fail = on_fail
         self._injection_threshold = injection_threshold
 
-    def converse(self, **kwargs):
+    def converse(self, **kwargs: Any) -> Any:
         """Call Bedrock Converse and gate the returned message."""
         prompt = _extract_bedrock_prompt(kwargs.get("messages", []))
         response = self._client.converse(**kwargs)
@@ -746,7 +810,7 @@ class _BedrockProxy:
         )
         return response
 
-    def converse_stream(self, **kwargs):
+    def converse_stream(self, **kwargs: Any) -> Any:
         """Call Bedrock Converse streaming and wrap emitted events."""
         prompt = _extract_bedrock_prompt(kwargs.get("messages", []))
         response = self._client.converse_stream(**kwargs)
@@ -758,14 +822,22 @@ class _BedrockProxy:
             injection_threshold=self._injection_threshold,
         )
 
-    def __getattr__(self, name):
+    def __getattr__(self, name: str) -> Any:
         return getattr(self._client, name)
 
 
 class _GuardedBedrockStream:
     """Wraps Bedrock converse_stream with periodic coherence checks."""
 
-    def __init__(self, response, scorer, on_fail, prompt, *, injection_threshold=None):
+    def __init__(
+        self,
+        response: Any,
+        scorer: Any,
+        on_fail: str,
+        prompt: str,
+        *,
+        injection_threshold: float | None = None,
+    ) -> None:
         self._response = response
         self._scorer = scorer
         self._on_fail = on_fail
@@ -774,7 +846,7 @@ class _GuardedBedrockStream:
         self._token_count = 0
         self._injection_threshold = injection_threshold
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[Any]:
         stream = self._response.get("stream", self._response)
         for event in stream:
             delta = _extract_bedrock_stream_delta(event)
@@ -786,10 +858,10 @@ class _GuardedBedrockStream:
             yield event
         self._final_check()
 
-    def __aiter__(self):
+    def __aiter__(self) -> AsyncIterator[Any]:
         return self._aiter_impl()
 
-    async def _aiter_impl(self):
+    async def _aiter_impl(self) -> AsyncIterator[Any]:
         """Iterate an async Bedrock stream while buffering emitted text."""
         stream = self._response.get("stream", self._response)
         async for event in stream:
@@ -815,14 +887,14 @@ class _GuardedBedrockStream:
                 injection_threshold=self._injection_threshold,
             )
 
-    def _periodic_check(self):
+    def _periodic_check(self) -> None:
         """Run a synchronous periodic score check for buffered text."""
         text = "".join(self._buffer)
         approved, cs = self._scorer.review(self._prompt, text)
         if not approved:
             _handle_failure(self._on_fail, self._prompt, text, cs)
 
-    def _final_check(self):
+    def _final_check(self) -> None:
         """Run the final synchronous score check for buffered text."""
         text = "".join(self._buffer)
         if text:
@@ -838,12 +910,12 @@ class _GuardedBedrockStream:
 # Generate-content proxy
 
 
-def _has_gemini_shape(client) -> bool:
-    """True if client exposes ``generate_content()`` (google-generativeai)."""
+def _has_gemini_shape(client: Any) -> bool:
+    """Return True if client exposes ``generate_content()`` (google-generativeai)."""
     return callable(getattr(client, "generate_content", None))
 
 
-def _extract_gemini_prompt(args: tuple, kwargs: dict) -> str:
+def _extract_gemini_prompt(args: tuple[Any, ...], kwargs: dict[str, Any]) -> str:
     """Extract prompt text from generate_content inputs."""
     contents = args[0] if args else kwargs.get("contents", "")
     if isinstance(contents, str):
@@ -865,13 +937,20 @@ def _extract_gemini_prompt(args: tuple, kwargs: dict) -> str:
 class _GeminiProxy:
     """Wraps a google.generativeai GenerativeModel with coherence scoring."""
 
-    def __init__(self, client, scorer, on_fail, *, injection_threshold=None):
+    def __init__(
+        self,
+        client: Any,
+        scorer: Any,
+        on_fail: str,
+        *,
+        injection_threshold: float | None = None,
+    ) -> None:
         self._client = client
         self._scorer = scorer
         self._on_fail = on_fail
         self._injection_threshold = injection_threshold
 
-    def generate_content(self, *args, **kwargs):
+    def generate_content(self, *args: Any, **kwargs: Any) -> Any:
         """Call generate_content and gate the response or stream."""
         prompt = _extract_gemini_prompt(args, kwargs)
         streaming = kwargs.get("stream", False)
@@ -894,14 +973,22 @@ class _GeminiProxy:
         )
         return response
 
-    def __getattr__(self, name):
+    def __getattr__(self, name: str) -> Any:
         return getattr(self._client, name)
 
 
 class _GuardedGeminiStream:
     """Wraps a Gemini streaming response with periodic coherence checks."""
 
-    def __init__(self, stream, scorer, on_fail, prompt, *, injection_threshold=None):
+    def __init__(
+        self,
+        stream: Any,
+        scorer: Any,
+        on_fail: str,
+        prompt: str,
+        *,
+        injection_threshold: float | None = None,
+    ) -> None:
         self._stream = stream
         self._scorer = scorer
         self._on_fail = on_fail
@@ -910,7 +997,7 @@ class _GuardedGeminiStream:
         self._token_count = 0
         self._injection_threshold = injection_threshold
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[Any]:
         for chunk in self._stream:
             text = getattr(chunk, "text", None)
             if text:
@@ -921,10 +1008,10 @@ class _GuardedGeminiStream:
             yield chunk
         self._final_check()
 
-    def __aiter__(self):
+    def __aiter__(self) -> AsyncIterator[Any]:
         return self._aiter_impl()
 
-    async def _aiter_impl(self):
+    async def _aiter_impl(self) -> AsyncIterator[Any]:
         """Iterate an async generate_content stream while buffering text."""
         async for chunk in self._stream:
             text = getattr(chunk, "text", None)
@@ -949,14 +1036,14 @@ class _GuardedGeminiStream:
                 injection_threshold=self._injection_threshold,
             )
 
-    def _periodic_check(self):
+    def _periodic_check(self) -> None:
         """Run a synchronous periodic score check for buffered text."""
         text = "".join(self._buffer)
         approved, cs = self._scorer.review(self._prompt, text)
         if not approved:
             _handle_failure(self._on_fail, self._prompt, text, cs)
 
-    def _final_check(self):
+    def _final_check(self) -> None:
         """Run the final synchronous score check for buffered text."""
         text = "".join(self._buffer)
         if text:
@@ -972,8 +1059,8 @@ class _GuardedGeminiStream:
 # Mistral proxy
 
 
-def _has_mistral_shape(client) -> bool:
-    """True if client exposes ``client.chat.complete()`` (mistralai SDK)."""
+def _has_mistral_shape(client: Any) -> bool:
+    """Return True if client exposes ``client.chat.complete()`` (mistralai SDK)."""
     if _has_openai_shape(client):
         return False
     chat = getattr(client, "chat", None)
@@ -983,7 +1070,14 @@ def _has_mistral_shape(client) -> bool:
 class _MistralChatProxy:
     """Drop-in for ``client.chat`` in the Mistral Python SDK."""
 
-    def __init__(self, original, scorer, on_fail, *, injection_threshold=None):
+    def __init__(
+        self,
+        original: Any,
+        scorer: Any,
+        on_fail: str,
+        *,
+        injection_threshold: float | None = None,
+    ) -> None:
         self._original = original
         self._scorer = scorer
         self._on_fail = on_fail
@@ -994,7 +1088,7 @@ class _MistralChatProxy:
             else self._sync_complete
         )
 
-    def _sync_complete(self, **kwargs):
+    def _sync_complete(self, **kwargs: Any) -> Any:
         """Call a synchronous Mistral chat completion and gate it."""
         prompt = _extract_prompt(kwargs.get("messages", []))
         response = self._original.complete(**kwargs)
@@ -1008,7 +1102,7 @@ class _MistralChatProxy:
         )
         return response
 
-    async def _acomplete_entry(self, **kwargs):
+    async def _acomplete_entry(self, **kwargs: Any) -> Any:
         """Call an asynchronous Mistral chat completion and gate it."""
         prompt = _extract_prompt(kwargs.get("messages", []))
         response = await self._original.complete(**kwargs)
@@ -1022,11 +1116,11 @@ class _MistralChatProxy:
         )
         return response
 
-    def __getattr__(self, name):
+    def __getattr__(self, name: str) -> Any:
         return getattr(self._original, name)
 
 
-def _mistral_response_text(response) -> str:
+def _mistral_response_text(response: Any) -> str:
     """Extract assistant text from a Mistral chat completion response."""
     choices = getattr(response, "choices", None)
     if not choices:
@@ -1053,8 +1147,8 @@ def _mistral_response_text(response) -> str:
 # Pydantic AI proxy
 
 
-def _has_pydantic_ai_shape(client) -> bool:
-    """True for Pydantic AI ``Agent`` instances with run APIs."""
+def _has_pydantic_ai_shape(client: Any) -> bool:
+    """Return True for Pydantic AI ``Agent`` instances with run APIs."""
     module = type(client).__module__
     if not module.startswith("pydantic_ai"):
         return False
@@ -1066,13 +1160,20 @@ def _has_pydantic_ai_shape(client) -> bool:
 class _PydanticAIProxy:
     """Guard Pydantic AI ``Agent.run_sync`` and ``Agent.run`` outputs."""
 
-    def __init__(self, agent, scorer, on_fail, *, injection_threshold=None):
+    def __init__(
+        self,
+        agent: Any,
+        scorer: Any,
+        on_fail: str,
+        *,
+        injection_threshold: float | None = None,
+    ) -> None:
         self._agent = agent
         self._scorer = scorer
         self._on_fail = on_fail
         self._injection_threshold = injection_threshold
 
-    def run_sync(self, *args, **kwargs):
+    def run_sync(self, *args: Any, **kwargs: Any) -> Any:
         """Run a synchronous Pydantic AI agent call and gate its output."""
         prompt = _extract_pydantic_ai_prompt(args, kwargs)
         result = self._agent.run_sync(*args, **kwargs)
@@ -1086,7 +1187,7 @@ class _PydanticAIProxy:
         )
         return result
 
-    async def run(self, *args, **kwargs):
+    async def run(self, *args: Any, **kwargs: Any) -> Any:
         """Run an asynchronous Pydantic AI agent call and gate its output."""
         prompt = _extract_pydantic_ai_prompt(args, kwargs)
         result = await self._agent.run(*args, **kwargs)
@@ -1100,11 +1201,11 @@ class _PydanticAIProxy:
         )
         return result
 
-    def __getattr__(self, name):
+    def __getattr__(self, name: str) -> Any:
         return getattr(self._agent, name)
 
 
-def _extract_pydantic_ai_prompt(args, kwargs) -> str:
+def _extract_pydantic_ai_prompt(args: tuple[Any, ...], kwargs: dict[str, Any]) -> str:
     """Extract prompt text from Pydantic AI run arguments."""
     prompt = kwargs.get("user_prompt")
     if prompt is None and args:
@@ -1118,7 +1219,7 @@ def _extract_pydantic_ai_prompt(args, kwargs) -> str:
     return str(prompt)
 
 
-def _pydantic_ai_content_text(content) -> str:
+def _pydantic_ai_content_text(content: Any) -> str:
     """Return text for one Pydantic AI prompt content part."""
     if isinstance(content, str):
         return content
@@ -1128,7 +1229,7 @@ def _pydantic_ai_content_text(content) -> str:
     return str(content)
 
 
-def _pydantic_ai_output_text(result) -> str:
+def _pydantic_ai_output_text(result: Any) -> str:
     """Serialise Pydantic AI run output for guard scoring."""
     output = getattr(result, "output", result)
     if isinstance(output, str):
@@ -1146,8 +1247,8 @@ def _pydantic_ai_output_text(result) -> str:
 # Cohere proxy
 
 
-def _has_cohere_shape(client) -> bool:
-    """True if client exposes ``chat()`` without OpenAI-compatible shape (Cohere v2)."""
+def _has_cohere_shape(client: Any) -> bool:
+    """Return True if client exposes ``chat()`` without OpenAI-compatible shape (Cohere v2)."""
     if _has_openai_shape(client):
         return False
     return callable(getattr(client, "chat", None)) and not callable(
@@ -1158,13 +1259,20 @@ def _has_cohere_shape(client) -> bool:
 class _CohereProxy:
     """Wraps a Cohere client with coherence scoring."""
 
-    def __init__(self, client, scorer, on_fail, *, injection_threshold=None):
+    def __init__(
+        self,
+        client: Any,
+        scorer: Any,
+        on_fail: str,
+        *,
+        injection_threshold: float | None = None,
+    ) -> None:
         self._client = client
         self._scorer = scorer
         self._on_fail = on_fail
         self._injection_threshold = injection_threshold
 
-    def chat(self, **kwargs):
+    def chat(self, **kwargs: Any) -> Any:
         """Call a Cohere chat completion and gate the response."""
         prompt = kwargs.get("message", "")
         response = self._client.chat(**kwargs)
@@ -1178,7 +1286,7 @@ class _CohereProxy:
         )
         return response
 
-    def chat_stream(self, **kwargs):
+    def chat_stream(self, **kwargs: Any) -> Any:
         """Call a Cohere streaming chat completion and wrap emitted events."""
         prompt = kwargs.get("message", "")
         response = self._client.chat_stream(**kwargs)
@@ -1190,14 +1298,22 @@ class _CohereProxy:
             injection_threshold=self._injection_threshold,
         )
 
-    def __getattr__(self, name):
+    def __getattr__(self, name: str) -> Any:
         return getattr(self._client, name)
 
 
 class _GuardedCohereStream:
     """Wraps a Cohere chat_stream with periodic coherence checks."""
 
-    def __init__(self, stream, scorer, on_fail, prompt, *, injection_threshold=None):
+    def __init__(
+        self,
+        stream: Any,
+        scorer: Any,
+        on_fail: str,
+        prompt: str,
+        *,
+        injection_threshold: float | None = None,
+    ) -> None:
         self._stream = stream
         self._scorer = scorer
         self._on_fail = on_fail
@@ -1206,7 +1322,7 @@ class _GuardedCohereStream:
         self._token_count = 0
         self._injection_threshold = injection_threshold
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[Any]:
         for event in self._stream:
             text = getattr(event, "text", None)
             if text:
@@ -1217,10 +1333,10 @@ class _GuardedCohereStream:
             yield event
         self._final_check()
 
-    def __aiter__(self):
+    def __aiter__(self) -> AsyncIterator[Any]:
         return self._aiter_impl()
 
-    async def _aiter_impl(self):
+    async def _aiter_impl(self) -> AsyncIterator[Any]:
         """Iterate an async Cohere stream while buffering emitted text."""
         async for event in self._stream:
             text = getattr(event, "text", None)
@@ -1245,14 +1361,14 @@ class _GuardedCohereStream:
                 injection_threshold=self._injection_threshold,
             )
 
-    def _periodic_check(self):
+    def _periodic_check(self) -> None:
         """Run a synchronous periodic score check for buffered text."""
         text = "".join(self._buffer)
         approved, cs = self._scorer.review(self._prompt, text)
         if not approved:
             _handle_failure(self._on_fail, self._prompt, text, cs)
 
-    def _final_check(self):
+    def _final_check(self) -> None:
         """Run the final synchronous score check for buffered text."""
         text = "".join(self._buffer)
         if text:

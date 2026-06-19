@@ -32,7 +32,6 @@ def build_guardrails_validator_class(
     subclass ``Validator``, implement ``_validate(value, metadata)``, and return
     ``PassResult`` or ``FailResult``.
     """
-
     guardrails = _load_guardrails_validator_api()
 
     validator_base = guardrails.validator
@@ -113,7 +112,6 @@ def build_guardrails_validator(
     data_type: str = "string",
 ) -> Any:
     """Build a registered Guardrails AI validator instance."""
-
     validator_class = build_guardrails_validator_class(name=name, data_type=data_type)
     return validator_class(
         facts=facts,
@@ -126,7 +124,6 @@ def build_guardrails_validator(
 
 def attach_guardrails_validator(guard: Any, **kwargs: Any) -> Any:
     """Attach the Director-AI validator to ``Guard().use(...)`` style guards."""
-
     validator = build_guardrails_validator(**kwargs)
     use = getattr(guard, "use", None)
     if use is None:
@@ -136,7 +133,7 @@ def attach_guardrails_validator(guard: Any, **kwargs: Any) -> Any:
 
 def _load_guardrails_validator_api() -> Any:
     try:
-        from guardrails.validators import (  # type: ignore[import-not-found]
+        from guardrails.validators import (
             FailResult,
             PassResult,
             Validator,

@@ -158,6 +158,7 @@ jobs:
           src/director_ai/core/actor.py
           src/director_ai/core/otel.py
           src/director_ai/enterprise
+          src/director_ai/integrations
           src/director_ai/proto
           --select D
 

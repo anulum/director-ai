@@ -76,7 +76,9 @@ class DirectorAIPostprocessor:
             "coherence_score": cs,
         }
 
-    def postprocess_nodes(self, nodes, query_bundle=None, **kwargs):
+    def postprocess_nodes(
+        self, nodes: list[Any], query_bundle: Any = None, **kwargs: Any
+    ) -> list[Any]:
         """LlamaIndex NodePostprocessor interface.
 
         Filters out nodes whose text scores below threshold.

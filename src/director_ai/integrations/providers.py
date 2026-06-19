@@ -6,9 +6,9 @@
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI — LLM Provider Adapters
 
-"""Unified LLM provider protocol with OpenAI, Anthropic, HuggingFace,
-and local server adapters.
+"""Unified LLM provider protocol with vendor and local-server adapters.
 
+Covers OpenAI, Anthropic, HuggingFace, and local server adapters.
 Each provider implements ``generate_candidates(prompt, n)`` returning
 a list of ``{"text": str, "source": str}`` dicts — the same interface
 as ``MockGenerator`` and ``LLMGenerator``.
@@ -18,7 +18,9 @@ from __future__ import annotations
 
 import logging
 from abc import ABC, abstractmethod
+from collections.abc import Iterator
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from typing import Any
 
 import requests
 
@@ -39,7 +41,7 @@ class LLMProvider(ABC):
         """Provider name for logging."""
         ...  # pragma: no cover
 
-    def stream_generate(self, prompt: str):
+    def stream_generate(self, prompt: str) -> Iterator[str]:
         """Yield tokens from a streaming completion.
 
         Subclasses that support streaming should override this method.
@@ -134,7 +136,7 @@ class OpenAIProvider(LLMProvider):
 
         return candidates
 
-    def stream_generate(self, prompt: str):
+    def stream_generate(self, prompt: str) -> Iterator[str]:
         """Yield tokens from a streaming chat completion response."""
         import json as _json
 
@@ -362,7 +364,7 @@ class LocalProvider(LLMProvider):
     def generate_candidates(self, prompt: str, n: int = 3) -> list[dict[str, str]]:
         """Generate candidates through a local chat-completions endpoint."""
         candidates = []
-        payload: dict = {
+        payload: dict[str, Any] = {
             "messages": [{"role": "user", "content": prompt}],
             "n": n,
             "temperature": self.temperature,
@@ -393,11 +395,11 @@ class LocalProvider(LLMProvider):
 
         return candidates
 
-    def stream_generate(self, prompt: str):
+    def stream_generate(self, prompt: str) -> Iterator[str]:
         """Yield tokens from local server streaming completion (SSE)."""
         import json as _json
 
-        payload: dict = {
+        payload: dict[str, Any] = {
             "messages": [{"role": "user", "content": prompt}],
             "stream": True,
             "temperature": self.temperature,

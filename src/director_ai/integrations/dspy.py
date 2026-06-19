@@ -40,6 +40,8 @@ Usage with Instructor / standalone::
 
 from __future__ import annotations
 
+from typing import Any
+
 from director_ai.core import CoherenceScorer, GroundTruthStore
 from director_ai.core.exceptions import HallucinationError
 
@@ -51,7 +53,7 @@ def coherence_check(
     store: GroundTruthStore | None = None,
     threshold: float = 0.5,
     use_nli: bool | None = None,
-) -> dict:
+) -> dict[str, Any]:
     """Check response coherence and return a result dict.
 
     Parameters

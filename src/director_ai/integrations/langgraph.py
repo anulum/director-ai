@@ -20,6 +20,7 @@ Usage::
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from typing import Any
 
 from director_ai.core import CoherenceScorer, GroundTruthStore
@@ -35,7 +36,7 @@ def director_ai_node(
     on_fail: str = "raise",
     query_key: str = "query",
     response_key: str = "response",
-):
+) -> Callable[..., Any]:
     """Create a LangGraph node function that scores and gates LLM output.
 
     Parameters
@@ -109,7 +110,7 @@ def _latest_message_content(state: dict[str, Any]) -> str:
 def director_ai_conditional_edge(
     approved_node: str = "output",
     rejected_node: str = "retry",
-):
+) -> Callable[..., Any]:
     """Create a conditional edge function for LangGraph routing.
 
     Routes to ``approved_node`` if coherence check passed, else ``rejected_node``.

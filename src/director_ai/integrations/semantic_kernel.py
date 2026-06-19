@@ -87,4 +87,5 @@ class DirectorAIFilter:
 
     @property
     def scorer(self) -> CoherenceScorer:
+        """Return the underlying coherence scorer."""
         return self._scorer

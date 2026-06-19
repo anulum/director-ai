@@ -33,6 +33,7 @@ Usage::
 from __future__ import annotations
 
 import logging
+from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
 
@@ -180,7 +181,7 @@ class AutoGenReplyGuard:
         trigger: Any = None,
         position: int | None = None,
         **register_kwargs: Any,
-    ):
+    ) -> Callable[..., Any]:
         """Register this guard on an AutoGen-compatible agent.
 
         Parameters mirror AutoGen's ``register_reply`` enough for stable use:

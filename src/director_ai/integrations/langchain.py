@@ -95,7 +95,7 @@ class DirectorAIGuard:
             raise HallucinationError(query, response, cs)
         return result
 
-    def invoke(self, input: Any, **kwargs) -> dict[str, Any]:
+    def invoke(self, input: Any, **kwargs: Any) -> dict[str, Any]:
         """LangChain Runnable interface.
 
         Accepts str or dict with 'query' and 'response' keys.
@@ -110,7 +110,7 @@ class DirectorAIGuard:
             query = kwargs.get("query", response)
         return self.check(str(query), str(response))
 
-    async def ainvoke(self, input: Any, **kwargs) -> dict[str, Any]:
+    async def ainvoke(self, input: Any, **kwargs: Any) -> dict[str, Any]:
         """Async LangChain Runnable interface."""
         if isinstance(input, dict):
             query = input.get("query", input.get("input", ""))
