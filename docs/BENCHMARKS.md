@@ -16,7 +16,14 @@ PINT note: `benchmarks/pint_replication_packet.toml` and
 `benchmarks/pint_seed_cases.jsonl` define a prompt-injection replication packet.
 It records the upstream adapter contract and synthetic smoke cases only; it is
 not an official PINT score. `tools/validate_pint_replication_packet.py` enforces
-that boundary.
+that boundary. `tools/run_pint_official_export.py` can evaluate a locally
+supplied PINT-format YAML, JSON, or JSONL export while preserving the same
+no-public-score-claim boundary and omitting prompt text from the result artefact.
+
+```bash
+python tools/run_pint_official_export.py /path/to/pint-export.yaml \
+  --output benchmarks/results/pint_official_export_evidence.json
+```
 
 Lite Scorer v2 note: `benchmarks/lite_scorer_v2_evidence_packet.toml` is a
 no-claim recorded-evidence packet with student, teacher, ONNX, held-out
