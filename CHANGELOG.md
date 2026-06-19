@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Bump the `pypdf` floor to `>=6.13.3` in the ingestion extras and update the CI
+  lockfile pin to `6.13.3`, picking up the upstream stream-length handling fix.
 - Add a **Rust path for the span detector's token-probability → character-span
   reduction** (`backfire_kernel.rust_merge_flagged_spans`, delegating to
   `backfire_core::compute::merge_flagged_spans`). `merge_flagged_spans` now

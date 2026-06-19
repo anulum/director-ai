@@ -214,7 +214,7 @@ demo = [
     "gradio>=4.0",
 ]
 ingestion = [
-    "pypdf>=3.0",
+    "pypdf>=6.13.3",
     "python-docx>=1.0",
     "beautifulsoup4>=4.12",
 ]
@@ -302,7 +302,7 @@ dev = [
     "httpx>=0.27",
     "pydantic>=2.0",
     "python-multipart>=0.0.7",
-    "pypdf>=3.0",
+    "pypdf>=6.13.3",
     "python-docx>=1.0",
     "beautifulsoup4>=4.12",
 ]
