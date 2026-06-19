@@ -28,7 +28,7 @@ import logging
 import threading
 import time
 import uuid
-from collections.abc import Mapping
+from collections.abc import AsyncIterator, Awaitable, Callable, Mapping
 from contextlib import asynccontextmanager
 from typing import Any
 
@@ -128,7 +128,14 @@ _AUTH_EXEMPT_PATHS_BASE = frozenset(
 )
 
 try:
-    from fastapi import FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect
+    from fastapi import (
+        FastAPI,
+        HTTPException,
+        Request,
+        Response,
+        WebSocket,
+        WebSocketDisconnect,
+    )
     from fastapi.middleware.cors import CORSMiddleware
     from fastapi.responses import JSONResponse, PlainTextResponse
 
@@ -265,7 +272,6 @@ def _record_sector_policy_findings(
     source: str,
 ) -> None:
     """Record tenant-safe sector-policy finding metrics."""
-
     for finding in getattr(report, "findings", ()):
         metrics.inc_labeled(
             "sector_policy_findings_total",
@@ -281,7 +287,6 @@ def _record_sector_policy_findings(
 
 def _can_suppress_batcher_metrics(batcher: Any) -> bool:
     """Return true when the batcher supports endpoint-owned metrics."""
-
     from .core.runtime.batch import BatchProcessor
 
     return isinstance(batcher, BatchProcessor)
@@ -289,7 +294,6 @@ def _can_suppress_batcher_metrics(batcher: Any) -> bool:
 
 def _http_endpoint_label(request: Request) -> str:
     """Return a low-cardinality route label for HTTP metrics."""
-
     route = request.scope.get("route")
     route_path = getattr(route, "path", None)
     if isinstance(route_path, str) and route_path:
@@ -376,10 +380,10 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
     get_audit_salt(strict=cfg.production_mode)
 
     _start_time = time.monotonic()
-    _state: dict = {}
+    _state: dict[str, Any] = {}
 
     @asynccontextmanager
-    async def lifespan(app: FastAPI):
+    async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         """Lifecycle events for the FastAPI server."""
         cfg = app.state.config
 
@@ -449,7 +453,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
 
         store = cfg.build_store()
         scorer = cfg.build_scorer(store=store)
-        agent_kwargs: dict = {
+        agent_kwargs: dict[str, Any] = {
             "_scorer": scorer,
             "_store": store,
             "production_mode": cfg.production_mode,
@@ -703,7 +707,9 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
             app.add_middleware(SlowAPIMiddleware)
 
             @app.exception_handler(RateLimitExceeded)
-            async def _rate_limit_handler(request: Request, exc: RateLimitExceeded):
+            async def _rate_limit_handler(
+                request: Request, exc: RateLimitExceeded
+            ) -> JSONResponse:
                 """Render SlowAPI rate-limit failures as JSON responses."""
                 return JSONResponse(  # pragma: no cover Ă˘â‚¬â€ť ASGI runtime handler
                     status_code=429,
@@ -757,7 +763,10 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
     )
 
     @app.middleware("http")
-    async def _http_middleware(request: Request, call_next):
+    async def _http_middleware(
+        request: Request,
+        call_next: Callable[[Request], Awaitable[Response]],
+    ) -> Response:
         """Apply request IDs, API-key auth, tenant binding, and metrics."""
         request_id = _normalize_request_id(request.headers.get("X-Request-ID"))
         request.state.request_id = request_id
@@ -876,12 +885,12 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
     # Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬ Health Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬
 
     @app.get("/v1/live")
-    async def liveness():
+    async def liveness() -> dict[str, Any]:
         """Minimal unauthenticated liveness probe — no version or config leak."""
         return {"ok": True}
 
     @app.get("/v1/health")
-    async def health(request: Request):
+    async def health(request: Request) -> dict[str, Any]:
         """Return liveness plus, for authenticated callers, build detail.
 
         Unauthenticated callers receive ``{status, license}`` only; a valid key
@@ -920,7 +929,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
         return {**resp.model_dump(), **extra}
 
     @app.get("/v1/ready", response_model=ReadyResponse)
-    async def readiness(request: Request):
+    async def readiness(request: Request) -> dict[str, Any] | JSONResponse:
         """Readiness probe: returns 200 only when scorer is operational."""
         scorer = request.app.state._state.get("scorer")
         if scorer is None:
@@ -939,7 +948,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
     # -- Source-availability endpoint ----------------------------------------
 
     @app.get("/v1/source", response_model=SourceResponse)
-    async def source(request: Request):
+    async def source(request: Request) -> dict[str, Any]:
         """Return source-availability metadata for the running deployment.
 
         Open core: the Apache-2.0 core and the source-available BUSL-1.1 advanced
@@ -1207,7 +1216,9 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
     # ── Verified Review (atomic multi-span signals) ──────────────────
 
     @app.post("/v1/verify", response_model=VerifyResponse)
-    async def verify_response(req: ReviewRequest, request: Request):
+    async def verify_response(
+        req: ReviewRequest, request: Request
+    ) -> dict[str, Any]:
         """Atomic multi-span fact verification.
 
         Decomposes the response into claims, ranks source spans from the
@@ -1272,7 +1283,9 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
     # ── Injection Detection (output-side NLI) ─────────────────────
 
     @app.post("/v1/injection/detect", response_model=InjectionResponse)
-    async def detect_injection(req: InjectionRequest, request: Request):
+    async def detect_injection(
+        req: InjectionRequest, request: Request
+    ) -> dict[str, Any]:
         """Detect prompt injection effects in LLM output via NLI divergence.
 
         Analyses whether the response diverges from the stated intent
@@ -1321,7 +1334,9 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
     # ── Multimodal hallucination guard (opt-in, experimental) ─────
 
     @app.post("/v1/multimodal/check", response_model=MultimodalDetectResponse)
-    async def multimodal_check(req: MultimodalDetectRequest, request: Request):
+    async def multimodal_check(
+        req: MultimodalDetectRequest, request: Request
+    ) -> dict[str, Any]:
         """Check a text claim against paired image / audio / video evidence.
 
         Opt-in and isolated: returns 404 unless the experimental hooks flag is
@@ -1383,7 +1398,8 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
             )
         except ValueError as exc:
             raise HTTPException(400, str(exc)) from exc
-        return result.to_dict()
+        payload: dict[str, Any] = result.to_dict()
+        return payload
 
     # ── Process ───────────────────────────────────────────────────
 
@@ -1660,7 +1676,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
     # Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬ Tenants Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬
 
     @app.get("/v1/tenants", response_model=TenantListResponse)
-    async def list_tenants(request: Request):
+    async def list_tenants(request: Request) -> dict[str, Any]:
         """List tenants visible to the authenticated caller."""
         router = request.app.state._state.get("tenant_router")
         if not router:
@@ -1724,7 +1740,9 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
         }
 
     @app.post("/v1/tenants/{tenant_id}/facts", response_model=StatusResponse)
-    async def add_tenant_fact(request: Request, tenant_id: str, req: TenantFactRequest):
+    async def add_tenant_fact(
+        request: Request, tenant_id: str, req: TenantFactRequest
+    ) -> dict[str, Any]:
         """Add a scalar tenant fact after tenant and write checks."""
         router = request.app.state._state.get("tenant_router")
         if not router:
@@ -1750,7 +1768,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
         request: Request,
         tenant_id: str,
         req: TenantVectorFactRequest,
-    ):
+    ) -> dict[str, Any]:
         """Add a tenant-scoped vector fact to the configured vector store."""
         router = request.app.state._state.get("tenant_router")
         if not router:
@@ -1784,7 +1802,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
     # Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬ Sessions Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬
 
     @app.get("/v1/sessions/{session_id}", response_model=SessionResponse)
-    async def get_session(request: Request, session_id: str):
+    async def get_session(request: Request, session_id: str) -> dict[str, Any]:
         """Return a session only to its owning API-key identity."""
         caller_hash = getattr(request.state, "api_key_hash", "")
         async with request.app.state._state["sessions_lock"]:
@@ -1811,7 +1829,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
         }
 
     @app.delete("/v1/sessions/{session_id}", response_model=DeletedResponse)
-    async def delete_session(request: Request, session_id: str):
+    async def delete_session(request: Request, session_id: str) -> dict[str, Any]:
         """Delete a session owned by the authenticated API-key identity."""
         caller_hash = getattr(request.state, "api_key_hash", "")
         async with request.app.state._state["sessions_lock"]:
@@ -1829,24 +1847,26 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
     # Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬ Metrics Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬
 
     @app.get("/v1/metrics")
-    async def get_metrics(request: Request):
+    async def get_metrics(request: Request) -> dict[str, Any]:
         """Return structured in-process metrics."""
         return metrics.get_metrics()
 
     @app.get("/v1/metrics/prometheus", response_class=PlainTextResponse)
-    async def get_prometheus(request: Request):
+    async def get_prometheus(request: Request) -> str:
         """Return metrics in Prometheus text exposition format."""
         return metrics.prometheus_format()
 
     # Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬ Config Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬
 
     @app.get("/v1/config", response_model=ConfigResponse)
-    async def get_config():
+    async def get_config() -> ConfigResponse:
         """Return the effective non-secret server configuration."""
         return ConfigResponse(config=cfg.to_dict())
 
     @app.get("/v1/scorer/models")
-    async def list_scorer_models(include_domain_only: bool = False):
+    async def list_scorer_models(
+        include_domain_only: bool = False,
+    ) -> dict[str, Any]:
         """Return current scorer settings and available scorer choices."""
         from .core.scoring.model_choices import scorer_model_choices_to_dict
 
@@ -1863,7 +1883,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
 
     # Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬ Stats / Dashboard Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬
 
-    def _prometheus_summary() -> dict:
+    def _prometheus_summary() -> dict[str, Any]:
         """Derive summary from MetricsCollector when stats_backend=prometheus."""
         m = metrics.get_metrics()
         counters = m.get("counters", {})
@@ -1890,29 +1910,31 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
         }
 
     @app.get("/v1/stats", response_model=StatsResponse)
-    async def get_stats(request: Request):
+    async def get_stats(request: Request) -> dict[str, Any]:
         """Return review statistics from SQLite or Prometheus counters."""
         stats_store = request.app.state._state.get("stats")
         if stats_store:
-            return stats_store.summary()
+            summary: dict[str, Any] = stats_store.summary()
+            return summary
         return _prometheus_summary()
 
     @app.get("/v1/stats/hourly")
-    async def get_stats_hourly(request: Request, days: int = 7):
+    async def get_stats_hourly(request: Request, days: int = 7) -> dict[str, Any]:
         """Return hourly review statistics when SQLite stats are enabled."""
         stats_store = request.app.state._state.get("stats")
         if stats_store:
             result = stats_store.hourly_breakdown(days=days)
             if isinstance(result, list):
                 return {"data": result}
-            return result
+            breakdown: dict[str, Any] = result
+            return breakdown
         return {
             "data": [],
             "note": "hourly breakdown requires stats_backend=sqlite",
         }
 
     @app.get("/v1/dashboard", response_class=PlainTextResponse)
-    async def dashboard(request: Request):
+    async def dashboard(request: Request) -> str:
         """Render the built-in operational statistics dashboard."""
         stats_store = request.app.state._state.get("stats")
         s = stats_store.summary() if stats_store else _prometheus_summary()
@@ -1955,7 +1977,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
         model: str | None = None,
         domain: str | None = None,
         fmt: str = "json",
-    ):
+    ) -> dict[str, Any] | PlainTextResponse:
         """Return an EU AI Act Article 15 compliance report."""
         reporter = request.app.state._state.get("compliance_reporter")
         if reporter is None:
@@ -1998,7 +2020,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
         }
 
     @app.get("/v1/compliance/drift", response_model=DriftResponse)
-    async def compliance_drift(request: Request):
+    async def compliance_drift(request: Request) -> dict[str, Any]:
         """Return compliance drift analysis for recent review windows."""
         detector = request.app.state._state.get("compliance_drift")
         if detector is None:
@@ -2026,7 +2048,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
         }
 
     @app.get("/v1/compliance/dashboard")
-    async def compliance_dashboard(request: Request):
+    async def compliance_dashboard(request: Request) -> dict[str, Any]:
         """Return 24-hour, 7-day, and 30-day compliance dashboard data."""
         reporter = request.app.state._state.get("compliance_reporter")
         if reporter is None:
@@ -2059,7 +2081,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
     # -- Gem endpoints (Phase 5 verification & analysis) -----------------
 
     @app.post("/v1/verify/numeric", response_model=NumericVerifyResponse)
-    async def verify_numeric_endpoint(req: TextRequest):
+    async def verify_numeric_endpoint(req: TextRequest) -> NumericVerifyResponse:
         """Verify numeric consistency in text.
 
         Checks percentage arithmetic, date logic, probability bounds,
@@ -2085,7 +2107,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
         )
 
     @app.post("/v1/verify/reasoning", response_model=ReasoningVerifyResponse)
-    async def verify_reasoning_endpoint(req: TextRequest):
+    async def verify_reasoning_endpoint(req: TextRequest) -> ReasoningVerifyResponse:
         """Verify logical structure of a reasoning chain.
 
         Extracts reasoning steps and checks each follows from its
@@ -2113,7 +2135,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
         )
 
     @app.post("/v1/temporal-freshness", response_model=FreshnessResponse)
-    async def temporal_freshness_endpoint(req: TextRequest):
+    async def temporal_freshness_endpoint(req: TextRequest) -> FreshnessResponse:
         """Score temporal freshness of claims in text.
 
         Detects date-sensitive entities (positions, prices, statistics)
@@ -2152,7 +2174,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
         )
 
     @app.post("/v1/consensus", response_model=ConsensusResponse)
-    async def consensus_endpoint(req: ConsensusRequest):
+    async def consensus_endpoint(req: ConsensusRequest) -> ConsensusResponse:
         """Score factual agreement across pre-generated model responses.
 
         Accepts responses from multiple models and computes pairwise
@@ -2189,7 +2211,9 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
         )
 
     @app.post("/v1/adversarial/test", response_model=AdversarialResponse)
-    async def adversarial_test_endpoint(req: ReviewRequest, request: Request):
+    async def adversarial_test_endpoint(
+        req: ReviewRequest, request: Request
+    ) -> AdversarialResponse:
         """Run adversarial robustness tests against the guardrail.
 
         Uses the prompt+response as a baseline, then tests adversarial
@@ -2201,7 +2225,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
         if app_scorer is None:
             raise HTTPException(503, "Scorer not initialised")
 
-        def review_fn(prompt: str, response: str):
+        def review_fn(prompt: str, response: str) -> tuple[bool, float]:
             """Adapt the configured scorer to the adversarial tester API."""
             approved, score = app_scorer.review(prompt, response)
             return approved, score.score
@@ -2232,7 +2256,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
         )
 
     @app.post("/v1/conformal/predict", response_model=ConformalResponse)
-    async def conformal_predict_endpoint(req: ConformalRequest):
+    async def conformal_predict_endpoint(req: ConformalRequest) -> ConformalResponse:
         """Compute conformal prediction interval for hallucination probability.
 
         Optionally calibrate from provided historical data first.
@@ -2258,7 +2282,9 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
         )
 
     @app.post("/v1/compliance/feedback-loops", response_model=FeedbackLoopResponse)
-    async def feedback_loop_endpoint(req: FeedbackLoopCheckRequest):
+    async def feedback_loop_endpoint(
+        req: FeedbackLoopCheckRequest,
+    ) -> FeedbackLoopResponse:
         """Check if input text matches any previous AI output (feedback loop).
 
         Pass previous_outputs to seed the detector buffer, then checks
@@ -2286,7 +2312,9 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
         )
 
     @app.post("/v1/agentic/check-step", response_model=AgenticStepResponse)
-    async def agentic_check_step_endpoint(req: AgenticStepRequest):
+    async def agentic_check_step_endpoint(
+        req: AgenticStepRequest,
+    ) -> AgenticStepResponse:
         """Evaluate a single agentic step for safety issues.
 
         Replays step_history to build monitor state, then evaluates
@@ -2351,7 +2379,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
             metrics.gauge_set("ws_active_connections", float(ws_conn_state["total"]))
 
     @app.post("/v1/stream/ticket")
-    async def stream_ticket(request: Request):
+    async def stream_ticket(request: Request) -> dict[str, Any]:
         """Issue a short-lived single-use ticket for a browser WebSocket connect.
 
         Browsers cannot attach auth headers to the WebSocket handshake, so an
@@ -2373,7 +2401,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
         return {"ticket": ticket, "expires_in": _ws_ticket_registry.ttl_seconds}
 
     @app.websocket("/v1/stream")
-    async def stream(ws: WebSocket):
+    async def stream(ws: WebSocket) -> None:
         """Handle multiplexed WebSocket agent sessions."""
         ws_tenant_id = ""
         _ticket_tenant = ""
@@ -2413,14 +2441,14 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
 
         send_lock = asyncio.Lock()
         semaphore = asyncio.Semaphore(_WS_MAX_CONCURRENT)
-        active_tasks: dict[str, tuple[asyncio.Task, threading.Event]] = {}
+        active_tasks: dict[str, tuple[asyncio.Task[None], threading.Event]] = {}
 
-        async def _send(payload: dict) -> None:
+        async def _send(payload: dict[str, Any]) -> None:
             """Serialise WebSocket writes through a per-connection lock."""
             async with send_lock:
                 await ws.send_json(payload)
 
-        async def _handle_session(session_id: str, data: dict) -> None:
+        async def _handle_session(session_id: str, data: dict[str, Any]) -> None:
             """Process one WebSocket session payload."""
             prompt = data.get("prompt", "")
 
@@ -2536,7 +2564,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
                 },
             )
 
-        async def _run_session(session_id: str, data: dict) -> None:
+        async def _run_session(session_id: str, data: dict[str, Any]) -> None:
             """Run a session under the per-connection concurrency limit."""
             async with semaphore:
                 try:

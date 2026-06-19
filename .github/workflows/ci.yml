@@ -146,6 +146,7 @@ jobs:
           src/director_ai/_server_helpers.py
           src/director_ai/_server_models.py
           src/director_ai/guard.py
+          src/director_ai/server.py
           --select D
 
   typecheck:
