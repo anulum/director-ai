@@ -351,7 +351,7 @@ class PostgresAuditSink:
         ph = "?" if self._is_sqlite else "%s"
         if tenant_id is not None:
             sql = f"SELECT COUNT(*) FROM {self._table_sql} WHERE tenant_id = {ph}"  # nosec B608
-            params: tuple = (tenant_id,)
+            params: tuple[Any, ...] = (tenant_id,)
         else:
             sql = f"SELECT COUNT(*) FROM {self._table_sql}"  # nosec B608
             params = ()

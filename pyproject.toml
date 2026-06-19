@@ -713,6 +713,8 @@ module = [
     "director_ai.core.verification.*",
     "director_ai.core.zk_attestation",
     "director_ai.core.zk_attestation.*",
+    "director_ai.enterprise",
+    "director_ai.enterprise.*",
     "director_ai.grpc_scoring",
     "director_ai.grpc_server",
     "director_ai.guard",

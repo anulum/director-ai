@@ -13,6 +13,8 @@
     from director_ai.enterprise import TenantRouter, Policy, AuditLogger
 """
 
+from typing import Any
+
 __all__ = [
     "AuditEntry",
     "AuditLogger",
@@ -50,7 +52,7 @@ _ENTERPRISE_IMPORTS = {
 }
 
 
-def __getattr__(name: str):
+def __getattr__(name: str) -> Any:
     if name in _ENTERPRISE_IMPORTS:
         import importlib
 

@@ -157,6 +157,7 @@ jobs:
           src/director_ai/core/agent.py
           src/director_ai/core/actor.py
           src/director_ai/core/otel.py
+          src/director_ai/enterprise
           --select D
 
   typecheck:

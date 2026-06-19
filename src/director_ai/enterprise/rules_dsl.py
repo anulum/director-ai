@@ -42,7 +42,9 @@ class CustomRule(BaseModel):
     threshold: float | None = Field(default=None, ge=0.0, le=1.0)
     source: str | None = Field(default=None, max_length=256)
 
-    @model_validator(mode="after")
+    # pydantic's model_validator is untyped to mypy without the pydantic.mypy
+    # plugin, which is incompatible with the pinned mypy version.
+    @model_validator(mode="after")  # type: ignore[untyped-decorator]
     def _validate_rule_shape(self) -> Self:
         if self.kind in {"forbidden", "pattern"}:
             value = self.value
@@ -66,18 +68,15 @@ class CustomRule(BaseModel):
     @property
     def compiled_name(self) -> str:
         """Return the runtime rule name shown in policy violations."""
-
         return self.name or self.id
 
     @property
     def compiled_action(self) -> RuleAction:
         """Return the runtime action, defaulting to the compiler contract."""
-
         return self.action or "block"
 
     def to_compiled_rule(self) -> CompiledRule:
         """Convert into the existing policy compiler rule contract."""
-
         return CompiledRule(
             id=self.id,
             kind=self.kind,
@@ -98,7 +97,7 @@ class CustomRuleset(BaseModel):
     name: str = Field(min_length=1, max_length=64, pattern=r"^[A-Za-z0-9_.-]+$")
     rules: tuple[CustomRule, ...] = Field(min_length=1)
 
-    @model_validator(mode="after")
+    @model_validator(mode="after")  # type: ignore[untyped-decorator]
     def _reject_duplicate_rule_ids(self) -> Self:
         seen: set[str] = set()
         duplicates: list[str] = []
@@ -114,7 +113,6 @@ class CustomRuleset(BaseModel):
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> CustomRuleset:
         """Load a ruleset from a parsed JSON/YAML mapping."""
-
         try:
             ruleset: CustomRuleset = cls.model_validate(data)
         except ValidationError as exc:
@@ -124,7 +122,6 @@ class CustomRuleset(BaseModel):
     @classmethod
     def from_json(cls, text: str) -> CustomRuleset:
         """Load a ruleset from JSON text."""
-
         try:
             data = json.loads(text)
         except json.JSONDecodeError as exc:
@@ -136,7 +133,6 @@ class CustomRuleset(BaseModel):
     @classmethod
     def from_yaml(cls, text: str) -> CustomRuleset:
         """Load a ruleset from YAML text."""
-
         try:
             import yaml
         except ImportError as exc:  # pragma: no cover - dependency is locked
@@ -149,7 +145,6 @@ class CustomRuleset(BaseModel):
     @classmethod
     def from_file(cls, path: str | Path) -> CustomRuleset:
         """Load a ruleset from a JSON, YAML, or YML file."""
-
         ruleset_path = Path(path)
         text = ruleset_path.read_text(encoding="utf-8")
         if ruleset_path.suffix.lower() == ".json":
@@ -158,7 +153,6 @@ class CustomRuleset(BaseModel):
 
     def to_policy_bundle(self, *, version: int = 1) -> PolicyBundle:
         """Convert into an immutable policy compiler bundle."""
-
         if version <= 0:
             raise RulesDslError("policy bundle version must be a positive integer")
         return PolicyBundle(
@@ -168,16 +162,13 @@ class CustomRuleset(BaseModel):
 
     def to_policy(self) -> Policy:
         """Convert into the runtime safety policy."""
-
         return self.to_policy_bundle().to_policy()
 
     def to_dict(self) -> dict[str, Any]:
         """Serialise the ruleset into deterministic JSON-compatible data."""
-
         serialised: dict[str, Any] = self.model_dump(mode="json", exclude_none=True)
         return serialised
 
     def to_json(self) -> str:
         """Serialise the ruleset into deterministic JSON text."""
-
         return json.dumps(self.to_dict(), sort_keys=True)
