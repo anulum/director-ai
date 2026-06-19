@@ -668,7 +668,7 @@ def _run_quickstart_compose(out_dir: Path) -> None:
         sys.exit(exc.returncode)
 
 
-def _load_profile_for_scaffold(profile: str):
+def _load_profile_for_scaffold(profile: str) -> DirectorConfig:
     """Load a profile config for scaffolding, tolerating production fail-close.
 
     Production-mode profiles fail closed without secrets, but the quickstart

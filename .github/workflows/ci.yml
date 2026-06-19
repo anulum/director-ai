@@ -160,6 +160,12 @@ jobs:
           src/director_ai/enterprise
           src/director_ai/integrations
           src/director_ai/proto
+          src/director_ai/__init__.py
+          src/director_ai/cli.py
+          src/director_ai/_cli_bench.py
+          src/director_ai/_cli_verify.py
+          src/director_ai/core/metrics.py
+          src/director_ai/testing/adversarial_suite.py
           --select D
 
   typecheck:

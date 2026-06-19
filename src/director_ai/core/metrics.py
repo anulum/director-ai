@@ -23,6 +23,7 @@ from __future__ import annotations
 import threading
 import time
 from dataclasses import dataclass, field
+from typing import Any
 
 from .mandatory import mandatory_execution
 
@@ -34,6 +35,7 @@ except ImportError:  # pragma: no cover - mandatory accelerator guard
     _RUST_METRICS = True
 
     def rust_sum_f64(_values: list[float]) -> float:
+        """Raise to signal the optional Rust sum kernel is unavailable."""
         raise RuntimeError("backfire_kernel rust_sum_f64 is unavailable")
 
 
@@ -289,10 +291,10 @@ class MetricsCollector:
         """Context manager that records elapsed time to a histogram."""
         return _Timer(self, histogram_name)
 
-    def get_metrics(self) -> dict:
+    def get_metrics(self) -> dict[str, Any]:
         """Return all metrics as a plain dict."""
         with self._lock:
-            result: dict = {"counters": {}, "histograms": {}, "gauges": {}}
+            result: dict[str, Any] = {"counters": {}, "histograms": {}, "gauges": {}}
             for name, c in self._counters.items():
                 result["counters"][name] = {
                     "total": c.total(),

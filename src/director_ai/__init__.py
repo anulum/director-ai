@@ -17,6 +17,8 @@ under 0.1 seconds.
     from director_ai import guard, score, CoherenceScorer
 """
 
+from typing import Any
+
 __version__ = "3.15.3"
 
 # Symbol → (module_path, attribute_name)
@@ -402,7 +404,7 @@ _MOVED_TO_ENTERPRISE = {
 }
 
 
-def __getattr__(name: str):
+def __getattr__(name: str) -> Any:
     if name in _LAZY_IMPORTS:
         module_path, attr = _LAZY_IMPORTS[name]
         import importlib

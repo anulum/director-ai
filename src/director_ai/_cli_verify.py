@@ -15,7 +15,10 @@ from __future__ import annotations
 import json
 import sys
 from collections.abc import Mapping
-from typing import Any, cast
+from typing import TYPE_CHECKING, Any, cast
+
+if TYPE_CHECKING:
+    from director_ai.compliance.reporter import Article15TemplateContext
 
 
 def _check_optional_module(module_name: str) -> tuple[bool, str]:
@@ -290,7 +293,7 @@ def _cmd_license(args: list[str]) -> None:
     sys.exit(1)
 
 
-def _load_article15_context(path: str):
+def _load_article15_context(path: str) -> Article15TemplateContext:
     """Load operator-supplied Article 15 context from a JSON file.
 
     Exits with a clear message when the file is missing, unparsable, or omits a
@@ -957,7 +960,6 @@ def _cmd_forensics(args: list[str]) -> None:
 
 def _forensics_records_from_payload(payload: object) -> list[Mapping[str, object]]:
     """Return record mappings from either a list or ``{"records": [...]}``."""
-
     records_obj: object
     if isinstance(payload, Mapping):
         records_obj = payload.get("records", [])
@@ -984,7 +986,7 @@ def _cmd_adversarial_test(args: list[str]) -> None:
 
     prompt = args[0] if args else "Tell me about this topic."
 
-    def review_fn(p: str, r: str):
+    def review_fn(p: str, r: str) -> tuple[bool, float]:
         approved, score = scorer.review(p, r)
         return approved, score.score
 

@@ -559,9 +559,13 @@ warn_unused_ignores = true
 
 [[tool.mypy.overrides]]
 module = [
+    "director_ai",
+    "director_ai._cli_bench",
     "director_ai._cli_serve",
+    "director_ai._cli_verify",
     "director_ai._server_helpers",
     "director_ai._server_models",
+    "director_ai.cli",
     "director_ai.compliance",
     "director_ai.compliance.*",
     "director_ai.core",
@@ -645,6 +649,7 @@ module = [
     "director_ai.core.memory.*",
     "director_ai.core.meta_guard",
     "director_ai.core.meta_guard.*",
+    "director_ai.core.metrics",
     "director_ai.core.multi_scale_alignment",
     "director_ai.core.multi_scale_alignment.*",
     "director_ai.core.multimodal_guard",
@@ -722,6 +727,7 @@ module = [
     "director_ai.integrations.*",
     "director_ai.proto",
     "director_ai.proto.*",
+    "director_ai.testing.adversarial_suite",
 ]
 disallow_untyped_defs = true
 disallow_incomplete_defs = true

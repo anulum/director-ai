@@ -14,6 +14,8 @@ from __future__ import annotations
 
 import json
 import sys
+from collections.abc import Callable
+from typing import Any
 
 
 def _cmd_eval(args: list[str]) -> None:
@@ -157,7 +159,7 @@ def _cmd_bench(args: list[str]) -> None:
     import time
 
     t0 = time.perf_counter()
-    tests = {
+    tests: dict[str, list[Callable[[], Any]]] = {
         "regression": [
             regression_suite.test_heuristic_accuracy,
             regression_suite.test_streaming_stability,
@@ -275,7 +277,7 @@ def _cmd_tune(args: list[str]) -> None:
         print(f"Error: file not found: {input_file}")
         sys.exit(1)
 
-    samples: list[dict] = []
+    samples: list[dict[str, Any]] = []
     with open(input_file, encoding="utf-8") as f:
         for line_no, line in enumerate(f, 1):
             line = line.strip()
