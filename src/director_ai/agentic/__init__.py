@@ -6,6 +6,8 @@
 # Contact: www.anulum.li | protoscience@anulum.li
 # agentic subpackage — safety monitoring for AI agent loops
 
+"""Safety monitoring for AI agent loops: profiles, handoff scoring, loop detection."""
+
 from director_ai.agentic.agent_profile import AgentProfile
 from director_ai.agentic.handoff_scorer import HandoffScore, HandoffScorer
 from director_ai.agentic.loop_monitor import LoopMonitor, LoopStatus, StepVerdict

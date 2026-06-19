@@ -6,6 +6,8 @@
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI — UI subpackage (Gradio-based config wizard + dashboard)
 
+"""Gradio-based configuration wizard and safety/observability dashboard."""
+
 from .safety_dashboard import (
     ComplianceExportRef,
     ObservabilityOperationsReport,

@@ -79,7 +79,6 @@ def resolve_model_revision(model_name: str, revision: str | None = None) -> str 
     and therefore return ``None``. Remote repository IDs must either be present
     in ``MODEL_REVISION_REGISTRY`` or supply an explicit immutable revision.
     """
-
     if revision is not None:
         return revision
 
@@ -153,7 +152,6 @@ def model_revision_health(
     an explicit revision. Explicit local paths remain valid for air-gapped and
     operator-managed deployments.
     """
-
     checks = {
         label: _model_revision_check(label, model_name, revision)
         for label, (model_name, revision) in references.items()

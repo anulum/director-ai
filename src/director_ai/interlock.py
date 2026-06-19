@@ -40,6 +40,7 @@ class InterlockPolicy:
     tenant_safe_explanation: str = "Interlock policy stopped or flagged the stream."
 
     def __post_init__(self) -> None:
+        """Validate that the interlock policy thresholds are unit-interval values."""
         _unit("hard_limit", self.hard_limit)
         _unit("window_threshold", self.window_threshold)
         _unit("trend_threshold", self.trend_threshold)
@@ -68,6 +69,7 @@ class InterlockDecision:
     evidence_refs: tuple[str, ...] = field(default_factory=tuple)
 
     def __post_init__(self) -> None:
+        """Validate the decision label and freeze the score tuple."""
         if self.decision not in {"allow", "warn", "halt"}:
             raise ValueError(f"unsupported decision {self.decision!r}")
         object.__setattr__(self, "scores", tuple(float(score) for score in self.scores))

@@ -33,7 +33,7 @@ class _GateArgs:
 
 
 def _cmd_ci_gate(args: list[str]) -> None:
-    """Run the CI eval gate. Exits 1 on failure, 2 on a usage/data error.
+    r"""Run the CI eval gate. Exits 1 on failure, 2 on a usage/data error.
 
     Usage::
 

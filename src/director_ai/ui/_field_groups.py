@@ -5,8 +5,9 @@
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI — Config field grouping for UI wizard
-"""Categorise ``DirectorConfig`` fields into semantic groups for the
-configuration wizard UI.
+"""Categorise ``DirectorConfig`` fields into semantic groups for the wizard UI.
+
+Groups drive the configuration wizard layout.
 
 Each field is assigned to a group with display metadata (label,
 description, widget type). The wizard introspects this at runtime

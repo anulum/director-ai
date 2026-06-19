@@ -6,8 +6,9 @@
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI — Score Cache
 
-"""LRU score cache keyed on (query_hash, prefix_hash) to avoid redundant
-NLI and embedding computations during streaming.
+"""LRU score cache keyed on ``(query_hash, prefix_hash)``.
+
+Avoids redundant NLI and embedding computations during streaming.
 """
 
 from __future__ import annotations

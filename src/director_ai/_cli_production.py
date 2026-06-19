@@ -26,7 +26,6 @@ class ProductionScaffoldCheck:
 
     def to_dict(self) -> dict[str, object]:
         """Serialise the check for JSON reports."""
-
         return {
             "code": self.code,
             "passed": self.passed,
@@ -45,18 +44,15 @@ class ProductionScaffoldReport:
     @property
     def passed(self) -> bool:
         """Return whether every scaffold check passed."""
-
         return all(check.passed for check in self.checks)
 
     @property
     def blockers(self) -> tuple[ProductionScaffoldCheck, ...]:
         """Return failed checks."""
-
         return tuple(check for check in self.checks if not check.passed)
 
     def to_dict(self) -> dict[str, object]:
         """Serialise the validation report."""
-
         return {
             "path": self.path,
             "require_secrets": self.require_secrets,
@@ -73,7 +69,6 @@ class ProductionScaffoldReport:
         values, the CLI keeps its machine-readable output to status, codes, and
         counts so scanners and shell logs cannot capture operator material.
         """
-
         return {
             "path": self.path,
             "require_secrets": self.require_secrets,
@@ -90,7 +85,6 @@ class ProductionScaffoldReport:
 
     def to_markdown(self) -> str:
         """Return an operator-readable validation report."""
-
         lines = [
             "# Production Scaffold Check",
             "",
@@ -108,7 +102,6 @@ class ProductionScaffoldReport:
 
     def to_cli_markdown(self) -> str:
         """Return a redacted operator-readable validation report."""
-
         lines = [
             "# Production Scaffold Check",
             "",
@@ -206,7 +199,6 @@ def validate_production_scaffold(
     require_secrets: bool = False,
 ) -> ProductionScaffoldReport:
     """Validate a generated production scaffold."""
-
     root = Path(path).resolve()
     checks: list[ProductionScaffoldCheck] = []
 
@@ -417,7 +409,6 @@ def _check(code: str, passed: bool, message: str) -> ProductionScaffoldCheck:
 
 def _cmd_production_check(args: list[str]) -> None:
     """Validate a generated production deployment scaffold."""
-
     path = Path("director_guard")
     require_secrets = False
     emit_json = False

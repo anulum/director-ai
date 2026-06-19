@@ -55,6 +55,7 @@ class EvalCase:
     case_id: str = ""
 
     def __post_init__(self) -> None:
+        """Validate the expected label of the eval case."""
         if self.expected not in _LABELS:
             raise ValueError(
                 f"case {self.case_id or '?'}: expected must be one of {_LABELS}, "
@@ -296,7 +297,7 @@ def gate_from_cases(
     min_catch_rate: float | None = None,
     max_false_halt_rate: float | None = None,
 ) -> GateReport:
-    """Convenience wrapper building :class:`GateThresholds` from keyword args."""
+    """Build a :class:`GateThresholds` from keyword arguments."""
     return run_eval_gate(
         list(cases),
         scorer,

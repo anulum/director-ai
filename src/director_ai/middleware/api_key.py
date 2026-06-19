@@ -5,8 +5,9 @@
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI — API key authentication middleware
-"""Starlette/FastAPI middleware that validates ``Authorization: Bearer <key>``
-or ``X-API-Key: <key>`` headers against a set of valid keys.
+"""Validate ``Authorization: Bearer`` or ``X-API-Key`` headers via middleware.
+
+The Starlette/FastAPI middleware checks request headers against a set of valid keys.
 
 Keys can be loaded from environment (``DIRECTOR_API_KEYS``), a file,
 or passed directly. The ``/health`` endpoint is always exempt.

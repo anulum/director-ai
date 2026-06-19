@@ -5,6 +5,8 @@
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
 # Backward-compat shim: director_ai.core.lite_scorer -> director_ai.core.scoring.lite_scorer
+"""Backward-compatibility re-export of :mod:`director_ai.core.scoring.lite_scorer`."""
+
 import importlib as _il
 import sys as _sys
 

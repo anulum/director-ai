@@ -92,7 +92,7 @@ class StreamGuard:
         return kernel.stream_tokens(iter(tokens), _coherence, prompt=prompt)
 
     def safe_text(self, tokens: Iterable[str], prompt: str = "") -> str:
-        """Convenience: return only the surviving (non-halted) output text."""
+        """Return only the surviving (non-halted) output text."""
         return self.guard(tokens, prompt=prompt).output
 
 

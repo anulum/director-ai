@@ -84,7 +84,7 @@ _COUNTER: dict[str, int] = {}
 
 
 def _next_id(role: str) -> str:
-    """Generate sequential agent IDs: ``researcher-0``, ``researcher-1``, …"""
+    """Generate sequential agent IDs such as ``researcher-0`` and ``researcher-1``."""
     n = _COUNTER.get(role, 0)
     _COUNTER[role] = n + 1
     return f"{role}-{n}"
@@ -129,6 +129,7 @@ class AgentProfile:
     escalation_policy: str = "warn"
 
     def __post_init__(self) -> None:
+        """Validate the configured escalation policy."""
         if self.escalation_policy not in ("warn", "halt", "quarantine"):
             raise ValueError(
                 f"escalation_policy must be 'warn', 'halt', or 'quarantine', "

@@ -95,6 +95,7 @@ class TrustControl:
     updated_at: str = ""
 
     def __post_init__(self) -> None:
+        """Normalise and validate the trust-control status."""
         status = self.status.strip().lower()
         if status not in _VALID_TRUST_CONTROL_STATUSES:
             raise ValueError(
@@ -113,7 +114,6 @@ class TrustControl:
 
     def to_dict(self) -> dict[str, str]:
         """Return JSON-compatible tenant-safe control metadata."""
-
         return {
             "control": self.control,
             "status": self.status,
@@ -134,6 +134,7 @@ class ComplianceExportRef:
     updated_at: str = ""
 
     def __post_init__(self) -> None:
+        """Normalise and validate the compliance-export status."""
         status = self.status.strip().lower()
         if status not in _VALID_COMPLIANCE_EXPORT_STATUSES:
             raise ValueError(
@@ -154,7 +155,6 @@ class ComplianceExportRef:
 
     def to_dict(self) -> dict[str, str]:
         """Return JSON-compatible tenant-safe export metadata."""
-
         return {
             "standard": self.standard,
             "name": self.name,
@@ -178,7 +178,6 @@ class TrustConsoleReport:
 
     def to_dict(self) -> dict[str, Any]:
         """Return a tenant-safe JSON-compatible report payload."""
-
         return {
             "title": self.title,
             "generated_at": self.generated_at,
@@ -198,7 +197,6 @@ class TrustConsoleReport:
 
     def to_markdown(self) -> str:
         """Render the Trust Console report as Markdown."""
-
         lines = [
             f"# {self.title}",
             "",
@@ -265,7 +263,6 @@ class ObservabilityOperationsReport:
 
     def to_dict(self) -> dict[str, Any]:
         """Return a tenant-safe JSON-compatible operations packet."""
-
         return {
             "title": self.title,
             "generated_at": self.generated_at,
@@ -294,7 +291,6 @@ class ObservabilityOperationsReport:
 
     def to_markdown(self) -> str:
         """Render the operations report as Markdown."""
-
         lines = [
             f"# {self.title}",
             "",
@@ -357,7 +353,6 @@ def build_safety_dashboard(
         Markdown summary, tenant table rows, contradiction-source rows,
         recent evidence rows, and a ready-to-run retune command.
     """
-
     records, errors = parse_dashboard_records(events_jsonl, feedback_jsonl)
     tenant_rows = _tenant_rows(
         records,
@@ -389,7 +384,6 @@ def build_observability_operations_report(
     min_drift_window_events: int = 2,
 ) -> ObservabilityOperationsReport:
     """Build a tenant-safe halt-forensics and drift operations packet."""
-
     records, errors = parse_dashboard_records(events_jsonl, feedback_jsonl)
     tenants = _tenant_rows(
         records,
@@ -453,7 +447,6 @@ def build_observability_operations_markdown(
     drift_alert_threshold: float = 0.1,
 ) -> str:
     """Render the default operations report for the dashboard UI."""
-
     return build_observability_operations_report(
         events_jsonl,
         feedback_jsonl,
@@ -474,7 +467,6 @@ def build_trust_console_report(
     false_positive_alert_threshold: float = 0.05,
 ) -> TrustConsoleReport:
     """Build a tenant-safe customer Trust Console report."""
-
     records, errors = parse_dashboard_records(events_jsonl, feedback_jsonl)
     tenants = _tenant_rows(
         records,
@@ -529,7 +521,6 @@ def build_retune_guidance(
     min_samples: int = RETUNE_MIN_FEEDBACK_SAMPLES,
 ) -> tuple[str, str]:
     """Build a tuned profile overlay from recent labelled feedback JSONL."""
-
     samples, errors = _feedback_tune_samples(feedback_jsonl)
     if len(samples) < min_samples:
         lines = [
@@ -580,7 +571,6 @@ def parse_dashboard_records(
     feedback_jsonl: str = "",
 ) -> tuple[list[HaltDashboardRecord], list[str]]:
     """Parse dashboard event and feedback JSONL into normalised records."""
-
     records: list[HaltDashboardRecord] = []
     errors: list[str] = []
 
@@ -651,7 +641,6 @@ def _feedback_label(item: dict[str, Any]) -> bool | None:
 
 def launch_safety_dashboard(port: int = 7861, share: bool = False) -> None:
     """Launch the Gradio safety operations dashboard."""
-
     try:
         import gradio as gr
     except ImportError as exc:

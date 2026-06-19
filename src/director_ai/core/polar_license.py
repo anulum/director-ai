@@ -93,7 +93,6 @@ def validate_polar_key(
     endpoint: str | None = None,
 ) -> LicenseInfo:
     """Validate a licence key with Polar's public customer portal endpoint."""
-
     clean_key = key.strip()
     if not clean_key:
         return LicenseInfo(message="No Polar license key provided")
@@ -183,7 +182,6 @@ def activate_polar_key(
     endpoint: str | None = None,
 ) -> PolarActivationInfo:
     """Activate a Polar license key and return the activation identifier."""
-
     clean_key = key.strip()
     activation_label = (
         label or os.environ.get("DIRECTOR_AI_POLAR_ACTIVATION_LABEL") or "director-ai"
@@ -257,7 +255,6 @@ def deactivate_polar_key(
     endpoint: str | None = None,
 ) -> PolarOperationResult:
     """Deactivate a Polar license-key activation."""
-
     clean_key = key.strip()
     clean_activation = activation_id.strip()
     if not clean_key:
@@ -297,7 +294,6 @@ def create_polar_customer_portal_session(
     endpoint: str | None = None,
 ) -> PolarCustomerPortalSession:
     """Create a pre-authenticated Polar customer portal session."""
-
     token = _polar_access_token()
     if not token:
         raise ValueError("DIRECTOR_AI_POLAR_ACCESS_TOKEN is required")
@@ -346,7 +342,6 @@ def validate_polar_webhook(
     now: float | None = None,
 ) -> PolarWebhookEvent:
     """Validate a Polar webhook using the Standard Webhooks HMAC scheme."""
-
     raw_body = body.encode("utf-8") if isinstance(body, str) else body
     webhook_id = _header_value(headers, "webhook-id")
     timestamp_raw = _header_value(headers, "webhook-timestamp")
@@ -387,7 +382,6 @@ def validate_polar_webhook(
 
 def validate_polar_deployment_env() -> PolarDeploymentReport:
     """Check Polar-related environment variables before production deployment."""
-
     errors: list[str] = []
     warnings: list[str] = []
     if not os.environ.get("DIRECTOR_LICENSE_KEY", "").strip():

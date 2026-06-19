@@ -68,9 +68,9 @@ class ResolvedModel:
 class AvailabilityProbe(Protocol):
     """Return whether ``model_id`` at ``revision`` is reachable."""
 
-    def __call__(
-        self, model_id: str, revision: str | None
-    ) -> bool: ...  # pragma: no cover
+    def __call__(self, model_id: str, revision: str | None) -> bool:
+        """Return True when the model revision is currently available."""
+        ...  # pragma: no cover
 
 
 class FallbackModelRegistry:
@@ -108,7 +108,7 @@ class FallbackModelRegistry:
     def candidates(
         self, role: str, primary: str, *, primary_revision: str | None = None
     ) -> list[tuple[str, str | None]]:
-        """The primary followed by the role's fallbacks (primary not repeated)."""
+        """Return the primary followed by the role's fallbacks (primary not repeated)."""
         out: list[tuple[str, str | None]] = [(primary, primary_revision)]
         for model_id in self._chains.get(role, ()):
             if model_id != primary:

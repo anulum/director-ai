@@ -18,7 +18,6 @@ from typing import cast
 
 def _cmd_train(args: list[str]) -> None:
     """Dispatch managed training commands."""
-
     if not args or args[0] in ("-h", "--help", "help"):
         _print_train_help()
         return
@@ -47,7 +46,6 @@ def _cmd_train(args: list[str]) -> None:
 
 def _cmd_train_submit(args: list[str]) -> None:
     """Submit or dry-run a managed training job."""
-
     from director_ai.core.training.jobs import (
         TrainingHardware,
         TrainingJobSpec,
@@ -201,7 +199,6 @@ def _parse_submit_args(args: list[str]) -> dict[str, str | bool | None]:
 
 def _cmd_train_sweep(args: list[str]) -> None:
     """Plan or submit a managed fine-tuning scenario sweep."""
-
     import json
 
     from director_ai.core.training.jobs import (
@@ -427,7 +424,6 @@ def _split_named_uri(option: str, value: str) -> tuple[str, str]:
 
 def _cmd_train_models(args: list[str]) -> None:
     """Print the fine-tune model registry as JSON."""
-
     import json
 
     from director_ai.core.training.model_registry import (
@@ -454,7 +450,6 @@ def _cmd_train_models(args: list[str]) -> None:
 
 def _cmd_train_benchmark_models(args: list[str]) -> None:
     """Benchmark trained model artifacts with identical inputs."""
-
     import json
 
     from director_ai.core.training.finetune_benchmark import (
@@ -478,7 +473,6 @@ def _cmd_train_benchmark_models(args: list[str]) -> None:
 
 def _cmd_train_harvest(args: list[str]) -> None:
     """Collect managed training result artifacts from a sweep prefix."""
-
     import json
 
     from director_ai.core.training.results import harvest_training_results

@@ -179,6 +179,7 @@ class PIIRedactor:
         return self.redact_with_report(text).redacted_text
 
     def __call__(self, text: str) -> str:
+        """Redact the given text and return the sanitised result."""
         return self.redact(text)
 
     def _resolve_detectors(self) -> tuple[ModerationDetector, ...]:

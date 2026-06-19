@@ -5,6 +5,8 @@
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
 # Backward-compat shim: director_ai.core.meta_classifier -> director_ai.core.scoring.meta_classifier
+"""Backward-compatibility re-export of :mod:`director_ai.core.scoring.meta_classifier`."""
+
 import importlib as _il
 import sys as _sys
 
