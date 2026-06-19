@@ -28,6 +28,7 @@ from __future__ import annotations
 import logging
 import time
 from dataclasses import dataclass, field
+from typing import Any
 
 from ..mandatory import mandatory_execution
 
@@ -59,6 +60,7 @@ class KBHealthReport:
 
     @property
     def summary(self) -> str:
+        """Return a one-line human-readable health summary with check counts."""
         status = "HEALTHY" if self.healthy else "UNHEALTHY"
         return (
             f"KB Health: {status} "
@@ -85,7 +87,7 @@ class KBHealthCheck:
 
     def __init__(
         self,
-        store,
+        store: Any,
         probe_queries: list[str] | None = None,
         min_documents: int = 1,
         max_query_latency_ms: float = 100.0,

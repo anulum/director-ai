@@ -116,6 +116,7 @@ jobs:
           src/director_ai/core/policy_compiler
           src/director_ai/core/provenance
           src/director_ai/core/rasp
+          src/director_ai/core/retrieval
           src/director_ai/core/risk_threshold
           src/director_ai/core/safety
           src/director_ai/core/safety_event.py

@@ -6,6 +6,8 @@
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI — Ground Truth Store (RAG Interface)
 
+"""Ground-truth knowledge store: the RAG interface backing grounded answers."""
+
 from __future__ import annotations
 
 import hashlib
@@ -63,7 +65,8 @@ class GroundTruthStore:
 
         ``metadata`` is accepted for Liskov compatibility with
         :class:`VectorGroundTruthStore.add` but ignored here — the
-        keyword store keeps no structured metadata."""
+        keyword store keeps no structured metadata.
+        """
         _ = metadata  # intentional no-op for LSP compat
         key = _require_non_empty_string("key", key)
         value = _require_non_empty_string("value", value)
@@ -94,6 +97,7 @@ class GroundTruthStore:
         top_k: int = 3,
         tenant_id: str = "",
     ) -> list[EvidenceChunk]:
+        """Return the keyword-retrieved context wrapped as evidence chunks."""
         from ..types import EvidenceChunk
 
         context_str = self.retrieve_context(query, tenant_id=tenant_id)

@@ -30,6 +30,8 @@ logger = logging.getLogger("DirectorAI.EmbeddingTuner")
 
 @dataclass
 class TuneResult:
+    """Outcome of an embedding fine-tune: model path and training counts."""
+
     model_path: str
     train_samples: int
     epochs: int

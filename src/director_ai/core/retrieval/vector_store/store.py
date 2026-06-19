@@ -6,8 +6,7 @@
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI — VectorGroundTruthStore
 
-"""``VectorGroundTruthStore`` — semantic RAG store on top of any
-``VectorBackend``.
+"""``VectorGroundTruthStore`` — semantic RAG store over any ``VectorBackend``.
 
 Extends the keyword-based :class:`GroundTruthStore` with
 embedding-based similarity search and exposes a ``grounded()``
@@ -889,7 +888,7 @@ class VectorGroundTruthStore(GroundTruthStore):
         rrf_k: int = 60,
         tenant_id: str = "",
     ) -> VectorGroundTruthStore:
-        """Factory for the recommended grounded retrieval recipe.
+        """Build the recommended grounded retrieval recipe.
 
         Sets up hybrid retrieval (BM25 + dense) with a sentence-transformer
         embedding model. This is the intended production path for domain

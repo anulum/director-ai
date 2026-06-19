@@ -6,8 +6,7 @@
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI — Vector backend protocol and registry
 
-"""VectorBackend protocol, registry, and the dependency-free
-in-memory backend.
+"""VectorBackend protocol, registry, and the dependency-free in-memory backend.
 
 Keeping the ABC and the baseline backend together means any client
 can instantiate a working store with zero optional dependencies —
@@ -123,7 +122,9 @@ class VectorBackend(ABC):
         doc_id: str,
         text: str,
         metadata: dict[str, Any] | None = None,
-    ) -> None: ...  # pragma: no cover
+    ) -> None:
+        """Index ``text`` under ``doc_id`` with optional metadata."""
+        ...  # pragma: no cover
 
     @abstractmethod
     def query(
@@ -131,10 +132,14 @@ class VectorBackend(ABC):
         text: str,
         n_results: int = 3,
         tenant_id: str = "",
-    ) -> list[dict[str, Any]]: ...  # pragma: no cover
+    ) -> list[dict[str, Any]]:
+        """Return the ``n_results`` closest matches to ``text`` for the tenant."""
+        ...  # pragma: no cover
 
     @abstractmethod
-    def count(self) -> int: ...  # pragma: no cover
+    def count(self) -> int:
+        """Return the number of indexed documents."""
+        ...  # pragma: no cover
 
     def delete(self, doc_ids: list[str]) -> int:
         """Delete documents by id when a backend supports mutation."""
@@ -191,6 +196,7 @@ class InMemoryBackend(VectorBackend):
         text: str,
         metadata: dict[str, Any] | None = None,
     ) -> None:
+        """Append a validated document to the in-memory store."""
         if not isinstance(doc_id, str) or not doc_id.strip():
             raise ValueError("doc_id must be a non-empty string")
         if not isinstance(text, str):
@@ -208,6 +214,11 @@ class InMemoryBackend(VectorBackend):
         n_results: int = 3,
         tenant_id: str = "",
     ) -> list[dict[str, Any]]:
+        """Rank stored docs by word overlap and return the top ``n_results``.
+
+        Filters by ``tenant_id`` when given, scores via the Rust word-overlap
+        path (Python Jaccard fallback), and drops zero-overlap matches.
+        """
         if not isinstance(text, str):
             raise ValueError("query text must be a string")
         if not isinstance(tenant_id, str):
@@ -260,10 +271,12 @@ class InMemoryBackend(VectorBackend):
         return results
 
     def count(self) -> int:
+        """Return the number of documents held in memory."""
         with self._lock:
             return len(self._docs)
 
     def delete(self, doc_ids: list[str]) -> int:
+        """Remove documents by id and return how many were deleted."""
         if not isinstance(doc_ids, list):
             raise ValueError("doc_ids must be a list of non-empty strings")
         if any(not isinstance(doc_id, str) or not doc_id.strip() for doc_id in doc_ids):

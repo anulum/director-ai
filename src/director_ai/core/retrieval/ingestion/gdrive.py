@@ -111,10 +111,11 @@ class GoogleDrivePlugin(IngestionPlugin):
         credentials: Any,
         **kwargs: Any,
     ) -> GoogleDrivePlugin:
-        """Build a plugin from
-        ``google.oauth2.service_account.Credentials``. Raises
-        :class:`ImportError` with install instructions if
-        ``google-api-python-client`` is missing."""
+        """Build a plugin from ``service_account.Credentials``.
+
+        Raises :class:`ImportError` with install instructions when
+        ``google-api-python-client`` is missing.
+        """
         try:
             from googleapiclient.discovery import build
         except ImportError as exc:
@@ -127,6 +128,7 @@ class GoogleDrivePlugin(IngestionPlugin):
         return cls(service=service, **kwargs)
 
     def iter_documents(self) -> Iterator[IngestedDocument]:
+        """Yield one ingested document per readable Google Drive file."""
         for file_meta in self._iter_files():
             file_id = file_meta.get("id")
             mime = str(file_meta.get("mimeType", ""))

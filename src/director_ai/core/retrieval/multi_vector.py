@@ -161,7 +161,7 @@ class MultiVectorBackend(VectorBackend):
         return ranked[:n_results]
 
     def count(self) -> int:
-        """Number of indexed representations (not unique documents)."""
+        """Return the number of indexed representations (not unique documents)."""
         return self._base.count()
 
     @property

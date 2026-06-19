@@ -200,7 +200,7 @@ class ParentChildBackend(VectorBackend):
         return results
 
     def count(self) -> int:
-        """Number of indexed children (not parents)."""
+        """Return the number of indexed children (not parents)."""
         return self._base.count()
 
     @property

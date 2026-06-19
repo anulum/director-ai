@@ -6,6 +6,8 @@
 # Contact: www.anulum.li | protoscience@anulum.li
 # retrieval subpackage
 
+"""Grounded retrieval: vector stores, ingestion plugins, chunking, and guards."""
+
 from .conflict_guard import (
     ConflictAwareKnowledgeGuard,
     KnowledgeConflict,

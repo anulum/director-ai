@@ -190,7 +190,6 @@ class ChromaBackend(VectorBackend):
         metadata: dict[str, Any] | None = None,
     ) -> None:
         """Add one document to the Chroma collection."""
-
         self._collection.add(
             ids=[doc_id],
             documents=[text],
@@ -204,7 +203,6 @@ class ChromaBackend(VectorBackend):
         tenant_id: str = "",
     ) -> list[dict[str, Any]]:
         """Query Chroma and normalise result rows to VectorBackend shape."""
-
         where: dict[str, Any] | None = {"tenant_id": tenant_id} if tenant_id else None
         count = self._collection.count()
         if count == 0:

@@ -19,7 +19,7 @@ the adapter is exercisable without the real SDK.
 from __future__ import annotations
 
 import logging
-from collections.abc import Iterable, Iterator
+from collections.abc import Callable, Iterable, Iterator
 from typing import Any
 
 from .base import IngestedDocument, IngestionPlugin
@@ -111,8 +111,10 @@ class NotionPlugin(IngestionPlugin):
     @classmethod
     def from_token(cls, token: str, **kwargs: Any) -> NotionPlugin:
         """Build a plugin backed by a stock ``notion-client.Client``.
-        Raises :class:`ImportError` with install instructions if
-        ``notion-client`` is missing."""
+
+        Raises :class:`ImportError` with install instructions when
+        ``notion-client`` is missing.
+        """
         try:
             from notion_client import Client
         except ImportError as exc:
@@ -123,6 +125,7 @@ class NotionPlugin(IngestionPlugin):
         return cls(client=Client(auth=token), **kwargs)
 
     def iter_documents(self) -> Iterator[IngestedDocument]:
+        """Yield one ingested document per Notion page, honouring ``max_pages``."""
         seen = 0
         for page in self._iter_pages():
             if self._max_pages is not None and seen >= self._max_pages:
@@ -198,7 +201,7 @@ class NotionPlugin(IngestionPlugin):
 
 
 def _paginate(
-    page_fn,
+    page_fn: Callable[..., dict[str, Any]],
 ) -> Iterator[dict[str, Any]]:
     cursor: str | None = None
     while True:

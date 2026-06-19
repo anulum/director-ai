@@ -64,6 +64,7 @@ class RemanentiaVectorBackend(VectorBackend):
         text: str,
         metadata: dict[str, Any] | None = None,
     ) -> None:
+        """Reject writes — this backend is read-only over a Remanentia instance."""
         raise RemanentiaBackendError(
             "RemanentiaVectorBackend is read-only; ingest into Remanentia instead",
         )
@@ -74,6 +75,7 @@ class RemanentiaVectorBackend(VectorBackend):
         n_results: int = 3,
         tenant_id: str = "",
     ) -> list[dict[str, Any]]:
+        """Query the Remanentia public vector search and map hits to documents."""
         if n_results <= 0:
             return []
         payload = {
@@ -106,6 +108,7 @@ class RemanentiaVectorBackend(VectorBackend):
         return docs
 
     def count(self) -> int:
+        """Return the Remanentia instance's semantic plus episodic memory count."""
         response = self._request_json("GET", "/status", None)
         semantic = int(response.get("semantic_memories", 0))
         traces = int(response.get("episodic_traces", 0))

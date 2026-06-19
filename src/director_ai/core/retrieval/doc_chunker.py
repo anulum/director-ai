@@ -18,6 +18,7 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 from functools import lru_cache
+from typing import Any
 
 from ..mandatory import mandatory_execution
 
@@ -28,9 +29,11 @@ try:
 except ImportError:  # pragma: no cover
 
     def rust_split_sentences(_text: str) -> list[str]:
+        """Raise to signal the mandatory Rust sentence splitter is missing."""
         raise RuntimeError("backfire_kernel rust_split_sentences is unavailable")
 
     def rust_sum_f64(_values: list[float]) -> float:
+        """Raise to signal the mandatory Rust sum accelerator is missing."""
         raise RuntimeError("backfire_kernel rust_sum_f64 is unavailable")
 
     # Rust unavailable → fall through to the pure-Python floor.
@@ -39,6 +42,8 @@ except ImportError:  # pragma: no cover
 
 @dataclass(frozen=True)
 class ChunkConfig:
+    """Tunable knobs for the recursive and semantic chunkers."""
+
     chunk_size: int = 512
     overlap: int = 64
     separators: tuple[str, ...] = ("\n\n", "\n", ". ", "? ", "! ", "; ", ", ", " ", "")
@@ -46,6 +51,7 @@ class ChunkConfig:
     similarity_threshold: float = 0.3
 
     def __post_init__(self) -> None:
+        """Reject non-integer sizes, sub-1 chunk size, or negative overlap."""
         if not isinstance(self.chunk_size, int) or isinstance(self.chunk_size, bool):
             raise ValueError("chunk_size must be an integer")
         if self.chunk_size < 1:
@@ -243,7 +249,7 @@ def _sum_float_list(values: list[float]) -> float:
     return float(sum(values))
 
 
-def _embed_sentences(sentences: list[str]):
+def _embed_sentences(sentences: list[str]) -> Any:
     """Embed sentences using sentence-transformers. Returns None if unavailable."""
     try:
         model = _sentence_transformer_model()
@@ -253,7 +259,7 @@ def _embed_sentences(sentences: list[str]):
 
 
 @lru_cache(maxsize=1)
-def _sentence_transformer_model():
+def _sentence_transformer_model() -> Any:
     from sentence_transformers import SentenceTransformer
 
     try:

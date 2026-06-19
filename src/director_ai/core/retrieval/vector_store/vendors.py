@@ -75,7 +75,6 @@ class PineconeBackend(VectorBackend):
         metadata: dict[str, Any] | None = None,
     ) -> None:
         """Upsert one document vector into Pinecone."""
-
         vector = self._embed(text)
         meta = {**(metadata or {}), "text": text}
         self._index.upsert(
@@ -91,7 +90,6 @@ class PineconeBackend(VectorBackend):
         tenant_id: str = "",
     ) -> list[dict[str, Any]]:
         """Query Pinecone and return normalised vector result dictionaries."""
-
         vector = self._embed(text)
 
         filter_dict = None
@@ -176,7 +174,6 @@ class WeaviateBackend(VectorBackend):
         metadata: dict[str, Any] | None = None,
     ) -> None:
         """Insert one object with an optional explicit vector (v4 collections API)."""
-
         props = {"text": text, "doc_id": doc_id, **(metadata or {})}
         vector = self._embed_fn(text) if self._embed_fn else None
         collection = self._client.collections.get(self._class_name)
@@ -194,7 +191,6 @@ class WeaviateBackend(VectorBackend):
         tenant_id: str = "",
     ) -> list[dict[str, Any]]:
         """Near-vector or near-text search via the v4 collections API."""
-
         query_classes = self._weaviate.classes.query
         filters = (
             query_classes.Filter.by_property("tenant_id").equal(tenant_id)
@@ -286,7 +282,6 @@ class QdrantBackend(VectorBackend):
         metadata: dict[str, Any] | None = None,
     ) -> None:
         """Upsert one embedded point into Qdrant."""
-
         from qdrant_client.models import PointStruct
 
         if self._embed_fn is None:
@@ -303,7 +298,6 @@ class QdrantBackend(VectorBackend):
         tenant_id: str = "",
     ) -> list[dict[str, Any]]:
         """Search Qdrant with an optional tenant filter."""
-
         from qdrant_client.models import FieldCondition, Filter, MatchValue
 
         query_filter = None

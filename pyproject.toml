@@ -667,6 +667,8 @@ module = [
     "director_ai.core.provenance.*",
     "director_ai.core.rasp",
     "director_ai.core.rasp.*",
+    "director_ai.core.retrieval",
+    "director_ai.core.retrieval.*",
     "director_ai.core.risk_threshold",
     "director_ai.core.risk_threshold.*",
     "director_ai.core.routing",

@@ -105,9 +105,11 @@ class S3Plugin(IngestionPlugin):
 
     @classmethod
     def from_default_client(cls, bucket: str, **kwargs: Any) -> S3Plugin:
-        """Build a plugin backed by a stock ``boto3`` S3 client. Raises
-        :class:`ImportError` with install instructions if ``boto3`` is
-        missing."""
+        """Build a plugin backed by a stock ``boto3`` S3 client.
+
+        Raises :class:`ImportError` with install instructions when ``boto3``
+        is missing.
+        """
         try:
             import boto3
         except ImportError as exc:
@@ -118,6 +120,7 @@ class S3Plugin(IngestionPlugin):
         return cls(client=boto3.client("s3"), bucket=bucket, **kwargs)
 
     def iter_documents(self) -> Iterator[IngestedDocument]:
+        """Yield one ingested document per matching S3 object."""
         for summary in self._iter_summaries():
             key = summary.get("Key", "")
             if not key:

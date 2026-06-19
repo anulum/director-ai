@@ -97,6 +97,7 @@ class HybridBackend(VectorBackend):
         text: str,
         metadata: dict[str, Any] | None = None,
     ) -> None:
+        """Index the document in the base store and the BM25 term table."""
         self._base.add(doc_id, text, metadata)
         tokens = self._tokenize(text)
         tf: dict[str, int] = {}
@@ -161,6 +162,7 @@ class HybridBackend(VectorBackend):
         n_results: int = 3,
         tenant_id: str = "",
     ) -> list[dict[str, Any]]:
+        """Return the top ``n_results`` by fused dense and BM25 scores."""
         fetch_n = n_results * self._fetch_mul
 
         # Run both retrieval paths
@@ -189,6 +191,7 @@ class HybridBackend(VectorBackend):
         return [doc_map[did] for did, _ in ranked[:n_results]]
 
     def count(self) -> int:
+        """Return the number of documents in the underlying base store."""
         return self._base.count()
 
 
@@ -256,6 +259,7 @@ class RerankedBackend(VectorBackend):
         text: str,
         metadata: dict[str, Any] | None = None,
     ) -> None:
+        """Index the document in the wrapped base store (no reranker state)."""
         self._base.add(doc_id, text, metadata)
 
     def query(
@@ -264,6 +268,7 @@ class RerankedBackend(VectorBackend):
         n_results: int = 3,
         tenant_id: str = "",
     ) -> list[dict[str, Any]]:
+        """Over-fetch from the base store, then cross-encoder rerank to ``n_results``."""
         candidates = self._base.query(
             text,
             n_results=n_results * self._multiplier,
@@ -281,6 +286,7 @@ class RerankedBackend(VectorBackend):
         return [c for _, c in ranked[:n_results]]
 
     def count(self) -> int:
+        """Return the number of documents in the underlying base store."""
         return self._base.count()
 
 

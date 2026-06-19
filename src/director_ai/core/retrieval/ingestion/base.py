@@ -49,6 +49,7 @@ class IngestedDocument:
     metadata: dict[str, Any] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
+        """Reject blank key/source/source_id and strip surrounding whitespace."""
         for field_name in ("key", "source", "source_id"):
             value = getattr(self, field_name)
             if not isinstance(value, str) or not value.strip():
@@ -102,11 +103,11 @@ class IngestionPlugin(ABC):
         *,
         max_documents: int | None = None,
     ) -> int:
-        """Walk :meth:`iter_documents`, post-process, and store each
-        surviving record. Returns the number of documents written.
+        """Walk :meth:`iter_documents`, post-process, and store each record.
 
-        ``max_documents`` caps the run — useful for smoke tests and
-        for bounded budget ingestion against very large sources.
+        Returns the number of documents written. ``max_documents`` caps the
+        run — useful for smoke tests and for bounded-budget ingestion against
+        very large sources.
         """
         if max_documents is not None and max_documents <= 0:
             raise ValueError("max_documents must be positive when provided")
@@ -156,9 +157,11 @@ def _store_add(
 
 
 def chunks(iterable: Iterable[Any], size: int) -> Iterator[list[Any]]:
-    """Simple chunker used by several plugins — batches page-paginated
-    APIs into ``size``-sized lists for bulk processing. Public so
-    caller-supplied subclasses can reuse it without re-rolling."""
+    """Batch ``iterable`` into ``size``-sized lists for bulk processing.
+
+    Used by several plugins to chunk page-paginated APIs. Public so
+    caller-supplied subclasses can reuse it without re-rolling.
+    """
     if size <= 0:
         raise ValueError("chunk size must be positive")
     batch: list[Any] = []
