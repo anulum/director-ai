@@ -149,6 +149,10 @@ jobs:
           src/director_ai/server.py
           src/director_ai/finetune_api.py
           src/director_ai/knowledge_api.py
+          src/director_ai/proxy.py
+          src/director_ai/grpc_server.py
+          src/director_ai/grpc_scoring.py
+          src/director_ai/_cli_serve.py
           --select D
 
   typecheck:

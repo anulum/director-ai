@@ -87,6 +87,7 @@ class CoherenceScoringService(rpc.CoherenceScoringServicer):
         request: pb.ScoreClaimRequest,
         context: grpc.ServicerContext,
     ) -> pb.ScoreClaimResponse:
+        """Score a single claim/source pair and return the coherence response."""
         if not request.claim:
             context.abort(grpc.StatusCode.INVALID_ARGUMENT, "claim is required")
 
@@ -115,6 +116,7 @@ class CoherenceScoringService(rpc.CoherenceScoringServicer):
         request_iterator: Iterable[pb.ScoreTokenRequest],
         context: grpc.ServicerContext,
     ) -> Iterator[pb.ScoreTokenResponse]:
+        """Score a stream of token requests, yielding a response per token."""
         documents_seen: set[str] = set()
         for req in request_iterator:
             if not context.is_active():  # pragma: no cover — cancel path
@@ -196,7 +198,9 @@ def serve(
             ("grpc.max_receive_message_length", 8 * 1024 * 1024),
         ),
     )
-    rpc.add_CoherenceScoringServicer_to_server(
+    # The generated grpc ``*_pb2_grpc`` stubs are untyped, so this registration
+    # call is untyped to mypy.
+    rpc.add_CoherenceScoringServicer_to_server(  # type: ignore[no-untyped-call]
         service or CoherenceScoringService(),
         server,
     )

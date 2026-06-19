@@ -26,6 +26,7 @@ import logging
 import threading
 import time
 from collections import defaultdict
+from collections.abc import Iterator
 from typing import Any
 
 from .core.config import DirectorConfig
@@ -93,7 +94,7 @@ def create_grpc_server(
     port: int = 50051,
     tls_cert_path: str | None = None,
     tls_key_path: str | None = None,
-):
+) -> Any:
     """Create and return a gRPC server (not yet started).
 
     Raises ImportError with install instructions if grpcio is missing.
@@ -157,7 +158,7 @@ def create_grpc_server(
     )
     _bg_thread.start()
 
-    def _tenant_from_context(context) -> str:
+    def _tenant_from_context(context: Any) -> str:
         """Resolve the effective tenant from gRPC metadata."""
         metadata = dict(context.invocation_metadata())
         api_key: str = metadata.get("x-api-key", "")
@@ -165,7 +166,7 @@ def create_grpc_server(
             return _api_key_tenant_map.get(api_key, "")
         return str(metadata.get("x-tenant-id", ""))
 
-    def _enforce_rate_limit(context, tenant_id: str, *, cost: int = 1) -> None:
+    def _enforce_rate_limit(context: Any, tenant_id: str, *, cost: int = 1) -> None:
         """Abort the RPC when the tenant rate limit is exhausted."""
         if _rate_limiter.allow(tenant_id, cost=cost):
             return
@@ -186,7 +187,7 @@ def create_grpc_server(
         binding.
         """
 
-        def review(self, request, context):
+        def review(self, request: Any, context: Any) -> Any:
             """Score one prompt/response pair."""
             tid = _tenant_from_context(context)
             _enforce_rate_limit(context, tid)
@@ -203,7 +204,7 @@ def create_grpc_server(
                 warning=score.warning,
             )
 
-        def process(self, request, context):
+        def process(self, request: Any, context: Any) -> Any:
             """Generate and score one agent response."""
             tid = _tenant_from_context(context)
             _enforce_rate_limit(context, tid)
@@ -217,7 +218,7 @@ def create_grpc_server(
                 fallback_used=result.fallback_used,
             )
 
-        def review_batch(self, request, context):
+        def review_batch(self, request: Any, context: Any) -> Any:
             """Score a bounded batch of prompt/response pairs."""
             if len(request.requests) > 1000:
                 context.abort(
@@ -245,7 +246,7 @@ def create_grpc_server(
                 )
             return batch_resp(responses=responses)
 
-        def stream_tokens(self, request, context):
+        def stream_tokens(self, request: Any, context: Any) -> Iterator[Any]:
             """Stream generated tokens with per-token coherence metadata."""
             import queue
 
@@ -253,7 +254,7 @@ def create_grpc_server(
             _enforce_rate_limit(context, tid)
             q: queue.Queue[tuple[str, float] | None] = queue.Queue()
 
-            async def _produce():
+            async def _produce() -> None:
                 """Bridge async agent streaming into the synchronous RPC iterator."""
                 try:
                     async for tok, coh in agent.stream(request.prompt, tenant_id=tid):
@@ -292,7 +293,9 @@ def create_grpc_server(
     class _AuthInterceptor(grpc.ServerInterceptor):
         """Validate gRPC API keys before dispatching service handlers."""
 
-        def intercept_service(self, continuation, handler_call_details):
+        def intercept_service(
+            self, continuation: Any, handler_call_details: Any
+        ) -> Any:
             """Return an authenticated handler or an aborting RPC handler."""
             if not cfg.api_keys:
                 return continuation(handler_call_details)
@@ -300,16 +303,19 @@ def create_grpc_server(
             provided = metadata.get("x-api-key", "")
             if not any(hmac.compare_digest(provided, k) for k in cfg.api_keys):
 
-                def _abort(req, ctx):
+                def _abort(req: Any, ctx: Any) -> None:
                     """Abort unauthenticated RPCs with a stable status code."""
                     ctx.abort(grpc.StatusCode.UNAUTHENTICATED, "invalid API key")
+
+                def _abort_stream(req: Any, ctx: Any) -> Iterator[Any]:
+                    """Abort an unauthenticated streaming RPC before yielding."""
+                    _abort(req, ctx)
+                    return iter(())  # pragma: no cover — _abort always raises
 
                 # Detect RPC type from method name to return correct handler
                 method = handler_call_details.method or ""
                 if "Stream" in method.rsplit("/", 1)[-1]:
-                    return grpc.unary_stream_rpc_method_handler(
-                        lambda req, ctx: iter([_abort(req, ctx)]),
-                    )
+                    return grpc.unary_stream_rpc_method_handler(_abort_stream)
                 return grpc.unary_unary_rpc_method_handler(_abort)
             return continuation(handler_call_details)
 
@@ -346,7 +352,9 @@ def create_grpc_server(
     if has_proto:
         from . import director_pb2_grpc
 
-        director_pb2_grpc.add_DirectorServiceServicer_to_server(
+        # The generated grpc ``*_pb2_grpc`` stubs are untyped, so this
+        # registration call is untyped to mypy.
+        director_pb2_grpc.add_DirectorServiceServicer_to_server(  # type: ignore[no-untyped-call]
             DirectorServicer(),
             server,
         )

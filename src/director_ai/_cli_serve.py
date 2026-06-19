@@ -15,9 +15,13 @@ from __future__ import annotations
 import json
 import os
 import sys
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from director_ai.core.config import DirectorConfig
 
 
-def _apply_run_mode(config, run_mode: str):
+def _apply_run_mode(config: DirectorConfig, run_mode: str) -> DirectorConfig:
     """Apply the explicit ``--dev`` / ``--production`` run mode to ``config``.
 
     Enforces that production is never entered implicitly: starting in production
@@ -49,7 +53,9 @@ def _apply_run_mode(config, run_mode: str):
     return config
 
 
-def _resolve_bind_host(config, host: str, host_explicit: bool) -> str:
+def _resolve_bind_host(
+    config: DirectorConfig, host: str, host_explicit: bool
+) -> str:
     """Resolve the server bind host from the ``--host`` flag and run mode.
 
     Precedence: an explicit ``--host`` wins; then an explicit
@@ -309,11 +315,11 @@ def _cmd_stress_test(args: list[str]) -> None:
 
     from director_ai.core.runtime.streaming import StreamingKernel
 
-    def _coherence_cb(token):
+    def _coherence_cb(token: str) -> float:
         h = hash(token) & 0xFFFFFFFF
         return 0.8 + 0.1 * math.sin(h)
 
-    def _run_one(stream_id):
+    def _run_one(stream_id: int) -> dict[str, Any]:
         kernel = StreamingKernel()
         tokens = [f"tok{j}" for j in range(tokens_per_stream)]
         t0 = time.monotonic()
@@ -342,7 +348,7 @@ def _cmd_stress_test(args: list[str]) -> None:
 
     latencies.sort()
 
-    def _pct(sorted_vals, q):
+    def _pct(sorted_vals: list[float], q: float) -> float:
         idx = int(q * (len(sorted_vals) - 1))
         return sorted_vals[idx]
 

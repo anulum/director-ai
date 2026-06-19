@@ -14,13 +14,33 @@ hallucination scoring with zero code changes::
     director-ai proxy --port 8080 --facts kb.txt --threshold 0.6
 """
 
+from __future__ import annotations
+
 import hmac
 import json
 import logging
 import pathlib
 import time as _time
+from collections.abc import AsyncIterator, Awaitable, Callable
+from typing import TYPE_CHECKING, Any
 
 from director_ai.core import CoherenceScorer, GroundTruthStore
+
+# FastAPI resolves route-handler annotations at runtime (``get_type_hints``), so
+# the types named in handler signatures must exist in module globals — not only
+# under ``TYPE_CHECKING``. Import them at module level, degrading gracefully when
+# the optional ``[server]`` extra is absent (the proxy still imports; building an
+# app raises a clear ImportError instead).
+try:
+    from fastapi import FastAPI, Request, Response
+    from fastapi.responses import JSONResponse, StreamingResponse
+except ImportError:  # pragma: no cover — exercised only without the server extra
+    pass
+
+if TYPE_CHECKING:
+    import httpx
+
+    from director_ai.core.config import DirectorConfig
 
 _log = logging.getLogger("DirectorAI.Proxy")
 
@@ -71,9 +91,9 @@ def create_proxy_app(
     api_keys: list[str] | None = None,
     allow_http_upstream: bool = False,
     audit_db: str | None = None,
-    config=None,
-    _transport=None,
-):
+    config: DirectorConfig | None = None,
+    _transport: Any = None,
+) -> FastAPI:
     """Build a FastAPI app that proxies OpenAI requests with scoring.
 
     Parameters
@@ -111,7 +131,7 @@ def create_proxy_app(
     from contextlib import asynccontextmanager
 
     import httpx
-    from fastapi import FastAPI, Request
+    from fastapi import FastAPI
     from fastapi.responses import JSONResponse
 
     if on_fail not in ("reject", "warn"):
@@ -153,7 +173,7 @@ def create_proxy_app(
         _log.info("Compliance audit log: %s", audit_db)
 
     @asynccontextmanager
-    async def _lifespan(app):
+    async def _lifespan(app: FastAPI) -> AsyncIterator[None]:
         yield
         if audit_log is not None:
             audit_log.close()
@@ -168,7 +188,10 @@ def create_proxy_app(
     else:
 
         @app.middleware("http")
-        async def _auth_middleware(request: Request, call_next):
+        async def _auth_middleware(
+            request: Request,
+            call_next: Callable[[Request], Awaitable[Response]],
+        ) -> Response:
             if request.url.path == "/health":
                 return await call_next(request)
             provided = request.headers.get("X-API-Key", "")
@@ -185,23 +208,23 @@ def create_proxy_app(
             return await call_next(request)
 
     @app.get("/health")
-    async def health():
+    async def health() -> dict[str, Any]:
         return {"status": "ok", "threshold": threshold, "on_fail": on_fail}
 
-    def _client(**kw):
+    def _client(**kw: Any) -> httpx.AsyncClient:
         if _transport is not None:
             kw["transport"] = _transport
         return httpx.AsyncClient(**kw)
 
     @app.get("/v1/models")
-    async def proxy_models(request: Request):
+    async def proxy_models(request: Request) -> JSONResponse:
         async with _client() as client:
             headers = _forward_headers(request)
             resp = await client.get(f"{upstream}/v1/models", headers=headers)
             return JSONResponse(content=resp.json(), status_code=resp.status_code)
 
     @app.post("/v1/chat/completions")
-    async def proxy_chat(request: Request):
+    async def proxy_chat(request: Request) -> Response:
         body = await request.json()
         messages = body.get("messages", [])
         prompt = _extract_prompt(messages)
@@ -275,19 +298,19 @@ def create_proxy_app(
 
 
 async def _handle_streaming(
-    body,
-    headers,
-    upstream,
-    prompt,
-    scorer,
-    on_fail,
-    transport=None,
-    audit_log=None,
-):
+    body: dict[str, Any],
+    headers: dict[str, str],
+    upstream: str,
+    prompt: str,
+    scorer: Any,
+    on_fail: str,
+    transport: Any = None,
+    audit_log: Any = None,
+) -> StreamingResponse:
     import httpx
     from fastapi.responses import StreamingResponse
 
-    async def _stream():
+    async def _stream() -> AsyncIterator[str]:
         buffer: list[str] = []
         chunk_count = 0
         model_name = body.get("model", "unknown")
@@ -374,7 +397,7 @@ async def _handle_streaming(
 
 
 def _audit_log_entry(
-    audit_log,
+    audit_log: Any,
     prompt: str,
     response: str,
     *,
@@ -406,7 +429,7 @@ def _audit_log_entry(
     )
 
 
-def _extract_prompt(messages: list[dict]) -> str:
+def _extract_prompt(messages: list[dict[str, Any]]) -> str:
     for msg in reversed(messages):
         if msg.get("role") == "user":
             content = msg.get("content", "")
@@ -420,7 +443,7 @@ def _extract_prompt(messages: list[dict]) -> str:
     return ""
 
 
-def _forward_headers(request) -> dict[str, str]:
+def _forward_headers(request: Request) -> dict[str, str]:
     headers = {}
     auth = request.headers.get("authorization")
     if auth:
