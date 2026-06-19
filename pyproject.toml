@@ -522,18 +522,6 @@ strict_equality = true
 warn_unused_ignores = true
 
 [[tool.mypy.overrides]]
-module = "director_ai.core.scoring.scorer"
-disallow_untyped_defs = true
-disallow_incomplete_defs = true
-disallow_untyped_calls = true
-disallow_untyped_decorators = true
-disallow_any_generics = true
-warn_return_any = true
-no_implicit_reexport = true
-strict_equality = true
-warn_unused_ignores = true
-
-[[tool.mypy.overrides]]
 module = "director_ai.core.config"
 disallow_untyped_defs = true
 disallow_incomplete_defs = true
@@ -677,6 +665,8 @@ module = [
     "director_ai.core.safety.*",
     "director_ai.core.safety_event",
     "director_ai.core.safety_protocol",
+    "director_ai.core.scoring",
+    "director_ai.core.scoring.*",
     "director_ai.core.secrets",
     "director_ai.core.self_evolving",
     "director_ai.core.self_evolving.*",

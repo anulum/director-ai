@@ -67,7 +67,7 @@ jobs:
           src/director_ai/core/causal_verifier
           src/director_ai/core/citation_grounding
           src/director_ai/core/config.py
-          src/director_ai/core/scoring/scorer.py
+          src/director_ai/core/scoring
           src/director_ai/core/containment
           src/director_ai/core/consensus
           src/director_ai/core/doc_chunker.py

@@ -6,9 +6,10 @@
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI — Lite Scorer (No-NLI Fast Path)
 
-"""Lightweight divergence scorer using word overlap, length ratio,
-named entity heuristics, and negation asymmetry. ~0.5ms/pair,
-~65% accuracy on AggreFact subset.
+"""Lightweight divergence scorer over fast lexical heuristics.
+
+Combines word overlap, length ratio, named-entity heuristics, and negation
+asymmetry. ~0.5ms/pair, ~65% accuracy on the AggreFact subset.
 
 Usage::
 

@@ -5,3 +5,5 @@
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
 # scoring subpackage
+
+"""Hallucination-divergence scorers: NLI, rules, embeddings, consensus, and more."""

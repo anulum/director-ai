@@ -21,7 +21,7 @@ Usage::
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
 
 from director_ai.core.guard_control import (
@@ -104,6 +104,7 @@ class BFTConsensusVote:
     evidence_ref: str = ""
 
     def __post_init__(self) -> None:
+        """Reject a blank verifier name."""
         if not self.verifier.strip():
             raise ValueError("verifier must be non-empty")
         if self.verdict not in {"allow", "warn", "halt"}:
@@ -224,6 +225,7 @@ class CriticalConsensusProfile:
     max_interval_width: float = 0.35
 
     def __post_init__(self) -> None:
+        """Normalise and deduplicate the required verifiers, rejecting an empty set."""
         required = tuple(sorted({name.strip() for name in self.required_verifiers}))
         if not required:
             raise ValueError("required_verifiers are required")
@@ -256,10 +258,10 @@ class ConsensusScorer:
     def __init__(
         self,
         models: list[str],
-        generate_fn=None,
-        score_fn=None,
+        generate_fn: Callable[[str, str], str] | None = None,
+        score_fn: Callable[[str, str], float] | None = None,
         agreement_threshold: float = 0.5,
-    ):
+    ) -> None:
         if len(models) < 2:
             raise ValueError("Need at least 2 models for consensus scoring")
         self._models = models

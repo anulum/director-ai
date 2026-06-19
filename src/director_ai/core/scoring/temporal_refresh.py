@@ -159,7 +159,9 @@ class WebSearchProvider(Protocol):
 
     def search(
         self, query: str, *, max_results: int
-    ) -> list[SearchHit]: ...  # pragma: no cover
+    ) -> list[SearchHit]:
+        """Return up to ``max_results`` ranked web-search hits for ``query``."""
+        ...  # pragma: no cover
 
 
 @dataclass(frozen=True)
@@ -193,14 +195,17 @@ class RefreshReport:
 
     @property
     def drift_suspected(self) -> list[ClaimRefresh]:
+        """Return refreshes whose verdict flags suspected drift."""
         return [r for r in self.refreshes if r.verdict == "drift_suspected"]
 
     @property
     def supported(self) -> list[ClaimRefresh]:
+        """Return refreshes whose verdict is supported."""
         return [r for r in self.refreshes if r.verdict == "supported"]
 
     @property
     def contradicted(self) -> list[ClaimRefresh]:
+        """Return refreshes whose verdict is contradicted."""
         return [r for r in self.refreshes if r.verdict == "contradicted"]
 
 
@@ -254,6 +259,7 @@ class DuckDuckGoSearchProvider:
         self._http = http if http is not None else _HttpxGetter(timeout)
 
     def search(self, query: str, *, max_results: int) -> list[SearchHit]:
+        """Return up to ``max_results`` hits scraped from DuckDuckGo HTML."""
         url = f"{_DDG_HTML_URL}?q={_quote(query)}"
         try:
             status, body, _ = self._http.get(url, headers={"User-Agent": _USER_AGENT})
@@ -313,7 +319,7 @@ class TemporalRefresher:
 
     @staticmethod
     def _claim_context(claim: FreshnessClaim, source_text: str) -> str:
-        """The claim span, widened to include the asserted value when possible.
+        """Return the claim span, widened to include the asserted value if possible.
 
         The freshness regexes capture a position claim's *office* ("the CEO of
         Twitter is") but stop before the *incumbent* ("Jack Dorsey"). When the

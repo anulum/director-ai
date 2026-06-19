@@ -17,6 +17,8 @@ from __future__ import annotations
 
 import logging
 import re
+from collections.abc import Callable
+from typing import Any
 
 from ..mandatory import mandatory_execution
 from ..types import ScoringEvidence
@@ -131,12 +133,12 @@ def detect_task_type(prompt: str, response: str = "") -> str:
 
 
 def dialogue_factual_divergence(
-    nli_scorer,
+    nli_scorer: Any,
     prompt: str,
     response: str,
     tenant_id: str,
     *,
-    calculate_factual_with_evidence,
+    calculate_factual_with_evidence: Callable[..., tuple[float, ScoringEvidence | None]],
     baseline: float = 0.80,
 ) -> tuple[float, ScoringEvidence | None]:
     """Bidirectional NLI scoring with baseline calibration for dialogue.
@@ -189,12 +191,12 @@ def dialogue_factual_divergence(
 
 
 def summarization_factual_divergence(
-    nli_scorer,
+    nli_scorer: Any,
     prompt: str,
     response: str,
     tenant_id: str,
     *,
-    calculate_factual_with_evidence,
+    calculate_factual_with_evidence: Callable[..., tuple[float, ScoringEvidence | None]],
     fact_inner_agg: str = "max",
     fact_outer_agg: str = "max",
     premise_ratio: float = 0.4,
@@ -202,7 +204,7 @@ def summarization_factual_divergence(
     claim_support_threshold: float = 0.6,
     claim_coverage_alpha: float = 0.4,
     baseline: float = 0.20,
-    get_minicheck_scorer=None,
+    get_minicheck_scorer: Callable[[], Any] | None = None,
 ) -> tuple[float, ScoringEvidence | None]:
     """Bidirectional NLI + claim coverage for summarisation.
 
@@ -292,7 +294,7 @@ def summarization_factual_divergence(
 
 
 def minicheck_claim_coverage(
-    mc_scorer,
+    mc_scorer: Any,
     source: str,
     summary: str,
 ) -> tuple[float, list[float], list[str]]:

@@ -17,6 +17,7 @@ from __future__ import annotations
 import logging
 import time
 import warnings
+from collections.abc import Callable
 from typing import Any, cast
 
 from ..metrics import metrics
@@ -83,7 +84,7 @@ class LLMJudge:
         device: str | None = None,
         privacy_mode: bool = False,
         task_judge_thresholds: dict[str, float] | None = None,
-        cost_callback=None,
+        cost_callback: Callable[[str, int, int], None] | None = None,
     ) -> None:
         self.provider = provider
         self.model = model
@@ -174,7 +175,7 @@ class LLMJudge:
         return not (self.provider == "local" and self._local_judge_model is None)
 
     def should_escalate(self, nli_score: float, task_type: str = "default") -> bool:
-        """True when the judge should be consulted for *nli_score*."""
+        """Report whether the judge should be consulted for *nli_score*."""
         if not self.enabled:
             return False
         threshold = self.task_judge_thresholds.get(
@@ -191,7 +192,7 @@ class LLMJudge:
         response: str,
         nli_score: float,
         *,
-        redactor=None,
+        redactor: Callable[[str], str] | None = None,
     ) -> float:
         """Escalate to judge and return adjusted divergence score.
 
@@ -291,7 +292,7 @@ class LLMJudge:
         response: str,
         nli_score: float,
         *,
-        redactor=None,
+        redactor: Callable[[str], str] | None = None,
     ) -> float:
         """Escalate to external LLM judge (OpenAI / Anthropic)."""
         import os
@@ -318,7 +319,7 @@ class LLMJudge:
         p_text = prompt[:500]
         r_text = response[:500]
         redacted = self._privacy_mode and redactor is not None
-        if redacted:
+        if self._privacy_mode and redactor is not None:
             p_text = redactor(p_text)
             r_text = redactor(r_text)
 

@@ -39,6 +39,7 @@ try:
 except ImportError:
 
     def rust_sum_f64(_values: list[float]) -> float:
+        """Raise to signal the mandatory Rust sum accelerator is missing."""
         raise RuntimeError("backfire_kernel rust_sum_f64 is unavailable")
 
     _RUST_META = True
@@ -121,7 +122,7 @@ def extract_features(
     nli_score: float,
     confidence: float,
     chunk_count: int = 1,
-) -> dict:
+) -> dict[str, float]:
     """Extract meta-classifier features from a scored pair."""
     h_words = hypothesis.lower().split()
     p_words = premise.lower().split()
@@ -162,7 +163,7 @@ def extract_features(
     }
 
 
-def extract_text_features(premise: str, hypothesis: str) -> dict:
+def extract_text_features(premise: str, hypothesis: str) -> dict[str, float]:
     """Extract text-only features (no NLI score needed)."""
     return extract_features(premise, hypothesis, nli_score=0.0, confidence=0.0)
 

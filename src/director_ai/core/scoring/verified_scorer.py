@@ -25,7 +25,7 @@ from __future__ import annotations
 import logging
 import re
 from dataclasses import dataclass, field
-from typing import Literal, Protocol, cast
+from typing import Any, Literal, Protocol, cast
 
 from ..mandatory import mandatory_execution
 from ..text_overlap import word_overlap
@@ -48,24 +48,31 @@ except ImportError:
     _RUST_SIGNALS = True
 
     def rust_sum_i64(_values: list[int]) -> int:
+        """Raise to signal the mandatory Rust int-sum accelerator is missing."""
         raise RuntimeError("backfire_kernel rust_sum_i64 is unavailable")
 
     def rust_sum_f64(_values: list[float]) -> float:
+        """Raise to signal the mandatory Rust float-sum accelerator is missing."""
         raise RuntimeError("backfire_kernel rust_sum_f64 is unavailable")
 
     def rust_entity_overlap(_claim: str, _source: str) -> float:
+        """Raise to signal the mandatory Rust entity-overlap signal is missing."""
         raise RuntimeError("backfire_kernel rust_entity_overlap is unavailable")
 
     def rust_negation_flip(_claim: str, _source: str) -> bool:
+        """Raise to signal the mandatory Rust negation-flip signal is missing."""
         raise RuntimeError("backfire_kernel rust_negation_flip is unavailable")
 
     def rust_numerical_consistency(_claim: str, _source: str) -> bool:
+        """Raise to signal the mandatory Rust numeric-consistency signal is missing."""
         raise RuntimeError("backfire_kernel rust_numerical_consistency is unavailable")
 
     def rust_split_sentences(_text: str) -> list[str]:
+        """Raise to signal the mandatory Rust sentence splitter is missing."""
         raise RuntimeError("backfire_kernel rust_split_sentences is unavailable")
 
     def rust_traceability(_claim: str, _source: str) -> float:
+        """Raise to signal the mandatory Rust traceability signal is missing."""
         raise RuntimeError("backfire_kernel rust_traceability is unavailable")
 
 
@@ -118,6 +125,8 @@ class SourceSpan:
 
 @dataclass
 class ClaimVerdict:
+    """Per-claim verification outcome with each contributing signal."""
+
     claim: str
     claim_index: int
     matched_source: str
@@ -139,6 +148,8 @@ class ClaimVerdict:
 
 @dataclass
 class VerificationResult:
+    """Whole-response verdict: approval, score, and per-claim breakdown."""
+
     approved: bool
     overall_score: float
     confidence: str  # "high", "medium", "low"
@@ -149,7 +160,8 @@ class VerificationResult:
     unverifiable_count: int = 0
     coverage: float = 0.0
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict[str, Any]:
+        """Render the verdict and every claim as a JSON-ready mapping."""
         return {
             "approved": self.approved,
             "overall_score": round(self.overall_score, 4),
@@ -196,7 +208,9 @@ class TraceabilityScorer(Protocol):
     protocol without importing sentence-transformers on the default path.
     """
 
-    def score(self, premise: str, hypothesis: str) -> float: ...
+    def score(self, premise: str, hypothesis: str) -> float:
+        """Return the groundedness similarity of ``hypothesis`` to ``premise``."""
+        ...
 
 
 class VerifiedScorer:
@@ -214,7 +228,7 @@ class VerifiedScorer:
 
     def __init__(
         self,
-        nli_scorer=None,
+        nli_scorer: Any = None,
         nli_threshold: float = 0.65,
         support_threshold: float = 0.35,
         min_confidence: float = 0.4,

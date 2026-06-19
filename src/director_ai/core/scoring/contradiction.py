@@ -191,7 +191,7 @@ class ContradictionScorer:
         return [float(x) for x in probs.tolist()]
 
     def contradicts(self, premise: str, hypothesis: str) -> bool:
-        """True when ``P(contradiction)`` meets the halt threshold."""
+        """Report whether ``P(contradiction)`` meets the halt threshold."""
         return self.contradiction(premise, hypothesis) >= self._threshold
 
     def judge(self, premise: str, hypothesis: str) -> ContradictionResult:
@@ -201,4 +201,5 @@ class ContradictionScorer:
 
     @property
     def threshold(self) -> float:
+        """Return the contradiction-probability halt threshold."""
         return self._threshold

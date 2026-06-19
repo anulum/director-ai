@@ -6,8 +6,9 @@
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI — Pluggable Scorer Backend Registry
 
-"""ABC + registry for scorer backends. Third-party backends register
-via ``director_ai.backends`` entry points.
+"""ABC and registry for scorer backends.
+
+Third-party backends register via ``director_ai.backends`` entry points.
 
 Usage::
 
@@ -110,7 +111,7 @@ def _load_entry_points() -> None:
 class DeBERTaBackend(ScorerBackend):
     """Wraps PyTorch NLI inference."""
 
-    def __init__(self, **kwargs) -> None:
+    def __init__(self, **kwargs: Any) -> None:
         """Initialise the PyTorch-backed NLI scorer."""
         from .nli import NLIScorer
 
@@ -128,7 +129,7 @@ class DeBERTaBackend(ScorerBackend):
 class OnnxBackend(ScorerBackend):
     """Wraps ONNX Runtime inference."""
 
-    def __init__(self, **kwargs) -> None:
+    def __init__(self, **kwargs: Any) -> None:
         """Initialise the ONNX-backed NLI scorer."""
         from .nli import NLIScorer
 
@@ -146,7 +147,7 @@ class OnnxBackend(ScorerBackend):
 class MiniCheckBackend(ScorerBackend):
     """Wraps MiniCheck inference."""
 
-    def __init__(self, **kwargs) -> None:
+    def __init__(self, **kwargs: Any) -> None:
         """Initialise the MiniCheck-backed NLI scorer."""
         from .nli import NLIScorer
 
@@ -182,7 +183,7 @@ class LiteBackend(ScorerBackend):
 class RustBackend(ScorerBackend):
     """Wraps backfire_kernel.RustCoherenceScorer (heuristic-only, sub-1ms)."""
 
-    def __init__(self, **kwargs) -> None:
+    def __init__(self, **kwargs: Any) -> None:
         """Initialise the Rust coherence scorer wrapper."""
         from backfire_kernel import BackfireConfig, RustCoherenceScorer
 
@@ -204,7 +205,7 @@ class RustBackend(ScorerBackend):
 class RulesBackendWrapper(ScorerBackend):
     """Wraps RulesBackend (zero ML deps, <1ms, rule-based)."""
 
-    def __init__(self, **kwargs) -> None:
+    def __init__(self, **kwargs: Any) -> None:
         """Initialise the rule-based scorer wrapper."""
         from .rules_scorer import RulesBackend
 
@@ -232,7 +233,7 @@ register_backend("rules", RulesBackendWrapper)
 class EmbedBackendWrapper(ScorerBackend):
     """Wraps EmbedBackend (sentence-transformers, ~65% BA, 3ms CPU)."""
 
-    def __init__(self, **kwargs) -> None:
+    def __init__(self, **kwargs: Any) -> None:
         """Initialise the embedding-backed scorer wrapper."""
         from .embed_scorer import EmbedBackend
 
@@ -263,7 +264,7 @@ except ImportError:  # pragma: no cover
 class DistilledNLIBackendWrapper(ScorerBackend):
     """Wraps DistilledNLIBackend for validated local or remote artefacts."""
 
-    def __init__(self, **kwargs) -> None:
+    def __init__(self, **kwargs: Any) -> None:
         """Initialise the distilled NLI scorer wrapper."""
         from .distilled_scorer import DistilledNLIBackend
 

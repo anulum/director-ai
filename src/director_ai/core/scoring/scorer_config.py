@@ -82,6 +82,7 @@ class ScorerConfig:
     privacy_mode: bool = False
 
     def __post_init__(self) -> None:
+        """Reject a threshold outside [0, 1]."""
         if not (0.0 <= self.threshold <= 1.0):
             raise ValueError(f"threshold must be in [0, 1], got {self.threshold}")
         if self.soft_limit is not None and not (0.0 <= self.soft_limit <= 1.0):

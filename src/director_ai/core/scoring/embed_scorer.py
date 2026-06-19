@@ -71,7 +71,7 @@ class EmbedBackend:
         self._cache_dir = cache_dir
         self._model: SentenceTransformer | None = None  # lazy
 
-    def _ensure_model(self):
+    def _ensure_model(self) -> None:
         """Lazy-load the sentence-transformer model."""
         if self._model is not None:
             return

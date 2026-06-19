@@ -26,9 +26,12 @@ import re
 import warnings
 from functools import lru_cache
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import numpy as np
+
+if TYPE_CHECKING:
+    from ..types import ClaimAttribution
 
 from ..mandatory import mandatory_execution
 from ..metrics import metrics
@@ -313,7 +316,7 @@ def _weighted_sum_float(values: list[float], weights: list[float]) -> float:
     return _sum_float_list((vec * w).tolist())
 
 
-def _resolve_label_indices(model) -> tuple[int, int]:
+def _resolve_label_indices(model: Any) -> tuple[int, int]:
     """Read model.config.id2label to find contradiction and neutral indices.
 
     Returns (contradiction_idx, neutral_idx). Falls back to (2, 1) if
@@ -390,7 +393,7 @@ def _load_nli_model(
     device: str | None = None,
     torch_dtype: str | None = None,
     revision: str | None = None,
-):
+) -> tuple[Any, Any]:
     """Lazily load an NLI model + tokenizer (cached by model_name).
 
     Call ``clear_model_cache()`` to release GPU memory held by cached models.
@@ -434,7 +437,7 @@ def _load_nli_model(
                 model_source, use_fast=False, revision=rev
             )
 
-            load_kwargs: dict = {}
+            load_kwargs: dict[str, Any] = {}
             if torch_dtype:
                 dtype_map = {
                     "float16": torch.float16,
@@ -1512,7 +1515,7 @@ class NLIScorer:
         source: str,
         summary: str,
         support_threshold: float = 0.6,
-    ) -> tuple[float, list[float], list[str], list]:
+    ) -> tuple[float, list[float], list[str], list[ClaimAttribution]]:
         """Like score_claim_coverage but also returns sentence-level attributions.
 
         For each claim, finds the source sentence with lowest divergence

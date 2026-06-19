@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import itertools
 import threading
+from typing import Any
 
 from .nli import NLIScorer
 
@@ -34,7 +35,7 @@ class ShardedNLIScorer:
 
     """
 
-    def __init__(self, devices: list[str], **kwargs) -> None:
+    def __init__(self, devices: list[str], **kwargs: Any) -> None:
         if not devices:
             raise ValueError("devices list must be non-empty")
         self._scorers = [NLIScorer(device=dev, **kwargs) for dev in devices]
@@ -47,9 +48,11 @@ class ShardedNLIScorer:
         return self._scorers[idx]
 
     def score(self, premise: str, hypothesis: str) -> float:
+        """Score one pair on the next shard in round-robin order."""
         return self._next_scorer().score(premise, hypothesis)
 
     def score_batch(self, pairs: list[tuple[str, str]]) -> list[float]:
+        """Partition pairs across shards and score them concurrently."""
         n = len(self._scorers)
         if len(pairs) <= n:
             return self._next_scorer().score_batch(pairs)
@@ -82,16 +85,19 @@ class ShardedNLIScorer:
         hypothesis: str,
         outer_agg: str = "max",
         inner_agg: str = "max",
-        **kwargs,
+        **kwargs: Any,
     ) -> tuple[float, list[float]]:
+        """Score a chunked pair on the next shard in round-robin order."""
         return self._next_scorer().score_chunked(
             premise, hypothesis, outer_agg=outer_agg, inner_agg=inner_agg, **kwargs
         )
 
     @property
     def model_available(self) -> bool:
+        """Report whether at least one shard has its model loaded."""
         return any(s.model_available for s in self._scorers)
 
     @property
     def device_count(self) -> int:
+        """Return the number of device shards."""
         return len(self._scorers)

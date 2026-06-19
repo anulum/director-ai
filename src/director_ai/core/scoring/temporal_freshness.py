@@ -156,10 +156,12 @@ class FreshnessResult:
 
     @property
     def stale_claims(self) -> list[FreshnessClaim]:
+        """Return claims whose staleness risk exceeds 0.5."""
         return [c for c in self.claims if c.staleness_risk > 0.5]
 
     @property
     def risky_statuses(self) -> list[CitationStatusVerdict]:
+        """Return citation-status verdicts whose risk exceeds 0.5."""
         return [v for v in self.citation_status_verdicts if v.risk > 0.5]
 
 

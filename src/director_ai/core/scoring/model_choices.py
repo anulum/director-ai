@@ -50,21 +50,26 @@ class ScorerModelChoice:
 
     @property
     def is_default(self) -> bool:
+        """Report whether this is the default scorer model alias."""
         return self.alias == DEFAULT_SCORER_MODEL_ALIAS
 
     @property
     def is_domain_only(self) -> bool:
+        """Report whether the model is restricted to a single domain."""
         return self.status == "domain_only"
 
     @property
     def requires_managed_artifact(self) -> bool:
+        """Report whether the model loads from a managed ``gs://`` artifact."""
         return self.artifact_uri.startswith("gs://")
 
     @property
     def runtime_model(self) -> str:
+        """Return the artifact URI if set, else the model id."""
         return self.artifact_uri or self.model_id
 
     def to_dict(self) -> dict[str, Any]:
+        """Render the model choice as a JSON-ready mapping."""
         return {
             "alias": self.alias,
             "display_name": self.display_name,
@@ -201,6 +206,7 @@ def scorer_model_choices_to_dict(
     *,
     include_domain_only: bool = False,
 ) -> list[dict[str, Any]]:
+    """Return every catalogued scorer model choice as JSON-ready mappings."""
     return [
         choice.to_dict()
         for choice in list_scorer_model_choices(

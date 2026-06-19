@@ -153,7 +153,7 @@ class ReasoningScorer:
         return bool(self.provider)
 
     def should_escalate(self, score: float, *, centre: float = 0.5) -> bool:
-        """True when *score* is within ``escalation_margin`` of *centre*.
+        """Report whether *score* is within ``escalation_margin`` of *centre*.
 
         ``centre`` is the lower tier's decision boundary (its effective
         threshold), so the tier fires precisely in the band where the lower
@@ -251,8 +251,11 @@ class ReasoningScorer:
 
     @staticmethod
     def _parse_verdict(reply: str) -> ReasoningVerdict | None:
-        """Parse the structured JSON verdict, mapping the harm category through
-        the canonical HarmBench taxonomy. Returns ``None`` on any malformation."""
+        """Parse the structured JSON verdict into a typed result.
+
+        Maps the harm category through the canonical HarmBench taxonomy and
+        returns ``None`` on any malformation.
+        """
         try:
             data = json.loads(reply)
         except (ValueError, TypeError):

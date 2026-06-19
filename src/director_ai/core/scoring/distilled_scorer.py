@@ -49,9 +49,11 @@ except ImportError:
     _RUST_DISTILLED = True
 
     def rust_sum_f64(_values: list[float]) -> float:
+        """Raise to signal the mandatory Rust sum accelerator is missing."""
         raise RuntimeError("backfire_kernel rust_sum_f64 is unavailable")
 
     def rust_softmax(_flat: list[float], _cols: int) -> list[float]:
+        """Raise to signal the mandatory Rust softmax accelerator is missing."""
         raise RuntimeError("backfire_kernel rust_softmax is unavailable")
 
 

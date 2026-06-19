@@ -91,7 +91,7 @@ def _resolve_onnx_model_file(onnx_path: str) -> tuple[Path, Path]:
 def _load_onnx_session(
     onnx_path: str,
     device: str | None = None,
-):
+) -> tuple[Any, Any]:
     """Load ONNX Runtime session + tokenizer from exported directory."""
     try:
         import onnxruntime as ort
