@@ -23,6 +23,7 @@ from typing import Any, cast
 
 import pytest
 
+import director_ai.core.zk_attestation as zk_attestation
 import director_ai.core.zk_attestation.backends as backends_mod
 import director_ai.core.zk_attestation.commitment as commitment_mod
 from director_ai.core.zk_attestation import (
@@ -44,6 +45,19 @@ from director_ai.core.zk_attestation import (
 
 _KEY_A = b"A" * 32
 _KEY_B = b"B" * 32
+
+
+class TestZkAttestationExports:
+    def test_default_parameters_export_is_lazy(self, monkeypatch):
+        sentinel = object()
+
+        monkeypatch.setattr(zk_attestation, "default_parameters", lambda: sentinel)
+
+        assert zk_attestation.DEFAULT_PARAMETERS is sentinel
+
+    def test_unknown_lazy_export_raises_attribute_error(self):
+        with pytest.raises(AttributeError, match="NOT_EXPORTED"):
+            zk_attestation.__getattr__("NOT_EXPORTED")
 
 
 @dataclass
