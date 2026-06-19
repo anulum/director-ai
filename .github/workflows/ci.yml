@@ -82,6 +82,7 @@ jobs:
           src/director_ai/core/evidence_packet
           src/director_ai/core/federated_dp
           src/director_ai/core/federated_privacy
+          src/director_ai/core/financial_services
           src/director_ai/core/forecasting
           src/director_ai/core/fuzzing
           src/director_ai/core/ingestion

@@ -615,6 +615,8 @@ module = [
     "director_ai.core.federated_dp.*",
     "director_ai.core.federated_privacy",
     "director_ai.core.federated_privacy.*",
+    "director_ai.core.financial_services",
+    "director_ai.core.financial_services.*",
     "director_ai.core.forecasting",
     "director_ai.core.forecasting.*",
     "director_ai.core.fuzzing",

@@ -130,7 +130,6 @@ class BankingPolicyFinding:
 
     def to_dict(self) -> dict[str, Any]:
         """Serialise the finding without raw customer prompt or response text."""
-
         return {
             "code": self.code,
             "severity": self.severity,
@@ -157,7 +156,6 @@ class BankingPolicyReport:
     @property
     def highest_severity(self) -> str:
         """Return the highest finding severity, or ``none`` when clean."""
-
         if not self.findings:
             return "none"
         return max(
@@ -168,7 +166,6 @@ class BankingPolicyReport:
     @property
     def blocked_codes(self) -> tuple[str, ...]:
         """Return finding codes that prevent automatic approval."""
-
         return tuple(
             finding.code
             for finding in self.findings
@@ -177,7 +174,6 @@ class BankingPolicyReport:
 
     def to_dict(self) -> dict[str, Any]:
         """Serialise the report to a deterministic JSON-safe shape."""
-
         return {
             "approved": self.approved,
             "requires_human_review": self.requires_human_review,
@@ -205,7 +201,6 @@ def assess_banking_response(
     human_review_acknowledged: bool = False,
 ) -> BankingPolicyReport:
     """Assess a banking response for evidence and escalation requirements."""
-
     clean_evidence_refs = _normalise_refs(evidence_refs)
     clean_numeric_refs = _normalise_refs(numeric_evidence_refs)
     clean_policy_refs = _normalise_refs(policy_refs)
