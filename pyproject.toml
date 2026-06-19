@@ -569,6 +569,7 @@ module = [
     "director_ai.compliance",
     "director_ai.compliance.*",
     "director_ai.core",
+    "director_ai.core.*",
     "director_ai.core.actor",
     "director_ai.core.agent",
     "director_ai.core._device",
@@ -727,7 +728,20 @@ module = [
     "director_ai.integrations.*",
     "director_ai.proto",
     "director_ai.proto.*",
-    "director_ai.testing.adversarial_suite",
+    "director_ai.agentic",
+    "director_ai.agentic.*",
+    "director_ai.ci_gate",
+    "director_ai._cli_gate",
+    "director_ai._cli_production",
+    "director_ai._cli_train",
+    "director_ai.interlock",
+    "director_ai.lite",
+    "director_ai.middleware",
+    "director_ai.middleware.*",
+    "director_ai.testing",
+    "director_ai.testing.*",
+    "director_ai.ui",
+    "director_ai.ui.*",
 ]
 disallow_untyped_defs = true
 disallow_incomplete_defs = true
@@ -863,6 +877,25 @@ module = [
     "director_ai.proto.director.v1.director_pb2_grpc",
 ]
 ignore_errors = true
+
+# The training lane (model fine-tuning, datasets) is owned separately and not
+# yet strict-typed. The broad director_ai.core.* strict override above would
+# otherwise sweep it in, so relax the strict flags back to the base
+# check-untyped-defs level here until that lane is ratcheted on its own.
+[[tool.mypy.overrides]]
+module = [
+    "director_ai.core.training",
+    "director_ai.core.training.*",
+]
+disallow_untyped_defs = false
+disallow_incomplete_defs = false
+disallow_untyped_calls = false
+disallow_untyped_decorators = false
+disallow_any_generics = false
+warn_return_any = false
+no_implicit_reexport = false
+strict_equality = false
+warn_unused_ignores = false
 
 [[tool.mypy.overrides]]
 module = "benchmarks.*"
