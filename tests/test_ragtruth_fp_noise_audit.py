@@ -10,10 +10,6 @@ from __future__ import annotations
 
 import json
 
-import pytest
-
-pytest.importorskip("torch")
-
 from training.ragtruth_fp_noise_audit import (
     build_noise_audit,
     categorise_false_positive,

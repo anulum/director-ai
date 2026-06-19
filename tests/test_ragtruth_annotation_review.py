@@ -34,7 +34,10 @@ def _candidate(row_index: int) -> dict:
         "row_index": row_index,
         "task_type": "QA",
         "current_label": "grounded",
+        "primary_category": "possible_annotation_noise",
         "factors": ["possible_annotation_noise"],
+        "tokens_at_threshold": 8,
+        "max_token_probability": 0.99,
         "query_snippet": "question",
         "output_snippet": "answer",
         "context_snippet": "context",
@@ -54,6 +57,9 @@ def test_build_review_template_preserves_label_and_allowed_decisions() -> None:
 
     assert template[0]["row_index"] == 42
     assert template[0]["current_label"] == "grounded"
+    assert template[0]["primary_category"] == "possible_annotation_noise"
+    assert template[0]["tokens_at_threshold"] == 8
+    assert template[0]["max_token_probability"] == 0.99
     assert template[0]["reviewer_decision"] == ""
     assert template[0]["allowed_reviewer_decisions"] == [
         "confirmed_grounded",

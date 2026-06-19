@@ -10,10 +10,6 @@ from __future__ import annotations
 
 import json
 
-import pytest
-
-pytest.importorskip("torch")
-
 from training import eval_ragtruth_token
 
 

@@ -347,12 +347,14 @@ def main() -> None:
     parser.add_argument("--output-json", type=Path, default=DEFAULT_OUTPUT_JSON)
     parser.add_argument("--output-md", type=Path, default=DEFAULT_OUTPUT_MD)
     parser.add_argument("--top-n", type=int, default=50)
+    parser.add_argument("--snippet-chars", type=int, default=420)
     args = parser.parse_args()
 
     packet = build_noise_audit(
         cache_path=args.cache,
         result_path=args.result,
         top_n=args.top_n,
+        snippet_chars=args.snippet_chars,
     )
     args.output_json.parent.mkdir(parents=True, exist_ok=True)
     args.output_json.write_text(json.dumps(packet, indent=2, sort_keys=True))

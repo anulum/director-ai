@@ -89,7 +89,12 @@ def build_review_template(candidates: Sequence[dict[str, Any]]) -> list[dict[str
                 "row_index": row_index,
                 "task_type": str(candidate.get("task_type", "unknown")),
                 "current_label": str(candidate.get("current_label", "grounded")),
+                "primary_category": str(candidate.get("primary_category", "unknown")),
                 "factors": list(candidate.get("factors", [])),
+                "tokens_at_threshold": int(candidate.get("tokens_at_threshold", 0)),
+                "max_token_probability": float(
+                    candidate.get("max_token_probability", 0.0)
+                ),
                 "reviewer_decision": "",
                 "reviewer_rationale": "",
                 "allowed_reviewer_decisions": sorted(VALID_DECISIONS),

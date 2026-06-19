@@ -11,9 +11,6 @@ from __future__ import annotations
 import json
 
 import numpy as np
-import pytest
-
-pytest.importorskip("torch")
 
 from training.ragtruth_fp_audit import (
     apply_rule,

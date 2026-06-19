@@ -10,10 +10,6 @@ from __future__ import annotations
 
 import json
 
-import pytest
-
-pytest.importorskip("torch")
-
 from training.ragtruth_context_router_probe import (
     Rule,
     build_context_router_probe,

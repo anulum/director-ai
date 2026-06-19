@@ -31,15 +31,24 @@ from collections import defaultdict
 from pathlib import Path
 
 import numpy as np
-import torch
 
 sys.path.insert(0, ".")
 
-from datasets import load_dataset  # noqa: E402
-from transformers import (  # noqa: E402
-    AutoModelForTokenClassification,
-    AutoTokenizer,
-)
+try:
+    import torch
+except ModuleNotFoundError:  # pragma: no cover - cache-only diagnostics mode
+    torch = None  # type: ignore[assignment]
+
+try:
+    from datasets import load_dataset
+except ModuleNotFoundError:  # pragma: no cover - cache-only diagnostics mode
+    load_dataset = None  # type: ignore[assignment]
+
+try:
+    from transformers import AutoModelForTokenClassification, AutoTokenizer
+except ModuleNotFoundError:  # pragma: no cover - cache-only diagnostics mode
+    AutoModelForTokenClassification = None  # type: ignore[assignment]
+    AutoTokenizer = None  # type: ignore[assignment]
 
 try:
     from training.train_ragtruth_token import parse_spans  # noqa: E402
@@ -112,7 +121,10 @@ def row_label(ex: dict) -> int:
     return 1 if parse_spans(ex.get("hallucination_labels")) else 0
 
 
-DEVICE = os.environ.get("DEVICE", "cuda" if torch.cuda.is_available() else "cpu")
+DEVICE = os.environ.get(
+    "DEVICE",
+    "cuda" if torch is not None and torch.cuda.is_available() else "cpu",
+)
 
 
 def _sha256(path: Path) -> str | None:
@@ -141,6 +153,19 @@ def _selected_indices(row_count: int) -> list[int]:
 
 def collect_probs() -> list[dict]:
     """Run the model over a dataset split; return per-example token probabilities."""
+    if (
+        torch is None
+        or AutoTokenizer is None
+        or AutoModelForTokenClassification is None
+    ):
+        raise ModuleNotFoundError(
+            "torch and transformers are required for model inference; install the "
+            "finetune extra or use an existing probability cache"
+        )
+    if load_dataset is None:
+        raise ModuleNotFoundError(
+            "datasets is required for model inference; install the finetune extra"
+        )
     try:
         tok = AutoTokenizer.from_pretrained(MODEL_DIR)
     except ValueError as exc:
@@ -210,6 +235,8 @@ def _enrich_cached_records(records: list[dict]) -> list[dict]:
         return records
     if all("task_type" in r and "context_chars" in r for r in records):
         return records
+    if load_dataset is None:
+        return records
     try:
         ds = load_dataset(DATASET, split=DATASET_SPLIT)
     except Exception as exc:  # pragma: no cover - defensive for offline cache reads
@@ -235,6 +262,8 @@ def _enrich_cached_records(records: list[dict]) -> list[dict]:
 
 
 def _load_test_rows() -> list[dict] | None:
+    if load_dataset is None:
+        return None
     try:
         return list(load_dataset(DATASET, split=DATASET_SPLIT))
     except Exception as exc:  # pragma: no cover - defensive for offline cache reads
