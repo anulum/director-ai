@@ -13,6 +13,7 @@ from collections.abc import Iterable
 
 import pytest
 
+import director_ai.core.defense_genome.redteam_loop as redteam_loop
 from director_ai.core.continual_adversarial import FailureEvent
 from director_ai.core.defense_genome import (
     AutoRedteamCycleInput,
@@ -33,6 +34,14 @@ class _KeywordDefence:
     def score(self, prompt: str) -> float:
         text = prompt.lower()
         return 0.1 if any(marker in text for marker in self._markers) else 0.9
+
+
+class _FixedScoreDefence:
+    def __init__(self, score: float) -> None:
+        self._score = score
+
+    def score(self, _prompt: str) -> float:
+        return self._score
 
 
 def _risk_envelope() -> RiskEnvelope:
@@ -116,6 +125,65 @@ def _cycle(
         baseline_score=0.72,
         candidate_score=0.84,
     )
+
+
+@pytest.mark.parametrize(
+    ("updates", "match"),
+    [
+        ({"failures": ()}, "failures"),
+        ({"safe_corpus": ()}, "safe_corpus"),
+        ({"version": 0}, "version"),
+        ({"label": "   "}, "label"),
+        ({"baseline_score": -0.1}, "baseline_score"),
+        ({"candidate_score": 1.1}, "candidate_score"),
+    ],
+)
+def test_cycle_input_validates_required_promotion_inputs(updates, match) -> None:
+    params = {
+        "failures": _failures("bypass alpha guard"),
+        "safe_corpus": ("safe request",),
+        "proposal": _approved_proposal(),
+        "candidate_defence": _KeywordDefence(("bypass alpha guard",)),
+        "version": 2,
+        "label": "defence-v2",
+        "baseline_score": 0.72,
+        "candidate_score": 0.84,
+    }
+    params.update(updates)
+
+    with pytest.raises(ValueError, match=match):
+        AutoRedteamCycleInput(**params)
+
+
+@pytest.mark.parametrize(
+    ("kwargs", "match"),
+    [
+        ({"min_failures": 0}, "min_failures"),
+        ({"window_last_n": 0}, "window_last_n"),
+        ({"block_threshold": 1.5}, "block_threshold"),
+        ({"min_detection_uplift": -0.01}, "min_detection_uplift"),
+    ],
+)
+def test_loop_constructor_validates_gate_configuration(kwargs, match) -> None:
+    with pytest.raises(ValueError, match=match):
+        AutoRedteamDefenceLoop(registry=DefenseRegistry(), **kwargs)
+
+
+def test_run_requires_at_least_one_cycle() -> None:
+    loop = AutoRedteamDefenceLoop(registry=DefenseRegistry())
+
+    with pytest.raises(ValueError, match="cycles"):
+        loop.run(())
+
+
+def test_detection_rate_rejects_empty_cases() -> None:
+    with pytest.raises(ValueError, match="cases"):
+        redteam_loop._detection_rate(_KeywordDefence(()), (), threshold=0.5)
+
+
+def test_score_defence_rejects_out_of_range_scores() -> None:
+    with pytest.raises(ValueError, match="defence score"):
+        redteam_loop._score_defence(_FixedScoreDefence(1.5), "prompt")
 
 
 def test_auto_redteam_loop_promotes_candidate_after_detection_uplift() -> None:
