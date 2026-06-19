@@ -149,6 +149,27 @@ class TestPostgresAuditSinkWrite:
         assert row["kb_snapshot_retraction_count"] == 2
         assert row["kb_snapshot_replacement_count"] == 1
 
+    def test_cursor_failure_does_not_mask_original_error_or_leak_connection(self):
+        class BrokenConnection:
+            rolled_back = False
+
+            def cursor(self):
+                raise RuntimeError("cursor unavailable")
+
+            def rollback(self):
+                self.rolled_back = True
+
+        sink = PostgresAuditSink("sqlite://")
+        conn = BrokenConnection()
+        returned: list[object] = []
+        sink._get_conn = lambda: conn  # type: ignore[method-assign]
+        sink._put_conn = lambda value: returned.append(value)  # type: ignore[method-assign]
+
+        sink.write(_make_entry())
+
+        assert conn.rolled_back is True
+        assert returned == [conn]
+
 
 class TestPostgresAuditSinkQuery:
     def test_query_by_tenant(self):
@@ -188,6 +209,21 @@ class TestPostgresAuditSinkQuery:
         assert sink.query() == []
         assert sink.count() == 0
         sink.write(_make_entry())  # no-op, no crash
+
+    def test_query_and_count_cursor_failures_return_connection(self):
+        class BrokenConnection:
+            def cursor(self):
+                raise RuntimeError("cursor unavailable")
+
+        sink = PostgresAuditSink("sqlite://")
+        conn = BrokenConnection()
+        returned: list[object] = []
+        sink._get_conn = lambda: conn  # type: ignore[method-assign]
+        sink._put_conn = lambda value: returned.append(value)  # type: ignore[method-assign]
+
+        assert sink.query() == []
+        assert sink.count() == 0
+        assert returned == [conn, conn]
 
 
 class TestRedisGroundTruthStore:

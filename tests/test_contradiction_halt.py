@@ -12,6 +12,7 @@ from director_ai.core.runtime.contradiction_halt import (
     ContradictionHalt,
     _as_facts,
 )
+from director_ai.core.scoring.contradiction import ContradictionScorer
 
 
 class _StubScorer:
@@ -72,6 +73,12 @@ def test_empty_claim_never_halts():
     halt = ContradictionHalt(scorer, lambda _c: "x")
     assert halt.should_halt("   ").halt is False
     assert scorer.batches == []
+
+
+def test_contradiction_scorer_treats_none_hypothesis_as_empty():
+    scorer = ContradictionScorer(object(), object(), contradiction_idx=0)
+
+    assert scorer.contradiction("fact", None) == 0.0  # type: ignore[arg-type]
 
 
 def test_threshold_override():

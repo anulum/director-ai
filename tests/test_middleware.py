@@ -189,6 +189,26 @@ class TestAPIKeyMiddleware:
         assert r.status_code == 403
         assert r.json() == {"error": "custom"}
 
+    def test_validate_checks_every_configured_key(self, monkeypatch):
+        calls: list[str] = []
+
+        def fake_compare(_left, right):
+            calls.append(right)
+            return right == "sk-valid"
+
+        monkeypatch.setattr(
+            "director_ai.middleware.api_key.hmac.compare_digest",
+            fake_compare,
+        )
+        middleware = APIKeyMiddleware(
+            FastAPI(),
+            keys={"sk-valid", "sk-other", "sk-third"},
+        )
+
+        assert middleware._validate("candidate") is True
+        assert set(calls) == middleware._keys
+        assert len(calls) == 3
+
 
 # ── RateLimitMiddleware integration ─────────────────────────────────────
 
@@ -255,6 +275,18 @@ class TestRateLimitMiddleware:
         r = client_b.get("/v1/score")
         assert r.status_code == 429
         assert "Retry-After" in r.headers
+
+    def test_in_memory_store_evicts_when_bucket_cap_is_reached(self):
+        store = InMemoryRateLimitStore(burst=1, refill_rate=1.0, max_buckets=2)
+
+        assert store.consume("client-a")[0] is True
+        assert store.consume("client-b")[0] is True
+        assert set(store._buckets) == {"client-a", "client-b"}
+
+        assert store.consume("client-c")[0] is True
+
+        assert len(store._buckets) == 2
+        assert "client-c" in store._buckets
 
     def test_redis_store_import_guard(self, monkeypatch):
         real_import = builtins.__import__

@@ -164,7 +164,12 @@ class ContradictionScorer:
 
     def contradiction(self, premise: str, hypothesis: str) -> float:
         """Return ``P(contradiction)`` in ``[0, 1]`` for premise→hypothesis."""
-        if not premise or not premise.strip() or not hypothesis.strip():
+        if (
+            not premise
+            or not premise.strip()
+            or not hypothesis
+            or not hypothesis.strip()
+        ):
             return 0.0
         return self.contradiction_batch([(premise, hypothesis)])[0]
 

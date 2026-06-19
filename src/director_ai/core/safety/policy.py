@@ -107,8 +107,8 @@ class Policy:
         """Build a Policy from a plain dict (parsed YAML)."""
         forbidden = data.get("forbidden", [])
         patterns = data.get("patterns", [])
-        style = data.get("style", {})
-        cit = data.get("required_citations", {})
+        style = data.get("style") or {}
+        cit = data.get("required_citations") or {}
         return cls(
             forbidden=forbidden,
             patterns=patterns,

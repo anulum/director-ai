@@ -15,7 +15,7 @@ import inspect
 import math
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, cast
 
 from director_ai.core.retrieval.knowledge import (
     GroundTruthStore,
@@ -29,7 +29,7 @@ __all__ = [
     "KnowledgeFact",
 ]
 
-_BLOCK_DECISIONS = frozenset({"block", "halt"})
+_BLOCK_DECISIONS = frozenset({"block"})
 _SAFE_ATTRIBUTE_BLOCKLIST = (
     "credential",
     "image",
@@ -330,7 +330,8 @@ class ConflictAwareKnowledgeGuard:
 
     def _iter_version_manifest(self, tenant_id: str) -> list[tuple[str, str, set[str]]]:
         """Return tenant facts from a version-manifest capable store."""
-        manifest = self.store.version_manifest(tenant_id)  # type: ignore[attr-defined]
+        store = cast(Any, self.store)
+        manifest = store.version_manifest(tenant_id)
         rows = []
         for record in manifest.values():
             key = str(record.get("key", ""))
@@ -344,7 +345,8 @@ class ConflictAwareKnowledgeGuard:
         value = getattr(self.store, "facts", {}).get(fact_key)
         if value is not None:
             return str(value)
-        record = self.store.fact_version_record(key, tenant_id)  # type: ignore[attr-defined]
+        store = cast(Any, self.store)
+        record = store.fact_version_record(key, tenant_id)
         if record is None:
             return ""
         return str(record.get("content_hash", ""))

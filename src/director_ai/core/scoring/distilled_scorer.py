@@ -107,7 +107,9 @@ class DistilledNLIBackend:
                 self._load_onnx()
                 self._ready = True
                 return
-            except (ImportError, FileNotFoundError, Exception) as exc:
+            except PermissionError:
+                raise
+            except (ImportError, FileNotFoundError, OSError, RuntimeError) as exc:
                 logger.warning("ONNX load failed, falling back to PyTorch: %s", exc)
 
         # PyTorch fallback
@@ -228,7 +230,8 @@ def _softmax(logits: np.ndarray) -> np.ndarray:
         with mandatory_execution(__name__, component="mandatory accelerated path"):
             flat = [float(v) for v in np.asarray(logits, dtype=float).ravel()]
             probs = rust_softmax(flat, len(flat))
-            return np.asarray(probs, dtype=float)
+            probs_array: np.ndarray = np.asarray(probs, dtype=float)
+            return probs_array
     e: np.ndarray = np.exp(logits - np.max(logits))
     denom = _sum_float_list(e.ravel().tolist())
     result: np.ndarray = e / denom

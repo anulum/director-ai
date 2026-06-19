@@ -401,6 +401,21 @@ class TestOnnxPath:
         assert calls["softmax_dim"] == -1
         assert "ONNX load failed" in caplog.text
 
+    def test_onnx_permission_error_does_not_fall_back_to_pytorch(self, monkeypatch):
+        backend = DistilledNLIBackend(model_path="tenant/nli-lite")
+        monkeypatch.setattr(
+            backend,
+            "_load_onnx",
+            lambda: (_ for _ in ()).throw(PermissionError("path escape")),
+        )
+        pytorch = MagicMock()
+        monkeypatch.setattr(backend, "_load_pytorch", pytorch)
+
+        with pytest.raises(PermissionError, match="path escape"):
+            backend.score("Fact.", "Claim.")
+
+        pytorch.assert_not_called()
+
 
 # ── PyTorch fallback path (mocked) ─────────────────────────────────────
 

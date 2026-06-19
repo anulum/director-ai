@@ -76,6 +76,13 @@ def test_conflict_records_validate_type_score_and_decision() -> None:
             tenant_id="tenant-a",
             incoming_hash="a",
         )
+    with pytest.raises(ValueError, match="unsupported decision"):
+        KnowledgeConflictCheck(
+            decision="halt",
+            incoming_key="incoming",
+            tenant_id="tenant-a",
+            incoming_hash="a",
+        )
 
 
 def test_guard_rejects_invalid_threshold_configuration() -> None:

@@ -26,7 +26,6 @@ from __future__ import annotations
 
 import logging
 import time
-from collections import defaultdict
 from typing import Any, Protocol
 
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
@@ -80,19 +79,41 @@ class RateLimitStore(Protocol):
 class InMemoryRateLimitStore:
     """Per-process token-bucket storage."""
 
-    def __init__(self, *, burst: int, refill_rate: float) -> None:
+    def __init__(
+        self,
+        *,
+        burst: int,
+        refill_rate: float,
+        max_buckets: int = 65_536,
+    ) -> None:
+        if max_buckets < 1:
+            raise ValueError("max_buckets must be positive")
         self._burst = burst
         self._refill_rate = refill_rate
-        self._buckets: dict[str, _TokenBucket] = defaultdict(
-            lambda: _TokenBucket(self._burst, self._refill_rate)
-        )
+        self._max_buckets = max_buckets
+        self._buckets: dict[str, _TokenBucket] = {}
 
     def consume(self, client_id: str) -> tuple[bool, float]:
         """Consume one token from the local process bucket."""
-        bucket = self._buckets[client_id]
+        bucket = self._buckets.get(client_id)
+        if bucket is None:
+            if len(self._buckets) >= self._max_buckets:
+                self._evict_one_bucket()
+            bucket = _TokenBucket(self._burst, self._refill_rate)
+            self._buckets[client_id] = bucket
         if bucket.consume():
             return True, 0.0
         return False, bucket.retry_after
+
+    def _evict_one_bucket(self) -> None:
+        """Drop the least-recently-refilled in-memory bucket."""
+        if not self._buckets:
+            return
+        oldest_client = min(
+            self._buckets,
+            key=lambda key: self._buckets[key].last_refill,
+        )
+        del self._buckets[oldest_client]
 
 
 class RedisRateLimitStore:
@@ -202,6 +223,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         burst: int | None = None,
         redis_url: str = "",
         redis_prefix: str = "dai:rate:",
+        in_memory_max_buckets: int = 65_536,
         store: RateLimitStore | None = None,
     ) -> None:
         super().__init__(app)
@@ -220,6 +242,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
             resolved_store = InMemoryRateLimitStore(
                 burst=self._burst,
                 refill_rate=self._refill_rate,
+                max_buckets=in_memory_max_buckets,
             )
         self._store: RateLimitStore = resolved_store
         storage_kind = (

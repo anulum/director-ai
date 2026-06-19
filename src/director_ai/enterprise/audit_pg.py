@@ -217,6 +217,7 @@ class PostgresAuditSink:
         conn = self._get_conn()
         if conn is None:
             return
+        cur: Any | None = None
         ph = "?" if self._is_sqlite else "%s"
         placeholders = ", ".join([ph] * len(_COLUMNS))
         sql = f"INSERT INTO {self._table_sql} ({', '.join(_COLUMNS)}) VALUES ({placeholders})"  # nosec B608
@@ -246,7 +247,8 @@ class PostgresAuditSink:
             conn.rollback()
             logger.error("Failed to persist audit log: %s", e)
         finally:
-            cur.close()
+            if cur is not None:
+                cur.close()
             self._put_conn(conn)
 
     async def async_write(self, entry: AuditEntry) -> None:
@@ -266,6 +268,7 @@ class PostgresAuditSink:
         conn = self._get_conn()
         if conn is None:
             return 0
+        cur: Any | None = None
         ph = "?" if self._is_sqlite else "%s"
         placeholders = ", ".join([ph] * len(_COLUMNS))
         sql = f"INSERT INTO {self._table_sql} ({', '.join(_COLUMNS)}) VALUES ({placeholders})"  # nosec B608
@@ -300,7 +303,8 @@ class PostgresAuditSink:
             logger.error("Batch write failed: %s", e)
             return 0
         finally:
-            cur.close()
+            if cur is not None:
+                cur.close()
             self._put_conn(conn)
 
     # â”€â”€ Query â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -315,6 +319,7 @@ class PostgresAuditSink:
         conn = self._get_conn()
         if conn is None:
             return []
+        cur: Any | None = None
         ph = "?" if self._is_sqlite else "%s"
         clauses: list[str] = []
         params: list[Any] = []
@@ -340,7 +345,8 @@ class PostgresAuditSink:
             logger.error("Audit query failed: %s", e)
             return []
         finally:
-            cur.close()
+            if cur is not None:
+                cur.close()
             self._put_conn(conn)
 
     def count(self, tenant_id: str | None = None) -> int:
@@ -348,6 +354,7 @@ class PostgresAuditSink:
         conn = self._get_conn()
         if conn is None:
             return 0
+        cur: Any | None = None
         ph = "?" if self._is_sqlite else "%s"
         if tenant_id is not None:
             sql = f"SELECT COUNT(*) FROM {self._table_sql} WHERE tenant_id = {ph}"  # nosec B608
@@ -363,7 +370,8 @@ class PostgresAuditSink:
             logger.error("Audit count failed: %s", e)
             return 0
         finally:
-            cur.close()
+            if cur is not None:
+                cur.close()
             self._put_conn(conn)
 
 

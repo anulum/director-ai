@@ -162,6 +162,20 @@ class TestRedisScoreCache:
             assert entry.h_logical == pytest.approx(0.1)
             assert entry.h_factual == pytest.approx(0.2)
 
+    def test_cache_payload_uses_wall_clock_timestamp(self):
+        fake = _make_fake_redis()
+        with patch("director_ai.enterprise.redis.redis") as mock_redis:
+            mock_redis.from_url.return_value = fake
+            from director_ai.enterprise.redis import RedisScoreCache
+
+            cache = RedisScoreCache(redis_url="redis://fake", ttl_seconds=60)
+            with patch("director_ai.enterprise.redis.time.time", return_value=1234.5):
+                cache.put("query", "prefix", 0.85, 0.1, 0.2)
+
+            entry = cache.get("query", "prefix")
+            assert entry is not None
+            assert entry.created_at == pytest.approx(1234.5)
+
     def test_miss(self):
         fake = _make_fake_redis()
         with patch("director_ai.enterprise.redis.redis") as mock_redis:

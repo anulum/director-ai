@@ -113,7 +113,10 @@ class APIKeyMiddleware(BaseHTTPMiddleware):
 
     def _validate(self, key: str) -> bool:
         """Constant-time key validation."""
-        return any(hmac.compare_digest(key, valid) for valid in self._keys)
+        matched = False
+        for valid in self._keys:
+            matched |= hmac.compare_digest(key, valid)
+        return matched
 
 
 def _extract_key(request: Request) -> str | None:

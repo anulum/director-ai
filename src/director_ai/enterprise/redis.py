@@ -207,7 +207,7 @@ class RedisScoreCache(ScoreCache):
                 "score": score,
                 "h_logical": h_logical,
                 "h_factual": h_factual,
-                "created_at": time.monotonic(),
+                "created_at": time.time(),
                 "generation": self._generation,
             },
         )

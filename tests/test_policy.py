@@ -148,6 +148,18 @@ class TestFromDict:
         assert policy.forbidden == []
         assert policy.max_length == 0
 
+    def test_empty_optional_blocks_parse_as_defaults(self):
+        policy = Policy.from_dict(
+            {
+                "style": None,
+                "required_citations": None,
+            }
+        )
+
+        assert policy.max_length == 0
+        assert policy.required_citations_pattern == ""
+        assert policy.required_citations_min == 0
+
 
 class TestFromYaml:
     def test_json_fallback(self):

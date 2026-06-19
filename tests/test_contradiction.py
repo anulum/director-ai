@@ -115,6 +115,7 @@ def test_empty_text_is_zero_without_inference():
     sc = _scorer({})
     assert sc.contradiction("", "x") == 0.0
     assert sc.contradiction("f", "   ") == 0.0
+    assert sc.contradiction("f", None) == 0.0  # type: ignore[arg-type]
 
 
 def test_batch_matches_single():
