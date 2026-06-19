@@ -166,6 +166,43 @@ def test_readiness_rejects_unknown_target(tmp_path) -> None:
     assert "untracked-target" in profile.findings[0]
 
 
+def test_readiness_reports_empty_checkout_as_not_trial_ready(tmp_path) -> None:
+    profile = build_edge_runtime_readiness(tmp_path, import_probe=False)
+    checks = profile.check_map()
+
+    assert profile.ready_for_local_trial is False
+    assert checks["wasm_release_plan"].status == "missing"
+    assert checks["wasm_source_contract"].status == "missing"
+    assert checks["rust_kernel_source_contract"].status == "missing"
+    assert checks["edge_deployment_docs"].status == "missing"
+    assert checks["latency_benchmark_surface"].status == "missing"
+
+
+def test_readiness_records_incomplete_source_docs_and_benchmarks(tmp_path) -> None:
+    _write_minimal_repo(tmp_path)
+    (tmp_path / "backfire-kernel" / "crates" / "backfire-wasm" / "README.md").unlink()
+    (
+        tmp_path / "backfire-kernel" / "crates" / "backfire-core" / "src" / "kernel.rs"
+    ).unlink()
+    (tmp_path / "docs-site" / "deployment" / "wasm-runtime.md").write_text(
+        "runtime boundary pending\n",
+        encoding="utf-8",
+    )
+    (tmp_path / "benchmarks" / "latency_bench.py").unlink()
+
+    profile = build_edge_runtime_readiness(tmp_path, import_probe=False)
+    checks = profile.check_map()
+
+    assert checks["wasm_source_contract"].status == "missing"
+    assert (
+        "backfire-kernel/crates/backfire-wasm/README.md"
+        in checks["wasm_source_contract"].evidence
+    )
+    assert checks["rust_kernel_source_contract"].status == "missing"
+    assert checks["edge_deployment_docs"].status == "missing"
+    assert checks["latency_benchmark_surface"].status == "missing"
+
+
 def test_readiness_records_missing_quantisation_contract(tmp_path) -> None:
     _write_minimal_repo(tmp_path)
     (tmp_path / "pyproject.toml").write_text(
@@ -184,6 +221,83 @@ onnx = ["onnxruntime"]
 
     assert profile.ready_for_local_trial is False
     assert profile.check_map()["quantised_nli_contract"].status == "missing"
+
+
+def test_probe_backfire_kernel_symbols_reports_available_accelerators(
+    monkeypatch,
+) -> None:
+    class PartialBackfireKernel:
+        BackfireConfig = object()
+        RustStreamingKernel = object()
+
+    monkeypatch.setattr(
+        runtime_profile.importlib.util,
+        "find_spec",
+        lambda name: object() if name == "backfire_kernel" else None,
+    )
+    monkeypatch.setattr(
+        runtime_profile.importlib,
+        "import_module",
+        lambda name: PartialBackfireKernel,
+    )
+
+    symbols = runtime_profile.probe_backfire_kernel_symbols()
+
+    assert symbols == ("BackfireConfig", "RustStreamingKernel")
+
+
+def test_probe_backfire_kernel_symbols_returns_empty_when_package_missing(
+    monkeypatch,
+) -> None:
+    monkeypatch.setattr(
+        runtime_profile.importlib.util,
+        "find_spec",
+        lambda name: None,
+    )
+
+    assert runtime_profile.probe_backfire_kernel_symbols() == ()
+
+
+def test_readiness_records_partial_accelerator_and_missing_smoke_evidence(
+    tmp_path,
+    monkeypatch,
+) -> None:
+    _write_minimal_repo(tmp_path)
+    monkeypatch.setattr(
+        runtime_profile,
+        "probe_backfire_kernel_symbols",
+        lambda: ("BackfireConfig",),
+    )
+
+    profile = build_edge_runtime_readiness(
+        tmp_path,
+        browser_smoke_evidence="benchmarks/results/missing-browser-smoke.json",
+    )
+    checks = profile.check_map()
+
+    assert checks["rust_python_accelerator"].status == "pending"
+    assert checks["rust_python_accelerator"].evidence == ("BackfireConfig",)
+    assert checks["browser_worker_smoke"].status == "pending"
+    assert checks["browser_worker_smoke"].evidence == (
+        "benchmarks/results/missing-browser-smoke.json",
+    )
+
+
+def test_readiness_accepts_absolute_smoke_evidence(tmp_path) -> None:
+    _write_minimal_repo(tmp_path)
+    smoke = tmp_path / "absolute-smoke.json"
+    _write(smoke, "{}\n")
+
+    profile = build_edge_runtime_readiness(
+        tmp_path,
+        mobile_smoke_evidence=smoke,
+        import_probe=False,
+    )
+
+    assert profile.check_map()["mobile_device_smoke"].status == "pass"
+    assert profile.check_map()["mobile_device_smoke"].evidence == (
+        "absolute-smoke.json",
+    )
 
 
 def test_readiness_serialises_external_paths_without_leaking_absolute_path(
