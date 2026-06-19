@@ -13,6 +13,9 @@ validation, and that the built adapter scores image, audio, and video."""
 
 from __future__ import annotations
 
+import sys
+import types
+
 import pytest
 
 from director_ai.core.guard_control import RiskEnvelope
@@ -176,6 +179,34 @@ class TestBuildClipAdapter:
         assert isinstance(guard._encoder, TorchCLIPImageEncoder)  # noqa: SLF001
         assert isinstance(guard._verifier, TorchCLIPCrossModalVerifier)  # noqa: SLF001
 
+    def test_textual_modalities_use_hashbag_similarity(self):
+        from director_ai.core.multimodal_guard import build_clip_adapter
+
+        loader, _calls = self._stub_loader_factory()
+        adapter = build_clip_adapter(
+            enabled_modalities=("audio",),
+            loader=loader,
+            text_dim=32,
+        )
+
+        result = adapter.check(
+            MultimodalCheckRequest(
+                modality="audio",
+                claim_text="policy refund window",
+                media_ref="audio-1",
+                transcript_text="policy refund window confirmed",
+                caption_text="policy refund window visible",
+                metadata={"title": "policy refund window"},
+            ),
+            risk_envelope=_ENVELOPE,
+            policy_id="p",
+        )
+
+        assert result.signal.modality == "audio"
+        assert result.signal.score < 1.0
+        assert "audio-1#caption" in result.signal.evidence_refs
+        assert "audio-1#metadata:title" in result.signal.evidence_refs
+
     def test_default_loader_without_open_clip_raises_install_hint(self):
         # open_clip is not a core dependency; the default loader must point the
         # operator at the [multimodal] extra rather than fail obscurely.
@@ -187,3 +218,54 @@ class TestBuildClipAdapter:
             pytest.skip("open_clip is installed; the ImportError path is not taken")
         with pytest.raises(ImportError, match=r"director-ai\[multimodal\]"):
             _default_clip_loader("ViT-B-32", "openai", "cpu")
+
+    def test_default_loader_uses_open_clip_quickgelu_and_tokenizer(self, monkeypatch):
+        from director_ai.core.multimodal_guard.factory import _default_clip_loader
+
+        calls: dict[str, object] = {}
+
+        class FakeModel:
+            def __init__(self) -> None:
+                self.visual = types.SimpleNamespace(output_dim=128)
+                self.device = ""
+                self.eval_called = False
+
+            def to(self, device: str) -> FakeModel:
+                self.device = device
+                return self
+
+            def eval(self) -> FakeModel:
+                self.eval_called = True
+                return self
+
+        fake_model = FakeModel()
+
+        def fake_create_model_and_transforms(
+            model_name: str, *, pretrained: str, force_quick_gelu: bool
+        ):
+            calls["model_name"] = model_name
+            calls["pretrained"] = pretrained
+            calls["force_quick_gelu"] = force_quick_gelu
+            return fake_model, object(), "preprocess"
+
+        fake_open_clip = types.SimpleNamespace(
+            create_model_and_transforms=fake_create_model_and_transforms,
+            get_tokenizer=lambda model_name: f"tokenizer:{model_name}",
+        )
+        monkeypatch.setitem(sys.modules, "open_clip", fake_open_clip)
+
+        model, preprocess, tokenizer, dim = _default_clip_loader(
+            "ViT-B-32", "openai", "cuda:0"
+        )
+
+        assert model is fake_model
+        assert preprocess == "preprocess"
+        assert tokenizer == "tokenizer:ViT-B-32"
+        assert dim == 128
+        assert fake_model.device == "cuda:0"
+        assert fake_model.eval_called is True
+        assert calls == {
+            "model_name": "ViT-B-32",
+            "pretrained": "openai",
+            "force_quick_gelu": True,
+        }
