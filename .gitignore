@@ -213,6 +213,16 @@ ckpts/
 !/training/cloudbuild.lite_scorer_v2.yaml
 !/training/launch_cloud.sh
 !/training/requirements-distil.in
+!/training/eval_ragtruth_token.py
+!/training/jarvislabs_ragtruth_entrypoint.sh
+!/training/jarvislabs_ragtruth_token_run.sh
+!/training/ragtruth_annotation_review.py
+!/training/ragtruth_context_router_probe.py
+!/training/ragtruth_fp_audit.py
+!/training/ragtruth_fp_noise_audit.py
+!/training/ragtruth_reranker_probe.py
+!/training/select_ragtruth_checkpoint.py
+!/training/train_ragtruth_token.py
 !/training/requirements-distil.txt
 !/training/run_vertex.sh
 !/training/train_cloud_large.py
