@@ -6,16 +6,17 @@ packet_id = "frontierfail-seed-2026-05"
 cases = "benchmarks/frontierfail_cases.jsonl"
 public_benchmark_eligible = false
 claim_boundary = "Seed regression and intake packet only; not an externally validated FrontierFail benchmark or public production-failure score."
-minimum_cases = 10
-minimum_public_incident_cases = 4
-minimum_public_incident_categories = 3
-minimum_public_incident_domains = 4
-minimum_public_incident_publishers = 4
-minimum_public_incident_evidence_refs = 4
+minimum_cases = 12
+minimum_public_incident_cases = 6
+minimum_public_incident_categories = 4
+minimum_public_incident_domains = 6
+minimum_public_incident_publishers = 6
+minimum_public_incident_evidence_refs = 6
 required_categories = [
   "numeric_contradiction",
   "fabricated_policy",
   "unsupported_citation",
   "cross_turn_contradiction",
   "retrieval_misattribution",
+  "identity_defamation",
 ]

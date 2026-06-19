@@ -18,19 +18,19 @@ It records the upstream adapter contract and synthetic smoke cases only; it is
 not an official PINT score. `tools/validate_pint_replication_packet.py` enforces
 that boundary.
 
-Lite Scorer v2 note: `benchmarks/lite_scorer_v2_evidence_packet.toml` remains a
-no-claim evidence packet until real student, teacher, ONNX, held-out evaluation,
-quantized latency, model-card, and benchmark-claim review artefacts are recorded
-and pass `tools/validate_lite_scorer_v2_plan.py`. R2 closeout and any scored
-release review must also pass:
+Lite Scorer v2 note: `benchmarks/lite_scorer_v2_evidence_packet.toml` is a
+no-claim recorded-evidence packet with student, teacher, ONNX, held-out
+evaluation, quantized latency, model-card hash, and benchmark-claim review hash
+recorded. R2 scored release wording still requires operator sign-off, and the
+recorded-evidence gate must pass:
 
 ```bash
 python tools/validate_lite_scorer_v2_plan.py --require-recorded-evidence
 ```
 
 The default validator checks plan integrity and prevents premature public score
-claims while the packet is pending. The recorded-evidence mode additionally
-requires every release-relevant status to be `recorded` or `validated`.
+claims. The recorded-evidence mode additionally requires every release-relevant
+status to be `recorded` or `validated`.
 
 ## Scoring Tiers
 
