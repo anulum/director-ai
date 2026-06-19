@@ -107,6 +107,13 @@ def test_renderers_include_summary_and_actions() -> None:
     assert "refresh_or_add_governed_facts" in markdown
 
 
+def test_markdown_empty_report_explains_no_records_or_misses() -> None:
+    markdown = render_forensics_markdown(build_forensics_report([]))
+
+    assert "No scorer misses in the labelled window." in markdown
+    assert "No records supplied." in markdown
+
+
 def test_unlabelled_records_are_retained_but_not_counted_as_misses() -> None:
     report = build_forensics_report(
         [
@@ -123,6 +130,79 @@ def test_unlabelled_records_are_retained_but_not_counted_as_misses() -> None:
     assert report.cases[0].outcome == "unlabelled_allow"
 
 
+def test_decision_aliases_and_kb_version_are_normalised() -> None:
+    report = build_forensics_report(
+        [
+            {
+                "director.eval.decision": "approved",
+                "director.eval.score": 0.7,
+                "director.eval.threshold": 0.6,
+                "director.eval.evidence_count": 1,
+                "director.eval.kb_version": "2026-06-19",
+                "review_label": "correct",
+            },
+            {
+                "decision": "rejected",
+                "score": 0.4,
+                "threshold": 0.6,
+                "knowledge_version": "2026-06-18",
+                "label": "false",
+            },
+        ]
+    )
+
+    assert report.cases[0].outcome == "correct_allow"
+    assert report.cases[0].knowledge_state == "kb:2026-06-19:evidence_present"
+    assert report.cases[0].recommended_action == "no_operator_action"
+    assert report.cases[1].outcome == "correct_halt"
+    assert report.cases[1].knowledge_state == "kb:2026-06-18:no_evidence"
+
+
+def test_false_negative_actions_cover_unsupported_claim_variants() -> None:
+    report = build_forensics_report(
+        [
+            {
+                "approved": True,
+                "score": 0.8,
+                "threshold": 0.6,
+                "evidence_count": 2,
+                "unsupported_claims": 0,
+                "label": "hallucination",
+            },
+            {
+                "approved": True,
+                "score": 0.8,
+                "threshold": 0.6,
+                "evidence_count": 2,
+                "unsupported_claims": 1,
+                "label": "hallucination",
+            },
+        ]
+    )
+
+    assert report.cases[0].reason.endswith("without unsupported claims")
+    assert (
+        report.cases[0].recommended_action
+        == "add_counterexample_and_recalibrate_scorer"
+    )
+    assert report.cases[1].reason.endswith("unsupported-claim metadata")
+    assert report.cases[1].recommended_action == "inspect_claim_attribution_thresholds"
+
+
 def test_rejects_record_without_decision_or_approval() -> None:
     with pytest.raises(ValueError, match="approved"):
         build_forensics_report([{"score": 0.5, "threshold": 0.6}])
+
+
+@pytest.mark.parametrize(
+    "record",
+    [
+        {"approved": True, "score": True, "threshold": 0.6},
+        {"approved": True, "score": 0.5, "threshold": False},
+        {"approved": True, "score": 0.5, "threshold": 0.6, "evidence_count": True},
+        {"approved": True, "score": 0.5, "threshold": 0.6, "unsupported_claims": 1.2},
+    ],
+)
+def test_rejects_non_numeric_forensics_fields(record: dict[str, object]) -> None:
+    with pytest.raises(ValueError):
+        build_forensics_report([record])
