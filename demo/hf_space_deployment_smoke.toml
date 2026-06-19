@@ -1,0 +1,24 @@
+# SPDX-License-Identifier: Apache-2.0
+# Director-Class AI - Hugging Face Space deployment smoke packet
+
+schema_version = "1.0.0"
+packet_id = "hf-space-deployment-smoke-2026-06"
+space_slug = "anulum/director-ai-guardrail"
+space_url = "https://huggingface.co/spaces/anulum/director-ai-guardrail"
+space_repo = "https://huggingface.co/spaces/anulum/director-ai-guardrail"
+publish_by_default = false
+operator_approval_required = true
+public_demo_claim = false
+deployment_status = "not_published"
+smoke_status = "pending"
+smoke_evidence_path = ""
+claim_boundary = "Local Space package and deployment-smoke gate only; no public live demo claim until deployment_status is published, smoke_status is passed, and dated smoke evidence is archived."
+demo_manifest = "demo/hf_space_manifest.toml"
+package_validator = "tools/validate_hf_space_demo.py"
+push_script = "demo/push_to_hf.sh"
+required_smoke_checks = [
+  "space_http_200",
+  "gradio_app_loads",
+  "score_response_smoke",
+  "streaming_halt_tab_smoke",
+]

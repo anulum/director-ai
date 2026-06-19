@@ -12,7 +12,7 @@
 | API documentation pages | 89 |
 | Rust PyO3 bindings | 83 |
 | Optional extras | 58 |
-| Python test files | 529 |
+| Python test files | 531 |
 | Public documentation pages | 203 |
 | GitHub Actions workflows | 12 |
 
