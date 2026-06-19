@@ -145,6 +145,7 @@ jobs:
           src/director_ai/core/zk_attestation
           src/director_ai/_server_helpers.py
           src/director_ai/_server_models.py
+          src/director_ai/guard.py
           --select D
 
   typecheck:

@@ -707,6 +707,7 @@ module = [
     "director_ai.core.verification.*",
     "director_ai.core.zk_attestation",
     "director_ai.core.zk_attestation.*",
+    "director_ai.guard",
 ]
 disallow_untyped_defs = true
 disallow_incomplete_defs = true

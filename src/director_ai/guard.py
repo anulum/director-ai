@@ -43,7 +43,7 @@ Usage::
 from __future__ import annotations
 
 import logging
-from collections.abc import Callable, Iterable
+from collections.abc import Callable, Iterable, Sequence
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
@@ -72,9 +72,66 @@ if TYPE_CHECKING:
     # Advanced-tier (BUSL-1.1) types used only in annotations — runtime imports
     # are lazy inside the methods that need them, so the Apache core wheel does
     # not require these modules to be installed.
+    from director_ai.core.calibration.runtime_governor import (
+        RuntimeThresholdGovernor,
+    )
+    from director_ai.core.consensus import (
+        ConsensusResult,
+        CrossModelConsensus,
+        ModelResponse,
+    )
+    from director_ai.core.cyber_physical import (
+        PhysicalConstraint,
+        RobotCommandGuard,
+    )
+    from director_ai.core.dp_rag import DifferentiallyPrivateRetrieval, DPRagPipeline
+    from director_ai.core.execution_rings import ExecutionRingGate
+    from director_ai.core.federated_dp import (
+        FederatedCalibrationRound,
+        FederatedDPEvidence,
+    )
+    from director_ai.core.federated_privacy import SecureAggregator
     from director_ai.core.financial_services import BankingPolicyReport
+    from director_ai.core.forecasting import (
+        ForecastHistory,
+        ForecastResult,
+        HallucinationForecaster,
+    )
+    from director_ai.core.fuzzing import ContinuousFuzzer
+    from director_ai.core.interpretability import HallucinationRootCauseAnalyzer
+    from director_ai.core.ml_bom import MachineLearningBOM
+    from director_ai.core.multimodal_guard import (
+        MultimodalCheckRequest,
+        MultimodalCheckResult,
+        MultimodalVerifierAdapter,
+    )
+    from director_ai.core.neuro_symbolic import (
+        CompliancePolicy,
+        NeuroSymbolicComplianceEngine,
+    )
+    from director_ai.core.output_integrity import OutputIntegrityGuard
+    from director_ai.core.output_trust import ZeroTrustOutputGuard
+    from director_ai.core.rasp import RuntimeSelfProtection
+    from director_ai.core.routing import EconomicDecision, HallucinationEconomics
     from director_ai.core.safety.injection import InjectionDetector
+    from director_ai.core.scoring.consensus import ByzantineFaultTolerantConsensus
+    from director_ai.core.scoring.contradiction import ContradictionScorer
+    from director_ai.core.scoring.span_detector import (
+        HallucinationSpanDetector,
+        SpanDetection,
+    )
+    from director_ai.core.scoring.temporal_refresh import (
+        RefreshReport,
+        TemporalRefresher,
+    )
+    from director_ai.core.scoring.verified_scorer import VerificationResult
+    from director_ai.core.self_healing import SelfHealingThresholdController
     from director_ai.core.streaming_repair import RepairResult
+    from director_ai.core.swarm_coherence import SwarmCoherenceMonitor
+    from director_ai.core.temporal_consistency import TemporalConsistencyGraph
+    from director_ai.core.temporal_logic import TrajectorySafetyMonitor
+    from director_ai.core.threat_intel import ThreatIntelligenceMatcher
+    from director_ai.core.verification.tool_call_verifier import ToolCallResult
 
 logger = logging.getLogger("DirectorAI.Guard")
 
@@ -164,22 +221,22 @@ class ProductionGuard:
         self._preflight: AgentPreflightGuard | None = None
         self._risk_threshold: RiskAdaptiveThreshold | None = None
         self._labelling_cockpit: ActiveLabellingCockpit | None = None
-        self._temporal_consistency: object | None = None
-        self._self_healing: object | None = None
-        self._dp_retrieval: object | None = None
-        self._root_cause: object | None = None
-        self._output_trust: object | None = None
-        self._execution_rings: object | None = None
-        self._output_integrity: object | None = None
-        self._ml_bom: object | None = None
-        self._rasp: object | None = None
-        self._threat_intel: object | None = None
-        self._forecaster: object | None = None
-        self._temporal_refresher: object | None = None
-        self._cross_model: object | None = None
-        self._economics: object | None = None
-        self._multimodal: object | None = None
-        self._span_detector: object | None = None
+        self._temporal_consistency: TemporalConsistencyGraph | None = None
+        self._self_healing: SelfHealingThresholdController | None = None
+        self._dp_retrieval: DifferentiallyPrivateRetrieval | None = None
+        self._root_cause: HallucinationRootCauseAnalyzer | None = None
+        self._output_trust: ZeroTrustOutputGuard | None = None
+        self._execution_rings: ExecutionRingGate | None = None
+        self._output_integrity: OutputIntegrityGuard | None = None
+        self._ml_bom: MachineLearningBOM | None = None
+        self._rasp: RuntimeSelfProtection | None = None
+        self._threat_intel: ThreatIntelligenceMatcher | None = None
+        self._forecaster: HallucinationForecaster | None = None
+        self._temporal_refresher: TemporalRefresher | None = None
+        self._cross_model: CrossModelConsensus | None = None
+        self._economics: HallucinationEconomics | None = None
+        self._multimodal: MultimodalVerifierAdapter | None = None
+        self._span_detector: HallucinationSpanDetector | None = None
 
     @classmethod
     def from_profile(
@@ -302,7 +359,6 @@ class ProductionGuard:
         human_review_acknowledged: bool,
     ) -> BankingPolicyReport | None:
         """Run an optional deterministic sector policy before final approval."""
-
         if sector_policy is None or not sector_policy.strip():
             return None
         normalised = sector_policy.strip().casefold().replace("_", "-")
@@ -333,7 +389,7 @@ class ProductionGuard:
         response: str,
         source: str,
         atomic: bool = True,
-    ):
+    ) -> VerificationResult:
         """Run per-claim verification against source text."""
         return self._verified.verify(response, source, atomic=atomic)
 
@@ -482,11 +538,11 @@ class ProductionGuard:
     def verify_tool(
         self,
         function_name: str,
-        arguments: dict,
+        arguments: dict[str, Any],
         claimed_result: str = "",
-        manifest: dict | None = None,
-        execution_log: list[dict] | None = None,
-    ):
+        manifest: dict[str, Any] | None = None,
+        execution_log: list[dict[str, Any]] | None = None,
+    ) -> ToolCallResult:
         """Verify an agent tool/function call against a manifest."""
         from director_ai.core.verification.tool_call_verifier import verify_tool_call
 
@@ -670,7 +726,7 @@ class ProductionGuard:
         return record
 
     @property
-    def temporal_consistency(self):
+    def temporal_consistency(self) -> TemporalConsistencyGraph:
         """Cross-session structured-claim temporal consistency graph.
 
         Persists across calls on this guard so claims recorded in one session are
@@ -691,7 +747,7 @@ class ProductionGuard:
         return self._temporal_consistency
 
     @property
-    def temporal_refresher(self):
+    def temporal_refresher(self) -> TemporalRefresher:
         """Live web-search refresher for stale temporal claims.
 
         Where :attr:`temporal_consistency` checks claims against this system's own
@@ -716,7 +772,7 @@ class ProductionGuard:
         source_timestamp: float | None = None,
         max_age_days: float = 180,
         domain: str = "",
-    ):
+    ) -> RefreshReport:
         """Score *text* for staleness and live-refresh its stale claims.
 
         Convenience wrapper over :attr:`temporal_refresher` that returns a
@@ -730,7 +786,7 @@ class ProductionGuard:
         )
 
     @property
-    def root_cause_analyzer(self):
+    def root_cause_analyzer(self) -> HallucinationRootCauseAnalyzer:
         """Prescriptive mechanistic hallucination root-cause analyzer.
 
         Consumes a
@@ -749,7 +805,7 @@ class ProductionGuard:
         return self._root_cause
 
     @property
-    def output_trust(self):
+    def output_trust(self) -> ZeroTrustOutputGuard:
         """Zero-trust output handling for untrusted model output (OWASP LLM05).
 
         Encodes a model output for the specific
@@ -766,7 +822,9 @@ class ProductionGuard:
             self._output_trust = ZeroTrustOutputGuard()
         return self._output_trust
 
-    def execution_rings(self, *, cooling_period_seconds: float = 86_400.0):
+    def execution_rings(
+        self, *, cooling_period_seconds: float = 86_400.0
+    ) -> ExecutionRingGate:
         """Graduated human authorisation for agent actions (execution rings).
 
         Classifies an action into an ordered
@@ -785,7 +843,9 @@ class ProductionGuard:
             )
         return self._execution_rings
 
-    def output_integrity(self, *, signing_seed: bytes | None = None):
+    def output_integrity(
+        self, *, signing_seed: bytes | None = None
+    ) -> OutputIntegrityGuard:
         """Cryptographic integrity + non-repudiation for model outputs (ML09).
 
         Signs an output with a detached Ed25519 signature a third party can
@@ -803,7 +863,7 @@ class ProductionGuard:
         return self._output_integrity
 
     @property
-    def ml_bom(self):
+    def ml_bom(self) -> MachineLearningBOM:
         """Supply-chain bill of materials for the ML system (OWASP ASVS).
 
         Record each model, dataset, and dependency with a SHA-256 digest and
@@ -820,7 +880,7 @@ class ProductionGuard:
             self._ml_bom = MachineLearningBOM()
         return self._ml_bom
 
-    def _ensure_forecaster(self):
+    def _ensure_forecaster(self) -> HallucinationForecaster:
         if self._forecaster is None:
             from director_ai.core.forecasting import (
                 ForecastHistory,
@@ -830,7 +890,7 @@ class ProductionGuard:
             self._forecaster = HallucinationForecaster(history=ForecastHistory())
         return self._forecaster
 
-    def forecast(self, prompt: str):
+    def forecast(self, prompt: str) -> ForecastResult:
         """Forecast a prompt's hallucination risk *before* generation.
 
         Runs one step ahead of every response-side guard: scores the incoming
@@ -847,11 +907,19 @@ class ProductionGuard:
         return self._ensure_forecaster().forecast(prompt, store=self._store)
 
     @property
-    def forecast_history(self):
-        """The forecaster's online outcome memory (created on first use)."""
-        return self._ensure_forecaster().history
+    def forecast_history(self) -> ForecastHistory:
+        """Return the forecaster's online outcome memory (created on first use)."""
+        forecaster = self._ensure_forecaster()
+        # _ensure_forecaster always constructs the forecaster with a history.
+        assert forecaster.history is not None
+        return forecaster.history
 
-    def cross_model_consensus(self, responses, *, nli=None):
+    def cross_model_consensus(
+        self,
+        responses: Sequence[ModelResponse],
+        *,
+        nli: ContradictionScorer | None = None,
+    ) -> ConsensusResult:
         """Measure agreement across several models' answers to one prompt.
 
         Scores a *panel* rather than a single response: given the same question
@@ -879,7 +947,7 @@ class ProductionGuard:
         return engine.consensus(responses)
 
     @property
-    def economics(self):
+    def economics(self) -> HallucinationEconomics:
         """Cost-risk guard-action selector (created on first use).
 
         A :class:`~director_ai.core.routing.HallucinationEconomics` over the
@@ -892,7 +960,9 @@ class ProductionGuard:
             self._economics = HallucinationEconomics()
         return self._economics
 
-    def guard_economics(self, risk: float, *, hallucination_cost: float | None = None):
+    def guard_economics(
+        self, risk: float, *, hallucination_cost: float | None = None
+    ) -> EconomicDecision:
         """Pick the expected-cost-minimising guard action for a request.
 
         Treats guarding as an economic decision: given the request's
@@ -908,7 +978,12 @@ class ProductionGuard:
         """
         return self.economics.decide(risk, hallucination_cost=hallucination_cost)
 
-    def new_swarm_monitor(self, *, nli=None, contradiction_threshold=None):
+    def new_swarm_monitor(
+        self,
+        *,
+        nli: ContradictionScorer | None = None,
+        contradiction_threshold: float | None = None,
+    ) -> SwarmCoherenceMonitor:
         """Create a stateful cross-agent cascade-coherence monitor.
 
         Returns a fresh
@@ -933,7 +1008,7 @@ class ProductionGuard:
         max_step: float = 0.05,
         auto_apply: bool = False,
         with_uncertainty_router: bool = True,
-    ):
+    ) -> RuntimeThresholdGovernor:
         """Build a runtime threshold governor seeded from this guard's threshold.
 
         Wires the per-segment
@@ -975,7 +1050,7 @@ class ProductionGuard:
         )
 
     @property
-    def multimodal_adapter(self):
+    def multimodal_adapter(self) -> MultimodalVerifierAdapter:
         """In-process multimodal verifier (created on first use).
 
         Builds the dependency-free hash-bag
@@ -1031,7 +1106,7 @@ class ProductionGuard:
         return self._multimodal
 
     @property
-    def span_detector(self):
+    def span_detector(self) -> HallucinationSpanDetector:
         """Token-level hallucinated-span detector (created on first use).
 
         Loads the ModernBERT token classifier named by ``span_model`` and flags
@@ -1060,7 +1135,7 @@ class ProductionGuard:
             )
         return self._span_detector
 
-    def detect_spans(self, context: str, response: str):
+    def detect_spans(self, context: str, response: str) -> SpanDetection:
         """Flag the hallucinated spans of *response* against *context*.
 
         Returns a
@@ -1070,7 +1145,12 @@ class ProductionGuard:
         """
         return self.span_detector.detect(context, response)
 
-    def check_multimodal(self, request, *, adapter=None):
+    def check_multimodal(
+        self,
+        request: MultimodalCheckRequest,
+        *,
+        adapter: MultimodalVerifierAdapter | None = None,
+    ) -> MultimodalCheckResult:
         """Verify a text claim against paired image / audio / video evidence.
 
         The in-process counterpart of the ``/v1/multimodal/check`` endpoint:
@@ -1097,7 +1177,7 @@ class ProductionGuard:
         return used.check(request, risk_envelope=risk_envelope, policy_id=policy_id)
 
     @property
-    def rasp(self):
+    def rasp(self) -> RuntimeSelfProtection:
         """Runtime application self-protection from behavioural anomalies.
 
         The last line of defence once input filters and guardrails are bypassed:
@@ -1114,7 +1194,7 @@ class ProductionGuard:
             self._rasp = RuntimeSelfProtection()
         return self._rasp
 
-    def continuous_fuzzer(self, *, seed: int = 0):
+    def continuous_fuzzer(self, *, seed: int = 0) -> ContinuousFuzzer:
         """Mutation-based fuzzer that hunts for guard bypasses.
 
         Where the static adversarial suite checks a fixed list, the returned
@@ -1129,7 +1209,7 @@ class ProductionGuard:
         return ContinuousFuzzer(seed=seed)
 
     @property
-    def threat_intel(self):
+    def threat_intel(self) -> ThreatIntelligenceMatcher:
         """Threat-intelligence IOC matching with attribution (STIX-aligned).
 
         Register indicators directly or import them from a STIX 2.1 feed with
@@ -1145,7 +1225,7 @@ class ProductionGuard:
             self._threat_intel = ThreatIntelligenceMatcher()
         return self._threat_intel
 
-    def secure_aggregator(self, *, party_count: int):
+    def secure_aggregator(self, *, party_count: int) -> SecureAggregator:
         """Secure multi-party aggregation of scores (additive secret sharing).
 
         Each party secret-shares its value; the returned
@@ -1161,7 +1241,9 @@ class ProductionGuard:
 
         return SecureAggregator(party_count=party_count)
 
-    def byzantine_consensus(self, *, fault_tolerance: int = 1):
+    def byzantine_consensus(
+        self, *, fault_tolerance: int = 1
+    ) -> ByzantineFaultTolerantConsensus:
         """PBFT-style quorum over independent verifier votes.
 
         Tolerates up to ``fault_tolerance`` Byzantine (compromised/malicious)
@@ -1180,7 +1262,7 @@ class ProductionGuard:
         return ByzantineFaultTolerantConsensus(fault_tolerance=fault_tolerance)
 
     @property
-    def dp_retrieval(self):
+    def dp_retrieval(self) -> DifferentiallyPrivateRetrieval:
         """Differentially private retrieval ranking with a per-tenant budget.
 
         Adds calibrated Laplace noise to retrieval similarity scores before
@@ -1196,7 +1278,7 @@ class ProductionGuard:
             self._dp_retrieval = DifferentiallyPrivateRetrieval(max_epsilon=10.0)
         return self._dp_retrieval
 
-    def dp_rag_pipeline(self, max_epsilon: float = 10.0, **kwargs):
+    def dp_rag_pipeline(self, max_epsilon: float = 10.0, **kwargs: Any) -> DPRagPipeline:
         """Build a unified DP-RAG pipeline metering one per-tenant budget.
 
         Charges retrieval ranking, exponential-mechanism token decoding, and
@@ -1211,7 +1293,9 @@ class ProductionGuard:
 
         return DPRagPipeline(max_epsilon=max_epsilon, **kwargs)
 
-    def federated_calibration(self, initial_value: float | None = None, **kwargs):
+    def federated_calibration(
+        self, initial_value: float | None = None, **kwargs: Any
+    ) -> FederatedCalibrationRound:
         """Build a federated DP calibration round for a shared parameter.
 
         Tenants submit clipped local updates; the server aggregates them with
@@ -1229,7 +1313,11 @@ class ProductionGuard:
         )
         return FederatedCalibrationRound(start, **kwargs)
 
-    def federated_dp_evidence(self, calibration_round=None, **kwargs):
+    def federated_dp_evidence(
+        self,
+        calibration_round: FederatedCalibrationRound | None = None,
+        **kwargs: Any,
+    ) -> FederatedDPEvidence:
         """Build the formal-privacy + poisoning-resilience evidence for a round.
 
         Wraps a
@@ -1249,7 +1337,9 @@ class ProductionGuard:
         )
         return FederatedDPEvidence(round_obj)
 
-    def robot_command_guard(self, constraints=(), **kwargs):
+    def robot_command_guard(
+        self, constraints: Sequence[PhysicalConstraint] = (), **kwargs: Any
+    ) -> RobotCommandGuard:
         """Build an embodied-AI guard for an LLM-planned robot command sequence.
 
         Verifies a whole plan before execution against per-action physical
@@ -1264,7 +1354,9 @@ class ProductionGuard:
 
         return RobotCommandGuard(constraints, **kwargs)
 
-    def compliance_engine(self, policy):
+    def compliance_engine(
+        self, policy: CompliancePolicy
+    ) -> NeuroSymbolicComplianceEngine:
         """Build a neuro-symbolic SMT compliance engine for ``policy``.
 
         ``policy`` is a
@@ -1279,7 +1371,7 @@ class ProductionGuard:
         return NeuroSymbolicComplianceEngine(policy)
 
     @property
-    def self_healing(self):
+    def self_healing(self) -> SelfHealingThresholdController:
         """Self-healing threshold controller seeded at the configured threshold.
 
         Closes the calibration loop safely: feed labelled outcomes
@@ -1298,7 +1390,9 @@ class ProductionGuard:
             )
         return self._self_healing
 
-    def trajectory_monitor(self, specs: dict[str, object] | None = None):
+    def trajectory_monitor(
+        self, specs: dict[str, object] | None = None
+    ) -> TrajectorySafetyMonitor:
         """Return a fresh LTL safety monitor for one agent trajectory.
 
         Runs the built-in agent-safety specifications (tool calls eventually
@@ -1316,10 +1410,12 @@ class ProductionGuard:
 
     @property
     def scorer(self) -> CoherenceScorer:
+        """Return the underlying coherence scorer."""
         return self._scorer
 
     @property
     def config(self) -> DirectorConfig:
+        """Return the guard's resolved configuration."""
         return self._config
 
     def answer_bom(
