@@ -50,12 +50,8 @@ jobs:
       - name: Lint (ruff)
         run: ruff check src/ tests/ examples/
 
-      - name: Docstring ratchet (whole tree except training lane)
-        run: >-
-          ruff check
-          src/director_ai
-          --extend-exclude src/director_ai/core/training
-          --select D
+      - name: Docstring ratchet (source tree)
+        run: ruff check src/director_ai --select D
 
   typecheck:
     name: Type Check
@@ -78,7 +74,7 @@ jobs:
         run: pip install --require-hashes -r requirements/ci-types.txt
 
       - name: Run mypy
-        run: mypy src/director_ai/ --ignore-missing-imports --check-untyped-defs
+        run: mypy src/director_ai/
 
   test:
     name: Test (Python ${{ matrix.python-version }})

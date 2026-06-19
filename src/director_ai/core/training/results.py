@@ -175,7 +175,7 @@ def _split_gcs_uri(uri: str) -> tuple[str, str]:
     return parsed.netloc, parsed.path.lstrip("/")
 
 
-def _storage_client():
+def _storage_client() -> Any:
     try:
         from google.cloud.storage import Client
     except ImportError as exc:

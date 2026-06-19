@@ -21,7 +21,7 @@ import json
 import logging
 from collections.abc import AsyncIterator, Iterator
 from contextvars import ContextVar, copy_context
-from typing import Any, cast
+from typing import Any
 
 from director_ai.core import CoherenceScorer, GroundTruthStore
 from director_ai.core.exceptions import HallucinationError, InjectionDetectedError
@@ -98,7 +98,7 @@ def score(
             fail_closed_on_error=injection_fail_closed_on_error,
         )
     _approved, cs = scorer.review(prompt, response)
-    return cast(CoherenceScore, cs)
+    return cs
 
 
 def guard(

@@ -484,11 +484,8 @@ partial_branches = [
 
 [tool.mypy]
 python_version = "3.11"
-warn_return_any = true
+strict = true
 warn_unused_configs = true
-disallow_untyped_defs = false
-check_untyped_defs = true
-ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
 module = "director_ai.voice.*"
@@ -878,32 +875,70 @@ module = [
 ]
 ignore_errors = true
 
-# The training lane (model fine-tuning, datasets) is owned separately and not
-# yet strict-typed. The broad director_ai.core.* strict override above would
-# otherwise sweep it in, so relax the strict flags back to the base
-# check-untyped-defs level here until that lane is ratcheted on its own.
-[[tool.mypy.overrides]]
-module = [
-    "director_ai.core.training",
-    "director_ai.core.training.*",
-]
-disallow_untyped_defs = false
-disallow_incomplete_defs = false
-disallow_untyped_calls = false
-disallow_untyped_decorators = false
-disallow_any_generics = false
-warn_return_any = false
-no_implicit_reexport = false
-strict_equality = false
-warn_unused_ignores = false
-
 [[tool.mypy.overrides]]
 module = "benchmarks.*"
 ignore_errors = true
 
+# Optional third-party integrations are imported lazily behind extras. Keep
+# missing-stub handling scoped to those packages instead of using a global
+# ignore_missing_imports escape hatch.
 [[tool.mypy.overrides]]
-module = "tests.*"
-disallow_untyped_defs = false
+module = [
+    "anthropic",
+    "azure.*",
+    "backfire_kernel",
+    "boto3",
+    "chromadb",
+    "chromadb.*",
+    "datasets",
+    "deepgram",
+    "detoxify",
+    "elevenlabs.*",
+    "elasticsearch",
+    "faiss",
+    "google.cloud",
+    "google.cloud.*",
+    "googleapiclient.*",
+    "gradio",
+    "grpc",
+    "grpc_reflection.*",
+    "guardrails.*",
+    "huggingface_hub",
+    "hvac",
+    "langchain_core.*",
+    "minicheck",
+    "minicheck.*",
+    "nltk.*",
+    "notion_client",
+    "onnx",
+    "onnxruntime",
+    "onnxruntime.*",
+    "open_clip",
+    "openai",
+    "opentelemetry",
+    "peft",
+    "PIL",
+    "pinecone",
+    "presidio_analyzer",
+    "psycopg2",
+    "psycopg2.*",
+    "qdrant_client",
+    "qdrant_client.*",
+    "ragatouille",
+    "redis",
+    "carla",
+    "mujoco",
+    "rclpy",
+    "rclpy.*",
+    "sentence_transformers",
+    "torch",
+    "torch.*",
+    "transformers",
+    "weasyprint",
+    "weaviate",
+    "z3",
+]
+ignore_missing_imports = true
 
 [tool.uv]
 # Keep protobuf on the 6.x line for every supported Python so the committed

@@ -290,7 +290,9 @@ def create_grpc_server(
         StreamTokens = stream_tokens
 
     # Auth interceptor
-    class _AuthInterceptor(grpc.ServerInterceptor):
+    class _AuthInterceptor(
+        grpc.ServerInterceptor  # type: ignore[misc] # grpc ServerInterceptor is Any without grpc stubs.
+    ):
         """Validate gRPC API keys before dispatching service handlers."""
 
         def intercept_service(

@@ -16,6 +16,7 @@ import os
 import shutil
 import tempfile
 from pathlib import Path
+from typing import Any
 from urllib.parse import urlparse
 
 os.environ.setdefault("TOKENIZERS_PARALLELISM", "false")
@@ -128,7 +129,7 @@ def _split_gcs_uri(uri: str) -> tuple[str, str]:
     return parsed.netloc, parsed.path.lstrip("/")
 
 
-def _storage_client():
+def _storage_client() -> Any:
     try:
         from google.cloud.storage import Client
     except ImportError as exc:

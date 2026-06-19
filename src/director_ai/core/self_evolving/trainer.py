@@ -257,7 +257,9 @@ class LoraGuardrailTrainer:
         )
         model = peft.get_peft_model(model, lora_config).to(self._device)
 
-        class _FeedbackDataset(Dataset[tuple[dict[str, Any], int]]):
+        class _FeedbackDataset(
+            Dataset[tuple[dict[str, Any], int]]  # type: ignore[misc] # torch Dataset is Any without torch stubs.
+        ):
             def __init__(self, items: Sequence[tuple[str, int]]) -> None:
                 self._items = items
 

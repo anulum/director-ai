@@ -49,7 +49,9 @@ else:
                 pass
 
 
-class CoherenceCallbackHandler(BaseCallbackHandler):
+class CoherenceCallbackHandler(
+    BaseCallbackHandler  # type: ignore[misc] # LangChain callback base is Any without stubs.
+):
     """LangChain callback that scores LLM outputs for coherence.
 
     Parameters

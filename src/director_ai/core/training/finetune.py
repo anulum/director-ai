@@ -62,6 +62,7 @@ from ..model_revisions import resolve_model_revision
 logger = logging.getLogger("DirectorAI.FineTune")
 
 _DEFAULT_BASE_MODEL = "yaxili96/FactCG-DeBERTa-v3-Large"
+TrainingRow = dict[str, str | int]
 
 # FactCG instruction template — must match inference-time template
 _FACTCG_TEMPLATE = (
@@ -110,15 +111,15 @@ class FinetuneResult:
     eval_samples: int = 0
     best_balanced_accuracy: float = 0.0
     final_loss: float = 0.0
-    eval_metrics: dict = field(default_factory=dict)
-    regression_report: dict = field(default_factory=dict)
+    eval_metrics: dict[str, Any] = field(default_factory=dict)
+    regression_report: dict[str, Any] = field(default_factory=dict)
     onnx_path: str = ""
     mixed_general_samples: int = 0
 
 
-def _load_jsonl(path: str | Path) -> list[dict]:
+def _load_jsonl(path: str | Path) -> list[TrainingRow]:
     """Load JSONL dataset with premise/hypothesis/label fields."""
-    rows = []
+    rows: list[TrainingRow] = []
     with open(path, encoding="utf-8") as f:
         for line_num, line in enumerate(f, 1):
             line = line.strip()
@@ -148,11 +149,11 @@ def _load_jsonl(path: str | Path) -> list[dict]:
 
 
 def _mix_general_data(
-    domain_rows: list[dict],
+    domain_rows: list[TrainingRow],
     general_path: str | Path | None,
     ratio: float,
     seed: int,
-) -> tuple[list[dict], int]:
+) -> tuple[list[TrainingRow], int]:
     """Mix general-purpose NLI data into domain data to prevent catastrophic forgetting.
 
     Returns (mixed_rows, n_general_added).
@@ -188,7 +189,7 @@ def _mix_general_data(
     return mixed, len(general_sample)
 
 
-def _compute_class_weights(rows: list[dict]) -> list[float]:
+def _compute_class_weights(rows: list[TrainingRow]) -> list[float]:
     """Compute inverse-frequency class weights for imbalanced datasets."""
     counts = Counter(r["label"] for r in rows)
     total = _sum_int(list(counts.values()))
@@ -199,7 +200,12 @@ def _compute_class_weights(rows: list[dict]) -> list[float]:
     return weights
 
 
-def _prepare_dataset(rows: list[dict], tokenizer, max_length: int, is_factcg: bool):
+def _prepare_dataset(
+    rows: list[TrainingRow],
+    tokenizer: Any,
+    max_length: int,
+    is_factcg: bool,
+) -> Any:
     """Tokenize rows into a HuggingFace Dataset via batched map (OOM-safe)."""
     from datasets import Dataset
 
@@ -210,12 +216,15 @@ def _prepare_dataset(rows: list[dict], tokenizer, max_length: int, is_factcg: bo
         ]
         ds = Dataset.from_dict({"text": texts, "labels": [r["label"] for r in rows]})
 
-        def _tok(batch):
-            return tokenizer(
-                batch["text"],
-                truncation=True,
-                padding="max_length",
-                max_length=max_length,
+        def _tok(batch: dict[str, list[str]]) -> dict[str, Any]:
+            return cast(
+                dict[str, Any],
+                tokenizer(
+                    batch["text"],
+                    truncation=True,
+                    padding="max_length",
+                    max_length=max_length,
+                ),
             )
 
         ds = ds.map(_tok, batched=True, batch_size=256, remove_columns=["text"])
@@ -230,13 +239,16 @@ def _prepare_dataset(rows: list[dict], tokenizer, max_length: int, is_factcg: bo
             },
         )
 
-        def _tok_pair(batch):
-            return tokenizer(
-                batch["premise"],
-                batch["hypothesis"],
-                truncation=True,
-                padding="max_length",
-                max_length=max_length,
+        def _tok_pair(batch: dict[str, list[str]]) -> dict[str, Any]:
+            return cast(
+                dict[str, Any],
+                tokenizer(
+                    batch["premise"],
+                    batch["hypothesis"],
+                    truncation=True,
+                    padding="max_length",
+                    max_length=max_length,
+                ),
             )
 
         ds = ds.map(
@@ -250,7 +262,7 @@ def _prepare_dataset(rows: list[dict], tokenizer, max_length: int, is_factcg: bo
     return ds
 
 
-def _compute_metrics(eval_pred):
+def _compute_metrics(eval_pred: tuple[Any, Any]) -> dict[str, float]:
     """Compute balanced accuracy + per-class metrics during training."""
     import numpy as np
 
@@ -261,7 +273,7 @@ def _compute_metrics(eval_pred):
     return {"balanced_accuracy": bal_acc, "f1": f1}
 
 
-def _balanced_accuracy(labels, preds) -> float:
+def _balanced_accuracy(labels: Any, preds: Any) -> float:
     import numpy as np
 
     labels_arr = np.asarray(labels)
@@ -281,7 +293,7 @@ def _balanced_accuracy(labels, preds) -> float:
     return _mean_float(recalls)
 
 
-def _binary_f1_score(labels, preds) -> float:
+def _binary_f1_score(labels: Any, preds: Any) -> float:
     import numpy as np
 
     labels_arr = np.asarray(labels)
@@ -320,14 +332,14 @@ def _mean_float(values: list[float]) -> float:
     return _sum_float(values) / len(values)
 
 
-def _make_weighted_trainer_class(class_weights: list[float]):
+def _make_weighted_trainer_class(class_weights: list[float]) -> type[Any]:
     """Create a Trainer subclass that applies class-weighted cross-entropy loss."""
     import torch
     from transformers import Trainer
 
     weight_tensor = torch.tensor(class_weights, dtype=torch.float32)
 
-    class WeightedTrainer(Trainer):
+    class WeightedTrainer(Trainer):  # type: ignore[misc] # transformers Trainer is Any without stubs.
         def compute_loss(
             self,
             model: Any,

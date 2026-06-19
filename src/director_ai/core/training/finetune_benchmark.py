@@ -34,6 +34,7 @@ from typing import Any
 
 from ..mandatory import mandatory_execution
 from ..model_revisions import resolve_model_revision
+from .finetune import TrainingRow
 from .model_registry import (
     TrainingModelProfile,
     resolve_finetune_model,
@@ -60,7 +61,7 @@ class RegressionReport:
     regression_pp: float = 0.0
     regression_acceptable: bool = True
     recommendation: str = "deploy"
-    details: dict = field(default_factory=dict)
+    details: dict[str, Any] = field(default_factory=dict)
 
     def summary(self) -> str:
         """Render a compact human-readable regression summary."""
@@ -224,11 +225,11 @@ class ModelBenchmarkReport:
         return "\n".join(lines)
 
 
-def _load_benchmark_jsonl(path: str | Path) -> list[dict]:
+def _load_benchmark_jsonl(path: str | Path) -> list[TrainingRow]:
     path_obj = Path(path).expanduser().resolve(strict=True)
     if not path_obj.is_file():
         raise FileNotFoundError(f"benchmark data path is not a file: {path_obj}")
-    rows = []
+    rows: list[TrainingRow] = []
     with path_obj.open(encoding="utf-8") as f:
         for line in f:
             line = line.strip()
@@ -252,9 +253,9 @@ def _load_benchmark_jsonl(path: str | Path) -> list[dict]:
 
 def _evaluate_model(
     model_path: str | Path,
-    samples: list[dict],
+    samples: list[TrainingRow],
     batch_size: int = 48,
-) -> dict:
+) -> dict[str, float]:
     """Run a model on samples and return balanced_accuracy + f1."""
     from .finetune import _balanced_accuracy, _binary_f1_score
 

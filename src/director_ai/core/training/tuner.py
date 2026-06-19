@@ -11,7 +11,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field, replace
-from typing import Protocol, cast
+from typing import Any, Protocol, cast
 
 try:  # pragma: no cover - optional acceleration
     from backfire_kernel import rust_sum_i64
@@ -337,11 +337,11 @@ def _to_profile_overlay(
 
 
 def tune(
-    samples: list[dict],
+    samples: list[dict[str, Any]],
     thresholds: list[float] | None = None,
     weight_pairs: list[tuple[float, float]] | None = None,
     use_nli: bool = False,
-    ground_truth_store=None,
+    ground_truth_store: Any = None,
 ) -> TuneResult:
     """Grid-search over thresholds and weight pairs, maximize balanced accuracy.
 
