@@ -42,9 +42,7 @@ class CustomRule(BaseModel):
     threshold: float | None = Field(default=None, ge=0.0, le=1.0)
     source: str | None = Field(default=None, max_length=256)
 
-    # pydantic's model_validator is untyped to mypy without the pydantic.mypy
-    # plugin, which is incompatible with the pinned mypy version.
-    @model_validator(mode="after")  # type: ignore[untyped-decorator]
+    @model_validator(mode="after")
     def _validate_rule_shape(self) -> Self:
         if self.kind in {"forbidden", "pattern"}:
             value = self.value
@@ -97,7 +95,7 @@ class CustomRuleset(BaseModel):
     name: str = Field(min_length=1, max_length=64, pattern=r"^[A-Za-z0-9_.-]+$")
     rules: tuple[CustomRule, ...] = Field(min_length=1)
 
-    @model_validator(mode="after")  # type: ignore[untyped-decorator]
+    @model_validator(mode="after")
     def _reject_duplicate_rule_ids(self) -> Self:
         seen: set[str] = set()
         duplicates: list[str] = []

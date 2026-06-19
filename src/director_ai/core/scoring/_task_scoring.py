@@ -138,7 +138,9 @@ def dialogue_factual_divergence(
     response: str,
     tenant_id: str,
     *,
-    calculate_factual_with_evidence: Callable[..., tuple[float, ScoringEvidence | None]],
+    calculate_factual_with_evidence: Callable[
+        ..., tuple[float, ScoringEvidence | None]
+    ],
     baseline: float = 0.80,
 ) -> tuple[float, ScoringEvidence | None]:
     """Bidirectional NLI scoring with baseline calibration for dialogue.
@@ -196,7 +198,9 @@ def summarization_factual_divergence(
     response: str,
     tenant_id: str,
     *,
-    calculate_factual_with_evidence: Callable[..., tuple[float, ScoringEvidence | None]],
+    calculate_factual_with_evidence: Callable[
+        ..., tuple[float, ScoringEvidence | None]
+    ],
     fact_inner_agg: str = "max",
     fact_outer_agg: str = "max",
     premise_ratio: float = 0.4,

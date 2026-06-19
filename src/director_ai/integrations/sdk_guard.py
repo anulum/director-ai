@@ -253,9 +253,7 @@ def _extract_prompt(messages: list[dict[str, Any]]) -> str:
     return " ".join(str(m.get("content", "")) for m in messages)
 
 
-def _handle_failure(
-    on_fail: str, query: str, response_text: str, score: Any
-) -> None:
+def _handle_failure(on_fail: str, query: str, response_text: str, score: Any) -> None:
     """Apply the configured hallucination failure policy."""
     if on_fail == "raise":
         raise HallucinationError(query, response_text, score)

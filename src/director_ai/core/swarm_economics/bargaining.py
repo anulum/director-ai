@@ -186,9 +186,7 @@ class _BestTracker:
             self.total = total
 
 
-def _enumerate_partitions(
-    *, grid_size: int, count: int
-) -> Iterator[tuple[int, ...]]:
+def _enumerate_partitions(*, grid_size: int, count: int) -> Iterator[tuple[int, ...]]:
     """Yield every ``count``-tuple of non-negative integers summing to ``grid_size``.
 
     Recurses one axis at a time, so it stays memory-safe for the small counts

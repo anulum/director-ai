@@ -276,9 +276,7 @@ if _FASTAPI_AVAILABLE:
 # â”€â”€ Training worker â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
-def _run_training_worker(
-    job: FinetuneJob, data_path: Path, models_dir: Path
-) -> None:
+def _run_training_worker(job: FinetuneJob, data_path: Path, models_dir: Path) -> None:
     """Background thread that runs the fine-tuning pipeline."""
     train_path: Path | None = None
     eval_path: Path | None = None

@@ -134,7 +134,9 @@ def test_load_export_cases_rejects_non_boolean_label(tmp_path: Path) -> None:
         raise AssertionError("expected invalid label to raise")
 
 
-def test_evaluate_export_cases_omits_prompt_text_and_records_hash(tmp_path: Path) -> None:
+def test_evaluate_export_cases_omits_prompt_text_and_records_hash(
+    tmp_path: Path,
+) -> None:
     dataset = tmp_path / "pint-export.json"
     dataset.write_text(
         json.dumps(

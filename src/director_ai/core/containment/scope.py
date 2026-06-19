@@ -16,7 +16,7 @@ real users, real money, real physical systems.
 
 from __future__ import annotations
 
-from typing import Literal, get_args
+from typing import Literal, cast, get_args
 
 ContainmentScope = Literal[
     "sandbox",
@@ -56,4 +56,6 @@ def validate_scope(scope: str) -> ContainmentScope:
         raise ValueError(
             f"unknown containment scope {scope!r}; expected one of {known}"
         )
-    return scope
+    # Membership in _ALL_SCOPES proves the string is a valid ContainmentScope,
+    # but mypy does not narrow ``str`` to the Literal across the ``in`` check.
+    return cast(ContainmentScope, scope)

@@ -36,9 +36,7 @@ class MockGenerator:
             "fire status": "hot",
         }
 
-    def generate_candidates(
-        self, prompt: str, n: int = 3
-    ) -> list[dict[str, Any]]:
+    def generate_candidates(self, prompt: str, n: int = 3) -> list[dict[str, Any]]:
         """Generate *n* candidate responses.
 
         Returns a list of dicts with ``text`` and ``type`` keys.
@@ -182,9 +180,7 @@ class LLMGenerator:
         self._circuit_open = False
         self._consecutive_failures = 0
 
-    def generate_candidates(
-        self, prompt: str, n: int = 3
-    ) -> list[dict[str, Any]]:
+    def generate_candidates(self, prompt: str, n: int = 3) -> list[dict[str, Any]]:
         """Generate *n* candidate responses from the LLM backend."""
         if not isinstance(n, int) or n <= 0:
             raise ValueError(f"n must be a positive integer; got {n!r}")

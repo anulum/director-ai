@@ -164,7 +164,10 @@ def test_hf_space_deployment_smoke_accepts_published_packet_with_evidence(
         smoke_evidence_path="docs/internal/hf-space-smoke.md",
     )
 
-    assert validate_hf_space_deployment_smoke(
-        tmp_path,
-        require_published=True,
-    ) == []
+    assert (
+        validate_hf_space_deployment_smoke(
+            tmp_path,
+            require_published=True,
+        )
+        == []
+    )

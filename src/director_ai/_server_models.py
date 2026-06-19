@@ -129,9 +129,7 @@ class BatchRequest(BaseModel):
         description="Whether the operator workflow already attached human review",
     )
 
-    # pydantic's model_validator is untyped to mypy without the pydantic.mypy
-    # plugin, which is incompatible with the pinned mypy version.
-    @model_validator(mode="after")  # type: ignore[untyped-decorator]
+    @model_validator(mode="after")
     def _enforce_aggregate_text_budget(self) -> BatchRequest:
         prompt_chars = sum(len(prompt) for prompt in self.prompts)
         if prompt_chars > _MAX_BATCH_PROMPT_CHARS:

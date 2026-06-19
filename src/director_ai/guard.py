@@ -1278,7 +1278,9 @@ class ProductionGuard:
             self._dp_retrieval = DifferentiallyPrivateRetrieval(max_epsilon=10.0)
         return self._dp_retrieval
 
-    def dp_rag_pipeline(self, max_epsilon: float = 10.0, **kwargs: Any) -> DPRagPipeline:
+    def dp_rag_pipeline(
+        self, max_epsilon: float = 10.0, **kwargs: Any
+    ) -> DPRagPipeline:
         """Build a unified DP-RAG pipeline metering one per-tenant budget.
 
         Charges retrieval ranking, exponential-mechanism token decoding, and

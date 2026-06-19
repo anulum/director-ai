@@ -157,9 +157,7 @@ class SearchHit:
 class WebSearchProvider(Protocol):
     """Return ranked web-search hits for a query."""
 
-    def search(
-        self, query: str, *, max_results: int
-    ) -> list[SearchHit]:
+    def search(self, query: str, *, max_results: int) -> list[SearchHit]:
         """Return up to ``max_results`` ranked web-search hits for ``query``."""
         ...  # pragma: no cover
 

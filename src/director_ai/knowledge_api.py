@@ -358,9 +358,7 @@ def create_knowledge_router() -> APIRouter:
     router = APIRouter(tags=["knowledge"])
 
     @router.post("/upload", status_code=201)
-    async def upload_document(
-        request: Request, file: UploadFile
-    ) -> dict[str, Any]:
+    async def upload_document(request: Request, file: UploadFile) -> dict[str, Any]:
         """Upload a file, parse, chunk, embed, store."""
         # Early size check before reading body into memory
         _validate_content_length(request.headers.get("content-length"))

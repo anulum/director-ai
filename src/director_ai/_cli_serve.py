@@ -53,9 +53,7 @@ def _apply_run_mode(config: DirectorConfig, run_mode: str) -> DirectorConfig:
     return config
 
 
-def _resolve_bind_host(
-    config: DirectorConfig, host: str, host_explicit: bool
-) -> str:
+def _resolve_bind_host(config: DirectorConfig, host: str, host_explicit: bool) -> str:
     """Resolve the server bind host from the ``--host`` flag and run mode.
 
     Precedence: an explicit ``--host`` wins; then an explicit

@@ -789,7 +789,9 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
                     request.client.host if request.client else "unknown",
                     request.url.path,
                 )
-                response = JSONResponse(
+                # Declared as the base Response so the later call_next() result
+                # (a Response) is assignable to the same name.
+                response: Response = JSONResponse(
                     status_code=401,
                     content={"detail": "Invalid or missing API key"},
                     headers={"X-Request-ID": request_id},
@@ -1217,9 +1219,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
     # ── Verified Review (atomic multi-span signals) ──────────────────
 
     @app.post("/v1/verify", response_model=VerifyResponse)
-    async def verify_response(
-        req: ReviewRequest, request: Request
-    ) -> dict[str, Any]:
+    async def verify_response(req: ReviewRequest, request: Request) -> dict[str, Any]:
         """Atomic multi-span fact verification.
 
         Decomposes the response into claims, ranks source spans from the

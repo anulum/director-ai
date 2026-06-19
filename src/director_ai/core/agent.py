@@ -390,9 +390,7 @@ class CoherenceAgent:
 
         return best, rejected, len(candidates)
 
-    def _emit_approved(
-        self, best: _ScoredCandidate, n_candidates: int
-    ) -> ReviewResult:
+    def _emit_approved(self, best: _ScoredCandidate, n_candidates: int) -> ReviewResult:
         """Build ReviewResult for the best approved candidate."""
         text, score, coherence = best
         # An approved candidate always carries its generated text.
