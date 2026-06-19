@@ -14,6 +14,7 @@ import types
 
 import pytest
 
+import director_ai.ui.safety_dashboard as dashboard_mod
 from director_ai.ui.safety_dashboard import (
     COMPLIANCE_EXPORT_COLUMNS,
     DRIFT_ALERT_COLUMNS,
@@ -546,6 +547,44 @@ class TestTrustConsole:
         else:
             raise AssertionError("TrustControl should reject unknown statuses")
 
+    @pytest.mark.parametrize(
+        ("control", "evidence_ref", "match"),
+        [
+            ("", "soc2.md", "control"),
+            ("SOC 2", "", "evidence_ref"),
+        ],
+    )
+    def test_control_required_fields_are_validated(
+        self, control: str, evidence_ref: str, match: str
+    ):
+        with pytest.raises(ValueError, match=match):
+            TrustControl(control=control, status="passed", evidence_ref=evidence_ref)
+
+    def test_markdown_renders_empty_control_and_tenant_sections(self):
+        report = build_trust_console_report("")
+
+        markdown = report.to_markdown()
+
+        assert "No readiness controls supplied." in markdown
+        assert "No tenant events supplied." in markdown
+
+    def test_markdown_renders_parse_warnings_and_tenant_rows(self):
+        report = build_trust_console_report(
+            "{broken\n"
+            + _line(
+                {
+                    "tenant_id": "tenant-a",
+                    "policy_decision": "halt",
+                    "halt_reason": "contradiction",
+                },
+            ),
+        )
+
+        markdown = report.to_markdown()
+
+        assert "Parse Warnings" in markdown
+        assert "| tenant-a | 1 | 1 | 1.0 | 0 | 0.0 | halt-rate |" in markdown
+
 
 class TestObservabilityOperationsReport:
     def test_report_contains_drift_forensics_and_excludes_raw_payloads(self):
@@ -670,6 +709,81 @@ class TestObservabilityOperationsReport:
         assert "Security evidence packet" in markdown
         assert "missing" in markdown
 
+    @pytest.mark.parametrize(
+        ("standard", "name", "status", "evidence_ref", "match"),
+        [
+            ("SOC 2", "Security packet", "unknown", "soc2.md", "status"),
+            ("", "Security packet", "available", "soc2.md", "standard"),
+            ("SOC 2", "", "available", "soc2.md", "name"),
+            ("SOC 2", "Security packet", "available", "", "evidence_ref"),
+        ],
+    )
+    def test_compliance_export_required_fields_are_validated(
+        self,
+        standard: str,
+        name: str,
+        status: str,
+        evidence_ref: str,
+        match: str,
+    ):
+        with pytest.raises(ValueError, match=match):
+            ComplianceExportRef(
+                standard=standard,
+                name=name,
+                status=status,
+                evidence_ref=evidence_ref,
+            )
+
+    def test_operations_markdown_renders_empty_compliance_and_evidence_sections(self):
+        report = build_observability_operations_report("")
+
+        markdown = report.to_markdown()
+
+        assert "No compliance export references supplied." in markdown
+        assert "No halt evidence supplied." in markdown
+
+    def test_operations_markdown_renders_positive_tables(self):
+        events = "".join(
+            [
+                _line({"tenant_id": "tenant-a", "policy_decision": "allow"}),
+                _line({"tenant_id": "tenant-a", "policy_decision": "allow"}),
+                _line(
+                    {
+                        "tenant_id": "tenant-a",
+                        "policy_decision": "halt",
+                        "halt_reason": "contradiction",
+                        "trace_attribution": {"fact_source": "kb://policy"},
+                    },
+                ),
+                _line(
+                    {
+                        "tenant_id": "tenant-a",
+                        "policy_decision": "halt",
+                        "halt_reason": "contradiction",
+                        "trace_attribution": {"fact_source": "kb://policy"},
+                    },
+                ),
+            ],
+        )
+        report = build_observability_operations_report(
+            events,
+            compliance_exports=[
+                ComplianceExportRef(
+                    standard="SOC 2",
+                    name="Security packet",
+                    status="available",
+                    evidence_ref="soc2.md",
+                ),
+            ],
+            drift_alert_threshold=0.25,
+        )
+
+        markdown = report.to_markdown()
+
+        assert "| tenant-a | 2 | 2 | 0.0 | 1.0 | 1.0 | severe |" in markdown
+        assert "| SOC 2 | Security packet | available | soc2.md |  |" in markdown
+        assert "kb://policy" in markdown
+
     def test_drift_alert_requires_enough_events_per_window(self):
         events = _line(
             {
@@ -702,6 +816,201 @@ class TestObservabilityOperationsReport:
         assert "# Director-AI Observability Operations" in markdown
         assert "## Drift Alerts" in markdown
         assert "No drift alerts" in markdown
+
+
+class TestSafetyDashboardUtilityContracts:
+    def test_drift_severity_and_recommendations_are_stable(self):
+        assert dashboard_mod._drift_severity(0.31) == "severe"
+        assert dashboard_mod._drift_severity(0.16) == "moderate"
+        assert dashboard_mod._drift_severity(0.01) == "mild"
+        assert "Freeze rollout" in dashboard_mod._drift_recommendation("severe")
+        assert "labelled feedback" in dashboard_mod._drift_recommendation("moderate")
+        assert "Monitor the next window" in dashboard_mod._drift_recommendation("mild")
+
+    def test_drift_alert_rows_skip_small_and_stable_windows(self):
+        small = [
+            dashboard_mod.HaltDashboardRecord(
+                tenant_id="tenant-a",
+                event_id="a1",
+                timestamp="",
+                decision="allow",
+                reason="",
+                halted=False,
+                false_positive=False,
+                score=None,
+                contradiction_source="unknown",
+                action="",
+            )
+        ]
+        assert (
+            dashboard_mod._drift_alert_rows(
+                small,
+                drift_alert_threshold=0.1,
+                min_window_events=1,
+            )
+            == []
+        )
+        stable = [
+            dashboard_mod.HaltDashboardRecord(
+                tenant_id="tenant-a",
+                event_id=f"a{idx}",
+                timestamp="",
+                decision="allow",
+                reason="",
+                halted=False,
+                false_positive=False,
+                score=None,
+                contradiction_source="unknown",
+                action="",
+            )
+            for idx in range(4)
+        ]
+        assert (
+            dashboard_mod._drift_alert_rows(
+                stable,
+                drift_alert_threshold=0.1,
+                min_window_events=2,
+            )
+            == []
+        )
+
+    def test_operations_risk_level_precedence(self):
+        assert (
+            dashboard_mod._operations_risk_level(
+                tenant_alerts=0,
+                drift_alerts=[],
+                controls=(
+                    TrustControl(
+                        control="Security",
+                        status="failing",
+                        evidence_ref="security.md",
+                    ),
+                ),
+                compliance_exports=(),
+                halts=0,
+                false_positives=0,
+            )
+            == "critical"
+        )
+        assert (
+            dashboard_mod._operations_risk_level(
+                tenant_alerts=0,
+                drift_alerts=[],
+                controls=(),
+                compliance_exports=(
+                    ComplianceExportRef(
+                        standard="SOC 2",
+                        name="Security packet",
+                        status="stale",
+                        evidence_ref="soc2.md",
+                    ),
+                ),
+                halts=0,
+                false_positives=0,
+            )
+            == "attention_required"
+        )
+        assert (
+            dashboard_mod._operations_risk_level(
+                tenant_alerts=0,
+                drift_alerts=[],
+                controls=(),
+                compliance_exports=(),
+                halts=1,
+                false_positives=0,
+            )
+            == "monitored"
+        )
+        assert (
+            dashboard_mod._operations_risk_level(
+                tenant_alerts=0,
+                drift_alerts=[],
+                controls=(),
+                compliance_exports=(),
+                halts=0,
+                false_positives=0,
+            )
+            == "healthy"
+        )
+
+    def test_trust_risk_level_precedence(self):
+        assert (
+            dashboard_mod._trust_risk_level(
+                tenants=[],
+                controls=(
+                    TrustControl(
+                        control="Security",
+                        status="warning",
+                        evidence_ref="security.md",
+                    ),
+                ),
+                halt_rate=0.0,
+                false_positive_rate=0.0,
+            )
+            == "attention_required"
+        )
+        assert (
+            dashboard_mod._trust_risk_level(
+                tenants=[],
+                controls=(),
+                halt_rate=0.1,
+                false_positive_rate=0.0,
+            )
+            == "monitored"
+        )
+        assert (
+            dashboard_mod._trust_risk_level(
+                tenants=[],
+                controls=(),
+                halt_rate=0.0,
+                false_positive_rate=0.0,
+            )
+            == "healthy"
+        )
+
+    def test_source_and_nested_value_fallbacks(self):
+        assert (
+            dashboard_mod._contradiction_source(
+                {"attributes": {"source": "kb://attributes"}}
+            )
+            == "kb://attributes"
+        )
+        assert (
+            dashboard_mod._contradiction_source(
+                {"halt_evidence": {"evidence_refs": ["kb://nested"]}}
+            )
+            == "kb://nested"
+        )
+        assert (
+            dashboard_mod._contradiction_source(
+                {"evidence_chunks": [{"id": "chunk-a"}]}
+            )
+            == "chunk-a"
+        )
+        assert (
+            dashboard_mod._first_nested(
+                {"attributes": {"tenant_id": "tenant-a"}},
+                "tenant_id",
+                default="default",
+            )
+            == "tenant-a"
+        )
+        assert (
+            dashboard_mod._first_nested({"attributes": {}}, "tenant_id", default="x")
+            == "x"
+        )
+
+    def test_truthy_accepts_numeric_and_string_forms(self):
+        assert dashboard_mod._truthy(1) is True
+        assert dashboard_mod._truthy(0) is False
+        assert dashboard_mod._truthy("yes") is True
+        assert dashboard_mod._truthy("no") is False
+        assert dashboard_mod._truthy(object()) is False
+
+    def test_feedback_label_string_contracts(self):
+        assert dashboard_mod._feedback_label({"label": "accepted"}) is True
+        assert dashboard_mod._feedback_label({"label": "blocked"}) is False
+        assert dashboard_mod._feedback_label({"label": "maybe"}) is None
 
 
 class _FakeComponent:
