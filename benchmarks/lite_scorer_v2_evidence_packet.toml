@@ -4,16 +4,36 @@
 # Code 2020-2026 Miroslav Sotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI - Lite Scorer v2 evidence packet placeholder
+# Director-Class AI - Lite Scorer v2 recorded evidence packet
 
 schema_version = "1.0.0"
 packet_id = "lite-scorer-v2-evidence"
 public_score_claim = false
-student_artifact_status = "pending"
-teacher_artifact_status = "pending"
-heldout_eval_status = "pending"
-onnx_export_status = "pending"
-quantized_latency_status = "pending"
-model_card_status = "pending"
-benchmark_claim_review_status = "pending"
-claim_boundary = "Evidence packet placeholder only; no public score claim until student artefact, teacher artefact, held-out evaluation, ONNX export, and quantized latency evidence are validated."
+student_artifact_status = "recorded"
+student_candidate = "minilm_l6"
+student_artifact_path = "MODELS/lite-scorer-v2/student/model.safetensors"
+student_artifact_sha256 = "652590428a92ebcfd6f51ae90df9c93ff2c1b8b1bd2fe4d11db5d9eff7bd887a"
+teacher_artifact_status = "recorded"
+teacher_artifact_path = "training/output/deberta-v3-large-hallucination/model.safetensors"
+teacher_artifact_sha256 = "75c6cf7d9945143581b8c517d1d44f5717d6fed156b354fcd995b6eb89570163"
+heldout_eval_status = "recorded"
+heldout_eval_dataset = "benchmarks/heldout/lite_scorer_v2.jsonl"
+heldout_eval_rows = 1000
+heldout_eval_balanced_accuracy = 0.756
+heldout_eval_threshold = 0.685047
+onnx_export_status = "recorded"
+onnx_artifact_path = "MODELS/lite-scorer-v2/onnx/model_quantized.onnx"
+onnx_artifact_sha256 = "6ea859c2c3d17c5799e6e2dcd9ee183304f0df7d6cd44da489a94424ab5a747d"
+quantized_latency_status = "recorded"
+latency_backend = "onnxruntime"
+latency_device = "cpu"
+latency_sample_count = 100
+latency_p50_ms = 71.907606
+latency_p95_ms = 239.390694
+model_card_status = "recorded"
+model_card_path = "MODELS/lite-scorer-v2/model_card.md"
+model_card_sha256 = "0912c8cfacfb02d17eb57427ca62147df3a49464aca8e27ef58b55ebcdcf13a3"
+benchmark_claim_review_status = "recorded"
+benchmark_claim_review_path = "benchmarks/lite_scorer_v2_claim_review.md"
+benchmark_claim_review_sha256 = "e174875c02c286202b97447fa7e614972186d1f0989f2f572921b5cc68cec3f6"
+claim_boundary = "Recorded evidence packet only; no public score claim until the model card and benchmark-claim review are operator approved."
