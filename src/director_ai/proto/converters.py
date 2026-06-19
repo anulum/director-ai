@@ -6,8 +6,9 @@
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI — protobuf <-> internal type converters
 
-"""Small, hand-written adapters between the generated protobuf
-messages in :mod:`director_ai.proto.director.v1` and the native
+"""Hand-written adapters between generated protobuf messages and dataclasses.
+
+Bridges the messages in :mod:`director_ai.proto.director.v1` and the native
 Director-AI dataclasses.
 
 Converters live here (not on the dataclasses) so the generated

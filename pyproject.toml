@@ -718,6 +718,8 @@ module = [
     "director_ai.grpc_scoring",
     "director_ai.grpc_server",
     "director_ai.guard",
+    "director_ai.proto",
+    "director_ai.proto.*",
 ]
 disallow_untyped_defs = true
 disallow_incomplete_defs = true
@@ -844,6 +846,14 @@ ignore_errors = true
 
 [[tool.mypy.overrides]]
 module = "director_ai.enterprise.redis"
+ignore_errors = true
+
+# protoc-generated gRPC stubs — machine-generated, not hand-annotated.
+[[tool.mypy.overrides]]
+module = [
+    "director_ai.proto.director.v1.director_pb2",
+    "director_ai.proto.director.v1.director_pb2_grpc",
+]
 ignore_errors = true
 
 [[tool.mypy.overrides]]
