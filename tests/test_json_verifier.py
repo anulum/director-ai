@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import pytest
 
+from director_ai.core.verification import json_verifier
 from director_ai.core.verification.json_verifier import verify_json
 
 
@@ -165,6 +166,30 @@ class TestSchemaValidation:
         assert r.valid_json is True
         assert r.schema_valid is True
 
+    def test_missing_schema_type_is_permissive(self):
+        schema = {"enum": ["ok", "pending"]}
+
+        r = verify_json('"ok"', schema=schema)
+
+        assert r.schema_valid is True
+
+    def test_explicit_null_schema_type_is_permissive(self):
+        schema = {"type": None}
+
+        r = verify_json('{"status": "approved"}', schema=schema)
+
+        assert r.schema_valid is True
+        assert json_verifier._check_schema_type({"status": "approved"}, None) is True
+
+    def test_union_schema_type_accepts_any_matching_type(self):
+        schema = {"type": ["string", "number"]}
+
+        valid = verify_json('"ready"', schema=schema)
+        invalid = verify_json("false", schema=schema)
+
+        assert valid.schema_valid is True
+        assert invalid.schema_valid is False
+
     def test_array_items_are_validated_recursively(self):
         schema = {
             "type": "object",
@@ -228,6 +253,28 @@ class TestSchemaValidation:
         assert any(
             v.path == "quantity" and v.verdict == "invalid_type"
             for v in r.field_verdicts
+        )
+
+    def test_pydantic_v1_parse_obj_success_is_accepted(self):
+        class LegacyModel:
+            @classmethod
+            def parse_obj(cls, data):
+                assert data == {"status": "approved"}
+
+        r = verify_json('{"status": "approved"}', pydantic_model=LegacyModel)
+
+        assert r.schema_valid is True
+        assert r.error_count == 0
+
+    def test_invalid_pydantic_adapter_reports_root_error(self):
+        class InvalidAdapter:
+            pass
+
+        r = verify_json('{"status": "approved"}', pydantic_model=InvalidAdapter)
+
+        assert r.schema_valid is False
+        assert any(
+            v.path == "$" and v.verdict == "invalid_value" for v in r.field_verdicts
         )
 
 
@@ -340,3 +387,10 @@ class TestCombined:
         assert r.schema_valid is True
         assert r.error_count == 0
         assert r.field_verdicts[0].verdict == "valid"
+
+
+class TestAcceleratedCounting:
+    def test_sum_uses_python_fallback_when_rust_path_disabled(self, monkeypatch):
+        monkeypatch.setattr(json_verifier, "_RUST_JSON_VERIFY", False)
+
+        assert json_verifier._sum_int([1, 0, 1]) == 2
