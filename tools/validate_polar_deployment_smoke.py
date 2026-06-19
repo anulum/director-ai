@@ -101,9 +101,13 @@ def _validate_packet(
 
     live_ready = _all_live_checks_passed(packet)
     if packet["pricing_status"] == "live_checkout" and not live_ready:
-        errors.append(f"{PACKET}: live_checkout pricing requires all smoke checks passed")
+        errors.append(
+            f"{PACKET}: live_checkout pricing requires all smoke checks passed"
+        )
     if packet["public_commercial_claim"] is True and not live_ready:
-        errors.append(f"{PACKET}: public_commercial_claim requires all smoke checks passed")
+        errors.append(
+            f"{PACKET}: public_commercial_claim requires all smoke checks passed"
+        )
     if packet["live_checkout_claim"] is True and not live_ready:
         errors.append(f"{PACKET}: live_checkout_claim requires all smoke checks passed")
 

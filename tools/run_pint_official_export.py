@@ -88,7 +88,9 @@ def _as_rows(payload: Any, *, source: Path) -> list[dict[str, Any]]:
 
 def _load_jsonl(path: Path) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
-    for line_number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+    for line_number, line in enumerate(
+        path.read_text(encoding="utf-8").splitlines(), 1
+    ):
         if not line.strip():
             raise ValueError(f"{path}:{line_number}: blank lines are not allowed")
         row = json.loads(line)

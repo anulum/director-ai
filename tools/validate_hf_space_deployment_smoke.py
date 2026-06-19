@@ -110,8 +110,7 @@ def _validate_packet(
     smoke_status = packet["smoke_status"]
     if smoke_status not in SMOKE_STATUSES:
         errors.append(
-            f"{PACKET}: smoke_status must be one of "
-            f"{', '.join(sorted(SMOKE_STATUSES))}"
+            f"{PACKET}: smoke_status must be one of {', '.join(sorted(SMOKE_STATUSES))}"
         )
 
     if packet["public_demo_claim"] is True and (
