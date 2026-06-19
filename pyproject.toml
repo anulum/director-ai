@@ -559,6 +559,8 @@ warn_unused_ignores = true
 
 [[tool.mypy.overrides]]
 module = [
+    "director_ai._server_helpers",
+    "director_ai._server_models",
     "director_ai.core",
     "director_ai.core._device",
     "director_ai.core._heuristics",

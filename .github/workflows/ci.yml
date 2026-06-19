@@ -143,6 +143,8 @@ jobs:
           src/director_ai/core/vector_store.py
           src/director_ai/core/verification
           src/director_ai/core/zk_attestation
+          src/director_ai/_server_helpers.py
+          src/director_ai/_server_models.py
           --select D
 
   typecheck:

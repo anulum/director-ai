@@ -129,7 +129,9 @@ class BatchRequest(BaseModel):
         description="Whether the operator workflow already attached human review",
     )
 
-    @model_validator(mode="after")
+    # pydantic's model_validator is untyped to mypy without the pydantic.mypy
+    # plugin, which is incompatible with the pinned mypy version.
+    @model_validator(mode="after")  # type: ignore[untyped-decorator]
     def _enforce_aggregate_text_budget(self) -> BatchRequest:
         prompt_chars = sum(len(prompt) for prompt in self.prompts)
         if prompt_chars > _MAX_BATCH_PROMPT_CHARS:
@@ -155,8 +157,8 @@ class ReviewResponse(BaseModel):
     h_logical: float
     h_factual: float
     warning: bool = False
-    evidence: dict | None = None
-    sector_policy: dict | None = None
+    evidence: dict[str, Any] | None = None
+    sector_policy: dict[str, Any] | None = None
 
 
 class FeedbackRequest(BaseModel):
@@ -211,15 +213,15 @@ class ProcessResponse(BaseModel):
     candidates_evaluated: int
     warning: bool = False
     fallback_used: bool = False
-    evidence: dict | None = None
-    halt_evidence: dict | None = None
+    evidence: dict[str, Any] | None = None
+    halt_evidence: dict[str, Any] | None = None
 
 
 class BatchResponse(BaseModel):
     """Aggregate result for a batch request."""
 
     results: list[dict[str, Any]]
-    errors: list[dict]
+    errors: list[dict[str, Any]]
     total: int
     succeeded: int
     failed: int
@@ -270,7 +272,7 @@ class InjectionResponse(BaseModel):
     grounded_claims: int
     drifted_claims: int
     injected_claims: int
-    claims: list[dict] = []
+    claims: list[dict[str, Any]] = []
     input_sanitizer_score: float
     combined_score: float
 
@@ -313,8 +315,8 @@ class MultimodalDetectResponse(BaseModel):
 
     modality: str
     media_ref: str
-    signal: dict
-    guard_decision: dict
+    signal: dict[str, Any]
+    guard_decision: dict[str, Any]
 
 
 class VerifyResponse(BaseModel):
@@ -324,7 +326,7 @@ class VerifyResponse(BaseModel):
     overall_score: float
     confidence: str = ""
     reason: str = ""
-    claims: list[dict] = []
+    claims: list[dict[str, Any]] = []
 
 
 class TextRequest(BaseModel):
@@ -520,7 +522,7 @@ class AgenticStepRequest(BaseModel):
     args: str = Field("", description="Serialized arguments")
     result: str = Field("", description="Tool output")
     tokens: int = Field(0, ge=0, description="Tokens consumed")
-    step_history: list[dict] = Field(
+    step_history: list[dict[str, Any]] = Field(
         default_factory=list,
         description="Previous steps [{action, args}] for circular detection",
     )
@@ -548,7 +550,7 @@ class HealthResponse(BaseModel):
     nli_loaded: bool
     uptime_seconds: float
     routers: dict[str, str] = Field(default_factory=dict)
-    model_revisions: dict = Field(default_factory=dict)
+    model_revisions: dict[str, Any] = Field(default_factory=dict)
 
 
 class ReadyResponse(BaseModel):
@@ -572,7 +574,7 @@ class SourceResponse(BaseModel):
 class ConfigResponse(BaseModel):
     """Sanitised runtime configuration response."""
 
-    config: dict
+    config: dict[str, Any]
 
 
 class TenantFactRequest(BaseModel):
@@ -664,7 +666,7 @@ class HourlyDataPoint(BaseModel):
 class HourlyResponse(BaseModel):
     """Hourly statistics response."""
 
-    data: list[dict] = []
+    data: list[dict[str, Any]] = []
     note: str = ""
 
 

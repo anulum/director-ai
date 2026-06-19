@@ -9,8 +9,10 @@
 
 from __future__ import annotations
 
+from typing import Any
 
-def halt_evidence_to_dict(halt_ev) -> dict | None:
+
+def halt_evidence_to_dict(halt_ev: Any) -> dict[str, Any] | None:
     """Convert HaltEvidence to JSON-safe dict."""
     if halt_ev is None:
         return None
@@ -52,7 +54,7 @@ def halt_evidence_to_dict(halt_ev) -> dict | None:
     }
 
 
-def _fact_change_to_dict(change) -> dict | None:
+def _fact_change_to_dict(change: Any) -> dict[str, Any] | None:
     """Convert a counterfactual fact-change candidate to JSON-safe data."""
     if change is None:
         return None
@@ -65,7 +67,7 @@ def _fact_change_to_dict(change) -> dict | None:
     }
 
 
-def evidence_to_dict(evidence) -> dict | None:
+def evidence_to_dict(evidence: Any) -> dict[str, Any] | None:
     """Convert ScoringEvidence to JSON-safe dict."""
     if evidence is None:
         return None
