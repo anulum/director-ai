@@ -56,6 +56,7 @@ class AutoRedteamCycleInput:
     candidate_score: float
 
     def __post_init__(self) -> None:
+        """Reject empty corpora, a bad version/label, or out-of-range scores."""
         failures = tuple(self.failures)
         safe_corpus = tuple(self.safe_corpus)
         if not failures:

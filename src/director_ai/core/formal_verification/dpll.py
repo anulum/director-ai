@@ -34,9 +34,10 @@ from .cnf import Clause, Literal
 
 @dataclass(frozen=True)
 class Solution:
-    """Outcome of a solve. ``satisfiable`` is the headline; when
-    it is true, ``model`` assigns every variable in the input to
-    ``True`` or ``False``.
+    """Outcome of a solve.
+
+    ``satisfiable`` is the headline; when it is true, ``model`` assigns every
+    variable in the input to ``True`` or ``False``.
     """
 
     satisfiable: bool
@@ -62,6 +63,11 @@ class DpllSolver:
         self._max_decisions = max_decisions
 
     def solve(self, clauses: tuple[Clause, ...]) -> Solution:
+        """Decide satisfiability of ``clauses`` by DPLL search.
+
+        Returns a satisfying model when one exists; raises
+        :class:`TimeoutError` once the decision budget is exceeded.
+        """
         self._decisions = 0
         self._propagations = 0
         assignment: dict[str, bool] = {}

@@ -49,8 +49,10 @@ class BudgetEntry:
 
     @property
     def exhausted(self) -> bool:
-        """True when the last reservation was refused or the budget
-        is empty — the caller should reject the request."""
+        """Report whether the last reservation was refused or the budget is empty.
+
+        When true the caller should reject the request.
+        """
         return not self.accepted or self.remaining <= 0.0
 
 
@@ -178,9 +180,10 @@ class RiskBudget:
         return self.reserve(tenant_id, 0.0)
 
     def reset(self, tenant_id: str | None = None) -> None:
-        """Clear one tenant's ledger (``tenant_id`` given) or every
-        ledger at once (``tenant_id=None``). Useful for tests and
-        for operator-triggered 'new epoch' events."""
+        """Clear one tenant's ledger, or every ledger when ``tenant_id`` is None.
+
+        Useful for tests and for operator-triggered 'new epoch' events.
+        """
         with self._lock:
             if tenant_id is None:
                 self._ledgers.clear()

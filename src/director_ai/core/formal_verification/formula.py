@@ -21,57 +21,76 @@ from dataclasses import dataclass
 
 @dataclass(frozen=True)
 class Variable:
+    """A propositional variable named by a non-empty string."""
+
     name: str
 
     def __post_init__(self) -> None:
+        """Reject an empty variable name."""
         if not self.name:
             raise ValueError("Variable.name must be non-empty")
 
     def __str__(self) -> str:
+        """Render as the bare variable name."""
         return self.name
 
 
 @dataclass(frozen=True)
 class Not:
+    """Logical negation of a single sub-formula."""
+
     operand: Formula
 
     def __str__(self) -> str:
+        """Render as ``¬operand``."""
         return f"¬{_wrap(self.operand)}"
 
 
 @dataclass(frozen=True)
 class And:
+    """Logical conjunction of two sub-formulae."""
+
     left: Formula
     right: Formula
 
     def __str__(self) -> str:
+        """Render as ``(left ∧ right)``."""
         return f"({self.left} ∧ {self.right})"
 
 
 @dataclass(frozen=True)
 class Or:
+    """Logical disjunction of two sub-formulae."""
+
     left: Formula
     right: Formula
 
     def __str__(self) -> str:
+        """Render as ``(left ∨ right)``."""
         return f"({self.left} ∨ {self.right})"
 
 
 @dataclass(frozen=True)
 class Implies:
+    """Material implication ``antecedent → consequent``."""
+
     antecedent: Formula
     consequent: Formula
 
     def __str__(self) -> str:
+        """Render as ``(antecedent → consequent)``."""
         return f"({self.antecedent} → {self.consequent})"
 
 
 @dataclass(frozen=True)
 class Iff:
+    """Logical biconditional ``left ↔ right``."""
+
     left: Formula
     right: Formula
 
     def __str__(self) -> str:
+        """Render as ``(left ↔ right)``."""
         return f"({self.left} ↔ {self.right})"
 
 

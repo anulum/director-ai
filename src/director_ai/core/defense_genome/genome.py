@@ -98,6 +98,7 @@ class Gene:
     parameter: int
 
     def __post_init__(self) -> None:
+        """Reject an unknown operator or a negative parameter."""
         if self.operator not in _VALID_OPERATORS:
             raise ValueError(
                 f"operator must be one of {sorted(_VALID_OPERATORS)}; "
@@ -119,10 +120,12 @@ class AdversarialGenome:
     genes: tuple[Gene, ...]
 
     def __post_init__(self) -> None:
+        """Reject an empty gene sequence."""
         if not self.genes:
             raise ValueError("AdversarialGenome.genes must be non-empty")
 
     def render(self, seed_prompt: str) -> str:
+        """Apply every gene to ``seed_prompt`` in order and return the result."""
         if not seed_prompt:
             return seed_prompt
         current = seed_prompt
@@ -132,9 +135,11 @@ class AdversarialGenome:
 
     @classmethod
     def random(cls, *, length: int, rng: random.Random) -> AdversarialGenome:
-        """Draw a random genome of ``length`` genes. Parameters are
-        drawn uniformly from ``[0, 255]`` so the engine has space
-        to evolve without blowing out the int range."""
+        """Draw a random genome of ``length`` genes.
+
+        Parameters are drawn uniformly from ``[0, 255]`` so the engine has
+        space to evolve without blowing out the int range.
+        """
         if length <= 0:
             raise ValueError(f"length must be positive; got {length}")
         operators = tuple(sorted(_VALID_OPERATORS))
@@ -146,9 +151,11 @@ class AdversarialGenome:
 
 
 def _apply(text: str, gene: Gene) -> str:
-    """Dispatch one operator. Each operator is a pure function of
-    ``(text, parameter)`` — no RNG at apply time because the
-    genome already encodes the choice."""
+    """Dispatch one operator over ``text``.
+
+    Each operator is a pure function of ``(text, parameter)`` — no RNG at
+    apply time because the genome already encodes the choice.
+    """
     op = gene.operator
     param = gene.parameter
     if not text:

@@ -32,16 +32,17 @@ from .formula import And, Formula, Iff, Implies, Not, Or, Variable
 
 @dataclass(frozen=True)
 class Literal:
-    """Variable name + polarity. ``positive=False`` represents
-    ``¬name``."""
+    """A variable name with polarity; ``positive=False`` represents ``¬name``."""
 
     name: str
     positive: bool
 
     def __str__(self) -> str:
+        """Render as ``name`` or ``¬name`` depending on polarity."""
         return self.name if self.positive else f"¬{self.name}"
 
     def negate(self) -> Literal:
+        """Return the same variable with flipped polarity."""
         return Literal(name=self.name, positive=not self.positive)
 
 
@@ -52,6 +53,11 @@ class CnfConverter:
     """Pure-function CNF converter."""
 
     def convert(self, formula: Formula) -> tuple[Clause, ...]:
+        """Convert ``formula`` to a conjunction of clauses in CNF.
+
+        Eliminates ``↔`` and ``→``, pushes negations to literals (NNF), then
+        distributes ``∨`` over ``∧`` and flattens to a clause tuple.
+        """
         without_iff = self._remove_iff(formula)
         without_impl = self._remove_implications(without_iff)
         nnf = self._push_negations(without_impl)

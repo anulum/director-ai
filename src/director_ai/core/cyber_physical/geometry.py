@@ -76,12 +76,15 @@ class Vec3:
                 raise ValueError(f"Vec3 components must be finite; got {component!r}")
 
     def __add__(self, other: Vec3) -> Vec3:
+        """Return the componentwise sum with another vector."""
         return Vec3(self.x + other.x, self.y + other.y, self.z + other.z)
 
     def __sub__(self, other: Vec3) -> Vec3:
+        """Return the componentwise difference from another vector."""
         return Vec3(self.x - other.x, self.y - other.y, self.z - other.z)
 
     def __mul__(self, scalar: float) -> Vec3:
+        """Return the vector scaled by ``scalar``."""
         return Vec3(self.x * scalar, self.y * scalar, self.z * scalar)
 
     def dot(self, other: Vec3) -> float:
@@ -97,8 +100,10 @@ class Vec3:
         return (self - other).norm()
 
     def clamp(self, low: Vec3, high: Vec3) -> Vec3:
-        """Return a new vector with each component clamped into
-        ``[low, high]``. Used by workspace bounding."""
+        """Return a copy with each component clamped into ``[low, high]``.
+
+        Used by workspace bounding.
+        """
         if low.x > high.x or low.y > high.y or low.z > high.z:
             raise ValueError("low must be componentwise <= high")
         return Vec3(
@@ -157,8 +162,10 @@ class AABB:
         )
 
     def expand(self, margin: float) -> AABB:
-        """Return a new AABB uniformly expanded by ``margin``
-        in every direction. Negative margins shrink."""
+        """Return a new AABB uniformly expanded by ``margin`` in every direction.
+
+        Negative margins shrink the box.
+        """
         delta = Vec3(margin, margin, margin)
         return AABB(
             min_corner=self.min_corner - delta,

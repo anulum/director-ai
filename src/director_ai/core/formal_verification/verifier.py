@@ -6,8 +6,7 @@
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI — ReasoningVerifier + external backends
 
-"""Compose the CNF converter + DPLL solver with optional
-external backends.
+"""Compose the CNF converter and DPLL solver with optional external backends.
 
 :class:`ReasoningVerifier` takes a list of :class:`ReasoningStep`
 (each a :class:`Formula` plus an opaque label) and asks the
@@ -161,9 +160,11 @@ class Z3Backend:
 
 
 def _formula_to_z3(formula: Formula, z3: Any) -> Any:
-    """Map the local AST into z3 Bool expressions. Local import
-    of z3 keeps the module loadable without the optional
-    dependency."""
+    """Map the local AST into z3 Bool expressions.
+
+    The local import of z3 keeps the module loadable without the optional
+    dependency.
+    """
     from .formula import Iff, Implies, Not, Or, Variable
 
     if isinstance(formula, Variable):

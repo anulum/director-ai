@@ -50,9 +50,11 @@ class PhysicalConstraint(Protocol):
 
 @dataclass(frozen=True)
 class SpatialConstraint:
-    """Forbid the end-effector from entering any of a set of
-    obstacles. Uses the model's own collision check so
-    :class:`SimpleKinematicModel.collision_margin` is honoured."""
+    """Forbid the end-effector from entering any obstacle in a set.
+
+    Uses the model's own collision check so
+    :class:`SimpleKinematicModel.collision_margin` is honoured.
+    """
 
     name: str
     obstacles_aabb: tuple[AABB, ...] = ()

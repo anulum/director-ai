@@ -97,7 +97,9 @@ _DEFAULT_STRATEGIES: tuple[MutationStrategy, ...] = (
 class Mutator(Protocol):
     """Optional LLM paraphraser. Returns ``n`` semantic rewrites of ``prompt``."""
 
-    def paraphrase(self, prompt: str, n: int) -> Sequence[str]: ...  # pragma: no cover
+    def paraphrase(self, prompt: str, n: int) -> Sequence[str]:  # pragma: no cover
+        """Return ``n`` semantic rewrites of ``prompt``."""
+        ...
 
 
 class RedTeamEngine:

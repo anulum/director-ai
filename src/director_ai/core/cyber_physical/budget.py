@@ -38,6 +38,7 @@ class PhysicalBudgetLimits:
     max_sensor_fusion: int = 60
 
     def __post_init__(self) -> None:
+        """Reject a non-positive window or any negative per-counter limit."""
         if self.window_seconds <= 0:
             raise ValueError("window_seconds must be positive")
         for name in (
@@ -50,6 +51,7 @@ class PhysicalBudgetLimits:
                 raise ValueError(f"{name} must be non-negative")
 
     def limit_for(self, counter: str) -> int:
+        """Return the configured per-window limit for ``counter``."""
         if counter == "action_validations":
             return self.max_action_validations
         if counter == "inverse_kinematics":
@@ -71,6 +73,7 @@ class PhysicalBudgetExceededError(Exception):
     window_seconds: float
 
     def __str__(self) -> str:
+        """Render the exhausted counter with its limit and window."""
         return (
             f"physical budget exceeded for {self.counter}: "
             f"limit {self.limit} per {self.window_seconds:.3f}s window"

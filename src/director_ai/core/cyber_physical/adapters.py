@@ -120,9 +120,11 @@ class Ros2Adapter:
         obstacles_aabb: Sequence[AABB] = (),
         obstacles_sphere: Sequence[Sphere] = (),
     ) -> bool:
-        """Check the ``point`` against the caller-supplied
-        obstacle set. The live ROS graph may publish additional
-        obstacles — callers fold those in via the two arguments."""
+        """Check ``point`` against the caller-supplied obstacle set.
+
+        The live ROS graph may publish additional obstacles — callers fold
+        those in via the two arguments.
+        """
         if any(box.contains(point) for box in obstacles_aabb):
             return True
         return any(sphere.contains(point) for sphere in obstacles_sphere)

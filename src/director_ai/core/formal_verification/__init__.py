@@ -6,8 +6,7 @@
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI — formal verification hooks
 
-"""Propositional verification backend for structured reasoning
-chains.
+"""Propositional verification backend for structured reasoning chains.
 
 Three layers:
 

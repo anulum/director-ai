@@ -66,6 +66,7 @@ class GuardAction:
     catch: float
 
     def __post_init__(self) -> None:
+        """Reject a negative cost or a catch rate outside [0, 1]."""
         if self.cost < 0.0:
             raise ValueError(f"{self.name}: cost must be non-negative")
         if not 0.0 <= self.catch <= 1.0:
@@ -117,6 +118,7 @@ class HallucinationEconomics:
     hallucination_cost: float = 1.0
 
     def __post_init__(self) -> None:
+        """Reject an empty action menu or a negative hallucination cost."""
         if not self.actions:
             raise ValueError("at least one guard action is required")
         if self.hallucination_cost < 0.0:
@@ -126,7 +128,7 @@ class HallucinationEconomics:
     def expected_cost(
         action: GuardAction, risk: float, hallucination_cost: float
     ) -> float:
-        """Expected total cost of *action* for a request of the given *risk*."""
+        """Compute the expected total cost of *action* at the given *risk*."""
         return action.cost + risk * (1.0 - action.catch) * hallucination_cost
 
     def decide(

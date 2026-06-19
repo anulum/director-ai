@@ -31,9 +31,11 @@ except Exception:  # pragma: no cover - mandatory dependency
     _RUST_CONTINUAL_ADV = True
 
     def rust_sum_f64(_values: list[float]) -> float:
+        """Raise to signal the mandatory Rust float-sum accelerator is missing."""
         raise RuntimeError("backfire_kernel rust_sum_f64 is unavailable")
 
     def rust_sum_i64(_values: list[int]) -> int:
+        """Raise to signal the mandatory Rust int-sum accelerator is missing."""
         raise RuntimeError("backfire_kernel rust_sum_i64 is unavailable")
 
 
@@ -56,6 +58,7 @@ class TrainedAdversaryScorer:
     training_accuracy: float
 
     def score(self, prompt: str) -> float:
+        """Return the logistic adversarial probability for ``prompt``."""
         features = _hash_bag(prompt, self.dim)
         margin = self.bias + _sum_float(
             [w * f for w, f in zip(self.weights, features, strict=True)]
@@ -65,15 +68,20 @@ class TrainedAdversaryScorer:
 
 @runtime_checkable
 class AdversaryScorer(Protocol):
-    """Protocol: anything that scores a prompt's adversarial
-    probability in ``[0, 1]``."""
+    """Protocol for anything that scores a prompt's adversarial probability.
 
-    def score(self, prompt: str) -> float: ...
+    The score lies in ``[0, 1]``.
+    """
+
+    def score(self, prompt: str) -> float:
+        """Return the prompt's adversarial probability in ``[0, 1]``."""
+        ...
 
 
 class PerceptronAdversaryScorer:
-    """Train a :class:`TrainedAdversaryScorer` via online
-    perceptron + logistic head.
+    """Train a :class:`TrainedAdversaryScorer` via online perceptron.
+
+    Uses a logistic head over hash-bag features.
 
     Parameters
     ----------
@@ -115,6 +123,11 @@ class PerceptronAdversaryScorer:
         safe: Sequence[str],
         version: int,
     ) -> TrainedAdversaryScorer:
+        """Train on labelled cases and return an immutable scorer snapshot.
+
+        Runs the configured epochs of perceptron updates with logistic loss
+        over the adversarial and safe corpora, then freezes the weights.
+        """
         if not adversarial:
             raise ValueError("adversarial set must be non-empty")
         if not safe:

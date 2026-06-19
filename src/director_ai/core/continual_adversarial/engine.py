@@ -41,8 +41,7 @@ class EvolveReport:
 
 
 class ContinualEngine:
-    """Mine recent failures, promote a new suite, retrain the
-    adversary scorer.
+    """Mine recent failures, promote a new suite, retrain the adversary scorer.
 
     Parameters
     ----------
@@ -90,12 +89,15 @@ class ContinualEngine:
 
     @property
     def suite(self) -> AdversarialSuite:
+        """Return the adversarial suite this engine promotes into."""
         return self._suite
 
     def evolve(self, *, safe_corpus: Sequence[str]) -> EvolveReport:
-        """Run one cycle. ``safe_corpus`` is a list of prompts the
-        guardrail believes are safe — they supply the negative
-        class for the perceptron."""
+        """Run one mine-promote-retrain cycle and report what changed.
+
+        ``safe_corpus`` is a list of prompts the guardrail believes are safe —
+        they supply the negative class for the perceptron retrain.
+        """
         if not safe_corpus:
             raise ValueError("safe_corpus must be non-empty")
         if len(self._store) < self._min_failures:
@@ -136,10 +138,11 @@ class ContinualEngine:
         patterns: Sequence[FailurePattern],
         events: Sequence[FailureEvent],
     ) -> tuple[AdversarialCase, ...]:
-        """Turn mined patterns into concrete test cases. For each
-        ngram pattern we use the pattern signature itself as the
-        case prompt; for edit-distance clusters we use the
-        cluster prototype. Pattern-to-case is 1-to-1."""
+        """Turn mined patterns into concrete test cases, one per pattern.
+
+        An ngram pattern uses its signature as the case prompt; an
+        edit-distance cluster uses the cluster prototype.
+        """
         cases: list[AdversarialCase] = []
         for pattern in patterns:
             prompt = (

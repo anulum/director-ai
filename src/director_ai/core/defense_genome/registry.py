@@ -30,7 +30,9 @@ from typing import Protocol, runtime_checkable
 class Defense(Protocol):
     """Anything that scores a prompt's safety in ``[0, 1]``."""
 
-    def score(self, prompt: str) -> float: ...
+    def score(self, prompt: str) -> float:
+        """Return the prompt's safety score in ``[0, 1]``."""
+        ...
 
 
 @dataclass(frozen=True)
@@ -111,18 +113,21 @@ class DefenseRegistry:
         return snapshot
 
     def active(self) -> DefenseSnapshot | None:
+        """Return the snapshot currently in service, or ``None`` if unset."""
         with self._lock:
             return self._active
 
     def history(self) -> tuple[DefenseSnapshot, ...]:
+        """Return the archived snapshots, oldest first."""
         with self._lock:
             return tuple(self._history)
 
     def rollback_to(self, *, label: str) -> DefenseSnapshot:
-        """Promote the most recent archived snapshot with ``label``
-        back into active service. The current active snapshot is
-        pushed onto the history stack; rollback versioning bypasses
-        the strict check so demotions are always possible."""
+        """Promote the most recent archived snapshot with ``label`` to active.
+
+        The current active snapshot is pushed onto the history stack; rollback
+        versioning bypasses the strict check so demotions are always possible.
+        """
         if not label:
             raise ValueError("label must be non-empty")
         with self._lock:
@@ -140,8 +145,10 @@ class DefenseRegistry:
             return match
 
     def clear(self) -> None:
-        """Wipe the registry — used by tests and catastrophic
-        recovery procedures only."""
+        """Wipe the registry.
+
+        Used by tests and catastrophic recovery procedures only.
+        """
         with self._lock:
             self._active = None
             self._history = []

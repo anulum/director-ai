@@ -32,6 +32,7 @@ class AdversarialCase:
     source_pattern: str
 
     def __post_init__(self) -> None:
+        """Reject a blank prompt, expected label, or source pattern."""
         if not self.prompt:
             raise ValueError("AdversarialCase.prompt must be non-empty")
         if not self.expected_label:
@@ -51,6 +52,7 @@ class SuiteVersion:
     metadata: dict[str, str] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
+        """Reject a non-positive version or an empty case list."""
         if self.version <= 0:
             raise ValueError("SuiteVersion.version must be positive")
         if not self.cases:
@@ -76,6 +78,11 @@ class AdversarialSuite:
         self._history: list[SuiteVersion] = []
 
     def promote(self, version: SuiteVersion) -> None:
+        """Make ``version`` active, archiving the prior active version.
+
+        Raises :class:`ValueError` unless the new version number strictly
+        exceeds the current one.
+        """
         with self._lock:
             if self._active is not None and version.version <= self._active.version:
                 raise ValueError(
@@ -89,14 +96,20 @@ class AdversarialSuite:
             self._active = version
 
     def active(self) -> SuiteVersion | None:
+        """Return the version currently in service, or ``None`` if unset."""
         with self._lock:
             return self._active
 
     def history(self) -> tuple[SuiteVersion, ...]:
+        """Return the archived versions, oldest first."""
         with self._lock:
             return tuple(self._history)
 
     def rollback(self, *, version: int) -> SuiteVersion:
+        """Promote the archived ``version`` back into active service.
+
+        Raises :class:`KeyError` when no archived version matches.
+        """
         with self._lock:
             match = next(
                 (v for v in reversed(self._history) if v.version == version),
@@ -114,9 +127,10 @@ class AdversarialSuite:
     def diff(
         self, *, a: int, b: int
     ) -> tuple[tuple[AdversarialCase, ...], tuple[AdversarialCase, ...]]:
-        """Return ``(only_in_a, only_in_b)`` as the symmetric diff
-        of cases between two versions. Raises :class:`KeyError`
-        when either version is not available."""
+        """Return ``(only_in_a, only_in_b)`` cases between two versions.
+
+        Raises :class:`KeyError` when either version is not available.
+        """
         with self._lock:
             archive = {self._active.version: self._active} if self._active else {}
             for v in self._history:

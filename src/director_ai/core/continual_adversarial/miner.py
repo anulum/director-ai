@@ -46,6 +46,7 @@ class FailurePattern:
     prototype: str = ""
 
     def __post_init__(self) -> None:
+        """Reject a blank signature, non-positive support, or unknown kind."""
         if not self.signature:
             raise ValueError("FailurePattern.signature must be non-empty")
         if self.support <= 0:
@@ -92,6 +93,7 @@ class PatternMiner:
         self._lowercase = lowercase
 
     def mine(self, events: Sequence[FailureEvent]) -> tuple[FailurePattern, ...]:
+        """Mine n-gram and edit-cluster patterns from ``events``."""
         if not events:
             return ()
         ngram_patterns = self._mine_ngrams(events)
@@ -131,10 +133,10 @@ class PatternMiner:
     def _mine_clusters(
         self, events: Sequence[FailureEvent]
     ) -> tuple[FailurePattern, ...]:
-        """Leader-based online clustering: each event either joins
-        an existing cluster (nearest leader within
-        ``max_edit_distance``) or spawns a new one with itself as
-        the leader. Simple, deterministic, no RNG.
+        """Cluster events by leader-based online clustering.
+
+        Each event joins the nearest leader within ``max_edit_distance`` or
+        spawns a new cluster with itself as the leader — deterministic, no RNG.
         """
         clusters: list[_LeaderCluster] = []
         for event in events:
@@ -199,9 +201,11 @@ def _normalised_edit_distance(a: list[str], b: list[str]) -> float:
 
 
 def _levenshtein(a: list[str], b: list[str]) -> int:
-    """Classical dynamic-programming edit distance at token
-    granularity. Space O(min(|a|, |b|)) via the two-row trick so
-    the miner stays cheap on long traces."""
+    """Compute token-level edit distance by dynamic programming.
+
+    Space is O(min(|a|, |b|)) via the two-row trick so the miner stays cheap
+    on long traces.
+    """
     if len(a) < len(b):
         a, b = b, a
     previous = list(range(len(b) + 1))

@@ -52,9 +52,11 @@ except Exception:  # pragma: no cover - mandatory dependency
     _RUST_ROUTING = True
 
     def rust_sum_f64(_values: list[float]) -> float:
+        """Raise to signal the mandatory Rust float-sum accelerator is missing."""
         raise RuntimeError("backfire_kernel rust_sum_f64 is unavailable")
 
     def rust_sum_i64(_values: list[int]) -> int:
+        """Raise to signal the mandatory Rust int-sum accelerator is missing."""
         raise RuntimeError("backfire_kernel rust_sum_i64 is unavailable")
 
 
@@ -78,8 +80,10 @@ _STRUCTURAL_CHARS = "[]{}<>|`"
 
 @dataclass(frozen=True)
 class RiskComponents:
-    """Per-signal breakdown — exposed so callers can log which
-    channel drove a halt."""
+    """Per-signal risk breakdown.
+
+    Exposed so callers can log which channel drove a halt.
+    """
 
     heuristic: float
     sanitiser: float
@@ -87,6 +91,7 @@ class RiskComponents:
     combined: float
 
     def as_dict(self) -> dict[str, float]:
+        """Return the four risk channels as a plain ``{name: value}`` mapping."""
         return {
             "heuristic": self.heuristic,
             "sanitiser": self.sanitiser,
@@ -182,10 +187,12 @@ class PromptRiskScorer:
         return min(1.0, risk)
 
     def _count_marker_hits(self, prompt: str) -> int:
-        """Delegate the system-marker regex walk to the Rust scanner
-        when available. The scanner reports one match per hit across
-        all patterns; we only need a distinct-category count, so
-        collapse by category name before returning."""
+        """Count distinct system-marker categories matched in ``prompt``.
+
+        Delegates the regex walk to the Rust scanner when available; the
+        scanner reports one match per hit across all patterns, so matches are
+        collapsed by category name before returning the distinct count.
+        """
         if self._rust_scanner is not None:
             matches = self._rust_scanner.scan(prompt)
             if not matches:
@@ -197,8 +204,10 @@ class PromptRiskScorer:
 
     @property
     def backend(self) -> str:
-        """``"rust"`` when the fast-path scanner is active, otherwise
-        ``"python"``. Exposed for tests and operator-facing logs."""
+        """Return ``"rust"`` when the fast-path scanner is active, else ``"python"``.
+
+        Exposed for tests and operator-facing logs.
+        """
         return "rust" if self._rust_scanner is not None else "python"
 
     def _sanitiser_signal(self, prompt: str) -> float:
@@ -256,11 +265,11 @@ def _sum_int(values: list[int]) -> int:
 
 
 def _build_rust_marker_scanner() -> Any | None:
-    """Return a ``backfire_kernel.PiiScanner`` loaded with the
-    system-style marker patterns, or ``None`` when the Rust wheel
-    is not importable. The scanner works on any regex batch, not
-    just PII — the name reflects its original use case but the
-    implementation is a generic ``RegexSet`` walker.
+    """Load a ``backfire_kernel.PiiScanner`` with the system-style markers.
+
+    Returns ``None`` when the Rust wheel is not importable. The scanner works
+    on any regex batch, not just PII — the name reflects its original use case
+    but the implementation is a generic ``RegexSet`` walker.
     """
     try:
         from backfire_kernel import PiiScanner as _RustScanner

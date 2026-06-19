@@ -33,9 +33,11 @@ except Exception:  # pragma: no cover - mandatory dependency
     _RUST_DEFENSE_GENOME = True
 
     def rust_mean(_values: list[float]) -> float:
+        """Raise to signal the mandatory Rust mean accelerator is missing."""
         raise RuntimeError("backfire_kernel rust_mean is unavailable")
 
     def rust_sum_f64(_values: list[float]) -> float:
+        """Raise to signal the mandatory Rust sum accelerator is missing."""
         raise RuntimeError("backfire_kernel rust_sum_f64 is unavailable")
 
 
@@ -103,6 +105,7 @@ class GenomePopulation:
         return max(0.0, min(1.0, safety))
 
     def best(self) -> _ScoredGenome:
+        """Return the highest-fitness scored genome in the population."""
         return max(self._scored, key=lambda s: s.fitness)
 
     def fitness_summary(self) -> tuple[float, float, float]:
@@ -134,12 +137,14 @@ class GenomePopulation:
         ]
 
     def sorted_elite(self, *, count: int) -> tuple[AdversarialGenome, ...]:
+        """Return the ``count`` fittest genomes, highest fitness first."""
         if count <= 0:
             return ()
         sorted_members = sorted(self._scored, key=lambda s: s.fitness, reverse=True)
         return tuple(s.genome for s in sorted_members[:count])
 
     def members(self) -> tuple[AdversarialGenome, ...]:
+        """Return every genome in the current population in scoring order."""
         return tuple(s.genome for s in self._scored)
 
 
@@ -209,6 +214,12 @@ class EvolutionEngine:
         generations: int,
         seed: int = 0,
     ) -> EvolutionReport:
+        """Evolve adversarial prompts against ``defense`` for ``generations``.
+
+        Seeds a random population, then iterates selection, crossover, and
+        mutation; returns the per-generation fitness trajectory and the
+        strongest genome found.
+        """
         if generations <= 0:
             raise ValueError("generations must be positive")
         rng = random.Random(seed)

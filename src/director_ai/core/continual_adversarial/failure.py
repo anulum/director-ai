@@ -34,10 +34,10 @@ _VALID_LABELS: frozenset[FailureLabel] = frozenset(
 class FailureEvent:
     """One production failure.
 
-    ``tenant_id`` is empty for single-tenant deployments.
-    ``metadata`` carries free-form tags — detector name,
-    severity, route identifier — that the miner ignores but
-    operators use for cross-referencing."""
+    ``tenant_id`` is empty for single-tenant deployments. ``metadata`` carries
+    free-form tags — detector name, severity, route identifier — that the
+    miner ignores but operators use for cross-referencing.
+    """
 
     prompt: str
     label: FailureLabel
@@ -46,6 +46,7 @@ class FailureEvent:
     timestamp: float = field(default_factory=lambda: time.time())
 
     def __post_init__(self) -> None:
+        """Reject an empty prompt, an unknown label, or a negative timestamp."""
         if not self.prompt:
             raise ValueError("prompt must be non-empty")
         if self.label not in _VALID_LABELS:
@@ -81,6 +82,7 @@ class FailureStore:
         self._events: deque[FailureEvent] = deque(maxlen=capacity)
 
     def append(self, event: FailureEvent) -> None:
+        """Append a pre-built event under the store lock."""
         with self._lock:
             self._events.append(event)
 
@@ -92,6 +94,7 @@ class FailureStore:
         tenant_id: str = "",
         metadata: dict[str, str] | None = None,
     ) -> FailureEvent:
+        """Build a timestamped failure event, store it, and return it."""
         event = FailureEvent(
             prompt=prompt,
             label=label,
@@ -103,10 +106,12 @@ class FailureStore:
         return event
 
     def __len__(self) -> int:
+        """Return the number of retained events."""
         with self._lock:
             return len(self._events)
 
     def snapshot(self) -> tuple[FailureEvent, ...]:
+        """Return every retained event, oldest first."""
         with self._lock:
             return tuple(self._events)
 
@@ -116,6 +121,10 @@ class FailureStore:
         last_n: int | None = None,
         since_seconds: float | None = None,
     ) -> tuple[FailureEvent, ...]:
+        """Return the last ``last_n`` events or those within ``since_seconds``.
+
+        Exactly one of the two bounds must be supplied.
+        """
         if (last_n is None) == (since_seconds is None):
             raise ValueError("exactly one of last_n / since_seconds must be supplied")
         with self._lock:
@@ -132,6 +141,7 @@ class FailureStore:
         return snapshot  # pragma: no cover — defensive
 
     def iter_labelled(self, label: FailureLabel) -> Iterator[FailureEvent]:
+        """Yield retained events whose label equals ``label``."""
         if label not in _VALID_LABELS:
             raise ValueError(f"unknown label {label!r}")
         with self._lock:

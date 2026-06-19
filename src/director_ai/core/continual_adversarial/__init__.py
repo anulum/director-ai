@@ -6,8 +6,9 @@
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI — continual adversarial evolution
 
-"""Continually mined adversarial test suites distilled from
-production failure events.
+"""Continually mined adversarial test suites distilled from failure events.
+
+The events are production failures. Components:
 
 * :class:`FailureEvent` — one production failure record: the
   prompt that slipped past the guardrail, the expected label,

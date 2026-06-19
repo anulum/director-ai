@@ -6,9 +6,10 @@
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI — GroundingHook
 
-"""Compose a :class:`KinematicModel` with a set of
-:class:`PhysicalConstraint` instances into one allow / reject
-decision per proposed action.
+"""Turn a :class:`KinematicModel` plus constraints into an allow/reject hook.
+
+A set of :class:`PhysicalConstraint` instances yields one decision per
+proposed action.
 """
 
 from __future__ import annotations
@@ -41,6 +42,7 @@ class GroundingVerdict:
 
     @property
     def any_violation(self) -> bool:
+        """Report whether the verdict carries at least one violation."""
         return bool(self.violations)
 
 
@@ -88,6 +90,12 @@ class GroundingHook:
         *,
         tenant_id: str = "",
     ) -> GroundingVerdict:
+        """Score ``action`` against every constraint and return the verdict.
+
+        Charges the tenant's physical budget, runs reachability and each
+        constraint, and rejects on the first violation (or unreachable target
+        when configured).
+        """
         violations: list[Violation] = []
         budget_verdict = self._consume_budget(
             action,
@@ -146,10 +154,12 @@ class GroundingHook:
 
     @property
     def model(self) -> KinematicModel:
+        """Return the kinematic model backing this hook."""
         return self._model
 
     @property
     def constraints(self) -> tuple[PhysicalConstraint, ...]:
+        """Return the constraints enforced on every action."""
         return self._constraints
 
     def _consume_budget(

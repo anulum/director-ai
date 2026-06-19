@@ -43,6 +43,7 @@ class SensorStateSnapshot:
     status_detail: str = ""
 
     def __post_init__(self) -> None:
+        """Reject a blank snapshot reference or sensor id."""
         if not self.snapshot_ref.strip():
             raise ValueError("snapshot_ref must be non-empty")
         if not self.sensor_id.strip():
@@ -81,6 +82,7 @@ class PhysicalGroundingViolation:
     evidence_refs: tuple[str, ...]
 
     def __post_init__(self) -> None:
+        """Reject a blank stage or constraint name."""
         if not self.stage.strip():
             raise ValueError("stage must be non-empty")
         if not self.constraint.strip():
@@ -138,6 +140,7 @@ class PhysicalGroundingEvaluator:
 
     @property
     def high_risk_physical_deployment(self) -> bool:
+        """Report whether this evaluator runs in high-risk deployment mode."""
         return self._high_risk
 
     def evaluate(
@@ -323,6 +326,11 @@ class PhysicalGroundingEvaluator:
         violations: tuple[PhysicalGroundingViolation, ...],
         post_action_verified: bool,
     ) -> PhysicalGroundingEvaluation:
+        """Build a maximal-risk evaluation that blocks the action.
+
+        Used when a pre-action check already failed; pins the risk score to
+        1.0 and carries the violations forward into the verdict.
+        """
         return self._evaluation(
             action=action,
             reason=reason,

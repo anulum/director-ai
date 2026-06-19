@@ -6,10 +6,9 @@
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI — evolutionary defense genome
 
-"""Co-evolutionary adversarial search plus a hot-swap registry
-for the resulting defence mutations.
+"""Co-evolutionary adversarial search with a hot-swap defence registry.
 
-Four pieces:
+The registry holds the resulting defence mutations. Four pieces:
 
 * :class:`AdversarialGenome` — a recipe expressed as a typed
   sequence of perturbation operators with bounded parameters.

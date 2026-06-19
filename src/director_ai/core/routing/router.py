@@ -6,8 +6,9 @@
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI — RiskRouter
 
-"""Policy glue that turns a :class:`RiskComponents` + per-tenant
-budget into a routing decision the gateway can act on.
+"""Turn a :class:`RiskComponents` score plus per-tenant budget into a route.
+
+The decision is one the gateway can act on directly.
 
 A :class:`RoutingDecision` carries three things:
 
@@ -44,7 +45,9 @@ class RiskScorerProtocol(Protocol):
     scorers do too, without having to subclass the default scorer.
     """
 
-    def score(self, prompt: str) -> RiskComponents: ...
+    def score(self, prompt: str) -> RiskComponents:
+        """Return the decomposed risk components for ``prompt``."""
+        ...
 
 
 @dataclass(frozen=True)
@@ -63,8 +66,7 @@ class RoutingDecision:
 
 
 class RiskRouter:
-    """Decide which scoring backend to run and whether to honour the
-    request at all.
+    """Decide which scoring backend to run and whether to honour the request.
 
     Parameters
     ----------
@@ -107,9 +109,10 @@ class RiskRouter:
         self._reject_threshold = reject_threshold
 
     def route(self, prompt: str, tenant_id: str = "") -> RoutingDecision:
-        """Score ``prompt`` for ``tenant_id`` and return the
-        :class:`RoutingDecision`. Passes ``""`` as tenant when the
-        caller has no binding (single-tenant deployments).
+        """Score ``prompt`` for ``tenant_id`` and return the routing decision.
+
+        Pass ``""`` as the tenant when the caller has no binding
+        (single-tenant deployments).
         """
         risk = self._scorer.score(prompt)
         if risk.combined >= self._reject_threshold:

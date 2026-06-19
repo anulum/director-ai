@@ -38,6 +38,7 @@ try:
 except ImportError:  # pragma: no cover — mandatory accelerator
 
     def rust_sum_f64(_values: list[float]) -> float:
+        """Raise to signal the mandatory Rust sum accelerator is missing."""
         raise RuntimeError("backfire_kernel rust_sum_f64 is unavailable")
 
     def _rust_two_link_ik(*_args: object) -> object:
@@ -72,6 +73,7 @@ class PhysicalAction:
     joint_angles: tuple[float, ...] = ()
 
     def __post_init__(self) -> None:
+        """Reject a blank actuator id or negative velocity/torque magnitudes."""
         if not self.actuator_id:
             raise ValueError("actuator_id must be non-empty")
         if self.velocity_magnitude < 0:
@@ -94,6 +96,7 @@ class JointChain:
     link_lengths: tuple[float, ...]
 
     def __post_init__(self) -> None:
+        """Reject an empty or non-positive link-length sequence."""
         if not self.link_lengths:
             raise ValueError("link_lengths must be non-empty")
         for length in self.link_lengths:
@@ -102,34 +105,41 @@ class JointChain:
 
     @property
     def reach(self) -> float:
+        """Return the maximum reach — the sum of all link lengths."""
         return _sum_float(list(self.link_lengths))
 
 
 @runtime_checkable
 class KinematicModel(Protocol):
-    """Any model that can score a :class:`PhysicalAction` against
-    the current world state."""
+    """Any model that maps between joint space and Cartesian space.
 
-    def forward(self, joint_angles: Sequence[float]) -> Vec3: ...
+    Used to score a :class:`PhysicalAction` against the current world state.
+    """
 
-    def inverse(self, target: Vec3) -> tuple[float, ...] | None: ...
+    def forward(self, joint_angles: Sequence[float]) -> Vec3:
+        """Return the end-effector position for the given joint angles."""
+        ...
+
+    def inverse(self, target: Vec3) -> tuple[float, ...] | None:
+        """Return joint angles reaching ``target``, or ``None`` if unreachable."""
+        ...
 
     def collides_with(
         self,
         point: Vec3,
         obstacles_aabb: Sequence[AABB] = (),
         obstacles_sphere: Sequence[Sphere] = (),
-    ) -> bool: ...
+    ) -> bool:
+        """Return whether ``point`` intersects any supplied obstacle."""
+        ...
 
 
 @dataclass
 class SimpleKinematicModel:
-    """Closed-form 2-link / N-link planar chain + AABB/sphere
-    collision.
+    """Closed-form planar chain kinematics with AABB/sphere collision checks.
 
-    Two-link analytical IK uses the law of cosines; N-link FK
-    walks the chain additively. Collision checks delegate to the
-    :mod:`.geometry` primitives.
+    Two-link analytical IK uses the law of cosines; N-link FK walks the chain
+    additively. Collision checks delegate to the :mod:`.geometry` primitives.
     """
 
     chain: JointChain
@@ -141,6 +151,7 @@ class SimpleKinematicModel:
     extra_obstacles_sphere: tuple[Sphere, ...] = field(default_factory=tuple)
 
     def __post_init__(self) -> None:
+        """Reject an unknown IK branch or a negative collision margin."""
         if self.branch not in {"elbow_up", "elbow_down"}:
             raise ValueError(
                 f"branch must be 'elbow_up' or 'elbow_down'; got {self.branch!r}"
@@ -220,11 +231,9 @@ class SimpleKinematicModel:
         obstacles_aabb: Sequence[AABB] = (),
         obstacles_sphere: Sequence[Sphere] = (),
     ) -> bool:
-        """Return ``True`` when the end-effector at ``point``
-        intersects any obstacle, honouring the
-        :attr:`collision_margin` and
-        :attr:`end_effector_radius`.
+        """Return whether the end-effector envelope at ``point`` hits an obstacle.
 
+        Honours :attr:`collision_margin` and :attr:`end_effector_radius`.
         Extra obstacles declared on the model (from
         :attr:`extra_obstacles_aabb` / :attr:`extra_obstacles_sphere`)
         are checked in addition to the caller's list.
