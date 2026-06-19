@@ -14,7 +14,9 @@ burst, retry-after), and middleware integration with FastAPI TestClient.
 from __future__ import annotations
 
 import builtins
+import sys
 import time
+from types import SimpleNamespace
 
 import pytest
 from fastapi import FastAPI
@@ -288,6 +290,73 @@ class TestRateLimitMiddleware:
         assert len(store._buckets) == 2
         assert "client-c" in store._buckets
 
+    def test_in_memory_store_rejects_invalid_bucket_cap(self):
+        with pytest.raises(ValueError, match="max_buckets"):
+            InMemoryRateLimitStore(burst=1, refill_rate=1.0, max_buckets=0)
+
+    def test_empty_in_memory_store_eviction_is_noop(self):
+        store = InMemoryRateLimitStore(burst=1, refill_rate=1.0)
+
+        store._evict_one_bucket()
+
+        assert store._buckets == {}
+
+    def test_uses_api_key_hash_as_client_id(self):
+        seen: list[str] = []
+
+        class RecordingStore:
+            def consume(self, client_id: str) -> tuple[bool, float]:
+                seen.append(client_id)
+                return True, 0.0
+
+        app = FastAPI()
+        app.add_middleware(RateLimitMiddleware, store=RecordingStore())
+
+        @app.middleware("http")
+        async def attach_key_hash(request, call_next):
+            request.state.api_key_hash = "hash-from-key"
+            return await call_next(request)
+
+        @app.get("/v1/score")
+        def score():
+            return {"score": 0.5}
+
+        assert TestClient(app).get("/v1/score").status_code == 200
+        assert seen == ["hash-from-key"]
+
+    def test_redis_url_configures_redis_store(self, monkeypatch):
+        seen: dict[str, object] = {}
+
+        class FakeRedisStore:
+            def __init__(self, redis_url, *, burst, refill_rate, prefix):
+                seen["redis_url"] = redis_url
+                seen["burst"] = burst
+                seen["refill_rate"] = refill_rate
+                seen["prefix"] = prefix
+
+            def consume(self, client_id: str) -> tuple[bool, float]:
+                return True, 0.0
+
+        monkeypatch.setattr(
+            "director_ai.middleware.rate_limit.RedisRateLimitStore",
+            FakeRedisStore,
+        )
+
+        RateLimitMiddleware(
+            FastAPI(),
+            requests_per_minute=120,
+            burst=12,
+            redis_url="redis://localhost:6379/0",
+            redis_prefix="custom:",
+        )
+
+        assert seen == {
+            "redis_url": "redis://localhost:6379/0",
+            "burst": 12,
+            "refill_rate": 2.0,
+            "prefix": "custom:",
+        }
+
     def test_redis_store_import_guard(self, monkeypatch):
         real_import = builtins.__import__
 
@@ -303,3 +372,35 @@ class TestRateLimitMiddleware:
                 burst=1,
                 refill_rate=1.0,
             )
+
+    def test_redis_store_consumes_with_prefixed_key(self, monkeypatch):
+        calls: list[tuple[object, ...]] = []
+
+        class FakeRedisClient:
+            def eval(self, *args):
+                calls.append(args)
+                return ["0", "2.5"]
+
+        fake_redis = SimpleNamespace(
+            from_url=lambda url, *, decode_responses: FakeRedisClient(),
+        )
+        monkeypatch.setitem(sys.modules, "redis", fake_redis)
+
+        store = RedisRateLimitStore(
+            "redis://localhost:6379/0",
+            burst=3,
+            refill_rate=1.5,
+            prefix="test:",
+        )
+
+        allowed, retry_after = store.consume("client-a")
+
+        assert allowed is False
+        assert retry_after == pytest.approx(2.5)
+        assert calls
+        _, key_count, key, burst, refill_rate, _, ttl_ms = calls[0]
+        assert key_count == 1
+        assert key == "test:client-a"
+        assert burst == 3
+        assert refill_rate == 1.5
+        assert ttl_ms == 4000
