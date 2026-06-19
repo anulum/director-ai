@@ -150,6 +150,7 @@ class DirectorConfig:
     streaming_contradiction_model: str = (
         "MoritzLaurer/DeBERTa-v3-large-mnli-fever-anli-ling-wanli"
     )
+    streaming_contradiction_revision: str = ""
     streaming_contradiction_threshold: float = 0.2
     streaming_contradiction_device: int = -1  # CUDA index; -1 runs on CPU
     # When True, resolve nli_model through the fallback registry at build time:
@@ -347,6 +348,7 @@ class DirectorConfig:
     # the model id defaults to ProtectAI's Apache-2.0, ungated classifier.
     prompt_guard_model_enabled: bool = False
     prompt_guard_model_id: str = "protectai/deberta-v3-base-prompt-injection-v2"
+    prompt_guard_model_revision: str = ""
     prompt_guard_threshold: float = 0.5
 
     # Multi-modal hallucination guard (opt-in; only active when the
@@ -1519,6 +1521,7 @@ class DirectorConfig:
         try:
             scorer = ContradictionScorer.from_pretrained(
                 self.streaming_contradiction_model,
+                revision=self.streaming_contradiction_revision or None,
                 device=self.streaming_contradiction_device,
                 threshold=self.streaming_contradiction_threshold,
             )

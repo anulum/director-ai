@@ -28,6 +28,18 @@ def test_training_baseline_resolves_pinned_revision() -> None:
     )
 
 
+def test_prompt_guard_model_resolves_pinned_revision() -> None:
+    from director_ai.core.config import DirectorConfig
+    from director_ai.core.model_revisions import resolve_model_revision
+
+    # The default model-backed prompt guard must resolve to an immutable pin so a
+    # moving upstream branch cannot silently swap the security classifier.
+    assert (
+        resolve_model_revision(DirectorConfig().prompt_guard_model_id)
+        == "e6535ca4ce3ba852083e75ec585d7c8aeb4be4c5"
+    )
+
+
 def test_explicit_revision_overrides_registry_pin() -> None:
     from director_ai.core.model_revisions import resolve_model_revision
 

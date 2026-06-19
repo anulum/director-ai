@@ -34,6 +34,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import Any
 
+from ..model_revisions import resolve_model_revision
 from .sanitizer import InputSanitizer
 
 __all__ = [
@@ -106,6 +107,7 @@ class PromptInjectionModel:
         cls,
         model_id: str = DEFAULT_PROMPT_GUARD_MODEL,
         *,
+        revision: str | None = None,
         device: int = -1,
         threshold: float = 0.5,
         max_length: int = 512,
@@ -113,7 +115,11 @@ class PromptInjectionModel:
         """Build a classifier from a HuggingFace model id.
 
         Raises :class:`ImportError` with install instructions when
-        ``transformers`` is unavailable. ``device=-1`` runs on CPU.
+        ``transformers`` is unavailable. ``device=-1`` runs on CPU. *revision*
+        (a branch, tag, or commit SHA) pins the downloaded weights; when
+        ``None`` the immutable revision is resolved from the model-revision
+        registry, so a known remote model is always pinned for supply-chain
+        reproducibility rather than tracking a moving branch.
         """
         try:
             from transformers import pipeline
@@ -122,9 +128,11 @@ class PromptInjectionModel:
                 "PromptInjectionModel.from_pretrained requires transformers. "
                 "Install with: pip install director-ai[nli]",
             ) from exc
+        pinned = resolve_model_revision(model_id, revision)
         clf = pipeline(
             "text-classification",
             model=model_id,
+            revision=pinned,
             truncation=True,
             max_length=max_length,
             device=device,

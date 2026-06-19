@@ -69,6 +69,43 @@ def test_screen_threshold() -> None:
     assert quiet.screen("benign").blocked is False
 
 
+def _capturing_transformers(monkeypatch, captured: dict[str, object]) -> None:
+    """Inject a fake ``transformers`` module whose ``pipeline`` records kwargs.
+
+    A real-module ``setattr`` is unreliable here: ``transformers`` 5.x exposes
+    ``pipeline`` through a lazy loader, so the first patch on the not-yet-loaded
+    attribute leaks the real (network-backed) pipeline. Replacing the module in
+    ``sys.modules`` makes ``from transformers import pipeline`` deterministic.
+    """
+    import sys
+    import types
+
+    def _fake_pipeline(task: str, **kwargs: object) -> object:
+        captured.update(kwargs)
+        captured["task"] = task
+        return object()
+
+    fake = types.ModuleType("transformers")
+    fake.pipeline = _fake_pipeline  # type: ignore[attr-defined]
+    monkeypatch.setitem(sys.modules, "transformers", fake)
+
+
+def test_from_pretrained_pins_default_model_revision(monkeypatch) -> None:
+    captured: dict[str, object] = {}
+    _capturing_transformers(monkeypatch, captured)
+    PromptInjectionModel.from_pretrained()
+    # No explicit revision → the registry pin for the default model is threaded
+    # into the HF load, never a moving branch.
+    assert captured["revision"] == "e6535ca4ce3ba852083e75ec585d7c8aeb4be4c5"
+
+
+def test_from_pretrained_honours_explicit_revision(monkeypatch) -> None:
+    captured: dict[str, object] = {}
+    _capturing_transformers(monkeypatch, captured)
+    PromptInjectionModel.from_pretrained(revision="operator-pinned-sha")
+    assert captured["revision"] == "operator-pinned-sha"
+
+
 def test_from_pretrained_without_transformers(monkeypatch) -> None:
     import builtins
 

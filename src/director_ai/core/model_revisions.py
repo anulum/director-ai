@@ -50,6 +50,12 @@ MODEL_REVISION_REGISTRY: dict[str, str] = {
     "microsoft/deberta-v3-base": "8ccc9b6f36199bec6961081d44eb72fb3f7353f3",
     "microsoft/deberta-v3-small": "a36c739020e01763fe789b4b85e2df55d6180012",
     "distilroberta-base": "fb53ab8802853c8e4fbdbcd0529f21fc6f459b2b",
+    # Optional output-side prompt-injection classifier (model-backed prompt
+    # guard). Pinned so the security-critical guard cannot silently shift under a
+    # moving upstream branch.
+    "protectai/deberta-v3-base-prompt-injection-v2": (
+        "e6535ca4ce3ba852083e75ec585d7c8aeb4be4c5"
+    ),
 }
 
 _URI_SCHEME_RE = re.compile(r"^[A-Za-z][A-Za-z0-9+.-]*://")

@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Pin the model-backed prompt-injection guard to an immutable HuggingFace
+  revision. `PromptInjectionModel.from_pretrained` now resolves the revision
+  through the model-revision registry (with a new `prompt_guard_model_revision`
+  config override), and the default `protectai/deberta-v3-base-prompt-injection-v2`
+  classifier is registered at a fixed commit so a moving upstream branch cannot
+  silently swap the security classifier. The streaming contradiction scorer load
+  gains the matching `streaming_contradiction_revision` override.
 - Bump the `pypdf` floor to `>=6.13.3` in the ingestion extras and update the CI
   lockfile pin to `6.13.3`, picking up the upstream stream-length handling fix.
 - Add a **Rust path for the span detector's token-probability → character-span

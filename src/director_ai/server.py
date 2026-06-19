@@ -430,6 +430,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
             try:
                 model = PromptInjectionModel.from_pretrained(
                     cfg.prompt_guard_model_id,
+                    revision=cfg.prompt_guard_model_revision or None,
                     threshold=cfg.prompt_guard_threshold,
                 )
                 app.state._state["sanitizer"] = LayeredPromptGuard(base, model)
