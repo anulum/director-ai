@@ -116,9 +116,10 @@ class CustomRuleset(BaseModel):
         """Load a ruleset from a parsed JSON/YAML mapping."""
 
         try:
-            return cls.model_validate(data)
+            ruleset: CustomRuleset = cls.model_validate(data)
         except ValidationError as exc:
             raise RulesDslError(str(exc)) from exc
+        return ruleset
 
     @classmethod
     def from_json(cls, text: str) -> CustomRuleset:
@@ -173,7 +174,8 @@ class CustomRuleset(BaseModel):
     def to_dict(self) -> dict[str, Any]:
         """Serialise the ruleset into deterministic JSON-compatible data."""
 
-        return self.model_dump(mode="json", exclude_none=True)
+        serialised: dict[str, Any] = self.model_dump(mode="json", exclude_none=True)
+        return serialised
 
     def to_json(self) -> str:
         """Serialise the ruleset into deterministic JSON text."""
