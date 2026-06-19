@@ -228,6 +228,12 @@ class AsyncStreamingKernel(HaltMonitor):
             coherence_history.append(score)
             window.append(score)
 
+            if score < self.hard_limit:
+                event.halted = True
+                self.emergency_stop()
+                yield event
+                return
+
             # Soft-halt pending: yield token, check sentence boundary or cap
             if _soft_halt_pending:
                 _soft_halt_extra_tokens += 1
@@ -239,13 +245,6 @@ class AsyncStreamingKernel(HaltMonitor):
                 yield event
                 i += 1
                 continue
-
-            # Hard limit — always immediate halt
-            if score < self.hard_limit:
-                event.halted = True
-                self.emergency_stop()
-                yield event
-                return
 
             # Soft zone warning
             if score < self.soft_limit:

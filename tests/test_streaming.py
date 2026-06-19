@@ -186,6 +186,25 @@ class TestStreamingKernel:
         assert not session.soft_halted
         assert "hard_limit" in session.halt_reason
 
+    def test_hard_limit_preempts_pending_soft_halt(self):
+        kernel = StreamingKernel(
+            hard_limit=0.3,
+            window_size=2,
+            window_threshold=0.6,
+            halt_mode="soft",
+        )
+        scores = iter([0.5, 0.5, 0.2, 0.5])
+        session = kernel.stream_tokens(
+            ["soft ", "pending ", "hard ", "ignored."],
+            lambda _text: next(scores),
+        )
+
+        assert session.halted
+        assert not session.soft_halted
+        assert session.halt_index == 2
+        assert session.halt_reason.startswith("hard_limit")
+        assert session.output == "soft pending "
+
     def test_invalid_halt_mode_raises(self):
         with pytest.raises(ValueError, match="halt_mode"):
             StreamingKernel(halt_mode="invalid")

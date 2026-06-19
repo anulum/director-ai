@@ -597,6 +597,15 @@ class StreamingKernel(HaltMonitor):
                 event.debug_info = snap
                 session.debug_log.append(snap)
 
+            if score < self.hard_limit:
+                halt_reason = f"hard_limit ({score:.4f} < {self.hard_limit})"
+                session.halt_index = event.index
+                _finalize_halt(event, halt_reason)
+                self.emergency_stop()
+                session.events.append(event)
+                _emit_trace(event, halt_reason)
+                break
+
             # If soft-halt pending, check for sentence boundary or cap
             if _soft_halt_pending:
                 _soft_halt_extra_tokens += 1
@@ -611,9 +620,7 @@ class StreamingKernel(HaltMonitor):
                 continue
 
             halt_reason = ""
-            if score < self.hard_limit:
-                halt_reason = f"hard_limit ({score:.4f} < {self.hard_limit})"
-            elif len(window) >= self.window_size:
+            if len(window) >= self.window_size:
                 avg = _mean(window)
                 if avg < self.window_threshold:
                     halt_reason = f"window_avg ({avg:.4f} < {self.window_threshold})"

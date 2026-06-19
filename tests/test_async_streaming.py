@@ -446,6 +446,26 @@ class TestAsyncStreamingKernel:
         assert events[-1].halted
         assert len(events) == 2
 
+    async def test_hard_limit_preempts_pending_soft_halt(self):
+        kernel = AsyncStreamingKernel(
+            hard_limit=0.3,
+            window_size=2,
+            window_threshold=0.6,
+            halt_mode="soft",
+        )
+        scores = iter([0.5, 0.5, 0.2, 0.5])
+
+        session = await kernel.stream_to_session(
+            ["soft ", "pending ", "hard ", "ignored."],
+            lambda _text: next(scores),
+        )
+
+        assert session.halted
+        assert not session.soft_halted
+        assert session.halt_index == 2
+        assert session.halt_reason.startswith("hard_limit")
+        assert session.output == "soft pending "
+
     async def test_uses_shared_mean_helper_for_window_halt(self, monkeypatch):
         call_count = {"count": 0}
         original_mean = async_streaming_mod._mean
