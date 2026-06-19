@@ -35,6 +35,7 @@ class TrainingResultRecord:
     raw: dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
+        """Return a JSON-safe representation of this harvested result."""
         return {
             "scenario": self.scenario,
             "result_uri": self.result_uri,
@@ -58,6 +59,7 @@ class TrainingHarvestReport:
     results: list[TrainingResultRecord]
 
     def to_dict(self) -> dict[str, Any]:
+        """Return a JSON-safe representation of the harvest report."""
         return {
             "prefix_uri": self.prefix_uri,
             "result_count": self.result_count,
@@ -72,7 +74,6 @@ def harvest_training_results(prefix_uri: str) -> TrainingHarvestReport:
     `prefix_uri` can be a local directory or a `gs://bucket/prefix` URI.
     Results are sorted by balanced accuracy descending, then scenario name.
     """
-
     records = (
         _harvest_gcs_results(prefix_uri)
         if _is_gcs_uri(prefix_uri)

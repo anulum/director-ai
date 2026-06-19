@@ -35,7 +35,7 @@ runtime work still uses the dedicated targets: `make test-rust`,
 
 | Target | Command | Description |
 |--------|---------|-------------|
-| `make test` | `pytest tests/ -v --cov=director_ai --cov-fail-under=90` | Run tests with coverage (90% gate) |
+| `make test` | `pytest tests/ -v --cov=director_ai --cov-fail-under=97` | Run tests with coverage (97% gate) |
 | `make python-only-check` | `python tools/python_only_check.py` | Run contributor checks without optional runtime toolchains |
 | `make test-rust` | `cargo test` in backfire-kernel | Run Rust tests |
 | `make test-all` | test + test-rust | Both suites |

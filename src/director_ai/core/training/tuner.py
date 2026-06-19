@@ -6,6 +6,8 @@
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI — Threshold Tuner
 
+"""Threshold and weight tuning utilities for labelled guardrail evaluations."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field, replace

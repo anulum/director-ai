@@ -159,15 +159,15 @@ director-ai/
 │
 ├── backfire-kernel/               Rust scorer backend (PyO3/maturin)
 │   └── crates/backfire-core/src/
-│       ├── compute.rs             12 Rust compute functions (sanitizer, unicode,
+│       ├── compute.rs             20 benchmarked Rust compute functions (sanitizer, unicode,
 │       │                          task type, numeric, temporal, reasoning,
 │       │                          word overlap, NLI softmax/div/conf, lite score)
 │       ├── signals.rs             VerifiedScorer signals (entity, negation, etc.)
 │       └── kernel.rs              Safety kernel, streaming gate
 │
-├── tests/                         4120+ tests, ≥90% coverage
+├── tests/                         pytest suite, 97% coverage gate
 ├── benchmarks/                    28 evaluators
-│   └── rust_compute_bench.py      Rust vs Python benchmark (10 compute fns)
+│   └── rust_compute_bench.py      Rust vs Python benchmark (20 compute fns)
 ├── notebooks/                     16 Jupyter notebooks
 ├── docs-site/                     MkDocs documentation
 ├── demo/                          HF Spaces Gradio demo
@@ -282,8 +282,8 @@ LLM Provider ──► guard() / CoherenceAgent
 | Backend | Install | Accuracy (per-ds mean BA) | Latency |
 |---------|---------|---------------------------|---------|
 | Heuristic (lite) | core | ~65% | <0.5 ms |
-| DeBERTa | `[nli]` | 75.6% | 197 ms (CPU), 19 ms (GPU batch) |
-| FactCG (ONNX) | `[nli,onnx]` | 75.6% (77.76% tuned) | 14.6 ms (GPU batch) |
+| DeBERTa | `[nli]` | 77.8% | see benchmark packets |
+| FactCG (ONNX) | `[nli,onnx]` | 77.8% (78.0% tuned) | see benchmark packets |
 | Rust (backfire) | `[rust]` | ~65% | ~1 ms |
 | Hybrid (NLI+Judge) | `[nli,openai]` | ~78% | 200-500 ms |
 

@@ -367,8 +367,43 @@ for chunk in stream:  # periodic + final coherence checks
 | `threshold` | float | 0.3 | Minimum coherence to pass |
 | `use_nli` | bool \| None | None | NLI mode (None=auto-detect) |
 | `on_fail` | str | `"raise"` | `"raise"`, `"log"`, or `"metadata"` |
+| `injection_detection` | bool | False | Enable intent-grounded injection scoring |
+| `injection_threshold` | float | 0.7 | Injection-risk threshold used when injection detection is enabled |
+| `require_model_backed_nli` | bool | False | Refuse heuristic fallback for the main scorer |
+| `injection_require_model_backed_nli` | bool | False | Refuse heuristic fallback for injection detection |
+| `injection_fail_closed_on_error` | bool | False | Reject on injection-detector runtime errors |
 
 Requires `pip install director-ai[openai]` or `director-ai[anthropic]`.
+
+### Direct Score Helper (`score()`)
+
+`score()` runs the same scorer without wrapping an SDK client.
+
+```python
+from director_ai import score
+
+result = score(
+    "What is the refund window?",
+    "Refunds are available within 30 days.",
+    facts={"refund": "Refunds are available within 30 days."},
+)
+print(result.approved, result.score)
+```
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `prompt` | str | required | User prompt or source request |
+| `response` | str | required | Candidate response to score |
+| `facts` | dict | None | Key-value facts loaded into a temporary store |
+| `store` | GroundTruthStore | None | Existing store used instead of `facts` |
+| `threshold` | float | 0.3 | Minimum coherence to approve when no profile is used |
+| `use_nli` | bool \| None | None | Override NLI use; `None` keeps scorer default |
+| `profile` | str \| None | None | Load a `DirectorConfig` profile before scoring |
+| `injection_detection` | bool | False | Populate `CoherenceScore.injection_risk` |
+| `injection_threshold` | float | 0.7 | Injection-risk threshold |
+| `require_model_backed_nli` | bool | False | Require model-backed NLI for the main scorer |
+| `injection_require_model_backed_nli` | bool | False | Require model-backed NLI for injection detection |
+| `injection_fail_closed_on_error` | bool | False | Reject if injection detection errors |
 
 ### LangChain
 
@@ -400,13 +435,85 @@ resolves that dependency.
 
 ## FastAPI Endpoints
 
-### `GET /v1/scorer/models`
+The FastAPI service is built by `director_ai.server.create_app`. Pydantic request
+and response models are defined in `src/director_ai/_server_models.py`; the table
+below is the public route index exposed by `server.py`.
 
-Returns runtime scorer models that can be offered for live scoring. Stable
-choices are returned by default. Add `include_domain_only=true` to include
-benchmarked domain-only choices that require explicit operator opt-in.
+| Method | Path | Purpose |
+|--------|------|---------|
+| GET | `/v1/live` | Liveness probe |
+| GET | `/v1/health` | Runtime health summary |
+| GET | `/v1/ready` | Readiness probe with dependency checks |
+| GET | `/v1/source` | Runtime source/build metadata |
+| POST | `/v1/review` | Score a prompt/response pair |
+| POST | `/v1/feedback` | Record human/guardrail feedback |
+| GET | `/v1/feedback/calibration` | Feedback-driven calibration summary |
+| POST | `/v1/verify` | General verification request |
+| POST | `/v1/injection/detect` | Intent-grounded injection detection |
+| POST | `/v1/multimodal/check` | Multimodal consistency check |
+| POST | `/v1/process` | End-to-end generation and guardrail processing |
+| POST | `/v1/batch` | Batch review/process workflow |
+| GET | `/v1/tenants` | List configured tenant contexts |
+| POST | `/v1/tenants/{tenant_id}/facts` | Add tenant-scoped facts |
+| POST | `/v1/tenants/{tenant_id}/vector-facts` | Add tenant-scoped vector facts |
+| GET | `/v1/sessions/{session_id}` | Retrieve a streaming/session record |
+| DELETE | `/v1/sessions/{session_id}` | Delete a session record |
+| GET | `/v1/metrics` | JSON metrics snapshot |
+| GET | `/v1/metrics/prometheus` | Prometheus text exposition |
+| GET | `/v1/config` | Redacted runtime configuration |
+| GET | `/v1/scorer/models` | Runtime scorer model choices |
+| GET | `/v1/stats` | Aggregate service stats |
+| GET | `/v1/stats/hourly` | Hourly service stats |
+| GET | `/v1/dashboard` | HTML service dashboard |
+| GET | `/v1/compliance/report` | Compliance report |
+| GET | `/v1/compliance/drift` | Compliance drift status |
+| GET | `/v1/compliance/dashboard` | HTML compliance dashboard |
+| POST | `/v1/verify/numeric` | Numeric consistency verification |
+| POST | `/v1/verify/reasoning` | Reasoning-chain verification |
+| POST | `/v1/temporal-freshness` | Temporal freshness scoring |
+| POST | `/v1/consensus` | Multi-agent consensus check |
+| POST | `/v1/adversarial/test` | Adversarial test request |
+| POST | `/v1/conformal/predict` | Conformal risk prediction |
+| POST | `/v1/compliance/feedback-loops` | Feedback-loop compliance check |
+| POST | `/v1/agentic/check-step` | Agentic step safety check |
+| POST | `/v1/stream/ticket` | Issue a stream ticket |
 
-Response fields:
+Knowledge routes are mounted from `create_knowledge_router()` when the knowledge
+API is available:
+
+| Method | Path | Purpose |
+|--------|------|---------|
+| POST | `/upload` | Upload a document |
+| POST | `/ingest` | Ingest document content |
+| GET | `/documents` | List documents |
+| GET | `/documents/{doc_id}` | Read document metadata/content |
+| DELETE | `/documents/{doc_id}` | Delete a document |
+| PUT | `/documents/{doc_id}` | Update a document |
+| GET | `/search` | Search the knowledge base |
+| POST | `/tune-embeddings` | Tune embedding settings |
+
+Fine-tuning routes are mounted from `create_finetune_router()` when enabled:
+
+| Method | Path | Purpose |
+|--------|------|---------|
+| POST | `/validate` | Validate fine-tuning data |
+| POST | `/start` | Start a local fine-tuning job |
+| POST | `/managed/submit` | Submit a managed training job |
+| GET | `/managed/jobs` | List managed jobs |
+| POST | `/managed/status` | Query managed job status |
+| POST | `/managed/cancel` | Cancel a managed job |
+| GET | `/managed/models` | List managed model choices |
+| POST | `/managed/benchmark-models` | Benchmark managed model candidates |
+| GET | `/{job_id}` | Read one fine-tune job |
+| GET | `/{job_id}/result` | Read one fine-tune result |
+| POST | `/{job_id}/activate` | Activate a trained model |
+| POST | `/{job_id}/rollback` | Roll back a trained model |
+| GET | `/` | List fine-tuned models |
+| DELETE | `/{job_id}` | Delete a fine-tune job |
+
+`GET /v1/scorer/models` returns stable runtime scorer choices by default. Add
+`include_domain_only=true` to include benchmarked domain-only choices requiring
+explicit operator opt-in.
 
 | Field | Description |
 |-------|-------------|
@@ -414,15 +521,6 @@ Response fields:
 | `current.nli_model` | Resolved runtime model source |
 | `current.nli_model_artifact_uri` | Managed artefact URI, when present |
 | `models[]` | Benchmarked scorer choices with BA, F1, regression, and recommendation |
-
-Configuration:
-
-| Variable | Description |
-|----------|-------------|
-| `DIRECTOR_SCORER_MODEL` | Benchmarked alias, model ID, or custom model path |
-| `DIRECTOR_ALLOW_DOMAIN_ONLY_SCORER_MODEL` | Required for domain-only aliases |
-| `DIRECTOR_ALLOW_CUSTOM_SCORER_MODEL` | Required for arbitrary custom models |
-| `DIRECTOR_MODEL_CACHE_DIR` | Optional cache root for managed scorer artefacts |
 
 ---
 
@@ -439,13 +537,106 @@ director-ai config --profile fast      # show/set configuration
 director-ai production-check --path director_guard  # validate production scaffold
 ```
 
+Supported top-level commands in `director_ai.cli`:
+
+| Command | Purpose |
+|---------|---------|
+| `version` | Show package and Python version |
+| `quickstart` | Scaffold a working deployment project |
+| `production-check` | Validate a generated production scaffold |
+| `review` | Score a prompt/response pair |
+| `process` | Run the end-to-end pipeline |
+| `batch` | Batch process JSONL input |
+| `ingest` | Ingest documents |
+| `eval` | Run benchmark/evaluation data |
+| `ci-gate` | Fail CI when guard quality drops below a threshold |
+| `bench` | Run regression benchmarks |
+| `tune` | Tune profile thresholds/weights |
+| `train` | Submit, sweep, list, benchmark, or harvest managed training jobs |
+| `finetune` | Fine-tune an NLI model |
+| `validate-data` | Validate fine-tuning data |
+| `export` | Export a model |
+| `serve` | Start the FastAPI service |
+| `proxy` | Start the OpenAI-compatible guardrail proxy |
+| `config` | Show configuration |
+| `stress-test` | Benchmark streaming throughput |
+| `doctor` | Check runtime dependency readiness |
+| `license` | License administration |
+| `compliance` | Compliance reports, status, and drift tools |
+| `verify-numeric` | Numeric verification |
+| `verify-reasoning` | Reasoning verification |
+| `temporal-freshness` | Temporal freshness scoring |
+| `check-step` | Agentic step safety check |
+| `consensus` | Consensus check |
+| `adversarial-test` | Adversarial testing |
+| `kb-health` | Knowledge-base diagnostics |
+| `wizard` | Interactive configuration wizard |
+| `safety-dashboard` | Halt-rate operations view |
+| `kpis` | Board-level guardrail KPIs |
+| `forensics` | Scorer-miss forensics |
+| `cost-report` | Token cost report |
+| `evidence` | Emit a verifiable demo packet |
+| `verify-evidence` | Verify an emitted evidence packet |
+| `verify-audit` | Verify audit-log hash chain |
+
+`director-ai train` supports `submit`, `models`, `benchmark-models`, `sweep`, and
+`harvest`.
+
+## Configuration Environment
+
+`DirectorConfig.from_env()` reads `DIRECTOR_<FIELD>` names with case-insensitive
+field matching. Examples:
+
+| Environment variable | Config field |
+|----------------------|--------------|
+| `DIRECTOR_COHERENCE_THRESHOLD` | `coherence_threshold` |
+| `DIRECTOR_SERVER_HOST` | `server_host` |
+| `DIRECTOR_SERVER_PORT` | `server_port` |
+| `DIRECTOR_API_KEYS` | `api_keys` |
+| `DIRECTOR_API_KEY_TENANT_MAP` | `api_key_tenant_map` |
+| `DIRECTOR_KNOWLEDGE_WRITE_HMAC_KEYS` | `knowledge_write_hmac_keys` |
+| `DIRECTOR_SCORER_MODEL` | `scorer_model` |
+| `DIRECTOR_ALLOW_DOMAIN_ONLY_SCORER_MODEL` | `allow_domain_only_scorer_model` |
+| `DIRECTOR_ALLOW_CUSTOM_SCORER_MODEL` | `allow_custom_scorer_model` |
+| `DIRECTOR_MODEL_CACHE_DIR` | Model cache directory used by NLI loaders |
+
+Revision-pin fields are first-class config fields and can also be supplied
+through the same env mapping:
+
+| Config field | Purpose |
+|--------------|---------|
+| `nli_model_revision` | Immutable NLI model revision |
+| `streaming_contradiction_revision` | Streaming contradiction model revision |
+| `llm_judge_model_revision` | Local LLM judge model revision |
+| `reasoning_model_revision` | Local reasoning model revision |
+| `span_model_revision` | Token-level span detector revision |
+| `embedding_model_revision` | Embedding model revision |
+| `reranker_model_revision` | Cross-encoder reranker revision |
+
+## gRPC
+
+The `director.v1` wire schema lives in `schemas/proto/director/v1/director.proto`
+and is generated into `src/director_ai/proto/director/v1/`. The scoring entry
+point is `director_ai.grpc_scoring`.
+
+| Service | Method | Shape | Purpose |
+|---------|--------|-------|---------|
+| `director.v1.CoherenceScoring` | `ScoreClaim` | unary | Score one claim/source pair |
+| `director.v1.CoherenceScoring` | `ScoreStream` | bidirectional stream | Score token-level stream requests |
+
+Run the Python scoring service with:
+
+```bash
+director-ai-grpc-scoring --listen 127.0.0.1:50051 --threshold 0.6
+```
+
 ---
 
 ## Data Types
 
 | Type | Fields | Description |
 |------|--------|-------------|
-| `CoherenceScore` | `score`, `h_logical`, `h_factual`, `evidence`, `warning` | Composite coherence result |
+| `CoherenceScore` | `score`, `approved`, `h_logical`, `h_factual`, `evidence`, `warning`, `injection_risk`, ... | Composite coherence result |
 | `EvidenceChunk` | `text`, `distance`, `source` | Single RAG retrieval result |
 | `ScoringEvidence` | `chunks`, `nli_premise`, `nli_hypothesis`, `nli_score` | Full evidence bundle |
 | `ReviewResult` | `output`, `halted`, `coherence`, `candidates_evaluated`, `fallback_used`, `safety_events` | Pipeline output |

@@ -36,9 +36,11 @@ class TrainingModelProfile:
 
     @property
     def is_experimental(self) -> bool:
+        """Return whether this profile is outside the stable registry set."""
         return self.status != "stable"
 
     def to_dict(self) -> dict[str, Any]:
+        """Return a JSON-safe representation of the model profile."""
         return {
             "alias": self.alias,
             "model_id": self.model_id,
@@ -131,7 +133,6 @@ def list_finetune_model_profiles(
     include_experimental: bool = False,
 ) -> list[TrainingModelProfile]:
     """Return allowed model profiles for product model selection."""
-
     return [
         profile
         for profile in _MODEL_PROFILES
@@ -150,7 +151,6 @@ def resolve_finetune_model(
     experimental path. They still carry ``status=experimental`` so downstream
     benchmark gates can refuse default activation until measured.
     """
-
     if not name_or_id:
         raise ValueError("base_model is required")
 
@@ -192,7 +192,6 @@ def finetune_model_registry_to_dict(
     include_experimental: bool = False,
 ) -> list[dict[str, Any]]:
     """Return JSON-safe registry entries."""
-
     return [
         profile.to_dict()
         for profile in list_finetune_model_profiles(

@@ -30,12 +30,14 @@ class TrainingDatasetSplit:
     eval_uri: str | None = None
 
     def validate(self) -> None:
+        """Validate that the split has the fields required for training."""
         if not self.name:
             raise ValueError("dataset split name is required")
         if not self.train_uri:
             raise ValueError("dataset split train_uri is required")
 
     def to_dict(self) -> dict[str, str | None]:
+        """Return a JSON-safe representation of this dataset split."""
         return {
             "name": self.name,
             "train_uri": self.train_uri,
@@ -73,7 +75,6 @@ class TrainingScenario:
         network: str | None = None,
     ) -> TrainingJobSpec:
         """Convert this scenario into a managed fine-tune job spec."""
-
         return TrainingJobSpec(
             display_name=self.display_name,
             caller=caller,
@@ -96,6 +97,7 @@ class TrainingScenario:
         )
 
     def to_dict(self) -> dict[str, Any]:
+        """Return a JSON-safe representation of this training scenario."""
         return {
             "scenario_id": self.scenario_id,
             "dataset": self.dataset.to_dict(),
@@ -136,7 +138,6 @@ class TrainingSweepPlan:
         network: str | None = None,
     ) -> list[TrainingJobSpec]:
         """Convert every scenario in the plan into a managed job spec."""
-
         return [
             scenario.to_spec(
                 project=project,
@@ -153,6 +154,7 @@ class TrainingSweepPlan:
         ]
 
     def to_dict(self) -> dict[str, Any]:
+        """Return a JSON-safe representation of the sweep plan."""
         return {
             "sweep_id": self.sweep_id,
             "generated_at": self.generated_at,
@@ -175,7 +177,6 @@ def build_training_sweep_plan(
     display_prefix: str = "director-ai-managed-sweep",
 ) -> TrainingSweepPlan:
     """Build a managed fine-tuning matrix without submitting jobs."""
-
     if not sweep_id:
         raise ValueError("sweep_id is required")
     if not datasets:

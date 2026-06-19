@@ -63,6 +63,7 @@ class RegressionReport:
     details: dict = field(default_factory=dict)
 
     def summary(self) -> str:
+        """Render a compact human-readable regression summary."""
         lines = [
             f"Domain bal_acc: {self.domain_accuracy:.1%}",
             f"General bal_acc: {self.general_accuracy:.1%}",
@@ -106,6 +107,7 @@ class ModelBenchmarkResult:
         report: RegressionReport,
         elapsed_seconds: float,
     ) -> ModelBenchmarkResult:
+        """Build a model benchmark result from one regression report."""
         alias = (
             requested_model if profile.alias == "custom-experimental" else profile.alias
         )
@@ -130,6 +132,7 @@ class ModelBenchmarkResult:
         )
 
     def to_dict(self) -> dict[str, Any]:
+        """Return a JSON-safe representation of this model result."""
         return {
             "requested_model": self.requested_model,
             "alias": self.alias,
@@ -166,6 +169,7 @@ class ModelBenchmarkReport:
     selection_policy: str = "deployable_highest_general_accuracy"
 
     def __post_init__(self) -> None:
+        """Populate best-model fields when the caller did not provide them."""
         if not self.best_model_alias:
             winner = self._select_winner()
             if winner is not None:
@@ -190,6 +194,7 @@ class ModelBenchmarkReport:
         )
 
     def to_dict(self) -> dict[str, Any]:
+        """Return a JSON-safe representation of the benchmark report."""
         return {
             "generated_at": self.generated_at,
             "general_path": self.general_path,
@@ -202,6 +207,7 @@ class ModelBenchmarkReport:
         }
 
     def summary(self) -> str:
+        """Render a compact human-readable benchmark sweep summary."""
         lines = [
             "Model benchmark sweep",
             f"General data: {self.general_path or 'not provided'}",
@@ -409,7 +415,6 @@ def benchmark_model_candidates(
     produced by a fine-tune job. Unit tests can patch ``_evaluate_model``; live
     runs use the same anti-regression benchmark gate as single-model activation.
     """
-
     if not model_artifacts:
         raise ValueError("model_artifacts must contain at least one model")
 

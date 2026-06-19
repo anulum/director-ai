@@ -25,7 +25,6 @@ from .finetune import FinetuneConfig, finetune_nli
 
 def main(argv: list[str] | None = None) -> None:
     """Run a managed fine-tune job inside a Vertex custom job container."""
-
     args = _parse_args(argv)
     work_dir = args.work_dir
     work_dir.mkdir(parents=True, exist_ok=True)
@@ -77,7 +76,6 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
 
 def _materialise_uri(uri: str, destination: Path) -> Path:
     """Return a local path for either an existing local URI or a GCS object."""
-
     if _is_gcs_uri(uri):
         bucket_name, blob_name = _split_gcs_uri(uri)
         destination.parent.mkdir(parents=True, exist_ok=True)
@@ -90,7 +88,6 @@ def _materialise_uri(uri: str, destination: Path) -> Path:
 
 def _publish_file(source: Path, destination_uri: str) -> None:
     """Publish one file to a local path or a `gs://` object URI."""
-
     if _is_gcs_uri(destination_uri):
         bucket_name, blob_name = _split_gcs_uri(destination_uri)
         _storage_client().bucket(bucket_name).blob(blob_name).upload_from_filename(
@@ -105,7 +102,6 @@ def _publish_file(source: Path, destination_uri: str) -> None:
 
 def _publish_dir(source_dir: Path, destination_uri: str) -> None:
     """Publish a model directory to a local directory or GCS prefix."""
-
     if _is_gcs_uri(destination_uri):
         base = destination_uri.rstrip("/")
         for path in source_dir.rglob("*"):
@@ -126,7 +122,6 @@ def _is_gcs_uri(uri: str) -> bool:
 
 def _split_gcs_uri(uri: str) -> tuple[str, str]:
     """Split `gs://bucket/object` into a bucket name and object path."""
-
     parsed = urlparse(uri)
     if parsed.scheme != "gs" or not parsed.netloc or not parsed.path.strip("/"):
         raise ValueError(f"invalid GCS URI: {uri}")

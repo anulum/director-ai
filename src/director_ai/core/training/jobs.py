@@ -192,7 +192,6 @@ class TrainingJobSpec:
 
     def resolved_model_profile(self) -> TrainingModelProfile:
         """Return the validated base-model profile for this training job."""
-
         return resolve_finetune_model(
             self.base_model,
             allow_experimental=self.allow_experimental_model,
@@ -392,13 +391,11 @@ def submit_training_job(
     dry_run: bool = True,
 ) -> TrainingJobSubmission:
     """Submit a managed training job through a named backend."""
-
     return get_training_backend(backend).submit(spec, dry_run=dry_run)
 
 
 def get_training_backend(name: str) -> TrainingJobBackend:
     """Return the managed training backend named *name*."""
-
     if name == _LOCAL_BACKEND:
         return LocalTrainingBackend()
     if name == _PORTABLE_BACKEND:
@@ -423,7 +420,6 @@ def build_internal_suite_spec(
     Internal jobs exercise the same managed backend as product jobs, but their
     command runs a test suite instead of fine-tuning on customer data.
     """
-
     if not suite:
         raise ValueError("suite is required")
     labels = _normalise_labels({"director_ai_caller": "internal", "suite": suite})
@@ -444,7 +440,6 @@ def build_internal_suite_spec(
 
 def build_vertex_custom_job_request(spec: TrainingJobSpec) -> dict[str, Any]:
     """Build the Vertex custom job request for *spec* without submitting it."""
-
     spec.validate(_VERTEX_BACKEND)
     labels = _normalise_labels(
         {
@@ -497,7 +492,6 @@ def build_vertex_custom_job_request(spec: TrainingJobSpec) -> dict[str, Any]:
 
 def build_portable_container_job_request(spec: TrainingJobSpec) -> dict[str, Any]:
     """Build a provider-neutral container job request without submitting it."""
-
     spec.validate(_PORTABLE_BACKEND)
     container_command = spec.args or _portable_finetune_command(spec)
     executable = container_command[:1]
@@ -546,7 +540,6 @@ def build_portable_container_job_request(spec: TrainingJobSpec) -> dict[str, Any
 
 def submission_to_json(submission: TrainingJobSubmission) -> str:
     """Serialise a submission result for CLI/API output."""
-
     return json.dumps(
         {
             "backend": submission.backend,
@@ -706,5 +699,4 @@ def _normalise_labels(labels: dict[str, str]) -> dict[str, str]:
 
 def shell_join(command: list[str]) -> str:
     """Return a display-only shell representation of *command*."""
-
     return " ".join(shlex.quote(part) for part in command)

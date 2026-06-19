@@ -204,7 +204,7 @@ an output.
   published in this repository.
 - **Structured output verification** — JSON schema validation, numeric consistency, reasoning chain verification, temporal freshness scoring. Stdlib-only, zero dependencies.
 - **Intent-grounded injection detection** — two-stage pipeline: regex pattern matching (fast) + bidirectional NLI divergence scoring (semantic). Detects the *effect* of injection in the output.
-- **12 Rust-accelerated compute functions** — 9.4× geometric mean speedup over Python paths. Transparent fallback when Rust kernel is not installed.
+- **20 benchmarked Rust compute functions** — 7.23× geometric mean speedup over Python paths in the committed local benchmark packet. Transparent fallback when Rust kernel is not installed.
 
 ## Business outcomes
 
@@ -358,7 +358,7 @@ the full surface.
 
 | Component | Path | Purpose |
 |-----------|------|---------|
-| **Rust `backfire-kernel`** | `backfire-kernel/` | 28 hot-path compute functions via PyO3 — scorer / injection / safety-hook primitives with pure-Python fallbacks |
+| **Rust `backfire-kernel`** | `backfire-kernel/` | 83 PyO3 bindings, including 20 compute functions measured in the committed Rust-vs-Python benchmark |
 | **Go gateway** _(experimental)_ | `gateway/go/` | High-concurrency HTTP front door (auth, rate limit, audit). A passthrough proxy today; Python scoring integration is in progress (Phase 3) |
 | **`director.v1` wire schema** | `schemas/proto/` | Frozen protobuf messages shared by Python and Go |
 | **CoherenceScoring gRPC** | `src/director_ai/grpc_scoring.py` | `ScoreClaim` unary + `ScoreStream` bidi RPCs over `director.v1` |
@@ -446,7 +446,7 @@ pip install "director-ai[all]"                     # the common capability set i
 Or pick granular extras for fine control:
 
 ```bash
-pip install "director-ai[nli]"                     # NLI model scoring (75.6% BA)
+pip install "director-ai[nli]"                     # NLI model scoring (77.8% BA in committed AggreFact packet)
 pip install "director-ai[embed]"                   # embedding scorer (~65% BA, CPU-only, 3ms)
 pip install director-ai-lite                       # 3-line guard facade
 pip install "director-ai[nli,vector,server]"       # equivalent to [recommended]
@@ -476,7 +476,7 @@ pip install "minicheck @ git+https://github.com/Liyan06/MiniCheck.git"
 
 | Tier | Backend | Accuracy | Latency | Install |
 |------|---------|----------|---------|---------|
-| **5** | NLI (FactCG) | **75.6% BA** | 14.6 ms | `[nli]` |
+| **5** | NLI (FactCG) | **77.8% BA** | see latency table | `[nli]` |
 | **4** | Distilled NLI (preview) | validation required | measured per artefact | `[nli-lite]` |
 | **3** | Embedding (bge-small) | ~65% BA | 3 ms | `[embed]` |
 | **2** | Rules engine (8 rules) | rule-based | <1 ms | — (base) |
@@ -491,7 +491,7 @@ Select via config: `scorer_backend="rules"`, `"embed"`, `"deberta"`, or `"lite"`
 | **NLI models** | DeBERTa, FactCG, MiniCheck, ONNX Runtime | `[nli]` |
 | **Vector DBs** | Chroma, Pinecone, Weaviate, Qdrant | `[vector]` / `[pinecone]` / etc. |
 | **Server** | FastAPI + Uvicorn REST/gRPC | `[server]` |
-| **Rust kernel** | 12 accelerated compute functions | `[rust]` (requires maturin) |
+| **Rust kernel** | 20 benchmarked compute functions | `[rust]` (requires maturin) |
 | **Voice** | ElevenLabs, OpenAI TTS, Deepgram adapters | `[voice]` |
 
 Python 3.11+. Full guide: [docs/installation](https://anulum.github.io/director-ai/installation/).
@@ -509,12 +509,12 @@ Two judges ship with this release.
 | Rank | Model | Per-dataset mean BA | Params | Latency | Streaming |
 |------|-------|---------------------|--------|---------|-----------|
 | #1 | Bespoke-MiniCheck-7B | **77.4%** | 7B | ~100 ms | No |
-| **#6** | **Director-AI (FactCG)** | **75.6%** | 0.4B | **14.6 ms** | **Yes** |
+| **#6** | **Director-AI (FactCG)** | **77.8%** | 0.4B | see latency table | **Yes** |
 | #8 | MiniCheck-Flan-T5-L | 75.0% | 0.8B | ~120 ms | No |
 
-With per-dataset threshold tuning (no retraining), FactCG reaches **77.76%** — ahead of Bespoke-MiniCheck-7B (#1 at 77.4%). This is the same 0.4B model, single `pip install`, 14.6 ms latency.
+With per-dataset threshold tuning (no retraining), FactCG reaches **78.0%** in the committed threshold packet. This is the same 0.4B model and single `pip install`; latency depends on backend and hardware.
 
-Latency: 14.6 ms/pair on GTX 1060 6GB (ONNX GPU, 16-pair batch). Full comparison: [`benchmarks/comparison/COMPETITOR_COMPARISON.md`](benchmarks/comparison/COMPETITOR_COMPARISON.md).
+Latency: the committed GTX 1060 6GB local packet reports 17.9 ms/pair p99 for a 16-pair batch. Full comparison: [`benchmarks/comparison/COMPETITOR_COMPARISON.md`](benchmarks/comparison/COMPETITOR_COMPARISON.md).
 
 > **Note on metrics.** The numbers in the table above use the
 > AggreFact leaderboard convention — **per-dataset mean balanced
@@ -528,14 +528,14 @@ Latency: 14.6 ms/pair on GTX 1060 6GB (ONNX GPU, 16-pair batch). Full comparison
 
 ### Rust compute acceleration (shipped in v3.12, current in v3.15)
 
-12 functions, 5000 iterations each. Geometric mean: **9.4× speedup**.
+20 functions, 3000 iterations each. Geometric mean: **7.23× speedup**.
 
 | Function | Python (µs) | Rust (µs) | Speedup |
 |----------|------------|-----------|---------|
-| sanitizer_score | 57 | 2.1 | 27× |
-| temporal_freshness | 53 | 2.5 | 21× |
-| probs_to_confidence (200×3) | 486 | 15 | 33× |
-| lite_score | 47 | 26 | 1.8× |
+| sanitizer_score | 33.42 | 1.25 | 26.74× |
+| score_temporal_freshness | 31.74 | 1.99 | 15.95× |
+| probs_to_confidence (200×3) | 227.14 | 8.04 | 28.25× |
+| lite_score | 20.15 | 13.12 | 1.54× |
 
 Full results: [`benchmarks/results/rust_compute_bench.json`](benchmarks/results/rust_compute_bench.json).
 

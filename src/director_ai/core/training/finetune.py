@@ -48,9 +48,11 @@ except Exception:  # pragma: no cover - mandatory dependency
     _RUST_FINETUNE = True
 
     def rust_sum_f64(_values: list[float]) -> float:
+        """Raise when the Rust floating-point reducer is unavailable."""
         raise RuntimeError("backfire_kernel rust_sum_f64 is unavailable")
 
     def rust_sum_i64(_values: list[int]) -> int:
+        """Raise when the Rust integer reducer is unavailable."""
         raise RuntimeError("backfire_kernel rust_sum_i64 is unavailable")
 
 

@@ -38,6 +38,7 @@ except ImportError:  # pragma: no cover - mandatory accelerator guard
     _RUST_FINETUNE_VALIDATOR = True
 
     def rust_sum_i64(_values: list[int]) -> int:
+        """Raise when the Rust integer reducer is unavailable."""
         raise RuntimeError("backfire_kernel rust_sum_i64 is unavailable")
 
 
@@ -75,9 +76,11 @@ class DataQualityReport:
 
     @property
     def is_valid(self) -> bool:
+        """Return whether validation found no blocking errors."""
         return len(self.errors) == 0
 
     def summary(self) -> str:
+        """Render a compact human-readable validation summary."""
         lines = [
             f"Samples: {self.total_samples}",
             f"Labels: {self.label_distribution}",

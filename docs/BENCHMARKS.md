@@ -192,7 +192,7 @@ count.
 
 **Reproduce:** ``python -m benchmarks.pii_scanner_bench --rounds 500``.
 Raw data lands in ``benchmarks/results/pii_scanner_bench.json``.
-Measured on i5-11600K, Python 3.12.3, ``backfire_kernel`` release
+Measured on i5-11600K, Python 3.12, ``backfire_kernel`` release
 build. Clean corpora hit the ``RegexSet`` prefilter hard — Rust
 skips every pattern once it decides none can match — so the speedup
 is largest on benign text, which dominates production traffic.

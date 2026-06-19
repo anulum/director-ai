@@ -125,7 +125,7 @@ at line 328) reduces its share to ~30%, preserving dataset diversity.
 
 ANLI (Adversarial NLI) Round 3 is the hardest split of the adversarial NLI
 benchmark. Human annotators crafted hypotheses specifically designed to fool
-state-of-the-art NLI models. Including this split forces the trained model
+modern NLI models. Including this split forces the trained model
 to handle adversarial edge cases that simpler datasets would not cover.
 
 **Label mapping**: labels are already integers (0, 1, 2) matching the
