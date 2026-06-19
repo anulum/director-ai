@@ -147,6 +147,8 @@ jobs:
           src/director_ai/_server_models.py
           src/director_ai/guard.py
           src/director_ai/server.py
+          src/director_ai/finetune_api.py
+          src/director_ai/knowledge_api.py
           --select D
 
   typecheck:

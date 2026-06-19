@@ -729,6 +729,8 @@ warn_unused_ignores = true
 # each is brought to zero own-file errors.
 [[tool.mypy.overrides]]
 module = [
+    "director_ai.finetune_api",
+    "director_ai.knowledge_api",
     "director_ai.server",
 ]
 disallow_untyped_defs = true

@@ -18,6 +18,7 @@ import hashlib
 import logging
 import re
 import uuid
+from typing import Any
 
 from .core.kb_write_security import (
     KBWriteAccessError,
@@ -193,16 +194,15 @@ def _validate_upload_type(filename: str, content_type: str | None) -> str:
     return ext
 
 
-def _get_registry(request: Request):
+def _get_registry(request: Request) -> Any:
     """Return the configured document registry or raise service unavailable."""
-
     reg = request.app.state._state.get("doc_registry")
     if reg is None:
         raise HTTPException(503, "Document registry not initialised")
     return reg
 
 
-def _get_store(request: Request):
+def _get_store(request: Request) -> Any:
     """Return the configured vector ground-truth store."""
     from .core.retrieval.vector_store import VectorGroundTruthStore
 
@@ -218,7 +218,7 @@ def _get_store(request: Request):
     return store
 
 
-def _get_config(request: Request):
+def _get_config(request: Request) -> Any:
     """Return the active Director configuration from FastAPI state."""
     return getattr(request.app.state, "config", None) or request.app.state._state.get(
         "config"
@@ -280,7 +280,7 @@ def _chunk_and_store(
     text: str,
     doc_id: str,
     tenant_id: str,
-    store,
+    store: Any,
     chunk_size: int,
     overlap: int,
     signature_metadata: dict[str, object] | None = None,
@@ -319,7 +319,7 @@ def _content_hash(text: str) -> str:
     return hashlib.sha256(text.encode("utf-8", errors="replace")).hexdigest()
 
 
-def _cleanup_chunk_ids(chunk_ids: list[str], store) -> None:
+def _cleanup_chunk_ids(chunk_ids: list[str], store: Any) -> None:
     """Best-effort rollback for chunks staged before an ingestion failure."""
     for cid in chunk_ids:
         try:
@@ -330,7 +330,7 @@ def _cleanup_chunk_ids(chunk_ids: list[str], store) -> None:
             store.facts.pop(cid, None)
 
 
-def _delete_chunks(record, store) -> int:
+def _delete_chunks(record: Any, store: Any) -> int:
     """Delete all vector chunks for a registry record."""
     removed = 0
     for cid in record.chunk_ids:
@@ -358,7 +358,9 @@ def create_knowledge_router() -> APIRouter:
     router = APIRouter(tags=["knowledge"])
 
     @router.post("/upload", status_code=201)
-    async def upload_document(request: Request, file: UploadFile):
+    async def upload_document(
+        request: Request, file: UploadFile
+    ) -> dict[str, Any]:
         """Upload a file, parse, chunk, embed, store."""
         # Early size check before reading body into memory
         _validate_content_length(request.headers.get("content-length"))
@@ -425,7 +427,7 @@ def create_knowledge_router() -> APIRouter:
         }
 
     @router.post("/ingest", status_code=201)
-    async def ingest_text(request: Request, body: IngestRequest):
+    async def ingest_text(request: Request, body: IngestRequest) -> dict[str, Any]:
         """Ingest raw text â†’ chunk â†’ embed â†’ store."""
         tenant_id = _get_tenant(request)
         _require_write_access(request, tenant_id)
@@ -483,7 +485,7 @@ def create_knowledge_router() -> APIRouter:
         }
 
     @router.get("/documents")
-    async def list_documents(request: Request):
+    async def list_documents(request: Request) -> dict[str, Any]:
         """List all documents for the current tenant."""
         tenant_id = _get_tenant(request)
         registry = _get_registry(request)
@@ -505,7 +507,7 @@ def create_knowledge_router() -> APIRouter:
         }
 
     @router.get("/documents/{doc_id}")
-    async def get_document(request: Request, doc_id: str):
+    async def get_document(request: Request, doc_id: str) -> dict[str, Any]:
         """Get metadata for a specific document."""
         tenant_id = _get_tenant(request)
         doc_id = _validate_optional_identifier("doc_id", doc_id)
@@ -524,7 +526,7 @@ def create_knowledge_router() -> APIRouter:
         }
 
     @router.delete("/documents/{doc_id}")
-    async def delete_document(request: Request, doc_id: str):
+    async def delete_document(request: Request, doc_id: str) -> dict[str, Any]:
         """Delete a document and all its chunks."""
         tenant_id = _get_tenant(request)
         _require_write_access(request, tenant_id)
@@ -546,7 +548,9 @@ def create_knowledge_router() -> APIRouter:
         return {"deleted": doc_id, "chunks_removed": removed}
 
     @router.put("/documents/{doc_id}")
-    async def update_document(request: Request, doc_id: str, body: IngestRequest):
+    async def update_document(
+        request: Request, doc_id: str, body: IngestRequest
+    ) -> dict[str, Any]:
         """Replace a document's content — re-chunks and re-embeds."""
         tenant_id = _get_tenant(request)
         _require_write_access(request, tenant_id)
@@ -623,7 +627,9 @@ def create_knowledge_router() -> APIRouter:
         }
 
     @router.get("/search")
-    async def search_knowledge(request: Request, query: str, top_k: int = 5):
+    async def search_knowledge(
+        request: Request, query: str, top_k: int = 5
+    ) -> dict[str, Any]:
         """Test retrieval quality — returns matching chunks."""
         tenant_id = _get_tenant(request)
         if not query.strip():
@@ -651,7 +657,7 @@ def create_knowledge_router() -> APIRouter:
         }
 
     @router.post("/tune-embeddings")
-    async def tune_embeddings_endpoint(request: Request):
+    async def tune_embeddings_endpoint(request: Request) -> dict[str, Any]:
         """Fine-tune embedding model on ingested documents.
 
         Builds contrastive pairs from adjacent chunks within documents,

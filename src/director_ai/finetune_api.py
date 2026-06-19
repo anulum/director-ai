@@ -36,6 +36,7 @@ import time
 import uuid
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Any
 
 logger = logging.getLogger("DirectorAI.FinetuneAPI")
 
@@ -67,10 +68,10 @@ class FinetuneJob:
     progress: float = 0.0
     current_step: int = 0
     total_steps: int = 0
-    config: dict = field(default_factory=dict)
-    validation_report: dict = field(default_factory=dict)
-    metrics: dict = field(default_factory=dict)
-    regression_report: dict = field(default_factory=dict)
+    config: dict[str, Any] = field(default_factory=dict)
+    validation_report: dict[str, Any] = field(default_factory=dict)
+    metrics: dict[str, Any] = field(default_factory=dict)
+    regression_report: dict[str, Any] = field(default_factory=dict)
     model_path: str = ""
     error: str = ""
     created_at: float = 0.0
@@ -81,11 +82,11 @@ class FinetuneJob:
 class _JobStore:
     """Thread-safe in-memory job store."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._jobs: dict[str, FinetuneJob] = {}
         self._lock = threading.Lock()
 
-    def create(self, config: dict) -> FinetuneJob:
+    def create(self, config: dict[str, Any]) -> FinetuneJob:
         """Create a job unless the in-process concurrency cap is reached."""
         with self._lock:
             active = sum(
@@ -141,7 +142,7 @@ class ManagedTrainingRecord:
 class _ManagedJobStore:
     """Thread-safe in-process ledger for managed training submissions."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._jobs: dict[str, ManagedTrainingRecord] = {}
         self._lock = threading.Lock()
 
@@ -227,8 +228,8 @@ if _FASTAPI_AVAILABLE:
         model_path: str
         activated: bool
         created_at: float
-        metrics: dict = {}
-        regression_report: dict = {}
+        metrics: dict[str, Any] = {}
+        regression_report: dict[str, Any] = {}
 
     class ManagedTrainingRequest(BaseModel):
         """Managed-training submission request."""
@@ -275,7 +276,9 @@ if _FASTAPI_AVAILABLE:
 # â”€â”€ Training worker â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
-def _run_training_worker(job: FinetuneJob, data_path: Path, models_dir: Path):
+def _run_training_worker(
+    job: FinetuneJob, data_path: Path, models_dir: Path
+) -> None:
     """Background thread that runs the fine-tuning pipeline."""
     train_path: Path | None = None
     eval_path: Path | None = None
@@ -383,7 +386,7 @@ def _tenant_from_request(request: Request) -> str:
     return tenant_id
 
 
-def _managed_record_to_dict(record: ManagedTrainingRecord) -> dict:
+def _managed_record_to_dict(record: ManagedTrainingRecord) -> dict[str, Any]:
     """Serialise a managed training record for REST responses."""
     return {
         "job_id": record.job_id,
@@ -426,7 +429,9 @@ def create_finetune_router(models_dir: Path | None = None) -> APIRouter:
     router = APIRouter(tags=["finetune"])
 
     @router.post("/validate")
-    async def validate_data(file: UploadFile, req: ValidateRequest | None = None):
+    async def validate_data(
+        file: UploadFile, req: ValidateRequest | None = None
+    ) -> dict[str, Any]:
         """Validate uploaded JSONL data before training."""
         if req is None:
             # Pydantic v2's mypy plugin wants explicit kwargs for
@@ -459,7 +464,9 @@ def create_finetune_router(models_dir: Path | None = None) -> APIRouter:
             data_path.unlink(missing_ok=True)
 
     @router.post("/start")
-    async def start_training(file: UploadFile, req: StartRequest | None = None):
+    async def start_training(
+        file: UploadFile, req: StartRequest | None = None
+    ) -> dict[str, Any]:
         """Upload data and start a fine-tuning job."""
         if req is None:
             req = StartRequest(
@@ -532,7 +539,9 @@ def create_finetune_router(models_dir: Path | None = None) -> APIRouter:
         }
 
     @router.post("/managed/submit")
-    async def submit_managed_training(req: ManagedTrainingRequest, request: Request):
+    async def submit_managed_training(
+        req: ManagedTrainingRequest, request: Request
+    ) -> dict[str, Any]:
         """Submit or dry-run a managed training job."""
         from director_ai.core.training.jobs import (
             TrainingHardware,
@@ -611,7 +620,7 @@ def create_finetune_router(models_dir: Path | None = None) -> APIRouter:
         }
 
     @router.get("/managed/jobs")
-    async def list_managed_training_jobs(request: Request):
+    async def list_managed_training_jobs(request: Request) -> dict[str, Any]:
         """List managed training submissions for the current tenant."""
         tenant_id = _tenant_from_request(request)
         records = managed_store.list_for_tenant(tenant_id)
@@ -625,7 +634,7 @@ def create_finetune_router(models_dir: Path | None = None) -> APIRouter:
     async def get_managed_training_status(
         req: ManagedTrainingLookupRequest,
         request: Request,
-    ):
+    ) -> dict[str, Any]:
         """Return backend status for a managed training job."""
         from director_ai.core.training.jobs import get_training_backend
 
@@ -670,7 +679,7 @@ def create_finetune_router(models_dir: Path | None = None) -> APIRouter:
     async def cancel_managed_training(
         req: ManagedTrainingLookupRequest,
         request: Request,
-    ):
+    ) -> dict[str, Any]:
         """Cancel a managed training job owned by the current tenant."""
         from director_ai.core.training.jobs import get_training_backend
 
@@ -707,7 +716,9 @@ def create_finetune_router(models_dir: Path | None = None) -> APIRouter:
         }
 
     @router.get("/managed/models")
-    async def list_managed_training_models(include_experimental: bool = False):
+    async def list_managed_training_models(
+        include_experimental: bool = False,
+    ) -> dict[str, Any]:
         """List selectable managed fine-tune base models."""
         from director_ai.core.training.model_registry import (
             finetune_model_registry_to_dict,
@@ -720,7 +731,9 @@ def create_finetune_router(models_dir: Path | None = None) -> APIRouter:
         }
 
     @router.post("/managed/benchmark-models")
-    async def benchmark_managed_training_models(req: ManagedModelBenchmarkRequest):
+    async def benchmark_managed_training_models(
+        req: ManagedModelBenchmarkRequest,
+    ) -> dict[str, Any]:
         """Benchmark trained model artifacts before activation."""
         from director_ai.core.training.finetune_benchmark import (
             benchmark_model_candidates,
@@ -736,15 +749,16 @@ def create_finetune_router(models_dir: Path | None = None) -> APIRouter:
             )
         except ValueError as exc:
             raise HTTPException(422, str(exc)) from exc
-        return report.to_dict()
+        payload: dict[str, Any] = report.to_dict()
+        return payload
 
     @router.get("/{job_id}")
-    async def get_job_status(job_id: str):
+    async def get_job_status(job_id: str) -> dict[str, Any]:
         """Get job status and progress."""
         job = store.get(job_id)
         if not job:
             raise HTTPException(404, f"Job {job_id} not found")
-        return JobStatus(
+        status: dict[str, Any] = JobStatus(
             job_id=job.job_id,
             state=job.state,
             progress=job.progress,
@@ -752,9 +766,10 @@ def create_finetune_router(models_dir: Path | None = None) -> APIRouter:
             total_steps=job.total_steps,
             error=job.error,
         ).model_dump()
+        return status
 
     @router.get("/{job_id}/result")
-    async def get_job_result(job_id: str):
+    async def get_job_result(job_id: str) -> dict[str, Any]:
         """Get training results and regression report."""
         job = store.get(job_id)
         if not job:
@@ -771,7 +786,7 @@ def create_finetune_router(models_dir: Path | None = None) -> APIRouter:
         }
 
     @router.post("/{job_id}/activate")
-    async def activate_model(job_id: str):
+    async def activate_model(job_id: str) -> dict[str, Any]:
         """Activate a fine-tuned model as the default scorer."""
         job = store.get(job_id)
         if not job:
@@ -786,7 +801,7 @@ def create_finetune_router(models_dir: Path | None = None) -> APIRouter:
         return {"job_id": job_id, "activated": True, "model_path": job.model_path}
 
     @router.post("/{job_id}/rollback")
-    async def rollback_model(job_id: str):
+    async def rollback_model(job_id: str) -> dict[str, Any]:
         """Deactivate fine-tuned model, revert to baseline."""
         job = store.get(job_id)
         if not job:
@@ -796,7 +811,7 @@ def create_finetune_router(models_dir: Path | None = None) -> APIRouter:
         return {"job_id": job_id, "activated": False}
 
     @router.get("/", name="list_models")
-    async def list_models():
+    async def list_models() -> dict[str, Any]:
         """List all fine-tuning jobs and models."""
         jobs = store.list_all()
         return {
@@ -814,7 +829,7 @@ def create_finetune_router(models_dir: Path | None = None) -> APIRouter:
         }
 
     @router.delete("/{job_id}")
-    async def delete_model(job_id: str):
+    async def delete_model(job_id: str) -> dict[str, Any]:
         """Delete a fine-tuned model and its artifacts."""
         job = store.get(job_id)
         if not job:
