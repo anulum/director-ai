@@ -30,6 +30,7 @@ from director_ai.core.retrieval.ingestion import (
     S3Plugin,
 )
 from director_ai.core.retrieval.ingestion.base import chunks
+from director_ai.core.retrieval.ingestion.gdrive import _decode
 
 # --- Shared in-memory store ------------------------------------------
 
@@ -691,6 +692,39 @@ class _FakeDriveService:
 
 
 class TestGoogleDrive:
+    def test_from_service_account_builds_drive_v3_service(self, monkeypatch):
+        built: dict[str, Any] = {}
+        endpoint = _FakeFilesEndpoint([{"files": [], "nextPageToken": None}], {})
+        service = _FakeDriveService(endpoint)
+
+        def fake_build(api: str, version: str, **kwargs: Any) -> _FakeDriveService:
+            built["api"] = api
+            built["version"] = version
+            built.update(kwargs)
+            return service
+
+        fake_discovery = types.ModuleType("googleapiclient.discovery")
+        fake_discovery.build = fake_build
+        fake_package = types.ModuleType("googleapiclient")
+        fake_package.discovery = fake_discovery
+        monkeypatch.setitem(sys.modules, "googleapiclient", fake_package)
+        monkeypatch.setitem(sys.modules, "googleapiclient.discovery", fake_discovery)
+
+        plugin = GoogleDrivePlugin.from_service_account(
+            credentials="creds",
+            page_size=2000,
+        )
+
+        list(plugin.iter_documents())
+
+        assert built == {
+            "api": "drive",
+            "version": "v3",
+            "credentials": "creds",
+            "cache_discovery": False,
+        }
+        assert endpoint.list_calls[0]["pageSize"] == 1000
+
     def test_ingests_text_files(self):
         pages = [
             {
@@ -814,6 +848,9 @@ class TestGoogleDrive:
         )
         assert written == 1
         assert store.records[0]["metadata"]["mime_type"] == "text/plain"
+
+    def test_decode_replaces_invalid_utf8_bytes(self):
+        assert _decode(b"valid-\xff-text") == "valid-\ufffd-text"
 
 
 def test_store_add_falls_back_when_metadata_kwarg_unsupported():
