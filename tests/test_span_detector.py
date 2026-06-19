@@ -9,6 +9,8 @@
 from __future__ import annotations
 
 import random
+import sys
+from types import SimpleNamespace
 
 import pytest
 
@@ -20,6 +22,73 @@ from director_ai.core.scoring.span_detector import (
     _merge_flagged_spans_py,
     merge_flagged_spans,
 )
+
+try:
+    import torch
+
+    _USING_FAKE_TORCH = False
+except ImportError:  # pragma: no cover - environment-dependent optional extra
+    _USING_FAKE_TORCH = True
+
+    class _FakeInputTensor:
+        def to(self, _device: str) -> _FakeInputTensor:
+            return self
+
+    class _FakeOffsetTensor:
+        def __init__(self, offsets):
+            self._offsets = offsets
+
+        def __getitem__(self, index: int) -> _FakeOffsetTensor:
+            assert index == 0
+            return self
+
+        def tolist(self):
+            return self._offsets
+
+    class _FakeProbabilityVector:
+        def __init__(self, probs):
+            self._probs = probs
+
+        def cpu(self) -> _FakeProbabilityVector:
+            return self
+
+        def tolist(self):
+            return self._probs
+
+    class _FakeProbabilityMatrix:
+        def __init__(self, probs):
+            self._probs = probs
+
+        def __getitem__(self, key):
+            rows, label_idx = key
+            assert rows == slice(None)
+            assert label_idx == 1
+            return _FakeProbabilityVector(self._probs)
+
+    class _FakeLogits:
+        def __init__(self, probs):
+            self.probs = probs
+
+        def __getitem__(self, index: int) -> _FakeLogits:
+            assert index == 0
+            return self
+
+    class _NoGrad:
+        def __enter__(self) -> None:
+            return None
+
+        def __exit__(self, *_exc: object) -> bool:
+            return False
+
+    torch = SimpleNamespace(  # type: ignore[assignment]
+        FakeLogits=_FakeLogits,
+        cuda=SimpleNamespace(is_available=lambda: False),
+        nn=SimpleNamespace(Module=object, Linear=lambda *_args, **_kwargs: object()),
+        no_grad=lambda: _NoGrad(),
+        softmax=lambda logits, *, dim: _FakeProbabilityMatrix(logits.probs),
+        tensor=lambda _value: _FakeInputTensor(),
+    )
+    sys.modules.setdefault("torch", torch)
 
 
 class TestMergeFlaggedSpans:
@@ -152,10 +221,122 @@ class TestDetectorConstruction:
     def test_default_model_id(self) -> None:
         assert DEFAULT_SPAN_MODEL == "anulum/director-ragtruth-token-modernbert"
 
+    def test_from_pretrained_uses_pinned_revision_and_cuda_device(
+        self, monkeypatch
+    ) -> None:
+        calls: list[tuple[str, str, str]] = []
+
+        class FakeModel:
+            def __init__(self) -> None:
+                self.eval_called = False
+                self.device = ""
+
+            def eval(self) -> None:
+                self.eval_called = True
+
+            def to(self, device: str) -> None:
+                self.device = device
+
+        fake_model = FakeModel()
+        fake_tokenizer = object()
+
+        class FakeTokenizerLoader:
+            @staticmethod
+            def from_pretrained(model_id: str, *, revision: str) -> object:
+                calls.append(("tokenizer", model_id, revision))
+                return fake_tokenizer
+
+        class FakeModelLoader:
+            @staticmethod
+            def from_pretrained(model_id: str, *, revision: str) -> FakeModel:
+                calls.append(("model", model_id, revision))
+                return fake_model
+
+        monkeypatch.setitem(
+            sys.modules,
+            "transformers",
+            SimpleNamespace(
+                AutoTokenizer=FakeTokenizerLoader,
+                AutoModelForTokenClassification=FakeModelLoader,
+            ),
+        )
+        monkeypatch.setitem(
+            sys.modules,
+            "torch",
+            SimpleNamespace(cuda=SimpleNamespace(is_available=lambda: True)),
+        )
+        monkeypatch.setattr(
+            span_module,
+            "resolve_model_revision",
+            lambda model_id, revision: f"pinned:{model_id}:{revision}",
+        )
+
+        detector = HallucinationSpanDetector.from_pretrained(
+            "model-id",
+            revision="rev-a",
+            device=2,
+            token_threshold=0.7,
+            min_tokens=3,
+            max_length=128,
+        )
+
+        assert detector._model is fake_model
+        assert detector._tokenizer is fake_tokenizer
+        assert detector._token_threshold == pytest.approx(0.7)
+        assert detector._min_tokens == 3
+        assert detector._max_length == 128
+        assert fake_model.eval_called is True
+        assert fake_model.device == "cuda:2"
+        assert calls == [
+            ("tokenizer", "model-id", "pinned:model-id:rev-a"),
+            ("model", "model-id", "pinned:model-id:rev-a"),
+        ]
+
+    def test_from_pretrained_default_device_does_not_move_model(
+        self, monkeypatch
+    ) -> None:
+        class FakeModel:
+            def __init__(self) -> None:
+                self.device = ""
+
+            def eval(self) -> None:
+                pass
+
+            def to(self, device: str) -> None:
+                self.device = device
+
+        fake_model = FakeModel()
+
+        monkeypatch.setitem(
+            sys.modules,
+            "transformers",
+            SimpleNamespace(
+                AutoTokenizer=SimpleNamespace(
+                    from_pretrained=lambda *_args, **_kwargs: object()
+                ),
+                AutoModelForTokenClassification=SimpleNamespace(
+                    from_pretrained=lambda *_args, **_kwargs: fake_model
+                ),
+            ),
+        )
+        monkeypatch.setitem(
+            sys.modules,
+            "torch",
+            SimpleNamespace(cuda=SimpleNamespace(is_available=lambda: True)),
+        )
+        monkeypatch.setattr(
+            span_module,
+            "resolve_model_revision",
+            lambda _model_id, revision: revision or "rev",
+        )
+
+        detector = HallucinationSpanDetector.from_pretrained("model-id")
+
+        assert detector._model is fake_model
+        assert fake_model.device == ""
+
 
 # ── detect() glue, exercised with a lightweight fake model + tokenizer ──
-
-torch = pytest.importorskip("torch")
 
 
 class _FakeEnc(dict):
@@ -163,7 +344,9 @@ class _FakeEnc(dict):
 
     def __init__(self, seq_ids, offsets):
         super().__init__(input_ids=torch.tensor([[0] * len(seq_ids)]))
-        self["offset_mapping"] = torch.tensor([offsets])
+        self["offset_mapping"] = (
+            _FakeOffsetTensor(offsets) if _USING_FAKE_TORCH else torch.tensor([offsets])
+        )
         self._seq_ids = seq_ids
 
     def sequence_ids(self):
@@ -187,9 +370,23 @@ class _FakeModel(torch.nn.Module):
         self.lin = torch.nn.Linear(1, 1)  # gives .parameters() a device
         self._probs = hallucinated_probs
 
+    def parameters(self):
+        if _USING_FAKE_TORCH:
+            yield SimpleNamespace(device="cpu")
+            return
+        yield from super().parameters()
+
+    def __call__(self, **inputs):
+        if _USING_FAKE_TORCH:
+            return self.forward(**inputs)
+        return super().__call__(**inputs)
+
     def forward(self, **_inputs):
-        rows = [[1.0 - p, p] for p in self._probs]
-        logits = torch.log(torch.tensor([rows]).clamp_min(1e-6))
+        if _USING_FAKE_TORCH:
+            logits = torch.FakeLogits(self._probs)
+        else:
+            rows = [[1.0 - p, p] for p in self._probs]
+            logits = torch.log(torch.tensor([rows]).clamp_min(1e-6))
 
         class _Out:
             pass
