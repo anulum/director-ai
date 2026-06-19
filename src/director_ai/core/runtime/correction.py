@@ -42,6 +42,7 @@ class HaltCorrectionContext:
     suggested_action: str = ""
 
     def __post_init__(self) -> None:
+        """Reject a blank halt reason."""
         if not self.halt_reason.strip():
             raise ValueError("halt_reason is required")
         object.__setattr__(
@@ -74,6 +75,7 @@ class GroundedCorrectionDraft:
     evidence_refs: Sequence[str]
 
     def __post_init__(self) -> None:
+        """Reject blank candidate text."""
         if not self.candidate_text.strip():
             raise ValueError("candidate_text is required")
         object.__setattr__(self, "verifier_signals", tuple(self.verifier_signals))
@@ -101,6 +103,7 @@ class CorrectionProposal:
     approval_id: str = ""
 
     def __post_init__(self) -> None:
+        """Reject a blank proposal id."""
         if not self.proposal_id.strip():
             raise ValueError("proposal_id is required")
         if not self.candidate_text.strip():

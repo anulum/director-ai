@@ -54,6 +54,7 @@ class HumanReviewDecision:
     timestamp: float = field(default_factory=time.time)
 
     def __post_init__(self) -> None:
+        """Reject a blank decision id."""
         if not self.decision_id.strip():
             raise ValueError("decision_id is required")
         if not self.case_id.strip():
@@ -100,6 +101,7 @@ class HumanReviewCase:
     updated_at: float = field(default_factory=time.time)
 
     def __post_init__(self) -> None:
+        """Reject a blank case id."""
         if not self.case_id.strip():
             raise ValueError("case_id is required")
         if self.status not in _VALID_STATUSES:

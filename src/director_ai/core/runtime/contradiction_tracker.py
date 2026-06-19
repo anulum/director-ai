@@ -13,6 +13,7 @@ which specific turns contradict and how self-consistency evolves.
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
 
 from ..mandatory import mandatory_execution
@@ -73,12 +74,13 @@ class ContradictionTracker:
 
     @property
     def turn_count(self) -> int:
+        """Return the number of responses tracked so far."""
         return len(self._responses)
 
     def update(
         self,
         response: str,
-        score_fn,
+        score_fn: Callable[[str, str], float],
     ) -> ContradictionReport:
         """Add a new turn and score it against all prior turns.
 

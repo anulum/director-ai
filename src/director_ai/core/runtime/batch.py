@@ -52,10 +52,12 @@ class BatchResult:
     _lock: threading.Lock = field(default_factory=threading.Lock, repr=False)
 
     def record_success(self) -> None:
+        """Increment the success counter under the lock."""
         with self._lock:
             self.succeeded += 1
 
     def record_failure(self, idx: int, reason: str) -> None:
+        """Record a failed item by index and reason under the lock."""
         with self._lock:
             self.errors.append((idx, reason))
             self.failed += 1

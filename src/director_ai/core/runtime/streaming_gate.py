@@ -38,7 +38,7 @@ _CLAIM_ENDINGS: tuple[str, ...] = (".", "!", "?", ";", ":")
 
 
 def ends_claim(text: str) -> bool:
-    """True when *text* ends on sentence/claim punctuation (a claim boundary)."""
+    """Report whether *text* ends on sentence/claim punctuation."""
     return text.rstrip().endswith(_CLAIM_ENDINGS)
 
 
@@ -87,6 +87,7 @@ class StreamingCoherenceGate:
 
     @property
     def last_score(self) -> float:
+        """Return the most recent coherence score seen by the gate."""
         return self._last_score
 
     @staticmethod

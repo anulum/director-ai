@@ -42,6 +42,7 @@ class StructuredRecoveryConfig:
     reasoning_support_threshold: float = 0.3
 
     def __post_init__(self) -> None:
+        """Reject an unsupported structured-recovery kind."""
         if self.kind not in _KINDS:
             raise ValueError(f"unsupported structured_recovery kind {self.kind!r}")
         if self.policy not in _POLICIES:
@@ -75,6 +76,7 @@ class StructuredRecoveryState:
         self.errors: list[str] = []
 
     def update(self, text: str) -> None:
+        """Feed the latest partial text into the kind-specific tracker."""
         self.raw_partial = text
         if self.config.kind == "json":
             self._update_json(text)
@@ -84,6 +86,7 @@ class StructuredRecoveryState:
             self._update_reasoning_chain(text)
 
     def finalise(self, halted_at: int) -> StructuredRecoveryResult:
+        """Close the partial at ``halted_at`` and return the recovery result."""
         return StructuredRecoveryResult(
             kind=self.config.kind,
             policy=self.config.policy,

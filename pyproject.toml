@@ -661,6 +661,8 @@ module = [
     "director_ai.core.risk_threshold.*",
     "director_ai.core.routing",
     "director_ai.core.routing.*",
+    "director_ai.core.runtime",
+    "director_ai.core.runtime.*",
     "director_ai.core.safety",
     "director_ai.core.safety.*",
     "director_ai.core.safety_event",

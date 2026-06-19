@@ -20,9 +20,9 @@ from __future__ import annotations
 import logging
 import time
 from collections import deque
-from collections.abc import Sequence
+from collections.abc import Callable, Iterable, Sequence
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from ..causal_verifier import CounterfactualVerifier
 from ..mandatory import mandatory_execution
@@ -85,7 +85,7 @@ def _mean(values: Sequence[float] | deque[float]) -> float:
     return _sum_float([float(v) for v in values]) / len(values)
 
 
-def _trend_drop(values: list[float] | deque) -> float:
+def _trend_drop(values: list[float] | deque[float]) -> float:
     """Linear regression slope drop over a window of coherence scores.
 
     Returns the projected drop magnitude: -slope * (n - 1).
@@ -125,7 +125,7 @@ class TokenEvent:
     evidence: str | None = None
     halt_evidence: HaltEvidence | None = None
     safety_event: SafetyEvent | None = None
-    debug_info: dict | None = None
+    debug_info: dict[str, Any] | None = None
 
 
 @dataclass
@@ -146,7 +146,7 @@ class StreamSession:
     start_time: float = 0.0
     end_time: float = 0.0
     warning_count: int = 0
-    debug_log: list[dict] = field(default_factory=list)
+    debug_log: list[dict[str, Any]] = field(default_factory=list)
 
     @property
     def output(self) -> str:
@@ -206,7 +206,7 @@ class StreamingKernel(HaltMonitor):
         window_threshold: float = 0.55,
         trend_window: int = 5,
         trend_threshold: float = 0.15,
-        on_halt=None,
+        on_halt: Callable[[StreamSession], None] | None = None,
         soft_limit: float = 0.6,
         streaming_debug: bool = False,
         halt_mode: str = "hard",
@@ -214,7 +214,11 @@ class StreamingKernel(HaltMonitor):
         adaptive: bool = False,
         max_cadence: int = 8,
     ) -> None:
-        super().__init__(hard_limit=hard_limit, on_halt=on_halt)
+        super().__init__(hard_limit=hard_limit)
+        # The base HaltMonitor invokes its ``on_halt`` with a coherence score;
+        # the streaming kernels instead fire on a completed StreamSession, so
+        # the session-level callback is kept on a separate attribute.
+        self._on_halt_session = on_halt
         if halt_mode not in ("hard", "soft"):
             raise ValueError(f"halt_mode must be 'hard' or 'soft', got {halt_mode!r}")
         if score_every_n < 1:
@@ -349,9 +353,9 @@ class StreamingKernel(HaltMonitor):
 
     def stream_tokens(
         self,
-        token_generator,
-        coherence_callback,
-        evidence_callback=None,
+        token_generator: Iterable[str],
+        coherence_callback: Callable[[str], float],
+        evidence_callback: Callable[[str], str | None] | None = None,
         scorer: CoherenceScorer | None = None,
         top_k: int = 3,
         prompt: str = "",
@@ -650,8 +654,8 @@ class StreamingKernel(HaltMonitor):
             _emit_trace(event)
 
         session.end_time = time.monotonic()
-        if session.halted and self.on_halt:
-            self.on_halt(session)
+        if session.halted and self._on_halt_session:
+            self._on_halt_session(session)
 
         with trace_streaming() as span:
             span.set_attribute("stream.halted", session.halted)
@@ -680,7 +684,11 @@ class StreamingKernel(HaltMonitor):
             )
         return session
 
-    def stream_output(self, token_generator, coherence_callback) -> str:
+    def stream_output(
+        self,
+        token_generator: Iterable[str],
+        coherence_callback: Callable[[str], float],
+    ) -> str:
         """Backward-compatible: returns string output or interrupt message."""
         session = self.stream_tokens(token_generator, coherence_callback)
         if session.halted:

@@ -6,11 +6,14 @@
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI — Halt Monitor
 
+"""Halt monitor and safety kernel: the coherence-gated token streaming core."""
+
 from __future__ import annotations
 
 import logging
 import threading
 import time
+from collections.abc import Callable, Iterable
 
 __all__ = ["HaltMonitor", "SafetyKernel"]
 
@@ -33,7 +36,7 @@ class HaltMonitor:
     def __init__(
         self,
         hard_limit: float = 0.5,
-        on_halt=None,
+        on_halt: Callable[[float], None] | None = None,
         token_timeout: float = 0.0,
         total_timeout: float = 0.0,
     ):
@@ -47,7 +50,11 @@ class HaltMonitor:
         self._active = threading.Event()
         self._active.set()
 
-    def stream_output(self, token_generator, coherence_callback):
+    def stream_output(
+        self,
+        token_generator: Iterable[str],
+        coherence_callback: Callable[[str], float],
+    ) -> str:
         """Emit output tokens while monitoring coherence in real-time.
 
         Returns assembled output string, or an interrupt message if halted.
@@ -86,16 +93,17 @@ class HaltMonitor:
 
         return "".join(output_buffer)
 
-    def emergency_stop(self):
+    def emergency_stop(self) -> None:
         """Halt the output stream."""
         self.logger.critical(">>> HALT MONITOR: INFERENCE HALTED <<<")
         self._active.clear()
 
     @property
     def is_active(self) -> bool:
+        """Report whether the monitor is armed (not emergency-stopped)."""
         return self._active.is_set()
 
-    def reactivate(self):
+    def reactivate(self) -> None:
         """Re-arm the monitor after an emergency stop."""
         self._active.set()
         self.logger.info("Halt monitor reactivated")

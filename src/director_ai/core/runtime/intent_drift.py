@@ -65,6 +65,7 @@ class DriftState:
     triggered: bool
 
     def to_dict(self) -> dict[str, float | int | bool]:
+        """Render the drift report's scalar fields as a JSON-ready mapping."""
         return {
             "turn_count": self.turn_count,
             "sustained_divergence": round(self.sustained_divergence, 4),
@@ -169,6 +170,7 @@ class IntentDriftInterlock:
 
     @property
     def turn_count(self) -> int:
+        """Return the number of turns observed by the interlock."""
         return self._turn_count
 
     def _ema(self, previous: float, signal: float) -> float:

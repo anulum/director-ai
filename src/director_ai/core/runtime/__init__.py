@@ -6,6 +6,8 @@
 # Contact: www.anulum.li | protoscience@anulum.li
 # runtime subpackage
 
+"""Streaming halt runtime: kernels, sessions, review queues, and recovery."""
+
 from .correction import (
     CorrectionLoop,
     CorrectionProposal,

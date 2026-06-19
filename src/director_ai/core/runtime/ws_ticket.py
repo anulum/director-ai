@@ -99,5 +99,6 @@ class WebSocketTicketRegistry:
             del self._tickets[tok]
 
     def __len__(self) -> int:
+        """Return the count of live tickets after pruning expired ones."""
         self._prune()
         return len(self._tickets)

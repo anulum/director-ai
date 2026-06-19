@@ -29,7 +29,13 @@ import logging
 __all__ = ["AsyncStreamingKernel"]
 import time
 from collections import deque
-from collections.abc import AsyncIterator, Awaitable, Callable
+from collections.abc import (
+    AsyncIterable,
+    AsyncIterator,
+    Awaitable,
+    Callable,
+    Iterable,
+)
 from typing import cast
 
 from .kernel import HaltMonitor
@@ -66,7 +72,7 @@ class AsyncStreamingKernel(HaltMonitor):
         window_threshold: float = 0.55,
         trend_window: int = 5,
         trend_threshold: float = 0.15,
-        on_halt=None,
+        on_halt: Callable[[StreamSession], None] | None = None,
         soft_limit: float = 0.6,
         token_timeout: float = 0.0,
         total_timeout: float = 0.0,
@@ -95,10 +101,13 @@ class AsyncStreamingKernel(HaltMonitor):
             raise ValueError(f"max_cadence must be >= 1, got {max_cadence}")
         super().__init__(
             hard_limit=hard_limit,
-            on_halt=on_halt,
             token_timeout=token_timeout,
             total_timeout=total_timeout,
         )
+        # The base HaltMonitor invokes its ``on_halt`` with a coherence score;
+        # the streaming kernels instead fire on a completed StreamSession, so
+        # the session-level callback is kept on a separate attribute.
+        self._on_halt_session = on_halt
         self.window_size = window_size
         self.window_threshold = window_threshold
         self.trend_window = trend_window
@@ -111,7 +120,7 @@ class AsyncStreamingKernel(HaltMonitor):
 
     async def stream_tokens(
         self,
-        token_source,
+        token_source: AsyncIterable[str] | Iterable[str],
         coherence_callback: CoherenceCallback,
     ) -> AsyncIterator[TokenEvent]:
         """Async generator yielding TokenEvents with oversight checks.
@@ -279,7 +288,7 @@ class AsyncStreamingKernel(HaltMonitor):
 
     async def stream_to_session(
         self,
-        token_source,
+        token_source: AsyncIterable[str] | Iterable[str],
         coherence_callback: CoherenceCallback,
     ) -> StreamSession:
         """Collect all events into a StreamSession (convenience wrapper)."""
@@ -298,8 +307,8 @@ class AsyncStreamingKernel(HaltMonitor):
                 break
 
         session.end_time = time.monotonic()
-        if session.halted and self.on_halt:
-            self.on_halt(session)
+        if session.halted and self._on_halt_session:
+            self._on_halt_session(session)
         return session
 
     def _halt_reason(self, event: TokenEvent, session: StreamSession) -> str:
@@ -323,7 +332,9 @@ class AsyncStreamingKernel(HaltMonitor):
         return "halt_condition_not_identified"
 
     @staticmethod
-    async def _iter_tokens(source):
+    async def _iter_tokens(
+        source: AsyncIterable[str] | Iterable[str],
+    ) -> AsyncIterator[str]:
         """Wrap sync or async iterables into async iteration."""
         if hasattr(source, "__aiter__"):
             async for token in source:

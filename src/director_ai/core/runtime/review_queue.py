@@ -29,6 +29,7 @@ from __future__ import annotations
 import asyncio
 import functools
 import logging
+from typing import Any
 
 from ..metrics import metrics
 from ..types import CoherenceScore
@@ -45,10 +46,10 @@ class _PendingReview:
         self,
         prompt: str,
         response: str,
-        session,
+        session: Any,
         tenant_id: str,
         future: asyncio.Future[_ReviewResult],
-    ):
+    ) -> None:
         self.prompt = prompt
         self.response = response
         self.session = session
@@ -70,7 +71,7 @@ class ReviewQueue:
 
     def __init__(
         self,
-        scorer,
+        scorer: Any,
         max_batch: int = 32,
         flush_timeout_ms: float = 10.0,
     ) -> None:
@@ -80,10 +81,11 @@ class ReviewQueue:
         self._pending: list[_PendingReview] = []
         self._lock = asyncio.Lock()
         self._event = asyncio.Event()
-        self._task: asyncio.Task | None = None
+        self._task: asyncio.Task[None] | None = None
         self._running = False
 
     async def start(self) -> None:
+        """Start the background flush loop that drains the review queue."""
         self._running = True
         self._task = asyncio.create_task(self._flush_loop())
         logger.info(
@@ -93,6 +95,7 @@ class ReviewQueue:
         )
 
     async def stop(self) -> None:
+        """Signal the flush loop to stop and await its shutdown (2s timeout)."""
         self._running = False
         self._event.set()
         if self._task:
@@ -109,9 +112,10 @@ class ReviewQueue:
         self,
         prompt: str,
         response: str,
-        session=None,
+        session: Any = None,
         tenant_id: str = "",
     ) -> _ReviewResult:
+        """Enqueue a prompt/response for batched review and await the verdict."""
         loop = asyncio.get_running_loop()
         future: asyncio.Future[_ReviewResult] = loop.create_future()
         async with self._lock:

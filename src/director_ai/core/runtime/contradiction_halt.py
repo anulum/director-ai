@@ -100,4 +100,5 @@ class ContradictionHalt:
 
     @property
     def threshold(self) -> float:
+        """Return the contradiction-divergence halt threshold."""
         return self._threshold

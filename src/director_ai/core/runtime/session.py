@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import threading
 import uuid
+from collections.abc import Callable
 from dataclasses import dataclass
 
 from .contradiction_tracker import ContradictionReport, ContradictionTracker
@@ -83,6 +84,7 @@ class ConversationSession:
 
     @property
     def turns(self) -> list[Turn]:
+        """Return a snapshot copy of the recorded turns under the lock."""
         with self._lock:
             return list(self._turns)
 
@@ -92,7 +94,9 @@ class ConversationSession:
         with self._lock:
             return " ".join(t.response for t in self._turns)
 
-    def update_contradictions(self, response: str, score_fn) -> ContradictionReport:
+    def update_contradictions(
+        self, response: str, score_fn: Callable[[str, str], float]
+    ) -> ContradictionReport:
         """Score the new response against all prior responses for contradictions.
 
         Parameters
@@ -111,5 +115,6 @@ class ConversationSession:
             return self._contradiction_tracker.get_report()
 
     def __len__(self) -> int:
+        """Return the number of recorded turns."""
         with self._lock:
             return len(self._turns)
