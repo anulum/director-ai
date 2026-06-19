@@ -39,7 +39,6 @@ class CustomerRiskException:
 
     def to_dict(self) -> dict[str, Any]:
         """Serialise the risk exception to JSON-safe data."""
-
         return {
             "risk_id": self.risk_id,
             "status": self.status,
@@ -55,7 +54,6 @@ class CustomerRiskException:
     @classmethod
     def from_dict(cls, payload: dict[str, Any]) -> CustomerRiskException:
         """Rebuild a risk exception from JSON-safe data."""
-
         return cls(
             risk_id=payload["risk_id"],
             status=payload["status"],
@@ -89,7 +87,6 @@ class CustomerRiskRegister:
 
     def to_dict(self) -> dict[str, Any]:
         """Serialise the risk register to stable JSON-safe data."""
-
         return {
             "schema_version": self.schema_version,
             "register_id": self.register_id,
@@ -109,7 +106,6 @@ class CustomerRiskRegister:
     @classmethod
     def from_dict(cls, payload: dict[str, Any]) -> CustomerRiskRegister:
         """Rebuild a risk register from JSON-safe data."""
-
         return cls(
             schema_version=payload["schema_version"],
             register_id=payload["register_id"],
@@ -130,7 +126,6 @@ class CustomerRiskRegister:
 
     def write_json(self, path: Path) -> Path:
         """Write the risk register as deterministic JSON."""
-
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(
             json.dumps(self.to_dict(), indent=2, sort_keys=True) + "\n",
@@ -148,7 +143,6 @@ def build_risk_register(
     generated_at: str,
 ) -> CustomerRiskRegister:
     """Build a risk register and readiness gate for customer factory promotion."""
-
     findings = _collect_findings(
         register_id=register_id,
         evidence_pack=evidence_pack,

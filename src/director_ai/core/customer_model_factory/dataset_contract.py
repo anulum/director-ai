@@ -27,6 +27,7 @@ except ImportError:  # pragma: no cover - mandatory accelerator guard
     _RUST_DATASET_CONTRACT = True
 
     def rust_sum_i64(_values: list[int]) -> int:
+        """Raise to signal the mandatory Rust int-sum accelerator is missing."""
         raise RuntimeError("backfire_kernel rust_sum_i64 is unavailable")
 
 
@@ -81,7 +82,6 @@ class CustomerTraceFinding:
 
     def to_dict(self) -> dict[str, str]:
         """Serialise the finding to a stable dictionary."""
-
         return asdict(self)
 
 
@@ -103,7 +103,6 @@ class CustomerDatasetValidationReport:
 
     def to_dict(self) -> dict[str, Any]:
         """Serialise the report to a JSON-safe manifest shape."""
-
         return {
             "schema_version": self.schema_version,
             "ready": self.ready,
@@ -120,7 +119,6 @@ class CustomerDatasetValidationReport:
 
     def write_json(self, path: Path) -> Path:
         """Write the validation report as deterministic JSON."""
-
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(
             json.dumps(self.to_dict(), indent=2, sort_keys=True) + "\n",
@@ -136,7 +134,6 @@ def validate_customer_trace_dataset(
     vertical_profile: str | None = None,
 ) -> CustomerDatasetValidationReport:
     """Validate customer-owned guardrail traces before training or benchmarking."""
-
     findings: list[CustomerTraceFinding] = []
     split_counts: Counter[str] = Counter()
     severity_counts: Counter[str] = Counter()

@@ -42,7 +42,6 @@ class CustomerRuntimePackage:
 
     def to_dict(self) -> dict[str, Any]:
         """Serialise the runtime package to stable JSON-safe data."""
-
         return {
             "schema_version": self.schema_version,
             "runtime_id": self.runtime_id,
@@ -61,7 +60,6 @@ class CustomerRuntimePackage:
     @classmethod
     def from_dict(cls, payload: dict[str, Any]) -> CustomerRuntimePackage:
         """Rebuild a runtime package from serialised data."""
-
         return cls(
             schema_version=payload["schema_version"],
             runtime_id=payload["runtime_id"],
@@ -82,12 +80,10 @@ class CustomerRuntimePackage:
         payload: dict[str, Any],
     ) -> CustomerEvidencePackManifest:
         """Rebuild an evidence pack for boundary-mismatch tests and tooling."""
-
         return CustomerEvidencePackManifest.from_dict(payload)
 
     def write_json(self, path: Path) -> Path:
         """Write the runtime package as deterministic JSON."""
-
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(
             json.dumps(self.to_dict(), indent=2, sort_keys=True) + "\n",
@@ -104,7 +100,6 @@ def build_customer_runtime_package(
     runtime_mode: str,
 ) -> CustomerRuntimePackage:
     """Build a customer runtime configuration package."""
-
     runtime_config = _runtime_config(deployment_manifest, evidence_pack)
     findings = _collect_findings(
         runtime_id=runtime_id,

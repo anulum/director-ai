@@ -46,7 +46,6 @@ class CustomerEvidencePackManifest:
 
     def to_dict(self) -> dict[str, Any]:
         """Serialise the evidence pack manifest to stable JSON-safe data."""
-
         return {
             "schema_version": self.schema_version,
             "package_id": self.package_id,
@@ -72,7 +71,6 @@ class CustomerEvidencePackManifest:
     @classmethod
     def from_dict(cls, payload: dict[str, Any]) -> CustomerEvidencePackManifest:
         """Rebuild an evidence pack manifest from serialised data."""
-
         return cls(
             schema_version=payload["schema_version"],
             package_id=payload["package_id"],
@@ -97,7 +95,6 @@ class CustomerEvidencePackManifest:
 
     def write_json(self, path: Path) -> Path:
         """Write the evidence pack manifest as deterministic JSON."""
-
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(
             json.dumps(self.to_dict(), indent=2, sort_keys=True) + "\n",
@@ -117,7 +114,6 @@ def build_customer_evidence_pack(
     callback_endpoints: tuple[str, ...] = (),
 ) -> CustomerEvidencePackManifest:
     """Build and validate a customer evidence-pack manifest."""
-
     artefacts = _artefacts(deployment_manifest, regulation_mapping)
     findings = _collect_findings(
         package_id=package_id,

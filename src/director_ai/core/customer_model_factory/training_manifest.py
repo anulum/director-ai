@@ -65,7 +65,6 @@ class CustomerTrainingManifest:
 
     def to_dict(self) -> dict[str, Any]:
         """Serialise the manifest to a stable JSON-safe dictionary."""
-
         return {
             "schema_version": self.schema_version,
             "package_id": self.package_id,
@@ -90,7 +89,6 @@ class CustomerTrainingManifest:
     @classmethod
     def from_dict(cls, payload: dict[str, Any]) -> CustomerTrainingManifest:
         """Rebuild a manifest from its serialised dictionary shape."""
-
         return cls(
             schema_version=payload["schema_version"],
             package_id=payload["package_id"],
@@ -114,7 +112,6 @@ class CustomerTrainingManifest:
 
     def write_json(self, path: Path) -> Path:
         """Write the manifest as deterministic JSON."""
-
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(
             json.dumps(self.to_dict(), indent=2, sort_keys=True) + "\n",
@@ -135,7 +132,6 @@ def build_training_manifest(
     objective_profile: str,
 ) -> CustomerTrainingManifest:
     """Build and validate a customer training package manifest."""
-
     base_model_artifact_uri = base_model_id if base_model_id.startswith("gs://") else ""
     findings = _collect_findings(
         package_id=package_id,

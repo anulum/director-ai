@@ -78,7 +78,6 @@ class SectorEvidenceMapping:
 
     def to_dict(self) -> dict[str, Any]:
         """Serialise the mapping to a deterministic JSON-safe shape."""
-
         payload = asdict(self)
         payload["frameworks"] = list(self.frameworks)
         payload["control_evidence"] = {
@@ -90,7 +89,6 @@ class SectorEvidenceMapping:
     @classmethod
     def from_dict(cls, payload: dict[str, Any]) -> SectorEvidenceMapping:
         """Rebuild a sector evidence mapping from JSON-safe data."""
-
         control_evidence = {
             control: tuple(fields)
             for control, fields in payload["control_evidence"].items()
@@ -112,7 +110,6 @@ def validate_sector_trace_metadata(
     expected_decision: str,
 ) -> tuple[CustomerTraceFinding, ...]:
     """Validate generic sector-extension metadata and evidence controls."""
-
     findings: list[CustomerTraceFinding] = []
     for field in sorted(SECTOR_REQUIRED_METADATA):
         if not _metadata_present(metadata.get(field)):
@@ -141,7 +138,6 @@ def build_sector_evidence_mapping(
     control_evidence: dict[str, tuple[str, ...]] | None = None,
 ) -> SectorEvidenceMapping:
     """Build a deterministic evidence mapping for a private sector extension."""
-
     sorted_frameworks = tuple(sorted(set(frameworks)))
     controls = (
         control_evidence if control_evidence is not None else DEFAULT_CONTROL_EVIDENCE

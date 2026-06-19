@@ -597,6 +597,8 @@ module = [
     "director_ai.core.consensus.*",
     "director_ai.core.continual_adversarial",
     "director_ai.core.continual_adversarial.*",
+    "director_ai.core.customer_model_factory",
+    "director_ai.core.customer_model_factory.*",
     "director_ai.core.cyber_physical",
     "director_ai.core.cyber_physical.*",
     "director_ai.core.defense_genome",

@@ -39,13 +39,11 @@ class DeploymentPolicy:
 
     def to_dict(self) -> dict[str, Any]:
         """Serialise policy to JSON-safe data."""
-
         return asdict(self)
 
     @classmethod
     def from_dict(cls, payload: dict[str, Any]) -> DeploymentPolicy:
         """Rebuild policy from JSON-safe data."""
-
         return cls(
             threshold=float(payload["threshold"]),
             abstention_threshold=float(payload["abstention_threshold"]),
@@ -80,7 +78,6 @@ class CustomerDeploymentManifest:
 
     def to_dict(self) -> dict[str, Any]:
         """Serialise deployment manifest to stable JSON-safe data."""
-
         return {
             "schema_version": self.schema_version,
             "deployment_id": self.deployment_id,
@@ -101,7 +98,6 @@ class CustomerDeploymentManifest:
     @classmethod
     def from_dict(cls, payload: dict[str, Any]) -> CustomerDeploymentManifest:
         """Rebuild deployment manifest from serialised data."""
-
         return cls(
             schema_version=payload["schema_version"],
             deployment_id=payload["deployment_id"],
@@ -121,7 +117,6 @@ class CustomerDeploymentManifest:
 
     def write_json(self, path: Path) -> Path:
         """Write the deployment manifest as deterministic JSON."""
-
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(
             json.dumps(self.to_dict(), indent=2, sort_keys=True) + "\n",
@@ -139,7 +134,6 @@ def build_deployment_manifest(
     package_uri: str,
 ) -> CustomerDeploymentManifest:
     """Build and validate a customer deployment package manifest."""
-
     findings = _collect_findings(
         deployment_id=deployment_id,
         selection_report=selection_report,

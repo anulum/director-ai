@@ -40,7 +40,6 @@ class BenchmarkMetrics:
 
     def to_dict(self) -> dict[str, Any]:
         """Serialise metrics with stable key ordering for nested maps."""
-
         payload = asdict(self)
         payload["severity_counts"] = dict(sorted(self.severity_counts.items()))
         return payload
@@ -48,7 +47,6 @@ class BenchmarkMetrics:
     @classmethod
     def from_dict(cls, payload: dict[str, Any]) -> BenchmarkMetrics:
         """Rebuild metrics from a serialised dictionary."""
-
         return cls(
             total_samples=int(payload["total_samples"]),
             balanced_accuracy=float(payload["balanced_accuracy"]),
@@ -97,7 +95,6 @@ class CustomerBenchmarkResult:
         claim_boundary: str,
     ) -> CustomerBenchmarkResult:
         """Build and validate a benchmark result from measured metrics."""
-
         findings = _benchmark_findings(
             benchmark_id=benchmark_id,
             training_manifest=training_manifest,
@@ -135,7 +132,6 @@ class CustomerBenchmarkResult:
 
     def to_dict(self) -> dict[str, Any]:
         """Serialise the benchmark result to JSON-safe data."""
-
         return {
             "schema_version": self.schema_version,
             "benchmark_id": self.benchmark_id,
@@ -155,7 +151,6 @@ class CustomerBenchmarkResult:
     @classmethod
     def from_dict(cls, payload: dict[str, Any]) -> CustomerBenchmarkResult:
         """Rebuild a benchmark result from a serialised dictionary."""
-
         return cls(
             schema_version=payload["schema_version"],
             benchmark_id=payload["benchmark_id"],
@@ -189,7 +184,6 @@ class CustomerModelSelectionReport:
 
     def to_dict(self) -> dict[str, Any]:
         """Serialise the selection report to stable JSON-safe data."""
-
         return {
             "schema_version": self.schema_version,
             "selection_id": self.selection_id,
@@ -205,7 +199,6 @@ class CustomerModelSelectionReport:
     @classmethod
     def from_dict(cls, payload: dict[str, Any]) -> CustomerModelSelectionReport:
         """Rebuild a selection report from serialised data."""
-
         return cls(
             schema_version=payload["schema_version"],
             selection_id=payload["selection_id"],
@@ -223,7 +216,6 @@ class CustomerModelSelectionReport:
 
     def write_json(self, path: Path) -> Path:
         """Write the selection report as deterministic JSON."""
-
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(
             json.dumps(self.to_dict(), indent=2, sort_keys=True) + "\n",
@@ -239,7 +231,6 @@ def select_customer_model(
     candidates: list[CustomerBenchmarkResult],
 ) -> CustomerModelSelectionReport:
     """Select a deployable customer model according to an objective profile."""
-
     findings = _selection_findings(selection_id, objective_profile, candidates)
     eligible = [
         candidate

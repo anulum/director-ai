@@ -37,13 +37,11 @@ class MonitoringMetrics:
 
     def to_dict(self) -> dict[str, Any]:
         """Serialise metrics to JSON-safe data."""
-
         return asdict(self)
 
     @classmethod
     def from_dict(cls, payload: dict[str, Any]) -> MonitoringMetrics:
         """Rebuild metrics from JSON-safe data."""
-
         return cls(
             total_decisions=int(payload["total_decisions"]),
             input_drift_score=float(payload["input_drift_score"]),
@@ -71,13 +69,11 @@ class MonitoringThresholds:
 
     def to_dict(self) -> dict[str, Any]:
         """Serialise thresholds to JSON-safe data."""
-
         return asdict(self)
 
     @classmethod
     def from_dict(cls, payload: dict[str, Any]) -> MonitoringThresholds:
         """Rebuild thresholds from JSON-safe data."""
-
         return cls(
             max_input_drift_score=float(payload["max_input_drift_score"]),
             max_source_corpus_drift_score=float(
@@ -120,7 +116,6 @@ class CustomerMonitoringManifest:
 
     def to_dict(self) -> dict[str, Any]:
         """Serialise the monitoring manifest to stable JSON-safe data."""
-
         return {
             "schema_version": self.schema_version,
             "monitoring_id": self.monitoring_id,
@@ -149,7 +144,6 @@ class CustomerMonitoringManifest:
     @classmethod
     def from_dict(cls, payload: dict[str, Any]) -> CustomerMonitoringManifest:
         """Rebuild a monitoring manifest from JSON-safe data."""
-
         return cls(
             schema_version=payload["schema_version"],
             monitoring_id=payload["monitoring_id"],
@@ -177,7 +171,6 @@ class CustomerMonitoringManifest:
 
     def write_json(self, path: Path) -> Path:
         """Write the monitoring manifest as deterministic JSON."""
-
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(
             json.dumps(self.to_dict(), indent=2, sort_keys=True) + "\n",
@@ -198,7 +191,6 @@ def build_monitoring_manifest(
     incident_queue_uri: str,
 ) -> CustomerMonitoringManifest:
     """Build a monitoring manifest and retraining recommendation set."""
-
     decision_log_uri = str(runtime_package.runtime_config.get("audit_log_uri", ""))
     findings = _collect_findings(
         monitoring_id=monitoring_id,

@@ -40,7 +40,6 @@ class DeploymentHardeningEvidence:
 
     def to_dict(self) -> dict[str, Any]:
         """Serialise deployment-hardening evidence to stable JSON-safe data."""
-
         return {
             "ready": self.ready,
             "environment": self.environment,
@@ -56,7 +55,6 @@ class DeploymentHardeningEvidence:
     @classmethod
     def from_dict(cls, payload: dict[str, Any]) -> DeploymentHardeningEvidence:
         """Rebuild deployment-hardening evidence from JSON-safe data."""
-
         return cls(
             ready=bool(payload["ready"]),
             environment=str(payload["environment"]),
@@ -86,7 +84,6 @@ class ObservabilityOperationsEvidence:
 
     def to_dict(self) -> dict[str, Any]:
         """Serialise observability operations evidence to JSON-safe data."""
-
         return {
             "ready": self.ready,
             "environment": self.environment,
@@ -102,7 +99,6 @@ class ObservabilityOperationsEvidence:
     @classmethod
     def from_dict(cls, payload: dict[str, Any]) -> ObservabilityOperationsEvidence:
         """Rebuild observability operations evidence from JSON-safe data."""
-
         return cls(
             ready=bool(payload["ready"]),
             environment=str(payload["environment"]),
@@ -132,7 +128,6 @@ class ProvenanceLineageEvidence:
 
     def to_dict(self) -> dict[str, Any]:
         """Serialise KB provenance-lineage evidence to JSON-safe data."""
-
         return {
             "ready": self.ready,
             "environment": self.environment,
@@ -150,7 +145,6 @@ class ProvenanceLineageEvidence:
     @classmethod
     def from_dict(cls, payload: dict[str, Any]) -> ProvenanceLineageEvidence:
         """Rebuild KB provenance-lineage evidence from JSON-safe data."""
-
         return cls(
             ready=bool(payload["ready"]),
             environment=str(payload["environment"]),
@@ -187,7 +181,6 @@ class ConformalRoutingEvidence:
 
     def to_dict(self) -> dict[str, Any]:
         """Serialise conformal routing evidence to JSON-safe data."""
-
         return {
             "ready": self.ready,
             "environment": self.environment,
@@ -206,7 +199,6 @@ class ConformalRoutingEvidence:
     @classmethod
     def from_dict(cls, payload: dict[str, Any]) -> ConformalRoutingEvidence:
         """Rebuild conformal routing evidence from JSON-safe data."""
-
         return cls(
             ready=bool(payload["ready"]),
             environment=str(payload["environment"]),
@@ -241,7 +233,6 @@ class TrajectoryRollbackEvidence:
 
     def to_dict(self) -> dict[str, Any]:
         """Serialise trajectory rollback evidence to JSON-safe data."""
-
         return {
             "ready": self.ready,
             "environment": self.environment,
@@ -259,7 +250,6 @@ class TrajectoryRollbackEvidence:
     @classmethod
     def from_dict(cls, payload: dict[str, Any]) -> TrajectoryRollbackEvidence:
         """Rebuild trajectory rollback evidence from JSON-safe data."""
-
         return cls(
             ready=bool(payload["ready"]),
             environment=str(payload["environment"]),
@@ -294,7 +284,6 @@ class MultimodalTemporalEvidence:
 
     def to_dict(self) -> dict[str, Any]:
         """Serialise multimodal temporal evidence to JSON-safe data."""
-
         return {
             "ready": self.ready,
             "environment": self.environment,
@@ -313,7 +302,6 @@ class MultimodalTemporalEvidence:
     @classmethod
     def from_dict(cls, payload: dict[str, Any]) -> MultimodalTemporalEvidence:
         """Rebuild multimodal temporal evidence from JSON-safe data."""
-
         return cls(
             ready=bool(payload["ready"]),
             environment=str(payload["environment"]),
@@ -351,7 +339,6 @@ class FederatedPrivacyEvidence:
 
     def to_dict(self) -> dict[str, Any]:
         """Serialise federated privacy evidence to JSON-safe data."""
-
         return {
             "ready": self.ready,
             "environment": self.environment,
@@ -370,7 +357,6 @@ class FederatedPrivacyEvidence:
     @classmethod
     def from_dict(cls, payload: dict[str, Any]) -> FederatedPrivacyEvidence:
         """Rebuild federated privacy evidence from JSON-safe data."""
-
         return cls(
             ready=bool(payload["ready"]),
             environment=str(payload["environment"]),
@@ -413,7 +399,6 @@ class EdgeMobileEvidence:
 
     def to_dict(self) -> dict[str, Any]:
         """Serialise edge/mobile evidence to JSON-safe data."""
-
         return {
             "ready": self.ready,
             "environment": self.environment,
@@ -437,7 +422,6 @@ class EdgeMobileEvidence:
     @classmethod
     def from_dict(cls, payload: dict[str, Any]) -> EdgeMobileEvidence:
         """Rebuild edge/mobile evidence from JSON-safe data."""
-
         return cls(
             ready=bool(payload["ready"]),
             environment=str(payload["environment"]),
@@ -483,7 +467,6 @@ class AutoRedteamDefenceEvidence:
 
     def to_dict(self) -> dict[str, Any]:
         """Serialise auto-redteam defence evidence to JSON-safe data."""
-
         return {
             "ready": self.ready,
             "environment": self.environment,
@@ -505,7 +488,6 @@ class AutoRedteamDefenceEvidence:
     @classmethod
     def from_dict(cls, payload: dict[str, Any]) -> AutoRedteamDefenceEvidence:
         """Rebuild auto-redteam defence evidence from JSON-safe data."""
-
         return cls(
             ready=bool(payload["ready"]),
             environment=str(payload["environment"]),
@@ -549,7 +531,6 @@ class FormalSymbolicEvidence:
 
     def to_dict(self) -> dict[str, Any]:
         """Serialise formal-symbolic evidence to JSON-safe data."""
-
         return {
             "ready": self.ready,
             "environment": self.environment,
@@ -573,7 +554,6 @@ class FormalSymbolicEvidence:
     @classmethod
     def from_dict(cls, payload: dict[str, Any]) -> FormalSymbolicEvidence:
         """Rebuild formal-symbolic evidence from JSON-safe data."""
-
         return cls(
             ready=bool(payload["ready"]),
             environment=str(payload["environment"]),
@@ -628,7 +608,6 @@ class CustomerReleaseGateManifest:
 
     def to_dict(self) -> dict[str, Any]:
         """Serialise the release gate to stable JSON-safe data."""
-
         return {
             "schema_version": self.schema_version,
             "release_id": self.release_id,
@@ -668,7 +647,6 @@ class CustomerReleaseGateManifest:
 
     def write_json(self, path: Path) -> Path:
         """Write the release gate as deterministic JSON."""
-
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(
             json.dumps(self.to_dict(), indent=2, sort_keys=True) + "\n",
@@ -699,7 +677,6 @@ def build_release_gate_manifest(
     generated_at: str,
 ) -> CustomerReleaseGateManifest:
     """Build the final Customer Model Factory release-promotion gate."""
-
     artifact_hashes = _artifact_hashes(
         runtime_package=runtime_package,
         evidence_pack=evidence_pack,

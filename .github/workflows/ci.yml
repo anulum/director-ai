@@ -102,6 +102,7 @@ jobs:
           src/director_ai/core/defense_genome
           src/director_ai/core/formal_verification
           src/director_ai/core/continual_adversarial
+          src/director_ai/core/customer_model_factory
           src/director_ai/core/cyber_physical
           src/director_ai/core/multi_scale_alignment
           src/director_ai/core/neuro_symbolic
