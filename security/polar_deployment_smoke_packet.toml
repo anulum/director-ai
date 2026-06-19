@@ -1,0 +1,25 @@
+# SPDX-License-Identifier: Apache-2.0
+# Director-Class AI - Polar deployment smoke packet
+
+schema_version = "1.0.0"
+packet_id = "polar-deployment-smoke-2026-06"
+provider = "polar"
+pricing_currency = "USD"
+pricing_status = "request_checkout_links"
+operator_approval_required = true
+no_committed_secrets = true
+public_commercial_claim = false
+live_checkout_claim = false
+checkout_status = "pending"
+customer_portal_status = "pending"
+webhook_status = "pending"
+license_validation_status = "pending"
+smoke_evidence_path = ""
+env_preflight_command = "director-ai license polar-env --json"
+claim_boundary = "Local Polar integration and deployment-smoke gate only; no public live-checkout claim until USD checkout, customer portal, webhook, and licence validation smoke checks pass with dated evidence and no committed secrets."
+required_smoke_checks = [
+  "usd_checkout_created",
+  "customer_portal_session",
+  "webhook_signature_validation",
+  "license_key_validation",
+]
