@@ -112,7 +112,8 @@ class _RecordingTracer:
 
 
 class TestSpanEmitter:
-    def test_noop_path_yields_span(self):
+    def test_noop_path_yields_span(self, monkeypatch):
+        monkeypatch.setattr(eval_trace.tracer, "_get_tracer", lambda: None)
         attrs = guard_decision_attributes(
             decision="allow", approved=True, score=0.9, threshold=0.6
         )
