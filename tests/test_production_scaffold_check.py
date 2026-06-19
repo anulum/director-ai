@@ -37,6 +37,31 @@ def test_production_check_accepts_generated_scaffold(
     assert report.blockers == ()
 
 
+def test_production_check_reports_full_and_cli_safe_markdown(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    scaffold = _generate_production_scaffold(tmp_path, monkeypatch)
+    env_path = scaffold / ".env"
+    env_path.write_text(
+        env_path.read_text(encoding="utf-8")
+        .replace("DIRECTOR_CORS_ORIGINS=", 'DIRECTOR_CORS_ORIGINS="*"')
+        .replace("DIRECTOR_LLM_API_URL=", "DIRECTOR_LLM_API_URL='ftp://model'")
+        + "\n# operator note\nMALFORMED_ENV_LINE\n",
+        encoding="utf-8",
+    )
+
+    report = validate_production_scaffold(scaffold, require_secrets=True)
+
+    full_markdown = report.to_markdown()
+    cli_markdown = report.to_cli_markdown()
+    assert "secret:DIRECTOR_LLM_API_URL:url" in full_markdown
+    assert "DIRECTOR_LLM_API_URL points to HTTPS or localhost" in full_markdown
+    assert "| secret:DIRECTOR_LLM_API_URL:url | fail |" in cli_markdown
+    assert "blocker_count:" in cli_markdown
+    assert "points to HTTPS or localhost" not in cli_markdown
+
+
 def test_production_check_cli_outputs_json_for_generated_scaffold(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -152,6 +177,31 @@ def test_production_check_rejects_research_surface_in_default_compose(
 
     assert report.passed is False
     assert any(check.code == "compose:no_meta_guard" for check in report.blockers)
+
+
+def test_production_check_reports_missing_scaffold_as_blockers(tmp_path: Path) -> None:
+    missing_scaffold = tmp_path / "missing-director-guard"
+
+    report = validate_production_scaffold(missing_scaffold)
+
+    assert report.passed is False
+    assert any(check.code == "root_exists" for check in report.blockers)
+    assert any(check.code == "file:config.yaml" for check in report.blockers)
+
+
+def test_production_check_cli_rejects_unknown_argument(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    scaffold = _generate_production_scaffold(tmp_path, monkeypatch)
+    capsys.readouterr()
+
+    with pytest.raises(SystemExit) as exc_info:
+        main(["production-check", "--path", str(scaffold), "--verbose"])
+
+    assert exc_info.value.code == 1
+    assert "Usage: director-ai production-check" in capsys.readouterr().out
 
 
 def test_production_check_is_listed_in_help(capsys: pytest.CaptureFixture[str]) -> None:
