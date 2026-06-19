@@ -24,7 +24,9 @@ Usage::
 from __future__ import annotations
 
 import threading
-from contextlib import contextmanager
+from collections.abc import Iterator
+from contextlib import AbstractContextManager, contextmanager
+from typing import Any
 
 try:
     from opentelemetry import trace
@@ -46,7 +48,7 @@ def setup_otel(service_name: str = "director-ai") -> None:
         _tracer = trace.get_tracer(service_name)
 
 
-def _get_tracer():
+def _get_tracer() -> Any:
     """Return tracer, lazy-initialising from global TracerProvider if needed."""
     global _tracer
     if _tracer is None and _OTEL_AVAILABLE:
@@ -57,7 +59,9 @@ def _get_tracer():
 
 
 @contextmanager
-def _trace_named_span(name: str, attributes: dict[str, object] | None = None):
+def _trace_named_span(
+    name: str, attributes: dict[str, object] | None = None
+) -> Iterator[Any]:
     """Open an optional OTel span and attach primitive attributes."""
     tracer = _get_tracer()
     if tracer is None:
@@ -75,7 +79,7 @@ def _trace_named_span(name: str, attributes: dict[str, object] | None = None):
 
 
 @contextmanager
-def trace_review():
+def trace_review() -> Iterator[Any]:
     """Span around a CoherenceScorer.review() call."""
     tracer = _get_tracer()
     if tracer is None:
@@ -86,7 +90,7 @@ def trace_review():
 
 
 @contextmanager
-def trace_streaming():
+def trace_streaming() -> Iterator[Any]:
     """Span around a StreamingKernel session."""
     tracer = _get_tracer()
     if tracer is None:
@@ -97,7 +101,7 @@ def trace_streaming():
 
 
 @contextmanager
-def trace_vector_query():
+def trace_vector_query() -> Iterator[Any]:
     """Span around a VectorStore query."""
     tracer = _get_tracer()
     if tracer is None:
@@ -108,7 +112,7 @@ def trace_vector_query():
 
 
 @contextmanager
-def trace_vector_add():
+def trace_vector_add() -> Iterator[Any]:
     """Span around a VectorStore add."""
     tracer = _get_tracer()
     if tracer is None:
@@ -118,7 +122,9 @@ def trace_vector_add():
         yield span
 
 
-def trace_cache(*, hit: bool | None = None, scope_present: bool | None = None):
+def trace_cache(
+    *, hit: bool | None = None, scope_present: bool | None = None
+) -> AbstractContextManager[Any]:
     """Span around score-cache lookup decisions."""
     attrs: dict[str, object] = {}
     if hit is not None:
@@ -128,7 +134,9 @@ def trace_cache(*, hit: bool | None = None, scope_present: bool | None = None):
     return _trace_named_span("director_ai.cache", attrs)
 
 
-def trace_retrieval(*, top_k: int | None = None, tenant_scoped: bool | None = None):
+def trace_retrieval(
+    *, top_k: int | None = None, tenant_scoped: bool | None = None
+) -> AbstractContextManager[Any]:
     """Span around grounding-context retrieval."""
     attrs: dict[str, object] = {}
     if top_k is not None:
@@ -138,17 +146,17 @@ def trace_retrieval(*, top_k: int | None = None, tenant_scoped: bool | None = No
     return _trace_named_span("director_ai.retrieval", attrs)
 
 
-def trace_nli_inference(*, stage: str):
+def trace_nli_inference(*, stage: str) -> AbstractContextManager[Any]:
     """Span around NLI inference for a named scoring stage."""
     return _trace_named_span("director_ai.nli", {"nli.stage": stage})
 
 
-def trace_calibration(*, stage: str):
+def trace_calibration(*, stage: str) -> AbstractContextManager[Any]:
     """Span around calibration/meta-confidence transforms."""
     return _trace_named_span("director_ai.calibration", {"calibration.stage": stage})
 
 
-def trace_judge(*, provider: str):
+def trace_judge(*, provider: str) -> AbstractContextManager[Any]:
     """Span around LLM-as-judge escalation."""
     return _trace_named_span("director_ai.judge", {"judge.provider": provider})
 

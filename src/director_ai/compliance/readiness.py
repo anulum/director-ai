@@ -20,7 +20,10 @@ from __future__ import annotations
 import time
 from dataclasses import dataclass
 from enum import StrEnum
-from typing import Any, cast
+from typing import TYPE_CHECKING, Any, cast
+
+if TYPE_CHECKING:
+    from director_ai.ui.safety_dashboard import TrustControl
 
 
 class ReadinessStatus(StrEnum):
@@ -117,6 +120,7 @@ class Soc2IsoControl:
     hipaa_security_refs: tuple[str, ...] = ()
 
     def __post_init__(self) -> None:
+        """Normalise and validate the control id, status, and framework references."""
         control_id = self.control_id.strip().upper()
         if not control_id or not control_id.replace("-", "").isalnum():
             raise ValueError("control_id must contain letters, numbers, or hyphen")
@@ -168,7 +172,6 @@ class Soc2IsoControl:
             Control metadata with evidence references and framework mappings.
             ``raw_evidence`` is never included.
         """
-
         return {
             "control_id": self.control_id,
             "title": self.title,
@@ -200,7 +203,6 @@ class Soc2IsoReadinessReport:
 
     def to_dict(self) -> dict[str, Any]:
         """Return a tenant-safe JSON-compatible readiness payload."""
-
         return {
             "frameworks": [
                 "SOC 2 Trust Services Criteria",
@@ -221,7 +223,6 @@ class Soc2IsoReadinessReport:
 
     def summary(self) -> dict[str, int | float | str]:
         """Return aggregate readiness counts and risk level."""
-
         total = len(self.controls)
         passed = sum(
             1 for control in self.controls if _status(control) is ReadinessStatus.PASS
@@ -259,7 +260,6 @@ class Soc2IsoReadinessReport:
         str
             Markdown table suitable for a tenant-safe security review packet.
         """
-
         summary = self.summary()
         lines = [
             "# SOC 2 / ISO 27001 Readiness",
@@ -297,7 +297,7 @@ class Soc2IsoReadinessReport:
             )
         return "\n".join(lines)
 
-    def to_trust_controls(self):
+    def to_trust_controls(self) -> list[TrustControl]:
         """Convert readiness rows into Trust Console controls.
 
         Returns
@@ -305,7 +305,6 @@ class Soc2IsoReadinessReport:
         list[director_ai.ui.safety_dashboard.TrustControl]
             Tenant-safe controls for dashboard and procurement exports.
         """
-
         from director_ai.ui.safety_dashboard import TrustControl
 
         return [
@@ -353,6 +352,7 @@ class HipaaDeploymentObligation:
     raw_evidence: str = ""
 
     def __post_init__(self) -> None:
+        """Normalise and validate the obligation id and HIPAA references."""
         obligation_id = self.obligation_id.strip().upper()
         if not obligation_id or not obligation_id.replace("-", "").isalnum():
             raise ValueError("obligation_id must contain letters, numbers, or hyphen")
@@ -397,7 +397,6 @@ class HipaaDeploymentObligation:
             Obligation row with references and operator action. ``raw_evidence``
             is intentionally excluded.
         """
-
         return {
             "obligation_id": self.obligation_id,
             "title": self.title,
@@ -448,7 +447,6 @@ class HipaaDocumentationPacket:
             approval reviews. Raw PHI, raw interactions, and raw security
             evidence are never included.
         """
-
         return {
             "framework": "HIPAA Security Rule documentation readiness",
             "generated_at": self.generated_at,
@@ -469,7 +467,6 @@ class HipaaDocumentationPacket:
 
     def summary(self) -> dict[str, int | float | str | bool]:
         """Return aggregate HIPAA documentation readiness counts."""
-
         total = len(self.obligations)
         passed = sum(
             1
@@ -506,7 +503,6 @@ class HipaaDocumentationPacket:
 
     def to_markdown(self) -> str:
         """Render the HIPAA documentation packet as Markdown."""
-
         summary = self.summary()
         lines = [
             "# HIPAA Documentation Readiness",
@@ -573,7 +569,6 @@ def build_soc2_iso_readiness_report(
     Soc2IsoReadinessReport
         Tenant-safe readiness report with SOC 2 Type I path guidance.
     """
-
     return Soc2IsoReadinessReport(
         generated_at=generated_at or time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
         controls=tuple(controls)
@@ -591,7 +586,6 @@ def default_readiness_controls() -> tuple[Soc2IsoControl, ...]:
         Controls mapped to SOC 2, ISO/IEC 27001, and HIPAA Security Rule
         references where the product evidence directly supports the mapping.
     """
-
     return (
         Soc2IsoControl(
             control_id="SEC-01",
@@ -689,7 +683,6 @@ def build_hipaa_documentation_packet(
     HipaaDocumentationPacket
         Tenant-safe HIPAA documentation readiness packet.
     """
-
     timestamp = generated_at or time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
     report = readiness_report or build_soc2_iso_readiness_report(generated_at=timestamp)
     return HipaaDocumentationPacket(
@@ -712,7 +705,6 @@ def default_hipaa_obligations() -> tuple[HipaaDeploymentObligation, ...]:
         Operator obligations that complement product readiness evidence and
         must be reviewed before processing ePHI.
     """
-
     return (
         HipaaDeploymentObligation(
             obligation_id="HIPAA-RA-01",

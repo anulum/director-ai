@@ -28,6 +28,7 @@ from __future__ import annotations
 
 import threading
 from dataclasses import dataclass
+from typing import Any
 
 __all__ = ["CostAnalyser", "ModelPricing", "CostRecord"]
 
@@ -52,6 +53,7 @@ class CostRecord:
 
     @property
     def total_tokens(self) -> int:
+        """Return the sum of input and output tokens."""
         return self.total_input_tokens + self.total_output_tokens
 
 
@@ -128,7 +130,7 @@ class CostAnalyser:
             + output_tokens / 1000 * pricing.output_per_1k
         )
 
-    def report(self) -> dict:
+    def report(self) -> dict[str, Any]:
         """Generate a cost report.
 
         Returns
@@ -140,7 +142,7 @@ class CostAnalyser:
             ``"models"``: per-model breakdown
         """
         with self._lock:
-            models: dict[str, dict] = {}
+            models: dict[str, dict[str, Any]] = {}
             total_cost = 0.0
             total_tokens = 0
 

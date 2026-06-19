@@ -6,6 +6,8 @@
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI — Coherence Agent (Main Orchestrator)
 
+"""Coherence agent: generate candidate responses, score, and emit verified output."""
+
 from __future__ import annotations
 
 import asyncio
@@ -13,7 +15,7 @@ import logging
 import os
 import threading
 from collections.abc import AsyncIterator
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from .actor import LLMGenerator, MockGenerator
 from .retrieval.knowledge import GroundTruthStore
@@ -22,6 +24,9 @@ from .runtime.streaming import StreamingKernel
 from .runtime.streaming_gate import StreamingCoherenceGate, ends_claim
 from .scoring.scorer import CoherenceScorer
 from .types import HaltEvidence, ReviewResult
+
+# One scored candidate: (text, coherence score object, coherence value).
+_ScoredCandidate = tuple[str | None, Any, float]
 
 if TYPE_CHECKING:
     from .containment import ContainmentGuard, RealityAnchor
@@ -67,18 +72,18 @@ class CoherenceAgent:
 
     def __init__(
         self,
-        llm_api_url=None,
-        use_nli=None,
-        provider=None,
-        fallback=None,
-        disclaimer_prefix="[Unverified] ",
-        api_key=None,
+        llm_api_url: str | None = None,
+        use_nli: bool | None = None,
+        provider: str | None = None,
+        fallback: str | None = None,
+        disclaimer_prefix: str = "[Unverified] ",
+        api_key: str | None = None,
         production_mode: bool = False,
         llm_max_tokens: int = 128,
         llm_temperature: float = 0.8,
         *,
-        _scorer=None,
-        _store=None,
+        _scorer: CoherenceScorer | None = None,
+        _store: GroundTruthStore | None = None,
         containment_guard: ContainmentGuard | None = None,
         containment_anchor: RealityAnchor | None = None,
         grounding_hook: GroundingHook | None = None,
@@ -86,7 +91,7 @@ class CoherenceAgent:
         physical_action_mode: str = "warn",
         allow_physical_action_blocking: bool = False,
         contradiction_halt: ContradictionHalt | None = None,
-    ):
+    ) -> None:
         self.logger = logging.getLogger("CoherenceAgent")
         self.fallback = fallback
         self.disclaimer_prefix = disclaimer_prefix
@@ -150,7 +155,7 @@ class CoherenceAgent:
         # grounding instead of using the coherence kernel.
         self.contradiction_halt = contradiction_halt
 
-    def _build_scorer(self, use_nli):
+    def _build_scorer(self, use_nli: bool | None) -> CoherenceScorer:
         """Construct scorer, preferring Rust backend when installed."""
         from .scoring.backends import get_backend
 
@@ -159,7 +164,9 @@ class CoherenceAgent:
             from backfire_kernel import BackfireConfig, RustCoherenceScorer
 
             cfg = BackfireConfig(coherence_threshold=0.6)
-            scorer = RustCoherenceScorer(
+            # The Rust scorer satisfies the same review() contract; the kernel
+            # extension is untyped, so it is bound to the CoherenceScorer type here.
+            scorer: CoherenceScorer = RustCoherenceScorer(
                 config=cfg,
                 knowledge_callback=self.store.retrieve_context,
             )
@@ -181,7 +188,7 @@ class CoherenceAgent:
         )
 
     @staticmethod
-    def _build_provider(name: str, api_key: str | None = None):
+    def _build_provider(name: str, api_key: str | None = None) -> Any:
         from ..integrations.providers import AnthropicProvider, OpenAIProvider
 
         env_key = _PROVIDER_ENV_KEYS.get(name)
@@ -236,8 +243,9 @@ class CoherenceAgent:
     def _apply_containment_guard(
         self, result: ReviewResult, prompt: str
     ) -> ReviewResult:
-        """If a containment guard is configured, scan the output text
-        against the session's reality anchor. A ``"block"`` verdict
+        """Scan the output against the session's reality anchor if a guard is set.
+
+        A ``"block"`` verdict
         converts the result into a halted ReviewResult whose
         ``halt_evidence`` carries the guard's findings for audit.
         """
@@ -281,8 +289,9 @@ class CoherenceAgent:
         *,
         tenant_id: str = "",
     ) -> GroundingVerdict:
-        """Screen a proposed physical action against the configured
-        grounding hook. Raises :class:`RuntimeError` if no hook is
+        """Screen a proposed physical action against the configured grounding hook.
+
+        Raises :class:`RuntimeError` if no hook is
         configured — callers opt in explicitly.
         """
         if self.grounding_hook is None:
@@ -334,17 +343,25 @@ class CoherenceAgent:
 
     def verify_passport(self, passport: CrossOrgPassport) -> PassportVerdict:
         """Run the configured passport verifier against *passport*.
-        Raises :class:`RuntimeError` when no verifier is attached."""
+
+        Raises :class:`RuntimeError` when no verifier is attached.
+        """
         if self.passport_verifier is None:
             raise RuntimeError(
                 "passport_verifier not configured on this CoherenceAgent"
             )
         return self.passport_verifier.verify(passport)
 
-    def _score_candidates(self, candidates, prompt, tenant_id, cancel_event=None):
+    def _score_candidates(
+        self,
+        candidates: list[dict[str, Any]],
+        prompt: str,
+        tenant_id: str,
+        cancel_event: threading.Event | None = None,
+    ) -> tuple[_ScoredCandidate, _ScoredCandidate, int]:
         """Score all candidates, return (best_approved, best_rejected, count)."""
-        best = (None, None, -1.0)  # (text, score, coherence)
-        rejected = (None, None, -1.0)
+        best: _ScoredCandidate = (None, None, -1.0)  # (text, score, coherence)
+        rejected: _ScoredCandidate = (None, None, -1.0)
 
         for i, cand in enumerate(candidates):
             self._raise_if_cancelled(cancel_event)
@@ -373,11 +390,15 @@ class CoherenceAgent:
 
         return best, rejected, len(candidates)
 
-    def _emit_approved(self, best, n_candidates) -> ReviewResult:
+    def _emit_approved(
+        self, best: _ScoredCandidate, n_candidates: int
+    ) -> ReviewResult:
         """Build ReviewResult for the best approved candidate."""
         text, score, coherence = best
+        # An approved candidate always carries its generated text.
+        assert text is not None
 
-        def coherence_monitor(_token):
+        def coherence_monitor(_token: str) -> float:
             return coherence
 
         final_output = self.kernel.stream_output([text], coherence_monitor)
@@ -390,7 +411,11 @@ class CoherenceAgent:
         )
 
     def _handle_rejection(
-        self, prompt, tenant_id, rejected, n_candidates
+        self,
+        prompt: str,
+        tenant_id: str,
+        rejected: _ScoredCandidate,
+        n_candidates: int,
     ) -> ReviewResult:
         """Handle all-candidates-rejected: try fallback or halt."""
         rej_text, rej_score, rej_coherence = rejected
@@ -432,7 +457,11 @@ class CoherenceAgent:
         )
 
     def _retrieval_fallback(
-        self, prompt, tenant_id, rej_score, n_candidates
+        self,
+        prompt: str,
+        tenant_id: str,
+        rej_score: Any,
+        n_candidates: int,
     ) -> ReviewResult | None:
         """Try RAG retrieval as fallback when all candidates rejected."""
         from .retrieval.vector_store import VectorGroundTruthStore

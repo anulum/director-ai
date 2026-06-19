@@ -153,6 +153,10 @@ jobs:
           src/director_ai/grpc_server.py
           src/director_ai/grpc_scoring.py
           src/director_ai/_cli_serve.py
+          src/director_ai/compliance
+          src/director_ai/core/agent.py
+          src/director_ai/core/actor.py
+          src/director_ai/core/otel.py
           --select D
 
   typecheck:

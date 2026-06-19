@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass, field
+from typing import Any
 
 from .audit_log import AuditLog
 
@@ -23,7 +24,7 @@ __all__ = ["DriftDetector", "DriftResult", "WindowStats"]
 
 
 def _norm_cdf(x: float) -> float:
-    """Standard normal CDF via Abramowitz & Stegun 26.2.17."""
+    """Return the standard normal CDF via Abramowitz & Stegun 26.2.17."""
     if x < -8.0:
         return 0.0
     if x > 8.0:
@@ -152,7 +153,7 @@ class DriftDetector:
         )
 
     def _build_windows(
-        self, entries: list, since: float, until: float
+        self, entries: list[Any], since: float, until: float
     ) -> list[WindowStats]:
         windows: list[WindowStats] = []
         t = since

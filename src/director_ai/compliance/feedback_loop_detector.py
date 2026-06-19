@@ -28,7 +28,7 @@ def _trigram_set(text: str) -> set[str]:
     return {text[i : i + 3] for i in range(len(text) - 2)}
 
 
-def _jaccard_similarity(a: set, b: set) -> float:
+def _jaccard_similarity(a: set[str], b: set[str]) -> float:
     if not a or not b:
         return 0.0
     return len(a & b) / len(a | b)

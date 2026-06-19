@@ -28,6 +28,7 @@ from __future__ import annotations
 
 import html as html_mod
 from datetime import UTC, datetime
+from typing import Any
 
 from director_ai.core.exceptions import DependencyError
 
@@ -80,7 +81,7 @@ def _now_iso() -> str:
     return datetime.now(UTC).strftime("%Y-%m-%d %H:%M UTC")
 
 
-def render_compliance_html(data: dict) -> str:
+def render_compliance_html(data: dict[str, Any]) -> str:
     """Render EU AI Act Article 15 compliance report as HTML.
 
     Expected ``data`` keys:
@@ -135,7 +136,7 @@ def render_compliance_html(data: dict) -> str:
 </body></html>"""
 
 
-def render_compliance_markdown(data: dict) -> str:
+def render_compliance_markdown(data: dict[str, Any]) -> str:
     """Render compliance report as Markdown."""
     lines = [
         f"# {data.get('title', 'Compliance Report')}",
@@ -167,7 +168,7 @@ def render_compliance_markdown(data: dict) -> str:
     return "\n".join(lines)
 
 
-def render_cost_html(data: dict) -> str:
+def render_cost_html(data: dict[str, Any]) -> str:
     """Render cost report as HTML.
 
     Expected ``data`` keys from ``CostAnalyser.report()``.
@@ -205,7 +206,7 @@ def render_cost_html(data: dict) -> str:
 </body></html>"""
 
 
-def render_swarm_html(data: dict) -> str:
+def render_swarm_html(data: dict[str, Any]) -> str:
     """Render swarm health report as HTML.
 
     Expected ``data`` keys from ``SwarmMetrics.report()``.
@@ -268,7 +269,7 @@ def html_to_pdf(html: str) -> bytes:
     return pdf
 
 
-def render_compliance_pdf(data: dict) -> bytes:
+def render_compliance_pdf(data: dict[str, Any]) -> bytes:
     """Render the EU AI Act Article 15 compliance report as a PDF document.
 
     Regulator- and auditor-ready: same content and layout as
@@ -277,11 +278,11 @@ def render_compliance_pdf(data: dict) -> bytes:
     return html_to_pdf(render_compliance_html(data))
 
 
-def render_cost_pdf(data: dict) -> bytes:
+def render_cost_pdf(data: dict[str, Any]) -> bytes:
     """Render the cost report (see :func:`render_cost_html`) as a PDF document."""
     return html_to_pdf(render_cost_html(data))
 
 
-def render_swarm_pdf(data: dict) -> bytes:
+def render_swarm_pdf(data: dict[str, Any]) -> bytes:
     """Render the swarm health report (see :func:`render_swarm_html`) as a PDF."""
     return html_to_pdf(render_swarm_html(data))

@@ -6,6 +6,8 @@
 # Contact: www.anulum.li | protoscience@anulum.li
 # compliance subpackage — EU AI Act Article 15 reporting and audit trail
 
+"""Compliance: audit log, drift/cost/feedback analysis, and readiness reporting."""
+
 from .audit_log import AuditEntry, AuditLog
 from .drift_detector import DriftDetector, DriftResult
 from .readiness import (

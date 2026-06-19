@@ -18,6 +18,7 @@ import sqlite3
 import threading
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 
 __all__ = ["AuditEntry", "AuditLog"]
 
@@ -127,7 +128,7 @@ class AuditLog:
             if self._conn is None:
                 return []
             clauses: list[str] = []
-            params: list = []
+            params: list[Any] = []
             if since is not None:
                 clauses.append("timestamp >= ?")
                 params.append(since)
@@ -183,7 +184,7 @@ class AuditLog:
             if self._conn is None:
                 return 0
             clauses: list[str] = []
-            params: list = []
+            params: list[Any] = []
             if since is not None:
                 clauses.append("timestamp >= ?")
                 params.append(since)

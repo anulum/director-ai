@@ -105,6 +105,7 @@ class Article15TemplateContext:
     evidence_refs: tuple[str, ...] = ()
 
     def __post_init__(self) -> None:
+        """Reject missing required Article 15 system-registration fields."""
         required = {
             "system_name": self.system_name,
             "intended_purpose": self.intended_purpose,
@@ -526,7 +527,7 @@ class ComplianceReporter:
         override_rate = human_overrides / n if n > 0 else 0.0
 
         # Per-model breakdown
-        models: dict[str, list] = {}
+        models: dict[str, list[Any]] = {}
         for e in entries:
             models.setdefault(e.model or "unknown", []).append(e)
 
@@ -580,7 +581,7 @@ class ComplianceReporter:
 
     def _compute_drift_periods(
         self,
-        entries: list,
+        entries: list[Any],
         since: float,
         until: float,
     ) -> list[PeriodMetrics]:

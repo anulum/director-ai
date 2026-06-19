@@ -6,10 +6,13 @@
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI — Generator Module (LLM Interface)
 
+"""Response generators: mock, LLM-endpoint, and provider-backed candidate sources."""
+
 from __future__ import annotations
 
 import logging
 from collections.abc import AsyncIterator, Sequence
+from typing import Any
 
 import requests
 
@@ -26,14 +29,16 @@ class MockGenerator:
     is available.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.knowledge_base = {
             "sky color": "blue",
             "water status": "wet",
             "fire status": "hot",
         }
 
-    def generate_candidates(self, prompt, n=3) -> list[dict]:
+    def generate_candidates(
+        self, prompt: str, n: int = 3
+    ) -> list[dict[str, Any]]:
         """Generate *n* candidate responses.
 
         Returns a list of dicts with ``text`` and ``type`` keys.
@@ -73,15 +78,15 @@ class LLMGenerator:
 
     def __init__(
         self,
-        api_url,
-        max_retries=3,
-        base_delay=0.5,
-        timeout=30,
+        api_url: str,
+        max_retries: int = 3,
+        base_delay: float = 0.5,
+        timeout: float = 30,
         *,
         max_tokens: int = LLM_DEFAULT_MAX_TOKENS,
         temperature: float = LLM_DEFAULT_TEMPERATURE,
         stop_sequences: Sequence[str] = ("\nUser:", "\nSystem:"),
-    ):
+    ) -> None:
         if not isinstance(api_url, str) or not api_url.strip():
             raise ValueError("api_url must be a non-empty string")
         if max_retries <= 0:
@@ -111,7 +116,7 @@ class LLMGenerator:
         self._circuit_open = False
         self._circuit_threshold = CIRCUIT_BREAKER_THRESHOLD
 
-    def _build_payload(self, prompt: str, *, stream: bool = False) -> dict:
+    def _build_payload(self, prompt: str, *, stream: bool = False) -> dict[str, Any]:
         if not isinstance(prompt, str) or not prompt.strip():
             raise ValueError("prompt must be a non-empty string")
         payload = {
@@ -124,7 +129,7 @@ class LLMGenerator:
             payload["stream"] = True
         return payload
 
-    def _request_with_retry(self, payload) -> dict | None:
+    def _request_with_retry(self, payload: dict[str, Any]) -> dict[str, Any] | None:
         """Single request with exponential backoff. Returns parsed dict or None."""
         if self._circuit_open:
             return None
@@ -172,12 +177,14 @@ class LLMGenerator:
             )
         return None
 
-    def reset_circuit(self):
+    def reset_circuit(self) -> None:
         """Reset the circuit breaker."""
         self._circuit_open = False
         self._consecutive_failures = 0
 
-    def generate_candidates(self, prompt, n=3) -> list[dict]:
+    def generate_candidates(
+        self, prompt: str, n: int = 3
+    ) -> list[dict[str, Any]]:
         """Generate *n* candidate responses from the LLM backend."""
         if not isinstance(n, int) or n <= 0:
             raise ValueError(f"n must be a positive integer; got {n!r}")
