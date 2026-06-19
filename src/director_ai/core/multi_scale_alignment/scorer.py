@@ -48,6 +48,7 @@ class ValueVector:
     weights: Mapping[str, float]
 
     def __post_init__(self) -> None:
+        """Reject empty weights, blank value names, or weights outside [0, 1]."""
         if not self.weights:
             raise ValueError("ValueVector.weights must be non-empty")
         for name, weight in self.weights.items():
@@ -73,6 +74,7 @@ class Action:
     impacts: Mapping[str, float] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
+        """Reject a blank label, blank impact names, or impacts outside [-1, 1]."""
         if not self.label:
             raise ValueError("Action.label must be non-empty")
         for name, impact in self.impacts.items():
@@ -90,7 +92,9 @@ class ScaleScorer(Protocol):
 
     scale: AlignmentScale
 
-    def score(self, action: Action) -> float: ...
+    def score(self, action: Action) -> float:
+        """Return the action's alignment score at this scale, in ``[0, 1]``."""
+        ...
 
 
 class ValueLatticeScorer:
@@ -129,6 +133,7 @@ class ValueLatticeScorer:
         self._steepness = steepness
 
     def score(self, action: Action) -> float:
+        """Score ``action`` as ``logistic(Σ weights·impacts × steepness)``."""
         affinity = 0.0
         for value, weight in self._values.weights.items():
             impact = action.impacts.get(value, 0.0)

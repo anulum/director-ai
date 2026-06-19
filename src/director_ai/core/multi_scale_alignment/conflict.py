@@ -43,14 +43,15 @@ class ScaleConflict:
 
     @property
     def is_severe(self) -> bool:
-        """Delta at least twice the threshold — shorthand callers
-        use to escalate past the usual review queue."""
+        """Report whether the delta is at least twice the threshold.
+
+        Shorthand callers use to escalate past the usual review queue.
+        """
         return self.delta >= 2.0 * self.threshold
 
 
 class ScaleConflictDetector:
-    """Split-conformal detector for cross-scale alignment
-    conflicts.
+    """Split-conformal detector for cross-scale alignment conflicts.
 
     Parameters
     ----------
@@ -68,16 +69,15 @@ class ScaleConflictDetector:
 
     @property
     def threshold(self) -> float | None:
+        """Return the calibrated threshold, or ``None`` before calibration."""
         return self._threshold
 
     def calibrate(self, calibration_tables: Sequence[ScaleScoreTable]) -> float:
-        """Set the per-pair threshold from the calibration set and
-        return it.
+        """Set the per-pair threshold from the calibration set and return it.
 
-        Deltas are collected across every scale pair in every
-        table; the ``(1 - α)(n + 1) / n`` order statistic sets the
-        threshold. Raises :class:`ValueError` when fewer than two
-        tables carry at least two scales each.
+        Deltas are collected across every scale pair in every table; the
+        ``(1 - α)(n + 1) / n`` order statistic sets the threshold. Raises
+        :class:`ValueError` when fewer than two pairwise deltas are available.
         """
         deltas: list[float] = []
         for table in calibration_tables:
@@ -95,13 +95,12 @@ class ScaleConflictDetector:
         return threshold
 
     def detect(self, table: ScaleScoreTable) -> tuple[ScaleConflict, ...]:
-        """Return every scale pair whose absolute delta exceeds
-        the calibrated threshold.
+        """Return every scale pair whose absolute delta exceeds the threshold.
 
-        Raises :class:`ValueError` when :meth:`calibrate` has not
-        run yet — the detector refuses to return an uncalibrated
-        verdict since thresholds without calibration would be
-        arbitrary."""
+        Raises :class:`ValueError` when :meth:`calibrate` has not run yet — the
+        detector refuses an uncalibrated verdict since an uncalibrated
+        threshold would be arbitrary.
+        """
         if self._threshold is None:
             raise ValueError("calibrate() before detect()")
         conflicts: list[ScaleConflict] = []

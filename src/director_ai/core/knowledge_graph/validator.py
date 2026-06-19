@@ -6,8 +6,7 @@
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI — TraversalValidator
 
-"""Walk a caller-proposed :class:`TraversalStep` sequence and
-return a verdict.
+"""Walk a caller-proposed :class:`TraversalStep` sequence and return a verdict.
 
 Unlike :meth:`KnowledgeGraph.shortest_sanctioned_path` which
 *plans* a sanctioned path, this validator *checks* a path that
@@ -85,6 +84,11 @@ class TraversalValidator:
         steps: Iterable[TraversalStep],
         principal: Principal,
     ) -> TraversalVerdict:
+        """Approve every step in ``steps`` or report the first denial.
+
+        Each step's edge policy is checked for ``principal``; the verdict
+        approves the whole sequence only when no step is denied.
+        """
         step_list = list(steps)
         if not step_list:
             return TraversalVerdict(

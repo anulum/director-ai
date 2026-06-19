@@ -42,6 +42,7 @@ except Exception:  # pragma: no cover - mandatory dependency
     _RUST_EMERGENCE = True
 
     def rust_sum_f64(_values: list[float]) -> float:
+        """Raise to signal the mandatory Rust accelerator is unavailable."""
         raise RuntimeError("backfire_kernel rust_sum_f64 is unavailable")
 
 
@@ -82,6 +83,7 @@ class EmergenceVerdict:
 
     @property
     def safe(self) -> bool:
+        """Report whether the composite risk is below the 0.5 alert threshold."""
         return self.risk < 0.5
 
 
@@ -134,6 +136,11 @@ class EmergenceOracle:
         self._weight_imbalance = weight_imbalance
 
     def analyse(self, events: Iterable[SwarmEvent]) -> EmergenceVerdict:
+        """Score swarm-emergence risk from an interaction-event stream.
+
+        Builds the interaction graph, then combines the attractor-mass,
+        cycle, and community-imbalance channels into a single risk verdict.
+        """
         graph = InteractionGraph.from_events(events)
         stationary = self._spectrum.stationary(graph)
         communities = self._communities.detect(graph)

@@ -51,12 +51,14 @@ class Var(Expr):
     sort: str = REAL
 
     def __post_init__(self) -> None:
+        """Reject an empty name or a sort outside ``bool``/``int``/``real``."""
         if not self.name:
             raise ValueError("Var.name must be non-empty")
         if self.sort not in _SORTS:
             raise ValueError(f"unknown sort {self.sort!r}; expected one of {_SORTS}")
 
     def __str__(self) -> str:
+        """Render as the bare variable name."""
         return self.name
 
 
@@ -67,10 +69,12 @@ class Const(Expr):
     value: bool | int | float
 
     def __post_init__(self) -> None:
+        """Reject a value that is not boolean, integer, or real."""
         if not isinstance(self.value, bool | int | float):
             raise ValueError("Const.value must be bool, int, or float")
 
     def __str__(self) -> str:
+        """Render as the literal value's Python repr."""
         return str(self.value)
 
 
@@ -81,6 +85,7 @@ class Not(Expr):
     operand: Expr
 
     def __str__(self) -> str:
+        """Render as ``¬operand``."""
         return f"¬{self.operand}"
 
 
@@ -93,10 +98,12 @@ class BoolOp(Expr):
     right: Expr
 
     def __post_init__(self) -> None:
+        """Reject any connective other than ``and``, ``or``, or ``implies``."""
         if self.op not in {"and", "or", "implies"}:
             raise ValueError(f"unknown boolean op {self.op!r}")
 
     def __str__(self) -> str:
+        """Render the operands joined by the ∧/∨/→ symbol for ``op``."""
         sym = {"and": "∧", "or": "∨", "implies": "→"}[self.op]
         return f"({self.left} {sym} {self.right})"
 
@@ -110,10 +117,12 @@ class Compare(Expr):
     right: Expr
 
     def __post_init__(self) -> None:
+        """Reject any operator outside eq/ne/lt/le/gt/ge."""
         if self.op not in _COMPARE_OPS:
             raise ValueError(f"unknown comparison op {self.op!r}")
 
     def __str__(self) -> str:
+        """Render the operands joined by the relational symbol for ``op``."""
         return f"({self.left} {_COMPARE_SYMBOL[self.op]} {self.right})"
 
 
@@ -126,10 +135,12 @@ class Arith(Expr):
     right: Expr
 
     def __post_init__(self) -> None:
+        """Reject any operator outside add/sub/mul."""
         if self.op not in _ARITH_OPS:
             raise ValueError(f"unknown arithmetic op {self.op!r}")
 
     def __str__(self) -> str:
+        """Render the operands joined by the +/-/* symbol for ``op``."""
         return f"({self.left} {_ARITH_SYMBOL[self.op]} {self.right})"
 
 
@@ -142,7 +153,7 @@ def var(name: str, sort: str = REAL) -> Var:
 
 
 def lit(value: bool | int | float) -> Const:
-    """A literal constant."""
+    """Wrap a Python scalar as a constant node."""
     return Const(value)
 
 

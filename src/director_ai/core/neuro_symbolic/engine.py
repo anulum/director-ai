@@ -48,6 +48,7 @@ class Constraint:
     expr: Expr
 
     def __post_init__(self) -> None:
+        """Reject an empty constraint name."""
         if not self.name:
             raise ValueError("Constraint.name must be non-empty")
 
@@ -60,7 +61,7 @@ class ConstraintViolation:
     counterexample: dict[str, bool | int | float]
 
     def to_dict(self) -> dict[str, Any]:
-        """Serialisable violation record."""
+        """Render the rule name and counterexample as a JSON-ready mapping."""
         return {"name": self.name, "counterexample": dict(self.counterexample)}
 
 
@@ -127,7 +128,9 @@ class PolicyFormaliser(Protocol):
     guards against a single faulty formalisation.
     """
 
-    def formalise(self, natural_language_policy: str) -> CompliancePolicy: ...
+    def formalise(self, natural_language_policy: str) -> CompliancePolicy:
+        """Compile a natural-language policy into a typed compliance policy."""
+        ...
 
 
 def _require_z3() -> Any:
@@ -273,7 +276,7 @@ class NeuroSymbolicComplianceEngine:
         )
 
     def is_consistent(self) -> bool:
-        """True when the policy itself is satisfiable (not self-contradictory)."""
+        """Report whether the policy is satisfiable (not self-contradictory)."""
         z3 = self._z3
         zvars = self._z3_vars(self._policy.variables())
         solver = z3.Solver()
@@ -282,7 +285,7 @@ class NeuroSymbolicComplianceEngine:
         return bool(solver.check() == z3.sat)
 
     def equivalent_to(self, other: CompliancePolicy) -> bool:
-        """True when this policy and ``other`` are logically equivalent.
+        """Report whether this policy and ``other`` are logically equivalent.
 
         Cross-check for redundant formalisations: equivalence holds iff their
         conjunctions agree on every assignment (``¬(A ↔ B)`` is unsatisfiable).

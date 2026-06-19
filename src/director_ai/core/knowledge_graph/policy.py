@@ -44,10 +44,12 @@ class Principal:
     tenant_id: str = ""
 
     def __post_init__(self) -> None:
+        """Reject an empty role."""
         if not self.role:
             raise ValueError("Principal.role must be non-empty")
 
     def has(self, permission: str) -> bool:
+        """Report whether the principal holds ``permission``."""
         return permission in self.permissions
 
 
@@ -71,6 +73,7 @@ class TraversalPolicy:
     allowed_actions: frozenset[TraversalAction] = field(default_factory=frozenset)
 
     def __post_init__(self) -> None:
+        """Reject any action outside the valid :data:`TraversalAction` set."""
         unknown = self.allowed_actions - _VALID_ACTIONS
         if unknown:
             raise ValueError(
@@ -80,9 +83,11 @@ class TraversalPolicy:
 
     @classmethod
     def allow_all(cls) -> TraversalPolicy:
-        """Convenience: a policy that accepts every principal and
-        every action. Useful as a default edge policy in open
-        graphs where permission is enforced elsewhere."""
+        """Build a policy that accepts every principal and every action.
+
+        Useful as a default edge policy in open graphs where permission is
+        enforced elsewhere.
+        """
         return cls()
 
     def check(
@@ -92,7 +97,10 @@ class TraversalPolicy:
         action: TraversalAction,
         edge_tenant_id: str = "",
     ) -> tuple[bool, str]:
-        """Return ``(allowed, reason)``. ``reason`` is human-readable."""
+        """Decide whether ``principal`` may traverse under ``action``.
+
+        Returns ``(allowed, reason)`` where ``reason`` is human-readable.
+        """
         if action not in _VALID_ACTIONS:
             return False, f"action {action!r} is not a valid TraversalAction"
         if self.allowed_actions and action not in self.allowed_actions:
@@ -118,9 +126,9 @@ class TraversalPolicy:
         return True, "allowed"
 
     def merge(self, other: TraversalPolicy) -> TraversalPolicy:
-        """Intersect two policies — the result is the strictest of
-        the two. Used when composing an edge policy with a
-        graph-level default.
+        """Intersect two policies into the strictest of the two.
+
+        Used when composing an edge policy with a graph-level default.
 
         * Roles: intersection of both, or the non-empty one when
           the other is empty (empty = unrestricted).
@@ -139,8 +147,10 @@ class TraversalPolicy:
 
 
 def _intersect_allow_all(a: frozenset[str], b: frozenset[str]) -> frozenset[str]:
-    """Semantic intersection where empty means 'any'. Both empty →
-    empty; one empty → the other; both non-empty → set intersection.
+    """Intersect two role sets where an empty set means 'any'.
+
+    Both empty → empty; one empty → the other; both non-empty → set
+    intersection.
     """
     if not a:
         return b
@@ -152,9 +162,10 @@ def _intersect_allow_all(a: frozenset[str], b: frozenset[str]) -> frozenset[str]
 def _intersect_actions(
     a: frozenset[TraversalAction], b: frozenset[TraversalAction]
 ) -> frozenset[TraversalAction]:
-    """Same semantics as :func:`_intersect_allow_all` but with
-    preserved Literal element type so the resulting
-    ``allowed_actions`` still satisfies ``frozenset[TraversalAction]``.
+    """Intersect two action sets, preserving the ``TraversalAction`` Literal type.
+
+    Same empty-means-'any' semantics as :func:`_intersect_allow_all`; the
+    preserved element type keeps the result a ``frozenset[TraversalAction]``.
     """
     if not a:
         return b

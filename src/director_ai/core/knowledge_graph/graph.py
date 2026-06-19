@@ -30,8 +30,11 @@ from .policy import Principal, TraversalAction, TraversalPolicy
 
 
 class KnowledgeGraphCycleError(ValueError):
-    """Raised by :meth:`KnowledgeGraph.require_acyclic` when the
-    graph contains one or more cycles."""
+    """Signal that a graph expected to be acyclic contains a cycle.
+
+    Raised by :meth:`KnowledgeGraph.require_acyclic` when one or more
+    cycles are present.
+    """
 
 
 @dataclass(frozen=True)
@@ -159,10 +162,11 @@ class KnowledgeGraph:
         principal: Principal,
         action: TraversalAction = "invoke",
     ) -> tuple[SkillEdge, ...]:
-        """Return the lowest-weight edge sequence from ``source``
-        to ``target`` that the ``principal`` may traverse under
-        ``action``. Raises :class:`KeyError` when either node is
-        missing; :class:`ValueError` when no sanctioned path exists.
+        """Return the lowest-weight sanctioned path from ``source`` to ``target``.
+
+        Only edges the ``principal`` may traverse under ``action`` are followed.
+        Raises :class:`KeyError` when either node is missing and
+        :class:`ValueError` when no sanctioned path exists.
         """
         if source not in self._nodes:
             raise KeyError(f"unknown source skill {source!r}")
@@ -204,8 +208,10 @@ class KnowledgeGraph:
         )
 
     def require_acyclic(self) -> None:
-        """Raise :class:`KnowledgeGraphCycleError` if the directed
-        graph has a cycle. Uses Kahn's algorithm — O(V + E)."""
+        """Raise :class:`KnowledgeGraphCycleError` if the graph has a cycle.
+
+        Uses Kahn's algorithm — O(V + E).
+        """
         indeg: dict[str, int] = {n: 0 for n in self._nodes}
         for edge in self._all_edges:
             indeg[edge.target] = indeg.get(edge.target, 0) + 1
@@ -225,9 +231,11 @@ class KnowledgeGraph:
             )
 
     def merge(self, others: Iterable[KnowledgeGraph]) -> None:
-        """Merge the ``others`` into ``self`` in place. Duplicate
-        nodes with the same ID raise :class:`ValueError`; duplicate
-        edges are silently deduplicated."""
+        """Merge the ``others`` into ``self`` in place.
+
+        Duplicate nodes with the same ID raise :class:`ValueError`; duplicate
+        edges are silently deduplicated.
+        """
         for other in others:
             for node in other.nodes():
                 self.add_node(node)

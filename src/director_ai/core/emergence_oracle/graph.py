@@ -6,8 +6,7 @@
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI — InteractionGraph
 
-"""Directed weighted graph of agent interactions built from a
-:class:`SwarmEvent` stream.
+"""Directed weighted graph of agent interactions from a :class:`SwarmEvent` stream.
 
 An edge ``(src, dst, weight)`` records how many interactions
 from ``src`` targeted ``dst`` inside the observed window.
@@ -30,6 +29,7 @@ except Exception:  # pragma: no cover - mandatory dependency
     _RUST_GRAPH = True
 
     def rust_sum_f64(_values: list[float]) -> float:
+        """Raise to signal the mandatory Rust accelerator is unavailable."""
         raise RuntimeError("backfire_kernel rust_sum_f64 is unavailable")
 
 
@@ -94,8 +94,10 @@ class InteractionGraph:
 
     @property
     def edge_count(self) -> int:
-        """Distinct (source, target) edges. Weights are available
-        via :meth:`edge_weight`."""
+        """Return the count of distinct (source, target) edges.
+
+        Per-edge weights are available via :meth:`edge_weight`.
+        """
         return len(self._edges)
 
     def nodes(self) -> tuple[str, ...]:
@@ -125,9 +127,11 @@ class InteractionGraph:
         return int(_sum_float(values))
 
     def density(self) -> float:
-        """Edge density of the underlying simple graph — ratio of
-        observed edges to the maximum possible for a directed
-        graph without self-loops."""
+        """Return the edge density of the underlying simple graph.
+
+        The ratio of observed edges to the maximum possible for a directed
+        graph without self-loops.
+        """
         n = self.node_count
         if n < 2:
             return 0.0

@@ -6,8 +6,7 @@
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI — RandomWalkSpectrum + CommunityDetector
 
-"""Random-walk analysis and deterministic label-propagation
-community detection.
+"""Random-walk analysis and deterministic label-propagation community detection.
 
 The lazy random walk has transition matrix ``P = (I + D^{-1} A)
 / 2`` — half the time the walker stays put, half the time it
@@ -35,6 +34,7 @@ except Exception:  # pragma: no cover - mandatory dependency
     _RUST_SPECTRUM = True
 
     def rust_sum_f64(_values: list[float]) -> float:
+        """Raise to signal the mandatory Rust accelerator is unavailable."""
         raise RuntimeError("backfire_kernel rust_sum_f64 is unavailable")
 
 
@@ -58,8 +58,7 @@ class StationaryDistribution:
     spectral_gap: float
 
     def top_nodes(self, *, k: int) -> tuple[tuple[str, float], ...]:
-        """Return the ``k`` nodes with the largest stationary
-        probability, largest first."""
+        """Return the ``k`` highest-probability nodes, largest first."""
         if k <= 0:
             raise ValueError("k must be positive")
         items = sorted(self.probabilities.items(), key=lambda kv: -kv[1])
@@ -67,8 +66,9 @@ class StationaryDistribution:
 
 
 class RandomWalkSpectrum:
-    """Stationary distribution of a lazy random walk on an
-    :class:`InteractionGraph` via power iteration.
+    """Stationary distribution of a lazy random walk via power iteration.
+
+    Operates on an :class:`InteractionGraph`.
 
     Parameters
     ----------
@@ -101,6 +101,11 @@ class RandomWalkSpectrum:
         self._laziness = laziness
 
     def stationary(self, graph: InteractionGraph) -> StationaryDistribution:
+        """Compute the lazy random walk's stationary distribution on ``graph``.
+
+        Runs power iteration until the L1 residual falls below the tolerance
+        or the iteration cap is reached, also returning the spectral gap.
+        """
         nodes = graph.nodes()
         n = len(nodes)
         if n == 0:
@@ -199,6 +204,7 @@ class CommunityAssignment:
 
     @property
     def community_count(self) -> int:
+        """Return the number of distinct community labels assigned."""
         return len(set(self.labels.values()))
 
 
@@ -232,6 +238,11 @@ class CommunityDetector:
         self._max_iterations = max_iterations
 
     def detect(self, graph: InteractionGraph) -> CommunityAssignment:
+        """Assign community labels to ``graph`` by label propagation.
+
+        Runs deterministic asynchronous passes until labels stabilise or the
+        iteration cap is reached.
+        """
         nodes = graph.nodes()
         labels = {node: node for node in nodes}
         undirected_neighbours = _undirected_neighbours(graph)
@@ -266,11 +277,12 @@ class CommunityDetector:
 
 
 def _undirected_neighbours(graph: InteractionGraph) -> dict[str, dict[str, int]]:
-    """Build an undirected adjacency mapping: node →
-    {neighbour: weight}. In- and out-edges both contribute
-    weight — the community detector treats the graph as
-    undirected for label propagation since direction doesn't
-    identify communities."""
+    """Build an undirected adjacency mapping ``node → {neighbour: weight}``.
+
+    In- and out-edges both contribute weight — the community detector treats
+    the graph as undirected for label propagation since direction does not
+    identify communities.
+    """
     result: dict[str, dict[str, int]] = {node: {} for node in graph.nodes()}
     for src, dst, weight in graph.edges():
         result[src][dst] = result[src].get(dst, 0) + weight

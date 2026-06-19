@@ -6,8 +6,7 @@
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI — HierarchicalAligner
 
-"""Compose per-scale :class:`ScaleScorer` outputs into a single
-:class:`AlignmentReport`.
+"""Compose per-scale :class:`ScaleScorer` outputs into an :class:`AlignmentReport`.
 
 The aligner takes one scorer per scale, evaluates an action
 against each, and folds the per-scale scores into:
@@ -31,6 +30,7 @@ except Exception:  # pragma: no cover - mandatory dependency
     _RUST_MULTI_SCALE = True
 
     def rust_sum_f64(_values: list[float]) -> float:
+        """Raise to signal the mandatory Rust accelerator is unavailable."""
         raise RuntimeError("backfire_kernel rust_sum_f64 is unavailable")
 
 
@@ -62,12 +62,15 @@ class ScaleScoreTable:
     scores: Mapping[AlignmentScale, float]
 
     def __getitem__(self, scale: AlignmentScale) -> float:
+        """Return the score recorded for ``scale``."""
         return self.scores[scale]
 
     def __contains__(self, scale: object) -> bool:
+        """Report whether ``scale`` was observed."""
         return scale in self.scores
 
     def ordered(self) -> tuple[tuple[AlignmentScale, float], ...]:
+        """Return observed (scale, score) pairs in agent→planetary order."""
         return tuple(
             (scale, self.scores[scale]) for scale in _ORDER if scale in self.scores
         )
@@ -84,8 +87,7 @@ class AlignmentReport:
 
     @property
     def aligned(self) -> bool:
-        """``True`` when every observed scale cleared the allow
-        threshold — no failing scales."""
+        """Report whether every observed scale cleared the allow threshold."""
         return not self.failing_scales
 
 
@@ -143,6 +145,11 @@ class HierarchicalAligner:
         return {scale: weights.get(scale, 0.0) / total for scale in self._scorers}
 
     def evaluate(self, action: Action) -> AlignmentReport:
+        """Score ``action`` at every scale and fold into one report.
+
+        Clamps each per-scale score to ``[0, 1]``, combines them by the
+        normalised weight vector, and lists scales below the allow threshold.
+        """
         scores: dict[AlignmentScale, float] = {}
         for scale, scorer in self._scorers.items():
             raw = float(scorer.score(action))
@@ -164,4 +171,5 @@ class HierarchicalAligner:
 
     @property
     def scales(self) -> tuple[AlignmentScale, ...]:
+        """Return the configured scales in agent→planetary order."""
         return tuple(scale for scale in _ORDER if scale in self._scorers)

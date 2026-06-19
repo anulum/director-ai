@@ -98,6 +98,11 @@ jobs:
           src/director_ai/core/meta_guard
           src/director_ai/core/ml_bom
           src/director_ai/core/multimodal_guard
+          src/director_ai/core/multi_scale_alignment
+          src/director_ai/core/neuro_symbolic
+          src/director_ai/core/ontology
+          src/director_ai/core/emergence_oracle
+          src/director_ai/core/knowledge_graph
           src/director_ai/core/observability
           src/director_ai/core/output_integrity
           src/director_ai/core/output_trust

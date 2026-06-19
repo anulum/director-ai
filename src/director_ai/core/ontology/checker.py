@@ -6,10 +6,10 @@
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI — OntologyChecker
 
-"""Consistency checks over a set of ``individual is_a class``
-assertions against an :class:`OntologyGraph`.
+"""Consistency checks over ``individual is_a class`` assertions.
 
-Two failure modes:
+Each assertion set is checked against an :class:`OntologyGraph`. Two failure
+modes:
 
 1. The asserted class is not registered in the ontology — the
    checker flags it as ``unknown_class`` so callers can decide
@@ -33,9 +33,11 @@ ViolationKind = Literal["unknown_class", "disjoint_conflict"]
 
 @dataclass(frozen=True)
 class OntologyViolation:
-    """One check failure. ``subject`` is the individual, ``detail``
-    names the classes involved. ``kind`` disambiguates the two
-    failure modes so callers can branch cheaply."""
+    """One check failure for a single individual.
+
+    ``subject`` is the individual and ``detail`` names the classes involved;
+    ``kind`` disambiguates the two failure modes so callers can branch cheaply.
+    """
 
     kind: ViolationKind
     subject: str
@@ -52,6 +54,7 @@ class Assertion:
     class_name: str
 
     def __post_init__(self) -> None:
+        """Reject an empty individual or class name."""
         if not self.individual:
             raise ValueError("Assertion.individual must be non-empty")
         if not self.class_name:
@@ -60,8 +63,9 @@ class Assertion:
 
 @dataclass
 class OntologyChecker:
-    """Evaluate a set of :class:`Assertion` against an
-    :class:`OntologyGraph` and return every violation.
+    """Evaluate :class:`Assertion` sets against an :class:`OntologyGraph`.
+
+    Returns every violation found.
 
     Parameters
     ----------
@@ -78,6 +82,12 @@ class OntologyChecker:
     strict: bool = True
 
     def check(self, assertions: Iterable[Assertion]) -> tuple[OntologyViolation, ...]:
+        """Return every unknown-class and disjoint-conflict violation.
+
+        Pass 1 flags assertions naming an unregistered class (in strict mode);
+        pass 2 flags any individual asserted to belong to two classes that are
+        disjoint directly or through their ``is_a`` ancestors.
+        """
         assertion_list = list(assertions)
         violations: list[OntologyViolation] = []
         known_classes = set(self.graph.classes())
@@ -145,8 +155,10 @@ def _find_conflict(
     ancestors_a: frozenset[str] | set[str],
     ancestors_b: frozenset[str] | set[str],
 ) -> tuple[str, str] | None:
-    """Return the first ``(anc_a, anc_b)`` pair where ``anc_a`` is
-    declared disjoint from ``anc_b``. ``None`` means no conflict.
+    """Return the first ``(anc_a, anc_b)`` pair declared disjoint.
+
+    ``None`` means no ancestor of one set is disjoint from an ancestor of the
+    other.
     """
     for anc_a in ancestors_a:
         forbidden = graph.declared_disjoint(anc_a)

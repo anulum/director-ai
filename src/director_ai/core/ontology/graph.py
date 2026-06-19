@@ -6,8 +6,7 @@
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI — OntologyGraph
 
-"""Small OWL-inspired graph with ``is_a``, ``disjoint_with``, and
-``part_of`` edges.
+"""Small OWL-inspired graph with ``is_a``, ``disjoint_with``, and ``part_of`` edges.
 
 The graph stores every relation as a set, so repeated additions
 are idempotent. ``is_a`` cycles are rejected at edge time;
@@ -41,8 +40,10 @@ class OntologyGraph:
     _part_of: dict[str, set[str]] = field(default_factory=dict)
 
     def add_class(self, name: str) -> None:
-        """Register a class with no relations. Useful for classes
-        that only appear as assertion targets."""
+        """Register a class with no relations.
+
+        Useful for classes that only appear as assertion targets.
+        """
         if not name:
             raise ValueError("class name must be non-empty")
         self._is_a.setdefault(name, set())
@@ -76,9 +77,11 @@ class OntologyGraph:
         self._disjoint[b].add(a)
 
     def add_part_of(self, part: str, whole: str) -> None:
-        """Declare ``part`` is a component of ``whole``. Not used by
-        the default checker yet — exposed for future mereological
-        rules so callers can build complete graphs today."""
+        """Declare ``part`` is a component of ``whole``.
+
+        Not consumed by the default checker; exposed for mereological rules so
+        callers can build complete graphs today.
+        """
         self.add_class(part)
         self.add_class(whole)
         if part == whole:
@@ -86,9 +89,11 @@ class OntologyGraph:
         self._part_of[part].add(whole)
 
     def classes(self) -> tuple[str, ...]:
+        """Return every registered class name."""
         return tuple(self._is_a.keys())
 
     def parents(self, name: str) -> frozenset[str]:
+        """Return the direct ``is_a`` parents of ``name``."""
         return frozenset(self._is_a.get(name, set()))
 
     def ancestors(self, name: str) -> frozenset[str]:
@@ -104,17 +109,21 @@ class OntologyGraph:
         return frozenset(seen)
 
     def is_subclass_of(self, child: str, parent: str) -> bool:
-        """True when ``child`` descends from ``parent``. Reflexive
-        on identical names so the checker can short-circuit
-        ``individual is_a declared-class`` assertions."""
+        """Report whether ``child`` descends from ``parent``.
+
+        Reflexive on identical names so the checker can short-circuit
+        ``individual is_a declared-class`` assertions.
+        """
         if child == parent:
             return True
         return parent in self.ancestors(child)
 
     def disjoint_pairs(self) -> frozenset[tuple[str, str]]:
-        """Every directed disjoint pair, deduplicated. Inherited
-        disjointness is computed on demand in :class:`OntologyChecker`
-        — the graph only stores the declared pairs."""
+        """Return every directed declared disjoint pair, deduplicated.
+
+        Inherited disjointness is computed on demand in
+        :class:`OntologyChecker`; the graph only stores the declared pairs.
+        """
         out: set[tuple[str, str]] = set()
         for a, partners in self._disjoint.items():
             for b in partners:
@@ -122,4 +131,5 @@ class OntologyGraph:
         return frozenset(out)
 
     def declared_disjoint(self, name: str) -> frozenset[str]:
+        """Return the classes declared directly disjoint with ``name``."""
         return frozenset(self._disjoint.get(name, set()))
