@@ -55,6 +55,7 @@ class ConformalCalibrator:
         guardrail: TrainedGuardrail,
         calibration_set: Sequence[FeedbackEvent],
     ) -> ConformalResult:
+        """Fit the conformal threshold so ``guardrail`` meets the target coverage."""
         labelled: list[tuple[FeedbackEvent, int]] = []
         for event in calibration_set:
             mapped = _event_target(event)

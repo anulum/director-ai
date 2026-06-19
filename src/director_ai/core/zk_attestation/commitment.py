@@ -97,6 +97,7 @@ class MerkleCommitment:
     sample_count: int
 
     def __post_init__(self) -> None:
+        """Require a positive sample count."""
         if self.sample_count <= 0:
             raise ValueError("sample_count must be positive")
         if len(self.root) != 64:
@@ -125,6 +126,7 @@ class CommitmentProof:
     total_samples: int
 
     def __post_init__(self) -> None:
+        """Require ``total_samples`` to match the commitment's sample count."""
         if self.total_samples != self.commitment.sample_count:
             raise ValueError("total_samples must equal commitment.sample_count")
         if not self.opened:
@@ -208,9 +210,10 @@ def verify_opening(
     key: bytes,
     per_sample_evaluator: object,
 ) -> tuple[bool, str]:
-    """Check that every opened leaf rebuilds the root and that the
-    evaluator's output on the opened samples is consistent with
-    the prover's reported ``aggregate``.
+    """Check the opened leaves against the root and the reported aggregate.
+
+    Every opened leaf must rebuild the root, and the evaluator's output on the
+    opened samples must be consistent with the prover's reported ``aggregate``.
 
     ``per_sample_evaluator`` is called as ``fn(sample_dict) ->
     float``. The verifier does not know the full population, so

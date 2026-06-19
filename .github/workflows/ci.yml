@@ -96,6 +96,7 @@ jobs:
           src/director_ai/core/memory
           src/director_ai/core/meta_guard
           src/director_ai/core/ml_bom
+          src/director_ai/core/multimodal_guard
           src/director_ai/core/observability
           src/director_ai/core/output_integrity
           src/director_ai/core/output_trust
@@ -108,11 +109,13 @@ jobs:
           src/director_ai/core/safety_event.py
           src/director_ai/core/safety_protocol.py
           src/director_ai/core/secrets.py
+          src/director_ai/core/self_evolving
           src/director_ai/core/self_healing
           src/director_ai/core/stats.py
           src/director_ai/core/streaming_repair
           src/director_ai/core/sustainability
           src/director_ai/core/swarm_coherence
+          src/director_ai/core/swarm_economics
           src/director_ai/core/swarm_equilibrium
           src/director_ai/core/symbolic_chain
           src/director_ai/core/temporal_consistency
@@ -125,6 +128,7 @@ jobs:
           src/director_ai/core/types.py
           src/director_ai/core/vector_store.py
           src/director_ai/core/verification
+          src/director_ai/core/zk_attestation
           --select D
 
   typecheck:

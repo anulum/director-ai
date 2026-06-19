@@ -35,6 +35,7 @@ except ImportError:  # pragma: no cover - mandatory accelerator guard
     _RUST_SELF_EVOLVING = True
 
     def rust_sum_f64(_values: list[float]) -> float:
+        """Raise because the compiled ``rust_sum_f64`` kernel is unavailable."""
         raise RuntimeError("backfire_kernel rust_sum_f64 is unavailable")
 
 
@@ -66,8 +67,7 @@ class TrainedGuardrail:
     training_accuracy: float
 
     def score(self, text: str) -> float:
-        """Return the probability that ``text`` is unsafe, in
-        ``[0, 1]``."""
+        """Return the probability that ``text`` is unsafe, in ``[0, 1]``."""
         features = _hash_bag(text, self.dim)
         margin = self.bias + _dot(self.weights, features)
         return 1.0 / (1.0 + math.exp(-margin))
@@ -82,7 +82,9 @@ class GuardrailTrainer(Protocol):
         events: Iterable[FeedbackEvent],
         *,
         version: int,
-    ) -> TrainedGuardrail: ...
+    ) -> TrainedGuardrail:
+        """Train a guardrail snapshot from the labelled ``events``."""
+        ...
 
 
 class PerceptronGuardrailTrainer:
@@ -128,6 +130,7 @@ class PerceptronGuardrailTrainer:
         *,
         version: int,
     ) -> TrainedGuardrail:
+        """Train the perceptron head on the labelled events and snapshot it."""
         labelled: list[tuple[str, int]] = []
         for e in events:
             mapped = _event_target(e)
@@ -212,6 +215,7 @@ class LoraGuardrailTrainer:
         *,
         version: int,
     ) -> TrainedGuardrail:
+        """Run the LoRA micro-fine-tune on the labelled events and snapshot it."""
         labelled: list[tuple[str, int]] = []
         for e in events:
             mapped = _event_target(e)
@@ -275,7 +279,7 @@ class LoraGuardrailTrainer:
             for batch, labels in loader:
                 optimiser.zero_grad()
                 outputs = model(**{k: torch.tensor(v) for k, v in batch.items()})
-                loss = torch.nn.functional.cross_entropy(
+                loss: Any = torch.nn.functional.cross_entropy(
                     outputs.logits, torch.tensor(labels)
                 )
                 loss.backward()
@@ -324,9 +328,11 @@ def _hash_bag(text: str, dim: int) -> tuple[float, ...]:
 
 
 def _extract_classifier_weights(model: Any) -> dict[str, Any]:
-    """Pull the final classification head weights + bias out of a
-    PEFT-wrapped model so the TrainedGuardrail snapshot can
-    survive process boundaries."""
+    """Pull the final classification-head weights and bias out of a model.
+
+    Reads them off a PEFT-wrapped model so the TrainedGuardrail snapshot can
+    survive process boundaries.
+    """
     head = (
         model.base_model.classifier
         if hasattr(model, "base_model")

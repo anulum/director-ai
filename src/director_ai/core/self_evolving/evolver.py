@@ -6,8 +6,10 @@
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI — SelfEvolver orchestrator
 
-"""Close the loop — pull recent failures, synthesise adversarial
-variants, retrain the guardrail, re-calibrate, hot-swap.
+"""Orchestrate one guardrail evolution round end to end.
+
+Pull recent failures, synthesise adversarial variants, retrain the
+guardrail, re-calibrate, and hot-swap.
 
 The orchestrator is deliberately deterministic: every stage is
 seeded, every stage exposes its result on the returned
@@ -46,6 +48,7 @@ class EvolutionReport:
 
     @property
     def conformal(self) -> ConformalResult:
+        """Return this round's calibration as a ConformalResult view."""
         return ConformalResult(
             threshold=self.threshold,
             coverage_target=0.90,
@@ -116,7 +119,8 @@ class SelfEvolver:
 
         Raises :class:`ValueError` when the feedback store holds
         fewer than ``min_feedback`` events — the trainer will not
-        produce a useful guardrail on a microscopic set."""
+        produce a useful guardrail on a microscopic set.
+        """
         if len(self._store) < self._min_feedback:
             raise ValueError(
                 f"feedback store holds {len(self._store)} events; "

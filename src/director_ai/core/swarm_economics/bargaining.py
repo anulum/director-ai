@@ -26,7 +26,7 @@ the guardrail cares about (2–5 agents).
 
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Iterator, Mapping
 from dataclasses import dataclass
 
 from .pool import AgentEconomicState
@@ -34,14 +34,16 @@ from .pool import AgentEconomicState
 
 @dataclass(frozen=True)
 class DisagreementPoint:
-    """Per-agent disagreement utility — the payoff the agent
-    receives when bargaining fails. Typically zero; a caller
-    can tune it to the agent's best outside option."""
+    """Per-agent disagreement utility: the payoff when bargaining fails.
+
+    Typically zero; a caller can tune it to the agent's best outside option.
+    """
 
     agent_id: str
     utility: float
 
     def __post_init__(self) -> None:
+        """Require a non-empty agent id and a non-negative utility."""
         if not self.agent_id:
             raise ValueError("agent_id must be non-empty")
         if self.utility < 0:
@@ -59,9 +61,11 @@ class BargainingSolution:
 
     @property
     def fairness_gap(self) -> float:
-        """Max-min utility gap normalised by the highest
-        utility. Zero = perfectly equal utilities;
-        approaching 1 = one agent dominates."""
+        """Return the max-min utility gap normalised by the highest utility.
+
+        Zero means perfectly equal utilities; approaching 1 means one agent
+        dominates.
+        """
         values = list(self.utilities.values())
         if not values:
             return 0.0
@@ -101,6 +105,7 @@ class NashBargainingSolver:
         budget: float,
         disagreement: tuple[DisagreementPoint, ...] = (),
     ) -> BargainingSolution:
+        """Return the Nash bargaining allocation over ``agents`` within ``budget``."""
         if len(agents) < 2:
             raise ValueError("bargaining requires at least two agents")
         if budget <= 0:
@@ -181,10 +186,14 @@ class _BestTracker:
             self.total = total
 
 
-def _enumerate_partitions(*, grid_size: int, count: int):
-    """Yield every ``count``-tuple of non-negative integers that
-    sum to exactly ``grid_size``. Iterative, memory-safe for
-    small counts."""
+def _enumerate_partitions(
+    *, grid_size: int, count: int
+) -> Iterator[tuple[int, ...]]:
+    """Yield every ``count``-tuple of non-negative integers summing to ``grid_size``.
+
+    Recurses one axis at a time, so it stays memory-safe for the small counts
+    the swarm guardrail uses.
+    """
     if count == 1:
         yield (grid_size,)
         return

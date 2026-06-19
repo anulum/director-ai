@@ -96,7 +96,9 @@ class FeedbackStore(Protocol):
         """Iterate retained events for one label."""
         ...
 
-    def __len__(self) -> int: ...
+    def __len__(self) -> int:
+        """Return the number of retained feedback events."""
+        ...
 
 
 class InMemoryFeedbackStore:

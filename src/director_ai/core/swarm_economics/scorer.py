@@ -6,8 +6,7 @@
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI — EconomicRiskScorer
 
-"""Compose the pool + bargaining + tragedy signals into one
-score.
+"""Compose the pool, bargaining, and tragedy signals into one score.
 
 Three sub-signals enter the composite:
 
@@ -33,6 +32,7 @@ except Exception:  # pragma: no cover - mandatory dependency
     _RUST_SWARM_ECON = True
 
     def rust_sum_f64(_values: list[float]) -> float:
+        """Raise because the compiled ``rust_sum_f64`` kernel is unavailable."""
         raise RuntimeError("backfire_kernel rust_sum_f64 is unavailable")
 
 
@@ -54,6 +54,7 @@ class EconomicVerdict:
 
     @property
     def safe(self) -> bool:
+        """Return whether the composite risk sits below the 0.5 decision line."""
         return self.risk < 0.5
 
 
@@ -98,6 +99,7 @@ class EconomicRiskScorer:
         *,
         bargaining: BargainingSolution | None = None,
     ) -> EconomicVerdict:
+        """Return the composite economic-risk verdict for the current pool state."""
         exhaustion = 1.0 - (self._pool.balance() / self._pool.capacity)
         fairness_gap = bargaining.fairness_gap if bargaining is not None else 0.0
         tragedy: TragedySignal = self._detector.check()

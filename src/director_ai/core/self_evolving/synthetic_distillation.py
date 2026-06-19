@@ -43,6 +43,7 @@ class SyntheticExample:
     seed: int
 
     def __post_init__(self) -> None:
+        """Require a non-empty prompt and reviewer id."""
         if not self.prompt.strip():
             raise ValueError("prompt is required")
         if not self.reviewer_id.strip():
@@ -102,6 +103,7 @@ class SyntheticDistillationManifest:
     benchmark_evidence: bool = False
 
     def __post_init__(self) -> None:
+        """Require a manifest id and a positive synthetic-event count."""
         if not self.manifest_id.strip():
             raise ValueError("manifest_id is required")
         if self.synthetic_event_count <= 0:
@@ -169,6 +171,7 @@ class SyntheticDistillationPlan:
     training_job: TrainingJobSpec
 
     def __post_init__(self) -> None:
+        """Freeze the examples and check they match the manifest count."""
         examples = tuple(self.examples)
         if not examples:
             raise ValueError("examples must not be empty")

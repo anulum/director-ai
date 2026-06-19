@@ -85,7 +85,9 @@ def build_hashbag_adapter(
     )
 
 
-def _default_clip_loader(model_name: str, pretrained: str, device: str):
+def _default_clip_loader(
+    model_name: str, pretrained: str, device: str
+) -> tuple[Any, Any, Any, int]:
     """Load an ``open_clip`` model once for both the encoder and the verifier."""
     try:
         import open_clip

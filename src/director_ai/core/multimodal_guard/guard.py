@@ -6,8 +6,7 @@
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI — MultimodalGuard + TemporalConsistencyGuard
 
-"""Orchestrators that bind an :class:`ImageEncoder` + a
-:class:`CrossModalVerifier` into a verdict producer.
+"""Bind an :class:`ImageEncoder` and a :class:`CrossModalVerifier` into a guard.
 
 :class:`MultimodalGuard` classifies a single ``(image, text)``
 claim; :class:`TemporalConsistencyGuard` folds a stream of
@@ -80,6 +79,7 @@ class MultimodalGuard:
         self._consistency = consistency_threshold
 
     def check(self, claim: MultimodalClaim) -> MultimodalVerdict:
+        """Score one claim and return its image-text consistency verdict."""
         embedding = self._encoder.encode(claim.image_bytes)
         similarity = self._verifier.verify(embedding, claim.text_claim)
         return self._band(similarity)
@@ -87,10 +87,12 @@ class MultimodalGuard:
     def check_many(
         self, claims: Iterable[MultimodalClaim]
     ) -> tuple[MultimodalVerdict, ...]:
-        """Batch variant. Each claim is scored independently — the
-        method is a convenience wrapper, not a performance
-        optimisation. Torch-backed backends can shadow this
-        method later to push batching into the tensor path."""
+        """Score each claim independently and return the verdicts in order.
+
+        This is a convenience wrapper, not a performance optimisation;
+        torch-backed backends can shadow it to push batching into the tensor
+        path.
+        """
         return tuple(self.check(c) for c in claims)
 
     def _band(self, similarity: float) -> MultimodalVerdict:
@@ -144,6 +146,7 @@ class TemporalConsistencyGuard:
     consistency_floor: float = 0.2
 
     def __post_init__(self) -> None:
+        """Range-check ``alpha`` and the consistency floor and reset the EMA."""
         if not 0.0 < self.alpha <= 1.0:
             raise ValueError(f"alpha must be in (0, 1]; got {self.alpha!r}")
         if not 0.0 <= self.consistency_floor <= 1.0:
@@ -154,11 +157,15 @@ class TemporalConsistencyGuard:
 
     @property
     def ema(self) -> float | None:
+        """Return the current EMA value, or ``None`` before the first update."""
         return self._ema
 
     def update(self, similarity: float) -> bool:
-        """Fold ``similarity`` into the EMA and return ``True`` if
-        the caller should halt."""
+        """Fold ``similarity`` into the EMA.
+
+        Returns ``True`` when the smoothed value drops below the consistency
+        floor and the caller should halt.
+        """
         if not 0.0 <= similarity <= 1.0:
             raise ValueError(f"similarity must be in [0, 1]; got {similarity!r}")
         if self._ema is None:
@@ -168,4 +175,5 @@ class TemporalConsistencyGuard:
         return self._ema < self.consistency_floor
 
     def reset(self) -> None:
+        """Forget the EMA so the next update reseeds it from one frame."""
         self._ema = None

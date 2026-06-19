@@ -6,8 +6,7 @@
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI — ResourcePool + AgentEconomicState
 
-"""Shared-resource accounting with regeneration and a
-per-agent consumption ledger.
+"""Shared-resource accounting with regeneration and a per-agent ledger.
 
 The pool exposes a monotonic clock-driven regeneration rule:
 between two calls it refills at ``regeneration_rate`` units per
@@ -26,8 +25,7 @@ from dataclasses import dataclass, field
 
 
 class PoolError(ValueError):
-    """Raised when a consumption request is malformed or the pool
-    rejects the draw."""
+    """Raised when a consumption request is malformed or rejected by the pool."""
 
 
 @dataclass(frozen=True)
@@ -39,6 +37,7 @@ class ConsumptionRecord:
     timestamp: float
 
     def __post_init__(self) -> None:
+        """Require a non-empty agent id, a positive amount, and a valid timestamp."""
         if not self.agent_id:
             raise PoolError("agent_id must be non-empty")
         if self.amount <= 0:
@@ -66,6 +65,7 @@ class AgentEconomicState:
     metadata: dict[str, str] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
+        """Reject an empty agent id or a negative balance, valuation, or usage."""
         if not self.agent_id:
             raise PoolError("agent_id must be non-empty")
         if self.credit_balance < 0:
@@ -123,20 +123,25 @@ class ResourcePool:
 
     @property
     def capacity(self) -> float:
+        """Return the maximum balance the pool can hold."""
         return self._capacity
 
     @property
     def regeneration_rate(self) -> float:
+        """Return the refill rate in units per second."""
         return self._regen_rate
 
     def balance(self) -> float:
+        """Return the current balance after applying pending regeneration."""
         with self._lock:
             self._refill_locked()
             return self._balance
 
     def consume(self, *, agent_id: str, amount: float) -> ConsumptionRecord:
-        """Atomically draw ``amount`` from the pool. Raises
-        :class:`PoolError` when the request cannot be satisfied."""
+        """Atomically draw ``amount`` from the pool.
+
+        Raises :class:`PoolError` when the request cannot be satisfied.
+        """
         if amount <= 0:
             raise PoolError("amount must be positive")
         with self._lock:
@@ -156,10 +161,12 @@ class ResourcePool:
             return record
 
     def ledger(self) -> tuple[ConsumptionRecord, ...]:
+        """Return an immutable snapshot of all retained consumption records."""
         with self._lock:
             return tuple(self._ledger)
 
     def recent(self, *, since_seconds: float) -> tuple[ConsumptionRecord, ...]:
+        """Return the consumption records drawn within the last ``since_seconds``."""
         if since_seconds <= 0:
             raise PoolError("since_seconds must be positive")
         cutoff = float(self._clock()) - since_seconds
@@ -178,9 +185,10 @@ class ResourcePool:
         self._last_refilled_at = now
 
     def reset(self, *, balance: float | None = None) -> None:
-        """Set the balance back to a caller-chosen level (defaults
-        to capacity) and clear the ledger. Operators use this
-        between billing windows."""
+        """Set the balance to ``balance`` (default capacity) and clear the ledger.
+
+        Operators use this between billing windows.
+        """
         target = balance if balance is not None else self._capacity
         if target < 0 or target > self._capacity:
             raise PoolError("balance must be in [0, capacity]")

@@ -13,7 +13,7 @@ from __future__ import annotations
 import math
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field
-from typing import Any, Literal, cast
+from typing import Any, Literal
 
 from director_ai.core.guard_control import GuardDecision, RiskEnvelope, VerifierSignal
 from director_ai.core.safety_event import SafetyEvent
@@ -45,6 +45,7 @@ class MultimodalCheckRequest:
     metadata: Mapping[str, str] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
+        """Reject an unknown modality or an empty claim text."""
         if self.modality not in _MODALITIES:
             raise ValueError(f"unsupported modality {self.modality!r}")
         if not self.claim_text.strip():
@@ -316,7 +317,7 @@ def _validated_modalities(name: str, modalities: Sequence[str]) -> frozenset[Mod
     unsupported: list[str] = []
     for modality in modalities:
         if modality in _MODALITIES:
-            validated.append(cast(Modality, modality))
+            validated.append(modality)
         else:
             unsupported.append(modality)
     if unsupported:

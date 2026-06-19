@@ -34,6 +34,7 @@ except ImportError:  # pragma: no cover - mandatory accelerator guard
     _RUST_SWARM_ECON_DETECTOR = True
 
     def rust_sum_f64(_values: list[float]) -> float:
+        """Raise because the compiled ``rust_sum_f64`` kernel is unavailable."""
         raise RuntimeError("backfire_kernel rust_sum_f64 is unavailable")
 
 
@@ -97,6 +98,7 @@ class TragedyDetector:
         self._over_since: float | None = None
 
     def check(self) -> TragedySignal:
+        """Return the current tragedy-of-the-commons signal for the pool window."""
         sustainable = self._pool.regeneration_rate
         recent = self._pool.recent(since_seconds=self._window)
         drawn = _sum_float([record.amount for record in recent])
@@ -123,6 +125,7 @@ class TragedyDetector:
         )
 
     def reset(self) -> None:
+        """Forget the over-budget streak so the grace timer restarts."""
         with self._lock:
             self._over_since = None
 

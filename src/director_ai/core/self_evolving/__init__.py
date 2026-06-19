@@ -6,9 +6,11 @@
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI — self-evolving online guardrail
 
-"""Close the loop on a production guardrail: collect real failures,
-synthesise adversarial variants, run a LoRA micro-fine-tune, and
-update the conformal threshold — all atomic, all versioned.
+"""Close the production-guardrail self-improvement loop.
+
+Collect real failures, synthesise adversarial variants, run a LoRA
+micro-fine-tune, and update the conformal threshold — all atomic, all
+versioned.
 
 Three Protocol boundaries let operators swap implementations
 without touching the orchestrator:

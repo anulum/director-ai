@@ -48,8 +48,10 @@ MutationFn = Callable[[str, random.Random], str]
 
 @runtime_checkable
 class AdversarialGenerator(Protocol):
-    """Anything that expands a seed set of failures into a larger
-    adversarial set. Output size is bounded by ``max_samples``."""
+    """Expand a seed set of failures into a larger adversarial set.
+
+    Output size is bounded by ``max_samples``.
+    """
 
     def generate(
         self,

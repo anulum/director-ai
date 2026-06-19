@@ -75,6 +75,7 @@ class CrossOrgPassport:
     mac: str
 
     def __post_init__(self) -> None:
+        """Require a non-empty agent id and issuing org."""
         if not self.agent_id:
             raise ValueError("agent_id must be non-empty")
         if not self.issuing_org:
@@ -115,6 +116,7 @@ class PassportVerdict:
     safety_event: SafetyEvent | None = None
 
     def summary(self) -> str:
+        """Return a human-readable one-line summary of the verdict."""
         if self.accepted:
             return "all statements proved"
         if not self.signature_ok:
@@ -150,6 +152,7 @@ class PassportIssuer:
     clock: object = field(default=time.time)
 
     def __post_init__(self) -> None:
+        """Require a ≥32-byte HMAC key and a non-empty issuing org."""
         if len(self.key) < _MIN_KEY_LEN:
             raise ValueError("HMAC key must be at least 32 bytes")
         if not self.issuing_org:
@@ -225,8 +228,7 @@ class PassportIssuer:
 
 @dataclass
 class PassportVerifier:
-    """Verifies a passport against the receiving org's copy of the
-    issuer's public verification key.
+    """Verify a passport against the receiving org's copy of the issuer key.
 
     The verifier holds a map from ``issuing_org`` to the shared
     HMAC secret — in practice this map is hydrated from a PKI /
@@ -239,6 +241,7 @@ class PassportVerifier:
     backends: dict[str, AttestationBackend]
 
     def __post_init__(self) -> None:
+        """Require a non-empty issuer-key map and validate each backend."""
         if not self.issuer_keys:
             raise ValueError("issuer_keys must not be empty")
         for org, key in self.issuer_keys.items():
@@ -257,6 +260,7 @@ class PassportVerifier:
                 )
 
     def verify(self, passport: CrossOrgPassport) -> PassportVerdict:
+        """Verify ``passport`` and return the per-statement verdict."""
         key = self.issuer_keys.get(passport.issuing_org)
         if key is None:
             failure_tuple: tuple[tuple[str, str], ...] = (
@@ -306,11 +310,10 @@ def _canonical_header(
     created_at: int,
     entries: tuple[tuple[str, str, str], ...],
 ) -> bytes:
-    """Deterministic header for MAC computation.
+    r"""Build the deterministic header bytes for MAC computation.
 
-    Escape ``|`` and ``\\`` in the free-text fields so a
-    statement whose name contains the delimiter cannot collide
-    with a different passport layout.
+    Escape ``|`` and ``\`` in the free-text fields so a statement whose name
+    contains the delimiter cannot collide with a different passport layout.
     """
     header_fields = [
         _escape(agent_id),

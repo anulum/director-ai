@@ -32,9 +32,11 @@ aggregate are hidden.
 
 from __future__ import annotations
 
+import importlib
 import math
 from collections.abc import Sequence
 from dataclasses import dataclass, field
+from types import ModuleType
 
 from .statements import AttestationStatement, HistorySample, MinimumCoherence
 
@@ -48,16 +50,15 @@ _FIXED_POINT_SCALE = 1_000_000
 _DEFAULT_BITS = 32
 
 
-def _kernel():
+def _kernel() -> ModuleType:
     """Return the backfire_kernel module or raise a clear error."""
     try:
-        import backfire_kernel
+        return importlib.import_module("backfire_kernel")
     except ImportError as exc:  # pragma: no cover - exercised on kernel-less installs
         raise RuntimeError(
             "BulletproofRangeBackend requires the compiled backfire_kernel "
             "extension (dalek bulletproofs); install/build the kernel to use it."
         ) from exc
-    return backfire_kernel
 
 
 def min_aggregate_for(
@@ -108,6 +109,7 @@ class BulletproofRangeBackend:
     kind: str = field(default="bulletproof-range", init=False)
 
     def __post_init__(self) -> None:
+        """Require a supported bit width for the range proof."""
         if self.bits not in (8, 16, 32, 64):
             raise ValueError("bits must be one of 8, 16, 32, 64")
         if self.scale <= 0:

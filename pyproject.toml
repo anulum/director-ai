@@ -634,6 +634,8 @@ module = [
     "director_ai.core.memory.*",
     "director_ai.core.meta_guard",
     "director_ai.core.meta_guard.*",
+    "director_ai.core.multimodal_guard",
+    "director_ai.core.multimodal_guard.*",
     "director_ai.core.observability",
     "director_ai.core.observability.*",
     "director_ai.core.policy",
@@ -650,6 +652,8 @@ module = [
     "director_ai.core.safety_event",
     "director_ai.core.safety_protocol",
     "director_ai.core.secrets",
+    "director_ai.core.self_evolving",
+    "director_ai.core.self_evolving.*",
     "director_ai.core.self_healing",
     "director_ai.core.self_healing.*",
     "director_ai.core.stats",
@@ -659,6 +663,8 @@ module = [
     "director_ai.core.sustainability.*",
     "director_ai.core.swarm_coherence",
     "director_ai.core.swarm_coherence.*",
+    "director_ai.core.swarm_economics",
+    "director_ai.core.swarm_economics.*",
     "director_ai.core.swarm_equilibrium",
     "director_ai.core.swarm_equilibrium.*",
     "director_ai.core.symbolic_chain",
@@ -679,6 +685,8 @@ module = [
     "director_ai.core.vector_store",
     "director_ai.core.verification",
     "director_ai.core.verification.*",
+    "director_ai.core.zk_attestation",
+    "director_ai.core.zk_attestation.*",
 ]
 disallow_untyped_defs = true
 disallow_incomplete_defs = true

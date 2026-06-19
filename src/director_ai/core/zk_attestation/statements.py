@@ -54,14 +54,17 @@ class AttestationStatement(Protocol):
         ...
 
     def accepts(self, aggregate: float, total_samples: int) -> bool:
-        """Given the prover's aggregate and sample count, decide
-        whether the claim holds."""
+        """Decide whether the claim holds for the reported aggregate.
+
+        Uses the prover's ``aggregate`` and ``total_samples``.
+        """
 
 
 @dataclass(frozen=True)
 class MinimumCoherence:
-    """Claim: mean coherence ≥ ``threshold`` over ``samples_min``
-    samples.
+    """Claim that mean coherence is at least ``threshold``.
+
+    Holds over at least ``samples_min`` samples.
 
     ``evaluate_sample`` returns the sample's ``coherence`` field
     (float in [0, 1]) or 0 when the sample is missing the field;
@@ -100,9 +103,11 @@ class MinimumCoherence:
 
 @dataclass(frozen=True)
 class MaximumHaltRate:
-    """Claim: halts / total ≤ ``max_rate`` over ≥ ``samples_min``
-    samples. Useful for certifying an agent's continuity record
-    before an operational hand-off."""
+    """Claim that the halt rate is at most ``max_rate``.
+
+    Holds over at least ``samples_min`` samples; useful for certifying an
+    agent's continuity record before an operational hand-off.
+    """
 
     name: str
     max_rate: float
@@ -133,9 +138,10 @@ class MaximumHaltRate:
 
 @dataclass(frozen=True)
 class DomainExperience:
-    """Claim: ``hours_min`` worth of interaction time in
-    ``domain``. The aggregate is the sum of the per-sample
-    ``duration_seconds`` field filtered by domain match.
+    """Claim of at least ``hours_min`` of interaction time in ``domain``.
+
+    The aggregate is the sum of the per-sample ``duration_seconds`` field
+    filtered by domain match.
     """
 
     name: str
@@ -170,9 +176,11 @@ class DomainExperience:
 
 @dataclass(frozen=True)
 class NoBreakoutEvents:
-    """Claim: zero samples tagged ``breakout=True``. Useful as a
-    hard gate before granting an agent production credentials in
-    a new org."""
+    """Claim that zero samples are tagged ``breakout=True``.
+
+    Useful as a hard gate before granting an agent production credentials in a
+    new org.
+    """
 
     name: str
     samples_min: int

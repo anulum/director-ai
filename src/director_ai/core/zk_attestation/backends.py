@@ -69,19 +69,25 @@ class AttestationBackend(Protocol):
     """
 
     @property
-    def kind(self) -> str: ...
+    def kind(self) -> str:
+        """Return the backend's kind tag."""
+        ...
 
     def prove(
         self,
         statement: AttestationStatement,
         samples: Sequence[HistorySample],
-    ) -> object: ...
+    ) -> object:
+        """Produce an opaque proof blob for ``statement`` over ``samples``."""
+        ...
 
     def verify(
         self,
         statement: AttestationStatement,
         proof: object,
-    ) -> tuple[bool, str]: ...
+    ) -> tuple[bool, str]:
+        """Return ``(accepted, reason)`` for ``proof`` against ``statement``."""
+        ...
 
 
 @dataclass
@@ -109,6 +115,7 @@ class CommitmentBackend:
     kind: str = field(default="commitment", init=False)
 
     def __post_init__(self) -> None:
+        """Require a ≥32-byte HMAC key and a positive challenge size."""
         if len(self.key) < 32:
             raise ValueError("HMAC key must be at least 32 bytes")
         if self.challenge_size <= 0:
@@ -119,8 +126,10 @@ class CommitmentBackend:
         statement: AttestationStatement,
         samples: Sequence[HistorySample],
     ) -> CommitmentProof:
-        """Commit to *samples*, compute the aggregate, open a random
-        challenge subset."""
+        """Commit to ``samples``, compute the aggregate, and open a subset.
+
+        The opened subset is a random challenge over the committed leaves.
+        """
         if not samples:
             raise ValueError("samples must be non-empty")
         commitment, leaves, blinds = commit_samples(samples, key=self.key, rng=self.rng)
@@ -144,6 +153,7 @@ class CommitmentBackend:
         statement: AttestationStatement,
         proof: object,
     ) -> tuple[bool, str]:
+        """Verify a commitment ``proof`` and return ``(accepted, reason)``."""
         if not isinstance(proof, CommitmentProof):
             return False, "wrong_proof_type"
         ok, reason = verify_opening(
@@ -179,8 +189,9 @@ class CommitmentBackend:
         sample_count: int,
         challenge_size: int,
     ) -> list[int]:
-        """Derive ``challenge_size`` distinct indices from a
-        commitment root via incremental HMAC expansion.
+        """Derive ``challenge_size`` distinct indices from the commitment root.
+
+        Uses incremental HMAC expansion over the root.
 
         Using HMAC-SHA256 as the PRF makes the challenge derivation
         publicly reproducible (both sides can derive it offline)
@@ -231,19 +242,25 @@ class ZkSnarkBackend(Protocol):
     """
 
     @property
-    def kind(self) -> str: ...
+    def kind(self) -> str:
+        """Return the SNARK scheme tag (for example ``"groth16"``)."""
+        ...
 
     def prove(
         self,
         statement: AttestationStatement,
         samples: Sequence[HistorySample],
-    ) -> bytes: ...
+    ) -> bytes:
+        """Produce a serialised SNARK proof for ``statement`` over ``samples``."""
+        ...
 
     def verify(
         self,
         statement: AttestationStatement,
         proof_bytes: bytes,
-    ) -> tuple[bool, str]: ...
+    ) -> tuple[bool, str]:
+        """Return ``(accepted, reason)`` for ``proof_bytes`` against ``statement``."""
+        ...
 
 
 def _sum_float(values: list[float]) -> float:

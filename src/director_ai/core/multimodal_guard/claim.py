@@ -30,6 +30,7 @@ class MultimodalClaim:
     text_claim: str
 
     def __post_init__(self) -> None:
+        """Require non-empty image bytes and a non-blank text claim."""
         if not self.image_bytes:
             raise ValueError("MultimodalClaim.image_bytes must be non-empty")
         if not self.text_claim or not self.text_claim.strip():

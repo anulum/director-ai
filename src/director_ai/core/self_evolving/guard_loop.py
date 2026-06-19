@@ -44,6 +44,7 @@ class ReviewedFeedbackManifest:
     event_refs: Sequence[str]
 
     def __post_init__(self) -> None:
+        """Require a manifest id and a source reference."""
         if not self.manifest_id.strip():
             raise ValueError("manifest_id is required")
         if not self.source_ref.strip():
@@ -82,6 +83,7 @@ class GuardLoopProposal:
     approval_id: str = ""
 
     def __post_init__(self) -> None:
+        """Require a proposal id and a known proposal type."""
         if not self.proposal_id.strip():
             raise ValueError("proposal_id is required")
         if self.proposal_type not in {"calibration_update", "lora_training_job"}:

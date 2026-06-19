@@ -6,8 +6,7 @@
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI — swarm economic risk scorer
 
-"""Inter-agent resource economics and tragedy-of-the-commons
-detection.
+"""Inter-agent resource economics and tragedy-of-the-commons detection.
 
 When multiple agents share a bounded resource (LLM tokens, GPU
 minutes, database IO), individually rational consumption can

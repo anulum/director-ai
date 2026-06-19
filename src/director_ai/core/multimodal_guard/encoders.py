@@ -37,6 +37,7 @@ except ImportError:  # pragma: no cover - mandatory accelerator guard
     _RUST_MULTIMODAL_ENCODERS = True
 
     def rust_sum_f64(_values: list[float]) -> float:
+        """Raise because the compiled ``rust_sum_f64`` kernel is unavailable."""
         raise RuntimeError("backfire_kernel rust_sum_f64 is unavailable")
 
 
@@ -48,12 +49,13 @@ _UINT64_MASK = 0xFFFFFFFFFFFFFFFF
 
 @runtime_checkable
 class ImageEncoder(Protocol):
-    """Anything that returns a fixed-dim, unit-norm embedding for
-    an image byte payload."""
+    """Return a fixed-dim, unit-norm embedding for an image byte payload."""
 
     dim: int
 
-    def encode(self, image_bytes: bytes) -> tuple[float, ...]: ...
+    def encode(self, image_bytes: bytes) -> tuple[float, ...]:
+        """Return the unit-norm embedding for ``image_bytes``."""
+        ...
 
 
 class HashBagImageEncoder:
@@ -79,6 +81,7 @@ class HashBagImageEncoder:
         self._chunk = chunk
 
     def encode(self, image_bytes: bytes) -> tuple[float, ...]:
+        """Return the FNV-1a hash-bag embedding for ``image_bytes``."""
         if not image_bytes:
             raise ValueError("image_bytes must be non-empty")
         bag = [0.0] * self.dim
@@ -150,6 +153,7 @@ class TorchCLIPImageEncoder:
         return cls(model=model, preprocess=preprocess, dim=dim, device=device)
 
     def encode(self, image_bytes: bytes) -> tuple[float, ...]:
+        """Return the CLIP image embedding for ``image_bytes``."""
         if not image_bytes:
             raise ValueError("image_bytes must be non-empty")
         try:

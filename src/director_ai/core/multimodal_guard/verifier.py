@@ -32,6 +32,7 @@ except ImportError:  # pragma: no cover - mandatory accelerator guard
     _RUST_MULTIMODAL_VERIFIER = True
 
     def rust_sum_f64(_values: list[float]) -> float:
+        """Raise because the compiled ``rust_sum_f64`` kernel is unavailable."""
         raise RuntimeError("backfire_kernel rust_sum_f64 is unavailable")
 
 
@@ -50,12 +51,15 @@ class CrossModalVerifier(Protocol):
         self,
         image_embedding: tuple[float, ...],
         text: str,
-    ) -> float: ...
+    ) -> float:
+        """Return the cross-modal similarity of ``image_embedding`` and ``text``."""
+        ...
 
 
 class HashBagCrossModalVerifier:
-    """Cosine similarity between an image hash-bag and a text
-    hash-bag produced by the same FNV-1a family.
+    """Cosine similarity between an image hash-bag and a text hash-bag.
+
+    Both vectors come from the same FNV-1a hashing family.
 
     Parameters
     ----------
@@ -78,6 +82,7 @@ class HashBagCrossModalVerifier:
         image_embedding: tuple[float, ...],
         text: str,
     ) -> float:
+        """Return the hash-bag cosine similarity of the image and ``text``."""
         if len(image_embedding) != self.dim:
             raise ValueError(
                 f"image embedding dim {len(image_embedding)} != verifier dim {self.dim}"
@@ -100,8 +105,7 @@ class HashBagCrossModalVerifier:
 
 
 class TorchCLIPCrossModalVerifier:
-    """``open_clip`` text encoder + cosine against an image
-    embedding.
+    """``open_clip`` text encoder scored by cosine against an image embedding.
 
     Construct via :meth:`from_pretrained` or pass a loaded
     ``(model, tokenizer)`` pair directly — the typical pattern is
@@ -135,6 +139,7 @@ class TorchCLIPCrossModalVerifier:
         *,
         device: str = "cpu",
     ) -> TorchCLIPCrossModalVerifier:
+        """Load an ``open_clip`` model and wrap it as a cross-modal verifier."""
         try:
             import open_clip
         except ImportError as exc:
@@ -155,6 +160,7 @@ class TorchCLIPCrossModalVerifier:
         image_embedding: tuple[float, ...],
         text: str,
     ) -> float:
+        """Return the CLIP cosine similarity of the image embedding and ``text``."""
         if len(image_embedding) != self.dim:
             raise ValueError(
                 f"image embedding dim {len(image_embedding)} != verifier dim {self.dim}"
