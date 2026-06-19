@@ -23,7 +23,7 @@ from dataclasses import dataclass
 
 import pytest
 
-from director_ai._cli_gate import _parse_args
+from director_ai._cli_gate import _cmd_ci_gate, _parse_args
 from director_ai.ci_gate import (
     CaseOutcome,
     EvalCase,
@@ -48,6 +48,22 @@ class _StubScorer:
 
     def review(self, prompt: str, response: str) -> tuple[bool, _Score]:
         return response in self._approve, _Score(self._score)
+
+
+class _CliConfig:
+    def build_scorer(self) -> object:
+        return object()
+
+
+@dataclass(frozen=True)
+class _CliReport:
+    passed: bool
+
+    def summary_lines(self) -> list[str]:
+        return ["ci gate: PASS" if self.passed else "ci gate: FAIL"]
+
+    def to_dict(self) -> dict[str, object]:
+        return {"passed": self.passed, "total": 1}
 
 
 def _case(resp: str, expected: str, cid: str = "") -> EvalCase:
@@ -270,3 +286,105 @@ class TestCliParser:
 
     def test_rejects_unknown_flag(self):
         assert _parse_args(["--dataset", "c", "--bogus"]) is None
+
+    def test_rejects_non_numeric_optional_threshold(self):
+        assert _parse_args(["--dataset", "c", "--min-catch-rate", "high"]) is None
+
+
+class TestCliCommand:
+    def test_usage_error_exits_two(self):
+        with pytest.raises(SystemExit) as exc:
+            _cmd_ci_gate(["--min-accuracy", "0.9"])
+
+        assert exc.value.code == 2
+
+    def test_load_error_exits_two(self, tmp_path, capsys):
+        missing = tmp_path / "missing.jsonl"
+
+        with pytest.raises(SystemExit) as exc:
+            _cmd_ci_gate(["--dataset", str(missing)])
+
+        assert exc.value.code == 2
+        assert "Error:" in capsys.readouterr().out
+
+    def test_profile_run_writes_report(self, tmp_path, monkeypatch, capsys):
+        import director_ai.ci_gate as ci_gate_mod
+        import director_ai.core.config as config_mod
+
+        dataset = tmp_path / "cases.jsonl"
+        output = tmp_path / "gate.json"
+        dataset.write_text(
+            '{"prompt": "p", "response": "r", "expected": "approve"}\n',
+            encoding="utf-8",
+        )
+        seen: dict[str, object] = {}
+
+        def fake_run_eval_gate(cases, scorer, thresholds):
+            seen["case_count"] = len(cases)
+            seen["scorer"] = scorer
+            seen["min_accuracy"] = thresholds.min_accuracy
+            seen["min_catch_rate"] = thresholds.min_catch_rate
+            seen["max_false_halt_rate"] = thresholds.max_false_halt_rate
+            return _CliReport(passed=True)
+
+        monkeypatch.setattr(
+            config_mod.DirectorConfig,
+            "from_profile",
+            classmethod(lambda cls, profile: _CliConfig()),
+        )
+        monkeypatch.setattr(ci_gate_mod, "run_eval_gate", fake_run_eval_gate)
+
+        with pytest.raises(SystemExit) as exc:
+            _cmd_ci_gate(
+                [
+                    "--dataset",
+                    str(dataset),
+                    "--profile",
+                    "medical",
+                    "--min-accuracy",
+                    "0.9",
+                    "--min-catch-rate",
+                    "0.8",
+                    "--max-false-halt",
+                    "0.1",
+                    "--output",
+                    str(output),
+                ]
+            )
+
+        assert exc.value.code == 0
+        assert seen == {
+            "case_count": 1,
+            "scorer": seen["scorer"],
+            "min_accuracy": 0.9,
+            "min_catch_rate": 0.8,
+            "max_false_halt_rate": 0.1,
+        }
+        assert output.read_text(encoding="utf-8").startswith('{\n  "passed": true')
+        assert "report written" in capsys.readouterr().out
+
+    def test_failed_env_run_exits_one(self, tmp_path, monkeypatch):
+        import director_ai.ci_gate as ci_gate_mod
+        import director_ai.core.config as config_mod
+
+        dataset = tmp_path / "cases.jsonl"
+        dataset.write_text(
+            '{"prompt": "p", "response": "r", "expected": "reject"}\n',
+            encoding="utf-8",
+        )
+
+        monkeypatch.setattr(
+            config_mod.DirectorConfig,
+            "from_env",
+            classmethod(lambda cls: _CliConfig()),
+        )
+        monkeypatch.setattr(
+            ci_gate_mod,
+            "run_eval_gate",
+            lambda cases, scorer, thresholds: _CliReport(passed=False),
+        )
+
+        with pytest.raises(SystemExit) as exc:
+            _cmd_ci_gate(["--dataset", str(dataset)])
+
+        assert exc.value.code == 1
