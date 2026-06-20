@@ -15,10 +15,26 @@ with voice_pipeline(), and performance documentation.
 
 from __future__ import annotations
 
+from types import SimpleNamespace
+
+import pytest
+
+from director_ai.core.retrieval.knowledge import GroundTruthStore
 from director_ai.integrations.voice import VoiceGuard, VoiceToken
 
 
 class TestVoiceGuardBasic:
+    def test_rejects_non_positive_max_context_tokens(self):
+        with pytest.raises(ValueError, match="max_context_tokens"):
+            VoiceGuard(use_nli=False, max_context_tokens=0)
+
+    def test_uses_injected_ground_truth_store(self):
+        store = GroundTruthStore()
+
+        guard = VoiceGuard(store=store, use_nli=False)
+
+        assert guard._store is store
+
     def test_approved_tokens_pass_through(self):
         guard = VoiceGuard(
             facts={"sky": "The sky is blue."},
@@ -100,6 +116,42 @@ class TestVoiceGuardSoftHalt:
             halt_token = halted_tokens[0]
             assert halt_token.token.rstrip().endswith(".")
 
+    def test_window_average_halts_immediately_when_soft_halt_disabled(self):
+        guard = VoiceGuard(
+            use_nli=False,
+            score_every=1,
+            threshold=0.5,
+            hard_limit=0.1,
+            window_size=2,
+            soft_halt=False,
+        )
+        guard._scorer = _ScoreSequence([0.4, 0.4])
+
+        first = guard.feed("alpha ")
+        second = guard.feed("beta ")
+
+        assert first.halted is False
+        assert second.halted is True
+        assert second.halt_reason == "window_avg"
+
+    def test_window_average_above_threshold_allows_token(self):
+        guard = VoiceGuard(
+            use_nli=False,
+            score_every=1,
+            threshold=0.5,
+            hard_limit=0.1,
+            window_size=2,
+            soft_halt=False,
+        )
+        guard._scorer = _ScoreSequence([0.8, 0.8])
+
+        guard.feed("alpha ")
+        result = guard.feed("beta ")
+
+        assert result.approved is True
+        assert result.halted is False
+        assert result.coherence == 0.8
+
 
 class TestVoiceGuardScoring:
     def test_coherence_scores_are_in_range(self):
@@ -150,3 +202,11 @@ class TestVoiceToken:
         assert vt.token == "hello"
         assert vt.halted is False
         assert vt.recovery_text == ""
+
+
+class _ScoreSequence:
+    def __init__(self, scores: list[float]) -> None:
+        self._scores = list(scores)
+
+    def review(self, _premise: str, _response: str):
+        return True, SimpleNamespace(score=self._scores.pop(0))
