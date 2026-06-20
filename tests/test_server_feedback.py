@@ -123,3 +123,11 @@ class TestServerFeedback:
         with _feedback_client(tmp_path) as client:
             resp = client.get("/v1/feedback/calibration?min_corrections=0")
         assert resp.status_code == 400
+
+    def test_calibration_requires_configured_store(self):
+        cfg = DirectorConfig(mode="general", use_nli=False, sanitize_inputs=False)
+        app = create_app(cfg)
+        with TestClient(app) as client:
+            resp = client.get("/v1/feedback/calibration")
+        assert resp.status_code == 503
+        assert resp.json()["detail"] == "Feedback store not configured"

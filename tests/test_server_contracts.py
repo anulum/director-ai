@@ -419,12 +419,22 @@ def test_batch_process_with_real_processor_records_api_metrics_once() -> None:
 
 
 def test_verify_endpoint_context_paths(monkeypatch) -> None:
+    class FakeRedactor:
+        enabled = True
+
+        def redact(self, text: str) -> str:
+            return text.replace("secret", "[REDACTED]")
+
     class EmptyStore:
         def retrieve_context(self, prompt: str, top_k: int, tenant_id: str = ""):
             return ""
 
     class ContextStore:
+        def __init__(self) -> None:
+            self.calls: list[tuple[str, int, str]] = []
+
         def retrieve_context(self, prompt: str, top_k: int, tenant_id: str = ""):
+            self.calls.append((prompt, top_k, tenant_id))
             return "Paris is the capital of France."
 
     class FakeVerifiedScorer:
@@ -432,7 +442,7 @@ def test_verify_endpoint_context_paths(monkeypatch) -> None:
             self.nli_scorer = nli_scorer
 
         def verify(self, response: str, context: str):
-            assert response == "Paris is in France."
+            assert response == "Paris is in [REDACTED]."
             assert context == "Paris is the capital of France."
             return SimpleNamespace(
                 to_dict=lambda: {
@@ -450,21 +460,35 @@ def test_verify_endpoint_context_paths(monkeypatch) -> None:
 
     with _client() as client:
         scorer = client.app.state._state["scorer"]
+        del scorer.ground_truth_store
+        no_store = client.post(
+            "/v1/verify",
+            json={"prompt": "Where is Paris?", "response": "Paris is in France."},
+        )
         scorer.ground_truth_store = EmptyStore()
         empty = client.post(
             "/v1/verify",
             json={"prompt": "Where is Paris?", "response": "Paris is in France."},
         )
-        scorer.ground_truth_store = ContextStore()
+        context_store = ContextStore()
+        scorer.ground_truth_store = context_store
+        client.app.state._state["redactor"] = FakeRedactor()
         verified = client.post(
             "/v1/verify",
-            json={"prompt": "Where is Paris?", "response": "Paris is in France."},
+            json={
+                "prompt": "secret: Where is Paris?",
+                "response": "Paris is in secret.",
+            },
+            headers={"X-Tenant-ID": "tenant-a"},
         )
 
+    assert no_store.status_code == 200
+    assert no_store.json()["reason"] == "No relevant context found in knowledge base"
     assert empty.status_code == 200
     assert empty.json()["reason"] == "No relevant context found in knowledge base"
     assert verified.status_code == 200
     assert verified.json()["approved"] is True
+    assert context_store.calls == [("[REDACTED]: Where is Paris?", 5, "tenant-a")]
 
 
 def test_injection_detection_endpoint_wires_config_and_intent(monkeypatch) -> None:
