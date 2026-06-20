@@ -16,7 +16,7 @@ real users, real money, real physical systems.
 
 from __future__ import annotations
 
-from typing import Literal, get_args
+from typing import Literal, cast, get_args
 
 ContainmentScope = Literal[
     "sandbox",
@@ -56,4 +56,7 @@ def validate_scope(scope: str) -> ContainmentScope:
         raise ValueError(
             f"unknown containment scope {scope!r}; expected one of {known}"
         )
-    return scope
+    # Membership in _ALL_SCOPES was verified above, so the str is one of the
+    # ContainmentScope literals. mypy 1.19.1 does not narrow a `not in` guard
+    # against a Literal tuple, so the cast pins that runtime guarantee.
+    return cast(ContainmentScope, scope)

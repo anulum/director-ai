@@ -13,7 +13,7 @@ from __future__ import annotations
 import math
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field
-from typing import Any, Literal
+from typing import Any, Literal, cast
 
 from director_ai.core.guard_control import GuardDecision, RiskEnvelope, VerifierSignal
 from director_ai.core.safety_event import SafetyEvent
@@ -317,7 +317,9 @@ def _validated_modalities(name: str, modalities: Sequence[str]) -> frozenset[Mod
     unsupported: list[str] = []
     for modality in modalities:
         if modality in _MODALITIES:
-            validated.append(modality)
+            # Membership check above guarantees the str is a Modality literal;
+            # mypy 1.19.1 does not narrow `in` against a frozenset[Modality].
+            validated.append(cast(Modality, modality))
         else:
             unsupported.append(modality)
     if unsupported:
