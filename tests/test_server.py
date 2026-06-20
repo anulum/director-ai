@@ -8,6 +8,7 @@
 """Multi-angle tests for FastAPI server pipeline."""
 
 from types import SimpleNamespace
+from unittest.mock import patch
 
 import pytest
 
@@ -408,6 +409,97 @@ class TestServerCoverageGaps:
     @staticmethod
     def _fast_config() -> DirectorConfig:
         return DirectorConfig.from_profile("fast")
+
+    def test_http_endpoint_label_handles_unmatched_and_partial_routes(self):
+        from starlette.routing import Match
+
+        from director_ai.server import _http_endpoint_label
+
+        class NoMatcher:
+            pass
+
+        class PartialMatcher:
+            path = "/partial"
+
+            def matches(self, _scope):
+                return Match.PARTIAL, {}
+
+        request = SimpleNamespace(
+            scope={"type": "http", "path": "/unknown"},
+            app=SimpleNamespace(routes=[NoMatcher(), PartialMatcher()]),
+        )
+
+        assert _http_endpoint_label(request) == "/partial"
+
+        request.app.routes = [NoMatcher()]
+        assert _http_endpoint_label(request) == "__unmatched__"
+
+    def test_create_app_uses_non_default_profile_from_environment(self, monkeypatch):
+        monkeypatch.setenv("DIRECTOR_PROFILE", "fast")
+
+        app = create_app()
+
+        assert app.state.config.profile == "fast"
+
+    def test_create_app_logs_loaded_managed_secrets(self, monkeypatch, caplog):
+        import director_ai.core.secrets as secrets_mod
+
+        monkeypatch.setattr(
+            secrets_mod,
+            "hydrate_managed_secrets",
+            lambda: {"DIRECTOR_API_KEY": "loaded"},
+        )
+
+        with caplog.at_level("INFO", logger="DirectorAI.Server"):
+            create_app(self._fast_config())
+
+        assert "Loaded 1 managed secret(s) from backend" in caplog.text
+
+    def test_lifespan_logs_commercial_and_trial_license_branches(self, caplog):
+        from director_ai.core.license import LicenseInfo
+
+        commercial = LicenseInfo(
+            key="commercial-key",
+            tier="enterprise",
+            licensee="ACME",
+            valid=True,
+        )
+        trial = LicenseInfo(
+            key="trial-key",
+            tier="trial",
+            expires="2026-12-31",
+            valid=True,
+        )
+
+        for license_info, expected in (
+            (commercial, "Licensed to ACME"),
+            (trial, "Trial license"),
+        ):
+            caplog.clear()
+            app = create_app(self._fast_config())
+            with (
+                patch(
+                    "director_ai.core.license.load_license", return_value=license_info
+                ),
+                caplog.at_level("INFO", logger="DirectorAI.Server"),
+                TestClient(app),
+            ):
+                pass
+            assert expected in caplog.text
+
+    def test_lifespan_runs_otel_setup_when_enabled(self, monkeypatch):
+        import director_ai.core.otel as otel_mod
+
+        calls: list[str] = []
+        monkeypatch.setattr(otel_mod, "setup_otel", lambda: calls.append("setup"))
+        cfg = self._fast_config()
+        cfg.otel_enabled = True
+        app = create_app(cfg)
+
+        with TestClient(app):
+            pass
+
+        assert calls == ["setup"]
 
     def test_health_reports_commercial_and_trial_license_branches(self):
         app = create_app(self._fast_config())
