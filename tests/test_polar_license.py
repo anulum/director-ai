@@ -870,6 +870,8 @@ def test_polar_customer_portal_session_rejects_invalid_inputs(monkeypatch):
         )
     with pytest.raises(ValueError, match="identifier must be non-empty"):
         create_polar_customer_portal_session(customer_id=" ")
+    with pytest.raises(ValueError, match="identifier must be non-empty"):
+        create_polar_customer_portal_session(customer_external_id=" ")
 
 
 def test_polar_customer_portal_session_reports_response_failures(monkeypatch):
