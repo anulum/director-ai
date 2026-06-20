@@ -72,6 +72,32 @@ class TestSoftmax:
         assert result[0] > result[1]
         assert abs(result.sum() - 1.0) < 1e-6
 
+    def test_python_softmax_floor_when_rust_disabled(self, monkeypatch):
+        monkeypatch.setattr(distilled_mod, "_RUST_DISTILLED", False)
+
+        result = _softmax(np.array([1.0, 2.0, 3.0]))
+
+        assert result[2] > result[1] > result[0]
+        assert result.sum() == pytest.approx(1.0)
+
+    def test_python_sum_floor_when_rust_disabled(self, monkeypatch):
+        monkeypatch.setattr(distilled_mod, "_RUST_DISTILLED", False)
+
+        assert distilled_mod._sum_float_list([0.25, 0.5, 1.25]) == pytest.approx(2.0)
+
+    def test_rust_sum_helper_delegates_when_enabled(self, monkeypatch):
+        monkeypatch.setattr(distilled_mod, "_RUST_DISTILLED", True)
+        calls: dict[str, object] = {}
+
+        def rust_sum(values: list[float]) -> float:
+            calls["values"] = values
+            return 2.5
+
+        monkeypatch.setattr(distilled_mod, "rust_sum_f64", rust_sum, raising=True)
+
+        assert distilled_mod._sum_float_list([1.0, 1.5]) == pytest.approx(2.5)
+        assert calls["values"] == [1.0, 1.5]
+
 
 # ── Construction ────────────────────────────────────────────────────────
 
@@ -415,6 +441,61 @@ class TestOnnxPath:
             backend.score("Fact.", "Claim.")
 
         pytorch.assert_not_called()
+
+    def test_ensure_loaded_can_start_directly_with_pytorch(self, monkeypatch):
+        backend = DistilledNLIBackend(use_onnx=False)
+        onnx = MagicMock()
+        pytorch = MagicMock()
+        monkeypatch.setattr(backend, "_load_onnx", onnx)
+        monkeypatch.setattr(backend, "_load_pytorch", pytorch)
+
+        backend._ensure_loaded()
+
+        onnx.assert_not_called()
+        pytorch.assert_called_once_with()
+        assert backend._ready is True
+
+    def test_load_pytorch_rejects_missing_model_object(self, monkeypatch):
+        calls: dict[str, object] = {}
+
+        class FakeTokenizer:
+            @classmethod
+            def from_pretrained(cls, model_path, *, revision):
+                calls["tokenizer_model_path"] = model_path
+                calls["tokenizer_revision"] = revision
+                return cls()
+
+        class FakeModelFactory:
+            @classmethod
+            def from_pretrained(cls, model_path, *, revision):
+                calls["model_path"] = model_path
+                calls["model_revision"] = revision
+                return None
+
+        fake_transformers = types.ModuleType("transformers")
+        fake_transformers.AutoTokenizer = FakeTokenizer
+        fake_transformers.AutoModelForSequenceClassification = FakeModelFactory
+        fake_torch = types.ModuleType("torch")
+        monkeypatch.setitem(sys.modules, "transformers", fake_transformers)
+        monkeypatch.setitem(sys.modules, "torch", fake_torch)
+
+        backend = DistilledNLIBackend(use_onnx=False)
+
+        with pytest.raises(RuntimeError, match="did not load"):
+            backend._load_pytorch()
+
+        assert calls["tokenizer_model_path"] == DEFAULT_DISTILLED_MODEL
+        assert calls["model_path"] == DEFAULT_DISTILLED_MODEL
+
+    def test_infer_requires_loaded_tokeniser_and_model(self):
+        backend = DistilledNLIBackend()
+
+        with pytest.raises(RuntimeError, match="tokeniser not loaded"):
+            backend._infer("premise", "hypothesis")
+
+        backend._tokeniser = lambda *_args, **_kwargs: {}
+        with pytest.raises(RuntimeError, match="PyTorch model not loaded"):
+            backend._infer("premise", "hypothesis")
 
 
 # ── PyTorch fallback path (mocked) ─────────────────────────────────────
