@@ -30,12 +30,18 @@ class TestChunker:
     @pytest.mark.parametrize(
         ("kwargs", "message"),
         [
+            ({"chunk_size": True}, "chunk_size"),
+            ({"chunk_size": 1.5}, "chunk_size"),
             ({"chunk_size": 0}, "chunk_size"),
             ({"chunk_size": -1}, "chunk_size"),
+            ({"chunk_size": 8, "overlap": False}, "overlap"),
+            ({"chunk_size": 8, "overlap": 1.5}, "overlap"),
             ({"chunk_size": 8, "overlap": -1}, "overlap"),
             ({"chunk_size": 8, "overlap": 8}, "overlap"),
             ({"separators": ()}, "separators"),
             ({"separators": ("\n", object())}, "separators"),
+            ({"similarity_threshold": True}, "similarity_threshold"),
+            ({"similarity_threshold": "0.5"}, "similarity_threshold"),
             ({"similarity_threshold": -0.01}, "similarity_threshold"),
             ({"similarity_threshold": 1.01}, "similarity_threshold"),
         ],
@@ -76,6 +82,14 @@ class TestChunker:
         chunks = split(text, ChunkConfig(chunk_size=100, overlap=10))
         assert len(chunks) >= 5
 
+    def test_recursive_split_returns_short_text_directly(self):
+        assert doc_chunker._recursive_split("short", (" ",), 10, 0) == ["short"]
+
+    def test_recursive_split_force_splits_when_no_remaining_separator(self):
+        chunks = doc_chunker._recursive_split("A,xBBBBBBBB", (",",), 4, 0)
+
+        assert chunks == ["A", "xBBB", "BBBB", "B"]
+
     def test_sentence_semantic_mode_falls_back_without_embedding_backend(
         self, monkeypatch
     ):
@@ -96,6 +110,24 @@ class TestChunker:
         assert len(chunks) >= 2
         assert "refund policy" in chunks[0]
         assert any("sensor should halt" in chunk for chunk in chunks)
+
+    def test_semantic_mode_uses_python_sentence_split_when_rust_disabled(
+        self, monkeypatch
+    ):
+        monkeypatch.setattr(doc_chunker, "_RUST_DOC_CHUNKER", False)
+        monkeypatch.setattr(doc_chunker, "_embed_sentences", lambda _sentences: None)
+
+        text = "Alpha sentence. Beta sentence. Gamma sentence."
+        chunks = split(text, ChunkConfig(chunk_size=25, overlap=0, semantic=True))
+
+        assert chunks
+
+    def test_semantic_mode_single_python_sentence_falls_back(self, monkeypatch):
+        monkeypatch.setattr(doc_chunker, "_RUST_DOC_CHUNKER", False)
+
+        chunks = split("A" * 40, ChunkConfig(chunk_size=10, overlap=0, semantic=True))
+
+        assert chunks == ["AAAAAAAAAA", "AAAAAAAAAA", "AAAAAAAAAA", "AAAAAAAAAA"]
 
     def test_semantic_mode_splits_on_embedding_topic_shift(self, monkeypatch):
         """Low cosine similarity between neighbouring sentences creates chunks."""
@@ -170,6 +202,34 @@ class TestChunker:
         }
         np.testing.assert_allclose(result, [[1.0, 0.0], [0.0, 1.0]])
 
+    def test_sentence_transformer_model_moves_to_cpu_when_device_arg_is_unsupported(
+        self, monkeypatch
+    ):
+        doc_chunker._sentence_transformer_model.cache_clear()
+        calls: list[str] = []
+
+        class FakeSentenceTransformer:
+            def __init__(self, model_name, device=None):
+                calls.append(f"init:{model_name}:{device}")
+                if device is not None:
+                    raise TypeError("device keyword unsupported")
+
+            def to(self, device):
+                calls.append(f"to:{device}")
+
+        fake_module = types.ModuleType("sentence_transformers")
+        fake_module.SentenceTransformer = FakeSentenceTransformer
+        monkeypatch.setitem(sys.modules, "sentence_transformers", fake_module)
+
+        model = doc_chunker._sentence_transformer_model()
+
+        assert isinstance(model, FakeSentenceTransformer)
+        assert calls == [
+            "init:all-MiniLM-L6-v2:cpu",
+            "init:all-MiniLM-L6-v2:None",
+            "to:cpu",
+        ]
+
     def test_embed_sentences_returns_none_when_backend_missing(self, monkeypatch):
         doc_chunker._sentence_transformer_model.cache_clear()
         monkeypatch.setitem(sys.modules, "sentence_transformers", None)
@@ -235,6 +295,12 @@ class TestChunker:
         chunks = split(text, ChunkConfig(chunk_size=25, overlap=0, semantic=True))
 
         assert chunks
+
+    def test_sum_float_list_empty_and_python_paths(self, monkeypatch):
+        monkeypatch.setattr(doc_chunker, "_RUST_DOC_CHUNKER", False)
+
+        assert doc_chunker._sum_float_list([]) == 0.0
+        assert doc_chunker._sum_float_list([1.25, 2.75]) == 4.0
 
 
 class TestParser:
