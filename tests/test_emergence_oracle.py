@@ -361,6 +361,12 @@ class TestEmergenceOracle:
 
 
 class TestEmergenceRustSums:
+    def test_sum_float_empty_and_python_paths(self, monkeypatch):
+        monkeypatch.setattr(oracle_mod, "_RUST_EMERGENCE", False)
+
+        assert oracle_mod._sum_float([]) == 0.0
+        assert oracle_mod._sum_float([0.25, 0.75]) == pytest.approx(1.0)
+
     def test_rust_sum_kernel_is_used_when_available(self, monkeypatch):
         monkeypatch.setattr(oracle_mod, "_RUST_EMERGENCE", True)
         called = {"count": 0}
