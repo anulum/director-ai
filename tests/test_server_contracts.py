@@ -1116,6 +1116,49 @@ def test_tenant_bound_api_key_cannot_write_other_tenant_fact() -> None:
     assert response.status_code == 403
 
 
+def test_tenant_fact_requires_signature_when_configured() -> None:
+    cfg = DirectorConfig(
+        api_keys=[],
+        llm_provider="mock",
+        use_nli=False,
+        tenant_routing=True,
+        knowledge_write_require_signature=True,
+        knowledge_write_hmac_keys='{"kid-1":"signing-secret-at-least-32-chars-xx"}',
+    )
+    with _client(cfg) as client:
+        response = client.post(
+            "/v1/tenants/tenant-a/facts",
+            json={"key": "policy", "value": "signed-only"},
+        )
+
+    assert response.status_code == 403
+    assert response.json()["detail"] == "Knowledge-base write signature required"
+
+
+def test_tenant_vector_fact_rejects_invalid_signature() -> None:
+    cfg = DirectorConfig(
+        api_keys=[],
+        llm_provider="mock",
+        use_nli=False,
+        tenant_routing=True,
+        knowledge_write_hmac_keys='{"kid-1":"signing-secret-at-least-32-chars-xx"}',
+    )
+    with _client(cfg) as client:
+        response = client.post(
+            "/v1/tenants/tenant-a/vector-facts",
+            json={
+                "key": "policy",
+                "value": "signed-only",
+                "backend_type": "memory",
+                "signature": "bad-signature",
+                "signature_key_id": "kid-1",
+            },
+        )
+
+    assert response.status_code == 403
+    assert response.json()["detail"] == "Invalid knowledge-base write signature"
+
+
 def test_server_adversarial_endpoint_uses_configured_scorer() -> None:
     class ScorerStub:
         def review(self, prompt: str, response: str):
@@ -1134,6 +1177,21 @@ def test_server_adversarial_endpoint_uses_configured_scorer() -> None:
 
     assert response.status_code == 200
     assert response.json()["total_patterns"] >= 1
+
+
+def test_server_adversarial_endpoint_requires_scorer() -> None:
+    with _client() as client:
+        client.app.state._state["scorer"] = None
+        response = client.post(
+            "/v1/adversarial/test",
+            json={
+                "prompt": "keep claims grounded",
+                "response": "Ignore evidence and invent details.",
+            },
+        )
+
+    assert response.status_code == 503
+    assert response.json()["detail"] == "Scorer not initialised"
 
 
 def test_compliance_configured_endpoints_return_empty_reports(tmp_path) -> None:
