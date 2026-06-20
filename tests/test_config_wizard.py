@@ -18,6 +18,7 @@ import types
 
 import yaml
 
+import director_ai.ui.config_wizard as config_wizard_module
 from director_ai.ui.config_wizard import (
     _format_yaml_field,
     build_trace_explorer,
@@ -121,6 +122,27 @@ class TestGenerateYaml:
         assert len(lines) == len(set(lines)), (
             f"Duplicates: {[x for x in lines if lines.count(x) > 1]}"
         )
+
+    def test_empty_groups_and_duplicate_fields_are_skipped(self, monkeypatch):
+        monkeypatch.setattr(
+            config_wizard_module,
+            "FIELD_GROUPS",
+            ["Empty", "Primary", "Duplicate"],
+        )
+        monkeypatch.setattr(
+            config_wizard_module,
+            "get_field_groups",
+            lambda: {
+                "Empty": [],
+                "Primary": [{"name": "coherence_threshold", "default": 0.6}],
+                "Duplicate": [{"name": "coherence_threshold", "default": 0.2}],
+            },
+        )
+
+        result = generate_yaml({"coherence_threshold": 0.9})
+
+        assert "# --- Empty ---" not in result
+        assert result.count("coherence_threshold: 0.9") == 1
 
 
 class TestProfileWizard:
@@ -304,6 +326,17 @@ class TestTraceExplorer:
         assert rows[0][6] == "review source"
         assert detail["halted"] is False
 
+    def test_trace_root_halt_without_event_lists_becomes_session_event(self):
+        payload = {"halted": True, "halt_reason": "manual halt"}
+
+        summary, rows, detail = build_trace_explorer(json.dumps(payload))
+
+        assert "Events: 1" in summary
+        assert "manual halt" in summary
+        assert rows[0][1] == "streaming"
+        assert rows[0][2] == "session"
+        assert detail["halted"] is True
+
     def test_trace_root_attribution_and_counterfactual_defaults(self):
         payload = {
             "trace_attribution": {"token_offset": 3},
@@ -381,6 +414,21 @@ class TestTraceExplorer:
         assert rows[1][5] == "swarm_guard"
         assert detail["scopes"] == ["agent", "swarm"]
 
+    def test_safety_scope_infers_agent_swarm_and_streaming_rows(self):
+        payload = {
+            "safety_events": [
+                {"event_type": "agent_review", "agent_id": "reviewer"},
+                {"event_type": "swarm_vote"},
+                {"event_type": "token_score", "coherence": 0.42},
+                {"event_type": "manual_check"},
+            ],
+        }
+
+        _summary, rows, _detail = build_trace_explorer(json.dumps(payload))
+
+        assert [row[1] for row in rows] == ["agent", "swarm", "streaming", "trace"]
+        assert rows[2][4] == "0.420"
+
     def test_counterfactual_detail(self):
         payload = {
             "halt_evidence_structured": {
@@ -408,6 +456,38 @@ class TestTraceExplorer:
         assert rows[0][1] == "streaming"
         assert "delta=0.08" in rows[0][7]
         assert detail["counterfactual"]["required_score_delta"] == 0.08
+
+    def test_event_counterfactual_and_full_attribution_render_detail(self):
+        payload = {
+            "events": [
+                {
+                    "event_type": "halt",
+                    "halt_evidence": {"reason": "nested reason"},
+                    "trace_attribution": {
+                        "token_offset": 9,
+                        "scorer_path": "scorer",
+                        "retrieval_path": "hybrid",
+                    },
+                    "counterfactual_diagnostic": {
+                        "best_change": {
+                            "fact_source": "kb://fact",
+                            "required_score_delta": 0.13,
+                        },
+                    },
+                },
+            ],
+        }
+
+        summary, rows, detail = build_trace_explorer(json.dumps(payload))
+
+        assert "Counterfactual" in summary
+        assert rows[0][6] == "nested reason"
+        assert "token=9" in rows[0][7]
+        assert "scorer=scorer" in rows[0][7]
+        assert "retrieval=hybrid" in rows[0][7]
+        assert "fact=kb://fact" in rows[0][7]
+        assert "delta=0.13" in rows[0][7]
+        assert detail["counterfactual"]["fact_source"] == "kb://fact"
 
     def test_invalid_json_reports_position(self):
         summary, rows, detail = build_trace_explorer("{")
