@@ -75,6 +75,18 @@ class TestConnectionCaps:
                 ws2.send_json({"prompt": "hi again", "session_id": "s2"})
                 assert ws2.receive_json()["session_id"] == "s2"
 
+    def test_closing_one_of_multiple_connections_preserves_remaining_slot(self):
+        with (
+            TestClient(_app()) as client,
+            client.websocket_connect("/v1/stream") as ws1,
+        ):
+            with client.websocket_connect("/v1/stream") as ws2:
+                ws2.send_json({"prompt": "second connection", "session_id": "s2"})
+                assert ws2.receive_json()["session_id"] == "s2"
+
+            ws1.send_json({"prompt": "first still active", "session_id": "s1"})
+            assert ws1.receive_json()["session_id"] == "s1"
+
 
 class TestRateLimit:
     def test_message_rate_limit(self, monkeypatch):

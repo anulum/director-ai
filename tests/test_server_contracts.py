@@ -1000,6 +1000,26 @@ def test_server_tenant_fact_and_vector_writes() -> None:
     assert invalid.status_code == 400
 
 
+def test_tenant_fact_write_denies_unauthenticated_when_required() -> None:
+    cfg = DirectorConfig(
+        api_keys=[],
+        llm_provider="mock",
+        use_nli=False,
+        tenant_routing=True,
+        knowledge_write_require_auth=True,
+        knowledge_write_require_tenant_binding=False,
+        knowledge_write_require_signature=False,
+    )
+    with _client(cfg) as client:
+        response = client.post(
+            "/v1/tenants/t1/facts",
+            json={"key": "policy", "value": "auth-required"},
+        )
+
+    assert response.status_code == 403
+    assert response.json()["detail"] == "Knowledge-base writes require authentication"
+
+
 def test_server_session_get_delete_and_owner_isolation() -> None:
     session = ConversationSession(session_id="session-a")
     session.add_turn("prompt", "response", 0.7)

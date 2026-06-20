@@ -9,6 +9,8 @@
 
 import asyncio
 import json
+import time
+from types import SimpleNamespace
 
 import pytest
 
@@ -188,6 +190,72 @@ class TestWSMuxProtocol:
             resp = ws.receive_json()
 
         assert resp == {"session_id": "active", "type": "cancelled"}
+
+    def test_duplicate_session_is_rejected_while_active(self, client):
+        class SlowAgent:
+            async def aprocess(self, prompt, tenant_id="", cancel_event=None):
+                del prompt, tenant_id, cancel_event
+                await asyncio.sleep(5)
+                raise AssertionError("active duplicate test should close first")
+
+        client.app.state._state["agent"] = SlowAgent()
+        with client.websocket_connect("/v1/stream") as ws:
+            ws.send_json({"prompt": "slow", "session_id": "same-session"})
+            ws.send_json({"prompt": "still slow", "session_id": "same-session"})
+            resp = ws.receive_json()
+
+        assert resp == {
+            "session_id": "same-session",
+            "error": "session already active",
+        }
+
+    def test_active_session_cap_is_reported_per_connection(self, client, monkeypatch):
+        class SlowAgent:
+            async def aprocess(self, prompt, tenant_id="", cancel_event=None):
+                del prompt, tenant_id, cancel_event
+                await asyncio.sleep(5)
+                raise AssertionError("active cap test should close first")
+
+        monkeypatch.setattr(server_mod, "_WS_MAX_CONCURRENT", 1)
+        client.app.state._state["agent"] = SlowAgent()
+        with client.websocket_connect("/v1/stream") as ws:
+            ws.send_json({"prompt": "slow", "session_id": "first"})
+            ws.send_json({"prompt": "also slow", "session_id": "second"})
+            resp = ws.receive_json()
+
+        assert resp == {
+            "session_id": "second",
+            "error": "too many active sessions",
+        }
+
+    def test_agent_side_cancel_suppresses_process_result(self, client):
+        class CancelAfterProcessAgent:
+            def __init__(self):
+                self.calls = 0
+
+            async def aprocess(self, prompt, tenant_id="", cancel_event=None):
+                del prompt, tenant_id
+                self.calls += 1
+                if self.calls == 1 and cancel_event is not None:
+                    cancel_event.set()
+                return SimpleNamespace(
+                    output="done",
+                    coherence=None,
+                    halted=False,
+                    fallback_used=False,
+                    halt_evidence=None,
+                )
+
+        client.app.state._state["agent"] = CancelAfterProcessAgent()
+        with client.websocket_connect("/v1/stream") as ws:
+            ws.send_json({"prompt": "cancel after work", "session_id": "same"})
+            time.sleep(0.1)
+            ws.send_json({"prompt": "second work", "session_id": "same"})
+            resp = ws.receive_json()
+
+        assert resp["session_id"] == "same"
+        assert resp["type"] == "result"
+        assert resp["output"] == "done"
 
 
 class TestWSAuthHeaders:

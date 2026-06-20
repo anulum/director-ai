@@ -9,7 +9,10 @@
 
 from __future__ import annotations
 
+import logging
 import os
+import sys
+import types
 import uuid
 
 import pytest
@@ -56,6 +59,51 @@ def _map_only_app():
         llm_provider="mock",
     )
     return create_app(cfg)
+
+
+class _FakeRateLimitExceededError(Exception):
+    pass
+
+
+class _FakeSlowAPIMiddleware:
+    def __init__(self, app, *args, **kwargs):
+        del args, kwargs
+        self.app = app
+
+    async def __call__(self, scope, receive, send):
+        await self.app(scope, receive, send)
+
+
+class _FakeLimiter:
+    def __init__(self, *, key_func, default_limits, storage_uri):
+        self.key_func = key_func
+        self.default_limits = default_limits
+        self.storage_uri = storage_uri
+
+
+def _install_fake_slowapi(monkeypatch):
+    import director_ai.server as server_mod
+
+    fake_slowapi = types.ModuleType("slowapi")
+    fake_errors = types.ModuleType("slowapi.errors")
+    fake_errors.RateLimitExceeded = _FakeRateLimitExceededError
+    monkeypatch.setitem(sys.modules, "slowapi", fake_slowapi)
+    monkeypatch.setitem(sys.modules, "slowapi.errors", fake_errors)
+    monkeypatch.setattr(server_mod, "_SLOWAPI_AVAILABLE", True)
+    monkeypatch.setattr(server_mod, "Limiter", _FakeLimiter)
+    monkeypatch.setattr(
+        server_mod,
+        "SlowAPIMiddleware",
+        _FakeSlowAPIMiddleware,
+        raising=False,
+    )
+    monkeypatch.setattr(
+        server_mod,
+        "get_remote_address",
+        lambda request: getattr(request, "client", None) or "client",
+        raising=False,
+    )
+    return server_mod
 
 
 def test_map_only_config_enforces_auth():
@@ -328,6 +376,61 @@ def test_rate_limiter_uses_redis_storage_uri(monkeypatch):
 
     assert app.state.limiter is not None
     assert app.state.limiter._storage_uri == "redis://localhost:6379/0"
+
+
+def test_rate_limiter_wires_redis_storage_without_slowapi_dependency(monkeypatch):
+    _install_fake_slowapi(monkeypatch)
+
+    cfg = DirectorConfig(
+        rate_limit_rpm=60,
+        redis_url="redis://redis.example/0",
+        llm_provider="mock",
+    )
+    app = create_app(cfg)
+
+    limiter = app.state.limiter
+    assert limiter.storage_uri == "redis://redis.example/0"
+    assert limiter.default_limits == ["60/minute"]
+    assert _FakeRateLimitExceededError in app.exception_handlers
+
+
+def test_rate_limiter_warns_for_multi_worker_inmemory_fake_slowapi(
+    caplog,
+    monkeypatch,
+):
+    _install_fake_slowapi(monkeypatch)
+
+    cfg = DirectorConfig(
+        api_keys=[],
+        llm_provider="mock",
+        rate_limit_rpm=60,
+        server_workers=2,
+    )
+    with caplog.at_level(logging.WARNING, logger="DirectorAI.Server"):
+        app = create_app(cfg)
+
+    assert app.state.limiter.storage_uri is None
+    assert "per worker process" in caplog.text
+
+
+def test_unbound_tenant_claim_logs_hashed_key_only(caplog):
+    cfg = DirectorConfig(
+        api_keys=["test-key-123"],
+        llm_provider="mock",
+    )
+
+    with (
+        caplog.at_level(logging.DEBUG, logger="DirectorAI.Server"),
+        TestClient(create_app(cfg)) as client,
+    ):
+        response = client.get(
+            "/v1/config",
+            headers={"X-API-Key": "test-key-123", "X-Tenant-ID": "tenant-a"},
+        )
+
+    assert response.status_code == 200
+    assert "Unbound tenant claim: tenant-a" in caplog.text
+    assert "test-key-123" not in caplog.text
 
 
 def test_prompt_too_long_returns_422():
