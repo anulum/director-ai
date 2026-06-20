@@ -228,6 +228,46 @@ class TestArticle15FullExport:
         assert exc.value.code == 1
         assert "Invalid Article 15 context JSON" in capsys.readouterr().out
 
+    def test_non_object_context_json_exits(self, tmp_path, capsys):
+        import json
+
+        db = str(tmp_path / "test.db")
+        _populate_db(db)
+        bad = tmp_path / "bad.json"
+        bad.write_text(json.dumps(["not", "an", "object"]), encoding="utf-8")
+        with pytest.raises(SystemExit) as exc:
+            cli_main(["compliance", "report", "--db", db, "--context", str(bad)])
+        assert exc.value.code == 1
+        assert "context must be a JSON object" in capsys.readouterr().out
+
+    def test_pdf_report_writes_requested_output(self, monkeypatch, tmp_path, capsys):
+        from director_ai.compliance import report_templates
+
+        db = str(tmp_path / "test.db")
+        _populate_db(db)
+        output = tmp_path / "article15.pdf"
+        monkeypatch.setattr(
+            report_templates,
+            "render_compliance_pdf",
+            lambda data: b"%PDF fake compliance report",
+        )
+
+        cli_main(
+            [
+                "compliance",
+                "report",
+                "--db",
+                db,
+                "--format",
+                "pdf",
+                "--output",
+                str(output),
+            ]
+        )
+
+        assert output.read_bytes() == b"%PDF fake compliance report"
+        assert f"Wrote PDF compliance report to {output}" in capsys.readouterr().out
+
     def test_summary_json_without_context_unchanged(self, tmp_path, capsys):
         import json
 

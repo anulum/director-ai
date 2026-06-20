@@ -86,6 +86,12 @@ class TestForensicsCommand:
         assert payload["misses_total"] == 1
         assert payload["privacy"]["raw_response_included"] is False
 
+    def test_unknown_argument_is_ignored(self, tmp_path, capsys) -> None:
+        verify_cli._cmd_forensics(
+            ["--ignored", "--input", _write_payload(tmp_path, _RECORDS)]
+        )
+        assert "Guardrail Forensics" in capsys.readouterr().out
+
     def test_missing_input_flag_exits(self, capsys) -> None:
         with pytest.raises(SystemExit) as exc:
             verify_cli._cmd_forensics([])
@@ -99,6 +105,27 @@ class TestForensicsCommand:
             )
         assert exc.value.code == 1
         assert "Unknown format" in capsys.readouterr().out
+
+    def test_missing_input_file_exits(self, tmp_path, capsys) -> None:
+        with pytest.raises(SystemExit) as exc:
+            verify_cli._cmd_forensics(["--input", str(tmp_path / "absent.json")])
+        assert exc.value.code == 1
+        assert "input records not found" in capsys.readouterr().out
+
+    def test_invalid_json_exits(self, tmp_path, capsys) -> None:
+        path = tmp_path / "bad.json"
+        path.write_text("{not json", encoding="utf-8")
+        with pytest.raises(SystemExit) as exc:
+            verify_cli._cmd_forensics(["--input", str(path)])
+        assert exc.value.code == 1
+        assert "invalid JSON" in capsys.readouterr().out
+
+    def test_invalid_payload_shape_exits(self, tmp_path, capsys) -> None:
+        bad = {"records": {"not": "a-list"}}
+        with pytest.raises(SystemExit) as exc:
+            verify_cli._cmd_forensics(["--input", _write_payload(tmp_path, bad)])
+        assert exc.value.code == 1
+        assert "invalid forensics input" in capsys.readouterr().out
 
     def test_invalid_record_exits(self, tmp_path, capsys) -> None:
         bad = {"records": [{"score": 0.5, "threshold": 0.6}]}

@@ -88,6 +88,12 @@ class TestKpisCommand:
         assert payload["report"]["labelled_total"] == 3
         assert payload["statuses"]["false_positive_rate[med]"] == "alert"
 
+    def test_unknown_argument_is_ignored(self, tmp_path, capsys):
+        verify_cli._cmd_kpis(
+            ["--ignored", "--input", _write_bundle(tmp_path, _BUNDLE)]
+        )
+        assert "Guardrail KPIs" in capsys.readouterr().out
+
     def test_targets_overlay_applied(self, tmp_path, capsys):
         bundle = {
             "items": [
