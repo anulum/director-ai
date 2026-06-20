@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import pytest
 
+import director_ai.core.runtime.human_review as human_review_mod
 from director_ai.core.guard_control import GuardDecision, RiskEnvelope, VerifierSignal
 from director_ai.core.runtime.correction import CorrectionProposal
 from director_ai.core.runtime.human_review import (
@@ -93,6 +94,9 @@ def test_review_queue_requires_reviewer_approval_before_release(tmp_path):
     assert released_text == "Release only after explicit review."
     assert queue.get_case(case.case_id).status == "released"
     assert [d.action for d in queue.decisions(case.case_id)] == ["approve", "release"]
+
+    with pytest.raises(PermissionError, match="already released"):
+        queue.release(case.case_id, reviewer_id="reviewer-1", release_id="rel-2")
 
 
 def test_review_queue_retry_payload_requires_retry_decision(tmp_path):
@@ -203,6 +207,22 @@ def test_review_queue_carries_tenant_safe_safety_event(tmp_path):
     assert "Candidate text" not in str(payload)
 
 
+def test_review_queue_carries_mapping_safety_event(tmp_path):
+    queue = HumanReviewQueue(tmp_path / "review.db")
+
+    case = queue.enqueue_case(
+        candidate_text="Candidate text stays gated.",
+        evidence_refs=("kb://fact-4",),
+        source_kind="halt",
+        safety_event={"event_id": "evt-1", "tenant_safe_explanation": "review"},
+    )
+
+    assert case.safety_event == {
+        "event_id": "evt-1",
+        "tenant_safe_explanation": "review",
+    }
+
+
 def test_review_queue_rejects_invalid_transitions_and_reviewers(tmp_path):
     queue = HumanReviewQueue(tmp_path / "review.db")
     case = queue.enqueue_case(
@@ -282,6 +302,9 @@ def test_review_queue_blocks_repeat_decisions_and_invalid_release_inputs(tmp_pat
     with pytest.raises(PermissionError, match="already rejected"):
         queue.decide(case.case_id, reviewer_id="reviewer-1", action="approve")
 
+    with pytest.raises(KeyError):
+        queue.decide("missing", reviewer_id="reviewer-1", action="approve")
+
 
 def test_review_queue_close_is_idempotent_and_blocks_operations(tmp_path):
     queue = HumanReviewQueue(tmp_path / "review.db")
@@ -315,6 +338,53 @@ def test_review_queue_decision_and_case_serialisation_normalise_metadata():
     }
     assert case.evidence_refs == ("kb://fact", "kb://fact-2")
     assert case.to_dict(include_candidate=True)["metadata"] == {"priority": "1"}
+
+
+@pytest.mark.parametrize(
+    ("kwargs", "match"),
+    [
+        (
+            {"decision_id": " ", "case_id": "case-1", "reviewer_id": "reviewer-1"},
+            "decision_id",
+        ),
+        (
+            {"decision_id": "decision-1", "case_id": " ", "reviewer_id": "reviewer-1"},
+            "case_id",
+        ),
+        (
+            {"decision_id": "decision-1", "case_id": "case-1", "reviewer_id": " "},
+            "reviewer_id",
+        ),
+        (
+            {
+                "decision_id": "decision-1",
+                "case_id": "case-1",
+                "reviewer_id": "reviewer-1",
+                "action": "escalate",
+            },
+            "unsupported review action",
+        ),
+    ],
+)
+def test_review_decision_rejects_invalid_required_fields(kwargs, match):
+    with pytest.raises(ValueError, match=match):
+        HumanReviewDecision(action=kwargs.pop("action", "approve"), **kwargs)
+
+
+def test_review_case_rejects_blank_case_id():
+    with pytest.raises(ValueError, match="case_id"):
+        HumanReviewCase(
+            case_id=" ",
+            status="pending",
+            source_kind="halt",
+            candidate_text="Candidate.",
+            evidence_refs=("kb://fact",),
+        )
+
+
+def test_status_for_action_rejects_release_helper_path():
+    with pytest.raises(ValueError, match="unsupported review action"):
+        human_review_mod._status_for_action("release")
 
 
 def test_human_review_queue_public_exports():
