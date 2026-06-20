@@ -413,6 +413,20 @@ class TestPerceptronAdversaryScorer:
 
 
 class TestContinualRustSums:
+    def test_hash_bag_handles_empty_and_whitespace_prompts(self):
+        empty = scorer_mod._hash_bag("", dim=4)
+        whitespace = scorer_mod._hash_bag("   ", dim=4)
+
+        assert empty == (0.0, 0.0, 0.0, 0.0)
+        assert whitespace == (0.0, 0.0, 0.0, 0.0)
+
+    def test_sum_helpers_use_python_floor_when_acceleration_disabled(self, monkeypatch):
+        monkeypatch.setattr(scorer_mod, "_RUST_CONTINUAL_ADV", False)
+
+        assert scorer_mod._sum_float([]) == 0.0
+        assert scorer_mod._sum_float([0.25, 0.5, 1.25]) == pytest.approx(2.0)
+        assert scorer_mod._sum_int([1, 2, 3]) == 6
+
     def test_rust_sum_kernel_is_used_when_available(self, monkeypatch):
         monkeypatch.setattr(scorer_mod, "_RUST_CONTINUAL_ADV", True)
         called = {"count": 0}
