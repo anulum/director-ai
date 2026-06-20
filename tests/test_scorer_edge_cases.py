@@ -633,3 +633,236 @@ class TestScorerCoverageGaps:
 
         assert len(results) == 2
         assert all(result[1].detected_task_type for result in results)
+
+    def test_factual_retrieval_abstention_and_confidence_weighted_score(self):
+        from unittest.mock import MagicMock
+
+        from director_ai.core.retrieval.vector_store import VectorGroundTruthStore
+
+        store = VectorGroundTruthStore()
+        store.retrieve_context = MagicMock(return_value="retrieved context")
+        store.retrieve_context_with_chunks = MagicMock(
+            return_value=[EvidenceChunk(text="far chunk", distance=0.95, source="kb")]
+        )
+        scorer = CoherenceScorer(use_nli=False, ground_truth_store=store)
+        scorer._retrieval_abstention_threshold = 0.2
+
+        assert scorer.calculate_factual_divergence("prompt", "answer") == (
+            scorer_module.DIVERGENCE_NEUTRAL
+        )
+
+        scorer._retrieval_abstention_threshold = 0.0
+        scorer._confidence_weighted_agg = True
+        scorer._should_escalate = lambda _score, task_type="default": True
+        scorer._llm_judge_check = MagicMock(return_value=0.07)
+
+        nli = MagicMock()
+        nli.model_available = True
+        nli.score_chunked_confidence_weighted.return_value = (0.31, [0.31])
+        scorer._nli = nli
+
+        assert scorer.calculate_factual_divergence("prompt", "answer") == 0.07
+        nli.score_chunked_confidence_weighted.assert_called_once_with(
+            "retrieved context",
+            "answer",
+            inner_agg="max",
+            premise_ratio=0.4,
+            overlap_ratio=0.5,
+        )
+        scorer._llm_judge_check.assert_called_once_with("prompt", "answer", 0.31)
+
+    def test_finalise_review_evicts_history_and_verified_guard_without_source(self):
+        scorer = CoherenceScorer(use_nli=False, threshold=0.2, history_window=1)
+        scorer._finalise_review(0.9, 0.1, 0.1, "first")
+        scorer._finalise_review(0.9, 0.1, 0.1, "second")
+
+        assert scorer.history == ["second"]
+
+        scorer._verified_scorer_enabled = True
+        assert not scorer._should_run_verified_scorer(
+            coherence=0.21,
+            threshold=0.2,
+            task_type="rag",
+            evidence=None,
+        )
+
+    def test_reasoning_tier_accepts_unadjusted_verdict_with_non_string_source(
+        self,
+        monkeypatch,
+    ):
+        from director_ai.core.scoring.reasoning_scorer import ReasoningVerdict
+
+        scorer = CoherenceScorer(
+            use_nli=False,
+            reasoning_enabled=True,
+            reasoning_provider="local",
+        )
+        monkeypatch.setattr(
+            scorer,
+            "_verified_source_from_evidence",
+            lambda _evidence: object(),
+        )
+        scorer._reasoning.should_escalate = lambda *_args, **_kwargs: True
+        scorer._reasoning.reason = lambda *_args, **_kwargs: ReasoningVerdict(
+            approved=True,
+            confidence=0.8,
+            rationale="accepted",
+            adjusted_score=None,
+        )
+        evidence = ScoringEvidence(
+            chunks=[],
+            nli_premise="source",
+            nli_hypothesis="answer",
+            nli_score=0.2,
+        )
+        score = scorer._finalise_review(
+            0.51,
+            0.2,
+            0.3,
+            "answer",
+            evidence=evidence,
+        )[1]
+
+        approved, out = scorer._apply_reasoning_tier(
+            (True, score),
+            "prompt",
+            "answer",
+            evidence,
+            threshold=0.5,
+        )
+
+        assert approved is True
+        assert out.score == 0.51
+        assert out.reasoning_escalated is True
+        assert out.reasoning_rationale == "accepted"
+
+    def test_review_cross_turn_failure_and_intent_drift_are_recorded(self):
+        from unittest.mock import MagicMock
+
+        class FakeNLI:
+            model_available = True
+
+            def score(self, premise, hypothesis):
+                assert premise == "prior answer"
+                assert hypothesis == "current answer"
+                return 0.4
+
+        class FakeDrift:
+            def __init__(self):
+                self.calls = []
+
+            def update(
+                self,
+                *,
+                intent_divergence,
+                injection_risk,
+                contradiction_trend,
+            ):
+                self.calls.append(
+                    (intent_divergence, injection_risk, contradiction_trend)
+                )
+                return type(
+                    "Drift",
+                    (),
+                    {"drift_risk": 0.42, "triggered": False},
+                )()
+
+        class FakeSession:
+            context_text = "prior answer"
+
+            def __init__(self):
+                self.intent_drift = FakeDrift()
+                self.turns = []
+
+            def __len__(self):
+                return 1
+
+            def update_contradictions(self, response, score_fn):
+                del response, score_fn
+                raise RuntimeError("tracker unavailable")
+
+            def add_turn(self, prompt, action, score):
+                self.turns.append((prompt, action, score))
+
+        scorer = CoherenceScorer(use_nli=False)
+        scorer._nli = FakeNLI()
+        scorer._heuristic_coherence = MagicMock(return_value=(0.2, 0.5, 0.68, None))
+        session = FakeSession()
+
+        approved, score = scorer.review(
+            "prompt",
+            "current answer",
+            session=session,
+        )
+
+        assert approved is True
+        assert score.cross_turn_divergence == 0.4
+        assert score.intent_drift_risk == 0.42
+        assert score.intent_drift_triggered is False
+        assert session.intent_drift.calls == [(0.4, 0.0, 0.0)]
+        assert session.turns == [("prompt", "current answer", score.score)]
+
+    def test_review_injection_fail_closed_reraises_detector_error(self):
+        class FailingDetector:
+            def detect(self, *, intent, response):
+                del intent, response
+                raise RuntimeError("detector unavailable")
+
+        scorer = CoherenceScorer(use_nli=False)
+        scorer._heuristic_coherence = lambda *_args, **_kwargs: (0.1, 0.1, 0.9, None)
+        scorer._injection_detector = FailingDetector()
+        scorer._injection_fail_closed = True
+
+        with pytest.raises(RuntimeError, match="detector unavailable"):
+            scorer.review("prompt", "answer")
+
+    def test_review_batch_fallback_and_no_context_paths(self):
+        class FakeNLI:
+            model_available = True
+            backend = "deberta"
+
+            def __init__(self):
+                self.calls = []
+
+            def score_batch(self, pairs):
+                self.calls.append(list(pairs))
+                return [0.1 for _pair in pairs]
+
+        scorer = CoherenceScorer(use_nli=False)
+        scorer._nli = FakeNLI()
+        scorer._judge = type("FakeJudge", (), {"enabled": False})()
+        scorer._detect_task_type = lambda _prompt, _action="": "dialogue"
+        scorer.review = lambda prompt, action, tenant_id="": (
+            True,
+            scorer._finalise_review(0.9, 0.1, 0.1, action)[1],
+        )
+
+        fallback_results = scorer.review_batch(
+            [("User: hi", "Assistant: hi"), ("User: bye", "Assistant: bye")]
+        )
+
+        assert len(fallback_results) == 2
+        assert all(result[0] for result in fallback_results)
+
+        scorer = CoherenceScorer(use_nli=False)
+        fake_nli = FakeNLI()
+        scorer._nli = fake_nli
+        scorer._judge = type("FakeJudge", (), {"enabled": False})()
+        scorer._detect_task_type = lambda _prompt, _action="": "qa"
+
+        batch_results = scorer.review_batch([("Q1", "A1"), ("Q2", "A2")])
+
+        assert len(batch_results) == 2
+        assert len(fake_nli.calls) == 1
+        assert all(result[1].h_factual == 0.5 for result in batch_results)
+
+    def test_review_batch_requires_sequential_for_judge_and_vector_store(self):
+        from director_ai.core.retrieval.vector_store import VectorGroundTruthStore
+
+        scorer = CoherenceScorer(use_nli=False)
+        scorer._judge = type("FakeJudge", (), {"enabled": True})()
+        assert scorer._review_batch_requires_sequential([("Q", "A")]) is True
+
+        scorer._judge = type("FakeJudge", (), {"enabled": False})()
+        scorer.ground_truth_store = VectorGroundTruthStore()
+        assert scorer._review_batch_requires_sequential([("Q", "A")]) is True
