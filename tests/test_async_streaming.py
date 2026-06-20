@@ -65,6 +65,15 @@ class TestAsyncStreamingKernel:
         assert events[-1].halted
         assert len(events) == 3
 
+    async def test_hard_limit_halt_exhausts_generator_after_yield(self, kernel):
+        events = await self._collect_events_without_halt_break(
+            kernel,
+            ["a", "b", "c"],
+            lambda _text: 0.1,
+        )
+        assert len(events) == 1
+        assert events[0].halted
+
     async def test_async_callback(self, kernel):
         """Works with async coherence callback."""
 
@@ -131,6 +140,14 @@ class TestAsyncStreamingKernel:
         assert len(events) == 1
         assert events[0].halted
 
+    async def test_inactive_kernel_exhausts_generator_after_halt(self, kernel):
+        kernel.emergency_stop()
+        events = await self._collect_events_without_halt_break(
+            kernel, ["a", "b"], lambda t: 0.9
+        )
+        assert len(events) == 1
+        assert events[0].halted
+
     async def test_async_iterable_source(self, kernel):
         """Works with async iterable token source."""
 
@@ -155,6 +172,22 @@ class TestAsyncStreamingKernel:
         events = await self._collect_events(kernel, slow_tokens(), lambda t: 0.9)
         assert events[-1].halted
         assert not kernel.is_active
+
+    async def test_total_timeout_exhausts_generator_after_halt(self):
+        import asyncio as _aio
+
+        kernel = AsyncStreamingKernel(hard_limit=0.1, total_timeout=0.01)
+
+        async def slow_tokens():
+            yield "a"
+            await _aio.sleep(0.02)
+            yield "b"
+
+        events = await self._collect_events_without_halt_break(
+            kernel, slow_tokens(), lambda t: 0.9
+        )
+        assert events[-1].halted
+        assert len(events) == 2
 
     async def test_token_timeout_halts(self):
         """Token timeout halts stream."""
@@ -378,6 +411,21 @@ class TestAsyncStreamingKernel:
         assert events[-1].token == "."
         assert len(events) == 5
 
+    async def test_soft_halt_on_boundary_token_returns_immediately(self):
+        kernel = AsyncStreamingKernel(
+            hard_limit=0.1,
+            window_size=2,
+            window_threshold=0.55,
+            halt_mode="soft",
+        )
+        events = await self._collect_events_without_halt_break(
+            kernel,
+            ["low", "."],
+            lambda _text: 0.4,
+        )
+        assert len(events) == 2
+        assert events[-1].halted
+
     async def test_soft_halt_waits_for_sentence_boundary_without_break(self):
         kernel = AsyncStreamingKernel(
             hard_limit=0.1,
@@ -502,6 +550,27 @@ class TestAsyncStreamingKernel:
         )
         assert session.halt_reason.startswith("window_avg")
 
+    async def test_hard_window_halt_exhausts_generator_after_yield(self):
+        kernel = AsyncStreamingKernel(
+            hard_limit=0.1,
+            window_size=2,
+            window_threshold=0.55,
+        )
+        events = await self._collect_events_without_halt_break(
+            kernel,
+            ["a", "b", "c"],
+            lambda _text: 0.4,
+        )
+        assert len(events) == 2
+        assert events[-1].halted
+
+    async def test_on_halt_session_callback_receives_halted_session(self):
+        captured = []
+        kernel = AsyncStreamingKernel(hard_limit=0.5, on_halt=captured.append)
+        session = await kernel.stream_to_session(["bad"], lambda _text: 0.1)
+        assert session.halted
+        assert captured == [session]
+
     async def test_halt_reason_downward_trend_path(self):
         kernel = AsyncStreamingKernel(
             hard_limit=0.1,
@@ -533,4 +602,14 @@ class TestAsyncStreamingKernel:
         kernel = AsyncStreamingKernel(hard_limit=0.1)
         session = StreamSession(coherence_history=[0.9, 0.9])
         event = TokenEvent(token="x", index=0, coherence=0.9, timestamp=0.0)
+        assert kernel._halt_reason(event, session) == "halt_condition_not_identified"
+
+    async def test_halt_reason_fallback_after_non_dropping_trend_window(self):
+        kernel = AsyncStreamingKernel(
+            hard_limit=0.1,
+            trend_window=3,
+            trend_threshold=0.2,
+        )
+        session = StreamSession(coherence_history=[0.7, 0.7, 0.7])
+        event = TokenEvent(token="x", index=0, coherence=0.7, timestamp=0.0)
         assert kernel._halt_reason(event, session) == "halt_condition_not_identified"
