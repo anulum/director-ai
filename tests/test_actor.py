@@ -8,6 +8,9 @@
 
 from __future__ import annotations
 
+import asyncio
+import sys
+import types
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -35,6 +38,24 @@ class TestMockGenerator:
         candidates = g.generate_candidates("test", n=5)
         assert len(candidates) == 5
         assert candidates[3]["type"] == candidates[0]["type"]
+
+    def test_stream_tokens_yields_truthful_mock_response_words(self):
+        async def collect_tokens() -> list[str]:
+            return [token async for token in MockGenerator().stream_tokens("test")]
+
+        assert asyncio.run(collect_tokens()) == [
+            "Based",
+            "on",
+            "my",
+            "training",
+            "data,",
+            "the",
+            "answer",
+            "is",
+            "consistent",
+            "with",
+            "reality.",
+        ]
 
 
 class TestLLMGeneratorRetry:
@@ -184,11 +205,6 @@ class TestCircuitBreaker:
 
 
 def test_llm_generator_stream_tokens_falls_back_to_generated_text() -> None:
-    import asyncio
-    from unittest.mock import MagicMock, patch
-
-    from director_ai.core.actor import LLMGenerator
-
     async def collect_tokens() -> list[str]:
         tokens: list[str] = []
         async for token in LLMGenerator(api_url="http://test").stream_tokens("prompt"):
@@ -204,3 +220,64 @@ def test_llm_generator_stream_tokens_falls_back_to_generated_text() -> None:
         tokens = asyncio.run(collect_tokens())
 
     assert tokens == ["hello", "world"]
+
+
+def test_llm_generator_stream_tokens_uses_sse_when_available(monkeypatch) -> None:
+    calls: dict[str, object] = {}
+
+    class FakeResponse:
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *_exc):
+            return False
+
+        async def aiter_lines(self):
+            for line in (
+                'data: {"content": "hello"}',
+                'data: {"token": "world"}',
+                "event: ignored",
+                'data: {"content": ""}',
+            ):
+                yield line
+
+    class FakeClient:
+        def __init__(self, *, timeout):
+            calls["timeout"] = timeout
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *_exc):
+            return False
+
+        def stream(self, method, url, *, json):
+            calls["method"] = method
+            calls["url"] = url
+            calls["json"] = json
+            return FakeResponse()
+
+    monkeypatch.setitem(
+        sys.modules,
+        "httpx",
+        types.SimpleNamespace(AsyncClient=FakeClient),
+    )
+
+    async def collect_tokens() -> list[str]:
+        tokens: list[str] = []
+        generator = LLMGenerator(api_url="http://test", timeout=7)
+        async for token in generator.stream_tokens("prompt"):
+            tokens.append(token)
+        return tokens
+
+    assert asyncio.run(collect_tokens()) == ["hello", "world"]
+    assert calls["method"] == "POST"
+    assert calls["url"] == "http://test"
+    assert calls["timeout"] == 7
+    assert calls["json"] == {
+        "prompt": "prompt",
+        "n_predict": 128,
+        "temperature": 0.8,
+        "stop": ["\nUser:", "\nSystem:"],
+        "stream": True,
+    }
