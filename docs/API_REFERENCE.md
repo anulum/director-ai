@@ -606,6 +606,7 @@ through the same env mapping:
 | Config field | Purpose |
 |--------------|---------|
 | `nli_model_revision` | Immutable NLI model revision |
+| `prompt_guard_model_revision` | Prompt-injection guard model revision |
 | `streaming_contradiction_revision` | Streaming contradiction model revision |
 | `llm_judge_model_revision` | Local LLM judge model revision |
 | `reasoning_model_revision` | Local reasoning model revision |
