@@ -66,8 +66,8 @@ fi
 # import; base model + dataset come from the Hub), so the package is not needed at
 # all. None of the packages below depend on director-ai, so pip cannot pull it.
 pip install --quiet --upgrade \
-  "transformers>=4.46,<5" "datasets>=2.14" "accelerate>=0.21" \
-  "scikit-learn>=1.3" sentencepiece protobuf
+  "transformers==5.10.2" "datasets==3.6.0" "accelerate==1.7.0" \
+  "scikit-learn==1.6.1" "sentencepiece==0.2.1" "protobuf==6.33.6"
 
 # Contamination guard: fail loudly if a director-ai (e.g. the stale PyPI one) is on
 # the path. The trainer must run purely against the uploaded local file.
