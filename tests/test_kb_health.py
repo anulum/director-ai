@@ -81,6 +81,23 @@ class TestHealthyStore:
         assert report.document_count == 4
         assert report.total_entries == 4
 
+    def test_backend_count_store_is_supported(self):
+        class Backend:
+            def count(self):
+                return 6
+
+        class BackendStore:
+            backend = Backend()
+
+            def retrieve_context(self, _query):
+                return ["indexed policy"]
+
+        report = KBHealthCheck(BackendStore(), min_documents=6).run()
+
+        assert report.healthy is True
+        assert report.document_count == 6
+        assert report.total_entries == 6
+
 
 # ── Unhealthy store ───────────────────────────────────────────────────
 
@@ -156,6 +173,13 @@ class TestLatency:
         check = KBHealthCheck(store, probe_queries=["custom query"])
         report = check.run()
         assert report.avg_query_latency_ms >= 0.0
+
+    def test_empty_probe_query_list_reports_zero_latency(self):
+        store = _make_store(5)
+        check = KBHealthCheck(store)
+        check._probe_queries = []
+
+        assert check._measure_query_latency() == 0.0
 
     def test_mean_latency_falls_back_when_accelerator_fails(self, monkeypatch):
         monkeypatch.setattr(
