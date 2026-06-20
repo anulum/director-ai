@@ -259,7 +259,6 @@ class KBHealthCheck:
             ):
                 return int(self._store.backend.count())
             return self._check_document_count()
-        return 0
 
 
 def _mean_float(values: list[float]) -> float:
