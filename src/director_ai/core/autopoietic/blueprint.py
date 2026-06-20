@@ -137,7 +137,7 @@ class ModuleBlueprint:
             for gram in self.reference_vocabulary:
                 if not gram:
                     raise ValueError("every reference n-gram must be non-empty")
-        elif self.kind == "ensemble":
+        else:
             if not self.components:
                 raise ValueError("kind 'ensemble' requires at least one component")
             total = _sum_float([c.weight for c in self.components])
