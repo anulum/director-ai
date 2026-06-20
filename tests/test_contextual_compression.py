@@ -99,8 +99,12 @@ class TestBackendHeuristic:
             ({"strategy": "unknown"}, "strategy"),
             ({"strategy": "llm"}, "generator"),
             ({"strategy": "llm", "generator": object()}, "generator"),
+            ({"overlap_threshold": "0.5"}, "overlap_threshold"),
+            ({"overlap_threshold": True}, "overlap_threshold"),
             ({"overlap_threshold": -0.01}, "overlap_threshold"),
             ({"overlap_threshold": 1.01}, "overlap_threshold"),
+            ({"min_compressed_len": 1.5}, "min_compressed_len"),
+            ({"min_compressed_len": False}, "min_compressed_len"),
             ({"min_compressed_len": 0}, "min_compressed_len"),
         ],
     )
@@ -197,6 +201,22 @@ class TestEdgeCases:
         # Text is shorter than min → should keep original
         if results:
             assert results[0]["text"] == "Short text about policy."
+
+    def test_direct_compress_keeps_original_when_result_below_minimum(self):
+        b = _make_backend(min_compressed_len=100)
+
+        result = b._compress(
+            "refund",
+            "Refund applies. Completely unrelated operational sentence.",
+        )
+
+        assert result == "Refund applies. Completely unrelated operational sentence."
+
+    def test_llm_compress_requires_configured_generator(self):
+        b = _make_backend()
+
+        with pytest.raises(RuntimeError, match="configured generator"):
+            b._llm_compress("refund", "The refund policy is 30 days.")
 
     def test_n_results_respected(self):
         b = _make_backend()
