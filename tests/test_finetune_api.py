@@ -21,13 +21,34 @@ import pytest
 
 pytest.importorskip("fastapi", reason="fastapi required for finetune API tests")
 
+import director_ai.finetune_api as finetune_api_module
 from director_ai.finetune_api import (
     _MAX_CONCURRENT_JOBS,
     FinetuneJob,
+    ManagedTrainingRecord,
     _JobStore,
+    _managed_record_to_dict,
+    _ManagedJobStore,
     _run_training_worker,
     create_finetune_router,
 )
+
+
+def _closure_store(router, store_type):
+    """Return a router-local store captured by endpoint closures."""
+    for route in router.routes:
+        endpoint = getattr(route, "endpoint", None)
+        closure = getattr(endpoint, "__closure__", None)
+        if not closure:
+            continue
+        for cell in closure:
+            try:
+                value = cell.cell_contents
+            except ValueError:
+                continue
+            if isinstance(value, store_type):
+                return value
+    raise AssertionError(f"{store_type.__name__} not found in router closures")
 
 
 class TestJobStore:
@@ -67,6 +88,62 @@ class TestJobStore:
             job.state = "training"
         with pytest.raises(ValueError, match="Too many"):
             store.create({"epochs": 1})
+
+
+class TestManagedJobStore:
+    def test_records_are_tenant_scoped_and_serializable(self):
+        store = _ManagedJobStore()
+        record = ManagedTrainingRecord(
+            job_id="job-1",
+            backend="portable",
+            state="submitted",
+            tenant_id="tenant-a",
+            dry_run=False,
+            submitted_at=123.0,
+            display_name="training job",
+            output_uri="gs://bucket/out",
+            console_uri="https://console.example/job",
+        )
+
+        store.add(record)
+
+        assert store.get("tenant-a", "job-1") is record
+        assert store.get("tenant-b", "job-1") is None
+        assert store.get("tenant-a", "missing") is None
+        assert store.list_for_tenant("tenant-a") == [record]
+        assert store.list_for_tenant("tenant-b") == []
+
+        payload = _managed_record_to_dict(record)
+        assert payload["job_id"] == "job-1"
+        assert payload["tenant_id"] == "tenant-a"
+        assert payload["console_uri"] == "https://console.example/job"
+
+    def test_update_state_respects_tenant_ownership(self):
+        store = _ManagedJobStore()
+        record = ManagedTrainingRecord(
+            job_id="job-1",
+            backend="portable",
+            state="submitted",
+            tenant_id="tenant-a",
+            dry_run=False,
+            submitted_at=123.0,
+            display_name="training job",
+            output_uri="gs://bucket/out",
+        )
+        store.add(record)
+
+        assert store.update_state("tenant-b", "job-1", "failed") is None
+        assert store.update_state("tenant-a", "missing", "failed") is None
+        updated = store.update_state(
+            "tenant-a",
+            "job-1",
+            "failed",
+            error="backend down",
+        )
+
+        assert updated is record
+        assert record.state == "failed"
+        assert record.error == "backend down"
 
 
 class TestFinetuneJob:
@@ -187,6 +264,432 @@ class TestRouterEndpoints:
     def test_result_nonexistent_job(self, client):
         resp = client.get("/v1/finetune/nonexistent/result")
         assert resp.status_code == 404
+
+    def test_managed_jobs_reject_invalid_tenant_header(self, client):
+        resp = client.get(
+            "/v1/finetune/managed/jobs",
+            headers={"X-Tenant-ID": "../bad"},
+        )
+        assert resp.status_code == 400
+
+
+class TestManagedTrainingEndpoints:
+    """Managed-training endpoint contracts with backend calls stubbed."""
+
+    @pytest.fixture
+    def client_and_router(self, tmp_path):
+        from fastapi import FastAPI
+        from fastapi.testclient import TestClient
+
+        app = FastAPI()
+        router = create_finetune_router(models_dir=tmp_path / "models")
+        app.include_router(router, prefix="/v1/finetune")
+        return TestClient(app), router
+
+    def _submit_payload(self, **overrides):
+        payload = {
+            "backend": "portable",
+            "dry_run": True,
+            "display_name": "tenant-a-train",
+            "dataset_uri": "gs://tenant-a/data/train.jsonl",
+            "output_uri": "gs://tenant-a/models/out",
+            "container_image_uri": "registry.example/director/train:latest",
+            "epochs": 1,
+            "batch_size": 4,
+            "accelerator_count": 0,
+            "boot_disk_gb": 100,
+        }
+        payload.update(overrides)
+        return payload
+
+    def test_submit_and_list_managed_training_jobs(
+        self, client_and_router, monkeypatch
+    ):
+        import director_ai.core.training.jobs as jobs_module
+        from director_ai.core.training.jobs import TrainingJobSubmission
+
+        client, _router = client_and_router
+
+        def fake_submit(spec, *, backend, dry_run):
+            assert spec.display_name == "tenant-a-train"
+            assert backend == "portable"
+            assert dry_run is True
+            return TrainingJobSubmission(
+                backend=backend,
+                job_id="portable-1",
+                state="dry_run",
+                dry_run=True,
+                request={"display_name": spec.display_name},
+                submitted_at=321.0,
+                console_uri="",
+            )
+
+        monkeypatch.setattr(jobs_module, "submit_training_job", fake_submit)
+
+        resp = client.post(
+            "/v1/finetune/managed/submit",
+            json=self._submit_payload(),
+            headers={"X-Tenant-ID": "tenant-a"},
+        )
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["job_id"] == "portable-1"
+        assert body["tenant_id"] == "tenant-a"
+        assert body["request"] == {"display_name": "tenant-a-train"}
+
+        same_tenant = client.get(
+            "/v1/finetune/managed/jobs",
+            headers={"X-Tenant-ID": "tenant-a"},
+        )
+        other_tenant = client.get(
+            "/v1/finetune/managed/jobs",
+            headers={"X-Tenant-ID": "tenant-b"},
+        )
+
+        assert same_tenant.json()["count"] == 1
+        assert same_tenant.json()["jobs"][0]["job_id"] == "portable-1"
+        assert other_tenant.json()["count"] == 0
+
+    def test_submit_managed_training_suite_builds_internal_spec(
+        self,
+        client_and_router,
+        monkeypatch,
+    ):
+        import director_ai.core.training.jobs as jobs_module
+        from director_ai.core.training.jobs import TrainingJobSubmission
+
+        client, _router = client_and_router
+
+        def fake_submit(spec, *, backend, dry_run):
+            assert spec.task_type == "suite"
+            assert spec.caller == "internal"
+            assert spec.display_name == "director-ai-ragtruth-calibration"
+            assert spec.labels["suite"] == "ragtruth-calibration"
+            return TrainingJobSubmission(
+                backend=backend,
+                job_id="suite-1",
+                state="dry_run",
+                dry_run=dry_run,
+                request={"task_type": spec.task_type, "labels": spec.labels},
+                submitted_at=111.0,
+            )
+
+        monkeypatch.setattr(jobs_module, "submit_training_job", fake_submit)
+
+        resp = client.post(
+            "/v1/finetune/managed/submit",
+            json=self._submit_payload(suite="ragtruth-calibration"),
+        )
+
+        assert resp.status_code == 200
+        assert resp.json()["job_id"] == "suite-1"
+        assert resp.json()["request"]["task_type"] == "suite"
+
+    def test_submit_managed_training_maps_validation_errors(
+        self,
+        client_and_router,
+        monkeypatch,
+    ):
+        import director_ai.core.training.jobs as jobs_module
+
+        client, _router = client_and_router
+        monkeypatch.setattr(
+            jobs_module,
+            "submit_training_job",
+            lambda *_args, **_kwargs: (_ for _ in ()).throw(
+                ValueError("dataset_uri is required")
+            ),
+        )
+
+        resp = client.post(
+            "/v1/finetune/managed/submit",
+            json=self._submit_payload(),
+        )
+
+        assert resp.status_code == 422
+        assert "dataset_uri is required" in resp.text
+
+    def test_managed_status_dry_run_and_backend_conflict(self, client_and_router):
+        client, router = client_and_router
+        managed_store = _closure_store(router, _ManagedJobStore)
+        managed_store.add(
+            ManagedTrainingRecord(
+                job_id="dry-1",
+                backend="portable",
+                state="dry_run",
+                tenant_id="tenant-a",
+                dry_run=True,
+                submitted_at=1.0,
+                display_name="dry run",
+                output_uri="gs://out",
+                error="",
+            )
+        )
+
+        status = client.post(
+            "/v1/finetune/managed/status",
+            json={"backend": "portable", "job_id": "dry-1"},
+            headers={"X-Tenant-ID": "tenant-a"},
+        )
+        conflict = client.post(
+            "/v1/finetune/managed/status",
+            json={"backend": "vertex", "job_id": "dry-1"},
+            headers={"X-Tenant-ID": "tenant-a"},
+        )
+        missing = client.post(
+            "/v1/finetune/managed/status",
+            json={"backend": "portable", "job_id": "dry-1"},
+            headers={"X-Tenant-ID": "tenant-b"},
+        )
+
+        assert status.status_code == 200
+        assert status.json()["state"] == "dry_run"
+        assert status.json()["metrics"] == {}
+        assert conflict.status_code == 409
+        assert missing.status_code == 404
+
+    def test_managed_status_updates_from_backend_and_maps_errors(
+        self,
+        client_and_router,
+        monkeypatch,
+    ):
+        import director_ai.core.training.jobs as jobs_module
+        from director_ai.core.training.jobs import TrainingJobStatus
+
+        client, router = client_and_router
+        managed_store = _closure_store(router, _ManagedJobStore)
+        managed_store.add(
+            ManagedTrainingRecord(
+                job_id="live-1",
+                backend="portable",
+                state="submitted",
+                tenant_id="tenant-a",
+                dry_run=False,
+                submitted_at=1.0,
+                display_name="live run",
+                output_uri="gs://out",
+            )
+        )
+
+        class Backend:
+            def status(self, job_id):
+                return TrainingJobStatus(
+                    backend="portable",
+                    job_id=job_id,
+                    state="completed",
+                    metrics={"balanced_accuracy": 0.8},
+                    artifact_uri="gs://out/model",
+                )
+
+            def cancel(self, job_id):
+                raise AssertionError("not used")
+
+        monkeypatch.setattr(
+            jobs_module, "get_training_backend", lambda _backend: Backend()
+        )
+
+        status = client.post(
+            "/v1/finetune/managed/status",
+            json={"backend": "portable", "job_id": "live-1"},
+            headers={"X-Tenant-ID": "tenant-a"},
+        )
+
+        assert status.status_code == 200
+        assert status.json()["state"] == "completed"
+        assert status.json()["metrics"] == {"balanced_accuracy": 0.8}
+        assert managed_store.get("tenant-a", "live-1").state == "completed"
+
+        monkeypatch.setattr(
+            jobs_module,
+            "get_training_backend",
+            lambda _backend: (_ for _ in ()).throw(ValueError("bad backend")),
+        )
+        failed = client.post(
+            "/v1/finetune/managed/status",
+            json={"backend": "portable", "job_id": "live-1"},
+            headers={"X-Tenant-ID": "tenant-a"},
+        )
+        assert failed.status_code == 422
+
+        class BrokenStatusBackend:
+            def status(self, job_id):
+                raise RuntimeError("backend offline")
+
+            def cancel(self, job_id):
+                raise AssertionError("not used")
+
+        monkeypatch.setattr(
+            jobs_module,
+            "get_training_backend",
+            lambda _backend: BrokenStatusBackend(),
+        )
+        backend_error = client.post(
+            "/v1/finetune/managed/status",
+            json={"backend": "portable", "job_id": "live-1"},
+            headers={"X-Tenant-ID": "tenant-a"},
+        )
+        assert backend_error.status_code == 502
+
+    def test_managed_cancel_dry_run_and_backend_paths(
+        self,
+        client_and_router,
+        monkeypatch,
+    ):
+        import director_ai.core.training.jobs as jobs_module
+        from director_ai.core.training.jobs import TrainingJobStatus
+
+        client, router = client_and_router
+        managed_store = _closure_store(router, _ManagedJobStore)
+        managed_store.add(
+            ManagedTrainingRecord(
+                job_id="dry-1",
+                backend="portable",
+                state="dry_run",
+                tenant_id="tenant-a",
+                dry_run=True,
+                submitted_at=1.0,
+                display_name="dry run",
+                output_uri="gs://out",
+            )
+        )
+        managed_store.add(
+            ManagedTrainingRecord(
+                job_id="live-1",
+                backend="portable",
+                state="running",
+                tenant_id="tenant-a",
+                dry_run=False,
+                submitted_at=2.0,
+                display_name="live run",
+                output_uri="gs://out/live",
+            )
+        )
+
+        dry_cancel = client.post(
+            "/v1/finetune/managed/cancel",
+            json={"backend": "portable", "job_id": "dry-1"},
+            headers={"X-Tenant-ID": "tenant-a"},
+        )
+        missing = client.post(
+            "/v1/finetune/managed/cancel",
+            json={"backend": "portable", "job_id": "live-1"},
+            headers={"X-Tenant-ID": "tenant-b"},
+        )
+        conflict = client.post(
+            "/v1/finetune/managed/cancel",
+            json={"backend": "vertex", "job_id": "live-1"},
+            headers={"X-Tenant-ID": "tenant-a"},
+        )
+
+        class Backend:
+            def status(self, job_id):
+                raise AssertionError("not used")
+
+            def cancel(self, job_id):
+                return TrainingJobStatus(
+                    backend="portable",
+                    job_id=job_id,
+                    state="cancelled",
+                    error="stopped",
+                )
+
+        monkeypatch.setattr(
+            jobs_module, "get_training_backend", lambda _backend: Backend()
+        )
+        cancelled = client.post(
+            "/v1/finetune/managed/cancel",
+            json={"backend": "portable", "job_id": "live-1"},
+            headers={"X-Tenant-ID": "tenant-a"},
+        )
+
+        assert dry_cancel.status_code == 409
+        assert missing.status_code == 404
+        assert conflict.status_code == 409
+        assert cancelled.status_code == 200
+        assert cancelled.json()["state"] == "cancelled"
+        assert managed_store.get("tenant-a", "live-1").state == "cancelled"
+
+        monkeypatch.setattr(
+            jobs_module,
+            "get_training_backend",
+            lambda _backend: (_ for _ in ()).throw(ValueError("bad backend")),
+        )
+        bad_backend = client.post(
+            "/v1/finetune/managed/cancel",
+            json={"backend": "portable", "job_id": "live-1"},
+            headers={"X-Tenant-ID": "tenant-a"},
+        )
+        assert bad_backend.status_code == 422
+
+        class BrokenCancelBackend:
+            def status(self, job_id):
+                raise AssertionError("not used")
+
+            def cancel(self, job_id):
+                raise RuntimeError("cancel offline")
+
+        monkeypatch.setattr(
+            jobs_module,
+            "get_training_backend",
+            lambda _backend: BrokenCancelBackend(),
+        )
+        backend_error = client.post(
+            "/v1/finetune/managed/cancel",
+            json={"backend": "portable", "job_id": "live-1"},
+            headers={"X-Tenant-ID": "tenant-a"},
+        )
+        assert backend_error.status_code == 502
+
+    def test_managed_model_registry_and_benchmark_endpoint(
+        self,
+        client_and_router,
+        monkeypatch,
+    ):
+        import director_ai.core.training.finetune_benchmark as benchmark_module
+        import director_ai.core.training.model_registry as registry_module
+
+        client, _router = client_and_router
+        monkeypatch.setattr(
+            registry_module,
+            "finetune_model_registry_to_dict",
+            lambda *, include_experimental: [
+                {"alias": "stable", "experimental": include_experimental}
+            ],
+        )
+
+        models = client.get("/v1/finetune/managed/models?include_experimental=true")
+
+        class Report:
+            def to_dict(self):
+                return {"winner": "model-a", "score": 0.91}
+
+        monkeypatch.setattr(
+            benchmark_module,
+            "benchmark_model_candidates",
+            lambda *args, **kwargs: Report(),
+        )
+        benchmark = client.post(
+            "/v1/finetune/managed/benchmark-models",
+            json={
+                "model_artifacts": {"model-a": "gs://models/a"},
+                "batch_size": 4,
+            },
+        )
+        monkeypatch.setattr(
+            benchmark_module,
+            "benchmark_model_candidates",
+            lambda *args, **kwargs: (_ for _ in ()).throw(ValueError("bad artifact")),
+        )
+        invalid = client.post(
+            "/v1/finetune/managed/benchmark-models",
+            json={"model_artifacts": {"bad": ""}},
+        )
+
+        assert models.status_code == 200
+        assert models.json()["models"] == [{"alias": "stable", "experimental": True}]
+        assert benchmark.status_code == 200
+        assert benchmark.json() == {"winner": "model-a", "score": 0.91}
+        assert invalid.status_code == 422
 
 
 class TestRouterSuccessPaths:
@@ -426,6 +929,29 @@ class TestRouterSuccessPaths:
         assert resp.status_code == 200
         assert not model_dir.exists()
 
+    def test_delete_does_not_remove_model_path_outside_models_dir(self, tmp_path):
+        from fastapi import FastAPI
+        from fastapi.testclient import TestClient
+
+        app = FastAPI()
+        router = create_finetune_router(models_dir=tmp_path / "models")
+        app.include_router(router, prefix="/v1/finetune")
+        client = TestClient(app)
+        store = _closure_store(router, _JobStore)
+
+        outside_dir = tmp_path / "outside-model"
+        outside_dir.mkdir()
+        (outside_dir / "config.json").write_text("{}", encoding="utf-8")
+        job = store.create({"epochs": 1})
+        job.state = "completed"
+        job.model_path = str(outside_dir)
+
+        resp = client.delete(f"/v1/finetune/{job.job_id}")
+
+        assert resp.status_code == 200
+        assert outside_dir.exists()
+        assert store.get(job.job_id) is None
+
     def test_result_completed_job(self, tmp_path):
         from fastapi import FastAPI
         from fastapi.testclient import TestClient
@@ -524,6 +1050,45 @@ class TestRouterStartEndpoint:
         assert body["total_samples"] == 600
         assert body["estimated_time_min"] > 0
         assert mock_worker.called
+
+    def test_validate_rejects_oversized_upload(self, client, monkeypatch):
+        monkeypatch.setattr(finetune_api_module, "_MAX_UPLOAD_BYTES", 8)
+
+        resp = client.post(
+            "/v1/finetune/validate",
+            files={"file": ("too-large.jsonl", b"x" * 16, "application/jsonl")},
+        )
+
+        assert resp.status_code == 413
+
+    @patch("director_ai.finetune_api._run_training_worker")
+    def test_start_rejects_unknown_base_model(
+        self,
+        mock_worker,
+        client,
+        monkeypatch,
+    ):
+        import director_ai.core.training.model_registry as registry_module
+
+        monkeypatch.setattr(
+            registry_module,
+            "resolve_finetune_model",
+            lambda *_args, **_kwargs: (_ for _ in ()).throw(
+                ValueError("unknown scorer_model")
+            ),
+        )
+
+        resp = client.post(
+            "/v1/finetune/start",
+            data={"base_model": "unknown-model"},
+            files={
+                "file": ("train.jsonl", self._make_jsonl_bytes(), "application/jsonl")
+            },
+        )
+
+        assert resp.status_code == 422
+        assert "unknown scorer_model" in resp.text
+        mock_worker.assert_not_called()
 
     @patch("director_ai.finetune_api._run_training_worker")
     def test_start_returns_409_on_result_while_training(self, mock_worker, client):
