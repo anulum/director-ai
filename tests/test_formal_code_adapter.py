@@ -265,6 +265,12 @@ def test_named_dpll_backend_records_theorem_backend_in_sandbox():
     assert result.signal.verifier == "formal.dpll"
 
 
+def test_named_z3_backend_accepts_injected_solver_without_importing_z3():
+    adapter = FormalCodeVerifierAdapter.with_theorem_backend("z3", z3_solver=object())
+
+    assert adapter._theorem_backend_name == "z3"
+
+
 def test_named_lean_backend_uses_runner_without_external_binary():
     def runner(source: str) -> dict:
         assert "def target" in source
