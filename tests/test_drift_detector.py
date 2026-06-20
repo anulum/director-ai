@@ -46,6 +46,9 @@ class TestNormCdf:
         # P(Z < 1.96) ≈ 0.975
         assert abs(_norm_cdf(1.96) - 0.975) < 0.001
 
+    def test_negative_value_uses_symmetry(self):
+        assert abs(_norm_cdf(-1.96) - 0.025) < 0.001
+
 
 class TestDriftDetectorEmpty:
     def test_empty_log(self, tmp_path):
@@ -159,6 +162,11 @@ class TestDriftDetectorZTest:
 
     def test_z_test_all_zero_rejections(self):
         z, p = DriftDetector._two_proportion_z(0, 100, 0, 100)
+        assert z == 0.0
+        assert p == 1.0
+
+    def test_z_test_all_rejections(self):
+        z, p = DriftDetector._two_proportion_z(100, 100, 100, 100)
         assert z == 0.0
         assert p == 1.0
 

@@ -189,8 +189,6 @@ class DriftDetector:
         if p_pool == 0.0 or p_pool == 1.0:
             return 0.0, 1.0
         se = math.sqrt(p_pool * (1 - p_pool) * (1 / n1 + 1 / n2))
-        if se == 0:
-            return 0.0, 1.0
         z = (p2 - p1) / se
         p_value = 1.0 - _norm_cdf(z)
         return z, p_value
