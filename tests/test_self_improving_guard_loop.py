@@ -8,6 +8,8 @@
 
 from __future__ import annotations
 
+from dataclasses import replace
+
 import pytest
 
 from director_ai.core.guard_control import RiskEnvelope
@@ -120,6 +122,10 @@ def test_wide_calibration_interval_warns_and_cannot_be_approved():
     assert proposal.guard_decision.reason == "self_improvement_interval_too_wide"
     with pytest.raises(PermissionError, match="cannot approve"):
         loop.approve(proposal, approval_id="review-wide")
+
+    approved_warning = replace(proposal, approved=True, approval_id="review-wide")
+    with pytest.raises(PermissionError, match="cannot release"):
+        loop.release(approved_warning)
 
 
 def test_training_job_is_proposal_only_and_requires_rollback_id():
@@ -267,6 +273,21 @@ def test_guard_loop_warns_for_insufficient_feedback_and_training_regression():
     assert training.guard_decision.reason == "self_improvement_heldout_regression"
     assert training.guard_decision.risk_score == pytest.approx(0.04)
 
+    insufficient_training = loop.propose_lora_job(
+        source_ref="feedback://small-reviewed",
+        dataset_uri="env://DIRECTOR_REVIEWED_FEEDBACK_DATASET",
+        base_model_ref="registry://guard-base@sha256:abc",
+        rollback_id="guard-model-v12",
+        heldout_score=0.91,
+        baseline_score=0.88,
+        min_feedback=32,
+    )
+    assert (
+        insufficient_training.guard_decision.reason
+        == "self_improvement_insufficient_feedback"
+    )
+    assert insufficient_training.guard_decision.risk_score == 1.0
+
 
 def test_guard_loop_rejects_invalid_training_inputs_and_serialises_event():
     loop = SelfImprovingGuardLoop(
@@ -309,6 +330,9 @@ def test_guard_loop_rejects_invalid_training_inputs_and_serialises_event():
 
     assert event.hook_id == "guard.loop"
     assert event.tenant_id == "tenant-a"
+
+    with pytest.raises(ValueError, match="approval_id"):
+        loop.approve(proposal, approval_id="")
 
 
 def test_guard_loop_dataclasses_reject_invalid_states():
@@ -361,6 +385,16 @@ def test_guard_loop_dataclasses_reject_invalid_states():
             loop_decision,
             {},
             submitted=True,
+        )
+    with pytest.raises(ValueError, match="promotion_status"):
+        GuardLoopProposal(
+            "proposal-1",
+            "calibration_update",
+            manifest,
+            "rollback",
+            loop_decision,
+            {},
+            promotion_status="submitted",
         )
     with pytest.raises(ValueError, match="approval_id"):
         GuardLoopProposal(
