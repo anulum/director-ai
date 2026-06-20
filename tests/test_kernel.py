@@ -163,6 +163,16 @@ class TestTimeouts:
         result = k.stream_output(iter(["a"]), lambda _t: 0.9)
         assert result == "a"
 
+    def test_callback_timeout_halts_stream(self):
+        def callback_timeout(_text):
+            raise TimeoutError("scorer deadline exceeded")
+
+        k = SafetyKernel(hard_limit=0.1)
+        result = k.stream_output(iter(["a"]), callback_timeout)
+
+        assert result == "[HALT: CALLBACK TIMEOUT]"
+        assert k.is_active is False
+
     def test_coherence_halt_takes_priority_over_timeout(self):
         k = SafetyKernel(hard_limit=0.5, total_timeout=10.0)
         result = k.stream_output(iter(["x"]), lambda _t: 0.1)
