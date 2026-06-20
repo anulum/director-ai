@@ -129,6 +129,24 @@ class TestSelectDevice:
 
         assert _device._minimum_capability() == (7, 0)
 
+    def test_minimum_capability_falls_back_when_torch_arch_list_missing(
+        self, monkeypatch
+    ):
+        fake_torch = types.ModuleType("torch")
+        fake_torch.cuda = types.SimpleNamespace()
+        monkeypatch.setitem(sys.modules, "torch", fake_torch)
+
+        assert _device._minimum_capability() == (7, 0)
+
+    def test_minimum_capability_keeps_lowest_supported_arch(self, monkeypatch):
+        fake_torch = types.ModuleType("torch")
+        fake_torch.cuda = types.SimpleNamespace(
+            get_arch_list=lambda: ["sm_90", "sm_80", "sm_86"]
+        )
+        monkeypatch.setitem(sys.modules, "torch", fake_torch)
+
+        assert _device._minimum_capability() == (8, 0)
+
     def test_raw_capability_probe_normalises_valid_tuples(self, monkeypatch):
         fake_torch = types.ModuleType("torch")
         fake_torch.cuda = types.SimpleNamespace(
@@ -198,6 +216,17 @@ class TestSelectDevice:
         assert not _device._cuda_usable_for("cuda:1")
         assert not _device._cuda_usable_for("cuda:9")
 
+    def test_cuda_usable_for_rejects_unavailable_cuda(self, monkeypatch):
+        fake_torch = types.ModuleType("torch")
+        fake_torch.cuda = types.SimpleNamespace(
+            is_available=lambda: False,
+            device_count=lambda: 1,
+            get_device_capability=lambda idx: (8, 0),
+        )
+        monkeypatch.setitem(sys.modules, "torch", fake_torch)
+
+        assert not _device._cuda_usable_for("cuda:0")
+
     def test_cuda_usable_for_rejects_bad_capability_and_parse_errors(self, monkeypatch):
         fake_torch = types.ModuleType("torch")
         fake_torch.cuda = types.SimpleNamespace(
@@ -207,6 +236,8 @@ class TestSelectDevice:
         )
         monkeypatch.setitem(sys.modules, "torch", fake_torch)
 
+        assert not _device._cuda_usable_for("cuda:0")
+        fake_torch.cuda.get_device_capability = lambda idx: (8, 0, 0)
         assert not _device._cuda_usable_for("cuda:0")
         assert not _device._cuda_usable_for("cuda:bad")
 
