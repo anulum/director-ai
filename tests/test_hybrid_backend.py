@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import pytest
 
+import director_ai.core.retrieval.vector_store.composite as composite_mod
 from director_ai.core.vector_store import HybridBackend, InMemoryBackend
 
 
@@ -33,10 +34,13 @@ class TestHybridBackend:
         ("kwargs", "message"),
         [
             ({"base": None}, "base"),
+            ({"rrf_k": True}, "rrf_k"),
             ({"rrf_k": 0}, "rrf_k"),
             ({"sparse_weight": -0.1}, "sparse_weight"),
+            ({"sparse_weight": True}, "sparse_weight"),
             ({"dense_weight": -0.1}, "dense_weight"),
             ({"sparse_weight": 0.0, "dense_weight": 0.0}, "weight"),
+            ({"fetch_multiplier": True}, "fetch_multiplier"),
             ({"fetch_multiplier": 0}, "fetch_multiplier"),
         ],
     )
@@ -57,6 +61,11 @@ class TestHybridBackend:
 
     def test_empty_returns_empty(self):
         assert self.hybrid.query("anything") == []
+
+    def test_empty_sparse_query_returns_empty_without_dense_lookup(self):
+        self.hybrid.add("d1", "indexed document")
+
+        assert self.hybrid._bm25_query("   ", n_results=3, tenant_id="") == []
 
     def test_rrf_fusion_combines_both_signals(self):
         """Both BM25 and dense results should contribute to ranking."""
@@ -157,3 +166,8 @@ class TestHybridPerformanceDoc:
         assert hybrid.count() == 1
         hybrid.query("test")
         assert hybrid.count() == 1
+
+    def test_sum_int_python_path_when_rust_path_disabled(self, monkeypatch):
+        monkeypatch.setattr(composite_mod, "_RUST_COMPOSITE", False)
+
+        assert composite_mod._sum_int([2, 3, 5]) == 10

@@ -12,10 +12,13 @@ parametrised n_results, multiplier values, scorer pipeline integration,
 and performance documentation.
 """
 
+import sys
+import types
 from unittest.mock import MagicMock, patch
 
 import pytest
 
+import director_ai.core.retrieval.vector_store.composite as composite_mod
 from director_ai.core.vector_store import InMemoryBackend, RerankedBackend
 
 
@@ -93,6 +96,64 @@ class TestRerankedBackend:
         reranker = _make_reranked(base)
         assert reranker.count() == 42
 
+    def test_cuda_oom_retries_reranker_load_on_cpu(self, monkeypatch):
+        calls = []
+        released = []
+
+        class FakeCrossEncoder:
+            def __init__(self, _model, *, device, revision):
+                calls.append((device, revision))
+                if device == "cuda:0":
+                    raise RuntimeError("CUDA out of memory while allocating")
+
+            def predict(self, pairs):
+                return [1.0 for _pair in pairs]
+
+        monkeypatch.setitem(
+            sys.modules,
+            "sentence_transformers",
+            types.SimpleNamespace(CrossEncoder=FakeCrossEncoder),
+        )
+        import director_ai.core._device as device_mod
+
+        monkeypatch.setattr(device_mod, "select_torch_device", lambda: "cuda:0")
+        monkeypatch.setattr(
+            device_mod,
+            "release_torch_cuda",
+            lambda: released.append(True),
+        )
+
+        reranker = RerankedBackend(
+            InMemoryBackend(),
+            reranker_model="test-reranker",
+            reranker_revision="rev-1",
+        )
+
+        assert reranker.count() == 0
+        assert calls == [("cuda:0", "rev-1"), ("cpu", "rev-1")]
+        assert released == [True]
+
+    def test_non_oom_reranker_load_error_propagates(self, monkeypatch):
+        class FakeCrossEncoder:
+            def __init__(self, _model, *, device, revision):
+                raise RuntimeError(f"bad weights on {device} {revision}")
+
+        monkeypatch.setitem(
+            sys.modules,
+            "sentence_transformers",
+            types.SimpleNamespace(CrossEncoder=FakeCrossEncoder),
+        )
+        import director_ai.core._device as device_mod
+
+        monkeypatch.setattr(device_mod, "select_torch_device", lambda: "cuda:0")
+
+        with pytest.raises(RuntimeError, match="bad weights"):
+            RerankedBackend(
+                InMemoryBackend(),
+                reranker_model="test-reranker",
+                reranker_revision="rev-1",
+            )
+
     def test_empty_query_returns_empty(self):
         base = MagicMock()
         base.query.return_value = []
@@ -122,6 +183,13 @@ class TestRerankedBackend:
         reranker = _make_reranked(base, top_k_multiplier=multiplier)
         results = reranker.query("test", n_results=2)
         assert len(results) == 2
+
+    def test_cuda_oom_helper_matches_supported_error_forms(self):
+        assert composite_mod._is_cuda_oom(RuntimeError("CUDA out of memory")) is True
+        assert (
+            composite_mod._is_cuda_oom(RuntimeError("torch.OutOfMemoryError")) is True
+        )
+        assert composite_mod._is_cuda_oom(RuntimeError("other runtime error")) is False
 
 
 class TestRerankerPipelineIntegration:
