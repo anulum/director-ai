@@ -8,6 +8,7 @@
 
 import pytest
 
+import director_ai.core.attribution.causal_graph as causal_graph_mod
 from director_ai.core import (
     ClaimAttribution,
     CoherenceScore,
@@ -142,6 +143,40 @@ def test_builds_claim_evidence_score_dag_without_raw_text_by_default():
     payload_with_text = graph.to_dict(include_text=True)
     assert "Use normal dosing" in str(payload_with_text)
     assert "contraindicated" in str(payload_with_text)
+
+
+def test_repeated_source_attributions_reuse_existing_evidence_node():
+    evidence = ScoringEvidence(
+        chunks=[],
+        nli_premise="source facts",
+        nli_hypothesis="candidate answer",
+        nli_score=0.4,
+        attributions=[
+            ClaimAttribution(
+                claim="Claim one.",
+                claim_index=0,
+                source_sentence="Shared evidence sentence.",
+                source_index=0,
+                divergence=0.8,
+                supported=False,
+            ),
+            ClaimAttribution(
+                claim="Claim two.",
+                claim_index=1,
+                source_sentence="Shared evidence sentence.",
+                source_index=0,
+                divergence=0.2,
+                supported=True,
+            ),
+        ],
+    )
+
+    graph = build_causal_attribution_graph(evidence)
+
+    evidence_nodes = [node for node in graph.nodes if node.node_id == "evidence:0"]
+    assert len(evidence_nodes) == 1
+    assert graph.node("claim:0").metadata["supported"] is False
+    assert graph.node("claim:1").metadata["supported"] is True
 
 
 def test_builds_chunk_only_score_dag_from_scoring_evidence():
@@ -282,6 +317,14 @@ def test_graph_rejects_invalid_nodes_root_and_self_loops():
         )
     with pytest.raises(ValueError, match="self-loop"):
         AttributionEdge("a", "a", "contributes_to", 0.5)
+    with pytest.raises(ValueError, match="edge endpoints"):
+        AttributionEdge("", "b", "contributes_to", 0.5)
+    with pytest.raises(ValueError, match="root_id must be non-empty"):
+        CausalAttributionGraph(
+            nodes=[AttributionNode(node_id="a", kind="claim", label="A")],
+            edges=[],
+            root_id="",
+        )
     with pytest.raises(ValueError, match="root_id"):
         CausalAttributionGraph(
             nodes=[AttributionNode(node_id="a", kind="claim", label="A")],
@@ -307,3 +350,13 @@ def test_graph_lookup_limit_and_unsupported_evidence_errors():
         graph.top_contributors(limit=0)
     with pytest.raises(TypeError, match="unsupported attribution evidence"):
         build_causal_attribution_graph(object())
+
+
+def test_node_contribution_uses_divergence_metadata_when_score_absent():
+    node = AttributionNode(
+        node_id="claim:metadata",
+        kind="claim",
+        label="Metadata contribution",
+        metadata={"divergence": 1.4},
+    )
+    assert causal_graph_mod._node_contribution_weight(node) == 1.0
