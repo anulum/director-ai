@@ -27,6 +27,43 @@ def test_get_contradiction_report_empty_session():
     assert report.contradiction_index == 0.0
 
 
+def test_session_rejects_non_positive_capacity():
+    with pytest.raises(ValueError, match="max_turns"):
+        ConversationSession(max_turns=0)
+
+
+def test_add_turn_indexes_and_evicts_oldest_turns():
+    session = ConversationSession(max_turns=2, session_id="session-1")
+
+    first = session.add_turn("p1", "r1", 0.1)
+    second = session.add_turn("p2", "r2", 0.2)
+    third = session.add_turn("p3", "r3", 0.3)
+
+    assert session.session_id == "session-1"
+    assert first.turn_index == 0
+    assert second.turn_index == 1
+    assert third.turn_index == 2
+    assert [turn.prompt for turn in session.turns] == ["p2", "p3"]
+    assert len(session) == 2
+
+
+def test_turns_returns_snapshot_and_context_text_joins_responses():
+    session = ConversationSession()
+    session.add_turn("p1", "first response", 0.1)
+    session.add_turn("p2", "second response", 0.2)
+
+    turns = session.turns
+    turns.clear()
+
+    assert len(session.turns) == 2
+    assert session.context_text == "first response second response"
+
+
+def test_intent_drift_tracking_is_optional():
+    assert ConversationSession().intent_drift is None
+    assert ConversationSession(track_intent_drift=True).intent_drift is not None
+
+
 def test_get_contradiction_report_reflects_updates_without_adding_turn():
     session = ConversationSession()
     session.update_contradictions("the sky is blue", _high_divergence)
