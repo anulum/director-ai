@@ -501,6 +501,58 @@ class TestServerCoverageGaps:
 
         assert calls == ["setup"]
 
+    def test_lifespan_starts_and_stops_review_queue(self, monkeypatch):
+        import director_ai.core.runtime.review_queue as review_queue_mod
+
+        events: list[tuple[str, object]] = []
+
+        class FakeReviewQueue:
+            def __init__(self, scorer, *, max_batch, flush_timeout_ms):
+                events.append(("init", scorer))
+                events.append(("max_batch", max_batch))
+                events.append(("flush_timeout_ms", flush_timeout_ms))
+
+            async def start(self):
+                events.append(("start", None))
+
+            async def stop(self):
+                events.append(("stop", None))
+
+        monkeypatch.setattr(review_queue_mod, "ReviewQueue", FakeReviewQueue)
+        cfg = self._fast_config()
+        cfg.review_queue_enabled = True
+        cfg.review_queue_max_batch = 7
+        cfg.review_queue_flush_timeout_ms = 1.5
+        app = create_app(cfg)
+
+        with TestClient(app) as client:
+            assert client.app.state._state["review_queue"].__class__ is FakeReviewQueue
+
+        assert ("max_batch", 7) in events
+        assert ("flush_timeout_ms", 1.5) in events
+        assert ("start", None) in events
+        assert ("stop", None) in events
+
+    def test_lifespan_wires_postgres_audit_sink(self, monkeypatch):
+        import director_ai.enterprise.audit_pg as audit_pg_mod
+
+        sinks: list[str] = []
+
+        class FakePostgresAuditSink:
+            def __init__(self, db_url: str):
+                sinks.append(db_url)
+
+        monkeypatch.setattr(audit_pg_mod, "PostgresAuditSink", FakePostgresAuditSink)
+        cfg = self._fast_config()
+        cfg.audit_postgres_url = "postgresql://audit.example/db"
+        app = create_app(cfg)
+
+        with TestClient(app) as client:
+            audit_logger = client.app.state._state["audit"]
+
+        assert sinks == ["postgresql://audit.example/db"]
+        assert audit_logger is not None
+
     def test_health_reports_commercial_and_trial_license_branches(self):
         app = create_app(self._fast_config())
 
