@@ -325,9 +325,6 @@ class DirectorConfig:
     # Tenant routing
     tenant_routing: bool = False
 
-    # Rate Limiting
-    rate_limit_enabled: bool = False
-
     # Input Sanitization
     sanitize_inputs: bool = True
     sanitizer_block_threshold: float = 0.8
