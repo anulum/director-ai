@@ -707,6 +707,20 @@ class TestCoherenceScorerInternalContracts:
             assert scorer._get_meta_classifier() is None
         assert scorer._meta_classifier_path == ""
 
+        class MissingClassifier:
+            def __init__(self, _path):
+                raise FileNotFoundError("missing classifier")
+
+        missing_module = types.SimpleNamespace(DatasetTypeClassifier=MissingClassifier)
+        scorer = CoherenceScorer(use_nli=False)
+        scorer._meta_classifier_path = "missing.pkl"
+        with patch.dict(
+            "sys.modules",
+            {"director_ai.core.scoring.meta_classifier": missing_module},
+        ):
+            assert scorer._get_meta_classifier() is None
+        assert scorer._meta_classifier_path == ""
+
         scorer = CoherenceScorer(use_nli=False)
         scorer._meta_classifier_path = "broken.pkl"
         scorer._adaptive_threshold_fail_closed = True
@@ -987,6 +1001,80 @@ class TestScorerFactualDivergenceBranches:
         assert evidence.claims == ["Supported claim."]
         assert evidence.attributions == [attribution]
         assert evidence.estimated_cost_usd == pytest.approx(0.009)
+
+    def test_vector_store_evidence_uses_chunks_and_confidence_weighted_nli(self):
+        from unittest.mock import MagicMock
+
+        from director_ai.core.retrieval.vector_store import VectorGroundTruthStore
+        from director_ai.core.types import EvidenceChunk
+
+        store = VectorGroundTruthStore()
+        store.retrieve_context_with_chunks = MagicMock(
+            return_value=[
+                EvidenceChunk(text="chunk one", distance=0.2, source="doc-a"),
+                EvidenceChunk(text="chunk two", distance=0.1, source="doc-b"),
+            ],
+        )
+        scorer = CoherenceScorer(use_nli=True, ground_truth_store=store)
+        scorer._confidence_weighted_agg = True
+        scorer._detect_task_type = lambda _prompt, _response="": "rag"
+        scorer._should_escalate = lambda _score, task_type="default": False
+
+        nli = MagicMock()
+        nli.model_available = True
+        nli.last_token_count = 5
+        nli._cost_per_token = 0.002
+        nli.reset_token_counter.return_value = None
+        nli.score_chunked_confidence_weighted.return_value = (0.18, [0.18, 0.21])
+        scorer._nli = nli
+
+        divergence, evidence = scorer.calculate_factual_divergence_with_evidence(
+            "prompt",
+            "short answer",
+            tenant_id="tenant-a",
+        )
+
+        assert divergence == 0.18
+        store.retrieve_context_with_chunks.assert_called_once_with(
+            "prompt",
+            top_k=3,
+            tenant_id="tenant-a",
+        )
+        nli.score_chunked_confidence_weighted.assert_called_once_with(
+            "chunk one; chunk two",
+            "short answer",
+            inner_agg="max",
+            premise_ratio=0.4,
+            overlap_ratio=0.5,
+        )
+        assert evidence is not None
+        assert evidence.chunks == [
+            EvidenceChunk(text="chunk one", distance=0.2, source="doc-a"),
+            EvidenceChunk(text="chunk two", distance=0.1, source="doc-b"),
+        ]
+        assert evidence.chunk_scores == [0.18, 0.21]
+        assert evidence.hypothesis_chunk_count == 2
+        assert evidence.estimated_cost_usd == 0.01
+
+    def test_injection_detection_continues_when_sanitizer_is_unavailable(
+        self,
+        monkeypatch,
+    ):
+        import director_ai.core.safety.sanitizer as sanitizer_module
+
+        class BrokenSanitizer:
+            def __init__(self):
+                raise RuntimeError("sanitizer unavailable")
+
+        monkeypatch.setattr(sanitizer_module, "InputSanitizer", BrokenSanitizer)
+        scorer = CoherenceScorer(use_nli=False)
+
+        scorer.enable_injection_detection(injection_threshold=0.81)
+
+        detector = scorer._get_injection_detector()
+        assert detector is not None
+        assert detector._sanitizer is None
+        assert detector._cfg.injection_threshold == 0.81
 
 
 class TestScorerClaimSupportIntegration:
