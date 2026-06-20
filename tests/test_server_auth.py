@@ -119,6 +119,13 @@ def test_health_exempt_from_auth():
     assert r.status_code == 200
 
 
+def test_liveness_exposes_minimal_ok_payload():
+    with TestClient(_auth_app()) as client:
+        r = client.get("/v1/live")
+    assert r.status_code == 200
+    assert r.json() == {"ok": True}
+
+
 def test_health_unauthenticated_hides_build_detail():
     """With keys configured, an unauthenticated probe sees only status+licence."""
     with TestClient(_auth_app()) as client:
@@ -299,6 +306,28 @@ def test_rate_limiter_has_default_limits():
     assert limiter is not None
     assert limiter._default_limits is not None
     assert len(limiter._default_limits) > 0
+
+
+@pytest.mark.skipif(not _SLOWAPI_AVAILABLE, reason="slowapi not installed")
+def test_rate_limiter_uses_redis_storage_uri(monkeypatch):
+    import director_ai.server as server_mod
+
+    class FakeLimiter:
+        def __init__(self, *, key_func, default_limits, storage_uri):
+            self._key_func = key_func
+            self._default_limits = default_limits
+            self._storage_uri = storage_uri
+
+    monkeypatch.setattr(server_mod, "Limiter", FakeLimiter)
+    cfg = DirectorConfig(
+        rate_limit_rpm=60,
+        redis_url="redis://localhost:6379/0",
+        llm_provider="mock",
+    )
+    app = create_app(cfg)
+
+    assert app.state.limiter is not None
+    assert app.state.limiter._storage_uri == "redis://localhost:6379/0"
 
 
 def test_prompt_too_long_returns_422():

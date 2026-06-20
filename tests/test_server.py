@@ -553,6 +553,32 @@ class TestServerCoverageGaps:
         assert sinks == ["postgresql://audit.example/db"]
         assert audit_logger is not None
 
+    def test_lifespan_wires_cloud_provider_without_key_and_contradiction_halt(
+        self,
+        monkeypatch,
+    ):
+        import director_ai.core.agent as agent_mod
+
+        captured: dict[str, object] = {}
+
+        class FakeCoherenceAgent:
+            def __init__(self, **kwargs):
+                captured.update(kwargs)
+
+        monkeypatch.setattr(agent_mod, "CoherenceAgent", FakeCoherenceAgent)
+        cfg = self._fast_config()
+        cfg.llm_provider = "anthropic"
+        cfg.llm_api_key = ""
+        cfg.build_contradiction_halt = lambda _store: "halt-controller"  # type: ignore[method-assign]
+        app = create_app(cfg)
+
+        with TestClient(app):
+            pass
+
+        assert captured["provider"] == "anthropic"
+        assert "api_key" not in captured
+        assert captured["contradiction_halt"] == "halt-controller"
+
     def test_health_reports_commercial_and_trial_license_branches(self):
         app = create_app(self._fast_config())
 
