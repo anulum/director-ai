@@ -21,6 +21,7 @@ from typing import Any, cast
 import pytest
 
 import director_ai.core.meta_guard.analyzer as analyzer_mod
+import director_ai.core.meta_guard.guard as guard_mod
 from director_ai.core.meta_guard import (
     DecisionLog,
     MetaAnalyzer,
@@ -657,6 +658,42 @@ class TestMetaGuard:
         assert verdict.production.evasion_score > 0.4
         assert verdict.thresholds is None
 
+    def test_production_policy_allows_empty_alarm_window(self):
+        policy = MetaGuardProductionPolicy()
+
+        decision = policy.evaluate(window=[], analysis=_mock_analysis(ph_alarm=True))
+
+        assert decision.enabled is True
+        assert decision.blocked is False
+        assert decision.window_size == 0
+
+    def test_production_policy_blocks_insufficient_labels(self):
+        policy = MetaGuardProductionPolicy(
+            min_labelled_fraction=0.75,
+            max_single_tenant_fraction=0.5,
+            max_duplicate_prompt_fraction=0.5,
+        )
+        window = [
+            ScoringDecision(
+                prompt_hash=f"h{i}",
+                score=0.9,
+                action="halt",
+                timestamp=float(i),
+                tenant_id=f"tenant-{i % 4}",
+                ground_truth=1.0 if i == 0 else None,
+            )
+            for i in range(8)
+        ]
+
+        decision = policy.evaluate(
+            window=window,
+            analysis=_mock_analysis(ph_alarm=True),
+        )
+
+        assert decision.blocked is True
+        assert decision.block_reason == "insufficient_labels"
+        assert decision.labelled_fraction == pytest.approx(0.125)
+
     def test_production_policy_allows_labelled_diverse_adjustment(self):
         policy = MetaGuardProductionPolicy(
             min_labelled_fraction=0.75,
@@ -689,3 +726,23 @@ class TestMetaGuard:
         assert isinstance(verdict.production, ProductionMetaGuardDecision)
         assert verdict.production.blocked is False
         assert verdict.production.labelled_fraction == pytest.approx(1.0)
+
+    def test_production_policy_rejects_invalid_fraction(self):
+        with pytest.raises(ValueError, match="max_single_tenant_fraction"):
+            MetaGuardProductionPolicy(max_single_tenant_fraction=1.5)
+
+    def test_window_metrics_empty_window(self):
+        assert guard_mod._window_metrics([]) == {
+            "window_size": 0,
+            "labelled_fraction": 0.0,
+            "single_tenant_fraction": 0.0,
+            "duplicate_prompt_fraction": 0.0,
+            "evasion_score": 0.0,
+        }
+
+    def test_sum_int_python_floor_when_rust_disabled(
+        self, monkeypatch: pytest.MonkeyPatch
+    ):
+        monkeypatch.setattr(guard_mod, "_RUST_META_GUARD", False)
+
+        assert guard_mod._sum_int([1, 2, 3]) == 6
