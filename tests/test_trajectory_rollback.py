@@ -78,6 +78,24 @@ def test_register_requires_stable_ids() -> None:
         manager.register(rollback_id="rb", action_id="", hook=lambda _h, _r: {})
 
 
+def test_handle_to_dict_freezes_refs_and_metadata_values() -> None:
+    handle = RollbackHandle(
+        rollback_id="rb",
+        action_id="deploy-policy",
+        tenant_id="tenant-a",
+        evidence_refs=(1, "trajectory:2"),
+        metadata={"owner": 7},  # type: ignore[dict-item]
+    )
+
+    assert handle.to_dict() == {
+        "rollback_id": "rb",
+        "action_id": "deploy-policy",
+        "tenant_id": "tenant-a",
+        "evidence_refs": ["1", "trajectory:2"],
+        "metadata": {"owner": "7"},
+    }
+
+
 def test_duplicate_rollback_id_is_rejected() -> None:
     manager = TrajectoryRollbackManager()
     calls: list[tuple[str, str]] = []
@@ -221,6 +239,44 @@ def test_outcome_to_dict_is_json_safe() -> None:
         "evidence_refs": ["trajectory:1"],
         "metadata": {"owner": "safety"},
     }
+
+
+@pytest.mark.parametrize(
+    "kwargs,match",
+    [
+        ({"status": "unsupported"}, "unsupported rollback status"),
+        ({"rollback_id": ""}, "rollback_id"),
+        ({"action_id": ""}, "action_id"),
+        ({"reason": ""}, "reason"),
+    ],
+)
+def test_outcome_rejects_invalid_required_fields(kwargs: dict[str, object], match: str):
+    payload = {
+        "rollback_id": "rb",
+        "action_id": "deploy-policy",
+        "status": "armed",
+        "reason": "trajectory_preflight_uncertain",
+        "executed": False,
+    }
+    payload.update(kwargs)
+
+    with pytest.raises(ValueError, match=match):
+        RollbackOutcome(**payload)  # type: ignore[arg-type]
+
+
+def test_duplicate_evidence_refs_are_deduplicated_on_execute() -> None:
+    manager = TrajectoryRollbackManager()
+    calls: list[tuple[str, str]] = []
+    handle = _register(manager, calls)
+
+    outcome = manager.execute(
+        handle.rollback_id,
+        reason="manual_halt",
+        evidence_refs=("change:42", "manual:1", "manual:1"),
+    )
+
+    assert outcome.status == "executed"
+    assert outcome.evidence_refs == ("change:42", "manual:1")
 
 
 def test_unknown_rollback_id_raises_key_error() -> None:
