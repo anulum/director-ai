@@ -1193,3 +1193,443 @@ class TestScorerClaimSupportIntegration:
             "Claim 3.",
             "Claim 4.",
         ]
+
+
+class TestCoherenceScorerReviewContracts:
+    """Review-path contracts owned by ``CoherenceScorer``."""
+
+    def test_score_cache_scope_combines_session_and_store_scope(self):
+        from unittest.mock import MagicMock
+
+        scorer = CoherenceScorer(use_nli=False)
+        session = MagicMock()
+        session.__len__.return_value = 2
+        session.context_text = "prior verified context"
+        store = MagicMock()
+        store.cache_scope.return_value = "kb-version-7"
+        scorer.ground_truth_store = store
+
+        assert scorer._score_cache_scope(session=session, tenant_id="tenant-a") == (
+            "session:prior verified context\x1fstore:kb-version-7"
+        )
+        store.cache_scope.assert_called_once_with(tenant_id="tenant-a")
+
+    def test_review_cache_hit_finalises_without_recomputing(self):
+        from dataclasses import dataclass
+        from unittest.mock import MagicMock
+
+        @dataclass
+        class CachedScore:
+            score: float
+            h_logical: float
+            h_factual: float
+
+        cache = MagicMock()
+        cache.get.return_value = CachedScore(score=0.91, h_logical=0.1, h_factual=0.2)
+        scorer = CoherenceScorer(use_nli=False, cache=cache)
+        scorer._heuristic_coherence = MagicMock()
+
+        approved, score = scorer.review("prompt", "answer", tenant_id="tenant-a")
+
+        assert approved is True
+        assert score.score == 0.91
+        assert score.h_logical == 0.1
+        assert score.h_factual == 0.2
+        scorer._heuristic_coherence.assert_not_called()
+        cache.get.assert_called_once_with(
+            "prompt",
+            "answer",
+            tenant_id="tenant-a",
+            scope="",
+        )
+
+    def test_review_cache_put_uses_session_and_store_scope(self):
+        from unittest.mock import MagicMock
+
+        cache = MagicMock()
+        cache.get.return_value = None
+        scorer = CoherenceScorer(use_nli=False, cache=cache)
+        scorer._heuristic_coherence = MagicMock(return_value=(0.2, 0.3, 0.76, None))
+
+        session = MagicMock()
+        session.__len__.return_value = 1
+        session.context_text = "previous turn"
+        session.add_turn.return_value = None
+        store = MagicMock()
+        store.cache_scope.return_value = "store-snapshot"
+        scorer.ground_truth_store = store
+
+        approved, score = scorer.review(
+            "prompt",
+            "answer",
+            session=session,
+            tenant_id="tenant-a",
+        )
+
+        assert approved is True
+        assert score.score == 0.76
+        cache.put.assert_called_once_with(
+            "prompt",
+            "answer",
+            0.76,
+            0.2,
+            0.3,
+            tenant_id="tenant-a",
+            scope="session:previous turn\x1fstore:store-snapshot",
+        )
+        session.add_turn.assert_called_once_with("prompt", "answer", 0.76)
+
+    def test_review_blends_cross_turn_divergence_and_updates_interlock(self):
+        from types import SimpleNamespace
+        from unittest.mock import MagicMock
+
+        scorer = CoherenceScorer(use_nli=True)
+        nli = MagicMock()
+        nli.model_available = True
+        nli.score.return_value = 0.4
+        scorer._nli = nli
+        scorer._heuristic_coherence = MagicMock(return_value=(0.1, 0.5, 0.74, None))
+        scorer._detect_task_type = lambda _prompt, _action="": "default"
+
+        session = MagicMock()
+        session.__len__.return_value = 1
+        session.context_text = "earlier answer"
+        session.update_contradictions.return_value = SimpleNamespace(
+            contradiction_index=0.33,
+            trend=0.44,
+        )
+        session.intent_drift.update.return_value = SimpleNamespace(
+            drift_risk=0.55,
+            triggered=True,
+        )
+
+        approved, score = scorer.review("prompt", "new answer", session=session)
+
+        assert approved is True
+        assert score.cross_turn_divergence == 0.4
+        assert score.contradiction_index == 0.33
+        assert score.intent_drift_risk == 0.55
+        assert score.intent_drift_triggered is True
+        session.intent_drift.update.assert_called_once_with(
+            intent_divergence=0.4,
+            injection_risk=0.0,
+            contradiction_trend=0.44,
+        )
+
+    def test_review_continues_when_optional_session_and_injection_hooks_fail(self):
+        from unittest.mock import MagicMock
+
+        scorer = CoherenceScorer(use_nli=True)
+        nli = MagicMock()
+        nli.model_available = True
+        scorer._nli = nli
+        scorer._heuristic_coherence = MagicMock(return_value=(0.1, 0.2, 0.86, None))
+        scorer._detect_task_type = lambda _prompt, _action="": "default"
+
+        session = MagicMock()
+        session.__len__.return_value = 1
+        session.context_text = ""
+        session.update_contradictions.side_effect = RuntimeError("tracker down")
+
+        detector = MagicMock()
+        detector.detect.side_effect = RuntimeError("detector down")
+        scorer._injection_detector = detector
+        scorer._injection_fail_closed = False
+
+        approved, score = scorer.review("prompt", "answer", session=session)
+
+        assert approved is True
+        assert score.injection_risk is None
+        session.add_turn.assert_called_once_with("prompt", "answer", score.score)
+
+    def test_review_injection_detector_fail_closed_raises(self):
+        from unittest.mock import MagicMock
+
+        scorer = CoherenceScorer(use_nli=False)
+        scorer._heuristic_coherence = MagicMock(return_value=(0.1, 0.2, 0.86, None))
+        detector = MagicMock()
+        detector.detect.side_effect = RuntimeError("detector down")
+        scorer._injection_detector = detector
+        scorer._injection_fail_closed = True
+
+        import pytest
+
+        with pytest.raises(RuntimeError, match="detector down"):
+            scorer.review("prompt", "answer")
+
+    def test_verified_scorer_fail_closed_on_insufficient_coverage(self, monkeypatch):
+        from types import SimpleNamespace
+
+        from director_ai.core.types import EvidenceChunk, ScoringEvidence
+
+        class FakeVerifiedScorer:
+            def __init__(self, nli_scorer):
+                self.nli_scorer = nli_scorer
+
+            def verify(self, response, source, *, atomic, evidence_top_k):
+                assert response == "Atomic claim."
+                assert source == "source text"
+                assert atomic is True
+                assert evidence_top_k == 3
+                return SimpleNamespace(
+                    approved=True,
+                    coverage=0.25,
+                    claims=["Atomic claim."],
+                    contradicted_count=0,
+                    fabricated_count=0,
+                    to_dict=lambda: {"approved": True, "coverage": 0.25},
+                )
+
+        monkeypatch.setattr(
+            "director_ai.core.scoring.verified_scorer.VerifiedScorer",
+            FakeVerifiedScorer,
+        )
+        evidence = ScoringEvidence(
+            chunks=[EvidenceChunk(text="source text", distance=0.1)],
+            nli_premise="fallback source",
+            nli_hypothesis="Atomic claim.",
+            nli_score=0.2,
+        )
+        scorer = CoherenceScorer(use_nli=False)
+        scorer._verified_scorer_enabled = True
+        approved, score = scorer._finalise_review(
+            0.7,
+            0.1,
+            0.2,
+            "Atomic claim.",
+            evidence,
+            detected_task_type="rag",
+        )
+
+        verified_approved, verified_score = scorer._apply_verified_scorer(
+            score,
+            task_type="rag",
+            threshold=0.5,
+        )
+
+        assert approved is True
+        assert verified_approved is False
+        assert verified_score.approved is False
+        assert verified_score.verified_approved is False
+        assert verified_score.verified_coverage == 0.25
+        assert verified_score.verified_claim_count == 1
+
+    def test_reasoning_tier_applies_structured_rejection(self):
+        from types import SimpleNamespace
+
+        from director_ai.core.types import CoherenceScore, ScoringEvidence
+
+        scorer = CoherenceScorer(use_nli=False, reasoning_enabled=True)
+        scorer._reasoning.should_escalate = lambda _score, centre=0.5: True
+        scorer._reasoning.reason = lambda *args, **kwargs: SimpleNamespace(
+            approved=False,
+            confidence=0.91,
+            rationale="unsupported safety claim",
+            harm_category=SimpleNamespace(value="misinformation"),
+            adjusted_score=0.22,
+        )
+        evidence = ScoringEvidence(
+            chunks=[],
+            nli_premise="source",
+            nli_hypothesis="answer",
+            nli_score=0.4,
+        )
+        score = CoherenceScore(
+            score=0.52,
+            approved=True,
+            h_logical=0.3,
+            h_factual=0.2,
+            evidence=evidence,
+            detected_task_type="rag",
+        )
+
+        approved, adjusted = scorer._apply_reasoning_tier(
+            (True, score),
+            "prompt",
+            "answer",
+            evidence,
+            threshold=0.5,
+        )
+
+        assert approved is False
+        assert adjusted.score == 0.22
+        assert adjusted.reasoning_escalated is True
+        assert adjusted.reasoning_confidence == 0.91
+        assert adjusted.reasoning_harm_category == "misinformation"
+        assert adjusted.reasoning_rationale == "unsupported safety claim"
+
+    def test_reasoning_tier_keeps_lower_verdict_when_backend_returns_none(self):
+        from director_ai.core.types import CoherenceScore
+
+        scorer = CoherenceScorer(use_nli=False, reasoning_enabled=True)
+        scorer._reasoning.should_escalate = lambda _score, centre=0.5: True
+        scorer._reasoning.reason = lambda *args, **kwargs: None
+        score = CoherenceScore(score=0.51, approved=True, h_logical=0.2, h_factual=0.3)
+
+        assert scorer._apply_reasoning_tier(
+            (True, score),
+            "prompt",
+            "answer",
+            None,
+            threshold=0.5,
+        ) == (True, score)
+
+    def test_dialogue_and_summarization_routes_use_specialised_divergence(self):
+        from director_ai.core.types import ScoringEvidence
+
+        scorer = CoherenceScorer(use_nli=True)
+        nli = type(
+            "ReadyNLI",
+            (),
+            {"model_available": True, "_ensure_model": lambda self: True},
+        )()
+        scorer._nli = nli
+        scorer._detect_task_type = lambda _prompt, _action="": "dialogue"
+        scorer._dialogue_factual_divergence = lambda *_args: (0.24, None)
+
+        h_logic, h_fact, coherence, evidence = scorer._heuristic_coherence(
+            "User: hi",
+            "Assistant: hi",
+        )
+
+        assert h_logic == 0.0
+        assert h_fact == 0.24
+        assert 0.0 <= coherence <= 1.0
+        assert evidence is None
+
+        summary_evidence = ScoringEvidence(
+            chunks=[],
+            nli_premise="source",
+            nli_hypothesis="summary",
+            nli_score=0.18,
+        )
+        scorer._detect_task_type = lambda _prompt, _action="": "summarization"
+        scorer._summarization_factual_divergence = lambda *_args: (
+            0.18,
+            summary_evidence,
+        )
+
+        h_logic, h_fact, _coherence, evidence = scorer._heuristic_coherence(
+            "source",
+            "summary",
+        )
+
+        assert h_logic == 0.0
+        assert h_fact == 0.18
+        assert evidence is summary_evidence
+
+    def test_prompt_premise_evidence_returns_neutral_without_model(self):
+        scorer = CoherenceScorer(use_nli=False)
+
+        divergence, evidence = (
+            scorer._calculate_prompt_premise_divergence_with_evidence(
+                "source",
+                "summary",
+            )
+        )
+
+        assert divergence == 0.5
+        assert evidence is None
+
+    def test_factual_divergence_retrieves_when_adaptive_router_allows_it(self):
+        from types import SimpleNamespace
+        from unittest.mock import MagicMock
+
+        store = MagicMock()
+        store.retrieve_context.return_value = "verified context"
+        router = MagicMock()
+        router.should_retrieve.return_value = SimpleNamespace(
+            retrieve=True,
+            task_type="rag",
+            confidence=0.88,
+        )
+        scorer = CoherenceScorer(use_nli=False, ground_truth_store=store)
+        scorer._adaptive_router = router
+
+        assert scorer.calculate_factual_divergence("prompt", "verified answer") == 0.5
+        store.retrieve_context.assert_called_once_with("prompt", top_k=3, tenant_id="")
+
+    def test_vector_retrieval_abstention_continues_for_close_match(self):
+        from unittest.mock import MagicMock
+
+        from director_ai.core.retrieval.vector_store import VectorGroundTruthStore
+        from director_ai.core.types import EvidenceChunk
+
+        store = VectorGroundTruthStore()
+        store.retrieve_context = MagicMock(return_value="verified context")
+        store.retrieve_context_with_chunks = MagicMock(
+            return_value=[EvidenceChunk(text="verified context", distance=0.1)]
+        )
+        scorer = CoherenceScorer(use_nli=False, ground_truth_store=store)
+        scorer._retrieval_abstention_threshold = 0.4
+
+        assert scorer.calculate_factual_divergence("prompt", "verified context") == 0.0
+        store.retrieve_context_with_chunks.assert_called_once_with(
+            "prompt",
+            top_k=3,
+            tenant_id="",
+        )
+
+    def test_review_uses_adaptive_threshold_and_meta_classifier(self):
+        from unittest.mock import MagicMock
+
+        meta_classifier = MagicMock()
+        meta_classifier.predict_threshold.return_value = (0.25, 0.9)
+        scorer = CoherenceScorer(use_nli=False, threshold=0.8)
+        scorer._adaptive_threshold_enabled = True
+        scorer._task_type_thresholds = {"rag": 0.7}
+        scorer._get_meta_classifier = MagicMock(return_value=meta_classifier)
+        scorer._heuristic_coherence = MagicMock(return_value=(0.1, 0.2, 0.6, None))
+        scorer._detect_task_type = lambda _prompt, _action="": "rag"
+
+        approved, score = scorer.review("prompt", "answer")
+
+        assert approved is True
+        assert score.detected_task_type == "rag"
+        meta_classifier.predict_threshold.assert_called_once_with("prompt", "answer")
+
+    def test_review_batch_empty_and_sequential_fallback_paths(self):
+        from unittest.mock import MagicMock
+
+        scorer = CoherenceScorer(use_nli=False)
+        assert scorer.review_batch([]) == []
+
+        scorer.review = MagicMock(return_value=(True, object()))
+        assert scorer.review_batch([("prompt", "answer")]) == [
+            (True, scorer.review.return_value[1])
+        ]
+        scorer.review.assert_called_once_with("prompt", "answer", tenant_id="")
+
+        scorer = CoherenceScorer(use_nli=True)
+        scorer._nli = MagicMock(model_available=True)
+        scorer._review_batch_requires_sequential = MagicMock(return_value=True)
+        scorer.review = MagicMock(return_value=(True, object()))
+
+        assert scorer.review_batch([("p1", "a1"), ("p2", "a2")]) == [
+            scorer.review.return_value,
+            scorer.review.return_value,
+        ]
+        assert scorer.review.call_count == 2
+
+    def test_review_batch_applies_adaptive_and_meta_thresholds(self):
+        from unittest.mock import MagicMock
+
+        store = MagicMock()
+        store.retrieve_context.return_value = ""
+        scorer = CoherenceScorer(use_nli=True, threshold=0.9, ground_truth_store=store)
+        scorer._adaptive_threshold_enabled = True
+        scorer._task_type_thresholds = {"rag": 0.8}
+        scorer._detect_task_type = lambda _prompt, _action="": "rag"
+        meta_classifier = MagicMock()
+        meta_classifier.predict_threshold.return_value = (0.1, 0.95)
+        scorer._get_meta_classifier = MagicMock(return_value=meta_classifier)
+
+        nli = MagicMock()
+        nli.model_available = True
+        nli.score_batch.return_value = [0.2, 0.3]
+        scorer._nli = nli
+
+        results = scorer.review_batch([("p1", "a1"), ("p2", "a2")])
+
+        assert [approved for approved, _score in results] == [True, True]
+        assert meta_classifier.predict_threshold.call_count == 2
