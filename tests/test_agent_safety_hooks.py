@@ -25,12 +25,14 @@ from director_ai.core.containment import (
 from director_ai.core.cyber_physical import (
     AABB,
     GroundingHook,
+    GroundingVerdict,
     JointChain,
     PhysicalAction,
     SimpleKinematicModel,
     Vec3,
     WorkspaceConstraint,
 )
+from director_ai.core.safety_event import SafetyEvent
 from director_ai.core.zk_attestation import (
     CommitmentBackend,
     CrossOrgPassport,
@@ -77,6 +79,26 @@ class TestContainmentWiring:
         assert not result.output.startswith("[CONTAINMENT-BLOCK]")
         assert result.safety_events[-1].hook_scope == "containment"
         assert result.safety_events[-1].policy_decision == "allow"
+
+    def test_allow_verdict_without_safety_event_passes_through(self):
+        _, anchor = self._make_guard_and_anchor()
+
+        class _AllowWithoutEvent:
+            def check(self, event, anchor):
+                del event, anchor
+
+                class _Verdict:
+                    decision = "allow"
+                    safety_event = None
+
+                return _Verdict()
+
+        agent = _agent(
+            containment_guard=_AllowWithoutEvent(), containment_anchor=anchor
+        )
+        result = agent.process("Paris is the capital of France.")
+        assert not result.halted
+        assert result.safety_events == ()
 
     def test_injection_in_output_blocks(self):
         # Manipulate the guard's detector so any output is blocked —
@@ -213,6 +235,35 @@ class TestGroundingWiring:
         assert verdict.allowed is False
         assert verdict.safety_event is not None
         assert verdict.safety_event.policy_decision == "block"
+
+    def test_physical_budget_exhaustion_is_not_downgraded_to_warning(self):
+        action = PhysicalAction(
+            actuator_id="arm",
+            target_position=Vec3(1.0, 0.0, 0.0),
+            velocity_magnitude=0.1,
+            torque_magnitude=0.5,
+        )
+
+        class _BudgetHook:
+            def evaluate(self, action, *, tenant_id=""):
+                del tenant_id
+                return GroundingVerdict(
+                    action=action,
+                    allowed=False,
+                    safety_event=SafetyEvent.from_policy_decision(
+                        hook_id="cyber_physical.grounding",
+                        hook_scope="cyber_physical",
+                        policy_decision="block",
+                        halt_reason="physical_budget_exceeded",
+                        tenant_safe_explanation="Physical action budget exhausted.",
+                    ),
+                )
+
+        agent = _agent(grounding_hook=_BudgetHook())
+        verdict = agent.verify_physical_action(action)
+        assert verdict.allowed is False
+        assert verdict.safety_event is not None
+        assert verdict.safety_event.halt_reason == "physical_budget_exceeded"
 
 
 # --- passport wiring -----------------------------------------------

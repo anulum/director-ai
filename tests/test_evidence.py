@@ -210,6 +210,104 @@ class TestFallbackRetrieval:
         assert result.fallback_used is False
         assert "HALT" in result.output
 
+    def test_vector_fallback_joins_chunk_context(self):
+        class _ListContextStore(VectorGroundTruthStore):
+            def retrieve_context(self, query, top_k=3, tenant_id=""):
+                del query, top_k, tenant_id
+                return [
+                    EvidenceChunk(text="alpha fact", distance=0.1),
+                    EvidenceChunk(text="beta fact", distance=0.2),
+                ]
+
+        agent = CoherenceAgent(fallback="retrieval", _store=_ListContextStore())
+        rejected_score = CoherenceScore(
+            score=0.2,
+            approved=False,
+            h_logical=0.4,
+            h_factual=0.4,
+        )
+        result = agent._retrieval_fallback("question", "", rejected_score, 2)
+        assert result is not None
+        assert result.output == "Based on verified sources: alpha fact; beta fact"
+        assert result.fallback_used is True
+
+    def test_retrieval_fallback_returns_none_without_context(self):
+        class _EmptyStore(GroundTruthStore):
+            def retrieve_context(self, query, tenant_id=""):
+                del query, tenant_id
+                return ""
+
+        agent = CoherenceAgent(fallback="retrieval", _store=_EmptyStore())
+        rejected_score = CoherenceScore(
+            score=0.2,
+            approved=False,
+            h_logical=0.4,
+            h_factual=0.4,
+        )
+        assert agent._retrieval_fallback("question", "", rejected_score, 1) is None
+
+    def test_vector_fallback_accepts_string_context(self):
+        class _StringContextStore(VectorGroundTruthStore):
+            def retrieve_context(self, query, top_k=3, tenant_id=""):
+                del query, top_k, tenant_id
+                return "verified vector context"
+
+        agent = CoherenceAgent(fallback="retrieval", _store=_StringContextStore())
+        rejected_score = CoherenceScore(
+            score=0.2,
+            approved=False,
+            h_logical=0.4,
+            h_factual=0.4,
+        )
+        result = agent._retrieval_fallback("question", "", rejected_score, 1)
+        assert result is not None
+        assert result.output == "Based on verified sources: verified vector context"
+
+    def test_retrieval_fallback_miss_continues_to_halt(self):
+        class _EmptyStore(GroundTruthStore):
+            def retrieve_context(self, query, tenant_id=""):
+                del query, tenant_id
+                return ""
+
+        agent = CoherenceAgent(fallback="retrieval", _store=_EmptyStore())
+        rejected_score = CoherenceScore(
+            score=0.2,
+            approved=False,
+            h_logical=0.4,
+            h_factual=0.4,
+        )
+        result = agent._handle_rejection(
+            "question",
+            "",
+            ("bad", rejected_score, 0.2),
+            1,
+        )
+        assert result.halted is True
+        assert result.fallback_used is False
+
+    def test_halt_evidence_preserves_chunk_scores(self):
+        evidence = ScoringEvidence(
+            chunks=[EvidenceChunk(text="fact", distance=0.1)],
+            nli_premise="fact",
+            nli_hypothesis="claim",
+            nli_score=0.7,
+            chunk_scores=[0.7],
+        )
+        rejected_score = CoherenceScore(
+            score=0.2,
+            approved=False,
+            h_logical=0.4,
+            h_factual=0.4,
+            evidence=evidence,
+        )
+        agent = CoherenceAgent()
+        result = agent._handle_rejection(
+            "question", "", ("bad", rejected_score, 0.2), 1
+        )
+        assert result.halted is True
+        assert result.halt_evidence is not None
+        assert result.halt_evidence.nli_scores == [0.7]
+
     def test_best_rejected_score_on_halt(self):
         agent = CoherenceAgent()
         agent.scorer.threshold = 0.99

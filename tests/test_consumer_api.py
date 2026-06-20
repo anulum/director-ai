@@ -12,6 +12,7 @@ Tests: CoherenceAgent, CoherenceScorer, SafetyKernel, MockGenerator,
 GroundTruthStore, and dataclass types. Pipeline wiring and performance.
 """
 
+import threading
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -22,6 +23,7 @@ from director_ai.core import (
     CoherenceScorer,
     ReviewResult,
 )
+from director_ai.integrations.providers import AnthropicProvider, OpenAIProvider
 
 
 @pytest.mark.consumer
@@ -73,6 +75,52 @@ class TestAgentInjection:
         agent = CoherenceAgent()
         assert agent.scorer is not None
         assert agent.store is not None
+
+    def test_provider_factory_validates_provider_and_api_key(self):
+        from director_ai.core.agent import CoherenceAgent
+
+        with pytest.raises(ValueError, match="Unknown provider"):
+            CoherenceAgent._build_provider("local", api_key="key")
+        with pytest.raises(ValueError, match="API key"):
+            CoherenceAgent._build_provider("openai", api_key="")
+
+    def test_provider_factory_builds_supported_providers(self):
+        from director_ai.core.agent import CoherenceAgent
+
+        assert isinstance(
+            CoherenceAgent._build_provider("openai", api_key="sk-test"),
+            OpenAIProvider,
+        )
+        assert isinstance(
+            CoherenceAgent._build_provider("anthropic", api_key="sk-ant-test"),
+            AnthropicProvider,
+        )
+
+    def test_cancel_event_halts_processing_before_generation(self):
+        from director_ai.core.agent import CoherenceAgent
+
+        cancel_event = threading.Event()
+        cancel_event.set()
+        with pytest.raises(RuntimeError, match="cancelled"):
+            CoherenceAgent._raise_if_cancelled(cancel_event)
+
+    def test_error_marker_candidates_are_skipped(self):
+        from director_ai.core.agent import CoherenceAgent
+
+        mock_scorer = MagicMock()
+        mock_scorer.review.return_value = (
+            True,
+            CoherenceScore(score=0.9, approved=True, h_logical=0.1, h_factual=0.1),
+        )
+        agent = CoherenceAgent(_scorer=mock_scorer)
+        agent.generator = MagicMock()
+        agent.generator.generate_candidates.return_value = [
+            {"text": "[Error] upstream timeout"},
+            {"text": "approved answer"},
+        ]
+        result = agent.process("question")
+        assert result.output == "approved answer"
+        assert mock_scorer.review.call_count == 1
 
 
 class TestCoherenceScore:
