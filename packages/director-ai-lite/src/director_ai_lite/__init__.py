@@ -51,7 +51,6 @@ def guard(
         Optional preconfigured Director-AI scorer. Passing one upgrades the same
         API to model-backed scoring without changing the call site.
     """
-
     return streaming_guard(
         tokens,
         facts=facts,

@@ -413,13 +413,29 @@ exclude = [
 ]
 
 [tool.ruff.lint]
-select = ["E", "F", "W", "I", "N", "UP", "B", "SIM"]
+select = ["E", "F", "W", "I", "N", "UP", "B", "SIM", "D"]
 ignore = ["E501"]
 
 [tool.ruff.lint.pydocstyle]
 convention = "numpy"
 
 [tool.ruff.lint.per-file-ignores]
+# Public docstrings (ruff D, numpy convention) are enforced on the shipped
+# package (src/director_ai) only. Tests, tooling, benchmarks, examples,
+# notebooks, training/demo/deploy scripts, and archives are not docstring-gated.
+"tests/**" = ["D"]
+"tools/**" = ["D"]
+"scripts/**" = ["D"]
+"benchmarks/**" = ["D"]
+"examples/**" = ["D"]
+"notebooks/**" = ["D"]
+"training/**" = ["D"]
+"demo/**" = ["D"]
+"discord-bot/**" = ["D"]
+"gpu_deploy/**" = ["D"]
+"director_guard/**" = ["D"]
+"ARCHIVE/**" = ["D"]
+"docs/**" = ["D"]
 "src/director_ai/__init__.py" = ["F401"]
 "notebooks/*.ipynb" = ["N802", "N803", "N806", "B007", "SIM108", "F401", "I001"]
 # Ingestion stubs mirror PascalCase API surfaces of boto3 and the
