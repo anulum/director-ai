@@ -13,12 +13,20 @@ CoherenceScorer and Rust backend, and performance documentation.
 """
 
 import asyncio
+from types import SimpleNamespace
 
 import pytest
 
 import director_ai.core.runtime.streaming as streaming_mod
 from director_ai.core.async_streaming import AsyncStreamingKernel
-from director_ai.core.streaming import StreamingKernel
+from director_ai.core.observability.callbacks import TokenTraceCallback, TokenTraceEvent
+from director_ai.core.streaming import StreamingKernel, TokenEvent
+from director_ai.core.types import (
+    CoherenceScore,
+    EvidenceChunk,
+    HaltEvidence,
+    ScoringEvidence,
+)
 
 
 @pytest.mark.consumer
@@ -157,6 +165,22 @@ class TestStreamingKernel:
         assert session.soft_halted
         assert "end." in session.output
 
+    def test_soft_halt_finalizes_immediately_at_sentence_boundary(self):
+        kernel = StreamingKernel(
+            hard_limit=0.3,
+            window_size=2,
+            window_threshold=0.6,
+            halt_mode="soft",
+        )
+        scores = iter([0.5, 0.5])
+
+        session = kernel.stream_tokens(["start ", "end."], lambda _text: next(scores))
+
+        assert session.halted
+        assert session.soft_halted
+        assert session.halt_index == 1
+        assert session.output == "start end."
+
     def test_soft_halt_cap_at_50_tokens(self):
         kernel = StreamingKernel(
             hard_limit=0.3,
@@ -205,9 +229,50 @@ class TestStreamingKernel:
         assert session.halt_reason.startswith("hard_limit")
         assert session.output == "soft pending "
 
+    def test_inactive_kernel_records_halt_before_scoring(self):
+        kernel = StreamingKernel()
+        kernel.emergency_stop()
+
+        session = kernel.stream_tokens(["ignored"], lambda _text: 0.9)
+
+        assert session.halted
+        assert session.halt_index == 0
+        assert session.halt_reason == "kernel_inactive"
+        assert session.events == []
+
+    def test_callback_timeout_records_bounded_halt(self):
+        kernel = StreamingKernel()
+
+        def timeout(_text: str) -> float:
+            raise TimeoutError("backend stalled")
+
+        session = kernel.stream_tokens(["delayed"], timeout)
+
+        assert session.halted
+        assert session.halt_index == 0
+        assert session.halt_reason == "callback_timeout"
+        assert session.events == []
+
+    def test_halt_evidence_callback_receives_accumulated_output(self):
+        kernel = StreamingKernel(hard_limit=0.5)
+
+        session = kernel.stream_tokens(
+            ["unsafe"],
+            lambda _text: 0.2,
+            evidence_callback=lambda text: f"evidence:{text}",
+        )
+
+        assert session.halted
+        assert session.halt_evidence == "evidence:unsafe"
+        assert session.events[0].evidence == "evidence:unsafe"
+
     def test_invalid_halt_mode_raises(self):
         with pytest.raises(ValueError, match="halt_mode"):
             StreamingKernel(halt_mode="invalid")
+
+    def test_invalid_max_cadence_raises(self):
+        with pytest.raises(ValueError, match="max_cadence"):
+            StreamingKernel(max_cadence=0)
 
 
 @pytest.mark.consumer
@@ -273,9 +338,185 @@ class TestScoringCadence:
         # After the low score, cadence resets to 1, so more callbacks
         assert call_count > 5
 
+    def test_adaptive_low_first_score_keeps_single_token_cadence(self):
+        kernel = StreamingKernel(hard_limit=0.1, soft_limit=0.6, adaptive=True)
+
+        session = kernel.stream_tokens(["low"], lambda _text: 0.5)
+
+        assert not session.halted
+        assert session.warning_count == 1
+
+    def test_streaming_debug_records_window_and_trend_snapshot(self):
+        kernel = StreamingKernel(streaming_debug=True, hard_limit=0.1)
+
+        session = kernel.stream_tokens(["a", "b"], lambda _text: 0.8)
+
+        assert not session.halted
+        assert len(session.debug_log) == 2
+        assert session.events[0].debug_info == session.debug_log[0]
+        assert set(session.debug_log[0]) == {
+            "index",
+            "coherence",
+            "window_avg",
+            "trend_drop",
+            "accumulated_tokens",
+        }
+
     def test_invalid_score_every_n_raises(self):
         with pytest.raises(ValueError, match="score_every_n"):
             StreamingKernel(score_every_n=0)
+
+
+class _RecordingTraceCallback(TokenTraceCallback):
+    def __init__(self) -> None:
+        self.events: list[TokenTraceEvent] = []
+        self.ends: list[dict] = []
+
+    def on_token(self, event: TokenTraceEvent) -> None:
+        self.events.append(event)
+
+    def on_stream_end(self, *, tenant_id: str, request_id: str, summary: dict) -> None:
+        self.ends.append(
+            {"tenant_id": tenant_id, "request_id": request_id, "summary": summary}
+        )
+
+
+class _NoChunkScoreScorer:
+    def review(self, prompt: str, response: str):
+        return False, CoherenceScore(
+            score=0.2,
+            approved=False,
+            h_logical=0.8,
+            h_factual=0.7,
+            evidence=ScoringEvidence(
+                chunks=[EvidenceChunk(text=response, distance=0.1, source=prompt)],
+                nli_premise="premise",
+                nli_hypothesis=response,
+                nli_score=0.2,
+                chunk_scores=None,
+            ),
+        )
+
+
+class TestStreamingTraceHelpers:
+    def test_math_helpers_use_python_floor_when_acceleration_disabled(
+        self, monkeypatch
+    ):
+        monkeypatch.setattr(streaming_mod, "_RUST_TREND", False)
+
+        assert streaming_mod._mean([0.2, 0.4, 0.6]) == pytest.approx(0.4)
+        assert streaming_mod._trend_drop([0.9]) == 0.0
+        assert streaming_mod._trend_drop([0.9, 0.7, 0.5]) == pytest.approx(0.4)
+        assert streaming_mod._sum_float([0.25, 0.5, 1.25]) == pytest.approx(2.0)
+
+    def test_accelerated_sum_helper_dispatches_to_rust_kernel(self, monkeypatch):
+        monkeypatch.setattr(streaming_mod, "_RUST_TREND", True)
+        calls = {"values": []}
+
+        def rust_sum(values: list[float]) -> float:
+            calls["values"].append(values)
+            return 3.5
+
+        monkeypatch.setattr(streaming_mod, "_rust_sum_f64", rust_sum, raising=True)
+
+        assert streaming_mod._sum_float([1.0, 2.0]) == pytest.approx(3.5)
+        assert calls["values"] == [[1.0, 2.0]]
+
+    def test_check_halt_reports_direct_window_average_breach(self):
+        kernel = StreamingKernel(
+            hard_limit=0.1,
+            window_size=2,
+            window_threshold=0.6,
+            trend_window=10,
+        )
+
+        assert kernel.check_halt(0.5) is False
+        assert kernel.check_halt(0.5) is True
+
+    def test_fact_source_ignores_non_string_and_duplicate_sources(self):
+        chunks = [
+            EvidenceChunk(text="a", distance=0.2, source=" kb "),
+            EvidenceChunk(text="b", distance=0.3, source="kb"),
+            SimpleNamespace(source=123),
+            EvidenceChunk(text="c", distance=0.1, source="doc"),
+        ]
+
+        assert StreamingKernel._fact_source(chunks) == "kb,doc"
+
+    def test_trace_metrics_unknown_reason_has_no_threshold(self):
+        threshold, margin = StreamingKernel()._trace_metrics(
+            "manual_stop",
+            TokenEvent(token="x", index=0, coherence=0.9, timestamp=0.0),
+            [],
+            streaming_mod.deque(),
+        )
+
+        assert threshold is None
+        assert margin == 0.0
+
+    def test_set_halt_otel_attributes_accepts_missing_span_setter_or_evidence(self):
+        kernel = StreamingKernel()
+        span = object()
+
+        kernel._set_halt_otel_attributes(span, None)
+        kernel._set_halt_otel_attributes(span, HaltEvidence("halt", 0.2, []))
+
+    def test_set_halt_otel_attributes_records_absent_counterfactual(self):
+        values = {}
+
+        class Span:
+            def set_attribute(self, key: str, value: object) -> None:
+                values[key] = value
+
+        evidence = HaltEvidence("halt", 0.2, [], trace_attribution=None)
+
+        StreamingKernel._set_halt_otel_attributes(Span(), evidence)
+
+        assert values == {"stream.counterfactual.available": False}
+
+    def test_halt_with_scorer_accepts_chunks_without_chunk_scores(self):
+        kernel = StreamingKernel(hard_limit=0.5)
+
+        session = kernel.stream_tokens(
+            ["unsafe"],
+            lambda _text: 0.2,
+            scorer=_NoChunkScoreScorer(),
+            prompt="kb",
+        )
+
+        assert session.halted
+        assert session.halt_evidence_structured is not None
+        assert session.halt_evidence_structured.nli_scores is None
+        assert session.safety_events
+
+    def test_trace_callbacks_receive_tokens_and_stream_end_summary(self):
+        callback = _RecordingTraceCallback()
+        kernel = StreamingKernel(hard_limit=0.1)
+
+        session = kernel.stream_tokens(
+            ["a", "b"],
+            lambda _text: 0.8,
+            trace_callbacks=[callback],
+            tenant_id="tenant-a",
+            request_id="req-1",
+        )
+
+        assert not session.halted
+        assert [event.token for event in callback.events] == ["a", "b"]
+        assert callback.ends == [
+            {
+                "tenant_id": "tenant-a",
+                "request_id": "req-1",
+                "summary": {
+                    "halted": False,
+                    "soft_halted": False,
+                    "halt_reason": "",
+                    "token_count": 2,
+                    "warning_count": 0,
+                    "avg_coherence": pytest.approx(0.8),
+                },
+            }
+        ]
 
 
 class TestStreamingRustMean:
