@@ -303,10 +303,8 @@ def create_polar_customer_portal_session(
     request_body: dict[str, object]
     if customer_id:
         request_body = {"customer_id": customer_id.strip()}
-    elif customer_external_id:
-        request_body = {"external_customer_id": customer_external_id.strip()}
     else:
-        raise ValueError("provide exactly one of customer_id or customer_external_id")
+        request_body = {"external_customer_id": customer_external_id.strip()}
     if not next(iter(request_body.values())):
         raise ValueError("Polar customer identifier must be non-empty")
 

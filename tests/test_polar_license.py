@@ -18,6 +18,7 @@ from types import SimpleNamespace
 import pytest
 import requests
 
+import director_ai.core.polar_license as polar_mod
 from director_ai.core.license import generate_license, load_license
 from director_ai.core.polar_license import (
     activate_polar_key,
@@ -799,6 +800,25 @@ def test_polar_deactivation_reports_preflight_and_http_failures(monkeypatch):
     assert post.called is True
 
 
+def test_polar_deactivation_reports_network_failure(monkeypatch):
+    def raise_connection_error(*args, **kwargs):
+        raise requests.ConnectionError("offline")
+
+    monkeypatch.setattr(
+        "director_ai.core.polar_license.requests.post",
+        raise_connection_error,
+    )
+
+    result = deactivate_polar_key(
+        "polar-key",
+        "activation-id",
+        "550e8400-e29b-41d4-a716-446655440000",
+    )
+
+    assert not result.valid
+    assert result.message == "Polar request unavailable: offline"
+
+
 def test_polar_customer_portal_session_uses_org_token(monkeypatch):
     captured = {}
 
@@ -960,6 +980,47 @@ def test_polar_webhook_validation_rejects_metadata_and_payload_errors():
         validate_polar_webhook(bad_json, bad_json_headers, "whsec_" + secret)
 
 
+def test_polar_webhook_rejects_invalid_json_body():
+    secret = base64.b64encode(b"webhook-secret-32-bytes-minimum").decode()
+    body = b"{"
+    timestamp = str(int(time.time()))
+    signed = b"msg_3." + timestamp.encode() + b"." + body
+    digest = hmac.new(base64.b64decode(secret), signed, hashlib.sha256).digest()
+    headers = {
+        "webhook-id": "msg_3",
+        "webhook-timestamp": timestamp,
+        "webhook-signature": "v1," + base64.b64encode(digest).decode(),
+    }
+
+    with pytest.raises(ValueError, match="Invalid Polar webhook JSON"):
+        validate_polar_webhook(body, headers, "whsec_" + secret)
+
+
+def test_polar_signature_parser_skips_non_matching_items():
+    expected = b"x" * 32
+    wrong = base64.b64encode(b"y" * 32).decode()
+    signature = base64.b64encode(expected).decode()
+
+    assert (
+        polar_mod._signature_matches(
+            "missing-comma v0," + signature + " v1,not-base64",
+            expected,
+        )
+        is False
+    )
+    assert (
+        polar_mod._signature_matches(
+            "missing-comma v0," + signature + " v1,not-base64 v1," + signature,
+            expected,
+        )
+        is True
+    )
+    assert (
+        polar_mod._signature_matches("v1," + wrong + " v1," + signature, expected)
+        is True
+    )
+
+
 def test_polar_deployment_env_validation_surfaces_operational_gaps(monkeypatch):
     report = validate_polar_deployment_env()
 
@@ -984,3 +1045,37 @@ def test_polar_deployment_env_validation_surfaces_operational_gaps(monkeypatch):
     assert ready.ready
     assert ready.errors == []
     assert ready.warnings == []
+
+
+def test_polar_deployment_env_reports_invalid_optional_settings(monkeypatch):
+    monkeypatch.setenv("DIRECTOR_LICENSE_KEY", "polar-key")
+    monkeypatch.setenv(
+        "DIRECTOR_AI_POLAR_ORG_ID", "550e8400-e29b-41d4-a716-446655440000"
+    )
+    monkeypatch.setenv("DIRECTOR_AI_POLAR_WEBHOOK_SECRET", "whsec_not-base64")
+    monkeypatch.setenv("DIRECTOR_AI_POLAR_CONDITIONS", "[]")
+    monkeypatch.setenv("DIRECTOR_AI_POLAR_INCREMENT_USAGE", "one")
+
+    report = validate_polar_deployment_env()
+
+    assert not report.ready
+    assert "DIRECTOR_AI_POLAR_WEBHOOK_SECRET must be base64" in report.errors
+    assert any(
+        "DIRECTOR_AI_POLAR_CONDITIONS must be a JSON object" in error
+        for error in report.errors
+    )
+    assert "DIRECTOR_AI_POLAR_INCREMENT_USAGE must be int" in report.errors
+
+
+def test_polar_payload_and_secret_helpers_cover_edge_shapes():
+    assert polar_mod._response_payload(_Response(204, {})) == {}
+    assert polar_mod._response_payload(_Response(200, ValueError("bad json"))) is None
+    assert (
+        polar_mod._decode_webhook_secret(
+            base64.b64encode(b"webhook-secret-32-bytes-minimum").decode()
+        )
+        == b"webhook-secret-32-bytes-minimum"
+    )
+
+    with pytest.raises(ValueError, match="not configured"):
+        polar_mod._decode_webhook_secret(" ")
