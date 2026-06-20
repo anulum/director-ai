@@ -33,6 +33,18 @@ class TestExtractSteps:
         steps = extract_steps(text)
         assert len(steps) >= 2
 
+    def test_numbered_steps_use_python_extractor_when_rust_disabled(self, monkeypatch):
+        monkeypatch.setattr(reasoning_mod, "_RUST_REASONING", False)
+
+        steps = extract_steps(
+            "1. We gather the input evidence.\n"
+            "2. We compare it with the claim.\n"
+            "3. Therefore we report the verdict.",
+        )
+
+        assert len(steps) == 3
+        assert steps[-1].is_conclusion
+
     def test_single_sentence_no_steps(self):
         text = "The answer is 42."
         steps = extract_steps(text)
@@ -42,6 +54,17 @@ class TestExtractSteps:
         text = "The economy grew by 3% last year. This growth was driven by exports. Consequently unemployment fell."
         steps = extract_steps(text)
         assert len(steps) >= 2
+
+    def test_sentence_fallback_uses_python_splitter_when_rust_disabled(
+        self, monkeypatch
+    ):
+        monkeypatch.setattr(reasoning_mod, "_RUST_REASONING", False)
+
+        steps = extract_steps(
+            "The economy grew by 3% last year. This growth was driven by exports."
+        )
+
+        assert len(steps) == 2
 
     def test_sentence_fallback_uses_rust_splitter_when_available(self, monkeypatch):
         monkeypatch.setattr(reasoning_mod, "_RUST_REASONING", True)
@@ -64,6 +87,29 @@ class TestExtractSteps:
         steps = extract_steps("ignored")
         assert len(steps) == 3
         assert steps[0].text == "The economy grew by 3% last year."
+
+    def test_sentence_fallback_uses_python_when_rust_returns_no_sentences(
+        self, monkeypatch
+    ):
+        monkeypatch.setattr(reasoning_mod, "_RUST_REASONING", True)
+        monkeypatch.setattr(
+            reasoning_mod,
+            "rust_extract_reasoning_steps",
+            lambda text: [],
+            raising=False,
+        )
+        monkeypatch.setattr(
+            reasoning_mod,
+            "rust_split_sentences",
+            lambda text: [],
+            raising=False,
+        )
+
+        steps = extract_steps(
+            "The economy grew by 3% last year. This growth was driven by exports."
+        )
+
+        assert len(steps) == 2
 
     def test_sentence_fallback_reverts_to_python_on_rust_runtime_error(
         self, monkeypatch
