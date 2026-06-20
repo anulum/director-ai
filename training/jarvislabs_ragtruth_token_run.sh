@@ -25,9 +25,11 @@ set -euo pipefail
 
 # Where the uploaded trainer lives on the instance (rsync target from the runbook).
 # Jarvis CLI container runs use /home, while manual SSH runs often use /root.
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 TRAINER="${TRAINER:-/root/train_ragtruth_token.py}"
 EVAL_SCRIPT="${EVAL_SCRIPT:-/root/eval_ragtruth_token.py}"
 SELECTOR="${SELECTOR:-/root/select_ragtruth_checkpoint.py}"
+RAGTRUTH_REQUIREMENTS="${RAGTRUTH_REQUIREMENTS:-$SCRIPT_DIR/jarvislabs_ragtruth_token_requirements.txt}"
 OUT="${OUTPUT_DIR:-/root/ragtruth-token-modernbert-l4}"
 TAR_PATH="${TAR_PATH:-/root/ragtruth-token-modernbert-l4.tar.gz}"
 DISK_CHECK_PATH="${DISK_CHECK_PATH:-$(dirname "$OUT")}"
@@ -58,6 +60,10 @@ if [ -n "$HARD_NEGATIVE_BOOTSTRAP_MODEL" ] && [ ! -f "$EVAL_SCRIPT" ]; then
   echo "ERROR: hard-negative mode needs eval script at $EVAL_SCRIPT" >&2
   exit 1
 fi
+if [ ! -f "$RAGTRUTH_REQUIREMENTS" ]; then
+  echo "ERROR: hash-pinned requirements not found at $RAGTRUTH_REQUIREMENTS — upload training/jarvislabs_ragtruth_token_requirements.txt with the wrapper" >&2
+  exit 1
+fi
 
 # Dependencies (CUDA torch is preinstalled in the JarvisLabs PyTorch image).
 #
@@ -65,17 +71,7 @@ fi
 # — the PyPI release is stale/broken. The trainer is self-contained (no director_ai
 # import; base model + dataset come from the Hub), so the package is not needed at
 # all. None of the packages below depend on director-ai, so pip cannot pull it.
-RAGTRUTH_REQUIREMENTS="$(mktemp)"
-trap 'rm -f "$RAGTRUTH_REQUIREMENTS"' EXIT
-cat >"$RAGTRUTH_REQUIREMENTS" <<'RAGTRUTH_DEPS'
-transformers==5.10.2
-datasets==3.6.0
-accelerate==1.7.0
-scikit-learn==1.6.1
-sentencepiece==0.2.1
-protobuf==6.33.6
-RAGTRUTH_DEPS
-pip install --quiet --upgrade --requirement "$RAGTRUTH_REQUIREMENTS"
+pip install --quiet --upgrade --require-hashes --no-deps --requirement "$RAGTRUTH_REQUIREMENTS"
 
 # Contamination guard: fail loudly if a director-ai (e.g. the stale PyPI one) is on
 # the path. The trainer must run purely against the uploaded local file.
