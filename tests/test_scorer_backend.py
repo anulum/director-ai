@@ -78,6 +78,43 @@ class TestScorerBackendForwarding:
         assert scorer._nli is not None
         assert scorer._nli.backend == "minicheck"
 
+    def test_multi_device_nli_uses_sharded_scorer(self, monkeypatch):
+        captured = {}
+
+        class FakeShardedNLIScorer:
+            def __init__(self, **kwargs):
+                captured.update(kwargs)
+
+        monkeypatch.setattr(
+            "director_ai.core.scoring.sharded_nli.ShardedNLIScorer",
+            FakeShardedNLIScorer,
+        )
+
+        scorer = CoherenceScorer(
+            use_nli=True,
+            scorer_backend="onnx",
+            nli_devices=["cuda:0", "cuda:1"],
+            nli_model="custom-nli",
+            nli_quantize_8bit=True,
+            nli_torch_dtype="float16",
+            onnx_path="model.onnx",
+            onnx_batch_size=7,
+            onnx_flush_timeout_ms=25,
+        )
+
+        assert isinstance(scorer._nli, FakeShardedNLIScorer)
+        assert captured == {
+            "devices": ["cuda:0", "cuda:1"],
+            "use_model": True,
+            "model_name": "custom-nli",
+            "backend": "onnx",
+            "quantize_8bit": True,
+            "torch_dtype": "float16",
+            "onnx_path": "model.onnx",
+            "onnx_batch_size": 7,
+            "onnx_flush_timeout_ms": 25,
+        }
+
     def test_onnx_path_forwarded(self):
         scorer = CoherenceScorer(
             threshold=0.5,
@@ -774,6 +811,182 @@ class TestCoherenceScorerInternalContracts:
             session=session,
             tenant_id="t",
         )
+
+
+class TestScorerFactualDivergenceBranches:
+    """Focused contracts for factual divergence routing and evidence metadata."""
+
+    def test_prompt_premise_counted_nli_and_escalation_paths(self):
+        from unittest.mock import MagicMock
+
+        scorer = CoherenceScorer(use_nli=True)
+        scorer._use_prompt_as_premise = True
+        scorer._confidence_weighted_agg = False
+        scorer._detect_task_type = lambda _prompt, _response="": "summarization"
+        scorer._should_escalate = lambda _score, task_type="default": True
+        scorer._llm_judge_check = MagicMock(return_value=0.11)
+
+        nli = MagicMock()
+        nli.model_available = True
+        nli.last_token_count = 13
+        nli.last_estimated_cost = 0.0013
+        nli.score_chunked.return_value = (0.27, ["chunk-score"])
+        nli._score_chunked_with_counts.return_value = (0.27, [0.27], 1, 1)
+        scorer._nli = nli
+
+        assert scorer.calculate_factual_divergence("source", "summary") == 0.11
+        nli.score_chunked.assert_called_once_with(
+            "source",
+            "summary",
+            inner_agg="max",
+            outer_agg="max",
+            premise_ratio=0.4,
+            overlap_ratio=0.5,
+        )
+
+        divergence, evidence = scorer.calculate_factual_divergence_with_evidence(
+            "source",
+            "summary",
+        )
+
+        assert divergence == 0.11
+        assert evidence is not None
+        assert evidence.nli_premise == "source"
+        assert evidence.chunk_scores == [0.27]
+        assert evidence.premise_chunk_count == 1
+        assert evidence.hypothesis_chunk_count == 1
+        scorer._llm_judge_check.assert_any_call("source", "summary", 0.27)
+
+    def test_factual_divergence_returns_neutral_without_store_or_context(self):
+        from unittest.mock import MagicMock
+
+        scorer = CoherenceScorer(use_nli=False)
+        assert scorer.calculate_factual_divergence("prompt", "answer") == 0.5
+
+        store = MagicMock()
+        store.retrieve_context.return_value = ""
+        scorer.ground_truth_store = store
+
+        assert scorer.calculate_factual_divergence("prompt", "answer") == 0.5
+        divergence, evidence = scorer.calculate_factual_divergence_with_evidence(
+            "prompt",
+            "answer",
+        )
+        assert divergence == 0.5
+        assert evidence is None
+
+    def test_adaptive_router_can_skip_retrieval(self):
+        from unittest.mock import MagicMock
+
+        class Decision:
+            retrieve = False
+            task_type = "creative"
+            confidence = 0.91
+
+        router = MagicMock()
+        router.should_retrieve.return_value = Decision()
+        store = MagicMock()
+        scorer = CoherenceScorer(use_nli=False, ground_truth_store=store)
+        scorer._adaptive_router = router
+
+        assert scorer.calculate_factual_divergence("write a poem", "poem") == 0.5
+        router.should_retrieve.assert_called_once_with("write a poem", "poem")
+        store.retrieve_context.assert_not_called()
+
+    def test_rag_claim_decomposition_blends_sentence_support(self):
+        from unittest.mock import MagicMock
+
+        store = MagicMock()
+        store.retrieve_context.return_value = "verified source context"
+        scorer = CoherenceScorer(use_nli=True, ground_truth_store=store)
+        scorer._detect_task_type = lambda _prompt, _response="": "rag"
+        scorer._should_escalate = lambda _score, task_type="default": False
+        scorer._claim_support_threshold = 0.6
+        scorer._claim_coverage_alpha = 0.4
+
+        nli = MagicMock()
+        nli.model_available = True
+        nli.score_chunked.side_effect = [
+            (0.5, []),
+            (0.2, []),
+            (0.8, []),
+        ]
+        nli._split_sentences.return_value = ["Supported claim.", "Unsupported claim."]
+        scorer._nli = nli
+
+        long_response = "Supported claim. " + ("filler " * 20) + "Unsupported claim."
+        assert scorer.calculate_factual_divergence("prompt", long_response) == 0.5
+        assert nli.score_chunked.call_count == 3
+
+    def test_evidence_strict_mode_rejects_without_model_backed_nli(self):
+        from unittest.mock import MagicMock
+
+        store = MagicMock()
+        store.retrieve_context.return_value = "verified source context"
+        scorer = CoherenceScorer(
+            use_nli=False,
+            strict_mode=True,
+            ground_truth_store=store,
+        )
+
+        divergence, evidence = scorer.calculate_factual_divergence_with_evidence(
+            "prompt",
+            "answer",
+        )
+
+        assert divergence == 0.9
+        assert evidence is not None
+        assert evidence.nli_score == 0.9
+        assert evidence.nli_premise == "verified source context"
+
+    def test_evidence_claim_attribution_path_records_claim_metadata(self):
+        from unittest.mock import MagicMock
+
+        import pytest
+
+        from director_ai.core.types import ClaimAttribution
+
+        store = MagicMock()
+        store.retrieve_context.return_value = "verified source context"
+        scorer = CoherenceScorer(use_nli=True, ground_truth_store=store)
+        scorer._detect_task_type = lambda _prompt, _response="": "rag"
+        scorer._should_escalate = lambda _score, task_type="default": False
+
+        attribution = ClaimAttribution(
+            claim="Supported claim.",
+            claim_index=0,
+            source_sentence="verified source context",
+            source_index=0,
+            divergence=0.1,
+            supported=True,
+        )
+        nli = MagicMock()
+        nli.model_available = True
+        nli.last_token_count = 9
+        nli._cost_per_token = 0.001
+        nli.reset_token_counter.return_value = None
+        nli._score_chunked_with_counts.return_value = (0.2, [0.2], 1, 1)
+        nli.score_claim_coverage_with_attribution.return_value = (
+            1.0,
+            [0.1],
+            ["Supported claim."],
+            [attribution],
+        )
+        scorer._nli = nli
+
+        long_response = "Supported claim. " + ("grounded detail " * 12)
+        divergence, evidence = scorer.calculate_factual_divergence_with_evidence(
+            "prompt",
+            long_response,
+        )
+
+        assert divergence == 0.2
+        assert evidence is not None
+        assert evidence.claim_coverage == 1.0
+        assert evidence.per_claim_divergences == [0.1]
+        assert evidence.claims == ["Supported claim."]
+        assert evidence.attributions == [attribution]
+        assert evidence.estimated_cost_usd == pytest.approx(0.009)
 
 
 class TestScorerClaimSupportIntegration:
