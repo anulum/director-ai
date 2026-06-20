@@ -29,7 +29,9 @@ from director_ai.core.scoring.consensus import (
     CriticalConsensusProfile,
     CrossVerifierConsensus,
     ModelResponse,
+    _fused_interval,
     _sum_float,
+    _weighted_value,
     _word_overlap,
 )
 
@@ -702,6 +704,127 @@ class TestCrossVerifierConsensus:
         assert decision.risk_score == 0.0
         assert decision.verifier_signals == ()
 
+    def test_no_go_policy_preserves_matching_empty_consensus_decision(self):
+        envelope = RiskEnvelope(
+            action_category="code",
+            reversibility="costly",
+            domain="security",
+            calibrated_threshold=0.6,
+            no_go_threshold=0.8,
+        )
+
+        decision = CrossVerifierConsensus(
+            no_go_policy=NoGoPolicy(enable_irreversibility_forecast=False)
+        ).decide(
+            [],
+            risk_envelope=envelope,
+            policy_id="policy.code",
+        )
+
+        assert decision.decision == "warn"
+        assert decision.reason == "insufficient_verifier_evidence"
+        assert "requires_human_review" not in decision.attributes
+
+    def test_uncertain_consensus_warns_below_calibrated_halt_threshold(self):
+        envelope = RiskEnvelope(
+            action_category="text",
+            reversibility="reversible",
+            domain="regulated",
+            calibrated_threshold=0.8,
+            no_go_threshold=0.95,
+        )
+        signal = VerifierSignal(
+            verifier="policy",
+            modality="policy",
+            score=0.5,
+            verdict="uncertain",
+            confidence_low=0.4,
+            confidence_high=0.6,
+            evidence_refs=("policy:review",),
+        )
+
+        decision = CrossVerifierConsensus(warn_threshold=0.45).decide(
+            (signal,),
+            risk_envelope=envelope,
+            policy_id="policy.warn",
+        )
+
+        assert decision.decision == "warn"
+        assert decision.reason == "cross_verifier_uncertain"
+        assert decision.tenant_safe_explanation == (
+            "Verifier consensus is uncertain and requires review."
+        )
+        assert decision.evidence_refs == ("policy:review",)
+
+    def test_consensus_deduplicates_evidence_refs_in_signal_order(self):
+        envelope = RiskEnvelope(
+            action_category="text",
+            reversibility="reversible",
+            domain="regulated",
+            calibrated_threshold=0.8,
+            no_go_threshold=0.95,
+        )
+
+        decision = CrossVerifierConsensus(warn_threshold=0.45).decide(
+            (
+                VerifierSignal(
+                    verifier="nli",
+                    modality="text",
+                    score=0.5,
+                    verdict="uncertain",
+                    confidence_low=0.4,
+                    confidence_high=0.6,
+                    evidence_refs=("kb://claim", "policy://rule"),
+                ),
+                VerifierSignal(
+                    verifier="policy",
+                    modality="policy",
+                    score=0.4,
+                    verdict="allowed",
+                    confidence_low=0.3,
+                    confidence_high=0.5,
+                    evidence_refs=("policy://rule", "calc://claim"),
+                ),
+            ),
+            risk_envelope=envelope,
+            policy_id="policy.warn",
+        )
+
+        assert decision.evidence_refs == (
+            "kb://claim",
+            "policy://rule",
+            "calc://claim",
+        )
+
+    def test_blank_action_sequence_is_not_serialised_for_forecast(self):
+        envelope = RiskEnvelope(
+            action_category="tool",
+            reversibility="costly",
+            domain="financial",
+            calibrated_threshold=0.8,
+            no_go_threshold=0.95,
+        )
+        signal = VerifierSignal(
+            verifier="policy",
+            modality="policy",
+            score=0.61,
+            verdict="uncertain",
+            confidence_low=0.54,
+            confidence_high=0.73,
+            evidence_refs=("policy:change-risk",),
+        )
+
+        decision = CrossVerifierConsensus(no_go_policy=NoGoPolicy()).decide(
+            (signal,),
+            risk_envelope=envelope,
+            policy_id="policy.finance.ops",
+            action_sequence=(" ", ""),
+        )
+
+        assert decision.decision == "warn"
+        assert decision.reason == "cross_verifier_uncertain"
+        assert "action_sequence" not in decision.attributes
+
     def test_no_go_policy_blocks_irreversible_weighted_consensus(self):
         envelope = RiskEnvelope(
             action_category="physical",
@@ -801,3 +924,21 @@ class TestCrossVerifierConsensus:
         assert decision.attributes["irreversibility_forecast_ci_low"] == "0.780000"
         assert decision.attributes["reviewed_threshold"] == "0.700000"
         assert decision.attributes["reviewed_threshold_calibration_size"] == "128"
+
+    def test_interval_fusion_handles_empty_signals_and_validates_weights(self):
+        assert _fused_interval((), {}) == (0.0, 1.0)
+        assert _weighted_value((), {}, "score") == 0.0
+
+        signal = VerifierSignal(
+            verifier="nli",
+            modality="text",
+            score=0.2,
+            verdict="supported",
+            confidence_low=0.1,
+            confidence_high=0.3,
+        )
+
+        with pytest.raises(ValueError, match="weights must be non-negative"):
+            _weighted_value((signal,), {"nli": -1.0}, "score")
+        with pytest.raises(ValueError, match="at least one verifier weight"):
+            _weighted_value((signal,), {"nli": 0.0}, "score")
