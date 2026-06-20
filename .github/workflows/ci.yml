@@ -18,6 +18,9 @@ concurrency:
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+  CARGO_HTTP_MULTIPLEXING: "false"
+  CARGO_HTTP_TIMEOUT: "60"
+  CARGO_NET_RETRY: "10"
 
 jobs:
   lint:
