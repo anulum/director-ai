@@ -221,6 +221,40 @@ class TestProfileWizard:
         else:
             raise AssertionError("launch_gradio should require Gradio")
 
+    def test_launch_gradio_builds_advanced_widgets_for_all_field_types(
+        self,
+        monkeypatch,
+    ):
+        fake = _FakeGradio()
+        monkeypatch.setitem(sys.modules, "gradio", fake.module)
+        monkeypatch.setattr(
+            config_wizard_module,
+            "FIELD_GROUPS",
+            ["Empty", "Scoring"],
+        )
+        monkeypatch.setattr(
+            config_wizard_module,
+            "get_field_groups",
+            lambda: {
+                "Empty": [],
+                "Scoring": [
+                    {"name": "enabled_flag", "widget": "toggle", "default": True},
+                    {"name": "risk_threshold", "widget": "slider", "default": 0.7},
+                    {"name": "max_items", "widget": "number", "default": 3},
+                    {"name": "backend_name", "widget": "text", "default": "lite"},
+                ],
+            },
+        )
+
+        launch_gradio(port=7871, share=True)
+
+        by_label = {component.label: component for component in fake.components}
+        assert by_label["enabled_flag"].kwargs["value"] is True
+        assert by_label["risk_threshold"].kwargs["value"] == 0.7
+        assert by_label["max_items"].kwargs["value"] == 3
+        assert by_label["backend_name"].kwargs["value"] == "lite"
+        assert fake.launch_kwargs == {"server_port": 7871, "share": True}
+
     def test_normalise_facts_text(self):
         content, count = normalise_facts_text(" one fact \n\n second fact\n")
         assert content == "one fact\nsecond fact\n"
