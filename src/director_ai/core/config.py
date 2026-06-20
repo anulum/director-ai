@@ -193,7 +193,9 @@ class DirectorConfig:
     reasoning_escalation_margin: float = 0.15
 
     # Scorer backend: "deberta", "onnx", "minicheck", "hybrid", "lite", "rust"
-    # "auto" picks best available: rust > onnx > deberta > nli-lite > lite
+    # "auto" picks best available: rust > onnx > deberta > lite (see
+    # _resolve_scorer_backend). The distilled "nli-lite" backend is never
+    # auto-selected — it stays opt-in because it has not passed validation.
     scorer_backend: str = "auto"
 
     # Token-level hallucinated-span detector (opt-in). The response/claim-level
