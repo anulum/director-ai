@@ -363,6 +363,10 @@ class TestScorerCoverageGaps:
         scorer = CoherenceScorer(use_nli=False, cache=cache)
         assert scorer.cache is cache
 
+        lite = CoherenceScorer(use_nli=False, scorer_backend="lite")
+        assert lite._nli is not None
+        assert lite._nli.backend == "lite"
+
         scorer = CoherenceScorer(use_nli=False, cache_size=0)
         assert scorer.cache is None
 
@@ -472,6 +476,65 @@ class TestScorerCoverageGaps:
         assert evidence.premise_chunk_count == 1
         assert evidence.hypothesis_chunk_count == 2
 
+    def test_dialogue_factual_divergence_requires_model_backed_nli(self):
+        scorer = CoherenceScorer(use_nli=False)
+
+        with pytest.raises(RuntimeError, match="NLI model required"):
+            scorer._dialogue_factual_divergence("User: hi", "Assistant: hi")
+
+    def test_dialogue_factual_divergence_delegates_when_nli_is_available(
+        self,
+        monkeypatch,
+    ):
+        class FakeNLI:
+            model_available = True
+
+        def fake_dialogue_factual_divergence(*args, **kwargs):
+            assert args[0] is fake_nli
+            assert kwargs["baseline"] == scorer._dialogue_nli_baseline
+            return 0.12, None
+
+        fake_nli = FakeNLI()
+        scorer = CoherenceScorer(use_nli=False)
+        scorer._nli = fake_nli
+        monkeypatch.setattr(
+            scorer_module,
+            "dialogue_factual_divergence",
+            fake_dialogue_factual_divergence,
+        )
+
+        score, evidence = scorer._dialogue_factual_divergence(
+            "User: hi",
+            "Assistant: hi",
+            tenant_id="tenant-a",
+        )
+
+        assert score == 0.12
+        assert evidence is None
+
+    def test_injection_detection_init_failure_resets_state(self, monkeypatch):
+        import director_ai.core.safety.injection as injection_module
+
+        class FailingInjectionDetector:
+            def __init__(self, **kwargs):
+                del kwargs
+                raise RuntimeError("model required")
+
+        monkeypatch.setattr(
+            injection_module,
+            "InjectionDetector",
+            FailingInjectionDetector,
+        )
+        scorer = CoherenceScorer(use_nli=False)
+        scorer._injection_detector = object()
+        scorer._injection_fail_closed = True
+
+        with pytest.raises(RuntimeError, match="model required"):
+            scorer.enable_injection_detection(require_model_backed_nli=True)
+
+        assert scorer._injection_detector is None
+        assert scorer._injection_fail_closed is False
+
     def test_factual_divergence_strict_and_heuristic_fallbacks(self):
         class Store:
             def retrieve_context(self, prompt, top_k=3, tenant_id=""):
@@ -494,6 +557,114 @@ class TestScorerCoverageGaps:
             )
             <= 1.0
         )
+
+    def test_factual_divergence_claim_decomposition_reweights_long_output(self):
+        class Store:
+            def retrieve_context(self, prompt, top_k=3, tenant_id=""):
+                del prompt, top_k, tenant_id
+                return "Paris is in France. Berlin is in Germany."
+
+        class FakeNLI:
+            model_available = True
+            backend = "deberta"
+
+            def __init__(self):
+                self.scores = [(0.2, []), (0.1, []), (0.8, [])]
+
+            def score_chunked(self, *args, **kwargs):
+                del args, kwargs
+                return self.scores.pop(0)
+
+            def _split_sentences(self, text):
+                del text
+                return ["Paris is in France.", "Berlin is in Italy."]
+
+        scorer = CoherenceScorer(use_nli=False, ground_truth_store=Store())
+        scorer._nli = FakeNLI()
+
+        score = scorer.calculate_factual_divergence(
+            "cities",
+            "Paris is in France. Berlin is in Italy. " * 4,
+        )
+
+        assert score == pytest.approx(0.32)
+
+    def test_vector_store_evidence_uses_retrieved_chunks_with_nli_counts(self):
+        from unittest.mock import MagicMock
+
+        from director_ai.core.retrieval.vector_store import VectorGroundTruthStore
+
+        store = VectorGroundTruthStore()
+        store.retrieve_context_with_chunks = MagicMock(
+            return_value=[
+                EvidenceChunk(text="grounded chunk", distance=0.2, source="kb")
+            ]
+        )
+
+        class FakeNLI:
+            model_available = True
+            last_token_count = 9
+            last_estimated_cost = 0.03
+            _cost_per_token = 0.001
+
+            def reset_token_counter(self):
+                self.reset = True
+
+            def _score_chunked_with_counts(self, *args, **kwargs):
+                self.args = args
+                self.kwargs = kwargs
+                return 0.21, [0.21], 1, 1
+
+        scorer = CoherenceScorer(use_nli=False, ground_truth_store=store)
+        scorer._nli = FakeNLI()
+
+        score, evidence = scorer.calculate_factual_divergence_with_evidence(
+            "prompt",
+            "answer",
+        )
+
+        assert score == 0.21
+        assert evidence is not None
+        assert evidence.chunks[0].text == "grounded chunk"
+        assert evidence.chunk_scores == [0.21]
+        assert evidence.token_count == 9
+
+    def test_factual_evidence_escalates_with_judge_when_requested(self):
+        class Store:
+            def retrieve_context(self, prompt, top_k=3, tenant_id=""):
+                del prompt, top_k, tenant_id
+                return "grounded context"
+
+        class FakeNLI:
+            model_available = True
+            last_token_count = 0
+            last_estimated_cost = 0.0
+            _cost_per_token = 0.0
+
+            def reset_token_counter(self):
+                self.reset = True
+
+            def _score_chunked_with_counts(self, *args, **kwargs):
+                del args, kwargs
+                return 0.44, [0.44], 1, 1
+
+        scorer = CoherenceScorer(use_nli=False, ground_truth_store=Store())
+        scorer._nli = FakeNLI()
+        scorer._should_escalate = lambda _score, task_type="default": True
+        scorer._llm_judge_check = lambda prompt, output, score: (
+            0.22
+            if (prompt, output, score) == ("prompt", "answer", 0.44)
+            else pytest.fail("unexpected judge call")
+        )
+
+        score, evidence = scorer.calculate_factual_divergence_with_evidence(
+            "prompt",
+            "answer",
+        )
+
+        assert score == 0.22
+        assert evidence is not None
+        assert evidence.nli_score == 0.22
 
     def test_factual_divergence_with_vector_abstention_returns_neutral(self):
         from director_ai.core.vector_store import (
@@ -520,6 +691,113 @@ class TestScorerCoverageGaps:
         assert scorer.calculate_factual_divergence("query", "answer") == (
             scorer_module.DIVERGENCE_NEUTRAL
         )
+
+    def test_heuristic_factual_penalises_negation_and_novel_entities(self):
+        score = CoherenceScorer._heuristic_factual(
+            "Alice did not visit Paris.",
+            "Alice visited Rome.",
+        )
+
+        assert score == 1.0
+
+    def test_logical_strict_mode_without_nli_rejects(self):
+        scorer = CoherenceScorer(use_nli=False, strict_mode=True)
+
+        assert scorer.calculate_logical_divergence("prompt", "answer") == (
+            scorer_module.DIVERGENCE_CONTRADICTED
+        )
+
+    def test_heuristic_logical_returns_neutral_for_empty_token_sets(self):
+        old_rust = scorer_module.rust_heuristic_logical_divergence
+        scorer_module.rust_heuristic_logical_divergence = None
+        try:
+            assert CoherenceScorer._heuristic_logical("!!!", "???") == (
+                scorer_module.DIVERGENCE_NEUTRAL
+            )
+        finally:
+            scorer_module.rust_heuristic_logical_divergence = old_rust
+
+    def test_parallel_coherence_cleans_up_factual_future_after_logic_failure(self):
+        import time
+
+        class FakeNLI:
+            model_available = True
+
+            def _ensure_model(self):
+                self.loaded = True
+
+        scorer = CoherenceScorer(use_nli=False)
+        scorer._nli = FakeNLI()
+        scorer._detect_task_type = lambda _prompt, _action="": "default"
+
+        def fail_logic(*args, **kwargs):
+            del args, kwargs
+            time.sleep(0.01)
+            raise RuntimeError("logic failed")
+
+        def fail_fact(*args, **kwargs):
+            del args, kwargs
+            time.sleep(0.03)
+            raise RuntimeError("fact failed")
+
+        scorer.calculate_logical_divergence = fail_logic
+        scorer.calculate_factual_divergence_with_evidence = fail_fact
+
+        with pytest.raises(RuntimeError, match="logic failed"):
+            scorer._heuristic_coherence("prompt", "answer")
+
+    def test_meta_classifier_fail_closed_raises_runtime_error(self):
+        scorer = CoherenceScorer(use_nli=False)
+        scorer._adaptive_threshold_enabled = True
+        scorer._adaptive_threshold_fail_closed = True
+        scorer._meta_classifier_path = "/tmp/director-ai-missing-classifier.json"
+
+        with pytest.raises(RuntimeError, match="Adaptive threshold classifier"):
+            scorer._get_meta_classifier()
+
+    def test_meta_classifier_returns_value_set_while_waiting_for_lock(self):
+        scorer = CoherenceScorer(use_nli=False)
+        sentinel = object()
+
+        class LockThatPopulatesClassifier:
+            def __enter__(self):
+                scorer._meta_classifier = sentinel
+
+            def __exit__(self, exc_type, exc, tb):
+                del exc_type, exc, tb
+                return False
+
+        scorer._meta_classifier_lock = LockThatPopulatesClassifier()
+
+        assert scorer._get_meta_classifier() is sentinel
+
+    def test_meta_classifier_checks_bundled_path_when_adaptive_threshold_enabled(
+        self,
+        monkeypatch,
+    ):
+        class ExistingPath:
+            def __init__(self, *_parts):
+                self.parts = _parts
+
+            @property
+            def parent(self):
+                return self
+
+            def __truediv__(self, other):
+                return ExistingPath(*self.parts, other)
+
+            def exists(self):
+                return True
+
+            def __str__(self):
+                return "/tmp/director-ai-bundled-classifier.json"
+
+        scorer = CoherenceScorer(use_nli=False)
+        scorer._adaptive_threshold_enabled = True
+        monkeypatch.setattr(scorer_module, "Path", ExistingPath)
+
+        assert scorer._get_meta_classifier() is None
+        assert scorer._meta_classifier_path == ""
 
     def test_finalise_review_dry_run_warning_and_retrieval_confidence(self):
         scorer = CoherenceScorer(use_nli=False, threshold=0.8, soft_limit=0.9)
@@ -588,6 +866,56 @@ class TestScorerCoverageGaps:
             task_type="qa",
             evidence=empty,
         )
+
+    def test_verified_scorer_approved_result_preserves_review_verdict(
+        self, monkeypatch
+    ):
+        import director_ai.core.scoring.verified_scorer as verified_module
+
+        class ApprovedVerification:
+            approved = True
+            coverage = 1.0
+            claims = ["claim"]
+            contradicted_count = 0
+            fabricated_count = 0
+
+            def to_dict(self):
+                return {"approved": True}
+
+        class FakeVerifiedScorer:
+            def __init__(self, nli_scorer=None):
+                self.nli_scorer = nli_scorer
+
+            def verify(self, *args, **kwargs):
+                del args, kwargs
+                return ApprovedVerification()
+
+        monkeypatch.setattr(verified_module, "VerifiedScorer", FakeVerifiedScorer)
+        scorer = CoherenceScorer(use_nli=False)
+        scorer._verified_scorer_enabled = True
+        scorer._verified_scorer_task_types = {"rag"}
+        score = scorer._finalise_review(
+            0.8,
+            0.1,
+            0.2,
+            "answer",
+            evidence=ScoringEvidence(
+                chunks=[EvidenceChunk(text="source", distance=0.1, source="kb")],
+                nli_premise="source",
+                nli_hypothesis="answer",
+                nli_score=0.2,
+            ),
+        )[1]
+
+        approved, updated = scorer._apply_verified_scorer(
+            score,
+            task_type="rag",
+            threshold=0.5,
+        )
+
+        assert approved is True
+        assert updated.verified_approved is True
+        assert updated.verified_result == {"approved": True}
 
     def test_review_batch_errors_and_meta_threshold_path(self):
         class FakeNLI:
@@ -736,6 +1064,23 @@ class TestScorerCoverageGaps:
         assert out.reasoning_escalated is True
         assert out.reasoning_rationale == "accepted"
 
+    def test_reasoning_tier_noop_when_margin_does_not_escalate(self):
+        scorer = CoherenceScorer(
+            use_nli=False,
+            reasoning_enabled=True,
+            reasoning_provider="local",
+        )
+        scorer._reasoning.should_escalate = lambda *_args, **_kwargs: False
+        score = scorer._finalise_review(0.95, 0.1, 0.1, "answer")[1]
+
+        assert scorer._apply_reasoning_tier(
+            (True, score),
+            "prompt",
+            "answer",
+            None,
+            threshold=0.5,
+        ) == (True, score)
+
     def test_review_cross_turn_failure_and_intent_drift_are_recorded(self):
         from unittest.mock import MagicMock
 
@@ -802,6 +1147,46 @@ class TestScorerCoverageGaps:
         assert session.intent_drift.calls == [(0.4, 0.0, 0.0)]
         assert session.turns == [("prompt", "current answer", score.score)]
 
+    def test_review_records_successful_injection_risk(self):
+        class Risk:
+            injection_risk = 0.66
+
+        class Detector:
+            def detect(self, *, intent, response):
+                assert intent == "prompt"
+                assert response == "answer"
+                return Risk()
+
+        scorer = CoherenceScorer(use_nli=False)
+        scorer._heuristic_coherence = lambda *_args, **_kwargs: (0.1, 0.1, 0.9, None)
+        scorer._injection_detector = Detector()
+
+        approved, score = scorer.review("prompt", "answer")
+
+        assert approved is True
+        assert score.injection_risk == 0.66
+
+    def test_review_invokes_reasoning_tier_when_enabled(self):
+        class Reasoning:
+            enabled = True
+
+        scorer = CoherenceScorer(use_nli=False)
+        scorer._heuristic_coherence = lambda *_args, **_kwargs: (0.1, 0.1, 0.9, None)
+        scorer._reasoning = Reasoning()
+        calls = []
+
+        def apply_reasoning(result, prompt, action, evidence, *, threshold):
+            calls.append((result, prompt, action, evidence, threshold))
+            return result
+
+        scorer._apply_reasoning_tier = apply_reasoning
+
+        approved, score = scorer.review("prompt", "answer")
+
+        assert approved is True
+        assert score.score == 0.9
+        assert calls
+
     def test_review_injection_fail_closed_reraises_detector_error(self):
         class FailingDetector:
             def detect(self, *, intent, response):
@@ -866,3 +1251,22 @@ class TestScorerCoverageGaps:
         scorer._judge = type("FakeJudge", (), {"enabled": False})()
         scorer.ground_truth_store = VectorGroundTruthStore()
         assert scorer._review_batch_requires_sequential([("Q", "A")]) is True
+
+    def test_review_batch_raises_if_nli_disappears_after_initial_gate(self):
+        class FakeNLI:
+            model_available = True
+            backend = "deberta"
+
+        scorer = CoherenceScorer(use_nli=False)
+        scorer._nli = FakeNLI()
+        scorer._judge = type("FakeJudge", (), {"enabled": False})()
+        scorer._detect_task_type = lambda _prompt, _action="": "qa"
+
+        def clear_nli(_items):
+            scorer._nli = None
+            return False
+
+        scorer._review_batch_requires_sequential = clear_nli
+
+        with pytest.raises(RuntimeError, match="NLI batch scorer not initialised"):
+            scorer.review_batch([("Q1", "A1"), ("Q2", "A2")])
