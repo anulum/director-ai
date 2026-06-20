@@ -365,6 +365,122 @@ def test_proxy_loads_plain_line_facts(tmp_path) -> None:
     assert store.retrieve_context("plain fact")
 
 
+def test_proxy_rejects_invalid_failure_mode_and_http_upstream() -> None:
+    with pytest.raises(ValueError, match="on_fail"):
+        create_proxy_app(on_fail="panic")
+
+    with pytest.raises(ValueError, match="Non-HTTPS upstream"):
+        create_proxy_app(upstream_url="http://upstream.example")
+
+
+def test_proxy_load_facts_rejects_missing_or_file_root(tmp_path) -> None:
+    from director_ai.core import GroundTruthStore
+    from director_ai.proxy import _load_facts
+
+    facts = tmp_path / "facts.txt"
+    facts.write_text("sky: blue\n", encoding="utf-8")
+    file_root = tmp_path / "root.txt"
+    file_root.write_text("not a directory\n", encoding="utf-8")
+
+    with pytest.raises(FileNotFoundError, match="facts_root"):
+        _load_facts(
+            GroundTruthStore(),
+            str(facts),
+            facts_root=str(tmp_path / "missing-root"),
+        )
+    with pytest.raises(ValueError, match="facts_root must be a directory"):
+        _load_facts(GroundTruthStore(), str(facts), facts_root=str(file_root))
+    outside = tmp_path.parent / "outside-facts.txt"
+    outside.write_text("outside: fact\n", encoding="utf-8")
+    with pytest.raises(ValueError, match="outside facts_root"):
+        _load_facts(GroundTruthStore(), str(outside), facts_root=str(tmp_path))
+
+
+@pytest.mark.asyncio
+async def test_proxy_default_store_loads_configured_facts(tmp_path) -> None:
+    facts = tmp_path / "facts.txt"
+    facts.write_text("sky: blue\n", encoding="utf-8")
+    app = create_proxy_app(
+        facts_path=str(facts),
+        facts_root=str(tmp_path),
+        upstream_url="http://fake-upstream",
+        allow_http_upstream=True,
+        _transport=_upstream_transport("The sky is blue."),
+    )
+
+    transport = ASGITransport(app=app)
+    async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+        response = await client.post(
+            "/v1/chat/completions",
+            json={
+                "model": "gpt-4o-mini",
+                "messages": [{"role": "user", "content": "What color is the sky?"}],
+            },
+        )
+
+    assert response.status_code == 200
+    assert response.headers["x-director-approved"] in {"true", "false"}
+
+
+@pytest.mark.asyncio
+async def test_proxy_requires_api_key_except_health() -> None:
+    async def _handler(request: httpx.Request):
+        return httpx.Response(200, json={"data": []})
+
+    app = create_proxy_app(
+        upstream_url="http://fake-upstream",
+        allow_http_upstream=True,
+        api_keys=["secret-key"],
+        _transport=httpx.MockTransport(_handler),
+    )
+
+    transport = ASGITransport(app=app)
+    async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+        health = await client.get("/health")
+        unauthenticated = await client.get("/v1/models")
+        authenticated = await client.get(
+            "/v1/models",
+            headers={"X-API-Key": "secret-key"},
+        )
+
+    assert health.status_code == 200
+    assert unauthenticated.status_code == 401
+    assert unauthenticated.json()["error"]["type"] == "auth_error"
+    assert authenticated.status_code == 200
+
+
+def test_proxy_audit_log_entry_serialises_scored_chat() -> None:
+    from director_ai.proxy import _audit_log_entry
+
+    class AuditLog:
+        def __init__(self) -> None:
+            self.entries = []
+
+        def log(self, entry) -> None:
+            self.entries.append(entry)
+
+    audit_log = AuditLog()
+
+    _audit_log_entry(
+        audit_log,
+        "prompt",
+        "response",
+        model="model-a",
+        score=0.91,
+        approved=True,
+        confidence=0.87,
+        latency_ms=12.5,
+    )
+
+    assert len(audit_log.entries) == 1
+    entry = audit_log.entries[0]
+    assert entry.provider == "proxy"
+    assert entry.prompt == "prompt"
+    assert entry.response == "response"
+    assert entry.model == "model-a"
+    assert entry.approved is True
+
+
 @pytest.mark.asyncio
 async def test_proxy_models_forwards_authorization_header() -> None:
     async def _handler(request: httpx.Request):
