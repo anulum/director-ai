@@ -60,6 +60,33 @@ def test_server_rejects_excessive_cors_origins() -> None:
         )
 
 
+def test_server_production_mode_requires_effective_api_key(monkeypatch) -> None:
+    monkeypatch.setenv("DIRECTOR_AUDIT_SALT", "test-specific-audit-salt")
+    cfg = DirectorConfig(api_keys=[], llm_provider="mock")
+    object.__setattr__(cfg, "production_mode", True)
+
+    with pytest.raises(RuntimeError, match="production_mode requires"):
+        create_app(cfg)
+
+
+def test_rate_limit_without_slowapi_warns_when_not_strict(monkeypatch, caplog) -> None:
+    import director_ai.server as server_module
+
+    monkeypatch.setattr(server_module, "_SLOWAPI_AVAILABLE", False)
+
+    app = create_app(
+        DirectorConfig(
+            api_keys=[],
+            llm_provider="mock",
+            rate_limit_rpm=10,
+            rate_limit_strict=False,
+        )
+    )
+
+    assert not hasattr(app.state, "limiter")
+    assert "slowapi not installed" in caplog.text
+
+
 def test_ready_reports_missing_scorer_after_startup() -> None:
     with _client() as client:
         client.app.state._state["scorer"] = None
@@ -1048,6 +1075,45 @@ def test_server_session_limit_evicts_oldest_owned_session() -> None:
     assert second.status_code == 200
     assert evicted.status_code == 404
     assert retained.status_code == 200
+
+
+def test_delete_missing_session_returns_not_found() -> None:
+    with _client() as client:
+        response = client.delete("/v1/sessions/missing-session")
+
+    assert response.status_code == 404
+
+
+def test_stats_hourly_returns_backend_mapping() -> None:
+    class StatsStore:
+        def hourly_breakdown(self, days: int = 7):
+            assert days == 3
+            return {"data": [{"hour": "2026-06-20T10:00:00Z", "count": 2}]}
+
+    with _client() as client:
+        client.app.state._state["stats"] = StatsStore()
+        response = client.get("/v1/stats/hourly?days=3")
+
+    assert response.status_code == 200
+    assert response.json()["data"][0]["count"] == 2
+
+
+def test_tenant_bound_api_key_cannot_write_other_tenant_fact() -> None:
+    cfg = DirectorConfig(
+        api_keys=[],
+        api_key_tenant_map='{"tenant-key": "tenant-a"}',
+        llm_provider="mock",
+        use_nli=False,
+        tenant_routing=True,
+    )
+    with _client(cfg) as client:
+        response = client.post(
+            "/v1/tenants/tenant-b/facts",
+            json={"key": "policy", "value": "tenant-bound"},
+            headers={"X-API-Key": "tenant-key"},
+        )
+
+    assert response.status_code == 403
 
 
 def test_server_adversarial_endpoint_uses_configured_scorer() -> None:
