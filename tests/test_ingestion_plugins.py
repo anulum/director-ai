@@ -170,6 +170,32 @@ class _FakeS3:
 
 
 class TestS3:
+    def test_from_default_client_imports_boto3_client(self, monkeypatch):
+        fake_client = _FakeS3([{"Contents": [], "IsTruncated": False}], {})
+        fake_boto3 = types.ModuleType("boto3")
+        fake_boto3.client = lambda service: fake_client
+        monkeypatch.setitem(sys.modules, "boto3", fake_boto3)
+
+        plugin = S3Plugin.from_default_client("kb", prefix="docs/")
+
+        assert plugin._client is fake_client
+        assert plugin._bucket == "kb"
+        assert plugin._prefix == "docs/"
+
+    def test_from_default_client_reports_missing_boto3(self, monkeypatch):
+        monkeypatch.delitem(sys.modules, "boto3", raising=False)
+
+        class BlockBoto3:
+            def find_spec(self, fullname, path=None, target=None):
+                if fullname == "boto3":
+                    return None
+                return None
+
+        monkeypatch.setattr(sys, "meta_path", [BlockBoto3()])
+
+        with pytest.raises(ImportError, match="requires boto3"):
+            S3Plugin.from_default_client("kb")
+
     def test_single_page_ingestion(self):
         pages = [
             {
@@ -232,6 +258,36 @@ class TestS3:
         }
         docs = list(S3Plugin(_FakeS3(pages, objs), bucket="k").iter_documents())
         assert docs == []
+
+    def test_empty_key_summary_is_skipped_without_fetching(self):
+        pages = [
+            {
+                "Contents": [{"Key": ""}, {"Size": 8}, {"Key": "valid.txt"}],
+                "IsTruncated": False,
+            }
+        ]
+        objs = {"valid.txt": {"ContentType": "text/plain", "_body": b"valid"}}
+        fake = _FakeS3(pages, objs)
+
+        docs = list(S3Plugin(fake, bucket="k").iter_documents())
+
+        assert [doc.source_id for doc in docs] == ["valid.txt"]
+        assert fake.get_calls == ["valid.txt"]
+
+    def test_truncated_page_without_continuation_token_stops_safely(self):
+        pages = [
+            {
+                "Contents": [{"Key": "a.txt"}],
+                "IsTruncated": True,
+            }
+        ]
+        objs = {"a.txt": {"ContentType": "text/plain", "_body": b"a"}}
+        fake = _FakeS3(pages, objs)
+
+        docs = list(S3Plugin(fake, bucket="k").iter_documents())
+
+        assert [doc.source_id for doc in docs] == ["a.txt"]
+        assert len(fake.list_calls) == 1
 
     def test_non_utf8_skipped(self):
         pages = [{"Contents": [{"Key": "a.txt"}], "IsTruncated": False}]
