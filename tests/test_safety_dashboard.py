@@ -334,6 +334,39 @@ class TestSafetyDashboard:
         assert "Parse warnings" in summary
         assert overlay == ""
 
+    def test_retune_guidance_reports_parse_warnings_before_enough_samples(self):
+        summary, overlay = build_retune_guidance(
+            "{broken\n"
+            + _line(
+                {
+                    "prompt": "approved",
+                    "response": "The response is supported.",
+                    "label": "approved",
+                },
+            ),
+            min_samples=2,
+        )
+
+        assert "Labelled samples: 1" in summary
+        assert "Parse warnings: feedback:1" in summary
+        assert overlay == ""
+
+    def test_retune_guidance_reports_clean_insufficient_sample_guidance(self):
+        summary, overlay = build_retune_guidance(
+            _line(
+                {
+                    "prompt": "approved",
+                    "response": "The response is supported.",
+                    "label": "approved",
+                },
+            ),
+            min_samples=2,
+        )
+
+        assert "Labelled samples: 1" in summary
+        assert "Parse warnings" not in summary
+        assert overlay == ""
+
     def test_retune_guidance_accepts_label_synonyms(self):
         accepted = ["approved", "approve", "correct", "true", "1"]
         rejected = ["rejected", "reject", "incorrect", "false", "0"]
@@ -742,6 +775,21 @@ class TestObservabilityOperationsReport:
         assert "No compliance export references supplied." in markdown
         assert "No halt evidence supplied." in markdown
 
+    def test_operations_markdown_renders_parse_warnings(self):
+        report = build_observability_operations_report(
+            "{broken\n"
+            + _line(
+                {
+                    "tenant_id": "tenant-a",
+                    "policy_decision": "allow",
+                },
+            ),
+        )
+
+        markdown = report.to_markdown()
+
+        assert "Parse Warnings: events:1" in markdown
+
     def test_operations_markdown_renders_positive_tables(self):
         events = "".join(
             [
@@ -807,6 +855,47 @@ class TestObservabilityOperationsReport:
 
         assert report.to_dict()["drift_alerts"] == []
         assert report.to_dict()["summary"]["risk_level"] == "attention_required"
+
+    def test_drift_alert_window_ignores_feedback_records(self):
+        events = "".join(
+            [
+                _line({"tenant_id": "tenant-a", "policy_decision": "allow"}),
+                _line({"tenant_id": "tenant-a", "policy_decision": "allow"}),
+                _line({"tenant_id": "tenant-a", "policy_decision": "halt"}),
+                _line({"tenant_id": "tenant-a", "policy_decision": "halt"}),
+            ],
+        )
+        feedback = "".join(
+            _line(
+                {
+                    "tenant_id": "tenant-a",
+                    "event_id": f"feedback-{idx}",
+                    "guardrail_approved": False,
+                    "human_approved": True,
+                },
+            )
+            for idx in range(4)
+        )
+
+        report = build_observability_operations_report(
+            events,
+            feedback,
+            drift_alert_threshold=0.25,
+            min_drift_window_events=2,
+        )
+
+        assert report.to_dict()["drift_alerts"] == [
+            [
+                "tenant-a",
+                2,
+                2,
+                0.0,
+                1.0,
+                1.0,
+                "severe",
+                "Freeze rollout, review halt traces, and retune before expansion.",
+            ]
+        ]
 
     def test_operations_markdown_is_dashboard_ready(self):
         markdown = build_observability_operations_markdown(
@@ -925,6 +1014,23 @@ class TestSafetyDashboardUtilityContracts:
             dashboard_mod._operations_risk_level(
                 tenant_alerts=0,
                 drift_alerts=[],
+                controls=(
+                    TrustControl(
+                        control="Evidence review",
+                        status="warning",
+                        evidence_ref="evidence.md",
+                    ),
+                ),
+                compliance_exports=(),
+                halts=0,
+                false_positives=0,
+            )
+            == "attention_required"
+        )
+        assert (
+            dashboard_mod._operations_risk_level(
+                tenant_alerts=0,
+                drift_alerts=[],
                 controls=(),
                 compliance_exports=(),
                 halts=0,
@@ -977,6 +1083,25 @@ class TestSafetyDashboardUtilityContracts:
         )
         assert (
             dashboard_mod._contradiction_source(
+                {"attributes": {}, "trace_attribution": {"source": "kb://trace"}}
+            )
+            == "kb://trace"
+        )
+        assert (
+            dashboard_mod._contradiction_source({"evidence_refs": ["kb://top-level"]})
+            == "kb://top-level"
+        )
+        assert (
+            dashboard_mod._contradiction_source(
+                {
+                    "trace_attribution": {},
+                    "evidence_refs": ["kb://trace-fallback"],
+                }
+            )
+            == "kb://trace-fallback"
+        )
+        assert (
+            dashboard_mod._contradiction_source(
                 {"halt_evidence": {"evidence_refs": ["kb://nested"]}}
             )
             == "kb://nested"
@@ -1009,7 +1134,9 @@ class TestSafetyDashboardUtilityContracts:
 
     def test_feedback_label_string_contracts(self):
         assert dashboard_mod._feedback_label({"label": "accepted"}) is True
+        assert dashboard_mod._feedback_label({"label": " approve "}) is True
         assert dashboard_mod._feedback_label({"label": "blocked"}) is False
+        assert dashboard_mod._feedback_label({"label": "0"}) is False
         assert dashboard_mod._feedback_label({"label": "maybe"}) is None
 
 
