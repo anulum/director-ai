@@ -89,6 +89,22 @@ class TestFailureStore:
             )
         assert len(store) == 2
 
+    def test_snapshot_returns_retained_events_oldest_first(self):
+        store = FailureStore(capacity=2, clock=_FakeClock())
+        first = FailureEvent(prompt="first", label="unsafe", timestamp=1.0)
+        second = FailureEvent(prompt="second", label="unsafe", timestamp=2.0)
+        third = FailureEvent(prompt="third", label="unsafe", timestamp=3.0)
+
+        for event in (first, second, third):
+            store.append(event)
+
+        snapshot = store.snapshot()
+        fourth = FailureEvent(prompt="fourth", label="unsafe", timestamp=4.0)
+        store.append(fourth)
+
+        assert snapshot == (second, third)
+        assert store.snapshot() == (third, fourth)
+
     def test_bad_capacity(self):
         with pytest.raises(ValueError, match="capacity"):
             FailureStore(capacity=0)
@@ -111,6 +127,18 @@ class TestFailureStore:
         clock.now = 100.0
         window = store.window(since_seconds=20.0)
         assert all(e.timestamp >= 80.0 for e in window)
+
+    @pytest.mark.parametrize("last_n", [0, -1])
+    def test_window_rejects_non_positive_last_n(self, last_n):
+        store = FailureStore(clock=_FakeClock())
+        with pytest.raises(ValueError, match="last_n must be positive"):
+            store.window(last_n=last_n)
+
+    @pytest.mark.parametrize("since_seconds", [0.0, -1.0])
+    def test_window_rejects_non_positive_since_seconds(self, since_seconds):
+        store = FailureStore(clock=_FakeClock())
+        with pytest.raises(ValueError, match="since_seconds must be positive"):
+            store.window(since_seconds=since_seconds)
 
     def test_window_needs_one_param(self):
         store = FailureStore(clock=_FakeClock())
