@@ -86,6 +86,27 @@ def test_false_positive_action_points_to_retrieval_mapping() -> None:
     assert case.recommended_action == "review_retrieval_source_mapping"
 
 
+def test_false_positive_without_unsupported_claims_points_to_review_pressure() -> None:
+    report = build_forensics_report(
+        [
+            {
+                "approved": False,
+                "score": 0.59,
+                "threshold": 0.6,
+                "evidence_count": 1,
+                "unsupported_claims": 0,
+                "label": "grounded",
+                "scorer": "nli",
+            }
+        ]
+    )
+
+    case = report.cases[0]
+    assert case.outcome == "false_positive"
+    assert case.reason == "nli halted below threshold without reviewer-confirmed risk"
+    assert case.recommended_action == "lower_false_halt_pressure_or_raise_review_queue"
+
+
 def test_report_payload_is_tenant_safe() -> None:
     payload = build_forensics_report(_records()).to_dict()
 
@@ -105,6 +126,14 @@ def test_renderers_include_summary_and_actions() -> None:
     assert "fn-1: false_negative" in text
     assert "# Guardrail Forensics" in markdown
     assert "refresh_or_add_governed_facts" in markdown
+
+
+def test_text_renderer_handles_empty_report_without_optional_sections() -> None:
+    text = render_forensics_text(build_forensics_report([]))
+
+    assert "Guardrail Forensics" in text
+    assert "missed_by_scorer:" not in text
+    assert "cases:" not in text
 
 
 def test_markdown_empty_report_explains_no_records_or_misses() -> None:
@@ -201,6 +230,7 @@ def test_rejects_record_without_decision_or_approval() -> None:
         {"approved": True, "score": 0.5, "threshold": False},
         {"approved": True, "score": 0.5, "threshold": 0.6, "evidence_count": True},
         {"approved": True, "score": 0.5, "threshold": 0.6, "unsupported_claims": 1.2},
+        {"approved": True, "score": "0.5", "threshold": 0.6},
     ],
 )
 def test_rejects_non_numeric_forensics_fields(record: dict[str, object]) -> None:
