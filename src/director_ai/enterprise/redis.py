@@ -15,10 +15,13 @@ import json
 import logging
 import re
 import time
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
+from director_ai.core import GroundTruthStore
 from director_ai.core.cache import ScoreCache
-from director_ai.core.knowledge import GroundTruthStore
+
+if TYPE_CHECKING:
+    from director_ai.core.cache import _CacheEntry
 
 # redis is optional — declare as Any so the except-branch
 # assignment does not conflict with mypy-inferred module type.
@@ -74,10 +77,16 @@ class RedisGroundTruthStore(GroundTruthStore):
         tenant_id = _validate_redis_tenant_id(tenant_id)
         return f"{self.prefix}{tenant_id or '_default'}:hash"
 
-    def add(self, key: str, value: str, tenant_id: str = "") -> None:
+    def add(
+        self,
+        key: str,
+        value: str,
+        metadata: dict[str, Any] | None = None,
+        tenant_id: str = "",
+    ) -> None:
         """Persist one fact in local memory and the tenant Redis hash."""
         tenant_id = _validate_redis_tenant_id(tenant_id)
-        super().add(key, value, tenant_id=tenant_id)
+        super().add(key, value, metadata=metadata, tenant_id=tenant_id)
         self.client.hset(self._hash_key(tenant_id), key, value)
 
     def add_many(self, facts: dict[str, str], tenant_id: str = "") -> int:
@@ -93,8 +102,14 @@ class RedisGroundTruthStore(GroundTruthStore):
         pipe.execute()
         return len(facts)
 
-    def retrieve_context(self, query: str, tenant_id: str = "") -> str | None:
-        """Return Redis-backed fact context matching query terms for a tenant."""
+    def retrieve_context(
+        self, query: str, top_k: int = 0, tenant_id: str = ""
+    ) -> str | None:
+        """Return Redis-backed fact context matching query terms for a tenant.
+
+        When ``top_k`` is positive, at most that many matching facts are joined;
+        ``top_k=0`` returns every match (the base-class default).
+        """
         tenant_id = _validate_redis_tenant_id(tenant_id)
         facts_dict = self.client.hgetall(self._hash_key(tenant_id))
         if not facts_dict:
@@ -106,6 +121,8 @@ class RedisGroundTruthStore(GroundTruthStore):
             for key, value in facts_dict.items()
             if any(word in query_lower for word in key.lower().split())
         ]
+        if top_k > 0:
+            context = context[:top_k]
         return "; ".join(context) if context else None
 
     def count(self, tenant_id: str = "") -> int:
@@ -152,7 +169,7 @@ class RedisScoreCache(ScoreCache):
         prefix: str,
         tenant_id: str = "",
         scope: str = "",
-    ):
+    ) -> _CacheEntry | None:
         """Load a cached score entry, enforcing generation and JSON integrity."""
         # Local import to construct the expected _CacheEntry format transparently
         from director_ai.core.cache import _CacheEntry

@@ -863,10 +863,6 @@ ignore_errors = true
 module = "director_ai.director_pb2_grpc"
 ignore_errors = true
 
-[[tool.mypy.overrides]]
-module = "director_ai.enterprise.redis"
-ignore_errors = true
-
 # protoc-generated gRPC stubs — machine-generated, not hand-annotated.
 [[tool.mypy.overrides]]
 module = [
