@@ -32,6 +32,7 @@ import numpy as np
 
 if TYPE_CHECKING:
     from ..types import ClaimAttribution
+    from .backends import ScorerBackend
 
 from ..mandatory import mandatory_execution
 from ..metrics import metrics
@@ -546,7 +547,7 @@ class NLIScorer:
         use_model: bool = True,
         max_length: int = 512,
         model_name: str | None = None,
-        backend: str = "deberta",
+        backend: str | ScorerBackend = "deberta",
         quantize_8bit: bool = False,
         device: str | None = None,
         torch_dtype: str | None = None,
@@ -623,6 +624,11 @@ class NLIScorer:
         """Load model if not yet loaded. Returns True if ready."""
         if self._model_loaded:
             return self._backend_ready
+        if self._custom_backend is not None:
+            # A custom ScorerBackend supplies its own inference; never load an
+            # NLI checkpoint for it. score()/score_batch() delegate directly.
+            self._model_loaded = True
+            return True
         if not self.use_model:
             self._model_loaded = True
             return False

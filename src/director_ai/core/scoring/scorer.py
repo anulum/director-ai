@@ -62,6 +62,16 @@ DIVERGENCE_NEUTRAL = 0.5  # no signal → agnostic
 DIVERGENCE_ALIGNED = 0.1  # keyword heuristic: "consistent with reality"
 DIVERGENCE_CONTRADICTED = 0.9  # keyword heuristic: "opposite is true"
 
+# scorer_backend values handled natively here: NLIScorer checkpoints (deberta,
+# minicheck, onnx), the built-in heuristic surfaces (lite, rules), hybrid
+# (→deberta + judge), and the rust FFI. Any other value — "embed", "nli-lite",
+# or a third-party plugin — is resolved through the scorer-backend registry by
+# _build_registry_nli. "rules" stays heuristic-only (its calibrated profile
+# behaviour); only genuinely model-backed registered backends are routed.
+_NATIVE_NLI_BACKENDS = frozenset(
+    {"deberta", "minicheck", "onnx", "lite", "rules", "hybrid", "rust", "backfire"}
+)
+
 
 class CoherenceScorer:
     """Weighted NLI divergence scorer for AI output verification.
@@ -241,6 +251,12 @@ class CoherenceScorer:
         nli_backend = "deberta" if scorer_backend == "hybrid" else scorer_backend
         if nli_backend == "lite":
             self._nli = NLIScorer(use_model=False, backend="lite")
+        elif scorer_backend not in _NATIVE_NLI_BACKENDS:
+            # Registered non-native backend (embed, nli-lite, or a third-party
+            # backend registered via register_backend): route it through the
+            # scorer-backend registry as a custom NLI surface so the configured
+            # backend actually scores, instead of silently using the heuristic.
+            self._nli = self._build_registry_nli(scorer_backend, nli_device)
         elif self.use_nli and nli_devices and len(nli_devices) > 1:
             from .sharded_nli import ShardedNLIScorer
 
@@ -348,6 +364,45 @@ class CoherenceScorer:
         self._injection_fail_closed = False
         self._nli_fallback_lock = threading.Lock()
         self._nli_fallback_incident_stages: set[str] = set()
+
+    def _build_registry_nli(self, name: str, device: str | None) -> NLIScorer | None:
+        """Wrap a registry-resolved ``ScorerBackend`` as the NLI scoring surface.
+
+        Resolves ``name`` through the scorer-backend registry (``embed``,
+        ``nli-lite``, or any backend registered via ``register_backend``) and
+        injects the instance into an ``NLIScorer`` as a custom backend. Returns
+        ``None`` — leaving the scorer on the heuristic path — when the backend
+        is unavailable (e.g. its optional dependency is not installed), unless
+        ``strict_mode`` is set, in which case the failure propagates.
+
+        Parameters
+        ----------
+        name : str
+            The configured ``scorer_backend`` value to resolve.
+        device : str or None
+            Device hint forwarded to the backend (``None`` lets the backend pick
+            its own default, e.g. CPU for the embedding scorer).
+
+        Returns
+        -------
+        NLIScorer or None
+            An NLIScorer delegating to the resolved backend, or ``None`` on
+            graceful fallback.
+        """
+        from .backends import get_backend
+
+        try:
+            backend = get_backend(name)(**({"device": device} if device else {}))
+        except (KeyError, ImportError, OSError, AttributeError, ValueError) as exc:
+            if self.strict_mode:
+                raise
+            self.logger.warning(
+                "scorer_backend %r unavailable (%s); falling back to heuristic",
+                name,
+                exc,
+            )
+            return None
+        return NLIScorer(backend=backend, use_model=True)
 
     @classmethod
     def from_config(

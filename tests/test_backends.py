@@ -430,3 +430,106 @@ def test_backend_registry_allows_explicit_replacement() -> None:
     register_backend("test_replacement_contract", SecondBackend)
 
     assert get_backend("test_replacement_contract") is SecondBackend
+
+
+class TestScorerBackendBuildPathWiring:
+    """CoherenceScorer routes non-native scorer_backend names through the registry.
+
+    Regression for the gap where ``scorer_backend="embed"`` (and any other
+    registered backend) silently produced a heuristic-only scorer because the
+    build path never consulted the scorer-backend registry.
+    """
+
+    @staticmethod
+    def _register(name: str, value: float) -> type:
+        from director_ai.core.scoring.backends import register_backend
+
+        class _Stub(ScorerBackend):
+            def __init__(self, **kwargs: object) -> None:
+                self.kwargs = kwargs
+
+            def score(self, premise: str, hypothesis: str) -> float:
+                return value
+
+            def score_batch(self, pairs: list[tuple[str, str]]) -> list[float]:
+                return [value] * len(pairs)
+
+        register_backend(name, _Stub)
+        return _Stub
+
+    def test_registered_backend_is_wired_as_custom_nli(self) -> None:
+        from director_ai import CoherenceScorer
+        from director_ai.core.scoring.backends import _REGISTRY
+
+        name = "test_wire_embed"
+        stub_cls = self._register(name, 0.9)
+        try:
+            scorer = CoherenceScorer(scorer_backend=name, use_nli=False)
+            assert scorer._nli is not None
+            assert isinstance(scorer._nli._custom_backend, stub_cls)
+            assert scorer._nli.model_available is True
+            assert scorer._nli.score("a", "b") == 0.9
+            assert scorer._nli.score_batch([("a", "b"), ("c", "d")]) == [0.9, 0.9]
+        finally:
+            _REGISTRY.pop(name, None)
+
+    def test_device_hint_forwarded_to_backend(self) -> None:
+        from director_ai import CoherenceScorer
+        from director_ai.core.scoring.backends import _REGISTRY
+
+        name = "test_wire_device"
+        self._register(name, 0.5)
+        try:
+            scorer = CoherenceScorer(
+                scorer_backend=name, use_nli=False, nli_device="cpu"
+            )
+            assert scorer._nli is not None
+            assert scorer._nli._custom_backend.kwargs == {"device": "cpu"}
+        finally:
+            _REGISTRY.pop(name, None)
+
+    def test_unregistered_backend_falls_back_to_heuristic(self) -> None:
+        from director_ai import CoherenceScorer
+
+        scorer = CoherenceScorer(scorer_backend="no-such-backend-xyz", use_nli=False)
+        assert scorer._nli is None
+
+    def test_unregistered_backend_strict_raises(self) -> None:
+        from director_ai import CoherenceScorer
+
+        with pytest.raises(KeyError):
+            CoherenceScorer(
+                scorer_backend="no-such-backend-xyz",
+                use_nli=False,
+                strict_mode=True,
+            )
+
+    def test_native_lite_backend_not_routed_through_registry(self) -> None:
+        from director_ai import CoherenceScorer
+
+        scorer = CoherenceScorer(scorer_backend="lite", use_nli=False)
+        assert scorer._nli is not None
+        assert scorer._nli.backend == "lite"
+        assert scorer._nli._custom_backend is None
+
+    def test_rules_backend_stays_heuristic_only(self) -> None:
+        # "rules" is an intentional heuristic profile, not a registry backend:
+        # it must keep its calibrated heuristic behaviour (no NLI surface).
+        from director_ai import CoherenceScorer
+
+        scorer = CoherenceScorer(scorer_backend="rules", use_nli=False)
+        assert scorer._nli is None
+
+    def test_custom_backend_skips_nli_checkpoint_load(self) -> None:
+        from director_ai.core.nli import NLIScorer
+
+        class _Const(ScorerBackend):
+            def score(self, premise: str, hypothesis: str) -> float:
+                return 0.4
+
+            def score_batch(self, pairs: list[tuple[str, str]]) -> list[float]:
+                return [0.4] * len(pairs)
+
+        nli = NLIScorer(backend=_Const(), use_model=True)
+        assert nli.model_available is True
+        assert nli._model is None
