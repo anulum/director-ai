@@ -9,6 +9,8 @@
 
 from __future__ import annotations
 
+import base64
+
 import pytest
 
 import director_ai.core.safety.sanitizer as sanitizer_mod
@@ -240,6 +242,25 @@ class TestInputSanitizerScrub:
 
 
 class TestRustUnicodeFallback:
+    def test_empty_text_is_not_suspicious_unicode(self, monkeypatch):
+        monkeypatch.setattr(sanitizer_mod, "_RUST_SANITIZER", False)
+        assert InputSanitizer._has_suspicious_unicode("") is False
+
+    def test_python_unicode_scan_counts_suspicious_categories(self, monkeypatch):
+        monkeypatch.setattr(sanitizer_mod, "_RUST_SANITIZER", False)
+        assert InputSanitizer._has_suspicious_unicode("\ue000" * 2 + "clean") is True
+        assert InputSanitizer._has_suspicious_unicode("clean text") is False
+
+    def test_rust_unicode_success_path_is_used(self, monkeypatch):
+        monkeypatch.setattr(sanitizer_mod, "_RUST_SANITIZER", True)
+        monkeypatch.setattr(
+            sanitizer_mod,
+            "rust_has_suspicious_unicode",
+            lambda _text: True,
+            raising=False,
+        )
+        assert InputSanitizer._has_suspicious_unicode("hello") is True
+
     def test_rust_unicode_exception_falls_back_to_python(self, monkeypatch):
         monkeypatch.setattr(sanitizer_mod, "_RUST_SANITIZER", True)
         monkeypatch.setattr(
@@ -261,6 +282,43 @@ class TestRustUnicodeFallback:
         )
         text = "\u200b" * 20 + "hello"
         assert InputSanitizer._has_suspicious_unicode(text) is True
+
+
+class TestBase64PayloadHelpers:
+    def test_contains_base64_payload_returns_false_without_payload(self):
+        assert sanitizer_mod._contains_base64_payload("plain prose only") is False
+
+    def test_short_or_bad_length_base64_token_is_ignored(self):
+        assert sanitizer_mod._is_base64_payload_token("A" * 39) is False
+        assert sanitizer_mod._is_base64_payload_token("A" * 41) is False
+
+    def test_malformed_padding_is_ignored(self):
+        assert sanitizer_mod._is_base64_payload_token(("A" * 40) + "=bad") is False
+
+    def test_invalid_unpadded_base64_is_ignored(self):
+        assert sanitizer_mod._is_base64_payload_token("-" * 40) is False
+
+    def test_low_printable_decoded_payload_is_ignored(self):
+        token = base64.b64encode(b"\x00" * 33).decode("ascii")
+        assert sanitizer_mod._is_base64_payload_token(token) is False
+
+    def test_printable_long_decoded_payload_is_suspicious(self):
+        token = base64.b64encode(b"a" * 33).decode("ascii")
+        assert sanitizer_mod._is_base64_payload_token(token) is True
+
+    def test_python_sum_path_is_used(self, monkeypatch):
+        monkeypatch.setattr(sanitizer_mod, "_RUST_SANITIZER", False)
+        assert sanitizer_mod._sum_int([1, 2, 3]) == 6
+
+    def test_rust_sum_success_path_is_used(self, monkeypatch):
+        monkeypatch.setattr(sanitizer_mod, "_RUST_SANITIZER", True)
+        monkeypatch.setattr(
+            sanitizer_mod,
+            "rust_sum_i64",
+            lambda values: sum(values) + 1,
+            raising=False,
+        )
+        assert sanitizer_mod._sum_int([1, 2, 3]) == 7
 
 
 class TestObfuscationResistantMatching:

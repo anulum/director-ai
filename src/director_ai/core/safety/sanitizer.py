@@ -489,8 +489,6 @@ def _is_base64_payload_token(token: str) -> bool:
         decoded = base64.b64decode(padded, validate=True)
     except (binascii.Error, ValueError):
         return False
-    if len(decoded) < 24:
-        return False
     printable = _sum_int(
         [1 if (byte in b"\n\r\t" or 32 <= byte <= 126) else 0 for byte in decoded]
     )
