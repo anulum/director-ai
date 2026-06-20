@@ -12,6 +12,7 @@ error handling, pipeline integration, and performance documentation.
 """
 
 import json
+import os
 import subprocess
 import sys
 import tempfile
@@ -390,6 +391,77 @@ class TestQuickstartCommand:
         assert "knowledge_write_require_signature: true" in config_text
         assert "Authorization: Bearer <api-key>" in readme_text
 
+    def test_quickstart_production_scaffold_restores_existing_env(
+        self,
+        tmp_path,
+        monkeypatch,
+    ):
+        monkeypatch.chdir(tmp_path)
+        monkeypatch.setenv("DIRECTOR_API_KEYS", "operator-key")
+        monkeypatch.setenv(
+            "DIRECTOR_API_KEY_TENANT_MAP",
+            '{"operator-key":"operator-tenant"}',
+        )
+        monkeypatch.setenv(
+            "DIRECTOR_KNOWLEDGE_WRITE_HMAC_KEYS",
+            '{"operator":"operator-signing-secret-32x"}',
+        )
+
+        main(["quickstart", "--profile", "production", "--no-compose"])
+
+        assert os.environ["DIRECTOR_API_KEYS"] == "operator-key"
+        assert (
+            os.environ["DIRECTOR_API_KEY_TENANT_MAP"]
+            == '{"operator-key":"operator-tenant"}'
+        )
+        assert (
+            os.environ["DIRECTOR_KNOWLEDGE_WRITE_HMAC_KEYS"]
+            == '{"operator":"operator-signing-secret-32x"}'
+        )
+
+    def test_profile_scaffold_fallback_restores_existing_env(self, monkeypatch):
+        from director_ai.core.config import DirectorConfig
+
+        calls: list[tuple[str, str | None]] = []
+        monkeypatch.setenv("DIRECTOR_API_KEYS", "operator-key")
+        monkeypatch.setenv(
+            "DIRECTOR_API_KEY_TENANT_MAP",
+            '{"operator-key":"operator-tenant"}',
+        )
+        monkeypatch.setenv(
+            "DIRECTOR_KNOWLEDGE_WRITE_HMAC_KEYS",
+            '{"operator":"operator-signing-secret-32x"}',
+        )
+
+        def fake_from_profile(profile):
+            calls.append((profile, os.environ.get("DIRECTOR_API_KEYS")))
+            if len(calls) == 1:
+                raise ValueError("missing production secrets")
+            return "loaded-config"
+
+        monkeypatch.setattr(
+            DirectorConfig,
+            "from_profile",
+            staticmethod(fake_from_profile),
+        )
+
+        cfg = cli_module._load_profile_for_scaffold("production")
+
+        assert cfg == "loaded-config"
+        assert calls == [
+            ("production", "operator-key"),
+            ("production", "scaffold-placeholder-key"),
+        ]
+        assert os.environ["DIRECTOR_API_KEYS"] == "operator-key"
+        assert (
+            os.environ["DIRECTOR_API_KEY_TENANT_MAP"]
+            == '{"operator-key":"operator-tenant"}'
+        )
+        assert (
+            os.environ["DIRECTOR_KNOWLEDGE_WRITE_HMAC_KEYS"]
+            == '{"operator":"operator-signing-secret-32x"}'
+        )
+
     def test_quickstart_with_profile(self, tmp_path, monkeypatch):
         monkeypatch.chdir(tmp_path)
         main(["quickstart", "--profile", "medical"])
@@ -490,6 +562,80 @@ class TestQuickstartCommand:
         d = tmp_path / "director_guard"
         assert d.is_dir()
         assert not (d / "docker-compose.yml").exists()
+
+
+class TestEvidenceCommands:
+    """Tests for evidence packet CLI commands."""
+
+    @staticmethod
+    def _failing_packet():
+        return {
+            "content": {
+                "checks": {
+                    "grounded_approved": True,
+                    "hallucinated_blocked": False,
+                },
+            },
+            "integrity": {"digest": "a" * 64},
+        }
+
+    def test_evidence_failed_demo_exits_after_writing_packet(
+        self,
+        tmp_path,
+        monkeypatch,
+        capsys,
+    ):
+        import director_ai.core.evidence_packet as evidence_module
+        from director_ai.guard import ProductionGuard
+
+        seen: dict[str, object] = {}
+
+        def fake_from_profile(profile):
+            seen["profile"] = profile
+            return object()
+
+        monkeypatch.setattr(
+            ProductionGuard,
+            "from_profile",
+            staticmethod(fake_from_profile),
+        )
+        monkeypatch.setattr(
+            evidence_module,
+            "build_evidence_packet",
+            lambda guard: self._failing_packet(),
+        )
+
+        with pytest.raises(SystemExit) as exc_info:
+            main(
+                [
+                    "evidence",
+                    "--profile",
+                    "medical",
+                    "--ignored",
+                    "--emit",
+                    str(tmp_path),
+                ],
+            )
+
+        packet_path = tmp_path / "evidence_packet.json"
+        assert exc_info.value.code == 1
+        assert seen["profile"] == "medical"
+        assert packet_path.is_file()
+        assert "Demo expectations not met" in capsys.readouterr().out
+
+    def test_verify_evidence_requires_argument(self, capsys):
+        with pytest.raises(SystemExit) as exc_info:
+            main(["verify-evidence"])
+
+        assert exc_info.value.code == 1
+        assert "verify-evidence <packet.json|dir>" in capsys.readouterr().out
+
+    def test_verify_audit_requires_argument(self, capsys):
+        with pytest.raises(SystemExit) as exc_info:
+            main(["verify-audit"])
+
+        assert exc_info.value.code == 1
+        assert "verify-audit <audit.jsonl>" in capsys.readouterr().out
 
 
 class TestConfigCommand:
