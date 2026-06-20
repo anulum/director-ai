@@ -131,9 +131,6 @@ class MultimodalVerifierAdapter:
         self._grounding_allow = _unit(grounding_allow_threshold)
         if not self._enabled:
             raise ValueError("at least one enabled modality is required")
-        unsupported = self._enabled - _MODALITIES
-        if unsupported:
-            raise ValueError(f"unsupported enabled modalities {sorted(unsupported)}")
         extra_benchmarked = self._benchmarked - self._enabled
         if extra_benchmarked:
             raise ValueError(
@@ -243,28 +240,26 @@ class MultimodalVerifierAdapter:
                 else "hallucinated"
             )
             return self._apply_grounding(request, score, verdict, (request.media_ref,))
-        if request.modality == "video":
-            if not request.frame_similarities:
-                raise ValueError("video modality requires frame_similarities")
-            temporal = TemporalConsistencyGuard(
-                alpha=self._temporal_alpha,
-                consistency_floor=self._temporal_floor,
+        if not request.frame_similarities:
+            raise ValueError("video modality requires frame_similarities")
+        temporal = TemporalConsistencyGuard(
+            alpha=self._temporal_alpha,
+            consistency_floor=self._temporal_floor,
+        )
+        halt_frame = -1
+        for index, similarity in enumerate(request.frame_similarities):
+            if temporal.update(_unit(similarity)):
+                halt_frame = index
+        score = _unit(temporal.ema if temporal.ema is not None else 0.0)
+        if halt_frame >= 0:
+            return self._apply_grounding(
+                request,
+                score,
+                "temporal_inconsistent",
+                (f"{request.media_ref}#frame:{halt_frame}",),
             )
-            halt_frame = -1
-            for index, similarity in enumerate(request.frame_similarities):
-                if temporal.update(_unit(similarity)):
-                    halt_frame = index
-            score = _unit(temporal.ema if temporal.ema is not None else 0.0)
-            if halt_frame >= 0:
-                return self._apply_grounding(
-                    request,
-                    score,
-                    "temporal_inconsistent",
-                    (f"{request.media_ref}#frame:{halt_frame}",),
-                )
-            verdict = "consistent" if score >= 0.75 else "uncertain"
-            return self._apply_grounding(request, score, verdict, (request.media_ref,))
-        raise ValueError(f"unsupported modality {request.modality!r}")
+        verdict = "consistent" if score >= 0.75 else "uncertain"
+        return self._apply_grounding(request, score, verdict, (request.media_ref,))
 
     def _apply_grounding(
         self,
