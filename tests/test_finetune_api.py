@@ -183,6 +183,45 @@ class TestCreateRouter:
         assert models_dir.exists()
         assert (models_dir / "_uploads").exists()
 
+    def test_router_uses_default_models_dir(self, tmp_path, monkeypatch):
+        default_dir = tmp_path / "default_models"
+        monkeypatch.setattr(finetune_api_module, "_DEFAULT_MODELS_DIR", default_dir)
+
+        create_finetune_router()
+
+        assert default_dir.exists()
+        assert (default_dir / "_uploads").exists()
+
+    def test_router_reports_missing_fastapi(self, monkeypatch):
+        monkeypatch.setattr(finetune_api_module, "_FASTAPI_AVAILABLE", False)
+
+        with pytest.raises(ImportError, match="director-ai\\[server\\]"):
+            create_finetune_router()
+
+    def test_router_warns_when_models_dir_cannot_be_created(
+        self,
+        tmp_path,
+        monkeypatch,
+        caplog,
+    ):
+        target = (tmp_path / "readonly_models").resolve()
+        original_mkdir = finetune_api_module.Path.mkdir
+        calls = {"count": 0}
+
+        def guarded_mkdir(path, *args, **kwargs):
+            if path == target and calls["count"] == 0:
+                calls["count"] += 1
+                raise PermissionError("read-only")
+            return original_mkdir(path, *args, **kwargs)
+
+        monkeypatch.setattr(finetune_api_module.Path, "mkdir", guarded_mkdir)
+
+        router = create_finetune_router(models_dir=target)
+
+        assert router is not None
+        assert "read-only filesystem" in caplog.text
+        assert (target / "_uploads").exists()
+
 
 class TestRouterEndpoints:
     """Integration tests using FastAPI TestClient."""
