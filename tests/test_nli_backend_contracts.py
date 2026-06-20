@@ -528,6 +528,22 @@ def test_nli_ensure_model_loads_deberta_and_lora(monkeypatch) -> None:
     assert calls == ["adapter"]
 
 
+def test_nli_ensure_model_loads_deberta_without_lora(monkeypatch) -> None:
+    model = FakeModel([[3.0, 0.0, 1.0]])
+    monkeypatch.setattr(
+        nli_mod, "_load_nli_model", lambda *_args, **_kwargs: (FakeTokenizer(), model)
+    )
+    scorer = NLIScorer()
+    monkeypatch.setattr(
+        scorer,
+        "_load_lora_adapter",
+        lambda _path: pytest.fail("LoRA adapter should not load without a path"),
+    )
+
+    assert scorer._ensure_model() is True
+    assert scorer._label_indices == (2, 1)
+
+
 def test_nli_ensure_model_handles_unavailable_deberta(monkeypatch) -> None:
     monkeypatch.setattr(
         nli_mod, "_load_nli_model", lambda *_args, **_kwargs: (None, None)
@@ -695,6 +711,11 @@ def test_nli_minicheck_loader_runtime_failure(monkeypatch) -> None:
 
     assert scorer._ensure_minicheck() is False
     assert scorer._minicheck is None
+
+
+def test_nli_minicheck_rejects_unknown_variant() -> None:
+    with pytest.raises(ValueError, match="minicheck_variant"):
+        NLIScorer(backend="minicheck", minicheck_variant="unknown")
 
 
 def test_nli_minicheck_score_falls_back_when_loader_unavailable(monkeypatch) -> None:
@@ -930,6 +951,25 @@ def test_nli_python_chunking_empty_and_max_aggregation(monkeypatch) -> None:
     assert agg == max(per_hyp)
 
 
+def test_nli_chunked_short_text_scores_once_and_records_single_chunks(
+    monkeypatch,
+) -> None:
+    monkeypatch.setattr(nli_mod, "_RUST_NLI", False)
+    observed: list[tuple[str, int]] = []
+    scorer = NLIScorer(use_model=False, max_length=512)
+    monkeypatch.setattr(scorer, "score", lambda _premise, _hypothesis: 0.42)
+    monkeypatch.setattr(
+        nli_mod.metrics,
+        "observe",
+        lambda name, value: observed.append((name, value)),
+    )
+
+    result = scorer._score_chunked_with_counts("short source", "short claim")
+
+    assert result == (0.42, [0.42], 1, 1)
+    assert observed == [("nli_premise_chunks", 1), ("nli_hypothesis_chunks", 1)]
+
+
 def test_nli_python_overlap_handles_single_sentence_over_budget(monkeypatch) -> None:
     monkeypatch.setattr(nli_mod, "_RUST_NLI", False)
     scorer = NLIScorer(use_model=False)
@@ -951,6 +991,62 @@ def test_nli_rust_overlap_chunk_adapter(monkeypatch) -> None:
     scorer = NLIScorer(use_model=False)
 
     assert scorer._build_chunks_overlap(["a", "b"], 12, 0.5) == ["12:0.5:a|b"]
+
+
+def test_nli_rust_default_chunk_adapter(monkeypatch) -> None:
+    monkeypatch.setattr(nli_mod, "_RUST_NLI", True)
+    monkeypatch.setattr(
+        nli_mod,
+        "rust_build_chunks",
+        lambda sentences, budget, overlap_ratio: [
+            f"{budget}:{overlap_ratio}:{'|'.join(sentences)}"
+        ],
+    )
+    scorer = NLIScorer(use_model=False)
+
+    assert scorer._build_chunks(["a", "b"], 12, 0.0) == ["12:0.0:a|b"]
+
+
+def test_nli_rust_chunked_score_aggregation_adapter(monkeypatch) -> None:
+    monkeypatch.setattr(nli_mod, "_RUST_NLI", True)
+    observed: list[tuple[str, int]] = []
+    scorer = NLIScorer(use_model=False, max_length=40)
+    monkeypatch.setattr(
+        scorer,
+        "score_batch",
+        lambda pairs: [0.1 + 0.01 * (idx % 50) for idx, _ in enumerate(pairs)],
+    )
+    monkeypatch.setattr(
+        nli_mod,
+        "rust_aggregate_chunk_scores",
+        lambda scores, n_prem, n_hyp, inner_agg, outer_agg: (
+            sum(scores) / len(scores),
+            [max(scores[index::n_hyp]) for index in range(n_hyp)],
+        ),
+    )
+    monkeypatch.setattr(
+        nli_mod.metrics,
+        "observe",
+        lambda name, value: observed.append((name, value)),
+    )
+    source = ". ".join(f"Source sentence {idx} with details" for idx in range(10))
+    summary = ". ".join(f"Claim sentence {idx} with details" for idx in range(8))
+
+    agg, per_hyp, n_prem, n_hyp = scorer._score_chunked_with_counts(
+        source,
+        summary,
+        inner_agg="mean",
+        outer_agg="trimmed_mean",
+        overlap_ratio=0.5,
+    )
+
+    assert 0.0 <= agg <= 1.0
+    assert len(per_hyp) == n_hyp
+    assert n_prem >= 1
+    assert observed == [
+        ("nli_premise_chunks", n_prem),
+        ("nli_hypothesis_chunks", n_hyp),
+    ]
 
 
 def test_nli_confidence_weighted_python_aggregation(monkeypatch) -> None:
@@ -1030,6 +1126,40 @@ def test_nli_confidence_weighted_zero_confidence_falls_back_to_mean(
     )
 
     assert agg == pytest.approx(sum(per_hyp) / len(per_hyp))
+
+
+def test_nli_rust_confidence_weighted_aggregation_adapter(monkeypatch) -> None:
+    monkeypatch.setattr(nli_mod, "_RUST_NLI", True)
+    scorer = NLIScorer(use_model=False, max_length=40)
+    monkeypatch.setattr(
+        scorer,
+        "score_batch_with_confidence",
+        lambda pairs: [
+            (0.1 + 0.01 * (idx % 50), 0.5 + 0.005 * (idx % 50))
+            for idx, _ in enumerate(pairs)
+        ],
+    )
+    monkeypatch.setattr(
+        nli_mod,
+        "rust_aggregate_chunk_scores_confidence_weighted",
+        lambda scores, conf, n_prem, n_hyp, inner_agg: (
+            sum(score * weight for score, weight in zip(scores, conf, strict=True))
+            / sum(conf),
+            [max(scores[index::n_hyp]) for index in range(n_hyp)],
+        ),
+    )
+    source = ". ".join(f"Source sentence {idx} with details" for idx in range(10))
+    summary = ". ".join(f"Claim sentence {idx} with details" for idx in range(8))
+
+    agg, per_hyp = scorer.score_chunked_confidence_weighted(
+        source,
+        summary,
+        inner_agg="mean",
+        overlap_ratio=0.5,
+    )
+
+    assert 0.0 <= agg <= 1.0
+    assert per_hyp
 
 
 def test_nli_claim_attribution_python_fallback_and_limits(monkeypatch) -> None:
