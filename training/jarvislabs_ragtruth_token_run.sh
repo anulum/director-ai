@@ -29,7 +29,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 TRAINER="${TRAINER:-/root/train_ragtruth_token.py}"
 EVAL_SCRIPT="${EVAL_SCRIPT:-/root/eval_ragtruth_token.py}"
 SELECTOR="${SELECTOR:-/root/select_ragtruth_checkpoint.py}"
-RAGTRUTH_REQUIREMENTS="${RAGTRUTH_REQUIREMENTS:-$SCRIPT_DIR/jarvislabs_ragtruth_token_requirements.txt}"
+RAGTRUTH_REQUIREMENTS="${RAGTRUTH_REQUIREMENTS:-$SCRIPT_DIR/jarvislabs_ragtruth_token_requirements.lock}"
 OUT="${OUTPUT_DIR:-/root/ragtruth-token-modernbert-l4}"
 TAR_PATH="${TAR_PATH:-/root/ragtruth-token-modernbert-l4.tar.gz}"
 DISK_CHECK_PATH="${DISK_CHECK_PATH:-$(dirname "$OUT")}"
@@ -61,7 +61,7 @@ if [ -n "$HARD_NEGATIVE_BOOTSTRAP_MODEL" ] && [ ! -f "$EVAL_SCRIPT" ]; then
   exit 1
 fi
 if [ ! -f "$RAGTRUTH_REQUIREMENTS" ]; then
-  echo "ERROR: hash-pinned requirements not found at $RAGTRUTH_REQUIREMENTS — upload training/jarvislabs_ragtruth_token_requirements.txt with the wrapper" >&2
+  echo "ERROR: hash-pinned requirements not found at $RAGTRUTH_REQUIREMENTS — upload training/jarvislabs_ragtruth_token_requirements.lock with the wrapper" >&2
   exit 1
 fi
 

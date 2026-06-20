@@ -1,8 +1,9 @@
 # Direct dependencies for the JarvisLabs RAGTruth token-detector wrapper.
 # CUDA torch is preinstalled by the selected JarvisLabs PyTorch image and is
 # intentionally not managed by this bootstrap lock.
-# After pip-compile regeneration, remove torch/triton/cuda/nvidia/setuptools
-# blocks from the generated txt; the wrapper installs this lock with --no-deps.
+# After pip-compile regeneration, move the generated output to
+# jarvislabs_ragtruth_token_requirements.lock and remove torch/triton/cuda/
+# nvidia/setuptools blocks; the wrapper installs the lock with --no-deps.
 transformers==5.10.2
 datasets==3.6.0
 accelerate==1.7.0
