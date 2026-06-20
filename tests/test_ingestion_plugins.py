@@ -754,6 +754,42 @@ class TestGoogleDrive:
         assert docs[0].metadata["size_bytes"] == 42
         assert endpoint.get_media_calls == ["f1"]
 
+    def test_ingests_paginated_files_and_skips_entries_without_ids(self):
+        pages = [
+            {
+                "files": [
+                    {
+                        "name": "missing-id.txt",
+                        "mimeType": "text/plain",
+                    },
+                    {
+                        "id": "f1",
+                        "name": "first.txt",
+                        "mimeType": "text/plain",
+                    },
+                ],
+                "nextPageToken": "1",
+            },
+            {
+                "files": [
+                    {
+                        "id": "f2",
+                        "name": "second.json",
+                        "mimeType": "application/json",
+                    }
+                ],
+                "nextPageToken": None,
+            },
+        ]
+        endpoint = _FakeFilesEndpoint(pages, {"f1": "first", "f2": {"second": True}})
+
+        docs = list(GoogleDrivePlugin(_FakeDriveService(endpoint)).iter_documents())
+
+        assert [doc.source_id for doc in docs] == ["f1", "f2"]
+        assert docs[1].text == "{'second': True}"
+        assert [call["pageToken"] for call in endpoint.list_calls] == [None, "1"]
+        assert endpoint.get_media_calls == ["f1", "f2"]
+
     def test_google_docs_are_exported(self):
         pages = [
             {
