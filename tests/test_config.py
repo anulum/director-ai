@@ -13,9 +13,11 @@ pipeline integration with CoherenceScorer/Agent/Server, and performance.
 """
 
 import json
+import logging
 import os
 import sys
 import tempfile
+import types
 from pathlib import Path
 
 import pytest
@@ -640,6 +642,10 @@ class TestBuildStore:
         with pytest.raises(ValueError, match="hybrid_rrf_k"):
             DirectorConfig(hybrid_rrf_k=0)
 
+    def test_hybrid_rrf_k_must_not_be_bool(self):
+        with pytest.raises(ValueError, match="hybrid_rrf_k must be an integer"):
+            DirectorConfig(hybrid_rrf_k=True)
+
 
 class TestValidationBoundaries:
     """Negative tests for __post_init__ validation constraints."""
@@ -1156,6 +1162,152 @@ class TestConfigCoverageGaps:
 
         assert "cache" not in scorer.kwargs
         assert "cache_size" not in scorer.kwargs
+
+    def test_build_store_uses_enterprise_redis_when_available(self, monkeypatch):
+        class FakeRedisGroundTruthStore:
+            def __init__(self, *, redis_url, prefix):
+                self.redis_url = redis_url
+                self.prefix = prefix
+
+        redis_module = types.ModuleType("director_ai.enterprise.redis")
+        redis_module.RedisGroundTruthStore = FakeRedisGroundTruthStore
+        redis_module.RedisScoreCache = object
+        monkeypatch.setitem(
+            sys.modules,
+            "director_ai.enterprise",
+            types.ModuleType("director_ai.enterprise"),
+        )
+        monkeypatch.setitem(sys.modules, "director_ai.enterprise.redis", redis_module)
+
+        cfg = DirectorConfig(
+            mode="grounded",
+            redis_url="redis://cache.internal/0",
+            redis_prefix="dai:",
+            hybrid_retrieval=False,
+            reranker_enabled=False,
+        )
+        store = cfg.build_store()
+
+        assert isinstance(store, FakeRedisGroundTruthStore)
+        assert store.redis_url == "redis://cache.internal/0"
+        assert store.prefix == "dai:facts:"
+
+    def test_build_scorer_uses_enterprise_redis_cache_when_available(self, monkeypatch):
+        import director_ai.core.scoring.scorer as scorer_module
+
+        class FakeRedisScoreCache:
+            def __init__(self, *, redis_url, prefix, ttl_seconds):
+                self.redis_url = redis_url
+                self.prefix = prefix
+                self.ttl_seconds = ttl_seconds
+
+        class FakeScorer:
+            def __init__(self, **kwargs):
+                self.kwargs = kwargs
+                self._nli = None
+                self._judge = object()
+                self._adaptive_threshold_enabled = False
+                self._adaptive_threshold_fail_closed = False
+
+            def _has_model_backed_nli(self):
+                return True
+
+        redis_module = types.ModuleType("director_ai.enterprise.redis")
+        redis_module.RedisGroundTruthStore = object
+        redis_module.RedisScoreCache = FakeRedisScoreCache
+        monkeypatch.setitem(
+            sys.modules,
+            "director_ai.enterprise",
+            types.ModuleType("director_ai.enterprise"),
+        )
+        monkeypatch.setitem(sys.modules, "director_ai.enterprise.redis", redis_module)
+        monkeypatch.setattr(scorer_module, "CoherenceScorer", FakeScorer)
+
+        cfg = DirectorConfig(
+            redis_url="redis://cache.internal/0",
+            redis_prefix="dai:",
+            cache_ttl=123,
+        )
+        scorer = cfg.build_scorer(store=object())
+
+        cache = scorer.kwargs["cache"]
+        assert isinstance(cache, FakeRedisScoreCache)
+        assert cache.redis_url == "redis://cache.internal/0"
+        assert cache.prefix == "dai:cache:"
+        assert cache.ttl_seconds == 123
+
+    def test_build_store_hyde_template_wraps_backend(self):
+        cfg = DirectorConfig(
+            mode="grounded",
+            hybrid_retrieval=False,
+            reranker_enabled=False,
+            hyde_enabled=True,
+            hyde_prompt_template="Write a hypothetical answer: {query}",
+        )
+
+        store = cfg.build_store()
+
+        assert store.backend.__class__.__name__ == "HyDEBackend"
+        assert store.backend._template == "Write a hypothetical answer: {query}"
+
+    def test_production_tenant_routing_requires_binding_map(self):
+        with pytest.raises(ValueError, match="api_key_tenant_map"):
+            DirectorConfig(
+                production_mode=True,
+                tenant_routing=True,
+                api_keys={"tenant-key"},
+                llm_api_url="https://llm.internal/v1",
+                knowledge_write_hmac_keys=(
+                    '{"kid-1":"signing-secret-at-least-32-chars-xx"}'
+                ),
+            )
+
+    def test_production_wildcard_host_warns(self, caplog):
+        with caplog.at_level(logging.WARNING, logger="DirectorAI.Config"):
+            cfg = DirectorConfig(
+                production_mode=True,
+                tenant_routing=True,
+                api_key_tenant_map='{"tenant-key":"tenant-a"}',
+                llm_api_url="https://llm.internal/v1",
+                server_host="0.0.0.0",
+                knowledge_write_hmac_keys=(
+                    '{"kid-1":"signing-secret-at-least-32-chars-xx"}'
+                ),
+            )
+
+        assert cfg.server_host == "0.0.0.0"
+        assert "binding to 0.0.0.0" in caplog.text
+
+    def test_model_revision_health_uses_local_judge_model(self, monkeypatch):
+        import director_ai.core.model_revisions as model_revisions_module
+
+        captured = {}
+
+        def fake_model_revision_health(models):
+            captured["models"] = models
+            return {"ok": True}
+
+        monkeypatch.setattr(
+            model_revisions_module,
+            "model_revision_health",
+            fake_model_revision_health,
+        )
+
+        cfg = DirectorConfig(
+            llm_judge_provider="local",
+            llm_judge_local_model="local-judge",
+            llm_judge_model="remote-judge",
+        )
+        health = cfg.model_revision_health()
+
+        assert health == {"ok": True}
+        assert captured["models"]["local_judge"] == ("local-judge", None)
+
+    def test_coerce_numeric_lists(self):
+        from director_ai.core.config import _coerce
+
+        assert _coerce("1, 2,3", "list[int]") == [1, 2, 3]
+        assert _coerce("0.1,0.2", "list[float]") == [0.1, 0.2]
 
     @pytest.mark.parametrize(
         "method_name,kwargs,match",
