@@ -13,11 +13,13 @@ domains/limits, pipeline integration with calibrator, and performance.
 
 from __future__ import annotations
 
+import sqlite3
 import sys
 from types import SimpleNamespace
 
 import pytest
 
+import director_ai.core.calibration.feedback_store as feedback_store_mod
 from director_ai.core.calibration.feedback_store import FeedbackStore
 
 
@@ -73,6 +75,15 @@ class TestFeedbackStoreBasic:
         for i in range(20):
             store.report(f"q{i}", f"a{i}", True, True)
         assert len(store.get_corrections(limit=5)) == 5
+        store.close()
+
+    def test_closed_store_rejects_operations(self, tmp_path):
+        store = FeedbackStore(tmp_path / "test.db")
+        store.close()
+
+        with pytest.raises(RuntimeError, match="closed"):
+            store.count()
+
         store.close()
 
 
@@ -192,6 +203,27 @@ class TestExport:
 
         store.close()
 
+    def test_export_parquet_rejects_masked_optional_modules(
+        self,
+        tmp_path,
+        monkeypatch,
+    ):
+        class FakeTable:
+            pass
+
+        def import_masked_module(name):
+            if name == "pyarrow":
+                return SimpleNamespace(Table=FakeTable)
+            return None
+
+        monkeypatch.setattr(feedback_store_mod, "import_module", import_masked_module)
+        store = FeedbackStore(tmp_path / "test.db")
+
+        with pytest.raises(ImportError, match="pyarrow"):
+            store.export_parquet(tmp_path / "feedback.parquet")
+
+        store.close()
+
     def test_log_export_artifact_to_mlflow_requires_explicit_run(
         self,
         tmp_path,
@@ -227,7 +259,49 @@ class TestExport:
         assert logged[1] == ("params", {"calibration_rows": 1})
         store.close()
 
-    def test_log_export_artifact_to_wandb_requires_active_run(
+    def test_log_export_artifact_to_mlflow_allows_empty_metadata(
+        self,
+        tmp_path,
+        monkeypatch,
+    ):
+        artifact = tmp_path / "feedback.parquet"
+        artifact.write_bytes(b"PAR1")
+        logged = []
+        fake_mlflow = SimpleNamespace(
+            active_run=lambda: object(),
+            log_artifact=lambda path, artifact_path=None: logged.append(
+                (path, artifact_path),
+            ),
+            log_params=lambda params: logged.append(("params", params)),
+        )
+        monkeypatch.setitem(sys.modules, "mlflow", fake_mlflow)
+        store = FeedbackStore(tmp_path / "test.db")
+
+        store.log_export_artifact(artifact, backend="mlflow")
+
+        assert logged == [(str(artifact), "director-ai-calibration-feedback")]
+        store.close()
+
+    def test_log_export_artifact_to_mlflow_requires_active_run(
+        self,
+        tmp_path,
+        monkeypatch,
+    ):
+        artifact = tmp_path / "feedback.parquet"
+        artifact.write_bytes(b"PAR1")
+        monkeypatch.setitem(
+            sys.modules,
+            "mlflow",
+            SimpleNamespace(active_run=lambda: None),
+        )
+        store = FeedbackStore(tmp_path / "test.db")
+
+        with pytest.raises(RuntimeError, match="active MLflow run"):
+            store.log_export_artifact(artifact, backend="mlflow")
+
+        store.close()
+
+    def test_log_export_artifact_to_wandb_logs_with_active_run(
         self,
         tmp_path,
         monkeypatch,
@@ -266,6 +340,33 @@ class TestExport:
         assert files[1].metadata == {"rows": 2}
         store.close()
 
+    def test_log_export_artifact_to_wandb_requires_active_run(
+        self,
+        tmp_path,
+        monkeypatch,
+    ):
+        artifact_path = tmp_path / "feedback.parquet"
+        artifact_path.write_bytes(b"PAR1")
+        monkeypatch.setitem(
+            sys.modules,
+            "wandb",
+            SimpleNamespace(run=None),
+        )
+        store = FeedbackStore(tmp_path / "test.db")
+
+        with pytest.raises(RuntimeError, match="active wandb run"):
+            store.log_export_artifact(artifact_path, backend="wandb")
+
+        store.close()
+
+    def test_log_export_artifact_rejects_missing_file(self, tmp_path):
+        store = FeedbackStore(tmp_path / "test.db")
+
+        with pytest.raises(FileNotFoundError):
+            store.log_export_artifact(tmp_path / "missing.parquet", backend="mlflow")
+
+        store.close()
+
     def test_log_export_artifact_rejects_unknown_backend(self, tmp_path):
         artifact_path = tmp_path / "feedback.parquet"
         artifact_path.write_bytes(b"PAR1")
@@ -274,6 +375,31 @@ class TestExport:
         with pytest.raises(ValueError, match="backend"):
             store.log_export_artifact(artifact_path, backend="unknown")
 
+        store.close()
+
+    def test_existing_database_gets_legacy_columns_added(self, tmp_path):
+        db_path = tmp_path / "legacy.db"
+        conn = sqlite3.connect(db_path)
+        conn.execute("""
+            CREATE TABLE corrections (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                prompt TEXT NOT NULL,
+                response TEXT NOT NULL,
+                guardrail_score REAL NOT NULL DEFAULT 0.0,
+                guardrail_approved INTEGER NOT NULL,
+                human_approved INTEGER NOT NULL,
+                domain TEXT NOT NULL DEFAULT '',
+                timestamp REAL NOT NULL
+            )
+        """)
+        conn.commit()
+        conn.close()
+
+        store = FeedbackStore(db_path)
+
+        with sqlite3.connect(db_path) as conn:
+            columns = {row[1] for row in conn.execute("PRAGMA table_info(corrections)")}
+        assert {"review_id", "tenant_id"} <= columns
         store.close()
 
 
