@@ -81,17 +81,31 @@ class TestHistograms:
             collector.observe("coherence_score", v)
         m = collector.get_metrics()
         assert m["histograms"]["coherence_score"]["p50"] == 0.5
+        assert collector._histograms["coherence_score"].quantile(0.9) == 0.9
 
     def test_empty_histogram(self, collector):
         m = collector.get_metrics()
         h = m["histograms"]["coherence_score"]
         assert h["count"] == 0
         assert h["mean"] == 0.0
+        assert collector._histograms["coherence_score"].quantile(0.5) == 0.0
 
     def test_auto_create_histogram(self, collector):
         collector.observe("custom_histogram", 42.0)
         m = collector.get_metrics()
         assert "custom_histogram" in m["histograms"]
+
+    def test_empty_histogram_bucket_counts_still_expose_boundaries(self):
+        from director_ai.core.metrics import _Histogram
+
+        histogram = _Histogram(buckets=(0.1, 0.5, 1.0))
+
+        assert histogram.bucket_counts() == {
+            "le_0.1": 0,
+            "le_0.5": 0,
+            "le_1.0": 0,
+            "le_+Inf": 0,
+        }
 
 
 class TestGauges:
@@ -113,6 +127,15 @@ class TestGauges:
         collector.gauge_set("custom_gauge", 3.14)
         m = collector.get_metrics()
         assert m["gauges"]["custom_gauge"] == 3.14
+
+    def test_auto_create_gauge_on_inc_and_dec(self, collector):
+        collector.gauge_inc("custom_inflight", 2.5)
+        collector.gauge_dec("custom_backlog", 1.5)
+
+        m = collector.get_metrics()
+
+        assert m["gauges"]["custom_inflight"] == 2.5
+        assert m["gauges"]["custom_backlog"] == -1.5
 
 
 class TestTimer:
@@ -290,6 +313,20 @@ class TestLabeledCounters:
         m = collector.get_metrics()
         assert m["counters"]["http_requests_total"]["total"] == 1.0
 
+    def test_inc_labeled_auto_creates_counter_family(self, collector):
+        collector.inc_labeled(
+            "tool_invocations_total",
+            {"tool": "retriever", "status": "ok"},
+            amount=2.0,
+        )
+
+        m = collector.get_metrics()
+
+        assert m["counters"]["tool_invocations_total"]["total"] == 2.0
+        assert m["counters"]["tool_invocations_total"]["multi_labels"] == {
+            'status="ok",tool="retriever"': 2.0
+        }
+
     def test_inc_labeled_multiple(self, collector):
         labels_get = {"method": "GET", "status": "200"}
         labels_post = {"method": "POST", "status": "201"}
@@ -441,3 +478,11 @@ def test_histogram_retains_bounded_sample_window() -> None:
         histogram.observe(float(value))
 
     assert histogram.count <= 20
+
+
+def test_sum_float_uses_python_fallback_when_accelerator_disabled(monkeypatch) -> None:
+    from director_ai.core import metrics as metrics_mod
+
+    monkeypatch.setattr(metrics_mod, "_RUST_METRICS", False)
+
+    assert metrics_mod._sum_float([1.0, 2.5, 3.5]) == 7.0
