@@ -586,6 +586,56 @@ def test_review_redacts_prompt_and_response_before_scoring() -> None:
     assert scorer.seen == ("Email [EMAIL]", "Call [EMAIL]")
 
 
+def test_review_uses_queue_and_records_stats_and_compliance_log() -> None:
+    class FakeReviewQueue:
+        def __init__(self) -> None:
+            self.calls: list[tuple[str, str, str]] = []
+
+        async def submit(self, prompt: str, response: str, *, tenant_id: str = ""):
+            self.calls.append((prompt, response, tenant_id))
+            return False, _score(0.24, approved=False)
+
+    class FakeStats:
+        def __init__(self) -> None:
+            self.records: list[dict[str, object]] = []
+
+        def record_review(self, **kwargs) -> None:
+            self.records.append(kwargs)
+
+    class FakeComplianceLog:
+        def __init__(self) -> None:
+            self.entries: list[object] = []
+
+        def log(self, entry) -> None:
+            self.entries.append(entry)
+
+        def close(self) -> None:
+            return None
+
+    queue = FakeReviewQueue()
+    stats = FakeStats()
+    compliance = FakeComplianceLog()
+
+    with _client() as client:
+        client.app.state._state["review_queue"] = queue
+        client.app.state._state["stats"] = stats
+        client.app.state._state["compliance_log"] = compliance
+        response = client.post(
+            "/v1/review",
+            json={"prompt": "p", "response": "r"},
+            headers={"X-Tenant-ID": "tenant-a"},
+        )
+
+    assert response.status_code == 200
+    assert response.json()["approved"] is False
+    assert queue.calls == [("p", "r", "tenant-a")]
+    assert stats.records == [
+        {"approved": False, "score": 0.24, "h_logical": 0.76, "h_factual": 0.76}
+    ]
+    assert len(compliance.entries) == 1
+    assert compliance.entries[0].tenant_id == "tenant-a"
+
+
 def test_review_banking_policy_blocks_approved_scorer_without_raw_text_leak() -> None:
     from director_ai.core.metrics import metrics
 
