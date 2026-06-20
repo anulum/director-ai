@@ -65,11 +65,17 @@ fi
 # — the PyPI release is stale/broken. The trainer is self-contained (no director_ai
 # import; base model + dataset come from the Hub), so the package is not needed at
 # all. None of the packages below depend on director-ai, so pip cannot pull it.
-# nosemgrep: PinnedDependenciesID -- JarvisLabs runtime wrapper uses exact pins;
-# the CUDA torch image is preprovisioned, and the guard below rejects director_ai.
-pip install --quiet --upgrade \
-  "transformers==5.10.2" "datasets==3.6.0" "accelerate==1.7.0" \
-  "scikit-learn==1.6.1" "sentencepiece==0.2.1" "protobuf==6.33.6"
+RAGTRUTH_REQUIREMENTS="$(mktemp)"
+trap 'rm -f "$RAGTRUTH_REQUIREMENTS"' EXIT
+cat >"$RAGTRUTH_REQUIREMENTS" <<'RAGTRUTH_DEPS'
+transformers==5.10.2
+datasets==3.6.0
+accelerate==1.7.0
+scikit-learn==1.6.1
+sentencepiece==0.2.1
+protobuf==6.33.6
+RAGTRUTH_DEPS
+pip install --quiet --upgrade --requirement "$RAGTRUTH_REQUIREMENTS"
 
 # Contamination guard: fail loudly if a director-ai (e.g. the stale PyPI one) is on
 # the path. The trainer must run purely against the uploaded local file.
