@@ -12,6 +12,8 @@ scoring, threshold behaviour, and pattern matching.
 
 from __future__ import annotations
 
+import builtins
+
 import pytest
 
 import director_ai.core.retrieval.adaptive_router as router_mod
@@ -205,6 +207,34 @@ class TestTaskType:
             TypeError,
             lambda: AdaptiveRouter().should_retrieve("What is the refund policy?"),
         )
+
+    def test_python_detector_import_error_defaults_safely(self, monkeypatch):
+        original_import = builtins.__import__
+
+        def blocked_import(name, globals=None, locals=None, fromlist=(), level=0):
+            if name == "director_ai.core.scoring._task_scoring":
+                raise ImportError("task detector unavailable")
+            return original_import(name, globals, locals, fromlist, level)
+
+        monkeypatch.setattr(router_mod, "_RUST_AVAILABLE", False)
+        monkeypatch.setattr(router_mod, "_rust_task_type", None)
+        monkeypatch.setattr(builtins, "__import__", blocked_import)
+
+        d = AdaptiveRouter(default_retrieve=False).should_retrieve(
+            "Something ambiguous"
+        )
+
+        assert d.task_type == "default"
+        assert d.retrieve is False
+
+    def test_python_detector_success_path_when_rust_disabled(self, monkeypatch):
+        monkeypatch.setattr(router_mod, "_RUST_AVAILABLE", False)
+        monkeypatch.setattr(router_mod, "_rust_task_type", None)
+
+        d = AdaptiveRouter().should_retrieve("What is the refund policy?")
+
+        assert d.task_type
+        assert d.retrieve is True
 
 
 # ── Edge cases ──────────────────────────────────────────────────────────
