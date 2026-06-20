@@ -542,9 +542,6 @@ class VerifiedScorer:
             elif traceability < 0.2:
                 signals_fabricate += 1
 
-        if total_signals == 0:
-            return "unverifiable", 0.0
-
         support_ratio = signals_support / total_signals
         contradict_ratio = signals_contradict / total_signals
         fabricate_ratio = signals_fabricate / total_signals
@@ -619,8 +616,6 @@ def _entity_overlap(text_a: str, text_b: str) -> float:
     if not ents_a and not ents_b:
         return 1.0
     union = ents_a | ents_b
-    if not union:
-        return 1.0
     return len(ents_a & ents_b) / len(union)
 
 

@@ -38,6 +38,13 @@ class TestSplitSentences:
     def test_empty(self):
         assert _split_sentences("") == []
 
+    def test_python_sentence_splitter_path(self, monkeypatch):
+        monkeypatch.setattr(verified_mod, "_RUST_SIGNALS", False)
+
+        assert _split_sentences("Tiny. This is a python fallback sentence.") == [
+            "This is a python fallback sentence."
+        ]
+
     def test_rust_sentence_splitter_delegation(self, monkeypatch):
         monkeypatch.setattr(verified_mod, "_RUST_SIGNALS", True)
         monkeypatch.setattr(
@@ -62,6 +69,21 @@ class TestSplitSentences:
             raising=False,
         )
         result = _split_sentences("Tiny. This is a fallback sentence.")
+        assert result == ["This is a fallback sentence."]
+
+    def test_rust_sentence_splitter_empty_filtered_result_uses_python_fallback(
+        self, monkeypatch
+    ):
+        monkeypatch.setattr(verified_mod, "_RUST_SIGNALS", True)
+        monkeypatch.setattr(
+            verified_mod,
+            "rust_split_sentences",
+            lambda _text: ["Tiny."],
+            raising=False,
+        )
+
+        result = _split_sentences("Tiny. This is a fallback sentence.")
+
         assert result == ["This is a fallback sentence."]
 
     def test_rust_sentence_splitter_non_runtime_fallback(self, monkeypatch):
@@ -478,6 +500,10 @@ class TestVerifiedScorer:
         else:
             raise AssertionError("semantic traceability without scorer must fail")
 
+    def test_invalid_traceability_mode_is_rejected(self):
+        with pytest.raises(ValueError, match="traceability_mode"):
+            VerifiedScorer(traceability_mode="unknown")
+
     def test_fallback_best_match_uses_word_overlap(self):
         vs = VerifiedScorer()
         best_idx, divergence = vs._find_best_match(
@@ -520,12 +546,71 @@ class TestVerifiedScorer:
         assert verdict == "supported"
         assert confidence >= 0.5
 
+    def test_verify_skips_short_claims_from_sentence_splitter(self, monkeypatch):
+        monkeypatch.setattr(verified_mod, "_split_sentences", lambda _text: ["short"])
+
+        result = VerifiedScorer().verify("ignored", "ignored")
+
+        assert result.approved is True
+        assert result.claims == []
+
+    def test_aggregate_premise_is_scored_with_nli(self):
+        calls = []
+
+        class FakeNLI:
+            model_available = True
+
+            def score_batch(self, pairs):
+                calls.append(pairs)
+                if len(pairs) == 2:
+                    return [0.2, 0.3]
+                return [0.1]
+
+        result = VerifiedScorer(nli_scorer=FakeNLI()).verify(
+            "The Falcon mission launched from Cape Canaveral.",
+            "The Falcon mission launched successfully. Cape Canaveral hosted the launch.",
+            evidence_top_k=2,
+        )
+
+        assert calls[-1] == [
+            (
+                "The Falcon mission launched successfully. Cape Canaveral hosted the launch.",
+                "The Falcon mission launched from Cape Canaveral.",
+            )
+        ]
+        assert result.claims[0].nli_divergence == 0.1
+
+    def test_traceability_can_be_disabled(self):
+        score, mode = VerifiedScorer(traceability_mode="disabled")._score_traceability(
+            "Unsupported claim text",
+            "Different source text",
+        )
+
+        assert (score, mode) == (1.0, "disabled")
+
+    def test_multi_signal_unverifiable_when_ratios_are_indecisive(self):
+        verdict, confidence = VerifiedScorer()._multi_signal_verdict(
+            nli_div=0.5,
+            entity_score=0.0,
+            num_match=None,
+            neg_flip=False,
+            traceability=0.3,
+        )
+
+        assert verdict == "unverifiable"
+        assert confidence == 0.0
+
 
 class TestAtomicDecomposition:
     def test_short_continuation_is_attached_to_previous_claim(self):
         assert _decompose_atomic(
             "Alpha beta gamma delta and too short. Echo zeta eta theta.",
         ) == ["Alpha beta gamma delta too short.", "Echo zeta eta theta."]
+
+    def test_short_first_clause_keeps_original_sentence(self):
+        assert _decompose_atomic("Alpha beta gamma and delta echo zeta.") == [
+            "Alpha beta gamma and delta echo zeta."
+        ]
 
 
 class TestSignalImplementations:
@@ -534,6 +619,7 @@ class TestSignalImplementations:
 
         assert _entity_overlap("Paris France", "Paris France") == 1.0
         assert _entity_overlap("Paris France", "Berlin Germany") == 0.0
+        assert _entity_overlap("lowercase only", "still lowercase") == 1.0
         assert _numerical_consistency("value 42", "value 42") is True
         assert _numerical_consistency("value 42", "value 43") is False
         assert _numerical_consistency("value 42", "no number here") is None
@@ -545,6 +631,21 @@ class TestSignalImplementations:
         assert _traceability("and the to", "irrelevant source") == 1.0
         assert _traceability("Alpha Beta", "Alpha Gamma") == 0.5
         assert _word_overlap("alpha beta", "alpha gamma") == 1.0 / 3.0
+        assert verified_mod._sum_int([1, 2, 3]) == 6
+        assert verified_mod._sum_float([1.25, 2.75]) == 4.0
+
+    def test_aggregate_evidence_spans_ignores_duplicates_and_blank_text(self):
+        text, indices = verified_mod._aggregate_evidence_spans(
+            [
+                verified_mod.SourceSpan("Second source.", 1, 0.2),
+                verified_mod.SourceSpan("   ", 2, 0.3),
+                verified_mod.SourceSpan("First source.", 0, 0.1),
+                verified_mod.SourceSpan("Duplicate first.", 0, 0.4),
+            ]
+        )
+
+        assert text == "First source. Second source."
+        assert indices == [0, 1]
 
     def test_rust_signal_delegation_paths(self, monkeypatch):
         monkeypatch.setattr(verified_mod, "_RUST_SIGNALS", True)
