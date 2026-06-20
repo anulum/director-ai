@@ -405,6 +405,7 @@ async def test_proxy_default_store_loads_configured_facts(tmp_path) -> None:
         facts_root=str(tmp_path),
         upstream_url="http://fake-upstream",
         allow_http_upstream=True,
+        use_nli=False,
         _transport=_upstream_transport("The sky is blue."),
     )
 

@@ -434,6 +434,30 @@ class TestServerCoverageGaps:
         request.app.routes = [NoMatcher()]
         assert _http_endpoint_label(request) == "__unmatched__"
 
+    def test_http_endpoint_label_handles_full_and_invalid_candidate_paths(self):
+        from starlette.routing import Match
+
+        from director_ai.server import _http_endpoint_label
+
+        class InvalidPathMatcher:
+            path = None
+
+            def matches(self, _scope):
+                return Match.FULL, {}
+
+        class FullMatcher:
+            path = "/resolved"
+
+            def matches(self, _scope):
+                return Match.FULL, {}
+
+        request = SimpleNamespace(
+            scope={"type": "http", "path": "/resolved"},
+            app=SimpleNamespace(routes=[InvalidPathMatcher(), FullMatcher()]),
+        )
+
+        assert _http_endpoint_label(request) == "/resolved"
+
     def test_create_app_uses_non_default_profile_from_environment(self, monkeypatch):
         monkeypatch.setenv("DIRECTOR_PROFILE", "fast")
 
@@ -553,6 +577,36 @@ class TestServerCoverageGaps:
         assert sinks == ["postgresql://audit.example/db"]
         assert audit_logger is not None
 
+    def test_create_app_rejects_too_many_cors_origins(self):
+        cfg = self._fast_config()
+        cfg.cors_origins = ",".join(f"https://app{idx}.example" for idx in range(101))
+
+        with pytest.raises(ValueError, match="Too many CORS origins"):
+            create_app(cfg)
+
+    def test_create_app_rate_limit_without_slowapi_strict_and_warns(
+        self,
+        monkeypatch,
+        caplog,
+    ):
+        import director_ai.server as server_mod
+
+        monkeypatch.setattr(server_mod, "_SLOWAPI_AVAILABLE", False)
+
+        strict_cfg = self._fast_config()
+        strict_cfg.rate_limit_rpm = 10
+        strict_cfg.rate_limit_strict = True
+        with pytest.raises(ImportError, match="slowapi not installed"):
+            create_app(strict_cfg)
+
+        warning_cfg = self._fast_config()
+        warning_cfg.rate_limit_rpm = 10
+        warning_cfg.rate_limit_strict = False
+        with caplog.at_level("WARNING", logger="DirectorAI.Server"):
+            create_app(warning_cfg)
+
+        assert "rate_limit_rpm=10 but slowapi not installed" in caplog.text
+
     def test_lifespan_wires_cloud_provider_without_key_and_contradiction_halt(
         self,
         monkeypatch,
@@ -578,6 +632,27 @@ class TestServerCoverageGaps:
         assert captured["provider"] == "anthropic"
         assert "api_key" not in captured
         assert captured["contradiction_halt"] == "halt-controller"
+
+    def test_lifespan_wires_cloud_provider_api_key(self, monkeypatch):
+        import director_ai.core.agent as agent_mod
+
+        captured: dict[str, object] = {}
+
+        class FakeCoherenceAgent:
+            def __init__(self, **kwargs):
+                captured.update(kwargs)
+
+        monkeypatch.setattr(agent_mod, "CoherenceAgent", FakeCoherenceAgent)
+        cfg = self._fast_config()
+        cfg.llm_provider = "openai"
+        cfg.llm_api_key = "sk-test"
+        app = create_app(cfg)
+
+        with TestClient(app):
+            pass
+
+        assert captured["provider"] == "openai"
+        assert captured["api_key"] == "sk-test"
 
     def test_health_reports_commercial_and_trial_license_branches(self):
         app = create_app(self._fast_config())
