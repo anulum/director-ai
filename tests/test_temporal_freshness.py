@@ -54,6 +54,16 @@ class TestCurrentReference:
         result = score_temporal_freshness("As of 2024, the market share was 15%.")
         assert any(c.claim_type == "current_reference" for c in result.claims)
 
+    def test_python_path_detects_current_reference_with_domain_hint(self):
+        result = score_temporal_freshness(
+            "As of 2024, the market share was 15%.",
+            domain="finance",
+        )
+
+        claim = next(c for c in result.claims if c.claim_type == "current_reference")
+        assert "As of 2024" in claim.text
+        assert claim.reason == "Temporal claim may not reflect current state"
+
     def test_rust_exception_falls_back_to_python_detection(self, monkeypatch):
         monkeypatch.setattr(temporal_mod, "_RUST_TEMPORAL", True)
         monkeypatch.setattr(
@@ -115,6 +125,16 @@ class TestRecordDetection:
     def test_superlative(self):
         result = score_temporal_freshness("The tallest building in the world is.")
         assert any(c.claim_type == "record" for c in result.claims)
+
+    def test_python_path_detects_record_with_source_timestamp(self):
+        result = score_temporal_freshness(
+            "The world record for 100m sprint is 9.58 seconds.",
+            source_timestamp=time.time(),
+        )
+
+        claim = next(c for c in result.claims if c.claim_type == "record")
+        assert "world record" in claim.text
+        assert claim.reason == "Records and rankings change over time"
 
 
 class TestStalenessRisk:
@@ -214,6 +234,26 @@ class TestExternalCitationStatus:
         )
 
         assert medical.external_status_risk > neutral.external_status_risk
+
+    def test_status_reason_branches_are_operator_specific(self):
+        result = score_temporal_freshness(
+            "The source status is externally supplied.",
+            citation_statuses=[
+                {"source_id": "paper:stale", "status": "stale"},
+                {"source_id": "paper:updated", "status": "updated"},
+                {"source_id": "paper:active", "status": "active", "observed_at": ""},
+            ],
+        )
+
+        reasons = {
+            verdict.source_id: verdict.reason
+            for verdict in result.citation_status_verdicts
+        }
+        assert reasons["paper:stale"] == "Source has a newer external status"
+        assert reasons["paper:updated"] == "Source changed after first publication"
+        assert (
+            reasons["paper:active"] == "Source status does not increase freshness risk"
+        )
 
     def test_invalid_age_window_is_rejected(self):
         try:
