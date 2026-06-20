@@ -632,6 +632,41 @@ def test_upload_endpoint_rejects_body_that_exceeds_size_after_read(monkeypatch) 
     assert "File exceeds" in response.json()["detail"]
 
 
+def test_ingest_endpoint_registers_tenant_scoped_text_chunks(monkeypatch) -> None:
+    monkeypatch.setattr(
+        "director_ai.core.retrieval.doc_chunker.split",
+        lambda text, config: ["first chunk", "second chunk"],
+    )
+    app, registry, store, backend = _make_app()
+
+    with TestClient(app) as client:
+        response = client.post(
+            "/v1/knowledge/ingest",
+            json={
+                "text": "tenant policy text",
+                "doc_id": "policy-1",
+                "source": "policy.md",
+                "chunk_size": 128,
+                "overlap": 16,
+            },
+        )
+
+    assert response.status_code == 201
+    assert response.json() == {
+        "doc_id": "policy-1",
+        "source": "policy.md",
+        "chunk_count": 2,
+        "tenant_id": "tenant-a",
+    }
+    record = registry.records["policy-1"]
+    assert record.chunk_ids == ["policy-1:chunk:0", "policy-1:chunk:1"]
+    assert store.facts == {
+        "policy-1:chunk:0": "first chunk",
+        "policy-1:chunk:1": "second chunk",
+    }
+    assert backend.docs["policy-1:chunk:0"]["metadata"]["tenant_id"] == "tenant-a"
+
+
 class _ChunkedUpload:
     """Minimal async UploadFile stub that yields the body in small reads."""
 
