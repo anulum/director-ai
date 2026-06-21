@@ -85,7 +85,9 @@ class TestConstruction:
             ({"strategy": "unknown"}, "strategy"),
             ({"strategy": "llm"}, "generator"),
             ({"strategy": "llm", "generator": object()}, "generator"),
+            ({"rrf_k": "x"}, "rrf_k must be an integer"),
             ({"rrf_k": 0}, "rrf_k"),
+            ({"max_sub_queries": "x"}, "max_sub_queries must be an integer"),
             ({"max_sub_queries": 0}, "max_sub_queries"),
         ],
     )
@@ -106,6 +108,11 @@ class TestConstruction:
     def test_custom_rrf_k(self):
         b = _make_backend(rrf_k=30)
         assert b._rrf_k == 30
+
+    def test_llm_decompose_without_generator_raises(self):
+        backend = _make_backend(strategy="heuristic")
+        with pytest.raises(RuntimeError, match="requires a configured generator"):
+            backend._llm_decompose("a multi part query")
 
 
 # ── Query with decomposition ──────────────────────────────────────────

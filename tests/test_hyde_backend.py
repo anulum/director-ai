@@ -45,6 +45,7 @@ class TestConstruction:
             ({"template": ""}, "template"),
             ({"template": "Question only"}, "template"),
             ({"fallback_to_raw": "yes"}, "fallback_to_raw"),
+            ({"cache_ttl": "soon"}, "cache_ttl must be numeric"),
             ({"cache_ttl": -1.0}, "cache_ttl"),
         ],
     )
