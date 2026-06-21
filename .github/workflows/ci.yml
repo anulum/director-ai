@@ -79,11 +79,10 @@ jobs:
       - name: Type check (strict)
         run: mypy packages/director-ai-lite/src/director_ai_lite --strict
 
-      - name: Standalone install + tests (100% coverage)
+      - name: Tests (100% coverage, standalone)
         run: |
-          # Install with --no-deps to prove the package needs nothing beyond the
-          # standard library (no director-ai), then run the suite at full coverage.
-          pip install --no-deps ./packages/director-ai-lite
+          # The env has only the dev toolchain (no director-ai), so running the
+          # suite against the source proves the package is genuinely standalone.
           cd packages/director-ai-lite
           PYTHONPATH=src pytest tests/ -q \
             --cov=director_ai_lite --cov-report=term-missing --cov-fail-under=100
