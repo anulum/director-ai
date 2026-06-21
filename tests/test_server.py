@@ -7,7 +7,8 @@
 # Director-Class AI — Server Tests
 """Multi-angle tests for FastAPI server pipeline."""
 
-from types import SimpleNamespace
+import sys
+from types import ModuleType, SimpleNamespace
 from unittest.mock import patch
 
 import pytest
@@ -607,6 +608,68 @@ class TestServerCoverageGaps:
 
         assert "rate_limit_rpm=10 but slowapi not installed" in caplog.text
 
+    def test_create_app_wires_optional_slowapi_limiter(
+        self,
+        monkeypatch,
+        caplog,
+    ):
+        import director_ai.server as server_mod
+
+        limiter_calls: list[dict[str, object]] = []
+
+        class FakeLimiter:
+            def __init__(self, **kwargs):
+                limiter_calls.append(kwargs)
+
+        class FakeSlowAPIMiddleware:
+            def __init__(self, app, *args, **kwargs):
+                self.app = app
+
+            async def __call__(self, scope, receive, send):
+                await self.app(scope, receive, send)
+
+        class FakeRateLimitExceededError(Exception):
+            pass
+
+        fake_errors = ModuleType("slowapi.errors")
+        fake_errors.RateLimitExceeded = FakeRateLimitExceededError
+        monkeypatch.setattr(server_mod, "_SLOWAPI_AVAILABLE", True)
+        monkeypatch.setattr(server_mod, "Limiter", FakeLimiter)
+        monkeypatch.setattr(
+            server_mod,
+            "SlowAPIMiddleware",
+            FakeSlowAPIMiddleware,
+            raising=False,
+        )
+        monkeypatch.setattr(
+            server_mod,
+            "get_remote_address",
+            lambda request: "ip",
+            raising=False,
+        )
+        monkeypatch.setitem(sys.modules, "slowapi.errors", fake_errors)
+
+        redis_cfg = self._fast_config()
+        redis_cfg.rate_limit_rpm = 42
+        redis_cfg.redis_url = "redis://user:secret@cache.example/0"
+        with caplog.at_level("INFO", logger="DirectorAI.Server"):
+            redis_app = create_app(redis_cfg)
+
+        worker_cfg = self._fast_config()
+        worker_cfg.rate_limit_rpm = 7
+        worker_cfg.server_workers = 2
+        with caplog.at_level("WARNING", logger="DirectorAI.Server"):
+            worker_app = create_app(worker_cfg)
+
+        assert redis_app.state.limiter is not None
+        assert worker_app.state.limiter is not None
+        assert limiter_calls[0]["default_limits"] == ["42/minute"]
+        assert limiter_calls[0]["storage_uri"] == "redis://user:secret@cache.example/0"
+        assert limiter_calls[1]["default_limits"] == ["7/minute"]
+        assert limiter_calls[1]["storage_uri"] is None
+        assert "cache.example/0" in caplog.text
+        assert "server_workers=2" in caplog.text
+
     def test_lifespan_wires_cloud_provider_without_key_and_contradiction_halt(
         self,
         monkeypatch,
@@ -654,6 +717,32 @@ class TestServerCoverageGaps:
         assert captured["provider"] == "openai"
         assert captured["api_key"] == "sk-test"
 
+    def test_lifespan_wires_local_provider_and_sqlite_stats(
+        self,
+        monkeypatch,
+        tmp_path,
+    ):
+        import director_ai.core.agent as agent_mod
+
+        captured: dict[str, object] = {}
+
+        class FakeCoherenceAgent:
+            def __init__(self, **kwargs):
+                captured.update(kwargs)
+
+        monkeypatch.setattr(agent_mod, "CoherenceAgent", FakeCoherenceAgent)
+        cfg = self._fast_config()
+        cfg.llm_provider = "local"
+        cfg.llm_api_url = "http://127.0.0.1:8080/v1"
+        cfg.stats_backend = "sqlite"
+        cfg.stats_db_path = str(tmp_path / "stats.sqlite")
+        app = create_app(cfg)
+
+        with TestClient(app) as client:
+            assert client.app.state._state["stats"] is not None
+
+        assert captured["llm_api_url"] == "http://127.0.0.1:8080/v1"
+
     def test_health_reports_commercial_and_trial_license_branches(self):
         app = create_app(self._fast_config())
 
@@ -674,6 +763,47 @@ class TestServerCoverageGaps:
 
         assert commercial["status"] == "ok"
         assert trial["status"] == "ok"
+
+    def test_health_live_source_and_unbound_tenant_disclosure_paths(self, caplog):
+        cfg = self._fast_config()
+        cfg.api_keys = ["secret"]
+        app = create_app(cfg)
+
+        with TestClient(app) as client:
+            live = client.get("/v1/live")
+            unauthenticated_health = client.get("/v1/health")
+            authenticated_health = client.get(
+                "/v1/health",
+                headers={"X-API-Key": "secret"},
+            )
+            source = client.get("/v1/source")
+            with caplog.at_level("DEBUG", logger="DirectorAI.Server"):
+                config_response = client.get(
+                    "/v1/config",
+                    headers={"X-API-Key": "secret", "X-Tenant-ID": "tenant-a"},
+                )
+
+        assert live.json() == {"ok": True}
+        assert unauthenticated_health.json() == {
+            "status": "ok",
+            "license": "open-core",
+        }
+        assert "version" in authenticated_health.json()
+        assert source.json()["license"] == "Apache-2.0 AND BUSL-1.1"
+        assert config_response.status_code == 200
+        assert "Unbound tenant claim: tenant-a" in caplog.text
+
+    def test_http_middleware_records_metrics_when_endpoint_raises(self):
+        app = create_app(self._fast_config())
+
+        @app.get("/boom")
+        async def boom():
+            raise RuntimeError("boom")
+
+        with TestClient(app, raise_server_exceptions=False) as client:
+            response = client.get("/boom")
+
+        assert response.status_code == 500
 
     def test_source_endpoint_commercial_and_disabled_paths(self):
         commercial_app = create_app(self._fast_config())
@@ -974,6 +1104,38 @@ class TestServerCoverageGaps:
         assert process_ok.json()["errors"] == [{"index": 2, "error": "late failure"}]
         assert value_error.status_code == 422
         assert internal.status_code == 500
+
+    def test_compliance_utility_endpoints_calibrated_and_no_feedback_loop(self):
+        app = create_app(self._fast_config())
+
+        with TestClient(app) as client:
+            conformal = client.post(
+                "/v1/conformal/predict",
+                json={
+                    "score": 0.42,
+                    "coverage": 0.8,
+                    "calibration_scores": [0.1, 0.8, 0.3],
+                    "calibration_labels": [False, True, False],
+                },
+            )
+            feedback_loop = client.post(
+                "/v1/compliance/feedback-loops",
+                json={
+                    "input_text": "fresh operator answer",
+                    "previous_outputs": [],
+                    "similarity_threshold": 0.9,
+                },
+            )
+
+        assert conformal.status_code == 200
+        assert conformal.json()["calibration_size"] == 3
+        assert feedback_loop.status_code == 200
+        assert feedback_loop.json() == {
+            "loop_detected": False,
+            "similarity": 0.0,
+            "severity": "",
+            "matched_output": "",
+        }
 
     def test_stats_store_summary_hourly_and_prometheus_summary(self):
         class FakeStats:
