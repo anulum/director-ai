@@ -466,6 +466,35 @@ class TestComplianceCliBranches:
         assert exc_info.value.code == 1
         assert "Audit database not found" in capsys.readouterr().out
 
+    def test_article15_context_loader_rejects_invalid_inputs(self, tmp_path, capsys):
+        missing = tmp_path / "missing.json"
+        invalid_json = tmp_path / "invalid.json"
+        non_object = tmp_path / "array.json"
+        incomplete = tmp_path / "incomplete.json"
+        invalid_json.write_text("{", encoding="utf-8")
+        non_object.write_text("[]", encoding="utf-8")
+        incomplete.write_text('{"system_name": ""}', encoding="utf-8")
+
+        with pytest.raises(SystemExit) as missing_exc:
+            verify_cli._load_article15_context(str(missing))
+        assert missing_exc.value.code == 1
+        assert "Article 15 context file not found" in capsys.readouterr().out
+
+        with pytest.raises(SystemExit) as invalid_exc:
+            verify_cli._load_article15_context(str(invalid_json))
+        assert invalid_exc.value.code == 1
+        assert "Invalid Article 15 context JSON" in capsys.readouterr().out
+
+        with pytest.raises(SystemExit) as shape_exc:
+            verify_cli._load_article15_context(str(non_object))
+        assert shape_exc.value.code == 1
+        assert "Article 15 context must be a JSON object" in capsys.readouterr().out
+
+        with pytest.raises(SystemExit) as incomplete_exc:
+            verify_cli._load_article15_context(str(incomplete))
+        assert incomplete_exc.value.code == 1
+        assert "Incomplete Article 15 context" in capsys.readouterr().out
+
     def test_compliance_json_report_passes_since_and_until(
         self,
         monkeypatch,
@@ -524,6 +553,111 @@ class TestComplianceCliBranches:
         assert calls["closed"] == (None, None)
         assert payload["total_interactions"] == 12
         assert payload["drift_detected"] is True
+
+    def test_compliance_article15_context_and_pdf_outputs(
+        self,
+        monkeypatch,
+        tmp_path,
+        capsys,
+    ):
+        import director_ai.compliance.audit_log as audit_mod
+        import director_ai.compliance.report_templates as templates_mod
+        import director_ai.compliance.reporter as reporter_mod
+
+        db_file = tmp_path / "audit.db"
+        db_file.touch()
+        context_file = tmp_path / "article15.json"
+        output_file = tmp_path / "report.pdf"
+        context_file.write_text(
+            json.dumps(
+                {
+                    "system_name": "Director-AI",
+                    "intended_purpose": "Guard generated answers.",
+                    "deployment_context": "EU operator gateway.",
+                    "risk_management_summary": "Reject unsafe responses.",
+                    "data_governance_summary": "Tenant-safe audit records.",
+                    "robustness_summary": "Drift and adversarial checks.",
+                    "cybersecurity_summary": "Signed write paths.",
+                    "human_oversight_summary": "Reviewers can override.",
+                    "post_market_monitoring_summary": "Weekly KPI review.",
+                    "known_limitations": ["Requires curated evidence."],
+                    "residual_risks": ["Sparse context can reduce confidence."],
+                    "evidence_refs": ["docs/internal/evidence.md"],
+                }
+            ),
+            encoding="utf-8",
+        )
+
+        class FakeLog:
+            def __init__(self, path: str) -> None:
+                self.path = path
+
+            def close(self) -> None:
+                pass
+
+        class FakeReport:
+            total_interactions = 7
+            overall_hallucination_rate = 0.25
+            overall_hallucination_rate_ci = 0.05
+            avg_score = 0.7
+            avg_latency_ms = 12.0
+            drift_detected = False
+            incident_count = 1
+
+            def to_article15_template(self, context):
+                return {"system": {"name": context.system_name}, "total": 7}
+
+            def to_article15_markdown(self, context):
+                return f"# {context.system_name}\nArticle 15"
+
+        class FakeReporter:
+            def __init__(self, log: FakeLog) -> None:
+                self.log = log
+
+            def generate_report(self, *, since=None, until=None):
+                return FakeReport()
+
+        monkeypatch.setattr(audit_mod, "AuditLog", FakeLog)
+        monkeypatch.setattr(reporter_mod, "ComplianceReporter", FakeReporter)
+        monkeypatch.setattr(templates_mod, "render_compliance_pdf", lambda data: b"PDF")
+
+        verify_cli._cmd_compliance(
+            [
+                "report",
+                "--db",
+                str(db_file),
+                "--context",
+                str(context_file),
+                "--format",
+                "json",
+            ]
+        )
+        assert json.loads(capsys.readouterr().out)["system"]["name"] == "Director-AI"
+
+        verify_cli._cmd_compliance(
+            [
+                "report",
+                "--db",
+                str(db_file),
+                "--context",
+                str(context_file),
+            ]
+        )
+        assert "# Director-AI" in capsys.readouterr().out
+
+        verify_cli._cmd_compliance(
+            [
+                "report",
+                "--db",
+                str(db_file),
+                "--format",
+                "pdf",
+                "--output",
+                str(output_file),
+            ]
+        )
+        assert output_file.read_bytes() == b"PDF"
+        assert f"Wrote PDF compliance report to {output_file}" in capsys.readouterr().out
 
     def test_compliance_markdown_status_drift_and_unknown_subcommand(
         self,
