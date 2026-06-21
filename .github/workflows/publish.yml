@@ -110,8 +110,14 @@ jobs:
         with:
           subject-path: dist/*
 
-  publish:
-    name: Publish
+  # Two PyPI projects publish from this one workflow. PyPI trusted publishing
+  # mints a PROJECT-SCOPED OIDC token keyed on the GitHub environment, so each
+  # project gets its own job + its own environment; sharing one environment
+  # makes the token ambiguous and 403s the other project. The matching trusted
+  # publisher on PyPI must therefore use: director-ai → environment "pypi",
+  # director-ai-lite → environment "pypi-lite".
+  publish-main:
+    name: Publish director-ai
     needs: [build, sign]
     runs-on: ubuntu-latest
     environment: pypi
@@ -123,21 +129,32 @@ jobs:
         with:
           name: dist
           path: dist/
-
-      - name: Separate the two distributions
-        # Trusted publishing mints a project-scoped OIDC token, so each PyPI
-        # project must be uploaded in its own step. `director_ai-*` matches only
-        # the core package (the `-` boundary excludes `director_ai_lite-*`).
+      - name: Keep only director-ai
         run: |
-          mkdir -p dist-main dist-lite
+          mkdir -p dist-main
           mv dist/director_ai-* dist-main/
-          mv dist/director_ai_lite-* dist-lite/
-
       - name: Publish director-ai to PyPI
         uses: pypa/gh-action-pypi-publish@cef221092ed1bacb1cc03d23a2d87d1d172e277b # v1.14.0
         with:
           packages-dir: dist-main/
 
+  publish-lite:
+    name: Publish director-ai-lite
+    needs: [build, sign]
+    runs-on: ubuntu-latest
+    environment: pypi-lite
+    permissions:
+      id-token: write
+    steps:
+      - name: Download dist
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        with:
+          name: dist
+          path: dist/
+      - name: Keep only director-ai-lite
+        run: |
+          mkdir -p dist-lite
+          mv dist/director_ai_lite-* dist-lite/
       - name: Publish director-ai-lite to PyPI
         uses: pypa/gh-action-pypi-publish@cef221092ed1bacb1cc03d23a2d87d1d172e277b # v1.14.0
         with:
@@ -175,7 +192,7 @@ jobs:
   discord-announce:
     name: Discord Release Announcement
     runs-on: ubuntu-latest
-    needs: [publish, attach-artifacts]
+    needs: [publish-main, attach-artifacts]
     steps:
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
 
