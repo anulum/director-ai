@@ -5,12 +5,13 @@
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI — Director-Lite package tests
-"""Release-contract tests for the ``director-ai-lite`` package split.
+"""Release-contract tests for the standalone ``director-ai-lite`` package.
 
-The package is intentionally a thin distribution wrapper around
-``director_ai.lite``. These tests pin the public import surface, static package
-metadata, and one model-free halt path so the Lite wheel cannot drift away from
-the canonical implementation.
+The Lite package is a self-contained distribution: it has no ``director-ai``
+runtime dependency and ships its own streaming-halt guard. These tests pin that
+standalone contract from the main repository so the wheel cannot drift back into
+a facade. The package's own behavioural suite lives in
+``packages/director-ai-lite/tests/``.
 """
 
 from __future__ import annotations
@@ -37,43 +38,49 @@ def _tokens(text: str) -> list[str]:
     return [token + " " for token in text.split()]
 
 
-def test_lite_package_metadata_tracks_director_ai_core_version() -> None:
+def test_lite_package_is_standalone_apache() -> None:
     pyproject = tomllib.loads((LITE_PACKAGE / "pyproject.toml").read_text())
     project = pyproject["project"]
 
     assert project["name"] == "director-ai-lite"
-    assert project["version"] == "3.15.3"
+    assert project["version"] == "3.16.0"
+    assert project["license"] == "Apache-2.0"
     assert project["requires-python"] == ">=3.11"
-    assert "director-ai>=3.15.3,<4" in project["dependencies"]
+    # Standalone: no runtime dependencies. The full package is an opt-in extra.
+    assert project["dependencies"] == []
+    assert "director-ai>=3.16.0,<4" in project["optional-dependencies"]["full"]
     assert pyproject["tool"]["setuptools"]["package-data"]["director_ai_lite"] == [
         "py.typed"
     ]
 
 
-def test_lite_package_exposes_canonical_stream_guard() -> None:
+def test_lite_exposes_its_own_standalone_surface() -> None:
     import director_ai_lite
 
-    from director_ai.lite import StreamGuard as CanonicalStreamGuard
-
-    assert director_ai_lite.StreamGuard is CanonicalStreamGuard
-    assert director_ai_lite.__version__ == "3.15.3"
+    assert director_ai_lite.__version__ == "3.16.0"
     assert sorted(director_ai_lite.__all__) == [
         "StreamGuard",
+        "StreamResult",
         "__version__",
         "guard",
         "streaming_guard",
     ]
+    # The guard is the package's own implementation, not a director_ai re-export.
+    assert director_ai_lite.StreamGuard.__module__ == "director_ai_lite.guard"
 
 
 def test_lite_guard_runs_model_free_halt_path() -> None:
     from director_ai_lite import guard
 
+    # The grounding heuristic is gradual: it halts once the share of ungrounded
+    # content words pushes coherence below the threshold, removing the drifted
+    # tail rather than a single mid-stream token.
     session = guard(
-        _tokens("The capital of France is Berlin and then Tokyo"),
+        _tokens("Paris is the capital of France Berlin Tokyo Mars Jupiter banana"),
         facts={"capital": "Paris is the capital of France."},
         prompt="What is the capital of France?",
         threshold=0.5,
     )
 
     assert session.halted is True
-    assert "Berlin" not in session.output
+    assert "banana" not in session.output
