@@ -45,7 +45,7 @@ RUN python -m pip install --no-cache-dir --require-hashes --no-deps --prefix=/in
     && PYTHONPATH=/install/lib/python3.11/site-packages PATH="/install/bin:${PATH}" \
         maturin build --release --manifest-path backfire-kernel/crates/backfire-ffi/Cargo.toml --out /tmp/backfire-wheel \
     && PYTHONPATH=/install/lib/python3.11/site-packages \
-        python -m installer --prefix=/install /tmp/backfire-wheel/backfire_kernel-0.1.1-*.whl \
+        python -m installer --prefix=/install /tmp/backfire-wheel/backfire_kernel-*.whl \
     && PYTHONPATH=/install/lib/python3.11/site-packages PATH="/install/bin:${PATH}" \
         python -m build --wheel --no-isolation --outdir /tmp/director-wheel . \
     && PYTHONPATH=/install/lib/python3.11/site-packages \
