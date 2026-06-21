@@ -1,0 +1,55 @@
+# SPDX-License-Identifier: Apache-2.0
+# © 1998–2026 Miroslav Šotek. All rights reserved.
+# Contact: www.anulum.li | protoscience@anulum.li
+name: Publish Director-Lite to PyPI
+
+# director-ai-lite publishes from its OWN workflow file so its PyPI trusted
+# publisher (workflow: publish-lite.yml) is matched unambiguously and the minted
+# OIDC token is always scoped to director-ai-lite — never the core project.
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag (e.g. v3.16.0)"
+        required: true
+
+permissions: read-all
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  RELEASE_TAG: ${{ github.event.release.tag_name || inputs.tag }}
+
+jobs:
+  publish-lite:
+    name: Build + publish director-ai-lite
+    runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+        with:
+          ref: ${{ env.RELEASE_TAG }}
+
+      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
+        with:
+          python-version: "3.12"
+
+      - name: Install build tools
+        run: pip install --require-hashes -r requirements/ci-release.txt
+
+      - name: Build director-ai-lite
+        run: python -m build packages/director-ai-lite --outdir dist-lite
+
+      - name: Check distribution
+        run: twine check dist-lite/*
+
+      - name: Publish director-ai-lite to PyPI
+        uses: pypa/gh-action-pypi-publish@cef221092ed1bacb1cc03d23a2d87d1d172e277b # v1.14.0
+        with:
+          packages-dir: dist-lite/
