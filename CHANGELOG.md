@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.16.0] - 2026-06-21
+
+- Add a standalone, dependency-free `director-ai-lite` distribution: its own
+  token-level streaming-halt guard (grounding heuristic plus the vendored
+  no-model coherence calibration), no `director-ai` runtime dependency, and a
+  `[full]` extra for the model-backed upgrade.
 - Pin the model-backed prompt-injection guard to an immutable HuggingFace
   revision. `PromptInjectionModel.from_pretrained` now resolves the revision
   through the model-revision registry (with a new `prompt_guard_model_revision`

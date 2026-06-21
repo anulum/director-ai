@@ -68,6 +68,18 @@ mypy src/
 
 All three must pass in CI before merge.
 
+## On module size
+
+This project splits by **responsibility**, not line count. A single-responsibility
+module of any length is fine; a multi-responsibility module of any length is not.
+Some files are intentionally large because they are one cohesive thing — notably
+`core/scoring/scorer.py` and `core/scoring/nli.py` (the scoring engines),
+`guard.py` (the unified `ProductionGuard` facade),
+`core/retrieval/vector_store/store.py` (the vector store), `_server_models.py`
+(the API request/response schemas), and `core/runtime/streaming.py`. Please do not
+flag these for size alone. Genuine multi-responsibility files are tracked for
+splitting in the internal backlog.
+
 ## Pull Request Process
 
 1. **Branch** from `main` with a descriptive name (`feature/`, `fix/`, `docs/`)

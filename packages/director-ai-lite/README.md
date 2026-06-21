@@ -61,6 +61,12 @@ Director-Lite is the free, standalone entry point. The wider product ladder:
 | **Director-AI Full** | The complete advanced + labs capability set. |
 | **Director-Class AI** | Enterprise: managed/on-prem deployment, domain tuning, evidence reviews, SLA, procurement support. |
 
+## Support development
+
+Director-Lite is free forever, including in production. If it helps you, you can
+sponsor development via [GitHub Sponsors](https://github.com/sponsors/anulum) —
+entirely optional, and it keeps the free tier moving.
+
 ## License
 
 Apache-2.0.
