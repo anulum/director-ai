@@ -16,6 +16,7 @@ from dataclasses import dataclass
 import pytest
 
 import director_ai.guard as guard_module
+from director_ai.core.risk_threshold import RiskFactors
 from director_ai.guard import ProductionGuard
 
 
@@ -52,7 +53,7 @@ class _FakeScorer:
         self._nli = "shared-nli"
         self.reviews: list[tuple[str, str]] = []
 
-    def review(self, prompt, response):
+    def review(self, prompt, response, **kwargs):
         self.reviews.append((prompt, response))
         score = 0.92 if "400mg" in response else 0.31
         return score >= self.threshold, _FakeCoherenceScore(score=score)
@@ -355,3 +356,181 @@ def test_verify_tool_delegates_manifest_and_execution_log(
             "execution_log": execution_log,
         }
     ]
+
+
+def test_repair_stream_handles_store_without_chunk_retrieval(
+    fake_guard_dependencies, monkeypatch
+):
+    repair_calls: list[dict[str, object]] = []
+
+    class FakeStreamingRepairer:
+        def __init__(self, score_fn, *, threshold, retrieve_fn, rewrite_fn):
+            self.score_fn = score_fn
+            self.threshold = threshold
+            self.retrieve_fn = retrieve_fn
+            self.rewrite_fn = rewrite_fn
+
+        def repair(self, response, *, tenant_id, request_id):
+            repair_calls.append(
+                {
+                    "response": response,
+                    "tenant_id": tenant_id,
+                    "request_id": request_id,
+                    "threshold": self.threshold,
+                    "score": self.score_fn("The maximum single dose is 400mg."),
+                    "evidence": self.retrieve_fn("unsupported clause"),
+                    "rewrite_fn": self.rewrite_fn,
+                }
+            )
+            return {"repaired": response}
+
+    repair_module = types.ModuleType("director_ai.core.streaming_repair")
+    repair_module.StreamingRepairer = FakeStreamingRepairer
+    monkeypatch.setitem(sys.modules, "director_ai.core.streaming_repair", repair_module)
+    guard = ProductionGuard(config=_FakeConfig(threshold=0.6), store=_FakeStore())
+
+    result = guard.repair_stream(
+        "policy?",
+        "Unsupported answer.",
+        tenant_id="tenant-a",
+        request_id="request-1",
+        threshold=0.55,
+    )
+
+    assert result == {"repaired": "Unsupported answer."}
+    assert repair_calls == [
+        {
+            "response": "Unsupported answer.",
+            "tenant_id": "tenant-a",
+            "request_id": "request-1",
+            "threshold": 0.55,
+            "score": pytest.approx(0.92),
+            "evidence": [],
+            "rewrite_fn": None,
+        }
+    ]
+
+
+def test_repair_stream_uses_chunk_retrieval_when_store_exposes_it(
+    fake_guard_dependencies, monkeypatch
+):
+    repair_calls: list[dict[str, object]] = []
+
+    class FakeChunkStore(_FakeStore):
+        def retrieve_context_with_chunks(self, clause, *, tenant_id):
+            return [
+                {
+                    "clause": clause,
+                    "tenant_id": tenant_id,
+                    "text": "Clinical policy: max single dose 400mg.",
+                }
+            ]
+
+    class FakeStreamingRepairer:
+        def __init__(self, score_fn, *, threshold, retrieve_fn, rewrite_fn):
+            self.threshold = threshold
+            self.retrieve_fn = retrieve_fn
+
+        def repair(self, response, *, tenant_id, request_id):
+            repair_calls.append(
+                {
+                    "response": response,
+                    "tenant_id": tenant_id,
+                    "request_id": request_id,
+                    "evidence": self.retrieve_fn("dose clause"),
+                    "threshold": self.threshold,
+                }
+            )
+            return {"repaired": response, "evidence_count": 1}
+
+    repair_module = types.ModuleType("director_ai.core.streaming_repair")
+    repair_module.StreamingRepairer = FakeStreamingRepairer
+    monkeypatch.setitem(sys.modules, "director_ai.core.streaming_repair", repair_module)
+    guard = ProductionGuard(config=_FakeConfig(threshold=0.6), store=FakeChunkStore())
+
+    result = guard.repair_stream(
+        "policy?",
+        "Unsupported answer.",
+        tenant_id="tenant-a",
+        request_id="request-2",
+    )
+
+    assert result == {"repaired": "Unsupported answer.", "evidence_count": 1}
+    assert repair_calls[0]["threshold"] == pytest.approx(0.6)
+    assert repair_calls[0]["evidence"] == [
+        {
+            "clause": "dose clause",
+            "tenant_id": "tenant-a",
+            "text": "Clinical policy: max single dose 400mg.",
+        }
+    ]
+
+
+def test_canary_and_preflight_facades_are_lazy_and_stateful(fake_guard_dependencies):
+    guard = ProductionGuard(config=_FakeConfig(threshold=0.6), store=_FakeStore())
+
+    fact = guard.plant_canary("tenant-a", token="CANARY-STATIC")
+    signals = guard.scan_canaries(
+        f"The response leaked {fact.token}.",
+        "tenant-a",
+        evidence=(),
+    )
+    preflight = guard.preflight
+
+    assert guard._store.facts[fact.canary_id] == fact.text
+    assert signals
+    assert signals[0].canary_id == fact.canary_id
+    assert guard.scan_canaries("clean response", "tenant-a", evidence=()) == []
+    assert guard.preflight is preflight
+    assert preflight._score_fn("policy", "The maximum single dose is 400mg.") == 0.92
+
+
+def test_dp_and_federated_facades_build_expected_objects(fake_guard_dependencies):
+    from director_ai.core.dp_rag import DifferentiallyPrivateRetrieval, DPRagPipeline
+    from director_ai.core.federated_dp import (
+        FederatedCalibrationRound,
+        FederatedDPEvidence,
+    )
+
+    guard = ProductionGuard(config=_FakeConfig(threshold=0.6), store=_FakeStore())
+
+    retrieval = guard.dp_retrieval
+    pipeline = guard.dp_rag_pipeline(max_epsilon=3.0, seed=7)
+    default_round = guard.federated_calibration(seed=11)
+    explicit_round = guard.federated_calibration(initial_value=0.42, seed=12)
+    evidence_from_default = guard.federated_dp_evidence(seed=13)
+    evidence_from_explicit = guard.federated_dp_evidence(
+        calibration_round=explicit_round
+    )
+
+    assert isinstance(retrieval, DifferentiallyPrivateRetrieval)
+    assert guard.dp_retrieval is retrieval
+    assert isinstance(pipeline, DPRagPipeline)
+    assert isinstance(default_round, FederatedCalibrationRound)
+    assert isinstance(explicit_round, FederatedCalibrationRound)
+    assert isinstance(evidence_from_default, FederatedDPEvidence)
+    assert isinstance(evidence_from_explicit, FederatedDPEvidence)
+
+
+def test_risk_threshold_and_labelling_cockpit_are_lazy_and_configured(
+    fake_guard_dependencies,
+):
+    guard = ProductionGuard(config=_FakeConfig(threshold=0.6), store=_FakeStore())
+
+    threshold = guard.risk_threshold(
+        RiskFactors(
+            tenant_risk=0.4,
+            domain="medical",
+            retrieval_confidence=0.7,
+            action_reversibility=0.6,
+            external_exposure=True,
+        )
+    )
+    cached_threshold = guard.risk_threshold(RiskFactors())
+    cockpit = guard.labelling_cockpit
+
+    assert threshold.base_threshold == pytest.approx(0.6)
+    assert threshold.threshold >= 0.6
+    assert cached_threshold.base_threshold == pytest.approx(0.6)
+    assert guard.labelling_cockpit is cockpit
+    assert cockpit.threshold == pytest.approx(0.6)
