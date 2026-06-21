@@ -16,6 +16,7 @@ from director_ai.compliance.audit_log import AuditEntry, AuditLog
 from director_ai.compliance.reporter import (
     Article15TemplateContext,
     ComplianceReporter,
+    _wilson_ci,
 )
 
 
@@ -52,6 +53,15 @@ class TestReporterEmpty:
         report = reporter.generate_report()
         assert report.total_interactions == 0
         assert report.overall_hallucination_rate == 0.0
+        log.close()
+
+    def test_empty_drift_periods_and_wilson_zero_total(self, tmp_path):
+        log = AuditLog(tmp_path / "test.db")
+        reporter = ComplianceReporter(log)
+
+        assert reporter._compute_drift_periods([], 100.0, 200.0) == []
+        assert _wilson_ci(successes=0, total=0) == 1.0
+
         log.close()
 
 
@@ -234,6 +244,31 @@ class TestArticle15Template:
         assert "docs/PRODUCTION_CHECKLIST.md#compliance" in markdown
         log.close()
 
+    def test_article15_markdown_reports_empty_residuals_and_evidence(self, tmp_path):
+        log = AuditLog(tmp_path / "test.db")
+        report = ComplianceReporter(log).generate_report()
+        context = Article15TemplateContext(
+            system_name="Director-AI hospital triage guard",
+            intended_purpose="Score generated triage advice against facts.",
+            deployment_context="EU clinical decision-support assistant gateway.",
+            risk_management_summary="Low-score responses are blocked.",
+            data_governance_summary="Audit events are stored per tenant.",
+            robustness_summary="Drift checks run weekly.",
+            cybersecurity_summary="Signed KB entries are enabled.",
+            human_oversight_summary="Reviewers can override decisions.",
+            post_market_monitoring_summary="Operations review incidents weekly.",
+            known_limitations=(" ",),
+            residual_risks=(),
+            evidence_refs=(" ",),
+        )
+
+        markdown = report.to_article15_markdown(context)
+
+        assert "- No residual risks supplied in this template context." in markdown
+        assert "- No evidence references supplied." in markdown
+
+        log.close()
+
     def test_article15_markdown_rejects_invalid_template_payload_schema(self, tmp_path):
         log = AuditLog(tmp_path / "test.db")
         report = ComplianceReporter(log).generate_report()
@@ -247,6 +282,23 @@ class TestArticle15Template:
         report.to_article15_template = invalid_template_payload
 
         with pytest.raises(TypeError, match="article_15_sections must be a dict"):
+            report.to_article15_markdown(self._context())
+
+        log.close()
+
+    def test_article15_markdown_rejects_invalid_list_payload_schema(self, tmp_path):
+        log = AuditLog(tmp_path / "test.db")
+        report = ComplianceReporter(log).generate_report()
+        original_template_payload = report.to_article15_template
+
+        def invalid_template_payload(context):
+            payload = original_template_payload(context)
+            payload["evidence_refs"] = "not-a-list"
+            return payload
+
+        report.to_article15_template = invalid_template_payload
+
+        with pytest.raises(TypeError, match="evidence_refs must be a list"):
             report.to_article15_markdown(self._context())
 
         log.close()
