@@ -12,6 +12,12 @@ reports with structure validation, content checks, and edge cases.
 
 from __future__ import annotations
 
+import sys
+from types import ModuleType
+
+import pytest
+
+from director_ai.compliance import report_templates
 from director_ai.compliance.report_templates import (
     render_compliance_html,
     render_compliance_markdown,
@@ -196,41 +202,62 @@ class TestSwarmHTML:
 class TestPdf:
     """PDF rendering via WeasyPrint (the ``reports`` extra)."""
 
-    def test_html_to_pdf_emits_pdf_bytes(self):
-        pytest = __import__("pytest")
-        pytest.importorskip("weasyprint")
-        from director_ai.compliance.report_templates import html_to_pdf
+    def test_html_to_pdf_emits_pdf_bytes(self, monkeypatch):
+        calls: list[str] = []
 
-        pdf = html_to_pdf(render_compliance_html(_COMPLIANCE_DATA))
+        class FakeHTML:
+            def __init__(self, *, string: str) -> None:
+                calls.append(string)
+
+            def write_pdf(self) -> bytes:
+                return b"%PDF fake report"
+
+        fake_weasyprint = ModuleType("weasyprint")
+        fake_weasyprint.HTML = FakeHTML
+        monkeypatch.setitem(sys.modules, "weasyprint", fake_weasyprint)
+
+        pdf = report_templates.html_to_pdf("<h1>Compliance</h1>")
         assert isinstance(pdf, bytes)
         assert pdf.startswith(b"%PDF")
-        assert len(pdf) > 1000  # a real multi-section document, not a stub
+        assert calls == ["<h1>Compliance</h1>"]
 
-    def test_render_compliance_pdf(self):
-        pytest = __import__("pytest")
-        pytest.importorskip("weasyprint")
-        from director_ai.compliance.report_templates import render_compliance_pdf
+    def test_render_compliance_pdf(self, monkeypatch):
+        calls: list[str] = []
 
-        assert render_compliance_pdf(_COMPLIANCE_DATA).startswith(b"%PDF")
+        def fake_html_to_pdf(html: str) -> bytes:
+            calls.append(html)
+            return b"%PDF compliance"
 
-    def test_render_cost_pdf(self):
-        pytest = __import__("pytest")
-        pytest.importorskip("weasyprint")
-        from director_ai.compliance.report_templates import render_cost_pdf
+        monkeypatch.setattr(report_templates, "html_to_pdf", fake_html_to_pdf)
 
-        assert render_cost_pdf(_COST_DATA).startswith(b"%PDF")
+        assert report_templates.render_compliance_pdf(_COMPLIANCE_DATA) == b"%PDF compliance"
+        assert "EU AI Act Article 15 Report" in calls[0]
 
-    def test_render_swarm_pdf(self):
-        pytest = __import__("pytest")
-        pytest.importorskip("weasyprint")
-        from director_ai.compliance.report_templates import render_swarm_pdf
+    def test_render_cost_pdf(self, monkeypatch):
+        calls: list[str] = []
 
-        assert render_swarm_pdf(_SWARM_DATA).startswith(b"%PDF")
+        def fake_html_to_pdf(html: str) -> bytes:
+            calls.append(html)
+            return b"%PDF cost"
+
+        monkeypatch.setattr(report_templates, "html_to_pdf", fake_html_to_pdf)
+
+        assert report_templates.render_cost_pdf(_COST_DATA) == b"%PDF cost"
+        assert "Token Cost Report" in calls[0]
+
+    def test_render_swarm_pdf(self, monkeypatch):
+        calls: list[str] = []
+
+        def fake_html_to_pdf(html: str) -> bytes:
+            calls.append(html)
+            return b"%PDF swarm"
+
+        monkeypatch.setattr(report_templates, "html_to_pdf", fake_html_to_pdf)
+
+        assert report_templates.render_swarm_pdf(_SWARM_DATA) == b"%PDF swarm"
+        assert "Swarm Health Report" in calls[0]
 
     def test_missing_weasyprint_raises_dependency_error(self, monkeypatch):
-        import sys
-
-        pytest = __import__("pytest")
         from director_ai.compliance.report_templates import html_to_pdf
         from director_ai.core.exceptions import DependencyError
 
