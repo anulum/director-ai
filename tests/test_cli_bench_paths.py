@@ -14,6 +14,7 @@ toolchains.
 from __future__ import annotations
 
 import json
+import random
 import sys
 from types import ModuleType, SimpleNamespace
 
@@ -42,12 +43,41 @@ def test_eval_quantize_exports_with_selected_mode(monkeypatch, capsys):
     assert "Export complete" in capsys.readouterr().out
 
 
+def test_eval_ignores_unknown_tokens_before_quantize(monkeypatch, capsys):
+    calls: list[str | None] = []
+    fake_nli = ModuleType("director_ai.core.scoring.nli")
+    fake_nli.export_onnx = lambda quantize=None, **_kwargs: calls.append(quantize)
+    monkeypatch.setitem(sys.modules, "director_ai.core.scoring.nli", fake_nli)
+
+    _cli_bench._cmd_eval(["--ignored", "--quantize", "int8"])
+
+    assert calls == ["int8"]
+    assert "Export complete" in capsys.readouterr().out
+
+
 def test_eval_rejects_invalid_max_samples(capsys):
     with pytest.raises(SystemExit) as exc_info:
         _cli_bench._cmd_eval(["--max-samples", "many"])
 
     assert exc_info.value.code == 1
     assert "invalid --max-samples value: many" in capsys.readouterr().out
+
+
+def test_eval_reports_missing_benchmarks_package(monkeypatch, capsys):
+    original_import = __import__
+
+    def fake_import(name, globals=None, locals=None, fromlist=(), level=0):
+        if name == "benchmarks.run_all":
+            raise ImportError("benchmarks unavailable")
+        return original_import(name, globals, locals, fromlist, level)
+
+    monkeypatch.setattr("builtins.__import__", fake_import)
+
+    with pytest.raises(SystemExit) as exc_info:
+        _cli_bench._cmd_eval([])
+
+    assert exc_info.value.code == 1
+    assert "benchmarks package not found" in capsys.readouterr().out
 
 
 def test_bench_warn_only_failure_is_reported_but_not_fatal(monkeypatch, capsys):
@@ -78,6 +108,42 @@ def test_bench_warn_only_failure_is_reported_but_not_fatal(monkeypatch, capsys):
     assert "1 warned, 0 failed" in out
 
 
+def test_bench_seed_and_max_samples_truncate_regression_suite(
+    monkeypatch,
+    capsys,
+):
+    calls: list[str] = []
+    seeds: list[int] = []
+
+    def first() -> None:
+        calls.append("first")
+
+    def second() -> None:
+        calls.append("second")
+
+    first.__name__ = "test_heuristic_accuracy"
+    second.__name__ = "test_streaming_stability"
+    fake_suite = ModuleType("benchmarks.regression_suite")
+    fake_suite.test_heuristic_accuracy = first
+    fake_suite.test_streaming_stability = second
+    fake_suite.test_latency_ceiling = second
+    fake_suite.test_metrics_integrity = second
+    fake_suite.test_evidence_schema = second
+    fake_suite.test_e2e_heuristic_delta = second
+    fake_suite.test_false_halt_rate = second
+    fake_benchmarks = ModuleType("benchmarks")
+    fake_benchmarks.regression_suite = fake_suite
+    monkeypatch.setitem(sys.modules, "benchmarks", fake_benchmarks)
+    monkeypatch.setitem(sys.modules, "benchmarks.regression_suite", fake_suite)
+    monkeypatch.setattr(random, "seed", lambda seed: seeds.append(seed))
+
+    _cli_bench._cmd_bench(["--ignored", "--seed", "17", "--max-samples", "1"])
+
+    assert seeds == [17]
+    assert calls == ["first"]
+    assert "1 passed, 0 warned, 0 failed" in capsys.readouterr().out
+
+
 def test_bench_rejects_invalid_seed_and_max_samples(capsys):
     with pytest.raises(SystemExit) as seed_exc:
         _cli_bench._cmd_bench(["--seed", "not-an-int"])
@@ -98,6 +164,23 @@ def test_bench_rejects_unknown_dataset(capsys):
 
     assert exc_info.value.code == 1
     assert "Unknown dataset 'external'" in capsys.readouterr().out
+
+
+def test_bench_reports_missing_benchmarks_package(monkeypatch, capsys):
+    original_import = __import__
+
+    def fake_import(name, globals=None, locals=None, fromlist=(), level=0):
+        if name == "benchmarks" and fromlist == ("regression_suite",):
+            raise ImportError("benchmarks unavailable")
+        return original_import(name, globals, locals, fromlist, level)
+
+    monkeypatch.setattr("builtins.__import__", fake_import)
+
+    with pytest.raises(SystemExit) as exc_info:
+        _cli_bench._cmd_bench(["--dataset", "regression"])
+
+    assert exc_info.value.code == 1
+    assert "benchmarks package not found" in capsys.readouterr().out
 
 
 def test_bench_failed_required_test_exits_and_writes_report(
