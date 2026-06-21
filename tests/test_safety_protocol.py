@@ -147,6 +147,14 @@ def test_validate_protocol_payload_rejects_transport_contract_mismatches() -> No
     with pytest.raises(ValueError, match="event payload"):
         validate_director_safety_signal(bad)
 
+    bad = dict(payload, privacy="not-a-mapping")
+    with pytest.raises(ValueError, match="privacy payload is required"):
+        validate_director_safety_signal(bad)
+
+    bad = dict(payload, interoperability="not-a-mapping")
+    with pytest.raises(ValueError, match="interoperability payload is required"):
+        validate_director_safety_signal(bad)
+
     bad = dict(payload, privacy={})
     with pytest.raises(ValueError, match="tenant-safe"):
         validate_director_safety_signal(bad)

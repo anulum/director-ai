@@ -172,6 +172,12 @@ class TestNodesEdges:
         with pytest.raises(ValueError, match="self-loop"):
             SkillEdge(source="a", target="a", action="invoke")
 
+    def test_empty_source_or_target_rejected(self):
+        with pytest.raises(ValueError, match="non-empty"):
+            SkillEdge(source="", target="b", action="invoke")
+        with pytest.raises(ValueError, match="non-empty"):
+            SkillEdge(source="a", target="", action="invoke")
+
     def test_negative_weight(self):
         with pytest.raises(ValueError, match="weight"):
             SkillEdge(source="a", target="b", action="invoke", weight=-1.0)
