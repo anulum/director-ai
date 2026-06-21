@@ -124,8 +124,24 @@ jobs:
           name: dist
           path: dist/
 
-      - name: Publish to PyPI
+      - name: Separate the two distributions
+        # Trusted publishing mints a project-scoped OIDC token, so each PyPI
+        # project must be uploaded in its own step. `director_ai-*` matches only
+        # the core package (the `-` boundary excludes `director_ai_lite-*`).
+        run: |
+          mkdir -p dist-main dist-lite
+          mv dist/director_ai-* dist-main/
+          mv dist/director_ai_lite-* dist-lite/
+
+      - name: Publish director-ai to PyPI
         uses: pypa/gh-action-pypi-publish@cef221092ed1bacb1cc03d23a2d87d1d172e277b # v1.14.0
+        with:
+          packages-dir: dist-main/
+
+      - name: Publish director-ai-lite to PyPI
+        uses: pypa/gh-action-pypi-publish@cef221092ed1bacb1cc03d23a2d87d1d172e277b # v1.14.0
+        with:
+          packages-dir: dist-lite/
 
   attach-artifacts:
     name: Attach SBOM + Signatures to Release
