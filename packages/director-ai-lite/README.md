@@ -49,6 +49,18 @@ from director_ai_lite import StreamGuard
 guard = StreamGuard(facts=..., scorer=my_nli_scorer)  # any review(prompt, text) scorer
 ```
 
+## Tiers
+
+Director-Lite is the free, standalone entry point. The wider product ladder:
+
+| Tier | What it is |
+|---|---|
+| **Director-Lite** | **Free.** This package — standalone, model-free streaming halt, zero dependencies. |
+| **Director-AI** | The full runtime — model-backed NLI/RAG scoring, REST/gRPC server, framework integrations, sealed evidence packets, tamper-evident audit. |
+| **Director-AI Pro** | Production-tier licence and support on top of the full runtime. |
+| **Director-AI Full** | The complete advanced + labs capability set. |
+| **Director-Class AI** | Enterprise: managed/on-prem deployment, domain tuning, evidence reviews, SLA, procurement support. |
+
 ## License
 
 Apache-2.0.
