@@ -17,6 +17,7 @@ from director_ai.core.sustainability import (
     SustainabilityEstimate,
     SustainabilityPolicyAdapter,
     SustainabilityTelemetry,
+    SustainabilityTelemetrySummary,
     TokenEnergyCostEstimator,
 )
 
@@ -81,6 +82,8 @@ def test_estimator_discloses_profile_and_estimate_provenance() -> None:
         assert estimate.carbon_kg == pytest.approx(0.0002)
         assert estimate.cost == pytest.approx(0.01)
         assert estimate.to_dict()["hardware_profile_id"] == f"gpu-{provenance}"
+        assert estimator.hardware_profile == profile
+        assert estimator.cost_per_1k_tokens == pytest.approx(0.01)
 
 
 def test_estimator_rejects_invalid_profiles_and_token_counts() -> None:
@@ -115,6 +118,7 @@ def test_hardware_profile_registry_tracks_profiles_without_payloads() -> None:
     registry.register(profile)
 
     assert registry.get("gpu-a") == profile
+    assert HardwareProfileRegistry((profile,)).get("gpu-a") == profile
     assert registry.snapshot()["gpu-a"]["provenance"] == "configured"
     assert "prompt" not in repr(registry.snapshot()).lower()
     with pytest.raises(ValueError, match="already registered"):
@@ -374,6 +378,27 @@ def test_telemetry_rejects_invalid_tenants_and_thresholds() -> None:
     assert empty.request_count == 0
     assert empty.to_dict()["alerts"] == []
 
+    with pytest.raises(ValueError, match="tenant_id"):
+        SustainabilityTelemetrySummary(
+            tenant_id=" ",
+            request_count=0,
+            total_tokens=0,
+            energy_kwh=0.0,
+            carbon_kg=0.0,
+            cost=0.0,
+            alerts=(),
+        )
+    with pytest.raises(ValueError, match="request_count"):
+        SustainabilityTelemetrySummary(
+            tenant_id="tenant-a",
+            request_count=-1,
+            total_tokens=0,
+            energy_kwh=0.0,
+            carbon_kg=0.0,
+            cost=0.0,
+            alerts=(),
+        )
+
 
 def test_policy_adapter_rejects_invalid_operational_inputs() -> None:
     with pytest.raises(ValueError, match="policy_id"):
@@ -408,3 +433,14 @@ def test_policy_adapter_rejects_invalid_operational_inputs() -> None:
             forecast_next_tokens=0,
             risk_envelope=_risk_envelope(),
         )
+
+
+def test_sum_helpers_use_python_fallback_when_accelerator_disabled(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from director_ai.core.sustainability import policy_adapter as adapter_mod
+
+    monkeypatch.setattr(adapter_mod, "_RUST_SUSTAINABILITY_POLICY", False)
+
+    assert adapter_mod._sum_int([1, 2, 3]) == 6
+    assert adapter_mod._sum_float([1.0, 2.5, 3.5]) == 7.0
