@@ -6,10 +6,10 @@
     "optional_extras": 58,
     "public_api_exports": 224,
     "public_documentation_pages": 203,
-    "python_model_classes": 980,
-    "python_model_source_modules": 422,
+    "python_model_classes": 986,
+    "python_model_source_modules": 423,
     "rust_pyo3_model_wrappers": 83,
-    "test_files": 541
+    "test_files": 542
   },
   "documentation": {
     "public_pages": [
@@ -333,12 +333,28 @@
         "path": "src/director_ai/core/cyber_physical/geometry.py"
       },
       {
+        "name": "APIKey",
+        "path": "src/director_ai/managed/accounts.py"
+      },
+      {
         "name": "APIKeyMiddleware",
         "path": "src/director_ai/middleware/api_key.py"
       },
       {
         "name": "AWSSecretsManagerBackend",
         "path": "src/director_ai/core/secrets.py"
+      },
+      {
+        "name": "Account",
+        "path": "src/director_ai/managed/accounts.py"
+      },
+      {
+        "name": "AccountError",
+        "path": "src/director_ai/managed/accounts.py"
+      },
+      {
+        "name": "AccountStore",
+        "path": "src/director_ai/managed/accounts.py"
       },
       {
         "name": "AccountantEntry",
@@ -4097,6 +4113,14 @@
         "path": "src/director_ai/core/routing/uncertainty_router.py"
       },
       {
+        "name": "UnknownAPIKeyError",
+        "path": "src/director_ai/managed/accounts.py"
+      },
+      {
+        "name": "UnknownAccountError",
+        "path": "src/director_ai/managed/accounts.py"
+      },
+      {
         "name": "UnsafeOutputError",
         "path": "src/director_ai/core/output_trust/encoders.py"
       },
@@ -4659,6 +4683,7 @@
       "src/director_ai/interlock.py",
       "src/director_ai/knowledge_api.py",
       "src/director_ai/lite.py",
+      "src/director_ai/managed/accounts.py",
       "src/director_ai/middleware/api_key.py",
       "src/director_ai/middleware/rate_limit.py",
       "src/director_ai/proto/converters.py",
@@ -5358,6 +5383,7 @@
       "tests/test_local_release_evidence_gate.py",
       "tests/test_log_json.py",
       "tests/test_loop_monitor.py",
+      "tests/test_managed_accounts.py",
       "tests/test_managed_training_jobs.py",
       "tests/test_mandatory_runtime_policy.py",
       "tests/test_math_consistency.py",

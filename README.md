@@ -232,12 +232,12 @@ inventory below is reference for the deeper surface, navigable under
 |---|---:|
 | Package version | 3.16.0 |
 | Public API exports | 224 |
-| Python capability source modules | 422 |
-| Python capability classes | 980 |
+| Python capability source modules | 423 |
+| Python capability classes | 986 |
 | API documentation pages | 89 |
 | Rust PyO3 bindings | 83 |
 | Optional extras | 58 |
-| Python test files | 541 |
+| Python test files | 542 |
 | Public documentation pages | 203 |
 | GitHub Actions workflows | 13 |
 
