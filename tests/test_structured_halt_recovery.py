@@ -87,6 +87,51 @@ def test_json_recovery_keeps_last_valid_array_before_mid_element_halt() -> None:
     assert result.metadata["json_root"] == "array"
 
 
+def test_json_recovery_reports_scalar_root_type() -> None:
+    """A scalar JSON root is recorded by its Python type name, not object/array.
+
+    ``42`` is valid JSON whose root is neither a mapping nor a sequence, so the
+    root descriptor falls through to the value's concrete type.
+    """
+    state = StructuredRecoveryState(StructuredRecoveryConfig(kind="json"))
+    state.update("42")
+
+    result = state.finalise(halted_at=1)
+
+    assert result.valid is True
+    assert result.last_valid_output == "42"
+    assert result.metadata["json_root"] == "int"
+
+
+def test_json_update_records_error_when_verifier_rejects_parseable_text(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Verifier-level rejection of json.loads-parseable text is a recoverable error.
+
+    ``json.loads`` may accept text the structured verifier still rejects (e.g. a
+    stricter grammar); that path must record the parse error and leave the last
+    valid checkpoint untouched rather than promoting the bad text.
+    """
+    from director_ai.core.runtime import structured_recovery as sr
+
+    class _RejectingVerdict:
+        valid_json = False
+        parse_error = "verifier-forced-invalid"
+        schema_valid = None
+        error_count = 0
+
+    monkeypatch.setattr(
+        sr, "verify_json", lambda text, schema=None: _RejectingVerdict()
+    )
+    state = StructuredRecoveryState(StructuredRecoveryConfig(kind="json"))
+    state.update('{"ok": true}')  # accepted by json.loads, rejected by the verifier
+
+    result = state.finalise(halted_at=1)
+
+    assert result.last_valid_output == ""  # early return → no checkpoint promoted
+    assert "json_parse:verifier-forced-invalid" in result.errors
+
+
 def test_json_schema_rejection_does_not_replace_previous_checkpoint() -> None:
     config = StructuredRecoveryConfig(
         kind="json",
