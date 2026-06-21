@@ -307,6 +307,19 @@ class TestSummarizationFactualDivergence:
         assert evidence is None
 
 
+class TestSumIntPaths:
+    def test_sum_int_uses_rust_when_available(self, monkeypatch):
+        monkeypatch.setattr(_task_scoring, "_RUST_TASK", True)
+        monkeypatch.setattr(
+            _task_scoring, "rust_sum_i64", lambda values: sum(values), raising=False
+        )
+        assert _sum_int([1, 2, 3, 4]) == 10
+
+    def test_sum_int_falls_back_to_python_without_rust(self, monkeypatch):
+        monkeypatch.setattr(_task_scoring, "_RUST_TASK", False)
+        assert _sum_int([5, 6]) == 11
+
+
 class TestMiniCheckClaimCoverage:
     def test_empty_summary_has_full_coverage(self):
         assert minicheck_claim_coverage(

@@ -285,6 +285,34 @@ class TestSafetyEventSchema:
         with pytest.raises(ValueError, match="attributes"):
             validate_safety_event_payload(payload)
 
+    def test_validate_payload_rejects_trace_attribution_unknown_field(self):
+        trace = HaltTraceAttribution(
+            fact_source="kb://physics",
+            retrieval_path="hybrid",
+            scorer_path="factcg",
+            token_offset=7,
+            threshold=0.5,
+            causal_contribution=0.19,
+        )
+        payload = _event(trace_attribution=trace).to_dict()
+        payload["trace_attribution"]["surprise"] = 1
+        with pytest.raises(ValueError, match="trace_attribution unknown field"):
+            validate_safety_event_payload(payload)
+
+    def test_validate_payload_rejects_trace_attribution_missing_field(self):
+        trace = HaltTraceAttribution(
+            fact_source="kb://physics",
+            retrieval_path="hybrid",
+            scorer_path="factcg",
+            token_offset=7,
+            threshold=0.5,
+            causal_contribution=0.19,
+        )
+        payload = _event(trace_attribution=trace).to_dict()
+        del payload["trace_attribution"]["threshold"]
+        with pytest.raises(ValueError, match="trace_attribution missing field"):
+            validate_safety_event_payload(payload)
+
     def test_validate_payload_rejects_raw_or_secret_telemetry_refs(self):
         payload = _event(
             evidence_refs=("raw_prompt:abc",),
