@@ -108,7 +108,11 @@ jobs:
     name: Publish backfire-kernel
     needs: [build-wheels, build-sdist]
     runs-on: ubuntu-latest
-    if: github.event_name == 'release'
+    # Publish on a real release, or on manual dispatch (a release created by
+    # release.yml via GITHUB_TOKEN does not re-trigger this workflow, so a tag
+    # alone never publishes the wheels — dispatch is the supported path). The
+    # "already published" guard below keeps a re-run idempotent.
+    if: github.event_name == 'release' || github.event_name == 'workflow_dispatch'
     environment: pypi
     permissions:
       id-token: write
