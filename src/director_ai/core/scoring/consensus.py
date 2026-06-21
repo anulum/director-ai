@@ -318,7 +318,7 @@ class ConsensusScorer:
         if pairs:
             avg_agreement = 1.0 - _sum_float([p.divergence for p in pairs]) / len(pairs)
             lowest = 1.0 - max(p.divergence for p in pairs)
-        else:
+        else:  # pragma: no cover - defensive: score_responses() returns early for <2 responses, so pairs is non-empty here
             avg_agreement = 1.0
             lowest = 1.0
 

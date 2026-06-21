@@ -240,11 +240,25 @@ def test_correction_dataclasses_validate_required_fields():
             evidence_texts=(" ",),
             source_refs=("kb://fact",),
         )
+    with pytest.raises(ValueError, match="source_refs"):
+        HaltCorrectionContext(
+            halt_reason="halt",
+            last_score=0.4,
+            evidence_texts=("source",),
+            source_refs=(" ",),
+        )
     with pytest.raises(ValueError, match="candidate_text"):
         GroundedCorrectionDraft(
             candidate_text=" ",
             verifier_signals=(_supported_signal(),),
             evidence_refs=("kb://fact",),
+        )
+    with pytest.raises(ValueError, match="candidate_text"):
+        CorrectionProposal(
+            proposal_id="correction-1",
+            candidate_text=" ",
+            evidence_refs=("kb://fact",),
+            guard_decision=loop_decision("allow"),
         )
     with pytest.raises(ValueError, match="verifier_signals"):
         GroundedCorrectionDraft(
@@ -398,3 +412,63 @@ def test_correction_proposal_serialisation_is_tenant_safe_by_default():
     assert audit_payload["guard_decision"]["decision"] == "allow"
     assert audit_payload["structured_recovery"] is None
     assert proposal.to_safety_event(hook_id="correction", hook_scope="agent")
+
+
+def test_correction_loop_propose_rejects_blank_candidate_text():
+    loop = CorrectionLoop(
+        consensus=CrossVerifierConsensus(),
+        risk_envelope=_text_envelope(),
+        policy_id="policy.correction.regulated",
+    )
+    with pytest.raises(ValueError, match="candidate_text is required"):
+        loop.propose(
+            candidate_text="   ",
+            signals=[_supported_signal()],
+            evidence_refs=("kb://fact-1",),
+        )
+
+
+def test_correction_release_blocks_approved_proposal_with_non_allow_decision():
+    loop = CorrectionLoop(
+        consensus=CrossVerifierConsensus(),
+        risk_envelope=_text_envelope(),
+        policy_id="policy.correction.regulated",
+    )
+    # A proposal that was somehow marked approved while its guard decision is not
+    # an allow must still be refused at the release gate (defence in depth).
+    proposal = CorrectionProposal(
+        proposal_id="correction-halt",
+        candidate_text="Unsafe continuation.",
+        evidence_refs=("kb://fact",),
+        guard_decision=loop_decision("halt"),
+        approved=True,
+        approval_id="review-override",
+    )
+    with pytest.raises(PermissionError, match="cannot release correction with decision"):
+        loop.release(proposal)
+
+
+def test_correction_proposal_audit_payload_includes_recovery_when_present():
+    loop = CorrectionLoop(
+        consensus=CrossVerifierConsensus(),
+        risk_envelope=_text_envelope(),
+        policy_id="policy.correction.regulated",
+    )
+    recovery = StructuredRecoveryResult(
+        kind="json",
+        policy="last_valid",
+        halted_at=7,
+        last_valid_output='{"status":"valid"}',
+        valid=True,
+        metadata={"json_root": "object"},
+    )
+    proposal = loop.propose(
+        candidate_text="The corrected answer cites the validated source.",
+        signals=[_supported_signal()],
+        evidence_refs=("kb://fact-1",),
+        structured_recovery=recovery,
+    )
+    payload = proposal.to_dict()
+    assert payload["structured_recovery"] is not None
+    assert payload["structured_recovery"]["kind"] == "json"
+    assert payload["structured_recovery"]["valid"] is True

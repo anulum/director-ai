@@ -102,8 +102,11 @@ def _load_vector_entry_points() -> None:
                 cls = ep.load()
                 if ep.name not in _VECTOR_REGISTRY:  # pragma: no cover
                     register_vector_backend(ep.name, cls)
-            except (ImportError, AttributeError, TypeError) as exc:
-                # pragma: no cover
+            except (  # pragma: no cover - defensive: plugin entry-point load failure
+                ImportError,
+                AttributeError,
+                TypeError,
+            ) as exc:
                 logger.warning(
                     "Failed to load vector backend entry point %s: %s",
                     ep.name,
