@@ -22,11 +22,11 @@ from __future__ import annotations
 import hashlib
 import secrets
 import sqlite3
-from collections.abc import Iterator
-from contextlib import contextmanager
+from contextlib import AbstractContextManager
 from dataclasses import dataclass
-from datetime import UTC, datetime
 from pathlib import Path
+
+from ._db import connect, new_id, utc_now_iso
 
 _KEY_PREFIX = "dai_"
 _KEY_ENTROPY_BYTES = 32
@@ -88,16 +88,6 @@ def hash_key(raw_key: str) -> str:
     return hashlib.sha256(raw_key.encode("utf-8")).hexdigest()
 
 
-def _now() -> str:
-    """Return the current UTC instant as a sortable ISO-8601 string."""
-    return datetime.now(UTC).isoformat()
-
-
-def _new_id(kind: str) -> str:
-    """Return a short opaque identifier (``acct_…`` / ``key_…``)."""
-    return f"{kind}_{secrets.token_hex(12)}"
-
-
 class AccountStore:
     """SQLite-backed store of accounts and the keys issued against them.
 
@@ -111,17 +101,8 @@ class AccountStore:
         self._db_path = str(db_path)
         self._init_schema()
 
-    @contextmanager
-    def _connect(self) -> Iterator[sqlite3.Connection]:
-        conn = sqlite3.connect(self._db_path, check_same_thread=False)
-        conn.row_factory = sqlite3.Row
-        conn.execute("PRAGMA journal_mode=WAL")
-        conn.execute("PRAGMA foreign_keys=ON")
-        try:
-            yield conn
-            conn.commit()
-        finally:
-            conn.close()
+    def _connect(self) -> AbstractContextManager[sqlite3.Connection]:
+        return connect(self._db_path)
 
     def _init_schema(self) -> None:
         with self._connect() as conn:
@@ -154,11 +135,11 @@ class AccountStore:
     def create_account(self, email: str, plan: str = "free") -> Account:
         """Create and persist a new active account on the given plan."""
         account = Account(
-            account_id=_new_id("acct"),
+            account_id=new_id("acct"),
             email=email,
             plan=plan,
             status="active",
-            created_at=_now(),
+            created_at=utc_now_iso(),
         )
         with self._connect() as conn:
             conn.execute(
@@ -219,10 +200,10 @@ class AccountStore:
             raise UnknownAccountError(account_id)
         raw_key = generate_api_key()
         record = APIKey(
-            key_id=_new_id("key"),
+            key_id=new_id("key"),
             account_id=account_id,
             prefix=raw_key[:_DISPLAY_PREFIX_LEN],
-            created_at=_now(),
+            created_at=utc_now_iso(),
             last_used_at=None,
             revoked_at=None,
         )
@@ -266,7 +247,7 @@ class AccountStore:
                 return None
             conn.execute(
                 "UPDATE api_keys SET last_used_at = ? WHERE key_hash = ?",
-                (_now(), digest),
+                (utc_now_iso(), digest),
             )
         return account
 
@@ -276,7 +257,7 @@ class AccountStore:
             cur = conn.execute(
                 "UPDATE api_keys SET revoked_at = ? "
                 "WHERE key_id = ? AND revoked_at IS NULL",
-                (_now(), key_id),
+                (utc_now_iso(), key_id),
             )
             if cur.rowcount == 0:
                 exists = conn.execute(
