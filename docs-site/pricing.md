@@ -45,6 +45,14 @@ pip install director-ai-lite
 This is the free tier we promote hardest on PyPI because it shows the core
 guardrail value without asking users to understand the full platform.
 
+!!! tip "Support the free tiers ☕"
+    Director-Lite and the open-core runtime are free forever, including in
+    production. If they help you, you can [buy us a coffee](https://buymeacoffee.com/anulum)
+    or [sponsor on GitHub](https://github.com/sponsors/anulum) — entirely
+    optional, and it keeps the free tiers moving.
+
+    [![Buy Me a Coffee](assets/bmc_qr.png){ width="130" }](https://buymeacoffee.com/anulum)
+
 ## :material-package-variant: Director-AI — full open-core runtime
 
 The full package remains available:
