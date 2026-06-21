@@ -84,6 +84,29 @@ class TestVerifyClean:
         with pytest.raises(ValueError, match="needs a path"):
             AuditLogger(hmac_secret=_SECRET).verify_chain()
 
+    def test_verify_chain_tolerates_blank_lines(self, tmp_path):
+        logger = _logger(tmp_path)
+        for i in range(3):
+            _log(logger, query=f"q{i}")
+        path = tmp_path / "a.jsonl"
+        # A blank line in the trail must be skipped, not fail verification.
+        path.write_text("\n" + path.read_text(encoding="utf-8"), encoding="utf-8")
+        assert logger.verify_chain(path) == (True, None)
+
+
+class TestChainResume:
+    def test_blank_file_resumes_from_zero_hash(self, tmp_path):
+        path = tmp_path / "blank.jsonl"
+        path.write_text("   \n\n", encoding="utf-8")
+        logger = AuditLogger(path=path, hmac_secret=_SECRET)
+        assert logger._prev_hash == _ZERO_HASH
+
+    def test_corrupt_last_line_resumes_from_zero_hash(self, tmp_path):
+        path = tmp_path / "corrupt.jsonl"
+        path.write_text("this is not valid json\n", encoding="utf-8")
+        logger = AuditLogger(path=path, hmac_secret=_SECRET)
+        assert logger._prev_hash == _ZERO_HASH
+
 
 class TestTamperDetection:
     def _write_back(self, path, records):
