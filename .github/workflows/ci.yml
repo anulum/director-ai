@@ -67,7 +67,9 @@ jobs:
           python-version: "3.12"
 
       - name: Install tools
-        run: pip install ruff==0.15.6 mypy==1.19.1 pytest pytest-cov
+        # Hash-pinned, matching the rest of CI (ruff/mypy/pytest/pytest-cov live
+        # in the dev lock); keeps the Scorecard Pinned-Dependencies check clean.
+        run: pip install --require-hashes --no-deps -r requirements/ci-dev.txt
 
       - name: Ruff format + lint
         run: |
@@ -79,9 +81,9 @@ jobs:
 
       - name: Standalone install + tests (100% coverage)
         run: |
-          # Install the wheel in isolation to prove there is no director-ai
-          # dependency, then run the suite at full coverage.
-          python -m pip install ./packages/director-ai-lite
+          # Install with --no-deps to prove the package needs nothing beyond the
+          # standard library (no director-ai), then run the suite at full coverage.
+          pip install --no-deps ./packages/director-ai-lite
           cd packages/director-ai-lite
           PYTHONPATH=src pytest tests/ -q \
             --cov=director_ai_lite --cov-report=term-missing --cov-fail-under=100
