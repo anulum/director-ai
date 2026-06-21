@@ -9,6 +9,7 @@
 from __future__ import annotations
 
 import sys
+from dataclasses import dataclass
 from types import ModuleType, SimpleNamespace
 
 import pytest
@@ -84,6 +85,7 @@ def test_serve_http_applies_mode_cors_and_single_worker(monkeypatch, capsys):
             "9099",
             "--cors-origins",
             "https://console.example",
+            "--ignored-token",
         ],
     )
 
@@ -101,6 +103,77 @@ def test_serve_http_applies_mode_cors_and_single_worker(monkeypatch, capsys):
         },
     ]
     assert "env-profile" in capsys.readouterr().out
+
+
+def test_serve_dev_flag_forces_dataclass_config_to_dev(monkeypatch):
+    @dataclass
+    class DataclassConfig:
+        profile: str = "dataclass-profile"
+        mode: str = "general"
+        server_host: str = ""
+        server_port: int = 0
+        cors_origins: str = ""
+        production_mode: bool = True
+
+        @classmethod
+        def from_env(cls):
+            return cls()
+
+    fake_config = ModuleType("director_ai.core.config")
+    fake_config.DirectorConfig = DataclassConfig
+    fake_uvicorn = ModuleType("uvicorn")
+    uvicorn_calls: list[dict[str, object]] = []
+    fake_uvicorn.run = lambda app, **kwargs: uvicorn_calls.append(
+        {"app": app, **kwargs},
+    )
+    fake_server = ModuleType("director_ai.server")
+    fake_server.create_app = lambda config: {
+        "production_mode": config.production_mode,
+        "host": config.server_host,
+    }
+    monkeypatch.setitem(sys.modules, "director_ai.core.config", fake_config)
+    monkeypatch.setitem(sys.modules, "uvicorn", fake_uvicorn)
+    monkeypatch.setitem(sys.modules, "director_ai.server", fake_server)
+
+    _cli_serve._cmd_serve(["--dev"])
+
+    assert uvicorn_calls == [
+        {
+            "app": {"production_mode": False, "host": "127.0.0.1"},
+            "host": "127.0.0.1",
+            "port": 8080,
+        },
+    ]
+
+
+def test_serve_production_flag_refuses_unhardened_config(monkeypatch, capsys):
+    _install_fake_config(monkeypatch)
+
+    with pytest.raises(SystemExit) as exc_info:
+        _cli_serve._cmd_serve(["--production"])
+
+    assert exc_info.value.code == 1
+    assert "--production requires a hardened config" in capsys.readouterr().out
+
+
+def test_serve_rejects_invalid_port_worker_and_transport(capsys):
+    with pytest.raises(SystemExit) as port_exc:
+        _cli_serve._cmd_serve(["--port", "not-a-port"])
+
+    assert port_exc.value.code == 1
+    assert "invalid port number: not-a-port" in capsys.readouterr().out
+
+    with pytest.raises(SystemExit) as worker_exc:
+        _cli_serve._cmd_serve(["--workers", "0"])
+
+    assert worker_exc.value.code == 1
+    assert "invalid worker count: 0" in capsys.readouterr().out
+
+    with pytest.raises(SystemExit) as transport_exc:
+        _cli_serve._cmd_serve(["--transport", "udp"])
+
+    assert transport_exc.value.code == 1
+    assert "http" in capsys.readouterr().out
 
 
 def test_serve_multi_worker_sets_environment_and_factory_target(monkeypatch):
