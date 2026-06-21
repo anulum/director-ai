@@ -51,7 +51,8 @@ def test_lite_package_readme_points_to_upgrade_path() -> None:
     assert "Director-Lite" in doc
     assert "Director-AI" in doc
     assert "Director-Class AI" in doc
-    assert "only the first two are Python packages" in doc
+    assert "Tiers" in doc
+    assert "director-ai-lite[full]" in doc
 
 
 def test_readme_leads_with_evidence_and_buried_differentiators() -> None:
