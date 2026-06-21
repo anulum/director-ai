@@ -86,7 +86,7 @@ checksum = "c08606f8c3cbf4ce6ec8e28fb0014a2c086708fe954eaa885384a6165172e7e8"
 
 [[package]]
 name = "backfire-core"
-version = "0.1.2"
+version = "0.1.3"
 dependencies = [
  "backfire-types",
  "criterion",
@@ -99,7 +99,7 @@ dependencies = [
 
 [[package]]
 name = "backfire-ffi"
-version = "0.1.2"
+version = "0.1.3"
 dependencies = [
  "backfire-core",
  "backfire-observers",
@@ -117,7 +117,7 @@ dependencies = [
 
 [[package]]
 name = "backfire-observers"
-version = "0.1.2"
+version = "0.1.3"
 dependencies = [
  "backfire-types",
  "env_logger",
@@ -127,7 +127,7 @@ dependencies = [
 
 [[package]]
 name = "backfire-physics"
-version = "0.1.2"
+version = "0.1.3"
 dependencies = [
  "backfire-types",
  "env_logger",
@@ -137,7 +137,7 @@ dependencies = [
 
 [[package]]
 name = "backfire-ssgf"
-version = "0.1.2"
+version = "0.1.3"
 dependencies = [
  "backfire-observers",
  "backfire-physics",
@@ -148,7 +148,7 @@ dependencies = [
 
 [[package]]
 name = "backfire-types"
-version = "0.1.2"
+version = "0.1.3"
 dependencies = [
  "log",
  "serde",
@@ -158,7 +158,7 @@ dependencies = [
 
 [[package]]
 name = "backfire-wasm"
-version = "0.1.2"
+version = "0.1.3"
 dependencies = [
  "backfire-core",
  "backfire-types",
