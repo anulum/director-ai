@@ -6,10 +6,10 @@
     "optional_extras": 58,
     "public_api_exports": 224,
     "public_documentation_pages": 203,
-    "python_model_classes": 994,
-    "python_model_source_modules": 427,
+    "python_model_classes": 980,
+    "python_model_source_modules": 422,
     "rust_pyo3_model_wrappers": 83,
-    "test_files": 545
+    "test_files": 541
   },
   "documentation": {
     "public_pages": [
@@ -333,28 +333,12 @@
         "path": "src/director_ai/core/cyber_physical/geometry.py"
       },
       {
-        "name": "APIKey",
-        "path": "src/director_ai/managed/accounts.py"
-      },
-      {
         "name": "APIKeyMiddleware",
         "path": "src/director_ai/middleware/api_key.py"
       },
       {
         "name": "AWSSecretsManagerBackend",
         "path": "src/director_ai/core/secrets.py"
-      },
-      {
-        "name": "Account",
-        "path": "src/director_ai/managed/accounts.py"
-      },
-      {
-        "name": "AccountError",
-        "path": "src/director_ai/managed/accounts.py"
-      },
-      {
-        "name": "AccountStore",
-        "path": "src/director_ai/managed/accounts.py"
       },
       {
         "name": "AccountantEntry",
@@ -1817,10 +1801,6 @@
         "path": "src/director_ai/core/fuzzing/engine.py"
       },
       {
-        "name": "GateOutcome",
-        "path": "src/director_ai/managed/gate.py"
-      },
-      {
         "name": "GateReport",
         "path": "src/director_ai/ci_gate.py"
       },
@@ -2413,10 +2393,6 @@
         "path": "src/director_ai/core/ml_bom/bom.py"
       },
       {
-        "name": "ManagedGate",
-        "path": "src/director_ai/managed/gate.py"
-      },
-      {
         "name": "ManagedTrainingRecord",
         "path": "src/director_ai/finetune_api.py"
       },
@@ -2921,14 +2897,6 @@
         "path": "src/director_ai/core/dp_rag/pipeline.py"
       },
       {
-        "name": "Plan",
-        "path": "src/director_ai/managed/plans.py"
-      },
-      {
-        "name": "PlanRegistry",
-        "path": "src/director_ai/managed/plans.py"
-      },
-      {
         "name": "PlanVerdict",
         "path": "src/director_ai/core/cyber_physical/command_guard.py"
       },
@@ -3135,10 +3103,6 @@
       {
         "name": "QueryDecompositionBackend",
         "path": "src/director_ai/core/retrieval/query_decomposition.py"
-      },
-      {
-        "name": "QuotaDecision",
-        "path": "src/director_ai/managed/plans.py"
       },
       {
         "name": "QuotaError",
@@ -4133,14 +4097,6 @@
         "path": "src/director_ai/core/routing/uncertainty_router.py"
       },
       {
-        "name": "UnknownAPIKeyError",
-        "path": "src/director_ai/managed/accounts.py"
-      },
-      {
-        "name": "UnknownAccountError",
-        "path": "src/director_ai/managed/accounts.py"
-      },
-      {
         "name": "UnsafeOutputError",
         "path": "src/director_ai/core/output_trust/encoders.py"
       },
@@ -4151,18 +4107,6 @@
       {
         "name": "Until",
         "path": "src/director_ai/core/temporal_logic/formula.py"
-      },
-      {
-        "name": "UsageEvent",
-        "path": "src/director_ai/managed/usage.py"
-      },
-      {
-        "name": "UsageMeter",
-        "path": "src/director_ai/managed/usage.py"
-      },
-      {
-        "name": "UsageSummary",
-        "path": "src/director_ai/managed/usage.py"
       },
       {
         "name": "ValidationError",
@@ -4715,11 +4659,6 @@
       "src/director_ai/interlock.py",
       "src/director_ai/knowledge_api.py",
       "src/director_ai/lite.py",
-      "src/director_ai/managed/_db.py",
-      "src/director_ai/managed/accounts.py",
-      "src/director_ai/managed/gate.py",
-      "src/director_ai/managed/plans.py",
-      "src/director_ai/managed/usage.py",
       "src/director_ai/middleware/api_key.py",
       "src/director_ai/middleware/rate_limit.py",
       "src/director_ai/proto/converters.py",
@@ -5419,11 +5358,7 @@
       "tests/test_local_release_evidence_gate.py",
       "tests/test_log_json.py",
       "tests/test_loop_monitor.py",
-      "tests/test_managed_accounts.py",
-      "tests/test_managed_gate.py",
-      "tests/test_managed_plans.py",
       "tests/test_managed_training_jobs.py",
-      "tests/test_managed_usage.py",
       "tests/test_mandatory_runtime_policy.py",
       "tests/test_math_consistency.py",
       "tests/test_mechanistic_interpretability.py",
