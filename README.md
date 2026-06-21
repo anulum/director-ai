@@ -526,7 +526,7 @@ Latency: the committed GTX 1060 6GB local packet reports 17.9 ms/pair p99 for a 
 
 **Optional — Gemma 4 E4B Q6 with per-task-family routing.** A zero-training LLM-as-judge alternative for users who prefer LLM-as-judge architectures over NLI. Per-task-family prompts (`summ` / `rag` / `claim`) bring the routed Gemma judge to 75.55% per-dataset mean BA on the AggreFact 29K test set, comparable to the FactCG default. The routed judge is opt-in (`--backend llama-cpp`); FactCG remains the default.
 
-### Rust compute acceleration (shipped in v3.12, current in v3.15)
+### Rust compute acceleration (shipped in v3.12, current in v3.16)
 
 20 functions, 3000 iterations each. Geometric mean: **7.23× speedup**.
 
