@@ -1,8 +1,9 @@
 # Director-AI Lite
 
-`director-ai-lite` is the small-install front door for Director-AI's streaming
-halt surface. It exposes the same `StreamGuard` implementation as
-`director_ai.lite`, plus a one-call `guard()` helper.
+`director-ai-lite` is a **standalone, dependency-free** LLM streaming-halt guard:
+it stops a token stream *before* a hallucination finishes generating. It installs
+with zero heavy dependencies (standard library only) and does **not** require the
+full `director-ai` package.
 
 ```bash
 pip install director-ai-lite
@@ -17,27 +18,37 @@ result = guard(
     prompt="What is the capital of France?",
 )
 
-print(result.output)
-print(result.halted)
+print(result.output)       # surviving text (halted tokens removed)
+print(result.halted)       # True if the stream was stopped
+print(result.halt_reason)  # why it was stopped
 ```
 
-The default path is model-free: it uses Director-AI's heuristic scorer, grounded
-facts, and streaming kernel without downloading an NLI model. For model-backed
-accuracy, install `director-ai-lite[nli]` and pass a configured Director-AI
-scorer to `StreamGuard`.
+## How it works
 
-This package intentionally remains a thin distribution wrapper. The canonical
-runtime implementation lives in `director_ai.lite` so bug fixes, type behavior,
-and halt semantics stay identical between the full and Lite installs.
+The default path is **model-free**: each accumulated prefix is scored by a
+grounding heuristic (content-word overlap against the supplied `facts`) and the
+same calibrated coherence combination the full package uses in its no-model path.
+The stream hard-halts on the first token whose coherence drops below `threshold`
+(default `0.5`). With no `facts`, scoring stays neutral and nothing is halted.
 
-## Upgrade path
+Because the grounding heuristic and the coherence calibration match the full
+package, you can upgrade to model-backed (NLI/RAG) scoring without changing the
+call site.
 
-| Tier | Install / delivery | Use it for |
-|---|---|---|
-| Director-Lite | `pip install director-ai-lite` | Free first-run streaming halt facade |
-| Director-AI | `pip install director-ai` | Full open-core runtime, REST/gRPC, SDK integrations, evidence packets, Pro self-host path |
-| Director-Class AI | Commercial engagement | Managed/on-prem deployment, customer-specific tuning, evidence reviews, SLA, procurement support |
+## Upgrade to model-backed scoring
 
-PyPI promotes all three tiers, but only the first two are Python packages.
-Director-Class AI is the premium implementation and evidence programme around
-the software.
+```bash
+pip install "director-ai-lite[full]"
+```
+
+Then pass the full package's scorer to `StreamGuard`:
+
+```python
+from director_ai_lite import StreamGuard
+
+guard = StreamGuard(facts=..., scorer=my_nli_scorer)  # any review(prompt, text) scorer
+```
+
+## License
+
+Apache-2.0.

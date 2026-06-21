@@ -40,6 +40,13 @@ jobs:
       - name: Build sdist and wheel
         run: python -m build
 
+      - name: Build Director-Lite (standalone)
+        # Builds the separate director-ai-lite distribution into the same dist/.
+        # The publish step uploads both; PyPI routes each file to its own project
+        # by the package name in the metadata (needs a trusted publisher on the
+        # director-ai-lite project pointing to this workflow + the pypi env).
+        run: python -m build packages/director-ai-lite --outdir dist
+
       - name: Check distribution
         run: twine check dist/*
 

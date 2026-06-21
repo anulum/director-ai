@@ -56,6 +56,36 @@ jobs:
       - name: Docstring ratchet (source tree)
         run: ruff check src/director_ai --select D
 
+  director-lite:
+    name: Director-Lite (standalone)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+
+      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
+        with:
+          python-version: "3.12"
+
+      - name: Install tools
+        run: pip install ruff==0.15.6 mypy==1.19.1 pytest pytest-cov
+
+      - name: Ruff format + lint
+        run: |
+          ruff format --check packages/director-ai-lite/
+          ruff check packages/director-ai-lite/
+
+      - name: Type check (strict)
+        run: mypy packages/director-ai-lite/src/director_ai_lite --strict
+
+      - name: Standalone install + tests (100% coverage)
+        run: |
+          # Install the wheel in isolation to prove there is no director-ai
+          # dependency, then run the suite at full coverage.
+          python -m pip install ./packages/director-ai-lite
+          cd packages/director-ai-lite
+          PYTHONPATH=src pytest tests/ -q \
+            --cov=director_ai_lite --cov-report=term-missing --cov-fail-under=100
+
   typecheck:
     name: Type Check
     runs-on: ubuntu-latest

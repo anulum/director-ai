@@ -12,12 +12,12 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "director-ai-lite"
-version = "3.15.3"
-description = "Three-line Director-AI streaming halt facade for model-free first runs"
+version = "3.16.0"
+description = "Standalone three-line LLM streaming-halt guard — model-free, zero dependencies"
 authors = [
     {name = "Miroslav Šotek", email = "protoscience@anulum.li"}
 ]
-license = "Apache-2.0 AND BUSL-1.1"
+license = "Apache-2.0"
 readme = "README.md"
 requires-python = ">=3.11"
 keywords = [
@@ -39,22 +39,26 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
     "Topic :: Software Development :: Libraries :: Python Modules",
 ]
-dependencies = [
-    "director-ai>=3.15.3,<4",
-]
+# Standalone: the lite guard runs on the standard library alone — no runtime
+# dependencies. The extras below are upgrade paths that pull the full package for
+# model-backed (NLI/RAG) scoring without changing the call site.
+dependencies = []
 
 [project.optional-dependencies]
+full = [
+    "director-ai>=3.16.0,<4",
+]
 nli = [
-    "director-ai[nli]>=3.15.3,<4",
+    "director-ai[nli]>=3.16.0,<4",
 ]
 rag = [
-    "director-ai[vector]>=3.15.3,<4",
+    "director-ai[vector]>=3.16.0,<4",
 ]
 server = [
-    "director-ai[server]>=3.15.3,<4",
+    "director-ai[server]>=3.16.0,<4",
 ]
 recommended = [
-    "director-ai[recommended]>=3.15.3,<4",
+    "director-ai[recommended]>=3.16.0,<4",
 ]
 
 [project.urls]
