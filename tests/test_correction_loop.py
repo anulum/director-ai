@@ -444,7 +444,9 @@ def test_correction_release_blocks_approved_proposal_with_non_allow_decision():
         approved=True,
         approval_id="review-override",
     )
-    with pytest.raises(PermissionError, match="cannot release correction with decision"):
+    with pytest.raises(
+        PermissionError, match="cannot release correction with decision"
+    ):
         loop.release(proposal)
 
 
