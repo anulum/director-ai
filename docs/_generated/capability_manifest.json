@@ -6,10 +6,10 @@
     "optional_extras": 58,
     "public_api_exports": 224,
     "public_documentation_pages": 203,
-    "python_model_classes": 992,
-    "python_model_source_modules": 426,
+    "python_model_classes": 994,
+    "python_model_source_modules": 427,
     "rust_pyo3_model_wrappers": 83,
-    "test_files": 544
+    "test_files": 545
   },
   "documentation": {
     "public_pages": [
@@ -1817,6 +1817,10 @@
         "path": "src/director_ai/core/fuzzing/engine.py"
       },
       {
+        "name": "GateOutcome",
+        "path": "src/director_ai/managed/gate.py"
+      },
+      {
         "name": "GateReport",
         "path": "src/director_ai/ci_gate.py"
       },
@@ -2407,6 +2411,10 @@
       {
         "name": "MachineLearningBOM",
         "path": "src/director_ai/core/ml_bom/bom.py"
+      },
+      {
+        "name": "ManagedGate",
+        "path": "src/director_ai/managed/gate.py"
       },
       {
         "name": "ManagedTrainingRecord",
@@ -4709,6 +4717,7 @@
       "src/director_ai/lite.py",
       "src/director_ai/managed/_db.py",
       "src/director_ai/managed/accounts.py",
+      "src/director_ai/managed/gate.py",
       "src/director_ai/managed/plans.py",
       "src/director_ai/managed/usage.py",
       "src/director_ai/middleware/api_key.py",
@@ -5411,6 +5420,7 @@
       "tests/test_log_json.py",
       "tests/test_loop_monitor.py",
       "tests/test_managed_accounts.py",
+      "tests/test_managed_gate.py",
       "tests/test_managed_plans.py",
       "tests/test_managed_training_jobs.py",
       "tests/test_managed_usage.py",

@@ -15,6 +15,7 @@ so the self-hosted Apache surface keeps its static-key behaviour unchanged.
 from __future__ import annotations
 
 from .accounts import Account, AccountStore, APIKey
+from .gate import GateOutcome, ManagedGate, fastapi_dependency
 from .plans import Plan, PlanRegistry, QuotaDecision
 from .usage import UsageEvent, UsageMeter, UsageSummary
 
@@ -22,10 +23,13 @@ __all__ = [
     "Account",
     "APIKey",
     "AccountStore",
+    "GateOutcome",
+    "ManagedGate",
     "Plan",
     "PlanRegistry",
     "QuotaDecision",
     "UsageEvent",
     "UsageMeter",
     "UsageSummary",
+    "fastapi_dependency",
 ]
