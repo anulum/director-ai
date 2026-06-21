@@ -220,3 +220,32 @@ def test_build_contradiction_halt_wires_scorer_and_retriever(monkeypatch):
     assert captured["threshold"] == 0.35
     # the store's retriever is the one the halt queries
     assert halt._retrieve == store.retrieve_context
+
+
+def test_build_contradiction_halt_builds_store_when_none(monkeypatch):
+    """Omitting ``store`` falls back to ``build_store()`` before wiring.
+
+    The caller may build the halt without already having a store; the method
+    must construct the default store itself and hand its retriever to the halt.
+    """
+    from director_ai.core.config import DirectorConfig
+    from director_ai.core.scoring import contradiction as contra_mod
+
+    built: dict = {}
+    stub_store = _StubStore()
+
+    def _fake_build_store(self):
+        built["called"] = True
+        return stub_store
+
+    monkeypatch.setattr(DirectorConfig, "build_store", _fake_build_store)
+    monkeypatch.setattr(
+        contra_mod.ContradictionScorer,
+        "from_pretrained",
+        lambda *args, **kwargs: _StubScorer({}),
+    )
+    cfg = DirectorConfig(streaming_contradiction_halt=True)
+    halt = cfg.build_contradiction_halt()  # store omitted → build_store()
+    assert built["called"] is True
+    assert isinstance(halt, ContradictionHalt)
+    assert halt._retrieve == stub_store.retrieve_context

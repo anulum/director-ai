@@ -214,6 +214,24 @@ class TestCostTrackingConfig:
         scorer = cfg.build_scorer()
         assert scorer._judge._cost_callback is not None
 
+    def test_callback_records_into_attached_analyser(self):
+        """Invoking the wired callback routes usage into the analyser.
+
+        Exercises the ``_cost_cb`` closure ``build_scorer`` installs on the
+        judge: it must forward (model, input, output) to the analyser it just
+        attached, so a later cost-report reflects the call.
+        """
+        from director_ai.core.config import DirectorConfig
+
+        cfg = DirectorConfig(cost_tracking_enabled=True)
+        scorer = cfg.build_scorer()
+        assert scorer._cost_analyser is not None
+        scorer._judge._cost_callback("gpt-4o", 1000, 200)
+        report = scorer._cost_analyser.report()
+        assert report["total_tokens"] == 1200
+        assert report["models"]["gpt-4o"]["call_count"] == 1
+        assert report["total_cost"] > 0
+
 
 # ── CLI cost-report ──────────────────────────────────────────────────
 

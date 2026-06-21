@@ -1433,3 +1433,38 @@ class TestConfigCoverageGaps:
 
         with pytest.raises(RuntimeError, match=match):
             cfg.build_scorer(store=object())
+
+    def test_build_scorer_warns_when_nli_backend_lacks_lora_support(
+        self, monkeypatch, caplog
+    ):
+        """A LoRA adapter set on a backend without LoRA support warns, not crashes.
+
+        When ``lora_adapter_path`` is configured but the active NLI backend does
+        not implement ``_load_lora_adapter``, ``build_scorer`` must log which
+        backend was skipped and return the scorer unchanged rather than raising.
+        """
+        import director_ai.core.scoring.scorer as scorer_module
+
+        class _NliWithoutLora:
+            """An NLI backend deliberately missing ``_load_lora_adapter``."""
+
+        class FakeScorer:
+            def __init__(self, **init_kwargs):
+                del init_kwargs
+                self._nli = _NliWithoutLora()
+                self._judge = object()
+                self._adaptive_threshold_enabled = False
+                self._adaptive_threshold_fail_closed = False
+
+            def _has_model_backed_nli(self):
+                return True
+
+        monkeypatch.setattr(scorer_module, "CoherenceScorer", FakeScorer)
+
+        cfg = DirectorConfig(lora_adapter_path="/tmp/nonexistent-adapter")
+        with caplog.at_level(logging.WARNING, logger="DirectorAI.Config"):
+            scorer = cfg.build_scorer(store=object())
+
+        assert isinstance(scorer._nli, _NliWithoutLora)
+        assert "LoRA adapter not supported" in caplog.text
+        assert "_NliWithoutLora" in caplog.text
