@@ -105,3 +105,15 @@ def test_redactor_call_builds_default_detector_and_redacts() -> None:
     redactor = PIIRedactor(prefer_rust=False)
     out = redactor("Reach me at alice@example.com please")
     assert "alice@example.com" not in out
+
+
+def test_explicit_detectors_are_used_without_building_defaults() -> None:
+    # An injected detector tuple is returned as-is, never replaced by the default.
+    from director_ai.core.safety.moderation.pii import RegexPIIDetector
+
+    detector = RegexPIIDetector(prefer_rust=False)
+    redactor = PIIRedactor(prefer_rust=False, detectors=(detector,))
+
+    assert redactor._resolve_detectors() == (detector,)
+    report = redactor.redact_with_report("Email bob@example.com")
+    assert report.redacted_text == "Email [EMAIL]"

@@ -73,6 +73,19 @@ class _Explosive(TokenTraceCallback):
         raise RuntimeError("end broken")
 
 
+class _TokenOnlyCallback(TokenTraceCallback):
+    def on_token(self, event: TokenTraceEvent) -> None:
+        return None
+
+
+def test_base_on_stream_end_default_is_a_harmless_debug_log():
+    # A callback that only implements on_token inherits the base on_stream_end,
+    # whose default body is a debug log and must not raise.
+    _TokenOnlyCallback().on_stream_end(
+        tenant_id="t", request_id="r", summary={"tokens": 3}
+    )
+
+
 class TestEmitter:
     def test_empty_emitter_reports_disabled(self):
         e = TokenTraceEmitter()
