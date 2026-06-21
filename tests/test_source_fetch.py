@@ -119,10 +119,40 @@ class TestFetch:
         assert result.ok
         assert "SimpleQA" in result.text
 
+    def test_arxiv_http_error_is_failure(self):
+        result = _fetcher({"arxiv": (503, b"", "")}).fetch(_ARXIV_CITE)
+        assert not result.ok
+        assert "arxiv HTTP 503" in result.error
+
+    def test_arxiv_empty_abstract_is_failure(self):
+        body = b"<feed><entry><title>Title only</title></entry></feed>"
+        result = _fetcher({"arxiv": (200, body, "application/atom+xml")}).fetch(
+            _ARXIV_CITE
+        )
+        assert not result.ok
+        assert "arxiv abstract not found" in result.error
+
     def test_url_parsed_via_doc_parser(self):
         result = _fetcher(_OK_ROUTES).fetch(_URL_CITE)
         assert result.ok
         assert result.text == "A web source about cheese."
+
+    def test_url_http_error_is_failure(self):
+        result = _fetcher({"example.org": (403, b"", "")}).fetch(_URL_CITE)
+        assert not result.ok
+        assert "url HTTP 403" in result.error
+
+    def test_url_parse_failure_is_failure(self, monkeypatch):
+        from director_ai.core.retrieval import doc_parser
+
+        def fail_parse(body, filename):
+            raise ValueError(f"bad {filename}")
+
+        monkeypatch.setattr(doc_parser, "parse", fail_parse)
+
+        result = _fetcher(_OK_ROUTES).fetch(_URL_CITE)
+        assert not result.ok
+        assert "parse failed: bad source.html" in result.error
 
     def test_author_year_unfetchable(self):
         result = _fetcher(_OK_ROUTES).fetch(
@@ -165,6 +195,11 @@ class TestFetch:
 
 
 class TestUserAgentAndBatch:
+    def test_default_getter_keeps_timeout_without_network(self):
+        fetcher = SourceFetcher(timeout=2.5)
+
+        assert fetcher._http._timeout == 2.5
+
     def test_mailto_in_user_agent(self):
         http = _StubHttp(_OK_ROUTES)
         SourceFetcher(http=http, mailto="x@anulum.li").fetch(_DOI)
