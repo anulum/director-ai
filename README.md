@@ -239,7 +239,7 @@ inventory below is reference for the deeper surface, navigable under
 | Optional extras | 58 |
 | Python test files | 541 |
 | Public documentation pages | 203 |
-| GitHub Actions workflows | 12 |
+| GitHub Actions workflows | 13 |
 
 Evidence boundary: this snapshot is a static inventory. Performance, coverage, hardware, and scientific-fidelity claims require their own committed evidence artefacts.
 <!-- capability-snapshot:end -->

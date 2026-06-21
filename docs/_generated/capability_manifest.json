@@ -1,7 +1,7 @@
 {
   "SPDX-License-Identifier": "Apache-2.0 AND BUSL-1.1",
   "counts": {
-    "github_workflows": 12,
+    "github_workflows": 13,
     "model_documentation_pages": 89,
     "optional_extras": 58,
     "public_api_exports": 224,
@@ -5069,6 +5069,7 @@
       ".github/workflows/eval-gate.yml",
       ".github/workflows/nightly-red-team.yml",
       ".github/workflows/pre-commit.yml",
+      ".github/workflows/publish-lite.yml",
       ".github/workflows/publish.yml",
       ".github/workflows/release.yml",
       ".github/workflows/scorecard.yml",
