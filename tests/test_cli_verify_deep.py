@@ -657,7 +657,9 @@ class TestComplianceCliBranches:
             ]
         )
         assert output_file.read_bytes() == b"PDF"
-        assert f"Wrote PDF compliance report to {output_file}" in capsys.readouterr().out
+        assert (
+            f"Wrote PDF compliance report to {output_file}" in capsys.readouterr().out
+        )
 
     def test_compliance_markdown_status_drift_and_unknown_subcommand(
         self,

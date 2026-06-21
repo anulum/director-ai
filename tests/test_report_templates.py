@@ -230,7 +230,10 @@ class TestPdf:
 
         monkeypatch.setattr(report_templates, "html_to_pdf", fake_html_to_pdf)
 
-        assert report_templates.render_compliance_pdf(_COMPLIANCE_DATA) == b"%PDF compliance"
+        assert (
+            report_templates.render_compliance_pdf(_COMPLIANCE_DATA)
+            == b"%PDF compliance"
+        )
         assert "EU AI Act Article 15 Report" in calls[0]
 
     def test_render_cost_pdf(self, monkeypatch):
