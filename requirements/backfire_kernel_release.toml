@@ -9,7 +9,7 @@
 id = "backfire-kernel-release"
 status = "active"
 workspace = "backfire-kernel"
-current_version = "0.1.1"
+current_version = "0.1.3"
 python_supported_range = ">=0.1.1,<0.2"
 release_notes = "backfire-kernel/RELEASE_NOTES.md"
 crate_ci = "backfire-kernel/ci/advanced_runtime_ci.sh"
