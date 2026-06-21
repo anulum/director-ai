@@ -157,6 +157,21 @@ class TestSafetyEventSchema:
         with pytest.raises(ValueError):
             _event(**{field: value})
 
+    @pytest.mark.parametrize("field", ["threshold", "observed_score", "latency_ms"])
+    def test_validate_payload_rejects_non_finite_numbers(self, field):
+        """The payload validator rejects inf/nan numeric fields before range checks.
+
+        The finite guard runs ahead of the unit-interval and non-negative checks,
+        so a non-finite value fails fast with a message naming the offending
+        field rather than slipping through to a range comparison.
+        """
+        base = _event(threshold=0.5, observed_score=0.3, latency_ms=5.0).to_dict()
+        for non_finite in (float("inf"), float("nan")):
+            payload = dict(base)
+            payload[field] = non_finite
+            with pytest.raises(ValueError, match=f"{field} must be finite"):
+                validate_safety_event_payload(payload)
+
     @pytest.mark.parametrize(
         ("field", "value", "message"),
         [
