@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Correct a scoring inversion in the `embed` and `nli-lite` scorer backends.
+  Their registry wrappers forwarded the underlying groundedness/similarity
+  score (1 = supported) unchanged, while the scoring pipeline reads divergence
+  (1 = contradicted), so a supported answer was rejected and a contradiction
+  approved. The wrappers now convert groundedness to divergence.
+- Honour the JSON-array spelling of `DIRECTOR_API_KEYS` in `from_env`, which
+  previously split the array on commas and embedded brackets and quotes into
+  the literal keys, leaving authentication configured but unmatchable.
+- Coerce `tuple[str, ...]` configuration fields (enabled modalities, the
+  evidence-firewall sensitivity allowlist) from environment variables instead
+  of leaving them as raw strings, which turned a `frozenset` of the value into
+  a per-character set and dropped every chunk.
+- Enforce the injection threshold on streaming periodic checks across the SDK
+  guard proxies, so a fluent injection is halted mid-stream rather than only
+  after the final chunk.
+- Make `strict_mode` a configuration field and wire it into the built scorer so
+  that hardened mode disables heuristic fallbacks as documented.
+- Stop the HyDE retrieval backend mutating the stored document metadata in
+  place, which permanently wrote query annotations back into the index.
+
 ## [3.16.0] - 2026-06-21
 
 - Add a standalone, dependency-free `director-ai-lite` distribution: its own

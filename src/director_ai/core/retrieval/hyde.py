@@ -123,9 +123,12 @@ class HyDEBackend(VectorBackend):
         pseudo_doc = self._generate_pseudo_doc(text)
         results = self._base.query(pseudo_doc, n_results=n_results, tenant_id=tenant_id)
 
-        # Annotate results with HyDE metadata
+        # Annotate results with HyDE metadata. Copy the dict first: backends
+        # return result rows that share the stored document's ``metadata``
+        # object, so mutating it in place would permanently write the last
+        # query's HyDE annotations back into the index.
         for r in results:
-            meta = r.get("metadata", {})
+            meta = dict(r.get("metadata", {}))
             meta["hyde_pseudo_doc"] = pseudo_doc[:200]  # truncate for audit
             meta["hyde_original_query"] = text[:200]
             r["metadata"] = meta

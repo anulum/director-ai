@@ -133,6 +133,22 @@ class TestQueryWithGenerator:
         assert "hyde_original_query" in meta
         assert "science question" in meta["hyde_original_query"]
 
+    def test_metadata_annotation_does_not_pollute_store(self):
+        # Regression: HyDE mutated the shared stored-document metadata dict in
+        # place, permanently writing query annotations back into the index.
+        gen = _mock_generator("document text science topic")
+        base = InMemoryBackend()
+        b = HyDEBackend(base, generator=gen)
+        b.add("d1", "some document text about science topic here", {"src": "kb"})
+
+        b.query("first science question")
+        b.query("second science question")
+
+        stored = base._docs[0]["metadata"]
+        assert stored == {"src": "kb"}
+        assert "hyde_pseudo_doc" not in stored
+        assert "hyde_original_query" not in stored
+
 
 # ── Query without generator (graceful degradation) ─────────────────────
 
