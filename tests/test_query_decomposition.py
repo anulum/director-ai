@@ -205,6 +205,21 @@ class TestRRFMerge:
         results = b._rrf_merge([[], []], n_results=3)
         assert results == []
 
+    def test_idless_results_not_collapsed(self):
+        # Regression: docs without an "id" all mapped to the "" bucket, so
+        # every id-less hit but the first was silently dropped. Distinct id-less
+        # docs must each survive the fusion.
+        b = _make_backend()
+        results = b._rrf_merge(
+            [
+                [{"text": "alpha"}, {"text": "beta"}],
+                [{"text": "gamma"}],
+            ],
+            n_results=5,
+        )
+        texts = sorted(r["text"] for r in results)
+        assert texts == ["alpha", "beta", "gamma"]
+
 
 # ── Edge cases ──────────────────────────────────────────────────────────
 

@@ -28,6 +28,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   that hardened mode disables heuristic fallbacks as documented.
 - Stop the HyDE retrieval backend mutating the stored document metadata in
   place, which permanently wrote query annotations back into the index.
+- Use the ceil order statistic for the split-conformal calibration threshold so
+  the delivered coverage matches the target instead of under-covering by one.
+- Keep id-less retrieval hits distinct in Reciprocal Rank Fusion so documents
+  without an explicit id are no longer collapsed into a single bucket.
 
 ## [3.16.0] - 2026-06-21
 

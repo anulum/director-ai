@@ -195,7 +195,11 @@ class QueryDecompositionBackend(VectorBackend):
 
         for results in result_lists:
             for rank, doc in enumerate(results):
-                doc_id = doc.get("id", "")
+                # Fall back to object identity when a backend omits ``id`` so
+                # distinct id-less hits are not all collapsed into one ``""``
+                # bucket (which would drop every such hit but the first and
+                # inflate its fused score).
+                doc_id = doc.get("id") or f"__rrf_noid::{id(doc)}"
                 rrf_score = 1.0 / (self._rrf_k + rank + 1)
                 scores[doc_id] = scores.get(doc_id, 0.0) + rrf_score
                 if doc_id not in doc_map:
