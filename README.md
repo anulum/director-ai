@@ -46,6 +46,10 @@ Director-Class AI — Repository overview
 | **Director-AI** | `pip install director-ai` | Free core; paid Pro for Advanced & Labs production use | Open-core runtime: `guard()`, REST/gRPC server, SDK and framework integrations, evidence packets, opt-in streaming contradiction halt, production licence path |
 | **Director-Class AI** | Commercial engagement | Custom | Premium category: managed deployment, customer-specific sector packs, tuning/evaluation, evidence reviews, SLA, procurement support |
 
+**→ [Full pricing &amp; plans](https://anulum.github.io/director-ai/pricing/)** — Pro
+self-host, Founding Member, and the Director-Class engagement, with a free 30-day
+pilot.
+
 PyPI is the adoption front door. `director-ai-lite` is the free package we
 publish and promote first for the smallest useful experience; `director-ai`
 remains the full open-core package and the technical base for paid Pro

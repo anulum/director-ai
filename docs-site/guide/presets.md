@@ -104,9 +104,9 @@ primary signal and a full NLI model is not available.
 
 **research** — Higher threshold (0.70) for academic and analytical workloads where factual precision matters more than recall.
 
-**medical** — Equal logic/fact weighting reflects the need for both clinical reasoning and factual accuracy. Reranker enabled for precise KB retrieval. NLI-only eval on PubMedQA (1000 samples, 2026-03-20): F1=61.9% at t=0.30, but FPR=100% (all responses flagged). **KB grounding or customer-specific calibration required for usable precision.** Scores without KB cluster 0.25-0.35.
+**medical** — ⚠️ **Requires a knowledge base; it is a calibration starting point, not a drop-in.** Without KB grounding the preset over-rejects (NLI-only on PubMedQA, 1000 samples, 2026-03-20: every response flagged — FPR=100% at t=0.30; ungrounded scores cluster 0.25–0.35). With a grounding KB or customer-specific calibration it becomes usable (NLI-only F1=61.9%). Config: equal logic/fact weighting for clinical reasoning + factual accuracy; reranker enabled for precise KB retrieval.
 
-**finance** — Fact-weighted (0.6) because numerical claims and regulatory data dominate. Reranker sharpens retrieval against financial KB documents. NLI-only eval on FinanceBench (150 clean samples, 2026-03-20): FPR=100%, precision=0% — all clean responses were flagged. **These thresholds need KB grounding or recalibration before production use.**
+**finance** — ⚠️ **Requires a knowledge base; recalibrate against your data before production.** Without KB grounding the preset over-rejects (NLI-only on FinanceBench, 150 clean samples, 2026-03-20: every clean response flagged — FPR=100%, precision=0%). Config: fact-weighted (0.6) for numerical claims and regulatory data; reranker sharpens retrieval against financial KB documents.
 
 **legal** — Logic-weighted (0.6) because legal reasoning chains (statute + precedent + application) matter more than isolated facts. No reranker; legal KBs tend to be smaller and well-structured. **Not validated** — CUAD benchmark OOM on 6GB VRAM. No domain-specific artefact exists.
 
