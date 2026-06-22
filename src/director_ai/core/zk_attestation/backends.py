@@ -132,6 +132,13 @@ class CommitmentBackend:
         """
         if not samples:
             raise ValueError("samples must be non-empty")
+        if not statement.spot_check_sound:
+            raise ValueError(
+                f"{statement.kind!r} is an at-least claim: its aggregate cannot be "
+                "soundly certified by a commitment spot-check (over-claiming the "
+                "aggregate is unconstrained, so the claim is forgeable). Use "
+                "SchnorrAttestationBackend or BulletproofRangeBackend instead."
+            )
         commitment, leaves, blinds = commit_samples(samples, key=self.key, rng=self.rng)
         aggregate = _sum_float([statement.evaluate_sample(s) for s in samples])
         indices = self._pick_challenge(
@@ -156,6 +163,14 @@ class CommitmentBackend:
         """Verify a commitment ``proof`` and return ``(accepted, reason)``."""
         if not isinstance(proof, CommitmentProof):
             return False, "wrong_proof_type"
+        if not statement.spot_check_sound:
+            # An at-least claim's aggregate is forgeable on a spot-check backend
+            # (over-claiming is unconstrained); refuse rather than accept a proof
+            # that does not actually bind the aggregate.
+            return (
+                False,
+                "spot_check_unsound_for_at_least_claim_use_schnorr_or_bulletproof",
+            )
         ok, reason = verify_opening(
             proof, key=self.key, per_sample_evaluator=statement.evaluate_sample
         )

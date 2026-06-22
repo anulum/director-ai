@@ -47,6 +47,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   only the claim kind, name, and backend, so a statement could be weakened in
   transit (for example by lowering a coherence threshold) while the MAC still
   validated. Passports issued before this change do not verify under the new MAC.
+- Refuse "at-least" attestation claims (minimum coherence, domain experience) on
+  the commitment spot-check backend. That backend binds the prover-supplied
+  aggregate from below only, so it accepted a forged over-claim (a low-coherence
+  history could be certified as high-coherence). These claims must now use the
+  Schnorr or Bulletproof backend, which bind or prove the aggregate
+  cryptographically; "at-most / zero" claims (maximum halt rate, no breakout
+  events) are unaffected. Passports that certified an at-least claim on the
+  commitment backend no longer verify.
 
 ## [3.16.0] - 2026-06-21
 

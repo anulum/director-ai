@@ -19,7 +19,7 @@ from director_ai.core.zk_attestation import (
     CommitmentBackend,
     CommitmentProof,
     CrossOrgPassport,
-    MinimumCoherence,
+    MaximumHaltRate,
     PassportIssuer,
     PassportVerifier,
     commit_samples,
@@ -159,7 +159,7 @@ def test_passport_verifier_accepts_generated_bundles_and_rejects_mac_changes(
     passport = issuer.issue(
         agent_id=agent_id,
         samples=samples,
-        statements=[MinimumCoherence(name="coherence", threshold=0.0, samples_min=1)],
+        statements=[MaximumHaltRate(name="coherence", max_rate=1.0, samples_min=1)],
     )
 
     verdict = verifier.verify(passport)
@@ -197,10 +197,13 @@ def test_passport_verifier_reports_tampered_proof_failures(
         issuer_keys={org: _KEY_A},
         backends={"commitment": CommitmentBackend(key=_KEY_A, challenge_size=4)},
     )
+    # Force halts so the honest aggregate is positive: only then does shrinking
+    # the reported aggregate to 0 create the opened_sum > aggregate inconsistency
+    # this test exercises.
     passport = issuer.issue(
         agent_id=agent_id,
-        samples=samples,
-        statements=[MinimumCoherence(name="coherence", threshold=0.0, samples_min=1)],
+        samples=[{**s, "halted": True} for s in samples],
+        statements=[MaximumHaltRate(name="coherence", max_rate=1.0, samples_min=1)],
     )
     proof = passport.entries[0].proof
     assert isinstance(proof, CommitmentProof)
@@ -232,7 +235,7 @@ def test_passport_verifier_reports_tampered_proof_failures(
 def test_commitment_backend_rejects_wrong_verifier_key(samples):
     issuer_backend = CommitmentBackend(key=_KEY_A, challenge_size=4)
     verifier_backend = CommitmentBackend(key=_KEY_B, challenge_size=4)
-    statement = MinimumCoherence(name="coherence", threshold=0.0, samples_min=1)
+    statement = MaximumHaltRate(name="coherence", max_rate=1.0, samples_min=1)
     proof = issuer_backend.prove(statement, samples)
 
     ok, reason = verifier_backend.verify(statement, proof)

@@ -31,6 +31,16 @@ Caveat (honest naming): this is a commitment + spot-check
 scheme, *not* a zero-knowledge proof. It reveals opened samples
 in the clear. For a full ZK proof use a
 :class:`ZkSnarkBackend` adapter.
+
+Soundness is directional. The aggregate is a prover-supplied number bound only
+by ``opened_sum <= aggregate`` — that catches UNDER-claiming, not OVER-claiming.
+So "at-most / zero" claims (maximum halt rate, no breakout events) are
+probabilistically sound (a violating sample in the root-derived opening is
+caught), but "at-least" claims (minimum coherence, domain experience) are
+forgeable here: a prover can over-claim the aggregate freely. ``CommitmentBackend``
+therefore refuses statements whose ``spot_check_sound`` is False and directs them
+to ``SchnorrAttestationBackend`` / ``BulletproofRangeBackend``, which bind or
+prove the aggregate cryptographically.
 """
 
 from __future__ import annotations

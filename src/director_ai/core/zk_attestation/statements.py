@@ -49,6 +49,21 @@ class AttestationStatement(Protocol):
         """Return the human-readable claim name embedded in passports."""
         ...
 
+    @property
+    def spot_check_sound(self) -> bool:
+        """Whether a commitment spot-check can soundly certify this claim.
+
+        ``False`` for claims whose :meth:`accepts` needs a LOWER bound on the
+        aggregate ("at-least": minimum coherence, domain experience): the prover
+        can over-claim the aggregate and the one-directional
+        ``opened_sum <= aggregate`` consistency check cannot catch it, so the
+        claim is forgeable on a spot-check backend and must use a cryptographic
+        backend (Schnorr / Bulletproof). ``True`` for "at-most / zero" claims,
+        where under-claiming is caught probabilistically by the root-derived
+        opening.
+        """
+        ...
+
     def evaluate_sample(self, sample: HistorySample) -> float:
         """Return this statement's numeric contribution for one sample."""
         ...
@@ -76,6 +91,9 @@ class MinimumCoherence:
     threshold: float
     samples_min: int
     kind: str = field(default="minimum_coherence", init=False)
+    # "at-least" claim: accepts needs a lower bound on the aggregate, which a
+    # one-directional spot-check cannot provide (over-claiming is unconstrained).
+    spot_check_sound: bool = field(default=False, init=False)
 
     def __post_init__(self) -> None:
         """Validate claim identity, threshold bounds, and sample minimum."""
@@ -113,6 +131,9 @@ class MaximumHaltRate:
     max_rate: float
     samples_min: int
     kind: str = field(default="maximum_halt_rate", init=False)
+    # "at-most" claim: accepts needs an upper bound on the aggregate, which the
+    # root-derived opening provides probabilistically (under-claiming is caught).
+    spot_check_sound: bool = field(default=True, init=False)
 
     def __post_init__(self) -> None:
         """Validate claim identity, rate bounds, and sample minimum."""
@@ -148,6 +169,9 @@ class DomainExperience:
     domain: str
     hours_min: float
     kind: str = field(default="domain_experience", init=False)
+    # "at-least" claim: over-claiming the accumulated time is unconstrained by a
+    # one-directional spot-check, so it needs a cryptographic backend.
+    spot_check_sound: bool = field(default=False, init=False)
 
     def __post_init__(self) -> None:
         """Validate claim identity, target domain, and minimum hours."""
@@ -185,6 +209,10 @@ class NoBreakoutEvents:
     name: str
     samples_min: int
     kind: str = field(default="no_breakout_events", init=False)
+    # "zero" claim: accepts needs an upper bound (aggregate == 0); a breakout in
+    # the root-derived opening is caught, so the spot-check is probabilistically
+    # sound.
+    spot_check_sound: bool = field(default=True, init=False)
 
     def __post_init__(self) -> None:
         """Validate claim identity and required sample count."""

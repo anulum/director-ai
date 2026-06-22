@@ -269,12 +269,10 @@ class TestMerkleCommitment:
         )
         assert not ok and reason.startswith("merkle_mismatch")
 
-    def test_aggregate_inflation_rejected(self):
+    def test_aggregate_inflation_not_caught_at_opening_level(self):
         samples = [{"coherence": 0.9}]
         commitment, leaves, blinds = commit_samples(samples, key=_KEY_A)
         stmt = MinimumCoherence(name="c", threshold=0.8, samples_min=1)
-        # Prover claims an aggregate larger than the real sum AND
-        # larger than the opened-subset sum — detectable.
         honest_agg = stmt.evaluate_sample(samples[0])  # 0.9
         proof_good = open_indices(
             indices=[0],
@@ -284,13 +282,12 @@ class TestMerkleCommitment:
             aggregate=honest_agg,
             commitment=commitment,
         )
-        # But if the prover *inflates* the aggregate to make
-        # accepts() pass — the opened subset still only sums to
-        # 0.9, which is < inflated, so the opened_sum ≤ aggregate
-        # check passes. That is expected: inflation is only
-        # detectable when the opened subset exceeds the claim.
-        # The guard against inflation is the deterministic
-        # challenge derivation (CommitmentBackend.verify).
+        # verify_opening only enforces opened_sum <= aggregate, so it CANNOT
+        # catch an inflated aggregate (the opened subset still sums to 0.9, which
+        # is below any inflated claim). This is the unsoundness of the spot-check
+        # for at-least claims; it is closed one level up, where
+        # CommitmentBackend refuses at-least claims entirely (see
+        # TestCommitmentBackend.test_verify_rejects_forged_at_least_claim).
         assert verify_opening(
             proof_good, key=_KEY_A, per_sample_evaluator=stmt.evaluate_sample
         )[0]
@@ -831,19 +828,74 @@ class TestCommitmentBackend:
 
     def test_prove_verify_roundtrip(self):
         backend = CommitmentBackend(key=_KEY_A, challenge_size=4)
-        samples = [{"coherence": 0.95, "halted": False} for _ in range(16)]
-        stmt = MinimumCoherence(name="c", threshold=0.9, samples_min=10)
+        # MaximumHaltRate is an "at-most" claim — spot-check sound. (At-least
+        # claims like MinimumCoherence are refused on this backend; see
+        # test_prove_refuses_at_least_claim.)
+        samples = [{"halted": False} for _ in range(16)]
+        stmt = MaximumHaltRate(name="c", max_rate=0.5, samples_min=10)
         proof = backend.prove(stmt, samples)
         ok, reason = backend.verify(stmt, proof)
         assert ok, reason
 
     def test_statement_threshold_below_rejected(self):
         backend = CommitmentBackend(key=_KEY_A, challenge_size=4)
-        samples = [{"coherence": 0.5} for _ in range(16)]
-        stmt = MinimumCoherence(name="c", threshold=0.9, samples_min=10)
+        samples = [{"halted": True} for _ in range(16)]  # rate 1.0 > max_rate
+        stmt = MaximumHaltRate(name="c", max_rate=0.1, samples_min=10)
         proof = backend.prove(stmt, samples)
         ok, reason = backend.verify(stmt, proof)
         assert not ok and reason == "statement_threshold_not_met"
+
+    def test_prove_refuses_at_least_claim(self):
+        # At-least claims are forgeable on a spot-check backend (over-claiming the
+        # aggregate is unconstrained), so prove fails fast and names the fix.
+        backend = CommitmentBackend(key=_KEY_A)
+        for stmt in (
+            MinimumCoherence(name="c", threshold=0.9, samples_min=1),
+            DomainExperience(name="d", domain="math", hours_min=1.0),
+        ):
+            with pytest.raises(ValueError, match="at-least claim"):
+                backend.prove(stmt, [{"coherence": 0.95, "domain": "math"}])
+
+    def test_verify_rejects_forged_at_least_claim(self):
+        # The headline exploit: real coherence 0.1 over 100 samples, but the
+        # prover forges aggregate=95 (mean 0.95). A one-directional spot-check
+        # would accept it (opened_sum <= claimed). The backend now refuses the
+        # claim outright rather than accept an unbound aggregate.
+        backend = CommitmentBackend(key=_KEY_A)
+        stmt = MinimumCoherence(name="c", threshold=0.9, samples_min=10)
+        samples = [{"coherence": 0.1} for _ in range(100)]
+        commitment, leaves, blinds = commit_samples(samples, key=_KEY_A)
+        idx = backend._pick_challenge(
+            seed_material=commitment.root.encode("utf-8"),
+            sample_count=100,
+            challenge_size=32,
+        )
+        forged = open_indices(
+            indices=idx,
+            samples=samples,
+            leaves=leaves,
+            blinds=blinds,
+            aggregate=95.0,
+            commitment=commitment,
+        )
+        ok, reason = backend.verify(stmt, forged)
+        assert not ok
+        assert reason == (
+            "spot_check_unsound_for_at_least_claim_use_schnorr_or_bulletproof"
+        )
+
+    def test_schnorr_certifies_at_least_claim_soundly(self):
+        # The recommended path: at-least claims ARE sound on Schnorr, which binds
+        # the aggregate cryptographically, so the redirect target works.
+        from director_ai.core.zk_attestation.schnorr import (
+            SchnorrAttestationBackend,
+        )
+
+        backend = SchnorrAttestationBackend()
+        stmt = MinimumCoherence(name="c", threshold=0.9, samples_min=10)
+        samples = [{"coherence": 0.95} for _ in range(20)]
+        proof = backend.prove(stmt, samples)
+        assert backend.verify(stmt, proof)[0]
 
     def test_wrong_proof_type(self):
         backend = CommitmentBackend(key=_KEY_A, challenge_size=4)
@@ -853,8 +905,8 @@ class TestCommitmentBackend:
 
     def test_tampered_aggregate_rejected(self):
         backend = CommitmentBackend(key=_KEY_A, challenge_size=4)
-        samples = [{"coherence": 0.95} for _ in range(8)]
-        stmt = MinimumCoherence(name="c", threshold=0.9, samples_min=4)
+        samples = [{"halted": True} for _ in range(8)]  # aggregate 8 > 0
+        stmt = MaximumHaltRate(name="c", max_rate=0.9, samples_min=4)
         proof = backend.prove(stmt, samples)
         # Shrink the aggregate below the opened subset sum — the
         # opened_sum > claimed check must catch it.
@@ -869,8 +921,8 @@ class TestCommitmentBackend:
 
     def test_tampered_indices_rejected(self):
         backend = CommitmentBackend(key=_KEY_A, challenge_size=4)
-        samples = [{"coherence": 0.95} for _ in range(16)]
-        stmt = MinimumCoherence(name="c", threshold=0.9, samples_min=1)
+        samples = [{"halted": False} for _ in range(16)]
+        stmt = MaximumHaltRate(name="c", max_rate=0.5, samples_min=1)
         proof = backend.prove(stmt, samples)
         # Swap the opened set for a different valid subset — it
         # will reconstruct the root but fail the challenge-derivation
@@ -901,8 +953,8 @@ class TestCommitmentBackend:
 
     def test_valid_opening_for_wrong_challenge_index_rejected(self):
         backend = CommitmentBackend(key=_KEY_A, challenge_size=2)
-        samples = [{"coherence": 0.95, "i": i} for i in range(8)]
-        stmt = MinimumCoherence(name="c", threshold=0.9, samples_min=1)
+        samples = [{"halted": False, "i": i} for i in range(8)]
+        stmt = MaximumHaltRate(name="c", max_rate=0.5, samples_min=1)
         commitment, leaves, blinds = commit_samples(
             samples,
             key=_KEY_A,
@@ -932,8 +984,8 @@ class TestCommitmentBackend:
 
     def test_corrupt_proof_with_more_openings_than_population_rejected(self):
         backend = CommitmentBackend(key=_KEY_A, challenge_size=4)
-        stmt = MinimumCoherence(name="c", threshold=0.9, samples_min=1)
-        base = self._single_leaf_proof_for_backend(serialised='{"coherence":0.95}')
+        stmt = MaximumHaltRate(name="c", max_rate=0.5, samples_min=1)
+        base = self._single_leaf_proof_for_backend(serialised='{"halted":false}')
         corrupt = object.__new__(CommitmentProof)
         object.__setattr__(corrupt, "commitment", base.commitment)
         object.__setattr__(
@@ -1114,7 +1166,7 @@ class TestPassport:
             agent_id="agent-001",
             samples=samples,
             statements=[
-                MinimumCoherence(name="c", threshold=0.9, samples_min=10),
+                MaximumHaltRate(name="c", max_rate=0.5, samples_min=10),
                 NoBreakoutEvents(name="no_break", samples_min=10),
             ],
         )
@@ -1138,12 +1190,12 @@ class TestPassport:
         passport = issuer.issue(
             agent_id="agent-001",
             samples=self._make_samples(),
-            statements=[MinimumCoherence(name="c", threshold=0.9, samples_min=10)],
+            statements=[MaximumHaltRate(name="c", max_rate=0.5, samples_min=10)],
         )
         assert verifier.verify(passport).accepted
 
         entry = passport.entries[0]
-        weakened = dataclasses.replace(entry.statement, threshold=0.0)
+        weakened = dataclasses.replace(entry.statement, max_rate=1.0)
         tampered = dataclasses.replace(
             passport,
             entries=(dataclasses.replace(entry, statement=weakened),),
@@ -1162,7 +1214,7 @@ class TestPassport:
         passport = issuer.issue(
             agent_id="a",
             samples=samples,
-            statements=[MinimumCoherence(name="c", threshold=0.9, samples_min=1)],
+            statements=[MaximumHaltRate(name="c", max_rate=0.5, samples_min=1)],
         )
         verdict = verifier.verify(passport)
         assert not verdict.accepted and not verdict.signature_ok
@@ -1177,7 +1229,7 @@ class TestPassport:
         passport = issuer.issue(
             agent_id="a",
             samples=samples,
-            statements=[MinimumCoherence(name="c", threshold=0.9, samples_min=1)],
+            statements=[MaximumHaltRate(name="c", max_rate=0.5, samples_min=1)],
         )
         tampered = CrossOrgPassport(
             agent_id=passport.agent_id,
@@ -1201,7 +1253,7 @@ class TestPassport:
         passport = issuer.issue(
             agent_id="a",
             samples=samples,
-            statements=[MinimumCoherence(name="c", threshold=0.9, samples_min=1)],
+            statements=[MaximumHaltRate(name="c", max_rate=0.5, samples_min=1)],
         )
         verdict = verifier.verify(passport)
         assert verdict.signature_ok
@@ -1216,13 +1268,13 @@ class TestPassport:
             issuer_keys={"org://alpha": _KEY_A},
             backends={"commitment": CommitmentBackend(key=_KEY_A)},
         )
-        # Low-coherence samples — the statement will verify
-        # structurally but fail acceptance.
-        samples = [{"coherence": 0.4} for _ in range(32)]
+        # High-halt-rate samples — the statement verifies structurally but
+        # fails acceptance (rate 1.0 > max_rate 0.1).
+        samples = [{"halted": True} for _ in range(32)]
         passport = issuer.issue(
             agent_id="a",
             samples=samples,
-            statements=[MinimumCoherence(name="c", threshold=0.9, samples_min=10)],
+            statements=[MaximumHaltRate(name="c", max_rate=0.1, samples_min=10)],
         )
         verdict = verifier.verify(passport)
         assert verdict.signature_ok
@@ -1255,7 +1307,7 @@ class TestPassport:
             issuer.issue(
                 agent_id="a",
                 samples=[],
-                statements=[MinimumCoherence(name="c", threshold=0.9, samples_min=1)],
+                statements=[MaximumHaltRate(name="c", max_rate=0.5, samples_min=1)],
             )
 
     def test_issue_rejects_empty_agent(self):
@@ -1264,7 +1316,7 @@ class TestPassport:
             issuer.issue(
                 agent_id="",
                 samples=[{"coherence": 0.9}],
-                statements=[MinimumCoherence(name="c", threshold=0.9, samples_min=1)],
+                statements=[MaximumHaltRate(name="c", max_rate=0.5, samples_min=1)],
             )
 
     def test_issue_requires_at_least_one_statement(self):
@@ -1283,8 +1335,8 @@ class TestPassport:
             backends={"commitment": CommitmentBackend(key=_KEY_A)},
         )
         override = CommitmentBackend(key=_KEY_A, challenge_size=2)
-        samples = [{"coherence": 0.95} for _ in range(16)]
-        stmt = MinimumCoherence(name="c", threshold=0.9, samples_min=1)
+        samples = [{"halted": False} for _ in range(16)]
+        stmt = MaximumHaltRate(name="c", max_rate=0.5, samples_min=1)
         passport = issuer.issue(
             agent_id="a",
             samples=samples,
@@ -1308,16 +1360,16 @@ class TestPassport:
         issuer = PassportIssuer(key=_KEY_A, issuing_org="org://alpha")
         passport = issuer.issue(
             agent_id="a|b\\c",
-            samples=[{"coherence": 0.99}],
-            statements=[MinimumCoherence(name="c|d\\e", threshold=0.9, samples_min=1)],
+            samples=[{"halted": False}],
+            statements=[MaximumHaltRate(name="c|d\\e", max_rate=0.5, samples_min=1)],
         )
 
         assert b"a\\|b\\\\c" in passport.canonical_header
         # The full statement — including the threshold the verifier acts on — is
         # authenticated by the MAC, not just kind/name (guards against an
         # in-transit threshold downgrade).
-        assert b'"threshold":0.9' in passport.canonical_header
-        assert b"minimum_coherence" in passport.canonical_header
+        assert b'"max_rate":0.5' in passport.canonical_header
+        assert b"maximum_halt_rate" in passport.canonical_header
         with pytest.raises(ValueError, match="agent_id"):
             CrossOrgPassport(
                 agent_id="",
