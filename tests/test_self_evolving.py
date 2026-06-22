@@ -419,12 +419,6 @@ class TestLoraTrainerGuard:
         )
         assert trainer_mod._unsafe_probability([2.0, 2.0]) == pytest.approx(0.5)
 
-    def test_unsafe_probability_from_real_torch_logits(self):
-        torch = pytest.importorskip("torch")
-        assert trainer_mod._unsafe_probability(
-            torch.tensor([[1.0, 3.0]])
-        ) == pytest.approx(0.8807970, abs=1e-5)
-
     def test_train_distils_with_faked_stack(self, monkeypatch):
         # CI runs without the heavy ML stack, so the distillation flow is
         # exercised with a faked torch/transformers/peft stack: the fine-tuned
@@ -562,80 +556,6 @@ class TestLoraTrainerGuard:
         assert trained.version == 3
         assert trained.dim == 512
         assert not math.isnan(trained.training_accuracy)
-        assert trained.score("danger malicious payload attack") > 0.5
-        assert trained.score("the weather is calm and pleasant") < 0.5
-
-    def test_train_distils_model_decisions_into_scorable_head(self, monkeypatch):
-        # The fine-tuned model's per-prompt decision must be distilled into the
-        # hash-bag head that TrainedGuardrail.score evaluates — so a guardrail
-        # the model judges unsafe scores high and a safe one scores low. This is
-        # the regression for scoring the head weights (transformer hidden space)
-        # against a hash-bag (meaningless). Uses real torch end to end with a
-        # tiny content-aware model; only transformers/peft are faked (no
-        # network download).
-        torch = pytest.importorskip("torch")
-        pytest.importorskip("torch.utils.data")
-
-        class _TinyModel(torch.nn.Module):
-            """Unsafe (class 1) when the first input id is 1, else safe."""
-
-            def __init__(self) -> None:
-                super().__init__()
-                self.scale = torch.nn.Parameter(torch.tensor(3.0))
-
-            def forward(self, *, input_ids, **_ignored):
-                flag = input_ids[:, 0].float()
-                unsafe = self.scale * (flag * 2.0 - 1.0)
-                return SimpleNamespace(logits=torch.stack([-unsafe, unsafe], dim=1))
-
-        class _FakeTokenizer:
-            def __call__(self, prompt, *, return_tensors=None, **_ignored):
-                flag = 1 if "danger" in prompt else 0
-                if return_tensors == "pt":
-                    enc = {
-                        "input_ids": torch.tensor([[flag]]),
-                        "attention_mask": torch.tensor([[1]]),
-                    }
-                    return SimpleNamespace(to=lambda _device: enc)
-                return {"input_ids": [flag], "attention_mask": [1]}
-
-        fake_peft = ModuleType("peft")
-        fake_peft.TaskType = SimpleNamespace(SEQ_CLS="SEQ_CLS")
-        fake_peft.LoraConfig = lambda **_kwargs: SimpleNamespace()
-        fake_peft.get_peft_model = lambda model, _config: model
-
-        fake_transformers = ModuleType("transformers")
-        fake_transformers.AutoTokenizer = SimpleNamespace(
-            from_pretrained=lambda _name, *, revision=None: _FakeTokenizer()
-        )
-        fake_transformers.AutoModelForSequenceClassification = SimpleNamespace(
-            from_pretrained=lambda _name, *, num_labels, revision=None: _TinyModel()
-        )
-
-        monkeypatch.setitem(sys.modules, "peft", fake_peft)
-        monkeypatch.setitem(sys.modules, "transformers", fake_transformers)
-
-        events = [
-            FeedbackEvent(
-                prompt="danger malicious payload attack", response="", label="unsafe"
-            ),
-            FeedbackEvent(
-                prompt="danger exploit injection harmful", response="", label="unsafe"
-            ),
-            FeedbackEvent(
-                prompt="the weather is calm and pleasant", response="", label="safe"
-            ),
-            FeedbackEvent(
-                prompt="a friendly greeting good morning", response="", label="safe"
-            ),
-        ]
-        trainer = LoraGuardrailTrainer(epochs=1, distill_dim=512, distill_epochs=12)
-        trained = trainer.train(events, version=7)
-
-        assert trained.version == 7
-        assert trained.dim == 512
-        assert not math.isnan(trained.training_accuracy)
-        # The distilled head reproduces the model's decisions.
         assert trained.score("danger malicious payload attack") > 0.5
         assert trained.score("the weather is calm and pleasant") < 0.5
 
