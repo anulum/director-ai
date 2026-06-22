@@ -8,14 +8,93 @@
 
 from __future__ import annotations
 
+import sys
+from types import ModuleType, SimpleNamespace
+from typing import Any, Literal
+
+import numpy as np
 import pytest
 
-torch = pytest.importorskip("torch")
-
-from director_ai.core.scoring.contradiction import (  # noqa: E402
+from director_ai.core.scoring.contradiction import (
     ContradictionResult,
     ContradictionScorer,
 )
+
+# ── numpy-backed fake torch ─────────────────────────────────────────────
+# The contradiction scorer is model-backed, so its full test runs only where
+# torch/transformers are installed (skipped in lean CI, where the module shows
+# ~41% coverage despite being correct). To exercise the real inference path in
+# CI without the heavy ML stack, torch is faked with a numpy backend: softmax is
+# numerically exact, so the production math and the assertions stay valid.
+
+
+class _FakeTensor:
+    def __init__(self, data: object) -> None:
+        self._a = np.asarray(data, dtype=float)
+
+    def to(self, _device: object) -> _FakeTensor:
+        return self
+
+    @property
+    def device(self) -> str:
+        return "cpu"
+
+    def __getitem__(self, idx: Any) -> _FakeTensor:
+        return _FakeTensor(self._a[idx])
+
+    def item(self) -> float:
+        return float(self._a)
+
+    def tolist(self) -> object:
+        return self._a.tolist()
+
+
+def _fake_tensor(data: object, dtype: object = None) -> _FakeTensor:
+    return _FakeTensor(data)
+
+
+def _fake_softmax(tensor: _FakeTensor, dim: int = -1) -> _FakeTensor:
+    a = np.asarray(tensor._a, dtype=float)
+    shifted = np.exp(a - a.max(axis=dim, keepdims=True))
+    return _FakeTensor(shifted / shifted.sum(axis=dim, keepdims=True))
+
+
+class _FakeNoGrad:
+    def __enter__(self) -> _FakeNoGrad:
+        return self
+
+    def __exit__(self, *_exc: object) -> Literal[False]:
+        return False
+
+
+def _build_fake_torch() -> ModuleType:
+    module = ModuleType("torch")
+    module.tensor = _fake_tensor  # type: ignore[attr-defined]
+    module.softmax = _fake_softmax  # type: ignore[attr-defined]
+    module.no_grad = _FakeNoGrad  # type: ignore[attr-defined]
+    module.float32 = "float32"  # type: ignore[attr-defined]
+    module.cuda = SimpleNamespace(is_available=lambda: False)  # type: ignore[attr-defined]
+    return module
+
+
+torch = _build_fake_torch()
+
+
+@pytest.fixture(autouse=True)
+def _fake_ml_stack(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Install the numpy-backed fake torch and a fake transformers module.
+
+    The scorer imports both lazily inside its methods, so injecting them into
+    ``sys.modules`` lets the real inference/loading code run without the heavy
+    dependencies. The same fake ``torch`` object backs the test's own assertions.
+    """
+    fake_transformers = ModuleType("transformers")
+    fake_transformers.AutoTokenizer = SimpleNamespace(from_pretrained=None)  # type: ignore[attr-defined]
+    fake_transformers.AutoModelForSequenceClassification = SimpleNamespace(  # type: ignore[attr-defined]
+        from_pretrained=None
+    )
+    monkeypatch.setitem(sys.modules, "torch", torch)
+    monkeypatch.setitem(sys.modules, "transformers", fake_transformers)
 
 
 class _StubConfig:
