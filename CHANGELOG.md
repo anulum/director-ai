@@ -38,6 +38,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   model now labels each prompt and a perceptron head fits those targets. Also fix
   the fine-tune training loop so it consumes batched tensors instead of a
   transposed list of per-position tensors.
+- Shuffle the self-evolving training set with a seeded RNG before the conformal
+  calibration split, so the calibration fold is a representative mix of real and
+  synthetic, safe and unsafe events rather than the all-synthetic-unsafe tail
+  that voided the coverage guarantee.
 
 ## [3.16.0] - 2026-06-21
 

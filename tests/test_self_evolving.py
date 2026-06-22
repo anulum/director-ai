@@ -636,6 +636,43 @@ class TestSelfEvolver:
         assert 0.0 <= report.threshold <= 1.0
         assert len(report.adversarial_samples) <= 16
 
+    def test_calibration_fold_is_representative_not_all_unsafe(self):
+        # Regression: the calibration fold was the tail of
+        # (real events + synthetic-unsafe), i.e. entirely "unsafe", voiding the
+        # split-conformal coverage guarantee (which needs a fold exchangeable
+        # with live, mixed traffic). The seeded shuffle must yield a mix.
+        from director_ai.core.self_evolving.calibration import ConformalResult
+
+        store = InMemoryFeedbackStore()
+        self._populate(store)  # 20 safe + 20 unsafe real events
+
+        captured: dict[str, list[str]] = {}
+
+        class _CaptureCalibrator:
+            def calibrate(
+                self, guardrail: Any, calibration_events: Any
+            ) -> ConformalResult:
+                events = list(calibration_events)
+                captured["labels"] = [e.label for e in events]
+                return ConformalResult(
+                    threshold=0.5,
+                    coverage_target=0.9,
+                    calibration_size=len(events),
+                )
+
+        evolver = SelfEvolver(
+            store=store,
+            calibrator=cast(Any, _CaptureCalibrator()),
+            adversarial_per_evolution=16,
+        )
+        evolver.evolve(seed=0)
+
+        labels = captured["labels"]
+        assert labels  # the fold is non-empty
+        # With 20 safe real events in the mix, a representative fold contains at
+        # least one "safe" label; the old all-unsafe tail never did.
+        assert "safe" in labels
+
     def test_min_feedback_enforced(self):
         store = InMemoryFeedbackStore()
         evolver = SelfEvolver(store=store, min_feedback=5)

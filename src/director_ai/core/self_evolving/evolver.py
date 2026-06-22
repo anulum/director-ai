@@ -21,6 +21,7 @@ is one such registry).
 
 from __future__ import annotations
 
+import random
 import threading
 from collections.abc import Iterable
 from dataclasses import dataclass, field
@@ -136,10 +137,15 @@ class SelfEvolver:
         synthesised = tuple(
             FeedbackEvent(prompt=p, response="", label="unsafe") for p in adversarial
         )
-        training_set = all_events + synthesised
+        # Shuffle (seeded, so the round stays reproducible) before the split.
+        # Without it the combined set is real-events-then-synthetic, and the
+        # synthetic block is entirely ``unsafe``; slicing the tail then yields an
+        # all-unsafe calibration fold. Split-conformal coverage is only valid on
+        # a fold exchangeable with live traffic, so the threshold must be
+        # calibrated on a representative mix of safe/unsafe and real/synthetic.
+        training_set = list(all_events + synthesised)
+        random.Random(seed).shuffle(training_set)
 
-        # Split 80 / 20 deterministically on the combined set so the
-        # conformal calibration sees unseen data.
         split = max(int(0.8 * len(training_set)), 1)
         train_events = training_set[:split]
         calibration_events = training_set[split:]
