@@ -176,10 +176,14 @@ class LoraGuardrailTrainer:
 
     Pulls the base model on demand through
     ``transformers.AutoModelForSequenceClassification`` and wraps
-    it with ``peft.get_peft_model``. Produces the same
-    :class:`TrainedGuardrail` shape so the orchestrator can hot-swap
-    without branching on the trainer backend — the callable
-    stored in ``.score`` defers to the LoRA adapter under the hood.
+    it with ``peft.get_peft_model``. After fine-tuning, the model is
+    distilled into the hash-bag head that :class:`TrainedGuardrail`
+    evaluates: the fine-tuned model labels each training prompt and a
+    :class:`PerceptronGuardrailTrainer` fits those targets, producing the
+    same :class:`TrainedGuardrail` shape so the orchestrator can hot-swap
+    without branching on the trainer backend. (The raw classifier-head
+    weights live in the transformer's hidden space and cannot be scored
+    against a hash-bag, so they are not used directly.)
 
     The constructor does not load anything; :meth:`train` loads
     lazily and raises :class:`ImportError` with install
@@ -195,6 +199,8 @@ class LoraGuardrailTrainer:
         alpha: int = 16,
         epochs: int = 1,
         device: str = "cpu",
+        distill_dim: int = 1024,
+        distill_epochs: int = 4,
     ) -> None:
         if rank <= 0:
             raise ValueError(f"rank must be positive; got {rank!r}")
@@ -202,12 +208,18 @@ class LoraGuardrailTrainer:
             raise ValueError(f"alpha must be positive; got {alpha!r}")
         if epochs <= 0:
             raise ValueError(f"epochs must be positive; got {epochs!r}")
+        if distill_dim <= 0:
+            raise ValueError(f"distill_dim must be positive; got {distill_dim!r}")
+        if distill_epochs <= 0:
+            raise ValueError(f"distill_epochs must be positive; got {distill_epochs!r}")
         self._base_model = base_model
         self._base_model_revision = base_model_revision
         self._rank = rank
         self._alpha = alpha
         self._epochs = epochs
         self._device = device
+        self._distill_dim = distill_dim
+        self._distill_epochs = distill_epochs
 
     def train(
         self,
@@ -271,7 +283,11 @@ class LoraGuardrailTrainer:
                 enc = tokenizer(
                     prompt, truncation=True, padding="max_length", max_length=128
                 )
-                return enc, label
+                # Return tensors so the default collate stacks each field into a
+                # [batch, seq] tensor. Returning raw lists makes collate transpose
+                # them into a list of per-position tensors that the model cannot
+                # consume.
+                return {k: torch.tensor(v) for k, v in enc.items()}, label
 
         dataset = _FeedbackDataset(labelled)
         loader = DataLoader(dataset, batch_size=8, shuffle=True)
@@ -280,21 +296,44 @@ class LoraGuardrailTrainer:
         for _ in range(self._epochs):
             for batch, labels in loader:
                 optimiser.zero_grad()
-                outputs = model(**{k: torch.tensor(v) for k, v in batch.items()})
+                outputs = model(**batch)
                 loss: Any = torch.nn.functional.cross_entropy(
-                    outputs.logits, torch.tensor(labels)
+                    outputs.logits, labels
                 )
                 loss.backward()
                 optimiser.step()
-        weights_extract = _extract_classifier_weights(model)
-        return TrainedGuardrail(
-            weights=weights_extract["weights"],
-            bias=weights_extract["bias"],
-            dim=weights_extract["dim"],
-            version=version,
-            epochs=self._epochs,
-            training_accuracy=float("nan"),
-        )
+
+        # Distil the fine-tuned model into the hash-bag head that
+        # ``TrainedGuardrail.score`` actually evaluates. The raw classifier-head
+        # weights live in the transformer's hidden space and are meaningless
+        # against a hash-bag featuriser; instead we run the fine-tuned model over
+        # the training prompts and use its per-prompt unsafe probability as the
+        # distillation target, so the deployed snapshot reproduces the LoRA
+        # decision boundary in the feature space its inference hook uses.
+        model.eval()
+        distilled: list[FeedbackEvent] = []
+        for prompt, _label in labelled:
+            enc = tokenizer(
+                prompt,
+                truncation=True,
+                padding="max_length",
+                max_length=128,
+                return_tensors="pt",
+            ).to(self._device)
+            with torch.no_grad():
+                logits = model(**enc).logits
+            prob_unsafe = _unsafe_probability(logits)
+            distilled.append(
+                FeedbackEvent(
+                    prompt=prompt,
+                    response="",
+                    label="unsafe" if prob_unsafe >= 0.5 else "safe",
+                )
+            )
+        return PerceptronGuardrailTrainer(
+            dim=self._distill_dim,
+            epochs=self._distill_epochs,
+        ).train(distilled, version=version)
 
 
 def _event_target(event: FeedbackEvent) -> int | None:
@@ -329,31 +368,25 @@ def _hash_bag(text: str, dim: int) -> tuple[float, ...]:
     return tuple(x * inv for x in bag)
 
 
-def _extract_classifier_weights(model: Any) -> dict[str, Any]:
-    """Pull the final classification-head weights and bias out of a model.
+def _logits_to_pair(logits: Any) -> tuple[float, float]:
+    """Reduce a two-class logits tensor (or nested list) to ``(safe, unsafe)``.
 
-    Reads them off a PEFT-wrapped model so the TrainedGuardrail snapshot can
-    survive process boundaries.
+    Accepts a torch tensor or a plain (possibly batched) list, unwrapping a
+    leading batch dimension so ``[[a, b]]`` and ``[a, b]`` both yield ``(a, b)``.
     """
-    head = (
-        model.base_model.classifier
-        if hasattr(model, "base_model")
-        else model.classifier
-    )
-    weight_tensor = head.weight.detach().cpu()
-    bias_tensor = head.bias.detach().cpu()
-    # Flatten the binary head into a single weight vector (weights
-    # for the positive class minus weights for the negative class)
-    # and a scalar bias differential.
-    positive = weight_tensor[1]
-    negative = weight_tensor[0]
-    weights_vec = (positive - negative).tolist()
-    bias = float(bias_tensor[1] - bias_tensor[0])
-    return {
-        "weights": tuple(float(w) for w in weights_vec),
-        "bias": bias,
-        "dim": len(weights_vec),
-    }
+    values: Any = logits.detach().cpu().tolist() if hasattr(logits, "detach") else logits
+    while isinstance(values, list) and values and isinstance(values[0], list):
+        values = values[0]
+    return float(values[0]), float(values[1])
+
+
+def _unsafe_probability(logits: Any) -> float:
+    """Return P(unsafe) from a two-class logits tensor via a stable softmax."""
+    safe_logit, unsafe_logit = _logits_to_pair(logits)
+    ceiling = max(safe_logit, unsafe_logit)
+    exp_safe = math.exp(safe_logit - ceiling)
+    exp_unsafe = math.exp(unsafe_logit - ceiling)
+    return exp_unsafe / (exp_safe + exp_unsafe)
 
 
 def _dot(a: Sequence[float], b: Sequence[float]) -> float:

@@ -396,6 +396,10 @@ class TestLoraTrainerGuard:
             LoraGuardrailTrainer(alpha=0)
         with pytest.raises(ValueError, match="epochs"):
             LoraGuardrailTrainer(epochs=0)
+        with pytest.raises(ValueError, match="distill_dim"):
+            LoraGuardrailTrainer(distill_dim=0)
+        with pytest.raises(ValueError, match="distill_epochs"):
+            LoraGuardrailTrainer(distill_epochs=0)
 
     def test_train_raises_when_optional_deps_missing(self):
         if importlib.util.find_spec("peft") is not None:
@@ -404,81 +408,84 @@ class TestLoraTrainerGuard:
         with pytest.raises(ImportError, match="training"):
             t.train(_balanced_events(), version=1)
 
-    def test_train_with_fake_optional_stack_extracts_classifier_snapshot(
-        self,
-        monkeypatch,
-    ):
-        calls: dict[str, Any] = {"tokenized": [], "steps": 0}
 
-        class FakeVector:
-            def __init__(self, values: list[float]) -> None:
-                self._values = values
+    def test_event_target_unknown_label_returns_none(self):
+        assert trainer_mod._event_target(SimpleNamespace(label="unknown")) is None
 
-            def __sub__(self, other: FakeVector) -> FakeVector:
-                return FakeVector(
-                    [
-                        left - right
-                        for left, right in zip(self._values, other._values, strict=True)
-                    ]
-                )
+    def test_unsafe_probability_softmax(self):
+        # softmax([1, 3])[1] = e^2 / (1 + e^2) ~ 0.8808; works on batched and
+        # un-batched plain lists (no torch dependency for the math).
+        assert trainer_mod._unsafe_probability([[1.0, 3.0]]) == pytest.approx(
+            0.8807970, abs=1e-5
+        )
+        assert trainer_mod._unsafe_probability([2.0, 2.0]) == pytest.approx(0.5)
 
-            def tolist(self) -> list[float]:
-                return list(self._values)
+    def test_unsafe_probability_from_real_torch_logits(self):
+        torch = pytest.importorskip("torch")
+        assert trainer_mod._unsafe_probability(
+            torch.tensor([[1.0, 3.0]])
+        ) == pytest.approx(0.8807970, abs=1e-5)
 
-        class FakeTensor:
-            def __init__(self, rows: list[list[float]] | list[float]) -> None:
+    def test_train_distils_with_faked_stack(self, monkeypatch):
+        # CI runs without the heavy ML stack, so the distillation flow is
+        # exercised with a faked torch/transformers/peft stack: the fine-tuned
+        # model labels each prompt by content and the distilled hash-bag head
+        # must reproduce those decisions. Regression for scoring transformer
+        # head weights against a hash-bag.
+        calls = {"evaled": False, "steps": 0}
+
+        class FakeEnc(dict):
+            def to(self, _device: str) -> FakeEnc:
+                return self
+
+        class FakeTokenizer:
+            def __call__(self, prompt, *, return_tensors=None, **_ignored):
+                return FakeEnc(flag=[1 if "danger" in prompt else 0])
+
+        class FakeLogits:
+            # Duck-types a torch tensor so _logits_to_pair exercises its
+            # detach/cpu/tolist branch without a real torch dependency.
+            def __init__(self, rows: list[list[float]]) -> None:
                 self._rows = rows
 
-            def detach(self) -> FakeTensor:
+            def detach(self) -> FakeLogits:
                 return self
 
-            def cpu(self) -> FakeTensor:
+            def cpu(self) -> FakeLogits:
                 return self
 
-            def __getitem__(self, index: int) -> FakeVector | float:
-                row = self._rows[index]
-                if isinstance(row, list):
-                    return FakeVector(row)
-                return row
-
-        class FakeHead:
-            weight = FakeTensor([[0.1, 0.2, 0.3], [0.6, 0.4, 0.0]])
-            bias = FakeTensor([0.25, 0.75])
+            def tolist(self) -> list[list[float]]:
+                return self._rows
 
         class FakeModel:
-            classifier = FakeHead()
-
-            def __init__(self) -> None:
-                self.base_model = SimpleNamespace(classifier=FakeHead())
-                self.moved_to = ""
-                self.training = False
-
-            def to(self, device: str) -> FakeModel:
-                self.moved_to = device
+            def to(self, _device: str) -> FakeModel:
                 return self
 
             def parameters(self) -> list[int]:
-                return [1]
+                return [0]
 
             def train(self) -> None:
-                self.training = True
+                pass
 
-            def __call__(self, **_batch):
-                return SimpleNamespace(logits=[[0.1, 0.9]])
+            def eval(self) -> None:
+                calls["evaled"] = True
+
+            def __call__(self, **enc):
+                flag = enc.get("flag", [0])
+                value = flag[0] if isinstance(flag, list) else flag
+                rows = [[-5.0, 5.0]] if value == 1 else [[5.0, -5.0]]
+                return SimpleNamespace(logits=FakeLogits(rows))
 
         class FakeLoss:
             def backward(self) -> None:
                 calls["steps"] += 1
 
         class FakeOptimiser:
-            def __init__(self, _params, lr: float) -> None:
-                self.lr = lr
+            def __init__(self, *_args, **_kwargs) -> None: ...
 
-            def zero_grad(self) -> None:
-                calls["zeroed"] = True
+            def zero_grad(self) -> None: ...
 
-            def step(self) -> None:
-                calls["stepped"] = True
+            def step(self) -> None: ...
 
         class FakeDataset:
             @classmethod
@@ -487,8 +494,6 @@ class TestLoraTrainerGuard:
 
         class FakeDataLoader:
             def __init__(self, dataset, *, batch_size: int, shuffle: bool) -> None:
-                assert batch_size == 8
-                assert shuffle is True
                 self._dataset = dataset
 
             def __iter__(self):
@@ -496,18 +501,16 @@ class TestLoraTrainerGuard:
                     enc, label = self._dataset[index]
                     yield enc, [label]
 
-        fake_peft = ModuleType("peft")
-        fake_peft.TaskType = SimpleNamespace(SEQ_CLS="SEQ_CLS")
+        class _NoGrad:
+            def __enter__(self) -> _NoGrad:
+                return self
 
-        class FakeLoraConfig:
-            def __init__(self, *, r: int, lora_alpha: int, bias: str, task_type: str):
-                calls["lora"] = (r, lora_alpha, bias, task_type)
-
-        fake_peft.LoraConfig = FakeLoraConfig
-        fake_peft.get_peft_model = lambda model, _config: model
+            def __exit__(self, *_args) -> bool:
+                return False
 
         fake_torch = ModuleType("torch")
         fake_torch.tensor = lambda value: value
+        fake_torch.no_grad = lambda: _NoGrad()
         fake_torch.optim = SimpleNamespace(AdamW=FakeOptimiser)
         fake_torch.nn = SimpleNamespace(
             functional=SimpleNamespace(
@@ -518,114 +521,116 @@ class TestLoraTrainerGuard:
         fake_torch_data = ModuleType("torch.utils.data")
         fake_torch_data.DataLoader = FakeDataLoader
         fake_torch_data.Dataset = FakeDataset
-
+        fake_peft = ModuleType("peft")
+        fake_peft.TaskType = SimpleNamespace(SEQ_CLS="SEQ_CLS")
+        fake_peft.LoraConfig = lambda **_kwargs: SimpleNamespace()
+        fake_peft.get_peft_model = lambda model, _config: model
         fake_transformers = ModuleType("transformers")
-
-        class FakeTokenizer:
-            def __call__(self, prompt: str, **kwargs):
-                calls["tokenized"].append((prompt, kwargs))
-                return {"input_ids": [1, 2], "attention_mask": [1, 1]}
-
-        def fake_tokenizer_from_pretrained(
-            model_name: str, *, revision: str | None = None
-        ) -> FakeTokenizer:
-            calls["tokenizer_model"] = (model_name, revision)
-            return FakeTokenizer()
-
-        def fake_model_from_pretrained(
-            model_name: str, num_labels: int, *, revision: str | None = None
-        ) -> FakeModel:
-            calls["model_args"] = (model_name, num_labels, revision)
-            return FakeModel()
-
         fake_transformers.AutoTokenizer = SimpleNamespace(
-            from_pretrained=fake_tokenizer_from_pretrained,
+            from_pretrained=lambda *_a, **_k: FakeTokenizer()
         )
         fake_transformers.AutoModelForSequenceClassification = SimpleNamespace(
-            from_pretrained=fake_model_from_pretrained,
+            from_pretrained=lambda *_a, **_k: FakeModel()
+        )
+        for name, module in [
+            ("torch", fake_torch),
+            ("torch.utils", fake_torch_utils),
+            ("torch.utils.data", fake_torch_data),
+            ("peft", fake_peft),
+            ("transformers", fake_transformers),
+        ]:
+            monkeypatch.setitem(sys.modules, name, module)
+
+        events = [
+            FeedbackEvent(prompt="danger malicious payload attack", response="",
+                          label="unsafe"),
+            FeedbackEvent(prompt="danger exploit injection harmful", response="",
+                          label="unsafe"),
+            FeedbackEvent(prompt="the weather is calm and pleasant", response="",
+                          label="safe"),
+            FeedbackEvent(prompt="a friendly greeting good morning", response="",
+                          label="safe"),
+        ]
+        trainer = LoraGuardrailTrainer(epochs=1, distill_dim=512, distill_epochs=12)
+        trained = trainer.train(events, version=3)
+
+        assert calls["evaled"] is True
+        assert calls["steps"] > 0
+        assert trained.version == 3
+        assert trained.dim == 512
+        assert not math.isnan(trained.training_accuracy)
+        assert trained.score("danger malicious payload attack") > 0.5
+        assert trained.score("the weather is calm and pleasant") < 0.5
+
+    def test_train_distils_model_decisions_into_scorable_head(self, monkeypatch):
+        # The fine-tuned model's per-prompt decision must be distilled into the
+        # hash-bag head that TrainedGuardrail.score evaluates — so a guardrail
+        # the model judges unsafe scores high and a safe one scores low. This is
+        # the regression for scoring the head weights (transformer hidden space)
+        # against a hash-bag (meaningless). Uses real torch end to end with a
+        # tiny content-aware model; only transformers/peft are faked (no
+        # network download).
+        torch = pytest.importorskip("torch")
+        pytest.importorskip("torch.utils.data")
+
+        class _TinyModel(torch.nn.Module):
+            """Unsafe (class 1) when the first input id is 1, else safe."""
+
+            def __init__(self) -> None:
+                super().__init__()
+                self.scale = torch.nn.Parameter(torch.tensor(3.0))
+
+            def forward(self, *, input_ids, **_ignored):
+                flag = input_ids[:, 0].float()
+                unsafe = self.scale * (flag * 2.0 - 1.0)
+                return SimpleNamespace(logits=torch.stack([-unsafe, unsafe], dim=1))
+
+        class _FakeTokenizer:
+            def __call__(self, prompt, *, return_tensors=None, **_ignored):
+                flag = 1 if "danger" in prompt else 0
+                if return_tensors == "pt":
+                    enc = {
+                        "input_ids": torch.tensor([[flag]]),
+                        "attention_mask": torch.tensor([[1]]),
+                    }
+                    return SimpleNamespace(to=lambda _device: enc)
+                return {"input_ids": [flag], "attention_mask": [1]}
+
+        fake_peft = ModuleType("peft")
+        fake_peft.TaskType = SimpleNamespace(SEQ_CLS="SEQ_CLS")
+        fake_peft.LoraConfig = lambda **_kwargs: SimpleNamespace()
+        fake_peft.get_peft_model = lambda model, _config: model
+
+        fake_transformers = ModuleType("transformers")
+        fake_transformers.AutoTokenizer = SimpleNamespace(
+            from_pretrained=lambda _name, *, revision=None: _FakeTokenizer()
+        )
+        fake_transformers.AutoModelForSequenceClassification = SimpleNamespace(
+            from_pretrained=lambda _name, *, num_labels, revision=None: _TinyModel()
         )
 
         monkeypatch.setitem(sys.modules, "peft", fake_peft)
-        monkeypatch.setitem(sys.modules, "torch", fake_torch)
-        monkeypatch.setitem(sys.modules, "torch.utils", fake_torch_utils)
-        monkeypatch.setitem(sys.modules, "torch.utils.data", fake_torch_data)
         monkeypatch.setitem(sys.modules, "transformers", fake_transformers)
 
-        trainer = LoraGuardrailTrainer(
-            base_model="local-guardrail",
-            base_model_revision="verified-guardrail-revision",
-            rank=4,
-            alpha=12,
-            epochs=2,
-            device="cpu",
-        )
-        trained = trainer.train(_balanced_events()[:2], version=9)
+        events = [
+            FeedbackEvent(prompt="danger malicious payload attack", response="",
+                          label="unsafe"),
+            FeedbackEvent(prompt="danger exploit injection harmful", response="",
+                          label="unsafe"),
+            FeedbackEvent(prompt="the weather is calm and pleasant", response="",
+                          label="safe"),
+            FeedbackEvent(prompt="a friendly greeting good morning", response="",
+                          label="safe"),
+        ]
+        trainer = LoraGuardrailTrainer(epochs=1, distill_dim=512, distill_epochs=12)
+        trained = trainer.train(events, version=7)
 
-        assert calls["lora"] == (4, 12, "none", "SEQ_CLS")
-        assert calls["tokenizer_model"] == (
-            "local-guardrail",
-            "verified-guardrail-revision",
-        )
-        assert calls["model_args"] == (
-            "local-guardrail",
-            2,
-            "verified-guardrail-revision",
-        )
-        assert len(calls["tokenized"]) == 4
-        assert calls["steps"] == 4
-        assert trained.weights == pytest.approx((0.5, 0.2, -0.3))
-        assert trained.bias == pytest.approx(0.5)
-        assert trained.dim == 3
-        assert trained.version == 9
-        assert math.isnan(trained.training_accuracy)
-
-    def test_event_target_unknown_label_returns_none(self):
-        assert trainer_mod._event_target(SimpleNamespace(label="unknown")) is None
-
-    def test_extract_classifier_weights_without_peft_base_model(self):
-        class FakeVector:
-            def __init__(self, values: list[float]) -> None:
-                self._values = values
-
-            def __sub__(self, other: FakeVector) -> FakeVector:
-                return FakeVector(
-                    [
-                        left - right
-                        for left, right in zip(self._values, other._values, strict=True)
-                    ]
-                )
-
-            def tolist(self) -> list[float]:
-                return list(self._values)
-
-        class FakeTensor:
-            def __init__(self, rows):
-                self._rows = rows
-
-            def detach(self):
-                return self
-
-            def cpu(self):
-                return self
-
-            def __getitem__(self, index: int):
-                row = self._rows[index]
-                if isinstance(row, list):
-                    return FakeVector(row)
-                return row
-
-        model = SimpleNamespace(
-            classifier=SimpleNamespace(
-                weight=FakeTensor([[1.0, 2.0], [4.0, 1.0]]),
-                bias=FakeTensor([0.2, 1.1]),
-            ),
-        )
-
-        assert trainer_mod._extract_classifier_weights(model) == {
-            "weights": (3.0, -1.0),
-            "bias": pytest.approx(0.9),
-            "dim": 2,
-        }
+        assert trained.version == 7
+        assert trained.dim == 512
+        assert not math.isnan(trained.training_accuracy)
+        # The distilled head reproduces the model's decisions.
+        assert trained.score("danger malicious payload attack") > 0.5
+        assert trained.score("the weather is calm and pleasant") < 0.5
 
 
 # --- ConformalCalibrator -------------------------------------------

@@ -32,6 +32,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the delivered coverage matches the target instead of under-covering by one.
 - Keep id-less retrieval hits distinct in Reciprocal Rank Fusion so documents
   without an explicit id are no longer collapsed into a single bucket.
+- Distil the LoRA fine-tuned guardrail into the hash-bag scoring head rather than
+  copying the transformer classifier-head weights, which were applied to an
+  unrelated hash-bag featuriser and produced meaningless scores; the fine-tuned
+  model now labels each prompt and a perceptron head fits those targets. Also fix
+  the fine-tune training loop so it consumes batched tensors instead of a
+  transposed list of per-position tensors.
 
 ## [3.16.0] - 2026-06-21
 
