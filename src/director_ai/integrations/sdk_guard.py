@@ -511,7 +511,13 @@ class _GuardedOpenAIStream:
     async def _aperiodic_check(self) -> None:
         """Run an asynchronous periodic score check for buffered text."""
         text = "".join(self._buffer)
-        await _ascore_and_gate(self._scorer, self._on_fail, self._prompt, text)
+        await _ascore_and_gate(
+            self._scorer,
+            self._on_fail,
+            self._prompt,
+            text,
+            injection_threshold=self._injection_threshold,
+        )
 
     async def _afinal_check(self) -> None:
         """Run the final asynchronous score check for buffered text."""
@@ -526,11 +532,20 @@ class _GuardedOpenAIStream:
             )
 
     def _periodic_check(self) -> None:
-        """Run a synchronous periodic score check for buffered text."""
+        """Run a synchronous periodic score check for buffered text.
+
+        Mirrors the final check (injection gate included) so a streamed
+        prompt-injection is caught mid-stream rather than only on the last
+        chunk after the whole response has already been yielded.
+        """
         text = "".join(self._buffer)
-        approved, cs = self._scorer.review(self._prompt, text)
-        if not approved:
-            _handle_failure(self._on_fail, self._prompt, text, cs)
+        _score_and_gate(
+            self._scorer,
+            self._on_fail,
+            self._prompt,
+            text,
+            injection_threshold=self._injection_threshold,
+        )
 
     def _final_check(self) -> None:
         """Run the final synchronous score check for buffered text."""
@@ -701,7 +716,13 @@ class _GuardedAnthropicStream:
     async def _aperiodic_check(self) -> None:
         """Run an asynchronous periodic score check for buffered text."""
         text = "".join(self._buffer)
-        await _ascore_and_gate(self._scorer, self._on_fail, self._prompt, text)
+        await _ascore_and_gate(
+            self._scorer,
+            self._on_fail,
+            self._prompt,
+            text,
+            injection_threshold=self._injection_threshold,
+        )
 
     async def _afinal_check(self) -> None:
         """Run the final asynchronous score check for buffered text."""
@@ -716,11 +737,20 @@ class _GuardedAnthropicStream:
             )
 
     def _periodic_check(self) -> None:
-        """Run a synchronous periodic score check for buffered text."""
+        """Run a synchronous periodic score check for buffered text.
+
+        Mirrors the final check (injection gate included) so a streamed
+        prompt-injection is caught mid-stream rather than only on the last
+        chunk after the whole response has already been yielded.
+        """
         text = "".join(self._buffer)
-        approved, cs = self._scorer.review(self._prompt, text)
-        if not approved:
-            _handle_failure(self._on_fail, self._prompt, text, cs)
+        _score_and_gate(
+            self._scorer,
+            self._on_fail,
+            self._prompt,
+            text,
+            injection_threshold=self._injection_threshold,
+        )
 
     def _final_check(self) -> None:
         """Run the final synchronous score check for buffered text."""
@@ -873,6 +903,7 @@ class _GuardedBedrockStream:
                         self._on_fail,
                         self._prompt,
                         "".join(self._buffer),
+                        injection_threshold=self._injection_threshold,
                     )
             yield event
         text = "".join(self._buffer)
@@ -886,11 +917,20 @@ class _GuardedBedrockStream:
             )
 
     def _periodic_check(self) -> None:
-        """Run a synchronous periodic score check for buffered text."""
+        """Run a synchronous periodic score check for buffered text.
+
+        Mirrors the final check (injection gate included) so a streamed
+        prompt-injection is caught mid-stream rather than only on the last
+        chunk after the whole response has already been yielded.
+        """
         text = "".join(self._buffer)
-        approved, cs = self._scorer.review(self._prompt, text)
-        if not approved:
-            _handle_failure(self._on_fail, self._prompt, text, cs)
+        _score_and_gate(
+            self._scorer,
+            self._on_fail,
+            self._prompt,
+            text,
+            injection_threshold=self._injection_threshold,
+        )
 
     def _final_check(self) -> None:
         """Run the final synchronous score check for buffered text."""
@@ -1022,6 +1062,7 @@ class _GuardedGeminiStream:
                         self._on_fail,
                         self._prompt,
                         "".join(self._buffer),
+                        injection_threshold=self._injection_threshold,
                     )
             yield chunk
         text = "".join(self._buffer)
@@ -1035,11 +1076,20 @@ class _GuardedGeminiStream:
             )
 
     def _periodic_check(self) -> None:
-        """Run a synchronous periodic score check for buffered text."""
+        """Run a synchronous periodic score check for buffered text.
+
+        Mirrors the final check (injection gate included) so a streamed
+        prompt-injection is caught mid-stream rather than only on the last
+        chunk after the whole response has already been yielded.
+        """
         text = "".join(self._buffer)
-        approved, cs = self._scorer.review(self._prompt, text)
-        if not approved:
-            _handle_failure(self._on_fail, self._prompt, text, cs)
+        _score_and_gate(
+            self._scorer,
+            self._on_fail,
+            self._prompt,
+            text,
+            injection_threshold=self._injection_threshold,
+        )
 
     def _final_check(self) -> None:
         """Run the final synchronous score check for buffered text."""
@@ -1347,6 +1397,7 @@ class _GuardedCohereStream:
                         self._on_fail,
                         self._prompt,
                         "".join(self._buffer),
+                        injection_threshold=self._injection_threshold,
                     )
             yield event
         text = "".join(self._buffer)
@@ -1360,11 +1411,20 @@ class _GuardedCohereStream:
             )
 
     def _periodic_check(self) -> None:
-        """Run a synchronous periodic score check for buffered text."""
+        """Run a synchronous periodic score check for buffered text.
+
+        Mirrors the final check (injection gate included) so a streamed
+        prompt-injection is caught mid-stream rather than only on the last
+        chunk after the whole response has already been yielded.
+        """
         text = "".join(self._buffer)
-        approved, cs = self._scorer.review(self._prompt, text)
-        if not approved:
-            _handle_failure(self._on_fail, self._prompt, text, cs)
+        _score_and_gate(
+            self._scorer,
+            self._on_fail,
+            self._prompt,
+            text,
+            injection_threshold=self._injection_threshold,
+        )
 
     def _final_check(self) -> None:
         """Run the final synchronous score check for buffered text."""
