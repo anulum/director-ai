@@ -176,9 +176,7 @@ class TestOpenAIGuard:
 
         tokens = [f"t{i} " for i in range(STREAM_CHECK_INTERVAL + 4)]
         chunks = [
-            SimpleNamespace(
-                choices=[SimpleNamespace(delta=SimpleNamespace(content=t))]
-            )
+            SimpleNamespace(choices=[SimpleNamespace(delta=SimpleNamespace(content=t))])
             for t in tokens
         ]
         stream = _GuardedOpenAIStream(

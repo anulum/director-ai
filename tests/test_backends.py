@@ -552,9 +552,7 @@ class TestScorerBackendBuildPathWiring:
             def score(self, premise: str, hypothesis: str) -> float:
                 return self._grounded(hypothesis)
 
-            def score_batch(
-                self, pairs: list[tuple[str, str]]
-            ) -> list[float]:
+            def score_batch(self, pairs: list[tuple[str, str]]) -> list[float]:
                 return [self._grounded(h) for _p, h in pairs]
 
         fake_module = types.ModuleType("director_ai.core.scoring.embed_scorer")

@@ -408,7 +408,6 @@ class TestLoraTrainerGuard:
         with pytest.raises(ImportError, match="training"):
             t.train(_balanced_events(), version=1)
 
-
     def test_event_target_unknown_label_returns_none(self):
         assert trainer_mod._event_target(SimpleNamespace(label="unknown")) is None
 
@@ -542,14 +541,18 @@ class TestLoraTrainerGuard:
             monkeypatch.setitem(sys.modules, name, module)
 
         events = [
-            FeedbackEvent(prompt="danger malicious payload attack", response="",
-                          label="unsafe"),
-            FeedbackEvent(prompt="danger exploit injection harmful", response="",
-                          label="unsafe"),
-            FeedbackEvent(prompt="the weather is calm and pleasant", response="",
-                          label="safe"),
-            FeedbackEvent(prompt="a friendly greeting good morning", response="",
-                          label="safe"),
+            FeedbackEvent(
+                prompt="danger malicious payload attack", response="", label="unsafe"
+            ),
+            FeedbackEvent(
+                prompt="danger exploit injection harmful", response="", label="unsafe"
+            ),
+            FeedbackEvent(
+                prompt="the weather is calm and pleasant", response="", label="safe"
+            ),
+            FeedbackEvent(
+                prompt="a friendly greeting good morning", response="", label="safe"
+            ),
         ]
         trainer = LoraGuardrailTrainer(epochs=1, distill_dim=512, distill_epochs=12)
         trained = trainer.train(events, version=3)
@@ -613,14 +616,18 @@ class TestLoraTrainerGuard:
         monkeypatch.setitem(sys.modules, "transformers", fake_transformers)
 
         events = [
-            FeedbackEvent(prompt="danger malicious payload attack", response="",
-                          label="unsafe"),
-            FeedbackEvent(prompt="danger exploit injection harmful", response="",
-                          label="unsafe"),
-            FeedbackEvent(prompt="the weather is calm and pleasant", response="",
-                          label="safe"),
-            FeedbackEvent(prompt="a friendly greeting good morning", response="",
-                          label="safe"),
+            FeedbackEvent(
+                prompt="danger malicious payload attack", response="", label="unsafe"
+            ),
+            FeedbackEvent(
+                prompt="danger exploit injection harmful", response="", label="unsafe"
+            ),
+            FeedbackEvent(
+                prompt="the weather is calm and pleasant", response="", label="safe"
+            ),
+            FeedbackEvent(
+                prompt="a friendly greeting good morning", response="", label="safe"
+            ),
         ]
         trainer = LoraGuardrailTrainer(epochs=1, distill_dim=512, distill_epochs=12)
         trained = trainer.train(events, version=7)

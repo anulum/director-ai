@@ -297,9 +297,7 @@ class LoraGuardrailTrainer:
             for batch, labels in loader:
                 optimiser.zero_grad()
                 outputs = model(**batch)
-                loss: Any = torch.nn.functional.cross_entropy(
-                    outputs.logits, labels
-                )
+                loss: Any = torch.nn.functional.cross_entropy(outputs.logits, labels)
                 loss.backward()
                 optimiser.step()
 
@@ -374,7 +372,9 @@ def _logits_to_pair(logits: Any) -> tuple[float, float]:
     Accepts a torch tensor or a plain (possibly batched) list, unwrapping a
     leading batch dimension so ``[[a, b]]`` and ``[a, b]`` both yield ``(a, b)``.
     """
-    values: Any = logits.detach().cpu().tolist() if hasattr(logits, "detach") else logits
+    values: Any = (
+        logits.detach().cpu().tolist() if hasattr(logits, "detach") else logits
+    )
     while isinstance(values, list) and values and isinstance(values[0], list):
         values = values[0]
     return float(values[0]), float(values[1])
