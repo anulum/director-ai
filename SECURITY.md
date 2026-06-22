@@ -45,6 +45,21 @@ Security concerns for Director-AI:
 - **No pickle.load of untrusted data** in any module
 - **CI security audit**: `pip-audit` runs on every push
 
+## Dependency advisories
+
+Upstream advisories against optional dependencies, with whether they apply to
+Director-AI's usage:
+
+- **chromadb — CVE-2026-45829 / GHSA-f4j7-r4q5-qw2c (critical, unpatched).** A
+  pre-authentication code-injection vulnerability in the **chromadb server's**
+  HTTP API (affected `>= 1.0.0, <= 1.5.9`; no fixed release as of 2026-06-22).
+  **Not applicable to Director-AI:** chromadb is an optional `[vector]` extra
+  (not installed by `pip install director-ai`), and the ChromaDB backend uses
+  only the embedded in-process client (`chromadb.PersistentClient` /
+  `chromadb.Client`) — it never starts or connects to a chromadb server, so the
+  pre-authentication network surface is absent. We will repin to a patched
+  chromadb release when one ships.
+
 ## Licensing
 
 Director-AI is open core:

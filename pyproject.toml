@@ -81,6 +81,8 @@ nli = [
     "transformers>=5.0.0rc3,<6",
 ]
 vector = [
+    # CVE-2026-45829 (chromadb server pre-auth injection, unpatched as of
+    # 2026-06-22) does not apply: used embedded-only, no server. See SECURITY.md.
     "chromadb>=0.4.0,<2",
     "sentence-transformers>=4,<6",
 ]
