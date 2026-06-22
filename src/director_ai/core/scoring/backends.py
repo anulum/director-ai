@@ -244,12 +244,20 @@ class EmbedBackendWrapper(ScorerBackend):
         )
 
     def score(self, premise: str, hypothesis: str) -> float:
-        """Forward one pair to the embedding scorer."""
-        return self._scorer.score(premise, hypothesis)
+        """Return divergence in [0, 1] for one pair.
+
+        ``EmbedBackend.score`` reports cosine *similarity* (1 = identical
+        meaning, 0 = unrelated), but the ``ScorerBackend`` contract — and every
+        consumer of the registry NLI surface (``NLIScorer``/``CoherenceScorer``)
+        — expects *divergence* (0 = entailed/supported, 1 = contradicted).
+        Convert here so an unrelated/contradictory hypothesis yields a high
+        divergence rather than being read as strong support.
+        """
+        return 1.0 - self._scorer.score(premise, hypothesis)
 
     def score_batch(self, pairs: list[tuple[str, str]]) -> list[float]:
-        """Forward pairs to the embedding scorer."""
-        return self._scorer.score_batch(pairs)
+        """Return divergence in [0, 1] for each pair (see :meth:`score`)."""
+        return [1.0 - s for s in self._scorer.score_batch(pairs)]
 
 
 try:
@@ -275,12 +283,19 @@ class DistilledNLIBackendWrapper(ScorerBackend):
         )
 
     def score(self, premise: str, hypothesis: str) -> float:
-        """Forward one pair to the distilled scorer."""
-        return self._scorer.score(premise, hypothesis)
+        """Return divergence in [0, 1] for one pair.
+
+        ``DistilledNLIBackend.score`` reports P(supported) (1 = supported /
+        entailed), but the ``ScorerBackend`` contract — and every consumer of
+        the registry NLI surface (``NLIScorer``/``CoherenceScorer``) — expects
+        *divergence* (0 = entailed/supported, 1 = contradicted). Convert here so
+        a supported hypothesis is read as low divergence, not as a contradiction.
+        """
+        return 1.0 - self._scorer.score(premise, hypothesis)
 
     def score_batch(self, pairs: list[tuple[str, str]]) -> list[float]:
-        """Forward pairs to the distilled scorer."""
-        return self._scorer.score_batch(pairs)
+        """Return divergence in [0, 1] for each pair (see :meth:`score`)."""
+        return [1.0 - s for s in self._scorer.score_batch(pairs)]
 
 
 # nli-lite registered only when model is available (lazy — doesn't

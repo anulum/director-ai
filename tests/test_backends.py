@@ -323,8 +323,11 @@ class TestBackendWrappers:
             cache_dir="/cache",
         )
 
-        assert wrapper.score("premise", "hypothesis") == 0.23
-        assert wrapper.score_batch([("p", "h")]) == [0.24]
+        # EmbedBackend reports *similarity* (1 = supported); the wrapper must
+        # expose *divergence* (1 = contradicted) to honour the ScorerBackend
+        # contract, so similarity 0.23 -> divergence 0.77.
+        assert wrapper.score("premise", "hypothesis") == pytest.approx(0.77)
+        assert wrapper.score_batch([("p", "h")]) == pytest.approx([0.76])
         assert created == {
             "init": ("local/embed", "cuda", "/cache"),
             "score": ("premise", "hypothesis"),
@@ -364,8 +367,10 @@ class TestBackendWrappers:
             device="cuda",
         )
 
-        assert wrapper.score("premise", "hypothesis") == 0.34
-        assert wrapper.score_batch([("p", "h")]) == [0.35]
+        # DistilledNLIBackend reports P(supported) (1 = supported); the wrapper
+        # must expose *divergence* (1 = contradicted), so 0.34 -> 0.66.
+        assert wrapper.score("premise", "hypothesis") == pytest.approx(0.66)
+        assert wrapper.score_batch([("p", "h")]) == pytest.approx([0.65])
         assert created == {
             "init": ("/models/nli-lite", False, "cuda"),
             "score": ("premise", "hypothesis"),
@@ -519,6 +524,62 @@ class TestScorerBackendBuildPathWiring:
 
         scorer = CoherenceScorer(scorer_backend="rules", use_nli=False)
         assert scorer._nli is None
+
+    def test_groundedness_backend_verdicts_not_inverted(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """A groundedness-convention backend must not invert the guardrail.
+
+        ``EmbedBackend``/``DistilledNLIBackend`` report *groundedness*
+        (1 = supported); their registry wrappers convert to *divergence*
+        (1 = contradicted). Regression for the inversion where, wired through
+        ``CoherenceScorer``, a well-supported answer was rejected and a
+        contradiction approved. Exercises the real ``EmbedBackendWrapper``
+        conversion end to end with a faked underlying embedding model.
+        """
+        import director_ai.core.scoring.backends as backends_mod
+        from director_ai import CoherenceScorer
+        from director_ai.core.scoring.backends import _REGISTRY, register_backend
+
+        class FakeGroundednessEmbed:
+            """Reports similarity/groundedness: high = supported."""
+
+            def __init__(self, **_kwargs: object) -> None: ...
+
+            def _grounded(self, hypothesis: str) -> float:
+                return 0.05 if "CONTRADICTS" in hypothesis else 0.95
+
+            def score(self, premise: str, hypothesis: str) -> float:
+                return self._grounded(hypothesis)
+
+            def score_batch(
+                self, pairs: list[tuple[str, str]]
+            ) -> list[float]:
+                return [self._grounded(h) for _p, h in pairs]
+
+        fake_module = types.ModuleType("director_ai.core.scoring.embed_scorer")
+        fake_module.EmbedBackend = FakeGroundednessEmbed  # type: ignore[attr-defined]
+        monkeypatch.setitem(
+            sys.modules, "director_ai.core.scoring.embed_scorer", fake_module
+        )
+
+        name = "test_groundedness_direction"
+        register_backend(name, backends_mod.EmbedBackendWrapper)
+        try:
+            scorer = CoherenceScorer(scorer_backend=name, use_nli=False)
+            premise = "Water boils at 100 degrees Celsius at sea level."
+            _supported, cs_supported = scorer.review(
+                premise, "At sea level water boils at 100C."
+            )
+            _contra, cs_contra = scorer.review(
+                premise, "CONTRADICTS: water boils at 5 degrees."
+            )
+        finally:
+            _REGISTRY.pop(name, None)
+
+        # Supported answer must score HIGHER coherence than the contradiction.
+        assert cs_supported.score > cs_contra.score
+        assert cs_supported.score > 0.5 > cs_contra.score
 
     def test_custom_backend_skips_nli_checkpoint_load(self) -> None:
         from director_ai.core.nli import NLIScorer
