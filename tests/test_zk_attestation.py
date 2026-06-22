@@ -1123,6 +1123,35 @@ class TestPassport:
         assert verdict.signature_ok
         assert verdict.summary() == "all statements proved"
 
+    def test_verify_rejects_in_transit_threshold_downgrade(self):
+        # Regression: the MAC covered only (kind, name, backend_kind), so an
+        # attacker could lower a statement's threshold in transit (e.g. 0.9 -> 0)
+        # while leaving kind/name intact and the MAC still validated. The MAC now
+        # authenticates the full statement, so the downgrade is rejected.
+        import dataclasses
+
+        issuer = PassportIssuer(key=_KEY_A, issuing_org="org://alpha")
+        verifier = PassportVerifier(
+            issuer_keys={"org://alpha": _KEY_A},
+            backends={"commitment": CommitmentBackend(key=_KEY_A)},
+        )
+        passport = issuer.issue(
+            agent_id="agent-001",
+            samples=self._make_samples(),
+            statements=[MinimumCoherence(name="c", threshold=0.9, samples_min=10)],
+        )
+        assert verifier.verify(passport).accepted
+
+        entry = passport.entries[0]
+        weakened = dataclasses.replace(entry.statement, threshold=0.0)
+        tampered = dataclasses.replace(
+            passport,
+            entries=(dataclasses.replace(entry, statement=weakened),),
+        )
+        verdict = verifier.verify(tampered)
+        assert not verdict.accepted
+        assert ("_passport", "mac_mismatch") in verdict.failures
+
     def test_unknown_issuer_rejected(self):
         issuer = PassportIssuer(key=_KEY_A, issuing_org="org://alpha")
         verifier = PassportVerifier(
@@ -1284,7 +1313,11 @@ class TestPassport:
         )
 
         assert b"a\\|b\\\\c" in passport.canonical_header
-        assert b"c\\|d\\\\e" in passport.canonical_header
+        # The full statement — including the threshold the verifier acts on — is
+        # authenticated by the MAC, not just kind/name (guards against an
+        # in-transit threshold downgrade).
+        assert b'"threshold":0.9' in passport.canonical_header
+        assert b"minimum_coherence" in passport.canonical_header
         with pytest.raises(ValueError, match="agent_id"):
             CrossOrgPassport(
                 agent_id="",

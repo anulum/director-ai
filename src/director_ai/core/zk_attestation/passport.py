@@ -26,9 +26,10 @@ dataclass (for the commitment backend) or a ``bytes`` blob
 from __future__ import annotations
 
 import hmac
+import json
 import time
 from collections.abc import Iterable, Sequence
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field, is_dataclass
 from hashlib import sha256
 
 from ..safety_event import SafetyEvent
@@ -95,7 +96,7 @@ class CrossOrgPassport:
             self.issuing_org,
             self.created_at,
             tuple(
-                (entry.statement.kind, entry.statement.name, entry.backend_kind)
+                (_statement_identity(entry.statement), entry.backend_kind)
                 for entry in self.entries
             ),
         )
@@ -208,7 +209,7 @@ class PassportIssuer:
             self.issuing_org,
             created_at,
             tuple(
-                (entry.statement.kind, entry.statement.name, entry.backend_kind)
+                (_statement_identity(entry.statement), entry.backend_kind)
                 for entry in entries
             ),
         )
@@ -304,25 +305,43 @@ class PassportVerifier:
         )
 
 
+def _statement_identity(statement: AttestationStatement) -> str:
+    """Canonical JSON of every statement parameter.
+
+    The MAC must authenticate the thresholds the verifier acts on
+    (``threshold``, ``max_rate``, ``samples_min``, …), not just the claim's
+    ``kind`` and ``name`` — otherwise an attacker can weaken a claim in transit
+    (e.g. lower ``MinimumCoherence.threshold`` to 0) while leaving kind/name
+    intact, and the MAC still validates.
+    """
+    if is_dataclass(statement) and not isinstance(statement, type):
+        params: dict[str, object] = asdict(statement)
+    else:  # pragma: no cover — every shipped statement is a frozen dataclass
+        params = {"kind": statement.kind, "name": statement.name}
+    return json.dumps(params, sort_keys=True, separators=(",", ":"))
+
+
 def _canonical_header(
     agent_id: str,
     issuing_org: str,
     created_at: int,
-    entries: tuple[tuple[str, str, str], ...],
+    entries: tuple[tuple[str, str], ...],
 ) -> bytes:
     r"""Build the deterministic header bytes for MAC computation.
 
-    Escape ``|`` and ``\`` in the free-text fields so a statement whose name
-    contains the delimiter cannot collide with a different passport layout.
+    Each entry is ``(statement_identity, backend_kind)`` where the identity is
+    the full canonical statement (see :func:`_statement_identity`). Escape ``|``
+    and ``\`` in the free-text fields so a value containing the delimiter cannot
+    collide with a different passport layout.
     """
     header_fields = [
         _escape(agent_id),
         _escape(issuing_org),
         str(created_at),
     ]
-    for kind, name, backend_kind in entries:
+    for statement_identity, backend_kind in entries:
         header_fields.append(
-            "::".join([_escape(kind), _escape(name), _escape(backend_kind)])
+            "::".join([_escape(statement_identity), _escape(backend_kind)])
         )
     return "|".join(header_fields).encode("utf-8")
 

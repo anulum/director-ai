@@ -42,6 +42,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   calibration split, so the calibration fold is a representative mix of real and
   synthetic, safe and unsafe events rather than the all-synthetic-unsafe tail
   that voided the coverage guarantee.
+- Authenticate the full attestation statement, including its threshold
+  parameters, in the cross-organisation passport MAC. Previously the MAC covered
+  only the claim kind, name, and backend, so a statement could be weakened in
+  transit (for example by lowering a coherence threshold) while the MAC still
+  validated. Passports issued before this change do not verify under the new MAC.
 
 ## [3.16.0] - 2026-06-21
 
