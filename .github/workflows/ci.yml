@@ -364,7 +364,12 @@ jobs:
           esac
           case ",${{ matrix.extras }}," in
             *,formal,*)
-              TEST_TARGETS+=(tests/test_formal_verification.py tests/test_conformal.py)
+              TEST_TARGETS+=(
+                tests/test_formal_verification.py
+                tests/test_conformal.py
+                tests/test_neuro_symbolic.py
+                tests/test_neuro_symbolic_verifier.py
+              )
               ;;
           esac
           case ",${{ matrix.extras }}," in
