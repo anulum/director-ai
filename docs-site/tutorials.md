@@ -76,7 +76,7 @@ graph TD
 
     subgraph "Core Tracks"
         B --> C["09 Production Guardrails<br/>guard() + SDK wrapping"]
-        B --> D["02 Streaming Oversight<br/>token-level halt"]
+        B --> D["02 Streaming Oversight<br/>claim-level halt"]
         B --> V["16 Verification Gems<br/>8 standalone modules"]
     end
 

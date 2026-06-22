@@ -477,7 +477,7 @@ not per-request overhead.
 
 Director-AI's unique value: sub-ms streaming halt + 75.6% balanced accuracy
 at 0.4B params + local judge at 3.97ms (no API dependency). No competitor
-offers token-level halt with fully local hybrid scoring.
+offers claim-level halt with fully local hybrid scoring.
 
 Full analysis: [`benchmarks/comparison/COMPETITOR_COMPARISON.md`](comparison/COMPETITOR_COMPARISON.md)
 

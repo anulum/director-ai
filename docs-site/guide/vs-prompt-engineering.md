@@ -9,7 +9,7 @@ Prompt engineering tells the LLM "please don't hallucinate." Director-AI measure
 | **Mechanism** | Instructions in the system prompt | NLI model + RAG retrieval scoring every response |
 | **Guarantee** | Probabilistic — the LLM may ignore instructions | Deterministic — scores are computed, thresholds enforced |
 | **Measurable** | No — you can't measure compliance rate without a separate eval | Yes — every response gets a coherence score with evidence |
-| **Streaming** | No halt mechanism — hallucinated tokens reach the user | Token-level halt — generation stops mid-stream before the user sees it |
+| **Streaming** | No halt mechanism — hallucinated tokens reach the user | Claim-level streaming halt — the stream stops when a completed claim contradicts grounding, before the user sees it |
 | **Auditable** | No artefact — the prompt is an instruction, not a measurement | Per-response scores by default, with per-claim verdicts available via `VerifiedScorer` |
 
 ## What Prompt Engineering Cannot Do

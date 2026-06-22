@@ -5,7 +5,7 @@
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI — Director-Lite package
-"""Director-Lite — the token-level streaming halt, standalone and free.
+"""Director-Lite — the streaming-halt guard, standalone and free.
 
 A self-contained distribution with no heavy dependencies and no ``director-ai``
 requirement: ``pip install director-ai-lite`` and call :func:`guard` in three

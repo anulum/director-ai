@@ -317,7 +317,7 @@ cannot verify consistency and defaults to flagging.
 
 ## Where Director-AI Wins
 
-1. **Only streaming guardrail** — token-level halt. Zero competitors offer this.
+1. **Only streaming guardrail** — claim-level halt. Zero competitors offer this.
 2. **0.5 ms/pair on L40S FP16** — sub-millisecond latency, faster than any competitor.
 3. **Beats all frontier LLMs** — 75.86% BA > Claude Haiku (75.10%), Sonnet (74.25%), GPT-4o (73.46%).
 4. **$0 per-call cost** — vs $0.07-$1.40/1K for API-based competitors.
@@ -363,7 +363,7 @@ task requiring deep domain understanding of nuanced, multi-paragraph text.
 | LLM generates factually wrong answer | No — ExpertQA tests expert answers, not LLM outputs | Yes — primary use case |
 | Customer support bot hallucinates policy | No — short QA, not long expert text | Yes — QA catch rate 78% (hybrid) |
 | RAG pipeline returns grounded response | No — ExpertQA has no retrieval | Yes — RAGTruth 82.2% |
-| Streaming generation goes off-rails | No — ExpertQA is post-hoc | Yes — token-level halt |
+| Streaming generation goes off-rails | No — ExpertQA is post-hoc | Yes — claim-level halt |
 
 Director-AI's hybrid mode achieves **90.7% catch rate** across QA,
 summarisation, and dialogue — the tasks customers actually deploy guardrails

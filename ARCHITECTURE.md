@@ -3,7 +3,7 @@
 Last updated: 2026-04-29
 
 Director-AI is a dual-entropy hallucination guardrail: NLI contradiction
-detection + RAG fact-checking with token-level streaming halt.
+detection + RAG fact-checking with claim-level streaming halt.
 
 Python is the primary runtime. Rust handles hot-path compute through
 `backfire-kernel` (PyO3). A Go gateway fronts the deployment when
@@ -55,7 +55,7 @@ director-ai/
 │   │   │   └── embedding_tuner.py Domain embedding fine-tuner
 │   │   ├── runtime/
 │   │   │   ├── kernel.py          HaltMonitor — output interlock
-│   │   │   ├── streaming.py       StreamingKernel — token-level halt
+│   │   │   ├── streaming.py       StreamingKernel — claim-level halt
 │   │   │   ├── async_streaming.py AsyncStreamingKernel
 │   │   │   ├── batch.py           BatchProcessor — parallel evaluation
 │   │   │   ├── review_queue.py    ReviewQueue — continuous batching
@@ -252,7 +252,7 @@ LLM Provider ──► guard() / CoherenceAgent
                       ├──► ReviewQueue (continuous batching)
                       │       └── accumulate → flush → review_batch()
                       │
-                      ├──► StreamingKernel (token-level halt)
+                      ├──► StreamingKernel (claim-level halt)
                       │
                       ├──► InputSanitizer (Stage 1: regex injection detection)
                       │

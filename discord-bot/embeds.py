@@ -151,7 +151,7 @@ def welcome_embed(display_name: str) -> discord.Embed:
         title=f"Welcome, {display_name}!",
         description=(
             "**Director-AI** is a real-time LLM hallucination guardrail "
-            "with NLI + RAG fact-checking and token-level streaming halt.\n\n"
+            "with NLI + RAG fact-checking and claim-level streaming halt.\n\n"
             "Get started:\n"
             "- `/quickstart` — 6-line guard snippet\n"
             "- `/install` — installation options\n"

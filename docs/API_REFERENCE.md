@@ -623,7 +623,7 @@ point is `director_ai.grpc_scoring`.
 | Service | Method | Shape | Purpose |
 |---------|--------|-------|---------|
 | `director.v1.CoherenceScoring` | `ScoreClaim` | unary | Score one claim/source pair |
-| `director.v1.CoherenceScoring` | `ScoreStream` | bidirectional stream | Score token-level stream requests |
+| `director.v1.CoherenceScoring` | `ScoreStream` | bidirectional stream | Score a stream of claim requests |
 
 Run the Python scoring service with:
 

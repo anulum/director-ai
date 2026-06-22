@@ -24,7 +24,7 @@ for fact-critical streams.
 Director-AI makes factual coherence a control point before output is accepted,
 stored, routed, or acted on.
 
-**Token-level halt.** The production streaming signal is contradiction-driven:
+**Claim-level streaming halt.** The production streaming signal is contradiction-driven:
 completed streamed claims are checked against retrieved facts and the stream
 halts when a claim contradicts governed knowledge. The latest local benchmark
 artifact (`benchmarks/results/streaming_contradiction_halt_base.json`) reports

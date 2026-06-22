@@ -436,7 +436,7 @@ def build_app() -> gr.Blocks:
         gr.Markdown(
             f"# Director-AI v{director_ai.__version__}\n"
             "**Real-time LLM hallucination guardrail** — "
-            "NLI + RAG fact-checking with token-level streaming halt\n\n"
+            "NLI + RAG fact-checking with claim-level streaming halt\n\n"
             "`pip install director-ai`",
         )
 

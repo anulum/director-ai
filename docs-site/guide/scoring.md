@@ -262,5 +262,5 @@ Max-aggregation: the worst per-sentence contradiction drives the final score.
 ## Next Steps
 
 - [Threshold Tuning](threshold-tuning.md) — domain-specific calibration
-- [Streaming Halt](streaming.md) — token-level oversight
+- [Streaming Halt](streaming.md) — claim-level oversight
 - [KB Ingestion](kb-ingestion.md) — populate the factual signal

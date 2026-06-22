@@ -4,7 +4,7 @@
 
 1. Open Discord -> "Add a Server" -> "Create My Own" -> name it **Director-AI**
 2. Set server icon (use `docs/assets/header.png` or a cropped version)
-3. Set server description: "Real-time LLM hallucination guardrail — NLI + RAG fact-checking with token-level streaming halt"
+3. Set server description: "Real-time LLM hallucination guardrail — NLI + RAG fact-checking with claim-level streaming halt"
 
 ## 2. Create the Bot Application
 

@@ -5,7 +5,7 @@
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI — Lite: streaming-halt in three lines
-"""Director-Lite — the token-level streaming halt, with zero configuration.
+"""Director-Lite — the streaming-halt guard, with zero configuration.
 
 The full Director-AI surface is large; this module is the 30-second front door
 to its one differentiator: stopping a token stream *before* a hallucination

@@ -73,7 +73,7 @@ cd gateway/go && go test ./...
 `director.proto` currently declares two services:
 
 - `CoherenceScoring` — unary `ScoreClaim` and bidi streaming
-  `ScoreStream` for token-level halt decisions.
+  `ScoreStream` for claim-level halt decisions.
 - `ChatGateway` — OpenAI-compatible chat completion RPCs, unary
   and streaming.
 

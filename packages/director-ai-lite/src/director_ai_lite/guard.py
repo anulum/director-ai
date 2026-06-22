@@ -5,7 +5,7 @@
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI — Director-Lite standalone streaming halt
-"""The token-level streaming halt, standalone and dependency-free.
+"""The streaming-halt guard, standalone and dependency-free.
 
 Director-Lite ships the one differentiator — stopping a token stream *before* a
 hallucination finishes generating — as a small, model-free guard that installs

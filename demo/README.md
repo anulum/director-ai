@@ -14,7 +14,7 @@ short_description: Real-time LLM hallucination guardrail
 # Director-AI Demo
 
 Real-time LLM hallucination guardrail with NLI + RAG fact-checking and
-token-level streaming halt.
+claim-level streaming halt.
 
 ## Apps
 

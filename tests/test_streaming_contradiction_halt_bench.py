@@ -9,7 +9,7 @@
 """Offline tests for the contradiction-gate streaming benchmark.
 
 These exercise the pure streaming loop and the aggregation without loading any
-NLI model: a fake claim check halts on a trigger word, so the token-level halt
+NLI model: a fake claim check halts on a trigger word, so the claim-level halt
 index, claim-boundary gating, and confusion/latency metrics are verified
 deterministically.
 """
