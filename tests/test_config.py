@@ -1140,6 +1140,68 @@ class TestConfigCoverageGaps:
         assert scorer._cost_analyser is not None
         assert scorer._judge._cost_callback is not None
 
+    def test_build_scorer_passes_strict_mode(self, monkeypatch):
+        # Regression: hardened mode set a non-field ``strict_mode`` attribute
+        # that build_scorer never forwarded, so the scorer's fail-closed
+        # divergence path stayed disabled under hardened.
+        import director_ai.core.scoring.scorer as scorer_module
+
+        captured = {}
+
+        class FakeScorer:
+            def __init__(self, **kwargs):
+                captured["kwargs"] = kwargs
+                self._nli = None
+                self._judge = None
+                self._adaptive_threshold_enabled = False
+                self._adaptive_threshold_fail_closed = False
+
+            def _has_model_backed_nli(self):
+                return True
+
+        monkeypatch.setattr(scorer_module, "CoherenceScorer", FakeScorer)
+
+        DirectorConfig(strict_mode=True).build_scorer(store=object())
+        assert captured["kwargs"]["strict_mode"] is True
+
+        DirectorConfig().build_scorer(store=object())
+        assert captured["kwargs"]["strict_mode"] is False
+
+    def test_hardened_mode_strict_mode_reaches_scorer(self, monkeypatch):
+        import director_ai.core.scoring.scorer as scorer_module
+
+        captured = {}
+
+        class FakeScorer:
+            def __init__(self, **kwargs):
+                captured["kwargs"] = kwargs
+                self._nli = None
+                self._judge = None
+                self._adaptive_threshold_enabled = False
+                self._adaptive_threshold_fail_closed = False
+
+            def enable_injection_detection(self, **kwargs):
+                pass
+
+            def _get_meta_classifier(self):
+                return object()
+
+            def _has_model_backed_nli(self):
+                return True
+
+        monkeypatch.setattr(scorer_module, "CoherenceScorer", FakeScorer)
+
+        cfg = DirectorConfig(
+            hardened=True,
+            api_keys={"tenant-key"},
+            llm_api_url="https://llm.internal/v1",
+            llm_provider="openai",
+            knowledge_write_hmac_keys='{"kid-1":"signing-secret-at-least-32-chars-xx"}',
+        )
+        assert cfg.strict_mode is True
+        cfg.build_scorer(store=object())
+        assert captured["kwargs"]["strict_mode"] is True
+
     def test_build_scorer_redis_cache_import_failure_is_nonfatal(self, monkeypatch):
         import director_ai.core.scoring.scorer as scorer_module
 
@@ -1308,6 +1370,42 @@ class TestConfigCoverageGaps:
 
         assert _coerce("1, 2,3", "list[int]") == [1, 2, 3]
         assert _coerce("0.1,0.2", "list[float]") == [0.1, 0.2]
+
+    def test_coerce_tuple_fields(self):
+        from director_ai.core.config import _coerce
+
+        # ``tuple[str, ...]`` must split on commas like a list — otherwise the
+        # raw string survives and ``frozenset(value)`` becomes a per-character
+        # set, silently corrupting allowlists.
+        assert _coerce("public, internal", "tuple[str, ...]") == (
+            "public",
+            "internal",
+        )
+        assert _coerce("1,2", "tuple[int, ...]") == (1, 2)
+        assert _coerce("0.5,0.25", "tuple[float, ...]") == (0.5, 0.25)
+
+    def test_from_env_api_keys_accepts_json_array(self, monkeypatch):
+        # Regression: from_env routed api_keys through the generic list
+        # coercion, which split a JSON array on commas and embedded
+        # brackets/quotes into the literal keys (auth never matched).
+        from director_ai.core.config import DirectorConfig
+
+        monkeypatch.setenv("DIRECTOR_API_KEYS", '["sk-alpha","sk-beta"]')
+        assert DirectorConfig.from_env().api_keys == ["sk-alpha", "sk-beta"]
+        monkeypatch.setenv("DIRECTOR_API_KEYS", "sk-a,sk-b")
+        assert DirectorConfig.from_env().api_keys == ["sk-a", "sk-b"]
+
+    def test_from_env_tuple_field_is_split(self, monkeypatch):
+        # Regression: tuple[str, ...] fields fell through _coerce unchanged and
+        # stayed a raw string, breaking frozenset-based allowlist checks.
+        from director_ai.core.config import DirectorConfig
+
+        monkeypatch.setenv(
+            "DIRECTOR_EVIDENCE_FIREWALL_ALLOWED_SENSITIVITY", "public,internal"
+        )
+        cfg = DirectorConfig.from_env()
+        assert cfg.evidence_firewall_allowed_sensitivity == ("public", "internal")
+        assert "public" in frozenset(cfg.evidence_firewall_allowed_sensitivity)
 
     @pytest.mark.parametrize(
         "method_name,kwargs,match",

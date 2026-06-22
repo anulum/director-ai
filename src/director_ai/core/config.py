@@ -128,6 +128,7 @@ class DirectorConfig:
     dry_run: bool = False  # log scores but never halt/reject (observability mode)
     production_mode: bool = False  # enforce HTTPS-only, strict CORS, require auth
     hardened: bool = False  # strict_mode + all sanitisers + injection detection
+    strict_mode: bool = False  # scorer disables heuristic fallbacks (fail closed)
     cost_tracking_enabled: bool = False  # attach CostAnalyser to scorer
 
     # Scoring
@@ -720,6 +721,13 @@ class DirectorConfig:
             if field_name in field_map:
                 fld = field_map[field_name]
                 try:
+                    if fld.name == "api_keys":
+                        # ``api_keys`` accepts both a JSON array and a comma
+                        # list; the generic list coercion would split a JSON
+                        # array on commas and embed brackets/quotes into the
+                        # literal keys (auth configured but never matches).
+                        kwargs[fld.name] = _parse_api_keys_env(value)
+                        continue
                     # ``fld.type`` is str under
                     # ``from __future__ import annotations`` (which
                     # the file imports); the cast pins that contract
@@ -1287,6 +1295,7 @@ class DirectorConfig:
             "threshold": self.coherence_threshold,
             "use_nli": self.use_nli,
             "require_model_backed_nli": self.coherence_require_model_backed_nli,
+            "strict_mode": self.strict_mode,
             "scorer_backend": resolved_backend,
             "soft_limit": self.soft_limit,
             "nli_model": nli_model,
@@ -1822,4 +1831,15 @@ def _coerce(value: str, type_hint: str) -> object:
         if "float" in type_hint:
             return [float(x) for x in items]
         return items
+    if "tuple" in type_hint:
+        # ``tuple[str, ...]`` fields (e.g. enabled modalities, evidence-firewall
+        # sensitivity allowlist) must split on commas like lists. Without this
+        # the raw string falls through and downstream ``frozenset(value)`` turns
+        # it into a per-character set, silently corrupting the allowlist.
+        parts = [s.strip() for s in value.split(",") if s.strip()]
+        if "int" in type_hint:
+            return tuple(int(x) for x in parts)
+        if "float" in type_hint:
+            return tuple(float(x) for x in parts)
+        return tuple(parts)
     return value
