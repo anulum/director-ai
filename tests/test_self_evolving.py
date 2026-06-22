@@ -644,6 +644,24 @@ class TestCalibrator:
         with pytest.raises(ValueError, match="target_coverage"):
             ConformalCalibrator(target_coverage=1.1)
 
+    def test_quantile_uses_ceil_order_statistic(self):
+        # Split-conformal coverage requires the ceil((n+1)*target)-th smallest
+        # non-conformity score. Truncating with int() picks a lower order
+        # statistic and under-covers. With non-conformity {0.0..0.9}, n=10,
+        # target=0.9 the correct index is ceil(9.9)-1 = 9 -> 0.9, not 8 -> 0.8.
+        class _StubGuardrail:
+            def score(self, prompt: str) -> float:
+                return float(prompt)
+
+        events = [
+            FeedbackEvent(prompt=f"{i / 10}", response="", label="safe")
+            for i in range(10)
+        ]
+        result = ConformalCalibrator(target_coverage=0.9).calibrate(
+            _StubGuardrail(), events
+        )
+        assert result.threshold == pytest.approx(0.9)
+
     def test_unlabelled_calibration_rejected(self):
         t = PerceptronGuardrailTrainer(dim=64, epochs=1)
         trained = t.train(_balanced_events(), version=1)

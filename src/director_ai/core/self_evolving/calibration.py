@@ -18,6 +18,7 @@ exceeds it are flagged as unsafe.
 
 from __future__ import annotations
 
+import math
 from collections.abc import Sequence
 from dataclasses import dataclass
 
@@ -69,7 +70,11 @@ class ConformalCalibrator:
             non_conformity.append(abs(score - float(target_int)))
         sorted_scores = sorted(non_conformity)
         n = len(sorted_scores)
-        q_index = min(max(int((self._target * (n + 1)) - 1), 0), n - 1)
+        # Split-conformal threshold: the ceil((n+1)*target)-th smallest
+        # non-conformity score (1-indexed). Truncating with int() selects a
+        # lower order statistic and under-covers; math.ceil gives the
+        # conservative quantile the coverage guarantee requires.
+        q_index = min(max(math.ceil(self._target * (n + 1)) - 1, 0), n - 1)
         threshold = float(sorted_scores[q_index])
         return ConformalResult(
             threshold=threshold,
