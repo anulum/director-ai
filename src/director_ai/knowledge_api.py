@@ -290,7 +290,13 @@ def _chunk_and_store(
     from .core.retrieval.doc_chunker import ChunkConfig, split
 
     chunks = split(text, ChunkConfig(chunk_size=chunk_size, overlap=overlap))
-    prefix = chunk_id_prefix or doc_id
+    base_prefix = chunk_id_prefix or doc_id
+    # Tenant-scope the chunk id so the keyword-fallback tenant filter
+    # (GroundTruthStore.retrieve_context) can find ingested chunks, and so two
+    # tenants ingesting the same doc id cannot collide on a shared cid. The cid
+    # flows unchanged to the vector backend, the registry, and the delete/get
+    # paths, so no tenant threading is needed at those sites.
+    prefix = f"{tenant_id}:{base_prefix}" if tenant_id else base_prefix
     chunk_ids = [f"{prefix}:chunk:{i}" for i in range(len(chunks))]
 
     added_chunk_ids: list[str] = []

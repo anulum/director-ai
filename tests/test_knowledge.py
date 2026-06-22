@@ -98,6 +98,40 @@ class TestGroundTruthStore:
         assert result is not None
         assert "tenant-only fact" in result
 
+    def test_retrieve_matches_ingested_chunk_by_value(self):
+        # Regression (LOW-5): API-ingested chunks are keyed by an opaque cid with
+        # no query words, so key-only matching never found them by content. The
+        # value-aware fallback must retrieve the chunk text.
+        store = GroundTruthStore()
+        store.facts["mydoc:chunk:0"] = "the sky is blue and clear today"
+        result = store.retrieve_context("what colour is the sky")
+        assert result is not None
+        assert "blue" in result
+
+    def test_value_match_respects_tenant(self):
+        store = GroundTruthStore()
+        store.facts["acme:mydoc:chunk:0"] = "the sky is blue and clear today"
+        assert "blue" in (
+            store.retrieve_context("what colour is the sky", tenant_id="acme") or ""
+        )
+        assert (
+            store.retrieve_context("what colour is the sky", tenant_id="other") is None
+        )
+
+    def test_value_match_stopwords_do_not_overmatch(self):
+        # A query of only function words must not match a value on stop words.
+        store = GroundTruthStore()
+        store.facts["doc:chunk:0"] = "the meeting is at noon"
+        assert store.retrieve_context("what is the") is None
+
+    def test_value_match_ranks_below_curated_key_hit(self):
+        # A curated, semantically-keyed fact outranks a value-only content match.
+        store = GroundTruthStore()
+        store.add("refund policy", "curated answer")
+        store.facts["doc:chunk:0"] = "our refund policy is generous"
+        result = store.retrieve_context("refund policy", top_k=1)
+        assert result == "curated answer"
+
     @pytest.mark.parametrize(
         ("key", "value", "message"),
         [

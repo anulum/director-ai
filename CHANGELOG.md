@@ -55,6 +55,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   cryptographically; "at-most / zero" claims (maximum halt rate, no breakout
   events) are unaffected. Passports that certified an at-least claim on the
   commitment backend no longer verify.
+- Make the keyword-fallback retrieval value-aware so API-ingested chunks, which
+  are keyed by an opaque chunk id, can be found by their content rather than only
+  by key (previously unreachable by a content query). A small stop-word filter
+  keeps a query from matching a chunk on function words alone, and content
+  matches rank below curated key hits. Ingested chunk ids are also tenant-scoped
+  so the fallback's tenant filter finds them and two tenants cannot collide on a
+  shared chunk id.
 
 ## [3.16.0] - 2026-06-21
 

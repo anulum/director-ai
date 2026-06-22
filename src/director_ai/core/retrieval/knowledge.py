@@ -21,6 +21,57 @@ if TYPE_CHECKING:
 
 __all__ = ["GroundTruthStore"]
 
+# Common English function words filtered before value-content matching, so a
+# query never matches a fact on stop words alone. Deliberately small and
+# recall-first — this only gates the degraded keyword fallback, not the primary
+# vector path.
+_STOPWORDS = frozenset(
+    {
+        "a",
+        "an",
+        "and",
+        "are",
+        "as",
+        "at",
+        "be",
+        "by",
+        "do",
+        "does",
+        "did",
+        "for",
+        "from",
+        "has",
+        "have",
+        "how",
+        "i",
+        "in",
+        "is",
+        "it",
+        "its",
+        "many",
+        "me",
+        "my",
+        "of",
+        "on",
+        "or",
+        "that",
+        "the",
+        "this",
+        "to",
+        "was",
+        "what",
+        "when",
+        "where",
+        "which",
+        "who",
+        "why",
+        "will",
+        "with",
+        "you",
+        "your",
+    }
+)
+
 
 class GroundTruthStore:
     """In-memory fact store with keyword matching retrieval.
@@ -125,6 +176,7 @@ class GroundTruthStore:
             return None
 
         query_lower = query.lower()
+        query_tokens = {w for w in query_lower.split() if w not in _STOPWORDS}
         ranked: list[tuple[float, str]] = []
 
         for key, value in self.facts.items():
@@ -136,8 +188,17 @@ class GroundTruthStore:
                 search_key = key[len(prefix) :]
             key_words = search_key.lower().split()
             if any(word in query_lower for word in key_words):
-                overlap = _word_overlap(query, search_key)
-                ranked.append((overlap, value))
+                # Curated, semantically-keyed fact: rank on the key (unchanged).
+                ranked.append((_word_overlap(query, search_key), value))
+                continue
+            # Value-aware fallback for content-keyed facts — e.g. API-ingested
+            # chunks keyed by an opaque cid ("doc:chunk:0"), which has no query
+            # words, so key matching never reaches the chunk text. Match the
+            # value, stopword-filtered so a query cannot match on function words
+            # alone, and rank below key hits so curated facts always win.
+            value_tokens = {w for w in value.lower().split() if w not in _STOPWORDS}
+            if query_tokens & value_tokens:
+                ranked.append((0.5 * _word_overlap(query, value), value))
 
         if ranked:
             ranked.sort(key=lambda item: item[0], reverse=True)

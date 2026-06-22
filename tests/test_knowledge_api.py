@@ -377,22 +377,25 @@ def test_chunk_store_content_hash_cleanup_and_delete_paths(monkeypatch) -> None:
         {"sig": True},
     )
 
-    assert chunk_ids == ["doc1:chunk:0", "doc1:chunk:1"]
+    # cid is tenant-scoped (tenant-a) so the keyword fallback can find it.
+    assert chunk_ids == ["tenant-a:doc1:chunk:0", "tenant-a:doc1:chunk:1"]
     assert store.backend.added == chunk_ids
     assert store.facts == {
-        "doc1:chunk:0": "chunk one",
-        "doc1:chunk:1": "chunk two",
+        "tenant-a:doc1:chunk:0": "chunk one",
+        "tenant-a:doc1:chunk:1": "chunk two",
     }
     assert _content_hash("same") == _content_hash("same")
 
-    _cleanup_chunk_ids(["doc1:chunk:0"], store)
-    assert store.backend.deleted[-1] == "doc1:chunk:0"
-    assert "doc1:chunk:0" not in store.facts
+    _cleanup_chunk_ids(["tenant-a:doc1:chunk:0"], store)
+    assert store.backend.deleted[-1] == "tenant-a:doc1:chunk:0"
+    assert "tenant-a:doc1:chunk:0" not in store.facts
 
-    store.facts["doc1:chunk:1"] = "chunk two"
-    removed = _delete_chunks(SimpleNamespace(chunk_ids=["doc1:chunk:1"]), store)
+    store.facts["tenant-a:doc1:chunk:1"] = "chunk two"
+    removed = _delete_chunks(
+        SimpleNamespace(chunk_ids=["tenant-a:doc1:chunk:1"]), store
+    )
     assert removed == 1
-    assert "doc1:chunk:1" not in store.facts
+    assert "tenant-a:doc1:chunk:1" not in store.facts
 
 
 def test_chunk_store_rolls_back_staged_chunks_on_add_failure(monkeypatch) -> None:
@@ -419,7 +422,7 @@ def test_chunk_store_rolls_back_staged_chunks_on_add_failure(monkeypatch) -> Non
     with pytest.raises(RuntimeError, match="boom"):
         knowledge_api._chunk_and_store("text", "doc", "tenant", store, 64, 8)
 
-    assert store.backend.deleted == ["doc:chunk:0"]
+    assert store.backend.deleted == ["tenant:doc:chunk:0"]
     assert store.facts == {}
 
 
@@ -583,7 +586,7 @@ def test_upload_endpoint_success_and_parse_errors(monkeypatch) -> None:
     assert body["tenant_id"] == "tenant-a"
     doc_id = body["doc_id"]
     assert doc_id in registry.records
-    assert f"{doc_id}:chunk:0" in store.facts
+    assert f"tenant-a:{doc_id}:chunk:0" in store.facts
 
     monkeypatch.setattr(
         doc_parser,
@@ -659,12 +662,17 @@ def test_ingest_endpoint_registers_tenant_scoped_text_chunks(monkeypatch) -> Non
         "tenant_id": "tenant-a",
     }
     record = registry.records["policy-1"]
-    assert record.chunk_ids == ["policy-1:chunk:0", "policy-1:chunk:1"]
+    assert record.chunk_ids == [
+        "tenant-a:policy-1:chunk:0",
+        "tenant-a:policy-1:chunk:1",
+    ]
     assert store.facts == {
-        "policy-1:chunk:0": "first chunk",
-        "policy-1:chunk:1": "second chunk",
+        "tenant-a:policy-1:chunk:0": "first chunk",
+        "tenant-a:policy-1:chunk:1": "second chunk",
     }
-    assert backend.docs["policy-1:chunk:0"]["metadata"]["tenant_id"] == "tenant-a"
+    assert (
+        backend.docs["tenant-a:policy-1:chunk:0"]["metadata"]["tenant_id"] == "tenant-a"
+    )
 
 
 class _ChunkedUpload:
