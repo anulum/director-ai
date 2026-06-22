@@ -36,7 +36,7 @@ from director_ai.core.safety_event import SafetyEvent
 from director_ai.core.zk_attestation import (
     CommitmentBackend,
     CrossOrgPassport,
-    MinimumCoherence,
+    MaximumHaltRate,
     PassportIssuer,
     PassportVerifier,
 )
@@ -288,7 +288,7 @@ class TestPassportWiring:
         passport = issuer.issue(
             agent_id="a",
             samples=samples,
-            statements=[MinimumCoherence(name="c", threshold=0.9, samples_min=1)],
+            statements=[MaximumHaltRate(name="c", max_rate=0.5, samples_min=1)],
         )
         with pytest.raises(RuntimeError, match="passport_verifier"):
             agent.verify_passport(passport)
@@ -299,7 +299,7 @@ class TestPassportWiring:
         passport = issuer.issue(
             agent_id="a",
             samples=samples,
-            statements=[MinimumCoherence(name="c", threshold=0.9, samples_min=1)],
+            statements=[MaximumHaltRate(name="c", max_rate=0.5, samples_min=1)],
         )
         verdict = agent.verify_passport(passport)
         assert verdict.accepted is True
@@ -312,7 +312,7 @@ class TestPassportWiring:
         passport = issuer.issue(
             agent_id="a",
             samples=samples,
-            statements=[MinimumCoherence(name="c", threshold=0.9, samples_min=1)],
+            statements=[MaximumHaltRate(name="c", max_rate=0.5, samples_min=1)],
         )
         tampered = CrossOrgPassport(
             agent_id=passport.agent_id,

@@ -54,7 +54,7 @@ from director_ai.core.cyber_physical import (
 from director_ai.core.zk_attestation import (
     CommitmentBackend,
     CrossOrgPassport,
-    MinimumCoherence,
+    MaximumHaltRate,
     PassportIssuer,
     PassportVerifier,
 )
@@ -245,7 +245,7 @@ class TestPassportFeatureMatrix:
         passport = issuer.issue(
             agent_id="a",
             samples=self._samples(),
-            statements=[MinimumCoherence(name="c", threshold=0.9, samples_min=1)],
+            statements=[MaximumHaltRate(name="c", max_rate=0.5, samples_min=1)],
         )
         with pytest.raises(RuntimeError, match="passport_verifier"):
             agent.verify_passport(passport)
@@ -256,7 +256,7 @@ class TestPassportFeatureMatrix:
         passport = issuer.issue(
             agent_id="a",
             samples=self._samples(),
-            statements=[MinimumCoherence(name="c", threshold=0.9, samples_min=1)],
+            statements=[MaximumHaltRate(name="c", max_rate=0.5, samples_min=1)],
         )
         assert agent.verify_passport(passport).accepted is True
 
@@ -266,7 +266,7 @@ class TestPassportFeatureMatrix:
         passport = issuer.issue(
             agent_id="a",
             samples=self._samples(),
-            statements=[MinimumCoherence(name="c", threshold=0.9, samples_min=1)],
+            statements=[MaximumHaltRate(name="c", max_rate=0.5, samples_min=1)],
         )
         tampered = CrossOrgPassport(
             agent_id=passport.agent_id,
