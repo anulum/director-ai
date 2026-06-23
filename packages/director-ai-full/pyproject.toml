@@ -1,0 +1,101 @@
+# SPDX-License-Identifier: BUSL-1.1
+# Commercial license available
+# © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
+# © Code 2020–2026 Miroslav Šotek. All rights reserved.
+# ORCID: 0009-0009-3560-0851
+# Contact: www.anulum.li | protoscience@anulum.li
+# Director-Class AI — director-ai-full package metadata
+
+[build-system]
+requires = ["setuptools>=42", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "director-ai-full"
+version = "3.16.0"
+description = "Full commercial tier for Director-AI — the Advanced set plus the Labs/Research modules (BUSL-1.1)"
+authors = [
+    {name = "Miroslav Šotek", email = "protoscience@anulum.li"}
+]
+license = "BUSL-1.1"
+readme = "README.md"
+requires-python = ">=3.11"
+keywords = [
+    "llm",
+    "hallucination",
+    "guardrail",
+    "director-ai",
+    "advanced",
+    "labs",
+    "research",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+# The advanced/labs modules build on the free Apache-2.0 core. Installing this
+# tier pulls the core and layers the BUSL-1.1 packages into the same
+# ``director_ai`` namespace (no parent __init__ is shipped here).
+dependencies = [
+    "director-ai>=3.16.0,<4",
+]
+
+[project.urls]
+Homepage = "https://www.anulum.li"
+Repository = "https://github.com/anulum/director-ai"
+Issues = "https://github.com/anulum/director-ai/issues"
+
+[tool.setuptools]
+include-package-data = false
+
+[tool.setuptools.packages.find]
+where = ["../../src"]
+include = [
+    "director_ai.agentic*",
+    "director_ai.compliance*",
+    "director_ai.enterprise*",
+    "director_ai.ui*",
+    "director_ai.voice*",
+    "director_ai.core.agent_identity*",
+    "director_ai.core.citation_grounding*",
+    "director_ai.core.customer_model_factory*",
+    "director_ai.core.dp_rag*",
+    "director_ai.core.execution_rings*",
+    "director_ai.core.federated_dp*",
+    "director_ai.core.financial_services*",
+    "director_ai.core.fuzzing*",
+    "director_ai.core.interpretability*",
+    "director_ai.core.meta_guard*",
+    "director_ai.core.ml_bom*",
+    "director_ai.core.multimodal_guard*",
+    "director_ai.core.output_integrity*",
+    "director_ai.core.output_trust*",
+    "director_ai.core.rasp*",
+    "director_ai.core.routing*",
+    "director_ai.core.self_healing*",
+    "director_ai.core.streaming_repair*",
+    "director_ai.core.sustainability*",
+    "director_ai.core.temporal_consistency*",
+    "director_ai.core.threat_intel*",
+    "director_ai.experimental*",
+    "director_ai.core.autopoietic*",
+    "director_ai.core.continual_adversarial*",
+    "director_ai.core.defense_genome*",
+    "director_ai.core.emergence_oracle*",
+    "director_ai.core.multi_scale_alignment*",
+    "director_ai.core.neuro_symbolic*",
+    "director_ai.core.ontology*",
+    "director_ai.core.self_evolving*",
+    "director_ai.core.swarm_economics*",
+    "director_ai.core.swarm_equilibrium*",
+    "director_ai.core.symbolic_chain*",
+    "director_ai.core.temporal_logic*",
+    "director_ai.core.trace_safe*",
+    "director_ai.core.trajectory*",
+]
