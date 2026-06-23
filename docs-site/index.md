@@ -167,7 +167,7 @@ graph LR
 | Mid-stream contradiction halt | **Opt-in** | No | No | No |
 | Async voice AI pipeline | **Yes** | No | No | No |
 | Custom KB RAG | **Yes** | Partial | No | No |
-| Token-level scoring | **Yes** | No | No | No |
+| Response-level NLI scoring | **Yes** | No | No | No |
 | NLI contradiction detection | **Yes** | No | No | Partial |
 | Evidence on rejection | **Yes** | No | No | No |
 | Numeric verification | **Yes** | No | No | No |

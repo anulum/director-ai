@@ -109,8 +109,8 @@ Key terms used throughout Director-AI documentation.
 **Threshold**
 :   The coherence score cutoff (0–1). Responses below this are rejected. Domain-dependent: 0.55 for support, 0.5 default, and 0.30 starter thresholds for medical/finance/legal before local calibration. See [Threshold Tuning](guide/threshold-tuning.md).
 
-**Token-Level Scoring**
-:   Evaluating coherence incrementally as each token (or batch of tokens) arrives, rather than waiting for the complete response.
+**Claim-Level Streaming Halt**
+:   In streaming mode, coherence is re-scored when a claim completes (at a claim boundary, not per token); a streamed claim that contradicts retrieved grounding can halt the stream. The production gate remains response-level scoring.
 
 **Trend Detection**
 :   In streaming mode, detecting a *downward trend* in coherence scores across consecutive windows — an early warning before the score crosses the threshold.
