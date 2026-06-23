@@ -48,7 +48,6 @@ from .server_support import (
     _normalize_request_id,
     _record_http_metrics,
     _record_sector_policy_findings,
-    _request_authenticated,
 )
 from .server_support import (
     _http_endpoint_label as _http_endpoint_label,  # re-exported for tests
@@ -785,98 +784,11 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
 
     # Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬ Health Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬
 
-    @app.get("/v1/live")
-    async def liveness() -> dict[str, Any]:
-        """Minimal unauthenticated liveness probe — no version or config leak."""
-        return {"ok": True}
+    # Diagnostic routes — live, health, ready, source, metrics, config — live in
+    # routers/health.py and read their state from app.state.
+    from .routers.health import create_health_router
 
-    @app.get("/v1/health")
-    async def health(request: Request) -> dict[str, Any]:
-        """Return liveness plus, for authenticated callers, build detail.
-
-        Unauthenticated callers receive ``{status, license}`` only; a valid key
-        unlocks version, mode, profile, router, and revision detail. The
-        response is no longer a fixed ``HealthResponse`` schema because the
-        payload shape now depends on authentication.
-        """
-        import director_ai
-
-        lic = getattr(request.app.state, "_license", None)
-        extra = {}
-        if lic and lic.is_commercial:
-            # Public, auth-exempt endpoint: expose the licence type only, never
-            # the commercial licensee identity or tier.
-            extra = {"license": "commercial"}
-        elif lic and lic.is_trial:
-            extra = {"license": "trial", "expires": lic.expires}
-        else:
-            extra = {"license": "open-core"}
-
-        if not _request_authenticated(request):
-            # Unauthenticated callers get liveness + licence type only; the
-            # detailed build/router/revision payload is gated behind a valid
-            # key. Pure liveness probes should use /v1/live.
-            return {"status": "ok", **extra}
-
-        resp = HealthResponse(
-            version=director_ai.__version__,
-            mode=cfg.mode,
-            profile=cfg.profile,
-            nli_loaded=cfg.use_nli,
-            uptime_seconds=time.monotonic() - _start_time,
-            routers=dict(request.app.state.router_mounts),
-            model_revisions=cfg.model_revision_health(),
-        )
-        return {**resp.model_dump(), **extra}
-
-    @app.get("/v1/ready", response_model=ReadyResponse)
-    async def readiness(request: Request) -> dict[str, Any] | JSONResponse:
-        """Readiness probe: returns 200 only when scorer is operational."""
-        scorer = request.app.state._state.get("scorer")
-        if scorer is None:
-            return JSONResponse(
-                status_code=503,
-                content={"ready": False, "reason": "scorer not initialised"},
-            )
-        nli = getattr(scorer, "_nli", None)
-        if cfg.use_nli and nli is not None and not nli.model_available:
-            return JSONResponse(
-                status_code=503,
-                content={"ready": False, "reason": "NLI model not loaded"},
-            )
-        return {"ready": True}
-
-    # -- Source-availability endpoint ----------------------------------------
-
-    @app.get("/v1/source", response_model=SourceResponse)
-    async def source(request: Request) -> dict[str, Any]:
-        """Return source-availability metadata for the running deployment.
-
-        Open core: the Apache-2.0 core and the source-available BUSL-1.1 advanced
-        tier are both published upstream. This endpoint is a transparency
-        convenience, not a licence obligation.
-        """
-        import director_ai
-
-        lic = getattr(request.app.state, "_license", None)
-        if lic and lic.is_commercial:
-            if not cfg.source_endpoint_enabled:
-                raise HTTPException(
-                    404, "Source endpoint disabled (commercial license)"
-                )
-            # Do not leak the commercial tier or the build version on this
-            # auth-exempt endpoint.
-            return {"license": "commercial"}
-
-        if not cfg.source_endpoint_enabled:
-            raise HTTPException(404, "Source endpoint disabled")
-
-        return {
-            "license": "Apache-2.0 AND BUSL-1.1",
-            "version": director_ai.__version__,
-            "repository_url": cfg.source_repository_url,
-            "instructions": f"git clone {cfg.source_repository_url}",
-        }
+    app.include_router(create_health_router())
 
     # Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬ Review Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬
 
@@ -1745,40 +1657,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
 
     # Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬ Metrics Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬
 
-    @app.get("/v1/metrics")
-    async def get_metrics(request: Request) -> dict[str, Any]:
-        """Return structured in-process metrics."""
-        return metrics.get_metrics()
-
-    @app.get("/v1/metrics/prometheus", response_class=PlainTextResponse)
-    async def get_prometheus(request: Request) -> str:
-        """Return metrics in Prometheus text exposition format."""
-        return metrics.prometheus_format()
-
     # Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬ Config Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬
-
-    @app.get("/v1/config", response_model=ConfigResponse)
-    async def get_config() -> ConfigResponse:
-        """Return the effective non-secret server configuration."""
-        return ConfigResponse(config=cfg.to_dict())
-
-    @app.get("/v1/scorer/models")
-    async def list_scorer_models(
-        include_domain_only: bool = False,
-    ) -> dict[str, Any]:
-        """Return current scorer settings and available scorer choices."""
-        from .core.scoring.model_choices import scorer_model_choices_to_dict
-
-        return {
-            "current": {
-                "scorer_model": cfg.scorer_model,
-                "nli_model": cfg.nli_model,
-                "nli_model_artifact_uri": cfg.nli_model_artifact_uri,
-            },
-            "models": scorer_model_choices_to_dict(
-                include_domain_only=include_domain_only,
-            ),
-        }
 
     # Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬ Stats / Dashboard Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬
 

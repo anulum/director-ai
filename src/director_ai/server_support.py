@@ -99,6 +99,23 @@ def _can_suppress_batcher_metrics(batcher: Any) -> bool:
     return isinstance(batcher, BatchProcessor)
 
 
+def _flatten_route_candidates(routes: Any) -> Any:
+    """Yield matchable leaf candidates, expanding included sub-routers.
+
+    FastAPI wraps ``include_router`` mounts in ``_IncludedRouter`` objects whose
+    sub-routes are not flattened into ``app.routes``. Their ``effective_candidates``
+    expose the prefix-aware leaf contexts (each with a full ``.path`` and a
+    ``.matches``), so a route rejected in middleware (before routing resolves
+    ``scope["route"]``) still gets its real label instead of ``__unmatched__``.
+    """
+    for candidate in routes:
+        effective = getattr(candidate, "effective_candidates", None)
+        if callable(effective):
+            yield from effective()
+        else:
+            yield candidate
+
+
 def _http_endpoint_label(request: Request) -> str:
     """Return a low-cardinality route label for HTTP metrics."""
     route = request.scope.get("route")
@@ -112,7 +129,7 @@ def _http_endpoint_label(request: Request) -> str:
         return "__unmatched__"
 
     partial_path = ""
-    for candidate in request.app.routes:
+    for candidate in _flatten_route_candidates(request.app.routes):
         matches = getattr(candidate, "matches", None)
         if not callable(matches):
             continue
