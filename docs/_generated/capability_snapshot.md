@@ -7,7 +7,7 @@
 |---|---:|
 | Package version | 3.16.0 |
 | Public API exports | 224 |
-| Python capability source modules | 449 |
+| Python capability source modules | 450 |
 | Python capability classes | 981 |
 | API documentation pages | 89 |
 | Rust PyO3 bindings | 83 |
