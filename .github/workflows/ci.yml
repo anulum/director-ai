@@ -87,6 +87,30 @@ jobs:
           PYTHONPATH=src pytest tests/ -q \
             --cov=director_ai_lite --cov-report=term-missing --cov-fail-under=100
 
+  paid-tiers:
+    name: Paid tiers (pro + full) build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
+        with:
+          python-version: "3.12"
+
+      - name: Install build tools
+        run: pip install --require-hashes --no-deps -r requirements/ci-release.txt
+
+      - name: Build + check the BUSL paid wheels
+        run: |
+          # Each paid wheel builds from the shared ../../src tree and layers the
+          # advanced/labs packages into the director_ai namespace WITHOUT shipping
+          # a parent __init__ (so it installs alongside the free Apache core).
+          for tier in pro full; do
+            python -m build --wheel "packages/director-ai-$tier" --outdir "dist-$tier"
+            twine check "dist-$tier"/*
+            python scripts/check_paid_wheel.py "dist-$tier"
+          done
+
   typecheck:
     name: Type Check
     runs-on: ubuntu-latest
