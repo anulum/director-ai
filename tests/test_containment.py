@@ -299,6 +299,24 @@ class TestBreakoutDetector:
         findings = det.scan({"hostname": "api.openai.com"}, anchored_scope="production")
         assert not any(f.category == "production_target" for f in findings)
 
+    def test_wildcard_production_host_matches_subdomain(self):
+        # Regression: a `*.host` entry was matched literally, so an operator
+        # relying on the documented wildcard got no protection (fail-open).
+        det = BreakoutDetector(production_hosts={"*.openai.com"})
+        findings = det.scan(
+            {"url": "https://eu.api.openai.com/v1/chat"},
+            anchored_scope="sandbox",
+        )
+        assert any(f.category == "production_target" for f in findings)
+
+    def test_wildcard_does_not_match_unrelated_host(self):
+        det = BreakoutDetector(production_hosts={"*.openai.com"})
+        findings = det.scan(
+            {"url": "https://example.org/openai.com.evil"},
+            anchored_scope="sandbox",
+        )
+        assert not any(f.category == "production_target" for f in findings)
+
     def test_anti_anchor_phrase_detection(self):
         det = BreakoutDetector()
         findings = det.scan(

@@ -88,7 +88,9 @@ class BreakoutDetector:
     production_hosts : set[str] | None
         Hostnames whose presence in a sandboxed action is a high-
         severity finding. Defaults to the built-in list; operators
-        extend it with internal billing and infra hostnames.
+        extend it with internal billing and infra hostnames. An entry
+        may use ``*`` as a wildcard (``*.openai.com`` matches any
+        subdomain); ``*`` expands to one or more host-name characters.
     anti_anchor_phrases : tuple[str, ...] | None
         Case-insensitive substrings that indicate a scope-override
         prompt injection.
@@ -114,6 +116,19 @@ class BreakoutDetector:
         self._host_pattern: re.Pattern[str] = re.compile(
             r"(?i)(?:https?://)?([a-z0-9][a-z0-9.\-]*[a-z0-9])",
         )
+        # Split the configured hosts into exact names and wildcard patterns
+        # (``*.openai.com``). Without this, a wildcard entry only ever matched
+        # itself literally, so an operator relying on it got no protection —
+        # a fail-open. ``*`` expands to one or more host-name characters.
+        self._exact_hosts: set[str] = set()
+        self._wildcard_patterns: list[re.Pattern[str]] = []
+        for entry in self.production_hosts:
+            low = entry.lower()
+            if "*" in low:
+                body = r"[a-z0-9.\-]+".join(re.escape(seg) for seg in low.split("*"))
+                self._wildcard_patterns.append(re.compile(rf"(?i)^{body}$"))
+            else:
+                self._exact_hosts.add(low)
 
     def scan(
         self,
@@ -166,7 +181,12 @@ class BreakoutDetector:
             for match in self._host_pattern.finditer(url):
                 hosts_in_event.add(match.group(1).lower())
 
-        for host in hosts_in_event & self.production_hosts:
+        matched = set(hosts_in_event & self._exact_hosts)
+        for host in hosts_in_event - matched:
+            if any(pattern.match(host) for pattern in self._wildcard_patterns):
+                matched.add(host)
+
+        for host in matched:
             findings.append(
                 BreakoutFinding(
                     category="production_target",
