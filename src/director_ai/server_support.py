@@ -17,6 +17,7 @@ resolving for callers and tests.
 
 from __future__ import annotations
 
+import hmac
 import time
 import uuid
 from collections.abc import Mapping
@@ -53,6 +54,22 @@ def _extract_api_key_from_headers(headers: Mapping[str, str]) -> str:
 def _extract_request_api_key(request: Request) -> str:
     """Return the caller API key from supported production auth headers."""
     return _extract_api_key_from_headers(request.headers)
+
+
+def _request_authenticated(request: Request) -> bool:
+    """Return True when the caller is authenticated for detail disclosure.
+
+    Auth-exempt probes (`/v1/health`, `/v1/source`) still answer to
+    unauthenticated callers, but the detailed payload (version, mode,
+    profile, routers, revision health) is only returned to a valid key
+    holder. When no API keys are configured there is no auth posture
+    (dev server), so detail is returned to keep local debugging usable.
+    """
+    valid_api_keys = request.app.state.valid_api_keys
+    if not valid_api_keys:
+        return True
+    provided = _extract_request_api_key(request)
+    return any(hmac.compare_digest(provided, k) for k in valid_api_keys)
 
 
 def _record_sector_policy_findings(

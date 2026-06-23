@@ -48,6 +48,7 @@ from .server_support import (
     _normalize_request_id,
     _record_http_metrics,
     _record_sector_policy_findings,
+    _request_authenticated,
 )
 from .server_support import (
     _http_endpoint_label as _http_endpoint_label,  # re-exported for tests
@@ -515,6 +516,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
     )
     app.state.config = cfg
     app.state.router_mounts = {}
+    app.state.start_time = _start_time
 
     # Fine-tuning API router (Phase C)
     try:
@@ -645,25 +647,19 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
             "(set api_keys or api_key_tenant_map)"
         )
 
-    def _request_authenticated(request: Request) -> bool:
-        """Return True when the caller is authenticated for detail disclosure.
-
-        Auth-exempt probes (`/v1/health`, `/v1/source`) still answer to
-        unauthenticated callers, but the detailed payload (version, mode,
-        profile, routers, revision health) is only returned to a valid key
-        holder. When no API keys are configured there is no auth posture
-        (dev server), so detail is returned to keep local debugging usable.
-        """
-        if not _valid_api_keys:
-            return True
-        provided = _extract_request_api_key(request)
-        return any(hmac.compare_digest(provided, k) for k in _valid_api_keys)
+    # Expose the effective auth state on app.state so request handlers (and the
+    # routers split out of this factory) read it from the request instead of
+    # closing over create_app locals. The list is shared by reference, so later
+    # merges stay visible.
+    app.state.valid_api_keys = _valid_api_keys
+    app.state.api_key_tenant_map = _api_key_tenant_map
 
     from .core.runtime.ws_ticket import WebSocketTicketRegistry
 
     _ws_ticket_registry = WebSocketTicketRegistry(
         ttl_seconds=getattr(cfg, "ws_ticket_ttl_seconds", 30.0),
     )
+    app.state.ws_ticket_registry = _ws_ticket_registry
 
     @app.middleware("http")
     async def _http_middleware(
