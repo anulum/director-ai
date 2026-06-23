@@ -121,7 +121,9 @@ def create_grpc_server(
 
     store = cfg.build_store()
     scorer = cfg.build_scorer(store=store)
-    agent = CoherenceAgent(_scorer=scorer, _store=store)
+    agent = CoherenceAgent(
+        _scorer=scorer, _store=store, max_candidates=cfg.max_candidates
+    )
 
     _api_key_tenant_map: dict[str, str] = {}
     if cfg.api_key_tenant_map:

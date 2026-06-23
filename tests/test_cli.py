@@ -101,6 +101,8 @@ class TestBatchCommand:
         seen: dict[str, tuple[str, ...]] = {}
 
         class FakeConfig:
+            max_candidates = 3
+
             def build_store(self):
                 return object()
 

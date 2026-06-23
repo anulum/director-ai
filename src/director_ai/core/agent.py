@@ -67,6 +67,10 @@ class CoherenceAgent:
     provider : str | None — "openai" or "anthropic". Reads API key from env.
         Mutually exclusive with llm_api_url.
     production_mode : bool — require an explicit real LLM generator.
+    max_candidates : int — how many candidate responses the generator produces
+        per prompt (passed as ``n`` to ``generate_candidates``); the best-scoring
+        approved candidate is emitted. Sourced from
+        ``DirectorConfig.max_candidates`` at the server/CLI/gRPC construction sites.
 
     """
 
@@ -81,6 +85,7 @@ class CoherenceAgent:
         production_mode: bool = False,
         llm_max_tokens: int = 128,
         llm_temperature: float = 0.8,
+        max_candidates: int = 3,
         *,
         _scorer: CoherenceScorer | None = None,
         _store: GroundTruthStore | None = None,
@@ -95,6 +100,9 @@ class CoherenceAgent:
         self.logger = logging.getLogger("CoherenceAgent")
         self.fallback = fallback
         self.disclaimer_prefix = disclaimer_prefix
+        if max_candidates < 1:
+            raise ValueError(f"max_candidates must be >= 1; got {max_candidates!r}")
+        self.max_candidates = max_candidates
 
         if provider and llm_api_url:
             raise ValueError("provider and llm_api_url are mutually exclusive")
@@ -222,7 +230,7 @@ class CoherenceAgent:
 
         self.logger.debug("Processing prompt (%d chars)", len(prompt))
         self._raise_if_cancelled(cancel_event)
-        candidates = self.generator.generate_candidates(prompt)
+        candidates = self.generator.generate_candidates(prompt, n=self.max_candidates)
         self._raise_if_cancelled(cancel_event)
 
         best, rejected, n = self._score_candidates(

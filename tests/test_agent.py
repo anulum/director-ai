@@ -73,6 +73,29 @@ class TestConstruction:
         agent = CoherenceAgent()
         assert agent.kernel.is_active is True
 
+    def test_default_max_candidates(self):
+        assert CoherenceAgent().max_candidates == 3
+
+    @pytest.mark.parametrize("n", [0, -1])
+    def test_max_candidates_must_be_positive(self, n):
+        with pytest.raises(ValueError, match="max_candidates"):
+            CoherenceAgent(max_candidates=n)
+
+    def test_max_candidates_flows_to_generator(self):
+        # Regression: max_candidates was a config field nobody consumed — the
+        # generator was always asked for its default. It must now drive `n`.
+        class _Spy:
+            asked: int | None = None
+
+            def generate_candidates(self, prompt, n=3):
+                self.asked = n
+                return [{"text": f"c{i}", "source": "x"} for i in range(n)]
+
+        agent = CoherenceAgent(max_candidates=5)
+        agent.generator = _Spy()
+        agent.process("question")
+        assert agent.generator.asked == 5
+
 
 # â”€â”€ process() happy path â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 

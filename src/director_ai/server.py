@@ -460,6 +460,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
             "production_mode": cfg.production_mode,
             "llm_max_tokens": cfg.llm_max_tokens,
             "llm_temperature": cfg.llm_temperature,
+            "max_candidates": cfg.max_candidates,
         }
         if cfg.llm_provider == "local":
             agent_kwargs["llm_api_url"] = cfg.llm_api_url

@@ -62,6 +62,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   matches rank below curated key hits. Ingested chunk ids are also tenant-scoped
   so the fallback's tenant filter finds them and two tenants cannot collide on a
   shared chunk id.
+- Validate `DriftDetector` construction: a `window_days` of zero or less made the
+  window-building loop never advance and spin a CPU core forever. `window_days`
+  must now be at least 1, and `alpha` must lie in (0, 1).
+- Apply the `max_candidates` configuration field. It was validated and set per
+  profile but never read, so the agent always generated the default number of
+  candidates; it is now passed through to the generator at the server, CLI, and
+  gRPC construction sites.
 
 ## [3.16.0] - 2026-06-21
 
