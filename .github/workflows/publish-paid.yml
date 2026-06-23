@@ -1,0 +1,88 @@
+# SPDX-License-Identifier: Apache-2.0
+# © 1998–2026 Miroslav Šotek. All rights reserved.
+# Contact: www.anulum.li | protoscience@anulum.li
+name: Publish paid tiers (pro + full)
+
+# The BUSL-1.1 paid wheels (director-ai-pro, director-ai-full) are distributed
+# as Release assets on a SEPARATE PRIVATE repository — the access-to-artifact
+# gate (decision D4). GitHub Packages does not host pip indexes, so a private
+# repo's Releases are the GitHub-native gated channel: licensed customers
+# install with a token, e.g.
+#   pip install \
+#     "https://<token>@github.com/<owner>/<dist-repo>/releases/download/v3.16.0/director_ai_pro-3.16.0-py3-none-any.whl"
+#
+# Operator setup (one-time):
+#   - create the private distribution repo and set repo variable PAID_DIST_REPO
+#     to "<owner>/<dist-repo>";
+#   - add secret PAID_DIST_TOKEN — a fine-grained PAT with contents:write on the
+#     dist repo only.
+# Until both are set the job is a documented no-op (it skips the upload).
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag to publish (e.g. v3.16.0)"
+        required: true
+
+permissions: read-all
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  RELEASE_TAG: ${{ github.event.release.tag_name || inputs.tag }}
+
+jobs:
+  publish-paid:
+    name: Build + publish director-ai-pro and director-ai-full
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          ref: ${{ env.RELEASE_TAG }}
+
+      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
+        with:
+          python-version: "3.12"
+
+      - name: Install build tools
+        run: pip install --require-hashes -r requirements/ci-release.txt
+
+      - name: Build the paid wheels
+        run: |
+          for tier in pro full; do
+            python -m build --wheel "packages/director-ai-$tier" --outdir dist-paid
+          done
+
+      - name: Check distributions + namespace safety
+        run: |
+          twine check dist-paid/*
+          for tier in pro full; do
+            mkdir -p "verify-$tier"
+            cp dist-paid/director_ai_${tier}-*.whl "verify-$tier"/
+            python scripts/check_paid_wheel.py "verify-$tier"
+          done
+
+      - name: Publish to the private distribution repo
+        if: ${{ vars.PAID_DIST_REPO != '' }}
+        env:
+          GH_TOKEN: ${{ secrets.PAID_DIST_TOKEN }}
+        run: |
+          # Upload (or replace) the wheels on the tagged release of the private
+          # distribution repo. --clobber keeps re-runs idempotent.
+          gh release view "$RELEASE_TAG" --repo "${{ vars.PAID_DIST_REPO }}" \
+            >/dev/null 2>&1 \
+            || gh release create "$RELEASE_TAG" --repo "${{ vars.PAID_DIST_REPO }}" \
+                 --title "$RELEASE_TAG" --notes "Director-AI paid tiers $RELEASE_TAG"
+          gh release upload "$RELEASE_TAG" dist-paid/*.whl \
+            --repo "${{ vars.PAID_DIST_REPO }}" --clobber
+
+      - name: Note when distribution is not configured
+        if: ${{ vars.PAID_DIST_REPO == '' }}
+        run: |
+          echo "PAID_DIST_REPO is not set — built + verified the paid wheels but"
+          echo "skipped publishing. Configure PAID_DIST_REPO + PAID_DIST_TOKEN to enable."
