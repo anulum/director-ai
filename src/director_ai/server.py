@@ -33,13 +33,6 @@ from contextlib import asynccontextmanager
 from typing import Any
 
 from .core.config import DirectorConfig
-from .core.kb_write_security import (
-    KBWriteAccessError,
-    canonical_kb_payload,
-    check_kb_write_access,
-    parse_hmac_keys,
-    verify_kb_payload_signature,
-)
 from .core.metrics import metrics
 from .server_support import (
     _extract_api_key_from_headers,
@@ -813,129 +806,11 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
 
     # Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬ Tenants Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬
 
-    @app.get("/v1/tenants", response_model=TenantListResponse)
-    async def list_tenants(request: Request) -> dict[str, Any]:
-        """List tenants visible to the authenticated caller."""
-        router = request.app.state._state.get("tenant_router")
-        if not router:
-            raise HTTPException(404, "Tenant routing not enabled")
-        bound = getattr(request.state, "tenant_id", "")
-        visible = [bound] if bound else router.tenant_ids
-        return {
-            "tenants": [
-                {"id": tid, "fact_count": router.fact_count(tid)}
-                for tid in visible
-                if tid in router.tenant_ids
-            ],
-        }
+    # Tenant routes - list, add fact, add vector fact - live in routers/tenants.py
+    # and read the tenant router + write-access config from app.state.
+    from .routers.tenants import create_tenants_router
 
-    def _enforce_tenant_binding(request: Request, tenant_id: str) -> None:
-        """Reject cross-tenant writes for tenant-bound API keys."""
-        bound = getattr(request.state, "tenant_id", "")
-        if bound and bound != tenant_id:
-            raise HTTPException(403, "API key not authorized for this tenant")
-
-    def _enforce_kb_write_access(request: Request, tenant_id: str) -> None:
-        """Enforce configured knowledge-base write access controls."""
-        try:
-            check_kb_write_access(
-                require_auth=cfg.knowledge_write_require_auth,
-                require_tenant_binding=cfg.knowledge_write_require_tenant_binding,
-                authenticated=bool(getattr(request.state, "kb_write_key_ok", False)),
-                tenant_binding_enforced=bool(
-                    getattr(request.state, "kb_tenant_binding_ok", False)
-                ),
-                bound_tenant=getattr(request.state, "tenant_id", ""),
-                requested_tenant=tenant_id,
-            )
-        except KBWriteAccessError as exc:
-            raise HTTPException(exc.status_code, exc.detail) from exc
-
-    def _kb_signature_metadata(
-        request: Request,
-        canonical_payload: str,
-        signature: str,
-        key_id: str,
-    ) -> dict[str, object]:
-        """Verify tenant knowledge writes and return signature metadata."""
-        clean_signature = signature.strip()
-        clean_key_id = key_id.strip()
-        if not clean_signature:
-            if cfg.knowledge_write_require_signature:
-                raise HTTPException(403, "Knowledge-base write signature required")
-            return {}
-        if not verify_kb_payload_signature(
-            canonical_payload,
-            clean_signature,
-            parse_hmac_keys(cfg.knowledge_write_hmac_keys),
-            clean_key_id,
-        ):
-            raise HTTPException(403, "Invalid knowledge-base write signature")
-        return {
-            "kb_signature": clean_signature,
-            "kb_signature_key_id": clean_key_id,
-            "kb_signature_verified": True,
-        }
-
-    @app.post("/v1/tenants/{tenant_id}/facts", response_model=StatusResponse)
-    async def add_tenant_fact(
-        request: Request, tenant_id: str, req: TenantFactRequest
-    ) -> dict[str, Any]:
-        """Add a scalar tenant fact after tenant and write checks."""
-        router = request.app.state._state.get("tenant_router")
-        if not router:
-            raise HTTPException(404, "Tenant routing not enabled")
-        _enforce_tenant_binding(request, tenant_id)
-        _enforce_kb_write_access(request, tenant_id)
-        _kb_signature_metadata(
-            request,
-            canonical_kb_payload(
-                kind="tenant_fact",
-                tenant_id=tenant_id,
-                key=req.key,
-                value=req.value,
-            ),
-            req.signature,
-            req.signature_key_id,
-        )
-        router.add_fact(tenant_id, req.key, req.value)
-        return {"status": "ok", "tenant_id": tenant_id, "key": req.key}
-
-    @app.post("/v1/tenants/{tenant_id}/vector-facts", response_model=StatusResponse)
-    async def add_tenant_vector_fact(
-        request: Request,
-        tenant_id: str,
-        req: TenantVectorFactRequest,
-    ) -> dict[str, Any]:
-        """Add a tenant-scoped vector fact to the configured vector store."""
-        router = request.app.state._state.get("tenant_router")
-        if not router:
-            raise HTTPException(404, "Tenant routing not enabled")
-        _enforce_tenant_binding(request, tenant_id)
-        _enforce_kb_write_access(request, tenant_id)
-        sig_meta = _kb_signature_metadata(
-            request,
-            canonical_kb_payload(
-                kind="tenant_vector_fact",
-                tenant_id=tenant_id,
-                key=req.key,
-                value=req.value,
-            ),
-            req.signature,
-            req.signature_key_id,
-        )
-        try:
-            store = router.get_vector_store(tenant_id, backend_type=req.backend_type)
-        except (ValueError, KeyError) as exc:
-            raise HTTPException(400, f"Invalid backend_type: {exc}") from exc
-        store.add_fact(req.key, req.value, metadata=sig_meta)
-        return {
-            "status": "ok",
-            "tenant_id": tenant_id,
-            "key": req.key,
-            "backend_type": req.backend_type,
-            "count": store.backend.count(),
-        }
+    app.include_router(create_tenants_router())
 
     # Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬ Sessions Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬
 
