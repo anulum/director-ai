@@ -43,7 +43,9 @@ Director-Class AI — Repository overview
 | Tier | Install / delivery | Price | Ships |
 |---|---|---:|---|
 | **Director-Lite** | `pip install director-ai-lite` | USD 0 | Three-line guard facade, model-free heuristic default, facts/RAG handoff, optional NLI upgrade |
-| **Director-AI** | `pip install director-ai` | Free core; paid Pro for Advanced & Labs production use | Open-core runtime: `guard()`, REST/gRPC server, SDK and framework integrations, evidence packets, opt-in streaming contradiction halt, production licence path |
+| **Director-AI** | `pip install director-ai` | USD 0 | Open-core runtime: `guard()`, 5-tier scoring, REST/gRPC server, SDK and framework integrations, evidence packets, opt-in streaming contradiction halt |
+| **Director-AI Pro** | `pip install director-ai-pro` (private index) | USD 199/mo | Adds the BUSL-1.1 Advanced modules: compliance, enterprise, streaming repair, multimodal, routing, threat intel, and more |
+| **Director-AI Full** | `pip install director-ai-full` (private index) | Contact | Pro plus the Labs/Research modules (neuro-symbolic, self-evolving, swarm economics, emergence oracle, …) |
 | **Director-Class AI** | Commercial engagement | Custom | Premium category: managed deployment, customer-specific sector packs, tuning/evaluation, evidence reviews, SLA, procurement support |
 
 **→ [Full pricing &amp; plans](https://anulum.github.io/director-ai/pricing/)** — Pro

@@ -17,7 +17,9 @@ Pay when you need Advanced & Labs in production, managed deployment, or support 
 | Tier | Install / delivery | Price | What ships |
 |---|---|---:|---|
 | **Director-Lite** | `pip install director-ai-lite` | **USD 0** | Three-line `guard()` facade, model-free heuristic default, facts/RAG handoff, optional NLI upgrade |
-| **Director-AI** | `pip install director-ai` | Apache core free; **Pro USD 199/mo** for Advanced & Labs production use | Full open-core runtime: SDK guard, REST/gRPC server, framework integrations, evidence packets, opt-in streaming contradiction halt, commercial licence path |
+| **Director-AI** | `pip install director-ai` | **USD 0** | Full open-core runtime: SDK guard, 5-tier scoring, REST/gRPC server, framework integrations, evidence packets, opt-in streaming contradiction halt |
+| **Director-AI Pro** | `pip install director-ai-pro` (private index) | **USD 199/mo** | Adds the BUSL-1.1 Advanced modules: compliance, enterprise, streaming repair, multimodal guard, routing, threat intel, interpretability, and more |
+| **Director-AI Full** | `pip install director-ai-full` (private index) | **Contact** | Pro plus the Labs/Research modules: neuro-symbolic, self-evolving, swarm economics/equilibrium, emergence oracle, ontology, and the rest of the research curve |
 | **Director-Class AI** | Commercial engagement | **Custom** | Premium category: managed/on-prem deployment, customer-specific sector packs, tuning/evaluation, evidence reviews, SLA, procurement support |
 
 PyPI promotes the whole ladder but only distributes code packages. Publish and
