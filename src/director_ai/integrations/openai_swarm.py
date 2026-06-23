@@ -32,9 +32,10 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from director_ai.agentic.swarm_guardian import SwarmGuardian
+if TYPE_CHECKING:  # advanced tier (director-ai-pro) — annotations only
+    from director_ai.agentic.swarm_guardian import SwarmGuardian
 
 logger = logging.getLogger("DirectorAI.OpenAISwarm")
 
