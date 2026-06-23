@@ -23,6 +23,10 @@ __all__ = ["FeedbackLoopAlert", "FeedbackLoopDetector"]
 def _trigram_set(text: str) -> set[str]:
     """Extract character trigrams for fuzzy matching."""
     text = text.lower().strip()
+    if not text:
+        # Empty text must yield an empty set, otherwise {""} makes two empty
+        # texts score a 1.0 Jaccard similarity (false-positive loop alert).
+        return set()
     if len(text) < 3:
         return {text}
     return {text[i : i + 3] for i in range(len(text) - 2)}

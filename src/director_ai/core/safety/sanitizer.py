@@ -43,7 +43,10 @@ try:
 
     _RUST_SANITIZER = True
 except ImportError:
-    _RUST_SANITIZER = True
+    # Unlike the fail-hard accelerator modules, this one ships real Python
+    # fallbacks (_has_suspicious_unicode, _sum_int); flag False so they run when
+    # the kernel is absent instead of calling the raising stubs below.
+    _RUST_SANITIZER = False
 
     def rust_has_suspicious_unicode(_text: str) -> bool:
         raise RuntimeError("backfire_kernel rust_has_suspicious_unicode is unavailable")

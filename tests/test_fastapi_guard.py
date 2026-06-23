@@ -335,3 +335,52 @@ async def test_guard_rejects_detected_injection_with_headers(monkeypatch) -> Non
     assert resp.status_code == 422
     assert resp.headers["x-director-injection-detected"] == "true"
     assert resp.json()["error"]["type"] == "injection_detected"
+
+
+async def test_guard_survives_injection_detector_error(monkeypatch) -> None:
+    # Regression: a detector exception must not turn the proxied response into a
+    # 500. The response passes through with an x-director-injection-detected:
+    # error header instead.
+    class _Review:
+        score = 0.95
+
+    class _Scorer:
+        _nli = None
+
+        def review(self, prompt, response):
+            return True, _Review()
+
+    class _Detector:
+        def __init__(self, *, nli_scorer, injection_threshold):
+            pass
+
+        def detect(self, *, intent, response, user_query, system_prompt):
+            raise RuntimeError("detector model exploded")
+
+    import sys
+    from types import ModuleType
+
+    safety_mod = ModuleType("director_ai.core.safety")
+    injection_mod = ModuleType("director_ai.core.safety.injection")
+    injection_mod.InjectionDetector = _Detector
+    monkeypatch.setitem(sys.modules, "director_ai.core.safety", safety_mod)
+    monkeypatch.setitem(sys.modules, "director_ai.core.safety.injection", injection_mod)
+
+    inner = _make_app({"response": "benign output"})
+    guarded = DirectorGuard(
+        inner,
+        use_nli=False,
+        injection_detection=True,
+        on_fail="reject",
+    )
+    guarded.scorer = _Scorer()
+
+    transport = ASGITransport(app=guarded)
+    async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+        resp = await client.post(
+            "/api/chat",
+            json={"messages": [{"role": "user", "content": "hello there friend"}]},
+        )
+
+    assert resp.status_code == 200
+    assert resp.headers["x-director-injection-detected"] == "error"

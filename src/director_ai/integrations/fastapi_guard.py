@@ -189,36 +189,48 @@ class DirectorGuard:
             if self.injection_detection:
                 system_prompt = _extract_system_prompt(bytes(request_body))
                 detector = self._get_injection_detector()
-                inj = detector.detect(
-                    intent=prompt,
-                    response=response_text,
-                    user_query=prompt,
-                    system_prompt=system_prompt,
-                )
-                extra_headers.extend(
-                    [
-                        (
-                            b"x-director-injection-risk",
-                            f"{inj.injection_risk:.4f}".encode(),
-                        ),
-                        (
-                            b"x-director-injection-detected",
-                            str(inj.injection_detected).lower().encode(),
-                        ),
-                    ],
-                )
-                if inj.injection_detected and self.on_fail == "reject":
-                    reject = True
-                    reject_body = json.dumps(
-                        {
-                            "error": {
-                                "message": "Injection detected by Director-AI",
-                                "type": "injection_detected",
-                                "injection_risk": inj.injection_risk,
-                                "threshold": self.injection_threshold,
+                try:
+                    inj = detector.detect(
+                        intent=prompt,
+                        response=response_text,
+                        user_query=prompt,
+                        system_prompt=system_prompt,
+                    )
+                except Exception:
+                    # A detector failure must not turn the proxied response into a
+                    # 500 — the primary guard verdict already applies. Log and
+                    # surface the error in a header, then skip the injection layer.
+                    _log.exception(
+                        "Injection detector failed; skipping injection check",
+                    )
+                    extra_headers.append(
+                        (b"x-director-injection-detected", b"error"),
+                    )
+                else:
+                    extra_headers.extend(
+                        [
+                            (
+                                b"x-director-injection-risk",
+                                f"{inj.injection_risk:.4f}".encode(),
+                            ),
+                            (
+                                b"x-director-injection-detected",
+                                str(inj.injection_detected).lower().encode(),
+                            ),
+                        ],
+                    )
+                    if inj.injection_detected and self.on_fail == "reject":
+                        reject = True
+                        reject_body = json.dumps(
+                            {
+                                "error": {
+                                    "message": "Injection detected by Director-AI",
+                                    "type": "injection_detected",
+                                    "injection_risk": inj.injection_risk,
+                                    "threshold": self.injection_threshold,
+                                },
                             },
-                        },
-                    ).encode()
+                        ).encode()
 
         if reject:
             await send(

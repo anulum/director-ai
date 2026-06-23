@@ -54,6 +54,14 @@ def test_short_text_trigrams_and_empty_similarity_are_stable() -> None:
     assert _jaccard_similarity({"abc"}, set()) == 0.0
 
 
+def test_empty_text_does_not_self_match() -> None:
+    # Regression: _trigram_set("") returned {""}, so two empty texts scored a
+    # 1.0 Jaccard similarity (false-positive feedback-loop alert).
+    assert _trigram_set("") == set()
+    assert _trigram_set("   ") == set()
+    assert _jaccard_similarity(_trigram_set(""), _trigram_set("")) == 0.0
+
+
 def test_short_outputs_and_inputs_are_ignored() -> None:
     detector = FeedbackLoopDetector(min_text_length=20)
 
