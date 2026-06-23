@@ -82,6 +82,21 @@ class TestValidation:
             p = AgentProfile(agent_id="a1", escalation_policy=policy)
             assert p.escalation_policy == policy
 
+    @pytest.mark.parametrize(
+        ("field", "value", "match"),
+        [
+            ("max_tokens", 0, "max_tokens"),
+            ("max_tokens", -1, "max_tokens"),
+            ("max_steps", 0, "max_steps"),
+            ("max_wall_seconds", 0.0, "max_wall_seconds"),
+            ("max_wall_seconds", -5.0, "max_wall_seconds"),
+        ],
+    )
+    def test_non_positive_budgets_rejected(self, field, value, match):
+        # Regression: max_tokens=0 reached LoopMonitor and divided by zero.
+        with pytest.raises(ValueError, match=match):
+            AgentProfile(agent_id="a1", **{field: value})
+
 
 # ── Role Defaults ───────────────────────────────────────────────────────
 

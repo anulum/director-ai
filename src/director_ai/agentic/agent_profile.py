@@ -139,6 +139,16 @@ class AgentProfile:
             raise ValueError(
                 f"coherence_threshold must be in [0, 1], got {self.coherence_threshold}"
             )
+        # These feed LoopMonitor, where max_tokens == 0 divides by zero; reject
+        # non-positive budgets at the profile boundary too.
+        if self.max_steps < 1:
+            raise ValueError(f"max_steps must be >= 1, got {self.max_steps}")
+        if self.max_tokens < 1:
+            raise ValueError(f"max_tokens must be >= 1, got {self.max_tokens}")
+        if self.max_wall_seconds <= 0:
+            raise ValueError(
+                f"max_wall_seconds must be > 0, got {self.max_wall_seconds}"
+            )
 
     @classmethod
     def for_role(cls, role: str, **overrides: object) -> AgentProfile:

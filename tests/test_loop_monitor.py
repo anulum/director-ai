@@ -10,6 +10,8 @@ from __future__ import annotations
 
 import hashlib
 
+import pytest
+
 from director_ai.agentic.loop_monitor import LoopMonitor
 
 
@@ -18,6 +20,22 @@ def _no_drift(goal, action):
 
 
 _NO_DRIFT = {"goal_drift_scorer": _no_drift}
+
+
+class TestBudgetValidation:
+    @pytest.mark.parametrize(
+        ("kwargs", "match"),
+        [
+            ({"max_tokens": 0}, "max_tokens"),
+            ({"max_tokens": -1}, "max_tokens"),
+            ({"max_steps": 0}, "max_steps"),
+            ({"max_wall_seconds": 0.0}, "max_wall_seconds"),
+        ],
+    )
+    def test_non_positive_budget_rejected(self, kwargs, match):
+        # Regression: max_tokens=0 made check_step divide by zero.
+        with pytest.raises(ValueError, match=match):
+            LoopMonitor(goal="g", **kwargs, **_NO_DRIFT)
 
 
 class TestBasicOperation:

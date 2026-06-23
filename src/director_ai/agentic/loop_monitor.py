@@ -95,6 +95,15 @@ class LoopMonitor:
         goal_drift_threshold: float = 0.6,
         goal_drift_scorer: Callable[[str, str], float] | None = None,
     ) -> None:
+        # Positive budgets are required: max_tokens == 0 divides by zero in the
+        # budget-percentage check, and a non-positive step/time limit makes the
+        # monitor degenerate.
+        if max_steps < 1:
+            raise ValueError(f"max_steps must be >= 1; got {max_steps!r}")
+        if max_tokens < 1:
+            raise ValueError(f"max_tokens must be >= 1; got {max_tokens!r}")
+        if max_wall_seconds <= 0:
+            raise ValueError(f"max_wall_seconds must be > 0; got {max_wall_seconds!r}")
         self._goal = goal
         self._max_steps = max_steps
         self._max_tokens = max_tokens
