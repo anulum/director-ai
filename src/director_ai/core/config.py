@@ -27,6 +27,7 @@ from typing import TYPE_CHECKING, Any, cast
 # importable as ``from director_ai.core.config import ProfileMetadata``).
 from .config_env import coerce_env_value as _coerce
 from .config_env import parse_api_keys_env as _parse_api_keys_env
+from .config_logging import JsonLogFormatter
 from .config_profiles import (
     PROFILE_DEFINITIONS,
     PROFILE_METADATA,
@@ -783,7 +784,7 @@ class DirectorConfig:
 
         if self.log_json:
             handler = logging.StreamHandler()
-            handler.setFormatter(_JsonFormatter())
+            handler.setFormatter(JsonLogFormatter())
             root.handlers = [handler]
 
     def build_store(self) -> GroundTruthStore:
@@ -1370,22 +1371,3 @@ class DirectorConfig:
             else:
                 d[fld] = val
         return d
-
-
-class _JsonFormatter(logging.Formatter):
-    """Structured JSON log formatter for production use."""
-
-    def format(self, record: logging.LogRecord) -> str:
-        import json as _json
-        import time as _time
-
-        entry = {
-            "ts": _time.time(),
-            "level": record.levelname,
-            "logger": record.name,
-            "msg": record.getMessage(),
-        }
-        request_id = getattr(record, "request_id", None)
-        if request_id:
-            entry["request_id"] = request_id
-        return _json.dumps(entry)

@@ -20,7 +20,8 @@ import logging
 
 import pytest
 
-from director_ai.core.config import DirectorConfig, _JsonFormatter
+from director_ai.core.config import DirectorConfig
+from director_ai.core.config_logging import JsonLogFormatter
 
 
 @pytest.fixture(autouse=True)
@@ -35,7 +36,7 @@ def _cleanup_logger():
 
 
 class TestJsonFormatter:
-    """_JsonFormatter must produce valid, complete JSON lines."""
+    """JsonLogFormatter must produce valid, complete JSON lines."""
 
     def _make_record(
         self,
@@ -60,13 +61,13 @@ class TestJsonFormatter:
         return record
 
     def test_produces_valid_json(self):
-        fmt = _JsonFormatter()
+        fmt = JsonLogFormatter()
         output = fmt.format(self._make_record())
         parsed = json.loads(output)
         assert isinstance(parsed, dict)
 
     def test_required_fields_present(self):
-        fmt = _JsonFormatter()
+        fmt = JsonLogFormatter()
         parsed = json.loads(fmt.format(self._make_record()))
         assert parsed["level"] == "INFO"
         assert parsed["logger"] == "DirectorAI.Test"
@@ -84,17 +85,17 @@ class TestJsonFormatter:
         ],
     )
     def test_various_log_levels(self, level, expected):
-        fmt = _JsonFormatter()
+        fmt = JsonLogFormatter()
         parsed = json.loads(fmt.format(self._make_record(level=level)))
         assert parsed["level"] == expected
 
     def test_includes_request_id(self):
-        fmt = _JsonFormatter()
+        fmt = JsonLogFormatter()
         parsed = json.loads(fmt.format(self._make_record(request_id="abc-123")))
         assert parsed["request_id"] == "abc-123"
 
     def test_omits_request_id_when_absent(self):
-        fmt = _JsonFormatter()
+        fmt = JsonLogFormatter()
         parsed = json.loads(fmt.format(self._make_record()))
         assert "request_id" not in parsed
 
@@ -108,19 +109,19 @@ class TestJsonFormatter:
         ],
     )
     def test_various_message_formats(self, msg, args, expected):
-        fmt = _JsonFormatter()
+        fmt = JsonLogFormatter()
         parsed = json.loads(fmt.format(self._make_record(msg=msg, args=args)))
         assert parsed["msg"] == expected
 
     def test_unicode_message(self):
-        fmt = _JsonFormatter()
+        fmt = JsonLogFormatter()
         parsed = json.loads(
             fmt.format(self._make_record(msg="日本語テスト %s", args=("🎉",)))
         )
         assert "日本語" in parsed["msg"]
 
     def test_timestamp_present(self):
-        fmt = _JsonFormatter()
+        fmt = JsonLogFormatter()
         parsed = json.loads(fmt.format(self._make_record()))
         assert "ts" in parsed
 
@@ -136,7 +137,7 @@ class TestConfigureLogging:
         cfg.configure_logging()
         logger = logging.getLogger("DirectorAI")
         assert len(logger.handlers) >= 1
-        assert isinstance(logger.handlers[0].formatter, _JsonFormatter)
+        assert isinstance(logger.handlers[0].formatter, JsonLogFormatter)
 
     @pytest.mark.parametrize("level", ["DEBUG", "INFO", "WARNING", "ERROR"])
     def test_log_level_applied(self, level):
@@ -150,7 +151,7 @@ class TestConfigureLogging:
         cfg.configure_logging()
         logger = logging.getLogger("DirectorAI")
         json_handlers = [
-            h for h in logger.handlers if isinstance(h.formatter, _JsonFormatter)
+            h for h in logger.handlers if isinstance(h.formatter, JsonLogFormatter)
         ]
         assert len(json_handlers) == 0
 
@@ -164,7 +165,7 @@ class TestLoggingPerformance:
     def test_json_formatter_fast(self):
         import time
 
-        fmt = _JsonFormatter()
+        fmt = JsonLogFormatter()
         record = logging.LogRecord(
             "DirectorAI",
             logging.INFO,

@@ -6,8 +6,8 @@
     "optional_extras": 58,
     "public_api_exports": 224,
     "public_documentation_pages": 203,
-    "python_model_classes": 980,
-    "python_model_source_modules": 448,
+    "python_model_classes": 981,
+    "python_model_source_modules": 449,
     "rust_pyo3_model_wrappers": 83,
     "test_files": 541
   },
@@ -2217,6 +2217,10 @@
         "path": "src/director_ai/core/cyber_physical/kinematics.py"
       },
       {
+        "name": "JsonLogFormatter",
+        "path": "src/director_ai/core/config_logging.py"
+      },
+      {
         "name": "KBHealthCheck",
         "path": "src/director_ai/core/retrieval/kb_health.py"
       },
@@ -4319,6 +4323,7 @@
       "src/director_ai/core/citation_grounding/transcript.py",
       "src/director_ai/core/config.py",
       "src/director_ai/core/config_env.py",
+      "src/director_ai/core/config_logging.py",
       "src/director_ai/core/config_profiles.py",
       "src/director_ai/core/consensus/cross_model_consensus.py",
       "src/director_ai/core/containment/anchor.py",
