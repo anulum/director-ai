@@ -30,13 +30,53 @@ return an unsuccessful :class:`FetchedSource`.
 from __future__ import annotations
 
 import html as _html
+import ipaddress
 import json as _json
 import re
+import socket
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from typing import Protocol
+from urllib.parse import urlsplit
 
 from .citations import Citation, CitationKind
+
+
+def _is_public_http_url(url: str) -> bool:
+    """Return True only for an http(s) URL whose host resolves to public IPs.
+
+    Citation URLs come from untrusted model output, so fetching them verbatim is
+    a server-side request forgery vector: ``http://169.254.169.254/`` (cloud
+    metadata), ``http://localhost/``, or any internal host. Reject non-http(s)
+    schemes and any host that resolves to a loopback, private, link-local,
+    reserved, or multicast address.
+    """
+    parts = urlsplit(url)
+    if parts.scheme not in ("http", "https"):
+        return False
+    host = parts.hostname
+    if not host:
+        return False
+    try:
+        port = parts.port or (443 if parts.scheme == "https" else 80)
+        infos = socket.getaddrinfo(host, port, proto=socket.IPPROTO_TCP)
+    except (socket.gaierror, ValueError, OSError):
+        return False
+    if not infos:
+        return False
+    for info in infos:
+        ip = ipaddress.ip_address(info[4][0])
+        if (
+            ip.is_private
+            or ip.is_loopback
+            or ip.is_link_local
+            or ip.is_reserved
+            or ip.is_multicast
+            or ip.is_unspecified
+        ):
+            return False
+    return True
+
 
 __all__ = ["FetchedSource", "HttpGetter", "SourceFetcher"]
 
@@ -202,6 +242,8 @@ class SourceFetcher:
 
     def _fetch_url(self, citation: Citation) -> FetchedSource:
         url = citation.identifier
+        if not _is_public_http_url(url):
+            return self._failure(citation, url, "blocked non-public URL (SSRF guard)")
         status, body, content_type = self._get(url)
         if status != 200:
             return self._failure(citation, url, f"url HTTP {status}")

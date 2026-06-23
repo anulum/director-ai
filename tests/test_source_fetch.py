@@ -17,7 +17,11 @@ exercised without touching the network.
 
 from __future__ import annotations
 
+import ipaddress
 import json
+import socket
+
+import pytest
 
 from director_ai.core.citation_grounding import (
     Citation,
@@ -27,10 +31,30 @@ from director_ai.core.citation_grounding import (
 )
 from director_ai.core.citation_grounding.fetch import (
     _content_filename,
+    _is_public_http_url,
     _parse_arxiv,
     _parse_crossref,
     _strip_markup,
 )
+
+
+@pytest.fixture(autouse=True)
+def _hermetic_dns(monkeypatch):
+    """Resolve hostnames to a fixed public IP and numeric hosts to themselves.
+
+    Keeps the SSRF guard's getaddrinfo call off the real network: literal IPs
+    (used by the SSRF tests) resolve to themselves, hostnames to a public IP.
+    """
+
+    def _fake(host, port, *args, **kwargs):
+        try:
+            ip = str(ipaddress.ip_address(host))
+        except ValueError:
+            ip = "93.184.216.34"
+        return [(socket.AF_INET, socket.SOCK_STREAM, 6, "", (ip, port or 0))]
+
+    monkeypatch.setattr(socket, "getaddrinfo", _fake)
+
 
 _CROSSREF = json.dumps(
     {
@@ -237,3 +261,40 @@ def test_fetched_source_dataclass():
         "T",
         "body",
     )
+
+
+class TestUrlSsrfGuard:
+    @pytest.mark.parametrize(
+        "url",
+        [
+            "http://169.254.169.254/latest/meta-data/",  # cloud metadata
+            "http://127.0.0.1/admin",  # loopback
+            "http://[::1]/",  # loopback v6
+            "http://10.0.0.5/internal",  # private
+            "http://192.168.1.1/",  # private
+            "http://172.16.0.1/",  # private
+            "ftp://example.org/x",  # non-http scheme
+            "file:///etc/passwd",  # file scheme
+            "http://0.0.0.0/",  # unspecified
+            "not-a-url",  # no host
+        ],
+    )
+    def test_blocks_non_public_urls(self, url):
+        assert _is_public_http_url(url) is False
+
+    def test_allows_public_url(self):
+        assert _is_public_http_url("https://93.184.216.34/x") is True
+        assert _is_public_http_url("https://example.org/x") is True
+
+    def test_fetch_url_refuses_internal_target_without_calling_http(self):
+        # An LLM-emitted citation pointing at internal infrastructure must be
+        # refused before any request is made (SSRF guard).
+        http = _StubHttp(
+            {"169.254.169.254": (200, b"<html>secret</html>", "text/html")}
+        )
+        fetcher = SourceFetcher(http=http)
+        cite = Citation("x", CitationKind.URL, "http://169.254.169.254/", 0, 1)
+        result = fetcher.fetch(cite)
+        assert result.ok is False
+        assert "SSRF" in (result.error or "")
+        assert http.headers_seen == []  # never dialled out
