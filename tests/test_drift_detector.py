@@ -12,6 +12,8 @@ window analysis, pipeline integration with compliance, and performance.
 
 from __future__ import annotations
 
+import pytest
+
 from director_ai.compliance.audit_log import AuditEntry, AuditLog
 from director_ai.compliance.drift_detector import DriftDetector, _norm_cdf
 
@@ -58,6 +60,24 @@ class TestDriftDetectorEmpty:
         assert result.detected is False
         assert result.severity == "none"
         assert result.p_value == 1.0
+        log.close()
+
+
+class TestDriftDetectorConstructorValidation:
+    @pytest.mark.parametrize("window_days", [0, -1, -7])
+    def test_non_positive_window_days_rejected(self, tmp_path, window_days):
+        # Regression: window_days <= 0 made _build_windows spin forever
+        # (end == t, t never advances). It must be rejected at construction.
+        log = AuditLog(tmp_path / "v.db")
+        with pytest.raises(ValueError, match="window_days"):
+            DriftDetector(log, window_days=window_days)
+        log.close()
+
+    @pytest.mark.parametrize("alpha", [0.0, 1.0, -0.1, 1.5])
+    def test_alpha_out_of_range_rejected(self, tmp_path, alpha):
+        log = AuditLog(tmp_path / "a.db")
+        with pytest.raises(ValueError, match="alpha"):
+            DriftDetector(log, window_days=7, alpha=alpha)
         log.close()
 
 

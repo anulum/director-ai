@@ -90,6 +90,12 @@ class DriftDetector:
         window_days: int = 7,
         alpha: float = 0.05,
     ):
+        # window_days must be positive: a zero or negative window makes the
+        # _build_windows loop never advance (`end == t`) and spin forever.
+        if window_days < 1:
+            raise ValueError(f"window_days must be >= 1; got {window_days!r}")
+        if not 0.0 < alpha < 1.0:
+            raise ValueError(f"alpha must be in (0, 1); got {alpha!r}")
         self._log = audit_log
         self._window_secs = window_days * 86400
         self._alpha = alpha
