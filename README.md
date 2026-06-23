@@ -238,14 +238,14 @@ inventory below is reference for the deeper surface, navigable under
 |---|---:|
 | Package version | 3.16.0 |
 | Public API exports | 224 |
-| Python capability source modules | 435 |
+| Python capability source modules | 436 |
 | Python capability classes | 980 |
 | API documentation pages | 89 |
 | Rust PyO3 bindings | 83 |
 | Optional extras | 58 |
 | Python test files | 541 |
 | Public documentation pages | 203 |
-| GitHub Actions workflows | 13 |
+| GitHub Actions workflows | 14 |
 
 Evidence boundary: this snapshot is a static inventory. Performance, coverage, hardware, and scientific-fidelity claims require their own committed evidence artefacts.
 <!-- capability-snapshot:end -->

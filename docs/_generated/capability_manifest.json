@@ -1,13 +1,13 @@
 {
   "SPDX-License-Identifier": "Apache-2.0 AND BUSL-1.1",
   "counts": {
-    "github_workflows": 13,
+    "github_workflows": 14,
     "model_documentation_pages": 89,
     "optional_extras": 58,
     "public_api_exports": 224,
     "public_documentation_pages": 203,
     "python_model_classes": 980,
-    "python_model_source_modules": 435,
+    "python_model_source_modules": 436,
     "rust_pyo3_model_wrappers": 83,
     "test_files": 541
   },
@@ -4677,6 +4677,7 @@
       "src/director_ai/proto/converters.py",
       "src/director_ai/proxy.py",
       "src/director_ai/server.py",
+      "src/director_ai/server_support.py",
       "src/director_ai/testing/adversarial_suite.py",
       "src/director_ai/ui/_field_groups.py",
       "src/director_ai/ui/config_wizard.py",
@@ -5083,6 +5084,7 @@
       ".github/workflows/nightly-red-team.yml",
       ".github/workflows/pre-commit.yml",
       ".github/workflows/publish-lite.yml",
+      ".github/workflows/publish-paid.yml",
       ".github/workflows/publish.yml",
       ".github/workflows/release.yml",
       ".github/workflows/scorecard.yml",
