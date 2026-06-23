@@ -249,12 +249,12 @@ class TestClaimCoverageAttribution:
 
 class TestEvidenceToDictExtensions:
     def test_includes_attributions(self):
+        from director_ai._server_helpers import evidence_to_dict as _evidence_to_dict
         from director_ai.core.types import (
             ClaimAttribution,
             EvidenceChunk,
             ScoringEvidence,
         )
-        from director_ai.server import _evidence_to_dict
 
         ev = ScoringEvidence(
             chunks=[EvidenceChunk(text="x", distance=0.0)],
@@ -278,8 +278,8 @@ class TestEvidenceToDictExtensions:
         assert d["attributions"][0]["source_index"] == 1
 
     def test_includes_cost(self):
+        from director_ai._server_helpers import evidence_to_dict as _evidence_to_dict
         from director_ai.core.types import EvidenceChunk, ScoringEvidence
-        from director_ai.server import _evidence_to_dict
 
         ev = ScoringEvidence(
             chunks=[EvidenceChunk(text="x", distance=0.0)],
@@ -294,8 +294,8 @@ class TestEvidenceToDictExtensions:
         assert d["estimated_cost_usd"] == pytest.approx(0.00512)
 
     def test_omits_when_none(self):
+        from director_ai._server_helpers import evidence_to_dict as _evidence_to_dict
         from director_ai.core.types import EvidenceChunk, ScoringEvidence
-        from director_ai.server import _evidence_to_dict
 
         ev = ScoringEvidence(
             chunks=[EvidenceChunk(text="x", distance=0.0)],
