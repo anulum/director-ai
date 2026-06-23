@@ -631,7 +631,7 @@ class TestScore:
                 )
 
         monkeypatch.setattr(
-            "director_ai.integrations.sdk_guard.CoherenceScorer", _FakeScorer
+            "director_ai.integrations.sdk_proxies.base.CoherenceScorer", _FakeScorer
         )
 
         cs = score(
@@ -662,7 +662,7 @@ class TestScore:
                 )
 
         monkeypatch.setattr(
-            "director_ai.integrations.sdk_guard.CoherenceScorer", _FakeScorer
+            "director_ai.integrations.sdk_proxies.base.CoherenceScorer", _FakeScorer
         )
 
         cs = score(
