@@ -5,7 +5,7 @@
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI — Rust Compute vs Python Benchmark
-"""Benchmark all 10 Rust compute accelerators against Python fallbacks.
+"""Benchmark all 20 Rust compute accelerators against Python fallbacks.
 
 Measures per-call latency for:
   1. sanitizer_score          — injection pattern matching

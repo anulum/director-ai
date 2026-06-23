@@ -131,11 +131,12 @@ Isolates scoring configuration per tenant. Each tenant gets its own `CoherenceSc
 from director_ai.enterprise import TenantRouter
 
 router = TenantRouter()
-router.register("tenant_a", threshold=0.7, use_nli=True)
-router.register("tenant_b", threshold=0.5, use_nli=False)
+# Tenants are provisioned implicitly: get_scorer returns a per-tenant
+# CoherenceScorer, created on first use with the given threshold.
+scorer_a = router.get_scorer("tenant_a", threshold=0.7, use_nli=True)
+scorer_b = router.get_scorer("tenant_b", threshold=0.5, use_nli=False)
 
-scorer = router.get_scorer("tenant_a")
-approved, score = scorer.review(query, response)
+approved, score = scorer_a.review(query, response)
 ```
 
 ## Policy
@@ -145,14 +146,15 @@ Declarative rule engine for content filtering. Runs before coherence scoring.
 ```python
 from director_ai.enterprise import Policy
 
-policy = Policy(rules=[
-    {"pattern": r"(buy|sell|short)\s+(stock|shares)", "action": "reject"},
-    {"pattern": r"\b(SSN|social security)\b", "action": "redact"},
-])
+policy = Policy(
+    forbidden=[r"(buy|sell|short)\s+(stock|shares)"],
+    patterns=[{"name": "ssn", "regex": r"\b(SSN|social security)\b", "action": "block"}],
+    max_length=4000,
+)
 
-result = policy.evaluate(response_text)
-if result.rejected:
-    print(f"Policy violation: {result.rule}")
+violations = policy.check(response_text)
+for violation in violations:
+    print(f"Policy violation: {violation.rule} — {violation.detail}")
 ```
 
 ## AuditLogger
@@ -162,11 +164,12 @@ SQLite-backed audit logging for compliance. Records every review decision with f
 ```python
 from director_ai.enterprise import AuditLogger
 
-logger = AuditLogger(log_dir="/var/log/director-ai/audit")
-logger.log(query, response, score, approved=True)
+logger = AuditLogger(path="/var/log/director-ai/audit.db")
+logger.log_review(query, response, approved=True, score=0.91, tenant_id="tenant_a")
 
-# Query audit trail
-entries = logger.query(tenant_id="tenant_a", since="2026-01-01")
+# Verify the tamper-evident hash chain
+ok, error = logger.verify_chain()
+assert ok, error
 ```
 
 ## License Matrix

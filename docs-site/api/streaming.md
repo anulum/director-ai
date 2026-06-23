@@ -1,6 +1,6 @@
 # StreamingKernel
 
-Token-by-token streaming oversight. Monitors coherence on every token (or every N-th token) and halts generation when coherence degrades. Three independent halt mechanisms operate simultaneously.
+Incremental streaming oversight. Monitors coherence as tokens arrive and halts at claim boundaries when a completed claim degrades; the production gate remains response-level scoring. Three independent halt mechanisms operate simultaneously.
 
 ## Usage
 
