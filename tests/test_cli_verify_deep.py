@@ -16,6 +16,7 @@ from types import SimpleNamespace
 import pytest
 
 import director_ai._cli_verify as verify_cli
+import director_ai.cli_verify.diagnostics as verify_diag
 
 
 class TestOptionalDependencyDiagnostics:
@@ -76,7 +77,7 @@ class TestOptionalDependencyDiagnostics:
         )
         monkeypatch.setattr(DirectorConfig, "from_env", staticmethod(lambda: cfg))
         monkeypatch.setattr(
-            verify_cli, "_check_optional_module", lambda name: (False, "missing")
+            verify_diag, "_check_optional_module", lambda name: (False, "missing")
         )
 
         warnings = verify_cli._stack_warnings(
@@ -113,7 +114,7 @@ class TestOptionalDependencyDiagnostics:
         )
         monkeypatch.setattr(DirectorConfig, "from_env", staticmethod(lambda: cfg))
         monkeypatch.setattr(
-            verify_cli, "_check_optional_module", lambda name: (True, "installed")
+            verify_diag, "_check_optional_module", lambda name: (True, "installed")
         )
 
         warnings = verify_cli._stack_warnings([("Rust kernel", True, "installed")])
@@ -168,7 +169,7 @@ class TestOptionalDependencyDiagnostics:
         )
         monkeypatch.setattr(DirectorConfig, "from_env", staticmethod(lambda: cfg))
         monkeypatch.setattr(
-            verify_cli, "_check_optional_module", lambda name: (True, "installed")
+            verify_diag, "_check_optional_module", lambda name: (True, "installed")
         )
 
         warnings = verify_cli._stack_warnings([("Rust kernel", False, "missing")])
@@ -191,7 +192,7 @@ class TestDoctorCliBranches:
         monkeypatch.setitem(sys.modules, "torch", torch_mod)
         monkeypatch.setitem(sys.modules, "onnxruntime", ort_mod)
         monkeypatch.setattr(
-            verify_cli,
+            verify_diag,
             "_check_optional_module",
             lambda name: (
                 name != "slowapi",
@@ -203,7 +204,7 @@ class TestDoctorCliBranches:
             lambda: True,
         )
         monkeypatch.setattr(
-            verify_cli,
+            verify_diag,
             "_stack_status",
             lambda: [
                 ("Python-only core", True, "supported default"),
@@ -211,7 +212,7 @@ class TestDoctorCliBranches:
             ],
         )
         monkeypatch.setattr(
-            verify_cli,
+            verify_diag,
             "_stack_warnings",
             lambda stack: [
                 "DIRECTOR_SCORER_BACKEND=rust but backfire_kernel is missing."
@@ -230,7 +231,7 @@ class TestDoctorCliBranches:
 
     def test_doctor_reports_nli_import_failure(self, monkeypatch, capsys):
         monkeypatch.setattr(
-            verify_cli,
+            verify_diag,
             "_check_optional_module",
             lambda name: (False, "not installed"),
         )
@@ -242,8 +243,8 @@ class TestDoctorCliBranches:
 
         original_import = __import__
         monkeypatch.setattr("builtins.__import__", fail_import)
-        monkeypatch.setattr(verify_cli, "_stack_status", lambda: [])
-        monkeypatch.setattr(verify_cli, "_stack_warnings", lambda stack: [])
+        monkeypatch.setattr(verify_diag, "_stack_status", lambda: [])
+        monkeypatch.setattr(verify_diag, "_stack_warnings", lambda stack: [])
 
         verify_cli._cmd_doctor([])
 
