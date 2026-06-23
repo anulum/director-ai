@@ -22,6 +22,7 @@ from pathlib import Path
 import pytest
 
 import director_ai.cli as cli_module
+import director_ai.cli_quickstart as cli_quickstart
 from director_ai.cli import main
 
 
@@ -447,7 +448,7 @@ class TestQuickstartCommand:
             staticmethod(fake_from_profile),
         )
 
-        cfg = cli_module._load_profile_for_scaffold("production")
+        cfg = cli_quickstart._load_profile_for_scaffold("production")
 
         assert cfg == "loaded-config"
         assert calls == [
@@ -500,8 +501,10 @@ class TestQuickstartCommand:
             return subprocess.CompletedProcess(command, 0)
 
         monkeypatch.chdir(tmp_path)
-        monkeypatch.setattr("director_ai.cli.shutil.which", lambda name: name)
-        monkeypatch.setattr("director_ai.cli.subprocess.run", fake_run)
+        monkeypatch.setattr(
+            "director_ai.cli_quickstart.shutil.which", lambda name: name
+        )
+        monkeypatch.setattr("director_ai.cli_quickstart.subprocess.run", fake_run)
         main(["quickstart", "--run"])
         assert calls == [(["docker", "compose", "up"], Path("director_guard"), True)]
 
@@ -510,8 +513,10 @@ class TestQuickstartCommand:
             raise FileNotFoundError
 
         monkeypatch.chdir(tmp_path)
-        monkeypatch.setattr("director_ai.cli.shutil.which", lambda _name: None)
-        monkeypatch.setattr("director_ai.cli.subprocess.run", fake_run)
+        monkeypatch.setattr(
+            "director_ai.cli_quickstart.shutil.which", lambda _name: None
+        )
+        monkeypatch.setattr("director_ai.cli_quickstart.subprocess.run", fake_run)
         with pytest.raises(SystemExit) as exc_info:
             main(["quickstart", "--run"])
         assert exc_info.value.code == 1
@@ -526,8 +531,10 @@ class TestQuickstartCommand:
             raise FileNotFoundError
 
         monkeypatch.chdir(tmp_path)
-        monkeypatch.setattr("director_ai.cli.shutil.which", lambda _name: "docker")
-        monkeypatch.setattr("director_ai.cli.subprocess.run", fake_run)
+        monkeypatch.setattr(
+            "director_ai.cli_quickstart.shutil.which", lambda _name: "docker"
+        )
+        monkeypatch.setattr("director_ai.cli_quickstart.subprocess.run", fake_run)
 
         with pytest.raises(SystemExit) as exc_info:
             main(["quickstart", "--run"])
@@ -546,8 +553,10 @@ class TestQuickstartCommand:
             raise subprocess.CalledProcessError(17, command)
 
         monkeypatch.chdir(tmp_path)
-        monkeypatch.setattr("director_ai.cli.shutil.which", lambda _name: "docker")
-        monkeypatch.setattr("director_ai.cli.subprocess.run", fake_run)
+        monkeypatch.setattr(
+            "director_ai.cli_quickstart.shutil.which", lambda _name: "docker"
+        )
+        monkeypatch.setattr("director_ai.cli_quickstart.subprocess.run", fake_run)
 
         with pytest.raises(SystemExit) as exc_info:
             main(["quickstart", "--run"])
