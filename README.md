@@ -238,7 +238,7 @@ inventory below is reference for the deeper surface, navigable under
 |---|---:|
 | Package version | 3.16.0 |
 | Public API exports | 224 |
-| Python capability source modules | 441 |
+| Python capability source modules | 442 |
 | Python capability classes | 980 |
 | API documentation pages | 89 |
 | Rust PyO3 bindings | 83 |
