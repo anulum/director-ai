@@ -1578,3 +1578,46 @@ class TestConfigCoverageGaps:
         assert isinstance(scorer._nli, _NliWithoutLora)
         assert "LoRA adapter not supported" in caplog.text
         assert "_NliWithoutLora" in caplog.text
+
+
+class TestValidationBranchCoverage:
+    """Exercise the normalisation/validation branches in config_validation."""
+
+    def test_scorer_model_alias_resolves_nli_fields(self):
+        # A registry alias rewrites the NLI model identity through
+        # resolve_scorer_model_choice during __post_init__.
+        from director_ai.core.scoring.model_choices import (
+            resolve_scorer_model_choice,
+        )
+
+        choice = resolve_scorer_model_choice("balanced-default")
+        cfg = DirectorConfig(scorer_model="balanced-default", use_nli=True)
+        assert cfg.nli_model == choice.runtime_model
+        assert cfg.nli_model_artifact_uri == choice.artifact_uri
+        assert cfg.nli_model_revision == choice.revision
+        assert cfg.nli_max_length == choice.max_length
+
+    def test_grounded_mode_leaves_preset_retrieval_untouched(self):
+        # mode 'auto' with every retrieval signal already off and a positive
+        # abstention threshold skips both normalisation branches: use_nli stays
+        # False and the preset threshold is preserved.
+        cfg = DirectorConfig(
+            mode="auto",
+            use_nli=False,
+            hybrid_retrieval=False,
+            reranker_enabled=False,
+            retrieval_abstention_threshold=0.5,
+        )
+        assert cfg.use_nli is False
+        assert cfg.retrieval_abstention_threshold == 0.5
+
+    def test_http_faiss_with_base_url_and_model_validates(self):
+        # vector_backend 'http-faiss' passes validation once both the base URL
+        # and the embedding model are set.
+        cfg = DirectorConfig(
+            vector_backend="http-faiss",
+            embedding_base_url="http://embeddings.local",
+            embedding_model="bge-small",
+        )
+        assert cfg.vector_backend == "http-faiss"
+        assert cfg.embedding_base_url == "http://embeddings.local"
