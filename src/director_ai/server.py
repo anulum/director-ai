@@ -957,73 +957,11 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
             ),
         )
 
-    @app.post("/v1/feedback", response_model=FeedbackResponse)
-    async def record_feedback(
-        req: FeedbackRequest,
-        request: Request,
-    ) -> FeedbackResponse:
-        """Record a human correction for online calibration."""
-        feedback_store = request.app.state._state.get("feedback_store")
-        if feedback_store is None:
-            raise HTTPException(503, "Feedback store not configured")
+    # Human-feedback routes - report, calibration - live in routers/feedback.py
+    # and read the feedback store from app.state.
+    from .routers.feedback import create_feedback_router
 
-        tenant_id = getattr(
-            request.state,
-            "tenant_id",
-            request.headers.get("X-Tenant-ID", ""),
-        )
-        feedback_store.report(
-            prompt=req.prompt,
-            response=req.response,
-            guardrail_approved=req.guardrail_approved,
-            human_approved=req.human_approved,
-            guardrail_score=req.guardrail_score,
-            domain=req.domain,
-            review_id=req.review_id,
-            tenant_id=tenant_id,
-        )
-        metrics.inc("feedback_reports_total")
-        if req.guardrail_approved != req.human_approved:
-            metrics.inc("feedback_disagreements_total")
-        return FeedbackResponse(
-            accepted=True,
-            correction_count=feedback_store.count(domain=req.domain or None),
-            disagreement=req.guardrail_approved != req.human_approved,
-            tenant_id=tenant_id,
-            review_id=req.review_id,
-        )
-
-    @app.get("/v1/feedback/calibration", response_model=FeedbackCalibrationResponse)
-    async def feedback_calibration(
-        request: Request,
-        domain: str = "",
-        min_corrections: int = 20,
-    ) -> FeedbackCalibrationResponse:
-        """Return current online calibration metrics from human feedback."""
-        if min_corrections < 1 or min_corrections > 100_000:
-            raise HTTPException(400, "min_corrections must be between 1 and 100000")
-        feedback_store = request.app.state._state.get("feedback_store")
-        if feedback_store is None:
-            raise HTTPException(503, "Feedback store not configured")
-
-        from .core.calibration.online_calibrator import OnlineCalibrator
-
-        calibrator = OnlineCalibrator(
-            feedback_store,
-            min_corrections=min_corrections,
-        )
-        report = calibrator.calibrate(domain=domain or None)
-        return FeedbackCalibrationResponse(
-            correction_count=report.correction_count,
-            optimal_threshold=report.optimal_threshold,
-            current_accuracy=report.current_accuracy,
-            tpr=report.tpr,
-            tnr=report.tnr,
-            fpr=report.fpr,
-            fnr=report.fnr,
-            fpr_ci=report.fpr_ci,
-            fnr_ci=report.fnr_ci,
-        )
+    app.include_router(create_feedback_router())
 
     # ── Verified Review (atomic multi-span signals) ──────────────────
 
