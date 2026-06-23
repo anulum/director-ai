@@ -8,6 +8,7 @@
 
 from __future__ import annotations
 
+import contextlib
 import importlib
 import math
 import sys
@@ -53,13 +54,15 @@ def test_embedding_tuner_builds_contrastive_pairs_and_saves_model(
         seed=7,
     )
 
-    assert result == TuneResult(
-        model_path=str(output_dir),
-        train_samples=9,
-        epochs=5,
-        loss_start=0.0,
-        loss_end=0.0,
-    )
+    # The fake loss reports the mean label per batch, so the measured mean loss
+    # over 4 positive (1.0) + 5 negative (0.0) pairs is 4/9. fit() is a no-op in
+    # the fake, so start and end match — but both are now measured, not 0.0.
+    assert result.model_path == str(output_dir)
+    assert result.train_samples == 9
+    assert result.epochs == 5
+    assert result.loss_start == pytest.approx(4 / 9)
+    assert result.loss_end == pytest.approx(4 / 9)
+    assert isinstance(result, TuneResult)
     assert output_dir.is_dir()
     assert recorder["model"].base_model == "local/base-embedder"
     assert recorder["model"].saved_paths == [str(output_dir)]
@@ -135,19 +138,40 @@ def _install_fake_training_stack(monkeypatch):
         def save(self, output_dir):
             self.saved_paths.append(output_dir)
 
+        def smart_batching_collate(self, batch):
+            # Mirror sentence-transformers' (features, labels) contract.
+            return ({}, [example.label for example in batch])
+
+    class _FakeLossValue:
+        def __init__(self, value):
+            self._value = value
+
+        def item(self):
+            return self._value
+
     class FakeCosineSimilarityLoss:
         def __init__(self, model):
             self.model = model
             recorder["loss"] = self
 
+        def __call__(self, _features, labels):
+            mean = sum(labels) / len(labels) if labels else 0.0
+            return _FakeLossValue(mean)
+
     class FakeDataLoader:
-        def __init__(self, dataset, *, shuffle, batch_size):
-            self.dataset = dataset
+        def __init__(self, dataset, *, shuffle=False, batch_size=1, collate_fn=None):
+            self.dataset = list(dataset)
             self.shuffle = shuffle
             self.batch_size = batch_size
+            self.collate_fn = collate_fn
 
         def __len__(self):
             return math.ceil(len(self.dataset) / self.batch_size)
+
+        def __iter__(self):
+            for start in range(0, len(self.dataset), self.batch_size):
+                batch = self.dataset[start : start + self.batch_size]
+                yield self.collate_fn(batch) if self.collate_fn else batch
 
     sentence_transformers = types.ModuleType("sentence_transformers")
     sentence_transformers.InputExample = FakeInputExample
@@ -158,6 +182,7 @@ def _install_fake_training_stack(monkeypatch):
     sentence_transformers_losses = types.ModuleType("sentence_transformers.losses")
     sentence_transformers_losses.CosineSimilarityLoss = FakeCosineSimilarityLoss
     torch = types.ModuleType("torch")
+    torch.no_grad = contextlib.nullcontext
     torch_utils = types.ModuleType("torch.utils")
     torch_utils_data = types.ModuleType("torch.utils.data")
     torch_utils_data.DataLoader = FakeDataLoader

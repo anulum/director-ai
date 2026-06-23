@@ -39,6 +39,33 @@ class TuneResult:
     loss_end: float
 
 
+def _mean_loss(
+    model: Any, train_loss: Any, examples: list[Any], batch_size: int
+) -> float:
+    """Return the mean loss over *examples* without taking a gradient step.
+
+    Uses the model's batching collate and the configured loss module under
+    ``torch.no_grad`` — the same computation the training loop performs, so the
+    reported start/end loss reflects the real objective on the training pairs.
+    """
+    import torch
+    from torch.utils.data import DataLoader
+
+    loader: DataLoader[Any] = DataLoader(
+        cast(Any, examples),
+        shuffle=False,
+        batch_size=batch_size,
+        collate_fn=model.smart_batching_collate,
+    )
+    total = 0.0
+    count = 0
+    with torch.no_grad():
+        for features, labels in loader:
+            total += float(train_loss(features, labels).item()) * len(labels)
+            count += len(labels)
+    return total / count if count else 0.0
+
+
 def tune_embeddings(
     documents: list[list[str]],
     base_model: str = "all-MiniLM-L6-v2",
@@ -117,9 +144,9 @@ def tune_embeddings(
     )
     train_loss = losses.CosineSimilarityLoss(model)
 
-    # Capture loss values
-    loss_start = 0.0
-    loss_end = 0.0
+    # Measure the mean training loss before and after fitting so TuneResult
+    # reports real diagnostics rather than placeholder zeros.
+    loss_start = _mean_loss(model, train_loss, train_examples, batch_size)
 
     model.fit(
         train_objectives=[(loader, train_loss)],
@@ -127,6 +154,8 @@ def tune_embeddings(
         warmup_steps=max(1, len(loader) // 10),
         show_progress_bar=True,
     )
+
+    loss_end = _mean_loss(model, train_loss, train_examples, batch_size)
 
     Path(output_dir).mkdir(parents=True, exist_ok=True)
     model.save(output_dir)
