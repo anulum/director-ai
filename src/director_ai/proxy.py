@@ -378,6 +378,19 @@ async def _handle_streaming(
                         text = "".join(buffer)
                         approved, _cs = scorer.review(prompt, text)
                         if not approved and on_fail == "reject":
+                            # Record the mid-stream halt: like the terminal
+                            # [DONE] review, a rejection must leave an audit entry.
+                            latency_ms = (_time.monotonic() - t0) * 1000
+                            _audit_log_entry(
+                                audit_log,
+                                prompt,
+                                text,
+                                model=model_name,
+                                score=_cs.score,
+                                approved=approved,
+                                confidence=getattr(_cs, "verdict_confidence", 0.0),
+                                latency_ms=latency_ms,
+                            )
                             halt = {
                                 "choices": [
                                     {

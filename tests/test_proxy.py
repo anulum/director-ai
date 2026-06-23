@@ -717,6 +717,49 @@ async def test_proxy_stream_rejects_on_periodic_guardrail_failure(monkeypatch) -
 
 
 @pytest.mark.asyncio
+async def test_proxy_stream_periodic_halt_writes_audit_entry(monkeypatch) -> None:
+    # Regression: a mid-stream periodic halt returned without an audit entry,
+    # while the terminal [DONE] review logs one. Both rejections must be audited.
+    import director_ai.proxy as proxy
+
+    scorer = _FixedScorer(approved=False, score=0.1)
+    monkeypatch.setattr(proxy, "CoherenceScorer", lambda **_kw: scorer)
+    entries: list[dict[str, object]] = []
+    monkeypatch.setattr(
+        proxy, "_audit_log_entry", lambda *_a, **kwargs: entries.append(kwargs)
+    )
+    app = create_proxy_app(
+        upstream_url="http://fake-upstream",
+        allow_http_upstream=True,
+        on_fail="reject",
+        _transport=_streaming_transport(
+            [
+                f'data: {{"choices":[{{"delta":{{"content":"t{idx}"}}}}]}}'
+                for idx in range(proxy.STREAM_CHECK_INTERVAL + 1)
+            ]
+            + ["data: [DONE]"],
+        ),
+    )
+
+    transport = ASGITransport(app=app)
+    async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+        resp = await client.post(
+            "/v1/chat/completions",
+            json={
+                "model": "stream-model",
+                "stream": True,
+                "messages": [{"role": "user", "content": "guard"}],
+            },
+        )
+
+    assert resp.status_code == 200
+    assert '"finish_reason": "content_filter"' in resp.text
+    assert len(entries) == 1
+    assert entries[0]["approved"] is False
+    assert entries[0]["score"] == 0.1
+
+
+@pytest.mark.asyncio
 async def test_proxy_stream_done_without_text_forwards_done(monkeypatch) -> None:
     import director_ai.proxy as proxy
 
