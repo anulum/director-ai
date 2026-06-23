@@ -177,7 +177,7 @@ The method emits tenant-scoped dictionaries with `source_id`, `status`,
 ### ingest()
 
 ```python
-store.ingest(documents: list[str]) -> None
+store.ingest(texts: list[str], tenant_id: str = "") -> int
 ```
 
 Add documents to the store. Each document is embedded and indexed as a derived

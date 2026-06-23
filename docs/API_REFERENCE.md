@@ -62,8 +62,8 @@ approved, score = scorer.review("What color is the sky?", "The sky is blue.")
 
 | Method | Returns | Description |
 |--------|---------|-------------|
-| `review(prompt, response)` | `(bool, CoherenceScore)` | Score and approve/reject |
-| `areview(prompt, response)` | `(bool, CoherenceScore)` | Async variant |
+| `review(prompt, action)` | `(bool, CoherenceScore)` | Score and approve/reject |
+| `areview(prompt, action)` | `(bool, CoherenceScore)` | Async variant |
 
 ### SafetyKernel
 
@@ -120,7 +120,7 @@ from director_ai import VectorGroundTruthStore, InMemoryBackend
 
 store = VectorGroundTruthStore(backend=InMemoryBackend())
 store.ingest(["Paris is the capital of France.", "Berlin is in Germany."])
-results = store.retrieve("capital of France", top_k=3)
+context = store.retrieve_context("capital of France", top_k=3)
 ```
 
 ### NLIScorer
@@ -159,7 +159,7 @@ Declarative output policy with YAML/dict loading. Checks for forbidden
 phrases, max length, required citations, and custom regex patterns.
 
 ```python
-from director_ai import Policy
+from director_ai.enterprise import Policy
 
 policy = Policy.from_yaml("policy.yaml")
 violations = policy.check("As an AI language model, I cannot help.")
@@ -194,7 +194,7 @@ Structured JSON audit trail. Every review decision is logged with
 timestamp, query hash (SHA-256, never plaintext), scores, and tenant context.
 
 ```python
-from director_ai import AuditLogger
+from director_ai.enterprise import AuditLogger
 
 audit = AuditLogger(path="audit.jsonl")
 entry = audit.log_review(
@@ -217,7 +217,7 @@ Multi-tenant knowledge base isolation. Each tenant gets its own
 GroundTruthStore. Thread-safe.
 
 ```python
-from director_ai import TenantRouter
+from director_ai.enterprise import TenantRouter
 
 router = TenantRouter()
 router.add_fact("acme", "sky", "The sky is blue.")
@@ -300,7 +300,7 @@ agent = CoherenceAgent(fallback="disclaimer", disclaimer_prefix="[Unverified] ")
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
 | `fallback` | str \| None | None | `"retrieval"`, `"disclaimer"`, or None (hard halt) |
-| `disclaimer_prefix` | str | `"[Confidence: moderate] "` | Prefix for warning/disclaimer modes |
+| `disclaimer_prefix` | str | `"[Unverified] "` | Prefix for warning/disclaimer modes |
 
 **Soft warning zone**: Scores between `threshold` and `soft_limit` are
 approved but flagged with `score.warning = True`.
@@ -628,7 +628,7 @@ point is `director_ai.grpc_scoring`.
 Run the Python scoring service with:
 
 ```bash
-director-ai-grpc-scoring --listen 127.0.0.1:50051 --threshold 0.6
+python -m director_ai.grpc_scoring --listen 127.0.0.1:50051 --threshold 0.6
 ```
 
 ---
