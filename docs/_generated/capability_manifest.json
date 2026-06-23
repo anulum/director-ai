@@ -7,7 +7,7 @@
     "public_api_exports": 224,
     "public_documentation_pages": 203,
     "python_model_classes": 980,
-    "python_model_source_modules": 445,
+    "python_model_source_modules": 446,
     "rust_pyo3_model_wrappers": 83,
     "test_files": 541
   },
@@ -4683,6 +4683,7 @@
       "src/director_ai/routers/scoring.py",
       "src/director_ai/routers/sessions.py",
       "src/director_ai/routers/stats.py",
+      "src/director_ai/routers/streaming.py",
       "src/director_ai/routers/tenants.py",
       "src/director_ai/routers/verification.py",
       "src/director_ai/server.py",

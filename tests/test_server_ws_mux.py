@@ -19,7 +19,7 @@ pytest.importorskip("fastapi", reason="server extras not installed")
 from starlette.testclient import TestClient
 from starlette.websockets import WebSocketDisconnect
 
-import director_ai.server as server_mod
+import director_ai.routers.streaming as streaming_mod
 from director_ai.core.config import DirectorConfig
 from director_ai.server import create_app
 
@@ -139,7 +139,7 @@ class TestWSMuxProtocol:
         assert resp["error"] == "expected JSON object"
 
     def test_overlong_prompt_reports_protocol_error(self, client, monkeypatch):
-        monkeypatch.setattr(server_mod, "_WS_MAX_PROMPT_LENGTH", 4)
+        monkeypatch.setattr(streaming_mod, "_WS_MAX_PROMPT_LENGTH", 4)
         with client.websocket_connect("/v1/stream") as ws:
             ws.send_json({"prompt": "too long", "session_id": "long"})
             resp = ws.receive_json()
@@ -216,7 +216,7 @@ class TestWSMuxProtocol:
                 await asyncio.sleep(5)
                 raise AssertionError("active cap test should close first")
 
-        monkeypatch.setattr(server_mod, "_WS_MAX_CONCURRENT", 1)
+        monkeypatch.setattr(streaming_mod, "_WS_MAX_CONCURRENT", 1)
         client.app.state._state["agent"] = SlowAgent()
         with client.websocket_connect("/v1/stream") as ws:
             ws.send_json({"prompt": "slow", "session_id": "first"})

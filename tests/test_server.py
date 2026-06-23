@@ -318,8 +318,8 @@ class TestServerClaimSupportEvidenceSerialization:
     """Server evidence serialization preserves claim-support diagnostics."""
 
     def test_evidence_without_claim_support_omits_claim_fields(self):
+        from director_ai._server_helpers import evidence_to_dict as _evidence_to_dict
         from director_ai.core.types import ScoringEvidence
-        from director_ai.server import _evidence_to_dict
 
         evidence = ScoringEvidence(
             chunks=[],
@@ -335,8 +335,8 @@ class TestServerClaimSupportEvidenceSerialization:
         assert "claims" not in encoded
 
     def test_evidence_with_claim_support_preserves_claim_fields(self):
+        from director_ai._server_helpers import evidence_to_dict as _evidence_to_dict
         from director_ai.core.types import ScoringEvidence
-        from director_ai.server import _evidence_to_dict
 
         evidence = ScoringEvidence(
             chunks=[],

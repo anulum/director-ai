@@ -20,7 +20,7 @@ pytest.importorskip("fastapi", reason="server extras not installed")
 from starlette.testclient import TestClient
 from starlette.websockets import WebSocketDisconnect
 
-import director_ai.server as server_mod
+import director_ai.routers.streaming as streaming_mod
 from director_ai.core.config import DirectorConfig
 from director_ai.core.metrics import metrics
 from director_ai.server import create_app
@@ -33,7 +33,7 @@ def _app():
 
 class TestConnectionCaps:
     def test_per_ip_cap_rejects_second_connection(self, monkeypatch):
-        monkeypatch.setattr(server_mod, "_WS_MAX_CONNECTIONS_PER_IP", 1)
+        monkeypatch.setattr(streaming_mod, "_WS_MAX_CONNECTIONS_PER_IP", 1)
         with (
             TestClient(_app()) as client,
             client.websocket_connect("/v1/stream") as ws,
@@ -47,7 +47,7 @@ class TestConnectionCaps:
                 pass
 
     def test_global_cap_rejects_second_connection(self, monkeypatch):
-        monkeypatch.setattr(server_mod, "_WS_MAX_CONNECTIONS", 1)
+        monkeypatch.setattr(streaming_mod, "_WS_MAX_CONNECTIONS", 1)
         with (
             TestClient(_app()) as client,
             client.websocket_connect("/v1/stream") as ws,
@@ -61,7 +61,7 @@ class TestConnectionCaps:
                 pass
 
     def test_slot_released_after_disconnect(self, monkeypatch):
-        monkeypatch.setattr(server_mod, "_WS_MAX_CONNECTIONS_PER_IP", 1)
+        monkeypatch.setattr(streaming_mod, "_WS_MAX_CONNECTIONS_PER_IP", 1)
 
         def _use_then_close(client):
             with client.websocket_connect("/v1/stream") as ws:
@@ -90,7 +90,7 @@ class TestConnectionCaps:
 
 class TestRateLimit:
     def test_message_rate_limit(self, monkeypatch):
-        monkeypatch.setattr(server_mod, "_WS_MAX_MSGS_PER_WINDOW", 2)
+        monkeypatch.setattr(streaming_mod, "_WS_MAX_MSGS_PER_WINDOW", 2)
         with (
             TestClient(_app()) as client,
             client.websocket_connect("/v1/stream") as ws,
@@ -107,7 +107,7 @@ class TestRateLimit:
 
 class TestCharBudget:
     def test_budget_closes_connection(self, monkeypatch):
-        monkeypatch.setattr(server_mod, "_WS_CONN_CHAR_BUDGET", 10)
+        monkeypatch.setattr(streaming_mod, "_WS_CONN_CHAR_BUDGET", 10)
         with (
             TestClient(_app()) as client,
             client.websocket_connect("/v1/stream") as ws,
@@ -121,7 +121,7 @@ class TestCharBudget:
 
 class TestLifetimeAndIdle:
     def test_lifetime_cap_closes(self, monkeypatch):
-        monkeypatch.setattr(server_mod, "_WS_MAX_LIFETIME_S", 0.0)
+        monkeypatch.setattr(streaming_mod, "_WS_MAX_LIFETIME_S", 0.0)
         with (
             TestClient(_app()) as client,
             client.websocket_connect("/v1/stream") as ws,
@@ -130,7 +130,7 @@ class TestLifetimeAndIdle:
             ws.receive_json()
 
     def test_idle_timeout_closes(self, monkeypatch):
-        monkeypatch.setattr(server_mod, "_WS_IDLE_TIMEOUT_S", 0.05)
+        monkeypatch.setattr(streaming_mod, "_WS_IDLE_TIMEOUT_S", 0.05)
         with (
             TestClient(_app()) as client,
             client.websocket_connect("/v1/stream") as ws,
@@ -142,7 +142,7 @@ class TestLifetimeAndIdle:
 class TestMetrics:
     def test_rejection_metric_emitted(self, monkeypatch):
         metrics.reset()
-        monkeypatch.setattr(server_mod, "_WS_MAX_CONNECTIONS_PER_IP", 1)
+        monkeypatch.setattr(streaming_mod, "_WS_MAX_CONNECTIONS_PER_IP", 1)
         with (
             TestClient(_app()) as client,
             client.websocket_connect("/v1/stream") as ws,
