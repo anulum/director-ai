@@ -1371,6 +1371,18 @@ class TestConfigCoverageGaps:
         assert _coerce("1, 2,3", "list[int]") == [1, 2, 3]
         assert _coerce("0.1,0.2", "list[float]") == [0.1, 0.2]
 
+    def test_coerce_string_list_splits_and_strips(self):
+        # The plain ``list[str]`` branch splits on commas and drops blank
+        # entries without per-element numeric conversion.
+        from director_ai.core.config import _coerce
+
+        assert _coerce("alpha, beta ,, gamma", "list[str]") == [
+            "alpha",
+            "beta",
+            "gamma",
+        ]
+        assert _coerce("solo", "list") == ["solo"]
+
     def test_coerce_tuple_fields(self):
         from director_ai.core.config import _coerce
 

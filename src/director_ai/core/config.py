@@ -25,6 +25,8 @@ from typing import TYPE_CHECKING, Any, cast
 
 # ``ProfileMetadata`` keeps its redundant alias so it is re-exported (and stays
 # importable as ``from director_ai.core.config import ProfileMetadata``).
+from .config_env import coerce_env_value as _coerce
+from .config_env import parse_api_keys_env as _parse_api_keys_env
 from .config_profiles import (
     PROFILE_DEFINITIONS,
     PROFILE_METADATA,
@@ -41,30 +43,6 @@ if TYPE_CHECKING:
 __all__ = ["DirectorConfig", "ProfileMetadata"]
 
 logger = logging.getLogger("DirectorAI.Config")
-
-
-def _parse_api_keys_env(raw: str) -> list[str]:
-    """Parse ``DIRECTOR_API_KEYS`` accepting a JSON array or a comma list.
-
-    Operators reach for both spellings: a JSON array (``["sk-a","sk-b"]``, the
-    form the production checklist used to show) and a bare comma-separated list
-    (``sk-a,sk-b``). Parsing only one of them silently embeds brackets/quotes
-    into the literal key and produces the "auth is configured but the keys never
-    match" footgun. A JSON array of strings is honoured when the value parses to
-    a list of strings; everything else falls back to comma splitting. Blank and
-    whitespace-only entries are dropped.
-    """
-    raw = raw.strip()
-    if not raw:
-        return []
-    if raw.startswith("["):
-        try:
-            parsed = json.loads(raw)
-        except json.JSONDecodeError:
-            parsed = None
-        if isinstance(parsed, list) and all(isinstance(k, str) for k in parsed):
-            return [k.strip() for k in parsed if k.strip()]
-    return [k.strip() for k in raw.split(",") if k.strip()]
 
 
 @dataclass
@@ -1411,39 +1389,3 @@ class _JsonFormatter(logging.Formatter):
         if request_id:
             entry["request_id"] = request_id
         return _json.dumps(entry)
-
-
-def _coerce(value: str, type_hint: str) -> object:
-    """Coerce a string env var to the target type."""
-    if type_hint == "bool":
-        low = value.lower()
-        if low in ("true", "1", "yes"):
-            return True
-        if low in ("false", "0", "no"):
-            return False
-        raise ValueError(
-            f"invalid bool value: {value!r} (expected true/false/1/0/yes/no)",
-        )
-    if type_hint == "int":
-        return int(value)
-    if type_hint == "float":
-        return float(value)
-    if "list" in type_hint:
-        items = [s.strip() for s in value.split(",") if s.strip()]
-        if "int" in type_hint:
-            return [int(x) for x in items]
-        if "float" in type_hint:
-            return [float(x) for x in items]
-        return items
-    if "tuple" in type_hint:
-        # ``tuple[str, ...]`` fields (e.g. enabled modalities, evidence-firewall
-        # sensitivity allowlist) must split on commas like lists. Without this
-        # the raw string falls through and downstream ``frozenset(value)`` turns
-        # it into a per-character set, silently corrupting the allowlist.
-        parts = [s.strip() for s in value.split(",") if s.strip()]
-        if "int" in type_hint:
-            return tuple(int(x) for x in parts)
-        if "float" in type_hint:
-            return tuple(float(x) for x in parts)
-        return tuple(parts)
-    return value
