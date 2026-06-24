@@ -218,6 +218,19 @@ class TestPopulation:
         assert low <= avg <= high
         assert called["count"] == 1
 
+    def test_fitness_summary_python_mean_when_rust_disabled(self, monkeypatch):
+        # With the accelerator off, the mean (and the _sum_float reducer it
+        # uses) takes the pure-python branch.
+        pop = self._population()
+        monkeypatch.setattr(engine_mod, "_RUST_DEFENSE_GENOME", False)
+        low, avg, high = pop.fitness_summary()
+        assert low <= avg <= high
+
+    def test_replace_rejects_empty_population(self):
+        pop = self._population()
+        with pytest.raises(ValueError, match="new_members"):
+            pop.replace([])
+
     def test_fitness_summary_rust_type_error_falls_back(self, monkeypatch):
         pop = self._population()
         monkeypatch.setattr(engine_mod, "_RUST_DEFENSE_GENOME", True)
@@ -318,6 +331,14 @@ class TestEngine:
                 seed_prompt="x",
                 generations=0,
             )
+
+    def test_crossover_of_single_gene_parent_returns_first_parent(self):
+        # When the shorter parent has a single gene there is no interior splice
+        # point, so the crossover degenerates to returning the first parent.
+        a = AdversarialGenome(genes=(Gene("char_swap", 0),))
+        b = AdversarialGenome(genes=(Gene("char_drop", 1), Gene("leet", 0)))
+        child = engine_mod._crossover(a, b, rng=random.Random(0))
+        assert child is a
 
 
 # --- DefenseRegistry ----------------------------------------------
