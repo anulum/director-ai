@@ -104,3 +104,24 @@ def test_expired_tickets_are_pruned():
 def test_ttl_seconds_property():
     reg = WebSocketTicketRegistry(ttl_seconds=42.0)
     assert reg.ttl_seconds == 42.0
+
+
+class _QueueClock:
+    """Clock returning a fixed sequence of timestamps, one per call."""
+
+    def __init__(self, values: list[float]) -> None:
+        self._values = list(values)
+
+    def __call__(self) -> float:
+        return self._values.pop(0)
+
+
+def test_redeem_rejects_ticket_expiring_between_prune_and_check():
+    # The prune/check race: a ticket survives the in-redeem prune (clock=10, not
+    # yet past expiry=10) but the wall clock advances to 11 before the explicit
+    # expiry check, which must then reject it. Clock calls: issue prune+expiry,
+    # redeem prune+check.
+    clock = _QueueClock([0.0, 0.0, 10.0, 11.0])
+    reg = WebSocketTicketRegistry(ttl_seconds=10.0, clock=clock)
+    ticket = reg.issue("key-1")
+    assert reg.redeem(ticket) is None

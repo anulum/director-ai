@@ -66,6 +66,17 @@ class TestInMemoryBackend:
         results = backend.query("anything")
         assert results == []
 
+    def test_query_zero_results_short_circuits(self):
+        backend = InMemoryBackend()
+        backend.add("d1", "the sky is blue")
+        assert backend.query("sky", n_results=0) == []
+
+    def test_delete_empty_doc_ids_is_noop(self):
+        backend = InMemoryBackend()
+        backend.add("d1", "text")
+        assert backend.delete([]) == 0
+        assert backend.count() == 1
+
     def test_query_delegates_to_rust_overlap_when_available(self, monkeypatch):
         backend = InMemoryBackend()
         backend.add("doc1", "The sky is blue")
