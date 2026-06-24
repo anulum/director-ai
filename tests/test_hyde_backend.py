@@ -240,6 +240,19 @@ class TestCaching:
         b.query("question")
         assert gen.call_count == 2
 
+    def test_cache_evicts_stale_entries_over_capacity(self):
+        gen = _mock_generator("answer")
+        b = _make_backend(generator=gen, cache_ttl=60.0)
+        b.add("d1", "text")
+        # Pre-fill past the 1000-entry cap with stale entries (cached long ago),
+        # so the next generation triggers the eviction sweep.
+        stale_at = time.monotonic() - 10_000.0
+        b._cache = {f"q{i}": ("doc", stale_at) for i in range(1001)}
+        b.query("fresh question")
+        # The 1001 stale entries are swept; only the just-cached fresh one stays.
+        assert "fresh question" in b._cache
+        assert len(b._cache) == 1
+
 
 # ── Edge cases ──────────────────────────────────────────────────────────
 

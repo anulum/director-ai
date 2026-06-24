@@ -206,6 +206,29 @@ class TestPresidio:
         assert det.analyse("").matches == []
         assert stub.calls == []
 
+    def test_from_default_engine_without_presidio_raises(self):
+        # presidio-analyzer is an optional extra; without it the convenience
+        # constructor must raise ImportError with install guidance, not crash
+        # with a bare ModuleNotFoundError.
+        if importlib.util.find_spec("presidio_analyzer") is not None:
+            pytest.skip("presidio-analyzer is installed; fallback path not exercised")
+        with pytest.raises(ImportError, match="director-ai\\[presidio\\]"):
+            PresidioPIIDetector.from_default_engine()
+
+    def test_from_default_engine_builds_from_stock_engine(self, monkeypatch):
+        # With presidio present the convenience constructor wires a stock
+        # AnalyzerEngine. A stub module stands in for the optional dependency.
+        fake_presidio = types.ModuleType("presidio_analyzer")
+
+        class _FakeAnalyzerEngine:
+            def analyze(self, *_args: Any, **_kwargs: Any) -> list[Any]:
+                return []
+
+        fake_presidio.AnalyzerEngine = _FakeAnalyzerEngine  # type: ignore[attr-defined]
+        monkeypatch.setitem(sys.modules, "presidio_analyzer", fake_presidio)
+        det = PresidioPIIDetector.from_default_engine(score_threshold=0.7)
+        assert isinstance(det, PresidioPIIDetector)
+
 
 # --- Keyword toxicity ------------------------------------------------
 

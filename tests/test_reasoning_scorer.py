@@ -338,3 +338,28 @@ class TestConfigWiring:
         from director_ai.core.config import DirectorConfig
 
         assert not DirectorConfig().build_scorer()._reasoning.enabled
+
+
+class TestLocalBackend:
+    """The hardware-gated local causal-LM generate path (orchestration only)."""
+
+    def test_local_generate_triggers_load_then_returns_none(self, monkeypatch):
+        rs = ReasoningScorer(provider="local")
+        # Not yet loaded -> the orchestration calls the (stubbed) loader, which
+        # leaves the model unavailable, so it short-circuits to None.
+        rs._local_load_attempted = False
+
+        def _stub_load() -> None:
+            rs._local_model = None
+            rs._local_tokenizer = None
+
+        monkeypatch.setattr(rs, "_init_local_model", _stub_load)
+        assert rs._local_generate([{"role": "user", "content": "hi"}]) is None
+
+    def test_local_generate_delegates_to_infer_when_loaded(self, monkeypatch):
+        rs = ReasoningScorer(provider="local")
+        rs._local_load_attempted = True
+        rs._local_model = object()
+        rs._local_tokenizer = object()
+        monkeypatch.setattr(rs, "_local_infer", lambda _messages: "INFERRED")
+        assert rs._local_generate([{"role": "user", "content": "hi"}]) == "INFERRED"
