@@ -6,10 +6,10 @@
     "optional_extras": 58,
     "public_api_exports": 224,
     "public_documentation_pages": 203,
-    "python_model_classes": 993,
-    "python_model_source_modules": 457,
+    "python_model_classes": 997,
+    "python_model_source_modules": 458,
     "rust_pyo3_model_wrappers": 83,
-    "test_files": 549
+    "test_files": 550
   },
   "documentation": {
     "public_pages": [
@@ -1843,6 +1843,18 @@
       {
         "name": "GoogleDrivePlugin",
         "path": "src/director_ai/core/retrieval/ingestion/gdrive.py"
+      },
+      {
+        "name": "GraderCase",
+        "path": "src/director_ai/core/calibration/grader_validation.py"
+      },
+      {
+        "name": "GraderReport",
+        "path": "src/director_ai/core/calibration/grader_validation.py"
+      },
+      {
+        "name": "GraderValidationError",
+        "path": "src/director_ai/core/calibration/grader_validation.py"
       },
       {
         "name": "GraphCycleError",
@@ -3689,6 +3701,10 @@
         "path": "src/director_ai/core/stats.py"
       },
       {
+        "name": "StatusMetrics",
+        "path": "src/director_ai/core/calibration/grader_validation.py"
+      },
+      {
         "name": "StatusResponse",
         "path": "src/director_ai/_server_models.py"
       },
@@ -4357,6 +4373,7 @@
       "src/director_ai/core/calibration/adaptive_threshold.py",
       "src/director_ai/core/calibration/conformal.py",
       "src/director_ai/core/calibration/feedback_store.py",
+      "src/director_ai/core/calibration/grader_validation.py",
       "src/director_ai/core/calibration/miscoverage.py",
       "src/director_ai/core/calibration/online_calibrator.py",
       "src/director_ai/core/calibration/recall_correctness.py",
@@ -5363,6 +5380,7 @@
       "tests/test_gemma_aggrefact_logprob_routed.py",
       "tests/test_gemma_aggrefact_routed.py",
       "tests/test_gemma_aggrefact_self_consistency.py",
+      "tests/test_grader_validation.py",
       "tests/test_grounding_judge.py",
       "tests/test_grpc_api_docs.py",
       "tests/test_grpc_scoring.py",
