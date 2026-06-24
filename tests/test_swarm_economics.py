@@ -180,6 +180,40 @@ class TestAgentState:
         with pytest.raises(PoolError, match="agent_id"):
             AgentEconomicState(agent_id="", credit_balance=0.0, valuation=1.0)
 
+    def test_negative_valuation(self):
+        with pytest.raises(PoolError, match="valuation"):
+            AgentEconomicState(agent_id="a", credit_balance=1.0, valuation=-0.5)
+
+    def test_negative_recent_consumption(self):
+        with pytest.raises(PoolError, match="recent_consumption"):
+            AgentEconomicState(
+                agent_id="a",
+                credit_balance=1.0,
+                valuation=1.0,
+                recent_consumption=-1.0,
+            )
+
+
+# --- ConsumptionRecord --------------------------------------------
+
+
+class TestConsumptionRecord:
+    def test_valid(self):
+        record = ConsumptionRecord(agent_id="a", amount=2.0, timestamp=5.0)
+        assert record.amount == 2.0
+
+    def test_empty_agent_rejected(self):
+        with pytest.raises(PoolError, match="agent_id"):
+            ConsumptionRecord(agent_id="", amount=1.0, timestamp=0.0)
+
+    def test_non_positive_amount_rejected(self):
+        with pytest.raises(PoolError, match="amount"):
+            ConsumptionRecord(agent_id="a", amount=0.0, timestamp=0.0)
+
+    def test_negative_timestamp_rejected(self):
+        with pytest.raises(PoolError, match="timestamp"):
+            ConsumptionRecord(agent_id="a", amount=1.0, timestamp=-1.0)
+
 
 # --- NashBargainingSolver -----------------------------------------
 

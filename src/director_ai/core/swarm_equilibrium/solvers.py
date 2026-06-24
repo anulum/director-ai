@@ -215,7 +215,10 @@ class StackelbergSolver:
                     best_leader_payoff = leader_payoff
                     chosen_profile = profile
                     chosen_payoffs = (leader_payoff, follower_payoff)
-        if chosen_profile is None or chosen_payoffs is None:
+        # Unreachable for a validated game: non-empty strategy sets mean the
+        # first leader strategy always yields a follower best response that
+        # seeds chosen_profile. Kept as a defensive guard.
+        if chosen_profile is None or chosen_payoffs is None:  # pragma: no cover
             raise ValueError("no Stackelberg outcome found")
         leader_payoff, follower_payoff = chosen_payoffs
         if game.players[0] == leader:

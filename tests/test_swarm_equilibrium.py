@@ -285,6 +285,39 @@ class TestNashSolver:
 
         assert NashSolver().mixed_equilibrium_2x2(game) is None
 
+    def test_mixed_returns_none_when_second_indifference_is_singular(self):
+        # Player 1's payoffs admit a valid mixing weight p (matching-pennies
+        # block), but player 0's payoffs are constant, so the second
+        # indifference equation (for player 1's mix q) is singular.
+        game = NormalFormGame(
+            players=("row", "col"),
+            strategies={"row": ("A", "B"), "col": ("L", "R")},
+            payoffs={
+                StrategyProfile(("A", "L")): (0.5, 1.0),
+                StrategyProfile(("A", "R")): (0.5, 0.0),
+                StrategyProfile(("B", "L")): (0.5, 0.0),
+                StrategyProfile(("B", "R")): (0.5, 1.0),
+            },
+        )
+
+        assert NashSolver().mixed_equilibrium_2x2(game) is None
+
+    def test_mixed_returns_none_when_second_probability_is_outside_simplex(self):
+        # Valid p for player 1's mix, but player 0's payoffs drive q to the
+        # boundary (q == 0), which the open-simplex check rejects.
+        game = NormalFormGame(
+            players=("row", "col"),
+            strategies={"row": ("A", "B"), "col": ("L", "R")},
+            payoffs={
+                StrategyProfile(("A", "L")): (3.0, 1.0),
+                StrategyProfile(("A", "R")): (2.0, 0.0),
+                StrategyProfile(("B", "L")): (2.0, 0.0),
+                StrategyProfile(("B", "R")): (2.0, 1.0),
+            },
+        )
+
+        assert NashSolver().mixed_equilibrium_2x2(game) is None
+
     def test_stag_hunt_multiple_pure(self):
         solver = NashSolver()
         pures = solver.pure_equilibria(_stag_hunt())
@@ -379,6 +412,10 @@ class TestStackelbergSolver:
         solver = StackelbergSolver()
         eq = solver.solve(_stag_hunt(), leader="row")
         assert eq.profile == StrategyProfile(("Stag", "Stag"))
+
+    def test_negative_eps_rejected(self):
+        with pytest.raises(ValueError, match="eps"):
+            StackelbergSolver(eps=-1e-9)
 
 
 # --- SwarmEquilibriumScorer ---------------------------------------
