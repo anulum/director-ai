@@ -38,7 +38,7 @@
     "jsdom": "25.0.1",
     "typescript": "5.8.2",
     "vite": "8.0.0",
-    "vitest": "2.1.8"
+    "vitest": "3.2.6"
   },
   "comment": "@anulum/ui + @anulum/portal-kit are peer deps published by the SCPN-STUDIO keeper; until then a local Instrument-Deck token mirror (src/tokens) + local honesty bridge (src/contract/honesty.ts) stand in. Pinned versions are placeholders to be reconciled against the workspace lock at integration."
 }
