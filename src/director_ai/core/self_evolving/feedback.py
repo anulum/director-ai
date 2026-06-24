@@ -131,9 +131,11 @@ class InMemoryFeedbackStore:
                 # event lived in it.
                 bucket = self._by_label[dropped.label]
                 # The dropped event may already have been evicted from the
-                # per-label deque in a prior write; swallow the resulting
-                # ValueError from list.remove without masking anything else.
-                if dropped in bucket:
+                # per-label deque under a concurrent write; the absent-from-bucket
+                # case is a defensive guard against that race, not reachable in a
+                # single-threaded run (bucket and main deque share maxlen and
+                # evict in lockstep), so the false branch is excluded.
+                if dropped in bucket:  # pragma: no branch
                     bucket.remove(dropped)
             self._events.append(event)
             self._by_label[event.label].append(event)

@@ -165,6 +165,50 @@ class TestJSONLStore:
         assert len(store) == 5
         assert [e.prompt for e in store.iter_all()] == [f"p{i}" for i in range(5)]
 
+    def test_iter_all_on_missing_file_is_empty(self, tmp_path):
+        # A store whose backing file has not been written yet iterates empty
+        # rather than raising.
+        store = JSONLFeedbackStore(str(tmp_path / "absent.jsonl"))
+        assert list(store.iter_all()) == []
+
+    def test_iter_all_skips_blank_lines(self, tmp_path):
+        # Blank lines (e.g. a trailing newline or a partially flushed write)
+        # must be skipped rather than parsed as JSON.
+        path = str(tmp_path / "store.jsonl")
+        store = JSONLFeedbackStore(path)
+        store.append(
+            FeedbackEvent(prompt="x", response="", label="safe", timestamp=0.0)
+        )
+        with open(path, "a", encoding="utf-8") as f:
+            f.write("\n   \n")
+        assert [e.prompt for e in store.iter_all()] == ["x"]
+
+    def test_bulk_append_empty_batch_is_noop(self, tmp_path):
+        path = str(tmp_path / "store.jsonl")
+        store = JSONLFeedbackStore(path)
+        store.bulk_append([])
+        assert len(store) == 0
+        assert not os.path.exists(path)
+
+    def test_bulk_append_preserves_existing_events(self, tmp_path):
+        # A bulk append onto a non-empty file must read and keep the existing
+        # prefix, not clobber it.
+        path = str(tmp_path / "store.jsonl")
+        store = JSONLFeedbackStore(path)
+        store.append(
+            FeedbackEvent(prompt="seed", response="", label="safe", timestamp=0.0)
+        )
+        store.bulk_append(
+            [
+                FeedbackEvent(
+                    prompt=f"p{i}", response="", label="safe", timestamp=float(i)
+                )
+                for i in range(3)
+            ]
+        )
+        assert [e.prompt for e in store.iter_all()] == ["seed", "p0", "p1", "p2"]
+        assert len(store) == 4
+
     def test_bad_path(self):
         with pytest.raises(ValueError, match="path"):
             JSONLFeedbackStore("")
@@ -327,6 +371,13 @@ class TestPerceptronTrainer:
         with pytest.raises(ValueError, match="no labelled"):
             t.train([], version=1)
 
+    def test_corpus_of_only_unmapped_labels_rejected(self):
+        # Events whose labels do not map to a 0/1 target are skipped; a corpus
+        # of nothing but unmapped events leaves the labelled set empty.
+        t = PerceptronGuardrailTrainer()
+        with pytest.raises(ValueError, match="no labelled"):
+            t.train([SimpleNamespace(prompt="x", label="unknown")], version=1)
+
     def test_bad_dim(self):
         with pytest.raises(ValueError, match="dim"):
             PerceptronGuardrailTrainer(dim=0)
@@ -418,6 +469,24 @@ class TestLoraTrainerGuard:
             0.8807970, abs=1e-5
         )
         assert trainer_mod._unsafe_probability([2.0, 2.0]) == pytest.approx(0.5)
+
+    def test_train_rejects_unlabelled_corpus_before_loading_ml_stack(self):
+        # The "no labelled events" guard fires before any heavy import, so it is
+        # reachable without the ML stack — events whose labels do not map are
+        # skipped, leaving nothing to train on.
+        t = LoraGuardrailTrainer()
+        with pytest.raises(ValueError, match="no labelled"):
+            t.train([SimpleNamespace(prompt="x", label="unknown")], version=1)
+
+    def test_hash_bag_zero_norm_for_tokenless_text(self):
+        # Whitespace-only text is truthy (skips the empty-string fast path) but
+        # tokenises to nothing, so the bag stays all-zero and is returned
+        # un-normalised rather than dividing by zero.
+        assert trainer_mod._hash_bag("   ", 8) == (0.0,) * 8
+
+    def test_sum_float_python_fallback(self, monkeypatch):
+        monkeypatch.setattr(trainer_mod, "_RUST_SELF_EVOLVING", False)
+        assert trainer_mod._sum_float([1.0, 2.0, 3.0]) == 6.0
 
     def test_train_distils_with_faked_stack(self, monkeypatch):
         # CI runs without the heavy ML stack, so the distillation flow is
@@ -672,6 +741,24 @@ class TestSelfEvolver:
         # With 20 safe real events in the mix, a representative fold contains at
         # least one "safe" label; the old all-unsafe tail never did.
         assert "safe" in labels
+
+    def test_tiny_store_reuses_training_fold_for_calibration(self):
+        # A single-event store (no failure labels, so no adversarial samples)
+        # leaves an empty calibration tail after the 80/20 split; the evolver
+        # falls back to reusing the training fold so the cycle still completes.
+        store = InMemoryFeedbackStore()
+        store.append(
+            FeedbackEvent(
+                prompt="the sky is blue today",
+                response="",
+                label="safe",
+                timestamp=0.0,
+            )
+        )
+        evolver = SelfEvolver(store=store, min_feedback=1, adversarial_per_evolution=16)
+        report = evolver.evolve(seed=0)
+        assert isinstance(report, EvolutionReport)
+        assert report.feedback_seen == 1
 
     def test_min_feedback_enforced(self):
         store = InMemoryFeedbackStore()

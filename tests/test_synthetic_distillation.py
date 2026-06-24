@@ -289,6 +289,34 @@ def test_distillation_manifest_and_plan_validate_counts_and_flags():
         )
     with pytest.raises(ValueError, match="examples"):
         SyntheticDistillationPlan((), manifest, object())  # type: ignore[arg-type]
+    # A non-empty example set whose size disagrees with the manifest count is a
+    # provenance error — the manifest above attests exactly one synthetic event.
+    with pytest.raises(ValueError, match="example count must match manifest"):
+        SyntheticDistillationPlan(
+            (example, example),
+            manifest,
+            object(),  # type: ignore[arg-type]
+        )
+
+
+def test_builder_rejects_source_event_without_event_id():
+    builder = SyntheticDistillationBuilder(generator_id="deterministic-v1")
+    events = [
+        FeedbackEvent(
+            prompt="unsafe reviewed prompt",
+            response="",
+            label="unsafe",
+            metadata={"reviewer_id": "reviewer-passport-1"},
+        )
+    ]
+
+    with pytest.raises(ValueError, match="missing event_id"):
+        builder.generate(
+            events,
+            reviewer_id="reviewer-passport-1",
+            seed=0,
+            max_examples=1,
+        )
 
 
 def test_builder_validates_generation_and_training_plan_arguments():
