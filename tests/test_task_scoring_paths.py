@@ -162,6 +162,27 @@ class TestDialogueFactualDivergence:
 
 
 class TestSummarizationFactualDivergence:
+    def test_minicheck_uses_nltk_sentence_tokeniser_when_available(self, monkeypatch):
+        # With the rust splitter disabled the coverage scorer falls through to
+        # nltk; inject a stand-in tokeniser so the nltk-present branch runs even
+        # though nltk is not installed in the test environment.
+        import sys
+        import types
+
+        fake_tokenize = types.ModuleType("nltk.tokenize")
+        fake_tokenize.sent_tokenize = lambda text: ["Sentence one.", "Sentence two."]
+        monkeypatch.setitem(sys.modules, "nltk", types.ModuleType("nltk"))
+        monkeypatch.setitem(sys.modules, "nltk.tokenize", fake_tokenize)
+        monkeypatch.setattr(_task_scoring, "_RUST_TASK", False)
+
+        mc = SimpleNamespace(score=lambda source, sentence: 0.2)
+        coverage, divs, sentences = _task_scoring.minicheck_claim_coverage(
+            mc, "source text", "Sentence one. Sentence two."
+        )
+        assert sentences == ["Sentence one.", "Sentence two."]
+        assert divs == [0.2, 0.2]
+        assert coverage == 1.0
+
     def test_minicheck_layer_populates_claim_metadata(self):
         evidence = _evidence()
         nli = _NliScorer(reverse_divergence=0.32)

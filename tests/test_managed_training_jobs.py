@@ -114,6 +114,15 @@ class TestTrainingJobSpec:
         with pytest.raises(ValueError, match="backend must be one of"):
             _vertex_spec().validate("kubernetes")
 
+    def test_portable_spec_rejects_default_placeholder_image(self):
+        # The portable backend ships to an external orchestrator, so the bare
+        # python base image is not a runnable training container.
+        spec = _vertex_spec(container_image_uri="python:3.12-slim")
+        with pytest.raises(
+            ValueError, match="container_image_uri must be a training image"
+        ):
+            spec.validate("portable")
+
     def test_vertex_spec_requires_cloud_uris(self):
         spec = _vertex_spec(dataset_uri="/tmp/train.jsonl")
         with pytest.raises(ValueError, match="dataset_uri must be a gs:// URI"):
@@ -297,6 +306,13 @@ class TestBackends:
             "file:///mnt/provider/director-ai/job-1"
         )
 
+    def test_portable_command_omits_eval_argument_without_eval_uri(self):
+        # A spec with no eval set must not emit a dangling --eval-uri flag in the
+        # provider-neutral command.
+        spec = _vertex_spec(eval_uri=None, project=None)
+        result = submit_training_job(spec, backend="portable", dry_run=True)
+        assert "--eval-uri" not in result.request["container"]["args"]
+
     def test_portable_execute_is_external_orchestrator_only(self):
         with pytest.raises(RuntimeError, match="external orchestrator"):
             submit_training_job(
@@ -423,6 +439,16 @@ class TestBackends:
         assert cancelled.job_id == "local-123"
         assert cancelled.state == "unsupported"
         assert "synchronously" in cancelled.error
+
+    def test_portable_status_and_cancel_defer_to_external_orchestrator(self):
+        backend = PortableTrainingBackend()
+
+        status = backend.status("ext-1")
+        cancelled = backend.cancel("ext-1")
+
+        assert status.state == "external"
+        assert "external orchestrator" in status.error
+        assert cancelled.state == "unsupported"
 
     def test_local_dry_run_includes_eval_argument_and_shell_display(self, tmp_path):
         spec = TrainingJobSpec(

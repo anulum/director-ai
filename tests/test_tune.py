@@ -172,6 +172,46 @@ class TestTunerInternals:
         assert 'profile: "legacy_tuned"' in rendered
         assert "# Confidence report:" in rendered
 
+    def test_profile_overlay_includes_tradeoff_summary_when_present(self):
+        class ResultWithTradeoff:
+            threshold = 0.9
+            w_logic = 0.7
+            w_fact = 0.3
+            balanced_accuracy = 0.75
+            precision = 0.8
+            recall = 0.6
+            f1 = 0.6857
+            samples = 12
+            tradeoff_summary = "precision favoured over recall"
+
+        overlay = tuner_module._to_profile_overlay(
+            ResultWithTradeoff(), profile="tuned", base_profile=""
+        )
+        assert overlay["extra"]["tune_tradeoff_summary"] == (
+            "precision favoured over recall"
+        )
+
+    def test_f1_zero_when_precision_or_recall_is_zero(self):
+        assert tuner_module._f1_from_precision_recall(0.0, 0.9) == 0.0
+        assert tuner_module._f1_from_precision_recall(0.9, 0.0) == 0.0
+        assert tuner_module._f1_from_precision_recall(0.5, 0.5) == pytest.approx(0.5)
+
+    def test_overlay_omits_boundary_examples_when_absent(self):
+        # A result with no boundary examples must not emit an empty boundary
+        # field in the profile overlay.
+        result = tuner_module.TuneResult(
+            threshold=0.5,
+            w_logic=0.6,
+            w_fact=0.4,
+            balanced_accuracy=0.8,
+            precision=0.8,
+            recall=0.7,
+            f1=0.75,
+            samples=10,
+        )
+        overlay = result.to_profile_overlay(profile="tuned", base_profile="")
+        assert "tune_boundary_examples" not in overlay["extra"]
+
     def test_profile_overlay_rejects_non_mapping_extra(self):
         class BadOverlayResult:
             threshold = 0.5

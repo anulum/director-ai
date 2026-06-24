@@ -196,7 +196,9 @@ def format_profile_overlay(
     if base_profile:
         lines.append(f"# Base profile: {base_profile}")
     report = format_confidence_report(result)
-    if report:
+    # format_confidence_report always emits a non-empty header block, so the
+    # empty-report skip is a defensive guard.
+    if report:  # pragma: no branch
         lines.extend(f"# {line}" if line else "#" for line in report.splitlines())
     lines.extend(
         [
@@ -401,7 +403,10 @@ def tune(
                 best = result
                 best_samples = scores
 
-    if best is None:
+    # The public entrypoint validates non-empty samples and supplies a default
+    # threshold grid, so the candidate loop always records a best; this is a
+    # defensive guard against an internal caller bypassing those checks.
+    if best is None:  # pragma: no cover
         raise ValueError("No valid tuning result — check that samples is non-empty")
 
     positives = _sum_int([1 if s.label else 0 for s in best_samples])
