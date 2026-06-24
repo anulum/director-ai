@@ -75,6 +75,18 @@ class TestLoadBenchmarkJsonl:
         assert len(rows) == 50
         assert all(k in rows[0] for k in ("premise", "hypothesis", "label"))
 
+    def test_skips_blank_lines(self, tmp_path):
+        f = tmp_path / "padded.jsonl"
+        f.write_text(
+            json.dumps({"premise": "S.", "hypothesis": "C.", "label": 1})
+            + "\n\n   \n"
+            + json.dumps({"premise": "S2.", "hypothesis": "C2.", "label": 0})
+            + "\n",
+            encoding="utf-8",
+        )
+        rows = _load_benchmark_jsonl(f)
+        assert len(rows) == 2
+
     def test_loads_alternative_fields(self, tmp_path):
         f = tmp_path / "alt.jsonl"
         f.write_text(

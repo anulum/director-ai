@@ -907,7 +907,11 @@ def _drift_alert_rows(
         split_at = len(tenant_records) // 2
         baseline = tenant_records[:split_at]
         current = tenant_records[split_at:]
-        if len(baseline) < min_window_events or len(current) < min_window_events:
+        # len >= 2*min_window_events above guarantees each half holds at least
+        # min_window_events records, so this second window check never trips.
+        if (  # pragma: no cover
+            len(baseline) < min_window_events or len(current) < min_window_events
+        ):
             continue
         baseline_rate = _halt_rate(baseline)
         current_rate = _halt_rate(current)
