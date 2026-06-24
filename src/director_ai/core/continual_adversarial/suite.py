@@ -117,7 +117,10 @@ class AdversarialSuite:
             )
             if match is None:
                 raise KeyError(f"no archived version {version}")
-            if self._active is not None:
+            # A version is only ever in history because a promote archived the
+            # then-active one, so reaching here with no active version is not
+            # possible single-threaded; the false branch is a defensive guard.
+            if self._active is not None:  # pragma: no branch
                 self._history.append(self._active)
                 if len(self._history) > self._history_limit:
                     self._history = self._history[-self._history_limit :]

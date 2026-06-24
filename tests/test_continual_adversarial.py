@@ -230,6 +230,38 @@ class TestPatternMiner:
         ]
         assert not [p for p in miner.mine(events) if p.kind == "ngram"]
 
+    def test_repeated_ngram_counts_once_per_event(self):
+        # A gram that recurs within a single event must be counted once: three
+        # events each repeating "go" still gives support 3, not 9.
+        miner = PatternMiner(ngram_size=1, min_support=3)
+        events = [
+            FailureEvent(prompt="go go go", label="unsafe", timestamp=float(i))
+            for i in range(3)
+        ]
+        patterns = miner.mine(events)
+        go = [p for p in patterns if p.kind == "ngram" and p.signature == "go"]
+        assert go and go[0].support == 3
+
+    def test_whitespace_prompt_is_skipped_by_cluster_pass(self):
+        # A prompt that tokenises to nothing (whitespace only) yields no cluster
+        # while a real event still does.
+        miner = PatternMiner(ngram_size=10, min_support=1, max_edit_distance=0.6)
+        events = [
+            FailureEvent(prompt="   ", label="unsafe", timestamp=0.0),
+            FailureEvent(prompt="launch the attack now", label="unsafe", timestamp=1.0),
+        ]
+        clusters = [p for p in miner.mine(events) if p.kind == "edit_cluster"]
+        assert len(clusters) == 1
+
+    def test_normalised_edit_distance_empty_inputs(self):
+        from director_ai.core.continual_adversarial.miner import (
+            _normalised_edit_distance,
+        )
+
+        assert _normalised_edit_distance([], []) == 0.0
+        assert _normalised_edit_distance(["a"], []) == 1.0
+        assert _normalised_edit_distance([], ["b"]) == 1.0
+
     @pytest.mark.parametrize(
         "kwargs,match",
         [
@@ -324,6 +356,27 @@ class TestAdversarialSuite:
         suite.promote(_stub_version(1))
         with pytest.raises(KeyError):
             suite.diff(a=1, b=99)
+
+    def test_diff_unknown_first_version(self):
+        # The first operand is validated as well as the second.
+        suite = AdversarialSuite()
+        suite.promote(_stub_version(1))
+        with pytest.raises(KeyError, match="version 99 not in history"):
+            suite.diff(a=99, b=1)
+
+    def test_bad_history_size(self):
+        with pytest.raises(ValueError, match="history_size"):
+            AdversarialSuite(history_size=0)
+
+    def test_rollback_trims_history_to_limit(self):
+        # Rolling back archives the outgoing active version; when that pushes the
+        # history past its limit the oldest archived version is dropped.
+        suite = AdversarialSuite(history_size=1)
+        suite.promote(_stub_version(1))
+        suite.promote(_stub_version(2))
+        restored = suite.rollback(version=1)
+        assert restored.version == 1
+        assert [v.version for v in suite.history()] == [2]
 
     def test_suite_version_validation(self):
         with pytest.raises(ValueError, match="version"):
