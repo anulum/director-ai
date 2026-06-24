@@ -31,7 +31,7 @@ from typing import Any
 try:
     from opentelemetry import trace
 
-    _OTEL_AVAILABLE = True
+    _OTEL_AVAILABLE = True  # pragma: no cover — opentelemetry is an optional extra
 except ImportError:
     _OTEL_AVAILABLE = False
 

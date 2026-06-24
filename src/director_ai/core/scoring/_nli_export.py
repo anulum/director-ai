@@ -118,13 +118,17 @@ def _load_onnx_session(
             "CPUExecutionProvider",
         ]
         available = ort.get_available_providers()
-        if (device and "cuda" in device) or "CUDAExecutionProvider" in available:
+        # GPU/TensorRT provider selection only fires on accelerator hardware,
+        # which the CPU-only test environment does not expose.
+        if (  # pragma: no cover
+            device and "cuda" in device
+        ) or "CUDAExecutionProvider" in available:
             providers.insert(0, "CUDAExecutionProvider")
 
         trt_cache = str(onnx_dir / "trt_cache")
         trt_requested = os.environ.get("DIRECTOR_ENABLE_TRT") == "1"
         trt_cache_exists = os.path.isdir(trt_cache)
-        if (trt_requested or trt_cache_exists) and (
+        if (trt_requested or trt_cache_exists) and (  # pragma: no cover
             "TensorrtExecutionProvider" in available
         ):
             trt_opts: dict[str, object] = {

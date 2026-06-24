@@ -242,6 +242,27 @@ class TestVectorGroundTruthStore:
         with pytest.raises(ValueError, match="metadata"):
             store.add_fact("sky", "blue", metadata="bad")  # type: ignore[arg-type]
 
+    def test_active_results_drops_results_with_stale_content_hash(self):
+        # A retrieved chunk whose content hash no longer matches the tracked
+        # version record is stale and must be filtered out of the evidence set.
+        store = VectorGroundTruthStore()
+        version_key = store._version_key("src-1", "t1")
+        store._version_records[version_key] = {
+            "status": "active",
+            "content_hash": "GOOD",
+        }
+        results = [
+            {
+                "id": "doc1",
+                "metadata": {
+                    "kb_source_key": "src-1",
+                    "tenant_id": "t1",
+                    "kb_content_hash": "STALE",
+                },
+            }
+        ]
+        assert store._active_results(results, "t1") == []
+
     @pytest.mark.parametrize("query", ["", "   "])
     def test_retrieve_context_rejects_empty_query(self, query):
         store = VectorGroundTruthStore()
