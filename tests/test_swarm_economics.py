@@ -264,6 +264,24 @@ class TestBargaining:
         solution = solver.solve(agents=agents, budget=1.0)
         assert solution.fairness_gap < 0.3
 
+    def test_fairness_gap_zero_for_empty_utilities(self):
+        # A solution with no recorded utilities has no spread to measure.
+        solution = BargainingSolution(
+            allocation={}, nash_product=0.0, utilities={}, total_allocated=0.0
+        )
+        assert solution.fairness_gap == 0.0
+
+    def test_fairness_gap_zero_when_all_utilities_non_positive(self):
+        # With a zero maximum utility the normalisation denominator collapses,
+        # so the gap is reported as zero rather than dividing by zero.
+        solution = BargainingSolution(
+            allocation={"a": 0.0, "b": 0.0},
+            nash_product=0.0,
+            utilities={"a": 0.0, "b": 0.0},
+            total_allocated=0.0,
+        )
+        assert solution.fairness_gap == 0.0
+
     def test_duplicate_agent_rejected(self):
         solver = NashBargainingSolver(step=0.1)
         agents = (

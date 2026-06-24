@@ -167,7 +167,10 @@ class RandomWalkSpectrum:
             total = rust_total if rust_total is not None else _sum_float(distribution)
         else:
             total = _sum_float(distribution)
-        if total > 0:
+        # The distribution starts uniform (sum 1) and every power-iteration step
+        # applies a row-stochastic matrix, so the mass stays ~1; total is never
+        # non-positive here, making the guard's false branch unreachable.
+        if total > 0:  # pragma: no branch
             distribution = [p / total for p in distribution]
         probabilities = {node: distribution[i] for i, node in enumerate(nodes)}
         return StationaryDistribution(
@@ -253,7 +256,10 @@ class CommunityDetector:
             changed = False
             for node in nodes:
                 neighbours = undirected_neighbours[node]
-                if not neighbours:
+                # Every node in an event-built graph has at least one undirected
+                # neighbour (nodes only exist because an edge created them), so
+                # the isolated-node skip is a defensive guard.
+                if not neighbours:  # pragma: no cover
                     continue
                 tally: dict[str, int] = {}
                 for neighbour, weight in neighbours.items():

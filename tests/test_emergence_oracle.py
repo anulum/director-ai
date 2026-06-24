@@ -155,6 +155,28 @@ class TestInteractionGraph:
         # mean clustering is 0.
         assert g.mean_clustering() == 0.0
 
+    def test_mean_clustering_empty_graph(self):
+        assert InteractionGraph().mean_clustering() == 0.0
+
+    def test_mean_clustering_python_sum_when_rust_disabled(self, monkeypatch):
+        monkeypatch.setattr(graph_mod, "_RUST_GRAPH", False)
+        g = InteractionGraph.from_events(_pipeline_events())
+        assert g.mean_clustering() == 0.0
+
+    def test_has_cycle_false_on_diamond_revisiting_finished_node(self):
+        # Diamond DAG: a→b, a→c, b→d, c→d. The second path into d finds it
+        # already finished, exercising the "already-visited, not on stack"
+        # branch without a false cycle report.
+        g = InteractionGraph.from_events(
+            [
+                SwarmEvent("a", "b", 0.0),
+                SwarmEvent("a", "c", 1.0),
+                SwarmEvent("b", "d", 2.0),
+                SwarmEvent("c", "d", 3.0),
+            ]
+        )
+        assert not g.has_cycle()
+
     def test_unknown_node_in_clustering(self):
         g = InteractionGraph.from_events(_pipeline_events())
         with pytest.raises(KeyError):
@@ -209,6 +231,24 @@ class TestRandomWalkSpectrum:
         result = spectrum.stationary(InteractionGraph())
         assert result.probabilities == {}
         assert result.converged
+
+    def test_stationary_python_sum_when_rust_disabled(self, monkeypatch):
+        # With the accelerator off, the final-mass normalisation (and the
+        # _sum_float reducer it calls) takes the pure-python branch.
+        monkeypatch.setattr(spectrum_mod, "_RUST_SPECTRUM", False)
+        g = InteractionGraph.from_events(_hub_events())
+        result = RandomWalkSpectrum().stationary(g)
+        assert sum(result.probabilities.values()) == pytest.approx(1.0)
+
+    def test_sum_float_empty_is_zero(self):
+        assert spectrum_mod._sum_float([]) == 0.0
+
+    def test_non_convergence_exhausts_iteration_cap(self):
+        # A single permitted iteration cannot reach the tolerance, so the power
+        # iteration runs the loop to exhaustion without flagging convergence.
+        g = InteractionGraph.from_events(_hub_events())
+        result = RandomWalkSpectrum(max_iterations=1, tolerance=1e-12).stationary(g)
+        assert not result.converged
 
     def test_top_nodes(self):
         g = InteractionGraph.from_events(_hub_events())
@@ -268,6 +308,14 @@ class TestCommunityDetector:
     def test_bad_max_iterations(self):
         with pytest.raises(ValueError, match="max_iterations"):
             CommunityDetector(max_iterations=0)
+
+    def test_iteration_cap_stops_before_convergence(self):
+        # One pass changes labels on the fragmented graph, so a single-iteration
+        # cap exits via exhaustion rather than the stabilised-labels break.
+        g = InteractionGraph.from_events(_fragmented_events())
+        assignment = CommunityDetector(max_iterations=1).detect(g)
+        assert assignment.iterations == 1
+        assert not assignment.converged
 
     def test_empty_graph(self):
         assignment = CommunityDetector().detect(InteractionGraph())
