@@ -189,6 +189,25 @@ def test_abstention_crutch_coverage_floor_raises() -> None:
         assert_grader_admissible(report, overclaim_alpha=0.9, coverage_floor=0.7)
 
 
+def test_canonical_bytes_and_digest_are_deterministic() -> None:
+    """The canonical form + digest are byte-stable (the WS-1 signed-unit seam)."""
+    cases = [_case("a", "validated", "validated"), _case("b", "bounded", "bounded")]
+    report = validate_grader(_grader, cases)
+    other = validate_grader(_grader, cases)
+    assert report.canonical_bytes() == other.canonical_bytes()
+    assert report.content_digest() == other.content_digest()
+    import re
+
+    assert re.fullmatch(r"sha256:[0-9a-f]{64}", report.content_digest())
+
+
+def test_digest_changes_when_report_changes() -> None:
+    """A different grader outcome moves the digest — a strip becomes detectable."""
+    clean = validate_grader(_grader, [_case("a", "validated", "validated")])
+    overclaim = validate_grader(_grader, [_case("a", "validated", "bounded")])
+    assert clean.content_digest() != overclaim.content_digest()
+
+
 def test_public_surface_reexports() -> None:
     from director_ai.core import GraderReport as ExportedReport
     from director_ai.core import validate_grader as exported_fn

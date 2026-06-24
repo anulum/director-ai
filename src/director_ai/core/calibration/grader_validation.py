@@ -32,6 +32,8 @@ candidate — uniformly. It reuses the shipped distribution-free
 
 from __future__ import annotations
 
+import hashlib
+import json
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from typing import Literal
@@ -151,6 +153,26 @@ class GraderReport:
             "coverage": round(self.coverage, 4),
             "per_status": [m.to_dict() for m in self.per_status],
         }
+
+    def canonical_bytes(self) -> bytes:
+        """Return the byte-stable canonical form — the unit a seal signs (WS-1).
+
+        Deterministic, sorted-key, tight-separator JSON, so the grader-report can
+        be a *signed unit* in the verifiable-honesty contract: a portal that
+        strips the report's grade is detectable because the rendered grade no
+        longer matches the digest of this canonical form. Recompute-verification
+        re-runs :func:`validate_grader` and checks the digests are equal.
+        """
+        return json.dumps(
+            self.to_dict(),
+            sort_keys=True,
+            ensure_ascii=False,
+            separators=(",", ":"),
+        ).encode("utf-8")
+
+    def content_digest(self) -> str:
+        """Return the ``sha256:`` digest of the canonical form (H2 reproduction)."""
+        return "sha256:" + hashlib.sha256(self.canonical_bytes()).hexdigest()
 
 
 def validate_grader(
