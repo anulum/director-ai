@@ -333,6 +333,17 @@ class TestGraph:
         with pytest.raises(ValueError, match="duplicate skill"):
             a.merge([duplicate_node])
 
+    def test_merge_reraises_non_duplicate_edge_errors(self):
+        # An edge that fails validation for a reason other than duplication
+        # (here a dangling source node) must propagate, not be swallowed.
+        a = KnowledgeGraph()
+        a.add_node(SkillNode(id="s1"))
+        other = KnowledgeGraph()
+        other.add_node(SkillNode(id="s2"))
+        other._all_edges = [SkillEdge(source="ghost", target="s2", action="invoke")]
+        with pytest.raises(ValueError):
+            a.merge([other])
+
 
 # --- TraversalValidator --------------------------------------------
 

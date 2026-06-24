@@ -10,7 +10,32 @@
 
 from __future__ import annotations
 
-from director_ai.core.redactor import PIIRedactor
+from director_ai.core.redactor import (
+    PIIRedactionFinding,
+    PIIRedactor,
+    _select_non_overlapping,
+)
+
+
+def test_select_non_overlapping_drops_invalid_and_overlapping_spans() -> None:
+    # The earliest, longest valid span wins; a degenerate span (end <= start) is
+    # rejected outright and a later span overlapping a pick is dropped.
+    findings = [
+        PIIRedactionFinding(
+            detector="regex", category="bad", start=12, end=12, replacement="!"
+        ),
+        PIIRedactionFinding(
+            detector="regex", category="email", start=0, end=10, replacement="X"
+        ),
+        PIIRedactionFinding(
+            detector="regex", category="phone", start=5, end=15, replacement="Y"
+        ),
+        PIIRedactionFinding(
+            detector="regex", category="ssn", start=20, end=29, replacement="Z"
+        ),
+    ]
+    selected = _select_non_overlapping(findings)
+    assert [(f.start, f.end) for f in selected] == [(0, 10), (20, 29)]
 
 
 def test_redact_with_report_masks_stable_categories_and_counts_findings() -> None:
