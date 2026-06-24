@@ -88,6 +88,15 @@ class TestCalibrationReport:
         best = OnlineCalibrator._sweep_threshold(scored)
         assert best is not None
 
+    def test_python_confusion_path_without_rust(self, monkeypatch):
+        # With the Rust kernel disabled the sweep uses the pure-Python confusion
+        # counts directly (no try/except), still finding the separating threshold.
+        monkeypatch.setattr(calibrator_mod, "_RUST_ONLINE_CALIBRATOR", False)
+        scored = [(0.9, True), (0.8, True), (0.2, False), (0.3, False)]
+        best = OnlineCalibrator._sweep_threshold(scored)
+        assert best is not None
+        assert 0.3 < best <= 0.8
+
     def test_rust_wilson_kernel_is_used_when_available(self, monkeypatch):
         monkeypatch.setattr(calibrator_mod, "_RUST_ONLINE_CALIBRATOR", True)
         called = {"count": 0}
