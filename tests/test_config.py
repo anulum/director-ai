@@ -1621,3 +1621,176 @@ class TestValidationBranchCoverage:
         )
         assert cfg.vector_backend == "http-faiss"
         assert cfg.embedding_base_url == "http://embeddings.local"
+
+
+class TestBuildBackendBranches:
+    """Cover the optional-backend dispatch branches in config_builders."""
+
+    def test_build_store_chroma_backend(self, monkeypatch):
+        import director_ai.core.retrieval.vector_store as vs
+
+        captured = {}
+
+        class FakeChroma:
+            def __init__(self, **kwargs):
+                captured["kwargs"] = kwargs
+
+            def add(self, *_a, **_k):
+                pass
+
+            def query(self, *_a, **_k):
+                return []
+
+            def count(self):
+                return 0
+
+        monkeypatch.setattr(vs, "ChromaBackend", FakeChroma)
+        cfg = DirectorConfig(
+            vector_backend="chroma",
+            chroma_collection="c1",
+            chroma_persist_dir="/tmp/chroma",
+            hybrid_retrieval=False,
+            reranker_enabled=False,
+        )
+        store = cfg.build_store()
+        assert isinstance(store.backend, FakeChroma)
+        assert captured["kwargs"]["collection_name"] == "c1"
+        assert captured["kwargs"]["persist_directory"] == "/tmp/chroma"
+
+    def test_build_store_http_faiss_backend(self, monkeypatch):
+        import director_ai.core.retrieval.vector_store as vs
+
+        class FakeEmbed:
+            def __init__(self, **kwargs):
+                self.kwargs = kwargs
+
+        class FakeFaiss:
+            def __init__(self, **kwargs):
+                self.kwargs = kwargs
+
+            def add(self, *_a, **_k):
+                pass
+
+            def query(self, *_a, **_k):
+                return []
+
+            def count(self):
+                return 0
+
+        monkeypatch.setattr(vs, "HttpEmbeddingFunction", FakeEmbed)
+        monkeypatch.setattr(vs, "FAISSBackend", FakeFaiss)
+        cfg = DirectorConfig(
+            vector_backend="http-faiss",
+            embedding_base_url="http://embed.local",
+            embedding_model="bge",
+            embedding_vector_size=256,
+            hybrid_retrieval=False,
+            reranker_enabled=False,
+        )
+        store = cfg.build_store()
+        assert isinstance(store.backend, FakeFaiss)
+        assert store.backend.kwargs["vector_size"] == 256
+
+    def test_build_scorer_model_fallback_resolves(self, monkeypatch):
+        import director_ai.core.model_registry as registry_mod
+        import director_ai.core.scoring.scorer as scorer_module
+
+        captured = {}
+
+        class FakeScorer:
+            def __init__(self, **kwargs):
+                captured["kwargs"] = kwargs
+                self._nli = None
+                self._judge = None
+                self._adaptive_threshold_enabled = False
+                self._adaptive_threshold_fail_closed = False
+
+            def _has_model_backed_nli(self):
+                return True
+
+        class FakeResolved:
+            model_id = "fallback/model"
+            revision = "abc123"
+
+        class FakeRegistry:
+            def resolve(self, *_args, **_kwargs):
+                return FakeResolved()
+
+        monkeypatch.setattr(scorer_module, "CoherenceScorer", FakeScorer)
+        monkeypatch.setattr(registry_mod, "FallbackModelRegistry", FakeRegistry)
+        DirectorConfig(model_fallback_enabled=True).build_scorer(store=object())
+        assert captured["kwargs"]["nli_model"] == "fallback/model"
+        assert captured["kwargs"]["nli_revision"] == "abc123"
+
+    def test_build_scorer_injection_init_failure_requires_model_backed(
+        self, monkeypatch
+    ):
+        import director_ai.core.scoring.scorer as scorer_module
+
+        class FakeScorer:
+            def __init__(self, **kwargs):
+                self._nli = None
+                self._judge = None
+                self._adaptive_threshold_enabled = False
+                self._adaptive_threshold_fail_closed = False
+
+            def enable_injection_detection(self, **_kwargs):
+                raise RuntimeError("injection detector init failed")
+
+            def _has_model_backed_nli(self):
+                return True
+
+        monkeypatch.setattr(scorer_module, "CoherenceScorer", FakeScorer)
+        cfg = DirectorConfig(
+            injection_detection_enabled=True,
+            injection_require_model_backed_nli=True,
+        )
+        with pytest.raises(RuntimeError, match="injection detector init failed"):
+            cfg.build_scorer(store=object())
+
+    def test_build_scorer_injection_init_failure_without_model_backed(
+        self, monkeypatch
+    ):
+        # Same failure path, but require_model_backed_nli=False: the handler
+        # skips the model-backed metric and still re-raises.
+        import director_ai.core.scoring.scorer as scorer_module
+
+        class FakeScorer:
+            def __init__(self, **kwargs):
+                self._nli = None
+                self._judge = None
+                self._adaptive_threshold_enabled = False
+                self._adaptive_threshold_fail_closed = False
+
+            def enable_injection_detection(self, **_kwargs):
+                raise RuntimeError("injection detector init failed")
+
+            def _has_model_backed_nli(self):
+                return True
+
+        monkeypatch.setattr(scorer_module, "CoherenceScorer", FakeScorer)
+        cfg = DirectorConfig(injection_detection_enabled=True)
+        with pytest.raises(RuntimeError, match="injection detector init failed"):
+            cfg.build_scorer(store=object())
+
+    def test_build_scorer_cost_callback_records(self, monkeypatch):
+        import director_ai.core.scoring.scorer as scorer_module
+
+        class FakeJudge:
+            pass
+
+        class FakeScorer:
+            def __init__(self, **kwargs):
+                self._nli = None
+                self._judge = FakeJudge()
+                self._adaptive_threshold_enabled = False
+                self._adaptive_threshold_fail_closed = False
+
+            def _has_model_backed_nli(self):
+                return True
+
+        monkeypatch.setattr(scorer_module, "CoherenceScorer", FakeScorer)
+        scorer = DirectorConfig(cost_tracking_enabled=True).build_scorer(store=object())
+        # Invoke the wired callback so the recording body runs.
+        scorer._judge._cost_callback("gpt-x", 12, 34)
+        assert "gpt-x" in scorer._cost_analyser._records
