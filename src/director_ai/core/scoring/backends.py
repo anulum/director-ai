@@ -263,7 +263,12 @@ class EmbedBackendWrapper(ScorerBackend):
 try:
     import importlib.util
 
-    if importlib.util.find_spec("sentence_transformers") is not None:
+    # The embed backend is registered only when sentence_transformers is
+    # installed; it is an optional heavy dependency absent from the test
+    # environment, so this import-time branch is excluded.
+    if (
+        importlib.util.find_spec("sentence_transformers") is not None
+    ):  # pragma: no cover
         register_backend("embed", EmbedBackendWrapper)
 except ImportError:  # pragma: no cover
     pass

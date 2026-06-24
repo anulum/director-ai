@@ -145,6 +145,36 @@ def test_local_provider_does_not_warn():
     assert not [w for w in caught if "EXTERNAL" in str(w.message)]
 
 
+def test_openai_call_reports_token_usage_to_cost_callback(monkeypatch):
+    # The OpenAI judge path forwards prompt/completion token counts to the
+    # cost callback for per-call billing attribution.
+    costs: list[tuple[str, int, int]] = []
+    with pytest.warns(UserWarning):
+        judge = LLMJudge(
+            provider="openai",
+            model="gpt-4o-mini",
+            cost_callback=lambda model, prompt, completion: costs.append(
+                (model, prompt, completion)
+            ),
+        )
+
+    usage = SimpleNamespace(prompt_tokens=12, completion_tokens=7)
+    message = SimpleNamespace(content='{"verdict": "YES", "confidence": 80}')
+    result = SimpleNamespace(usage=usage, choices=[SimpleNamespace(message=message)])
+    client = SimpleNamespace(
+        chat=SimpleNamespace(
+            completions=SimpleNamespace(create=lambda **kwargs: result)
+        )
+    )
+    fake_openai = SimpleNamespace(OpenAI=lambda: client)
+    monkeypatch.setitem(sys.modules, "openai", fake_openai)
+
+    content = judge._call_llm_judge("gpt-4o-mini", "judge this", fallback=0.5)
+
+    assert content == '{"verdict": "YES", "confidence": 80}'
+    assert costs == [("gpt-4o-mini", 12, 7)]
+
+
 def test_external_egress_is_logged(monkeypatch, caplog):
     judge = LLMJudge(provider="openai", model="gpt-4o-mini")
     monkeypatch.setattr(
