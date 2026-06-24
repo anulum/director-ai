@@ -18,6 +18,7 @@ from collections.abc import AsyncIterator
 from typing import TYPE_CHECKING, Any
 
 from .actor import LLMGenerator, MockGenerator
+from .calibration.recall_correctness import recall_outcome
 from .retrieval.knowledge import GroundTruthStore
 from .runtime.kernel import HaltMonitor
 from .runtime.streaming import StreamingKernel
@@ -29,6 +30,7 @@ from .types import HaltEvidence, ReviewResult
 _ScoredCandidate = tuple[str | None, Any, float]
 
 if TYPE_CHECKING:
+    from .calibration.recall_correctness_client import RemanentiaCorrectnessClient
     from .containment import ContainmentGuard, RealityAnchor
     from .cyber_physical import GroundingHook, GroundingVerdict, PhysicalAction
     from .runtime.contradiction_halt import ContradictionHalt
@@ -96,6 +98,7 @@ class CoherenceAgent:
         physical_action_mode: str = "warn",
         allow_physical_action_blocking: bool = False,
         contradiction_halt: ContradictionHalt | None = None,
+        correctness_feedback: RemanentiaCorrectnessClient | None = None,
     ) -> None:
         self.logger = logging.getLogger("CoherenceAgent")
         self.fallback = fallback
@@ -162,6 +165,10 @@ class CoherenceAgent:
         # halt). When set, stream() halts on a claim that contradicts retrieved
         # grounding instead of using the coherence kernel.
         self.contradiction_halt = contradiction_halt
+        # Opt-in REMANENTIA recall-correctness feedback. When set, process()
+        # posts each verification verdict back as the recall's was_correct
+        # label, closing the two-label memory loop. None preserves behaviour.
+        self.correctness_feedback = correctness_feedback
 
     def _build_scorer(self, use_nli: bool | None) -> CoherenceScorer:
         """Construct scorer, preferring Rust backend when installed."""
@@ -246,7 +253,27 @@ class CoherenceAgent:
         else:
             result = self._handle_rejection(prompt, tenant_id, rejected, n)
 
-        return self._apply_containment_guard(result, prompt)
+        result = self._apply_containment_guard(result, prompt)
+        self._report_recall_correctness(prompt, result)
+        return result
+
+    def _report_recall_correctness(self, prompt: str, result: ReviewResult) -> None:
+        """Post the verification verdict to REMANENTIA as the recall's label.
+
+        No-op unless a correctness-feedback client is configured. The verdict on
+        the emitted answer (clean → correct; halted or verified-downgraded →
+        incorrect) becomes ``was_correct`` for the recall that ``prompt``
+        grounded, closing REMANENTIA's two-label loop. ``try_record`` swallows
+        every transport and protocol failure — memory feedback must never break
+        answering — and a query with no prior REMANENTIA recall is a no-op (404).
+        """
+        client = self.correctness_feedback
+        if client is None:
+            return
+        try:
+            client.try_record(recall_outcome(prompt, result))
+        except Exception:  # noqa: BLE001 — feedback must never break answering
+            self.logger.warning("recall-correctness feedback failed", exc_info=True)
 
     def _apply_containment_guard(
         self, result: ReviewResult, prompt: str

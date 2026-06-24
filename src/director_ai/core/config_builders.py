@@ -22,6 +22,7 @@ import logging
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
+    from .calibration.recall_correctness_client import RemanentiaCorrectnessClient
     from .config import DirectorConfig
     from .retrieval.knowledge import GroundTruthStore
     from .runtime.contradiction_halt import ContradictionHalt
@@ -519,3 +520,34 @@ def build_contradiction_halt(
         )
         return None
     return ContradictionHalt(scorer, store.retrieve_context)
+
+
+def build_correctness_feedback(
+    cfg: DirectorConfig,
+) -> RemanentiaCorrectnessClient | None:
+    """Build the opt-in REMANENTIA recall-correctness client, or ``None``.
+
+    Returns ``None`` unless ``remanentia_correctness_feedback`` is on and the
+    grounding actually comes from the REMANENTIA vector backend — there is no
+    recall ledger to label otherwise. When engaged, the agent posts each
+    verification verdict back as the ``was_correct`` label for the recall that
+    grounded the answer, closing REMANENTIA's two-label loop. The client reuses
+    the configured REMANENTIA base URL and timeout and carries the bearer token
+    the authenticated ``/recall`` family requires.
+    """
+    if not cfg.remanentia_correctness_feedback:
+        return None
+    if cfg.vector_backend != "remanentia":
+        logger.warning(
+            "remanentia_correctness_feedback is on but vector_backend is %r, "
+            "not 'remanentia'; no recall ledger to label, skipping.",
+            cfg.vector_backend,
+        )
+        return None
+    from .calibration.recall_correctness_client import RemanentiaCorrectnessClient
+
+    return RemanentiaCorrectnessClient(
+        base_url=cfg.remanentia_base_url,
+        token=cfg.remanentia_token,
+        timeout_s=cfg.remanentia_timeout_s,
+    )

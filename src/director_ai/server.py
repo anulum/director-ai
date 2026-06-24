@@ -346,6 +346,13 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
                 "Contradiction-driven streaming halt enabled (threshold=%.2f)",
                 cfg.streaming_contradiction_threshold,
             )
+        correctness_feedback = cfg.build_correctness_feedback()
+        if correctness_feedback is not None:
+            agent_kwargs["correctness_feedback"] = correctness_feedback
+            logger.info(
+                "REMANENTIA recall-correctness feedback enabled (%s)",
+                cfg.remanentia_base_url,
+            )
         agent = CoherenceAgent(**agent_kwargs)
         batch_proc = BatchProcessor(agent, max_concurrency=cfg.batch_max_concurrency)
 

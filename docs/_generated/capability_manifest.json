@@ -6,10 +6,10 @@
     "optional_extras": 58,
     "public_api_exports": 224,
     "public_documentation_pages": 203,
-    "python_model_classes": 985,
-    "python_model_source_modules": 453,
+    "python_model_classes": 990,
+    "python_model_source_modules": 456,
     "rust_pyo3_model_wrappers": 83,
-    "test_files": 543
+    "test_files": 547
   },
   "documentation": {
     "public_pages": [
@@ -879,6 +879,10 @@
       {
         "name": "ColBERTBackend",
         "path": "src/director_ai/core/retrieval/vector_store/vendors.py"
+      },
+      {
+        "name": "ColdStartSummary",
+        "path": "src/director_ai/core/calibration/recall_ledger.py"
       },
       {
         "name": "CommitmentBackend",
@@ -3193,6 +3197,14 @@
         "path": "src/director_ai/_server_models.py"
       },
       {
+        "name": "RecallOutcome",
+        "path": "src/director_ai/core/calibration/recall_correctness.py"
+      },
+      {
+        "name": "RecallQuery",
+        "path": "src/director_ai/core/calibration/recall_ledger.py"
+      },
+      {
         "name": "Recommendation",
         "path": "src/director_ai/core/interpretability/root_cause.py"
       },
@@ -3231,6 +3243,14 @@
       {
         "name": "RemanentiaBackendError",
         "path": "src/director_ai/core/retrieval/vector_store/remanentia.py"
+      },
+      {
+        "name": "RemanentiaCorrectnessClient",
+        "path": "src/director_ai/core/calibration/recall_correctness_client.py"
+      },
+      {
+        "name": "RemanentiaCorrectnessError",
+        "path": "src/director_ai/core/calibration/recall_correctness_client.py"
       },
       {
         "name": "RemanentiaVectorBackend",
@@ -4327,6 +4347,9 @@
       "src/director_ai/core/calibration/feedback_store.py",
       "src/director_ai/core/calibration/miscoverage.py",
       "src/director_ai/core/calibration/online_calibrator.py",
+      "src/director_ai/core/calibration/recall_correctness.py",
+      "src/director_ai/core/calibration/recall_correctness_client.py",
+      "src/director_ai/core/calibration/recall_ledger.py",
       "src/director_ai/core/calibration/runtime_governor.py",
       "src/director_ai/core/calibration/segmented_threshold.py",
       "src/director_ai/core/canary/detector.py",
@@ -5526,6 +5549,10 @@
       "tests/test_rdp_accountant.py",
       "tests/test_reasoning_scorer.py",
       "tests/test_reasoning_verifier.py",
+      "tests/test_recall_correctness.py",
+      "tests/test_recall_correctness_client.py",
+      "tests/test_recall_correctness_wiring.py",
+      "tests/test_recall_ledger.py",
       "tests/test_redis_enterprise.py",
       "tests/test_redteam_engine.py",
       "tests/test_report_generator.py",

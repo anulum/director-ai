@@ -26,6 +26,7 @@ from typing import TYPE_CHECKING, Any, cast
 # ``ProfileMetadata`` keeps its redundant alias so it is re-exported (and stays
 # importable as ``from director_ai.core.config import ProfileMetadata``).
 from .config_builders import build_contradiction_halt as _build_contradiction_halt
+from .config_builders import build_correctness_feedback as _build_correctness_feedback
 from .config_builders import build_scorer as _build_scorer
 from .config_builders import build_store as _build_store
 from .config_builders import resolve_scorer_backend as _resolve_scorer_backend
@@ -42,6 +43,7 @@ from .config_profiles import (
 from .config_validation import validate_and_normalize
 
 if TYPE_CHECKING:
+    from .calibration.recall_correctness_client import RemanentiaCorrectnessClient
     from .retrieval.knowledge import GroundTruthStore
     from .runtime.contradiction_halt import ContradictionHalt
     from .scoring.scorer import CoherenceScorer
@@ -200,6 +202,11 @@ class DirectorConfig:
     remanentia_base_url: str = "http://127.0.0.1:8001"
     remanentia_timeout_s: float = 5.0
     remanentia_source: str = ""
+    # Opt-in: post each verification verdict back to REMANENTIA as the
+    # was_correct label for the recall that grounded the answer (two-label loop).
+    # Requires vector_backend == "remanentia"; the token authenticates /recall.
+    remanentia_correctness_feedback: bool = False
+    remanentia_token: str = ""
     chroma_collection: str = "director_ai"
     chroma_persist_dir: str = ""
     hybrid_retrieval: bool = True  # BM25 + dense with Reciprocal Rank Fusion
@@ -593,6 +600,10 @@ class DirectorConfig:
     ) -> ContradictionHalt | None:
         """Build the opt-in contradiction-driven streaming halt, or ``None``."""
         return _build_contradiction_halt(self, store)
+
+    def build_correctness_feedback(self) -> RemanentiaCorrectnessClient | None:
+        """Build the opt-in REMANENTIA recall-correctness client, or ``None``."""
+        return _build_correctness_feedback(self)
 
     def model_revision_health(self) -> dict[str, object]:
         """Return non-network health for configured model revision pins."""

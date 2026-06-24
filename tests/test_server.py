@@ -687,6 +687,7 @@ class TestServerCoverageGaps:
         cfg.llm_provider = "anthropic"
         cfg.llm_api_key = ""
         cfg.build_contradiction_halt = lambda _store: "halt-controller"  # type: ignore[method-assign]
+        cfg.build_correctness_feedback = lambda: "feedback-client"  # type: ignore[method-assign]
         app = create_app(cfg)
 
         with TestClient(app):
@@ -695,6 +696,7 @@ class TestServerCoverageGaps:
         assert captured["provider"] == "anthropic"
         assert "api_key" not in captured
         assert captured["contradiction_halt"] == "halt-controller"
+        assert captured["correctness_feedback"] == "feedback-client"
 
     def test_lifespan_wires_cloud_provider_api_key(self, monkeypatch):
         import director_ai.core.agent as agent_mod

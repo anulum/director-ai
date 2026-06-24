@@ -57,6 +57,22 @@ from .calibration.miscoverage import (
     SegmentCoverageHealth,
 )
 from .calibration.online_calibrator import CalibrationReport, OnlineCalibrator
+from .calibration.recall_correctness import (
+    RecallOutcome,
+    correctness_from_verdict,
+    recall_outcome,
+)
+from .calibration.recall_correctness_client import (
+    RemanentiaCorrectnessClient,
+    RemanentiaCorrectnessError,
+)
+from .calibration.recall_ledger import (
+    ColdStartSummary,
+    RecallQuery,
+    cold_start_from_ledger,
+    default_ledger_path,
+    read_recall_ledger,
+)
 from .calibration.segmented_threshold import (
     SegmentedThresholdLearner,
     SegmentRecommendation,
@@ -407,9 +423,19 @@ __all__ = [
     "CoverageHealthReport",
     "FeedbackStore",
     "MiscoverageMonitor",
+    "ColdStartSummary",
     "OnlineCalibrator",
     "PredictionInterval",
+    "RecallOutcome",
+    "RecallQuery",
+    "RemanentiaCorrectnessClient",
+    "RemanentiaCorrectnessError",
     "SegmentCoverageHealth",
+    "cold_start_from_ledger",
+    "correctness_from_verdict",
+    "default_ledger_path",
+    "read_recall_ledger",
+    "recall_outcome",
     # Verification (Phase 5)
     "ClaimCitation",
     "CodeCheckResult",
