@@ -688,6 +688,11 @@ class TestSignalImplementations:
         # _word_overlap now delegates to the shared text_overlap helper (covered
         # by test_text_overlap); its value is exercised below and in the fallback.
         assert _word_overlap("alpha beta", "alpha gamma") == pytest.approx(1.0 / 3.0)
+        # Drive the native accelerated reducers (rust_sum_i64/rust_sum_f64 are the
+        # real kernel here, not stubbed) so the _RUST_SIGNALS=True branch of the
+        # sum helpers is exercised end-to-end through mandatory_execution.
+        assert verified_mod._sum_int([1, 2, 3, 4]) == 10
+        assert verified_mod._sum_float([0.5, 0.25, 0.25]) == pytest.approx(1.0)
 
     def test_fallback_matchers_use_word_overlap(self, monkeypatch):
         # _word_overlap delegates to the shared helper; drive ranking with real

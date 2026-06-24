@@ -286,6 +286,26 @@ class TestUrlSsrfGuard:
         assert _is_public_http_url("https://93.184.216.34/x") is True
         assert _is_public_http_url("https://example.org/x") is True
 
+    def test_blocks_http_scheme_without_host(self):
+        # A well-formed http scheme but an empty authority (``http:///path``)
+        # has no host to resolve — reject before any DNS lookup.
+        assert _is_public_http_url("http:///just/a/path") is False
+
+    def test_blocks_url_whose_host_fails_to_resolve(self, monkeypatch):
+        # A name that does not resolve (getaddrinfo raises) must fail closed
+        # rather than propagate the error.
+        def _boom(host, port, *args, **kwargs):
+            raise socket.gaierror("name or service not known")
+
+        monkeypatch.setattr(socket, "getaddrinfo", _boom)
+        assert _is_public_http_url("https://nonexistent.invalid/x") is False
+
+    def test_blocks_url_with_no_resolved_addresses(self, monkeypatch):
+        # A resolver that returns no address records leaves nothing to vet —
+        # fail closed.
+        monkeypatch.setattr(socket, "getaddrinfo", lambda *a, **k: [])
+        assert _is_public_http_url("https://example.org/x") is False
+
     def test_fetch_url_refuses_internal_target_without_calling_http(self):
         # An LLM-emitted citation pointing at internal infrastructure must be
         # refused before any request is made (SSRF guard).
