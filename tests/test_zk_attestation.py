@@ -37,6 +37,7 @@ from director_ai.core.zk_attestation import (
     MinimumCoherence,
     NoBreakoutEvents,
     PassportIssuer,
+    PassportVerdict,
     PassportVerifier,
     commit_samples,
     open_indices,
@@ -1154,6 +1155,30 @@ class TestPassport:
             }
             for _ in range(32)
         ]
+
+    def test_summary_reports_signature_failure(self):
+        verdict = PassportVerdict(accepted=False, signature_ok=False, failures=())
+        assert verdict.summary() == "passport signature failed"
+
+    def test_summary_reports_failed_statement_count(self):
+        verdict = PassportVerdict(
+            accepted=False,
+            signature_ok=True,
+            failures=(("coherence", "below threshold"),),
+        )
+        assert verdict.summary() == "1 statement(s) failed"
+
+    def test_issue_rejects_default_backend_corrupted_after_construction(self):
+        # __post_init__ installs a valid default backend; a caller that later
+        # swaps in a non-backend object is caught when issue() re-validates.
+        issuer = PassportIssuer(key=_KEY_A, issuing_org="org://alpha")
+        issuer.default_backend = object()
+        with pytest.raises(TypeError, match="AttestationBackend"):
+            issuer.issue(
+                agent_id="agent-001",
+                samples=self._make_samples(),
+                statements=[MaximumHaltRate(name="c", max_rate=0.5, samples_min=10)],
+            )
 
     def test_issue_and_verify_all_ok(self):
         issuer = PassportIssuer(key=_KEY_A, issuing_org="org://alpha")

@@ -258,6 +258,14 @@ class TestBehavioralFingerprint:
         assert fp.sample_count("x") == 3
         assert fp.sample_count() == 3
 
+    def test_update_many_applies_each_observation_in_order(self):
+        fp = BehavioralFingerprint(min_samples=4)
+        fp.update_many(
+            [BehaviorObservation(features={"len": value}) for value in (10.0, 30.0)]
+        )
+        assert fp.sample_count("len") == 2
+        assert fp.mean("len") == pytest.approx(20.0)
+
     def test_bad_min_samples(self):
         with pytest.raises(ValueError, match="min_samples"):
             BehavioralFingerprint(min_samples=0)
@@ -316,6 +324,22 @@ class TestIdentityMonitor:
         )
         monitor.evaluate(BehaviorObservation(features={"x": 1000.0}))
         assert fp.sample_count("x") == 5
+
+    def test_update_on_anomaly_folds_real_outlier_into_baseline(self):
+        # A warmed baseline with real variance flags the outlier as an anomaly;
+        # with update_on_anomaly the flagged observation is still folded in.
+        fp = BehavioralFingerprint(min_samples=8)
+        monitor = IdentityMonitor(
+            fingerprint=fp, z_threshold=3.0, update_on_anomaly=True
+        )
+        for value in [10.0, 11.0, 9.0, 10.5, 9.5, 10.2, 9.8, 10.0, 10.3, 9.7]:
+            monitor.evaluate(BehaviorObservation(features={"prompt_len": value}))
+        before = fp.sample_count("prompt_len")
+        anomaly = monitor.evaluate(
+            BehaviorObservation(features={"prompt_len": 10_000.0})
+        )
+        assert anomaly is not None
+        assert fp.sample_count("prompt_len") == before + 1
 
     def test_bad_threshold(self):
         with pytest.raises(ValueError, match="z_threshold"):

@@ -98,7 +98,10 @@ class ModuleRegistry:
             )
             if match is None:
                 raise KeyError(f"no archived entry at version {version}")
-            if self._active is not None:
+            # History is only populated by a promote that also set an active
+            # entry, so reaching a rollback with no active entry is impossible
+            # single-threaded; the false branch is a defensive guard.
+            if self._active is not None:  # pragma: no branch
                 self._history.append(self._active)
                 if len(self._history) > self._history_limit:
                     self._history = self._history[-self._history_limit :]

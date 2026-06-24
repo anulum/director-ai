@@ -283,6 +283,27 @@ class TestAggregateMetrics:
         verdict = sim.preflight("x")
         assert verdict.std_coherence == 0.0
 
+    def test_min_max_coherence_zero_without_trajectories(self):
+        # A verdict carrying no trajectories reports zero spread rather than
+        # raising on an empty min/max.
+        verdict = PreflightVerdict(
+            n_simulations=0,
+            halt_rate=0.0,
+            mean_coherence=0.0,
+            std_coherence=0.0,
+            ci_low=0.0,
+            ci_high=0.0,
+            recommended="halt",
+            reason="no trajectories",
+        )
+        assert verdict.min_coherence == 0.0
+        assert verdict.max_coherence == 0.0
+
+    def test_credible_interval_empty_samples(self):
+        from director_ai.core.trajectory.simulator import _credible_interval
+
+        assert _credible_interval([], 0.9) == (0.0, 0.0)
+
     def test_isinstance_pre_flight_verdict(self):
         sim = TrajectorySimulator(
             actor=_FixedActor(["a"]),

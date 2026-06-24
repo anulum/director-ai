@@ -659,6 +659,30 @@ class TestGroundingHook:
         assert verdict.allowed
         assert verdict.violations == ()
 
+    def test_any_violation_reflects_verdict_contents(self):
+        model = self._model()
+        constraints = (VelocityConstraint(name="v", max_velocity=0.1),)
+        hook = GroundingHook(model=model, constraints=constraints)
+        # The hook exposes the model and constraints it was built with.
+        assert hook.model is model
+        assert hook.constraints == constraints
+        clean = hook.evaluate(
+            PhysicalAction(
+                actuator_id="arm",
+                target_position=Vec3(1.0, 1.0, 0.0),
+                velocity_magnitude=0.05,
+            )
+        )
+        assert not clean.any_violation
+        breached = hook.evaluate(
+            PhysicalAction(
+                actuator_id="arm",
+                target_position=Vec3(1.0, 1.0, 0.0),
+                velocity_magnitude=5.0,
+            )
+        )
+        assert breached.any_violation
+
     def test_reports_every_violation(self):
         hook = GroundingHook(
             model=self._model(),

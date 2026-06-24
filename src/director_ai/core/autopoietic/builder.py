@@ -101,7 +101,9 @@ class ModuleBuilder:
             grams = frozenset(
                 " ".join(tokens[i : i + n]) for i in range(len(tokens) - n + 1)
             )
-            if not grams:
+            # len(tokens) >= n is guaranteed above, so at least one gram always
+            # exists; the empty-grams guard is defensive only.
+            if not grams:  # pragma: no cover
                 return 0.0
             if _RUST_AUTOPOIETIC:
                 gram_tokens = " ".join(gram.replace(" ", "_") for gram in grams)
@@ -111,7 +113,9 @@ class ModuleBuilder:
                     return float(rust_word_overlap(gram_tokens, reference_tokens))
             intersection = grams & reference
             union = grams | reference
-            if not union:
+            # grams is non-empty here, so the union always is too; the guard is
+            # defensive against a zero-division that cannot occur.
+            if not union:  # pragma: no cover
                 return 0.0
             return len(intersection) / len(union)
 
@@ -184,7 +188,9 @@ class BoundedSandbox:
             )
         if result.error is not None:
             raise result.error  # pragma: no cover — defensive
-        if result.value is None:
+        # A completed run with no error always carries a float value (float()
+        # raises rather than returning None), so this is a defensive guard.
+        if result.value is None:  # pragma: no cover
             raise BuildError("scorer returned None")
         return max(0.0, min(1.0, result.value))
 
