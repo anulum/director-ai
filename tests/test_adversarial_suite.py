@@ -66,6 +66,42 @@ class TestAdversarialTester:
         assert report.bypassed == report.total_patterns
         assert not report.is_robust
 
+    def test_score_extracted_from_object_with_score_attribute(self):
+        class _Verdict:
+            def __init__(self, score):
+                self.score = score
+
+        def review(prompt, response):
+            return False, _Verdict(0.42)
+
+        tester = AdversarialTester(review_fn=review)
+        report = tester.run()
+        # Every pattern is rejected (approved=False) -> fully detected.
+        assert report.detection_rate == 1.0
+        assert report.bypassed == 0
+
+    def test_score_defaults_when_object_score_is_none(self):
+        class _Verdict:
+            score = None
+
+        def review(prompt, response):
+            return True, _Verdict()
+
+        tester = AdversarialTester(review_fn=review)
+        report = tester.run()
+        # approved=True everywhere -> nothing detected.
+        assert report.detection_rate == 0.0
+
+    def test_score_defaults_when_review_returns_non_tuple(self):
+        def review(prompt, response):
+            return "approved-without-score"
+
+        tester = AdversarialTester(review_fn=review)
+        report = tester.run()
+        # A non-(bool, score) result is treated as approved with full score, so
+        # nothing is detected.
+        assert report.detection_rate == 0.0
+
     def test_partial_detection(self):
         call_count = 0
 

@@ -834,6 +834,12 @@ class TestRos2Adapter:
         with pytest.raises(UnsupportedKinematicsError, match="configured IK callable"):
             adapter.inverse(Vec3(0.0, 0.0, 0.0))
 
+    def test_inverse_returns_none_when_ik_finds_no_solution(self):
+        # A configured IK callable that reports no solution propagates as None
+        # rather than an empty/garbage joint tuple.
+        adapter = Ros2Adapter(node=object(), inverse_kinematics=lambda target: None)
+        assert adapter.inverse(Vec3(10.0, 0.0, 0.0)) is None
+
     def test_grounding_hook_defers_when_ros2_ik_is_not_configured(self):
         adapter = Ros2Adapter(node=object())
         workspace = WorkspaceConstraint(

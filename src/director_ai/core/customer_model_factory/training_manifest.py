@@ -247,7 +247,7 @@ def _output_uri_matches_lane(lane: TrainingLane, output_uri: str) -> bool:
         return output_uri.startswith("gs://") or output_uri.startswith("s3://")
     if lane in {TrainingLane.ON_PREM, TrainingLane.LOCAL_PILOT}:
         return output_uri.startswith("file://") or output_uri.startswith("/")
-    return False
+    return False  # pragma: no cover — every TrainingLane is handled above
 
 
 def _finding(code: str, message: str) -> dict[str, str]:

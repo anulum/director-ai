@@ -661,6 +661,27 @@ def test_release_gate_blocks_missing_conformal_routing_evidence():
     }
 
 
+def test_conformal_blockers_flag_out_of_range_coverages():
+    import dataclasses
+
+    from director_ai.core.customer_model_factory.release_gate import (
+        _extend_conformal_routing_blockers,
+    )
+
+    # target_coverage must be in (0, 1] and empirical_coverage in [0, 1]; both
+    # out-of-range values raise their dedicated blockers.
+    evidence = dataclasses.replace(
+        _conformal_routing_evidence(),
+        target_coverage=0.0,
+        empirical_coverage=1.5,
+    )
+    blockers: list[dict[str, str]] = []
+    _extend_conformal_routing_blockers(evidence, blockers)
+    codes = {b["code"] for b in blockers}
+    assert "conformal_target_coverage_invalid" in codes
+    assert "conformal_empirical_coverage_invalid" in codes
+
+
 def test_conformal_routing_evidence_round_trips_from_json_safe_dict():
     evidence = _conformal_routing_evidence()
 

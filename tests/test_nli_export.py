@@ -141,6 +141,19 @@ def test_load_onnx_session_returns_none_when_runtime_missing(monkeypatch, tmp_pa
     assert nli_export._load_onnx_session(str(bundle)) == (None, None)
 
 
+def test_export_tensorrt_raises_when_model_is_missing(monkeypatch, tmp_path):
+    # The TensorRT export checks for the ONNX model before doing any provider
+    # work, so a bundle without model.onnx fails fast and clearly.
+    fake_ort = ModuleType("onnxruntime")
+    fake_ort.get_available_providers = Mock(return_value=["CPUExecutionProvider"])
+    monkeypatch.setitem(sys.modules, "onnxruntime", fake_ort)
+    bundle = tmp_path / "bundle"
+    bundle.mkdir()
+
+    with pytest.raises(FileNotFoundError, match="ONNX model not found"):
+        nli_export.export_tensorrt(onnx_dir=str(bundle))
+
+
 def test_export_onnx_rejects_tokenizer_without_tensor_inputs(
     tmp_path,
     monkeypatch,
