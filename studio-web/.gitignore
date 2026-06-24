@@ -1,0 +1,10 @@
+# Director-AI Studio — Phase-0 scaffold ignores
+node_modules/
+dist/
+dist-ssr/
+.vite/
+coverage/
+playwright-report/
+test-results/
+*.local
+public/studio_manifest.json
