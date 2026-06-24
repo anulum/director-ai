@@ -230,3 +230,11 @@ class TestBenchmark:
 def test_summary_sentences_must_be_at_least_one():
     with pytest.raises(ValueError, match="summary_sentences must be at least 1"):
         _make_backend(summary_sentences=0)
+
+
+def test_summary_sentences_rejects_non_integer_and_bool():
+    # bool is an int subclass but is not a valid count; reject it explicitly.
+    with pytest.raises(ValueError, match="summary_sentences must be an integer"):
+        _make_backend(summary_sentences=True)
+    with pytest.raises(ValueError, match="summary_sentences must be an integer"):
+        _make_backend(summary_sentences=2.5)

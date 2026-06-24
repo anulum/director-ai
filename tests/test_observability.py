@@ -212,6 +212,21 @@ class TestLangfuseAdapter:
         )
         assert lf.created_traces == []
 
+    def test_token_extra_metadata_is_attached_to_span(self):
+        lf = _FakeLangfuse()
+        cb = LangfuseTokenCallback(lf)
+        cb.on_token(
+            TokenTraceEvent(
+                index=0,
+                token="x",
+                coherence=0.9,
+                timestamp=0.0,
+                request_id="r1",
+                extra={"layer": "nli"},
+            )
+        )
+        assert lf.created_traces[0].spans[0]["metadata"]["extra"] == {"layer": "nli"}
+
     def test_record_token_text_is_opt_in(self):
         lf = _FakeLangfuse()
         cb = LangfuseTokenCallback(lf, record_token_text=True)

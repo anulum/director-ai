@@ -526,6 +526,13 @@ class TestFederatedCounter:
         second = counter.release()
         assert second.raw_sum == 0
 
+    def test_reset_discards_pending_contributions_without_spending_budget(self):
+        counter = FederatedCounter(epsilon=0.5, seed=0, allow_insecure_seed=True)
+        counter.submit(tenant_id="t1", count=5)
+        counter.reset()
+        release = counter.release()
+        assert release.raw_sum == 0
+
     def test_budget_guard(self):
         acc = PrivacyAccountant(max_epsilon=0.4)
         counter = FederatedCounter(
@@ -657,6 +664,10 @@ class TestFederatedHistogram:
 
 
 class TestAggregatorRustSums:
+    def test_sum_int_python_fallback_when_rust_disabled(self, monkeypatch):
+        monkeypatch.setattr(aggregator_mod, "_RUST_AGGREGATOR", False)
+        assert aggregator_mod._sum_int([4, 5, 6]) == 15
+
     def test_rust_sum_i64_kernel_is_used_when_available(self, monkeypatch):
         monkeypatch.setattr(aggregator_mod, "_RUST_AGGREGATOR", True)
         called = {"count": 0}

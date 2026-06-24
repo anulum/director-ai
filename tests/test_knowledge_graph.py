@@ -251,6 +251,15 @@ class TestGraph:
         # a -> b -> c (cost 2) beats a -> c (cost 3).
         assert [e.target for e in path] == ["b", "c"]
 
+    def test_shortest_path_skips_stale_heap_entries(self):
+        # Routing to d forces the search to continue past c: c is first finalised
+        # via a->b->c (cost 2), and the higher-cost direct a->c (cost 3) entry is
+        # later popped as a stale duplicate and skipped rather than re-expanded.
+        g = self._graph()
+        principal = Principal(role="u")
+        path = g.shortest_sanctioned_path(source="a", target="d", principal=principal)
+        assert [e.target for e in path] == ["b", "c", "d"]
+
     def test_shortest_path_skips_denied(self):
         g = KnowledgeGraph()
         for name in ("a", "b", "c"):
