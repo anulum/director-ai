@@ -6,10 +6,10 @@
     "optional_extras": 58,
     "public_api_exports": 224,
     "public_documentation_pages": 203,
-    "python_model_classes": 981,
-    "python_model_source_modules": 451,
+    "python_model_classes": 984,
+    "python_model_source_modules": 452,
     "rust_pyo3_model_wrappers": 83,
-    "test_files": 541
+    "test_files": 542
   },
   "documentation": {
     "public_pages": [
@@ -1159,6 +1159,10 @@
       {
         "name": "CounterfactualVerifier",
         "path": "src/director_ai/core/causal_verifier/counterfactual.py"
+      },
+      {
+        "name": "CoverageHealthReport",
+        "path": "src/director_ai/core/calibration/miscoverage.py"
       },
       {
         "name": "CredibilityFeedbackLoop",
@@ -2465,6 +2469,10 @@
         "path": "src/director_ai/core/zk_attestation/statements.py"
       },
       {
+        "name": "MiscoverageMonitor",
+        "path": "src/director_ai/core/calibration/miscoverage.py"
+      },
+      {
         "name": "MissingCryptoBackendError",
         "path": "src/director_ai/core/output_integrity/signing.py"
       },
@@ -3509,6 +3517,10 @@
         "path": "src/director_ai/core/federated_privacy/secret_sharing.py"
       },
       {
+        "name": "SegmentCoverageHealth",
+        "path": "src/director_ai/core/calibration/miscoverage.py"
+      },
+      {
         "name": "SegmentRecommendation",
         "path": "src/director_ai/core/calibration/segmented_threshold.py"
       },
@@ -4308,6 +4320,7 @@
       "src/director_ai/core/calibration/adaptive_threshold.py",
       "src/director_ai/core/calibration/conformal.py",
       "src/director_ai/core/calibration/feedback_store.py",
+      "src/director_ai/core/calibration/miscoverage.py",
       "src/director_ai/core/calibration/online_calibrator.py",
       "src/director_ai/core/calibration/runtime_governor.py",
       "src/director_ai/core/calibration/segmented_threshold.py",
@@ -5402,6 +5415,7 @@
       "tests/test_metrics.py",
       "tests/test_middleware.py",
       "tests/test_minicheck_variants.py",
+      "tests/test_miscoverage.py",
       "tests/test_ml_bom.py",
       "tests/test_model_benchmark_packages.py",
       "tests/test_model_package_vertex_campaign.py",

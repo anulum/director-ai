@@ -50,6 +50,11 @@ from .calibration.conformal import (
     PredictionInterval,
 )
 from .calibration.feedback_store import FeedbackStore
+from .calibration.miscoverage import (
+    CoverageHealthReport,
+    MiscoverageMonitor,
+    SegmentCoverageHealth,
+)
 from .calibration.online_calibrator import CalibrationReport, OnlineCalibrator
 from .calibration.segmented_threshold import (
     SegmentedThresholdLearner,
@@ -397,9 +402,12 @@ __all__ = [
     "ConformalPredictor",
     "ConformalRoutingDecision",
     "ConformalRoutingPolicy",
+    "CoverageHealthReport",
     "FeedbackStore",
+    "MiscoverageMonitor",
     "OnlineCalibrator",
     "PredictionInterval",
+    "SegmentCoverageHealth",
     # Verification (Phase 5)
     "ClaimCitation",
     "CodeCheckResult",
