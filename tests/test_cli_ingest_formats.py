@@ -451,3 +451,18 @@ class TestCLIIngestHelp:
         with pytest.raises(SystemExit) as exc:
             main(["../../../etc/passwd"])
         assert exc.value.code == 1
+
+
+class TestIngestRequiresVectorStore:
+    """Ingest must refuse a non-vector store with clear guidance."""
+
+    def test_general_mode_store_is_rejected(self, capsys, tmp_path, monkeypatch):
+        # mode=general builds a bare GroundTruthStore (no vector backend); ingest
+        # needs a vector-backed store, so it must print guidance and exit(1).
+        monkeypatch.setenv("DIRECTOR_MODE", "general")
+        doc = tmp_path / "note.txt"
+        doc.write_text("Some ground truth fact.", encoding="utf-8")
+        with pytest.raises(SystemExit) as exc:
+            main(["ingest", str(doc)])
+        assert exc.value.code == 1
+        assert "vector-backed store" in capsys.readouterr().out
