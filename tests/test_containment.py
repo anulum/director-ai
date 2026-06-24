@@ -458,6 +458,18 @@ class TestContainmentGuard:
         assert verdict.safety_event is not None
         assert verdict.safety_event.evidence_refs == ()
 
+    def test_decide_downgrades_production_target_under_production_scope(self):
+        # The decision collapse downgrades a production-host finding in
+        # production scope: a lone such finding does not escalate to block.
+        from director_ai.core.containment.guard import _decide
+
+        finding = BreakoutFinding(
+            category="production_target",
+            severity="high",
+            detail="legitimate production target",
+        )
+        assert _decide("production", (finding,)) == "allow"
+
     def test_low_severity_finding_allows_with_audit_reference(self):
         class _LowOnlyDetector(BreakoutDetector):
             def scan(

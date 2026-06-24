@@ -202,6 +202,16 @@ class TestLangfuseAdapter:
         assert "token" not in trace.spans[0]["metadata"]
         assert [s["name"] for s in trace.scores] == ["coherence", "coherence"]
 
+    def test_on_stream_end_for_unknown_request_is_a_noop(self):
+        # A completion event for a stream that never emitted a token has no
+        # trace to release, so it returns without touching Langfuse.
+        lf = _FakeLangfuse()
+        cb = LangfuseTokenCallback(lf)
+        cb.on_stream_end(
+            tenant_id="t1", request_id="never-started", summary={"halted": False}
+        )
+        assert lf.created_traces == []
+
     def test_record_token_text_is_opt_in(self):
         lf = _FakeLangfuse()
         cb = LangfuseTokenCallback(lf, record_token_text=True)
