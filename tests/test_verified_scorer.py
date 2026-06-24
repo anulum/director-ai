@@ -45,6 +45,13 @@ class TestSplitSentences:
             "This is a python fallback sentence."
         ]
 
+    def test_python_sum_paths_without_rust(self, monkeypatch):
+        # With the Rust signal kernels disabled the integer/float reducers fall
+        # back to the built-in sum.
+        monkeypatch.setattr(verified_mod, "_RUST_SIGNALS", False)
+        assert verified_mod._sum_int([1, 2, 3, 4]) == 10
+        assert verified_mod._sum_float([0.5, 0.25, 0.25]) == pytest.approx(1.0)
+
     def test_rust_sentence_splitter_delegation(self, monkeypatch):
         monkeypatch.setattr(verified_mod, "_RUST_SIGNALS", True)
         monkeypatch.setattr(
