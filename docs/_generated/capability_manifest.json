@@ -6,10 +6,10 @@
     "optional_extras": 58,
     "public_api_exports": 224,
     "public_documentation_pages": 203,
-    "python_model_classes": 984,
-    "python_model_source_modules": 452,
+    "python_model_classes": 985,
+    "python_model_source_modules": 453,
     "rust_pyo3_model_wrappers": 83,
-    "test_files": 542
+    "test_files": 543
   },
   "documentation": {
     "public_pages": [
@@ -359,6 +359,10 @@
       {
         "name": "Actor",
         "path": "src/director_ai/core/trajectory/simulator.py"
+      },
+      {
+        "name": "AdaptiveConformalPredictor",
+        "path": "src/director_ai/core/calibration/adaptive_conformal.py"
       },
       {
         "name": "AdaptiveRouter",
@@ -4317,6 +4321,7 @@
       "src/director_ai/core/backends.py",
       "src/director_ai/core/batch.py",
       "src/director_ai/core/cache.py",
+      "src/director_ai/core/calibration/adaptive_conformal.py",
       "src/director_ai/core/calibration/adaptive_threshold.py",
       "src/director_ai/core/calibration/conformal.py",
       "src/director_ai/core/calibration/feedback_store.py",
@@ -5127,6 +5132,7 @@
       "tests/conftest.py",
       "tests/test_accuracy_improvements.py",
       "tests/test_actor.py",
+      "tests/test_adaptive_conformal.py",
       "tests/test_adaptive_router.py",
       "tests/test_adaptive_threshold.py",
       "tests/test_advanced_coherence.py",

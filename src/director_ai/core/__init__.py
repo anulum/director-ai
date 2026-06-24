@@ -34,6 +34,7 @@ from .attribution import (
     build_causal_attribution_graph,
 )
 from .cache import ScoreCache
+from .calibration.adaptive_conformal import AdaptiveConformalPredictor
 
 # --- Calibration ---
 from .calibration.adaptive_threshold import (
@@ -398,6 +399,7 @@ __all__ = [
     "utc_timestamp",
     "DIRECTOR_SAFETY_PROTOCOL_VERSION",
     # Calibration
+    "AdaptiveConformalPredictor",
     "CalibrationReport",
     "ConformalPredictor",
     "ConformalRoutingDecision",

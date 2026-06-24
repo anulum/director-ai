@@ -309,34 +309,43 @@ class ConformalPredictor:
         routing_policy = policy or ConformalRoutingPolicy(min_samples=self._min_samples)
         return routing_policy.decide(interval)
 
-    def _compute_quantile(self) -> float | None:
-        """Compute the conformal quantile from calibration data.
+    def _residuals(self) -> list[float]:
+        """Absolute nonconformity residuals over the calibration set.
 
-        Uses the nonconformity score: |predicted_prob - actual_label|.
-        The quantile at level ceil((n+1)*coverage)/n gives the interval
-        half-width.
+        The nonconformity score is ``|predicted_prob - actual_label|``.
         """
-        n = len(self._scores)
-        if n == 0:
+        return [
+            abs(self._score_to_prob(s) - (1.0 if lab else 0.0))
+            for s, lab in zip(self._scores, self._labels, strict=True)
+        ]
+
+    def _quantile_at(self, coverage: float) -> float | None:
+        """Conformal quantile of the residuals at an arbitrary coverage level.
+
+        Split out so an adaptive subclass can re-evaluate the half-width at a
+        time-varying coverage without recomputing residuals elsewhere. Returns
+        ``None`` when there is no calibration data.
+        """
+        if not self._scores:
             return None
-
-        # Nonconformity scores: absolute residuals
-        residuals = []
-        for s, lab in zip(self._scores, self._labels, strict=True):
-            pred_prob = self._score_to_prob(s)
-            actual = 1.0 if lab else 0.0
-            residuals.append(abs(pred_prob - actual))
-
+        residuals = self._residuals()
         if _RUST_CONFORMAL:
             try:
-                return float(rust_conformal_quantile(residuals, self._coverage))
+                return float(rust_conformal_quantile(residuals, coverage))
             except Exception as exc:
                 _logger.debug(
                     "Rust conformal quantile unavailable; using Python fallback: %s",
                     exc,
                 )
+        return self._python_quantile(residuals, coverage)
 
-        return self._python_quantile(residuals, self._coverage)
+    def _compute_quantile(self) -> float | None:
+        """Conformal quantile at the configured coverage level.
+
+        The quantile at level ceil((n+1)*coverage)/n gives the interval
+        half-width.
+        """
+        return self._quantile_at(self._coverage)
 
     @staticmethod
     def _python_quantile(residuals: list[float], coverage: float) -> float:
