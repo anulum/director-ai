@@ -47,6 +47,9 @@ jobs:
       - name: Capability manifest drift
         run: python tools/capability_manifest.py --check
 
+      - name: Studio federation manifest drift
+        run: python tools/emit_studio_manifest.py --check
+
       - name: Check formatting (ruff)
         run: ruff format --check src/ tests/ examples/
 

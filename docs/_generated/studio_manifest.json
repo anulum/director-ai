@@ -1,0 +1,147 @@
+{
+  "content_digest": "sha256:2e079304953022a998394fcd6cd34f191df8f7801b9152a67680b51cfc2886f1",
+  "contract_era": "v1",
+  "enumeration": "language-agnostic",
+  "evidence_types": [
+    "studio.backend-benchmark.v1",
+    "studio.calibration.v1",
+    "studio.evidence-replay.v1",
+    "studio.injection-scan.v1",
+    "studio.redaction.v1",
+    "studio.response-score.v1",
+    "studio.streaming-halt.v1",
+    "studio.verification.v1"
+  ],
+  "platform_sdk": ">=0.1,<0.2",
+  "protocol_version": "1",
+  "studio": "director-ai",
+  "studio_version": "3.16.0",
+  "transport_profile": "local-first",
+  "ui_module": {
+    "exposes": [
+      "./DirectorAIStudioPanel"
+    ],
+    "federation": "module-federation-2",
+    "remote_entry": "/studio/remoteEntry.js"
+  },
+  "verbs": [
+    {
+      "backends": [
+        "python",
+        "rust"
+      ],
+      "fidelity": "ml-surrogate",
+      "produces": [
+        "studio.response-score.v1"
+      ],
+      "safety_tier": "production",
+      "side_effect": "read-only",
+      "timing": {
+        "class": "interactive"
+      },
+      "verb": "score"
+    },
+    {
+      "backends": [
+        "python",
+        "rust"
+      ],
+      "fidelity": "ml-surrogate",
+      "produces": [
+        "studio.verification.v1"
+      ],
+      "safety_tier": "production",
+      "side_effect": "read-only",
+      "timing": {
+        "class": "batch"
+      },
+      "verb": "validate"
+    },
+    {
+      "backends": [
+        "python",
+        "rust"
+      ],
+      "produces": [
+        "studio.streaming-halt.v1"
+      ],
+      "safety_tier": "research",
+      "side_effect": "read-only",
+      "timing": {
+        "class": "realtime"
+      },
+      "verb": "halt"
+    },
+    {
+      "backends": [
+        "python"
+      ],
+      "produces": [
+        "studio.calibration.v1"
+      ],
+      "safety_tier": "research",
+      "side_effect": "read-only",
+      "timing": {
+        "class": "batch"
+      },
+      "verb": "calibrate"
+    },
+    {
+      "backends": [
+        "python"
+      ],
+      "produces": [
+        "studio.injection-scan.v1"
+      ],
+      "safety_tier": "research",
+      "side_effect": "read-only",
+      "timing": {
+        "class": "interactive"
+      },
+      "verb": "detect-injection"
+    },
+    {
+      "backends": [
+        "python",
+        "rust"
+      ],
+      "produces": [
+        "studio.backend-benchmark.v1"
+      ],
+      "safety_tier": "research",
+      "side_effect": "simulated",
+      "timing": {
+        "class": "batch"
+      },
+      "verb": "benchmark"
+    },
+    {
+      "backends": [
+        "python"
+      ],
+      "produces": [
+        "studio.evidence-replay.v1"
+      ],
+      "safety_tier": "research",
+      "side_effect": "read-only",
+      "timing": {
+        "class": "batch"
+      },
+      "verb": "replay"
+    },
+    {
+      "backends": [
+        "python"
+      ],
+      "produces": [
+        "studio.redaction.v1"
+      ],
+      "safety_tier": "research",
+      "side_effect": "read-only",
+      "timing": {
+        "class": "interactive"
+      },
+      "verb": "redact"
+    }
+  ]
+}

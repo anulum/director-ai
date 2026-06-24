@@ -6,10 +6,10 @@
     "optional_extras": 58,
     "public_api_exports": 224,
     "public_documentation_pages": 203,
-    "python_model_classes": 990,
-    "python_model_source_modules": 456,
+    "python_model_classes": 993,
+    "python_model_source_modules": 457,
     "rust_pyo3_model_wrappers": 83,
-    "test_files": 547
+    "test_files": 549
   },
   "documentation": {
     "public_pages": [
@@ -3753,6 +3753,10 @@
         "path": "src/director_ai/core/verification/types.py"
       },
       {
+        "name": "StudioManifest",
+        "path": "src/director_ai/federation/manifest.py"
+      },
+      {
         "name": "SuiteResult",
         "path": "src/director_ai/core/autopoietic/testsuite.py"
       },
@@ -4129,6 +4133,10 @@
         "path": "src/director_ai/_server_models.py"
       },
       {
+        "name": "UiModule",
+        "path": "src/director_ai/federation/manifest.py"
+      },
+      {
         "name": "UncertaintyDecision",
         "path": "src/director_ai/core/routing/uncertainty_router.py"
       },
@@ -4187,6 +4195,10 @@
       {
         "name": "VelocityConstraint",
         "path": "src/director_ai/core/cyber_physical/constraints.py"
+      },
+      {
+        "name": "Verb",
+        "path": "src/director_ai/federation/manifest.py"
       },
       {
         "name": "Verdict",
@@ -4688,6 +4700,7 @@
       "src/director_ai/enterprise/redactor.py",
       "src/director_ai/enterprise/redis.py",
       "src/director_ai/enterprise/rules_dsl.py",
+      "src/director_ai/federation/manifest.py",
       "src/director_ai/finetune_api.py",
       "src/director_ai/grpc_scoring.py",
       "src/director_ai/grpc_server.py",
@@ -5320,6 +5333,7 @@
       "tests/test_federated_dp_evidence.py",
       "tests/test_federated_privacy.py",
       "tests/test_federated_privacy_evidence.py",
+      "tests/test_federation_manifest.py",
       "tests/test_feedback_loop_detector.py",
       "tests/test_feedback_store.py",
       "tests/test_ffi_bindings.py",
@@ -5660,6 +5674,7 @@
       "tests/test_threat_intel.py",
       "tests/test_tool_call_verifier.py",
       "tests/test_tools/test_capability_manifest.py",
+      "tests/test_tools/test_emit_studio_manifest.py",
       "tests/test_trace_safe.py",
       "tests/test_train_distillation_reproducibility.py",
       "tests/test_training_model_registry.py",
