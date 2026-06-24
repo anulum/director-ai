@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import json
 
+import director_ai.core.training.finetune_validator as validator_mod
 from director_ai.core.finetune_validator import (
     DataQualityReport,
     validate_finetune_data,
@@ -71,6 +72,20 @@ class TestValidatePass:
         report = validate_finetune_data(f, epochs=3)
         assert report.estimated_train_time_min > 0
         assert report.estimated_cost_usd > 0
+
+    def test_blank_lines_are_skipped(self, tmp_path):
+        # Blank lines (trailing newlines, padding) must not count as samples or
+        # trip the JSON parser.
+        f = tmp_path / "train.jsonl"
+        body = "\n".join(json.dumps(r) for r in _make_samples(300, 300))
+        f.write_text(body + "\n\n   \n", encoding="utf-8")
+        report = validate_finetune_data(f)
+        assert report.is_valid
+        assert report.total_samples == 600
+
+    def test_sum_int_python_fallback(self, monkeypatch):
+        monkeypatch.setattr(validator_mod, "_RUST_FINETUNE_VALIDATOR", False)
+        assert validator_mod._sum_int([2, 3, 4]) == 9
 
 
 class TestValidateFail:
