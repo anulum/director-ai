@@ -3,13 +3,13 @@
   "counts": {
     "github_workflows": 14,
     "model_documentation_pages": 89,
-    "optional_extras": 58,
+    "optional_extras": 59,
     "public_api_exports": 224,
     "public_documentation_pages": 203,
-    "python_model_classes": 993,
-    "python_model_source_modules": 457,
+    "python_model_classes": 1000,
+    "python_model_source_modules": 459,
     "rust_pyo3_model_wrappers": 83,
-    "test_files": 549
+    "test_files": 551
   },
   "documentation": {
     "public_pages": [
@@ -537,6 +537,10 @@
         "path": "src/director_ai/core/temporal_logic/formula.py"
       },
       {
+        "name": "AttackOutcome",
+        "path": "src/director_ai/core/calibration/honesty_redteam.py"
+      },
+      {
         "name": "AttestationBackend",
         "path": "src/director_ai/core/zk_attestation/backends.py"
       },
@@ -651,6 +655,10 @@
       {
         "name": "BatchResult",
         "path": "src/director_ai/core/runtime/batch.py"
+      },
+      {
+        "name": "BatteryReport",
+        "path": "src/director_ai/core/calibration/honesty_redteam.py"
       },
       {
         "name": "BehaviorObservation",
@@ -1845,6 +1853,18 @@
         "path": "src/director_ai/core/retrieval/ingestion/gdrive.py"
       },
       {
+        "name": "GraderCase",
+        "path": "src/director_ai/core/calibration/grader_validation.py"
+      },
+      {
+        "name": "GraderReport",
+        "path": "src/director_ai/core/calibration/grader_validation.py"
+      },
+      {
+        "name": "GraderValidationError",
+        "path": "src/director_ai/core/calibration/grader_validation.py"
+      },
+      {
         "name": "GraphCycleError",
         "path": "src/director_ai/core/causal_verifier/graph.py"
       },
@@ -2027,6 +2047,10 @@
       {
         "name": "HmacChainError",
         "path": "src/director_ai/core/provenance/chain.py"
+      },
+      {
+        "name": "HonestyRedteamError",
+        "path": "src/director_ai/core/calibration/honesty_redteam.py"
       },
       {
         "name": "HourlyDataPoint",
@@ -3689,6 +3713,10 @@
         "path": "src/director_ai/core/stats.py"
       },
       {
+        "name": "StatusMetrics",
+        "path": "src/director_ai/core/calibration/grader_validation.py"
+      },
+      {
         "name": "StatusResponse",
         "path": "src/director_ai/_server_models.py"
       },
@@ -4357,6 +4385,8 @@
       "src/director_ai/core/calibration/adaptive_threshold.py",
       "src/director_ai/core/calibration/conformal.py",
       "src/director_ai/core/calibration/feedback_store.py",
+      "src/director_ai/core/calibration/grader_validation.py",
+      "src/director_ai/core/calibration/honesty_redteam.py",
       "src/director_ai/core/calibration/miscoverage.py",
       "src/director_ai/core/calibration/online_calibrator.py",
       "src/director_ai/core/calibration/recall_correctness.py",
@@ -5094,6 +5124,7 @@
       "grpc",
       "guardrails",
       "haystack",
+      "honesty",
       "ingestion",
       "ingestion-gdrive",
       "ingestion-notion",
@@ -5363,6 +5394,7 @@
       "tests/test_gemma_aggrefact_logprob_routed.py",
       "tests/test_gemma_aggrefact_routed.py",
       "tests/test_gemma_aggrefact_self_consistency.py",
+      "tests/test_grader_validation.py",
       "tests/test_grounding_judge.py",
       "tests/test_grpc_api_docs.py",
       "tests/test_grpc_scoring.py",
@@ -5387,6 +5419,7 @@
       "tests/test_hf_space_app_safety.py",
       "tests/test_hf_space_demo.py",
       "tests/test_hf_space_deployment_smoke.py",
+      "tests/test_honesty_redteam.py",
       "tests/test_human_review_queue.py",
       "tests/test_hybrid_backend.py",
       "tests/test_hybrid_hardening.py",

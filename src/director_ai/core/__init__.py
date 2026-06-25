@@ -51,6 +51,14 @@ from .calibration.conformal import (
     PredictionInterval,
 )
 from .calibration.feedback_store import FeedbackStore
+from .calibration.grader_validation import (
+    GraderCase,
+    GraderReport,
+    GraderValidationError,
+    StatusMetrics,
+    assert_grader_admissible,
+    validate_grader,
+)
 from .calibration.miscoverage import (
     CoverageHealthReport,
     MiscoverageMonitor,
@@ -422,6 +430,9 @@ __all__ = [
     "ConformalRoutingPolicy",
     "CoverageHealthReport",
     "FeedbackStore",
+    "GraderCase",
+    "GraderReport",
+    "GraderValidationError",
     "MiscoverageMonitor",
     "ColdStartSummary",
     "OnlineCalibrator",
@@ -431,11 +442,14 @@ __all__ = [
     "RemanentiaCorrectnessClient",
     "RemanentiaCorrectnessError",
     "SegmentCoverageHealth",
+    "StatusMetrics",
+    "assert_grader_admissible",
     "cold_start_from_ledger",
     "correctness_from_verdict",
     "default_ledger_path",
     "read_recall_ledger",
     "recall_outcome",
+    "validate_grader",
     # Verification (Phase 5)
     "ClaimCitation",
     "CodeCheckResult",
