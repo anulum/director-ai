@@ -38,7 +38,7 @@ class PhysicalBudgetLimits:
     max_sensor_fusion: int = 60
 
     def __post_init__(self) -> None:
-        """Reject a non-positive window or any negative per-counter limit."""
+        """Reject non-positive windows and per-counter limits."""
         if self.window_seconds <= 0:
             raise ValueError("window_seconds must be positive")
         for name in (
@@ -47,8 +47,8 @@ class PhysicalBudgetLimits:
             "max_simulation_checks",
             "max_sensor_fusion",
         ):
-            if getattr(self, name) < 0:
-                raise ValueError(f"{name} must be non-negative")
+            if getattr(self, name) <= 0:
+                raise ValueError(f"{name} must be positive")
 
     def limit_for(self, counter: str) -> int:
         """Return the configured per-window limit for ``counter``."""

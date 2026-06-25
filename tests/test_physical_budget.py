@@ -86,10 +86,11 @@ def test_inverse_budget_blocks_before_solver_call() -> None:
     budget = TenantPhysicalBudget(
         PhysicalBudgetLimits(
             max_action_validations=10,
-            max_inverse_kinematics=0,
+            max_inverse_kinematics=1,
             max_simulation_checks=10,
         )
     )
+    budget.consume("tenant-a", "inverse_kinematics")
     hook = GroundingHook(
         model=model,
         constraints=[VelocityConstraint(name="v", max_velocity=1.0)],
@@ -111,9 +112,10 @@ def test_simulation_budget_blocks_before_collision_call() -> None:
         PhysicalBudgetLimits(
             max_action_validations=10,
             max_inverse_kinematics=10,
-            max_simulation_checks=0,
+            max_simulation_checks=1,
         )
     )
+    budget.consume("tenant-a", "simulation_checks")
     obstacle = AABB(
         min_corner=Vec3(0.5, -0.5, -0.5),
         max_corner=Vec3(1.5, 0.5, 0.5),
@@ -162,11 +164,12 @@ def test_budget_window_resets() -> None:
 def test_agent_warn_mode_keeps_budget_exhaustion_blocking() -> None:
     budget = TenantPhysicalBudget(
         PhysicalBudgetLimits(
-            max_action_validations=0,
+            max_action_validations=1,
             max_inverse_kinematics=10,
             max_simulation_checks=10,
         )
     )
+    budget.consume("tenant-a", "action_validations")
     hook = GroundingHook(
         model=CountingModel(),
         constraints=[VelocityConstraint(name="v", max_velocity=1.0)],
@@ -189,8 +192,11 @@ def test_budget_limits_validate_window_and_counter_values() -> None:
         "max_action_validations",
         "max_inverse_kinematics",
         "max_simulation_checks",
+        "max_sensor_fusion",
     ):
-        with pytest.raises(ValueError, match=f"{field_name} must be non-negative"):
+        with pytest.raises(ValueError, match=f"{field_name} must be positive"):
+            PhysicalBudgetLimits(**{field_name: 0})
+        with pytest.raises(ValueError, match=f"{field_name} must be positive"):
             PhysicalBudgetLimits(**{field_name: -1})
 
 

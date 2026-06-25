@@ -195,6 +195,9 @@ Budget exhaustion blocks before the expensive operation is called. This
 budget block is not converted into warn-only mode, so it still prevents
 tenant payloads from exhausting physical runtimes when
 `CoherenceAgent` uses the default advisory physical policy.
+All four per-counter limits and `window_seconds` must be positive; a zero
+limit is rejected at configuration time instead of creating a deny-all
+budget that only fails on the first runtime consume.
 
 ## Closed-loop evaluator
 
