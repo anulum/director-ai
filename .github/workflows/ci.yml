@@ -48,7 +48,7 @@ jobs:
         run: python tools/capability_manifest.py --check
 
       - name: Studio federation manifest drift
-        run: python tools/emit_studio_manifest.py --check
+        run: PYTHONPATH=src python tools/emit_studio_manifest.py --check
 
       - name: Check formatting (ruff)
         run: ruff format --check src/ tests/ examples/
@@ -448,6 +448,11 @@ jobs:
           case ",${{ matrix.extras }}," in
             *,reports,*)
               TEST_TARGETS+=(tests/test_report_templates.py)
+              ;;
+          esac
+          case ",${{ matrix.extras }}," in
+            *,honesty,*)
+              TEST_TARGETS+=(tests/test_honesty_redteam.py)
               ;;
           esac
           if [ "${#TEST_TARGETS[@]}" -eq 0 ]; then

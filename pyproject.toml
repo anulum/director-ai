@@ -154,7 +154,7 @@ faiss = ["faiss-cpu>=1.7"]
 elasticsearch = ["elasticsearch>=8.0,<10"]
 # Verifiable-honesty seal (SCPN-STUDIO WS-1): the adversarial strip-resistance
 # battery in core/calibration/honesty_redteam.py. Requires Python >=3.12.
-honesty = ["scpn-studio-platform>=0.9,<0.10"]
+honesty = ["scpn-studio-platform>=0.10,<0.11; python_version >= '3.12'"]
 reranker = [
     "sentence-transformers>=4,<6",
 ]

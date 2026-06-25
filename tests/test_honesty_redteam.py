@@ -23,7 +23,7 @@ import pytest
 
 pytest.importorskip(
     "scpn_studio_platform.seal",
-    reason="the honesty extra (scpn-studio-platform>=0.9, py>=3.12) is not installed",
+    reason="the honesty extra (scpn-studio-platform>=0.10, py>=3.12) is not installed",
 )
 
 from director_ai.core.calibration import honesty_redteam as rt  # noqa: E402
