@@ -47,7 +47,10 @@ KNOWN_TEST_SURFACE_CLASSIFICATIONS: dict[str, tuple[str, str]] = {
     "tests/test_cli_bench_paths.py": ("violation", "CLI/server/API boundary fake"),
     "tests/test_cli_ingest_formats.py": ("violation", "CLI/server/API boundary fake"),
     "tests/test_cli_new_commands.py": ("violation", "CLI/server/API boundary fake"),
-    "tests/test_cli_serve_paths.py": ("violation", "CLI/server/API boundary fake"),
+    "tests/test_cli_serve_paths.py": (
+        "unit-guard-with-companion",
+        "CLI/server/API unit guard with companion tests/test_cli_serve_real_surface.py",
+    ),
     "tests/test_cli_verify_deep.py": ("violation", "CLI/server/API boundary fake"),
     "tests/test_competitor_aggrefact.py": (
         "violation",

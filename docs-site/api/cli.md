@@ -25,6 +25,9 @@ director-ai batch input.jsonl --output results.jsonl
 ### Server
 
 ```bash
+# Show server transport and hardening options without starting the server
+director-ai serve --help
+
 # Start REST server (default transport: http)
 director-ai serve --port 8080 --workers 4
 

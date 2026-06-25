@@ -80,6 +80,10 @@ def _resolve_bind_host(config: DirectorConfig, host: str, host_explicit: bool) -
 
 
 def _cmd_serve(args: list[str]) -> None:
+    if args and args[0] in ("-h", "--help", "help"):
+        _print_serve_help()
+        return
+
     port = 8080
     # Bind host is resolved after the run mode is known: explicit --host wins;
     # otherwise dev binds to loopback and production keeps its configured bind.
@@ -196,6 +200,26 @@ def _cmd_serve(args: list[str]) -> None:
     else:
         app = create_app(config)
         uvicorn.run(app, host=host, port=port)
+
+
+def _print_serve_help() -> None:
+    """Print serve subcommand options without importing server dependencies."""
+    print(
+        "Usage: director-ai serve [options]\n"
+        "\n"
+        "Start Director-AI as an HTTP or gRPC service.\n"
+        "\n"
+        "Options:\n"
+        "  --port N                  Bind port (HTTP default: 8080)\n"
+        "  --host HOST               Bind host\n"
+        "  --profile NAME            Load a named profile\n"
+        "  --mode general|grounded|auto\n"
+        "  --transport http|grpc     Select HTTP/FastAPI or gRPC transport\n"
+        "  --workers W               Worker count (default: 1)\n"
+        "  --cors-origins ORIGINS    Comma-separated CORS origins\n"
+        "  --dev                     Force development mode\n"
+        "  --production              Require and confirm hardened production mode\n"
+    )
 
 
 def _cmd_proxy(args: list[str]) -> None:

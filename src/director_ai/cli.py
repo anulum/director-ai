@@ -156,7 +156,7 @@ def _print_help() -> None:
         "  train submit [options]  Submit or dry-run a managed training job\n"
         "  finetune <train.jsonl> [options]  Fine-tune NLI model on domain data\n"
         "  validate-data <file.jsonl>       Validate data before fine-tuning\n"
-        "  serve [--port N] [--workers W] [--dev|--production]  Start the FastAPI server\n"
+        "  serve [--port N] [--transport http|grpc] [--workers W] [--dev|--production]  Start the server\n"
         "  proxy [--port N] [--facts F]   Chat-completions guardrail proxy\n"
         "  export [--format F]   Export model to ONNX/TensorRT\n"
         "  stress-test [options] Benchmark streaming kernel throughput\n"
