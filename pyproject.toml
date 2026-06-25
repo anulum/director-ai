@@ -152,6 +152,9 @@ weaviate = ["weaviate-client>=4.0"]
 qdrant = ["qdrant-client>=1.7"]
 faiss = ["faiss-cpu>=1.7"]
 elasticsearch = ["elasticsearch>=8.0,<10"]
+# Verifiable-honesty seal (SCPN-STUDIO WS-1): the adversarial strip-resistance
+# battery in core/calibration/honesty_redteam.py. Requires Python >=3.12.
+honesty = ["scpn-studio-platform>=0.10,<0.11; python_version >= '3.12'"]
 reranker = [
     "sentence-transformers>=4,<6",
 ]
@@ -482,6 +485,7 @@ omit = [
     "src/director_ai/enterprise/*",         # requires [enterprise] extras (Redis)
     "src/director_ai/core/finetune.py",     # requires [nli] extras (torch)
     "src/director_ai/core/finetune_benchmark.py",
+    "src/director_ai/core/calibration/honesty_redteam.py",  # requires [honesty] extra (scpn-studio-platform, py>=3.12)
 ]
 
 [tool.coverage.report]
@@ -945,6 +949,8 @@ module = [
     "mujoco",
     "rclpy",
     "rclpy.*",
+    "scpn_studio_platform",
+    "scpn_studio_platform.*",
     "sentence_transformers",
     "slowapi",
     "slowapi.*",

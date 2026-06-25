@@ -7,6 +7,7 @@
 # Director-Class AI — typos configuration
 
 [default.extend-words]
+ACI = "ACI"
 comando = "comando"
 ignora = "ignora"
 responde = "responde"
