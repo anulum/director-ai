@@ -258,16 +258,26 @@ class TestIngestEdgeCases:
         assert "Ingested" in out
 
     def test_ingest_persist_flag(self, capsys, tmp_path):
+        from director_ai.core.config import DirectorConfig
+        from director_ai.core.retrieval.vector_store import (
+            InMemoryBackend,
+            VectorGroundTruthStore,
+        )
+
         tf = tmp_path / "facts.txt"
         tf.write_text("The speed of light is 300,000 km/s.\n")
         persist_dir = str(tmp_path / "kb_persist")
-        try:
+
+        store = VectorGroundTruthStore(backend=InMemoryBackend())
+        with (
+            patch.object(DirectorConfig, "from_env", return_value=DirectorConfig()),
+            patch.object(DirectorConfig, "build_store", return_value=store),
+        ):
             main(["ingest", str(tf), "--persist", persist_dir])
-            out = capsys.readouterr().out
-            assert "Persisted to" in out
-        except Exception:
-            # ChromaDB may not be installed
-            pass
+
+        out = capsys.readouterr().out
+        assert "Ingested 1 chunks from 1 file(s)." in out
+        assert f"Persisted to: {persist_dir}" in out
 
 
 class TestDocParserDirect:

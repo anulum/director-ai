@@ -26,11 +26,12 @@ def _cmd_ingest(args: list[str]) -> None:
     PDF/DOCX/HTML require ``pip install director-ai[ingestion]``.
     Directories are walked recursively for supported file types.
     """
+    if args and args[0] in ("-h", "--help", "help"):
+        _print_ingest_help()
+        return
+
     if not args:
-        print(
-            "Usage: director-ai ingest <file-or-dir> "
-            "[--persist <dir>] [--chunk-size <tokens>]",
-        )
+        _print_ingest_help()
         sys.exit(1)
 
     import os
@@ -166,3 +167,18 @@ def _cmd_ingest(args: list[str]) -> None:
         print(f"Persisted to: {persist_dir}")
     else:
         print("(in-memory only — use --persist <dir> to save)")
+
+
+def _print_ingest_help() -> None:
+    """Print ingest subcommand options without touching repository paths."""
+    print(
+        "Usage: director-ai ingest <file-or-dir> [options]\n"
+        "\n"
+        "Ingest supported documents into a vector-backed knowledge store.\n"
+        "\n"
+        "Options:\n"
+        "  --persist <dir>           Persist chunks in a Chroma directory\n"
+        "  --chunk-size <tokens>     Maximum words per chunk (default: 500)\n"
+        "\n"
+        "Supported files: txt, md, markdown, json, jsonl, xml, pdf, docx, html, htm, csv\n"
+    )

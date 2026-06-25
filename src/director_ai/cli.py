@@ -148,7 +148,7 @@ def _print_help() -> None:
         "  review <prompt> <resp> Review a prompt/response pair\n"
         "  process <prompt>      Process a prompt through the full pipeline\n"
         "  batch <file.jsonl>    Batch process (max 10K prompts, <100MB)\n"
-        "  ingest <file>         Ingest documents (txt/md/pdf/docx/html/csv)\n"
+        "  ingest <file-or-dir> [--persist DIR] [--chunk-size N]  Ingest txt/md/pdf/docx/html/csv\n"
         "  eval [--dataset D]    Run NLI benchmark suite\n"
         "  ci-gate --dataset F --min-accuracy R  Fail CI when guard quality drops\n"
         "  bench [--dataset D] [--seed N] [--output F]  Run regression benchmarks\n"

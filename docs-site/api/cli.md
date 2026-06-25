@@ -22,6 +22,19 @@ director-ai process "What is the refund policy?"
 director-ai batch input.jsonl --output results.jsonl
 ```
 
+### Ingestion
+
+```bash
+# Show ingest storage and chunking options without opening a path
+director-ai ingest --help
+
+# Ingest one file or a directory into an in-memory vector store
+director-ai ingest ./knowledge
+
+# Persist chunks for reuse across runs
+director-ai ingest ./knowledge --persist ./chroma --chunk-size 350
+```
+
 ### Server
 
 ```bash
