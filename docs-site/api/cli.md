@@ -84,6 +84,14 @@ director-ai production-check --path director_guard --require-secrets
 ### Benchmarking
 
 ```bash
+# Show benchmark command options without running benchmark work
+director-ai eval --help
+director-ai bench --help
+
+# Show calibration and fine-tuning options without opening data files
+director-ai tune --help
+director-ai finetune --help
+
 # Run latency benchmark
 director-ai bench
 

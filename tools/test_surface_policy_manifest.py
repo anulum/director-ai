@@ -44,7 +44,14 @@ KNOWN_TEST_SURFACE_CLASSIFICATIONS: dict[str, tuple[str, str]] = {
     "tests/test_build_judge_dataset.py": ("violation", "ML/export/eval boundary fake"),
     "tests/test_ci_gate.py": ("violation", "private-helper bypass requiring review"),
     "tests/test_cli.py": ("violation", "CLI/server/API boundary fake"),
-    "tests/test_cli_bench_paths.py": ("violation", "CLI/server/API boundary fake"),
+    "tests/test_cli_bench_paths.py": (
+        "unit-guard-with-companion",
+        "CLI/server/API unit guard with companion tests/test_cli_bench_real_surface.py",
+    ),
+    "tests/test_cli_bench_branch_guards.py": (
+        "unit-guard-with-companion",
+        "CLI/server/API typed branch guard with companion tests/test_cli_bench_real_surface.py",
+    ),
     "tests/test_cli_ingest_formats.py": (
         "unit-guard-with-companion",
         "CLI/server/API unit guard with companion tests/test_cli_ingest_real_surface.py",

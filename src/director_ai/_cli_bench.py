@@ -25,6 +25,10 @@ def _cmd_eval(args: list[str]) -> None:
 
         director-ai eval --dataset aggrefact --max-samples 100 --output results.json
     """
+    if args and args[0] in ("-h", "--help", "help"):
+        _print_eval_help()
+        return
+
     import logging
     import os
 
@@ -105,6 +109,10 @@ def _cmd_bench(args: list[str]) -> None:
         director-ai bench
         director-ai bench --dataset regression --seed 42 --output results.json
     """
+    if args and args[0] in ("-h", "--help", "help"):
+        _print_bench_help()
+        return
+
     import random
 
     dataset = "regression"
@@ -236,11 +244,12 @@ def _cmd_tune(args: list[str]) -> None:
     Input format: one JSON object per line with
     ``{"prompt": str, "response": str, "label": bool}``.
     """
+    if args and args[0] in ("-h", "--help", "help"):
+        _print_tune_help()
+        return
+
     if not args:
-        print(
-            "Usage: director-ai tune <labeled.jsonl>|--dataset <eval.jsonl> "
-            "[--profile P] [--output config.yaml]",
-        )
+        _print_tune_help()
         sys.exit(1)
 
     import os
@@ -326,30 +335,86 @@ def _cmd_tune(args: list[str]) -> None:
         print(f"Profile overlay written to {output_file}")
 
 
+def _print_eval_help() -> None:
+    """Print eval subcommand options without loading benchmark modules."""
+    print(
+        "Usage: director-ai eval [options]\n"
+        "\n"
+        "Run the NLI benchmark suite or export a quantized ONNX scorer.\n"
+        "\n"
+        "Options:\n"
+        "  --dataset NAME          Benchmark dataset, for example aggrefact\n"
+        "  --max-samples N         Limit benchmark samples\n"
+        "  --output FILE           Write benchmark results as JSON\n"
+        "  --model ID              Override scorer model identifier\n"
+        "  --quantize int8|fp16    Export an ONNX scorer with quantization\n"
+    )
+
+
+def _print_bench_help() -> None:
+    """Print bench subcommand options without running benchmark functions."""
+    print(
+        "Usage: director-ai bench [options]\n"
+        "\n"
+        "Run the repository regression benchmark suite.\n"
+        "\n"
+        "Options:\n"
+        "  --dataset regression|e2e|streaming\n"
+        "  --seed N                Seed deterministic benchmark ordering\n"
+        "  --max-samples N         Limit the selected benchmark tests\n"
+        "  --output FILE           Write benchmark report as JSON\n"
+    )
+
+
+def _print_tune_help() -> None:
+    """Print tune subcommand options without opening a dataset file."""
+    print(
+        "Usage: director-ai tune <labeled.jsonl>|--dataset <eval.jsonl> [options]\n"
+        "\n"
+        "Tune profile thresholds from labelled prompt/response samples.\n"
+        "\n"
+        "Options:\n"
+        "  --dataset FILE          Labelled evaluation JSONL input\n"
+        "  --profile NAME          Base profile name for the overlay\n"
+        "  --output FILE           Write tuned profile YAML\n"
+    )
+
+
+def _print_finetune_help() -> None:
+    """Print finetune subcommand options without opening training data."""
+    print(
+        "Usage: director-ai finetune <train.jsonl> [options]\n"
+        "\n"
+        "Fine-tune the NLI scorer on domain-specific labelled data.\n"
+        "\n"
+        "Options:\n"
+        "  --eval <eval.jsonl>     Evaluation data\n"
+        "  --output <dir>          Output directory (default: ./director-finetuned)\n"
+        "  --epochs N              Training epochs (default: 3)\n"
+        "  --lr FLOAT              Learning rate (default: 2e-5)\n"
+        "  --batch-size N          Batch size (default: 16)\n"
+        "  --base-model ID         Base model (default: FactCG-DeBERTa-v3-Large)\n"
+        "  --mix-general           Mix general NLI data to prevent forgetting\n"
+        "  --general-data FILE     General NLI JSONL for --mix-general\n"
+        "  --early-stopping N      Stop after N evals without improvement\n"
+        "  --class-weights         Apply inverse-frequency class weights\n"
+        "  --auto-benchmark        Run anti-regression check after training\n"
+        "  --auto-onnx             Export to ONNX after training\n"
+    )
+
+
 def _cmd_finetune(args: list[str]) -> None:
     """Fine-tune NLI model on domain-specific labeled data.
 
     Input JSONL format: ``{"premise": str, "hypothesis": str, "label": int}``
     Also accepts: ``{"doc": str, "claim": str, "label": int}``
     """
+    if args and args[0] in ("-h", "--help", "help"):
+        _print_finetune_help()
+        return
+
     if not args:
-        print(
-            "Usage: director-ai finetune <train.jsonl> [options]\n"
-            "\n"
-            "Options:\n"
-            "  --eval <eval.jsonl>  Evaluation data\n"
-            "  --output <dir>      Output directory (default: ./director-finetuned)\n"
-            "  --epochs N          Training epochs (default: 3)\n"
-            "  --lr FLOAT          Learning rate (default: 2e-5)\n"
-            "  --batch-size N      Batch size (default: 16)\n"
-            "  --base-model ID     Base model (default: FactCG-DeBERTa-v3-Large)\n"
-            "  --mix-general       Mix 20% general NLI data to prevent forgetting\n"
-            "  --general-data P    Path to general NLI JSONL (for --mix-general)\n"
-            "  --early-stopping N  Stop after N evals without improvement\n"
-            "  --class-weights     Apply inverse-frequency class weights\n"
-            "  --auto-benchmark    Run anti-regression check after training\n"
-            "  --auto-onnx         Export to ONNX after training\n",
-        )
+        _print_finetune_help()
         sys.exit(1)
 
     import os
