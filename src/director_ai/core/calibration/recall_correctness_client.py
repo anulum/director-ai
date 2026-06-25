@@ -68,7 +68,7 @@ class RemanentiaCorrectnessClient:
     def __init__(
         self,
         base_url: str = "http://127.0.0.1:8001",
-        token: str = "",
+        token: str | None = None,
         timeout_s: float = 5.0,
     ) -> None:
         if timeout_s <= 0:
@@ -85,7 +85,7 @@ class RemanentiaCorrectnessClient:
         self._host = parsed.hostname or ""
         self._port = parsed.port
         self._base_path = parsed.path.rstrip("/")
-        self._token = token
+        self._token = token or ""
         self._timeout_s = timeout_s
 
     def record(self, outcome: RecallOutcome) -> str | None:
