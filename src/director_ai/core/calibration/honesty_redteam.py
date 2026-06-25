@@ -60,7 +60,7 @@ __all__ = [
 #: Hint shown when the optional seal SDK is missing.
 _EXTRA_HINT = (
     "the honesty seal is unavailable; install the 'honesty' extra "
-    "(scpn-studio-platform>=0.9, Python>=3.12)"
+    "(scpn-studio-platform>=0.10, Python>=3.12)"
 )
 
 #: A regrade re-derives the grade from the unit (the pure-function grade the

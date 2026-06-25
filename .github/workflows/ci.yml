@@ -450,6 +450,11 @@ jobs:
               TEST_TARGETS+=(tests/test_report_templates.py)
               ;;
           esac
+          case ",${{ matrix.extras }}," in
+            *,honesty,*)
+              TEST_TARGETS+=(tests/test_honesty_redteam.py)
+              ;;
+          esac
           if [ "${#TEST_TARGETS[@]}" -eq 0 ]; then
             echo "::error::No extras-specific tests configured for ${{ matrix.extras }}"
             exit 1
