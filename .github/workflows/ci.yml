@@ -50,6 +50,9 @@ jobs:
       - name: Studio federation manifest drift
         run: PYTHONPATH=src python tools/emit_studio_manifest.py --check
 
+      - name: Test surface policy
+        run: python tools/check_test_surface_policy.py --root .
+
       - name: Check formatting (ruff)
         run: ruff format --check src/ tests/ examples/
 
