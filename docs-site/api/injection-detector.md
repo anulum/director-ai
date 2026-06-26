@@ -164,7 +164,7 @@ Response headers:
 | `X-Director-Injection-Risk` | `0.0000`–`1.0000` | Combined injection risk score |
 | `X-Director-Injection-Detected` | `true` / `false` | Whether injection was flagged |
 
-The middleware extracts the system prompt from chat-message `messages` arrays (first `role: system` message) for accurate intent construction.
+The middleware extracts the system prompt from chat-message `messages` arrays (first `role: system` message) for accurate intent construction. It also scores OpenAI-compatible chat completion requests and `choices[].message.content` responses while passing non-POST routes through unscored.
 
 ## SDK Guard
 

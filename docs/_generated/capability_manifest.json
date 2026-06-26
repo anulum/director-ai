@@ -9,7 +9,7 @@
     "python_model_classes": 1000,
     "python_model_source_modules": 459,
     "rust_pyo3_model_wrappers": 83,
-    "test_files": 561
+    "test_files": 562
   },
   "documentation": {
     "public_pages": [
@@ -5369,6 +5369,7 @@
       "tests/test_external_security_packet.py",
       "tests/test_fallacy_detector.py",
       "tests/test_fastapi_guard.py",
+      "tests/test_fastapi_guard_real_surface.py",
       "tests/test_federated_dp.py",
       "tests/test_federated_dp_evidence.py",
       "tests/test_federated_privacy.py",
