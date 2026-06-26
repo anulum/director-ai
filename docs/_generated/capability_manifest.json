@@ -9,7 +9,7 @@
     "python_model_classes": 1000,
     "python_model_source_modules": 459,
     "rust_pyo3_model_wrappers": 83,
-    "test_files": 556
+    "test_files": 557
   },
   "documentation": {
     "public_pages": [
@@ -5250,6 +5250,7 @@
       "tests/test_cli_bench_branch_guards.py",
       "tests/test_cli_bench_paths.py",
       "tests/test_cli_bench_real_surface.py",
+      "tests/test_cli_core_real_surface.py",
       "tests/test_cli_forensics.py",
       "tests/test_cli_ingest_formats.py",
       "tests/test_cli_ingest_real_surface.py",

@@ -12,6 +12,11 @@ director-ai --help
 ### Scoring
 
 ```bash
+# Show core scoring and batch options without loading scorer/runtime paths
+director-ai review --help
+director-ai process --help
+director-ai batch --help
+
 # Score a single prompt/response pair
 director-ai review "What is the capital of France?" "The capital is Berlin."
 
@@ -54,6 +59,9 @@ curl http://localhost:8080/v1/health
 ### Configuration
 
 ```bash
+# Show configuration options without reading environment settings
+director-ai config --help
+
 # Show knowledge-base health options without opening the configured store
 director-ai kb-health --help
 
@@ -70,13 +78,16 @@ director-ai doctor
 # Show a named profile
 director-ai config --profile medical
 
-# Generate YAML config
-director-ai config --export config.yaml
+# Save a named profile view for editing
+director-ai config --profile medical > config.yaml
 ```
 
 ### Project Scaffolding
 
 ```bash
+# Show scaffold options without creating files
+director-ai quickstart --help
+
 # Create a new project with config, facts, and guard script
 director-ai quickstart --profile medical
 cd director_guard/

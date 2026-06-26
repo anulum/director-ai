@@ -537,6 +537,10 @@ def _load_profile_for_scaffold(profile: str) -> DirectorConfig:
 
 def _cmd_quickstart(args: list[str]) -> None:
     """Scaffold a working director-ai project in one command."""
+    if args and args[0] in ("-h", "--help", "help"):
+        _print_quickstart_help()
+        return
+
     profile = "fast"
     include_compose = True
     run_compose = False
@@ -583,3 +587,17 @@ def _cmd_quickstart(args: list[str]) -> None:
         print(f"Compose quickstart: cd {out_dir} && docker compose up")
     if run_compose:
         _run_quickstart_compose(out_dir)
+
+
+def _print_quickstart_help() -> None:
+    """Print quickstart options without creating scaffold files."""
+    print(
+        "Usage: director-ai quickstart [options]\n"
+        "\n"
+        "Scaffold a local director-ai project with config, facts, and guard script.\n"
+        "\n"
+        "Options:\n"
+        "  --profile NAME         Built-in profile to scaffold (default: fast)\n"
+        "  --no-compose           Omit docker-compose.yml and .env\n"
+        "  --run                  Run docker compose after scaffolding\n"
+    )

@@ -276,8 +276,12 @@ def _cmd_verify_audit(args: list[str]) -> None:
 
 
 def _cmd_review(args: list[str]) -> None:
+    if _is_help_request(args):
+        _print_review_help()
+        return
+
     if len(args) < 2:
-        print("Usage: director-ai review <prompt> <response>")
+        _print_review_help()
         sys.exit(1)
 
     prompt, response = args[0], args[1]
@@ -295,8 +299,12 @@ def _cmd_review(args: list[str]) -> None:
 
 
 def _cmd_process(args: list[str]) -> None:
+    if _is_help_request(args):
+        _print_process_help()
+        return
+
     if not args:
-        print("Usage: director-ai process <prompt>")
+        _print_process_help()
         sys.exit(1)
 
     prompt = args[0]
@@ -325,8 +333,12 @@ _BATCH_MAX_PROMPTS = 10_000
 
 
 def _cmd_batch(args: list[str]) -> None:
+    if _is_help_request(args):
+        _print_batch_help()
+        return
+
     if not args:
-        print("Usage: director-ai batch <input.jsonl> [--output results.jsonl]")
+        _print_batch_help()
         sys.exit(1)
 
     input_file = args[0]
@@ -420,6 +432,10 @@ def _cmd_batch(args: list[str]) -> None:
 
 
 def _cmd_config(args: list[str]) -> None:
+    if _is_help_request(args):
+        _print_config_help()
+        return
+
     from director_ai.core.config import DirectorConfig
 
     if "--profile" in args:
@@ -427,13 +443,60 @@ def _cmd_config(args: list[str]) -> None:
         if idx + 1 < len(args):
             cfg = DirectorConfig.from_profile(args[idx + 1])
         else:
-            print("Usage: director-ai config --profile <name>")
+            _print_config_help()
             sys.exit(1)
     else:
         cfg = DirectorConfig.from_env()
 
     for key, value in cfg.to_dict().items():
         print(f"  {key}: {value}")
+
+
+def _is_help_request(args: list[str]) -> bool:
+    """Return whether a command received an explicit help token."""
+    return bool(args) and args[0] in ("-h", "--help", "help")
+
+
+def _print_review_help() -> None:
+    """Print review command usage without building the scorer."""
+    print(
+        "Usage: director-ai review <prompt> <response>\n"
+        "\n"
+        "Review one prompt/response pair with the configured scorer.\n"
+    )
+
+
+def _print_process_help() -> None:
+    """Print process command usage without building the agent pipeline."""
+    print(
+        "Usage: director-ai process <prompt>\n"
+        "\n"
+        "Generate and review one response through the configured agent pipeline.\n"
+    )
+
+
+def _print_batch_help() -> None:
+    """Print batch command usage without opening an input file."""
+    print(
+        "Usage: director-ai batch <input.jsonl> [--output results.jsonl]\n"
+        "\n"
+        "Batch process JSONL prompts. Each input line should include a prompt field.\n"
+        "\n"
+        "Options:\n"
+        "  --output FILE          Write full ReviewResult records as JSONL\n"
+    )
+
+
+def _print_config_help() -> None:
+    """Print config command usage without loading environment configuration."""
+    print(
+        "Usage: director-ai config [--profile <name>]\n"
+        "\n"
+        "Print the active configuration or a built-in profile configuration.\n"
+        "\n"
+        "Options:\n"
+        "  --profile NAME         Print a built-in profile instead of env config\n"
+    )
 
 
 if __name__ == "__main__":
