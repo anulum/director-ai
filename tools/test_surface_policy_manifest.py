@@ -187,7 +187,10 @@ KNOWN_TEST_SURFACE_CLASSIFICATIONS: dict[str, tuple[str, str]] = {
         "violation",
         "ML/export/eval boundary fake",
     ),
-    "tests/test_grpc_server.py": ("violation", "CLI/server/API boundary fake"),
+    "tests/test_grpc_server.py": (
+        "unit-guard-with-companion",
+        "CLI/server/API unit guard with companion tests/test_grpc_server_real_surface.py",
+    ),
     "tests/test_guardrails_ai_integration.py": (
         "violation",
         "external SDK adapter fake",

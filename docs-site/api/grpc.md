@@ -24,6 +24,9 @@ Install the optional transport dependencies before using either service:
 pip install director-ai[grpc]
 ```
 
+The extra installs `grpcio`, `grpcio-tools`, protobuf support, and gRPC
+reflection support for clients that discover services dynamically.
+
 ## Legacy DirectorService
 
 `create_grpc_server()` serves `DirectorService` on port `50051` by default.
