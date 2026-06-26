@@ -21,6 +21,7 @@ Run these before claiming documentation is current:
 
 ```bash
 PYTHONPATH=src uv run --frozen python -m mkdocs build --strict
+PYTHONPATH=src uv run --frozen python tools/validate_api_reference.py --root .
 uv run --frozen ruff check README.md mkdocs.yml docs-site src/director_ai
 git diff --check -- README.md mkdocs.yml docs-site src/director_ai
 ```

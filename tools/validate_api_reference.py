@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: Apache-2.0
-# Commercial licence available
-# Concepts 1996-2026 Miroslav Sotek. All rights reserved.
-# Code 2020-2026 Miroslav Sotek. All rights reserved.
+# Commercial license available
+# (c) Concepts 1996-2026 Miroslav Sotek. All rights reserved.
+# (c) Code 2020-2026 Miroslav Sotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI - API reference consistency validator
+"""Validate that the public API reference index matches docs and imports."""
 
 from __future__ import annotations
 
@@ -23,6 +24,18 @@ REFERENCE_INDEX = Path("docs-site/api/index.md")
 
 @dataclass(frozen=True)
 class ReferenceRow:
+    """One parsed row from ``docs-site/api/index.md``.
+
+    Parameters
+    ----------
+    line_number:
+        One-based line number in the Markdown index.
+    symbol_cell:
+        The first table cell containing the linked API symbol.
+    module_cell:
+        The table cell containing the importable module path.
+    """
+
     line_number: int
     symbol_cell: str
     module_cell: str
@@ -165,6 +178,20 @@ def _validate_importable_symbol(
 
 
 def validate_api_reference(root: Path) -> list[str]:
+    """Return validation errors for the API reference under ``root``.
+
+    Parameters
+    ----------
+    root:
+        Repository root containing ``docs-site/api/index.md``.
+
+    Returns
+    -------
+    list[str]
+        Stable human-readable validation errors. An empty list means the
+        reference index is consistent with local Markdown targets and importable
+        ``director_ai`` symbols.
+    """
     root = root.resolve()
     index_path = root / REFERENCE_INDEX
     if not index_path.exists():
@@ -193,17 +220,39 @@ def validate_api_reference(root: Path) -> list[str]:
 
 
 def main(argv: list[str] | None = None) -> int:
+    """Run the API reference validator command-line interface.
+
+    Parameters
+    ----------
+    argv:
+        Optional argument vector. When ``None``, ``argparse`` reads
+        ``sys.argv``.
+
+    Returns
+    -------
+    int
+        Process-style status code: ``0`` for a consistent reference index,
+        ``1`` when validation errors are found.
+    """
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "root",
         nargs="?",
+        default=None,
+        type=Path,
+        help="Repository root containing docs-site/api/index.md",
+    )
+    parser.add_argument(
+        "--root",
+        dest="root_option",
         default=Path.cwd(),
         type=Path,
         help="Repository root containing docs-site/api/index.md",
     )
     args = parser.parse_args(argv)
 
-    errors = validate_api_reference(args.root)
+    root = args.root if args.root is not None else args.root_option
+    errors = validate_api_reference(root)
     if errors:
         for error in errors:
             print(error, file=sys.stderr)
