@@ -362,8 +362,8 @@ KNOWN_TEST_SURFACE_CLASSIFICATIONS: dict[str, tuple[str, str]] = {
         "module/workflow fake requiring review",
     ),
     "tests/test_recall_correctness_client.py": (
-        "violation",
-        "CLI/server/API boundary fake",
+        "unit-guard-with-companion",
+        "CLI/server/API unit guard with companion tests/test_recall_correctness_client_real_surface.py",
     ),
     "tests/test_redis_enterprise.py": ("violation", "storage/retrieval adapter fake"),
     "tests/test_report_templates.py": ("violation", "generated/docs/config guard fake"),

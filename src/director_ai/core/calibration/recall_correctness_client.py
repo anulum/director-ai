@@ -56,7 +56,8 @@ class RemanentiaCorrectnessClient:
     base_url:
         REMANENTIA API root, e.g. ``http://127.0.0.1:8001``. Must be an
         ``http``/``https`` URL with a host and no query/params/fragment — the
-        same shape the read-only vector backend accepts.
+        same shape the read-only vector backend accepts. Embedded credentials
+        are rejected; pass bearer material through ``token``.
     token:
         Bearer token for the authenticated ``/recall`` family. When empty no
         ``Authorization`` header is sent, which the server will reject with
@@ -78,6 +79,8 @@ class RemanentiaCorrectnessClient:
             raise ValueError("base_url scheme must be http or https")
         if not parsed.netloc:
             raise ValueError("base_url must include a host")
+        if parsed.username is not None or parsed.password is not None:
+            raise ValueError("base_url must not include credentials")
         if parsed.params or parsed.query or parsed.fragment:
             raise ValueError("base_url must not include params, query, or fragment")
 

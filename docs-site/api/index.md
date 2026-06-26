@@ -194,6 +194,7 @@ See [Structured Verification Guide](../guide/structured-verification.md).
 | `CalibrationReport` | `core.calibration.online_calibrator` | Calibration metrics dataclass |
 | `HumanReviewQueue` | `core.runtime.human_review` | Reviewer case queue with append-only decisions |
 | `AdaptiveThresholdLearner` | `core.calibration.adaptive_threshold` | Human-gated Thompson-sampling threshold recommender |
+| [`RemanentiaCorrectnessClient`](../guide/online-calibration.md) | `director_ai.core.calibration.recall_correctness_client` | Bearer-authenticated recall-correctness feedback HTTP client |
 
 See [Online Calibration Guide](../guide/online-calibration.md).
 

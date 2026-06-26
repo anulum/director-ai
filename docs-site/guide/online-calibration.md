@@ -143,6 +143,37 @@ store.log_export_artifact(
 Supported backends are `mlflow` and `wandb`; both require an already active run.
 Director-AI does not silently create remote runs during feedback export.
 
+## REMANENTIA Recall-Correctness Feedback
+
+`RemanentiaCorrectnessClient` posts derived recall-correctness labels to
+`POST /recall/correctness` on a REMANENTIA service. Use it when a
+Director-AI verdict should label the recall record that supplied the answer.
+
+```python
+from director_ai.core.calibration.recall_correctness import RecallOutcome
+from director_ai.core.calibration.recall_correctness_client import (
+    RemanentiaCorrectnessClient,
+)
+
+client = RemanentiaCorrectnessClient(
+    "https://memory.example/api",
+    token="remanentia-bearer-token",
+)
+event_id = client.record(
+    RecallOutcome(
+        query="What was retrieved?",
+        was_correct=True,
+        by="director-ai",
+    )
+)
+```
+
+The client returns `None` when REMANENTIA reports that no prior recall exists
+for the query. Transport, authentication, and protocol failures raise
+`RemanentiaCorrectnessError`; use `try_record()` on answering hot paths where
+memory-feedback failures must not break the response. Keep credentials in the
+`token` argument. URLs with embedded `user:pass@host` credentials are rejected.
+
 ## Self-Improving Guard Loop Gate
 
 Use `SelfImprovingGuardLoop` when calibration or fine-tuning should enter a
