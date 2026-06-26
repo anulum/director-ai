@@ -17,6 +17,10 @@ if TYPE_CHECKING:
 
 def _cmd_kb_health(args: list[str]) -> None:
     """Run knowledge base health diagnostics."""
+    if args and args[0] in ("-h", "--help", "help"):
+        _print_kb_health_help()
+        return
+
     from director_ai.core.config import DirectorConfig
     from director_ai.core.retrieval.kb_health import KBHealthCheck
 
@@ -56,6 +60,10 @@ def _cmd_kb_health(args: list[str]) -> None:
 
 def _cmd_wizard(args: list[str]) -> None:
     """Launch the interactive configuration wizard."""
+    if args and args[0] in ("-h", "--help", "help"):
+        _print_wizard_help()
+        return
+
     cli_mode = "--cli" in args
     port = 7860
     share = "--share" in args
@@ -97,6 +105,10 @@ def _cmd_wizard(args: list[str]) -> None:
 
 def _cmd_safety_dashboard(args: list[str]) -> None:
     """Launch or render the safety operations dashboard."""
+    if args and args[0] in ("-h", "--help", "help"):
+        _print_safety_dashboard_help()
+        return
+
     port = 7861
     share = "--share" in args
     text_mode = "--text" in args
@@ -163,3 +175,51 @@ def _cmd_safety_dashboard(args: list[str]) -> None:
         print(
             "Gradio not installed. Use --text or install with: pip install director-ai[ui]"
         )
+
+
+def _print_kb_health_help() -> None:
+    """Print knowledge-base health options without opening the configured store."""
+    print(
+        "Usage: director-ai kb-health [options]\n"
+        "\n"
+        "Run knowledge-base document-count and retrieval-latency diagnostics.\n"
+        "\n"
+        "Options:\n"
+        "  --min-docs N           Minimum indexed documents required (default: 1)\n"
+        "  --max-latency MS       Maximum average query latency in milliseconds\n"
+    )
+
+
+def _print_wizard_help() -> None:
+    """Print configuration wizard options without launching an interface."""
+    print(
+        "Usage: director-ai wizard [options]\n"
+        "\n"
+        "Launch the configuration wizard or emit a CLI-generated config file.\n"
+        "\n"
+        "Options:\n"
+        "  --cli                  Run the terminal wizard instead of Gradio\n"
+        "  --output FILE          Write generated YAML when using CLI fallback\n"
+        "  --port N               Gradio port (default: 7860)\n"
+        "  --share                Enable Gradio sharing\n"
+    )
+
+
+def _print_safety_dashboard_help() -> None:
+    """Print safety dashboard options without launching UI dependencies."""
+    print(
+        "Usage: director-ai safety-dashboard [options]\n"
+        "\n"
+        "Launch the safety operations dashboard or render a text summary.\n"
+        "\n"
+        "Options:\n"
+        "  --text                 Render the dashboard summary in the terminal\n"
+        "  --events FILE          Safety events JSONL input for text mode\n"
+        "  --feedback FILE        Feedback JSONL input for text mode\n"
+        "  --port N               Gradio port (default: 7861)\n"
+        "  --share                Enable Gradio sharing\n"
+        "  --halt-alert-threshold FLOAT\n"
+        "                         Halt-rate alert threshold (default: 0.15)\n"
+        "  --false-positive-alert-threshold FLOAT\n"
+        "                         False-positive alert threshold (default: 0.05)\n"
+    )

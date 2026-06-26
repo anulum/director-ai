@@ -54,6 +54,13 @@ curl http://localhost:8080/v1/health
 ### Configuration
 
 ```bash
+# Show knowledge-base health options without opening the configured store
+director-ai kb-health --help
+
+# Show wizard and safety-dashboard options without launching UI dependencies
+director-ai wizard --help
+director-ai safety-dashboard --help
+
 # Show current config
 director-ai config
 
