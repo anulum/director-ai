@@ -73,7 +73,11 @@ director-ai safety-dashboard --help
 director-ai config
 
 # Check runtime dependencies and model revision pins
+director-ai doctor --help
 director-ai doctor
+
+# Show licence administration and deployment checks without reading licence files
+director-ai license --help
 
 # Show a named profile
 director-ai config --profile medical
@@ -133,6 +137,19 @@ director-ai export --format tensorrt --output ./models/trt/
 ### Guardrail Forensics
 
 ```bash
+# Show verification and diagnostics options without running scorer work
+director-ai verify-numeric --help
+director-ai verify-reasoning --help
+director-ai temporal-freshness --help
+director-ai check-step --help
+director-ai consensus --help
+director-ai adversarial-test --help
+
+# Show KPI, forensics, and cost-report options without opening data/config
+director-ai kpis --help
+director-ai forensics --help
+director-ai cost-report --help
+
 # Explain reviewed misses from tenant-safe eval records
 director-ai forensics --input eval_records.json --format markdown
 ```

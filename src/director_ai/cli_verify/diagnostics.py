@@ -107,6 +107,10 @@ def _stack_warnings(checks: list[tuple[str, bool, str]]) -> list[str]:
 
 def _cmd_doctor(args: list[str]) -> None:
     """Check runtime dependencies and print readiness summary."""
+    if _is_help_request(args):
+        _print_doctor_help()
+        return
+
     import platform
 
     import director_ai
@@ -187,6 +191,10 @@ def _cmd_doctor(args: list[str]) -> None:
 
 def _cmd_license(args: list[str]) -> None:
     """License management: status, generate, validate."""
+    if _is_help_request(args):
+        _print_license_help()
+        return
+
     from director_ai.core.license import generate_license, load_license, validate_file
 
     if not args or args[0] == "status":
@@ -284,5 +292,32 @@ def _cmd_license(args: list[str]) -> None:
         sys.exit(0 if report.ready else 1)
 
     print(f"Unknown license subcommand: {args[0]}")
-    print("Usage: director-ai license [status|generate|validate|polar-env]")
+    _print_license_help()
     sys.exit(1)
+
+
+def _is_help_request(args: list[str]) -> bool:
+    """Return whether a command received an explicit help token."""
+    return bool(args) and args[0] in ("-h", "--help", "help")
+
+
+def _print_doctor_help() -> None:
+    """Print doctor command usage without importing optional runtimes."""
+    print(
+        "Usage: director-ai doctor\n"
+        "\n"
+        "Check runtime dependencies, stack readiness, and model revision health.\n"
+    )
+
+
+def _print_license_help() -> None:
+    """Print license command usage without reading licence files or env secrets."""
+    print(
+        "Usage: director-ai license [status|generate|validate|polar-env]\n"
+        "\n"
+        "Subcommands:\n"
+        "  status                         Show loaded licence metadata\n"
+        "  generate [options]             Generate a licence with DIRECTOR_ADMIN_KEY\n"
+        "  validate <path>                Validate a licence file\n"
+        "  polar-env [--json]             Check Polar deployment environment\n"
+    )

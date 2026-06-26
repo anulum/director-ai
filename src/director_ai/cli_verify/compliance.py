@@ -213,6 +213,10 @@ def _cmd_compliance(args: list[str]) -> None:
 
 def _cmd_cost_report(args: list[str]) -> None:
     """Show token cost report from the running scorer's CostAnalyser."""
+    if _is_help_request(args):
+        _print_cost_report_help()
+        return
+
     fmt = "text"
     i = 0
     while i < len(args):
@@ -279,6 +283,10 @@ def _cmd_kpis(args: list[str]) -> None:
     (``tenant_boundary_violations`` / ``unsigned_kb_writes_rejected`` /
     ``security_exception_debt``), and an optional ``targets`` overlay.
     """
+    if _is_help_request(args):
+        _print_kpis_help()
+        return
+
     input_path = None
     fmt = "text"
     i = 0
@@ -293,9 +301,7 @@ def _cmd_kpis(args: list[str]) -> None:
             i += 1
 
     if input_path is None:
-        print(
-            "Usage: director-ai kpis --input <bundle.json> [--format text|markdown|json]"
-        )
+        _print_kpis_help()
         sys.exit(1)
     if fmt not in ("text", "markdown", "json"):
         print(f"Unknown format '{fmt}'. Choose from: text, markdown, json")
@@ -365,6 +371,10 @@ def _cmd_kpis(args: list[str]) -> None:
 
 def _cmd_forensics(args: list[str]) -> None:
     """Render scorer-miss forensics from tenant-safe eval records."""
+    if _is_help_request(args):
+        _print_forensics_help()
+        return
+
     input_path = None
     fmt = "text"
     i = 0
@@ -379,10 +389,7 @@ def _cmd_forensics(args: list[str]) -> None:
             i += 1
 
     if input_path is None:
-        print(
-            "Usage: director-ai forensics --input <records.json> "
-            "[--format text|markdown|json]"
-        )
+        _print_forensics_help()
         sys.exit(1)
     if fmt not in ("text", "markdown", "json"):
         print(f"Unknown format '{fmt}'. Choose from: text, markdown, json")
@@ -442,3 +449,37 @@ def _forensics_records_from_payload(payload: object) -> list[Mapping[str, object
             raise ValueError("each record must be a JSON object")
         records.append(record)
     return records
+
+
+def _is_help_request(args: list[str]) -> bool:
+    """Return whether a command received an explicit help token."""
+    return bool(args) and args[0] in ("-h", "--help", "help")
+
+
+def _print_cost_report_help() -> None:
+    """Print cost-report usage without loading scorer configuration."""
+    print(
+        "Usage: director-ai cost-report [--format text|json|html]\n"
+        "\n"
+        "Render the running scorer cost tracking report when cost tracking is enabled.\n"
+    )
+
+
+def _print_kpis_help() -> None:
+    """Print KPI usage without opening the input bundle."""
+    print(
+        "Usage: director-ai kpis --input <bundle.json> "
+        "[--format text|markdown|json]\n"
+        "\n"
+        "Render board-level guardrail KPIs from a JSON input bundle.\n"
+    )
+
+
+def _print_forensics_help() -> None:
+    """Print forensics usage without opening eval records."""
+    print(
+        "Usage: director-ai forensics --input <records.json> "
+        "[--format text|markdown|json]\n"
+        "\n"
+        "Render scorer-miss forensics from tenant-safe eval records.\n"
+    )

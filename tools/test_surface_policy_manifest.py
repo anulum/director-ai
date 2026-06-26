@@ -67,7 +67,10 @@ KNOWN_TEST_SURFACE_CLASSIFICATIONS: dict[str, tuple[str, str]] = {
         "unit-guard-with-companion",
         "CLI/server/API unit guard with companion tests/test_cli_serve_real_surface.py",
     ),
-    "tests/test_cli_verify_deep.py": ("violation", "CLI/server/API boundary fake"),
+    "tests/test_cli_verify_deep.py": (
+        "unit-guard-with-companion",
+        "CLI/server/API unit guard with companions tests/test_cli_verify_real_surface.py and tests/test_cli_verify_reporting_real_surface.py",
+    ),
     "tests/test_competitor_aggrefact.py": (
         "violation",
         "module/workflow fake requiring review",

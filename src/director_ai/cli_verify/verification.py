@@ -17,8 +17,12 @@ if TYPE_CHECKING:
 
 def _cmd_verify_numeric(args: list[str]) -> None:
     """Check numeric consistency in text."""
+    if _is_help_request(args):
+        _print_verify_numeric_help()
+        return
+
     if not args:
-        print("Usage: director-ai verify-numeric <text>")
+        _print_verify_numeric_help()
         sys.exit(1)
 
     from director_ai.core.verification.numeric_verifier import verify_numeric
@@ -34,8 +38,12 @@ def _cmd_verify_numeric(args: list[str]) -> None:
 
 def _cmd_verify_reasoning(args: list[str]) -> None:
     """Verify logical structure of a reasoning chain."""
+    if _is_help_request(args):
+        _print_verify_reasoning_help()
+        return
+
     if not args:
-        print("Usage: director-ai verify-reasoning <text>")
+        _print_verify_reasoning_help()
         sys.exit(1)
 
     from director_ai.core.verification.reasoning_verifier import verify_reasoning_chain
@@ -50,8 +58,12 @@ def _cmd_verify_reasoning(args: list[str]) -> None:
 
 def _cmd_temporal_freshness(args: list[str]) -> None:
     """Score temporal freshness of claims."""
+    if _is_help_request(args):
+        _print_temporal_freshness_help()
+        return
+
     if not args:
-        print("Usage: director-ai temporal-freshness <text>")
+        _print_temporal_freshness_help()
         sys.exit(1)
 
     from director_ai.core.scoring.temporal_freshness import score_temporal_freshness
@@ -66,8 +78,12 @@ def _cmd_temporal_freshness(args: list[str]) -> None:
 
 def _cmd_check_step(args: list[str]) -> None:
     """Check an agentic step for safety issues."""
+    if _is_help_request(args):
+        _print_check_step_help()
+        return
+
     if len(args) < 2:
-        print("Usage: director-ai check-step <goal> <action> [args]")
+        _print_check_step_help()
         sys.exit(1)
 
     from director_ai.agentic.loop_monitor import LoopMonitor
@@ -90,13 +106,12 @@ def _cmd_check_step(args: list[str]) -> None:
 
 def _cmd_consensus(args: list[str]) -> None:
     """Score factual agreement across multiple model responses."""
+    if _is_help_request(args):
+        _print_consensus_help()
+        return
+
     if len(args) < 2:
-        print(
-            "Usage: director-ai consensus <model1:response1> <model2:response2> ...\n"
-            "\n"
-            "Each argument is model_name:response_text (colon-separated).\n"
-            "Example: director-ai consensus 'gpt:Paris is the capital' 'claude:Paris is the capital'"
-        )
+        _print_consensus_help()
         sys.exit(1)
 
     from director_ai.core.scoring.consensus import ConsensusScorer, ModelResponse
@@ -122,6 +137,10 @@ def _cmd_consensus(args: list[str]) -> None:
 
 def _cmd_adversarial_test(args: list[str]) -> None:
     """Run adversarial robustness test against the guardrail."""
+    if _is_help_request(args):
+        _print_adversarial_test_help()
+        return
+
     from director_ai.core.config import DirectorConfig
 
     cfg = DirectorConfig.from_env()
@@ -144,3 +163,64 @@ def _cmd_adversarial_test(args: list[str]) -> None:
     print(f"Robust:     {report.is_robust}")
     if report.vulnerable_categories:
         print(f"Vulnerable: {', '.join(report.vulnerable_categories)}")
+
+
+def _is_help_request(args: list[str]) -> bool:
+    """Return whether a command received an explicit help token."""
+    return bool(args) and args[0] in ("-h", "--help", "help")
+
+
+def _print_verify_numeric_help() -> None:
+    """Print verify-numeric usage without importing numeric verification code."""
+    print(
+        "Usage: director-ai verify-numeric <text>\n"
+        "\n"
+        "Check numeric consistency in text and report claims, errors, and warnings.\n"
+    )
+
+
+def _print_verify_reasoning_help() -> None:
+    """Print verify-reasoning usage without importing reasoning verification code."""
+    print(
+        "Usage: director-ai verify-reasoning <text>\n"
+        "\n"
+        "Verify the logical structure of a reasoning chain.\n"
+    )
+
+
+def _print_temporal_freshness_help() -> None:
+    """Print temporal-freshness usage without scoring temporal claims."""
+    print(
+        "Usage: director-ai temporal-freshness <text>\n"
+        "\n"
+        "Score temporal freshness and staleness risk for claims in text.\n"
+    )
+
+
+def _print_check_step_help() -> None:
+    """Print check-step usage without constructing the loop monitor."""
+    print(
+        "Usage: director-ai check-step <goal> <action> [args]\n"
+        "\n"
+        "Check one agentic step for halt, warning, drift, and budget signals.\n"
+    )
+
+
+def _print_consensus_help() -> None:
+    """Print consensus usage without constructing the consensus scorer."""
+    print(
+        "Usage: director-ai consensus <model:response> <model:response> ...\n"
+        "\n"
+        "Each argument is model_name:response_text (colon-separated).\n"
+        "Example: director-ai consensus 'gpt:Paris is the capital' "
+        "'claude:Paris is the capital'\n"
+    )
+
+
+def _print_adversarial_test_help() -> None:
+    """Print adversarial-test usage without building a scorer or running probes."""
+    print(
+        "Usage: director-ai adversarial-test [prompt]\n"
+        "\n"
+        "Run the adversarial prompt suite against the configured guardrail.\n"
+    )

@@ -9,7 +9,7 @@
     "python_model_classes": 1000,
     "python_model_source_modules": 459,
     "rust_pyo3_model_wrappers": 83,
-    "test_files": 557
+    "test_files": 559
   },
   "documentation": {
     "public_pages": [
@@ -5260,6 +5260,8 @@
       "tests/test_cli_serve_real_surface.py",
       "tests/test_cli_tools_real_surface.py",
       "tests/test_cli_verify_deep.py",
+      "tests/test_cli_verify_real_surface.py",
+      "tests/test_cli_verify_reporting_real_surface.py",
       "tests/test_code_verifier.py",
       "tests/test_coherence_scorer_review.py",
       "tests/test_commit_message_guard.py",
