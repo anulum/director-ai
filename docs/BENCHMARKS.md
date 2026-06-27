@@ -51,6 +51,13 @@ packet into a release claim. `tests/test_lite_scorer_v2_run_plan_real_surface.py
 covers that CLI contract against a temporary manifest and verifies the same
 error boundary for unsupported student candidates.
 
+`tools/record_lite_scorer_v2_evidence.py` records the evidence packet from
+local student, teacher, ONNX, model-card, benchmark-review, and evaluator JSON
+artefacts, then re-runs the Lite Scorer validator before keeping the file.
+`tests/test_lite_scorer_v2_record_evidence_real_surface.py` covers that CLI
+contract with temporary artefacts, hash assertions, measured evaluator fields,
+and the fail-closed missing-artefact path.
+
 ## Scoring Tiers
 
 Director-AI uses a 5-tier scoring pyramid. Each tier trades latency for accuracy.

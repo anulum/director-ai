@@ -9,7 +9,7 @@
     "python_model_classes": 1000,
     "python_model_source_modules": 459,
     "rust_pyo3_model_wrappers": 83,
-    "test_files": 576
+    "test_files": 577
   },
   "documentation": {
     "public_pages": [
@@ -5486,6 +5486,7 @@
       "tests/test_lite_scorer_v2_plan.py",
       "tests/test_lite_scorer_v2_plan_real_surface.py",
       "tests/test_lite_scorer_v2_record_evidence.py",
+      "tests/test_lite_scorer_v2_record_evidence_real_surface.py",
       "tests/test_lite_scorer_v2_run_plan.py",
       "tests/test_lite_scorer_v2_run_plan_real_surface.py",
       "tests/test_lite_scorer_v2_training_status.py",
