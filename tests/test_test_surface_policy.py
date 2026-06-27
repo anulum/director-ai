@@ -389,6 +389,16 @@ def test_voice_adapter_unit_guard_has_real_surface_companion() -> None:
     assert "tests/test_voice_adapters_real_surface.py" in category
 
 
+def test_capability_manifest_tool_guard_has_real_surface_companion() -> None:
+    """Capability manifest guard should exercise the production generator."""
+    classification, category = KNOWN_TEST_SURFACE_CLASSIFICATIONS[
+        "tests/test_tools/test_capability_manifest.py"
+    ]
+
+    assert classification == "unit-guard-with-companion"
+    assert "tools/capability_manifest.py" in category
+
+
 def test_policy_main_returns_success_for_clean_tree(tmp_path: Path) -> None:
     _write_test(tmp_path, "tests/test_real_surface.py")
 

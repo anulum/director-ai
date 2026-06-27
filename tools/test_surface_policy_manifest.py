@@ -462,8 +462,8 @@ KNOWN_TEST_SURFACE_CLASSIFICATIONS: dict[str, tuple[str, str]] = {
     ),
     "tests/test_tensorrt_export.py": ("violation", "ML/export/eval boundary fake"),
     "tests/test_tools/test_capability_manifest.py": (
-        "violation",
-        "generated/docs/config guard fake",
+        "unit-guard-with-companion",
+        "generated/docs/config guard with companion tools/capability_manifest.py",
     ),
     "tests/test_tools/test_emit_studio_manifest.py": (
         "violation",

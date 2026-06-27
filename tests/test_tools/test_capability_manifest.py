@@ -17,6 +17,8 @@ from contextlib import contextmanager
 from pathlib import Path
 from typing import Any
 
+import pytest
+
 
 def _repo_root() -> Path:
     return Path(__file__).resolve().parents[2]
@@ -222,6 +224,300 @@ def test_git_scanner_reflects_pending_adds_and_deletes() -> None:
         )
 
         assert paths == [source_root / "new_module.py"]
+
+
+def test_portable_config_defaults_and_path_fallbacks() -> None:
+    """Config loading should support missing files and external config paths."""
+    tool = _load_tool()
+    with _tempdir() as repo:
+        _write_portable_fixture(repo)
+
+        defaults = tool.load_config(repo, Path("missing.toml"))
+        assert defaults.project_label == "Director-AI"
+        assert defaults.source_path is None
+
+        external = repo.parent / "external_capability_manifest.toml"
+        external.write_text(
+            'project_label = "External Project"\n',
+            encoding="utf-8",
+        )
+        config = tool.load_config(repo, external)
+
+        assert config.project_label == "External Project"
+        assert config.source_path == external.resolve()
+
+
+def test_readme_refresh_rejects_missing_markers() -> None:
+    """README refresh should fail loudly when configured markers are absent."""
+    tool = _load_tool()
+    with _tempdir() as repo:
+        _write_portable_fixture(repo)
+        config = tool.load_config(repo)
+        (repo / "README.md").write_text("# Missing markers\n", encoding="utf-8")
+
+        with pytest.raises(RuntimeError, match="missing capability snapshot markers"):
+            tool.refresh_readme_block(repo, "snapshot", config=config)
+
+
+def test_refresh_outputs_can_skip_readme_update() -> None:
+    """Output refresh should support JSON/Markdown-only generation."""
+    tool = _load_tool()
+    with _tempdir() as repo:
+        _write_portable_fixture(repo)
+        config = tool.load_config(repo)
+
+        json_path, markdown_path, readme_path = tool.refresh_outputs(
+            repo,
+            config=config,
+            update_readme=False,
+        )
+
+        assert json_path.exists()
+        assert markdown_path.exists()
+        assert readme_path is None
+
+
+def test_manifest_validation_reports_schema_shape_and_count_errors() -> None:
+    """Manifest validation should report malformed payloads deterministically."""
+    tool = _load_tool()
+
+    report = tool.validate_manifest(
+        {
+            "schema_version": "wrong",
+            "counts": {"python_model_classes": -1, "broken": "not-int"},
+            "models": {"python_classes": "not-a-list"},
+        }
+    )
+
+    assert not report["passed"]
+    assert "schema_version mismatch" in report["errors"]
+    assert "missing top-level key: project" in report["errors"]
+    assert "counts.python_model_classes must be a non-negative integer" in report[
+        "errors"
+    ]
+    assert "counts.broken must be a non-negative integer" in report["errors"]
+    assert "models list missing for count python_model_classes" in report["errors"]
+
+    counts_report = tool.validate_manifest({"schema_version": "wrong", "counts": []})
+    assert "counts must be an object" in counts_report["errors"]
+
+
+def test_assert_outputs_current_reports_missing_stale_and_readme_drift() -> None:
+    """Generated-output checker should combine all drift errors in one message."""
+    tool = _load_tool()
+    with _tempdir() as repo:
+        _write_portable_fixture(repo)
+        config = tool.load_config(repo)
+        tool.refresh_outputs(repo, config=config)
+        (repo / "docs/_generated/capability_manifest.json").write_text(
+            "{}\n", encoding="utf-8"
+        )
+        (repo / "docs/_generated/capability_snapshot.md").unlink()
+        (repo / "README.md").write_text(
+            "\n".join(
+                [
+                    "# Portable Project",
+                    "",
+                    "<!-- capability-snapshot:start -->",
+                    "stale",
+                    "<!-- capability-snapshot:end -->",
+                    "",
+                ]
+            ),
+            encoding="utf-8",
+        )
+
+        with pytest.raises(RuntimeError) as exc_info:
+            tool.assert_outputs_current(repo, config=config)
+
+        message = str(exc_info.value)
+        assert "stale generated manifest" in message
+        assert "missing generated snapshot" in message
+        assert "stale README capability block" in message
+
+        tool.refresh_outputs(repo, config=config)
+        (repo / "docs/_generated/capability_manifest.json").unlink()
+        with pytest.raises(RuntimeError, match="missing generated manifest"):
+            tool.assert_outputs_current(repo, config=config)
+
+        tool.refresh_outputs(repo, config=config)
+        (repo / "docs/_generated/capability_snapshot.md").write_text(
+            "stale\n", encoding="utf-8"
+        )
+        with pytest.raises(RuntimeError, match="stale generated snapshot"):
+            tool.assert_outputs_current(repo, config=config)
+
+        tool.refresh_outputs(repo, config=config)
+        (repo / "README.md").write_text("# Missing markers\n", encoding="utf-8")
+        tool.assert_outputs_current(repo, config=config, check_readme=False)
+
+
+def test_static_scanners_cover_absent_roots_and_ast_variants() -> None:
+    """Static scanners should handle absent roots and export AST variants."""
+    tool = _load_tool()
+    with _tempdir() as repo:
+        assert tool._public_exports(repo / "missing.py") == []
+        assert tool._python_model_sources(
+            repo / "missing", repo=repo, exclude_parts=()
+        ) == []
+        assert tool._python_model_classes(
+            repo / "missing", repo=repo, exclude_parts=()
+        ) == []
+        assert tool._project_extras({"project": {"optional-dependencies": []}}) == []
+        assert tool._workflow_files(repo / "missing", repo=repo) == []
+        assert tool._python_files(repo / "missing", repo=repo) == []
+        assert tool._markdown_docs(repo / "missing", repo=repo, exclude_parts=()) == []
+        assert not tool._readme_block_matches(
+            repo / "missing.md",
+            "snapshot",
+            config=tool.load_config(repo, Path("missing.toml")),
+        )
+        marked_config = tool.load_config(repo, Path("missing.toml"))
+        no_marker_readme = repo / "README.md"
+        no_marker_readme.write_text("# Missing markers\n", encoding="utf-8")
+        assert not tool._readme_block_matches(
+            no_marker_readme,
+            "snapshot",
+            config=marked_config,
+        )
+
+        init_path = repo / "package/__init__.py"
+        _write_file(
+            init_path,
+            "\n".join(
+                [
+                    "__all__ = ['Beta', 123, 'Alpha']",
+                    "IGNORED = sorted('abc', 'extra')",
+                    "",
+                ]
+            ),
+        )
+        assert tool._public_exports(init_path) == ["Alpha", "Beta"]
+
+        _write_file(init_path, "__all__ = sorted(MISSING)\n")
+        assert tool._public_exports(init_path) == []
+
+        _write_file(init_path, "__all__ = NAMES\n")
+        assert tool._public_exports(init_path) == []
+
+        _write_file(init_path, "__all__ = sorted()\n")
+        assert tool._public_exports(init_path) == []
+
+        _write_file(init_path, "__all__ = sorted(['Alpha'])\n")
+        assert tool._public_exports(init_path) == []
+
+        _write_file(init_path, "__all__ = list(NAMES)\n")
+        assert tool._public_exports(init_path) == []
+
+        _write_file(init_path, "__all__ = sorted(NAMES, key=str)\n")
+        assert tool._public_exports(init_path) == []
+
+        _write_file(init_path, "NAMES = {'Gamma': object()}\n")
+        assert tool._public_exports(init_path) == []
+
+        _write_file(init_path, "NAMES = {}\n__all__ = sorted(NAMES)\n")
+        assert tool._public_exports(init_path) == []
+
+        _write_file(init_path, "NAMES = {123: object()}\n__all__ = sorted(NAMES)\n")
+        assert tool._public_exports(init_path) == []
+
+
+def test_rust_and_git_scanners_cover_file_and_failure_paths(monkeypatch: Any) -> None:
+    """Rust and Git scanners should handle files, nonzero exits, and failures."""
+    tool = _load_tool()
+    with _tempdir() as repo:
+        rust_file = repo / "bindings.rs"
+        rust_file.write_text(
+            "\n".join(
+                [
+                    'py_neuron_default!("NeuronA");',
+                    '#[pyclass(name = "PyClassA")]',
+                    "struct Ignored;",
+                    "#[pyfunction]",
+                    "pub fn exported_fn() {}",
+                    "wrap_pyfunction!(wrapped_fn, module)?;",
+                    "m.add_class::<AddedClass>()?;",
+                ]
+            ),
+            encoding="utf-8",
+        )
+        assert tool._rust_pyo3_wrapper_names(rust_file) == [
+            "AddedClass",
+            "NeuronA",
+            "PyClassA",
+            "exported_fn",
+            "wrapped_fn",
+        ]
+
+        class FailedRun:
+            returncode = 1
+            stdout = ""
+
+        monkeypatch.setattr(subprocess, "run", lambda *args, **kwargs: FailedRun())
+        assert tool._git_tracked_files(repo, repo=repo, suffixes=(".py",)) is None
+        assert tool._git_untracked_files(repo, repo=repo, suffixes=(".py",)) is None
+
+        def raise_os_error(*args: object, **kwargs: object) -> None:
+            raise OSError("git unavailable")
+
+        monkeypatch.setattr(subprocess, "run", raise_os_error)
+        assert tool._git_tracked_files(repo, repo=repo, suffixes=(".py",)) is None
+        assert tool._git_untracked_files(repo, repo=repo, suffixes=(".py",)) is None
+
+
+def test_cli_main_validate_check_and_refresh_paths(capsys: Any) -> None:
+    """Direct CLI entrypoint calls should cover validate, check, and refresh paths."""
+    tool = _load_tool()
+    with _tempdir() as repo:
+        _write_portable_fixture(repo)
+        config_path = Path("tools/capability_manifest.toml")
+        config = tool.load_config(repo, config_path)
+        json_path, _markdown_path, _readme_path = tool.refresh_outputs(
+            repo,
+            config=config,
+        )
+
+        assert tool.main(["--repo", str(repo), "--config", str(config_path), "--check"]) == 0
+        assert tool.main(["--repo", str(repo), "--config", str(config_path)]) == 0
+        assert (
+            tool.main(
+                [
+                    "--repo",
+                    str(repo),
+                    "--config",
+                    str(config_path),
+                    "--no-readme",
+                ]
+            )
+            == 0
+        )
+
+        valid_status = tool.main(
+            [
+                "--repo",
+                str(repo),
+                "--config",
+                str(config_path),
+                "--validate",
+                str(json_path),
+            ]
+        )
+        assert valid_status == 0
+
+        invalid_path = repo / "invalid_manifest.json"
+        invalid_path.write_text('{"schema_version": "wrong"}\n', encoding="utf-8")
+        assert tool.main(["--repo", str(repo), "--validate", str(invalid_path)]) == 1
+
+        (repo / "docs/_generated/capability_manifest.json").write_text(
+            "{}\n", encoding="utf-8"
+        )
+        assert tool.main(["--repo", str(repo), "--config", str(config_path), "--check"]) == 1
+
+        captured = capsys.readouterr()
+        assert "Wrote" in captured.out
+        assert "Refreshed" in captured.out
+        assert "schema_version mismatch" in captured.out
+        assert "stale generated manifest" in captured.err
 
 
 @contextmanager
