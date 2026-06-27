@@ -365,8 +365,8 @@ KNOWN_TEST_SURFACE_CLASSIFICATIONS: dict[str, tuple[str, str]] = {
         "ML/export/eval unit guard with companion tests/test_pint_seed_smoke_runner_real_surface.py",
     ),
     "tests/test_polar_deployment_smoke.py": (
-        "violation",
-        "generated/docs/config guard fake",
+        "unit-guard-with-companion",
+        "generated/docs/config guard with companion tools/validate_polar_deployment_smoke.py",
     ),
     "tests/test_prepare_threshold_data.py": (
         "violation",
