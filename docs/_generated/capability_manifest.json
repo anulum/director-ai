@@ -9,7 +9,7 @@
     "python_model_classes": 1000,
     "python_model_source_modules": 459,
     "rust_pyo3_model_wrappers": 83,
-    "test_files": 565
+    "test_files": 567
   },
   "documentation": {
     "public_pages": [
@@ -5463,6 +5463,7 @@
       "tests/test_kernel_validation.py",
       "tests/test_knowledge.py",
       "tests/test_knowledge_api.py",
+      "tests/test_knowledge_api_real_surface.py",
       "tests/test_knowledge_edge_cases.py",
       "tests/test_knowledge_graph.py",
       "tests/test_knowledge_write_security.py",
@@ -5503,6 +5504,7 @@
       "tests/test_meta_guard.py",
       "tests/test_metrics.py",
       "tests/test_middleware.py",
+      "tests/test_middleware_real_surface.py",
       "tests/test_minicheck_variants.py",
       "tests/test_miscoverage.py",
       "tests/test_ml_bom.py",
