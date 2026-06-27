@@ -38,6 +38,9 @@ python tools/validate_lite_scorer_v2_plan.py --require-recorded-evidence
 The default validator checks plan integrity and prevents premature public score
 claims. The recorded-evidence mode additionally requires every release-relevant
 status to be `recorded` or `validated`.
+`tests/test_lite_scorer_v2_plan_real_surface.py` covers this contract through
+the production validator CLI against the checked-in package and a temporary
+broken public-score-claim plan.
 
 ## Scoring Tiers
 
