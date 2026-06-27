@@ -38,7 +38,10 @@ import random
 from collections import Counter
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, cast
+from typing import TYPE_CHECKING, Any, cast
+
+if TYPE_CHECKING:
+    from transformers.trainer_utils import EvalPrediction
 
 try:
     from backfire_kernel import rust_sum_f64, rust_sum_i64
@@ -262,11 +265,15 @@ def _prepare_dataset(
     return ds
 
 
-def _compute_metrics(eval_pred: tuple[Any, Any]) -> dict[str, float]:
+def _compute_metrics(eval_pred: EvalPrediction | tuple[Any, Any]) -> dict[str, float]:
     """Compute balanced accuracy + per-class metrics during training."""
     import numpy as np
 
-    logits, labels = eval_pred
+    if isinstance(eval_pred, tuple):
+        logits, labels = eval_pred
+    else:
+        logits = eval_pred.predictions
+        labels = eval_pred.label_ids
     preds = np.argmax(logits, axis=-1)
     bal_acc = _balanced_accuracy(labels, preds)
     f1 = _binary_f1_score(labels, preds)
@@ -339,7 +346,7 @@ def _make_weighted_trainer_class(class_weights: list[float]) -> type[Any]:
 
     weight_tensor = torch.tensor(class_weights, dtype=torch.float32)
 
-    class WeightedTrainer(Trainer):  # type: ignore[misc] # transformers Trainer is Any without stubs.
+    class WeightedTrainer(Trainer):
         def compute_loss(
             self,
             model: Any,

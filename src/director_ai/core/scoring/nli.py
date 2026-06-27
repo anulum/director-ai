@@ -26,7 +26,7 @@ import re
 import warnings
 from functools import lru_cache
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 import numpy as np
 
@@ -451,7 +451,8 @@ def _load_nli_model(
                 try:
                     from transformers import BitsAndBytesConfig
 
-                    load_kwargs["quantization_config"] = BitsAndBytesConfig(
+                    bits_and_bytes_config = cast(type[Any], BitsAndBytesConfig)
+                    load_kwargs["quantization_config"] = bits_and_bytes_config(
                         load_in_8bit=True,
                     )
                     load_kwargs["device_map"] = "auto"
