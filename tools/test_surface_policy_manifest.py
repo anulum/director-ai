@@ -237,7 +237,10 @@ KNOWN_TEST_SURFACE_CLASSIFICATIONS: dict[str, tuple[str, str]] = {
         "violation",
         "external SDK adapter fake",
     ),
-    "tests/test_knowledge_api.py": ("violation", "CLI/server/API boundary fake"),
+    "tests/test_knowledge_api.py": (
+        "unit-guard-with-companion",
+        "CLI/server/API unit guard with companion tests/test_knowledge_api_real_surface.py",
+    ),
     "tests/test_knowledge_write_security.py": (
         "violation",
         "storage/retrieval adapter fake",

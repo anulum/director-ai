@@ -16,6 +16,7 @@ from tools.check_test_surface_policy import (
     find_unclassified_mock_surfaces,
     validate_classifications,
 )
+from tools.test_surface_policy_manifest import KNOWN_TEST_SURFACE_CLASSIFICATIONS
 
 
 def _write_test(root: Path, relative: str) -> None:
@@ -205,6 +206,15 @@ def test_policy_validates_classification_manifest() -> None:
         "tests/test_bad_kind.py: invalid classification 'approved'",
         "tests/test_blank_category.py: category must not be blank",
     ]
+
+
+def test_knowledge_api_unit_guard_has_real_surface_companion() -> None:
+    classification, category = KNOWN_TEST_SURFACE_CLASSIFICATIONS[
+        "tests/test_knowledge_api.py"
+    ]
+
+    assert classification == "unit-guard-with-companion"
+    assert "tests/test_knowledge_api_real_surface.py" in category
 
 
 def test_policy_main_returns_success_for_clean_tree(tmp_path: Path) -> None:
