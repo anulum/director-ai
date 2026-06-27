@@ -13,7 +13,7 @@ from __future__ import annotations
 import math
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field
-from typing import Any, Literal
+from typing import Any, Literal, cast
 
 from director_ai.core.guard_control import GuardDecision, RiskEnvelope, VerifierSignal
 from director_ai.core.safety_event import SafetyEvent
@@ -29,6 +29,11 @@ __all__ = [
     "MultimodalCheckResult",
     "MultimodalVerifierAdapter",
 ]
+
+
+def _as_modality(modality: str) -> Modality:
+    """Return ``modality`` as a modality literal after caller validation."""
+    return cast(Modality, modality)
 
 
 @dataclass(frozen=True)
@@ -312,7 +317,7 @@ def _validated_modalities(name: str, modalities: Sequence[str]) -> frozenset[Mod
     unsupported: list[str] = []
     for modality in modalities:
         if modality in _MODALITIES:
-            validated.append(modality)
+            validated.append(_as_modality(modality))
         else:
             unsupported.append(modality)
     if unsupported:

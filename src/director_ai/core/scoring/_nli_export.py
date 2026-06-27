@@ -211,7 +211,9 @@ def export_onnx(
     if not input_names:
         raise RuntimeError("Tokenizer did not produce ONNX-exportable tensor inputs")
 
-    class _SequenceClassifierOnnxWrapper(torch.nn.Module):
+    class _SequenceClassifierOnnxWrapper(
+        torch.nn.Module  # type: ignore[misc,unused-ignore] # torch.nn.Module may be Any without torch stubs in the lean CI type env.
+    ):
         def __init__(self, wrapped_model: Any, names: list[str]) -> None:
             super().__init__()
             self.wrapped_model = wrapped_model

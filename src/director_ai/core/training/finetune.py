@@ -38,10 +38,7 @@ import random
 from collections import Counter
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, cast
-
-if TYPE_CHECKING:
-    from transformers.trainer_utils import EvalPrediction
+from typing import Any, Protocol, cast
 
 try:
     from backfire_kernel import rust_sum_f64, rust_sum_i64
@@ -66,6 +63,14 @@ logger = logging.getLogger("DirectorAI.FineTune")
 
 _DEFAULT_BASE_MODEL = "yaxili96/FactCG-DeBERTa-v3-Large"
 TrainingRow = dict[str, str | int]
+
+
+class _EvalPredictionLike(Protocol):
+    """Structural subset of the Transformers metric callback input."""
+
+    predictions: Any
+    label_ids: Any
+
 
 # FactCG instruction template — must match inference-time template
 _FACTCG_TEMPLATE = (
@@ -265,7 +270,9 @@ def _prepare_dataset(
     return ds
 
 
-def _compute_metrics(eval_pred: EvalPrediction | tuple[Any, Any]) -> dict[str, float]:
+def _compute_metrics(
+    eval_pred: _EvalPredictionLike | tuple[Any, Any],
+) -> dict[str, float]:
     """Compute balanced accuracy + per-class metrics during training."""
     import numpy as np
 
@@ -346,7 +353,9 @@ def _make_weighted_trainer_class(class_weights: list[float]) -> type[Any]:
 
     weight_tensor = torch.tensor(class_weights, dtype=torch.float32)
 
-    class WeightedTrainer(Trainer):
+    class WeightedTrainer(  # type: ignore[misc,unused-ignore] # Transformers Trainer may be Any without optional stubs in the lean CI type env.
+        Trainer
+    ):
         def compute_loss(
             self,
             model: Any,

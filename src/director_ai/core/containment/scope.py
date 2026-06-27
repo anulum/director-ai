@@ -16,7 +16,7 @@ real users, real money, real physical systems.
 
 from __future__ import annotations
 
-from typing import Literal, get_args
+from typing import Literal, cast, get_args
 
 ContainmentScope = Literal[
     "sandbox",
@@ -34,6 +34,11 @@ ContainmentScope = Literal[
 """
 
 _ALL_SCOPES: tuple[ContainmentScope, ...] = get_args(ContainmentScope)
+
+
+def _as_containment_scope(scope: str) -> ContainmentScope:
+    """Return ``scope`` as a containment literal after caller validation."""
+    return cast(ContainmentScope, scope)
 
 
 def scope_allows_real_effects(scope: ContainmentScope) -> bool:
@@ -56,4 +61,4 @@ def validate_scope(scope: str) -> ContainmentScope:
         raise ValueError(
             f"unknown containment scope {scope!r}; expected one of {known}"
         )
-    return scope
+    return _as_containment_scope(scope)
