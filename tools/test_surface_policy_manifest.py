@@ -159,6 +159,10 @@ KNOWN_TEST_SURFACE_CLASSIFICATIONS: dict[str, tuple[str, str]] = {
         "violation",
         "private-helper bypass requiring review",
     ),
+    "tests/test_finetune_metrics_real_surface.py": (
+        "unit-guard-with-companion",
+        "ML/export/eval callback guard with companion tests/test_finetune.py",
+    ),
     "tests/test_formal_verification.py": (
         "violation",
         "module/workflow fake requiring review",
