@@ -16,6 +16,7 @@ BOUNDARY_VERIFIER = ROOT / "tools" / "verify_public_sector_boundary.py"
 PRE_COMMIT_CONFIG = ROOT / ".pre-commit-config.yaml"
 PYPROJECT = ROOT / "pyproject.toml"
 CI_WORKFLOW = ROOT / ".github" / "workflows" / "ci.yml"
+CI_DEV_LOCK = ROOT / "requirements" / "ci-dev.txt"
 FORBIDDEN_COVERAGE_TEST_PATTERNS = (
     "test_cov*.py",
     "test_coverage*.py",
@@ -257,6 +258,19 @@ def test_formal_extra_ci_covers_neuro_symbolic_compliance_engine() -> None:
     ]
     assert "tests/test_neuro_symbolic.py" in formal_case
     assert "tests/test_neuro_symbolic_verifier.py" in formal_case
+
+
+def test_main_ci_dev_lock_includes_server_rate_limiter_dependency() -> None:
+    """Keep server rate-limit imports covered in the main CI environment."""
+    pyproject = tomllib.loads(PYPROJECT.read_text(encoding="utf-8"))
+    dev_extra = pyproject["project"]["optional-dependencies"]["dev"]
+    ci_dev_lock = CI_DEV_LOCK.read_text(encoding="utf-8")
+
+    assert any(dependency.startswith("slowapi") for dependency in dev_extra)
+    assert "\ndeprecated==" in ci_dev_lock
+    assert "\nlimits==" in ci_dev_lock
+    assert "\nslowapi==" in ci_dev_lock
+    assert "\nwrapt==" in ci_dev_lock
 
 
 def test_precommit_allows_plain_public_changes(tmp_path: Path) -> None:
