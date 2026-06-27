@@ -40,6 +40,13 @@ public incidents. Duplicate public-incident evidence references are rejected.
 uv run --frozen python tools/validate_frontierfail_packet.py .
 ```
 
+The validator is covered through the production subprocess path in
+`tests/test_frontierfail_packet_real_surface.py`, which runs the checked-in
+packet and a temporary broken packet through the same CLI entry point operators
+use in CI or release checks. The lower-level
+`tests/test_frontierfail_packet.py` suite remains a branch guard for schema and
+row-level failures.
+
 The gate fails when:
 
 - the packet claims public benchmark eligibility;
