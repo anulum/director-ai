@@ -69,6 +69,27 @@ TRACE_EXPLORER_COLUMNS = [
     "detail",
 ]
 
+CLI_KEY_FIELDS: tuple[tuple[str, str, bool | float | int | str], ...] = (
+    ("coherence_threshold", "Coherence threshold [0.0-1.0]", 0.5),
+    ("use_nli", "Enable NLI model? [true/false]", True),
+    ("scorer_backend", "Scorer backend [deberta/onnx/lite/rules]", "deberta"),
+    ("hybrid_retrieval", "Enable hybrid retrieval? [true/false]", True),
+    ("reranker_enabled", "Enable reranker? [true/false]", True),
+    ("parent_child_enabled", "Enable parent-child chunking? [true/false]", False),
+    (
+        "adaptive_retrieval_enabled",
+        "Enable adaptive retrieval? [true/false]",
+        False,
+    ),
+    ("hyde_enabled", "Enable HyDE? [true/false]", False),
+    (
+        "injection_detection_enabled",
+        "Enable injection detection? [true/false]",
+        False,
+    ),
+    ("multi_vector_enabled", "Enable multi-vector? [true/false]", False),
+)
+
 
 def generate_yaml(overrides: dict[str, Any] | None = None) -> str:
     """Generate a YAML configuration string from defaults + overrides.
@@ -698,28 +719,7 @@ def launch_cli() -> str:
     print("Press Enter to accept defaults, or type a new value.\n")
 
     overrides: dict[str, Any] = {}
-    key_fields = [
-        ("coherence_threshold", "Coherence threshold [0.0-1.0]", 0.5),
-        ("use_nli", "Enable NLI model? [true/false]", True),
-        ("scorer_backend", "Scorer backend [deberta/onnx/lite/rules]", "deberta"),
-        ("hybrid_retrieval", "Enable hybrid retrieval? [true/false]", True),
-        ("reranker_enabled", "Enable reranker? [true/false]", True),
-        ("parent_child_enabled", "Enable parent-child chunking? [true/false]", False),
-        (
-            "adaptive_retrieval_enabled",
-            "Enable adaptive retrieval? [true/false]",
-            False,
-        ),
-        ("hyde_enabled", "Enable HyDE? [true/false]", False),
-        (
-            "injection_detection_enabled",
-            "Enable injection detection? [true/false]",
-            False,
-        ),
-        ("multi_vector_enabled", "Enable multi-vector? [true/false]", False),
-    ]
-
-    for name, prompt, default in key_fields:
+    for name, prompt, default in CLI_KEY_FIELDS:
         display = f"  {prompt} (default: {default}): "
         raw = input(display).strip()
         if raw:
