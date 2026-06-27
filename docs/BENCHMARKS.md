@@ -42,6 +42,15 @@ status to be `recorded` or `validated`.
 the production validator CLI against the checked-in package and a temporary
 broken public-score-claim plan.
 
+The reproducible Lite Scorer v2 run plan is emitted by
+`tools/plan_lite_scorer_v2_run.py` from
+`benchmarks/lite_scorer_v2_run_manifest.toml`. The planner returns JSON with
+argv arrays for held-out build, training, ONNX export, evaluation, and evidence
+recording. It does not execute those commands and does not convert the evidence
+packet into a release claim. `tests/test_lite_scorer_v2_run_plan_real_surface.py`
+covers that CLI contract against a temporary manifest and verifies the same
+error boundary for unsupported student candidates.
+
 ## Scoring Tiers
 
 Director-AI uses a 5-tier scoring pyramid. Each tier trades latency for accuracy.
