@@ -131,7 +131,7 @@ def _code_without_literals(text: str) -> str:
     stream = io.StringIO(text)
     try:
         for token in tokenize.generate_tokens(stream.readline):
-            if token.type not in {tokenize.COMMENT, tokenize.STRING}:
+            if token.type not in {tokenize.COMMENT, tokenize.STRING} and token.string:
                 tokens.append(token.string)
     except tokenize.TokenError:
         return text

@@ -185,9 +185,10 @@ def test_sensor_fusion_budget_blocks_before_snapshot_comparison() -> None:
             max_action_validations=10,
             max_inverse_kinematics=10,
             max_simulation_checks=10,
-            max_sensor_fusion=0,
+            max_sensor_fusion=1,
         )
     )
+    budget.consume("tenant-a", "sensor_fusion")
     evaluator = PhysicalGroundingEvaluator(
         grounding_hook=_hook(),
         budget=budget,
@@ -204,7 +205,7 @@ def test_sensor_fusion_budget_blocks_before_snapshot_comparison() -> None:
     assert verdict.decision.decision == "block"
     assert verdict.reason == "physical_budget_exceeded"
     assert verdict.violations[0].constraint == "budget:sensor_fusion"
-    assert budget.snapshot("tenant-a")["sensor_fusion"] == 0
+    assert budget.snapshot("tenant-a")["sensor_fusion"] == 1
 
 
 def test_live_loop_does_not_execute_when_pre_action_state_mismatches() -> None:
