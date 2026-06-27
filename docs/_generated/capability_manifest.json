@@ -9,7 +9,7 @@
     "python_model_classes": 1000,
     "python_model_source_modules": 459,
     "rust_pyo3_model_wrappers": 83,
-    "test_files": 571
+    "test_files": 572
   },
   "documentation": {
     "public_pages": [
@@ -5569,6 +5569,7 @@
       "tests/test_pint_replication_packet.py",
       "tests/test_pint_replication_packet_real_surface.py",
       "tests/test_pint_seed_smoke_runner.py",
+      "tests/test_pint_seed_smoke_runner_real_surface.py",
       "tests/test_polar_deployment_smoke.py",
       "tests/test_polar_license.py",
       "tests/test_policy.py",

@@ -15,6 +15,7 @@ official run or approved data export is available.
 | `benchmarks/pint_replication_packet.toml` | Upstream source, adapter contract, claim boundary |
 | `benchmarks/pint_seed_cases.jsonl` | Synthetic seed cases for local smoke testing |
 | `tools/validate_pint_replication_packet.py` | Schema and score-claim boundary gate |
+| `tools/run_pint_seed_smoke.py` | Non-public seed-smoke runner for the production sanitizer path |
 
 ## Boundary
 
@@ -54,6 +55,12 @@ packet and a temporary broken packet through the same CLI entry point operators
 use in CI or release checks. The lower-level
 `tests/test_pint_replication_packet.py` suite remains a branch guard for schema,
 language-diversity, label, and claim-boundary failures.
+
+The seed-smoke runner is covered through
+`tests/test_pint_seed_smoke_runner_real_surface.py`, which executes
+`tools/run_pint_seed_smoke.py` with the checked-in packet and a temporary output
+path. The resulting JSON must keep `public_score_claim`, `official_pint_score`,
+and `benchmark_eligible` false and must omit raw prompt text from per-case rows.
 
 Use this gate before adding PINT-related results to public benchmark tables.
 Official score claims require a separate evidence packet with the upstream run
