@@ -298,6 +298,15 @@ def test_lite_scorer_v2_run_plan_unit_guard_has_real_surface_companion() -> None
     assert "tests/test_lite_scorer_v2_run_plan_real_surface.py" in category
 
 
+def test_lite_scorer_v2_training_status_unit_guard_has_real_surface_companion() -> None:
+    classification, category = KNOWN_TEST_SURFACE_CLASSIFICATIONS[
+        "tests/test_lite_scorer_v2_training_status.py"
+    ]
+
+    assert classification == "unit-guard-with-companion"
+    assert "tests/test_lite_scorer_v2_training_status_real_surface.py" in category
+
+
 def test_policy_main_returns_success_for_clean_tree(tmp_path: Path) -> None:
     _write_test(tmp_path, "tests/test_real_surface.py")
 

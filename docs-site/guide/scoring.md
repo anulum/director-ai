@@ -202,6 +202,14 @@ GPU. The run manifest points at the local
 `training/output/minilm-safetensors` student base so training does not depend on
 remote model lookup during evidence production.
 
+Use `tools/status_lite_scorer_v2_training.py` to inspect a queued or completed
+training run before exporting ONNX. The command reads the run manifest and
+`.coordination/runs/DIRECTOR-AI/lite_scorer_v2_train_*` directory, then returns
+JSON with `state`, `exit_code`, `process_running`, artefact sizes, and
+`export_ready`. `export_ready` is true only after an `EXIT 0` marker and a
+present student artefact, so a live or stale run cannot advance to export by
+mistake.
+
 ## Customizing Weights
 
 Adjust the balance between logical and factual signals:
