@@ -77,6 +77,10 @@ def test_server_auth_http_and_ticket_contract_over_real_app(
             "/v1/metrics/prometheus",
             headers=_auth_headers(request_id="trace-metrics"),
         )
+        telemetry_response = client.get(
+            "/v1/metrics",
+            headers=_auth_headers(request_id="trace-telemetry"),
+        )
         ticket_response = client.post(
             "/v1/stream/ticket",
             headers=_auth_headers(request_id="trace-ticket"),
@@ -119,6 +123,13 @@ def test_server_auth_http_and_ticket_contract_over_real_app(
     assert prometheus_with_key.status_code == 200
     assert "director_ai_" in prometheus_with_key.text
     assert prometheus_with_key.headers["X-Request-ID"] == "trace-metrics"
+    assert telemetry_response.status_code == 200
+    telemetry_payload = cast(dict[str, object], telemetry_response.json())
+    telemetry_counters = cast(dict[str, object], telemetry_payload["counters"])
+    http_total = cast(dict[str, object], telemetry_counters["http_requests_total"])
+    route_labels = cast(dict[str, float], http_total["multi_labels"])
+    assert 'endpoint="/v1/config",method="GET",status="401"' in route_labels
+    assert 'endpoint="/v1/config",method="GET",status="403"' in route_labels
 
     expires_in = cast(float, ticket_payload["expires_in"])
     assert expires_in > 0
