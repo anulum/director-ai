@@ -382,7 +382,10 @@ KNOWN_TEST_SURFACE_CLASSIFICATIONS: dict[str, tuple[str, str]] = {
         "violation",
         "private-helper bypass requiring review",
     ),
-    "tests/test_providers.py": ("violation", "external SDK adapter fake"),
+    "tests/test_providers.py": (
+        "unit-guard-with-companion",
+        "external SDK adapter unit guard with companion tests/test_providers_real_surface.py",
+    ),
     "tests/test_public_endpoint_exposure_policy.py": (
         "violation",
         "private-helper bypass requiring review",

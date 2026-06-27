@@ -352,6 +352,15 @@ def test_streaming_unit_guard_has_real_surface_companion() -> None:
     assert "tests/test_streaming_runtime_real_surface.py" in category
 
 
+def test_providers_unit_guard_has_real_surface_companion() -> None:
+    classification, category = KNOWN_TEST_SURFACE_CLASSIFICATIONS[
+        "tests/test_providers.py"
+    ]
+
+    assert classification == "unit-guard-with-companion"
+    assert "tests/test_providers_real_surface.py" in category
+
+
 def test_policy_main_returns_success_for_clean_tree(tmp_path: Path) -> None:
     _write_test(tmp_path, "tests/test_real_surface.py")
 
