@@ -503,7 +503,10 @@ KNOWN_TEST_SURFACE_CLASSIFICATIONS: dict[str, tuple[str, str]] = {
         "storage/retrieval adapter fake",
     ),
     "tests/test_voice_adapters.py": ("violation", "external SDK adapter fake"),
-    "tests/test_voice_adapters_sdk.py": ("violation", "external SDK adapter fake"),
+    "tests/test_voice_adapters_sdk.py": (
+        "unit-guard-with-companion",
+        "external SDK adapter unit guard with companion tests/test_voice_adapters_real_surface.py",
+    ),
     "tests/test_zk_attestation.py": (
         "violation",
         "private-helper bypass requiring review",

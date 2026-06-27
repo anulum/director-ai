@@ -441,6 +441,7 @@ jobs:
             *,voice,*)
               TEST_TARGETS+=(
                 tests/test_voice_adapters.py
+                tests/test_voice_adapters_real_surface.py
                 tests/test_voice_adapters_sdk.py
                 tests/test_voice_async_guard.py
                 tests/test_voice_guard.py

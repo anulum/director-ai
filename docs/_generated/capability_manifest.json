@@ -9,7 +9,7 @@
     "python_model_classes": 1000,
     "python_model_source_modules": 459,
     "rust_pyo3_model_wrappers": 83,
-    "test_files": 586
+    "test_files": 587
   },
   "documentation": {
     "public_pages": [
@@ -5768,6 +5768,7 @@
       "tests/test_vertex_container_cuda_policy.py",
       "tests/test_vertex_model_benchmark.py",
       "tests/test_voice_adapters.py",
+      "tests/test_voice_adapters_real_surface.py",
       "tests/test_voice_adapters_sdk.py",
       "tests/test_voice_async_guard.py",
       "tests/test_voice_demo.py",
