@@ -9,7 +9,7 @@
     "python_model_classes": 1000,
     "python_model_source_modules": 459,
     "rust_pyo3_model_wrappers": 83,
-    "test_files": 585
+    "test_files": 586
   },
   "documentation": {
     "public_pages": [
@@ -5457,6 +5457,7 @@
       "tests/test_integrations.py",
       "tests/test_integrations_dspy.py",
       "tests/test_integrations_semantic_kernel.py",
+      "tests/test_integrations_semantic_kernel_real_surface.py",
       "tests/test_intent_drift.py",
       "tests/test_interlock_kernel.py",
       "tests/test_irreversibility.py",
