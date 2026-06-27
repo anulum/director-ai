@@ -11,10 +11,12 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import subprocess
 import sys
 import tomllib
 from collections import Counter
+from collections.abc import Mapping
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -50,14 +52,19 @@ def _source_rows(
 def _run_command(
     argv: list[str],
     *,
+    env: Mapping[str, str] | None = None,
     input_text: str | None = None,
     timeout: int = 15,
 ) -> subprocess.CompletedProcess[str]:
     """Run ``argv`` as a text subprocess and return the completed process."""
+    command_env = os.environ.copy()
+    if env is not None:
+        command_env.update(env)
     return subprocess.run(
         argv,
         check=False,
         capture_output=True,
+        env=command_env,
         input=input_text,
         text=True,
         timeout=timeout,
@@ -65,23 +72,28 @@ def _run_command(
 
 
 def _write_hf_dataset(path: Path, rows: list[dict[str, object]]) -> None:
-    """Write ``rows`` as a real Hugging Face dataset saved on disk."""
-    writer = (
-        "import json, sys\n"
-        "from datasets import Dataset\n"
-        "from datasets import disable_progress_bar\n"
-        "disable_progress_bar()\n"
-        "rows = json.load(sys.stdin)\n"
-        "Dataset.from_list(rows).save_to_disk(sys.argv[1])\n"
-    )
-    result = _run_command(
-        [sys.executable, "-c", writer, str(path)],
-        input_text=json.dumps(rows),
-        timeout=30,
-    )
+    """Write ``rows`` as a Hugging Face-compatible dataset directory."""
+    path.mkdir(parents=True, exist_ok=True)
+    (path / "rows.json").write_text(json.dumps(rows) + "\n", encoding="utf-8")
 
-    assert result.returncode == 0
-    assert result.stderr == ""
+
+def _write_dataset_provider(path: Path) -> dict[str, str]:
+    """Write a protocol fixture that provides ``datasets.load_from_disk``."""
+    path.mkdir(parents=True, exist_ok=True)
+    (path / "datasets.py").write_text(
+        "\n".join(
+            [
+                "import json",
+                "from pathlib import Path",
+                "",
+                "def load_from_disk(path: str):",
+                "    return json.loads((Path(path) / 'rows.json').read_text())",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    return {"PYTHONPATH": path.as_posix()}
 
 
 def _sha256(path: Path) -> str:
@@ -97,6 +109,7 @@ def test_lite_scorer_v2_heldout_builder_cli_writes_dataset_and_manifest(
     output = tmp_path / "benchmarks" / "heldout" / "lite_scorer_v2.jsonl"
     manifest = output.with_suffix(".manifest.toml")
     _write_hf_dataset(source, _source_rows(per_label=10, distinct_sources=5))
+    env = _write_dataset_provider(tmp_path / "hf-provider")
 
     result = _run_command(
         [
@@ -114,7 +127,8 @@ def test_lite_scorer_v2_heldout_builder_cli_writes_dataset_and_manifest(
             "20260627",
             "--min-sources",
             "4",
-        ]
+        ],
+        env=env,
     )
 
     assert result.returncode == 0
@@ -153,6 +167,7 @@ def test_lite_scorer_v2_heldout_builder_cli_rejects_insufficient_sources(
     output = tmp_path / "benchmarks" / "heldout" / "lite_scorer_v2.jsonl"
     manifest = output.with_suffix(".manifest.toml")
     _write_hf_dataset(source, _source_rows(per_label=4, distinct_sources=1))
+    env = _write_dataset_provider(tmp_path / "hf-provider")
 
     result = _run_command(
         [
@@ -170,7 +185,8 @@ def test_lite_scorer_v2_heldout_builder_cli_rejects_insufficient_sources(
             "20260627",
             "--min-sources",
             "2",
-        ]
+        ],
+        env=env,
     )
 
     assert result.returncode == 1
