@@ -403,7 +403,10 @@ KNOWN_TEST_SURFACE_CLASSIFICATIONS: dict[str, tuple[str, str]] = {
         "CLI/server/API unit guard with companion tests/test_recall_correctness_client_real_surface.py",
     ),
     "tests/test_redis_enterprise.py": ("violation", "storage/retrieval adapter fake"),
-    "tests/test_report_templates.py": ("violation", "generated/docs/config guard fake"),
+    "tests/test_report_templates.py": (
+        "unit-guard-with-companion",
+        "generated/docs/config guard with companion director_ai.compliance.report_templates",
+    ),
     "tests/test_reranker.py": ("violation", "storage/retrieval adapter fake"),
     "tests/test_review_queue.py": (
         "violation",

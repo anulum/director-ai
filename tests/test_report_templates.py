@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import sys
 from types import ModuleType
+from typing import Any
 
 import pytest
 
@@ -25,7 +26,7 @@ from director_ai.compliance.report_templates import (
     render_swarm_html,
 )
 
-_COMPLIANCE_DATA = {
+_COMPLIANCE_DATA: dict[str, Any] = {
     "title": "EU AI Act Article 15 Report",
     "period": "2026-04-01 to 2026-04-13",
     "hallucination_rate": 0.042,
@@ -41,7 +42,7 @@ _COMPLIANCE_DATA = {
     ],
 }
 
-_COST_DATA = {
+_COST_DATA: dict[str, Any] = {
     "currency": "CHF",
     "total_cost": 1.2345,
     "total_tokens": 500000,
@@ -61,7 +62,7 @@ _COST_DATA = {
     },
 }
 
-_SWARM_DATA = {
+_SWARM_DATA: dict[str, Any] = {
     "swarm": {
         "active_agents": 5,
         "total_handoffs": 1200,
@@ -87,41 +88,41 @@ _SWARM_DATA = {
 
 
 class TestComplianceHTML:
-    def test_is_valid_html(self):
+    def test_is_valid_html(self) -> None:
         html = render_compliance_html(_COMPLIANCE_DATA)
         assert html.startswith("<!DOCTYPE html>")
         assert "</html>" in html
 
-    def test_title_present(self):
+    def test_title_present(self) -> None:
         html = render_compliance_html(_COMPLIANCE_DATA)
         assert "EU AI Act Article 15 Report" in html
 
-    def test_metrics_present(self):
+    def test_metrics_present(self) -> None:
         html = render_compliance_html(_COMPLIANCE_DATA)
         assert "15,000" in html
         assert "4.20%" in html
         assert "14.6 ms" in html
 
-    def test_no_drift(self):
+    def test_no_drift(self) -> None:
         html = render_compliance_html(_COMPLIANCE_DATA)
         assert "No drift" in html
 
-    def test_drift_detected(self):
+    def test_drift_detected(self) -> None:
         data = {**_COMPLIANCE_DATA, "drift_detected": True}
         html = render_compliance_html(data)
         assert "Drift DETECTED" in html
         assert 'class="alert"' in html
 
-    def test_models_table(self):
+    def test_models_table(self) -> None:
         html = render_compliance_html(_COMPLIANCE_DATA)
         assert "FactCG" in html
         assert "MiniCheck" in html
 
-    def test_footer(self):
+    def test_footer(self) -> None:
         html = render_compliance_html(_COMPLIANCE_DATA)
         assert "ANULUM" in html
 
-    def test_empty_data(self):
+    def test_empty_data(self) -> None:
         html = render_compliance_html({})
         assert "<!DOCTYPE html>" in html
 
@@ -130,19 +131,19 @@ class TestComplianceHTML:
 
 
 class TestComplianceMarkdown:
-    def test_starts_with_heading(self):
+    def test_starts_with_heading(self) -> None:
         md = render_compliance_markdown(_COMPLIANCE_DATA)
         assert md.startswith("# EU AI Act")
 
-    def test_metrics_table(self):
+    def test_metrics_table(self) -> None:
         md = render_compliance_markdown(_COMPLIANCE_DATA)
         assert "| Total Reviews | 15,000 |" in md
 
-    def test_models_listed(self):
+    def test_models_listed(self) -> None:
         md = render_compliance_markdown(_COMPLIANCE_DATA)
         assert "FactCG" in md
 
-    def test_empty_data(self):
+    def test_empty_data(self) -> None:
         md = render_compliance_markdown({})
         assert "# Compliance Report" in md
 
@@ -151,24 +152,24 @@ class TestComplianceMarkdown:
 
 
 class TestCostHTML:
-    def test_is_valid_html(self):
+    def test_is_valid_html(self) -> None:
         html = render_cost_html(_COST_DATA)
         assert "<!DOCTYPE html>" in html
 
-    def test_total_cost(self):
+    def test_total_cost(self) -> None:
         html = render_cost_html(_COST_DATA)
         assert "1.2345" in html
 
-    def test_currency(self):
+    def test_currency(self) -> None:
         html = render_cost_html(_COST_DATA)
         assert "CHF" in html
 
-    def test_models_listed(self):
+    def test_models_listed(self) -> None:
         html = render_cost_html(_COST_DATA)
         assert "gpt-4o" in html
         assert "agent-1" in html
 
-    def test_empty_data(self):
+    def test_empty_data(self) -> None:
         html = render_cost_html({})
         assert "<!DOCTYPE html>" in html
 
@@ -177,24 +178,24 @@ class TestCostHTML:
 
 
 class TestSwarmHTML:
-    def test_is_valid_html(self):
+    def test_is_valid_html(self) -> None:
         html = render_swarm_html(_SWARM_DATA)
         assert "<!DOCTYPE html>" in html
 
-    def test_agent_count(self):
+    def test_agent_count(self) -> None:
         html = render_swarm_html(_SWARM_DATA)
         assert "5" in html  # active agents
 
-    def test_quarantined_highlighted(self):
+    def test_quarantined_highlighted(self) -> None:
         html = render_swarm_html(_SWARM_DATA)
         assert "summariser-0" in html
         assert "alert" in html  # quarantined row
 
-    def test_handoffs(self):
+    def test_handoffs(self) -> None:
         html = render_swarm_html(_SWARM_DATA)
         assert "1,200" in html
 
-    def test_empty_data(self):
+    def test_empty_data(self) -> None:
         html = render_swarm_html({})
         assert "<!DOCTYPE html>" in html
 
@@ -202,7 +203,9 @@ class TestSwarmHTML:
 class TestPdf:
     """PDF rendering via WeasyPrint (the ``reports`` extra)."""
 
-    def test_html_to_pdf_emits_pdf_bytes(self, monkeypatch):
+    def test_html_to_pdf_emits_pdf_bytes(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         calls: list[str] = []
 
         class FakeHTML:
@@ -213,7 +216,7 @@ class TestPdf:
                 return b"%PDF fake report"
 
         fake_weasyprint = ModuleType("weasyprint")
-        fake_weasyprint.HTML = FakeHTML
+        fake_weasyprint.__dict__["HTML"] = FakeHTML
         monkeypatch.setitem(sys.modules, "weasyprint", fake_weasyprint)
 
         pdf = report_templates.html_to_pdf("<h1>Compliance</h1>")
@@ -221,7 +224,7 @@ class TestPdf:
         assert pdf.startswith(b"%PDF")
         assert calls == ["<h1>Compliance</h1>"]
 
-    def test_render_compliance_pdf(self, monkeypatch):
+    def test_render_compliance_pdf(self, monkeypatch: pytest.MonkeyPatch) -> None:
         calls: list[str] = []
 
         def fake_html_to_pdf(html: str) -> bytes:
@@ -236,7 +239,7 @@ class TestPdf:
         )
         assert "EU AI Act Article 15 Report" in calls[0]
 
-    def test_render_cost_pdf(self, monkeypatch):
+    def test_render_cost_pdf(self, monkeypatch: pytest.MonkeyPatch) -> None:
         calls: list[str] = []
 
         def fake_html_to_pdf(html: str) -> bytes:
@@ -248,7 +251,7 @@ class TestPdf:
         assert report_templates.render_cost_pdf(_COST_DATA) == b"%PDF cost"
         assert "Token Cost Report" in calls[0]
 
-    def test_render_swarm_pdf(self, monkeypatch):
+    def test_render_swarm_pdf(self, monkeypatch: pytest.MonkeyPatch) -> None:
         calls: list[str] = []
 
         def fake_html_to_pdf(html: str) -> bytes:
@@ -260,7 +263,9 @@ class TestPdf:
         assert report_templates.render_swarm_pdf(_SWARM_DATA) == b"%PDF swarm"
         assert "Swarm Health Report" in calls[0]
 
-    def test_missing_weasyprint_raises_dependency_error(self, monkeypatch):
+    def test_missing_weasyprint_raises_dependency_error(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         from director_ai.compliance.report_templates import html_to_pdf
         from director_ai.core.exceptions import DependencyError
 

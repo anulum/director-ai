@@ -399,6 +399,16 @@ def test_capability_manifest_tool_guard_has_real_surface_companion() -> None:
     assert "tools/capability_manifest.py" in category
 
 
+def test_report_templates_guard_has_real_surface_companion() -> None:
+    """Report template guard should be backed by production renderer coverage."""
+    classification, category = KNOWN_TEST_SURFACE_CLASSIFICATIONS[
+        "tests/test_report_templates.py"
+    ]
+
+    assert classification == "unit-guard-with-companion"
+    assert "director_ai.compliance.report_templates" in category
+
+
 def test_policy_main_returns_success_for_clean_tree(tmp_path: Path) -> None:
     _write_test(tmp_path, "tests/test_real_surface.py")
 
