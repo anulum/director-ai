@@ -460,11 +460,22 @@ class StreamingKernel(HaltMonitor):
                 _, cs = scorer.review(prompt_context, accumulated)
                 chunks: list[EvidenceChunk] = []
                 nli_scores: list[float] | None = None
-                if cs.evidence and cs.evidence.chunks:
-                    sorted_chunks = sorted(cs.evidence.chunks, key=lambda c: c.distance)
-                    chunks = sorted_chunks[:top_k]
-                    if cs.evidence.chunk_scores:  # pragma: no branch
-                        nli_scores = cs.evidence.chunk_scores[:top_k]
+                scoring_evidence = cs.evidence
+                if scoring_evidence is not None and scoring_evidence.chunks:
+                    ranked_indices = sorted(
+                        range(len(scoring_evidence.chunks)),
+                        key=lambda index: scoring_evidence.chunks[index].distance,
+                    )
+                    selected_indices = ranked_indices[:top_k]
+                    chunks = [
+                        scoring_evidence.chunks[index] for index in selected_indices
+                    ]
+                    if scoring_evidence.chunk_scores:
+                        nli_scores = [
+                            scoring_evidence.chunk_scores[index]
+                            for index in selected_indices
+                            if index < len(scoring_evidence.chunk_scores)
+                        ]
                 threshold, contribution = self._trace_metrics(
                     reason,
                     event,
@@ -647,8 +658,6 @@ class StreamingKernel(HaltMonitor):
                     continue
                 # Hard halt
                 _finalize_halt(event, halt_reason)
-                if "hard_limit" in halt_reason:
-                    self.emergency_stop()
                 session.events.append(event)
                 _emit_trace(event, halt_reason)
                 break

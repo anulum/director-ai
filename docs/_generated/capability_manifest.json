@@ -9,7 +9,7 @@
     "python_model_classes": 1000,
     "python_model_source_modules": 459,
     "rust_pyo3_model_wrappers": 83,
-    "test_files": 579
+    "test_files": 580
   },
   "documentation": {
     "public_pages": [
@@ -5708,6 +5708,7 @@
       "tests/test_streaming_halt_evidence.py",
       "tests/test_streaming_nli_failure.py",
       "tests/test_streaming_repair.py",
+      "tests/test_streaming_runtime_real_surface.py",
       "tests/test_stress_cli.py",
       "tests/test_structured_halt_recovery.py",
       "tests/test_summarization_bidir.py",
