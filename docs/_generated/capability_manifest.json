@@ -9,7 +9,7 @@
     "python_model_classes": 1000,
     "python_model_source_modules": 459,
     "rust_pyo3_model_wrappers": 83,
-    "test_files": 582
+    "test_files": 583
   },
   "documentation": {
     "public_pages": [
@@ -5640,6 +5640,7 @@
       "tests/test_roadmap_reconciliation.py",
       "tests/test_robot_command_guard.py",
       "tests/test_root_cause.py",
+      "tests/test_router_streaming_real_surface.py",
       "tests/test_rules_scorer.py",
       "tests/test_run_judge_benchmark.py",
       "tests/test_runtime_governor.py",
