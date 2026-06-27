@@ -79,7 +79,10 @@ KNOWN_TEST_SURFACE_CLASSIFICATIONS: dict[str, tuple[str, str]] = {
         "module/workflow fake requiring review",
     ),
     "tests/test_config.py": ("violation", "generated/docs/config guard fake"),
-    "tests/test_config_wizard.py": ("violation", "generated/docs/config guard fake"),
+    "tests/test_config_wizard.py": (
+        "unit-guard-with-companion",
+        "generated/docs/config guard with companion tests/test_config_wizard_real_surface.py",
+    ),
     "tests/test_containment.py": (
         "violation",
         "private-helper bypass requiring review",
@@ -154,7 +157,10 @@ KNOWN_TEST_SURFACE_CLASSIFICATIONS: dict[str, tuple[str, str]] = {
         "unit-guard-with-companion",
         "CLI/server/API unit guard with companion tests/test_finetune_api_real_surface.py",
     ),
-    "tests/test_finetune_benchmark.py": ("violation", "ML/export/eval boundary fake"),
+    "tests/test_finetune_benchmark.py": (
+        "unit-guard-with-companion",
+        "ML/export/eval unit guard with companion tests/test_finetune_benchmark_real_surface.py",
+    ),
     "tests/test_finetune_gpu.py": (
         "violation",
         "private-helper bypass requiring review",
@@ -443,7 +449,10 @@ KNOWN_TEST_SURFACE_CLASSIFICATIONS: dict[str, tuple[str, str]] = {
         "violation",
         "module/workflow fake requiring review",
     ),
-    "tests/test_streaming.py": ("violation", "module/workflow fake requiring review"),
+    "tests/test_streaming.py": (
+        "unit-guard-with-companion",
+        "module/workflow unit guard with companion tests/test_streaming_runtime_real_surface.py",
+    ),
     "tests/test_task_scoring_paths.py": (
         "violation",
         "module/workflow fake requiring review",

@@ -325,6 +325,33 @@ def test_lite_scorer_v2_heldout_builder_unit_guard_has_real_surface_companion() 
     assert "tests/test_lite_scorer_v2_heldout_builder_real_surface.py" in category
 
 
+def test_config_wizard_unit_guard_has_real_surface_companion() -> None:
+    classification, category = KNOWN_TEST_SURFACE_CLASSIFICATIONS[
+        "tests/test_config_wizard.py"
+    ]
+
+    assert classification == "unit-guard-with-companion"
+    assert "tests/test_config_wizard_real_surface.py" in category
+
+
+def test_finetune_benchmark_unit_guard_has_real_surface_companion() -> None:
+    classification, category = KNOWN_TEST_SURFACE_CLASSIFICATIONS[
+        "tests/test_finetune_benchmark.py"
+    ]
+
+    assert classification == "unit-guard-with-companion"
+    assert "tests/test_finetune_benchmark_real_surface.py" in category
+
+
+def test_streaming_unit_guard_has_real_surface_companion() -> None:
+    classification, category = KNOWN_TEST_SURFACE_CLASSIFICATIONS[
+        "tests/test_streaming.py"
+    ]
+
+    assert classification == "unit-guard-with-companion"
+    assert "tests/test_streaming_runtime_real_surface.py" in category
+
+
 def test_policy_main_returns_success_for_clean_tree(tmp_path: Path) -> None:
     _write_test(tmp_path, "tests/test_real_surface.py")
 
