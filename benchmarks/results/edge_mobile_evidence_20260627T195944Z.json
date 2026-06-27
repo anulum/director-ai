@@ -1,0 +1,180 @@
+{
+  "schema_version": "director-ai.edge-mobile-evidence.v1",
+  "benchmark": "edge_mobile_evidence",
+  "generated_at": "2026-06-27T19:59:50.275153+00:00",
+  "git_commit": "ed1d9b8c72954b8b42f088e95e61ae4f66e6c7df",
+  "python": "3.12.13",
+  "platform": "Linux-6.17.0-35-generic-x86_64-with-glibc2.39",
+  "acceptance": {
+    "passed": true,
+    "checks": {
+      "browser_worker_local_trial_ready": true,
+      "wasm_release_plan": true,
+      "wasm_source_contract": true,
+      "quantised_nli_contract": true,
+      "rust_kernel_source_contract": true,
+      "edge_deployment_docs": true,
+      "latency_benchmark_surface": true,
+      "tenant_safe_serialisation": true
+    },
+    "limits": {
+      "local_only": true,
+      "actual_wasm_build_included": true,
+      "quantised_model_artefact_included": false,
+      "rust_python_import_included": true,
+      "browser_worker_smoke_included": false,
+      "mobile_device_smoke_included": false,
+      "package_publish_included": false
+    }
+  },
+  "profiles": {
+    "browser-worker": {
+      "schema_version": "director-ai.edge-runtime-readiness.v1",
+      "target_id": "browser-worker",
+      "runtime": "Browser Web Worker",
+      "wasm_target": "web",
+      "ready_for_local_trial": true,
+      "ready_for_release": false,
+      "checks": [
+        {
+          "name": "wasm_release_plan",
+          "status": "pass",
+          "passed": true,
+          "summary": "tracked WASM release plan declares active local artefact phase",
+          "evidence": [
+            "requirements/wasm_release_plan.toml",
+            ".github/workflows/wheels.yml"
+          ]
+        },
+        {
+          "name": "wasm_target_matrix",
+          "status": "pass",
+          "passed": true,
+          "summary": "browser-worker is declared for web",
+          "evidence": [
+            "Browser Web Worker",
+            "p0"
+          ]
+        },
+        {
+          "name": "wasm_source_contract",
+          "status": "pass",
+          "passed": true,
+          "summary": "WASM halt kernel source, tests, README, and browser example are present",
+          "evidence": [
+            "backfire-kernel/crates/backfire-wasm/Cargo.toml",
+            "backfire-kernel/crates/backfire-wasm/src/lib.rs",
+            "backfire-kernel/crates/backfire-wasm/tests/kernel.rs",
+            "backfire-kernel/crates/backfire-wasm/README.md",
+            "backfire-kernel/crates/backfire-wasm/example/index.html"
+          ]
+        },
+        {
+          "name": "wasm_build_artefact",
+          "status": "pass",
+          "passed": true,
+          "summary": "local wasm-pack build artefacts are present",
+          "evidence": [
+            "backfire-kernel/crates/backfire-wasm/pkg/backfire_wasm_bg.wasm",
+            "backfire-kernel/crates/backfire-wasm/pkg/backfire_wasm.js",
+            "backfire-kernel/crates/backfire-wasm/pkg/package.json"
+          ]
+        },
+        {
+          "name": "quantised_nli_contract",
+          "status": "pass",
+          "passed": true,
+          "summary": "quantised and ONNX NLI deployment contracts are tracked",
+          "evidence": [
+            "docs-site/guide/quantization.md",
+            "docs-site/deployment/onnx-artefacts.md",
+            "requirements/onnx_wheel_targets.toml",
+            "extras:quantize",
+            "extras:onnx"
+          ]
+        },
+        {
+          "name": "quantised_model_artefact",
+          "status": "pending",
+          "passed": false,
+          "summary": "no quantised model artefact path was supplied",
+          "evidence": [
+            "MODELS/lite-scorer-v2/onnx/model_quantized.onnx"
+          ]
+        },
+        {
+          "name": "rust_kernel_source_contract",
+          "status": "pass",
+          "passed": true,
+          "summary": "Rust halt kernel and PyO3 wrapper sources are present",
+          "evidence": [
+            "backfire-kernel/Cargo.toml",
+            "backfire-kernel/crates/backfire-core/src/kernel.rs",
+            "backfire-kernel/crates/backfire-ffi/src/lib.rs",
+            "requirements/backfire_kernel_release.toml"
+          ]
+        },
+        {
+          "name": "rust_python_accelerator",
+          "status": "pass",
+          "passed": true,
+          "summary": "backfire_kernel exposes the expected Python accelerator symbols",
+          "evidence": [
+            "BackfireConfig",
+            "RustCoherenceScorer",
+            "RustStreamingKernel"
+          ]
+        },
+        {
+          "name": "edge_deployment_docs",
+          "status": "pass",
+          "passed": true,
+          "summary": "deployment docs cover WASM halt and ONNX scorer boundaries",
+          "evidence": [
+            "docs-site/deployment/wasm-runtime.md",
+            "docs-site/deployment/onnx-artefacts.md",
+            "docs-site/guide/runtime-boundaries.md"
+          ]
+        },
+        {
+          "name": "latency_benchmark_surface",
+          "status": "pass",
+          "passed": true,
+          "summary": "latency benchmark scripts exist for WASM/Rust overhead and NLI scoring",
+          "evidence": [
+            "benchmarks/wasm_overhead_bench.py",
+            "benchmarks/latency_bench.py"
+          ]
+        },
+        {
+          "name": "browser_worker_smoke",
+          "status": "pending",
+          "passed": false,
+          "summary": "browser or Web Worker smoke evidence was not supplied",
+          "evidence": []
+        },
+        {
+          "name": "mobile_device_smoke",
+          "status": "pending",
+          "passed": false,
+          "summary": "mobile or embedded-device smoke evidence was not supplied",
+          "evidence": []
+        }
+      ],
+      "findings": [
+        "quantised_model_artefact:pending:no quantised model artefact path was supplied",
+        "browser_worker_smoke:pending:browser or Web Worker smoke evidence was not supplied",
+        "mobile_device_smoke:pending:mobile or embedded-device smoke evidence was not supplied"
+      ],
+      "limits": {
+        "local_only": true,
+        "actual_wasm_build_included": true,
+        "quantised_model_artefact_included": false,
+        "rust_python_import_included": true,
+        "browser_worker_smoke_included": false,
+        "mobile_device_smoke_included": false,
+        "package_publish_included": false
+      }
+    }
+  }
+}

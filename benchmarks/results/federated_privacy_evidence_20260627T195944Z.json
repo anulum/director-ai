@@ -1,0 +1,59 @@
+{
+  "schema_version": "director-ai.federated-privacy-evidence.v1",
+  "benchmark": "federated_privacy_evidence",
+  "generated_at": "2026-06-27T19:59:49.392742+00:00",
+  "git_commit": "ed1d9b8c72954b8b42f088e95e61ae4f66e6c7df",
+  "python": "3.12.13",
+  "platform": "Linux-6.17.0-35-generic-x86_64-with-glibc2.39",
+  "acceptance": {
+    "passed": true,
+    "checks": {
+      "dp_signal_aggregation": true,
+      "minimum_tenant_gate": true,
+      "secure_additive_aggregation": true
+    },
+    "limits": {
+      "local_only": true,
+      "external_federation_included": false,
+      "malicious_secure_aggregation_proof_included": false
+    }
+  },
+  "probes": {
+    "dp_signal_aggregation": {
+      "name": "dp_signal_aggregation",
+      "accepted_first": [
+        "decision:halt",
+        "scope:streaming"
+      ],
+      "accepted_duplicate": [],
+      "accepted_same_tenant": [],
+      "accepted_second": [
+        "decision:warn",
+        "scope:streaming"
+      ],
+      "signal_count": 2,
+      "distinct_tenants": 2,
+      "epsilon_spent": 0.9,
+      "accountant_epsilon": 0.9,
+      "raw_halt_count": 1,
+      "raw_warn_count": 1,
+      "payload_raw_counts_included": false,
+      "tenant_ids_leaked": false,
+      "passed": true
+    },
+    "minimum_tenant_gate": {
+      "name": "minimum_tenant_gate",
+      "release_blocked": true,
+      "accountant_epsilon": 0.0,
+      "passed": true
+    },
+    "secure_additive_aggregation": {
+      "name": "secure_additive_aggregation",
+      "party_count": 3,
+      "submissions": 3,
+      "aggregate_total": 10,
+      "individual_party_values_included": false,
+      "passed": true
+    }
+  }
+}

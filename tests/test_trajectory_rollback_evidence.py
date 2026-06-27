@@ -9,11 +9,44 @@
 from __future__ import annotations
 
 import json
+from pathlib import Path
+from typing import Any, cast
+
+from pytest import MonkeyPatch
 
 from benchmarks import trajectory_rollback_evidence as evidence
 
 
+def test_git_commit_falls_back_when_git_is_unavailable(
+    monkeypatch: MonkeyPatch,
+) -> None:
+    """Verify trajectory evidence handles missing and failing git clients."""
+
+    module = cast(Any, evidence)
+    monkeypatch.setattr(module.shutil, "which", lambda _name: None)
+    assert module._git_commit() == "unknown"
+
+    monkeypatch.setattr(module.shutil, "which", lambda _name: "git")
+
+    def raise_subprocess(*_args: object, **_kwargs: object) -> None:
+        raise module.subprocess.SubprocessError()
+
+    monkeypatch.setattr(module.subprocess, "run", raise_subprocess)
+    assert module._git_commit() == "unknown"
+
+    class Completed:
+        stdout = "abc123\n"
+
+    def complete_subprocess(*_args: object, **_kwargs: object) -> Completed:
+        return Completed()
+
+    monkeypatch.setattr(module.subprocess, "run", complete_subprocess)
+    assert module._git_commit() == "abc123"
+
+
 def test_preflight_rollback_probe_reports_all_action_bands() -> None:
+    """Verify rollback preflight covers proceed, warn, and halt bands."""
+
     packet = evidence.run_preflight_rollback_probe(simulations=4)
 
     assert packet["passed"] is True
@@ -30,6 +63,8 @@ def test_preflight_rollback_probe_reports_all_action_bands() -> None:
 
 
 def test_preflight_rollback_probe_validates_simulation_count() -> None:
+    """Verify rollback preflight rejects unsupported simulation counts."""
+
     try:
         evidence.run_preflight_rollback_probe(simulations=3)
     except ValueError as exc:
@@ -39,6 +74,8 @@ def test_preflight_rollback_probe_validates_simulation_count() -> None:
 
 
 def test_failure_probe_reports_tenant_safe_error_type() -> None:
+    """Verify rollback failure evidence omits raw tenant payloads."""
+
     packet = evidence.run_failure_probe()
 
     assert packet == {
@@ -52,8 +89,10 @@ def test_failure_probe_reports_tenant_safe_error_type() -> None:
 
 
 def test_trajectory_rollback_evidence_payload_has_acceptance_summary(
-    monkeypatch,
+    monkeypatch: MonkeyPatch,
 ) -> None:
+    """Verify the R11 packet records acceptance checks and release limits."""
+
     monkeypatch.setattr(evidence, "_git_commit", lambda: "abc123")
 
     packet = evidence.run_trajectory_rollback_evidence(simulations=4)
@@ -79,7 +118,12 @@ def test_trajectory_rollback_evidence_payload_has_acceptance_summary(
     }
 
 
-def test_main_writes_requested_output_path(tmp_path, monkeypatch) -> None:
+def test_main_writes_requested_output_path(
+    tmp_path: Path,
+    monkeypatch: MonkeyPatch,
+) -> None:
+    """Verify the R11 CLI writes the requested evidence artifact."""
+
     monkeypatch.setattr(evidence, "_git_commit", lambda: "abc123")
     output = tmp_path / "trajectory-rollback.json"
 
@@ -95,3 +139,19 @@ def test_main_writes_requested_output_path(tmp_path, monkeypatch) -> None:
     payload = json.loads(output.read_text(encoding="utf-8"))
     assert exit_code == 0
     assert payload["acceptance"]["passed"] is True
+
+
+def test_main_uses_default_results_path(monkeypatch: MonkeyPatch) -> None:
+    """Verify the R11 CLI saves to the default benchmark results path."""
+
+    saved: list[str] = []
+
+    def save_results(payload: object, filename: str) -> None:
+        saved.append(filename)
+
+    monkeypatch.setattr(evidence, "save_results", save_results)
+    monkeypatch.setattr(evidence, "_git_commit", lambda: "abc123")
+
+    assert evidence.main(["--simulations", "4"]) == 0
+    assert len(saved) == 1
+    assert saved[0].startswith("trajectory_rollback_evidence_")

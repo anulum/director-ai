@@ -9,11 +9,44 @@
 from __future__ import annotations
 
 import json
+from pathlib import Path
+from typing import Any, cast
+
+from pytest import MonkeyPatch
 
 from benchmarks import conformal_routing_evidence as evidence
 
 
+def test_git_commit_falls_back_when_git_is_unavailable(
+    monkeypatch: MonkeyPatch,
+) -> None:
+    """Verify conformal evidence handles missing and failing git clients."""
+
+    module = cast(Any, evidence)
+    monkeypatch.setattr(module.shutil, "which", lambda _name: None)
+    assert module._git_commit() == "unknown"
+
+    monkeypatch.setattr(module.shutil, "which", lambda _name: "git")
+
+    def raise_subprocess(*_args: object, **_kwargs: object) -> None:
+        raise module.subprocess.SubprocessError()
+
+    monkeypatch.setattr(module.subprocess, "run", raise_subprocess)
+    assert module._git_commit() == "unknown"
+
+    class Completed:
+        stdout = "abc123\n"
+
+    def complete_subprocess(*_args: object, **_kwargs: object) -> Completed:
+        return Completed()
+
+    monkeypatch.setattr(module.subprocess, "run", complete_subprocess)
+    assert module._git_commit() == "abc123"
+
+
 def test_coverage_probe_meets_target_with_reliable_intervals() -> None:
+    """Verify conformal calibration reaches the requested coverage target."""
+
     packet = evidence.run_coverage_probe(
         coverage=0.95,
         calibration_samples=40,
@@ -28,7 +61,24 @@ def test_coverage_probe_meets_target_with_reliable_intervals() -> None:
     assert packet["reliable"] is True
 
 
+def test_coverage_probe_validates_sample_counts() -> None:
+    """Verify conformal coverage evidence rejects undersized samples."""
+
+    for kwargs in (
+        {"calibration_samples": 1, "validation_samples": 20},
+        {"calibration_samples": 40, "validation_samples": 1},
+    ):
+        try:
+            evidence.run_coverage_probe(**kwargs)
+        except ValueError as exc:
+            assert "samples" in str(exc) or "sample_count" in str(exc)
+        else:  # pragma: no cover
+            raise AssertionError("expected ValueError")
+
+
 def test_routing_probe_reports_all_expected_operational_paths() -> None:
+    """Verify conformal routing emits every production routing action."""
+
     packet = evidence.run_routing_probe(
         coverage=0.95,
         calibration_samples=40,
@@ -52,7 +102,11 @@ def test_routing_probe_reports_all_expected_operational_paths() -> None:
     assert all(decision["matched"] for decision in packet["decisions"])
 
 
-def test_conformal_routing_evidence_payload_has_acceptance_summary(monkeypatch) -> None:
+def test_conformal_routing_evidence_payload_has_acceptance_summary(
+    monkeypatch: MonkeyPatch,
+) -> None:
+    """Verify the R10 packet records acceptance checks and release limits."""
+
     monkeypatch.setattr(evidence, "_git_commit", lambda: "abc123")
 
     packet = evidence.run_conformal_routing_evidence(
@@ -80,7 +134,12 @@ def test_conformal_routing_evidence_payload_has_acceptance_summary(monkeypatch) 
     assert set(packet["probes"]) == {"coverage_calibration", "routing_decisions"}
 
 
-def test_main_writes_requested_output_path(tmp_path, monkeypatch) -> None:
+def test_main_writes_requested_output_path(
+    tmp_path: Path,
+    monkeypatch: MonkeyPatch,
+) -> None:
+    """Verify the R10 CLI writes the requested evidence artifact."""
+
     monkeypatch.setattr(evidence, "_git_commit", lambda: "abc123")
     output = tmp_path / "conformal-routing.json"
 
@@ -100,3 +159,28 @@ def test_main_writes_requested_output_path(tmp_path, monkeypatch) -> None:
     payload = json.loads(output.read_text(encoding="utf-8"))
     assert exit_code == 0
     assert payload["acceptance"]["passed"] is True
+
+
+def test_main_uses_default_results_path(monkeypatch: MonkeyPatch) -> None:
+    """Verify the R10 CLI saves to the default benchmark results path."""
+
+    saved: list[str] = []
+
+    def save_results(payload: object, filename: str) -> None:
+        saved.append(filename)
+
+    monkeypatch.setattr(evidence, "save_results", save_results)
+    monkeypatch.setattr(evidence, "_git_commit", lambda: "abc123")
+
+    assert evidence.main(
+        [
+            "--calibration-samples",
+            "40",
+            "--validation-samples",
+            "20",
+            "--min-samples",
+            "30",
+        ]
+    ) == 0
+    assert len(saved) == 1
+    assert saved[0].startswith("conformal_routing_evidence_")

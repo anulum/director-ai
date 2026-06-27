@@ -9,11 +9,44 @@
 from __future__ import annotations
 
 import json
+from pathlib import Path
+from typing import Any, cast
+
+from pytest import MonkeyPatch
 
 from benchmarks import multimodal_temporal_evidence as evidence
 
 
+def test_git_commit_falls_back_when_git_is_unavailable(
+    monkeypatch: MonkeyPatch,
+) -> None:
+    """Verify multimodal evidence handles missing and failing git clients."""
+
+    module = cast(Any, evidence)
+    monkeypatch.setattr(module.shutil, "which", lambda _name: None)
+    assert module._git_commit() == "unknown"
+
+    monkeypatch.setattr(module.shutil, "which", lambda _name: "git")
+
+    def raise_subprocess(*_args: object, **_kwargs: object) -> None:
+        raise module.subprocess.SubprocessError()
+
+    monkeypatch.setattr(module.subprocess, "run", raise_subprocess)
+    assert module._git_commit() == "unknown"
+
+    class Completed:
+        stdout = "abc123\n"
+
+    def complete_subprocess(*_args: object, **_kwargs: object) -> Completed:
+        return Completed()
+
+    monkeypatch.setattr(module.subprocess, "run", complete_subprocess)
+    assert module._git_commit() == "abc123"
+
+
 def test_image_claim_probe_reports_allow_halt_and_caption_conflict() -> None:
+    """Verify multimodal image evidence covers allow and halt outcomes."""
+
     packet = evidence.run_image_claim_probe()
 
     assert packet["passed"] is True
@@ -27,6 +60,8 @@ def test_image_claim_probe_reports_allow_halt_and_caption_conflict() -> None:
 
 
 def test_video_temporal_probe_reports_frame_level_halt() -> None:
+    """Verify temporal video evidence identifies frame-level inconsistency."""
+
     packet = evidence.run_video_temporal_probe()
 
     assert packet["passed"] is True
@@ -37,6 +72,8 @@ def test_video_temporal_probe_reports_frame_level_halt() -> None:
 
 
 def test_hashbag_fallback_probe_uses_dependency_free_guard() -> None:
+    """Verify the dependency-free fallback guard produces a valid label."""
+
     packet = evidence.run_hashbag_fallback_probe()
 
     assert packet["passed"] is True
@@ -45,8 +82,10 @@ def test_hashbag_fallback_probe_uses_dependency_free_guard() -> None:
 
 
 def test_multimodal_temporal_evidence_payload_has_acceptance_summary(
-    monkeypatch,
+    monkeypatch: MonkeyPatch,
 ) -> None:
+    """Verify the R12 packet records acceptance checks and release limits."""
+
     monkeypatch.setattr(evidence, "_git_commit", lambda: "abc123")
 
     packet = evidence.run_multimodal_temporal_evidence()
@@ -74,7 +113,12 @@ def test_multimodal_temporal_evidence_payload_has_acceptance_summary(
     }
 
 
-def test_main_writes_requested_output_path(tmp_path, monkeypatch) -> None:
+def test_main_writes_requested_output_path(
+    tmp_path: Path,
+    monkeypatch: MonkeyPatch,
+) -> None:
+    """Verify the R12 CLI writes the requested evidence artifact."""
+
     monkeypatch.setattr(evidence, "_git_commit", lambda: "abc123")
     output = tmp_path / "multimodal-temporal.json"
 
@@ -83,3 +127,19 @@ def test_main_writes_requested_output_path(tmp_path, monkeypatch) -> None:
     payload = json.loads(output.read_text(encoding="utf-8"))
     assert exit_code == 0
     assert payload["acceptance"]["passed"] is True
+
+
+def test_main_uses_default_results_path(monkeypatch: MonkeyPatch) -> None:
+    """Verify the R12 CLI saves to the default benchmark results path."""
+
+    saved: list[str] = []
+
+    def save_results(payload: object, filename: str) -> None:
+        saved.append(filename)
+
+    monkeypatch.setattr(evidence, "save_results", save_results)
+    monkeypatch.setattr(evidence, "_git_commit", lambda: "abc123")
+
+    assert evidence.main([]) == 0
+    assert len(saved) == 1
+    assert saved[0].startswith("multimodal_temporal_evidence_")

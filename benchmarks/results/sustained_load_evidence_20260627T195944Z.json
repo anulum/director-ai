@@ -1,0 +1,45 @@
+{
+  "benchmark": "sustained_load_evidence",
+  "generated_utc": "2026-06-27T19:59:53.307120+00:00",
+  "git_commit": "ed1d9b8c72954b8b42f088e95e61ae4f66e6c7df",
+  "python_version": "3.12.13",
+  "platform": "Linux-6.17.0-35-generic-x86_64-with-glibc2.39",
+  "acceptance": {
+    "passed": true,
+    "async_ordering": true,
+    "tenant_poisoning": true,
+    "limits": {
+      "local_only": true,
+      "staging_or_production_telemetry_included": false,
+      "external_operator_signoff_included": false
+    }
+  },
+  "probes": {
+    "async_ordering": {
+      "name": "async_stream_ordering",
+      "streams": 64,
+      "tokens_per_stream": 64,
+      "total_events": 4096,
+      "duration_s": 0.26,
+      "events_per_second": 15750.77,
+      "stream_latency_p50_ms": 252.614,
+      "stream_latency_p95_ms": 255.584,
+      "failed_streams": 0,
+      "failure_samples": [],
+      "passed": true
+    },
+    "tenant_poisoning": {
+      "name": "tenant_poisoning_isolation",
+      "cases": 64,
+      "writes": 128,
+      "queries": 192,
+      "retrieval_top_k": 64,
+      "stored_documents": 128,
+      "duration_s": 0.048,
+      "cases_per_second": 1342.55,
+      "failed_cases": 0,
+      "failure_samples": [],
+      "passed": true
+    }
+  }
+}

@@ -1,0 +1,122 @@
+{
+  "schema_version": "director-ai.conformal-routing-evidence.v1",
+  "benchmark": "conformal_routing_evidence",
+  "generated_at": "2026-06-27T19:59:46.278178+00:00",
+  "git_commit": "ed1d9b8c72954b8b42f088e95e61ae4f66e6c7df",
+  "python": "3.12.13",
+  "platform": "Linux-6.17.0-35-generic-x86_64-with-glibc2.39",
+  "acceptance": {
+    "passed": true,
+    "checks": {
+      "coverage_calibration": true,
+      "routing_decisions": true
+    },
+    "limits": {
+      "local_only": true,
+      "external_operator_signoff_included": false,
+      "representative_domain_dataset_included": false
+    }
+  },
+  "probes": {
+    "coverage_calibration": {
+      "name": "coverage_calibration",
+      "target_coverage": 0.95,
+      "empirical_coverage": 1.0,
+      "calibration_samples": 80,
+      "validation_samples": 40,
+      "min_samples": 30,
+      "reliable": true,
+      "mean_interval_width": 0.032,
+      "coverage_failures": 0,
+      "passed": true
+    },
+    "routing_decisions": {
+      "name": "routing_decisions",
+      "policy": {
+        "allow_max_risk": 0.05,
+        "escalate_min_risk": 0.2,
+        "reject_min_risk": 0.7,
+        "min_samples": 30
+      },
+      "action_counts": {
+        "allow": 1,
+        "human_review": 2,
+        "escalate": 1,
+        "reject": 1
+      },
+      "decisions": [
+        {
+          "case": "low_risk",
+          "score": 0.999,
+          "expected_action": "allow",
+          "action": "allow",
+          "reason": "upper_risk_within_allowance",
+          "route_to": "current_path",
+          "risk_lower": 0.0,
+          "risk_upper": 0.019,
+          "coverage": 0.95,
+          "calibration_size": 80,
+          "is_reliable": true,
+          "matched": true
+        },
+        {
+          "case": "ambiguous_mid",
+          "score": 0.9,
+          "expected_action": "human_review",
+          "action": "human_review",
+          "reason": "ambiguous_calibrated_interval",
+          "route_to": "human_review",
+          "risk_lower": 0.082,
+          "risk_upper": 0.118,
+          "coverage": 0.95,
+          "calibration_size": 80,
+          "is_reliable": true,
+          "matched": true
+        },
+        {
+          "case": "uncertain_high",
+          "score": 0.7,
+          "expected_action": "escalate",
+          "action": "escalate",
+          "reason": "upper_risk_exceeds_escalation_threshold",
+          "route_to": "stronger_model",
+          "risk_lower": 0.282,
+          "risk_upper": 0.318,
+          "coverage": 0.95,
+          "calibration_size": 80,
+          "is_reliable": true,
+          "matched": true
+        },
+        {
+          "case": "high_risk",
+          "score": 0.02,
+          "expected_action": "reject",
+          "action": "reject",
+          "reason": "lower_risk_exceeds_reject_threshold",
+          "route_to": "reject",
+          "risk_lower": 0.962,
+          "risk_upper": 0.998,
+          "coverage": 0.95,
+          "calibration_size": 80,
+          "is_reliable": true,
+          "matched": true
+        },
+        {
+          "case": "uncalibrated",
+          "score": 0.999,
+          "expected_action": "human_review",
+          "action": "human_review",
+          "reason": "unreliable_calibration",
+          "route_to": "human_review",
+          "risk_lower": 0.0,
+          "risk_upper": 1.0,
+          "coverage": 0.95,
+          "calibration_size": 0,
+          "is_reliable": false,
+          "matched": true
+        }
+      ],
+      "passed": true
+    }
+  }
+}

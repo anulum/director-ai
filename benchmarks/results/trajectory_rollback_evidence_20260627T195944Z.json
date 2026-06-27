@@ -1,0 +1,88 @@
+{
+  "schema_version": "director-ai.trajectory-rollback-evidence.v1",
+  "benchmark": "trajectory_rollback_evidence",
+  "generated_at": "2026-06-27T19:59:47.697204+00:00",
+  "git_commit": "ed1d9b8c72954b8b42f088e95e61ae4f66e6c7df",
+  "python": "3.12.13",
+  "platform": "Linux-6.17.0-35-generic-x86_64-with-glibc2.39",
+  "acceptance": {
+    "passed": true,
+    "checks": {
+      "preflight_rollback_paths": true,
+      "rollback_failure_sanitisation": true
+    },
+    "limits": {
+      "local_only": true,
+      "external_operator_signoff_included": false,
+      "live_undo_backend_included": false
+    }
+  },
+  "probes": {
+    "preflight_rollback_paths": {
+      "name": "preflight_rollback_paths",
+      "simulations": 4,
+      "records": [
+        {
+          "case": "proceed",
+          "recommended": "proceed",
+          "halt_rate": 0.0,
+          "failed_trajectories": 0,
+          "expected_status": "not_required",
+          "status": "not_required",
+          "expected_executed": false,
+          "executed": false,
+          "evidence_refs": [],
+          "matched": true
+        },
+        {
+          "case": "warn",
+          "recommended": "warn",
+          "halt_rate": 0.25,
+          "failed_trajectories": 1,
+          "expected_status": "armed",
+          "status": "armed",
+          "expected_executed": false,
+          "executed": false,
+          "evidence_refs": [
+            "trajectory:0"
+          ],
+          "matched": true
+        },
+        {
+          "case": "halt",
+          "recommended": "halt",
+          "halt_rate": 0.5,
+          "failed_trajectories": 2,
+          "expected_status": "executed",
+          "status": "executed",
+          "expected_executed": true,
+          "executed": true,
+          "evidence_refs": [
+            "change:halt",
+            "trajectory:0",
+            "trajectory:1"
+          ],
+          "matched": true
+        }
+      ],
+      "hook_calls": [
+        [
+          "rollback-halt",
+          "trajectory_preflight_halt"
+        ]
+      ],
+      "repeat_status": "already_executed",
+      "repeat_executed": false,
+      "raw_prompt_payload_included": false,
+      "passed": true
+    },
+    "rollback_failure_sanitisation": {
+      "name": "rollback_failure_sanitisation",
+      "status": "failed",
+      "executed": false,
+      "error_type": "RuntimeError",
+      "raw_error_payload_included": false,
+      "passed": true
+    }
+  }
+}

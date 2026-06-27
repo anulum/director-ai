@@ -1,0 +1,80 @@
+{
+  "schema_version": "director-ai.multimodal-temporal-evidence.v1",
+  "benchmark": "multimodal_temporal_evidence",
+  "generated_at": "2026-06-27T19:59:48.685215+00:00",
+  "git_commit": "ed1d9b8c72954b8b42f088e95e61ae4f66e6c7df",
+  "python": "3.12.13",
+  "platform": "Linux-6.17.0-35-generic-x86_64-with-glibc2.39",
+  "acceptance": {
+    "passed": true,
+    "checks": {
+      "image_claim_paths": true,
+      "video_temporal_consistency": true,
+      "hashbag_dependency_free": true
+    },
+    "limits": {
+      "local_only": true,
+      "external_vision_nli_benchmark_included": false,
+      "real_video_model_included": false
+    }
+  },
+  "probes": {
+    "image_claim_paths": {
+      "name": "image_claim_paths",
+      "records": [
+        {
+          "case": "supported",
+          "decision": "allow",
+          "expected_decision": "allow",
+          "verdict": "consistent",
+          "risk_score": 0.05,
+          "evidence_refs": [
+            "media://image-supported"
+          ],
+          "matched": true
+        },
+        {
+          "case": "hallucinated",
+          "decision": "halt",
+          "expected_decision": "halt",
+          "verdict": "hallucinated",
+          "risk_score": 0.95,
+          "evidence_refs": [
+            "media://image-halt"
+          ],
+          "matched": true
+        },
+        {
+          "case": "caption_conflict",
+          "decision": "halt",
+          "expected_decision": "halt",
+          "verdict": "hallucinated",
+          "risk_score": 0.88,
+          "evidence_refs": [
+            "media://image-caption",
+            "media://image-caption#caption"
+          ],
+          "matched": true
+        }
+      ],
+      "raw_payload_leaked": false,
+      "passed": true
+    },
+    "video_temporal_consistency": {
+      "name": "video_temporal_consistency",
+      "decision": "halt",
+      "verdict": "temporal_inconsistent",
+      "evidence_refs": [
+        "media://video-temporal#frame:3"
+      ],
+      "claim_text_leaked": false,
+      "passed": true
+    },
+    "hashbag_dependency_free": {
+      "name": "hashbag_dependency_free",
+      "label": "consistent",
+      "similarity": 1.0,
+      "passed": true
+    }
+  }
+}

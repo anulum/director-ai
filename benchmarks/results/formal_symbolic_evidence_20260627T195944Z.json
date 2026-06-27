@@ -1,0 +1,65 @@
+{
+  "schema_version": "director-ai.formal-symbolic-evidence.v1",
+  "benchmark": "formal_symbolic_evidence",
+  "generated_at": "2026-06-27T19:59:52.133270+00:00",
+  "git_commit": "ed1d9b8c72954b8b42f088e95e61ae4f66e6c7df",
+  "python": "3.12.13",
+  "platform": "Linux-6.17.0-35-generic-x86_64-with-glibc2.39",
+  "acceptance": {
+    "passed": true,
+    "checks": {
+      "dpll_formula_guard": true,
+      "lean_runner_contract": true,
+      "z3_profile_contract": true,
+      "code_contract_guard": true
+    },
+    "limits": {
+      "local_only": true,
+      "external_lean_binary_run_included": false,
+      "z3_actual_run_included": true,
+      "operator_domain_contracts_included": false
+    }
+  },
+  "probes": {
+    "dpll_formula_guard": {
+      "name": "dpll_formula_guard",
+      "contradiction_decision": "halt",
+      "contradiction_verdict": "contradictory",
+      "tautology_decision": "allow",
+      "tautology_verdict": "consistent",
+      "backend": "dpll",
+      "raw_formula_leaked": false,
+      "passed": true
+    },
+    "lean_runner_contract": {
+      "name": "lean_runner_contract",
+      "runner_invoked": true,
+      "runner_source_contains_target": true,
+      "decision": "halt",
+      "verdict": "contradictory",
+      "backend": "lean",
+      "raw_formula_leaked": false,
+      "passed": true
+    },
+    "z3_profile_contract": {
+      "name": "z3_profile_contract",
+      "z3_installed": true,
+      "actual_z3_run": true,
+      "optional_dependency_gate": false,
+      "decision": "halt",
+      "verdict": "contradictory",
+      "backend": "z3",
+      "raw_formula_leaked": false,
+      "passed": true
+    },
+    "code_contract_guard": {
+      "name": "code_contract_guard",
+      "valid_decision": "allow",
+      "valid_contract_checked": true,
+      "invalid_decision": "halt",
+      "invalid_contract_checked": false,
+      "raw_payload_leaked": false,
+      "passed": true
+    }
+  }
+}

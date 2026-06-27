@@ -1,0 +1,73 @@
+{
+  "schema_version": "director-ai.provenance-evidence.v1",
+  "generated_at": "2026-06-27T19:59:45.099319+00:00",
+  "git_commit": "ed1d9b8c72954b8b42f088e95e61ae4f66e6c7df",
+  "python": "3.12.13",
+  "platform": "Linux-6.17.0-35-generic-x86_64-with-glibc2.39",
+  "acceptance": {
+    "passed": true,
+    "checks": {
+      "kb_lineage": true,
+      "provenance_chain": true
+    },
+    "limits": {
+      "local_only": true,
+      "external_operator_signoff_included": false
+    }
+  },
+  "probes": {
+    "kb_lineage": {
+      "name": "kb_lineage",
+      "tenant_id": "tenant-alpha",
+      "initial_root": "7a508803f8376669a600523b39aac47ce345b29ead6c139820068bb85cf9d96b",
+      "replaced_root": "0a31f7b6e1090dcf403a9c077ea80a0f47c5c4a2847489067b245b0b77421f65",
+      "retracted_root": "42fc6af8abd179d074d6f000477118c5e4a336ece49848e73d50447fc06ca4c2",
+      "roots_changed": true,
+      "tenant_scoped": true,
+      "initial_version": "1.0.0",
+      "replacement": {
+        "from_version": "1.0.0",
+        "to_version": "1.0.1",
+        "reason": "policy update"
+      },
+      "retraction": {
+        "version": "1.0.1",
+        "reason": "source withdrawn"
+      },
+      "conflict": {
+        "conflict_type": "signed_fact",
+        "claim_id": "dose-claim",
+        "signed_fact_id": "signed-dose-v1",
+        "reason": "new fact differs from protected claim state"
+      },
+      "audit_record": {
+        "event": "kb_snapshot",
+        "tenant_id": "tenant-alpha",
+        "revision": 5,
+        "record_count": 3,
+        "retraction_count": 1,
+        "replacement_count": 1,
+        "conflict_count": 2,
+        "merkle_root": "aa914d35750c94a1b70740c885334525cb61fdd9f9c4ac86246b607f39b9948e"
+      },
+      "raw_fact_payload_included": false,
+      "passed": true
+    },
+    "provenance_chain": {
+      "name": "provenance_chain",
+      "fact_count": 4,
+      "merkle_root": "df52f58cebaf3a4c4e303b68e4b23dae0b73ad177029f948032aeeaa6e4e5d8e",
+      "proofs_verified": true,
+      "healthy_all_ok": true,
+      "healthy_chain_index": 0,
+      "healthy_trust_score": 0.75,
+      "tamper_detected": true,
+      "tamper_failure_reason_present": true,
+      "chain_ok": true,
+      "first_bad_index": null,
+      "chain_entries": 2,
+      "raw_fact_payload_included": false,
+      "passed": true
+    }
+  }
+}

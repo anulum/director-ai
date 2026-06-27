@@ -9,13 +9,47 @@
 from __future__ import annotations
 
 import json
+from pathlib import Path
+from typing import Any, cast
+
+from pytest import MonkeyPatch
 
 from benchmarks import edge_mobile_evidence as evidence
+from director_ai.core.edge.runtime_profile import EdgeRuntimeCheck, EdgeRuntimeReadiness
+
+
+def test_git_commit_falls_back_when_git_is_unavailable(
+    monkeypatch: MonkeyPatch,
+) -> None:
+    """Verify edge evidence handles missing and failing git clients."""
+
+    module = cast(Any, evidence)
+    monkeypatch.setattr(module.shutil, "which", lambda _name: None)
+    assert module._git_commit(Path.cwd()) == "unknown"
+
+    monkeypatch.setattr(module.shutil, "which", lambda _name: "git")
+
+    def raise_subprocess(*_args: object, **_kwargs: object) -> None:
+        raise module.subprocess.SubprocessError()
+
+    monkeypatch.setattr(module.subprocess, "run", raise_subprocess)
+    assert module._git_commit(Path.cwd()) == "unknown"
+
+    class Completed:
+        stdout = "abc123\n"
+
+    def complete_subprocess(*_args: object, **_kwargs: object) -> Completed:
+        return Completed()
+
+    monkeypatch.setattr(module.subprocess, "run", complete_subprocess)
+    assert module._git_commit(Path.cwd()) == "abc123"
 
 
 def test_edge_mobile_evidence_payload_records_truthful_release_limits(
-    monkeypatch,
+    monkeypatch: MonkeyPatch,
 ) -> None:
+    """Verify the R14 packet records local readiness and release blockers."""
+
     monkeypatch.setattr(evidence, "_git_commit", lambda _repo: "abc123")
 
     packet = evidence.run_edge_mobile_evidence()
@@ -32,7 +66,57 @@ def test_edge_mobile_evidence_payload_records_truthful_release_limits(
     assert packet["profiles"]["browser-worker"]["ready_for_release"] is False
 
 
-def test_edge_mobile_evidence_omits_raw_external_paths(monkeypatch, tmp_path) -> None:
+def test_edge_mobile_evidence_detects_leaked_raw_paths(
+    monkeypatch: MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """Verify tenant-safe serialisation fails if a raw absolute path leaks."""
+
+    raw_path = tmp_path / "model.onnx"
+
+    def passed_check(name: str, *items: str) -> EdgeRuntimeCheck:
+        return EdgeRuntimeCheck(
+            name=name,
+            status="pass",
+            summary="test check",
+            evidence=tuple(items),
+        )
+
+    def build_readiness(_repo: Path, **_kwargs: object) -> EdgeRuntimeReadiness:
+        return EdgeRuntimeReadiness(
+            schema_version="director-ai.edge-runtime-readiness.v1",
+            target_id="browser-worker",
+            runtime="Browser Web Worker",
+            wasm_target="web",
+            ready_for_local_trial=True,
+            ready_for_release=False,
+            checks=(
+                passed_check("wasm_release_plan"),
+                passed_check("wasm_source_contract"),
+                passed_check("quantised_nli_contract", str(raw_path)),
+                passed_check("rust_kernel_source_contract"),
+                passed_check("edge_deployment_docs"),
+                passed_check("latency_benchmark_surface"),
+            ),
+            findings=(),
+            limits={"local_only": True},
+        )
+
+    monkeypatch.setattr(evidence, "build_edge_runtime_readiness", build_readiness)
+    monkeypatch.setattr(evidence, "_git_commit", lambda _repo: "abc123")
+
+    packet = evidence.run_edge_mobile_evidence(quantised_model_path=raw_path)
+
+    assert packet["acceptance"]["checks"]["tenant_safe_serialisation"] is False
+    assert packet["acceptance"]["passed"] is False
+
+
+def test_edge_mobile_evidence_omits_raw_external_paths(
+    monkeypatch: MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """Verify external model paths are redacted from edge evidence."""
+
     monkeypatch.setattr(evidence, "_git_commit", lambda _repo: "abc123")
     outside = tmp_path.parent / "edge-model.onnx"
 
@@ -44,7 +128,12 @@ def test_edge_mobile_evidence_omits_raw_external_paths(monkeypatch, tmp_path) ->
     assert str(outside) not in serialised
 
 
-def test_main_writes_requested_output_path(tmp_path, monkeypatch) -> None:
+def test_main_writes_requested_output_path(
+    tmp_path: Path,
+    monkeypatch: MonkeyPatch,
+) -> None:
+    """Verify the R14 CLI writes the requested evidence artifact."""
+
     monkeypatch.setattr(evidence, "_git_commit", lambda _repo: "abc123")
     output = tmp_path / "edge-mobile.json"
 
@@ -53,3 +142,19 @@ def test_main_writes_requested_output_path(tmp_path, monkeypatch) -> None:
     payload = json.loads(output.read_text(encoding="utf-8"))
     assert exit_code == 0
     assert payload["acceptance"]["passed"] is True
+
+
+def test_main_uses_default_results_path(monkeypatch: MonkeyPatch) -> None:
+    """Verify the R14 CLI saves to the default benchmark results path."""
+
+    saved: list[str] = []
+
+    def save_results(payload: object, filename: str) -> None:
+        saved.append(filename)
+
+    monkeypatch.setattr(evidence, "save_results", save_results)
+    monkeypatch.setattr(evidence, "_git_commit", lambda _repo: "abc123")
+
+    assert evidence.main([]) == 0
+    assert len(saved) == 1
+    assert saved[0].startswith("edge_mobile_evidence_")

@@ -9,11 +9,44 @@
 from __future__ import annotations
 
 import json
+from pathlib import Path
+from typing import Any, cast
+
+from pytest import MonkeyPatch
 
 from benchmarks import federated_privacy_evidence as evidence
 
 
+def test_git_commit_falls_back_when_git_is_unavailable(
+    monkeypatch: MonkeyPatch,
+) -> None:
+    """Verify federated evidence handles missing and failing git clients."""
+
+    module = cast(Any, evidence)
+    monkeypatch.setattr(module.shutil, "which", lambda _name: None)
+    assert module._git_commit() == "unknown"
+
+    monkeypatch.setattr(module.shutil, "which", lambda _name: "git")
+
+    def raise_subprocess(*_args: object, **_kwargs: object) -> None:
+        raise module.subprocess.SubprocessError()
+
+    monkeypatch.setattr(module.subprocess, "run", raise_subprocess)
+    assert module._git_commit() == "unknown"
+
+    class Completed:
+        stdout = "abc123\n"
+
+    def complete_subprocess(*_args: object, **_kwargs: object) -> Completed:
+        return Completed()
+
+    monkeypatch.setattr(module.subprocess, "run", complete_subprocess)
+    assert module._git_commit() == "abc123"
+
+
 def test_dp_signal_probe_caps_tenant_categories_and_omits_raw_payloads() -> None:
+    """Verify DP signal aggregation stays tenant-safe and deduplicated."""
+
     packet = evidence.run_dp_signal_probe()
 
     assert packet["passed"] is True
@@ -28,6 +61,8 @@ def test_dp_signal_probe_caps_tenant_categories_and_omits_raw_payloads() -> None
 
 
 def test_min_tenant_probe_blocks_release_without_charging_budget() -> None:
+    """Verify the minimum-tenant gate blocks release without budget spend."""
+
     packet = evidence.run_min_tenant_probe()
 
     assert packet == {
@@ -39,6 +74,8 @@ def test_min_tenant_probe_blocks_release_without_charging_budget() -> None:
 
 
 def test_secret_sharing_probe_reconstructs_only_aggregate() -> None:
+    """Verify secure aggregation exposes only the aggregate total."""
+
     packet = evidence.run_secret_sharing_probe()
 
     assert packet["passed"] is True
@@ -48,7 +85,11 @@ def test_secret_sharing_probe_reconstructs_only_aggregate() -> None:
     assert packet["individual_party_values_included"] is False
 
 
-def test_federated_privacy_evidence_payload_has_acceptance_summary(monkeypatch) -> None:
+def test_federated_privacy_evidence_payload_has_acceptance_summary(
+    monkeypatch: MonkeyPatch,
+) -> None:
+    """Verify the R13 packet records acceptance checks and release limits."""
+
     monkeypatch.setattr(evidence, "_git_commit", lambda: "abc123")
 
     packet = evidence.run_federated_privacy_evidence()
@@ -76,7 +117,12 @@ def test_federated_privacy_evidence_payload_has_acceptance_summary(monkeypatch) 
     }
 
 
-def test_main_writes_requested_output_path(tmp_path, monkeypatch) -> None:
+def test_main_writes_requested_output_path(
+    tmp_path: Path,
+    monkeypatch: MonkeyPatch,
+) -> None:
+    """Verify the R13 CLI writes the requested evidence artifact."""
+
     monkeypatch.setattr(evidence, "_git_commit", lambda: "abc123")
     output = tmp_path / "federated-privacy.json"
 
@@ -85,3 +131,19 @@ def test_main_writes_requested_output_path(tmp_path, monkeypatch) -> None:
     payload = json.loads(output.read_text(encoding="utf-8"))
     assert exit_code == 0
     assert payload["acceptance"]["passed"] is True
+
+
+def test_main_uses_default_results_path(monkeypatch: MonkeyPatch) -> None:
+    """Verify the R13 CLI saves to the default benchmark results path."""
+
+    saved: list[str] = []
+
+    def save_results(payload: object, filename: str) -> None:
+        saved.append(filename)
+
+    monkeypatch.setattr(evidence, "save_results", save_results)
+    monkeypatch.setattr(evidence, "_git_commit", lambda: "abc123")
+
+    assert evidence.main([]) == 0
+    assert len(saved) == 1
+    assert saved[0].startswith("federated_privacy_evidence_")

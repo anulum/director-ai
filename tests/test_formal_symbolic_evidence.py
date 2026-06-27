@@ -9,11 +9,44 @@
 from __future__ import annotations
 
 import json
+from pathlib import Path
+from typing import Any, cast
+
+from pytest import MonkeyPatch
 
 from benchmarks import formal_symbolic_evidence as evidence
 
 
+def test_git_commit_falls_back_when_git_is_unavailable(
+    monkeypatch: MonkeyPatch,
+) -> None:
+    """Verify formal evidence handles missing and failing git clients."""
+
+    module = cast(Any, evidence)
+    monkeypatch.setattr(module.shutil, "which", lambda _name: None)
+    assert module._git_commit() == "unknown"
+
+    monkeypatch.setattr(module.shutil, "which", lambda _name: "git")
+
+    def raise_subprocess(*_args: object, **_kwargs: object) -> None:
+        raise module.subprocess.SubprocessError()
+
+    monkeypatch.setattr(module.subprocess, "run", raise_subprocess)
+    assert module._git_commit() == "unknown"
+
+    class Completed:
+        stdout = "abc123\n"
+
+    def complete_subprocess(*_args: object, **_kwargs: object) -> Completed:
+        return Completed()
+
+    monkeypatch.setattr(module.subprocess, "run", complete_subprocess)
+    assert module._git_commit() == "abc123"
+
+
 def test_dpll_formula_probe_halts_contradictions_without_formula_leak() -> None:
+    """Verify DPLL evidence halts contradictions without formula leakage."""
+
     packet = evidence.run_dpll_formula_probe()
 
     assert packet["passed"] is True
@@ -26,6 +59,8 @@ def test_dpll_formula_probe_halts_contradictions_without_formula_leak() -> None:
 
 
 def test_lean_runner_probe_uses_runner_without_external_binary() -> None:
+    """Verify Lean-runner evidence exercises the runner contract."""
+
     packet = evidence.run_lean_runner_probe()
 
     assert packet["passed"] is True
@@ -37,6 +72,8 @@ def test_lean_runner_probe_uses_runner_without_external_binary() -> None:
 
 
 def test_z3_profile_probe_records_actual_run_or_optional_gate() -> None:
+    """Verify Z3 evidence records either an actual run or optional gate."""
+
     packet = evidence.run_z3_profile_probe()
 
     assert packet["passed"] is True
@@ -48,7 +85,33 @@ def test_z3_profile_probe_records_actual_run_or_optional_gate() -> None:
         assert packet["backend"] == "z3"
 
 
+def test_z3_profile_probe_records_optional_dependency_gate(
+    monkeypatch: MonkeyPatch,
+) -> None:
+    """Verify Z3 evidence records the formal-extra dependency gate."""
+
+    module = cast(Any, evidence)
+    monkeypatch.setattr(module.importlib.util, "find_spec", lambda _name: None)
+
+    def raise_import_error(_backend: str) -> object:
+        raise ImportError("install director-ai[formal]")
+
+    monkeypatch.setattr(
+        module.FormalCodeVerifierAdapter,
+        "with_theorem_backend",
+        raise_import_error,
+    )
+
+    packet = evidence.run_z3_profile_probe()
+
+    assert packet["z3_installed"] is False
+    assert packet["optional_dependency_gate"] is True
+    assert packet["passed"] is True
+
+
 def test_code_contract_probe_checks_code_before_contract_and_omits_raw_text() -> None:
+    """Verify code contracts are checked without exposing raw source text."""
+
     packet = evidence.run_code_contract_probe()
 
     assert packet["passed"] is True
@@ -59,7 +122,11 @@ def test_code_contract_probe_checks_code_before_contract_and_omits_raw_text() ->
     assert packet["raw_payload_leaked"] is False
 
 
-def test_formal_symbolic_evidence_payload_has_acceptance_summary(monkeypatch) -> None:
+def test_formal_symbolic_evidence_payload_has_acceptance_summary(
+    monkeypatch: MonkeyPatch,
+) -> None:
+    """Verify the R16 packet records acceptance checks and release limits."""
+
     monkeypatch.setattr(evidence, "_git_commit", lambda: "abc123")
 
     packet = evidence.run_formal_symbolic_evidence()
@@ -82,7 +149,12 @@ def test_formal_symbolic_evidence_payload_has_acceptance_summary(monkeypatch) ->
     }
 
 
-def test_main_writes_requested_output_path(tmp_path, monkeypatch) -> None:
+def test_main_writes_requested_output_path(
+    tmp_path: Path,
+    monkeypatch: MonkeyPatch,
+) -> None:
+    """Verify the R16 CLI writes the requested evidence artifact."""
+
     monkeypatch.setattr(evidence, "_git_commit", lambda: "abc123")
     output = tmp_path / "formal-symbolic.json"
 
@@ -91,3 +163,19 @@ def test_main_writes_requested_output_path(tmp_path, monkeypatch) -> None:
     payload = json.loads(output.read_text(encoding="utf-8"))
     assert exit_code == 0
     assert payload["acceptance"]["passed"] is True
+
+
+def test_main_uses_default_results_path(monkeypatch: MonkeyPatch) -> None:
+    """Verify the R16 CLI saves to the default benchmark results path."""
+
+    saved: list[str] = []
+
+    def save_results(payload: object, filename: str) -> None:
+        saved.append(filename)
+
+    monkeypatch.setattr(evidence, "save_results", save_results)
+    monkeypatch.setattr(evidence, "_git_commit", lambda: "abc123")
+
+    assert evidence.main([]) == 0
+    assert len(saved) == 1
+    assert saved[0].startswith("formal_symbolic_evidence_")
