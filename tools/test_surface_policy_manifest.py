@@ -344,8 +344,8 @@ KNOWN_TEST_SURFACE_CLASSIFICATIONS: dict[str, tuple[str, str]] = {
         "ML/export/eval boundary fake",
     ),
     "tests/test_pint_replication_packet.py": (
-        "violation",
-        "ML/export/eval boundary fake",
+        "unit-guard-with-companion",
+        "ML/export/eval unit guard with companion tests/test_pint_replication_packet_real_surface.py",
     ),
     "tests/test_pint_seed_smoke_runner.py": (
         "violation",

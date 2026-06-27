@@ -48,6 +48,13 @@ upstream test rows.
 uv run --frozen python tools/validate_pint_replication_packet.py .
 ```
 
+The validator is covered through the production subprocess path in
+`tests/test_pint_replication_packet_real_surface.py`, which runs the checked-in
+packet and a temporary broken packet through the same CLI entry point operators
+use in CI or release checks. The lower-level
+`tests/test_pint_replication_packet.py` suite remains a branch guard for schema,
+language-diversity, label, and claim-boundary failures.
+
 Use this gate before adding PINT-related results to public benchmark tables.
 Official score claims require a separate evidence packet with the upstream run
 environment, raw outputs, metric mapping, and access approval.
