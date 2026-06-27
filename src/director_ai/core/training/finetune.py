@@ -353,8 +353,8 @@ def _make_weighted_trainer_class(class_weights: list[float]) -> type[Any]:
 
     weight_tensor = torch.tensor(class_weights, dtype=torch.float32)
 
-    class WeightedTrainer(  # type: ignore[misc,unused-ignore] # Transformers Trainer may be Any without optional stubs in the lean CI type env.
-        Trainer
+    class WeightedTrainer(
+        Trainer  # type: ignore[misc,unused-ignore] # Transformers Trainer may be Any without optional stubs in the lean CI type env.
     ):
         def compute_loss(
             self,
