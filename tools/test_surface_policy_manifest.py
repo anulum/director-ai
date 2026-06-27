@@ -422,7 +422,10 @@ KNOWN_TEST_SURFACE_CLASSIFICATIONS: dict[str, tuple[str, str]] = {
         "ML/export/eval boundary fake",
     ),
     "tests/test_server.py": ("violation", "CLI/server/API boundary fake"),
-    "tests/test_server_auth.py": ("violation", "CLI/server/API boundary fake"),
+    "tests/test_server_auth.py": (
+        "unit-guard-with-companion",
+        "CLI/server/API unit guard with companion tests/test_server_auth_real_surface.py",
+    ),
     "tests/test_span_detector.py": (
         "violation",
         "module/workflow fake requiring review",
