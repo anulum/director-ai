@@ -9,7 +9,7 @@
     "python_model_classes": 1000,
     "python_model_source_modules": 459,
     "rust_pyo3_model_wrappers": 83,
-    "test_files": 568
+    "test_files": 569
   },
   "documentation": {
     "public_pages": [
@@ -5674,6 +5674,7 @@
       "tests/test_server_helpers.py",
       "tests/test_server_multimodal.py",
       "tests/test_server_prompt_guard.py",
+      "tests/test_server_real_surface.py",
       "tests/test_server_tenant.py",
       "tests/test_server_ws_dos.py",
       "tests/test_server_ws_mux.py",
