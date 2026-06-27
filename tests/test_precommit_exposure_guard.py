@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import shutil
 import subprocess
+import tomllib
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -14,6 +15,7 @@ HOOK = ROOT / ".githooks" / "pre-commit"
 BOUNDARY_VERIFIER = ROOT / "tools" / "verify_public_sector_boundary.py"
 PRE_COMMIT_CONFIG = ROOT / ".pre-commit-config.yaml"
 PYPROJECT = ROOT / "pyproject.toml"
+CI_WORKFLOW = ROOT / ".github" / "workflows" / "ci.yml"
 FORBIDDEN_COVERAGE_TEST_PATTERNS = (
     "test_cov*.py",
     "test_coverage*.py",
@@ -236,6 +238,25 @@ def test_active_public_paths_do_not_reference_coverage_bucket_tests() -> None:
             offenders.append(f"{path.relative_to(ROOT)}: forbidden coverage test name")
 
     assert offenders == []
+
+
+def test_main_coverage_omits_formal_only_neuro_symbolic_package() -> None:
+    """Keep formal-only Z3 code out of the z3-less main coverage denominator."""
+    pyproject = tomllib.loads(PYPROJECT.read_text(encoding="utf-8"))
+    omit = set(pyproject["tool"]["coverage"]["run"]["omit"])
+
+    assert "src/director_ai/core/neuro_symbolic/*" in omit
+
+
+def test_formal_extra_ci_covers_neuro_symbolic_compliance_engine() -> None:
+    """Ensure the formal extras matrix owns neuro-symbolic compliance coverage."""
+    workflow = CI_WORKFLOW.read_text(encoding="utf-8")
+
+    formal_case = workflow.split("*,formal,*)", maxsplit=1)[1].split(";;", maxsplit=1)[
+        0
+    ]
+    assert "tests/test_neuro_symbolic.py" in formal_case
+    assert "tests/test_neuro_symbolic_verifier.py" in formal_case
 
 
 def test_precommit_allows_plain_public_changes(tmp_path: Path) -> None:

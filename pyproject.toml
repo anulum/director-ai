@@ -484,6 +484,7 @@ omit = [
     "src/director_ai/proto/director/v1/director_pb2.py",
     "src/director_ai/proto/director/v1/director_pb2_grpc.py",
     "src/director_ai/enterprise/*",         # requires [enterprise] extras (Redis)
+    "src/director_ai/core/neuro_symbolic/*", # requires [formal] extra (z3-solver); covered in test-extras
     "src/director_ai/core/finetune.py",     # requires [nli] extras (torch)
     "src/director_ai/core/finetune_benchmark.py",
     "src/director_ai/core/calibration/honesty_redteam.py",  # requires [honesty] extra (scpn-studio-platform, py>=3.12)
