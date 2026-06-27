@@ -16,6 +16,7 @@ official run or approved data export is available.
 | `benchmarks/pint_seed_cases.jsonl` | Synthetic seed cases for local smoke testing |
 | `tools/validate_pint_replication_packet.py` | Schema and score-claim boundary gate |
 | `tools/run_pint_seed_smoke.py` | Non-public seed-smoke runner for the production sanitizer path |
+| `tools/run_pint_official_export.py` | Local export runner that records dataset hashes without approving public score claims |
 
 ## Boundary
 
@@ -61,6 +62,12 @@ The seed-smoke runner is covered through
 `tools/run_pint_seed_smoke.py` with the checked-in packet and a temporary output
 path. The resulting JSON must keep `public_score_claim`, `official_pint_score`,
 and `benchmark_eligible` false and must omit raw prompt text from per-case rows.
+
+The official-export runner is covered through
+`tests/test_pint_official_export_runner_real_surface.py`, which executes
+`tools/run_pint_official_export.py` with a local PINT-format export and a
+temporary output path. The result records the export path and SHA-256 digest,
+keeps `public_score_claim` false, and omits raw prompt text from per-case rows.
 
 Use this gate before adding PINT-related results to public benchmark tables.
 Official score claims require a separate evidence packet with the upstream run
