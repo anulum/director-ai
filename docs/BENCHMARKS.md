@@ -58,6 +58,14 @@ artefacts, then re-runs the Lite Scorer validator before keeping the file.
 contract with temporary artefacts, hash assertions, measured evaluator fields,
 and the fail-closed missing-artefact path.
 
+`tools/build_lite_scorer_v2_heldout.py` builds the held-out JSONL and TOML
+provenance manifest from a local Hugging Face dataset saved on disk. The CLI
+enforces balanced supported/unsupported labels, minimum source diversity, the
+dataset SHA-256, and a deterministic seed. Its real-surface coverage lives in
+`tests/test_lite_scorer_v2_heldout_builder_real_surface.py`, which runs the
+production CLI against a temporary saved dataset and verifies both the emitted
+artefacts and the fail-closed insufficient-source path.
+
 ## Scoring Tiers
 
 Director-AI uses a 5-tier scoring pyramid. Each tier trades latency for accuracy.

@@ -193,6 +193,10 @@ only; it does not mark the evidence packet as recorded or make any public score
 claim. `tools/build_lite_scorer_v2_heldout.py` builds the held-out JSONL from
 the local evaluation split with deterministic sampling, balanced supported and
 unsupported labels, source counts, and a SHA-256 provenance manifest.
+That builder expects a Hugging Face dataset saved on disk and fails closed when
+the selected rows cannot satisfy the configured source-diversity floor. Its
+real-surface guard runs the production subprocess against a temporary saved
+dataset and validates the emitted JSONL and TOML manifest.
 `training/train_distillation.py` records the deterministic training seed,
 selected row counts, model parameter counts, device, and claim boundary in
 `training_run_manifest.json` inside the student output directory. Its
