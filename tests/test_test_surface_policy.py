@@ -429,6 +429,16 @@ def test_secrets_guard_has_real_surface_companion() -> None:
     assert "tests/test_secrets_real_surface.py" in category
 
 
+def test_production_guard_has_real_surface_companion() -> None:
+    """ProductionGuard unit guard should have a real public-facade companion."""
+    classification, category = KNOWN_TEST_SURFACE_CLASSIFICATIONS[
+        "tests/test_production_guard.py"
+    ]
+
+    assert classification == "unit-guard-with-companion"
+    assert "tests/test_production_guard_real_surface.py" in category
+
+
 def test_policy_main_returns_success_for_clean_tree(tmp_path: Path) -> None:
     _write_test(tmp_path, "tests/test_real_surface.py")
 
