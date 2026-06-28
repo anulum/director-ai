@@ -9,7 +9,7 @@
     "python_model_classes": 1000,
     "python_model_source_modules": 459,
     "rust_pyo3_model_wrappers": 83,
-    "test_files": 587
+    "test_files": 588
   },
   "documentation": {
     "public_pages": [
@@ -5672,6 +5672,7 @@
       "tests/test_sdk_guard.py",
       "tests/test_sdk_guard_real_sdk.py",
       "tests/test_secrets.py",
+      "tests/test_secrets_real_surface.py",
       "tests/test_security_exceptions.py",
       "tests/test_security_hardening.py",
       "tests/test_security_physical_risks.py",
