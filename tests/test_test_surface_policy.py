@@ -334,6 +334,16 @@ def test_config_wizard_unit_guard_has_real_surface_companion() -> None:
     assert "tests/test_config_wizard_real_surface.py" in category
 
 
+def test_config_guard_has_real_surface_companion() -> None:
+    """Config guard should be backed by real env/file/runtime wiring coverage."""
+    classification, category = KNOWN_TEST_SURFACE_CLASSIFICATIONS[
+        "tests/test_config.py"
+    ]
+
+    assert classification == "unit-guard-with-companion"
+    assert "tests/test_config_real_surface.py" in category
+
+
 def test_finetune_benchmark_unit_guard_has_real_surface_companion() -> None:
     classification, category = KNOWN_TEST_SURFACE_CLASSIFICATIONS[
         "tests/test_finetune_benchmark.py"

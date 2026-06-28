@@ -9,7 +9,7 @@
     "python_model_classes": 1000,
     "python_model_source_modules": 459,
     "rust_pyo3_model_wrappers": 83,
-    "test_files": 589
+    "test_files": 590
   },
   "documentation": {
     "public_pages": [
@@ -5273,6 +5273,7 @@
       "tests/test_compliance_cli.py",
       "tests/test_compliance_reporter.py",
       "tests/test_config.py",
+      "tests/test_config_real_surface.py",
       "tests/test_config_wizard.py",
       "tests/test_config_wizard_real_surface.py",
       "tests/test_conflict_aware_knowledge.py",
