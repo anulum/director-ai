@@ -55,7 +55,7 @@ def _parse_pdf(content: bytes) -> str:
             "Pdf"
         ):
             raise ValueError("invalid PDF document") from e
-        raise
+        raise  # pragma: no cover - preserves unexpected non-pypdf failures.
     pages = []
     for page in reader.pages:
         text = page.extract_text()

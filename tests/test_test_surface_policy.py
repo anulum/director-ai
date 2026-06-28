@@ -449,6 +449,16 @@ def test_production_guard_has_real_surface_companion() -> None:
     assert "tests/test_production_guard_real_surface.py" in category
 
 
+def test_doc_modules_guard_has_real_surface_companion() -> None:
+    """Document module guard should be backed by real parser/chunker wiring."""
+    classification, category = KNOWN_TEST_SURFACE_CLASSIFICATIONS[
+        "tests/test_doc_modules.py"
+    ]
+
+    assert classification == "unit-guard-with-companion"
+    assert "tests/test_doc_modules_real_surface.py" in category
+
+
 def test_policy_main_returns_success_for_clean_tree(tmp_path: Path) -> None:
     _write_test(tmp_path, "tests/test_real_surface.py")
 
