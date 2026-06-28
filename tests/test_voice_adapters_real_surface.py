@@ -9,15 +9,14 @@
 
 from __future__ import annotations
 
-from director_ai.voice.adapters import (
-    DeepgramAdapter,
-    ElevenLabsAdapter,
-    OpenAITTSAdapter,
-)
+import pytest
 
 
 def test_elevenlabs_adapter_constructs_real_async_sdk_client() -> None:
     """ElevenLabs adapter should cache the installed async SDK client object."""
+    pytest.importorskip("elevenlabs", reason="elevenlabs required for voice extra")
+    from director_ai.voice.adapters import ElevenLabsAdapter
+
     adapter = ElevenLabsAdapter(api_key="elevenlabs-local-test")
 
     client: object = adapter._get_client()
@@ -29,6 +28,9 @@ def test_elevenlabs_adapter_constructs_real_async_sdk_client() -> None:
 
 async def test_openai_tts_adapter_constructs_and_closes_real_async_client() -> None:
     """OpenAI TTS adapter should construct and close the installed async client."""
+    pytest.importorskip("openai", reason="openai required for voice extra")
+    from director_ai.voice.adapters import OpenAITTSAdapter
+
     adapter = OpenAITTSAdapter(api_key="sk-local-test")
 
     client: object = adapter._get_client()
@@ -44,6 +46,9 @@ async def test_openai_tts_adapter_constructs_and_closes_real_async_client() -> N
 
 def test_deepgram_adapter_constructs_real_async_sdk_client() -> None:
     """Deepgram adapter should cache the installed async SDK client object."""
+    pytest.importorskip("deepgram", reason="deepgram-sdk required for voice extra")
+    from director_ai.voice.adapters import DeepgramAdapter
+
     adapter = DeepgramAdapter(api_key="deepgram-local-test")
 
     client: object = adapter._get_client()
