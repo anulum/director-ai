@@ -434,7 +434,10 @@ KNOWN_TEST_SURFACE_CLASSIFICATIONS: dict[str, tuple[str, str]] = {
         "module/workflow fake requiring review",
     ),
     "tests/test_sdk_guard.py": ("violation", "module/workflow fake requiring review"),
-    "tests/test_secrets.py": ("violation", "generated/docs/config guard fake"),
+    "tests/test_secrets.py": (
+        "unit-guard-with-companion",
+        "generated/docs/config guard with companion tests/test_secrets_real_surface.py",
+    ),
     "tests/test_self_evolving.py": (
         "violation",
         "module/workflow fake requiring review",

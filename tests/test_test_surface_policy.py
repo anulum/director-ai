@@ -419,6 +419,16 @@ def test_polar_deployment_smoke_guard_has_real_surface_companion() -> None:
     assert "tools/validate_polar_deployment_smoke.py" in category
 
 
+def test_secrets_guard_has_real_surface_companion() -> None:
+    """Secrets guard should be backed by real env backend hydration coverage."""
+    classification, category = KNOWN_TEST_SURFACE_CLASSIFICATIONS[
+        "tests/test_secrets.py"
+    ]
+
+    assert classification == "unit-guard-with-companion"
+    assert "tests/test_secrets_real_surface.py" in category
+
+
 def test_policy_main_returns_success_for_clean_tree(tmp_path: Path) -> None:
     _write_test(tmp_path, "tests/test_real_surface.py")
 
