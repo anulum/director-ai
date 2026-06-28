@@ -172,15 +172,18 @@ def test_main_uses_default_results_path(monkeypatch: MonkeyPatch) -> None:
     monkeypatch.setattr(evidence, "save_results", save_results)
     monkeypatch.setattr(evidence, "_git_commit", lambda: "abc123")
 
-    assert evidence.main(
-        [
-            "--calibration-samples",
-            "40",
-            "--validation-samples",
-            "20",
-            "--min-samples",
-            "30",
-        ]
-    ) == 0
+    assert (
+        evidence.main(
+            [
+                "--calibration-samples",
+                "40",
+                "--validation-samples",
+                "20",
+                "--min-samples",
+                "30",
+            ]
+        )
+        == 0
+    )
     assert len(saved) == 1
     assert saved[0].startswith("conformal_routing_evidence_")

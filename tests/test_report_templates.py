@@ -203,9 +203,7 @@ class TestSwarmHTML:
 class TestPdf:
     """PDF rendering via WeasyPrint (the ``reports`` extra)."""
 
-    def test_html_to_pdf_emits_pdf_bytes(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_html_to_pdf_emits_pdf_bytes(self, monkeypatch: pytest.MonkeyPatch) -> None:
         calls: list[str] = []
 
         class FakeHTML:

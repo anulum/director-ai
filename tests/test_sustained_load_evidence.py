@@ -264,15 +264,18 @@ def test_main_uses_default_results_path(monkeypatch: MonkeyPatch) -> None:
     monkeypatch.setattr(evidence, "save_results", save_results)
     monkeypatch.setattr(evidence, "_git_commit", lambda: "abc123")
 
-    assert evidence.main(
-        [
-            "--streams",
-            "2",
-            "--tokens-per-stream",
-            "4",
-            "--tenant-cases",
-            "2",
-        ]
-    ) == 0
+    assert (
+        evidence.main(
+            [
+                "--streams",
+                "2",
+                "--tokens-per-stream",
+                "4",
+                "--tenant-cases",
+                "2",
+            ]
+        )
+        == 0
+    )
     assert len(saved) == 1
     assert saved[0].startswith("sustained_load_evidence_")

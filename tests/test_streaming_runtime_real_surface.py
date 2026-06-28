@@ -40,7 +40,9 @@ class _ChunkScoreScorer:
             chunks=[
                 EvidenceChunk(text="far retrieved fact", distance=0.7, source="far"),
                 EvidenceChunk(text="near retrieved fact", distance=0.1, source="near"),
-                EvidenceChunk(text="middle retrieved fact", distance=0.4, source="middle"),
+                EvidenceChunk(
+                    text="middle retrieved fact", distance=0.4, source="middle"
+                ),
             ],
             nli_premise="near retrieved fact\nmiddle retrieved fact\nfar retrieved fact",
             nli_hypothesis="unsafe streamed claim",

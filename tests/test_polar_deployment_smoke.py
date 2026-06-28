@@ -283,7 +283,9 @@ required_smoke_checks = []
         "security/polar_deployment_smoke_packet.toml: packet_id must be a non-empty string"
         in errors
     )
-    assert "security/polar_deployment_smoke_packet.toml: provider must be polar" in errors
+    assert (
+        "security/polar_deployment_smoke_packet.toml: provider must be polar" in errors
+    )
     assert (
         "security/polar_deployment_smoke_packet.toml: pricing_currency must remain USD"
         in errors

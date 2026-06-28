@@ -292,9 +292,9 @@ def test_manifest_validation_reports_schema_shape_and_count_errors() -> None:
     assert not report["passed"]
     assert "schema_version mismatch" in report["errors"]
     assert "missing top-level key: project" in report["errors"]
-    assert "counts.python_model_classes must be a non-negative integer" in report[
-        "errors"
-    ]
+    assert (
+        "counts.python_model_classes must be a non-negative integer" in report["errors"]
+    )
     assert "counts.broken must be a non-negative integer" in report["errors"]
     assert "models list missing for count python_model_classes" in report["errors"]
 
@@ -357,12 +357,14 @@ def test_static_scanners_cover_absent_roots_and_ast_variants() -> None:
     tool = _load_tool()
     with _tempdir() as repo:
         assert tool._public_exports(repo / "missing.py") == []
-        assert tool._python_model_sources(
-            repo / "missing", repo=repo, exclude_parts=()
-        ) == []
-        assert tool._python_model_classes(
-            repo / "missing", repo=repo, exclude_parts=()
-        ) == []
+        assert (
+            tool._python_model_sources(repo / "missing", repo=repo, exclude_parts=())
+            == []
+        )
+        assert (
+            tool._python_model_classes(repo / "missing", repo=repo, exclude_parts=())
+            == []
+        )
         assert tool._project_extras({"project": {"optional-dependencies": []}}) == []
         assert tool._workflow_files(repo / "missing", repo=repo) == []
         assert tool._python_files(repo / "missing", repo=repo) == []
@@ -477,7 +479,10 @@ def test_cli_main_validate_check_and_refresh_paths(capsys: Any) -> None:
             config=config,
         )
 
-        assert tool.main(["--repo", str(repo), "--config", str(config_path), "--check"]) == 0
+        assert (
+            tool.main(["--repo", str(repo), "--config", str(config_path), "--check"])
+            == 0
+        )
         assert tool.main(["--repo", str(repo), "--config", str(config_path)]) == 0
         assert (
             tool.main(
@@ -511,7 +516,10 @@ def test_cli_main_validate_check_and_refresh_paths(capsys: Any) -> None:
         (repo / "docs/_generated/capability_manifest.json").write_text(
             "{}\n", encoding="utf-8"
         )
-        assert tool.main(["--repo", str(repo), "--config", str(config_path), "--check"]) == 1
+        assert (
+            tool.main(["--repo", str(repo), "--config", str(config_path), "--check"])
+            == 1
+        )
 
         captured = capsys.readouterr()
         assert "Wrote" in captured.out

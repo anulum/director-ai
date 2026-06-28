@@ -81,8 +81,7 @@ class _ProviderHandler(BaseHTTPRequestHandler):
         count = requested_count if isinstance(requested_count, int) else 1
         response = {
             "choices": [
-                {"message": {"content": f"candidate-{index}"}}
-                for index in range(count)
+                {"message": {"content": f"candidate-{index}"}} for index in range(count)
             ]
         }
         body = json.dumps(response).encode("utf-8")
