@@ -719,9 +719,9 @@ httpx==0.28.1 \
     --hash=sha256:75e98c5f16b0f35b567856f597f06ff2270a374470a5c2392242528e3e3e42fc \
     --hash=sha256:d909fcccc110f8c7faf814ca82a9a4d816bc5a6dbfea25d6591d6985b8ba59ad
     # via huggingface-hub
-huggingface-hub==1.20.1 \
-    --hash=sha256:274448a45c1ba6f112fe2fb168ead05574c654faa156904157a84085cfae14bd \
-    --hash=sha256:9f6d63bfbeab2d2a8357200a9bc4f18cd2c8bfac9579f792f5922e77bf6471d0
+huggingface-hub==1.21.0 \
+    --hash=sha256:a44f222cd8f2f7c2eade30b5e7a04cac984a3235fa61ea87a0a5a31db77d561f \
+    --hash=sha256:eadaa3678c512c82aea69e8675d90a184861e68de32f1105668628b4dce0e7cd
     # via
     #   -r training/requirements-distil.in
     #   accelerate

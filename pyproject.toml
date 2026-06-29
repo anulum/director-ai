@@ -99,7 +99,7 @@ llamaindex = [
 # and extra name stable, but do not install the vulnerable optional stack until
 # upstream ships a safe dependency path.
 server = [
-    "fastapi>=0.100,<1",
+    "fastapi>=0.100",
     "uvicorn>=0.23,<1",
     "pydantic>=2.0,<3",
     "httpx>=0.27,<1",
@@ -163,7 +163,7 @@ embeddings = [
     "sentence-transformers>=4,<6",
 ]
 license = [
-    "polar-sdk==0.31.3",
+    "polar-sdk==0.31.7",
 ]
 crypto = [
     "cryptography>=42,<49",
@@ -217,7 +217,7 @@ moderation = [
     "detoxify>=0.5",
 ]
 demo = [
-    "gradio>=4.0",
+    "gradio<7,>=4.0",
 ]
 ingestion = [
     "pypdf>=6.13.3",
@@ -255,7 +255,7 @@ enterprise = [
     "psycopg2-binary>=2.9,<3",
 ]
 ui = [
-    "gradio>=4.0,<7",
+    "gradio<7,>=4.0,<7",
 ]
 reports = [
     "weasyprint>=60",
