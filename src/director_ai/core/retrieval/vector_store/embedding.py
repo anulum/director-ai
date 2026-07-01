@@ -16,11 +16,77 @@ directly for in-process dense retrieval;
 from __future__ import annotations
 
 import threading
-from typing import Any
+from typing import Any, Protocol
 
 from .base import VectorBackend, logger
 
 __all__ = ["SentenceTransformerBackend", "ChromaBackend"]
+
+
+class _ChromaEmbeddingFunction(Protocol):
+    """Callable embedding provider accepted by Chroma collections."""
+
+    def __call__(self, input: list[str]) -> list[list[float]]:
+        """Embed a Chroma document batch into numeric vectors."""
+        ...
+
+
+class _DirectorChromaEmbeddingAdapter:
+    """Adapt a local callable to Chroma's embedding-function interface."""
+
+    def __init__(self, embedding_function: _ChromaEmbeddingFunction) -> None:
+        self._embedding_function = embedding_function
+
+    def __call__(self, input: list[str]) -> list[list[float]]:
+        """Return embeddings from the wrapped local callable."""
+        return self._embedding_function(input)
+
+    def embed_query(self, input: list[str]) -> list[list[float]]:
+        """Return query embeddings from the wrapped local callable."""
+        return self(input)
+
+    @staticmethod
+    def name() -> str:
+        """Return the stable Chroma provider name for local callables."""
+        return "director-ai-local-embedding"
+
+    def default_space(self) -> str:
+        """Return Chroma's default distance space for local embeddings."""
+        return "l2"
+
+    def supported_spaces(self) -> list[str]:
+        """Return distance spaces accepted for local embeddings."""
+        return ["cosine", "l2", "ip"]
+
+    def get_config(self) -> dict[str, str]:
+        """Return serialisable Chroma configuration metadata."""
+        return {"provider": self.name()}
+
+    @staticmethod
+    def build_from_config(
+        config: dict[str, str],
+    ) -> _DirectorChromaEmbeddingAdapter:
+        """Reject deserialisation because local callables are process-owned."""
+        raise ValueError(
+            "director-ai local Chroma embedding functions must be provided at runtime",
+        )
+
+    def is_legacy(self) -> bool:
+        """Return False because the adapter implements Chroma metadata hooks."""
+        return False
+
+
+def _normalise_chroma_embedding_function(
+    embedding_function: _ChromaEmbeddingFunction,
+) -> Any:
+    """Return a Chroma-compatible embedding provider."""
+    required_methods = ("name", "get_config", "build_from_config", "is_legacy")
+    if all(
+        callable(getattr(embedding_function, method, None))
+        for method in required_methods
+    ):
+        return embedding_function
+    return _DirectorChromaEmbeddingAdapter(embedding_function)
 
 
 class SentenceTransformerBackend(VectorBackend):
@@ -143,6 +209,11 @@ class ChromaBackend(VectorBackend):
     server-only Chroma advisories outside Director's execution path while the
     optional dependency remains open to operator-managed upgrades.
 
+    Operators may inject a local Chroma embedding function for offline,
+    deterministic, or pre-warmed deployments. That path avoids the Chroma
+    default embedder and sentence-transformer model downloads while preserving
+    real Chroma storage and query semantics.
+
     Requires ``pip install chromadb sentence-transformers``.
     """
 
@@ -151,6 +222,7 @@ class ChromaBackend(VectorBackend):
         collection_name: str = "director_ai_facts",
         persist_directory: str | None = None,
         embedding_model: str | None = None,
+        embedding_function: _ChromaEmbeddingFunction | None = None,
     ) -> None:
         """Create or open a Chroma collection with optional persistence."""
         try:
@@ -167,7 +239,15 @@ class ChromaBackend(VectorBackend):
             self._client = chromadb.Client()
 
         create_kwargs: dict[str, Any] = {"name": collection_name}
-        if embedding_model:
+        if embedding_model and embedding_function is not None:
+            raise ValueError(
+                "embedding_model and embedding_function are mutually exclusive",
+            )
+        if embedding_function is not None:
+            create_kwargs["embedding_function"] = _normalise_chroma_embedding_function(
+                embedding_function,
+            )
+        elif embedding_model:
             try:
                 from chromadb.utils.embedding_functions import (
                     SentenceTransformerEmbeddingFunction,
