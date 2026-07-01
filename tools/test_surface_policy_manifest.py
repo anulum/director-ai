@@ -414,7 +414,10 @@ KNOWN_TEST_SURFACE_CLASSIFICATIONS: dict[str, tuple[str, str]] = {
         "unit-guard-with-companion",
         "CLI/server/API unit guard with companion tests/test_recall_correctness_client_real_surface.py",
     ),
-    "tests/test_redis_enterprise.py": ("violation", "storage/retrieval adapter fake"),
+    "tests/test_redis_enterprise.py": (
+        "unit-guard-with-companion",
+        "storage/retrieval unit guard with companion tests/test_redis_enterprise_real_surface.py",
+    ),
     "tests/test_report_templates.py": (
         "unit-guard-with-companion",
         "generated/docs/config guard with companion director_ai.compliance.report_templates",

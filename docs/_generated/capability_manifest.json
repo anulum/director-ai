@@ -9,7 +9,7 @@
     "python_model_classes": 1000,
     "python_model_source_modules": 459,
     "rust_pyo3_model_wrappers": 83,
-    "test_files": 593
+    "test_files": 594
   },
   "documentation": {
     "public_pages": [
@@ -5637,6 +5637,7 @@
       "tests/test_recall_correctness_wiring.py",
       "tests/test_recall_ledger.py",
       "tests/test_redis_enterprise.py",
+      "tests/test_redis_enterprise_real_surface.py",
       "tests/test_redteam_engine.py",
       "tests/test_report_generator.py",
       "tests/test_report_templates.py",

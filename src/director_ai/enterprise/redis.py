@@ -229,8 +229,11 @@ class RedisScoreCache(ScoreCache):
             },
         )
 
-        # Set with TTL
-        self.client.setex(redis_key, int(self._ttl), payload)
+        set_with_options: Any = getattr(self.client, "set", None)
+        if callable(set_with_options):
+            set_with_options(redis_key, payload, ex=int(self._ttl))
+        else:
+            self.client.setex(redis_key, int(self._ttl), payload)
 
     @property
     def size(self) -> int:
@@ -247,11 +250,14 @@ class RedisScoreCache(ScoreCache):
     def clear(self) -> None:
         """Delete all score-cache Redis keys under this prefix and reset metrics."""
         cursor = 0
+        keys_to_delete: list[str] = []
         while True:
             cursor, keys = self.client.scan(cursor, match=f"{self.prefix}*", count=100)
             if keys:
-                self.client.delete(*keys)
+                keys_to_delete.extend(keys)
             if cursor == 0:
                 break
+        if keys_to_delete:
+            self.client.delete(*keys_to_delete)
         self.hits = 0
         self.misses = 0
