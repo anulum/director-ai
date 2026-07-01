@@ -429,7 +429,10 @@ KNOWN_TEST_SURFACE_CLASSIFICATIONS: dict[str, tuple[str, str]] = {
         "unit-guard-with-companion",
         "generated/docs/config guard with companion director_ai.compliance.report_templates",
     ),
-    "tests/test_reranker.py": ("violation", "storage/retrieval adapter fake"),
+    "tests/test_reranker.py": (
+        "unit-guard-with-companion",
+        "storage/retrieval unit guard with companion tests/test_vector_store_reranker_real_surface.py",
+    ),
     "tests/test_review_queue.py": (
         "violation",
         "private-helper bypass requiring review",
@@ -530,8 +533,8 @@ KNOWN_TEST_SURFACE_CLASSIFICATIONS: dict[str, tuple[str, str]] = {
         "private-helper bypass requiring review",
     ),
     "tests/test_vector_store_reranker.py": (
-        "violation",
-        "storage/retrieval adapter fake",
+        "unit-guard-with-companion",
+        "storage/retrieval unit guard with companion tests/test_vector_store_reranker_real_surface.py",
     ),
     "tests/test_voice_adapters.py": (
         "unit-guard-with-companion",

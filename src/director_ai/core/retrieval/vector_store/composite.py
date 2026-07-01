@@ -18,7 +18,7 @@ from __future__ import annotations
 
 import logging
 import threading
-from typing import Any
+from typing import Any, Protocol
 
 try:  # pragma: no cover - optional acceleration
     from backfire_kernel import rust_sum_i64
@@ -37,6 +37,14 @@ from .base import VectorBackend
 __all__ = ["HybridBackend", "RerankedBackend"]
 
 logger = logging.getLogger("DirectorAI.VectorStore")
+
+
+class _RerankerModel(Protocol):
+    """Cross-encoder reranker contract used by ``RerankedBackend``."""
+
+    def predict(self, pairs: list[tuple[str, str]]) -> list[float]:
+        """Return relevance scores for query/document pairs."""
+        ...
 
 
 class HybridBackend(VectorBackend):
@@ -202,6 +210,11 @@ class RerankedBackend(VectorBackend):
     backend, then reranks with a cross-encoder model and returns the
     top ``n_results``.
 
+    Operators may inject a preloaded reranker object that implements
+    ``predict(list[tuple[str, str]]) -> list[float]``. This keeps embedded,
+    offline, or model-managed deployments on the same retrieval path without
+    requiring ``RerankedBackend`` to own model loading.
+
     Requires ``pip install sentence-transformers>=4``.
     """
 
@@ -211,7 +224,9 @@ class RerankedBackend(VectorBackend):
         reranker_model: str = "cross-encoder/ms-marco-MiniLM-L-6-v2",
         reranker_revision: str | None = None,
         top_k_multiplier: int = 3,
+        reranker: _RerankerModel | None = None,
     ) -> None:
+        """Create a reranking wrapper around an existing vector backend."""
         if base is None:
             raise ValueError("base backend is required")
         if not isinstance(reranker_model, str) or not reranker_model.strip():
@@ -223,6 +238,11 @@ class RerankedBackend(VectorBackend):
             raise ValueError("top_k_multiplier must be at least 1")
         self._base = base
         self._multiplier = top_k_multiplier
+        if reranker is not None:
+            if not callable(getattr(reranker, "predict", None)):
+                raise ValueError("reranker must provide a callable predict method")
+            self._reranker = reranker
+            return
         try:
             from sentence_transformers import CrossEncoder
         except ImportError as e:

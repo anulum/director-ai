@@ -139,6 +139,11 @@ Measured on a synthetic 10K-document knowledge base.
 | Contextual compression | Query-time | +1–2ms (keyword), +LLM (advanced) | negligible |
 | Multi-vector | Index + query | +2–3ms query | +summary/title vectors |
 
+`RerankedBackend` may also receive a preloaded reranker object with a
+`predict(list[tuple[str, str]]) -> list[float]` method. That path preserves the
+same retrieval and ordering semantics while letting offline or managed-model
+deployments own cross-encoder loading outside Director.
+
 ### RAG Decorator Stack
 
 ```

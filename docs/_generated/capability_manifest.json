@@ -9,7 +9,7 @@
     "python_model_classes": 1000,
     "python_model_source_modules": 459,
     "rust_pyo3_model_wrappers": 83,
-    "test_files": 598
+    "test_files": 599
   },
   "documentation": {
     "public_pages": [
@@ -5773,6 +5773,7 @@
       "tests/test_vector_store_http_embedding.py",
       "tests/test_vector_store_real_surface.py",
       "tests/test_vector_store_reranker.py",
+      "tests/test_vector_store_reranker_real_surface.py",
       "tests/test_verified_scorer.py",
       "tests/test_verified_scorer_escalation.py",
       "tests/test_verify_repository_backup.py",
