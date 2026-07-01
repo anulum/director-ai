@@ -506,7 +506,10 @@ KNOWN_TEST_SURFACE_CLASSIFICATIONS: dict[str, tuple[str, str]] = {
         "violation",
         "module/workflow fake requiring review",
     ),
-    "tests/test_vector_store.py": ("violation", "storage/retrieval adapter fake"),
+    "tests/test_vector_store.py": (
+        "unit-guard-with-companion",
+        "storage/retrieval unit guard with companion tests/test_vector_store_real_surface.py",
+    ),
     "tests/test_vector_store_backends.py": (
         "violation",
         "storage/retrieval adapter fake",
