@@ -356,6 +356,7 @@ class FAISSBackend(VectorBackend):
         embed_fn: Any = None,
         vector_size: int = 384,
         index_type: str = "flat",
+        ivf_nlist: int = 1,
     ) -> None:
         try:
             import faiss
@@ -366,12 +367,20 @@ class FAISSBackend(VectorBackend):
             ) from e
 
         self._faiss = faiss
-        # Both index kinds derive from ``faiss.Index``; annotate the base so the
-        # flat and IVF branches share one declared type.
+        if not isinstance(ivf_nlist, int) or isinstance(ivf_nlist, bool):
+            raise ValueError("ivf_nlist must be an integer")
+        if ivf_nlist < 1:
+            raise ValueError("ivf_nlist must be positive")
+
+        # All index variants derive from ``faiss.Index``; annotate the base so
+        # flat, bootstrap, and trained IVF branches share one declared type.
         self._index: faiss.Index
+        self._ivf_index: faiss.Index | None = None
+        self._ivf_nlist = ivf_nlist
         if index_type == "ivf":
             quantizer = faiss.IndexFlatIP(vector_size)
-            self._index = faiss.IndexIVFFlat(quantizer, vector_size, 16)
+            self._ivf_index = faiss.IndexIVFFlat(quantizer, vector_size, ivf_nlist)
+            self._index = faiss.IndexFlatIP(vector_size)
             self._needs_training = True
         else:
             self._index = faiss.IndexFlatIP(vector_size)
@@ -379,6 +388,7 @@ class FAISSBackend(VectorBackend):
 
         self._embed_fn = embed_fn
         self._docs: list[dict[str, Any]] = []
+        self._vectors: list[Any] = []
         self._trained = False
         self._lock = threading.Lock()
 
@@ -401,11 +411,29 @@ class FAISSBackend(VectorBackend):
         """Add one embedded document to the FAISS index."""
         vec = self._embed(text)
         with self._lock:
-            if self._needs_training and not self._trained:
-                self._index.train(vec)
-                self._trained = True
-            self._index.add(vec)
             self._docs.append({"id": doc_id, "text": text, "metadata": metadata or {}})
+            if self._needs_training and not self._trained:
+                self._vectors.append(vec.copy())
+            if (
+                self._needs_training
+                and not self._trained
+                and self._ivf_index is not None
+                and len(self._vectors) >= self._ivf_nlist
+            ):
+                import numpy as np
+
+                training_matrix = np.vstack(self._vectors).astype(
+                    "float32",
+                    copy=False,
+                )
+                self._ivf_index.train(training_matrix)
+                self._ivf_index.add(training_matrix)
+                self._index = self._ivf_index
+                self._trained = True
+                self._needs_training = False
+                self._vectors.clear()
+            else:
+                self._index.add(vec)
 
     def query(
         self,

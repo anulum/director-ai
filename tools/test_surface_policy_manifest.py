@@ -511,8 +511,8 @@ KNOWN_TEST_SURFACE_CLASSIFICATIONS: dict[str, tuple[str, str]] = {
         "storage/retrieval unit guard with companion tests/test_vector_store_real_surface.py",
     ),
     "tests/test_vector_store_backends.py": (
-        "violation",
-        "storage/retrieval adapter fake",
+        "unit-guard-with-companion",
+        "storage/retrieval unit guard with companion tests/test_vector_store_backends_real_surface.py",
     ),
     "tests/test_vector_store_embedding.py": (
         "violation",
