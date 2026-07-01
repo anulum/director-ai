@@ -20,6 +20,8 @@ from __future__ import annotations
 
 import logging
 import random
+from collections.abc import Callable
+from contextlib import AbstractContextManager
 from dataclasses import dataclass
 from importlib import import_module
 from pathlib import Path
@@ -39,8 +41,44 @@ class TuneResult:
     loss_end: float
 
 
+@dataclass(frozen=True)
+class EmbeddingTrainingStack:
+    """Runtime dependencies used by the embedding fine-tuning loop."""
+
+    input_example: Callable[..., Any]
+    sentence_transformer: Callable[[str], Any]
+    data_loader: Callable[..., Any]
+    cosine_similarity_loss: Callable[[Any], Any]
+    no_grad: Callable[[], AbstractContextManager[Any]]
+
+
+def _load_training_stack() -> EmbeddingTrainingStack:
+    """Load the default sentence-transformers and torch training stack."""
+    try:
+        from sentence_transformers import InputExample, SentenceTransformer
+        from torch.utils.data import DataLoader
+    except ImportError as e:
+        raise ImportError(
+            "sentence-transformers required. Install: pip install director-ai[embeddings]"
+        ) from e
+    import torch
+
+    losses = import_module("sentence_transformers.losses")
+    return EmbeddingTrainingStack(
+        input_example=InputExample,
+        sentence_transformer=SentenceTransformer,
+        data_loader=DataLoader,
+        cosine_similarity_loss=losses.CosineSimilarityLoss,
+        no_grad=torch.no_grad,
+    )
+
+
 def _mean_loss(
-    model: Any, train_loss: Any, examples: list[Any], batch_size: int
+    model: Any,
+    train_loss: Any,
+    examples: list[Any],
+    batch_size: int,
+    training_stack: EmbeddingTrainingStack,
 ) -> float:
     """Return the mean loss over *examples* without taking a gradient step.
 
@@ -48,10 +86,7 @@ def _mean_loss(
     ``torch.no_grad`` — the same computation the training loop performs, so the
     reported start/end loss reflects the real objective on the training pairs.
     """
-    import torch
-    from torch.utils.data import DataLoader
-
-    loader: DataLoader[Any] = DataLoader(
+    loader = training_stack.data_loader(
         cast(Any, examples),
         shuffle=False,
         batch_size=batch_size,
@@ -59,7 +94,7 @@ def _mean_loss(
     )
     total = 0.0
     count = 0
-    with torch.no_grad():
+    with training_stack.no_grad():
         for features, labels in loader:
             total += float(train_loss(features, labels).item()) * len(labels)
             count += len(labels)
@@ -73,6 +108,7 @@ def tune_embeddings(
     epochs: int = 3,
     batch_size: int = 16,
     seed: int = 42,
+    training_stack: EmbeddingTrainingStack | None = None,
 ) -> TuneResult:
     """Fine-tune embedding model on document chunks.
 
@@ -94,17 +130,10 @@ def tune_embeddings(
     -------
     TuneResult with model path and training metrics.
     """
-    try:
-        from sentence_transformers import InputExample, SentenceTransformer
-        from torch.utils.data import DataLoader
-    except ImportError as e:
-        raise ImportError(
-            "sentence-transformers required. Install: pip install director-ai[embeddings]"
-        ) from e
-    losses = import_module("sentence_transformers.losses")
+    resolved_stack = training_stack or _load_training_stack()
 
     random.seed(seed)
-    model = SentenceTransformer(base_model)
+    model = resolved_stack.sentence_transformer(base_model)
 
     # Build contrastive pairs from adjacent chunks
     train_examples = []
@@ -112,7 +141,10 @@ def tune_embeddings(
         for i in range(len(doc_chunks) - 1):
             # Positive: adjacent chunks from same document
             train_examples.append(
-                InputExample(texts=[doc_chunks[i], doc_chunks[i + 1]], label=1.0)
+                resolved_stack.input_example(
+                    texts=[doc_chunks[i], doc_chunks[i + 1]],
+                    label=1.0,
+                )
             )
         # Negative: random chunk from a different document
         for chunk in doc_chunks[:3]:
@@ -121,7 +153,7 @@ def tune_embeddings(
                 other_doc = random.choice(other_docs)
                 other_chunk = random.choice(other_doc)
                 train_examples.append(
-                    InputExample(texts=[chunk, other_chunk], label=0.0)
+                    resolved_stack.input_example(texts=[chunk, other_chunk], label=0.0)
                 )
 
     if not train_examples:
@@ -137,16 +169,22 @@ def tune_embeddings(
     # PyTorch DataLoader expects a Dataset; sentence-transformers'
     # ``InputExample`` list is accepted at runtime via its __getitem__
     # protocol. cast pins that contract without a suppression.
-    loader: DataLoader[Any] = DataLoader(
+    loader = resolved_stack.data_loader(
         cast(Any, train_examples),
         shuffle=True,
         batch_size=batch_size,
     )
-    train_loss = losses.CosineSimilarityLoss(model)
+    train_loss = resolved_stack.cosine_similarity_loss(model)
 
     # Measure the mean training loss before and after fitting so TuneResult
     # reports real diagnostics rather than placeholder zeros.
-    loss_start = _mean_loss(model, train_loss, train_examples, batch_size)
+    loss_start = _mean_loss(
+        model,
+        train_loss,
+        train_examples,
+        batch_size,
+        resolved_stack,
+    )
 
     model.fit(
         train_objectives=[(loader, train_loss)],
@@ -155,7 +193,13 @@ def tune_embeddings(
         show_progress_bar=True,
     )
 
-    loss_end = _mean_loss(model, train_loss, train_examples, batch_size)
+    loss_end = _mean_loss(
+        model,
+        train_loss,
+        train_examples,
+        batch_size,
+        resolved_stack,
+    )
 
     Path(output_dir).mkdir(parents=True, exist_ok=True)
     model.save(output_dir)
