@@ -144,7 +144,14 @@ KNOWN_TEST_SURFACE_CLASSIFICATIONS: dict[str, tuple[str, str]] = {
         "generated/docs/config guard with companion tests/test_doc_modules_real_surface.py",
     ),
     "tests/test_dp_rag.py": ("violation", "private-helper bypass requiring review"),
-    "tests/test_embed_scorer.py": ("violation", "storage/retrieval adapter fake"),
+    "tests/test_embed_scorer.py": (
+        "unit-guard-with-companion",
+        "storage/retrieval unit guard with companion tests/test_embed_scorer_real_surface.py",
+    ),
+    "tests/test_embed_scorer_real_surface.py": (
+        "approved-protocol-fake",
+        "real scorer/config surface with local sentence-transformers protocol fake",
+    ),
     "tests/test_embedding_tuner.py": ("violation", "storage/retrieval adapter fake"),
     "tests/test_evidence_packet.py": (
         "violation",
