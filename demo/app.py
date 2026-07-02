@@ -15,7 +15,7 @@ python demo/app.py
 from __future__ import annotations
 
 from html import escape
-from typing import TypedDict
+from typing import TypedDict, cast
 
 import gradio as gr
 
@@ -432,7 +432,7 @@ footer { display: none !important; }
 
 
 def build_app() -> gr.Blocks:
-    with gr.Blocks(title="Director-AI Demo", css=CSS, theme=gr.themes.Soft()) as app:
+    with gr.Blocks(title="Director-AI Demo") as app:
         gr.Markdown(
             f"# Director-AI v{director_ai.__version__}\n"
             "**Real-time LLM hallucination guardrail** — "
@@ -603,9 +603,9 @@ def build_app() -> gr.Blocks:
             "Apache-2.0",
         )
 
-    return app
+    return cast(gr.Blocks, app)
 
 
 if __name__ == "__main__":
     app = build_app()
-    app.launch()
+    app.launch(css=CSS, theme=gr.themes.Soft())

@@ -327,6 +327,16 @@ def test_hf_space_demo_unit_guard_has_real_surface_companion() -> None:
     assert "tests/test_hf_space_demo_real_surface.py" in category
 
 
+def test_hf_space_app_safety_unit_guard_has_real_surface_companion() -> None:
+    """HF Space app-safety guard should be backed by real app callback coverage."""
+    classification, category = KNOWN_TEST_SURFACE_CLASSIFICATIONS[
+        "tests/test_hf_space_app_safety.py"
+    ]
+
+    assert classification == "unit-guard-with-companion"
+    assert "tests/test_hf_space_app_safety_real_surface.py" in category
+
+
 def test_pint_replication_packet_unit_guard_has_real_surface_companion() -> None:
     classification, category = KNOWN_TEST_SURFACE_CLASSIFICATIONS[
         "tests/test_pint_replication_packet.py"
