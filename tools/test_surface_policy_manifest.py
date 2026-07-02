@@ -417,8 +417,8 @@ KNOWN_TEST_SURFACE_CLASSIFICATIONS: dict[str, tuple[str, str]] = {
         "module/workflow unit guard with companion tests/test_python_only_contributor_path_real_surface.py",
     ),
     "tests/test_query_decomposition.py": (
-        "violation",
-        "module/workflow fake requiring review",
+        "unit-guard-with-companion",
+        "storage/retrieval unit guard with companion tests/test_query_decomposition_real_surface.py",
     ),
     "tests/test_recall_correctness_client.py": (
         "unit-guard-with-companion",

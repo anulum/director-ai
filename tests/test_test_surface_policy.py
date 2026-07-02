@@ -509,6 +509,16 @@ def test_doc_modules_guard_has_real_surface_companion() -> None:
     assert "tests/test_doc_modules_real_surface.py" in category
 
 
+def test_query_decomposition_unit_guard_has_real_surface_companion() -> None:
+    """Query-decomposition guard should be backed by real store wiring coverage."""
+    classification, category = KNOWN_TEST_SURFACE_CLASSIFICATIONS[
+        "tests/test_query_decomposition.py"
+    ]
+
+    assert classification == "unit-guard-with-companion"
+    assert "tests/test_query_decomposition_real_surface.py" in category
+
+
 def test_policy_main_returns_success_for_clean_tree(tmp_path: Path) -> None:
     _write_test(tmp_path, "tests/test_real_surface.py")
 
