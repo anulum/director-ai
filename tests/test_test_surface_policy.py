@@ -417,6 +417,16 @@ def test_finetune_benchmark_unit_guard_has_real_surface_companion() -> None:
     assert "tests/test_finetune_benchmark_real_surface.py" in category
 
 
+def test_multilingual_corpus_unit_guard_has_real_surface_companion() -> None:
+    """Multilingual corpus guard should be backed by real CLI validation."""
+    classification, category = KNOWN_TEST_SURFACE_CLASSIFICATIONS[
+        "tests/test_multilingual_corpus.py"
+    ]
+
+    assert classification == "unit-guard-with-companion"
+    assert "tests/test_multilingual_corpus_real_surface.py" in category
+
+
 def test_streaming_unit_guard_has_real_surface_companion() -> None:
     classification, category = KNOWN_TEST_SURFACE_CLASSIFICATIONS[
         "tests/test_streaming.py"
