@@ -500,8 +500,8 @@ KNOWN_TEST_SURFACE_CLASSIFICATIONS: dict[str, tuple[str, str]] = {
         "generated/docs/config guard with companion tools/capability_manifest.py",
     ),
     "tests/test_tools/test_emit_studio_manifest.py": (
-        "violation",
-        "module/workflow fake requiring review",
+        "unit-guard-with-companion",
+        "module/workflow unit guard with companion tests/test_tools/test_emit_studio_manifest_real_surface.py",
     ),
     "tests/test_train_distillation_reproducibility.py": (
         "violation",

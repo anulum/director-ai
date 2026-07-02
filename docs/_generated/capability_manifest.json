@@ -9,7 +9,7 @@
     "python_model_classes": 1001,
     "python_model_source_modules": 459,
     "rust_pyo3_model_wrappers": 83,
-    "test_files": 603
+    "test_files": 604
   },
   "documentation": {
     "public_pages": [
@@ -5759,6 +5759,7 @@
       "tests/test_tool_call_verifier.py",
       "tests/test_tools/test_capability_manifest.py",
       "tests/test_tools/test_emit_studio_manifest.py",
+      "tests/test_tools/test_emit_studio_manifest_real_surface.py",
       "tests/test_trace_safe.py",
       "tests/test_train_distillation_reproducibility.py",
       "tests/test_training_model_registry.py",

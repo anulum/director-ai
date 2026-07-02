@@ -439,6 +439,16 @@ def test_capability_manifest_tool_guard_has_real_surface_companion() -> None:
     assert "tools/capability_manifest.py" in category
 
 
+def test_studio_manifest_tool_guard_has_real_surface_companion() -> None:
+    """STUDIO manifest guard should exercise the production CLI emitter."""
+    classification, category = KNOWN_TEST_SURFACE_CLASSIFICATIONS[
+        "tests/test_tools/test_emit_studio_manifest.py"
+    ]
+
+    assert classification == "unit-guard-with-companion"
+    assert "tests/test_tools/test_emit_studio_manifest_real_surface.py" in category
+
+
 def test_report_templates_guard_has_real_surface_companion() -> None:
     """Report template guard should be backed by production renderer coverage."""
     classification, category = KNOWN_TEST_SURFACE_CLASSIFICATIONS[

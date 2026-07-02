@@ -28,6 +28,7 @@ import argparse
 import json
 import sys
 from pathlib import Path
+from typing import cast
 
 from director_ai.federation.manifest import build_manifest
 
@@ -54,27 +55,33 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="Fail if the committed artifact differs from the producer (no write).",
     )
+    parser.add_argument(
+        "--artifact",
+        type=Path,
+        default=_ARTIFACT,
+        help="Manifest artifact path to emit or check.",
+    )
     args = parser.parse_args(argv)
+    check = cast("bool", args.check)
+    artifact = cast("Path", args.artifact)
 
     rendered = render()
-    if args.check:
-        if not _ARTIFACT.exists():
-            print(
-                f"{_ARTIFACT} is missing; run `python tools/emit_studio_manifest.py`."
-            )
+    if check:
+        if not artifact.exists():
+            print(f"{artifact} is missing; run `python tools/emit_studio_manifest.py`.")
             return 1
-        committed = json.loads(_ARTIFACT.read_text(encoding="utf-8"))
+        committed = json.loads(artifact.read_text(encoding="utf-8"))
         produced = json.loads(rendered)
         committed.pop("studio_version", None)
         produced.pop("studio_version", None)
         if committed != produced:
-            print(f"{_ARTIFACT} is stale; run `python tools/emit_studio_manifest.py`.")
+            print(f"{artifact} is stale; run `python tools/emit_studio_manifest.py`.")
             return 1
         return 0
 
-    _ARTIFACT.parent.mkdir(parents=True, exist_ok=True)
-    _ARTIFACT.write_text(rendered, encoding="utf-8")
-    print(f"wrote {_ARTIFACT}")
+    artifact.parent.mkdir(parents=True, exist_ok=True)
+    artifact.write_text(rendered, encoding="utf-8")
+    print(f"wrote {artifact}")
     return 0
 
 
