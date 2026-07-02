@@ -317,6 +317,16 @@ def test_frontierfail_packet_unit_guard_has_real_surface_companion() -> None:
     assert "tests/test_frontierfail_packet_real_surface.py" in category
 
 
+def test_hf_space_demo_unit_guard_has_real_surface_companion() -> None:
+    """HF Space package guard should be backed by real CLI validation."""
+    classification, category = KNOWN_TEST_SURFACE_CLASSIFICATIONS[
+        "tests/test_hf_space_demo.py"
+    ]
+
+    assert classification == "unit-guard-with-companion"
+    assert "tests/test_hf_space_demo_real_surface.py" in category
+
+
 def test_pint_replication_packet_unit_guard_has_real_surface_companion() -> None:
     classification, category = KNOWN_TEST_SURFACE_CLASSIFICATIONS[
         "tests/test_pint_replication_packet.py"

@@ -6,6 +6,7 @@
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI - Hugging Face Space demo package validator
+"""Validate the Hugging Face Space demo package before manual publication."""
 
 from __future__ import annotations
 
@@ -152,7 +153,7 @@ def _validate_push_script(root: Path) -> list[str]:
         return errors
     if not text.startswith("#!/usr/bin/env bash\n"):
         errors.append(f"{PUSH_SCRIPT}: must start with a bash shebang")
-    for pattern in (r"\bgit\s+add\s+-A\b", r"\bgit\s+add\s+\.\b"):
+    for pattern in (r"\bgit\s+add\s+-A\b", r"\bgit\s+add\s+\.(?:\s|$)"):
         if re.search(pattern, text):
             errors.append(
                 f"{PUSH_SCRIPT}: use explicit Space files instead of git add -A"
@@ -173,6 +174,7 @@ def _validate_push_script(root: Path) -> list[str]:
 
 
 def validate_hf_space_demo(root: Path) -> list[str]:
+    """Return validation errors for the Hugging Face Space package at ``root``."""
     root = root.resolve()
     errors: list[str] = []
     errors.extend(_validate_readme(root))
@@ -184,6 +186,7 @@ def validate_hf_space_demo(root: Path) -> list[str]:
 
 
 def main(argv: list[str] | None = None) -> int:
+    """Run the Hugging Face Space package validator CLI."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "root",
