@@ -46,7 +46,10 @@ KNOWN_TEST_SURFACE_CLASSIFICATIONS: dict[str, tuple[str, str]] = {
         "violation",
         "private-helper bypass requiring review",
     ),
-    "tests/test_backends.py": ("violation", "module/workflow fake requiring review"),
+    "tests/test_backends.py": (
+        "unit-guard-with-companion",
+        "module/workflow unit guard with companion tests/test_backends_real_surface.py",
+    ),
     "tests/test_build_judge_dataset.py": ("violation", "ML/export/eval boundary fake"),
     "tests/test_ci_gate.py": ("violation", "private-helper bypass requiring review"),
     "tests/test_cli.py": (

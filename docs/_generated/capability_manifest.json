@@ -9,7 +9,7 @@
     "python_model_classes": 1001,
     "python_model_source_modules": 459,
     "rust_pyo3_model_wrappers": 83,
-    "test_files": 608
+    "test_files": 609
   },
   "documentation": {
     "public_pages": [
@@ -5235,6 +5235,7 @@
       "tests/test_autopoietic.py",
       "tests/test_autopoietic_blueprint.py",
       "tests/test_backends.py",
+      "tests/test_backends_real_surface.py",
       "tests/test_backfire_kernel_release_contract.py",
       "tests/test_build_contradiction_dataset.py",
       "tests/test_build_judge_dataset.py",

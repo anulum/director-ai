@@ -225,6 +225,16 @@ def test_actor_unit_guard_has_real_surface_companion() -> None:
     assert "tests/test_actor_real_surface.py" in category
 
 
+def test_backend_registry_unit_guard_has_real_surface_companion() -> None:
+    """Backend registry guard should be backed by public registry coverage."""
+    classification, category = KNOWN_TEST_SURFACE_CLASSIFICATIONS[
+        "tests/test_backends.py"
+    ]
+
+    assert classification == "unit-guard-with-companion"
+    assert "tests/test_backends_real_surface.py" in category
+
+
 def test_middleware_unit_guard_has_real_surface_companion() -> None:
     classification, category = KNOWN_TEST_SURFACE_CLASSIFICATIONS[
         "tests/test_middleware.py"
