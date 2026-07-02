@@ -601,6 +601,16 @@ def test_doc_modules_guard_has_real_surface_companion() -> None:
     assert "tests/test_doc_modules_real_surface.py" in category
 
 
+def test_doc_chunker_model_cache_unit_guard_has_real_surface_companion() -> None:
+    """Doc chunker cache guard should be backed by public semantic splitting."""
+    classification, category = KNOWN_TEST_SURFACE_CLASSIFICATIONS[
+        "tests/test_doc_chunker_model_cache.py"
+    ]
+
+    assert classification == "unit-guard-with-companion"
+    assert "tests/test_doc_chunker_model_cache_real_surface.py" in category
+
+
 def test_query_decomposition_unit_guard_has_real_surface_companion() -> None:
     """Query-decomposition guard should be backed by real store wiring coverage."""
     classification, category = KNOWN_TEST_SURFACE_CLASSIFICATIONS[

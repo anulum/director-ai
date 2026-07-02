@@ -9,7 +9,7 @@
     "python_model_classes": 1001,
     "python_model_source_modules": 460,
     "rust_pyo3_model_wrappers": 83,
-    "test_files": 616
+    "test_files": 617
   },
   "documentation": {
     "public_pages": [
@@ -5354,6 +5354,7 @@
       "tests/test_distilled_scorer.py",
       "tests/test_doc_chunker.py",
       "tests/test_doc_chunker_model_cache.py",
+      "tests/test_doc_chunker_model_cache_real_surface.py",
       "tests/test_doc_modules.py",
       "tests/test_doc_modules_real_surface.py",
       "tests/test_doc_parser.py",

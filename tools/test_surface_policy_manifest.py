@@ -145,8 +145,12 @@ KNOWN_TEST_SURFACE_CLASSIFICATIONS: dict[str, tuple[str, str]] = {
     ),
     "tests/test_distilled_scorer.py": ("violation", "ML/export/eval boundary fake"),
     "tests/test_doc_chunker_model_cache.py": (
-        "violation",
-        "ML/export/eval boundary fake",
+        "unit-guard-with-companion",
+        "ML/export/eval unit guard with companion tests/test_doc_chunker_model_cache_real_surface.py",
+    ),
+    "tests/test_doc_chunker_model_cache_real_surface.py": (
+        "approved-protocol-fake",
+        "real semantic chunking surface with local sentence-transformers protocol fake",
     ),
     "tests/test_doc_modules.py": (
         "unit-guard-with-companion",
