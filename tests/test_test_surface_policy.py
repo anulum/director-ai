@@ -245,6 +245,14 @@ def test_agent_provider_unit_guard_has_real_surface_companion() -> None:
     assert "tests/test_agent_providers_real_surface.py" in category
 
 
+def test_agent_unit_guard_has_real_surface_companion() -> None:
+    """Agent guard should be backed by real completion endpoint coverage."""
+    classification, category = KNOWN_TEST_SURFACE_CLASSIFICATIONS["tests/test_agent.py"]
+
+    assert classification == "unit-guard-with-companion"
+    assert "tests/test_agent_real_surface.py" in category
+
+
 def test_middleware_unit_guard_has_real_surface_companion() -> None:
     classification, category = KNOWN_TEST_SURFACE_CLASSIFICATIONS[
         "tests/test_middleware.py"
