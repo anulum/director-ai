@@ -9,7 +9,7 @@
     "python_model_classes": 1001,
     "python_model_source_modules": 460,
     "rust_pyo3_model_wrappers": 83,
-    "test_files": 612
+    "test_files": 613
   },
   "documentation": {
     "public_pages": [
@@ -5577,6 +5577,7 @@
       "tests/test_optional_extra_lock_policy.py",
       "tests/test_orchestrator_environment_vertex_metadata.py",
       "tests/test_otel.py",
+      "tests/test_otel_real_surface.py",
       "tests/test_output_integrity.py",
       "tests/test_output_trust.py",
       "tests/test_paladin_mini.py",

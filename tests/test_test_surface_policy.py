@@ -272,6 +272,14 @@ def test_metrics_unit_guard_has_real_surface_companion() -> None:
     assert "tests/test_metrics_real_surface.py" in category
 
 
+def test_otel_unit_guard_has_real_surface_companion() -> None:
+    """OTel guard should be backed by real SDK exporter coverage."""
+    classification, category = KNOWN_TEST_SURFACE_CLASSIFICATIONS["tests/test_otel.py"]
+
+    assert classification == "unit-guard-with-companion"
+    assert "tests/test_otel_real_surface.py" in category
+
+
 def test_server_auth_unit_guard_has_real_surface_companion() -> None:
     classification, category = KNOWN_TEST_SURFACE_CLASSIFICATIONS[
         "tests/test_server_auth.py"
