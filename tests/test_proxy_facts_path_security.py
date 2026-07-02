@@ -23,11 +23,15 @@ from director_ai.proxy import _load_facts, create_proxy_app
 
 
 def _write_facts(path: pathlib.Path, body: str = "sky: blue\n") -> None:
+    """Write a small proxy facts file."""
     path.write_text(body, encoding="utf-8")
 
 
 class TestFactsRootEnforcement:
-    def test_loads_when_inside_root(self, tmp_path):
+    """Unit guards for facts-root path enforcement."""
+
+    def test_loads_when_inside_root(self, tmp_path: pathlib.Path) -> None:
+        """Facts under the configured root should load."""
         root = tmp_path / "kb"
         root.mkdir()
         facts = root / "facts.txt"
@@ -36,7 +40,8 @@ class TestFactsRootEnforcement:
         _load_facts(store, str(facts), facts_root=str(root))
         assert store.retrieve_context("sky")
 
-    def test_rejects_path_outside_root(self, tmp_path):
+    def test_rejects_path_outside_root(self, tmp_path: pathlib.Path) -> None:
+        """Facts outside the configured root should be rejected."""
         root = tmp_path / "kb"
         root.mkdir()
         elsewhere = tmp_path / "secret.txt"
@@ -45,7 +50,8 @@ class TestFactsRootEnforcement:
         with pytest.raises(ValueError, match="outside facts_root"):
             _load_facts(store, str(elsewhere), facts_root=str(root))
 
-    def test_rejects_dotdot_traversal(self, tmp_path):
+    def test_rejects_dotdot_traversal(self, tmp_path: pathlib.Path) -> None:
+        """Relative traversal should not escape the configured root."""
         root = tmp_path / "kb"
         root.mkdir()
         elsewhere = tmp_path / "etc_passwd.txt"
@@ -55,7 +61,8 @@ class TestFactsRootEnforcement:
         with pytest.raises(ValueError, match="outside facts_root"):
             _load_facts(store, str(traversal), facts_root=str(root))
 
-    def test_rejects_symlink_escape(self, tmp_path):
+    def test_rejects_symlink_escape(self, tmp_path: pathlib.Path) -> None:
+        """A symlink resolving outside the root should be rejected."""
         root = tmp_path / "kb"
         root.mkdir()
         outside = tmp_path / "outside.txt"
@@ -66,7 +73,8 @@ class TestFactsRootEnforcement:
         with pytest.raises(ValueError, match="outside facts_root"):
             _load_facts(store, str(symlink), facts_root=str(root))
 
-    def test_accepts_symlink_inside_root(self, tmp_path):
+    def test_accepts_symlink_inside_root(self, tmp_path: pathlib.Path) -> None:
+        """A symlink resolving inside the root should be accepted."""
         root = tmp_path / "kb"
         root.mkdir()
         real = root / "real.txt"
@@ -77,21 +85,30 @@ class TestFactsRootEnforcement:
         _load_facts(store, str(alias), facts_root=str(root))
         assert store.retrieve_context("sky")
 
-    def test_missing_facts_raises_file_not_found(self, tmp_path):
+    def test_missing_facts_raises_file_not_found(
+        self,
+        tmp_path: pathlib.Path,
+    ) -> None:
+        """Missing facts files should fail with an explicit error."""
         root = tmp_path / "kb"
         root.mkdir()
         store = GroundTruthStore()
         with pytest.raises(FileNotFoundError, match="Facts file not found"):
             _load_facts(store, str(root / "missing.txt"), facts_root=str(root))
 
-    def test_missing_root_raises_file_not_found(self, tmp_path):
+    def test_missing_root_raises_file_not_found(
+        self,
+        tmp_path: pathlib.Path,
+    ) -> None:
+        """Missing facts roots should fail with an explicit error."""
         facts = tmp_path / "facts.txt"
         _write_facts(facts)
         store = GroundTruthStore()
         with pytest.raises(FileNotFoundError, match="facts_root not found"):
             _load_facts(store, str(facts), facts_root=str(tmp_path / "no_such_dir"))
 
-    def test_root_must_be_directory(self, tmp_path):
+    def test_root_must_be_directory(self, tmp_path: pathlib.Path) -> None:
+        """A facts root that resolves to a file should be rejected."""
         not_a_dir = tmp_path / "file.txt"
         _write_facts(not_a_dir)
         facts = tmp_path / "facts.txt"
@@ -102,7 +119,13 @@ class TestFactsRootEnforcement:
 
 
 class TestFactsRootBackwardCompat:
-    def test_no_root_accepts_any_readable_path(self, tmp_path):
+    """Backward-compatibility guards for operator-trusted facts paths."""
+
+    def test_no_root_accepts_any_readable_path(
+        self,
+        tmp_path: pathlib.Path,
+    ) -> None:
+        """Omitting facts_root should preserve trusted CLI behaviour."""
         facts = tmp_path / "facts.txt"
         _write_facts(facts)
         store = GroundTruthStore()
@@ -111,7 +134,10 @@ class TestFactsRootBackwardCompat:
 
 
 class TestCreateProxyAppWiring:
-    def test_proxy_constructs_with_facts_root(self, tmp_path):
+    """Unit guards for proxy app construction with facts_root."""
+
+    def test_proxy_constructs_with_facts_root(self, tmp_path: pathlib.Path) -> None:
+        """The proxy app should construct when facts stay inside the root."""
         root = tmp_path / "kb"
         root.mkdir()
         facts = root / "facts.txt"
@@ -123,7 +149,11 @@ class TestCreateProxyAppWiring:
         )
         assert app is not None
 
-    def test_proxy_rejects_facts_outside_root(self, tmp_path):
+    def test_proxy_rejects_facts_outside_root(
+        self,
+        tmp_path: pathlib.Path,
+    ) -> None:
+        """The proxy app should reject facts outside the configured root."""
         root = tmp_path / "kb"
         root.mkdir()
         elsewhere = tmp_path / "secret.txt"

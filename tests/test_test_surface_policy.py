@@ -400,6 +400,16 @@ def test_public_endpoint_policy_unit_guard_has_real_surface_companion() -> None:
     assert "tests/test_public_endpoint_exposure_real_surface.py" in category
 
 
+def test_proxy_facts_path_unit_guard_has_real_surface_companion() -> None:
+    """Proxy facts-path guard should be backed by the public proxy app."""
+    classification, category = KNOWN_TEST_SURFACE_CLASSIFICATIONS[
+        "tests/test_proxy_facts_path_security.py"
+    ]
+
+    assert classification == "unit-guard-with-companion"
+    assert "tests/test_proxy_facts_path_real_surface.py" in category
+
+
 def test_voice_adapter_sdk_unit_guard_has_real_surface_companion() -> None:
     classification, category = KNOWN_TEST_SURFACE_CLASSIFICATIONS[
         "tests/test_voice_adapters_sdk.py"
