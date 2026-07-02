@@ -6,13 +6,16 @@
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI - Lite Scorer v2 guarded ONNX export runner
+"""Run the guarded Lite Scorer v2 ONNX export command from the run plan."""
 
 from __future__ import annotations
 
 import argparse
 import importlib.util
 import json
-import subprocess
+
+# The runner executes only repo-validated argv without shell expansion.
+import subprocess  # nosec B404
 import sys
 from collections.abc import Callable
 from pathlib import Path
@@ -48,6 +51,23 @@ class ExportError(RuntimeError):
 
 
 def find_export_argv(plan: dict[str, Any]) -> list[str]:
+    """Return the export command argv from a Lite Scorer v2 run plan.
+
+    Parameters
+    ----------
+    plan:
+        Run-plan mapping emitted by ``tools/plan_lite_scorer_v2_run.py``.
+
+    Returns
+    -------
+    list[str]
+        Command vector for the ``export_onnx`` step.
+
+    Raises
+    ------
+    ExportError
+        If the plan does not contain a valid export command.
+    """
     commands = plan.get("commands")
     if not isinstance(commands, list):
         raise ExportError("run plan does not contain a commands list")
@@ -104,6 +124,33 @@ def run_lite_scorer_v2_export(
     run_dir: Path | None = None,
     run_command: Callable[..., subprocess.CompletedProcess[Any]] = subprocess.run,
 ) -> dict[str, Any]:
+    """Run the guarded ONNX export command and return a recorded receipt.
+
+    Parameters
+    ----------
+    root:
+        Repository root containing the Lite Scorer v2 run manifest and training
+        artefacts.
+    manifest:
+        Run manifest path, either absolute or relative to ``root``.
+    run_dir:
+        Optional training run directory used for export-readiness inspection.
+    run_command:
+        Command runner compatible with ``subprocess.run``. Tests may provide a
+        protocol-preserving command runner for the external export process.
+
+    Returns
+    -------
+    dict[str, Any]
+        JSON-serialisable export receipt with artefact status and no public
+        score claim.
+
+    Raises
+    ------
+    ExportError
+        If training is not export-ready, the plan is invalid, the command
+        fails, or the ONNX artefact is missing or empty.
+    """
     root = root.resolve()
     status = inspect_lite_scorer_v2_training(
         root,
@@ -127,6 +174,8 @@ def run_lite_scorer_v2_export(
     artifact_status = _artifact_status(root, artifact)
     if not artifact_status["exists"]:
         raise ExportError(f"ONNX export command completed but {artifact} is missing")
+    if artifact_status["size_bytes"] <= 0:
+        raise ExportError(f"ONNX export command completed but {artifact} is empty")
 
     return {
         "schema_version": "1.0.0",
@@ -155,6 +204,7 @@ def _build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
+    """Run the command-line guarded ONNX export runner."""
     args = _build_parser().parse_args(argv)
     try:
         result = run_lite_scorer_v2_export(
