@@ -6,13 +6,16 @@
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI - Lite Scorer v2 guarded evaluation runner
+"""Run the guarded Lite Scorer v2 evaluation command from the run plan."""
 
 from __future__ import annotations
 
 import argparse
 import importlib.util
 import json
-import subprocess
+
+# The runner executes only repo-validated argv without shell expansion.
+import subprocess  # nosec B404
 import sys
 from collections.abc import Callable
 from pathlib import Path
@@ -51,6 +54,23 @@ class EvalError(RuntimeError):
 
 
 def find_evaluate_argv(plan: dict[str, Any]) -> list[str]:
+    """Return the evaluate command argv from a Lite Scorer v2 run plan.
+
+    Parameters
+    ----------
+    plan:
+        Run-plan mapping emitted by ``tools/plan_lite_scorer_v2_run.py``.
+
+    Returns
+    -------
+    list[str]
+        Command vector for the ``evaluate`` step.
+
+    Raises
+    ------
+    EvalError
+        If the plan does not contain a valid evaluate command.
+    """
     commands = plan.get("commands")
     if not isinstance(commands, list):
         raise EvalError("run plan does not contain a commands list")
@@ -109,6 +129,14 @@ def _read_eval_result(root: Path, relative_path: str) -> dict[str, Any]:
     return payload
 
 
+def _assert_onnx_artifact_ready(root: Path, relative_path: str) -> None:
+    path = root / relative_path
+    if not path.is_file():
+        raise EvalError(f"Lite Scorer v2 ONNX artifact is missing: {relative_path}")
+    if path.stat().st_size <= 0:
+        raise EvalError(f"Lite Scorer v2 ONNX artifact is empty: {relative_path}")
+
+
 def _validate_numeric_result(relative_path: str, payload: dict[str, Any]) -> None:
     for field in REQUIRED_RESULT_FIELDS:
         value = payload[field]
@@ -118,6 +146,18 @@ def _validate_numeric_result(relative_path: str, payload: dict[str, Any]) -> Non
         raise EvalError(f"{relative_path}: heldout_eval_rows must be positive")
     if int(payload["latency_sample_count"]) < 1:
         raise EvalError(f"{relative_path}: latency_sample_count must be positive")
+    for field in ("heldout_eval_balanced_accuracy", "heldout_eval_threshold"):
+        value = float(payload[field])
+        if value < 0.0 or value > 1.0:
+            raise EvalError(f"{relative_path}: {field} must be between 0 and 1")
+    for field in ("latency_p50_ms", "latency_p95_ms"):
+        if float(payload[field]) < 0.0:
+            raise EvalError(f"{relative_path}: {field} must be non-negative")
+    if float(payload["latency_p95_ms"]) < float(payload["latency_p50_ms"]):
+        raise EvalError(
+            f"{relative_path}: latency_p95_ms must be greater than or equal to "
+            "latency_p50_ms"
+        )
 
 
 def run_lite_scorer_v2_eval(
@@ -126,6 +166,31 @@ def run_lite_scorer_v2_eval(
     manifest: Path = MANIFEST,
     run_command: Callable[..., subprocess.CompletedProcess[Any]] = subprocess.run,
 ) -> dict[str, Any]:
+    """Run the guarded evaluation command and return a recorded receipt.
+
+    Parameters
+    ----------
+    root:
+        Repository root containing the Lite Scorer v2 run manifest and ONNX
+        artefact.
+    manifest:
+        Run manifest path, either absolute or relative to ``root``.
+    run_command:
+        Command runner compatible with ``subprocess.run``. Tests may provide a
+        protocol-preserving command runner for the external evaluation process.
+
+    Returns
+    -------
+    dict[str, Any]
+        JSON-serialisable evaluation receipt with artefact status and no public
+        score claim.
+
+    Raises
+    ------
+    EvalError
+        If the run plan is invalid, the ONNX artefact is missing or empty, the
+        evaluation command fails, or the evaluator JSON is incomplete.
+    """
     root = root.resolve()
     plan, errors = build_lite_scorer_v2_run_plan(root, manifest)
     if errors:
@@ -134,8 +199,7 @@ def run_lite_scorer_v2_eval(
     onnx_artifact = _generated_path(plan, "onnx_artifact")
     eval_result = _generated_path(plan, "eval_result")
 
-    if not (root / onnx_artifact).is_file():
-        raise EvalError(f"Lite Scorer v2 ONNX artifact is missing: {onnx_artifact}")
+    _assert_onnx_artifact_ready(root, onnx_artifact)
 
     try:
         run_command(command, cwd=root, check=True)
@@ -168,6 +232,7 @@ def _build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
+    """Run the command-line guarded evaluation runner."""
     args = _build_parser().parse_args(argv)
     try:
         result = run_lite_scorer_v2_eval(args.root, manifest=args.manifest)

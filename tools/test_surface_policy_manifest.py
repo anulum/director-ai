@@ -303,8 +303,8 @@ KNOWN_TEST_SURFACE_CLASSIFICATIONS: dict[str, tuple[str, str]] = {
     ),
     "tests/test_lite_scorer_v2_eval.py": ("violation", "ML/export/eval boundary fake"),
     "tests/test_lite_scorer_v2_eval_runner.py": (
-        "violation",
-        "ML/export/eval boundary fake",
+        "unit-guard-with-companion",
+        "ML/export/eval unit guard with companion tests/test_lite_scorer_v2_eval_runner_real_surface.py",
     ),
     "tests/test_lite_scorer_v2_export_runner.py": (
         "unit-guard-with-companion",
