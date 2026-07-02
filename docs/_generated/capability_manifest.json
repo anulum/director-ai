@@ -4,12 +4,12 @@
     "github_workflows": 14,
     "model_documentation_pages": 89,
     "optional_extras": 59,
-    "public_api_exports": 224,
+    "public_api_exports": 226,
     "public_documentation_pages": 203,
     "python_model_classes": 1001,
     "python_model_source_modules": 460,
     "rust_pyo3_model_wrappers": 83,
-    "test_files": 614
+    "test_files": 615
   },
   "documentation": {
     "public_pages": [
@@ -4963,6 +4963,7 @@
     "FinetuneResult",
     "GeneratorError",
     "GroundTruthStore",
+    "GuardResult",
     "HallucinationError",
     "HaltEvidence",
     "HaltMonitor",
@@ -5019,6 +5020,7 @@
     "PolicyVariantResult",
     "PredictionInterval",
     "PrivacyScoreRelease",
+    "ProductionGuard",
     "ProfileMetadata",
     "QdrantBackend",
     "QueryDecompositionBackend",
@@ -5579,6 +5581,7 @@
       "tests/test_otel.py",
       "tests/test_otel_real_surface.py",
       "tests/test_output_integrity.py",
+      "tests/test_output_integrity_real_surface.py",
       "tests/test_output_trust.py",
       "tests/test_paladin_mini.py",
       "tests/test_parent_child_backend.py",

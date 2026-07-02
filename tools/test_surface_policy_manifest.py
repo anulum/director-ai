@@ -374,8 +374,8 @@ KNOWN_TEST_SURFACE_CLASSIFICATIONS: dict[str, tuple[str, str]] = {
         "module/workflow unit guard with companion tests/test_otel_real_surface.py",
     ),
     "tests/test_output_integrity.py": (
-        "violation",
-        "module/workflow fake requiring review",
+        "unit-guard-with-companion",
+        "module/workflow unit guard with companion tests/test_output_integrity_real_surface.py",
     ),
     "tests/test_paladin_mini.py": ("violation", "ML/export/eval boundary fake"),
     "tests/test_phase3_hardening.py": (
