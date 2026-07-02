@@ -390,6 +390,16 @@ def test_guardrails_ai_unit_guard_has_real_surface_companion() -> None:
     assert "tests/test_guardrails_ai_real_surface.py" in category
 
 
+def test_public_endpoint_policy_unit_guard_has_real_surface_companion() -> None:
+    """Public endpoint guard should be backed by real server auth coverage."""
+    classification, category = KNOWN_TEST_SURFACE_CLASSIFICATIONS[
+        "tests/test_public_endpoint_exposure_policy.py"
+    ]
+
+    assert classification == "unit-guard-with-companion"
+    assert "tests/test_public_endpoint_exposure_real_surface.py" in category
+
+
 def test_voice_adapter_sdk_unit_guard_has_real_surface_companion() -> None:
     classification, category = KNOWN_TEST_SURFACE_CLASSIFICATIONS[
         "tests/test_voice_adapters_sdk.py"

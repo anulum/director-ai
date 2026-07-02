@@ -27,7 +27,7 @@ method = "GET"
 default_auth = "exempt"
 purpose = "Liveness probe for load balancers and local supervisors."
 internet_policy = "Private load-balancer probe, private network, or localhost tunnel only"
-allowed_payload = "Version, mode, profile, NLI loaded flag, uptime, and licence class."
+allowed_payload = "Unauthenticated: status and licence class only. Authenticated: version, mode, profile, NLI loaded flag, uptime, router mounts, and model revisions."
 operator_control = "Restrict at the reverse proxy when exposed beyond a trusted network."
 
 [[endpoints]]

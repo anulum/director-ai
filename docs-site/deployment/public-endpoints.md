@@ -15,13 +15,14 @@ Director-AI has a small set of endpoints that may be reached before normal crede
 | Endpoint | Default | What it returns | Exposure rule |
 |----------|---------|-----------------|---------------|
 | `GET /v1/live` | Exempt | A single static liveness flag; no version, tier, or licensee details | Private load-balancer probe, private network, or localhost tunnel only |
-| `GET /v1/health` | Exempt | Version, mode, profile, NLI loaded flag, uptime, and licence class | Private load-balancer probe, private network, or localhost tunnel only |
+| `GET /v1/health` | Exempt | Unauthenticated: status and licence class only. Authenticated: version, mode, profile, NLI status, uptime, router mounts, and model revisions | Private load-balancer probe, private network, or localhost tunnel only |
 | `GET /v1/ready` | Exempt | Ready flag and scorer load failure reason | Private readiness checks only |
 | `GET /v1/source` | Exempt | Licence class, version, repository URL, and clone instruction | Publish where the service wishes to advertise its source location |
 | `GET /v1/metrics` | Protected when server credentials are configured | JSON counters, histograms, and gauges | Private observability plane only |
 | `GET /v1/metrics/prometheus` | Protected when server credentials are configured | Prometheus metric families and labelled samples | Unauthenticated only on a private scrape network |
 
 The default unauthenticated set is `/v1/live`, `/v1/health`, `/v1/ready`, and `/v1/source`. The Prometheus endpoint joins that set only when `metrics_require_auth=false`.
+`/v1/health` accepts unauthenticated probes, but detailed build, router, and model-revision fields are included only when the caller also sends a valid API key.
 
 ## Operator Controls
 

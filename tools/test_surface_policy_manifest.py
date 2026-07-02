@@ -409,8 +409,8 @@ KNOWN_TEST_SURFACE_CLASSIFICATIONS: dict[str, tuple[str, str]] = {
         "external SDK adapter unit guard with companion tests/test_providers_real_surface.py",
     ),
     "tests/test_public_endpoint_exposure_policy.py": (
-        "violation",
-        "private-helper bypass requiring review",
+        "unit-guard-with-companion",
+        "CLI/server/API unit guard with companion tests/test_public_endpoint_exposure_real_surface.py",
     ),
     "tests/test_python_only_contributor_path.py": (
         "violation",
