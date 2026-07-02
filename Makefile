@@ -1,5 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 .DEFAULT_GOAL := help
+PYTHON ?= python
+PYTHON_ONLY_CHECK_ARGS ?=
 .PHONY: help test python-only-check test-rust test-julia test-lean test-go test-wasm test-all proto wasm-build lint fmt docs docs-build bench clean build preflight preflight-fast bandit sast install-hooks docker-build docker-run backup julia-instantiate grpc-scoring ab-bench
 
 help: ## Show available targets
@@ -9,7 +11,7 @@ test: ## Run Python tests with coverage
 	pytest tests/ -v --cov=director_ai --cov-report=term --cov-fail-under=97
 
 python-only-check: ## Run contributor checks without optional runtime toolchains
-	python tools/python_only_check.py
+	$(PYTHON) tools/python_only_check.py $(PYTHON_ONLY_CHECK_ARGS)
 
 test-rust: ## Run Rust tests (backfire-kernel)
 	cd backfire-kernel && cargo test --workspace

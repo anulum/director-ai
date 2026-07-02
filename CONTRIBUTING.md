@@ -31,12 +31,20 @@ configuration, backend fallback, and this contributor-path contract. Optional
 runtime work still uses the dedicated targets: `make test-rust`,
 `make test-go`, `make test-julia`, `make test-lean`, or `make test-wasm`.
 
+Advanced local runners can pin the interpreter and pass runner arguments
+without changing the target:
+
+```bash
+make python-only-check PYTHON=.venv/bin/python PYTHON_ONLY_CHECK_ARGS="--no-tests"
+make python-only-check PYTHON=.venv/bin/python PYTHON_ONLY_CHECK_ARGS="--print-plan"
+```
+
 ## Makefile Targets
 
 | Target | Command | Description |
 |--------|---------|-------------|
 | `make test` | `pytest tests/ -v --cov=director_ai --cov-fail-under=97` | Run tests with coverage (97% gate) |
-| `make python-only-check` | `python tools/python_only_check.py` | Run contributor checks without optional runtime toolchains |
+| `make python-only-check` | `$(PYTHON) tools/python_only_check.py $(PYTHON_ONLY_CHECK_ARGS)` | Run contributor checks without optional runtime toolchains |
 | `make test-rust` | `cargo test` in backfire-kernel | Run Rust tests |
 | `make test-all` | test + test-rust | Both suites |
 | `make lint` | `ruff format --check` + `ruff check` | Check style |

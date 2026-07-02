@@ -10,6 +10,8 @@ id = "python-only-contributor-path"
 status = "active"
 make_target = "python-only-check"
 runner = "tools/python_only_check.py"
+python_variable = "PYTHON"
+argument_variable = "PYTHON_ONLY_CHECK_ARGS"
 roadmap_item = "Add a contributor path that lets Python-only changes run without Rust, Go, Julia, Lean, or WASM toolchains installed."
 
 blocked_toolchains = [

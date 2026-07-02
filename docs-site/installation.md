@@ -65,6 +65,14 @@ that are not installed.
 See [Runtime Boundaries](guide/runtime-boundaries.md) for the supported default
 path and the advanced runtime boundary.
 
+Contributors who only touch Python, docs, CLI, or server surfaces can run the
+same supported default through the repository gate:
+
+```bash
+make python-only-check
+make python-only-check PYTHON=.venv/bin/python PYTHON_ONLY_CHECK_ARGS="--no-tests"
+```
+
 ## Recommended Setup
 
 Use the default path for first local runs, first production trials, and first

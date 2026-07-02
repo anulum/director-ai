@@ -413,8 +413,8 @@ KNOWN_TEST_SURFACE_CLASSIFICATIONS: dict[str, tuple[str, str]] = {
         "CLI/server/API unit guard with companion tests/test_public_endpoint_exposure_real_surface.py",
     ),
     "tests/test_python_only_contributor_path.py": (
-        "violation",
-        "module/workflow fake requiring review",
+        "unit-guard-with-companion",
+        "module/workflow unit guard with companion tests/test_python_only_contributor_path_real_surface.py",
     ),
     "tests/test_query_decomposition.py": (
         "violation",

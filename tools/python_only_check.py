@@ -56,6 +56,7 @@ def build_gates(
 
 
 def main(argv: Sequence[str] | None = None) -> int:
+    """Run or print the Python-only contributor gates."""
     parser = argparse.ArgumentParser(
         description="Run Python-only contributor checks.",
     )
@@ -100,6 +101,7 @@ def main(argv: Sequence[str] | None = None) -> int:
 
 
 def _reject_blocked_toolchains(gates: Sequence[Gate]) -> None:
+    """Reject gates that invoke optional runtime toolchains."""
     for gate in gates:
         command_name = Path(gate.command[0]).name
         if command_name in BLOCKED_TOOLCHAINS:
