@@ -474,6 +474,16 @@ def test_python_only_contributor_unit_guard_has_real_surface_companion() -> None
     assert "tests/test_python_only_contributor_path_real_surface.py" in category
 
 
+def test_prompt_guard_unit_guard_has_real_server_companion() -> None:
+    """Prompt guard unit tests should be backed by real server request coverage."""
+    classification, category = KNOWN_TEST_SURFACE_CLASSIFICATIONS[
+        "tests/test_prompt_guard.py"
+    ]
+
+    assert classification == "unit-guard-with-companion"
+    assert "tests/test_server_prompt_guard.py" in category
+
+
 def test_proxy_facts_path_unit_guard_has_real_surface_companion() -> None:
     """Proxy facts-path guard should be backed by the public proxy app."""
     classification, category = KNOWN_TEST_SURFACE_CLASSIFICATIONS[

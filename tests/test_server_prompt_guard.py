@@ -5,12 +5,14 @@
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI — server wiring tests for the model-backed prompt screen
+"""Real server-route coverage for the model-backed prompt guard."""
 
 from __future__ import annotations
 
 import pytest
 
 from director_ai.core.config import DirectorConfig
+from director_ai.core.safety.prompt_guard import PromptInjectionModel
 
 try:
     from fastapi.testclient import TestClient
@@ -30,22 +32,33 @@ class _StubClassifier:
     def __init__(self, marker: str) -> None:
         self._marker = marker
 
-    def __call__(self, text: str):
+    def __call__(self, text: str) -> list[dict[str, object]]:
+        """Return an injection result only when *marker* appears."""
         injected = self._marker in text
         return [{"label": "INJECTION" if injected else "SAFE", "score": 0.95}]
 
 
-def _patch_model(monkeypatch, marker: str) -> None:
-    from director_ai.core.safety.prompt_guard import PromptInjectionModel
+def _patch_model(monkeypatch: pytest.MonkeyPatch, marker: str) -> None:
+    """Replace the production model loader with a deterministic classifier."""
+
+    def _from_pretrained(
+        cls: type[PromptInjectionModel],
+        /,
+        *_args: object,
+        **_kwargs: object,
+    ) -> PromptInjectionModel:
+        return cls(_StubClassifier(marker))
 
     monkeypatch.setattr(
         PromptInjectionModel,
         "from_pretrained",
-        classmethod(lambda cls, *a, **k: cls(_StubClassifier(marker))),
+        classmethod(_from_pretrained),
     )
 
 
-def test_model_stage_blocks_prompt_without_pattern_trigger(monkeypatch) -> None:
+def test_model_stage_blocks_prompt_without_pattern_trigger(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     # "sekret-marker" carries no injection pattern, so only the model stage
     # can reject it — proving the model is wired into the request path.
     _patch_model(monkeypatch, "sekret-marker")
@@ -68,10 +81,15 @@ def test_model_stage_blocks_prompt_without_pattern_trigger(monkeypatch) -> None:
     assert clean.status_code == 200
 
 
-def test_startup_degrades_to_patterns_when_model_unavailable(monkeypatch) -> None:
-    from director_ai.core.safety.prompt_guard import PromptInjectionModel
-
-    def _boom(cls, *a, **k):
+def test_startup_degrades_to_patterns_when_model_unavailable(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def _boom(
+        _cls: type[PromptInjectionModel],
+        /,
+        *_args: object,
+        **_kwargs: object,
+    ) -> PromptInjectionModel:
         raise RuntimeError("model download failed")
 
     monkeypatch.setattr(PromptInjectionModel, "from_pretrained", classmethod(_boom))
@@ -94,11 +112,14 @@ def test_startup_degrades_to_patterns_when_model_unavailable(monkeypatch) -> Non
     assert clean.status_code == 200
 
 
-def test_model_disabled_by_default(monkeypatch) -> None:
+def test_model_disabled_by_default(monkeypatch: pytest.MonkeyPatch) -> None:
     # With the flag off, from_pretrained must never be called.
-    from director_ai.core.safety.prompt_guard import PromptInjectionModel
-
-    def _must_not_call(cls, *a, **k):  # pragma: no cover - must not run
+    def _must_not_call(
+        _cls: type[PromptInjectionModel],
+        /,
+        *_args: object,
+        **_kwargs: object,
+    ) -> PromptInjectionModel:  # pragma: no cover - must not run
         raise AssertionError("model loaded despite prompt_guard_model_enabled=False")
 
     monkeypatch.setattr(
