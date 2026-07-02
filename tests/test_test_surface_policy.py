@@ -484,6 +484,14 @@ def test_proxy_facts_path_unit_guard_has_real_surface_companion() -> None:
     assert "tests/test_proxy_facts_path_real_surface.py" in category
 
 
+def test_proxy_unit_guard_has_real_surface_companion() -> None:
+    """Proxy unit guard should be backed by real ASGI route coverage."""
+    classification, category = KNOWN_TEST_SURFACE_CLASSIFICATIONS["tests/test_proxy.py"]
+
+    assert classification == "unit-guard-with-companion"
+    assert "tests/test_proxy_real_surface.py" in category
+
+
 def test_voice_adapter_sdk_unit_guard_has_real_surface_companion() -> None:
     classification, category = KNOWN_TEST_SURFACE_CLASSIFICATIONS[
         "tests/test_voice_adapters_sdk.py"

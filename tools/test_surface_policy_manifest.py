@@ -414,7 +414,10 @@ KNOWN_TEST_SURFACE_CLASSIFICATIONS: dict[str, tuple[str, str]] = {
         "violation",
         "module/workflow fake requiring review",
     ),
-    "tests/test_proxy.py": ("violation", "private-helper bypass requiring review"),
+    "tests/test_proxy.py": (
+        "unit-guard-with-companion",
+        "CLI/server/API unit guard with companion tests/test_proxy_real_surface.py",
+    ),
     "tests/test_proxy_facts_path_security.py": (
         "unit-guard-with-companion",
         "CLI/server/API unit guard with companion tests/test_proxy_facts_path_real_surface.py",
