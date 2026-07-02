@@ -12,7 +12,10 @@ proved to be an approved protocol-preserving fake.
 from __future__ import annotations
 
 KNOWN_TEST_SURFACE_CLASSIFICATIONS: dict[str, tuple[str, str]] = {
-    "tests/test_actor.py": ("violation", "module/workflow fake requiring review"),
+    "tests/test_actor.py": (
+        "unit-guard-with-companion",
+        "module/workflow unit guard with companion tests/test_actor_real_surface.py",
+    ),
     "tests/test_accuracy_improvements.py": (
         "violation",
         "private-helper bypass requiring review",

@@ -217,6 +217,14 @@ def test_knowledge_api_unit_guard_has_real_surface_companion() -> None:
     assert "tests/test_knowledge_api_real_surface.py" in category
 
 
+def test_actor_unit_guard_has_real_surface_companion() -> None:
+    """Actor unit guard should be backed by real HTTP generator coverage."""
+    classification, category = KNOWN_TEST_SURFACE_CLASSIFICATIONS["tests/test_actor.py"]
+
+    assert classification == "unit-guard-with-companion"
+    assert "tests/test_actor_real_surface.py" in category
+
+
 def test_middleware_unit_guard_has_real_surface_companion() -> None:
     classification, category = KNOWN_TEST_SURFACE_CLASSIFICATIONS[
         "tests/test_middleware.py"

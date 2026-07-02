@@ -9,7 +9,7 @@
     "python_model_classes": 1001,
     "python_model_source_modules": 459,
     "rust_pyo3_model_wrappers": 83,
-    "test_files": 607
+    "test_files": 608
   },
   "documentation": {
     "public_pages": [
@@ -5203,6 +5203,7 @@
       "tests/conftest.py",
       "tests/test_accuracy_improvements.py",
       "tests/test_actor.py",
+      "tests/test_actor_real_surface.py",
       "tests/test_adaptive_conformal.py",
       "tests/test_adaptive_router.py",
       "tests/test_adaptive_threshold.py",
