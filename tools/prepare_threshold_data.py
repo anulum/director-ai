@@ -33,6 +33,7 @@ import json
 import logging
 import math
 import sys
+import tempfile
 from collections.abc import Iterable, Iterator
 from pathlib import Path
 from typing import Any
@@ -126,13 +127,29 @@ def normalise(
 
 
 def write_jsonl(records: Iterable[dict[str, Any]], path: Path) -> int:
+    """Write tuner records atomically as UTF-8 JSONL."""
     path.parent.mkdir(parents=True, exist_ok=True)
     count = 0
-    with path.open("w", encoding="utf-8") as f:
-        for r in records:
-            f.write(json.dumps(r, separators=(",", ":"), ensure_ascii=False))
-            f.write("\n")
-            count += 1
+    tmp_name: str | None = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            "w",
+            dir=path.parent,
+            encoding="utf-8",
+            prefix=f".{path.name}.",
+            suffix=".tmp",
+            delete=False,
+        ) as f:
+            tmp_name = f.name
+            for r in records:
+                f.write(json.dumps(r, separators=(",", ":"), ensure_ascii=False))
+                f.write("\n")
+                count += 1
+        Path(tmp_name).replace(path)
+    except Exception:
+        if tmp_name is not None:
+            Path(tmp_name).unlink(missing_ok=True)
+        raise
     return count
 
 

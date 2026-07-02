@@ -113,9 +113,12 @@ round-trip, JSONL load (valid, missing fields, bad label strings),
 and `save_result_json` schema round-trip.
 
 The Python feeder is covered by
-`tests/test_prepare_threshold_data.py` — ~27 parametrised cases
-(label/score coercion, file-format dispatch, dropped-row
-accounting, CLI wiring, custom keys).
+`tests/test_prepare_threshold_data.py` plus
+`tests/test_prepare_threshold_data_real_surface.py`: unit coverage for
+label/score coercion, file-format dispatch, dropped-row accounting,
+and custom keys, with subprocess coverage for the production
+`tools/prepare_threshold_data.py` CLI converting CSV/JSON inputs into
+Julia tuner JSONL and preserving output atomicity on input errors.
 
 ## Performance notes
 

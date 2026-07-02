@@ -403,8 +403,8 @@ KNOWN_TEST_SURFACE_CLASSIFICATIONS: dict[str, tuple[str, str]] = {
         "generated/docs/config guard with companion tools/validate_polar_deployment_smoke.py",
     ),
     "tests/test_prepare_threshold_data.py": (
-        "violation",
-        "module/workflow fake requiring review",
+        "unit-guard-with-companion",
+        "module/workflow unit guard with companion tests/test_prepare_threshold_data_real_surface.py",
     ),
     "tests/test_production_guard.py": (
         "unit-guard-with-companion",

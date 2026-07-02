@@ -533,6 +533,16 @@ def test_polar_deployment_smoke_guard_has_real_surface_companion() -> None:
     assert "tools/validate_polar_deployment_smoke.py" in category
 
 
+def test_prepare_threshold_data_guard_has_real_surface_companion() -> None:
+    """Threshold feeder guard should be backed by real CLI conversion coverage."""
+    classification, category = KNOWN_TEST_SURFACE_CLASSIFICATIONS[
+        "tests/test_prepare_threshold_data.py"
+    ]
+
+    assert classification == "unit-guard-with-companion"
+    assert "tests/test_prepare_threshold_data_real_surface.py" in category
+
+
 def test_secrets_guard_has_real_surface_companion() -> None:
     """Secrets guard should be backed by real env backend hydration coverage."""
     classification, category = KNOWN_TEST_SURFACE_CLASSIFICATIONS[
