@@ -9,7 +9,7 @@
     "python_model_classes": 1001,
     "python_model_source_modules": 459,
     "rust_pyo3_model_wrappers": 83,
-    "test_files": 609
+    "test_files": 610
   },
   "documentation": {
     "public_pages": [
@@ -5216,6 +5216,7 @@
       "tests/test_agent_preflight.py",
       "tests/test_agent_profile.py",
       "tests/test_agent_providers.py",
+      "tests/test_agent_providers_real_surface.py",
       "tests/test_agent_safety_hooks.py",
       "tests/test_aggrefact_save_scores.py",
       "tests/test_airgap_install_example.py",

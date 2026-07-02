@@ -22,8 +22,8 @@ KNOWN_TEST_SURFACE_CLASSIFICATIONS: dict[str, tuple[str, str]] = {
     ),
     "tests/test_agent.py": ("violation", "module/workflow fake requiring review"),
     "tests/test_agent_providers.py": (
-        "violation",
-        "module/workflow fake requiring review",
+        "unit-guard-with-companion",
+        "module/workflow unit guard with companion tests/test_agent_providers_real_surface.py",
     ),
     "tests/test_aggrefact_save_scores.py": (
         "violation",

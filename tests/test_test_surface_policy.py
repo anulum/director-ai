@@ -235,6 +235,16 @@ def test_backend_registry_unit_guard_has_real_surface_companion() -> None:
     assert "tests/test_backends_real_surface.py" in category
 
 
+def test_agent_provider_unit_guard_has_real_surface_companion() -> None:
+    """Agent provider guard should be backed by real provider protocol coverage."""
+    classification, category = KNOWN_TEST_SURFACE_CLASSIFICATIONS[
+        "tests/test_agent_providers.py"
+    ]
+
+    assert classification == "unit-guard-with-companion"
+    assert "tests/test_agent_providers_real_surface.py" in category
+
+
 def test_middleware_unit_guard_has_real_surface_companion() -> None:
     classification, category = KNOWN_TEST_SURFACE_CLASSIFICATIONS[
         "tests/test_middleware.py"
