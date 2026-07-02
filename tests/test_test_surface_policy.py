@@ -519,6 +519,16 @@ def test_query_decomposition_unit_guard_has_real_surface_companion() -> None:
     assert "tests/test_query_decomposition_real_surface.py" in category
 
 
+def test_contextual_compression_unit_guard_has_real_surface_companion() -> None:
+    """Contextual-compression guard should be backed by real store wiring."""
+    classification, category = KNOWN_TEST_SURFACE_CLASSIFICATIONS[
+        "tests/test_contextual_compression.py"
+    ]
+
+    assert classification == "unit-guard-with-companion"
+    assert "tests/test_contextual_compression_real_surface.py" in category
+
+
 def test_policy_main_returns_success_for_clean_tree(tmp_path: Path) -> None:
     _write_test(tmp_path, "tests/test_real_surface.py")
 

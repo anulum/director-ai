@@ -95,8 +95,8 @@ KNOWN_TEST_SURFACE_CLASSIFICATIONS: dict[str, tuple[str, str]] = {
         "CLI/server/API unit guard with companion tests/test_consumer_api_real_surface.py",
     ),
     "tests/test_contextual_compression.py": (
-        "violation",
-        "module/workflow fake requiring review",
+        "unit-guard-with-companion",
+        "storage/retrieval unit guard with companion tests/test_contextual_compression_real_surface.py",
     ),
     "tests/test_contradiction.py": (
         "violation",

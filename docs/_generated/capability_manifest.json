@@ -9,7 +9,7 @@
     "python_model_classes": 1001,
     "python_model_source_modules": 459,
     "rust_pyo3_model_wrappers": 83,
-    "test_files": 606
+    "test_files": 607
   },
   "documentation": {
     "public_pages": [
@@ -5292,6 +5292,7 @@
       "tests/test_content_commitment.py",
       "tests/test_content_moderation_wrapper.py",
       "tests/test_contextual_compression.py",
+      "tests/test_contextual_compression_real_surface.py",
       "tests/test_continual_adversarial.py",
       "tests/test_contradiction.py",
       "tests/test_contradiction_aggrefact_benchmark.py",
