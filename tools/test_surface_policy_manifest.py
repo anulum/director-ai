@@ -221,8 +221,8 @@ KNOWN_TEST_SURFACE_CLASSIFICATIONS: dict[str, tuple[str, str]] = {
         "CLI/server/API unit guard with companion tests/test_grpc_server_real_surface.py",
     ),
     "tests/test_guardrails_ai_integration.py": (
-        "violation",
-        "external SDK adapter fake",
+        "unit-guard-with-companion",
+        "external SDK adapter unit guard with companion tests/test_guardrails_ai_real_surface.py",
     ),
     "tests/test_handoff_scorer.py": (
         "violation",

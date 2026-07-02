@@ -9,7 +9,7 @@
     "python_model_classes": 1001,
     "python_model_source_modules": 459,
     "rust_pyo3_model_wrappers": 83,
-    "test_files": 600
+    "test_files": 601
   },
   "documentation": {
     "public_pages": [
@@ -5430,6 +5430,7 @@
       "tests/test_guard_pii_redaction.py",
       "tests/test_guard_runtime_real_surface.py",
       "tests/test_guardrails_ai_integration.py",
+      "tests/test_guardrails_ai_real_surface.py",
       "tests/test_hallubench_eval.py",
       "tests/test_hallucination_economics.py",
       "tests/test_hallucination_forecaster.py",

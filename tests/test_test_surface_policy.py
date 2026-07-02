@@ -380,6 +380,16 @@ def test_semantic_kernel_unit_guard_has_real_surface_companion() -> None:
     assert "tests/test_integrations_semantic_kernel_real_surface.py" in category
 
 
+def test_guardrails_ai_unit_guard_has_real_surface_companion() -> None:
+    """Guardrails AI unit guard should be backed by protocol parse coverage."""
+    classification, category = KNOWN_TEST_SURFACE_CLASSIFICATIONS[
+        "tests/test_guardrails_ai_integration.py"
+    ]
+
+    assert classification == "unit-guard-with-companion"
+    assert "tests/test_guardrails_ai_real_surface.py" in category
+
+
 def test_voice_adapter_sdk_unit_guard_has_real_surface_companion() -> None:
     classification, category = KNOWN_TEST_SURFACE_CLASSIFICATIONS[
         "tests/test_voice_adapters_sdk.py"
