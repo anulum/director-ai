@@ -262,6 +262,16 @@ def test_middleware_unit_guard_has_real_surface_companion() -> None:
     assert "tests/test_middleware_real_surface.py" in category
 
 
+def test_metrics_unit_guard_has_real_surface_companion() -> None:
+    """Metrics guard should be backed by real server metrics coverage."""
+    classification, category = KNOWN_TEST_SURFACE_CLASSIFICATIONS[
+        "tests/test_metrics.py"
+    ]
+
+    assert classification == "unit-guard-with-companion"
+    assert "tests/test_metrics_real_surface.py" in category
+
+
 def test_server_auth_unit_guard_has_real_surface_companion() -> None:
     classification, category = KNOWN_TEST_SURFACE_CLASSIFICATIONS[
         "tests/test_server_auth.py"
