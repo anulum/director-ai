@@ -6,6 +6,7 @@
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI - Hugging Face Space deployment smoke packet validator
+"""Validate the Hugging Face Space deployment-smoke gate packet."""
 
 from __future__ import annotations
 
@@ -45,27 +46,58 @@ REQUIRED_SMOKE_CHECKS = {
 }
 
 
-def _load_toml(path: Path) -> tuple[dict[str, Any], list[str]]:
+def _load_toml(path: Path, label: Path) -> tuple[dict[str, Any], list[str]]:
+    """Load TOML from ``path`` and report errors against ``label``."""
     if not path.exists():
-        return {}, [f"{path.as_posix()}: missing TOML file"]
+        return {}, [f"{label.as_posix()}: missing TOML file"]
     try:
         data = tomllib.loads(path.read_text(encoding="utf-8"))
     except tomllib.TOMLDecodeError as exc:
-        return {}, [f"{path.as_posix()}: invalid TOML: {exc}"]
-    if not isinstance(data, dict):
-        return {}, [f"{path.as_posix()}: TOML root must be a table"]
+        return {}, [f"{label.as_posix()}: invalid TOML: {exc}"]
     return data, []
 
 
 def _non_empty_string(packet: dict[str, Any], field: str) -> bool:
+    """Return whether ``field`` contains a non-empty string value."""
     value = packet.get(field)
     return isinstance(value, str) and bool(value.strip())
 
 
 def _validate_required_fields(packet: dict[str, Any]) -> list[str]:
+    """Return missing-field errors for the deployment-smoke packet."""
     missing = sorted(REQUIRED_FIELDS - set(packet))
     if missing:
         return [f"{PACKET}: missing required fields {', '.join(missing)}"]
+    return []
+
+
+def _validate_status(
+    packet: dict[str, Any],
+    field: str,
+    allowed: set[str],
+) -> list[str]:
+    """Validate that ``field`` is one of the allowed string statuses."""
+    value = packet[field]
+    if isinstance(value, str) and value in allowed:
+        return []
+    return [
+        f"{PACKET}: {field} must be one of {', '.join(sorted(allowed))}",
+    ]
+
+
+def _validate_required_smoke_checks(checks: Any) -> list[str]:
+    """Validate the exact set of smoke checks required for publication."""
+    if not isinstance(checks, list) or not checks:
+        return [f"{PACKET}: required_smoke_checks must be a non-empty list"]
+    if not all(isinstance(check, str) and check.strip() for check in checks):
+        return [f"{PACKET}: required_smoke_checks must contain strings"]
+    if set(checks) != REQUIRED_SMOKE_CHECKS or len(checks) != len(
+        REQUIRED_SMOKE_CHECKS
+    ):
+        return [
+            f"{PACKET}: required_smoke_checks must be exactly "
+            f"{', '.join(sorted(REQUIRED_SMOKE_CHECKS))}",
+        ]
     return []
 
 
@@ -75,6 +107,7 @@ def _validate_packet(
     manifest: dict[str, Any],
     require_published: bool,
 ) -> list[str]:
+    """Validate deployment-smoke packet fields against local repo surfaces."""
     errors = _validate_required_fields(packet)
     if errors:
         return errors
@@ -102,16 +135,9 @@ def _validate_packet(
         errors.append(f"{PACKET}: operator_approval_required must remain true")
 
     deployment_status = packet["deployment_status"]
-    if deployment_status not in DEPLOYMENT_STATUSES:
-        errors.append(
-            f"{PACKET}: deployment_status must be one of "
-            f"{', '.join(sorted(DEPLOYMENT_STATUSES))}"
-        )
+    errors.extend(_validate_status(packet, "deployment_status", DEPLOYMENT_STATUSES))
     smoke_status = packet["smoke_status"]
-    if smoke_status not in SMOKE_STATUSES:
-        errors.append(
-            f"{PACKET}: smoke_status must be one of {', '.join(sorted(SMOKE_STATUSES))}"
-        )
+    errors.extend(_validate_status(packet, "smoke_status", SMOKE_STATUSES))
 
     if packet["public_demo_claim"] is True and (
         deployment_status != "published" or smoke_status != "passed"
@@ -141,16 +167,7 @@ def _validate_packet(
             f"{PACKET}: claim_boundary must state no public claim without smoke"
         )
 
-    checks = packet["required_smoke_checks"]
-    if not isinstance(checks, list) or not checks:
-        errors.append(f"{PACKET}: required_smoke_checks must be a non-empty list")
-    elif set(checks) != REQUIRED_SMOKE_CHECKS:
-        errors.append(
-            f"{PACKET}: required_smoke_checks must be exactly "
-            f"{', '.join(sorted(REQUIRED_SMOKE_CHECKS))}"
-        )
-    elif not all(isinstance(check, str) and check.strip() for check in checks):
-        errors.append(f"{PACKET}: required_smoke_checks must contain strings")
+    errors.extend(_validate_required_smoke_checks(packet["required_smoke_checks"]))
 
     for field in ("demo_manifest", "package_validator", "push_script"):
         value = packet[field]
@@ -181,11 +198,12 @@ def validate_hf_space_deployment_smoke(
     *,
     require_published: bool = False,
 ) -> list[str]:
+    """Validate the deployment-smoke packet rooted at ``root``."""
     root = root.resolve()
-    packet, errors = _load_toml(root / PACKET)
+    packet, errors = _load_toml(root / PACKET, PACKET)
     if errors:
         return errors
-    manifest, manifest_errors = _load_toml(root / SPACE_MANIFEST)
+    manifest, manifest_errors = _load_toml(root / SPACE_MANIFEST, SPACE_MANIFEST)
     errors.extend(manifest_errors)
     if manifest_errors:
         return errors
@@ -194,6 +212,7 @@ def validate_hf_space_deployment_smoke(
 
 
 def main(argv: list[str] | None = None) -> int:
+    """Run the command-line deployment-smoke validator."""
     parser = argparse.ArgumentParser(
         description="Validate the HF Space deployment smoke packet."
     )

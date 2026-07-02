@@ -337,6 +337,16 @@ def test_hf_space_app_safety_unit_guard_has_real_surface_companion() -> None:
     assert "tests/test_hf_space_app_safety_real_surface.py" in category
 
 
+def test_hf_space_deployment_smoke_unit_guard_has_real_surface_companion() -> None:
+    """HF Space deployment-smoke guard should be backed by real CLI coverage."""
+    classification, category = KNOWN_TEST_SURFACE_CLASSIFICATIONS[
+        "tests/test_hf_space_deployment_smoke.py"
+    ]
+
+    assert classification == "unit-guard-with-companion"
+    assert "tests/test_hf_space_deployment_smoke_real_surface.py" in category
+
+
 def test_pint_replication_packet_unit_guard_has_real_surface_companion() -> None:
     classification, category = KNOWN_TEST_SURFACE_CLASSIFICATIONS[
         "tests/test_pint_replication_packet.py"
