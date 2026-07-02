@@ -58,8 +58,9 @@ def test_cli_emits_and_checks_custom_artifact(tmp_path: Path) -> None:
     assert emit.returncode == 0, emit.stderr or emit.stdout
     assert check.returncode == 0, check.stderr or check.stdout
     payload = json.loads(artifact.read_text(encoding="utf-8"))
-    assert payload["studio"] == "director-ai"
-    assert payload["content_digest"].startswith("sha256:")
+    assert payload["schema_a"]["studio"] == "director-ai"
+    assert payload["schema_a"]["content_digest"].startswith("sha256:")
+    assert payload["architecture_map"]["version"] == "architecture-map.v2"
 
 
 def test_cli_reports_custom_artifact_drift(tmp_path: Path) -> None:

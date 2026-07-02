@@ -1,147 +1,378 @@
 {
-  "content_digest": "sha256:2e079304953022a998394fcd6cd34f191df8f7801b9152a67680b51cfc2886f1",
-  "contract_era": "v1",
-  "enumeration": "language-agnostic",
-  "evidence_types": [
-    "studio.backend-benchmark.v1",
-    "studio.calibration.v1",
-    "studio.evidence-replay.v1",
-    "studio.injection-scan.v1",
-    "studio.redaction.v1",
-    "studio.response-score.v1",
-    "studio.streaming-halt.v1",
-    "studio.verification.v1"
-  ],
-  "platform_sdk": ">=0.1,<0.2",
-  "protocol_version": "1",
-  "studio": "director-ai",
-  "studio_version": "3.16.0",
-  "transport_profile": "local-first",
-  "ui_module": {
-    "exposes": [
-      "./DirectorAIStudioPanel"
+  "architecture_map": {
+    "backends": [
+      {
+        "dispatch_order": 0,
+        "language": "python",
+        "name": "python",
+        "role": "reference-orchestrator",
+        "status": "runtime-active"
+      },
+      {
+        "dispatch_order": 1,
+        "language": "rust",
+        "name": "rust",
+        "role": "scoring-accelerator",
+        "status": "runtime-active"
+      },
+      {
+        "dispatch_order": 2,
+        "language": "onnx",
+        "name": "onnx",
+        "role": "nli-inference-export",
+        "status": "build-available"
+      }
     ],
-    "federation": "module-federation-2",
-    "remote_entry": "/studio/remoteEntry.js"
+    "boundaries": {
+      "bounded": [
+        "response-level verification",
+        "atomic claim verification",
+        "streaming oversight research signal",
+        "prompt injection scanning",
+        "PII redaction"
+      ],
+      "closed": [
+        "long-term memory storage",
+        "coordination bus ownership",
+        "source-of-truth billing",
+        "unsourced benchmark claims"
+      ]
+    },
+    "capabilities": [
+      {
+        "domain": "guardrail",
+        "name": "coherence-scorer",
+        "safety_tier": "production",
+        "status": "wired",
+        "verb": "score"
+      },
+      {
+        "domain": "guardrail",
+        "name": "verified-scorer",
+        "safety_tier": "production",
+        "status": "wired",
+        "verb": "validate"
+      },
+      {
+        "domain": "runtime",
+        "name": "streaming-halt",
+        "safety_tier": "research",
+        "status": "wired",
+        "verb": "halt"
+      },
+      {
+        "domain": "calibration",
+        "name": "conformal-calibration",
+        "safety_tier": "research",
+        "status": "wired",
+        "verb": "calibrate"
+      },
+      {
+        "domain": "guardrail",
+        "name": "prompt-injection-detection",
+        "safety_tier": "research",
+        "status": "wired",
+        "verb": "detect-injection"
+      },
+      {
+        "domain": "evaluation",
+        "name": "backend-benchmark",
+        "safety_tier": "research",
+        "status": "wired",
+        "verb": "benchmark"
+      },
+      {
+        "domain": "audit",
+        "name": "evidence-replay",
+        "safety_tier": "research",
+        "status": "wired",
+        "verb": "replay"
+      },
+      {
+        "domain": "privacy",
+        "name": "pii-redaction",
+        "safety_tier": "research",
+        "status": "wired",
+        "verb": "redact"
+      }
+    ],
+    "cross_repo": [
+      {
+        "adapter": "schema-A federation envelope",
+        "sibling": "SCPN-STUDIO",
+        "wire_format": "studio.federation-envelope.v2"
+      },
+      {
+        "adapter": "VerifiedScorer verdict and release receipt evidence",
+        "sibling": "SYNAPSE-CHANNEL",
+        "wire_format": "studio.verification.v1"
+      },
+      {
+        "adapter": "RemanentiaCorrectnessClient recall feedback",
+        "sibling": "REMANENTIA",
+        "wire_format": "recall.correctness.feedback.v1"
+      },
+      {
+        "adapter": "shared verification lineage",
+        "sibling": "DIRECTOR-CLASS-AI",
+        "wire_format": "studio.verification.v1"
+      }
+    ],
+    "interfaces": [
+      {
+        "contract": "runtime guard orchestration",
+        "entry": "director_ai.guard.guard",
+        "kind": "python_api"
+      },
+      {
+        "contract": "local-first operator entry point",
+        "entry": "director-ai",
+        "kind": "cli"
+      },
+      {
+        "contract": "response review surface",
+        "entry": "/v1/review",
+        "kind": "rest"
+      },
+      {
+        "contract": "service integration surface",
+        "entry": "director.DirectorService",
+        "kind": "grpc"
+      },
+      {
+        "contract": "Module Federation 2 DirectorAIStudioPanel",
+        "entry": "/studio/remoteEntry.js",
+        "kind": "ui_module"
+      },
+      {
+        "contract": "SCPN-STUDIO federation envelope",
+        "entry": "docs/_generated/studio_manifest.json",
+        "kind": "artifact"
+      }
+    ],
+    "pipeline_stages": [
+      {
+        "inputs": [
+          "prompt:text"
+        ],
+        "outputs": [
+          "candidate:text"
+        ],
+        "processing_model": "LLMGenerator/provider boundary",
+        "stage": "candidate-generation"
+      },
+      {
+        "inputs": [
+          "prompt:text",
+          "candidate:text"
+        ],
+        "outputs": [
+          "studio.verification.v1"
+        ],
+        "processing_model": "CoherenceScorer plus VerifiedScorer",
+        "stage": "response-verification"
+      },
+      {
+        "inputs": [
+          "studio.verification.v1"
+        ],
+        "outputs": [
+          "recall.correctness.feedback.v1"
+        ],
+        "processing_model": "RemanentiaCorrectnessClient",
+        "stage": "evidence-feedback"
+      },
+      {
+        "inputs": [
+          "studio.verification.v1",
+          "studio.response-score.v1"
+        ],
+        "outputs": [
+          "studio.federation-envelope.v2"
+        ],
+        "processing_model": "SCPN-STUDIO schema-A hub adapter",
+        "stage": "operator-surface"
+      }
+    ],
+    "version": "architecture-map.v2",
+    "wire_formats": [
+      {
+        "name": "studio.federation-envelope.v2",
+        "producer": "tools/emit_studio_manifest.py",
+        "schema_ref": "docs/_generated/studio_manifest.json"
+      },
+      {
+        "name": "studio.response-score.v1",
+        "producer": "score verb",
+        "schema_ref": "src/director_ai/federation/manifest.py"
+      },
+      {
+        "name": "studio.verification.v1",
+        "producer": "validate verb",
+        "schema_ref": "src/director_ai/core/scoring/verified_scorer.py"
+      },
+      {
+        "name": "studio.streaming-halt.v1",
+        "producer": "halt verb",
+        "schema_ref": "src/director_ai/core/runtime/streaming.py"
+      },
+      {
+        "name": "studio.backend-benchmark.v1",
+        "producer": "benchmark verb",
+        "schema_ref": "benchmarks/"
+      },
+      {
+        "name": "recall.correctness.feedback.v1",
+        "producer": "evidence-feedback stage",
+        "schema_ref": "src/director_ai/core/calibration/recall_correctness_client.py"
+      }
+    ]
   },
-  "verbs": [
-    {
-      "backends": [
-        "python",
-        "rust"
+  "schema_a": {
+    "content_digest": "sha256:2e079304953022a998394fcd6cd34f191df8f7801b9152a67680b51cfc2886f1",
+    "contract_era": "v1",
+    "enumeration": "language-agnostic",
+    "evidence_types": [
+      "studio.backend-benchmark.v1",
+      "studio.calibration.v1",
+      "studio.evidence-replay.v1",
+      "studio.injection-scan.v1",
+      "studio.redaction.v1",
+      "studio.response-score.v1",
+      "studio.streaming-halt.v1",
+      "studio.verification.v1"
+    ],
+    "platform_sdk": ">=0.1,<0.2",
+    "protocol_version": "1",
+    "studio": "director-ai",
+    "studio_version": "3.16.0",
+    "transport_profile": "local-first",
+    "ui_module": {
+      "exposes": [
+        "./DirectorAIStudioPanel"
       ],
-      "fidelity": "ml-surrogate",
-      "produces": [
-        "studio.response-score.v1"
-      ],
-      "safety_tier": "production",
-      "side_effect": "read-only",
-      "timing": {
-        "class": "interactive"
-      },
-      "verb": "score"
+      "federation": "module-federation-2",
+      "remote_entry": "/studio/remoteEntry.js"
     },
-    {
-      "backends": [
-        "python",
-        "rust"
-      ],
-      "fidelity": "ml-surrogate",
-      "produces": [
-        "studio.verification.v1"
-      ],
-      "safety_tier": "production",
-      "side_effect": "read-only",
-      "timing": {
-        "class": "batch"
+    "verbs": [
+      {
+        "backends": [
+          "python",
+          "rust"
+        ],
+        "fidelity": "ml-surrogate",
+        "produces": [
+          "studio.response-score.v1"
+        ],
+        "safety_tier": "production",
+        "side_effect": "read-only",
+        "timing": {
+          "class": "interactive"
+        },
+        "verb": "score"
       },
-      "verb": "validate"
-    },
-    {
-      "backends": [
-        "python",
-        "rust"
-      ],
-      "produces": [
-        "studio.streaming-halt.v1"
-      ],
-      "safety_tier": "research",
-      "side_effect": "read-only",
-      "timing": {
-        "class": "realtime"
+      {
+        "backends": [
+          "python",
+          "rust"
+        ],
+        "fidelity": "ml-surrogate",
+        "produces": [
+          "studio.verification.v1"
+        ],
+        "safety_tier": "production",
+        "side_effect": "read-only",
+        "timing": {
+          "class": "batch"
+        },
+        "verb": "validate"
       },
-      "verb": "halt"
-    },
-    {
-      "backends": [
-        "python"
-      ],
-      "produces": [
-        "studio.calibration.v1"
-      ],
-      "safety_tier": "research",
-      "side_effect": "read-only",
-      "timing": {
-        "class": "batch"
+      {
+        "backends": [
+          "python",
+          "rust"
+        ],
+        "produces": [
+          "studio.streaming-halt.v1"
+        ],
+        "safety_tier": "research",
+        "side_effect": "read-only",
+        "timing": {
+          "class": "realtime"
+        },
+        "verb": "halt"
       },
-      "verb": "calibrate"
-    },
-    {
-      "backends": [
-        "python"
-      ],
-      "produces": [
-        "studio.injection-scan.v1"
-      ],
-      "safety_tier": "research",
-      "side_effect": "read-only",
-      "timing": {
-        "class": "interactive"
+      {
+        "backends": [
+          "python"
+        ],
+        "produces": [
+          "studio.calibration.v1"
+        ],
+        "safety_tier": "research",
+        "side_effect": "read-only",
+        "timing": {
+          "class": "batch"
+        },
+        "verb": "calibrate"
       },
-      "verb": "detect-injection"
-    },
-    {
-      "backends": [
-        "python",
-        "rust"
-      ],
-      "produces": [
-        "studio.backend-benchmark.v1"
-      ],
-      "safety_tier": "research",
-      "side_effect": "simulated",
-      "timing": {
-        "class": "batch"
+      {
+        "backends": [
+          "python"
+        ],
+        "produces": [
+          "studio.injection-scan.v1"
+        ],
+        "safety_tier": "research",
+        "side_effect": "read-only",
+        "timing": {
+          "class": "interactive"
+        },
+        "verb": "detect-injection"
       },
-      "verb": "benchmark"
-    },
-    {
-      "backends": [
-        "python"
-      ],
-      "produces": [
-        "studio.evidence-replay.v1"
-      ],
-      "safety_tier": "research",
-      "side_effect": "read-only",
-      "timing": {
-        "class": "batch"
+      {
+        "backends": [
+          "python",
+          "rust"
+        ],
+        "produces": [
+          "studio.backend-benchmark.v1"
+        ],
+        "safety_tier": "research",
+        "side_effect": "simulated",
+        "timing": {
+          "class": "batch"
+        },
+        "verb": "benchmark"
       },
-      "verb": "replay"
-    },
-    {
-      "backends": [
-        "python"
-      ],
-      "produces": [
-        "studio.redaction.v1"
-      ],
-      "safety_tier": "research",
-      "side_effect": "read-only",
-      "timing": {
-        "class": "interactive"
+      {
+        "backends": [
+          "python"
+        ],
+        "produces": [
+          "studio.evidence-replay.v1"
+        ],
+        "safety_tier": "research",
+        "side_effect": "read-only",
+        "timing": {
+          "class": "batch"
+        },
+        "verb": "replay"
       },
-      "verb": "redact"
-    }
-  ]
+      {
+        "backends": [
+          "python"
+        ],
+        "produces": [
+          "studio.redaction.v1"
+        ],
+        "safety_tier": "research",
+        "side_effect": "read-only",
+        "timing": {
+          "class": "interactive"
+        },
+        "verb": "redact"
+      }
+    ]
+  }
 }

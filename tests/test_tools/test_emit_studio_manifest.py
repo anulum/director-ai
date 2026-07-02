@@ -58,8 +58,10 @@ def test_render_is_sorted_with_trailing_newline() -> None:
         json.dumps(payload, indent=2, ensure_ascii=False, sort_keys=True) + "\n"
         == rendered
     )
-    assert payload["studio"] == "director-ai"
-    assert payload["content_digest"].startswith("sha256:")
+    assert set(payload) == {"architecture_map", "schema_a"}
+    assert payload["schema_a"]["studio"] == "director-ai"
+    assert payload["schema_a"]["content_digest"].startswith("sha256:")
+    assert payload["architecture_map"]["version"] == "architecture-map.v2"
 
 
 def test_committed_artifact_is_current() -> None:
@@ -75,7 +77,9 @@ def test_emit_writes_artifact(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -
     monkeypatch.setattr(tool, "_ARTIFACT", target)
     assert tool.main([]) == 0
     assert target.exists()
-    assert json.loads(target.read_text(encoding="utf-8"))["studio"] == "director-ai"
+    payload = json.loads(target.read_text(encoding="utf-8"))
+    assert payload["schema_a"]["studio"] == "director-ai"
+    assert payload["architecture_map"]["version"] == "architecture-map.v2"
 
 
 def test_check_reports_missing(
@@ -109,7 +113,7 @@ def test_check_ignores_studio_version_only_drift(
     """A studio_version-only difference is not drift (env-stable check)."""
     tool = _load_tool()
     payload = json.loads(tool.render())
-    payload["studio_version"] = "0+source-tree-stamp"
+    payload["schema_a"]["studio_version"] = "0+source-tree-stamp"
     artifact = tmp_path / "studio_manifest.json"
     artifact.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n")
     monkeypatch.setattr(tool, "_ARTIFACT", artifact)

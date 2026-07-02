@@ -17,10 +17,19 @@ from __future__ import annotations
 
 import dataclasses
 import re
+from importlib.metadata import PackageNotFoundError
+from typing import cast
 
 import pytest
 
-from director_ai.federation import StudioManifest, Verb, build_manifest
+from director_ai.federation import (
+    ARCHITECTURE_MAP_VERSION,
+    StudioManifest,
+    Verb,
+    build_architecture_map_extension,
+    build_federation_document,
+    build_manifest,
+)
 from director_ai.federation import manifest as manifest_mod
 
 _SCHEMA_A_KEYS = {
@@ -65,6 +74,7 @@ def test_honest_safety_tiers() -> None:
 
 def test_to_dict_schema_a_surface() -> None:
     payload = build_manifest().to_dict()
+    ui_module = cast("dict[str, object]", payload["ui_module"])
     assert set(payload) == _SCHEMA_A_KEYS
     assert payload["contract_era"] == "v1"
     assert payload["protocol_version"] == "1"
@@ -73,7 +83,56 @@ def test_to_dict_schema_a_surface() -> None:
     assert payload["platform_sdk"] == ">=0.1,<0.2"
     assert payload["enumeration"] == "language-agnostic"
     assert isinstance(payload["verbs"], list)
-    assert payload["ui_module"]["remote_entry"] == "/studio/remoteEntry.js"
+    assert ui_module["remote_entry"] == "/studio/remoteEntry.js"
+
+
+def test_federation_document_wraps_schema_a_and_architecture_map() -> None:
+    """The STUDIO artifact should be the hub-accepted federation envelope."""
+    payload = build_federation_document()
+
+    assert set(payload) == {"architecture_map", "schema_a"}
+    assert payload["schema_a"] == build_manifest().to_dict()
+    assert payload["architecture_map"] == build_architecture_map_extension()
+
+
+def test_architecture_map_extension_is_grounded_in_director_ai_contracts() -> None:
+    """The architecture-map.v2 block should advertise real Director-AI surfaces."""
+    architecture_map = build_architecture_map_extension()
+    backends = cast("list[dict[str, object]]", architecture_map["backends"])
+    capabilities = cast("list[dict[str, object]]", architecture_map["capabilities"])
+    interfaces = cast("list[dict[str, object]]", architecture_map["interfaces"])
+    pipeline_stages = cast(
+        "list[dict[str, object]]", architecture_map["pipeline_stages"]
+    )
+    wire_formats = cast("list[dict[str, object]]", architecture_map["wire_formats"])
+    cross_repo = cast("list[dict[str, object]]", architecture_map["cross_repo"])
+    boundaries = cast("dict[str, list[str]]", architecture_map["boundaries"])
+
+    assert architecture_map["version"] == ARCHITECTURE_MAP_VERSION
+    assert {"backends", "capabilities", "interfaces", "cross_repo", "boundaries"} <= (
+        set(architecture_map)
+    )
+    assert any(
+        backend["name"] == "rust" and backend["status"] == "runtime-active"
+        for backend in backends
+    )
+    assert any(
+        capability["name"] == "verified-scorer" and capability["status"] == "wired"
+        for capability in capabilities
+    )
+    assert any(
+        interface["kind"] == "ui_module"
+        and interface["entry"] == "/studio/remoteEntry.js"
+        for interface in interfaces
+    )
+    assert any(stage["stage"] == "response-verification" for stage in pipeline_stages)
+    assert any(wire["name"] == "studio.verification.v1" for wire in wire_formats)
+    assert any(
+        edge["sibling"] == "SYNAPSE-CHANNEL"
+        and edge["wire_format"] == "studio.verification.v1"
+        for edge in cross_repo
+    )
+    assert "long-term memory storage" in boundaries["closed"]
 
 
 def test_evidence_types_sorted_and_deduplicated() -> None:
@@ -156,7 +215,7 @@ def test_studio_version_fallback_when_not_installed(
     """A source tree with no installed dist falls back to the sentinel."""
 
     def _raise(_name: str) -> str:
-        raise manifest_mod.PackageNotFoundError
+        raise PackageNotFoundError
 
     monkeypatch.setattr(manifest_mod, "version", _raise)
     assert manifest_mod._studio_version() == "0+unknown"

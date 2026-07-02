@@ -5,32 +5,35 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI — studio schema-A capability manifest emitter
+# Director-Class AI — STUDIO federation manifest emitter
 
-"""Emit (or check) the Director-AI schema-A studio capability manifest artifact.
+"""Emit (or check) the Director-AI STUDIO federation manifest artifact.
 
 This is the federation-gate artifact the SCPN-STUDIO keeper and the Director-AI
-Tier-B portal consume — the schema-A manifest carrying ``contract_era`` +
-``evidence_types`` + ``verbs`` + ``ui_module`` + ``content_digest``. It is
-distinct from ``docs/_generated/capability_manifest.json`` (the repo-inventory
-manifest); this one is the canonical product of
-:func:`director_ai.federation.manifest.build_manifest`.
+Tier-B portal consume: an envelope with the original schema-A capability manifest
+under ``schema_a`` plus the authored ``architecture-map.v2`` extension under
+``architecture_map``. It is distinct from
+``docs/_generated/capability_manifest.json`` (the repo-inventory manifest); this
+one is the canonical product of
+:func:`director_ai.federation.build_federation_document`.
 
 ``--check`` fails if the committed artifact has drifted from the producer, so a
-verb or evidence-schema change cannot silently leave a stale federation manifest
-behind. ``studio_version`` is excluded from the check (an environment-dependent
-stamp); ``content_digest`` covers the verb/evidence/ui contract.
+verb, evidence-schema, or architecture-map change cannot silently leave a stale
+federation manifest behind. ``schema_a.studio_version`` is excluded from the
+check (an environment-dependent stamp); ``schema_a.content_digest`` covers the
+verb/evidence/ui contract.
 """
 
 from __future__ import annotations
 
 import argparse
+import copy
 import json
 import sys
 from pathlib import Path
 from typing import cast
 
-from director_ai.federation.manifest import build_manifest
+from director_ai.federation import build_federation_document
 
 _ARTIFACT = (
     Path(__file__).resolve().parents[1] / "docs" / "_generated" / "studio_manifest.json"
@@ -38,16 +41,26 @@ _ARTIFACT = (
 
 
 def render() -> str:
-    """Return the deterministic schema-A manifest JSON (sorted, trailing newline)."""
-    payload = build_manifest().to_dict()
+    """Return the deterministic STUDIO federation JSON with a trailing newline."""
+    payload = build_federation_document()
     return json.dumps(payload, indent=2, ensure_ascii=False, sort_keys=True) + "\n"
+
+
+def _without_env_dependent_fields(payload: dict[str, object]) -> dict[str, object]:
+    """Return a comparison copy with environment-dependent fields removed."""
+    normalised = copy.deepcopy(payload)
+    schema_a = normalised.get("schema_a")
+    if isinstance(schema_a, dict):
+        schema_a.pop("studio_version", None)
+    return normalised
 
 
 def main(argv: list[str] | None = None) -> int:
     """Emit the artifact, or check the committed copy against the producer.
 
     Returns ``0`` on success, ``1`` when ``--check`` finds a missing or stale
-    artifact (ignoring the environment-dependent ``studio_version`` stamp).
+    artifact (ignoring the environment-dependent ``schema_a.studio_version``
+    stamp).
     """
     parser = argparse.ArgumentParser(description=(__doc__ or "").splitlines()[0])
     parser.add_argument(
@@ -70,11 +83,13 @@ def main(argv: list[str] | None = None) -> int:
         if not artifact.exists():
             print(f"{artifact} is missing; run `python tools/emit_studio_manifest.py`.")
             return 1
-        committed = json.loads(artifact.read_text(encoding="utf-8"))
-        produced = json.loads(rendered)
-        committed.pop("studio_version", None)
-        produced.pop("studio_version", None)
-        if committed != produced:
+        committed = cast(
+            "dict[str, object]", json.loads(artifact.read_text(encoding="utf-8"))
+        )
+        produced = cast("dict[str, object]", json.loads(rendered))
+        if _without_env_dependent_fields(committed) != _without_env_dependent_fields(
+            produced
+        ):
             print(f"{artifact} is stale; run `python tools/emit_studio_manifest.py`.")
             return 1
         return 0

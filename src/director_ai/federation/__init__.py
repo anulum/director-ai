@@ -4,16 +4,21 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI — studio federation surface (schema-A capability manifest)
+# Director-Class AI — studio federation surface (schema-A + architecture map)
 
 """Federation surface for the SCPN-STUDIO dedicated-portal contract.
 
-Exposes the schema-A capability manifest — the federation-gate artifact the
-Institute hub and the Director-AI Tier-B portal consume to discover the studio's
-verbs, evidence types, and federated UI panel. See
-:mod:`director_ai.federation.manifest`.
+Exposes the schema-A capability manifest and the additive architecture-map.v2
+extension the Institute hub and Director-AI Tier-B portal consume to discover the
+studio's verbs, evidence types, federated UI panel, runtime topology, and
+cross-repo adapter boundaries.
 """
 
+from .architecture_map import (
+    ARCHITECTURE_MAP_VERSION,
+    build_architecture_map_extension,
+    build_federation_document,
+)
 from .manifest import (
     StudioManifest,
     UiModule,
@@ -22,8 +27,11 @@ from .manifest import (
 )
 
 __all__ = [
+    "ARCHITECTURE_MAP_VERSION",
     "StudioManifest",
     "UiModule",
     "Verb",
+    "build_architecture_map_extension",
+    "build_federation_document",
     "build_manifest",
 ]
