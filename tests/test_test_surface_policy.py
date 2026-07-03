@@ -392,6 +392,16 @@ def test_lite_scorer_v2_run_plan_unit_guard_has_real_surface_companion() -> None
     assert "tests/test_lite_scorer_v2_run_plan_real_surface.py" in category
 
 
+def test_lite_scorer_v2_eval_unit_guard_has_real_surface_companion() -> None:
+    """Lite Scorer v2 evaluator should be backed by real CLI coverage."""
+    classification, category = KNOWN_TEST_SURFACE_CLASSIFICATIONS[
+        "tests/test_lite_scorer_v2_eval.py"
+    ]
+
+    assert classification == "unit-guard-with-companion"
+    assert "tests/test_lite_scorer_v2_eval_real_surface.py" in category
+
+
 def test_lite_scorer_v2_eval_runner_unit_guard_has_real_surface_companion() -> None:
     """Lite Scorer v2 eval runner should be backed by real CLI coverage."""
     classification, category = KNOWN_TEST_SURFACE_CLASSIFICATIONS[
