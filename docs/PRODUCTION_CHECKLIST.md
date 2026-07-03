@@ -136,8 +136,9 @@ export DIRECTOR_PRODUCTION_MODE=true
 - [ ] Deploy Grafana dashboard from `deploy/observability/grafana-dashboard.json`
 - [ ] Configure Prometheus alerts from `deploy/observability/prometheus-alerts.yml`
 - [ ] Enable `audit_log_path` for compliance trail
-- [ ] Enable OpenTelemetry where distributed traces are required; scorer spans
-      cover cache lookup, retrieval, NLI, calibration, and judge escalation
+- [ ] Install `director-ai[otel]` and enable OpenTelemetry where distributed
+      traces are required; scorer spans cover cache lookup, retrieval, NLI,
+      calibration, and judge escalation
 - [ ] Export a tenant-safe operations packet with
       `build_observability_operations_report()` for halt forensics, drift
       alerts, readiness controls, and compliance evidence references

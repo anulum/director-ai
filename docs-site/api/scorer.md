@@ -110,10 +110,11 @@ Sentence-level NLI scoring with max-aggregation. Catches localized hallucination
 
 ## OpenTelemetry
 
-When OpenTelemetry is configured, `review()` emits a parent
-`director_ai.review` span plus optional stage spans for cache lookup,
-retrieval, NLI inference, calibration, and judge escalation. The stage spans
-are no-ops when OTel is unavailable or no collector is configured.
+When `director-ai[otel]` is installed and OpenTelemetry is configured,
+`review()` emits a parent `director_ai.review` span plus optional stage spans
+for cache lookup, retrieval, NLI inference, calibration, and judge escalation.
+The stage spans are no-ops when OTel is unavailable or no collector is
+configured.
 
 Stage span names and core attributes:
 

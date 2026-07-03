@@ -202,6 +202,7 @@ docs = [
 ]
 otel = [
     "opentelemetry-api>=1.20",
+    "opentelemetry-sdk>=1.20",
 ]
 langfuse = [
     "langfuse>=2.0",
@@ -312,6 +313,7 @@ dev = [
     "pypdf>=6.13.3",
     "python-docx>=1.0",
     "beautifulsoup4>=4.12",
+    "opentelemetry-sdk>=1.20",
 ]
 
 [project.scripts]

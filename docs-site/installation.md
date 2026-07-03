@@ -139,7 +139,7 @@ and quickstart must remain usable without these extras.
 | `grpc` | `pip install director-ai[grpc]` | gRPC server (grpcio, protobuf) |
 | `physical` | `pip install director-ai[physical]` | MuJoCo adapter support; ROS 2 and CARLA use their vendor installs behind the same runtime boundary |
 | `server` | `pip install director-ai[server]` | FastAPI server |
-| `otel` | `pip install director-ai[otel]` | OpenTelemetry tracing |
+| `otel` | `pip install director-ai[otel]` | OpenTelemetry API + SDK tracing bridge |
 | `enterprise` | `pip install director-ai[enterprise]` | Multi-tenant, audit, Redis |
 | `docs` | `pip install director-ai[docs]` | MkDocs documentation tools |
 | `dev` | `pip install director-ai[dev]` | pytest, ruff, mypy, sphinx |
