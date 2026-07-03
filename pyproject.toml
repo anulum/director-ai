@@ -315,6 +315,7 @@ dev = [
     "beautifulsoup4>=4.12",
     "opentelemetry-sdk>=1.20",
     "gradio>=4.0,<7",
+    "audioop-lts>=0.2.2; python_version >= '3.13'",
 ]
 
 [project.scripts]

@@ -1639,6 +1639,7 @@ demo = [
     { name = "gradio" },
 ]
 dev = [
+    { name = "audioop-lts", marker = "python_full_version >= '3.13'" },
     { name = "bandit" },
     { name = "beautifulsoup4" },
     { name = "build" },
@@ -1867,6 +1868,7 @@ requires-dist = [
     { name = "accelerate", marker = "extra == 'train'", specifier = ">=0.21" },
     { name = "anthropic", marker = "extra == 'anthropic'", specifier = ">=0.20" },
     { name = "argon2-cffi", marker = "extra == 'enterprise'", specifier = ">=23.1,<26" },
+    { name = "audioop-lts", marker = "python_full_version >= '3.13' and extra == 'dev'", specifier = ">=0.2.2" },
     { name = "backfire-kernel", directory = "backfire-kernel/crates/backfire-ffi" },
     { name = "bandit", marker = "extra == 'dev'", specifier = ">=1.7" },
     { name = "beautifulsoup4", marker = "extra == 'dev'", specifier = ">=4.12" },
