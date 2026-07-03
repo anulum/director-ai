@@ -5,7 +5,6 @@
 
 from __future__ import annotations
 
-import contextlib
 import shutil
 import socket
 import subprocess
@@ -53,6 +52,23 @@ def _wait_for_redis(redis_url: str) -> None:
     raise RuntimeError("ephemeral Redis server did not start") from last_error
 
 
+def _stop_redis_process(process: subprocess.Popen[bytes], redis_url: str) -> None:
+    """Stop the ephemeral Redis process without hiding a failed shutdown path."""
+    try:
+        _redis_client(redis_url).shutdown(nosave=True)
+    except redis.RedisError:
+        if process.poll() is None:
+            process.kill()
+            process.wait(timeout=5.0)
+        return
+
+    try:
+        process.wait(timeout=5.0)
+    except subprocess.TimeoutExpired:
+        process.kill()
+        process.wait(timeout=5.0)
+
+
 @pytest.fixture()
 def redis_url(tmp_path: Path) -> Iterator[str]:
     """Start a real local Redis process and yield its connection URL."""
@@ -90,13 +106,7 @@ def redis_url(tmp_path: Path) -> Iterator[str]:
         _wait_for_redis(url)
         yield url
     finally:
-        with contextlib.suppress(BaseException):
-            _redis_client(url).shutdown(nosave=True)
-        try:
-            process.wait(timeout=5.0)
-        except subprocess.TimeoutExpired:
-            process.kill()
-            process.wait(timeout=5.0)
+        _stop_redis_process(process, url)
 
 
 def test_redis_enterprise_unit_guard_declares_this_real_surface_companion() -> None:

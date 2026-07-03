@@ -314,6 +314,7 @@ dev = [
     "python-docx>=1.0",
     "beautifulsoup4>=4.12",
     "opentelemetry-sdk>=1.20",
+    "gradio>=4.0,<7",
 ]
 
 [project.scripts]
