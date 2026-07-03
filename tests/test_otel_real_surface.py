@@ -44,7 +44,7 @@ def _recorded_spans() -> Iterator[InMemorySpanExporter]:
     exporter = InMemorySpanExporter()
     provider = TracerProvider()
     provider.add_span_processor(SimpleSpanProcessor(exporter))
-    previous_provider = trace.get_tracer_provider()
+    previous_provider = trace._TRACER_PROVIDER
     trace._TRACER_PROVIDER = provider
     otel_mod._tracer = None
     try:
@@ -161,3 +161,21 @@ def test_stage_tracing_helpers_export_real_sdk_attribute_spans() -> None:
         "temperature"
     )
     assert _attributes(spans["director_ai.judge"])["judge.provider"] == "local"
+
+
+def test_real_sdk_provider_restore_does_not_poison_later_tracing() -> None:
+    """Real SDK coverage should not leave OTel's proxy provider recursive."""
+    previous_provider = trace._TRACER_PROVIDER
+
+    with _recorded_spans() as exporter:
+        setup_otel("director-ai-restore-surface")
+        with trace_vector_add():
+            pass
+
+    assert trace._TRACER_PROVIDER is previous_provider
+    assert _spans_by_name(exporter)["director_ai.vector_add"].name == (
+        "director_ai.vector_add"
+    )
+
+    with trace_vector_add() as span:
+        span.set_attribute("vector.doc_id", "after-restore")
