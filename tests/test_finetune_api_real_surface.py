@@ -63,7 +63,7 @@ def _managed_training_request() -> dict[str, object]:
         "display_name": "director-ai-finetune-api-real-surface",
         "dataset_uri": "s3://director-ai-tests/finetune/train.jsonl",
         "output_uri": "s3://director-ai-tests/finetune/output",
-        "container_image_uri": "ghcr.io/anulum/director-ai-trainer:3.16.0",
+        "container_image_uri": "ghcr.io/anulum/director-ai-trainer:3.16.1",
         "base_model": "factcg-deberta-v3-large",
         "epochs": 1,
         "batch_size": 16,

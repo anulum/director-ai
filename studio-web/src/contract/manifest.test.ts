@@ -10,7 +10,7 @@ const VALID = {
   protocol_version: "1",
   transport_profile: "local-first",
   studio: "director-ai",
-  studio_version: "3.16.0",
+  studio_version: "3.16.1",
   platform_sdk: ">=0.1,<0.2",
   enumeration: "language-agnostic",
   evidence_types: ["studio.streaming-halt.v1"],

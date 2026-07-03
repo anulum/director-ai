@@ -12,7 +12,7 @@ Director-Class AI — Documentation landing page
 
 **Response-level LLM hallucination guardrail** — NLI + RAG fact-checking with audit evidence.
 
-<span class="version-badge">v3.16.0 — factual-coherence guard, 5-tier scoring, RAG grounding, opt-in streaming contradiction checks</span>
+<span class="version-badge">v3.16.1 — factual-coherence guard, 5-tier scoring, RAG grounding, opt-in streaming contradiction checks</span>
 
 [![CI](https://github.com/anulum/director-ai/actions/workflows/ci.yml/badge.svg)](https://github.com/anulum/director-ai/actions/workflows/ci.yml)
 [![Pre-commit](https://github.com/anulum/director-ai/actions/workflows/pre-commit.yml/badge.svg)](https://github.com/anulum/director-ai/actions/workflows/pre-commit.yml)
@@ -235,7 +235,7 @@ Open core: the **Apache-2.0** core is free for any use, including production; th
 [GitHub Discussions](https://github.com/anulum/director-ai/discussions) |
 [www.anulum.li](https://www.anulum.li)
 
-*Maintained by [Miroslav Šotek](https://orcid.org/0009-0009-3560-0851) at [Anulum](https://www.anulum.li). Current release: v3.16.0.*
+*Maintained by [Miroslav Šotek](https://orcid.org/0009-0009-3560-0851) at [Anulum](https://www.anulum.li). Current release: v3.16.1.*
 
 <p align="center">
   <a href="https://www.anulum.li">

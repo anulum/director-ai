@@ -150,7 +150,7 @@ print(json.dumps({
 
     payload = json.loads(completed.stdout)
     assert payload == {
-        "version": "3.16.0",
+        "version": "3.16.1",
         "exports": {
             "CoherenceAgent": True,
             "CoherenceScorer": True,

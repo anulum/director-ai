@@ -1,6 +1,6 @@
 # Director-AI Judge Dataset Builder
 
-> **Module**: `training/build_judge_dataset.py` | **Version**: 3.16.0 | **License**: Apache-2.0
+> **Module**: `training/build_judge_dataset.py` | **Version**: 3.16.1 | **License**: Apache-2.0
 >
 > © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
 > © Code 2020–2026 Miroslav Šotek. All rights reserved.

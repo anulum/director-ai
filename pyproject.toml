@@ -12,7 +12,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "director-ai"
-version = "3.16.0"
+version = "3.16.1"
 description = "Response-level LLM hallucination guardrail — NLI + RAG fact-checking with audit evidence"
 authors = [
     {name = "Miroslav Šotek", email = "protoscience@anulum.li"}

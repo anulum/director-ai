@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.16.1] - 2026-07-03
+
+### Security
+
+- Bump `golang.org/x/net` to `0.55.0` in the Go gateway module.
+- Require the patched `nltk` floor in GPU deployment lock surfaces.
+- Refresh locked CI and release requirement surfaces for `packaging`, `rich`,
+  and `more-itertools`.
+
+### Changed
+
+- Add Python 3.13 `audioop-lts` compatibility to the hashed CI development
+  requirements so the Gradio audio surface imports on the full supported Python
+  matrix.
+- Restore the Gradio development extra in CI and keep the OpenTelemetry SDK
+  present in the development dependency surface.
+- Update the release metadata, package tier metadata, documentation badges, and
+  generated capability surfaces to version `3.16.1`.
+
 ### Fixed
 
 - Correct a scoring inversion in the `embed` and `nli-lite` scorer backends.

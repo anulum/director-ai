@@ -9,7 +9,7 @@ name: Publish paid tiers (pro + full)
 # repo's Releases are the GitHub-native gated channel: licensed customers
 # install with a token, e.g.
 #   pip install \
-#     "https://<token>@github.com/<owner>/<dist-repo>/releases/download/v3.16.0/director_ai_pro-3.16.0-py3-none-any.whl"
+#     "https://<token>@github.com/<owner>/<dist-repo>/releases/download/v3.16.1/director_ai_pro-3.16.1-py3-none-any.whl"
 #
 # Operator setup (one-time):
 #   - create the private distribution repo and set repo variable PAID_DIST_REPO
@@ -24,7 +24,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: "Release tag to publish (e.g. v3.16.0)"
+        description: "Release tag to publish (e.g. v3.16.1)"
         required: true
 
 permissions: read-all
