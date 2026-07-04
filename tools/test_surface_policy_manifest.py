@@ -602,7 +602,7 @@ KNOWN_TEST_SURFACE_CLASSIFICATIONS: dict[str, tuple[str, str]] = {
         "external SDK adapter unit guard with companion tests/test_voice_adapters_real_surface.py",
     ),
     "tests/test_zk_attestation.py": (
-        "violation",
-        "private-helper bypass requiring review",
+        "unit-guard-with-companion",
+        "attestation/passport unit guard with companion tests/test_zk_attestation_real_surface.py",
     ),
 }

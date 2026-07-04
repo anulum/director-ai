@@ -275,6 +275,16 @@ def test_containment_unit_guard_has_real_surface_companion() -> None:
     assert "tests/test_containment_real_surface.py" in category
 
 
+def test_zk_attestation_unit_guard_has_real_surface_companion() -> None:
+    """ZK attestation guard should be backed by public passport coverage."""
+    classification, category = KNOWN_TEST_SURFACE_CLASSIFICATIONS[
+        "tests/test_zk_attestation.py"
+    ]
+
+    assert classification == "unit-guard-with-companion"
+    assert "tests/test_zk_attestation_real_surface.py" in category
+
+
 def test_agent_provider_unit_guard_has_real_surface_companion() -> None:
     """Agent provider guard should be backed by real provider protocol coverage."""
     classification, category = KNOWN_TEST_SURFACE_CLASSIFICATIONS[
