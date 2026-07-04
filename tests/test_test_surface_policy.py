@@ -300,6 +300,16 @@ def test_moderation_unit_guard_has_real_surface_companion() -> None:
     assert "tests/test_moderation_real_surface.py" in category
 
 
+def test_device_selection_unit_guard_has_real_surface_companion() -> None:
+    """Device selection guard should be backed by subprocess selector coverage."""
+    classification, category = KNOWN_TEST_SURFACE_CLASSIFICATIONS[
+        "tests/test_device_selection.py"
+    ]
+
+    assert classification == "unit-guard-with-companion"
+    assert "tests/test_device_selection_real_surface.py" in category
+
+
 def test_server_auth_unit_guard_has_real_surface_companion() -> None:
     classification, category = KNOWN_TEST_SURFACE_CLASSIFICATIONS[
         "tests/test_server_auth.py"
