@@ -305,6 +305,16 @@ def test_dialogue_fpr_unit_guard_has_real_surface_companion() -> None:
     assert "tests/test_dialogue_fpr_real_surface.py" in category
 
 
+def test_trajectory_simulator_unit_guard_has_real_surface_companion() -> None:
+    """Trajectory simulator guard should be backed by public preflight coverage."""
+    classification, category = KNOWN_TEST_SURFACE_CLASSIFICATIONS[
+        "tests/test_trajectory_simulator.py"
+    ]
+
+    assert classification == "unit-guard-with-companion"
+    assert "tests/test_trajectory_simulator_real_surface.py" in category
+
+
 def test_agent_provider_unit_guard_has_real_surface_companion() -> None:
     """Agent provider guard should be backed by real provider protocol coverage."""
     classification, category = KNOWN_TEST_SURFACE_CLASSIFICATIONS[

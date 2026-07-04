@@ -9,7 +9,7 @@
     "python_model_classes": 1001,
     "python_model_source_modules": 460,
     "rust_pyo3_model_wrappers": 83,
-    "test_files": 648
+    "test_files": 649
   },
   "documentation": {
     "public_pages": [
@@ -5811,6 +5811,7 @@
       "tests/test_trajectory_rollback.py",
       "tests/test_trajectory_rollback_evidence.py",
       "tests/test_trajectory_simulator.py",
+      "tests/test_trajectory_simulator_real_surface.py",
       "tests/test_transcript.py",
       "tests/test_tune.py",
       "tests/test_types.py",
