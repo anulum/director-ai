@@ -330,6 +330,16 @@ def test_lazy_enterprise_import_unit_guard_has_real_surface_companion() -> None:
     assert "tests/test_lazy_enterprise_import_real_surface.py" in category
 
 
+def test_sdk_guard_unit_guard_has_real_surface_companion() -> None:
+    """SDK guard unit tests should be backed by real OpenAI SDK coverage."""
+    classification, category = KNOWN_TEST_SURFACE_CLASSIFICATIONS[
+        "tests/test_sdk_guard.py"
+    ]
+
+    assert classification == "unit-guard-with-companion"
+    assert "tests/test_sdk_guard_real_surface.py" in category
+
+
 def test_server_auth_unit_guard_has_real_surface_companion() -> None:
     classification, category = KNOWN_TEST_SURFACE_CLASSIFICATIONS[
         "tests/test_server_auth.py"
