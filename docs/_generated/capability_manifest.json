@@ -9,7 +9,7 @@
     "python_model_classes": 1001,
     "python_model_source_modules": 460,
     "rust_pyo3_model_wrappers": 83,
-    "test_files": 634
+    "test_files": 635
   },
   "documentation": {
     "public_pages": [
@@ -5315,6 +5315,7 @@
       "tests/test_cost_analyser.py",
       "tests/test_cost_and_attribution.py",
       "tests/test_cost_integration.py",
+      "tests/test_cost_integration_real_surface.py",
       "tests/test_credibility_campaign.py",
       "tests/test_credibility_feedback.py",
       "tests/test_crewai_integration.py",
