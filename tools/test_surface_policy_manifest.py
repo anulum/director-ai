@@ -302,8 +302,8 @@ KNOWN_TEST_SURFACE_CLASSIFICATIONS: dict[str, tuple[str, str]] = {
         "private-helper bypass requiring review",
     ),
     "tests/test_lazy_enterprise_import.py": (
-        "violation",
-        "module/workflow fake requiring review",
+        "unit-guard-with-companion",
+        "module/workflow unit guard with companion tests/test_lazy_enterprise_import_real_surface.py",
     ),
     "tests/test_lite_scorer_v2_eval.py": (
         "unit-guard-with-companion",

@@ -320,6 +320,16 @@ def test_feedback_store_unit_guard_has_real_surface_companion() -> None:
     assert "tests/test_feedback_store_real_surface.py" in category
 
 
+def test_lazy_enterprise_import_unit_guard_has_real_surface_companion() -> None:
+    """Lazy enterprise import guard should be backed by public import coverage."""
+    classification, category = KNOWN_TEST_SURFACE_CLASSIFICATIONS[
+        "tests/test_lazy_enterprise_import.py"
+    ]
+
+    assert classification == "unit-guard-with-companion"
+    assert "tests/test_lazy_enterprise_import_real_surface.py" in category
+
+
 def test_server_auth_unit_guard_has_real_surface_companion() -> None:
     classification, category = KNOWN_TEST_SURFACE_CLASSIFICATIONS[
         "tests/test_server_auth.py"
