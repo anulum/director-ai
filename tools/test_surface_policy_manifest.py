@@ -37,8 +37,8 @@ KNOWN_TEST_SURFACE_CLASSIFICATIONS: dict[str, tuple[str, str]] = {
         "CLI/server/API unit guard with companion tests/test_api_reference_cli_real_surface.py",
     ),
     "tests/test_audit_chain.py": (
-        "violation",
-        "private-helper bypass requiring review",
+        "unit-guard-with-companion",
+        "private-helper unit guard with companion tests/test_audit_chain_real_surface.py",
     ),
     "tests/test_audit_salt.py": ("violation", "private-helper bypass requiring review"),
     "tests/test_autogen_swarm.py": (
