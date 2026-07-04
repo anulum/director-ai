@@ -9,7 +9,7 @@
     "python_model_classes": 1001,
     "python_model_source_modules": 460,
     "rust_pyo3_model_wrappers": 83,
-    "test_files": 642
+    "test_files": 643
   },
   "documentation": {
     "public_pages": [
@@ -5387,6 +5387,7 @@
       "tests/test_evidence.py",
       "tests/test_evidence_firewall.py",
       "tests/test_evidence_packet.py",
+      "tests/test_evidence_packet_real_surface.py",
       "tests/test_exceptions.py",
       "tests/test_execution_rings.py",
       "tests/test_experimental_deployment_docs.py",

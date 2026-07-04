@@ -39,9 +39,18 @@ DEMO_FACTS: dict[str, str] = {
     "data_region": "Customer data is stored in the EU (Frankfurt) region.",
 }
 
-DEMO_QUESTION = "What is the refund window?"
-DEMO_GROUNDED_ANSWER = "Refunds are available within 30 days of purchase."
-DEMO_HALLUCINATED_ANSWER = "Refunds are available any time, with a cash bonus."
+DEMO_QUESTION = (
+    "According to the refund_window policy, are refunds available within "
+    "30 days of purchase?"
+)
+DEMO_GROUNDED_ANSWER = (
+    "Yes. According to the refund_window policy, refunds are available within "
+    "30 days of purchase."
+)
+DEMO_HALLUCINATED_ANSWER = (
+    "No. According to the refund_window policy, refunds are available any time, "
+    "with a cash bonus."
+)
 
 
 def _canonical_digest(payload: dict[str, Any]) -> str:

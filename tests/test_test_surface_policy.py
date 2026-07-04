@@ -245,6 +245,16 @@ def test_audit_salt_unit_guard_has_real_surface_companion() -> None:
     assert "tests/test_audit_salt_real_surface.py" in category
 
 
+def test_evidence_packet_unit_guard_has_real_surface_companion() -> None:
+    """Evidence packet unit guard should be backed by public CLI coverage."""
+    classification, category = KNOWN_TEST_SURFACE_CLASSIFICATIONS[
+        "tests/test_evidence_packet.py"
+    ]
+
+    assert classification == "unit-guard-with-companion"
+    assert "tests/test_evidence_packet_real_surface.py" in category
+
+
 def test_backend_registry_unit_guard_has_real_surface_companion() -> None:
     """Backend registry guard should be backed by public registry coverage."""
     classification, category = KNOWN_TEST_SURFACE_CLASSIFICATIONS[

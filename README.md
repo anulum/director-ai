@@ -73,17 +73,17 @@ director-ai verify-evidence evidence/        # re-checks the packet's integrity 
 
 The seven steps the packet records:
 
-1. Load ~20 policy facts into the knowledge base.
-2. Ask the LLM a policy question.
+1. Load the bundled policy facts into the knowledge base.
+2. Ask a policy question through the guard.
 3. A **grounded** answer is approved.
 4. A **hallucinated** answer is blocked.
-5. (Experimental) streaming oversight is exercised on the token stream.
+5. The guard records the score and decision evidence.
 6. An evidence JSON (Answer Bill of Materials + OpenTelemetry eval record) is emitted.
-7. The decision is written to the audit log.
+7. The packet is sealed with a digest for offline verification.
 
 `evidence_packet.json` is sealed with a SHA-256 digest, so a reviewer can verify
-it without re-running the guard. (Clear separation of grounded vs hallucinated
-needs the model-backed scorer from the `[nli]` extra.)
+it without re-running the guard. The default fast profile keeps the demo local
+and deterministic; install the `[nli]` extra for model-backed production scoring.
 
 ---
 
@@ -243,7 +243,7 @@ inventory below is reference for the deeper surface, navigable under
 | API documentation pages | 89 |
 | Rust PyO3 bindings | 83 |
 | Optional extras | 59 |
-| Python test files | 642 |
+| Python test files | 643 |
 | Public documentation pages | 203 |
 | GitHub Actions workflows | 14 |
 
