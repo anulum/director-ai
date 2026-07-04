@@ -586,6 +586,16 @@ def test_streaming_unit_guard_has_real_surface_companion() -> None:
     assert "tests/test_streaming_runtime_real_surface.py" in category
 
 
+def test_task_scoring_paths_unit_guard_has_real_surface_companion() -> None:
+    """Task scoring path guards should be backed by public scorer coverage."""
+    classification, category = KNOWN_TEST_SURFACE_CLASSIFICATIONS[
+        "tests/test_task_scoring_paths.py"
+    ]
+
+    assert classification == "unit-guard-with-companion"
+    assert "tests/test_task_scoring_paths_real_surface.py" in category
+
+
 def test_providers_unit_guard_has_real_surface_companion() -> None:
     classification, category = KNOWN_TEST_SURFACE_CLASSIFICATIONS[
         "tests/test_providers.py"

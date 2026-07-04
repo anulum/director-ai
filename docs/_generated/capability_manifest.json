@@ -9,7 +9,7 @@
     "python_model_classes": 1001,
     "python_model_source_modules": 460,
     "rust_pyo3_model_wrappers": 83,
-    "test_files": 635
+    "test_files": 636
   },
   "documentation": {
     "public_pages": [
@@ -5781,6 +5781,7 @@
       "tests/test_symbolic_chain.py",
       "tests/test_synthetic_distillation.py",
       "tests/test_task_scoring_paths.py",
+      "tests/test_task_scoring_paths_real_surface.py",
       "tests/test_temporal_consistency.py",
       "tests/test_temporal_freshness.py",
       "tests/test_temporal_logic.py",
