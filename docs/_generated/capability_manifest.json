@@ -9,7 +9,7 @@
     "python_model_classes": 1001,
     "python_model_source_modules": 460,
     "rust_pyo3_model_wrappers": 83,
-    "test_files": 637
+    "test_files": 638
   },
   "documentation": {
     "public_pages": [
@@ -5314,6 +5314,7 @@
       "tests/test_cors_reverse_proxy_policy.py",
       "tests/test_cost_analyser.py",
       "tests/test_cost_and_attribution.py",
+      "tests/test_cost_and_attribution_real_surface.py",
       "tests/test_cost_integration.py",
       "tests/test_cost_integration_real_surface.py",
       "tests/test_credibility_campaign.py",

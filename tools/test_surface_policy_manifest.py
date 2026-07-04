@@ -112,8 +112,8 @@ KNOWN_TEST_SURFACE_CLASSIFICATIONS: dict[str, tuple[str, str]] = {
         "module/workflow unit guard with companion tests/test_contradiction_real_surface.py",
     ),
     "tests/test_cost_and_attribution.py": (
-        "violation",
-        "module/workflow fake requiring review",
+        "unit-guard-with-companion",
+        "module/workflow unit guard with companion tests/test_cost_and_attribution_real_surface.py",
     ),
     "tests/test_cost_integration.py": (
         "unit-guard-with-companion",
