@@ -579,6 +579,16 @@ def test_lite_scorer_v2_heldout_builder_unit_guard_has_real_surface_companion() 
     assert "tests/test_lite_scorer_v2_heldout_builder_real_surface.py" in category
 
 
+def test_ci_gate_unit_guard_has_real_surface_companion() -> None:
+    """CI-gate helper coverage should be backed by public CLI coverage."""
+    classification, category = KNOWN_TEST_SURFACE_CLASSIFICATIONS[
+        "tests/test_ci_gate.py"
+    ]
+
+    assert classification == "unit-guard-with-companion"
+    assert "tests/test_ci_gate_real_surface.py" in category
+
+
 def test_config_wizard_unit_guard_has_real_surface_companion() -> None:
     classification, category = KNOWN_TEST_SURFACE_CLASSIFICATIONS[
         "tests/test_config_wizard.py"
