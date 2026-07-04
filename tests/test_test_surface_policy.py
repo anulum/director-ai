@@ -596,6 +596,16 @@ def test_task_scoring_paths_unit_guard_has_real_surface_companion() -> None:
     assert "tests/test_task_scoring_paths_real_surface.py" in category
 
 
+def test_hyde_backend_unit_guard_has_real_surface_companion() -> None:
+    """HyDE unit guards should be backed by real retrieval wiring coverage."""
+    classification, category = KNOWN_TEST_SURFACE_CLASSIFICATIONS[
+        "tests/test_hyde_backend.py"
+    ]
+
+    assert classification == "unit-guard-with-companion"
+    assert "tests/test_hyde_backend_real_surface.py" in category
+
+
 def test_providers_unit_guard_has_real_surface_companion() -> None:
     classification, category = KNOWN_TEST_SURFACE_CLASSIFICATIONS[
         "tests/test_providers.py"
