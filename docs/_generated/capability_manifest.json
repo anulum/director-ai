@@ -9,7 +9,7 @@
     "python_model_classes": 1001,
     "python_model_source_modules": 460,
     "rust_pyo3_model_wrappers": 83,
-    "test_files": 644
+    "test_files": 645
   },
   "documentation": {
     "public_pages": [
@@ -5298,6 +5298,7 @@
       "tests/test_consumer_api.py",
       "tests/test_consumer_api_real_surface.py",
       "tests/test_containment.py",
+      "tests/test_containment_real_surface.py",
       "tests/test_containment_timing_parity.py",
       "tests/test_content_commitment.py",
       "tests/test_content_moderation_wrapper.py",

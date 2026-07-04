@@ -265,6 +265,16 @@ def test_backend_registry_unit_guard_has_real_surface_companion() -> None:
     assert "tests/test_backends_real_surface.py" in category
 
 
+def test_containment_unit_guard_has_real_surface_companion() -> None:
+    """Containment guard should be backed by public workflow coverage."""
+    classification, category = KNOWN_TEST_SURFACE_CLASSIFICATIONS[
+        "tests/test_containment.py"
+    ]
+
+    assert classification == "unit-guard-with-companion"
+    assert "tests/test_containment_real_surface.py" in category
+
+
 def test_agent_provider_unit_guard_has_real_surface_companion() -> None:
     """Agent provider guard should be backed by real provider protocol coverage."""
     classification, category = KNOWN_TEST_SURFACE_CLASSIFICATIONS[
