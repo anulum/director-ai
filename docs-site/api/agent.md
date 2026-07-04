@@ -35,7 +35,7 @@ print(result.coherence.score if result.coherence else None)
 ### process()
 
 ```python
-result = agent.process(query: str) -> ReviewResult
+result = agent.process(prompt: str) -> ReviewResult
 ```
 
 Generate candidates, score them, return the best approved response (or fallback).
@@ -43,7 +43,7 @@ Generate candidates, score them, return the best approved response (or fallback)
 ### aprocess()
 
 ```python
-result = await agent.aprocess(query: str) -> ReviewResult
+result = await agent.aprocess(prompt: str) -> ReviewResult
 ```
 
 Async variant of `process()`.

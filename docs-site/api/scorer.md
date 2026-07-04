@@ -6,7 +6,8 @@ The central scoring engine. Computes a composite coherence score from two indepe
 coherence = 1.0 - (W_LOGIC × H_logical + W_FACT × H_factual)
 ```
 
-Default weights: `W_LOGIC = 0.6`, `W_FACT = 0.4`.
+Effective default weights: `W_LOGIC = 0.6`, `W_FACT = 0.4`. The constructor
+accepts `None` for `w_logic` and `w_fact` to inherit those defaults.
 
 ## Usage
 
@@ -38,8 +39,8 @@ print(f"Evidence: {score.evidence}")  # Retrieved context + NLI details
 |-----------|------|---------|-------------|
 | `threshold` | `float` | `0.5` | Minimum coherence to approve (0.0–1.0) |
 | `soft_limit` | `float \| None` | `threshold + 0.1` | Warning zone upper bound |
-| `w_logic` | `float` | `0.6` | Weight for NLI divergence |
-| `w_fact` | `float` | `0.4` | Weight for factual divergence |
+| `w_logic` | `float \| None` | `None` | Override weight for NLI divergence; `None` inherits `0.6` |
+| `w_fact` | `float \| None` | `None` | Override weight for factual divergence; `None` inherits `0.4` |
 | `strict_mode` | `bool` | `False` | Reject if NLI unavailable (no heuristic fallback) |
 | `use_nli` | `bool \| None` | `None` | `True` = force NLI, `False` = disable, `None` = auto-detect |
 | `nli_model` | `str \| None` | `None` | HuggingFace model ID (default: FactCG-DeBERTa-v3-Large) |
@@ -56,7 +57,7 @@ print(f"Evidence: {score.evidence}")  # Retrieved context + NLI details
 | `llm_judge_provider` | `str` | `""` | `"openai"` or `"anthropic"` |
 | `privacy_mode` | `bool` | `False` | Redact PII before sending to LLM judge |
 | `onnx_path` | `str \| None` | `None` | Directory with exported ONNX model |
-| `nli_devices` | `str \| None` | `None` | Multi-GPU sharding (comma-separated: `"cuda:0,cuda:1"`) |
+| `nli_devices` | `list[str] \| None` | `None` | Multi-GPU sharding devices, for example `["cuda:0", "cuda:1"]` |
 
 ## Methods
 
@@ -86,9 +87,11 @@ for approved, score in results:
     print(f"approved={approved}  score={score.score:.3f}")
 ```
 
-### score_chunked()
+### Chunked NLI
 
-Sentence-level NLI scoring with max-aggregation. Catches localized hallucinations that full-text comparison would miss.
+Sentence-level NLI scoring lives on `NLIScorer.score_chunked()`, not
+`CoherenceScorer`. `CoherenceScorer` calls the NLI scorer internally when the
+configured mode needs sentence-level aggregation.
 
 ## Scorer Backends
 
@@ -105,7 +108,7 @@ Sentence-level NLI scoring with max-aggregation. Catches localized hallucination
 
 - `threshold` must be in [0.0, 1.0]
 - `soft_limit` must be >= `threshold`
-- `w_logic + w_fact` must equal 1.0
+- `w_logic + w_fact` must equal 1.0 when either override is provided
 - `hybrid` backend requires `llm_judge_provider`
 
 ## OpenTelemetry

@@ -74,7 +74,7 @@ When `use_nli=True` on the scorer:
 3. The NLI model (DeBERTa) scores the entailment probability P(premise entails hypothesis).
 4. The divergence score is `1.0 - entailment_probability` — higher means more hallucination risk.
 
-With chunked NLI (`scorer.score_chunked()`):
+With chunked NLI (`NLIScorer.score_chunked()`):
 
 - Both premise and hypothesis are split into sentence-level chunks.
 - All (premise_chunk, hypothesis_chunk) pairs are scored.

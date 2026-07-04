@@ -17,7 +17,7 @@ if nli_available():
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
-| `model_name` | `str` | `"yaxili96/FactCG-DeBERTa-v3-Large"` | HuggingFace model ID |
+| `model_name` | `str \| None` | `None` | HuggingFace model ID; `None` resolves to FactCG-DeBERTa-v3-Large |
 | `device` | `str \| None` | `None` | Torch device (`"cuda"`, `"cpu"`) |
 | `quantize_8bit` | `bool` | `False` | 8-bit quantization |
 | `torch_dtype` | `str \| None` | `None` | `"float16"`, `"bfloat16"` |

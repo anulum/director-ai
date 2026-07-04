@@ -267,7 +267,10 @@ results = scorer.review_batch(items)
 For long documents, sentence-level scoring catches localized hallucinations:
 
 ```python
-divergence = scorer._nli.score_chunked(
+from director_ai.core.nli import NLIScorer
+
+nli = NLIScorer()
+divergence = nli.score_chunked(
     premise="Paris is the capital of France. The Eiffel Tower is in Paris.",
     hypothesis="Berlin is the capital of France. The Eiffel Tower is in Berlin.",
 )
