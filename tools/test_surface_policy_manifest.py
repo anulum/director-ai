@@ -524,8 +524,8 @@ KNOWN_TEST_SURFACE_CLASSIFICATIONS: dict[str, tuple[str, str]] = {
         "generated/docs/config guard with companion tests/test_secrets_real_surface.py",
     ),
     "tests/test_self_evolving.py": (
-        "violation",
-        "module/workflow fake requiring review",
+        "unit-guard-with-companion",
+        "self-evolving unit guard with companion tests/test_self_evolving_real_surface.py",
     ),
     "tests/test_sentinel_judge_analyser.py": (
         "violation",

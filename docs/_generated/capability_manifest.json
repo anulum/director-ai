@@ -9,7 +9,7 @@
     "python_model_classes": 1001,
     "python_model_source_modules": 460,
     "rust_pyo3_model_wrappers": 83,
-    "test_files": 651
+    "test_files": 652
   },
   "documentation": {
     "public_pages": [
@@ -5739,6 +5739,7 @@
       "tests/test_security_physical_risks.py",
       "tests/test_segmented_threshold.py",
       "tests/test_self_evolving.py",
+      "tests/test_self_evolving_real_surface.py",
       "tests/test_self_healing.py",
       "tests/test_self_improving_guard_loop.py",
       "tests/test_sentinel_judge_analyser.py",

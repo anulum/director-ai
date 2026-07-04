@@ -335,6 +335,16 @@ def test_autopoietic_unit_guard_has_real_surface_companion() -> None:
     assert "tests/test_autopoietic_real_surface.py" in category
 
 
+def test_self_evolving_unit_guard_has_real_surface_companion() -> None:
+    """Self-evolving guard should be backed by public workflow coverage."""
+    classification, category = KNOWN_TEST_SURFACE_CLASSIFICATIONS[
+        "tests/test_self_evolving.py"
+    ]
+
+    assert classification == "unit-guard-with-companion"
+    assert "tests/test_self_evolving_real_surface.py" in category
+
+
 def test_agent_provider_unit_guard_has_real_surface_companion() -> None:
     """Agent provider guard should be backed by real provider protocol coverage."""
     classification, category = KNOWN_TEST_SURFACE_CLASSIFICATIONS[
