@@ -49,8 +49,8 @@ KNOWN_TEST_SURFACE_CLASSIFICATIONS: dict[str, tuple[str, str]] = {
         "private-helper bypass requiring review",
     ),
     "tests/test_autopoietic.py": (
-        "violation",
-        "private-helper bypass requiring review",
+        "unit-guard-with-companion",
+        "autopoietic unit guard with companion tests/test_autopoietic_real_surface.py",
     ),
     "tests/test_backends.py": (
         "unit-guard-with-companion",
