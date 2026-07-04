@@ -166,7 +166,10 @@ KNOWN_TEST_SURFACE_CLASSIFICATIONS: dict[str, tuple[str, str]] = {
         "unit-guard-with-companion",
         "generated/docs/config guard with companion tests/test_doc_modules_real_surface.py",
     ),
-    "tests/test_dp_rag.py": ("violation", "private-helper bypass requiring review"),
+    "tests/test_dp_rag.py": (
+        "unit-guard-with-companion",
+        "privacy/dp-rag unit guard with companion tests/test_dp_rag_real_surface.py",
+    ),
     "tests/test_embed_scorer.py": (
         "unit-guard-with-companion",
         "storage/retrieval unit guard with companion tests/test_embed_scorer_real_surface.py",

@@ -9,7 +9,7 @@
     "python_model_classes": 1001,
     "python_model_source_modules": 460,
     "rust_pyo3_model_wrappers": 83,
-    "test_files": 646
+    "test_files": 647
   },
   "documentation": {
     "public_pages": [
@@ -5369,6 +5369,7 @@
       "tests/test_doc_registry.py",
       "tests/test_dp_rag.py",
       "tests/test_dp_rag_pipeline.py",
+      "tests/test_dp_rag_real_surface.py",
       "tests/test_drift_detector.py",
       "tests/test_dry_run_production.py",
       "tests/test_e2e_eval.py",
