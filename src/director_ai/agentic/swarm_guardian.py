@@ -43,10 +43,14 @@ import logging
 import threading
 import time
 from dataclasses import dataclass, field
+from typing import TYPE_CHECKING
 
 from director_ai.agentic.agent_profile import AgentProfile
 from director_ai.agentic.loop_monitor import LoopMonitor
 from director_ai.core.safety_event import SafetyEvent
+
+if TYPE_CHECKING:
+    from director_ai.agentic.handoff_scorer import HandoffScorer
 
 logger = logging.getLogger("DirectorAI.SwarmGuardian")
 
@@ -153,11 +157,13 @@ class SwarmGuardian:
         to_agent: str,
         message: str,
         context: str = "",
+        *,
+        scorer: HandoffScorer | None = None,
     ) -> HandoffResult:
         """Score an inter-agent message for hallucination.
 
         Uses keyword overlap heuristic (NLI scoring deferred to
-        integration with CoherenceScorer).
+        integration with CoherenceScorer) unless ``scorer`` is supplied.
 
         Parameters
         ----------
@@ -169,6 +175,8 @@ class SwarmGuardian:
             The message being passed.
         context : str
             Ground truth or source context for scoring.
+        scorer : HandoffScorer | None
+            Optional custom handoff scorer for adapter integrations.
         """
         with self._lock:
             src = self._agents.get(from_agent)
@@ -215,19 +223,31 @@ class SwarmGuardian:
             self._dependencies.setdefault(from_agent, set()).add(to_agent)
             src.handoff_count += 1
 
-        # Score using keyword overlap (lightweight, no NLI dep)
-        score = self._score_message(message, context)
-        threshold = src.profile.coherence_threshold if src else self._threshold
-        should_halt = score > (1.0 - threshold)
+        threshold = src.profile.coherence_threshold
+        max_divergence = 1.0 - threshold
+        if scorer is None:
+            # Score using keyword overlap (lightweight, no NLI dep).
+            score = self._score_message(message, context)
+            should_halt = score > max_divergence
+            event_threshold = max_divergence
+        else:
+            handoff_score = scorer.score(
+                message=message,
+                context=context,
+                from_agent=from_agent,
+                to_agent=to_agent,
+            )
+            score = handoff_score.score
+            should_halt = not handoff_score.grounded
+            event_threshold = scorer.threshold
 
         reasons: list[str] = []
         if should_halt:
             reasons.append(
-                f"handoff score {score:.3f} exceeds threshold {1.0 - threshold:.3f}"
+                f"handoff score {score:.3f} exceeds threshold {event_threshold:.3f}"
             )
             with self._lock:
-                if src:
-                    src.hallucination_count += 1
+                src.hallucination_count += 1
 
         return HandoffResult(
             from_agent=from_agent,
@@ -239,7 +259,7 @@ class SwarmGuardian:
                 from_agent=from_agent,
                 to_agent=to_agent,
                 score=score,
-                threshold=1.0 - threshold,
+                threshold=event_threshold,
                 should_halt=should_halt,
                 reasons=tuple(reasons),
             ),
@@ -318,7 +338,7 @@ class SwarmGuardian:
             return 0.5
 
         overlap = len(msg_words & ctx_words)
-        coverage = overlap / len(msg_words) if msg_words else 0.0
+        coverage = overlap / len(msg_words)
         # Invert: high coverage = low hallucination score
         return max(0.0, min(1.0, 1.0 - coverage))
 

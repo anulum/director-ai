@@ -91,6 +91,11 @@ class HandoffScorer:
         self._nli_scorer = nli_scorer
         self._history: list[HandoffScore] = []
 
+    @property
+    def threshold(self) -> float:
+        """Maximum divergence score that still counts as grounded."""
+        return self._threshold
+
     def score(
         self,
         message: str,

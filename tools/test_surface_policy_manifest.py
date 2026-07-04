@@ -238,8 +238,8 @@ KNOWN_TEST_SURFACE_CLASSIFICATIONS: dict[str, tuple[str, str]] = {
         "external SDK adapter unit guard with companion tests/test_guardrails_ai_real_surface.py",
     ),
     "tests/test_handoff_scorer.py": (
-        "violation",
-        "module/workflow fake requiring review",
+        "unit-guard-with-companion",
+        "module/workflow unit guard with companion tests/test_handoff_scorer_real_surface.py",
     ),
     "tests/test_hf_space_app_safety.py": (
         "unit-guard-with-companion",

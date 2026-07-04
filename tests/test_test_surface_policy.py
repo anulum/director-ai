@@ -357,6 +357,16 @@ def test_hf_space_deployment_smoke_unit_guard_has_real_surface_companion() -> No
     assert "tests/test_hf_space_deployment_smoke_real_surface.py" in category
 
 
+def test_handoff_scorer_unit_guard_has_real_surface_companion() -> None:
+    """Handoff scorer guard should be backed by real adapter wiring coverage."""
+    classification, category = KNOWN_TEST_SURFACE_CLASSIFICATIONS[
+        "tests/test_handoff_scorer.py"
+    ]
+
+    assert classification == "unit-guard-with-companion"
+    assert "tests/test_handoff_scorer_real_surface.py" in category
+
+
 def test_pint_replication_packet_unit_guard_has_real_surface_companion() -> None:
     classification, category = KNOWN_TEST_SURFACE_CLASSIFICATIONS[
         "tests/test_pint_replication_packet.py"

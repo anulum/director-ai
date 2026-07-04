@@ -62,7 +62,8 @@ def guardian_edge(
     to_agent: str,
     context_key: str = "context",
     message_key: str = "messages",
-) -> Callable[..., Any]:
+    scorer: HandoffScorer | None = None,
+) -> Callable[[dict[str, Any]], str]:
     """Create a LangGraph conditional edge function.
 
     Returns a function suitable for ``graph.add_conditional_edges()``.
@@ -81,6 +82,8 @@ def guardian_edge(
         State key containing the ground truth context.
     message_key : str
         State key containing the message list.
+    scorer : HandoffScorer | None
+        Optional custom scorer for this guarded edge.
     """
 
     def _edge_fn(state: dict[str, Any]) -> str:
@@ -100,6 +103,7 @@ def guardian_edge(
             to_agent=to_agent,
             message=message,
             context=str(context),
+            scorer=scorer,
         )
 
         if result.should_halt:
@@ -163,6 +167,7 @@ class SwarmGraphBuilder:
                     to_agent,
                     context_key,
                     message_key,
+                    self._scorer,
                 ),
             }
         )
