@@ -8,16 +8,26 @@
 """Benchmark all 20 Rust compute accelerators against Python fallbacks.
 
 Measures per-call latency for:
-  1. sanitizer_score          — injection pattern matching
-  2. has_suspicious_unicode   — Unicode category analysis
-  3. detect_task_type         — prompt classification
-  4. verify_numeric           — numeric consistency checks
-  5. score_temporal_freshness — temporal claim detection
-  6. extract_reasoning_steps  — chain-of-thought extraction
-  7. word_overlap             — Jaccard word similarity
-  8. softmax                  — row-wise softmax (NLI)
-  9. probs_to_divergence      — NLI divergence scoring
- 10. probs_to_confidence      — NLI confidence scoring
+  1. sanitizer_score                  — injection pattern matching
+  2. sanitizer_score (benign)         — benign injection-pattern baseline
+  3. has_suspicious_unicode           — Unicode category analysis
+  4. has_suspicious_unicode (clean)   — clean Unicode baseline
+  5. detect_task_type (dialogue)      — dialogue prompt classification
+  6. detect_task_type (summary)       — summarisation prompt classification
+  7. verify_numeric                   — numeric consistency checks
+  8. score_temporal_freshness         — temporal claim detection
+  9. extract_reasoning_steps          — reasoning-step extraction
+ 10. word_overlap                     — Jaccard word similarity
+ 11. softmax (10x3)                   — row-wise softmax, small batch
+ 12. softmax (200x3)                  — row-wise softmax, large batch
+ 13. probs_to_divergence (10x3)       — NLI divergence scoring, small batch
+ 14. probs_to_divergence (200x3)      — NLI divergence scoring, large batch
+ 15. probs_to_confidence (10x3)       — NLI confidence scoring, small batch
+ 16. probs_to_confidence (200x3)      — NLI confidence scoring, large batch
+ 17. lite_score                       — heuristic divergence scorer
+ 18. lite_score_batch (100 pairs)     — batch heuristic scorer
+ 19. merge_flagged_spans (30 tok)     — span merge reduction, short response
+ 20. merge_flagged_spans (400 tok)    — span merge reduction, full context
 
 Usage::
 
