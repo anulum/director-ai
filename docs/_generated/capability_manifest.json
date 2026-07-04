@@ -9,7 +9,7 @@
     "python_model_classes": 1001,
     "python_model_source_modules": 460,
     "rust_pyo3_model_wrappers": 83,
-    "test_files": 640
+    "test_files": 641
   },
   "documentation": {
     "public_pages": [
@@ -5235,6 +5235,7 @@
       "tests/test_audit_log.py",
       "tests/test_audit_pg_sql_safety.py",
       "tests/test_audit_salt.py",
+      "tests/test_audit_salt_real_surface.py",
       "tests/test_auto_redteam_defence_evidence.py",
       "tests/test_auto_redteam_defence_loop.py",
       "tests/test_autogen_swarm.py",

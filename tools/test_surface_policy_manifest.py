@@ -40,7 +40,10 @@ KNOWN_TEST_SURFACE_CLASSIFICATIONS: dict[str, tuple[str, str]] = {
         "unit-guard-with-companion",
         "private-helper unit guard with companion tests/test_audit_chain_real_surface.py",
     ),
-    "tests/test_audit_salt.py": ("violation", "private-helper bypass requiring review"),
+    "tests/test_audit_salt.py": (
+        "unit-guard-with-companion",
+        "private-helper unit guard with companion tests/test_audit_salt_real_surface.py",
+    ),
     "tests/test_autogen_swarm.py": (
         "violation",
         "private-helper bypass requiring review",
