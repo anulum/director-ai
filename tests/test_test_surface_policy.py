@@ -370,6 +370,16 @@ def test_cost_and_attribution_unit_guard_has_real_surface_companion() -> None:
     assert "tests/test_cost_and_attribution_real_surface.py" in category
 
 
+def test_review_queue_unit_guard_has_real_surface_companion() -> None:
+    """ReviewQueue unit guard should use a real server companion."""
+    classification, category = KNOWN_TEST_SURFACE_CLASSIFICATIONS[
+        "tests/test_review_queue.py"
+    ]
+
+    assert classification == "unit-guard-with-companion"
+    assert "tests/test_review_queue_real_surface.py" in category
+
+
 def test_server_auth_unit_guard_has_real_surface_companion() -> None:
     classification, category = KNOWN_TEST_SURFACE_CLASSIFICATIONS[
         "tests/test_server_auth.py"
