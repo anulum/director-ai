@@ -290,6 +290,16 @@ def test_output_integrity_unit_guard_has_real_surface_companion() -> None:
     assert "tests/test_output_integrity_real_surface.py" in category
 
 
+def test_moderation_unit_guard_has_real_surface_companion() -> None:
+    """Moderation detector guards should be backed by production wrapper coverage."""
+    classification, category = KNOWN_TEST_SURFACE_CLASSIFICATIONS[
+        "tests/test_moderation.py"
+    ]
+
+    assert classification == "unit-guard-with-companion"
+    assert "tests/test_moderation_real_surface.py" in category
+
+
 def test_server_auth_unit_guard_has_real_surface_companion() -> None:
     classification, category = KNOWN_TEST_SURFACE_CLASSIFICATIONS[
         "tests/test_server_auth.py"
