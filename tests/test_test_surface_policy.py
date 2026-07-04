@@ -340,6 +340,16 @@ def test_sdk_guard_unit_guard_has_real_surface_companion() -> None:
     assert "tests/test_sdk_guard_real_surface.py" in category
 
 
+def test_contradiction_unit_guard_has_real_surface_companion() -> None:
+    """Contradiction scorer unit tests should be backed by real scorer coverage."""
+    classification, category = KNOWN_TEST_SURFACE_CLASSIFICATIONS[
+        "tests/test_contradiction.py"
+    ]
+
+    assert classification == "unit-guard-with-companion"
+    assert "tests/test_contradiction_real_surface.py" in category
+
+
 def test_server_auth_unit_guard_has_real_surface_companion() -> None:
     classification, category = KNOWN_TEST_SURFACE_CLASSIFICATIONS[
         "tests/test_server_auth.py"
