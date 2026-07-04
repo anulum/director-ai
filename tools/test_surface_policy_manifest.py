@@ -586,8 +586,8 @@ KNOWN_TEST_SURFACE_CLASSIFICATIONS: dict[str, tuple[str, str]] = {
         "storage/retrieval unit guard with companion tests/test_vector_store_embedding_real_surface.py",
     ),
     "tests/test_vector_store_http_embedding.py": (
-        "violation",
-        "private-helper bypass requiring review",
+        "unit-guard-with-companion",
+        "storage/retrieval unit guard with companion tests/test_vector_store_http_embedding_real_surface.py",
     ),
     "tests/test_vector_store_reranker.py": (
         "unit-guard-with-companion",
