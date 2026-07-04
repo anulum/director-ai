@@ -25,6 +25,8 @@ import json
 
 # Used only for explicit --run, executing a fixed docker compose argv.
 import sys
+from collections.abc import Callable
+from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -71,6 +73,14 @@ if TYPE_CHECKING:
     pass
 
 
+@dataclass(frozen=True)
+class _CommandSpec:
+    """Top-level CLI command metadata shared by dispatch and help output."""
+
+    handler: Callable[[list[str]], None]
+    help_line: str
+
+
 def main(argv: list[str] | None = None) -> None:
     """CLI entry point — dispatches to subcommands."""
     args = argv if argv is not None else sys.argv[1:]
@@ -87,91 +97,27 @@ def main(argv: list[str] | None = None) -> None:
         sys.exit(1)
     rest = args[1:]
 
-    commands = {
-        "version": _cmd_version,
-        "quickstart": _cmd_quickstart,
-        "production-check": _cmd_production_check,
-        "review": _cmd_review,
-        "process": _cmd_process,
-        "batch": _cmd_batch,
-        "ingest": _cmd_ingest,
-        "eval": _cmd_eval,
-        "ci-gate": _cmd_ci_gate,
-        "bench": _cmd_bench,
-        "tune": _cmd_tune,
-        "train": _cmd_train,
-        "finetune": _cmd_finetune,
-        "validate-data": _cmd_validate_data,
-        "export": _cmd_export,
-        "serve": _cmd_serve,
-        "proxy": _cmd_proxy,
-        "config": _cmd_config,
-        "stress-test": _cmd_stress_test,
-        "doctor": _cmd_doctor,
-        "license": _cmd_license,
-        "compliance": _cmd_compliance,
-        "verify-numeric": _cmd_verify_numeric,
-        "verify-reasoning": _cmd_verify_reasoning,
-        "temporal-freshness": _cmd_temporal_freshness,
-        "check-step": _cmd_check_step,
-        "consensus": _cmd_consensus,
-        "adversarial-test": _cmd_adversarial_test,
-        "kb-health": _cmd_kb_health,
-        "wizard": _cmd_wizard,
-        "safety-dashboard": _cmd_safety_dashboard,
-        "kpis": _cmd_kpis,
-        "forensics": _cmd_forensics,
-        "cost-report": _cmd_cost_report,
-        "evidence": _cmd_evidence,
-        "verify-evidence": _cmd_verify_evidence,
-        "verify-audit": _cmd_verify_audit,
-    }
+    commands = _command_specs()
 
     if cmd not in commands:
         print(f"Unknown command: {cmd}")
         _print_help()
         sys.exit(1)
 
-    commands[cmd](rest)
+    commands[cmd].handler(rest)
 
 
 def _print_help() -> None:
+    command_lines = "\n".join(
+        f"  {spec.help_line}" for spec in _command_specs().values()
+    )
     print(
         "Director-Class AI CLI\n"
         "\n"
         "Usage: director-ai <command> [options]\n"
         "\n"
         "Commands:\n"
-        "  version               Show version info\n"
-        "  quickstart [--profile P] [--run]  Scaffold a working project\n"
-        "  production-check [--path D]  Validate a generated production scaffold\n"
-        "  review <prompt> <resp> Review a prompt/response pair\n"
-        "  process <prompt>      Process a prompt through the full pipeline\n"
-        "  batch <file.jsonl>    Batch process (max 10K prompts, <100MB)\n"
-        "  ingest <file-or-dir> [--persist DIR] [--chunk-size N]  Ingest txt/md/pdf/docx/html/csv\n"
-        "  eval [--dataset D]    Run NLI benchmark suite\n"
-        "  ci-gate --dataset F --min-accuracy R  Fail CI when guard quality drops\n"
-        "  bench [--dataset D] [--seed N] [--output F]  Run regression benchmarks\n"
-        "  tune <file.jsonl>|--dataset D [--output config.yaml]  Tune profile overlay\n"
-        "  train submit [options]  Submit or dry-run a managed training job\n"
-        "  finetune <train.jsonl> [options]  Fine-tune NLI model on domain data\n"
-        "  validate-data <file.jsonl>       Validate data before fine-tuning\n"
-        "  serve [--port N] [--transport http|grpc] [--workers W] [--dev|--production]  Start the server\n"
-        "  proxy [--port N] [--facts F]   Chat-completions guardrail proxy\n"
-        "  export [--format F]   Export model to ONNX/TensorRT\n"
-        "  stress-test [options] Benchmark streaming kernel throughput\n"
-        "  doctor                Check runtime dependencies and readiness\n"
-        "  config [--profile X]  Show/set configuration\n"
-        "  compliance <sub>      EU AI Act compliance (report, status, drift)\n"
-        "  kb-health [options]   Knowledge base health diagnostics\n"
-        "  wizard [--cli]        Interactive configuration wizard\n"
-        "  safety-dashboard [--text] [--events F]  Halt-rate operations view\n"
-        "  kpis --input F [--format text|markdown|json]  Board-level guardrail KPIs\n"
-        "  forensics --input F [--format text|markdown|json]  Scorer-miss forensics\n"
-        "  cost-report [--format F]  Token cost report (text|json|html)\n"
-        "  evidence [--emit DIR]  Run the narrow demo, emit a verifiable packet\n"
-        "  verify-evidence <DIR>  Verify an emitted evidence packet\n"
-        "  verify-audit <FILE>  Verify an audit log's tamper-evident hash chain\n",
+        f"{command_lines}\n",
     )
 
 
@@ -450,6 +396,161 @@ def _cmd_config(args: list[str]) -> None:
 
     for key, value in cfg.to_dict().items():
         print(f"  {key}: {value}")
+
+
+def _command_specs() -> dict[str, _CommandSpec]:
+    """Return the ordered top-level CLI registry used for dispatch and help."""
+    return {
+        "version": _CommandSpec(
+            _cmd_version, "version               Show version info"
+        ),
+        "quickstart": _CommandSpec(
+            _cmd_quickstart,
+            "quickstart [--profile P] [--run]  Scaffold a working project",
+        ),
+        "production-check": _CommandSpec(
+            _cmd_production_check,
+            "production-check [--path D]  Validate a generated production scaffold",
+        ),
+        "review": _CommandSpec(
+            _cmd_review,
+            "review <prompt> <resp> Review a prompt/response pair",
+        ),
+        "process": _CommandSpec(
+            _cmd_process,
+            "process <prompt>      Process a prompt through the full pipeline",
+        ),
+        "batch": _CommandSpec(
+            _cmd_batch,
+            "batch <file.jsonl>    Batch process (max 10K prompts, <100MB)",
+        ),
+        "ingest": _CommandSpec(
+            _cmd_ingest,
+            "ingest <file-or-dir> [--persist DIR] [--chunk-size N]  "
+            "Ingest txt/md/pdf/docx/html/csv",
+        ),
+        "eval": _CommandSpec(
+            _cmd_eval, "eval [--dataset D]    Run NLI benchmark suite"
+        ),
+        "ci-gate": _CommandSpec(
+            _cmd_ci_gate,
+            "ci-gate --dataset F --min-accuracy R  Fail CI when guard quality drops",
+        ),
+        "bench": _CommandSpec(
+            _cmd_bench,
+            "bench [--dataset D] [--seed N] [--output F]  Run regression benchmarks",
+        ),
+        "tune": _CommandSpec(
+            _cmd_tune,
+            "tune <file.jsonl>|--dataset D [--output config.yaml]  "
+            "Tune profile overlay",
+        ),
+        "train": _CommandSpec(
+            _cmd_train,
+            "train submit [options]  Submit or dry-run a managed training job",
+        ),
+        "finetune": _CommandSpec(
+            _cmd_finetune,
+            "finetune <train.jsonl> [options]  Fine-tune NLI model on domain data",
+        ),
+        "validate-data": _CommandSpec(
+            _cmd_validate_data,
+            "validate-data <file.jsonl>       Validate data before fine-tuning",
+        ),
+        "serve": _CommandSpec(
+            _cmd_serve,
+            "serve [--port N] [--transport http|grpc] [--workers W] "
+            "[--dev|--production]  Start the server",
+        ),
+        "proxy": _CommandSpec(
+            _cmd_proxy,
+            "proxy [--port N] [--facts F]   Chat-completions guardrail proxy",
+        ),
+        "export": _CommandSpec(
+            _cmd_export,
+            "export [--format F]   Export model to ONNX/TensorRT",
+        ),
+        "stress-test": _CommandSpec(
+            _cmd_stress_test,
+            "stress-test [options] Benchmark streaming kernel throughput",
+        ),
+        "doctor": _CommandSpec(
+            _cmd_doctor,
+            "doctor                Check runtime dependencies and readiness",
+        ),
+        "license": _CommandSpec(
+            _cmd_license,
+            "license [status|generate|validate|polar-env]  Commercial license tools",
+        ),
+        "config": _CommandSpec(
+            _cmd_config,
+            "config [--profile X]  Show/set configuration",
+        ),
+        "compliance": _CommandSpec(
+            _cmd_compliance,
+            "compliance <sub>      EU AI Act compliance (report, status, drift)",
+        ),
+        "verify-numeric": _CommandSpec(
+            _cmd_verify_numeric,
+            "verify-numeric <text> Check numeric consistency in text",
+        ),
+        "verify-reasoning": _CommandSpec(
+            _cmd_verify_reasoning,
+            "verify-reasoning <text> Check logical reasoning structure",
+        ),
+        "temporal-freshness": _CommandSpec(
+            _cmd_temporal_freshness,
+            "temporal-freshness <text> Check date-sensitive claim freshness",
+        ),
+        "check-step": _CommandSpec(
+            _cmd_check_step,
+            "check-step <goal> <action> [args]  Validate an agentic loop step",
+        ),
+        "consensus": _CommandSpec(
+            _cmd_consensus,
+            "consensus <model:response>...  Compare cross-model agreement",
+        ),
+        "adversarial-test": _CommandSpec(
+            _cmd_adversarial_test,
+            "adversarial-test [prompt]  Run guardrail adversarial probes",
+        ),
+        "kb-health": _CommandSpec(
+            _cmd_kb_health,
+            "kb-health [options]   Knowledge base health diagnostics",
+        ),
+        "wizard": _CommandSpec(
+            _cmd_wizard,
+            "wizard [--cli]        Interactive configuration wizard",
+        ),
+        "safety-dashboard": _CommandSpec(
+            _cmd_safety_dashboard,
+            "safety-dashboard [--text] [--events F]  Halt-rate operations view",
+        ),
+        "kpis": _CommandSpec(
+            _cmd_kpis,
+            "kpis --input F [--format text|markdown|json]  Board-level guardrail KPIs",
+        ),
+        "forensics": _CommandSpec(
+            _cmd_forensics,
+            "forensics --input F [--format text|markdown|json]  Scorer-miss forensics",
+        ),
+        "cost-report": _CommandSpec(
+            _cmd_cost_report,
+            "cost-report [--format F]  Token cost report (text|json|html)",
+        ),
+        "evidence": _CommandSpec(
+            _cmd_evidence,
+            "evidence [--emit DIR]  Run the narrow demo, emit a verifiable packet",
+        ),
+        "verify-evidence": _CommandSpec(
+            _cmd_verify_evidence,
+            "verify-evidence <DIR>  Verify an emitted evidence packet",
+        ),
+        "verify-audit": _CommandSpec(
+            _cmd_verify_audit,
+            "verify-audit <FILE>  Verify an audit log's tamper-evident hash chain",
+        ),
+    }
 
 
 def _is_help_request(args: list[str]) -> bool:

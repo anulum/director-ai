@@ -7,6 +7,10 @@ pip install director-ai
 director-ai --help
 ```
 
+Top-level help is generated from the same command registry used by the
+dispatcher, so every installed command listed below is discoverable through
+`director-ai --help`.
+
 ## Commands
 
 ### Scoring
