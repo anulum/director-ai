@@ -295,6 +295,16 @@ def test_dp_rag_unit_guard_has_real_surface_companion() -> None:
     assert "tests/test_dp_rag_real_surface.py" in category
 
 
+def test_dialogue_fpr_unit_guard_has_real_surface_companion() -> None:
+    """Dialogue FPR guard should be backed by public scorer coverage."""
+    classification, category = KNOWN_TEST_SURFACE_CLASSIFICATIONS[
+        "tests/test_dialogue_fpr.py"
+    ]
+
+    assert classification == "unit-guard-with-companion"
+    assert "tests/test_dialogue_fpr_real_surface.py" in category
+
+
 def test_agent_provider_unit_guard_has_real_surface_companion() -> None:
     """Agent provider guard should be backed by real provider protocol coverage."""
     classification, category = KNOWN_TEST_SURFACE_CLASSIFICATIONS[

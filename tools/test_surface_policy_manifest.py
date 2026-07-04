@@ -150,8 +150,8 @@ KNOWN_TEST_SURFACE_CLASSIFICATIONS: dict[str, tuple[str, str]] = {
         "real subprocess device-selection surface with local torch protocol package",
     ),
     "tests/test_dialogue_fpr.py": (
-        "violation",
-        "private-helper bypass requiring review",
+        "unit-guard-with-companion",
+        "scoring/dialogue unit guard with companion tests/test_dialogue_fpr_real_surface.py",
     ),
     "tests/test_distilled_scorer.py": ("violation", "ML/export/eval boundary fake"),
     "tests/test_doc_chunker_model_cache.py": (
