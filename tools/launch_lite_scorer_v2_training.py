@@ -7,6 +7,8 @@
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI - Lite Scorer v2 durable training launcher
 
+"""Launch Lite Scorer v2 training as a durable, auditable background run."""
+
 from __future__ import annotations
 
 import argparse
@@ -15,7 +17,7 @@ import json
 import os
 import shlex
 import signal
-import subprocess
+import subprocess  # nosec B404
 import sys
 from collections.abc import Callable
 from datetime import datetime
@@ -51,6 +53,7 @@ class LaunchError(RuntimeError):
 
 
 def find_train_argv(plan: dict[str, Any]) -> list[str]:
+    """Return the training argv from a Lite Scorer v2 run plan."""
     commands = plan.get("commands")
     if not isinstance(commands, list):
         raise LaunchError("run plan does not contain a commands list")
@@ -67,6 +70,7 @@ def find_train_argv(plan: dict[str, Any]) -> list[str]:
 
 
 def is_process_running(pid: int) -> bool:
+    """Return whether ``pid`` appears to identify a live process."""
     if pid <= 0:
         return False
     try:
@@ -78,11 +82,22 @@ def is_process_running(pid: int) -> bool:
     return True
 
 
+def resolve_lite_scorer_v2_run_root(root: Path) -> Path:
+    """Return the durable directory used for Lite Scorer v2 training runs."""
+    resolved_root = root.resolve()
+    if resolved_root.name == "DIRECTOR-AI" and resolved_root.parent.name == "03_CODE":
+        coordination_root = resolved_root.parent.parent / ".coordination"
+        if coordination_root.is_dir():
+            return coordination_root / "runs" / "DIRECTOR-AI"
+    return resolved_root / RUN_ROOT
+
+
 def _active_training_runs(
     root: Path,
     process_running: Callable[[int], bool],
 ) -> list[tuple[Path, int]]:
-    run_root = root / RUN_ROOT
+    """Return active Lite Scorer v2 training run directories and PIDs."""
+    run_root = resolve_lite_scorer_v2_run_root(root)
     if not run_root.exists():
         return []
     active: list[tuple[Path, int]] = []
@@ -100,10 +115,12 @@ def _active_training_runs(
 
 
 def _timestamp() -> str:
+    """Return the launch timestamp used in durable run directory names."""
     return datetime.now().strftime("%Y-%m-%dT%H%M%S")
 
 
 def _normalise_manifest(root: Path, manifest: Path) -> Path:
+    """Resolve ``manifest`` relative to ``root`` when it is not absolute."""
     return manifest if manifest.is_absolute() else root / manifest
 
 
@@ -115,6 +132,7 @@ def _write_launch_files(
     session_id: int | None,
     plan: dict[str, Any],
 ) -> None:
+    """Write launch metadata files inside ``run_dir``."""
     (run_dir / "pid").write_text(f"{pid}\n", encoding="utf-8")
     (run_dir / "command.txt").write_text(shlex.join(command) + "\n", encoding="utf-8")
     metadata = {
@@ -139,6 +157,7 @@ def launch_lite_scorer_v2_training(
     popen: Callable[..., subprocess.Popen[str]] = subprocess.Popen,
     process_running: Callable[[int], bool] = is_process_running,
 ) -> dict[str, Any]:
+    """Launch Lite Scorer v2 training and return durable run metadata."""
     root = root.resolve()
     active = _active_training_runs(root, process_running)
     if active:
@@ -155,7 +174,7 @@ def launch_lite_scorer_v2_training(
     command = find_train_argv(plan)
 
     stamp = timestamp or _timestamp()
-    run_dir = root / RUN_ROOT / f"{RUN_PREFIX}_{stamp}"
+    run_dir = resolve_lite_scorer_v2_run_root(root) / f"{RUN_PREFIX}_{stamp}"
     if run_dir.exists():
         raise LaunchError(f"run directory already exists: {run_dir.as_posix()}")
     run_dir.mkdir(parents=True)
@@ -163,7 +182,7 @@ def launch_lite_scorer_v2_training(
 
     with log_path.open("ab") as log_file:
         process = popen(
-            ["bash", "-lc", LAUNCH_WRAPPER, "lite-scorer-v2-train", *command],
+            ["bash", "-c", LAUNCH_WRAPPER, "lite-scorer-v2-train", *command],
             cwd=root,
             stdin=subprocess.DEVNULL,
             stdout=log_file,
@@ -191,6 +210,7 @@ def launch_lite_scorer_v2_training(
 
 
 def _build_parser() -> argparse.ArgumentParser:
+    """Build the command-line parser for the durable launcher."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("root", type=Path, help="Repository root")
     parser.add_argument(
@@ -207,6 +227,7 @@ def _build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
+    """Run the durable launcher command-line interface."""
     args = _build_parser().parse_args(argv)
     try:
         result = launch_lite_scorer_v2_training(

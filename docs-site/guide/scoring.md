@@ -208,11 +208,15 @@ remote model lookup during evidence production.
 
 Use `tools/status_lite_scorer_v2_training.py` to inspect a queued or completed
 training run before exporting ONNX. The command reads the run manifest and
-`.coordination/runs/DIRECTOR-AI/lite_scorer_v2_train_*` directory, then returns
-JSON with `state`, `exit_code`, `process_running`, artefact sizes, and
-`export_ready`. `export_ready` is true only after an `EXIT 0` marker and a
-present student artefact, so a live or stale run cannot advance to export by
-mistake.
+the durable `lite_scorer_v2_train_*` run directory, then returns JSON with
+`state`, `exit_code`, `process_running`, artefact sizes, and `export_ready`. On
+the Samsung `03_CODE/DIRECTOR-AI` checkout, launcher and status commands resolve
+run state through the monorepo
+`.coordination/runs/DIRECTOR-AI/lite_scorer_v2_train_*` directory. Temporary
+operator roots outside that checkout keep using
+`<root>/.coordination/runs/DIRECTOR-AI/lite_scorer_v2_train_*`. `export_ready`
+is true only after an `EXIT 0` marker and a present student artefact, so a live
+or stale run cannot advance to export by mistake.
 
 ## Customizing Weights
 
