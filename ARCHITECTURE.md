@@ -282,8 +282,8 @@ LLM Provider ──► guard() / CoherenceAgent
 | Backend | Install | Accuracy (per-ds mean BA) | Latency |
 |---------|---------|---------------------------|---------|
 | Heuristic (lite) | core | ~65% | <0.5 ms |
-| DeBERTa | `[nli]` | 77.8% | see benchmark packets |
-| FactCG (ONNX) | `[nli,onnx]` | 77.8% (78.0% tuned) | see benchmark packets |
+| DeBERTa | `[nli]` | 75.8% global | see benchmark packets |
+| FactCG (ONNX) | `[nli,onnx]` | 75.8% global (77.76% tuned replay) | see benchmark packets |
 | Rust (backfire) | `[rust]` | ~65% | ~1 ms |
 | Hybrid (NLI+Judge) | `[nli,openai]` | ~78% | 200-500 ms |
 

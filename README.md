@@ -243,7 +243,7 @@ inventory below is reference for the deeper surface, navigable under
 | API documentation pages | 89 |
 | Rust PyO3 bindings | 83 |
 | Optional extras | 59 |
-| Python test files | 626 |
+| Python test files | 627 |
 | Public documentation pages | 203 |
 | GitHub Actions workflows | 14 |
 
@@ -452,7 +452,7 @@ pip install "director-ai[all]"                     # the common capability set i
 Or pick granular extras for fine control:
 
 ```bash
-pip install "director-ai[nli]"                     # NLI model scoring (77.8% BA in committed AggreFact packet)
+pip install "director-ai[nli]"                     # NLI model scoring (75.8% global BA; 77.76% tuned replay)
 pip install "director-ai[embed]"                   # embedding scorer (~65% BA, CPU-only, 3ms)
 pip install director-ai-lite                       # 3-line guard facade
 pip install "director-ai[nli,vector,server]"       # equivalent to [recommended]
@@ -482,7 +482,7 @@ pip install "minicheck @ git+https://github.com/Liyan06/MiniCheck.git"
 
 | Tier | Backend | Accuracy | Latency | Install |
 |------|---------|----------|---------|---------|
-| **5** | NLI (FactCG) | **77.8% BA** | see latency table | `[nli]` |
+| **5** | NLI (FactCG) | **75.8% global BA** (77.76% tuned replay) | see latency table | `[nli]` |
 | **4** | Distilled NLI (preview) | validation required | measured per artefact | `[nli-lite]` |
 | **3** | Embedding (bge-small) | ~65% BA | 3 ms | `[embed]` |
 | **2** | Rules engine (8 rules) | rule-based | <1 ms | — (base) |
@@ -515,10 +515,10 @@ Two judges ship with this release.
 | Rank | Model | Per-dataset mean BA | Params | Latency | Streaming |
 |------|-------|---------------------|--------|---------|-----------|
 | #1 | Bespoke-MiniCheck-7B | **77.4%** | 7B | ~100 ms | No |
-| **#6** | **Director-AI (FactCG)** | **77.8%** | 0.4B | see latency table | **Yes** |
-| #8 | MiniCheck-Flan-T5-L | 75.0% | 0.8B | ~120 ms | No |
+| **#8** | **Director-AI (FactCG)** | **75.86% global** | 0.4B | see latency table | **Yes** |
+| #9 | MiniCheck-Flan-T5-L | 75.0% | 0.8B | ~120 ms | No |
 
-With per-dataset threshold tuning (no retraining), FactCG reaches **78.0%** in the committed threshold packet. This is the same 0.4B model and single `pip install`; latency depends on backend and hardware.
+With per-dataset threshold replay (no retraining), FactCG reaches **77.76%** in the committed threshold packet. This is the same 0.4B model and single `pip install`; latency depends on backend and hardware.
 
 Latency: the committed GTX 1060 6GB local packet reports 17.9 ms/pair p99 for a 16-pair batch. Full comparison: [`benchmarks/comparison/COMPETITOR_COMPARISON.md`](benchmarks/comparison/COMPETITOR_COMPARISON.md).
 
