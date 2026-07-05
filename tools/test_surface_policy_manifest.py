@@ -137,8 +137,8 @@ KNOWN_TEST_SURFACE_CLASSIFICATIONS: dict[str, tuple[str, str]] = {
         "cyber-physical unit guard with companion tests/test_cyber_physical_real_surface.py",
     ),
     "tests/test_data_pipeline.py": (
-        "violation",
-        "module/workflow fake requiring review",
+        "unit-guard-with-companion",
+        "training data pipeline unit guard with companion tests/test_data_pipeline_real_surface.py",
     ),
     "tests/test_demo_streaming_halt_live.py": (
         "violation",

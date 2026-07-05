@@ -9,7 +9,7 @@
     "python_model_classes": 1001,
     "python_model_source_modules": 460,
     "rust_pyo3_model_wrappers": 83,
-    "test_files": 660
+    "test_files": 661
   },
   "documentation": {
     "public_pages": [
@@ -5356,6 +5356,7 @@
       "tests/test_cyber_physical_halt_contract.py",
       "tests/test_cyber_physical_real_surface.py",
       "tests/test_data_pipeline.py",
+      "tests/test_data_pipeline_real_surface.py",
       "tests/test_deception_detection.py",
       "tests/test_decision.py",
       "tests/test_defense_genome.py",

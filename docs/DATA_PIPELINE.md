@@ -66,6 +66,23 @@ binary judge dataset used by the local DeBERTa-v3-base classifier.
 
 ## Data Sources
 
+Remote HuggingFace sources are loaded with explicit `revision=` arguments so
+rebuilds do not silently drift when upstream repositories change. The pipeline
+pins every public source to an immutable commit SHA. `mteb/summac` currently
+requires authenticated repository metadata, so its default revision remains
+`main`; set `DIRECTOR_AI_SUMMAC_REVISION` to an approved commit SHA in
+production environments that use SummaC.
+
+| Source | Revision |
+|--------|----------|
+| `pminervini/HaluEval` | `12a856119f03975a94509091e8cada3e6be6ead7` |
+| `pietrolesci/nli_fever` | `1eddac63112eee1fdf1966e0bca27a5ff248c772` |
+| `tals/vitaminc` | `be6febb761b0b2807687e61e0b5282e459df2fa0` |
+| `anli` | `8e4813d81f46d313dac7892e1c28076917cfcdf9` |
+| `wandb/RAGTruth-processed` | `eb4f4b9d1b68eb7092d3e1a61c0cd82d9808737b` |
+| `mteb/summac` | `main` by default; override with `DIRECTOR_AI_SUMMAC_REVISION` |
+| `lytang/LLM-AggreFact` | `981dfd0bd8e58e7238a9ab92b2e6ea44bce918e4` |
+
 ### 1. HaluEval (~60,000 samples)
 
 **Dataset**: `pminervini/HaluEval` on HuggingFace Hub.
@@ -82,7 +99,7 @@ types. Each task contributes both entailment (correct) and contradiction
 
 **Label mapping**: correct → 0 (entailment), hallucinated → 2 (contradiction).
 
-**Loader**: `_load_halueval()` at line 51.
+**Loader**: `_load_halueval()`.
 
 ### 2. FEVER (~203,000 samples)
 
@@ -97,7 +114,7 @@ schema changes.
 are mapped via a lookup dictionary. Integer labels (0, 1, 2) are passed
 through directly.
 
-**Loader**: `_load_fever()` at line 98.
+**Loader**: `_load_fever()`.
 
 ### 3. VitaminC (~100,000 samples, capped)
 
@@ -110,14 +127,14 @@ changes.
 
 **Raw size**: ~370,000 samples. Without capping, VitaminC would dominate the
 training distribution at ~50.6% of all samples, introducing a bias towards
-its specific adversarial style. The cap at 100,000 (constant `VITAMINC_CAP`
-at line 328) reduces its share to ~30%, preserving dataset diversity.
+its specific adversarial style. The cap at 100,000 (constant `VITAMINC_CAP`)
+reduces its share to ~30%, preserving dataset diversity.
 
 **Label mapping**: `SUPPORTS` → 0, `NOT ENOUGH INFO` → 1, `REFUTES` → 2.
 
-**Capping**: deterministic `random.sample()` with `seed=42`.
+**Capping**: deterministic local `random.Random(42)` sampling.
 
-**Loader**: `_load_vitaminc()` at line 140.
+**Loader**: `_load_vitaminc()`.
 
 ### 4. ANLI Round 3 (~100,000 samples)
 
@@ -131,7 +148,7 @@ to handle adversarial edge cases that simpler datasets would not cover.
 **Label mapping**: labels are already integers (0, 1, 2) matching the
 target schema.
 
-**Loader**: `_load_anli_r3()` at line 182.
+**Loader**: `_load_anli_r3()`.
 
 ### 5. RAGTruth (variable, optional)
 
@@ -152,7 +169,7 @@ construction during training.
 
 **Activation**: `--include-ragtruth` CLI flag or `include_ragtruth=True`.
 
-**Loader**: `_load_ragtruth()` at line 211.
+**Loader**: `_load_ragtruth()`.
 
 ### 6. SummaC (variable, optional)
 
@@ -163,14 +180,14 @@ consistent with its source document. Binary labels: 1 = consistent
 (entailment), 0 = inconsistent (contradiction).
 
 **Resilience**: the SummaC dataset has been intermittently unavailable on
-HuggingFace Hub. The loader wraps the call in a `try/except` block (line 358)
+HuggingFace Hub. The build path wraps optional SummaC loading in `try/except`
 to prevent pipeline failure if the dataset is temporarily offline.
 
 **Text truncation**: premise capped at 2,000 characters.
 
 **Activation**: `--include-summac` CLI flag or `include_summac=True`.
 
-**Loader**: `_load_summac()` at line 252.
+**Loader**: `_load_summac()`.
 
 ### 7. LLM-AggreFact (~29,000, optional, gated)
 
@@ -188,13 +205,13 @@ sub-dataset. The `source` field in the output is set to
 supported). No neutral samples.
 
 **Authentication**: requires `HF_TOKEN` environment variable. If not set,
-the loader logs a warning and returns an empty list (line 298).
+the loader logs a warning and returns an empty list.
 
 **Text truncation**: premise capped at 2,000 characters.
 
 **Activation**: `--include-aggrefact` CLI flag or `include_aggrefact=True`.
 
-**Loader**: `_load_aggrefact()` at line 287.
+**Loader**: `_load_aggrefact()`.
 
 ---
 
@@ -274,6 +291,27 @@ export HF_TOKEN="hf_..."
 python training/data_pipeline.py --all
 ```
 
+### Build from local source packs
+
+For air-gapped regression builds or release evidence that must not download
+from Hugging Face, provide one or more JSON Lines source packs:
+
+```bash
+python training/data_pipeline.py \
+  --local-source-jsonl evidence/local_nli.jsonl \
+  --output-dir training/data_local
+```
+
+Each JSONL row must use the production schema:
+
+```json
+{"premise":"Evidence text","hypothesis":"Claim text","label":0,"source":"local_contract"}
+```
+
+When `--local-source-jsonl` is present, the pipeline does not load remote
+sources. It still uses the same `ClassLabel` cast, stratified split, on-disk
+`DatasetDict` writer, and `stats.json` writer as the remote pipeline.
+
 ### Flags
 
 | Flag                  | Default | Description                              |
@@ -281,6 +319,8 @@ python training/data_pipeline.py --all
 | `--include-ragtruth`  | off     | Include RAGTruth dataset                 |
 | `--include-summac`    | off     | Include SummaC dataset                   |
 | `--include-aggrefact` | off     | Include LLM-AggreFact (needs HF_TOKEN)   |
+| `--local-source-jsonl` | none   | Local JSONL pack; repeat to combine packs |
+| `--output-dir`        | `training/data` | Output DatasetDict + `stats.json` directory |
 | `--all`               | off     | Enable all optional sources              |
 
 ---
@@ -288,6 +328,8 @@ python training/data_pipeline.py --all
 ## API Usage
 
 ```python
+from pathlib import Path
+
 from training.data_pipeline import build_dataset
 
 # Core sources only
@@ -298,6 +340,12 @@ dataset = build_dataset(
     include_ragtruth=True,
     include_summac=True,
     include_aggrefact=True,
+)
+
+# Local deterministic source pack, no remote downloads
+dataset = build_dataset(
+    local_source_jsonl=[Path("evidence/local_nli.jsonl")],
+    output_dir=Path("training/data_local"),
 )
 
 print(dataset)
@@ -349,7 +397,7 @@ combined dataset. This creates several problems:
 
 The 100K cap (constant `VITAMINC_CAP`) reduces VitaminC's share to ~30%,
 balancing its adversarial value against dataset diversity. The cap uses
-`random.sample()` with `seed=42` for reproducibility.
+a local `random.Random(42)` sampler for reproducibility.
 
 ---
 
@@ -367,9 +415,10 @@ balancing its adversarial value against dataset diversity. The cap uses
 
 ## Environment Variables
 
-| Variable    | Required | Purpose                                    |
-|-------------|----------|--------------------------------------------|
-| `HF_TOKEN`  | For AggreFact only | HuggingFace token for gated dataset |
+| Variable | Required | Purpose |
+|----------|----------|---------|
+| `HF_TOKEN` | For AggreFact only | HuggingFace token for gated dataset |
+| `DIRECTOR_AI_SUMMAC_REVISION` | For production SummaC builds | Immutable SummaC commit SHA override when SummaC metadata is available |
 
 ---
 
@@ -384,14 +433,20 @@ balancing its adversarial value against dataset diversity. The cap uses
 
 ## Error Handling
 
-- **Missing HF_TOKEN**: AggreFact loader returns empty list with a warning
-  (line 298). Pipeline continues without AggreFact data.
-- **SummaC unavailable**: wrapped in try/except (line 358). Pipeline
-  continues without SummaC data.
+- **Missing HF_TOKEN**: AggreFact loader returns empty list with a warning.
+  Pipeline continues without AggreFact data.
+- **SummaC unavailable**: wrapped in `try/except`. Pipeline continues without
+  SummaC data.
 - **Empty premise/hypothesis**: skipped silently in all loaders (guard
   clauses at the start of each row-processing loop).
 - **Unknown label format**: rows with labels that cannot be mapped to
   integers 0-2 are skipped via `continue`.
+- **Local JSONL validation**: local source rows fail closed when `premise`,
+  `hypothesis`, or `source` is missing or blank, when `label` is not exactly
+  0, 1, or 2, or when the file is empty or malformed. Diagnostics include the
+  source filename and line number.
+- **Split validation**: the pipeline rejects empty datasets, missing labels,
+  or label classes with fewer than two examples before writing any output.
 
 ---
 
@@ -405,6 +460,7 @@ first run. Subsequent runs use the HuggingFace cache.
 | First run (all)    | 15-30 min        | Network download     |
 | Cached run (all)   | 2-5 min          | Arrow serialisation  |
 | Core sources only  | 1-3 min (cached) | Arrow serialisation  |
+| Local JSONL pack    | seconds-minutes  | Arrow serialisation  |
 
 Output dataset size on disk: ~2.1 GB (all sources), ~1.8 GB (core only).
 
@@ -412,20 +468,24 @@ Output dataset size on disk: ~2.1 GB (all sources), ~1.8 GB (core only).
 
 ## Testing
 
-Covered by `tests/test_data_pipeline.py` (57 tests):
+Covered by `tests/test_data_pipeline.py` and
+`tests/test_data_pipeline_real_surface.py`:
 
 - All seven loader functions tested with mocked `datasets.load_dataset`
 - Label mapping correctness for each source
 - VitaminC capping behaviour
 - `build_dataset()` integration with optional source flags
+- Pinned HuggingFace revisions for remote source loaders
 - Empty/malformed row handling
 - Statistics file generation and schema
 - `ClassLabel` casting verification
+- Real CLI build from a local JSONL source pack
+- Fail-closed local-row validation with filename and line-number diagnostics
 
 Run:
 
 ```bash
-pytest tests/test_data_pipeline.py -v
+pytest tests/test_data_pipeline.py tests/test_data_pipeline_real_surface.py -v
 ```
 
 ---
@@ -437,6 +497,6 @@ pytest tests/test_data_pipeline.py -v
 | Pipeline module          | `training/data_pipeline.py`     |
 | Output dataset           | `training/data/`                |
 | Statistics               | `training/data/stats.json`      |
-| Tests                    | `tests/test_data_pipeline.py`   |
+| Tests                    | `tests/test_data_pipeline.py`, `tests/test_data_pipeline_real_surface.py` |
 | Downstream: judge builder | `training/build_judge_dataset.py` |
 | Downstream: NLI training | `training/train_nli.py`         |
