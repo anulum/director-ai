@@ -10,14 +10,21 @@ from types import SimpleNamespace
 from typing import Protocol, cast
 
 import pytest
-import torch
-import transformers
 
 from director_ai.core.scoring.contradiction import (
     ContradictionResult,
     ContradictionScorer,
 )
 from tools.test_surface_policy_manifest import KNOWN_TEST_SURFACE_CLASSIFICATIONS
+
+torch = pytest.importorskip(
+    "torch",
+    reason="torch required for contradiction scorer real-surface tests",
+)
+transformers = pytest.importorskip(
+    "transformers",
+    reason="transformers required for contradiction scorer real-surface tests",
+)
 
 
 class _Tensor(Protocol):

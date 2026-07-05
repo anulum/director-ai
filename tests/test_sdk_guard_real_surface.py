@@ -11,14 +11,35 @@ from contextlib import contextmanager
 from dataclasses import dataclass
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from threading import Thread
-from typing import cast
+from typing import Protocol, cast
 
-from openai import OpenAI
+import pytest
 
 import director_ai
 from director_ai.core.types import CoherenceScore
 from director_ai.integrations.sdk_guard import get_score, guard, score
 from tools.test_surface_policy_manifest import KNOWN_TEST_SURFACE_CLASSIFICATIONS
+
+_openai = pytest.importorskip(
+    "openai",
+    reason="openai required for SDK guard real-surface tests",
+)
+
+
+class _OpenAIClientFactory(Protocol):
+    """Callable surface used to construct a local OpenAI SDK client."""
+
+    def __call__(
+        self,
+        *,
+        api_key: str,
+        base_url: str,
+        timeout: float,
+    ) -> object:
+        """Return an OpenAI-compatible SDK client."""
+
+
+_openai_client_factory = cast(_OpenAIClientFactory, _openai.OpenAI)
 
 
 @dataclass(frozen=True, slots=True)
@@ -120,9 +141,13 @@ def _openai_chat_server(response_text: str) -> Iterator[_OpenAIChatServer]:
         thread.join(timeout=5)
 
 
-def _client(server: _OpenAIChatServer) -> OpenAI:
+def _client(server: _OpenAIChatServer) -> object:
     """Build a real OpenAI SDK client pointed at the local server."""
-    return OpenAI(api_key="sk-director-local", base_url=server.base_url, timeout=5.0)
+    return _openai_client_factory(
+        api_key="sk-director-local",
+        base_url=server.base_url,
+        timeout=5.0,
+    )
 
 
 def test_sdk_guard_unit_guard_declares_this_real_surface_companion() -> None:
