@@ -93,14 +93,14 @@ def main(argv: list[str] | None = None) -> None:
 
     cmd = args[0]
     if not re.match(r"^[a-z][a-z0-9-]*$", cmd):
-        print(f"Invalid command name: {cmd!r}")
+        print("Invalid command name.")
         sys.exit(1)
     rest = args[1:]
 
     commands = _command_specs()
 
     if cmd not in commands:
-        print(f"Unknown command: {cmd}")
+        print("Unknown command.")
         _print_help()
         sys.exit(1)
 

@@ -115,6 +115,32 @@ def test_top_level_help_lists_every_registered_command(
     assert captured.err == ""
 
 
+@pytest.mark.parametrize(
+    ("argv", "message"),
+    [
+        (["nonpublic-cli-value-which-is-long-enough"], "Unknown command."),
+        (
+            ["nonpublic-cli-value-which-is-long-enough/invalid"],
+            "Invalid command name.",
+        ),
+    ],
+)
+def test_rejected_commands_do_not_echo_secret_like_tokens(
+    argv: list[str],
+    message: str,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """Rejected top-level commands must not disclose raw argv tokens."""
+    with pytest.raises(SystemExit) as exc_info:
+        main(argv)
+
+    captured = capsys.readouterr()
+    assert exc_info.value.code == 1
+    assert message in captured.out
+    assert "nonpublic-cli-value-which-is-long-enough" not in captured.out
+    assert captured.err == ""
+
+
 def test_evidence_success_writes_packet_without_exiting(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
