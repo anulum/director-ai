@@ -58,6 +58,7 @@ except Exception:  # pragma: no cover - mandatory dependency
 
 from ..mandatory import mandatory_execution
 from ..model_revisions import resolve_model_revision
+from .finetune_validator import _validate_loaded_training_rows
 
 logger = logging.getLogger("DirectorAI.FineTune")
 
@@ -180,7 +181,8 @@ def _mix_general_data(
         return domain_rows, 0
 
     n_general = int(len(domain_rows) * ratio / (1 - ratio))
-    rng = random.Random(seed)
+    # Deterministic sampling keeps fine-tune mixes reproducible; this is not crypto.
+    rng = random.Random(seed)  # nosec B311
     if n_general < len(general_rows):
         general_sample = rng.sample(general_rows, n_general)
     else:
@@ -390,15 +392,24 @@ def finetune_nli(
     -------
     FinetuneResult with output_dir and best metrics.
 
+    Raises
+    ------
+    ValueError
+        If the loaded training or evaluation rows cannot train a binary NLI
+        classification head.
+
     """
     if config is None:
         config = FinetuneConfig()
 
     train_rows = _load_jsonl(train_path)
-    if not train_rows:
-        raise ValueError(f"No valid samples in {train_path}")
+    _validate_loaded_training_rows(train_rows, train_path)
 
-    eval_rows = _load_jsonl(eval_path) if eval_path else None
+    if eval_path is not None:
+        eval_rows = _load_jsonl(eval_path)
+        _validate_loaded_training_rows(eval_rows, eval_path)
+    else:
+        eval_rows = None
 
     base_model_revision = resolve_model_revision(
         config.base_model,

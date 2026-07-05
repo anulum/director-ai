@@ -10,6 +10,8 @@
 
 Checks format, class balance, duplicates, field lengths, and estimates
 training cost. Run this before ``finetune_nli()`` to catch issues early.
+The direct ``finetune_nli()`` training path also reuses this module's structural
+row validator so non-binary labels fail before optional model-training imports.
 
 Usage::
 
@@ -25,6 +27,7 @@ from __future__ import annotations
 import json
 import logging
 from collections import Counter
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -100,6 +103,30 @@ class DataQualityReport:
 def _rough_token_count(text: str) -> int:
     """Approximate token count (whitespace + punctuation split)."""
     return len(text.split())
+
+
+def _validate_loaded_training_rows(
+    rows: Sequence[Mapping[str, object]],
+    source: str | Path,
+) -> None:
+    """Raise ``ValueError`` when loaded rows cannot train a binary NLI head."""
+    if not rows:
+        raise ValueError(f"No valid samples in {source}")
+
+    label_errors: list[str] = []
+    for row_index, row in enumerate(rows, 1):
+        label = row.get("label")
+        if isinstance(label, bool) or not isinstance(label, int) or label not in (0, 1):
+            label_errors.append(
+                f"row {row_index}: label must be 0 or 1, got {label!r}",
+            )
+        if len(label_errors) >= 10:
+            label_errors.append("(truncated, too many label errors)")
+            break
+
+    if label_errors:
+        joined = "; ".join(label_errors)
+        raise ValueError(f"{source}: {joined}")
 
 
 def validate_finetune_data(

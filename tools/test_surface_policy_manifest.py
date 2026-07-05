@@ -200,7 +200,10 @@ KNOWN_TEST_SURFACE_CLASSIFICATIONS: dict[str, tuple[str, str]] = {
         "unit-guard-with-companion",
         "module/workflow unit guard with companion tests/test_feedback_store_real_surface.py",
     ),
-    "tests/test_finetune.py": ("violation", "ML/export/eval boundary fake"),
+    "tests/test_finetune.py": (
+        "unit-guard-with-companion",
+        "ML/export/eval unit guard with companion tests/test_finetune_real_surface.py",
+    ),
     "tests/test_finetune_api.py": (
         "unit-guard-with-companion",
         "CLI/server/API unit guard with companion tests/test_finetune_api_real_surface.py",

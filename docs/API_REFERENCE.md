@@ -511,6 +511,13 @@ Fine-tuning routes are mounted from `create_finetune_router()` when enabled:
 | GET | `/` | List fine-tuned models |
 | DELETE | `/{job_id}` | Delete a fine-tune job |
 
+`POST /validate`, `POST /start`, and `director-ai validate-data` apply the
+customer-readiness gate for minimum sample counts, class balance, duplicates,
+lengths, and cost estimates. The lower-level Python `finetune_nli()` entry point
+also validates loaded training and evaluation rows before importing optional
+training dependencies, so non-binary NLI labels fail closed even when callers
+skip the readiness preflight.
+
 `GET /v1/scorer/models` returns stable runtime scorer choices by default. Add
 `include_domain_only=true` to include benchmarked domain-only choices requiring
 explicit operator opt-in.
@@ -553,8 +560,8 @@ Supported top-level commands in `director_ai.cli`:
 | `bench` | Run regression benchmarks |
 | `tune` | Tune profile thresholds/weights |
 | `train` | Submit, sweep, list, benchmark, or harvest managed training jobs |
-| `finetune` | Fine-tune an NLI model |
-| `validate-data` | Validate fine-tuning data |
+| `finetune` | Fine-tune an NLI model after structural row validation |
+| `validate-data` | Validate fine-tuning data against the customer-readiness gate |
 | `export` | Export a model |
 | `serve` | Start the FastAPI service |
 | `proxy` | Start the OpenAI-compatible guardrail proxy |
