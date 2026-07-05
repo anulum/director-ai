@@ -17,8 +17,8 @@ KNOWN_TEST_SURFACE_CLASSIFICATIONS: dict[str, tuple[str, str]] = {
         "module/workflow unit guard with companion tests/test_actor_real_surface.py",
     ),
     "tests/test_accuracy_improvements.py": (
-        "violation",
-        "private-helper bypass requiring review",
+        "unit-guard-with-companion",
+        "accuracy-routing unit guard with companion tests/test_accuracy_improvements_real_surface.py",
     ),
     "tests/test_agent.py": (
         "unit-guard-with-companion",
