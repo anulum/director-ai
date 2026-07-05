@@ -17,6 +17,11 @@ PRE_COMMIT_CONFIG = ROOT / ".pre-commit-config.yaml"
 PYPROJECT = ROOT / "pyproject.toml"
 CI_WORKFLOW = ROOT / ".github" / "workflows" / "ci.yml"
 CI_DEV_LOCK = ROOT / "requirements" / "ci-dev.txt"
+LOCAL_ONLY_GUARD_PATHS = (
+    "CLAUDE.md",
+    "TODO",
+    "target/build-output.o",
+)
 FORBIDDEN_COVERAGE_TEST_PATTERNS = (
     "test_cov*.py",
     "test_coverage*.py",
@@ -37,8 +42,20 @@ FORBIDDEN_COVERAGE_BUCKET_PHRASES = (
 )
 
 
-def _run(command: list[str], cwd: Path) -> subprocess.CompletedProcess[str]:
-    return subprocess.run(command, cwd=cwd, check=False, text=True, capture_output=True)
+def _run(
+    command: list[str],
+    cwd: Path,
+    *,
+    input_text: str | None = None,
+) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        command,
+        cwd=cwd,
+        input=input_text,
+        check=False,
+        text=True,
+        capture_output=True,
+    )
 
 
 def _repo(tmp_path: Path) -> Path:
@@ -239,6 +256,19 @@ def test_active_public_paths_do_not_reference_coverage_bucket_tests() -> None:
             offenders.append(f"{path.relative_to(ROOT)}: forbidden coverage test name")
 
     assert offenders == []
+
+
+def test_gitignore_covers_local_agent_todo_and_build_paths() -> None:
+    """Prevent local coordination and build outputs from entering commits."""
+    result = _run(
+        ["git", "check-ignore", "--stdin"],
+        ROOT,
+        input_text="\n".join(LOCAL_ONLY_GUARD_PATHS) + "\n",
+    )
+
+    assert result.returncode == 0
+    assert set(result.stdout.splitlines()) == set(LOCAL_ONLY_GUARD_PATHS)
+    assert result.stderr == ""
 
 
 def test_main_coverage_omits_formal_only_neuro_symbolic_package() -> None:
