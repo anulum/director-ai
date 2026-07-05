@@ -239,11 +239,11 @@ inventory below is reference for the deeper surface, navigable under
 | Package version | 3.16.1 |
 | Public API exports | 226 |
 | Python capability source modules | 461 |
-| Python capability classes | 1002 |
+| Python capability classes | 1003 |
 | API documentation pages | 89 |
 | Rust PyO3 bindings | 83 |
 | Optional extras | 59 |
-| Python test files | 662 |
+| Python test files | 663 |
 | Public documentation pages | 203 |
 | GitHub Actions workflows | 14 |
 
@@ -487,6 +487,14 @@ pip install "minicheck @ git+https://github.com/Liyan06/MiniCheck.git"
 | **3** | Embedding (bge-small) | ~65% BA | 3 ms | `[embed]` |
 | **2** | Rules engine (8 rules) | rule-based | <1 ms | — (base) |
 | **1** | Heuristic (lite) | ~55% BA | <1 ms | — (base) |
+
+`nli-lite` local ONNX artefacts are validated before runtime imports. A
+local directory must contain an ONNX model plus at least one tokenizer model
+file (`tokenizer.json`, `vocab.txt`, or `spiece.model`), and symlinked model
+or tokenizer files must remain inside the artefact directory and
+`DIRECTOR_ONNX_ALLOWED_DIRS` when that allowlist is configured. Missing local
+assets fail closed instead of falling through to a hub or PyTorch load; remote
+hub loads remain pinned to the released distilled model revision.
 
 Select via config: `scorer_backend="rules"`, `"embed"`, `"deberta"`, or `"lite"`.
 

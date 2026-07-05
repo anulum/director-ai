@@ -156,7 +156,10 @@ KNOWN_TEST_SURFACE_CLASSIFICATIONS: dict[str, tuple[str, str]] = {
         "unit-guard-with-companion",
         "scoring/dialogue unit guard with companion tests/test_dialogue_fpr_real_surface.py",
     ),
-    "tests/test_distilled_scorer.py": ("violation", "ML/export/eval boundary fake"),
+    "tests/test_distilled_scorer.py": (
+        "unit-guard-with-companion",
+        "ML/export/eval unit guard with companion tests/test_distilled_scorer_real_surface.py",
+    ),
     "tests/test_doc_chunker_model_cache.py": (
         "unit-guard-with-companion",
         "ML/export/eval unit guard with companion tests/test_doc_chunker_model_cache_real_surface.py",

@@ -15,9 +15,14 @@ from __future__ import annotations
 
 import sys
 import types
+from collections.abc import Callable
+from pathlib import Path
+from types import TracebackType
+from typing import Any
 from unittest.mock import MagicMock
 
 import numpy as np
+import numpy.typing as npt
 import pytest
 
 import director_ai.core.scoring.distilled_scorer as distilled_mod
@@ -27,29 +32,35 @@ from director_ai.core.scoring.distilled_scorer import (
     _softmax,
 )
 
+
+def _dynamic_module(name: str) -> Any:
+    """Return a mutable dynamic module for import-boundary fakes."""
+    return types.ModuleType(name)
+
+
 # ── _softmax utility ───────────────────────────────────────────────────
 
 
 class TestSoftmax:
-    def test_uniform(self):
+    def test_uniform(self) -> None:
         result = _softmax(np.array([0.0, 0.0]))
         np.testing.assert_allclose(result, [0.5, 0.5])
 
-    def test_dominant(self):
+    def test_dominant(self) -> None:
         result = _softmax(np.array([10.0, 0.0]))
         assert result[0] > 0.99
         assert result[1] < 0.01
 
-    def test_sums_to_one(self):
+    def test_sums_to_one(self) -> None:
         result = _softmax(np.array([1.0, 2.0, 3.0]))
         assert abs(result.sum() - 1.0) < 1e-6
 
-    def test_negative_logits(self):
+    def test_negative_logits(self) -> None:
         result = _softmax(np.array([-10.0, -5.0]))
         assert result.sum() - 1.0 < 1e-6
         assert result[1] > result[0]
 
-    def test_rust_softmax_delegation(self, monkeypatch):
+    def test_rust_softmax_delegation(self, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.setattr(distilled_mod, "_RUST_DISTILLED", True)
         monkeypatch.setattr(
             distilled_mod,
@@ -60,7 +71,9 @@ class TestSoftmax:
         result = _softmax(np.array([1.0, -1.0]))
         np.testing.assert_allclose(result, [0.8, 0.2])
 
-    def test_rust_softmax_non_runtime_fallback(self, monkeypatch):
+    def test_rust_softmax_non_runtime_fallback(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         monkeypatch.setattr(distilled_mod, "_RUST_DISTILLED", True)
         monkeypatch.setattr(
             distilled_mod,
@@ -72,7 +85,9 @@ class TestSoftmax:
         assert result[0] > result[1]
         assert abs(result.sum() - 1.0) < 1e-6
 
-    def test_python_softmax_floor_when_rust_disabled(self, monkeypatch):
+    def test_python_softmax_floor_when_rust_disabled(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         monkeypatch.setattr(distilled_mod, "_RUST_DISTILLED", False)
 
         result = _softmax(np.array([1.0, 2.0, 3.0]))
@@ -80,14 +95,18 @@ class TestSoftmax:
         assert result[2] > result[1] > result[0]
         assert result.sum() == pytest.approx(1.0)
 
-    def test_python_sum_floor_when_rust_disabled(self, monkeypatch):
+    def test_python_sum_floor_when_rust_disabled(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         monkeypatch.setattr(distilled_mod, "_RUST_DISTILLED", False)
 
         assert distilled_mod._sum_float_list([0.25, 0.5, 1.25]) == pytest.approx(2.0)
 
-    def test_rust_sum_helper_delegates_when_enabled(self, monkeypatch):
+    def test_rust_sum_helper_delegates_when_enabled(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         monkeypatch.setattr(distilled_mod, "_RUST_DISTILLED", True)
-        calls: dict[str, object] = {}
+        calls: dict[str, Any] = {}
 
         def rust_sum(values: list[float]) -> float:
             calls["values"] = values
@@ -103,21 +122,21 @@ class TestSoftmax:
 
 
 class TestConstruction:
-    def test_default_model(self):
+    def test_default_model(self) -> None:
         b = DistilledNLIBackend()
         assert b._model_path == DEFAULT_DISTILLED_MODEL
 
-    def test_custom_model(self):
+    def test_custom_model(self) -> None:
         b = DistilledNLIBackend(model_path="/tmp/my-model")
         assert b._model_path == "/tmp/my-model"
 
-    def test_lazy_no_load_at_init(self):
+    def test_lazy_no_load_at_init(self) -> None:
         b = DistilledNLIBackend()
         assert not b._ready
         assert b._session is None
         assert b._model is None
 
-    def test_use_onnx_default(self):
+    def test_use_onnx_default(self) -> None:
         b = DistilledNLIBackend()
         assert b._use_onnx is True
 
@@ -126,7 +145,7 @@ class TestConstruction:
 
 
 class TestOnnxPath:
-    def _mock_backend(self):
+    def _mock_backend(self) -> DistilledNLIBackend:
         b = DistilledNLIBackend()
         # Mock ONNX session
         mock_session = MagicMock()
@@ -148,60 +167,70 @@ class TestOnnxPath:
         b._ready = True
         return b
 
-    def test_score_returns_float(self):
+    def test_score_returns_float(self) -> None:
         b = self._mock_backend()
         s = b.score("premise", "hypothesis")
         assert isinstance(s, float)
 
-    def test_score_high_entailment(self):
+    def test_score_high_entailment(self) -> None:
         b = self._mock_backend()
         s = b.score("x", "y")
         assert s > 0.9  # logits [2, -1] → softmax ≈ [0.95, 0.05]
 
-    def test_score_range(self):
+    def test_score_range(self) -> None:
         b = self._mock_backend()
         s = b.score("a", "b")
         assert 0.0 <= s <= 1.0
 
-    def test_batch(self):
+    def test_batch(self) -> None:
         b = self._mock_backend()
         scores = b.score_batch([("a", "b"), ("c", "d")])
         assert len(scores) == 2
         assert all(isinstance(s, float) for s in scores)
 
-    def test_empty_batch(self):
+    def test_empty_batch(self) -> None:
         b = self._mock_backend()
         assert b.score_batch([]) == []
 
     def test_ensure_loaded_uses_local_onnx_without_hub_download(
-        self, monkeypatch, tmp_path
-    ):
-        calls: dict[str, object] = {}
+        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+    ) -> None:
+        calls: dict[str, Any] = {}
         model_dir = tmp_path / "nli-lite"
         model_dir.mkdir()
         (model_dir / "model.onnx").write_bytes(b"fake-onnx")
+        (model_dir / "tokenizer.json").write_text('{"version": "1.0"}')
 
         class FakeSession:
-            def __init__(self, path, *, providers):
+            def __init__(self, path: str, *, providers: list[str]) -> None:
                 calls["onnx_path"] = path
                 calls["providers"] = providers
 
-            def get_inputs(self):
+            def get_inputs(self) -> list[Any]:
                 return []
 
-            def run(self, outputs, inputs):
+            def run(
+                self, outputs: object, inputs: dict[str, object]
+            ) -> list[npt.NDArray[np.float64]]:
                 return [np.array([[3.0, 0.0]], dtype=float)]
 
         class FakeTokenizer:
             @classmethod
-            def from_pretrained(cls, model_path, *, revision):
+            def from_pretrained(
+                cls,
+                model_path: str,
+                *,
+                revision: str,
+                **kwargs: object,
+            ) -> Callable[..., dict[str, object]]:
                 calls["tokenizer_model_path"] = model_path
                 calls["tokenizer_revision"] = revision
+                calls["tokenizer_kwargs"] = kwargs
                 return lambda premise, hypothesis, **kwargs: {}
 
-        fake_ort = types.ModuleType("onnxruntime")
+        fake_ort = _dynamic_module("onnxruntime")
         fake_ort.InferenceSession = FakeSession
-        fake_transformers = types.ModuleType("transformers")
+        fake_transformers = _dynamic_module("transformers")
         fake_transformers.AutoTokenizer = FakeTokenizer
         monkeypatch.setitem(sys.modules, "onnxruntime", fake_ort)
         monkeypatch.setitem(sys.modules, "transformers", fake_transformers)
@@ -215,9 +244,12 @@ class TestOnnxPath:
         assert calls["onnx_path"] == str(model_dir / "model.onnx")
         assert calls["providers"] == ["CPUExecutionProvider"]
         assert calls["tokenizer_model_path"] == str(model_dir)
+        assert calls["tokenizer_kwargs"] == {"local_files_only": True}
 
-    def test_local_onnx_rejects_path_outside_allowed_root(self, monkeypatch, tmp_path):
-        calls: dict[str, object] = {}
+    def test_local_onnx_rejects_path_outside_allowed_root(
+        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+    ) -> None:
+        calls: dict[str, Any] = {}
         allowed = tmp_path / "allowed"
         allowed.mkdir()
         outside = tmp_path / "outside"
@@ -225,19 +257,19 @@ class TestOnnxPath:
         (outside / "model.onnx").write_bytes(b"fake")
 
         class FakeSession:
-            def __init__(self, path, *, providers):
+            def __init__(self, path: str, *, providers: list[str]) -> None:
                 calls["onnx_path"] = path
                 calls["providers"] = providers
 
         class FakeTokenizer:
             @classmethod
-            def from_pretrained(cls, model_path, *, revision):
+            def from_pretrained(cls, model_path: str, *, revision: str) -> MagicMock:
                 calls["tokenizer_model_path"] = model_path
                 return MagicMock()
 
-        fake_ort = types.ModuleType("onnxruntime")
+        fake_ort = _dynamic_module("onnxruntime")
         fake_ort.InferenceSession = FakeSession
-        fake_transformers = types.ModuleType("transformers")
+        fake_transformers = _dynamic_module("transformers")
         fake_transformers.AutoTokenizer = FakeTokenizer
         monkeypatch.setitem(sys.modules, "onnxruntime", fake_ort)
         monkeypatch.setitem(sys.modules, "transformers", fake_transformers)
@@ -249,8 +281,10 @@ class TestOnnxPath:
 
         assert "onnx_path" not in calls
 
-    def test_local_onnx_rejects_model_file_symlink_escape(self, monkeypatch, tmp_path):
-        calls: dict[str, object] = {}
+    def test_local_onnx_rejects_model_file_symlink_escape(
+        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+    ) -> None:
+        calls: dict[str, Any] = {}
         allowed = tmp_path / "allowed"
         allowed.mkdir()
         external = tmp_path / "external"
@@ -261,19 +295,19 @@ class TestOnnxPath:
         (model_dir / "model.onnx").symlink_to(external / "model.onnx")
 
         class FakeSession:
-            def __init__(self, path, *, providers):
+            def __init__(self, path: str, *, providers: list[str]) -> None:
                 calls["onnx_path"] = path
                 calls["providers"] = providers
 
         class FakeTokenizer:
             @classmethod
-            def from_pretrained(cls, model_path, *, revision):
+            def from_pretrained(cls, model_path: str, *, revision: str) -> MagicMock:
                 calls["tokenizer_model_path"] = model_path
                 return MagicMock()
 
-        fake_ort = types.ModuleType("onnxruntime")
+        fake_ort = _dynamic_module("onnxruntime")
         fake_ort.InferenceSession = FakeSession
-        fake_transformers = types.ModuleType("transformers")
+        fake_transformers = _dynamic_module("transformers")
         fake_transformers.AutoTokenizer = FakeTokenizer
         monkeypatch.setitem(sys.modules, "onnxruntime", fake_ort)
         monkeypatch.setitem(sys.modules, "transformers", fake_transformers)
@@ -286,41 +320,45 @@ class TestOnnxPath:
         assert "onnx_path" not in calls
 
     def test_ensure_loaded_downloads_remote_onnx_with_pinned_revision(
-        self, monkeypatch, tmp_path
-    ):
-        calls: dict[str, object] = {}
+        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+    ) -> None:
+        calls: dict[str, Any] = {}
         downloaded = tmp_path / "downloaded-model.onnx"
         downloaded.write_bytes(b"fake-onnx")
 
         class FakeSession:
-            def __init__(self, path, *, providers):
+            def __init__(self, path: str, *, providers: list[str]) -> None:
                 calls["onnx_path"] = path
                 calls["providers"] = providers
 
-            def get_inputs(self):
+            def get_inputs(self) -> list[Any]:
                 return []
 
-            def run(self, outputs, inputs):
+            def run(
+                self, outputs: object, inputs: dict[str, object]
+            ) -> list[npt.NDArray[np.float64]]:
                 return [np.array([[0.0, 3.0]], dtype=float)]
 
         class FakeTokenizer:
             @classmethod
-            def from_pretrained(cls, model_path, *, revision):
+            def from_pretrained(
+                cls, model_path: str, *, revision: str
+            ) -> Callable[..., dict[str, object]]:
                 calls["tokenizer_model_path"] = model_path
                 calls["tokenizer_revision"] = revision
                 return lambda premise, hypothesis, **kwargs: {}
 
-        def hf_hub_download(repo_id, filename, *, revision):
+        def hf_hub_download(repo_id: str, filename: str, *, revision: str) -> str:
             calls["repo_id"] = repo_id
             calls["filename"] = filename
             calls["download_revision"] = revision
             return str(downloaded)
 
-        fake_ort = types.ModuleType("onnxruntime")
+        fake_ort = _dynamic_module("onnxruntime")
         fake_ort.InferenceSession = FakeSession
-        fake_transformers = types.ModuleType("transformers")
+        fake_transformers = _dynamic_module("transformers")
         fake_transformers.AutoTokenizer = FakeTokenizer
-        fake_hub = types.ModuleType("huggingface_hub")
+        fake_hub = _dynamic_module("huggingface_hub")
         fake_hub.hf_hub_download = hf_hub_download
         monkeypatch.setitem(sys.modules, "onnxruntime", fake_ort)
         monkeypatch.setitem(sys.modules, "transformers", fake_transformers)
@@ -336,77 +374,95 @@ class TestOnnxPath:
         assert calls["download_revision"] == calls["tokenizer_revision"]
 
     def test_onnx_load_failure_falls_back_to_pytorch(
-        self, monkeypatch, tmp_path, caplog
-    ):
-        calls: dict[str, object] = {}
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+        tmp_path: Path,
+        caplog: pytest.LogCaptureFixture,
+    ) -> None:
+        calls: dict[str, Any] = {}
         model_dir = tmp_path / "broken-onnx"
         model_dir.mkdir()
         (model_dir / "model.onnx").write_bytes(b"broken")
+        (model_dir / "tokenizer.json").write_text('{"version": "1.0"}')
 
         class FakeTensor:
-            def __init__(self, value):
+            def __init__(self, value: npt.NDArray[Any]) -> None:
                 self.value = value
 
-            def to(self, device):
+            def to(self, device: str) -> FakeTensor:
                 calls.setdefault("input_devices", []).append(device)
                 return self
 
-            def cpu(self):
+            def cpu(self) -> FakeTensor:
                 return self
 
-            def numpy(self):
+            def numpy(self) -> npt.NDArray[Any]:
                 return self.value
 
-            def __getitem__(self, index):
+            def __getitem__(self, index: int) -> FakeTensor:
                 assert index == 0
                 return FakeTensor(self.value[index])
 
         class _NoGrad:
-            def __enter__(self):
+            def __enter__(self) -> None:
                 calls["no_grad_entered"] = True
 
-            def __exit__(self, exc_type, exc, tb):
+            def __exit__(
+                self,
+                exc_type: type[BaseException] | None,
+                exc: BaseException | None,
+                tb: TracebackType | None,
+            ) -> None:
                 calls["no_grad_exited"] = True
 
         class FakeTokenizer:
             @classmethod
-            def from_pretrained(cls, model_path, *, revision):
+            def from_pretrained(
+                cls,
+                model_path: str,
+                *,
+                revision: str,
+                **kwargs: object,
+            ) -> FakeTokenizer:
                 calls["tokenizer_model_path"] = model_path
+                calls["tokenizer_kwargs"] = kwargs
                 return cls()
 
-            def __call__(self, premise, hypothesis, **kwargs):
+            def __call__(
+                self, premise: str, hypothesis: str, **kwargs: object
+            ) -> dict[str, FakeTensor]:
                 calls["tokenizer_kwargs"] = kwargs
                 return {"input_ids": FakeTensor(np.array([[1, 2, 3]]))}
 
         class FakeModel:
             @classmethod
-            def from_pretrained(cls, model_path, *, revision):
+            def from_pretrained(cls, model_path: str, *, revision: str) -> FakeModel:
                 calls["model_path"] = model_path
                 return cls()
 
-            def to(self, device):
+            def to(self, device: str) -> FakeModel:
                 calls["model_device"] = device
                 return self
 
-            def eval(self):
+            def eval(self) -> FakeModel:
                 calls["model_eval"] = True
                 return self
 
-            def __call__(self, **inputs):
+            def __call__(self, **inputs: FakeTensor) -> types.SimpleNamespace:
                 calls["model_inputs"] = inputs
                 return types.SimpleNamespace(logits=FakeTensor(np.array([[1.0, 0.0]])))
 
-        fake_ort = types.ModuleType("onnxruntime")
+        fake_ort = _dynamic_module("onnxruntime")
         fake_ort.InferenceSession = lambda *args, **kwargs: (_ for _ in ()).throw(
             RuntimeError("corrupt onnx")
         )
-        fake_transformers = types.ModuleType("transformers")
+        fake_transformers = _dynamic_module("transformers")
         fake_transformers.AutoTokenizer = FakeTokenizer
         fake_transformers.AutoModelForSequenceClassification = FakeModel
-        fake_torch = types.ModuleType("torch")
+        fake_torch = _dynamic_module("torch")
         fake_torch.no_grad = lambda: _NoGrad()
 
-        def softmax(logits, dim):
+        def softmax(logits: FakeTensor, dim: int) -> FakeTensor:
             calls["softmax_dim"] = dim
             return FakeTensor(np.array([[0.8, 0.2]], dtype=float))
 
@@ -427,7 +483,30 @@ class TestOnnxPath:
         assert calls["softmax_dim"] == -1
         assert "ONNX load failed" in caplog.text
 
-    def test_onnx_permission_error_does_not_fall_back_to_pytorch(self, monkeypatch):
+    def test_remote_onnx_file_not_found_falls_back_to_pytorch(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+        caplog: pytest.LogCaptureFixture,
+    ) -> None:
+        backend = DistilledNLIBackend(model_path="tenant/nli-lite")
+        monkeypatch.setattr(
+            backend,
+            "_load_onnx",
+            lambda: (_ for _ in ()).throw(FileNotFoundError("hub model missing")),
+        )
+        pytorch = MagicMock()
+        monkeypatch.setattr(backend, "_load_pytorch", pytorch)
+
+        with caplog.at_level("WARNING", logger="DirectorAI.DistilledNLI"):
+            backend._ensure_loaded()
+
+        pytorch.assert_called_once_with()
+        assert backend._ready is True
+        assert "ONNX load failed, falling back to PyTorch" in caplog.text
+
+    def test_onnx_permission_error_does_not_fall_back_to_pytorch(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         backend = DistilledNLIBackend(model_path="tenant/nli-lite")
         monkeypatch.setattr(
             backend,
@@ -442,7 +521,9 @@ class TestOnnxPath:
 
         pytorch.assert_not_called()
 
-    def test_ensure_loaded_can_start_directly_with_pytorch(self, monkeypatch):
+    def test_ensure_loaded_can_start_directly_with_pytorch(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         backend = DistilledNLIBackend(use_onnx=False)
         onnx = MagicMock()
         pytorch = MagicMock()
@@ -455,27 +536,31 @@ class TestOnnxPath:
         pytorch.assert_called_once_with()
         assert backend._ready is True
 
-    def test_load_pytorch_rejects_missing_model_object(self, monkeypatch):
-        calls: dict[str, object] = {}
+    def test_load_pytorch_rejects_missing_model_object(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        calls: dict[str, Any] = {}
 
         class FakeTokenizer:
             @classmethod
-            def from_pretrained(cls, model_path, *, revision):
+            def from_pretrained(
+                cls, model_path: str, *, revision: str
+            ) -> FakeTokenizer:
                 calls["tokenizer_model_path"] = model_path
                 calls["tokenizer_revision"] = revision
                 return cls()
 
         class FakeModelFactory:
             @classmethod
-            def from_pretrained(cls, model_path, *, revision):
+            def from_pretrained(cls, model_path: str, *, revision: str) -> None:
                 calls["model_path"] = model_path
                 calls["model_revision"] = revision
                 return None
 
-        fake_transformers = types.ModuleType("transformers")
+        fake_transformers = _dynamic_module("transformers")
         fake_transformers.AutoTokenizer = FakeTokenizer
         fake_transformers.AutoModelForSequenceClassification = FakeModelFactory
-        fake_torch = types.ModuleType("torch")
+        fake_torch = _dynamic_module("torch")
         monkeypatch.setitem(sys.modules, "transformers", fake_transformers)
         monkeypatch.setitem(sys.modules, "torch", fake_torch)
 
@@ -487,7 +572,7 @@ class TestOnnxPath:
         assert calls["tokenizer_model_path"] == DEFAULT_DISTILLED_MODEL
         assert calls["model_path"] == DEFAULT_DISTILLED_MODEL
 
-    def test_infer_requires_loaded_tokeniser_and_model(self):
+    def test_infer_requires_loaded_tokeniser_and_model(self) -> None:
         backend = DistilledNLIBackend()
 
         with pytest.raises(RuntimeError, match="tokeniser not loaded"):
@@ -506,7 +591,7 @@ class TestOnnxPath:
     reason="torch not installed",
 )
 class TestPyTorchPath:
-    def _mock_backend(self):
+    def _mock_backend(self) -> DistilledNLIBackend:
         import torch
 
         b = DistilledNLIBackend(use_onnx=False)
@@ -525,7 +610,7 @@ class TestPyTorchPath:
         b._device = "cpu"
         return b
 
-    def test_score_pytorch(self):
+    def test_score_pytorch(self) -> None:
         b = self._mock_backend()
         s = b.score("premise", "hypothesis")
         assert isinstance(s, float)
@@ -536,7 +621,7 @@ class TestPyTorchPath:
 
 
 class TestRegistry:
-    def test_nli_lite_registered(self):
+    def test_nli_lite_registered(self) -> None:
         from director_ai.core.scoring.backends import list_backends
 
         assert "nli-lite" in list_backends()

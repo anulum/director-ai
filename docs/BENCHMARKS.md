@@ -131,6 +131,11 @@ Training: 10 epochs, KL divergence + hard label blend (alpha=0.3), T=1.5.
 
 - ONNX INT8 latency: 27ms CPU
 - Model size: 83MB ONNX
+- Local artefact contract: the runtime validates a local ONNX directory before
+  importing ONNX Runtime or Transformers. The directory must contain an ONNX
+  model plus `tokenizer.json`, `vocab.txt`, or `spiece.model`; model and
+  tokenizer symlinks must stay inside the artefact root and any configured
+  `DIRECTOR_ONNX_ALLOWED_DIRS` root.
 - Sanity checks (6/6 PASS):
   - Supported claims: P[support] = 0.84–0.87
   - Contradicted claims: P[contra] = 0.74–0.89

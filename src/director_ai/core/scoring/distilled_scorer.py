@@ -32,6 +32,7 @@ Usage::
 from __future__ import annotations
 
 import logging
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
@@ -59,6 +60,116 @@ except ImportError:
 
 DEFAULT_DISTILLED_MODEL = "anulum/director-ai-nli-lite"
 DEFAULT_DISTILLED_REVISION = "f88222676f64b698c1fcb394f4eeb8da40405027"
+_DISTILLED_TOKENISER_MODEL_FILES = ("tokenizer.json", "vocab.txt", "spiece.model")
+_DISTILLED_TOKENISER_SUPPORT_FILES = (
+    "tokenizer_config.json",
+    "special_tokens_map.json",
+    "merges.txt",
+)
+
+
+@dataclass(frozen=True, slots=True)
+class DistilledOnnxArtifact:
+    """Resolved local ONNX artefact accepted by the distilled scorer loader.
+
+    Attributes
+    ----------
+    model_dir:
+        Resolved directory containing the local artefact.
+    model_file:
+        Resolved ONNX model file selected for inference.
+    tokeniser_files:
+        Resolved tokenizer assets that remain inside ``model_dir``.
+    """
+
+    model_dir: Path
+    model_file: Path
+    tokeniser_files: tuple[Path, ...]
+
+
+def _path_is_relative_to(path: Path, root: Path) -> bool:
+    """Return whether ``path`` resolves under ``root``."""
+    try:
+        path.relative_to(root)
+    except ValueError:
+        return False
+    return True
+
+
+def _local_model_path_exists(model_path: str) -> bool:
+    """Return whether ``model_path`` points at an existing local path."""
+    return Path(model_path).expanduser().exists()
+
+
+def _resolve_tokeniser_files(model_dir: Path) -> tuple[Path, ...]:
+    """Resolve tokeniser assets and reject symlink escapes."""
+    tokeniser_model_files = [
+        model_dir / filename
+        for filename in _DISTILLED_TOKENISER_MODEL_FILES
+        if (model_dir / filename).exists()
+    ]
+    if not tokeniser_model_files:
+        raise FileNotFoundError(
+            "Distilled local ONNX artefact requires tokenizer.json, "
+            "vocab.txt, or spiece.model"
+        )
+
+    candidates = tokeniser_model_files + [
+        model_dir / filename
+        for filename in _DISTILLED_TOKENISER_SUPPORT_FILES
+        if (model_dir / filename).exists()
+    ]
+    resolved_files: list[Path] = []
+    for candidate in candidates:
+        resolved = candidate.resolve()
+        if not _path_is_relative_to(resolved, model_dir):
+            raise PermissionError(
+                f"Distilled tokeniser file escapes model directory: {candidate}"
+            )
+        resolved_files.append(resolved)
+    return tuple(resolved_files)
+
+
+def validate_local_distilled_onnx_artifact(
+    model_path: str | Path,
+) -> DistilledOnnxArtifact:
+    """Validate a local distilled ONNX artefact before runtime loading.
+
+    The check runs before importing ONNX Runtime or Transformers so incomplete
+    local artefacts fail closed without falling through to a hub download or a
+    misleading PyTorch fallback.
+
+    Parameters
+    ----------
+    model_path:
+        Local directory that should contain a distilled ONNX model and tokenizer
+        assets.
+
+    Returns
+    -------
+    DistilledOnnxArtifact
+        Resolved artefact paths safe for the runtime loader.
+
+    Raises
+    ------
+    FileNotFoundError
+        If the directory, ONNX model, or tokenizer assets are missing.
+    PermissionError
+        If the artefact or tokeniser files escape the configured local roots.
+    """
+    from director_ai.core.scoring._nli_export import _resolve_onnx_model_file
+
+    model_dir, model_file = _resolve_onnx_model_file(str(model_path))
+    resolved_model_dir = model_dir.resolve()
+    resolved_model_file = model_file.resolve()
+    if not resolved_model_file.is_file():
+        raise FileNotFoundError(f"Distilled ONNX model file not found: {model_file}")
+
+    return DistilledOnnxArtifact(
+        model_dir=resolved_model_dir,
+        model_file=resolved_model_file,
+        tokeniser_files=_resolve_tokeniser_files(resolved_model_dir),
+    )
 
 
 class DistilledNLIBackend:
@@ -103,13 +214,18 @@ class DistilledNLIBackend:
 
         # Try ONNX first
         if self._use_onnx:
+            local_model_path_exists = _local_model_path_exists(self._model_path)
             try:
                 self._load_onnx()
                 self._ready = True
                 return
             except PermissionError:
                 raise
-            except (ImportError, FileNotFoundError, OSError, RuntimeError) as exc:
+            except FileNotFoundError:
+                if local_model_path_exists:
+                    raise
+                logger.warning("ONNX load failed, falling back to PyTorch")
+            except (ImportError, OSError, RuntimeError) as exc:
                 logger.warning("ONNX load failed, falling back to PyTorch: %s", exc)
 
         # PyTorch fallback
@@ -118,15 +234,15 @@ class DistilledNLIBackend:
 
     def _load_onnx(self) -> None:
         """Load ONNX Runtime session + tokeniser."""
-        import onnxruntime as ort
-        from transformers import AutoTokenizer
-
-        from director_ai.core.scoring._nli_export import _resolve_onnx_model_file
-
         model_dir = Path(self._model_path)
-        onnx_path = None
+        artifact: DistilledOnnxArtifact | None = None
         if model_dir.is_dir():
-            resolved_model_dir, onnx_path = _resolve_onnx_model_file(self._model_path)
+            artifact = validate_local_distilled_onnx_artifact(self._model_path)
+            onnx_path = artifact.model_file
+            tokenizer_model_path = str(artifact.model_dir)
+        else:
+            onnx_path = None
+            tokenizer_model_path = self._model_path
 
         if onnx_path is None or not onnx_path.exists():
             # Try downloading from HF Hub
@@ -140,10 +256,20 @@ class DistilledNLIBackend:
                 )
             )
 
-        self._tokeniser = AutoTokenizer.from_pretrained(
-            str(resolved_model_dir) if model_dir.is_dir() else self._model_path,
-            revision=DEFAULT_DISTILLED_REVISION,
-        )
+        import onnxruntime as ort
+        from transformers import AutoTokenizer
+
+        if artifact is not None:
+            self._tokeniser = AutoTokenizer.from_pretrained(
+                tokenizer_model_path,
+                revision=DEFAULT_DISTILLED_REVISION,
+                local_files_only=True,
+            )
+        else:
+            self._tokeniser = AutoTokenizer.from_pretrained(
+                tokenizer_model_path,
+                revision=DEFAULT_DISTILLED_REVISION,
+            )
         self._session = ort.InferenceSession(
             str(onnx_path),
             providers=["CPUExecutionProvider"],

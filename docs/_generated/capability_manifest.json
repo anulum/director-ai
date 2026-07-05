@@ -6,10 +6,10 @@
     "optional_extras": 59,
     "public_api_exports": 226,
     "public_documentation_pages": 203,
-    "python_model_classes": 1002,
+    "python_model_classes": 1003,
     "python_model_source_modules": 461,
     "rust_pyo3_model_wrappers": 83,
-    "test_files": 662
+    "test_files": 663
   },
   "documentation": {
     "public_pages": [
@@ -1427,6 +1427,10 @@
       {
         "name": "DistilledNLIBackendWrapper",
         "path": "src/director_ai/core/scoring/backends.py"
+      },
+      {
+        "name": "DistilledOnnxArtifact",
+        "path": "src/director_ai/core/scoring/distilled_scorer.py"
       },
       {
         "name": "Divergence",
@@ -5376,6 +5380,7 @@
       "tests/test_dialogue_fpr_real_surface.py",
       "tests/test_director_ai_lite_package.py",
       "tests/test_distilled_scorer.py",
+      "tests/test_distilled_scorer_real_surface.py",
       "tests/test_doc_chunker.py",
       "tests/test_doc_chunker_model_cache.py",
       "tests/test_doc_chunker_model_cache_real_surface.py",
