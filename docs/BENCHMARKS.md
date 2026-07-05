@@ -25,6 +25,27 @@ python tools/run_pint_official_export.py /path/to/pint-export.yaml \
   --output benchmarks/results/pint_official_export_evidence.json
 ```
 
+Competitor AggreFact replay note:
+`benchmarks/competitor_aggrefact.py` can now run against a local
+AggreFact-compatible JSONL file and a validated JSON score vector. This mode
+exercises the production result-schema aggregation path without downloading a
+remote model or dataset, and is intended for reproducibility checks, CI guards,
+and audited replay of already-recorded competitor scores. It does not create a
+fresh measured benchmark claim.
+
+```bash
+python benchmarks/competitor_aggrefact.py \
+  --model vectara/hallucination_evaluation_model \
+  --input-jsonl /path/to/aggrefact_sample.jsonl \
+  --precomputed-scores /path/to/support_scores.json \
+  --output benchmarks/results/competitor_replay.json
+```
+
+The JSONL rows must contain `doc`, `claim`, `label`, and `dataset`; the score
+array must align one-to-one with the selected rows and contain probabilities in
+`[0, 1]`. The CLI fails closed on schema or length mismatch before writing an
+output file.
+
 Lite Scorer v2 note: `benchmarks/lite_scorer_v2_evidence_packet.toml` is a
 no-claim recorded-evidence packet with student, teacher, ONNX, held-out
 evaluation, quantized latency, model-card hash, and benchmark-claim review hash

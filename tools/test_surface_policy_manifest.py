@@ -93,8 +93,8 @@ KNOWN_TEST_SURFACE_CLASSIFICATIONS: dict[str, tuple[str, str]] = {
         "CLI/server/API unit guard with companions tests/test_cli_verify_real_surface.py and tests/test_cli_verify_reporting_real_surface.py",
     ),
     "tests/test_competitor_aggrefact.py": (
-        "violation",
-        "module/workflow fake requiring review",
+        "unit-guard-with-companion",
+        "competitor AggreFact unit guard with companion tests/test_competitor_aggrefact_real_surface.py",
     ),
     "tests/test_config.py": (
         "unit-guard-with-companion",
