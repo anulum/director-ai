@@ -1,0 +1,77 @@
+{
+  "benchmark": "LLM-AggreFact",
+  "model": "yaxili96/FactCG-DeBERTa-v3-Large",
+  "avg_balanced_accuracy": 0.7582,
+  "avg_balanced_accuracy_pct": 75.8,
+  "threshold": 0.46,
+  "total_samples": 29320,
+  "per_dataset": {
+    "AggreFact-CNN": {
+      "total": 558,
+      "positive": 501,
+      "negative": 57,
+      "balanced_acc": 0.6882
+    },
+    "AggreFact-XSum": {
+      "total": 558,
+      "positive": 285,
+      "negative": 273,
+      "balanced_acc": 0.7425
+    },
+    "ClaimVerify": {
+      "total": 1088,
+      "positive": 789,
+      "negative": 299,
+      "balanced_acc": 0.7813
+    },
+    "ExpertQA": {
+      "total": 3702,
+      "positive": 2971,
+      "negative": 731,
+      "balanced_acc": 0.5909
+    },
+    "FactCheck-GPT": {
+      "total": 1566,
+      "positive": 376,
+      "negative": 1190,
+      "balanced_acc": 0.7302
+    },
+    "Lfqa": {
+      "total": 1911,
+      "positive": 1121,
+      "negative": 790,
+      "balanced_acc": 0.8638
+    },
+    "RAGTruth": {
+      "total": 16371,
+      "positive": 15102,
+      "negative": 1269,
+      "balanced_acc": 0.8218
+    },
+    "Reveal": {
+      "total": 1710,
+      "positive": 400,
+      "negative": 1310,
+      "balanced_acc": 0.8914
+    },
+    "TofuEval-MediaS": {
+      "total": 726,
+      "positive": 554,
+      "negative": 172,
+      "balanced_acc": 0.7185
+    },
+    "TofuEval-MeetB": {
+      "total": 772,
+      "positive": 622,
+      "negative": 150,
+      "balanced_acc": 0.7426
+    },
+    "Wice": {
+      "total": 358,
+      "positive": 111,
+      "negative": 247,
+      "balanced_acc": 0.7694
+    }
+  },
+  "latency_ms_avg": 574.49
+}
