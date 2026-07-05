@@ -1,11 +1,11 @@
+<!-- SPDX-License-Identifier: Apache-2.0 -->
+<!-- Commercial license available -->
+<!-- © Concepts 1996-2026 Miroslav Sotek. All rights reserved. -->
+<!-- © Code 2020-2026 Miroslav Sotek. All rights reserved. -->
+<!-- ORCID: 0009-0009-3560-0851 -->
+<!-- Contact: www.anulum.li | protoscience@anulum.li -->
+
 # Director-AI Judge Dataset Builder
-
-> **Module**: `training/build_judge_dataset.py` | **Version**: 3.16.1 | **License**: Apache-2.0
->
-> © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
-> © Code 2020–2026 Miroslav Šotek. All rights reserved.
-
----
 
 ## Overview
 
@@ -20,7 +20,8 @@ The pipeline has five stages:
 1. **Load** the 3-class dataset from `training/data/`
 2. **Remap** labels to binary (approve/reject)
 3. **Subsample** with stratified balance (optional)
-4. **Score** every sample with the FactCG NLI model to obtain divergence values
+4. **Score** every sample with the FactCG NLI model, or consume a validated
+   precomputed divergence column
 5. **Filter** to keep borderline samples plus a controlled number of confident ones
 6. **Format** input text with the NLI divergence prepended
 7. **Split** into train/eval and save to `training/data_judge/`
@@ -39,7 +40,7 @@ The pipeline has five stages:
 │  └──────────────┘     └──────────────┘     └───────┬───────┘   │
 │                                                     │           │
 │                       ┌─────────────────────────────▼────────┐  │
-│                       │         NLI Scoring                  │  │
+│                       │         NLI Divergence               │  │
 │                       │                                      │  │
 │                       │  ┌─────────┐  ┌─────────────────┐    │  │
 │                       │  │ Single  │  │   Multi-GPU      │   │  │
@@ -53,6 +54,8 @@ The pipeline has five stages:
 │                       │  │  ONNX   │                         │  │
 │                       │  │ batched │                         │  │
 │                       │  └─────────┘                         │  │
+│                       │     or                               │  │
+│                       │  precomputed divergence column        │  │
 │                       └─────────────────────────┬────────────┘  │
 │                                                 │               │
 │                       ┌─────────────────────────▼────────────┐  │
@@ -153,8 +156,8 @@ The function:
 Orchestrates parallel NLI scoring across multiple GPUs using
 `concurrent.futures.ProcessPoolExecutor`. The algorithm:
 
-1. Create a temporary directory on NTFS (`TMPDIR` env var) to avoid
-   filling the root partition
+1. Create a temporary directory under `TMPDIR` so operators can place shards on
+   the GOTM working disk instead of the root partition
 2. Split the dataset into `num_gpus` shards of equal size (last shard
    gets remainder)
 3. Save each shard to disk (required for cross-process transfer)
@@ -167,8 +170,8 @@ importing PyTorch, ensuring that each process sees only its assigned GPU
 as device 0. This avoids CUDA context conflicts.
 
 **TMPDIR**: shards are stored under `Path(os.environ.get("TMPDIR", "/tmp"))`
-to support systems where the root partition is too small for temporary data
-(e.g. 93 GB root disk with most storage on NTFS).
+to support systems where the root partition is too small for temporary data.
+On GOTM workstations, point `TMPDIR` at Samsung-backed scratch storage.
 
 **Performance**: near-linear scaling. 3 GPUs (RX 6600 XT) at ~25/s each
 = ~75/s total. 446K samples in ~1.5 hours instead of ~5 hours.
@@ -206,6 +209,20 @@ Response: The Earth revolves around the Sun at about 150...
 Both context and response are truncated to 400 characters to fit within
 the judge model's 384-token input limit.
 
+### `apply_precomputed_divergence(dataset, column) -> Dataset`
+
+Validates an existing numeric divergence column and normalises it to
+`nli_divergence`. Use this path for offline reproducibility, cached scoring
+replay, and real CLI tests that must not download or initialise an NLI model.
+The function fails closed with a list of available columns when the requested
+column is absent.
+
+### `build_judge_dataset(...) -> DatasetDict`
+
+Orchestrates the full production workflow: load, remap, optional subsample,
+score or consume precomputed divergence, filter, format, split, persist the
+dataset, and write `stats.json`.
+
 ---
 
 ## CLI Usage
@@ -214,6 +231,14 @@ the judge model's 384-token input limit.
 
 ```bash
 python training/build_judge_dataset.py
+```
+
+### Isolated input and output paths
+
+```bash
+python training/build_judge_dataset.py \
+    --input-dir /path/to/input_dataset \
+    --output-dir /path/to/judge_dataset
 ```
 
 ### Full dataset (no limits)
@@ -235,19 +260,32 @@ python training/build_judge_dataset.py --subsample 0 --borderline-keep 0 \
 python training/build_judge_dataset.py --use-onnx --batch-size 32
 ```
 
+### Pre-scored replay (no model loading)
+
+```bash
+python training/build_judge_dataset.py \
+    --input-dir /path/to/input_dataset \
+    --output-dir /path/to/judge_dataset \
+    --precomputed-divergence-column nli_divergence \
+    --subsample 0 --borderline-keep 0 --confident-keep 0
+```
+
 ### CLI Flags
 
-| Flag               | Default | Description                                     |
-|--------------------|---------|-------------------------------------------------|
-| `--subsample`      | 50000   | Max samples before NLI scoring (0 = all)        |
-| `--borderline-keep`| 25000   | Max borderline samples after scoring (0 = all)  |
-| `--confident-keep` | 10000   | Max confident samples after scoring (0 = all)   |
-| `--use-onnx`       | off     | Use ONNX backend for scoring                    |
-| `--batch-size`     | 16      | Batch size for ONNX scoring                     |
-| `--eval-ratio`     | 0.1     | Eval split proportion                           |
-| `--seed`           | 42      | Random seed for reproducibility                 |
-| `--num-gpus`       | 1       | Number of GPUs for parallel scoring              |
-| `--gpu-offset`     | 0       | First GPU index (skip lower-indexed GPUs)        |
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--input-dir` | `training/data` | Input on-disk `DatasetDict` directory |
+| `--output-dir` | `training/data_judge` | Output on-disk `DatasetDict` directory |
+| `--subsample` | 50000 | Max samples before NLI scoring (0 = all) |
+| `--borderline-keep` | 25000 | Max borderline samples after scoring (0 = all) |
+| `--confident-keep` | 10000 | Max confident samples after scoring (0 = all) |
+| `--precomputed-divergence-column` | unset | Existing numeric column to use instead of NLI model inference |
+| `--use-onnx` | off | Use ONNX backend for scoring |
+| `--batch-size` | 16 | Batch size for ONNX scoring |
+| `--eval-ratio` | 0.1 | Eval split proportion |
+| `--seed` | 42 | Random seed for reproducibility |
+| `--num-gpus` | 1 | Number of GPUs for parallel scoring |
+| `--gpu-offset` | 0 | First GPU index (skip lower-indexed GPUs) |
 
 ---
 
@@ -378,7 +416,9 @@ loaded by `CoherenceScorer(scorer_backend="hybrid")` at inference time.
 ## Error Handling
 
 - **Missing input dataset**: raises `FileNotFoundError` with guidance to
-  run `data_pipeline.py` first (line 289).
+  run `data_pipeline.py` first.
+- **Missing precomputed divergence column**: raises `ValueError` that includes
+  the requested column and available dataset columns.
 - **GPU out of memory**: individual GPU shards will fail with CUDA OOM.
   Reduce shard size by increasing `--num-gpus` or reducing `--subsample`.
 - **TMPDIR full**: SIGKILL or ENOSPC. Set `TMPDIR` to a larger partition.
@@ -387,18 +427,21 @@ loaded by `CoherenceScorer(scorer_backend="hybrid")` at inference time.
 
 ## Testing
 
-Covered by `tests/test_build_judge_dataset.py` (38 tests):
+Covered by `tests/test_build_judge_dataset.py` and
+`tests/test_build_judge_dataset_real_surface.py`:
 
 - `remap_labels()` correctness (0→0, 1→1, 2→1)
 - `stratified_subsample()` balance preservation
 - `filter_and_balance()` zone separation
 - `format_judge_input()` text formatting
+- real subprocess CLI transformation with isolated input and output directories
+- fail-closed precomputed divergence validation
 - Edge cases: empty dataset, single-class dataset, subsample > dataset size
 
 Run:
 
 ```bash
-pytest tests/test_build_judge_dataset.py -v
+pytest tests/test_build_judge_dataset.py tests/test_build_judge_dataset_real_surface.py -v
 ```
 
 ---
@@ -411,7 +454,8 @@ pytest tests/test_build_judge_dataset.py -v
 | Input dataset            | `training/data/`                      |
 | Output dataset           | `training/data_judge/`                |
 | Statistics               | `training/data_judge/stats.json`      |
-| Tests                    | `tests/test_build_judge_dataset.py`   |
+| Unit guard               | `tests/test_build_judge_dataset.py`   |
+| Real CLI companion       | `tests/test_build_judge_dataset_real_surface.py` |
 | Upstream: data pipeline  | `training/data_pipeline.py`           |
 | Downstream: judge trainer | `training/train_judge.py`            |
 | Downstream: scorer       | `src/director_ai/core/scoring/scorer.py` |

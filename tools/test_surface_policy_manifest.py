@@ -56,7 +56,10 @@ KNOWN_TEST_SURFACE_CLASSIFICATIONS: dict[str, tuple[str, str]] = {
         "unit-guard-with-companion",
         "module/workflow unit guard with companion tests/test_backends_real_surface.py",
     ),
-    "tests/test_build_judge_dataset.py": ("violation", "ML/export/eval boundary fake"),
+    "tests/test_build_judge_dataset.py": (
+        "unit-guard-with-companion",
+        "judge-dataset builder unit guard with companion tests/test_build_judge_dataset_real_surface.py",
+    ),
     "tests/test_ci_gate.py": (
         "unit-guard-with-companion",
         "private-helper unit guard with companion tests/test_ci_gate_real_surface.py",

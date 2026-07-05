@@ -9,7 +9,7 @@
     "python_model_classes": 1001,
     "python_model_source_modules": 460,
     "rust_pyo3_model_wrappers": 83,
-    "test_files": 656
+    "test_files": 657
   },
   "documentation": {
     "public_pages": [
@@ -5250,6 +5250,7 @@
       "tests/test_backfire_kernel_release_contract.py",
       "tests/test_build_contradiction_dataset.py",
       "tests/test_build_judge_dataset.py",
+      "tests/test_build_judge_dataset_real_surface.py",
       "tests/test_byzantine_consensus.py",
       "tests/test_cache.py",
       "tests/test_cache_concurrent.py",
