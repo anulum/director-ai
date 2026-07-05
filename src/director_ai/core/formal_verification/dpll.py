@@ -70,6 +70,7 @@ class DpllSolver:
         """
         self._decisions = 0
         self._propagations = 0
+        variable_names = _clause_variables(clauses)
         assignment: dict[str, bool] = {}
         result = self._dpll(list(clauses), assignment)
         if result is None:
@@ -80,7 +81,7 @@ class DpllSolver:
             )
         return Solution(
             satisfiable=True,
-            model=result,
+            model=_complete_model(result, variable_names),
             decisions=self._decisions,
             propagations=self._propagations,
         )
@@ -161,6 +162,19 @@ def _reduce_clauses(
             return None
         reduced.append(tuple(keep))
     return reduced
+
+
+def _clause_variables(clauses: tuple[Clause, ...]) -> frozenset[str]:
+    """Return every variable name present in ``clauses``."""
+    return frozenset(literal.name for clause in clauses for literal in clause)
+
+
+def _complete_model(
+    assignment: dict[str, bool],
+    variable_names: frozenset[str],
+) -> dict[str, bool]:
+    """Fill unassigned satisfiable variables with deterministic defaults."""
+    return {name: assignment.get(name, False) for name in sorted(variable_names)}
 
 
 def _find_unit(clauses: list[Clause]) -> Literal | None:

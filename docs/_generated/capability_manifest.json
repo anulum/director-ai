@@ -9,7 +9,7 @@
     "python_model_classes": 1003,
     "python_model_source_modules": 461,
     "rust_pyo3_model_wrappers": 83,
-    "test_files": 664
+    "test_files": 665
   },
   "documentation": {
     "public_pages": [
@@ -5445,6 +5445,7 @@
       "tests/test_formal_code_adapter.py",
       "tests/test_formal_symbolic_evidence.py",
       "tests/test_formal_verification.py",
+      "tests/test_formal_verification_real_surface.py",
       "tests/test_freshqa_eval.py",
       "tests/test_frontierfail_packet.py",
       "tests/test_frontierfail_packet_real_surface.py",

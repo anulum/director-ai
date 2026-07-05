@@ -221,8 +221,8 @@ KNOWN_TEST_SURFACE_CLASSIFICATIONS: dict[str, tuple[str, str]] = {
         "ML/export/eval callback guard with companion tests/test_finetune.py",
     ),
     "tests/test_formal_verification.py": (
-        "violation",
-        "module/workflow fake requiring review",
+        "unit-guard-with-companion",
+        "formal verification unit guard with companion tests/test_formal_verification_real_surface.py",
     ),
     "tests/test_frontierfail_packet.py": (
         "unit-guard-with-companion",

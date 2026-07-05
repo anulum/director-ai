@@ -72,6 +72,12 @@ lean_adapter = FormalCodeVerifierAdapter.with_theorem_backend(
 The selected backend is recorded in the result sandbox and verifier id, for
 example `formal.dpll` or `formal.lean`.
 
+The default DPLL backend returns a total model for satisfiable formulae: every
+variable that appears in the checked formula is present in the returned model.
+Variables that are not needed by the SAT search are assigned deterministic
+defaults so audit consumers can compare verifier output without depending on
+search-path artefacts.
+
 ## Code Contracts
 
 `verify_code_contract()` first runs the structural code verifier. If the code is
