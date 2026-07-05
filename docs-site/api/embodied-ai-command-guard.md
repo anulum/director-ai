@@ -66,7 +66,10 @@ for v in verdict.violations:
 
 - Composes with the per-action `GroundingHook` (which also enforces tenant
   budgets); this guard adds the plan-level and temporal layer for LLM planners.
-- The `model` argument is only required by constraints that use it (e.g. spatial
-  collision); workspace/velocity/temporal checks need no model.
+- The `model` argument is only required by constraints that use it (for example,
+  `SpatialConstraint` collision checks). If omitted for such a constraint, the
+  plan receives a tenant-safe violation; with `high_risk_enabled=True`, that
+  blocks before any action runs. Workspace, velocity, torque, and temporal
+  checks need no model.
 - Default warn-only posture keeps it safe to enable in observation mode before a
   real high-risk deployment opts in.

@@ -84,7 +84,9 @@ class RobotCommandGuard:
         evaluated against every action in the plan.
     model:
         Kinematic model passed to the constraints (required only by constraints
-        that use it, e.g. spatial collision).
+        that use it, e.g. spatial collision). Model-dependent constraints report
+        a violation when it is missing, so high-risk plans fail closed instead of
+        crashing inside a collision check.
     high_risk_enabled:
         When ``False`` (default) the guard is warn-only — violations are reported
         but the plan is not blocked. Set ``True`` for a real high-risk deployment
@@ -127,7 +129,7 @@ class RobotCommandGuard:
         violations: list[StepViolation] = []
         for index, action in enumerate(actions):
             for constraint in self._constraints:
-                reason = constraint.evaluate(action, self._model)  # type: ignore[arg-type]
+                reason = constraint.evaluate(action, self._model)
                 if reason is not None:
                     violations.append(
                         StepViolation(

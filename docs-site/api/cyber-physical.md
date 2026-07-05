@@ -100,7 +100,9 @@ torques.
 
 ### `PhysicalConstraint` Protocol
 Read-only `name` property + `evaluate(action, model) -> str | None`
-returning either `None` (pass) or a short reason string (fail).
+returning either `None` (pass) or a short reason string (fail). The
+`model` argument may be `None` for pure action checks; constraints that need
+kinematics must return a failure reason instead of raising.
 
 Four concrete implementations ship:
 
@@ -110,6 +112,11 @@ Four concrete implementations ship:
 | `WorkspaceConstraint` | End-effector must stay inside an AABB envelope. |
 | `VelocityConstraint` | Action velocity ≤ `max_velocity`. |
 | `TorqueConstraint` | Action torque ≤ `max_torque`. |
+
+`SpatialConstraint` needs a kinematic model for collision checks. If a caller
+omits the model, it reports a violation named after the spatial constraint; in a
+high-risk `RobotCommandGuard` deployment that blocks the plan before any action
+runs.
 
 ## `GroundingHook`
 

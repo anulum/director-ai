@@ -11,7 +11,8 @@
 Four concrete constraint classes plus a :class:`PhysicalConstraint`
 Protocol so operators can add custom limits (torque curves,
 thermal envelopes, joint-velocity coupling) without touching
-the hook.
+the hook. Constraints that need kinematics fail closed when the
+caller does not provide a model.
 """
 
 from __future__ import annotations
@@ -42,9 +43,14 @@ class PhysicalConstraint(Protocol):
     def evaluate(
         self,
         action: PhysicalAction,
-        model: KinematicModel,
+        model: KinematicModel | None,
     ) -> str | None:
-        """Return None for an allowed action or a tenant-safe failure reason."""
+        """Return None for an allowed action or a tenant-safe failure reason.
+
+        ``model`` is optional because workspace, velocity, and torque limits are
+        pure action checks. Constraints that require kinematics must return a
+        failure reason when it is missing instead of raising.
+        """
         ...
 
 
@@ -70,9 +76,15 @@ class SpatialConstraint:
     def evaluate(
         self,
         action: PhysicalAction,
-        model: KinematicModel,
+        model: KinematicModel | None,
     ) -> str | None:
-        """Reject actions whose target collides with the obstacle set."""
+        """Reject actions whose target collides with the obstacle set.
+
+        A missing kinematic model is a safety failure, not an AttributeError:
+        high-risk callers receive a blocking verdict before any command runs.
+        """
+        if model is None:
+            return f"spatial constraint {self.name!r} requires a kinematic model"
         if model.collides_with(
             action.target_position,
             obstacles_aabb=self.obstacles_aabb,
@@ -100,7 +112,7 @@ class WorkspaceConstraint:
     def evaluate(
         self,
         action: PhysicalAction,
-        model: KinematicModel,
+        model: KinematicModel | None,
     ) -> str | None:
         """Reject actions outside the inclusive workspace envelope."""
         _ = model  # unused — workspace is a pure geometric check
@@ -130,7 +142,7 @@ class VelocityConstraint:
     def evaluate(
         self,
         action: PhysicalAction,
-        model: KinematicModel,
+        model: KinematicModel | None,
     ) -> str | None:
         """Reject actions whose velocity magnitude exceeds max_velocity."""
         _ = model
@@ -159,7 +171,7 @@ class TorqueConstraint:
     def evaluate(
         self,
         action: PhysicalAction,
-        model: KinematicModel,
+        model: KinematicModel | None,
     ) -> str | None:
         """Reject actions whose torque magnitude exceeds max_torque."""
         _ = model
