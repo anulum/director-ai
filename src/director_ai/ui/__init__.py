@@ -16,12 +16,30 @@ from .safety_dashboard import (
     build_observability_operations_report,
     build_trust_console_report,
 )
+from .streaming_halt_live import (
+    SCENARIOS,
+    Frame,
+    Scenario,
+    render_banner,
+    render_gauge,
+    render_token_span,
+    run_live_demo,
+    wrap_token_strip,
+)
 
 __all__ = [
     "ComplianceExportRef",
+    "Frame",
     "ObservabilityOperationsReport",
+    "SCENARIOS",
+    "Scenario",
     "TrustConsoleReport",
     "TrustControl",
     "build_observability_operations_report",
     "build_trust_console_report",
+    "render_banner",
+    "render_gauge",
+    "render_token_span",
+    "run_live_demo",
+    "wrap_token_strip",
 ]

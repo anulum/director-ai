@@ -238,12 +238,12 @@ inventory below is reference for the deeper surface, navigable under
 |---|---:|
 | Package version | 3.16.1 |
 | Public API exports | 226 |
-| Python capability source modules | 460 |
-| Python capability classes | 1001 |
+| Python capability source modules | 461 |
+| Python capability classes | 1002 |
 | API documentation pages | 89 |
 | Rust PyO3 bindings | 83 |
 | Optional extras | 59 |
-| Python test files | 661 |
+| Python test files | 662 |
 | Public documentation pages | 203 |
 | GitHub Actions workflows | 14 |
 

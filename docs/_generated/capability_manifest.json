@@ -6,10 +6,10 @@
     "optional_extras": 59,
     "public_api_exports": 226,
     "public_documentation_pages": 203,
-    "python_model_classes": 1001,
-    "python_model_source_modules": 460,
+    "python_model_classes": 1002,
+    "python_model_source_modules": 461,
     "rust_pyo3_model_wrappers": 83,
-    "test_files": 661
+    "test_files": 662
   },
   "documentation": {
     "public_pages": [
@@ -3497,6 +3497,10 @@
         "path": "src/director_ai/core/multi_scale_alignment/scorer.py"
       },
       {
+        "name": "Scenario",
+        "path": "src/director_ai/ui/streaming_halt_live.py"
+      },
+      {
         "name": "SchnorrAttestationBackend",
         "path": "src/director_ai/core/zk_attestation/schnorr.py"
       },
@@ -4790,6 +4794,7 @@
       "src/director_ai/ui/_field_groups.py",
       "src/director_ai/ui/config_wizard.py",
       "src/director_ai/ui/safety_dashboard.py",
+      "src/director_ai/ui/streaming_halt_live.py",
       "src/director_ai/voice/adapters.py",
       "src/director_ai/voice/demo.py",
       "src/director_ai/voice/guard.py",
@@ -5363,6 +5368,7 @@
       "tests/test_defense_update_pipeline.py",
       "tests/test_defense_update_pipeline_edges.py",
       "tests/test_demo_streaming_halt_live.py",
+      "tests/test_demo_streaming_halt_live_real_surface.py",
       "tests/test_dependabot_dependency_graph_config.py",
       "tests/test_device_selection.py",
       "tests/test_device_selection_real_surface.py",

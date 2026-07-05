@@ -47,9 +47,12 @@ and is not automated from the repo.
 - **Domain Presets** — inspect the eight shipped `DirectorConfig`
   profiles.
 
-The **live** streaming halt lives in its own file because Spaces
-typically host a single `app.py`. When publishing, choose which
-script to expose as the entry.
+The **live** streaming halt keeps its launchable Gradio adapter in
+`streaming_halt_live.py` because Spaces typically host a single `app.py`.
+Reusable scenario, rendering, and kernel-loop behavior lives in
+`director_ai.ui.streaming_halt_live`, where token text and halt reasons are
+HTML-escaped before display. When publishing, choose which script to expose as
+the entry.
 
 [GitHub](https://github.com/anulum/director-ai) |
 [PyPI](https://pypi.org/project/director-ai/)

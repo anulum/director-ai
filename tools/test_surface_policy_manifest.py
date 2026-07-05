@@ -141,8 +141,8 @@ KNOWN_TEST_SURFACE_CLASSIFICATIONS: dict[str, tuple[str, str]] = {
         "training data pipeline unit guard with companion tests/test_data_pipeline_real_surface.py",
     ),
     "tests/test_demo_streaming_halt_live.py": (
-        "violation",
-        "module/workflow fake requiring review",
+        "unit-guard-with-companion",
+        "live streaming halt demo unit guard with companion tests/test_demo_streaming_halt_live_real_surface.py",
     ),
     "tests/test_device_selection.py": (
         "unit-guard-with-companion",
