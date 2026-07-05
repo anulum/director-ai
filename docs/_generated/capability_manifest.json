@@ -9,7 +9,7 @@
     "python_model_classes": 1001,
     "python_model_source_modules": 460,
     "rust_pyo3_model_wrappers": 83,
-    "test_files": 655
+    "test_files": 656
   },
   "documentation": {
     "public_pages": [
@@ -5241,6 +5241,7 @@
       "tests/test_auto_redteam_defence_evidence.py",
       "tests/test_auto_redteam_defence_loop.py",
       "tests/test_autogen_swarm.py",
+      "tests/test_autogen_swarm_real_surface.py",
       "tests/test_autopoietic.py",
       "tests/test_autopoietic_blueprint.py",
       "tests/test_autopoietic_real_surface.py",

@@ -45,8 +45,8 @@ KNOWN_TEST_SURFACE_CLASSIFICATIONS: dict[str, tuple[str, str]] = {
         "private-helper unit guard with companion tests/test_audit_salt_real_surface.py",
     ),
     "tests/test_autogen_swarm.py": (
-        "violation",
-        "private-helper bypass requiring review",
+        "unit-guard-with-companion",
+        "AutoGen swarm hook unit guard with companion tests/test_autogen_swarm_real_surface.py",
     ),
     "tests/test_autopoietic.py": (
         "unit-guard-with-companion",
