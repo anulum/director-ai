@@ -9,7 +9,7 @@
     "python_model_classes": 1001,
     "python_model_source_modules": 460,
     "rust_pyo3_model_wrappers": 83,
-    "test_files": 658
+    "test_files": 659
   },
   "documentation": {
     "public_pages": [
@@ -5333,6 +5333,7 @@
       "tests/test_crewai_swarm.py",
       "tests/test_cross_document_memory.py",
       "tests/test_cross_language_contracts.py",
+      "tests/test_cross_language_contracts_real_surface.py",
       "tests/test_cross_model_consensus.py",
       "tests/test_custom_rules_dsl.py",
       "tests/test_customer_model_factory_benchmark_selection.py",

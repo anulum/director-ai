@@ -129,8 +129,8 @@ KNOWN_TEST_SURFACE_CLASSIFICATIONS: dict[str, tuple[str, str]] = {
         "module/workflow unit guard with companion tests/test_cost_integration_real_surface.py",
     ),
     "tests/test_cross_language_contracts.py": (
-        "violation",
-        "private-helper bypass requiring review",
+        "unit-guard-with-companion",
+        "cross-language property guard with companion tests/test_cross_language_contracts_real_surface.py",
     ),
     "tests/test_cyber_physical.py": (
         "violation",

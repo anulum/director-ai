@@ -53,3 +53,7 @@ working_directory = "gateway/go"
 id = "rust-contracts"
 command = "cargo test -p backfire-types"
 working_directory = "backfire-kernel"
+
+[[gates]]
+id = "manifest-contract"
+command = "python tools/validate_cross_language_contracts.py --root ."

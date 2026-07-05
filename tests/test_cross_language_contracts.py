@@ -14,6 +14,7 @@ import math
 import re
 import tomllib
 from pathlib import Path
+from typing import Literal
 
 import pytest
 from hypothesis import given, settings
@@ -50,8 +51,12 @@ UNIT = st.floats(
     allow_infinity=False,
     width=32,
 )
+SURROGATE_CATEGORY: tuple[Literal["Cs"], ...] = ("Cs",)
 TEXT = st.text(
-    alphabet=st.characters(blacklist_categories=("Cs",), blacklist_characters="\x00"),
+    alphabet=st.characters(
+        blacklist_categories=SURROGATE_CATEGORY,
+        blacklist_characters="\x00",
+    ),
     min_size=0,
     max_size=48,
 )
@@ -271,7 +276,12 @@ def test_cross_language_manifest_references_existing_gates() -> None:
             assert (ROOT / test_path).exists(), test_path
 
     gate_ids = {gate["id"] for gate in manifest["gates"]}
-    assert gate_ids == {"python-contracts", "go-contracts", "rust-contracts"}
+    assert gate_ids == {
+        "go-contracts",
+        "manifest-contract",
+        "python-contracts",
+        "rust-contracts",
+    }
 
 
 def test_proto_schema_and_go_generated_fields_stay_in_sync() -> None:

@@ -62,8 +62,10 @@ contracts must be stable:
 
 1. Keep the source in this repository for v3.15 while hiding it from onboarding
    docs and first-run setup.
-2. Add cross-language contract tests that compare Python and Rust results using
-   shared fixtures.
+2. Keep cross-language contract tests and the manifest validator green:
+   `python tools/validate_cross_language_contracts.py --root .` plus the
+   Python, Rust, and Go gates declared in
+   `requirements/cross_language_contracts.toml`.
 3. Move Rust and WASM release jobs behind an advanced runtime workflow label.
 4. Add a proof manifest under `formal/` that maps each theorem to the production
    function and contract fixture it supports.
