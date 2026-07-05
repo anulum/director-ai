@@ -29,8 +29,8 @@ KNOWN_TEST_SURFACE_CLASSIFICATIONS: dict[str, tuple[str, str]] = {
         "module/workflow unit guard with companion tests/test_agent_providers_real_surface.py",
     ),
     "tests/test_aggrefact_save_scores.py": (
-        "violation",
-        "module/workflow fake requiring review",
+        "unit-guard-with-companion",
+        "AggreFact score-cache unit guard with companion tests/test_aggrefact_save_scores_real_surface.py",
     ),
     "tests/test_api_reference_index.py": (
         "unit-guard-with-companion",
