@@ -54,8 +54,8 @@ print(f"Evidence: {score.evidence}")  # Retrieved context + NLI details
 | `history_window` | `int` | `5` | Rolling history size for trend detection |
 | `llm_judge_enabled` | `bool` | `False` | Escalate to LLM when NLI confidence is low |
 | `llm_judge_confidence_threshold` | `float` | `0.3` | Softmax margin below which to escalate |
-| `llm_judge_provider` | `str` | `""` | `"openai"` or `"anthropic"` |
-| `privacy_mode` | `bool` | `False` | Redact PII before sending to LLM judge |
+| `llm_judge_provider` | `str` | `""` | `"openai"`, `"anthropic"`, or `"local"` |
+| `privacy_mode` | `bool` | `False` | Redact PII before sending to an external LLM judge |
 | `onnx_path` | `str \| None` | `None` | Directory with exported ONNX model |
 | `nli_devices` | `list[str] \| None` | `None` | Multi-GPU sharding devices, for example `["cuda:0", "cuda:1"]` |
 
@@ -101,7 +101,7 @@ configured mode needs sentence-level aggregation.
 | `onnx` | `pip install director-ai[onnx]` | 14.6 ms/pair (GPU batch) | 75.6% BA | Yes |
 | `minicheck` | `pip install director-ai[minicheck]` | ~60 ms/pair | 72.6% BA | Yes |
 | `lite` | included | <0.5 ms/pair | ~65% BA | No |
-| `hybrid` | `[nli]` + LLM API key | 20-50 ms/pair | ~78% BA | Yes |
+| `hybrid` | `[nli]` + judge provider | 20-50 ms/pair | ~78% BA | Yes |
 | `rust` | build `backfire-kernel` | ~1 ms/pair | ~65% BA | No |
 
 ## Validation Rules
@@ -110,6 +110,10 @@ configured mode needs sentence-level aggregation.
 - `soft_limit` must be >= `threshold`
 - `w_logic + w_fact` must equal 1.0 when either override is provided
 - `hybrid` backend requires `llm_judge_provider`
+- External judge providers send structured JSON chat requests, request JSON
+  responses, and use `privacy_mode=True` to redact PII before egress. The
+  `local` judge provider keeps the escalation on host but requires a local
+  judge model to be configured.
 
 ## OpenTelemetry
 

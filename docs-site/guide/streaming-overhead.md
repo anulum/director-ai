@@ -86,8 +86,11 @@ when NLI confidence is in the grey zone (0.40-0.60). Trade-offs:
 
 - **Latency**: 10-30x slower than pure NLI (adds an LLM API call)
 - **Accuracy**: Strongest on summarisation (AggreFact-CNN, ExpertQA)
-- **Privacy**: LLM judge sends truncated text (500 chars) to external API
-- **Cost**: Each grey-zone call consumes LLM tokens
+- **Privacy**: OpenAI/Anthropic judges send structured JSON with truncated text
+  (500 chars) to the provider; set `privacy_mode=True` to redact PII before
+  egress. `llm_judge_provider="local"` keeps the judge on host when a local
+  judge model is configured.
+- **Cost**: Each external grey-zone call consumes LLM tokens
 
 Recommended: use `hybrid` only for high-stakes summarisation pipelines
 where the 200-500 ms per-pair overhead is acceptable.

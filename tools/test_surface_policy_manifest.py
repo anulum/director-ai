@@ -276,8 +276,12 @@ KNOWN_TEST_SURFACE_CLASSIFICATIONS: dict[str, tuple[str, str]] = {
         "ML/export/eval unit guard with companion tests/test_hf_space_deployment_smoke_real_surface.py",
     ),
     "tests/test_hybrid_hardening.py": (
-        "violation",
-        "module/workflow fake requiring review",
+        "unit-guard-with-companion",
+        "hybrid LLM-judge unit guard with companion tests/test_hybrid_hardening_real_surface.py",
+    ),
+    "tests/test_hybrid_hardening_real_surface.py": (
+        "approved-protocol-fake",
+        "real LLM-judge scorer surface with local OpenAI protocol fake",
     ),
     "tests/test_hyde_backend.py": (
         "unit-guard-with-companion",
