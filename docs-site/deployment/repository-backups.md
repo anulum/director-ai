@@ -11,7 +11,7 @@ Run the verifier with the expected commit hash from the backup manifest:
 ```bash
 python tools/verify_repository_backup.py \
   BACKUP/repository_20260520T010141Z/DIRECTOR-AI_20260520T010141Z.bundle \
-  --expected-head 35b44c5ec0f55f6a3603164f9146b736760a007f
+  --expected-head EXPECTED_HEAD_FROM_BACKUP_MANIFEST
 ```
 
 The verifier performs these checks:
@@ -33,7 +33,7 @@ Use JSON output for audit logs and automation:
 ```bash
 python tools/verify_repository_backup.py \
   BACKUP/repository_20260520T010141Z/DIRECTOR-AI_20260520T010141Z.bundle \
-  --expected-head 35b44c5ec0f55f6a3603164f9146b736760a007f \
+  --expected-head EXPECTED_HEAD_FROM_BACKUP_MANIFEST \
   --json
 ```
 
