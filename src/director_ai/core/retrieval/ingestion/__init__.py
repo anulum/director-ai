@@ -11,7 +11,8 @@
 Each plugin pulls documents from a source (S3 bucket, Notion
 workspace, Google Drive folder), produces a stream of
 :class:`IngestedDocument` records, and hands them to
-:class:`director_ai.core.retrieval.knowledge.GroundTruthStore`.
+:class:`director_ai.core.retrieval.knowledge.GroundTruthStore` or
+:class:`director_ai.core.retrieval.vector_store.store.VectorGroundTruthStore`.
 
 Design notes:
 
@@ -24,7 +25,7 @@ Design notes:
 * **No side effects beyond ``store.add``** — the adapters do not
   mutate the source, do not delete documents, do not change ACLs.
 * **Tenant-aware** — ``tenant_id`` flows through to
-  ``GroundTruthStore.add``.
+  ``GroundTruthStore.add`` and vector-store version metadata.
 
 Optional extras:
 

@@ -93,6 +93,36 @@ Conflict reports carry hashes and evidence references, not raw fact text. Use
 this guard at ingestion boundaries where tenant users, signed facts, passport
 claims, or upstream synchronizers can introduce mutually incompatible facts.
 
+## External Source Plugins
+
+Use the ingestion plugins when facts are synchronized from operator-owned
+systems such as S3, Notion, or Google Drive. The plugins accept authenticated
+SDK clients, stream `IngestedDocument` records, skip blank text, and write
+metadata through the same `GroundTruthStore.add()` contract used by
+`VectorGroundTruthStore`.
+
+```python
+from director_ai.core.retrieval.ingestion import S3Plugin
+from director_ai.core.retrieval.vector_store import VectorGroundTruthStore
+
+store = VectorGroundTruthStore(tenant_id="acme")
+plugin = S3Plugin.from_default_client(
+    "acme-knowledge-base",
+    prefix="policies/",
+)
+
+written = plugin.ingest(store, tenant_id="acme", max_documents=100)
+print(f"Loaded {written} knowledge documents")
+```
+
+Install only the source adapters you need:
+
+```bash
+pip install "director-ai[ingestion-s3]"
+pip install "director-ai[ingestion-notion]"
+pip install "director-ai[ingestion-gdrive]"
+```
+
 Inspect the active recipe without exposing API keys:
 
 ```python

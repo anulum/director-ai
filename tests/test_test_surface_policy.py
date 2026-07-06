@@ -450,6 +450,16 @@ def test_dspy_integration_unit_guard_has_real_surface_companion() -> None:
     assert "tests/test_integrations_dspy_real_surface.py" in category
 
 
+def test_ingestion_plugin_unit_guard_has_real_surface_companion() -> None:
+    """Ingestion plugin guards should be backed by real KB storage coverage."""
+    classification, category = KNOWN_TEST_SURFACE_CLASSIFICATIONS[
+        "tests/test_ingestion_plugins.py"
+    ]
+
+    assert classification == "unit-guard-with-companion"
+    assert "tests/test_ingestion_plugins_real_surface.py" in category
+
+
 def test_lazy_enterprise_import_unit_guard_has_real_surface_companion() -> None:
     """Lazy enterprise import guard should be backed by public import coverage."""
     classification, category = KNOWN_TEST_SURFACE_CLASSIFICATIONS[
