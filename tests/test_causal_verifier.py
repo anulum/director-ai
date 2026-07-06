@@ -13,7 +13,7 @@ CounterfactualVerifier branch aggregation with safety invariants."""
 from __future__ import annotations
 
 import dataclasses
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from typing import cast
 
 import pytest
@@ -38,7 +38,7 @@ def _as_int(value: object) -> int:
 # --- CausalGraph ----------------------------------------------------
 
 
-def _const(value: object):
+def _const(value: object) -> Callable[[Mapping[str, object]], object]:
     def _eq(_: Mapping[str, object]) -> object:
         return value
 
@@ -50,7 +50,7 @@ def _sum_eq(parents: Mapping[str, object]) -> object:
 
 
 class TestCausalGraph:
-    def test_linear_chain_evaluates(self):
+    def test_linear_chain_evaluates(self) -> None:
         g = CausalGraph()
         g.add("x", _const(3))
         g.add("y", lambda p: _as_int(p["x"]) * 2, parents=("x",))
@@ -58,7 +58,7 @@ class TestCausalGraph:
         out = g.evaluate({})
         assert out["z"] == 7
 
-    def test_exogenous_from_inputs(self):
+    def test_exogenous_from_inputs(self) -> None:
         g = CausalGraph()
         g.add("a", _const(0))  # default structural eq
         out = g.evaluate({"a": 42})
@@ -66,35 +66,35 @@ class TestCausalGraph:
         # equation only fires when the input is missing.
         assert out["a"] == 42
 
-    def test_unknown_parent_rejected(self):
+    def test_unknown_parent_rejected(self) -> None:
         g = CausalGraph()
         with pytest.raises(ValueError, match="unknown parent"):
             g.add("y", _sum_eq, parents=("x",))
 
-    def test_self_loop_rejected(self):
+    def test_self_loop_rejected(self) -> None:
         g = CausalGraph()
         with pytest.raises(ValueError, match="self-loop"):
             g.add("x", _const(1), parents=("x",))
 
-    def test_duplicate_rejected(self):
+    def test_duplicate_rejected(self) -> None:
         g = CausalGraph()
         g.add("x", _const(1))
         with pytest.raises(ValueError, match="duplicate"):
             g.add("x", _const(2))
 
-    def test_empty_name_rejected(self):
+    def test_empty_name_rejected(self) -> None:
         g = CausalGraph()
         with pytest.raises(ValueError, match="non-empty"):
             g.add("", _const(1))
 
-    def test_topological_order_is_cached(self):
+    def test_topological_order_is_cached(self) -> None:
         g = CausalGraph()
         g.add("x", _const(1))
         g.add("y", _sum_eq, parents=("x",))
         first = g.topological_order()
         assert first == g.topological_order()
 
-    def test_cycle_raises_on_hand_mutation(self):
+    def test_cycle_raises_on_hand_mutation(self) -> None:
         """Defence-in-depth: if a caller tampers with _nodes and
         introduces a cycle, topological_order must detect it."""
         g = CausalGraph()
@@ -121,7 +121,7 @@ class TestIntervention:
         g.add("z", lambda p: _as_int(p["y"]) + 1, parents=("y",))
         return g
 
-    def test_do_operator_overrides_variable(self):
+    def test_do_operator_overrides_variable(self) -> None:
         g = self._graph()
         iv = Intervention({"x": 5})
         values = iv.apply(g, {})
@@ -129,7 +129,7 @@ class TestIntervention:
         assert values["y"] == 10
         assert values["z"] == 11
 
-    def test_intervening_mid_chain_isolates_upstream(self):
+    def test_intervening_mid_chain_isolates_upstream(self) -> None:
         g = self._graph()
         iv = Intervention({"y": 100})
         values = iv.apply(g, {})
@@ -139,17 +139,28 @@ class TestIntervention:
         assert values["y"] == 100
         assert values["z"] == 101
 
-    def test_empty_fixes_rejected(self):
+    def test_input_root_value_survives_unrelated_intervention(self) -> None:
+        """Input-supplied root variables should bypass root equations."""
+        g = self._graph()
+        iv = Intervention({"y": 100})
+
+        values = iv.apply(g, {"x": 7})
+
+        assert values["x"] == 7
+        assert values["y"] == 100
+        assert values["z"] == 101
+
+    def test_empty_fixes_rejected(self) -> None:
         with pytest.raises(ValueError, match="non-empty"):
             Intervention({})
 
-    def test_unknown_target_rejected(self):
+    def test_unknown_target_rejected(self) -> None:
         g = self._graph()
         iv = Intervention({"not_in_graph": 0})
         with pytest.raises(ValueError, match="not in graph"):
             iv.apply(g, {})
 
-    def test_multi_target_intervention(self):
+    def test_multi_target_intervention(self) -> None:
         g = self._graph()
         iv = Intervention({"x": 1, "y": 2})
         values = iv.apply(g, {})
@@ -177,7 +188,7 @@ class TestCounterfactualVerifier:
     def _invariant(self, values: Mapping[str, object]) -> bool:
         return _as_int(values["blast_radius"]) <= 3
 
-    def test_safe_branch_passes(self):
+    def test_safe_branch_passes(self) -> None:
         g = self._graph()
         verifier = CounterfactualVerifier(g, safety_invariant=self._invariant)
         verdict = verifier.verify(
@@ -192,7 +203,7 @@ class TestCounterfactualVerifier:
         assert verdict.safety_rate == 1.0
         assert verdict.unsafe == 0
 
-    def test_unsafe_branches_surfaced(self):
+    def test_unsafe_branches_surfaced(self) -> None:
         g = self._graph()
         verifier = CounterfactualVerifier(g, safety_invariant=self._invariant)
         verdict = verifier.verify(
@@ -206,13 +217,13 @@ class TestCounterfactualVerifier:
         labels = {b.label for b in verdict.unsafe_branches}
         assert "deploy" in labels
 
-    def test_empty_branches_rejected(self):
+    def test_empty_branches_rejected(self) -> None:
         g = self._graph()
         verifier = CounterfactualVerifier(g, safety_invariant=self._invariant)
         with pytest.raises(ValueError, match="at least one branch"):
             verifier.verify(inputs={}, branches=[])
 
-    def test_branch_captures_full_values(self):
+    def test_branch_captures_full_values(self) -> None:
         g = self._graph()
         verifier = CounterfactualVerifier(g, safety_invariant=self._invariant)
         verdict = verifier.verify(
@@ -224,7 +235,7 @@ class TestCounterfactualVerifier:
         assert unsafe_branch.values["action"] == "deploy"
         assert unsafe_branch.outcome == "unsafe"
 
-    def test_halt_fact_change_diagnostic_identifies_single_change(self):
+    def test_halt_fact_change_diagnostic_identifies_single_change(self) -> None:
         diagnostic = CounterfactualVerifier.explain_halt_fact_change(
             observed_score=0.3,
             threshold=0.5,
@@ -247,7 +258,7 @@ class TestCounterfactualVerifier:
         assert diagnostic.best_change.required_score_delta == pytest.approx(0.2)
         assert diagnostic.best_change.prevented_halt is True
 
-    def test_halt_fact_change_diagnostic_handles_missing_facts(self):
+    def test_halt_fact_change_diagnostic_handles_missing_facts(self) -> None:
         diagnostic = CounterfactualVerifier.explain_halt_fact_change(
             observed_score=0.3,
             threshold=0.5,
@@ -258,7 +269,7 @@ class TestCounterfactualVerifier:
         assert diagnostic.best_change is None
         assert diagnostic.candidates == []
 
-    def test_halt_fact_change_diagnostic_clips_long_fact_text(self):
+    def test_halt_fact_change_diagnostic_clips_long_fact_text(self) -> None:
         diagnostic = CounterfactualVerifier.explain_halt_fact_change(
             observed_score=0.3,
             threshold=0.5,
@@ -274,13 +285,13 @@ class TestCounterfactualVerifier:
         assert len(candidate.proposed_fact) == 500
         assert candidate.proposed_fact.endswith("...")
 
-    def test_counterfactual_float_rejects_non_numeric_values(self):
+    def test_counterfactual_float_rejects_non_numeric_values(self) -> None:
         with pytest.raises(TypeError, match="not numeric"):
             counterfactual_module._counterfactual_float({"score": object()}, "score")
 
     def test_integer_sum_falls_back_to_python_when_accelerator_disabled(
-        self, monkeypatch
-    ):
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         monkeypatch.setattr(counterfactual_module, "_RUST_COUNTERFACTUAL", False)
 
         assert counterfactual_module._sum_int([1, 0, 1]) == 2
