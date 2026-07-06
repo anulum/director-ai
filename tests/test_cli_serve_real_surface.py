@@ -51,3 +51,26 @@ def test_serve_help_exits_without_starting_server() -> None:
     assert "--transport http|grpc" in result.stdout
     assert "Starting Director AI server" not in result.stdout
     assert "Started server process" not in result.stderr
+
+
+def test_serve_invalid_port_exits_before_runtime_start() -> None:
+    """Invalid serve ports should fail through the installed CLI boundary."""
+    env = {
+        **os.environ,
+        "DIRECTOR_AUDIT_SALT": "test-serve-invalid-port-salt",
+        "DIRECTOR_FORCE_CPU": "1",
+    }
+
+    result = subprocess.run(
+        [sys.executable, "-m", "director_ai.cli", "serve", "--port", "not-a-port"],
+        check=False,
+        capture_output=True,
+        env=env,
+        text=True,
+        timeout=8,
+    )
+
+    assert result.returncode == 1
+    assert "invalid port number: not-a-port" in result.stdout
+    assert "Starting Director AI server" not in result.stdout
+    assert "Started server process" not in result.stderr

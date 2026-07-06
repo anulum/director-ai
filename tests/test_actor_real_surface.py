@@ -18,6 +18,8 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from types import TracebackType
 from typing import Self, cast
 
+import pytest
+
 import director_ai
 from director_ai.core.actor import LLMGenerator
 
@@ -35,6 +37,7 @@ class _ActorServerState:
     """Mutable response and request log for the local actor server."""
 
     completion_payloads: tuple[dict[str, object], ...]
+    response_status: int = 200
     stream_events: tuple[dict[str, str], ...] = ()
     requests: list[_RecordedRequest] = field(default_factory=list)
 
@@ -88,7 +91,7 @@ class _ActorHandler(BaseHTTPRequestHandler):
             content_type = "text/event-stream"
         else:
             content_type = "application/json"
-        self.send_response(200)
+        self.send_response(state.response_status)
         self.send_header("Content-Type", content_type)
         self.send_header("Content-Length", str(len(body)))
         self.end_headers()
@@ -105,10 +108,12 @@ class _ActorServer:
         self,
         completion_payloads: tuple[dict[str, object], ...],
         *,
+        response_status: int = 200,
         stream_events: tuple[dict[str, str], ...] = (),
     ) -> None:
         self.state = _ActorServerState(
             completion_payloads=completion_payloads,
+            response_status=response_status,
             stream_events=stream_events,
         )
         self._server = _ActorHTTPServer(self.state)
@@ -211,6 +216,30 @@ def test_llm_generator_streams_tokens_from_real_sse_endpoint() -> None:
             },
         )
     ]
+
+
+def test_llm_generator_logs_real_http_error_with_truncated_body(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """LLMGenerator should bound logged response text from real HTTP errors."""
+    error_tail = "unlogged-tail-marker"
+    error_payload: tuple[dict[str, object], ...] = (
+        {"error": ("X" * 600) + error_tail},
+    )
+    with _ActorServer(error_payload, response_status=500) as server:
+        generator = LLMGenerator(server.url, max_retries=1, base_delay=0.0, timeout=5.0)
+
+        with caplog.at_level("ERROR", logger="LLMGenerator"):
+            candidates = generator.generate_candidates(
+                "Summarise the failed call.",
+                n=1,
+            )
+
+    assert candidates == [{"text": "[Error: LLM unavailable]", "source": "System"}]
+    assert len(server.state.requests) == 1
+    error_messages = [record.getMessage() for record in caplog.records]
+    assert any(message.startswith("LLM Error 500: ") for message in error_messages)
+    assert all(error_tail not in message for message in error_messages)
 
 
 def test_public_package_lazy_exports_actor_generators() -> None:

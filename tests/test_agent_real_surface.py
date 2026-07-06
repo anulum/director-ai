@@ -18,7 +18,9 @@ from types import TracebackType
 from typing import Self, cast
 
 from director_ai.core.agent import CoherenceAgent
+from director_ai.core.runtime.batch import BatchProcessor
 from director_ai.core.types import ReviewResult
+from tools.test_surface_policy_manifest import KNOWN_TEST_SURFACE_CLASSIFICATIONS
 
 
 @dataclass(frozen=True, slots=True)
@@ -131,6 +133,19 @@ def _build_agent(url: str, *, max_candidates: int) -> CoherenceAgent:
     return agent
 
 
+def test_phase3_hardening_unit_guard_declares_real_surface_companions() -> None:
+    """The phase3 hardening unit guard is backed by public workflow tests."""
+    classification, reason = KNOWN_TEST_SURFACE_CLASSIFICATIONS[
+        "tests/test_phase3_hardening.py"
+    ]
+
+    assert classification == "unit-guard-with-companion"
+    assert "tests/test_agent_real_surface.py" in reason
+    assert "tests/test_actor_real_surface.py" in reason
+    assert "tests/test_config_real_surface.py" in reason
+    assert "tests/test_cli_serve_real_surface.py" in reason
+
+
 def test_agent_process_uses_real_completion_endpoint() -> None:
     """``process`` should drive real completion POSTs through ``LLMGenerator``."""
     replies = (
@@ -157,6 +172,34 @@ def test_agent_process_uses_real_completion_endpoint() -> None:
         "temperature": 0.0,
         "stop": ["\nUser:", "\nSystem:"],
     }
+
+
+def test_batch_processor_runs_real_agent_completion_workflow() -> None:
+    """BatchProcessor should drive real agent processing over HTTP in order."""
+    prompts = [
+        "Was the first batch receipt signed?",
+        "Was the second batch receipt signed?",
+    ]
+    replies = (
+        "The first batch receipt was signed.",
+        "The second batch receipt was signed.",
+    )
+
+    with _CompletionServer(replies) as server:
+        processor = BatchProcessor(
+            _build_agent(server.url, max_candidates=1),
+            max_concurrency=1,
+            item_timeout=5.0,
+        )
+        result = processor.process_batch(prompts, record_metrics=False)
+
+    assert result.total == 2
+    assert result.succeeded == 2
+    assert result.failed == 0
+    review_results = [item for item in result.results if isinstance(item, ReviewResult)]
+    assert len(review_results) == 2
+    assert [item.output for item in review_results] == list(replies)
+    assert [request.payload["prompt"] for request in server.state.requests] == prompts
 
 
 def test_agent_aprocess_uses_same_real_completion_endpoint() -> None:
