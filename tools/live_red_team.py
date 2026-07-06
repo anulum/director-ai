@@ -17,6 +17,7 @@ import json
 import sys
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 from collections.abc import Callable, Iterable
 from dataclasses import asdict, dataclass
@@ -135,15 +136,25 @@ def fetch_sources(
         if local_path.exists():
             fetched[name] = local_path
             continue
+        _require_http_source(name, location)
         target = cache_dir / f"{name}.csv"
         request = urllib.request.Request(
             location,
             headers={"User-Agent": "director-ai-live-red-team/1"},
         )
-        with urllib.request.urlopen(request, timeout=timeout_s) as response:
+        with urllib.request.urlopen(request, timeout=timeout_s) as response:  # nosec B310
             target.write_bytes(response.read())
         fetched[name] = target
     return fetched
+
+
+def _require_http_source(name: str, location: str) -> None:
+    """Require remote source locations to use explicit HTTP(S) URLs."""
+    parsed = urllib.parse.urlparse(location)
+    if parsed.scheme not in {"http", "https"}:
+        raise OSError(
+            f"source {name!r} must be an existing local file or an http(s) URL"
+        )
 
 
 def load_cases(
