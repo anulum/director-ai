@@ -29,6 +29,9 @@ director_pb2_grpc = pytest.importorskip(
 
 from director_ai.core.config import DirectorConfig  # noqa: E402
 from director_ai.grpc_server import create_grpc_server  # noqa: E402
+from tools.test_surface_policy_manifest import (  # noqa: E402
+    KNOWN_TEST_SURFACE_CLASSIFICATIONS,
+)
 
 
 def _free_local_port() -> int:
@@ -103,6 +106,21 @@ def _running_server(
 def _review_request(text: str) -> object:
     """Return a prompt/response protobuf request with matching text."""
     return director_pb2.ReviewRequest(prompt=text, response=text)
+
+
+def test_v330_hardening_unit_guard_declares_real_surface_companions() -> None:
+    """The v3.30 hardening unit guard is backed by public workflow tests."""
+    classification, reason = KNOWN_TEST_SURFACE_CLASSIFICATIONS[
+        "tests/test_v330_hardening.py"
+    ]
+
+    assert classification == "unit-guard-with-companion"
+    assert "tests/test_agent_real_surface.py" in reason
+    assert "tests/test_cli_ingest_real_surface.py" in reason
+    assert "tests/test_config_real_surface.py" in reason
+    assert "tests/test_consumer_api_real_surface.py" in reason
+    assert "tests/test_grpc_server_real_surface.py" in reason
+    assert "tests/test_server_real_surface.py" in reason
 
 
 def test_review_round_trips_over_real_grpc_channel() -> None:

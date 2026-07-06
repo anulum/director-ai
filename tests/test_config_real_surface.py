@@ -120,6 +120,15 @@ def test_memory_store_and_scorer_build_without_fake_dependencies() -> None:
     assert scorer.ground_truth_store is store
 
 
+def test_cors_default_and_explicit_origins_are_preserved() -> None:
+    """CORS defaults and explicit origins should survive config construction."""
+    default_config = DirectorConfig()
+    explicit_config = DirectorConfig(cors_origins="https://console.example")
+
+    assert default_config.cors_origins == ""
+    assert explicit_config.cors_origins == "https://console.example"
+
+
 def test_scorer_edge_cases_unit_guard_declares_real_surface_companion() -> None:
     """The scorer edge-case unit guard is backed by this real config surface."""
     classification, reason = KNOWN_TEST_SURFACE_CLASSIFICATIONS[

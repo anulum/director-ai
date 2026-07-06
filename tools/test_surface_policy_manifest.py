@@ -593,8 +593,12 @@ KNOWN_TEST_SURFACE_CLASSIFICATIONS: dict[str, tuple[str, str]] = {
         "tests/test_vector_store_real_surface.py",
     ),
     "tests/test_v330_hardening.py": (
-        "violation",
-        "module/workflow fake requiring review",
+        "unit-guard-with-companion",
+        "module/workflow unit guard with companions "
+        "tests/test_agent_real_surface.py, tests/test_cli_ingest_real_surface.py, "
+        "tests/test_config_real_surface.py, tests/test_consumer_api_real_surface.py, "
+        "tests/test_grpc_server_real_surface.py, and "
+        "tests/test_server_real_surface.py",
     ),
     "tests/test_vector_store.py": (
         "unit-guard-with-companion",
