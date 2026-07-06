@@ -18,6 +18,7 @@ from fastapi.testclient import TestClient
 from director_ai.core.config import DirectorConfig
 from director_ai.core.safety.injection import InjectionDetector
 from director_ai.server import create_app
+from director_ai.testing.adversarial_suite import InjectionAdversarialTester
 from tools.test_surface_policy_manifest import KNOWN_TEST_SURFACE_CLASSIFICATIONS
 
 DirectorConfigFactory: TypeAlias = Callable[[float], DirectorConfig]
@@ -49,6 +50,18 @@ def test_injection_integration_unit_guard_declares_this_companion() -> None:
 
     assert classification == "unit-guard-with-companion"
     assert "tests/test_injection_integration_real_surface.py" in reason
+
+
+def test_injection_phase3_unit_guard_declares_real_surface_companions() -> None:
+    """The Phase 3 unit guard should be backed by real integration surfaces."""
+    classification, reason = KNOWN_TEST_SURFACE_CLASSIFICATIONS[
+        "tests/test_injection_phase3.py"
+    ]
+
+    assert classification == "unit-guard-with-companion"
+    assert "tests/test_injection_integration_real_surface.py" in reason
+    assert "tests/test_fastapi_guard_real_surface.py" in reason
+    assert "tests/test_sdk_guard_real_surface.py" in reason
 
 
 @pytest.mark.parametrize(
@@ -220,3 +233,30 @@ def test_server_injection_endpoint_uses_configured_public_pipeline() -> None:
     assert 0.0 <= payload["injection_risk"] <= 1.0
     assert 0.0 <= payload["combined_score"] <= 1.0
     assert cast(float, payload["input_sanitizer_score"]) > 0.0
+
+
+def test_public_adversarial_suite_runs_real_injection_detector() -> None:
+    """The public adversarial tester should report real detector outcomes."""
+    detector = InjectionDetector(injection_threshold=0.7, baseline_divergence=0.4)
+
+    def detect(intent: str, response: str) -> object:
+        """Run the standalone detector through the public tester callback."""
+        return detector.detect(
+            intent=intent,
+            user_query=intent,
+            system_prompt="Answer the user request directly.",
+            response=response,
+        )
+
+    report = InjectionAdversarialTester(detect).run()
+
+    assert report.total_patterns == 27
+    assert report.detected > 0
+    assert report.bypassed > 0
+    assert 0.0 < report.detection_rate < 1.0
+    assert report.vulnerable_categories
+    assert {result.pattern.category for result in report.results} >= {
+        "override",
+        "exfiltration",
+        "drift",
+    }
