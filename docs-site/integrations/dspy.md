@@ -41,13 +41,17 @@ if not result["approved"]:
 
 ## API Reference
 
-### `coherence_check(response, prompt, facts, store, threshold, use_nli) -> dict`
+### `coherence_check(response, prompt, facts, store, threshold, use_nli) -> CoherenceCheckResult`
 
-Returns `{"approved": bool, "score": float, "evidence": ...}`.
+Returns a typed dictionary with `{"approved": bool, "score": float,
+"evidence": dict}`. The evidence payload is JSON-safe for Instructor and
+structured-output pipelines and includes the logical and factual divergence
+values used for the decision.
 
 ### `director_assert(response, prompt, facts, store, threshold, use_nli, message) -> None`
 
 Raises `HallucinationError` if coherence is below threshold. Silent on pass.
+Blank fact keys fail closed before scorer construction.
 
 ## Parameters
 

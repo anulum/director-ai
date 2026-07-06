@@ -300,8 +300,8 @@ KNOWN_TEST_SURFACE_CLASSIFICATIONS: dict[str, tuple[str, str]] = {
         "module/workflow fake requiring review",
     ),
     "tests/test_integrations_dspy.py": (
-        "violation",
-        "module/workflow fake requiring review",
+        "unit-guard-with-companion",
+        "external SDK adapter unit guard with companion tests/test_integrations_dspy_real_surface.py",
     ),
     "tests/test_integrations_semantic_kernel.py": (
         "unit-guard-with-companion",

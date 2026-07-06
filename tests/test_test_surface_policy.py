@@ -440,6 +440,16 @@ def test_langgraph_integration_unit_guard_has_real_surface_companion() -> None:
     assert "tests/test_langgraph_integration_real_surface.py" in category
 
 
+def test_dspy_integration_unit_guard_has_real_surface_companion() -> None:
+    """DSPy integration guards should be backed by real adapter coverage."""
+    classification, category = KNOWN_TEST_SURFACE_CLASSIFICATIONS[
+        "tests/test_integrations_dspy.py"
+    ]
+
+    assert classification == "unit-guard-with-companion"
+    assert "tests/test_integrations_dspy_real_surface.py" in category
+
+
 def test_lazy_enterprise_import_unit_guard_has_real_surface_companion() -> None:
     """Lazy enterprise import guard should be backed by public import coverage."""
     classification, category = KNOWN_TEST_SURFACE_CLASSIFICATIONS[
