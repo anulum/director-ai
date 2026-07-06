@@ -166,6 +166,8 @@ class HallucinationSpanDetector:
             raise ValueError("token_threshold must be in [0, 1]")
         if min_tokens < 1:
             raise ValueError("min_tokens must be >= 1")
+        if max_length < 1:
+            raise ValueError("max_length must be >= 1")
         self._model = model
         self._tokenizer = tokenizer
         self._token_threshold = float(token_threshold)

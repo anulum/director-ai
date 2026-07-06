@@ -549,8 +549,8 @@ KNOWN_TEST_SURFACE_CLASSIFICATIONS: dict[str, tuple[str, str]] = {
         "CLI/server/API unit guard with companion tests/test_server_auth_real_surface.py",
     ),
     "tests/test_span_detector.py": (
-        "violation",
-        "module/workflow fake requiring review",
+        "unit-guard-with-companion",
+        "span detector unit guard with companion tests/test_span_detector_real_surface.py",
     ),
     "tests/test_streaming.py": (
         "unit-guard-with-companion",

@@ -100,6 +100,14 @@ def validate_and_normalize(cfg: DirectorConfig) -> None:
             "sanitizer_block_threshold must be in [0, 1], "
             f"got {cfg.sanitizer_block_threshold}",
         )
+    if not (0.0 <= cfg.span_token_threshold <= 1.0):
+        raise ValueError(
+            f"span_token_threshold must be in [0, 1], got {cfg.span_token_threshold}",
+        )
+    if cfg.span_min_tokens < 1:
+        raise ValueError(f"span_min_tokens must be >= 1, got {cfg.span_min_tokens}")
+    if cfg.span_max_length < 1:
+        raise ValueError(f"span_max_length must be >= 1, got {cfg.span_max_length}")
     if (cfg.w_logic != 0.0 or cfg.w_fact != 0.0) and abs(
         cfg.w_logic + cfg.w_fact - 1.0,
     ) > 1e-6:

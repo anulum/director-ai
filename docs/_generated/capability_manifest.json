@@ -9,7 +9,7 @@
     "python_model_classes": 1003,
     "python_model_source_modules": 461,
     "rust_pyo3_model_wrappers": 83,
-    "test_files": 665
+    "test_files": 666
   },
   "documentation": {
     "public_pages": [
@@ -5788,6 +5788,7 @@
       "tests/test_soc2_iso_readiness.py",
       "tests/test_source_fetch.py",
       "tests/test_span_detector.py",
+      "tests/test_span_detector_real_surface.py",
       "tests/test_starter_presets.py",
       "tests/test_stats.py",
       "tests/test_streaming.py",

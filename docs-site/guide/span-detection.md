@@ -73,6 +73,11 @@ detection.coverage           # fraction of response tokens flagged
 | `span_max_length` | `1024` | context+response token budget |
 | `span_device` | `-1` | CUDA device index, `-1` for CPU |
 
+`span_token_threshold` must stay in `[0, 1]`; `span_min_tokens` and
+`span_max_length` must be at least `1`. Invalid values fail during
+`DirectorConfig` construction and direct detector construction rather than
+waiting for a lazy model load.
+
 ## Performance
 
 The transformer forward pass dominates the cost, but the token-probability →
