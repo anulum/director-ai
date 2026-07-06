@@ -109,6 +109,16 @@ def test_local_judge_unit_guard_declares_real_surface_companions() -> None:
     assert "tests/test_config_real_surface.py" in reason
 
 
+def test_llm_judge_unit_guard_declares_real_surface_companion() -> None:
+    """The LLM judge guard should name its public companion surface."""
+    classification, reason = KNOWN_TEST_SURFACE_CLASSIFICATIONS[
+        "tests/test_llm_judge.py"
+    ]
+
+    assert classification == "unit-guard-with-companion"
+    assert "tests/test_hybrid_hardening_real_surface.py" in reason
+
+
 def test_public_scorer_local_judge_path_uses_local_protocol_model(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
