@@ -8,6 +8,7 @@ from __future__ import annotations
 import pytest
 
 from director_ai.core.retrieval.vector_store.base import InMemoryBackend
+from director_ai.core.retrieval.vector_store.composite import HybridBackend
 from director_ai.core.retrieval.vector_store.store import VectorGroundTruthStore
 from tools.test_surface_policy_manifest import KNOWN_TEST_SURFACE_CLASSIFICATIONS
 
@@ -165,3 +166,19 @@ async def test_in_memory_backend_async_methods_use_real_sync_backend() -> None:
     assert backend.count() == 1
     assert [result["id"] for result in results] == ["async-policy"]
     assert results[0]["text"] == "Async rollback checks retain signed evidence."
+
+
+def test_hybrid_backend_bm25_path_ranks_real_term_matches() -> None:
+    """HybridBackend should expose the production BM25+dense retrieval path."""
+    backend = HybridBackend(
+        InMemoryBackend(),
+        sparse_weight=5.0,
+        dense_weight=0.0,
+    )
+    backend.add("policy-blue", "Water boils at 100 degrees Celsius.")
+    backend.add("policy-red", "Deployment rollbacks require signed approvals.")
+
+    results = backend.query("water boiling temperature", n_results=2)
+
+    assert [result["id"] for result in results] == ["policy-blue"]
+    assert "distance" in results[0]

@@ -100,6 +100,31 @@ def test_streaming_halt_evidence_keeps_chunk_scores_aligned_to_top_chunks() -> N
     assert evidence.nli_scores == [0.1, 0.4]
 
 
+def test_streaming_kernel_halts_on_real_downward_trend_path() -> None:
+    """StreamingKernel should halt via its public trend-monitoring contract."""
+    scores = iter([0.92, 0.82, 0.62, 0.42, 0.22])
+    kernel = StreamingKernel(
+        hard_limit=0.0,
+        window_size=10,
+        window_threshold=0.0,
+        trend_window=5,
+        trend_threshold=0.15,
+    )
+
+    session = kernel.stream_tokens(
+        ["safe ", "then ", "drifts ", "toward ", "risk"],
+        lambda _text: next(scores),
+        request_id="rust-signal-trend",
+        tenant_id="tenant-alpha",
+    )
+
+    assert session.halted is True
+    assert session.halt_index == 4
+    assert session.halt_reason.startswith("downward_trend")
+    assert session.safety_events
+    assert session.safety_events[0].hook_id == "streaming.kernel"
+
+
 def test_streaming_token_trace_emits_when_span_has_no_attribute_setter(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

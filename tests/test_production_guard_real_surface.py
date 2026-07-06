@@ -9,6 +9,7 @@ import pytest
 
 from director_ai.core.risk_threshold import RiskFactors
 from director_ai.guard import ProductionGuard
+from tools.test_surface_policy_manifest import KNOWN_TEST_SURFACE_CLASSIFICATIONS
 
 
 def test_fast_profile_guard_scores_loaded_facts_through_real_facade() -> None:
@@ -54,6 +55,46 @@ def test_verified_scoring_runs_real_claim_traceability() -> None:
     assert result.fabricated_count == 0
     assert result.coverage == pytest.approx(1.0)
     assert result.claims[0].verdict == "supported"
+
+
+def test_verified_scoring_exposes_real_signal_verdicts() -> None:
+    """The guard should expose numeric, negation, and entity signal outcomes."""
+    guard = ProductionGuard.from_profile("fast")
+
+    numeric = guard.check_verified(
+        "Data is retained for 30 days.",
+        "Policy says data is retained for 90 days.",
+        atomic=True,
+    )
+    negation = guard.check_verified(
+        "Phone support is available on weekends.",
+        "Policy says phone support is not available on weekends.",
+        atomic=True,
+    )
+    entity = guard.check_verified(
+        "Alice works at Google.",
+        "Bob works at Microsoft.",
+        atomic=True,
+    )
+
+    assert numeric.claims[0].numerical_match is False
+    assert numeric.claims[0].traceability > 0.0
+    assert negation.claims[0].negation_flip is True
+    assert negation.claims[0].traceability == pytest.approx(1.0)
+    assert entity.claims[0].entity_match == pytest.approx(0.0)
+    assert entity.claims[0].verdict == "contradicted"
+
+
+def test_rust_signals_unit_guard_declares_real_surface_companions() -> None:
+    """The Rust signal unit guard is backed by public workflow tests."""
+    classification, reason = KNOWN_TEST_SURFACE_CLASSIFICATIONS[
+        "tests/test_rust_signals.py"
+    ]
+
+    assert classification == "unit-guard-with-companion"
+    assert "tests/test_production_guard_real_surface.py" in reason
+    assert "tests/test_streaming_runtime_real_surface.py" in reason
+    assert "tests/test_vector_store_real_surface.py" in reason
 
 
 def test_stateful_facades_share_real_guard_context() -> None:
