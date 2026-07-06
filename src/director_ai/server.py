@@ -263,15 +263,15 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
         app.state._license = lic
         if lic.is_commercial:
             logger.info(
-                "Director-AI v%s Ă˘â‚¬â€ť Licensed to %s (%s tier)",
+                "Director-AI v%s — Licensed to %s (%s tier)",
                 __import__("director_ai").__version__,
                 lic.licensee or lic.key[:20],
                 lic.tier,
             )
         elif lic.is_trial:
-            logger.info("Director-AI Ă˘â‚¬â€ť Trial license (expires %s)", lic.expires)
+            logger.info("Director-AI — Trial license (expires %s)", lic.expires)
         else:
-            logger.info("Director-AI Ă˘â‚¬â€ť open core: Apache-2.0 + BUSL-1.1")
+            logger.info("Director-AI — open core: Apache-2.0 + BUSL-1.1")
 
         logger.info("Starting Director-AI server")
 
