@@ -16,6 +16,9 @@ that is a scoped package control, not a universal accuracy claim.
    fields, split coverage, exact cross-split leakage, customer/tenant binding,
    references, severity, decisions, secrets redaction, and optional vertical
    metadata.
+   Required scalar fields must be non-empty strings; blank split, severity,
+   decision, identity, prompt, response, label, reviewer, or timestamp fields
+   block readiness before training or benchmarking.
 2. **Training manifest** binds a ready dataset report to immutable base-model
    provenance, training lane, hyperparameters, objective profile, and output
    artefact URI.

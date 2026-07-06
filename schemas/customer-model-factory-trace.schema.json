@@ -34,6 +34,7 @@
     },
     "split": {
       "type": "string",
+      "minLength": 1,
       "enum": ["train", "eval", "test"]
     },
     "prompt": {
@@ -50,6 +51,7 @@
     },
     "severity": {
       "type": "string",
+      "minLength": 1,
       "enum": ["low", "medium", "high", "critical"]
     },
     "label": {

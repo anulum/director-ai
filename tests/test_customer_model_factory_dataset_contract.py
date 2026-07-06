@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -33,7 +34,7 @@ def _workspace() -> CustomerWorkspace:
     )
 
 
-def _row(trace_id: str, split: str, *, severity: str = "medium") -> dict:
+def _row(trace_id: str, split: str, *, severity: str = "medium") -> dict[str, Any]:
     return {
         "trace_id": trace_id,
         "customer_id": "customer-alpha",
@@ -66,7 +67,7 @@ def _row(trace_id: str, split: str, *, severity: str = "medium") -> dict:
     }
 
 
-def test_valid_customer_dataset_produces_ready_report():
+def test_valid_customer_dataset_produces_ready_report() -> None:
     rows = [
         _row("trace-001", "train"),
         _row("trace-002", "eval", severity="high"),
@@ -86,7 +87,7 @@ def test_valid_customer_dataset_produces_ready_report():
     assert report.customer_id == "customer-alpha"
 
 
-def test_dataset_missing_required_field_blocks_readiness():
+def test_dataset_missing_required_field_blocks_readiness() -> None:
     row = _row("trace-001", "train")
     row.pop("source_refs")
 
@@ -103,7 +104,7 @@ def test_dataset_missing_required_field_blocks_readiness():
     )
 
 
-def test_dataset_rejects_mixed_customer_or_tenant_rows():
+def test_dataset_rejects_mixed_customer_or_tenant_rows() -> None:
     bad_customer = _row("trace-001", "train")
     bad_customer["customer_id"] = "other-bank"
     bad_tenant = _row("trace-002", "eval")
@@ -122,7 +123,7 @@ def test_dataset_rejects_mixed_customer_or_tenant_rows():
     }
 
 
-def test_dataset_blocks_exact_cross_split_leakage():
+def test_dataset_blocks_exact_cross_split_leakage() -> None:
     train = _row("trace-001", "train")
     eval_row = _row("trace-002", "eval")
     eval_row["prompt"] = train["prompt"]
@@ -138,7 +139,7 @@ def test_dataset_blocks_exact_cross_split_leakage():
     assert any(finding.code == "cross_split_duplicate" for finding in report.findings)
 
 
-def test_dataset_reports_split_severity_decision_and_reference_contract_errors():
+def test_dataset_reports_contract_errors() -> None:
     row = _row("trace-001", "holdout", severity="urgent")
     row["expected_decision"] = "ship"
     row["source_refs"] = []
@@ -155,7 +156,7 @@ def test_dataset_reports_split_severity_decision_and_reference_contract_errors()
     }
 
 
-def test_dataset_warns_when_high_risk_row_is_labelled_approved():
+def test_dataset_warns_when_high_risk_row_is_labelled_approved() -> None:
     row = _row("trace-001", "train", severity="critical")
     row["expected_decision"] = "approve"
 
@@ -164,7 +165,7 @@ def test_dataset_warns_when_high_risk_row_is_labelled_approved():
     assert any(finding.code == "high_risk_approve_label" for finding in report.findings)
 
 
-def test_sector_profile_requires_sector_metadata_for_high_risk_rows():
+def test_sector_profile_requires_sector_metadata_for_high_risk_rows() -> None:
     high_risk = _row("trace-001", "eval", severity="critical")
     high_risk["metadata"] = {"sector_class": "customer_policy"}
 
@@ -181,7 +182,7 @@ def test_sector_profile_requires_sector_metadata_for_high_risk_rows():
     }
 
 
-def test_unredacted_secret_blocks_readiness():
+def test_unredacted_secret_blocks_readiness() -> None:
     row = _row("trace-001", "train")
     row["contains_secret"] = True
     row["redaction_status"] = "not_required"
@@ -192,7 +193,7 @@ def test_unredacted_secret_blocks_readiness():
     assert any(finding.code == "unredacted_secret" for finding in report.findings)
 
 
-def test_sector_profile_requires_metadata_object_before_sector_validation():
+def test_sector_profile_requires_metadata_object_before_sector_validation() -> None:
     row = _row("trace-001", "train")
     row["metadata"] = "not-a-dict"
 
@@ -215,7 +216,7 @@ def test_sector_profile_requires_metadata_object_before_sector_validation():
     }
 
 
-def test_report_serialises_to_stable_manifest_shape():
+def test_report_serialises_to_stable_manifest_shape() -> None:
     report = validate_customer_trace_dataset(
         [_row("trace-001", "train"), _row("trace-002", "eval")],
         _workspace(),
@@ -230,7 +231,7 @@ def test_report_serialises_to_stable_manifest_shape():
     assert "dataset_hash" in payload
 
 
-def test_report_writer_persists_json_manifest(tmp_path: Path):
+def test_report_writer_persists_json_manifest(tmp_path: Path) -> None:
     report = validate_customer_trace_dataset(
         [_row("trace-001", "train"), _row("trace-002", "eval")],
         _workspace(),
@@ -244,7 +245,7 @@ def test_report_writer_persists_json_manifest(tmp_path: Path):
     assert payload["dataset_hash"] == report.dataset_hash
 
 
-def test_customer_trace_schema_is_machine_readable():
+def test_customer_trace_schema_is_machine_readable() -> None:
     schema_path = ROOT / "schemas" / "customer-model-factory-trace.schema.json"
     schema = json.loads(schema_path.read_text(encoding="utf-8"))
 
@@ -268,15 +269,21 @@ def test_customer_trace_schema_is_machine_readable():
         "abstain",
         "escalate",
     ]
+    assert schema["properties"]["split"]["minLength"] == 1
+    assert schema["properties"]["severity"]["minLength"] == 1
 
 
-def test_dataset_sum_uses_python_when_rust_disabled(monkeypatch):
+def test_dataset_sum_uses_python_when_rust_disabled(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     monkeypatch.setattr(contract_mod, "_RUST_DATASET_CONTRACT", False)
 
     assert contract_mod._sum_int([1, 2, 3]) == 6
 
 
-def test_dataset_sum_uses_rust_kernel_when_available(monkeypatch):
+def test_dataset_sum_uses_rust_kernel_when_available(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     monkeypatch.setattr(contract_mod, "_RUST_DATASET_CONTRACT", True)
     calls = {"count": 0}
 
@@ -290,7 +297,9 @@ def test_dataset_sum_uses_rust_kernel_when_available(monkeypatch):
     assert calls["count"] == 1
 
 
-def test_dataset_sum_propagates_mandatory_rust_failure(monkeypatch):
+def test_dataset_sum_propagates_mandatory_rust_failure(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     monkeypatch.setattr(contract_mod, "_RUST_DATASET_CONTRACT", True)
     monkeypatch.setattr(
         contract_mod,
@@ -303,7 +312,22 @@ def test_dataset_sum_propagates_mandatory_rust_failure(monkeypatch):
         contract_mod._sum_int([1])
 
 
-def test_duplicate_trace_id_is_flagged():
+def test_duplicate_trace_id_is_flagged() -> None:
     rows = [_row("dup-1", "train"), _row("dup-1", "train")]
     report = validate_customer_trace_dataset(rows, _workspace())
     assert any(f.code == "duplicate_trace_id" for f in report.findings)
+
+
+def test_blank_required_enum_fields_block_readiness() -> None:
+    row = _row("trace-001", "")
+    row["severity"] = ""
+
+    report = validate_customer_trace_dataset([row], _workspace())
+
+    assert report.ready is False
+    assert {
+        finding.field
+        for finding in report.findings
+        if finding.code == "blank_required_field"
+    } >= {"split", "severity"}
+    assert "severity" not in report.severity_counts

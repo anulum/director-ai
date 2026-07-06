@@ -50,6 +50,9 @@ REQUIRED_FIELDS = frozenset(
         "observed_at",
     }
 )
+REQUIRED_STRING_FIELDS = frozenset(
+    field for field in REQUIRED_FIELDS if field not in {"source_refs", "policy_refs"}
+)
 ALLOWED_DECISIONS = frozenset({"approve", "block", "abstain", "escalate"})
 ALLOWED_SEVERITIES = frozenset({"low", "medium", "high", "critical"})
 HIGH_RISK_SEVERITIES = frozenset({"high", "critical"})
@@ -150,7 +153,7 @@ def validate_customer_trace_dataset(
         _validate_secret_redaction(row, trace_id, findings)
         _validate_sector_metadata(row, trace_id, vertical_profile, findings)
 
-        split = _string(row.get("split"))
+        split = _string(row.get("split")).strip()
         if split:
             if split not in workspace.allowed_splits:
                 findings.append(
@@ -165,7 +168,7 @@ def validate_customer_trace_dataset(
             split_counts[split] += 1
             fingerprints_by_split[split].add(_semantic_fingerprint(row))
 
-        severity = _string(row.get("severity"))
+        severity = _string(row.get("severity")).strip()
         if severity:
             if severity not in ALLOWED_SEVERITIES:
                 findings.append(
@@ -212,6 +215,21 @@ def _validate_required_fields(
                 code="missing_required_field",
                 severity="error",
                 message=f"required field {field!r} is missing",
+                trace_id=trace_id,
+                field=field,
+            )
+        )
+    blank = sorted(
+        field
+        for field in REQUIRED_STRING_FIELDS
+        if field in row and not _string(row.get(field)).strip()
+    )
+    for field in blank:
+        findings.append(
+            CustomerTraceFinding(
+                code="blank_required_field",
+                severity="error",
+                message=f"required field {field!r} must be a non-empty string",
                 trace_id=trace_id,
                 field=field,
             )
@@ -269,7 +287,7 @@ def _validate_decision(
     trace_id: str,
     findings: list[CustomerTraceFinding],
 ) -> None:
-    decision = _string(row.get("expected_decision"))
+    decision = _string(row.get("expected_decision")).strip()
     if decision and decision not in ALLOWED_DECISIONS:
         findings.append(
             CustomerTraceFinding(
@@ -280,7 +298,7 @@ def _validate_decision(
                 field="expected_decision",
             )
         )
-    severity = _string(row.get("severity"))
+    severity = _string(row.get("severity")).strip()
     if severity in HIGH_RISK_SEVERITIES and decision == "approve":
         findings.append(
             CustomerTraceFinding(
