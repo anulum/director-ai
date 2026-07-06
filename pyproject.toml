@@ -117,6 +117,14 @@ voice = [
     "openai>=1.0",
     "deepgram-sdk>=3.0",
 ]
+# Secret backends for managed deployments (imported lazily in core/secrets.py,
+# whose ImportError messages point operators at these extras).
+vault = ["hvac>=2,<3"]
+aws = ["boto3>=1.34,<2"]
+azure = [
+    "azure-keyvault-secrets>=4.7,<5",
+    "azure-identity>=1.16,<2",
+]
 onnx = [
     "onnx>=1.21,<2",
     "onnxruntime>=1.15,<2",
