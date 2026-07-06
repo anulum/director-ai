@@ -10,7 +10,10 @@ from __future__ import annotations
 
 import json
 import sys
-import types
+from collections.abc import Callable, Sequence
+from dataclasses import dataclass
+from types import ModuleType, TracebackType
+from typing import Literal, TypedDict
 
 import pytest
 
@@ -33,41 +36,63 @@ from director_ai.ui.safety_dashboard import (
 )
 
 
-def _line(payload: dict) -> str:
+def _line(payload: dict[str, object]) -> str:
     return json.dumps(payload) + "\n"
+
+
+@dataclass(frozen=True)
+class _FakeTuneResult:
+    """Typed result returned by the tuner test double."""
+
+    threshold: float
+    w_logic: float
+    w_fact: float
+    balanced_accuracy: float
+    confidence_level: str
+
+
+class _FakeTunerModule(ModuleType):
+    """Strict-typed replacement for the optional tuner module."""
+
+    def tune(self, samples: list[dict[str, object]]) -> _FakeTuneResult:
+        """Return deterministic threshold guidance for dashboard tests."""
+
+        labels = [bool(sample["label"]) for sample in samples]
+        return _FakeTuneResult(
+            threshold=0.42,
+            w_logic=0.5,
+            w_fact=0.5,
+            balanced_accuracy=1.0 if len(set(labels)) > 1 else 0.5,
+            confidence_level="unit-test",
+        )
+
+    def format_profile_overlay(
+        self,
+        result: _FakeTuneResult,
+        *,
+        profile: str,
+        base_profile: str,
+    ) -> str:
+        """Render the same profile overlay shape used by the real tuner."""
+
+        lines = [
+            f'profile: "{profile}"',
+            f"coherence_threshold: {result.threshold:.4f}",
+            f"w_logic: {result.w_logic:.4f}",
+            f"w_fact: {result.w_fact:.4f}",
+        ]
+        if base_profile:
+            lines.append(f'tuned_from_profile: "{base_profile}"')
+        return "\n".join(lines)
 
 
 class TestSafetyDashboard:
     @pytest.fixture(autouse=True)
-    def _fake_tuner_module(self, monkeypatch):
-        fake_tuner = types.ModuleType("director_ai.core.training.tuner")
-
-        def fake_tune(samples):
-            labels = [bool(sample["label"]) for sample in samples]
-            return types.SimpleNamespace(
-                threshold=0.42,
-                w_logic=0.5,
-                w_fact=0.5,
-                balanced_accuracy=1.0 if len(set(labels)) > 1 else 0.5,
-                confidence_level="unit-test",
-            )
-
-        def fake_overlay(result, *, profile, base_profile):
-            lines = [
-                f'profile: "{profile}"',
-                f"coherence_threshold: {result.threshold:.4f}",
-                f"w_logic: {result.w_logic:.4f}",
-                f"w_fact: {result.w_fact:.4f}",
-            ]
-            if base_profile:
-                lines.append(f'tuned_from_profile: "{base_profile}"')
-            return "\n".join(lines)
-
-        fake_tuner.tune = fake_tune
-        fake_tuner.format_profile_overlay = fake_overlay
+    def _fake_tuner_module(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        fake_tuner = _FakeTunerModule("director_ai.core.training.tuner")
         monkeypatch.setitem(sys.modules, "director_ai.core.training.tuner", fake_tuner)
 
-    def test_tables_have_stable_columns(self):
+    def test_tables_have_stable_columns(self) -> None:
         assert TENANT_COLUMNS == [
             "tenant_id",
             "events",
@@ -80,7 +105,7 @@ class TestSafetyDashboard:
         assert "source" in SOURCE_COLUMNS
         assert "action" in EVIDENCE_COLUMNS
 
-    def test_safety_event_builds_per_tenant_halt_rate(self):
+    def test_safety_event_builds_per_tenant_halt_rate(self) -> None:
         events = _line(
             {
                 "event_id": "e1",
@@ -113,7 +138,7 @@ class TestSafetyDashboard:
         assert evidence[0][5] == 0.22
         assert "director-ai tune" in command
 
-    def test_feedback_marks_false_positive_rate(self):
+    def test_feedback_marks_false_positive_rate(self) -> None:
         events = _line(
             {
                 "event_id": "e1",
@@ -145,7 +170,7 @@ class TestSafetyDashboard:
         assert evidence[-1][3] == "feedback"
         assert evidence[-1][7] == "Retune from labelled feedback."
 
-    def test_parse_errors_are_reported_without_dropping_valid_rows(self):
+    def test_parse_errors_are_reported_without_dropping_valid_rows(self) -> None:
         events = "{broken\n" + _line(
             {
                 "tenant_id": "tenant-b",
@@ -161,7 +186,7 @@ class TestSafetyDashboard:
         assert tenants[0][0] == "tenant-b"
         assert sources[0][0] == "kb://ontology"
 
-    def test_non_false_positive_feedback_is_ignored(self):
+    def test_non_false_positive_feedback_is_ignored(self) -> None:
         records, errors = parse_dashboard_records(
             "",
             _line(
@@ -176,7 +201,7 @@ class TestSafetyDashboard:
         assert records == []
         assert errors == []
 
-    def test_empty_inputs_return_operator_guidance(self):
+    def test_empty_inputs_return_operator_guidance(self) -> None:
         summary, tenants, sources, evidence, command = build_safety_dashboard("")
 
         assert "load SafetyEvent JSONL" in summary
@@ -185,7 +210,7 @@ class TestSafetyDashboard:
         assert evidence == []
         assert command.startswith("director-ai tune")
 
-    def test_retune_guidance_builds_profile_overlay_from_feedback(self):
+    def test_retune_guidance_builds_profile_overlay_from_feedback(self) -> None:
         feedback = "".join(
             _line(
                 {
@@ -219,7 +244,7 @@ class TestSafetyDashboard:
         assert 'tuned_from_profile: "customer_support"' in overlay
         assert "coherence_threshold" in overlay
 
-    def test_retune_guidance_requires_labelled_prompt_response_rows(self):
+    def test_retune_guidance_requires_labelled_prompt_response_rows(self) -> None:
         summary, overlay = build_retune_guidance(
             _line({"event_id": "missing-fields", "human_approved": True}),
             min_samples=2,
@@ -229,7 +254,7 @@ class TestSafetyDashboard:
         assert "Parse warnings" in summary
         assert overlay == ""
 
-    def test_retune_guidance_defaults_profile_from_base_profile(self):
+    def test_retune_guidance_defaults_profile_from_base_profile(self) -> None:
         feedback = "".join(
             _line(
                 {
@@ -261,7 +286,7 @@ class TestSafetyDashboard:
         assert "Rejected labels: 2" in summary
         assert 'profile: "finance_tuned"' in overlay
 
-    def test_retune_guidance_reports_provisional_single_class_feedback(self):
+    def test_retune_guidance_reports_provisional_single_class_feedback(self) -> None:
         feedback = "".join(
             _line(
                 {
@@ -278,7 +303,7 @@ class TestSafetyDashboard:
         assert "Warning: only one label class present" in summary
         assert 'profile: "tuned"' in overlay
 
-    def test_retune_guidance_keeps_parse_warnings_with_enough_valid_rows(self):
+    def test_retune_guidance_keeps_parse_warnings_with_enough_valid_rows(self) -> None:
         feedback = _line({"prompt": "missing response", "human_approved": True})
         feedback += "".join(
             _line(
@@ -296,7 +321,7 @@ class TestSafetyDashboard:
         assert "Parse warnings" in summary
         assert "coherence_threshold" in overlay
 
-    def test_retune_guidance_accepts_boolean_and_numeric_labels(self):
+    def test_retune_guidance_accepts_boolean_and_numeric_labels(self) -> None:
         feedback = _line(
             {
                 "prompt": "bool accepted",
@@ -318,7 +343,7 @@ class TestSafetyDashboard:
         assert "Rejected labels: 1" in summary
         assert "coherence_threshold" in overlay
 
-    def test_retune_guidance_rejects_unknown_label_text(self):
+    def test_retune_guidance_rejects_unknown_label_text(self) -> None:
         summary, overlay = build_retune_guidance(
             _line(
                 {
@@ -334,7 +359,7 @@ class TestSafetyDashboard:
         assert "Parse warnings" in summary
         assert overlay == ""
 
-    def test_retune_guidance_reports_parse_warnings_before_enough_samples(self):
+    def test_retune_guidance_reports_parse_warnings_before_enough_samples(self) -> None:
         summary, overlay = build_retune_guidance(
             "{broken\n"
             + _line(
@@ -351,7 +376,7 @@ class TestSafetyDashboard:
         assert "Parse warnings: feedback:1" in summary
         assert overlay == ""
 
-    def test_retune_guidance_reports_clean_insufficient_sample_guidance(self):
+    def test_retune_guidance_reports_clean_insufficient_sample_guidance(self) -> None:
         summary, overlay = build_retune_guidance(
             _line(
                 {
@@ -367,7 +392,7 @@ class TestSafetyDashboard:
         assert "Parse warnings" not in summary
         assert overlay == ""
 
-    def test_retune_guidance_accepts_label_synonyms(self):
+    def test_retune_guidance_accepts_label_synonyms(self) -> None:
         accepted = ["approved", "approve", "correct", "true", "1"]
         rejected = ["rejected", "reject", "incorrect", "false", "0"]
         feedback = "".join(
@@ -397,7 +422,7 @@ class TestSafetyDashboard:
         assert "Rejected labels: 5" in summary
         assert "coherence_threshold" in overlay
 
-    def test_dashboard_reports_non_object_feedback_and_blank_lines(self):
+    def test_dashboard_reports_non_object_feedback_and_blank_lines(self) -> None:
         summary, tenants, sources, evidence, _command = build_safety_dashboard(
             "\n" + _line({"tenant_id": "tenant-a", "decision": "allow"}),
             "[]\n",
@@ -408,7 +433,7 @@ class TestSafetyDashboard:
         assert sources == []
         assert evidence == []
 
-    def test_dashboard_extracts_nested_sources_and_resilient_scores(self):
+    def test_dashboard_extracts_nested_sources_and_resilient_scores(self) -> None:
         events = _line(
             {
                 "event_id": "direct",
@@ -446,7 +471,10 @@ class TestSafetyDashboard:
         assert ["kb://trace", 1, 1, ""] in sources
         assert evidence[0][5] == ""
 
-    def test_launch_safety_dashboard_reports_missing_dependency(self, monkeypatch):
+    def test_launch_safety_dashboard_reports_missing_dependency(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
         monkeypatch.setitem(sys.modules, "gradio", None)
 
         try:
@@ -456,7 +484,10 @@ class TestSafetyDashboard:
         else:
             raise AssertionError("launch_safety_dashboard should require Gradio")
 
-    def test_launch_safety_dashboard_wires_retune_command(self, monkeypatch):
+    def test_launch_safety_dashboard_wires_retune_command(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
         fake = _FakeGradio()
         monkeypatch.setitem(sys.modules, "gradio", fake.module)
 
@@ -500,7 +531,7 @@ class TestSafetyDashboard:
 
 
 class TestTrustConsole:
-    def test_report_is_tenant_safe_and_excludes_raw_payload_fields(self):
+    def test_report_is_tenant_safe_and_excludes_raw_payload_fields(self) -> None:
         events = _line(
             {
                 "event_id": "e1",
@@ -556,7 +587,7 @@ class TestTrustConsole:
         assert "raw model answer" not in serialized
         assert "jane@example.com" not in serialized
 
-    def test_report_marks_failing_control_as_critical(self):
+    def test_report_marks_failing_control_as_critical(self) -> None:
         report = build_trust_console_report(
             "",
             controls=[
@@ -572,7 +603,7 @@ class TestTrustConsole:
         assert "External security test" in report.to_markdown()
         assert "critical" in report.to_markdown()
 
-    def test_control_status_is_validated(self):
+    def test_control_status_is_validated(self) -> None:
         try:
             TrustControl(control="SOC 2", status="maybe", evidence_ref="soc2.md")
         except ValueError as exc:
@@ -589,11 +620,11 @@ class TestTrustConsole:
     )
     def test_control_required_fields_are_validated(
         self, control: str, evidence_ref: str, match: str
-    ):
+    ) -> None:
         with pytest.raises(ValueError, match=match):
             TrustControl(control=control, status="passed", evidence_ref=evidence_ref)
 
-    def test_markdown_renders_empty_control_and_tenant_sections(self):
+    def test_markdown_renders_empty_control_and_tenant_sections(self) -> None:
         report = build_trust_console_report("")
 
         markdown = report.to_markdown()
@@ -601,7 +632,7 @@ class TestTrustConsole:
         assert "No readiness controls supplied." in markdown
         assert "No tenant events supplied." in markdown
 
-    def test_markdown_renders_parse_warnings_and_tenant_rows(self):
+    def test_markdown_renders_parse_warnings_and_tenant_rows(self) -> None:
         report = build_trust_console_report(
             "{broken\n"
             + _line(
@@ -620,7 +651,7 @@ class TestTrustConsole:
 
 
 class TestObservabilityOperationsReport:
-    def test_report_contains_drift_forensics_and_excludes_raw_payloads(self):
+    def test_report_contains_drift_forensics_and_excludes_raw_payloads(self) -> None:
         events = "".join(
             [
                 _line(
@@ -721,7 +752,7 @@ class TestObservabilityOperationsReport:
         assert "jane@example.com" not in serialised
         assert "kb://policy-v5" in serialised
 
-    def test_missing_compliance_export_marks_report_critical(self):
+    def test_missing_compliance_export_marks_report_critical(self) -> None:
         report = build_observability_operations_report(
             "",
             compliance_exports=[
@@ -758,7 +789,7 @@ class TestObservabilityOperationsReport:
         status: str,
         evidence_ref: str,
         match: str,
-    ):
+    ) -> None:
         with pytest.raises(ValueError, match=match):
             ComplianceExportRef(
                 standard=standard,
@@ -767,7 +798,9 @@ class TestObservabilityOperationsReport:
                 evidence_ref=evidence_ref,
             )
 
-    def test_operations_markdown_renders_empty_compliance_and_evidence_sections(self):
+    def test_operations_markdown_renders_empty_compliance_and_evidence_sections(
+        self,
+    ) -> None:
         report = build_observability_operations_report("")
 
         markdown = report.to_markdown()
@@ -775,7 +808,7 @@ class TestObservabilityOperationsReport:
         assert "No compliance export references supplied." in markdown
         assert "No halt evidence supplied." in markdown
 
-    def test_operations_markdown_renders_parse_warnings(self):
+    def test_operations_markdown_renders_parse_warnings(self) -> None:
         report = build_observability_operations_report(
             "{broken\n"
             + _line(
@@ -790,7 +823,7 @@ class TestObservabilityOperationsReport:
 
         assert "Parse Warnings: events:1" in markdown
 
-    def test_operations_markdown_renders_positive_tables(self):
+    def test_operations_markdown_renders_positive_tables(self) -> None:
         events = "".join(
             [
                 _line({"tenant_id": "tenant-a", "policy_decision": "allow"}),
@@ -832,7 +865,7 @@ class TestObservabilityOperationsReport:
         assert "| SOC 2 | Security packet | available | soc2.md |  |" in markdown
         assert "kb://policy" in markdown
 
-    def test_drift_alert_requires_enough_events_per_window(self):
+    def test_drift_alert_requires_enough_events_per_window(self) -> None:
         events = _line(
             {
                 "event_id": "baseline",
@@ -856,7 +889,7 @@ class TestObservabilityOperationsReport:
         assert report.to_dict()["drift_alerts"] == []
         assert report.to_dict()["summary"]["risk_level"] == "attention_required"
 
-    def test_drift_alert_window_ignores_feedback_records(self):
+    def test_drift_alert_window_ignores_feedback_records(self) -> None:
         events = "".join(
             [
                 _line({"tenant_id": "tenant-a", "policy_decision": "allow"}),
@@ -897,7 +930,7 @@ class TestObservabilityOperationsReport:
             ]
         ]
 
-    def test_operations_markdown_is_dashboard_ready(self):
+    def test_operations_markdown_is_dashboard_ready(self) -> None:
         markdown = build_observability_operations_markdown(
             _line({"tenant_id": "tenant-a", "policy_decision": "allow"}),
         )
@@ -908,7 +941,7 @@ class TestObservabilityOperationsReport:
 
 
 class TestSafetyDashboardUtilityContracts:
-    def test_drift_severity_and_recommendations_are_stable(self):
+    def test_drift_severity_and_recommendations_are_stable(self) -> None:
         assert dashboard_mod._drift_severity(0.31) == "severe"
         assert dashboard_mod._drift_severity(0.16) == "moderate"
         assert dashboard_mod._drift_severity(0.01) == "mild"
@@ -916,7 +949,7 @@ class TestSafetyDashboardUtilityContracts:
         assert "labelled feedback" in dashboard_mod._drift_recommendation("moderate")
         assert "Monitor the next window" in dashboard_mod._drift_recommendation("mild")
 
-    def test_drift_alert_rows_skip_small_and_stable_windows(self):
+    def test_drift_alert_rows_skip_small_and_stable_windows(self) -> None:
         small = [
             dashboard_mod.HaltDashboardRecord(
                 tenant_id="tenant-a",
@@ -963,7 +996,7 @@ class TestSafetyDashboardUtilityContracts:
             == []
         )
 
-    def test_operations_risk_level_precedence(self):
+    def test_operations_risk_level_precedence(self) -> None:
         assert (
             dashboard_mod._operations_risk_level(
                 tenant_alerts=0,
@@ -1039,7 +1072,7 @@ class TestSafetyDashboardUtilityContracts:
             == "healthy"
         )
 
-    def test_trust_risk_level_precedence(self):
+    def test_trust_risk_level_precedence(self) -> None:
         assert (
             dashboard_mod._trust_risk_level(
                 tenants=[],
@@ -1074,7 +1107,7 @@ class TestSafetyDashboardUtilityContracts:
             == "healthy"
         )
 
-    def test_source_and_nested_value_fallbacks(self):
+    def test_source_and_nested_value_fallbacks(self) -> None:
         assert (
             dashboard_mod._contradiction_source(
                 {"attributes": {"source": "kb://attributes"}}
@@ -1125,30 +1158,55 @@ class TestSafetyDashboardUtilityContracts:
             == "x"
         )
 
-    def test_truthy_accepts_numeric_and_string_forms(self):
+    def test_truthy_accepts_numeric_and_string_forms(self) -> None:
         assert dashboard_mod._truthy(1) is True
         assert dashboard_mod._truthy(0) is False
         assert dashboard_mod._truthy("yes") is True
         assert dashboard_mod._truthy("no") is False
         assert dashboard_mod._truthy(object()) is False
 
-    def test_feedback_label_string_contracts(self):
+    def test_feedback_label_string_contracts(self) -> None:
         assert dashboard_mod._feedback_label({"label": "accepted"}) is True
         assert dashboard_mod._feedback_label({"label": " approve "}) is True
         assert dashboard_mod._feedback_label({"label": "blocked"}) is False
         assert dashboard_mod._feedback_label({"label": "0"}) is False
         assert dashboard_mod._feedback_label({"label": "maybe"}) is None
+        assert dashboard_mod._feedback_label({"label": []}) is None
+
+
+class _FakeClick(TypedDict):
+    """Captured Gradio click binding for UI wiring assertions."""
+
+    component: _FakeComponent
+    fn: Callable[..., object]
+    inputs: list[_FakeComponent]
+    outputs: list[_FakeComponent]
 
 
 class _FakeComponent:
-    def __init__(self, owner, *args, **kwargs):
+    """Minimal Gradio component double that records labels and callbacks."""
+
+    def __init__(
+        self,
+        owner: _FakeGradio,
+        *args: object,
+        **kwargs: object,
+    ) -> None:
         self.owner = owner
         self.args = args
         self.kwargs = kwargs
         self.label = str(kwargs.get("label") or (args[0] if args else ""))
         owner.components.append(self)
 
-    def click(self, *, fn, inputs=None, outputs=None):
+    def click(
+        self,
+        *,
+        fn: Callable[..., object],
+        inputs: Sequence[_FakeComponent] | None = None,
+        outputs: Sequence[_FakeComponent] | None = None,
+    ) -> None:
+        """Record the callback binding registered by the dashboard."""
+
         self.owner.clicks.append(
             {
                 "component": self,
@@ -1160,32 +1218,69 @@ class _FakeComponent:
 
 
 class _FakeContext:
-    def __init__(self, owner, **kwargs):
+    """Minimal context-manager double for Gradio containers."""
+
+    def __init__(self, owner: _FakeGradio, **kwargs: object) -> None:
         self.owner = owner
         self.kwargs = kwargs
 
-    def __enter__(self):
+    def __enter__(self) -> _FakeContext:
+        """Enter a fake Gradio container context."""
+
         return self
 
-    def __exit__(self, exc_type, exc, tb):
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc: BaseException | None,
+        tb: TracebackType | None,
+    ) -> Literal[False]:
+        """Propagate exceptions raised inside the fake context."""
+
         return False
 
-    def launch(self, **kwargs):
-        self.owner.launch_kwargs = kwargs
+    def launch(self, **kwargs: object) -> None:
+        """Capture launch keyword arguments for assertions."""
+
+        self.owner.launch_kwargs = dict(kwargs)
+
+
+class _FakeGradioModule(ModuleType):
+    """Module-shaped Gradio double with the attributes used by the UI."""
+
+    Blocks: Callable[..., _FakeContext]
+    Button: Callable[..., _FakeComponent]
+    Code: Callable[..., _FakeComponent]
+    Dataframe: Callable[..., _FakeComponent]
+    Markdown: Callable[..., _FakeComponent]
+    Row: Callable[..., _FakeContext]
+    Slider: Callable[..., _FakeComponent]
+    Textbox: Callable[..., _FakeComponent]
 
 
 class _FakeGradio:
-    def __init__(self):
-        self.components = []
-        self.clicks = []
-        self.launch_kwargs = {}
-        self.module = types.SimpleNamespace(
-            Blocks=lambda *args, **kwargs: _FakeContext(self, **kwargs),
-            Button=lambda *args, **kwargs: _FakeComponent(self, *args, **kwargs),
-            Code=lambda *args, **kwargs: _FakeComponent(self, *args, **kwargs),
-            Dataframe=lambda *args, **kwargs: _FakeComponent(self, *args, **kwargs),
-            Markdown=lambda *args, **kwargs: _FakeComponent(self, *args, **kwargs),
-            Row=lambda *args, **kwargs: _FakeContext(self, **kwargs),
-            Slider=lambda *args, **kwargs: _FakeComponent(self, *args, **kwargs),
-            Textbox=lambda *args, **kwargs: _FakeComponent(self, *args, **kwargs),
-        )
+    """Container for fake Gradio components and click bindings."""
+
+    def __init__(self) -> None:
+        self.components: list[_FakeComponent] = []
+        self.clicks: list[_FakeClick] = []
+        self.launch_kwargs: dict[str, object] = {}
+        self.module = _FakeGradioModule("gradio")
+        self.module.Blocks = self._context
+        self.module.Button = self._component
+        self.module.Code = self._component
+        self.module.Dataframe = self._component
+        self.module.Markdown = self._component
+        self.module.Row = self._context
+        self.module.Slider = self._component
+        self.module.Textbox = self._component
+
+    def _context(self, *_args: object, **kwargs: object) -> _FakeContext:
+        """Build a fake Gradio context object."""
+
+        return _FakeContext(self, **kwargs)
+
+    def _component(self, *args: object, **kwargs: object) -> _FakeComponent:
+        """Build a fake Gradio component object."""
+
+        return _FakeComponent(self, *args, **kwargs)

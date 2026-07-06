@@ -16,6 +16,7 @@ or Gradio dependency for its core summaries.
 from __future__ import annotations
 
 import json
+import math
 from collections import Counter, defaultdict
 from dataclasses import dataclass
 from typing import Any, Literal
@@ -353,6 +354,10 @@ def build_safety_dashboard(
         Markdown summary, tenant table rows, contradiction-source rows,
         recent evidence rows, and a ready-to-run retune command.
     """
+    halt_alert_threshold = _validated_rate("halt_alert_threshold", halt_alert_threshold)
+    false_positive_alert_threshold = _validated_rate(
+        "false_positive_alert_threshold", false_positive_alert_threshold
+    )
     records, errors = parse_dashboard_records(events_jsonl, feedback_jsonl)
     tenant_rows = _tenant_rows(
         records,
@@ -384,6 +389,14 @@ def build_observability_operations_report(
     min_drift_window_events: int = 2,
 ) -> ObservabilityOperationsReport:
     """Build a tenant-safe halt-forensics and drift operations packet."""
+    halt_alert_threshold = _validated_rate("halt_alert_threshold", halt_alert_threshold)
+    false_positive_alert_threshold = _validated_rate(
+        "false_positive_alert_threshold", false_positive_alert_threshold
+    )
+    drift_alert_threshold = _validated_rate(
+        "drift_alert_threshold", drift_alert_threshold
+    )
+    min_drift_window_events = _validated_min_window_events(min_drift_window_events)
     records, errors = parse_dashboard_records(events_jsonl, feedback_jsonl)
     tenants = _tenant_rows(
         records,
@@ -467,6 +480,10 @@ def build_trust_console_report(
     false_positive_alert_threshold: float = 0.05,
 ) -> TrustConsoleReport:
     """Build a tenant-safe customer Trust Console report."""
+    halt_alert_threshold = _validated_rate("halt_alert_threshold", halt_alert_threshold)
+    false_positive_alert_threshold = _validated_rate(
+        "false_positive_alert_threshold", false_positive_alert_threshold
+    )
     records, errors = parse_dashboard_records(events_jsonl, feedback_jsonl)
     tenants = _tenant_rows(
         records,
@@ -1081,3 +1098,17 @@ def _truthy(value: Any) -> bool:
     if isinstance(value, str):
         return value.lower() in {"1", "true", "yes", "y"}
     return False
+
+
+def _validated_rate(name: str, value: float) -> float:
+    """Return a finite alert-rate threshold in the public dashboard range."""
+    if not math.isfinite(value) or value < 0.0 or value > 1.0:
+        raise ValueError(f"{name} must be finite and in [0, 1]")
+    return value
+
+
+def _validated_min_window_events(value: int) -> int:
+    """Return a positive per-window event count for drift calculations."""
+    if value < 1:
+        raise ValueError("min_drift_window_events must be >= 1")
+    return value

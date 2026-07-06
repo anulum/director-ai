@@ -363,6 +363,9 @@ evidence or hosted dashboard URL, operator sign-off, readiness-control status,
 compliance-export status, and drift-review status. Local report generation is
 not enough to close R8; the release gate requires staging or production evidence
 and fails closed when any required reference or review flag is missing.
+Dashboard, Trust Console, and observability operations report builders also fail
+closed when alert thresholds are not finite rates in `[0, 1]`; operations
+reports reject drift windows below one event before emitting the packet.
 
 ## Provenance And KB Lineage Evidence
 

@@ -9,7 +9,7 @@
     "python_model_classes": 1003,
     "python_model_source_modules": 461,
     "rust_pyo3_model_wrappers": 83,
-    "test_files": 669
+    "test_files": 670
   },
   "documentation": {
     "public_pages": [
@@ -5742,6 +5742,7 @@
       "tests/test_rust_signals.py",
       "tests/test_safety_contracts.py",
       "tests/test_safety_dashboard.py",
+      "tests/test_safety_dashboard_real_surface.py",
       "tests/test_safety_event.py",
       "tests/test_safety_ops_mixin.py",
       "tests/test_safety_protocol.py",

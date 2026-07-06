@@ -757,6 +757,16 @@ def test_multimodal_guard_unit_guard_has_real_surface_companion() -> None:
     assert "tests/test_multimodal_guard_real_surface.py" in category
 
 
+def test_safety_dashboard_unit_guard_has_real_surface_companion() -> None:
+    """Safety dashboard reports should have public companion coverage."""
+    classification, category = KNOWN_TEST_SURFACE_CLASSIFICATIONS[
+        "tests/test_safety_dashboard.py"
+    ]
+
+    assert classification == "unit-guard-with-companion"
+    assert "tests/test_safety_dashboard_real_surface.py" in category
+
+
 def test_streaming_unit_guard_has_real_surface_companion() -> None:
     classification, category = KNOWN_TEST_SURFACE_CLASSIFICATIONS[
         "tests/test_streaming.py"

@@ -513,8 +513,8 @@ KNOWN_TEST_SURFACE_CLASSIFICATIONS: dict[str, tuple[str, str]] = {
     ),
     "tests/test_run_judge_benchmark.py": ("violation", "ML/export/eval boundary fake"),
     "tests/test_safety_dashboard.py": (
-        "violation",
-        "module/workflow fake requiring review",
+        "unit-guard-with-companion",
+        "module/workflow unit guard with companion tests/test_safety_dashboard_real_surface.py",
     ),
     "tests/test_scorer_backend.py": (
         "violation",

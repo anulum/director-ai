@@ -148,6 +148,8 @@ The defaults are intentionally conservative:
 
 - halt-rate alert: `0.15`
 - false-positive alert: `0.05`
+- operations drift alert: `0.10`
+- minimum drift window: `2` events per baseline/current window
 
 Override them when a deployment has a known review cadence:
 
@@ -158,6 +160,11 @@ director-ai safety-dashboard \
   --halt-alert-threshold 0.25 \
   --false-positive-alert-threshold 0.10
 ```
+
+Dashboard, Trust Console, and observability operations builders fail closed when
+an alert threshold is not a finite rate in `[0, 1]`. Operations reports also
+reject non-positive drift windows before parsing events, which prevents
+misconfigured dashboards from emitting misleading drift packets.
 
 ## Prometheus And Grafana Mixin
 
