@@ -136,6 +136,10 @@ KNOWN_TEST_SURFACE_CLASSIFICATIONS: dict[str, tuple[str, str]] = {
         "unit-guard-with-companion",
         "cyber-physical unit guard with companion tests/test_cyber_physical_real_surface.py",
     ),
+    "tests/test_cyber_physical_real_surface.py": (
+        "approved-protocol-fake",
+        "real cyber-physical facade surface with local ROS2 runtime protocol module",
+    ),
     "tests/test_data_pipeline.py": (
         "unit-guard-with-companion",
         "training data pipeline unit guard with companion tests/test_data_pipeline_real_surface.py",

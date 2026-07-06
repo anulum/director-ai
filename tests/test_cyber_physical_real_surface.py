@@ -9,12 +9,19 @@
 
 from __future__ import annotations
 
+import sys
+import types
+from typing import cast
+
+import pytest
+
 from director_ai.core.config import DirectorConfig
 from director_ai.core.cyber_physical import (
     AABB,
     JointChain,
     PhysicalAction,
     RobotCommandGuard,
+    Ros2Adapter,
     SimpleKinematicModel,
     SpatialConstraint,
     Vec3,
@@ -77,6 +84,58 @@ def _kinematic_model() -> SimpleKinematicModel:
     return SimpleKinematicModel(
         chain=JointChain(base=Vec3(0.0, 0.0, 0.0), link_lengths=(1.0, 1.0))
     )
+
+
+class _FakeRosNode:
+    """Small typed stand-in for the public ROS2 ``Node`` constructor contract."""
+
+    def __init__(self, name: str) -> None:
+        """Capture the node name passed by the adapter factory."""
+        self.name = name
+
+
+class _StartedRosRuntime(types.ModuleType):
+    """Typed fake for an already-initialised ``rclpy`` runtime."""
+
+    def __init__(self, init_calls: list[str]) -> None:
+        """Create the fake module with shared init-call tracking."""
+        super().__init__("rclpy")
+        self._init_calls = init_calls
+
+    def ok(self) -> bool:
+        """Report that the ROS2 runtime has already been started."""
+        return True
+
+    def init(self) -> None:
+        """Record an unexpected runtime initialisation call."""
+        self._init_calls.append("init")
+
+
+class _RosNodeModule(types.ModuleType):
+    """Typed fake for ``rclpy.node`` exposing the public ``Node`` symbol."""
+
+    Node: type[_FakeRosNode]
+
+    def __init__(self) -> None:
+        """Create the fake node module with the constructor under test."""
+        super().__init__("rclpy.node")
+        self.Node = _FakeRosNode
+
+
+def test_ros2_adapter_reuses_already_started_runtime(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """ROS2 factory should not reinitialise an already-running runtime."""
+    init_calls: list[str] = []
+    fake_rclpy = _StartedRosRuntime(init_calls)
+    fake_rclpy_node = _RosNodeModule()
+    monkeypatch.setitem(sys.modules, "rclpy", fake_rclpy)
+    monkeypatch.setitem(sys.modules, "rclpy.node", fake_rclpy_node)
+
+    adapter = Ros2Adapter.from_ros2(node_name="director_existing_runtime")
+
+    assert init_calls == []
+    assert cast(_FakeRosNode, adapter.node).name == "director_existing_runtime"
 
 
 def test_robot_command_guard_blocks_missing_spatial_model_via_public_facade() -> None:
