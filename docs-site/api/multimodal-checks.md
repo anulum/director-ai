@@ -16,6 +16,9 @@ marked benchmarked before a supported result may become `allow`.
   the claim is consistent
 - optional caption and metadata grounding can reduce a modality score before a
   decision is emitted
+- direct `MultimodalGuard` checks fail closed when a verifier returns a
+  non-finite or out-of-range similarity; verifier scores must be finite and in
+  `[0, 1]` before the verdict band is applied
 - invalid video temporal policy fails during adapter construction:
   `temporal_alpha` must be finite and in `(0, 1]`, and `temporal_floor` must be
   finite and in `[0, 1]`

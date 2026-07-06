@@ -17,7 +17,8 @@ from __future__ import annotations
 import importlib.util
 import math
 import sys
-from types import ModuleType, SimpleNamespace
+from types import ModuleType, SimpleNamespace, TracebackType
+from typing import Literal
 
 import pytest
 
@@ -42,19 +43,19 @@ from director_ai.core.multimodal_guard.verifier import _cosine
 
 
 class TestMultimodalClaim:
-    def test_valid(self):
+    def test_valid(self) -> None:
         c = MultimodalClaim(image_bytes=b"x", text_claim="a cat")
         assert c.text_claim == "a cat"
 
-    def test_empty_image_rejected(self):
+    def test_empty_image_rejected(self) -> None:
         with pytest.raises(ValueError, match="image_bytes"):
             MultimodalClaim(image_bytes=b"", text_claim="x")
 
-    def test_empty_text_rejected(self):
+    def test_empty_text_rejected(self) -> None:
         with pytest.raises(ValueError, match="text_claim"):
             MultimodalClaim(image_bytes=b"x", text_claim="")
 
-    def test_whitespace_text_rejected(self):
+    def test_whitespace_text_rejected(self) -> None:
         with pytest.raises(ValueError, match="text_claim"):
             MultimodalClaim(image_bytes=b"x", text_claim="   ")
 
@@ -63,47 +64,48 @@ class TestMultimodalClaim:
 
 
 class TestHashBagImageEncoder:
-    def test_deterministic(self):
+    def test_deterministic(self) -> None:
         a = HashBagImageEncoder(dim=128).encode(b"abc\x00def")
         b = HashBagImageEncoder(dim=128).encode(b"abc\x00def")
         assert a == b
 
-    def test_unit_norm(self):
+    def test_unit_norm(self) -> None:
         vec = HashBagImageEncoder(dim=128).encode(b"some image bytes here")
         assert math.isclose(math.sqrt(sum(x * x for x in vec)), 1.0, rel_tol=1e-6)
 
-    def test_dim_enforced(self):
+    def test_dim_enforced(self) -> None:
         e = HashBagImageEncoder(dim=64)
         assert e.dim == 64
         assert len(e.encode(b"payload")) == 64
 
-    def test_empty_rejected(self):
+    def test_empty_rejected(self) -> None:
         with pytest.raises(ValueError, match="image_bytes"):
             HashBagImageEncoder().encode(b"")
 
-    def test_bad_dim(self):
+    def test_bad_dim(self) -> None:
         with pytest.raises(ValueError, match="dim"):
             HashBagImageEncoder(dim=0)
 
-    def test_bad_chunk(self):
+    def test_bad_chunk(self) -> None:
         with pytest.raises(ValueError, match="chunk"):
             HashBagImageEncoder(chunk=0)
 
-    def test_different_payloads_differ(self):
+    def test_different_payloads_differ(self) -> None:
         a = HashBagImageEncoder(dim=256).encode(b"payload-a")
         b = HashBagImageEncoder(dim=256).encode(b"payload-b")
         assert a != b
 
-    def test_zero_vector_normalise_is_stable(self):
+    def test_zero_vector_normalise_is_stable(self) -> None:
         assert _normalise((0.0, 0.0, 0.0)) == (0.0, 0.0, 0.0)
 
-    def test_rust_sum_failure_falls_back_to_python_normalise(self, monkeypatch):
+    def test_rust_sum_failure_falls_back_to_python_normalise(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        def raise_runtime(_values: list[float]) -> float:
+            raise RuntimeError("ffi unavailable")
+
         monkeypatch.setattr(encoder_mod, "_RUST_MULTIMODAL_ENCODERS", True)
-        monkeypatch.setattr(
-            encoder_mod,
-            "rust_sum_f64",
-            lambda _values: (_ for _ in ()).throw(RuntimeError("ffi unavailable")),
-        )
+        monkeypatch.setattr(encoder_mod, "rust_sum_f64", raise_runtime)
 
         assert _normalise((3.0, 4.0)) == pytest.approx((0.6, 0.8))
 
@@ -112,7 +114,7 @@ class TestHashBagImageEncoder:
 
 
 class TestTorchCLIPImageEncoderGuard:
-    def test_from_pretrained_raises_when_open_clip_missing(self):
+    def test_from_pretrained_raises_when_open_clip_missing(self) -> None:
         """The optional ``open_clip_torch`` extra is not installed
         in CI; the :class:`ImportError` message must point the
         operator at the install command."""
@@ -121,7 +123,7 @@ class TestTorchCLIPImageEncoderGuard:
         with pytest.raises(ImportError, match="multimodal"):
             TorchCLIPImageEncoder.from_pretrained()
 
-    def test_direct_constructor_validates(self):
+    def test_direct_constructor_validates(self) -> None:
         with pytest.raises(ValueError, match="model"):
             TorchCLIPImageEncoder(model=None, preprocess=object(), dim=512)
         with pytest.raises(ValueError, match="preprocess"):
@@ -129,21 +131,25 @@ class TestTorchCLIPImageEncoderGuard:
         with pytest.raises(ValueError, match="dim"):
             TorchCLIPImageEncoder(model=object(), preprocess=object(), dim=0)
 
-    def test_from_pretrained_uses_open_clip_model_metadata(self, monkeypatch):
-        calls = []
+    def test_from_pretrained_uses_open_clip_model_metadata(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        calls: list[tuple[object, ...]] = []
 
         class _Model:
             visual = SimpleNamespace(output_dim=3)
 
-            def to(self, device: str):
+            def to(self, device: str) -> _Model:
                 calls.append(("to", device))
                 return self
 
-            def eval(self):
+            def eval(self) -> _Model:
                 calls.append(("eval", None))
                 return self
 
-        def create_model_and_transforms(model_name: str, pretrained: str):
+        def create_model_and_transforms(
+            model_name: str, pretrained: str
+        ) -> tuple[_Model, None, str]:
             calls.append(("load", model_name, pretrained))
             return _Model(), None, "preprocess"
 
@@ -165,59 +171,72 @@ class TestTorchCLIPImageEncoderGuard:
             ("eval", None),
         ]
 
-    def test_encode_normalises_model_embedding(self, monkeypatch):
+    def test_encode_normalises_model_embedding(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         class _Image:
-            def convert(self, mode: str):
+            def convert(self, mode: str) -> _Image:
                 assert mode == "RGB"
                 return self
 
-        image_module = ModuleType("PIL.Image")
-        image_module.open = lambda stream: _Image()
-        pil_module = ModuleType("PIL")
+        class _ImageModule(ModuleType):
+            def open(self, stream: object) -> _Image:
+                return _Image()
+
+        class _PilModule(ModuleType):
+            Image: _ImageModule
+
+        image_module = _ImageModule("PIL.Image")
+        pil_module = _PilModule("PIL")
         pil_module.Image = image_module
         monkeypatch.setitem(sys.modules, "PIL", pil_module)
         monkeypatch.setitem(sys.modules, "PIL.Image", image_module)
 
         class _InputTensor:
-            def unsqueeze(self, dim: int):
+            def unsqueeze(self, dim: int) -> _InputTensor:
                 assert dim == 0
                 return self
 
-            def to(self, device: str):
+            def to(self, device: str) -> _InputTensor:
                 assert device == "cpu"
                 return self
 
         class _Row:
-            def cpu(self):
+            def cpu(self) -> _Row:
                 return self
 
-            def tolist(self):
+            def tolist(self) -> list[float]:
                 return [0.6, 0.8]
 
         class _Embedding:
-            def norm(self, *, dim: int, keepdim: bool):
+            def norm(self, *, dim: int, keepdim: bool) -> float:
                 assert dim == -1
                 assert keepdim is True
                 return 5.0
 
-            def __truediv__(self, other):
+            def __truediv__(self, other: float) -> _Embedding:
                 assert other == 5.0
                 return self
 
-            def __getitem__(self, index: int):
+            def __getitem__(self, index: int) -> _Row:
                 assert index == 0
                 return _Row()
 
         class _Model:
-            def encode_image(self, tensor):
+            def encode_image(self, tensor: object) -> _Embedding:
                 assert isinstance(tensor, _InputTensor)
                 return _Embedding()
 
         class _NoGrad:
-            def __enter__(self):
+            def __enter__(self) -> None:
                 return None
 
-            def __exit__(self, exc_type, exc, tb):
+            def __exit__(
+                self,
+                exc_type: type[BaseException] | None,
+                exc: BaseException | None,
+                tb: TracebackType | None,
+            ) -> Literal[False]:
                 return False
 
         monkeypatch.setitem(sys.modules, "torch", SimpleNamespace(no_grad=_NoGrad))
@@ -228,7 +247,7 @@ class TestTorchCLIPImageEncoderGuard:
 
         assert encoder.encode(b"image bytes") == (0.6, 0.8)
 
-    def test_encode_rejects_empty_payload_before_optional_imports(self):
+    def test_encode_rejects_empty_payload_before_optional_imports(self) -> None:
         encoder = TorchCLIPImageEncoder(
             model=object(), preprocess=lambda image: image, dim=2
         )
@@ -241,7 +260,7 @@ class TestTorchCLIPImageEncoderGuard:
 
 
 class TestHashBagCrossModalVerifier:
-    def test_matches_text_cosine(self):
+    def test_matches_text_cosine(self) -> None:
         enc = HashBagImageEncoder(dim=256)
         ver = HashBagCrossModalVerifier(dim=256)
         # Encode "a cat" as image bytes so image-bag and text-bag
@@ -252,17 +271,17 @@ class TestHashBagCrossModalVerifier:
         sim_unrelated = ver.verify(embedding, "quantum chromodynamics")
         assert sim_match >= sim_unrelated
 
-    def test_dim_mismatch_raises(self):
+    def test_dim_mismatch_raises(self) -> None:
         ver = HashBagCrossModalVerifier(dim=128)
         with pytest.raises(ValueError, match="dim"):
             ver.verify((0.0,) * 64, "text")
 
-    def test_empty_text_returns_zero(self):
+    def test_empty_text_returns_zero(self) -> None:
         ver = HashBagCrossModalVerifier(dim=128)
         assert ver.verify((1.0,) + (0.0,) * 127, "") == 0.0
         assert ver.verify((1.0,) + (0.0,) * 127, "   ") == 0.0
 
-    def test_case_insensitive_by_default(self):
+    def test_case_insensitive_by_default(self) -> None:
         enc = HashBagImageEncoder(dim=256)
         ver = HashBagCrossModalVerifier(dim=256)
         embedding = enc.encode(b"CAT")
@@ -270,7 +289,7 @@ class TestHashBagCrossModalVerifier:
         lower = ver.verify(embedding, "cat")
         assert upper == lower
 
-    def test_case_sensitive_flag(self):
+    def test_case_sensitive_flag(self) -> None:
         ver = HashBagCrossModalVerifier(dim=256, lowercase=False)
         enc = HashBagImageEncoder(dim=256)
         embedding = enc.encode(b"cat")
@@ -282,26 +301,27 @@ class TestHashBagCrossModalVerifier:
         # equality is also acceptable.
         assert upper_sim <= lower_sim
 
-    def test_bad_dim(self):
+    def test_bad_dim(self) -> None:
         with pytest.raises(ValueError, match="dim"):
             HashBagCrossModalVerifier(dim=-1)
 
-    def test_output_in_unit_interval(self):
+    def test_output_in_unit_interval(self) -> None:
         ver = HashBagCrossModalVerifier(dim=128)
         enc = HashBagImageEncoder(dim=128)
         sim = ver.verify(enc.encode(b"payload"), "arbitrary text")
         assert 0.0 <= sim <= 1.0
 
-    def test_cosine_rejects_length_mismatch(self):
+    def test_cosine_rejects_length_mismatch(self) -> None:
         assert _cosine((1.0, 0.0), (1.0,)) == 0.0
 
-    def test_rust_sum_failure_falls_back_to_python_cosine(self, monkeypatch):
+    def test_rust_sum_failure_falls_back_to_python_cosine(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        def raise_type_error(_values: list[float]) -> float:
+            raise TypeError("ffi mismatch")
+
         monkeypatch.setattr(verifier_mod, "_RUST_MULTIMODAL_VERIFIER", True)
-        monkeypatch.setattr(
-            verifier_mod,
-            "rust_sum_f64",
-            lambda _values: (_ for _ in ()).throw(TypeError("ffi mismatch")),
-        )
+        monkeypatch.setattr(verifier_mod, "rust_sum_f64", raise_type_error)
 
         assert _cosine((1.0, 0.0), (1.0, 0.0)) == pytest.approx(1.0)
 
@@ -310,13 +330,13 @@ class TestHashBagCrossModalVerifier:
 
 
 class TestTorchCLIPVerifierGuard:
-    def test_from_pretrained_without_open_clip(self):
+    def test_from_pretrained_without_open_clip(self) -> None:
         if importlib.util.find_spec("open_clip") is not None:
             pytest.skip("open_clip installed")
         with pytest.raises(ImportError, match="multimodal"):
             TorchCLIPCrossModalVerifier.from_pretrained()
 
-    def test_direct_constructor_validates(self):
+    def test_direct_constructor_validates(self) -> None:
         with pytest.raises(ValueError, match="model"):
             TorchCLIPCrossModalVerifier(model=None, tokenizer=object(), dim=512)
         with pytest.raises(ValueError, match="tokenizer"):
@@ -324,25 +344,29 @@ class TestTorchCLIPVerifierGuard:
         with pytest.raises(ValueError, match="dim"):
             TorchCLIPCrossModalVerifier(model=object(), tokenizer=object(), dim=0)
 
-    def test_from_pretrained_shares_open_clip_tokenizer(self, monkeypatch):
-        calls = []
+    def test_from_pretrained_shares_open_clip_tokenizer(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        calls: list[tuple[object, ...]] = []
 
         class _Model:
             visual = SimpleNamespace(output_dim=4)
 
-            def to(self, device: str):
+            def to(self, device: str) -> _Model:
                 calls.append(("to", device))
                 return self
 
-            def eval(self):
+            def eval(self) -> _Model:
                 calls.append(("eval", None))
                 return self
 
-        def create_model_and_transforms(model_name: str, pretrained: str):
+        def create_model_and_transforms(
+            model_name: str, pretrained: str
+        ) -> tuple[_Model, None, None]:
             calls.append(("load", model_name, pretrained))
             return _Model(), None, None
 
-        def get_tokenizer(model_name: str):
+        def get_tokenizer(model_name: str) -> str:
             calls.append(("tokenizer", model_name))
             return "tokenizer"
 
@@ -367,43 +391,48 @@ class TestTorchCLIPVerifierGuard:
             ("tokenizer", "local-clip"),
         ]
 
-    def test_verify_rescales_clip_cosine(self, monkeypatch):
+    def test_verify_rescales_clip_cosine(self, monkeypatch: pytest.MonkeyPatch) -> None:
         class _TokenBatch:
-            def to(self, device: str):
+            def to(self, device: str) -> _TokenBatch:
                 assert device == "cpu"
                 return self
 
         class _Row:
-            def cpu(self):
+            def cpu(self) -> _Row:
                 return self
 
-            def tolist(self):
+            def tolist(self) -> list[float]:
                 return [1.0, 0.0]
 
         class _Embedding:
-            def norm(self, *, dim: int, keepdim: bool):
+            def norm(self, *, dim: int, keepdim: bool) -> float:
                 assert dim == -1
                 assert keepdim is True
                 return 1.0
 
-            def __truediv__(self, other):
+            def __truediv__(self, other: float) -> _Embedding:
                 assert other == 1.0
                 return self
 
-            def __getitem__(self, index: int):
+            def __getitem__(self, index: int) -> _Row:
                 assert index == 0
                 return _Row()
 
         class _Model:
-            def encode_text(self, tokens):
+            def encode_text(self, tokens: object) -> _Embedding:
                 assert isinstance(tokens, _TokenBatch)
                 return _Embedding()
 
         class _NoGrad:
-            def __enter__(self):
+            def __enter__(self) -> None:
                 return None
 
-            def __exit__(self, exc_type, exc, tb):
+            def __exit__(
+                self,
+                exc_type: type[BaseException] | None,
+                exc: BaseException | None,
+                tb: TracebackType | None,
+            ) -> Literal[False]:
                 return False
 
         monkeypatch.setitem(sys.modules, "torch", SimpleNamespace(no_grad=_NoGrad))
@@ -416,7 +445,7 @@ class TestTorchCLIPVerifierGuard:
         assert verifier.verify((-1.0, 0.0), "opposite vector") == 0.0
         assert verifier.verify((1.0, 0.0), "same vector") == 1.0
 
-    def test_verify_validates_inputs_before_optional_import(self):
+    def test_verify_validates_inputs_before_optional_import(self) -> None:
         verifier = TorchCLIPCrossModalVerifier(
             model=object(),
             tokenizer=lambda texts: texts,
@@ -462,34 +491,34 @@ class TestMultimodalGuard:
         verifier = _ConstantVerifier(score=score, dim=128)
         return MultimodalGuard(encoder=encoder, verifier=verifier)
 
-    def test_protocol_runtime_checkable(self):
+    def test_protocol_runtime_checkable(self) -> None:
         encoder = HashBagImageEncoder(dim=64)
         verifier = HashBagCrossModalVerifier(dim=64)
         assert isinstance(encoder, ImageEncoder)
         assert isinstance(verifier, CrossModalVerifier)
 
-    def test_consistent_band(self):
+    def test_consistent_band(self) -> None:
         verdict = self._guard(0.8).check(self._claim())
         assert verdict.label == "consistent"
         assert verdict.similarity == 0.8
         assert "consistency_threshold" in verdict.reason
 
-    def test_hallucinated_band(self):
+    def test_hallucinated_band(self) -> None:
         verdict = self._guard(0.05).check(self._claim())
         assert verdict.label == "hallucinated"
         assert "hallucination_threshold" in verdict.reason
 
-    def test_uncertain_band(self):
+    def test_uncertain_band(self) -> None:
         verdict = self._guard(0.3).check(self._claim())
         assert verdict.label == "uncertain"
 
-    def test_dim_mismatch_rejected(self):
+    def test_dim_mismatch_rejected(self) -> None:
         encoder = HashBagImageEncoder(dim=64)
         verifier = HashBagCrossModalVerifier(dim=128)
         with pytest.raises(ValueError, match="dim"):
             MultimodalGuard(encoder=encoder, verifier=verifier)
 
-    def test_threshold_order_enforced(self):
+    def test_threshold_order_enforced(self) -> None:
         encoder = HashBagImageEncoder(dim=64)
         verifier = HashBagCrossModalVerifier(dim=64)
         with pytest.raises(ValueError, match="thresholds"):
@@ -500,14 +529,14 @@ class TestMultimodalGuard:
                 consistency_threshold=0.3,
             )
 
-    def test_check_many(self):
+    def test_check_many(self) -> None:
         guard = self._guard(0.8)
         claims = [self._claim(), self._claim()]
         verdicts = guard.check_many(claims)
         assert len(verdicts) == 2
         assert all(v.label == "consistent" for v in verdicts)
 
-    def test_verdict_is_dataclass(self):
+    def test_verdict_is_dataclass(self) -> None:
         verdict = self._guard(0.8).check(self._claim())
         assert isinstance(verdict, MultimodalVerdict)
 
@@ -516,13 +545,13 @@ class TestMultimodalGuard:
 
 
 class TestTemporalConsistencyGuard:
-    def test_first_update_initialises_ema(self):
+    def test_first_update_initialises_ema(self) -> None:
         g = TemporalConsistencyGuard(alpha=0.5, consistency_floor=0.2)
         halt = g.update(0.8)
         assert g.ema == 0.8
         assert halt is False
 
-    def test_decays_toward_drops(self):
+    def test_decays_toward_drops(self) -> None:
         g = TemporalConsistencyGuard(alpha=0.5, consistency_floor=0.2)
         g.update(1.0)
         g.update(0.0)
@@ -532,26 +561,26 @@ class TestTemporalConsistencyGuard:
         assert halt is True
         assert g.ema is not None and g.ema < 0.2
 
-    def test_reset_clears_state(self):
+    def test_reset_clears_state(self) -> None:
         g = TemporalConsistencyGuard()
         g.update(0.8)
         g.reset()
         assert g.ema is None
 
-    def test_bad_alpha(self):
+    def test_bad_alpha(self) -> None:
         with pytest.raises(ValueError, match="alpha"):
             TemporalConsistencyGuard(alpha=0.0)
 
-    def test_bad_floor(self):
+    def test_bad_floor(self) -> None:
         with pytest.raises(ValueError, match="consistency_floor"):
             TemporalConsistencyGuard(consistency_floor=1.5)
 
-    def test_update_range_enforced(self):
+    def test_update_range_enforced(self) -> None:
         g = TemporalConsistencyGuard()
         with pytest.raises(ValueError, match="similarity"):
             g.update(1.5)
 
-    def test_no_halt_on_steady_high_signal(self):
+    def test_no_halt_on_steady_high_signal(self) -> None:
         g = TemporalConsistencyGuard(alpha=0.3, consistency_floor=0.5)
         for _ in range(32):
             halt = g.update(0.9)

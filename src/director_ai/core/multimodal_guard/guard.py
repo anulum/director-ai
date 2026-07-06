@@ -17,6 +17,7 @@ video / audio guardrails need to catch drift across frames.
 
 from __future__ import annotations
 
+import math
 from collections.abc import Iterable
 from dataclasses import dataclass
 from typing import Literal
@@ -96,6 +97,7 @@ class MultimodalGuard:
         return tuple(self.check(c) for c in claims)
 
     def _band(self, similarity: float) -> MultimodalVerdict:
+        similarity = _validated_similarity(similarity)
         if similarity < self._hallucination:
             return MultimodalVerdict(
                 label="hallucinated",
@@ -177,3 +179,10 @@ class TemporalConsistencyGuard:
     def reset(self) -> None:
         """Forget the EMA so the next update reseeds it from one frame."""
         self._ema = None
+
+
+def _validated_similarity(value: float) -> float:
+    """Return a finite similarity score in the guard verdict interval."""
+    if not math.isfinite(value) or value < 0.0 or value > 1.0:
+        raise ValueError("similarity must be finite and in [0, 1]")
+    return value
