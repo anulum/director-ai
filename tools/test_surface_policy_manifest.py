@@ -420,7 +420,11 @@ KNOWN_TEST_SURFACE_CLASSIFICATIONS: dict[str, tuple[str, str]] = {
         "ML/export/eval boundary fake",
     ),
     "tests/test_nli_export.py": ("violation", "ML/export/eval boundary fake"),
-    "tests/test_nli_minicheck.py": ("violation", "ML/export/eval boundary fake"),
+    "tests/test_nli_minicheck.py": (
+        "unit-guard-with-companion",
+        "ML/export/eval MiniCheck NLI guard with companion "
+        "tests/test_nli_scorer_real_surface.py",
+    ),
     "tests/test_nli_scorer.py": (
         "unit-guard-with-companion",
         "ML/export/eval NLI scorer guard with companion tests/test_nli_scorer_real_surface.py",

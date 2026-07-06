@@ -242,7 +242,7 @@ inventory below is reference for the deeper surface, navigable under
 | Python capability classes | 1004 |
 | API documentation pages | 89 |
 | Rust PyO3 bindings | 83 |
-| Optional extras | 59 |
+| Optional extras | 62 |
 | Python test files | 676 |
 | Public documentation pages | 203 |
 | GitHub Actions workflows | 14 |

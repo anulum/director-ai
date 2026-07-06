@@ -3,7 +3,7 @@
   "counts": {
     "github_workflows": 14,
     "model_documentation_pages": 89,
-    "optional_extras": 59,
+    "optional_extras": 62,
     "public_api_exports": 226,
     "public_documentation_pages": 203,
     "python_model_classes": 1004,
@@ -5128,6 +5128,8 @@
       "anthropic",
       "auto-kb",
       "autogen",
+      "aws",
+      "azure",
       "colbert",
       "crewai",
       "crypto",
@@ -5180,6 +5182,7 @@
       "toxicity",
       "train",
       "ui",
+      "vault",
       "vector",
       "voice",
       "weaviate"
