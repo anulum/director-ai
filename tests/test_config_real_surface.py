@@ -37,6 +37,16 @@ def test_env_loading_coerces_real_process_environment(
     assert config.api_keys == ["tenant-key-a", "tenant-key-b"]
 
 
+def test_env_loading_rejects_invalid_bool_values(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Environment loading should fail closed on invalid boolean text."""
+    monkeypatch.setenv("DIRECTOR_PRODUCTION_MODE", "maybe")
+
+    with pytest.raises(ValueError, match="invalid bool"):
+        DirectorConfig.from_env()
+
+
 def test_json_file_loading_filters_unknown_fields(tmp_path: Path) -> None:
     """JSON config loading keeps known fields and ignores unknown fields."""
     config_path = tmp_path / "director-config.json"

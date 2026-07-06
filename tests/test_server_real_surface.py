@@ -152,3 +152,19 @@ def test_server_rate_limiter_is_wired_over_real_app(
     assert "SlowAPIMiddleware" in middleware_names
     assert app.state.limiter is not None
     assert app.state.limiter._default_limits is not None
+
+
+def test_server_rejects_excessive_cors_origins_over_create_app() -> None:
+    """CORS origin limits should fail closed through app construction."""
+    origins = ",".join(f"https://console-{idx}.example" for idx in range(101))
+    config = DirectorConfig(
+        api_keys=[],
+        cors_origins=origins,
+        hybrid_retrieval=False,
+        llm_provider="mock",
+        reranker_enabled=False,
+        use_nli=False,
+    )
+
+    with pytest.raises(ValueError, match="Too many CORS origins"):
+        create_app(config)

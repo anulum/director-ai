@@ -537,7 +537,7 @@ explicit operator opt-in.
 director-ai version                    # show version
 director-ai review <prompt> <response> # score a prompt/response pair
 director-ai process <prompt>           # end-to-end pipeline
-director-ai batch input.jsonl          # batch process (max 10K prompts)
+director-ai batch input.jsonl          # batch process (10K prompts, 100 MB file, 1 MB per line)
 director-ai ingest docs.txt            # ingest into vector store
 director-ai serve --port 8080          # start FastAPI server
 director-ai config --profile fast      # show/set configuration
@@ -553,7 +553,7 @@ Supported top-level commands in `director_ai.cli`:
 | `production-check` | Validate a generated production scaffold |
 | `review` | Score a prompt/response pair |
 | `process` | Run the end-to-end pipeline |
-| `batch` | Batch process JSONL input |
+| `batch` | Batch process JSONL input with 10K prompt, 100 MB file, and 1 MB line limits |
 | `ingest` | Ingest documents |
 | `eval` | Run benchmark/evaluation data |
 | `ci-gate` | Fail CI when guard quality drops below a threshold |

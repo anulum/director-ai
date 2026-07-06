@@ -18,6 +18,7 @@ import pytest
 
 import director_ai.cli as cli_module
 from director_ai.cli import main
+from tools.test_surface_policy_manifest import KNOWN_TEST_SURFACE_CLASSIFICATIONS
 
 CORE_HELP_CASES = [
     (
@@ -113,6 +114,42 @@ def test_top_level_help_lists_every_registered_command(
     for command in cli_module._command_specs():
         assert f"  {command}" in captured.out
     assert captured.err == ""
+
+
+def test_phase4_hardening_unit_guard_declares_real_surface_companions() -> None:
+    """The phase4 hardening unit guard is backed by public workflow tests."""
+    classification, reason = KNOWN_TEST_SURFACE_CLASSIFICATIONS[
+        "tests/test_phase4_hardening.py"
+    ]
+
+    assert classification == "unit-guard-with-companion"
+    assert "tests/test_actor_real_surface.py" in reason
+    assert "tests/test_cli_core_real_surface.py" in reason
+    assert "tests/test_config_real_surface.py" in reason
+    assert "tests/test_server_real_surface.py" in reason
+
+
+def test_batch_help_mentions_runtime_limits() -> None:
+    """Batch help should expose the same limits enforced by the runtime."""
+    env = {
+        **os.environ,
+        "DIRECTOR_FORCE_CPU": "1",
+    }
+
+    result = subprocess.run(
+        [sys.executable, "-m", "director_ai.cli", "batch", "--help"],
+        check=False,
+        capture_output=True,
+        env=env,
+        text=True,
+        timeout=8,
+    )
+
+    assert result.returncode == 0
+    assert "10K prompts" in result.stdout
+    assert "100 MB file" in result.stdout
+    assert "1 MB per line" in result.stdout
+    assert result.stderr == ""
 
 
 @pytest.mark.parametrize(

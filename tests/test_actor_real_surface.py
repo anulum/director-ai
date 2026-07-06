@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import socket
 import threading
 from collections.abc import AsyncIterator
 from dataclasses import dataclass, field
@@ -155,6 +156,14 @@ def _collect_stream(generator: LLMGenerator, prompt: str) -> list[str]:
     return asyncio.run(collect())
 
 
+def _closed_localhost_completion_url() -> str:
+    """Reserve and release a localhost port so connection refusal is local."""
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+        sock.bind(("127.0.0.1", 0))
+        host, port = cast(tuple[str, int], sock.getsockname())
+    return f"http://{host}:{port}/completion"
+
+
 def test_llm_generator_uses_real_completion_http_contract() -> None:
     """LLMGenerator should post production payloads to a real HTTP endpoint."""
     payloads: tuple[dict[str, object], ...] = (
@@ -240,6 +249,28 @@ def test_llm_generator_logs_real_http_error_with_truncated_body(
     error_messages = [record.getMessage() for record in caplog.records]
     assert any(message.startswith("LLM Error 500: ") for message in error_messages)
     assert all(error_tail not in message for message in error_messages)
+
+
+def test_llm_generator_reports_real_connection_error(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Connection failures should return the public unavailable candidate."""
+    generator = LLMGenerator(
+        _closed_localhost_completion_url(),
+        max_retries=1,
+        base_delay=0.0,
+        timeout=0.2,
+    )
+
+    with caplog.at_level("WARNING", logger="LLMGenerator"):
+        candidates = generator.generate_candidates(
+            "Summarise the closed endpoint.", n=1
+        )
+
+    assert candidates == [{"text": "[Error: LLM unavailable]", "source": "System"}]
+    assert any(
+        "LLM connection error" in record.getMessage() for record in caplog.records
+    )
 
 
 def test_public_package_lazy_exports_actor_generators() -> None:

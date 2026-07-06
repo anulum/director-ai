@@ -582,6 +582,7 @@ def _print_batch_help() -> None:
         "Usage: director-ai batch <input.jsonl> [--output results.jsonl]\n"
         "\n"
         "Batch process JSONL prompts. Each input line should include a prompt field.\n"
+        "Limits: 10K prompts, 100 MB file, 1 MB per line.\n"
         "\n"
         "Options:\n"
         "  --output FILE          Write full ReviewResult records as JSONL\n"
