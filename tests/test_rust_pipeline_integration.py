@@ -19,7 +19,9 @@ when the Rust extension is not installed.
 
 from __future__ import annotations
 
+import json
 import time
+from pathlib import Path
 
 import pytest
 
@@ -42,24 +44,28 @@ from director_ai.core import CoherenceScorer, GroundTruthStore  # noqa: E402
 class TestRustBackendRegistration:
     """Verify Rust backend is discoverable via the registry."""
 
-    def test_rust_backend_registered(self):
+    def test_rust_backend_registered(self) -> None:
+        """The public backend registry should expose the Rust backend name."""
         from director_ai.core.scoring.backends import get_backend
 
         backend_cls = get_backend("rust")
         assert backend_cls is not None
 
-    def test_backfire_alias_registered(self):
+    def test_backfire_alias_registered(self) -> None:
+        """The public backend registry should expose the backfire alias."""
         from director_ai.core.scoring.backends import get_backend
 
         backend_cls = get_backend("backfire")
         assert backend_cls is not None
 
-    def test_rust_and_backfire_same_class(self):
+    def test_rust_and_backfire_same_class(self) -> None:
+        """Rust and backfire names should resolve to the same backend class."""
         from director_ai.core.scoring.backends import get_backend
 
         assert get_backend("rust") is get_backend("backfire")
 
-    def test_list_backends_includes_rust(self):
+    def test_list_backends_includes_rust(self) -> None:
+        """Listing public backends should include the Rust backend."""
         from director_ai.core.scoring.backends import list_backends
 
         backends = list_backends()
@@ -73,23 +79,28 @@ class TestRustScorerPipeline:
     """End-to-end: CoherenceScorer(scorer_backend="rust") pipeline."""
 
     @pytest.fixture
-    def rust_scorer(self):
+    def rust_scorer(self) -> CoherenceScorer:
+        """Build a Rust-backed scorer through the public scorer API."""
         return CoherenceScorer(use_nli=False, scorer_backend="rust")
 
-    def test_review_returns_tuple(self, rust_scorer):
+    def test_review_returns_tuple(self, rust_scorer: CoherenceScorer) -> None:
+        """Review should keep the public tuple contract."""
         result = rust_scorer.review("What is AI?", "AI is intelligence.")
         assert isinstance(result, tuple)
         assert len(result) == 2
 
-    def test_approved_is_bool(self, rust_scorer):
+    def test_approved_is_bool(self, rust_scorer: CoherenceScorer) -> None:
+        """The approved flag should remain a boolean."""
         approved, _ = rust_scorer.review("Q", "A")
         assert isinstance(approved, bool)
 
-    def test_score_in_range(self, rust_scorer):
+    def test_score_in_range(self, rust_scorer: CoherenceScorer) -> None:
+        """Rust-backed scores should stay in the normalised range."""
         _, score = rust_scorer.review("What is 2+2?", "4")
         assert 0.0 <= score.score <= 1.0
 
-    def test_score_has_components(self, rust_scorer):
+    def test_score_has_components(self, rust_scorer: CoherenceScorer) -> None:
+        """Rust-backed score objects should expose scorer components."""
         _, score = rust_scorer.review("Q", "A")
         assert hasattr(score, "h_logical")
         assert hasattr(score, "h_factual")
@@ -106,19 +117,27 @@ class TestRustScorerPipeline:
             ("Числа: 123", "Ответ: 456"),
         ],
     )
-    def test_various_inputs(self, rust_scorer, prompt, response):
+    def test_various_inputs(
+        self,
+        rust_scorer: CoherenceScorer,
+        prompt: str,
+        response: str,
+    ) -> None:
+        """The Rust-backed scorer should handle representative text inputs."""
         approved, score = rust_scorer.review(prompt, response)
         assert isinstance(approved, bool)
         assert 0.0 <= score.score <= 1.0
 
-    def test_deterministic(self, rust_scorer):
+    def test_deterministic(self, rust_scorer: CoherenceScorer) -> None:
+        """Identical inputs should produce deterministic Rust-backed scores."""
         _, s1 = rust_scorer.review("Q", "A")
         _, s2 = rust_scorer.review("Q", "A")
         assert s1.score == s2.score
 
-    def test_long_input(self, rust_scorer):
-        long = "word " * 10_000
-        _, score = rust_scorer.review(long, long)
+    def test_long_input(self, rust_scorer: CoherenceScorer) -> None:
+        """Long repeated inputs should remain bounded and non-crashing."""
+        long_text = "word " * 10_000
+        _, score = rust_scorer.review(long_text, long_text)
         assert 0.0 <= score.score <= 1.0
 
 
@@ -128,7 +147,8 @@ class TestRustScorerPipeline:
 class TestRustKnowledgeCallback:
     """Verify knowledge store callback crosses FFI boundary."""
 
-    def test_scorer_with_ground_truth_store(self):
+    def test_scorer_with_ground_truth_store(self) -> None:
+        """GroundTruthStore should remain usable by a Rust-backed scorer."""
         store = GroundTruthStore()
         store.add_fact("earth", "Earth orbits the Sun")
         scorer = CoherenceScorer(
@@ -142,7 +162,8 @@ class TestRustKnowledgeCallback:
         assert isinstance(approved, bool)
         assert 0.0 <= score.score <= 1.0
 
-    def test_scorer_without_ground_truth(self):
+    def test_scorer_without_ground_truth(self) -> None:
+        """Rust-backed scorer construction should not require a store."""
         scorer = CoherenceScorer(use_nli=False, scorer_backend="rust")
         approved, score = scorer.review("Q", "A")
         assert isinstance(approved, bool)
@@ -154,7 +175,8 @@ class TestRustKnowledgeCallback:
 class TestRustPythonConsistency:
     """Rust and Python heuristic backends must agree on direction."""
 
-    def test_identical_input_both_approve_or_reject(self):
+    def test_identical_input_both_approve_or_reject(self) -> None:
+        """Rust and Python heuristic paths should both return valid scores."""
         py_scorer = CoherenceScorer(use_nli=False, scorer_backend="deberta")
         rs_scorer = CoherenceScorer(use_nli=False, scorer_backend="rust")
 
@@ -175,31 +197,36 @@ class TestRustPythonConsistency:
 class TestSignalDispatch:
     """Verify Rust signal functions are callable when backfire_kernel installed."""
 
-    def test_entity_overlap_available(self):
+    def test_entity_overlap_available(self) -> None:
+        """Entity-overlap dispatch should return a numeric signal."""
         from director_ai.core.scoring.verified_scorer import _entity_overlap
 
         result = _entity_overlap("Paris is the capital", "Paris is capital of France")
         assert isinstance(result, float)
 
-    def test_numerical_consistency_available(self):
+    def test_numerical_consistency_available(self) -> None:
+        """Numerical-consistency dispatch should return a scalar signal."""
         from director_ai.core.scoring.verified_scorer import _numerical_consistency
 
         result = _numerical_consistency("The speed is 100 km/h", "Speed: 100 km/h")
         assert isinstance(result, (bool, float, int))
 
-    def test_negation_flip_available(self):
+    def test_negation_flip_available(self) -> None:
+        """Negation-flip dispatch should return a scalar signal."""
         from director_ai.core.scoring.verified_scorer import _negation_flip
 
         result = _negation_flip("The sky is blue", "The sky is not blue")
         assert isinstance(result, (bool, float, int))
 
-    def test_traceability_available(self):
+    def test_traceability_available(self) -> None:
+        """Traceability dispatch should return a scalar signal."""
         from director_ai.core.scoring.verified_scorer import _traceability
 
         result = _traceability("Source document", "Response text")
         assert isinstance(result, (bool, float, int))
 
-    def test_trend_drop_available(self):
+    def test_trend_drop_available(self) -> None:
+        """Streaming trend-drop dispatch should return a scalar signal."""
         from director_ai.core.runtime.streaming import _trend_drop
 
         result = _trend_drop([0.9, 0.8, 0.7, 0.6, 0.5])
@@ -216,7 +243,7 @@ class TestRustPerformanceDoc:
     Measured on L40S: 2.5µs median. On consumer hardware: ~10-50µs.
     """
 
-    def test_rust_review_latency_under_1ms(self):
+    def test_rust_review_latency_under_1ms(self) -> None:
         """Single review must complete in < 1ms (heuristic, no NLI)."""
         scorer = CoherenceScorer(use_nli=False, scorer_backend="rust")
         # Warmup
@@ -230,7 +257,7 @@ class TestRustPerformanceDoc:
 
         assert elapsed < 1.0, f"Rust review took {elapsed:.3f}ms (expected < 1ms)"
 
-    def test_rust_backend_faster_than_python(self):
+    def test_rust_backend_faster_than_python(self) -> None:
         """Rust backend should be faster than Python heuristic backend."""
         py_scorer = CoherenceScorer(use_nli=False)
         rs_scorer = CoherenceScorer(use_nli=False, scorer_backend="rust")
@@ -260,15 +287,11 @@ class TestRustPerformanceDoc:
             f"(py={py_time * 1000:.1f}ms, rs={rs_time * 1000:.1f}ms)"
         )
 
-    def test_benchmark_results_exist(self):
+    def test_benchmark_results_exist(self) -> None:
         """FFI overhead benchmark results must be on disk."""
-        from pathlib import Path
-
         results_dir = Path(__file__).parent.parent / "benchmarks" / "results"
         ffi_results = results_dir / "ffi_overhead_results.json"
         if ffi_results.exists():
-            import json
-
             data = json.loads(ffi_results.read_text())
             # Results is a list of benchmark entries with 'name' field
             if isinstance(data, list):

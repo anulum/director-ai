@@ -10,11 +10,15 @@
 from __future__ import annotations
 
 import importlib
+import importlib.util
 import json
 from pathlib import Path
 from types import ModuleType
 
+import pytest
+
 import director_ai
+from director_ai.core import GroundTruthStore
 from director_ai.core.config import DirectorConfig
 from director_ai.core.scoring import backends as scoring_backends
 from director_ai.core.scoring.backends import (
@@ -69,6 +73,18 @@ def test_scorer_backend_unit_guard_declares_this_companion() -> None:
 
     assert classification == "unit-guard-with-companion"
     assert "tests/test_backends_real_surface.py" in reason
+
+
+def test_rust_pipeline_unit_guard_declares_real_surface_companions() -> None:
+    """The Rust pipeline unit guard should be backed by real public surfaces."""
+    classification, reason = KNOWN_TEST_SURFACE_CLASSIFICATIONS[
+        "tests/test_rust_pipeline_integration.py"
+    ]
+
+    assert classification == "unit-guard-with-companion"
+    assert "tests/test_backends_real_surface.py" in reason
+    assert "tests/test_production_guard_real_surface.py" in reason
+    assert "tests/test_streaming_runtime_real_surface.py" in reason
 
 
 def test_builtin_lite_backend_is_available_through_public_registry() -> None:
@@ -161,3 +177,49 @@ def test_lite_registry_backend_drives_coherence_scorer_review() -> None:
     assert approved is True
     assert score.approved is True
     assert score.score > 0.5
+
+
+def test_optional_rust_backend_registry_reflects_runtime_kernel() -> None:
+    """The public registry should expose Rust only when the kernel is usable."""
+    registry = list_backends()
+
+    if importlib.util.find_spec("backfire_kernel") is None:
+        assert "rust" not in registry
+        assert "backfire" not in registry
+        return
+
+    assert registry["rust"] is registry["backfire"]
+    assert issubclass(registry["rust"], ScorerBackend)
+
+    scorer = CoherenceScorer(scorer_backend="rust", use_nli=False)
+    approved, score = scorer.review(
+        "The capital of France is Paris.",
+        "The capital of France is Paris.",
+    )
+
+    assert isinstance(approved, bool)
+    assert approved is score.approved
+    assert 0.0 <= score.score <= 1.0
+
+
+def test_public_rust_scorer_uses_ground_truth_store_callback() -> None:
+    """Rust scorer construction should preserve public knowledge-store wiring."""
+    if importlib.util.find_spec("backfire_kernel") is None:
+        pytest.skip("backfire_kernel not installed")
+
+    store = GroundTruthStore()
+    store.add_fact("earth", "Earth orbits the Sun.")
+    scorer = CoherenceScorer(
+        scorer_backend="rust",
+        use_nli=False,
+        ground_truth_store=store,
+    )
+
+    approved, score = scorer.review(
+        "What does Earth orbit?",
+        "Earth orbits the Sun.",
+    )
+
+    assert isinstance(approved, bool)
+    assert approved is score.approved
+    assert 0.0 <= score.score <= 1.0
