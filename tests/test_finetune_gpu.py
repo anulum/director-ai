@@ -15,11 +15,27 @@ pipeline integration with judge model, and performance documentation.
 from __future__ import annotations
 
 import json
+from pathlib import Path
+from typing import TypeAlias
 
 import pytest
+from _pytest.tmpdir import TempPathFactory
+
+from director_ai.core.training.finetune import (
+    FinetuneConfig,
+    TrainingRow,
+    _prepare_dataset,
+    finetune_nli,
+)
+from director_ai.core.training.finetune_benchmark import (
+    _evaluate_model,
+    benchmark_finetuned_model,
+)
 
 torch = pytest.importorskip("torch")
 transformers = pytest.importorskip("transformers")
+
+JsonlRows: TypeAlias = list[TrainingRow]
 
 
 def _torch_cuda_device_is_supported() -> bool:
@@ -48,15 +64,17 @@ _FACTCG_MODEL = "yaxili96/FactCG-DeBERTa-v3-Large"
 _NON_FACTCG_MODEL = "microsoft/deberta-v3-base"
 
 
-def _write_jsonl(path, rows):
+def _write_jsonl(path: Path, rows: JsonlRows) -> None:
+    """Write NLI training or benchmark rows to a JSONL file."""
     path.write_text(
         "\n".join(json.dumps(r) for r in rows) + "\n",
         encoding="utf-8",
     )
 
 
-def _make_nli_data(n_pos=50, n_neg=50):
-    rows = []
+def _make_nli_data(n_pos: int = 50, n_neg: int = 50) -> JsonlRows:
+    """Build a deterministic balanced binary NLI sample set."""
+    rows: JsonlRows = []
     for i in range(n_pos):
         rows.append(
             {
@@ -83,9 +101,10 @@ class TestEvaluateModelReal:
     """Test _evaluate_model with real FactCG model on CPU (fits in RAM)."""
 
     @pytest.fixture(scope="class")
-    def benchmark_file(self, tmp_path_factory):
+    def benchmark_file(self, tmp_path_factory: TempPathFactory) -> Path:
+        """Create a small balanced benchmark file for real model evaluation."""
         tmp = tmp_path_factory.mktemp("bench")
-        rows = [
+        rows: JsonlRows = [
             {
                 "premise": "Paris is the capital of France.",
                 "hypothesis": "Paris is in France.",
@@ -121,33 +140,33 @@ class TestEvaluateModelReal:
         _write_jsonl(f, rows)
         return f
 
-    def test_evaluate_returns_metrics(self, benchmark_file):
-        from director_ai.core.finetune_benchmark import _evaluate_model
-
+    def test_evaluate_returns_metrics(self, benchmark_file: Path) -> None:
+        """Real FactCG inference should return bounded benchmark metrics."""
+        assert benchmark_file.is_file()
+        samples: JsonlRows = [
+            {
+                "premise": "Paris is the capital of France.",
+                "hypothesis": "Paris is in France.",
+                "label": 1,
+            },
+            {
+                "premise": "Paris is the capital of France.",
+                "hypothesis": "Paris is in Germany.",
+                "label": 0,
+            },
+        ]
         result = _evaluate_model(
             _FACTCG_MODEL,
-            [
-                {
-                    "premise": "Paris is the capital of France.",
-                    "hypothesis": "Paris is in France.",
-                    "label": 1,
-                },
-                {
-                    "premise": "Paris is the capital of France.",
-                    "hypothesis": "Paris is in Germany.",
-                    "label": 0,
-                },
-            ],
+            samples,
             batch_size=2,
         )
         assert "balanced_accuracy" in result
         assert "f1" in result
         assert 0 <= result["balanced_accuracy"] <= 1
 
-    def test_factcg_gets_easy_cases_right(self):
-        from director_ai.core.finetune_benchmark import _evaluate_model
-
-        samples = [
+    def test_factcg_gets_easy_cases_right(self) -> None:
+        """FactCG should classify the simple entailment fixture above chance."""
+        samples: JsonlRows = [
             {
                 "premise": "Paris is the capital of France.",
                 "hypothesis": "Paris is in France.",
@@ -172,9 +191,8 @@ class TestEvaluateModelReal:
         result = _evaluate_model(_FACTCG_MODEL, samples, batch_size=4)
         assert result["balanced_accuracy"] >= 0.75
 
-    def test_benchmark_end_to_end(self, benchmark_file):
-        from director_ai.core.finetune_benchmark import benchmark_finetuned_model
-
+    def test_benchmark_end_to_end(self, benchmark_file: Path) -> None:
+        """The public benchmark helper should evaluate the saved JSONL file."""
         report = benchmark_finetuned_model(
             _FACTCG_MODEL,
             general_path=benchmark_file,
@@ -188,9 +206,10 @@ class TestEvaluateModelReal:
 
 
 class TestPrepareDataset:
-    def test_factcg_template(self):
-        from director_ai.core.finetune import _prepare_dataset
+    """Tokenization guards for FactCG and generic pair templates."""
 
+    def test_factcg_template(self) -> None:
+        """The FactCG instruction template should tokenize all examples."""
         tok = transformers.AutoTokenizer.from_pretrained(
             _SMALL_MODEL,
             revision=_SMALL_MODEL_REVISION,
@@ -201,9 +220,8 @@ class TestPrepareDataset:
         assert "input_ids" in ds.column_names
         assert "labels" in ds.column_names
 
-    def test_pair_template(self):
-        from director_ai.core.finetune import _prepare_dataset
-
+    def test_pair_template(self) -> None:
+        """The generic NLI pair template should tokenize all examples."""
         tok = transformers.AutoTokenizer.from_pretrained(
             _SMALL_MODEL,
             revision=_SMALL_MODEL_REVISION,
@@ -220,9 +238,8 @@ class TestPrepareDataset:
 class TestFinetuneNliGPU:
     """Micro-training: 1 epoch, bs=2, 100 samples, deberta-v3-base."""
 
-    def test_finetune_end_to_end(self, tmp_path):
-        from director_ai.core.finetune import FinetuneConfig, finetune_nli
-
+    def test_finetune_end_to_end(self, tmp_path: Path) -> None:
+        """A minimal GPU training run should produce an output checkpoint."""
         train_rows = _make_nli_data(60, 60)
         eval_rows = _make_nli_data(10, 10)
         train_f = tmp_path / "train.jsonl"
@@ -251,10 +268,8 @@ class TestFinetuneNliGPU:
         assert result.best_balanced_accuracy > 0
         assert (tmp_path / "model_out" / "config.json").exists()
 
-    def test_finetune_class_weighted(self, tmp_path):
-        from director_ai.core.finetune import FinetuneConfig, finetune_nli
-
-        # Imbalanced: 90 pos, 30 neg
+    def test_finetune_class_weighted(self, tmp_path: Path) -> None:
+        """Class-weighted GPU training should handle imbalanced labels."""
         train_rows = _make_nli_data(90, 30)
         train_f = tmp_path / "train.jsonl"
         _write_jsonl(train_f, train_rows)
@@ -272,9 +287,8 @@ class TestFinetuneNliGPU:
         assert result.train_samples == 120
         assert result.final_loss > 0
 
-    def test_finetune_mix_general_data(self, tmp_path):
-        from director_ai.core.finetune import FinetuneConfig, finetune_nli
-
+    def test_finetune_mix_general_data(self, tmp_path: Path) -> None:
+        """GPU fine-tuning should mix general samples when configured."""
         train_rows = _make_nli_data(60, 60)
         general_rows = _make_nli_data(30, 30)
         train_f = tmp_path / "train.jsonl"
@@ -296,9 +310,8 @@ class TestFinetuneNliGPU:
         result = finetune_nli(str(train_f), config=cfg)
         assert result.mixed_general_samples > 0
 
-    def test_finetune_early_stopping(self, tmp_path):
-        from director_ai.core.finetune import FinetuneConfig, finetune_nli
-
+    def test_finetune_early_stopping(self, tmp_path: Path) -> None:
+        """Early-stopping configuration should preserve evaluation metrics."""
         train_rows = _make_nli_data(60, 60)
         eval_rows = _make_nli_data(10, 10)
         train_f = tmp_path / "train.jsonl"
@@ -319,17 +332,15 @@ class TestFinetuneNliGPU:
         result = finetune_nli(str(train_f), eval_path=str(eval_f), config=cfg)
         assert result.best_balanced_accuracy > 0
 
-    def test_finetune_empty_raises(self, tmp_path):
-        from director_ai.core.finetune import finetune_nli
-
+    def test_finetune_empty_raises(self, tmp_path: Path) -> None:
+        """Empty GPU training inputs should fail before model startup."""
         empty_f = tmp_path / "empty.jsonl"
         empty_f.write_text("", encoding="utf-8")
         with pytest.raises(ValueError, match="No valid samples"):
             finetune_nli(str(empty_f))
 
-    def test_finetune_auto_benchmark(self, tmp_path):
-        from director_ai.core.finetune import FinetuneConfig, finetune_nli
-
+    def test_finetune_auto_benchmark(self, tmp_path: Path) -> None:
+        """Auto-benchmark mode should keep the trained output path stable."""
         train_rows = _make_nli_data(60, 60)
         eval_rows = _make_nli_data(10, 10)
         train_f = tmp_path / "train.jsonl"
@@ -350,9 +361,8 @@ class TestFinetuneNliGPU:
         result = finetune_nli(str(train_f), eval_path=str(eval_f), config=cfg)
         assert result.output_dir == str(tmp_path / "bench_out")
 
-    def test_finetune_auto_onnx_export(self, tmp_path):
-        from director_ai.core.finetune import FinetuneConfig, finetune_nli
-
+    def test_finetune_auto_onnx_export(self, tmp_path: Path) -> None:
+        """Auto-ONNX mode should finish with the requested output path."""
         train_rows = _make_nli_data(60, 60)
         train_f = tmp_path / "train.jsonl"
         _write_jsonl(train_f, train_rows)
@@ -376,10 +386,9 @@ class TestFinetuneNliGPU:
 class TestEvaluateNonFactCG:
     """Test _evaluate_model with a non-FactCG model (sep_token template)."""
 
-    def test_non_factcg_uses_sep_template(self):
-        from director_ai.core.finetune_benchmark import _evaluate_model
-
-        samples = [
+    def test_non_factcg_uses_sep_template(self) -> None:
+        """Non-FactCG evaluation should use the generic separator template."""
+        samples: JsonlRows = [
             {
                 "premise": "Paris is the capital of France.",
                 "hypothesis": "Paris is in France.",

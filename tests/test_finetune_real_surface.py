@@ -33,6 +33,18 @@ def test_finetune_unit_guard_declares_this_companion() -> None:
     assert "tests/test_finetune_real_surface.py" in reason
 
 
+def test_finetune_gpu_unit_guard_declares_real_surface_companions() -> None:
+    """The GPU fine-tune guard should name its public companion surfaces."""
+    classification, reason = KNOWN_TEST_SURFACE_CLASSIFICATIONS[
+        "tests/test_finetune_gpu.py"
+    ]
+
+    assert classification == "unit-guard-with-companion"
+    assert "tests/test_finetune_real_surface.py" in reason
+    assert "tests/test_finetune_api_real_surface.py" in reason
+    assert "tests/test_finetune_benchmark_real_surface.py" in reason
+
+
 def test_finetune_nli_rejects_non_binary_labels_before_optional_training_imports(
     tmp_path: Path,
 ) -> None:

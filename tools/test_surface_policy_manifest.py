@@ -217,8 +217,8 @@ KNOWN_TEST_SURFACE_CLASSIFICATIONS: dict[str, tuple[str, str]] = {
         "ML/export/eval unit guard with companion tests/test_finetune_benchmark_real_surface.py",
     ),
     "tests/test_finetune_gpu.py": (
-        "violation",
-        "private-helper bypass requiring review",
+        "unit-guard-with-companion",
+        "GPU fine-tune unit guard with companions tests/test_finetune_real_surface.py, tests/test_finetune_api_real_surface.py, and tests/test_finetune_benchmark_real_surface.py",
     ),
     "tests/test_finetune_metrics_real_surface.py": (
         "unit-guard-with-companion",
