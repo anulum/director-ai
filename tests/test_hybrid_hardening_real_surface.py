@@ -10,7 +10,7 @@ import sys
 from dataclasses import dataclass
 from importlib.machinery import ModuleSpec
 from types import ModuleType, SimpleNamespace
-from typing import ClassVar, cast
+from typing import Any, ClassVar, cast
 
 import pytest
 
@@ -96,6 +96,112 @@ def test_hybrid_hardening_unit_guard_declares_this_companion() -> None:
 
     assert classification == "unit-guard-with-companion"
     assert "tests/test_hybrid_hardening_real_surface.py" in reason
+
+
+def test_local_judge_unit_guard_declares_real_surface_companions() -> None:
+    """The local judge guard should name its public companion surfaces."""
+    classification, reason = KNOWN_TEST_SURFACE_CLASSIFICATIONS[
+        "tests/test_local_judge.py"
+    ]
+
+    assert classification == "unit-guard-with-companion"
+    assert "tests/test_hybrid_hardening_real_surface.py" in reason
+    assert "tests/test_config_real_surface.py" in reason
+
+
+def test_public_scorer_local_judge_path_uses_local_protocol_model(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """``CoherenceScorer`` should route public scoring through local judge I/O."""
+    torch = pytest.importorskip("torch")
+    calls: list[tuple[str, str | None, str | None]] = []
+
+    class LocalJudgeTokenizer:
+        """Tokenizer protocol used by the local judge inference path."""
+
+        def __call__(
+            self,
+            judge_input: str,
+            *,
+            return_tensors: str,
+            max_length: int,
+            truncation: bool,
+        ) -> dict[str, Any]:
+            """Return tensor inputs while recording the public judge payload."""
+            assert "transfer approval" in judge_input
+            assert "without a receipt" in judge_input
+            assert return_tensors == "pt"
+            assert max_length == 384
+            assert truncation is True
+            return {
+                "input_ids": torch.tensor([[1, 2, 3]]),
+                "attention_mask": torch.tensor([[1, 1, 1]]),
+            }
+
+    class LocalJudgeModel:
+        """Sequence-classification protocol model used by local judge."""
+
+        def __init__(self) -> None:
+            self.call_count = 0
+
+        def to(self, device: str) -> LocalJudgeModel:
+            """Accept the requested device and return this model."""
+            assert device == "cpu"
+            return self
+
+        def eval(self) -> None:
+            """Match the HuggingFace model evaluation-mode method."""
+
+        def __call__(self, **inputs: Any) -> SimpleNamespace:
+            """Return logits preferring the rejecting local-judge class."""
+            assert set(inputs) == {"input_ids", "attention_mask"}
+            self.call_count += 1
+            return SimpleNamespace(logits=torch.tensor([[0.0, 4.0]]))
+
+    model = LocalJudgeModel()
+
+    def install_local_judge(
+        self: LLMJudge,
+        model_path: str,
+        device: str | None = None,
+        *,
+        model_revision: str | None = None,
+    ) -> None:
+        """Install a local model protocol in place of a remote checkpoint."""
+        calls.append((model_path, device, model_revision))
+        self._local_judge_tokenizer = LocalJudgeTokenizer()
+        self._local_judge_model = model
+        self._local_judge_device = "cpu"
+
+    monkeypatch.setattr(LLMJudge, "_init_local_judge", install_local_judge)
+    store = GroundTruthStore()
+    store.add(
+        "transfer approval",
+        "Transfer approvals require a signed operator receipt.",
+    )
+    scorer = CoherenceScorer(
+        use_nli=False,
+        ground_truth_store=store,
+        llm_judge_enabled=True,
+        llm_judge_provider="local",
+        llm_judge_model="local-protocol-judge",
+        llm_judge_confidence_threshold=0.51,
+        scorer_backend="hybrid",
+    )
+
+    first = scorer.calculate_factual_divergence(
+        "transfer approval",
+        "Transfer approvals can be issued without a receipt.",
+    )
+    second = scorer.calculate_factual_divergence(
+        "transfer approval",
+        "Transfer approvals can be issued without a receipt.",
+    )
+
+    assert calls == [("local-protocol-judge", None, None)]
+    assert first > 0.5
+    assert second == pytest.approx(first)
+    assert model.call_count == 1
 
 
 def test_public_llm_judge_check_uses_structured_json_provider_contract(

@@ -376,7 +376,10 @@ KNOWN_TEST_SURFACE_CLASSIFICATIONS: dict[str, tuple[str, str]] = {
         "module/workflow unit guard with companion tests/test_live_red_team_real_surface.py",
     ),
     "tests/test_llm_judge.py": ("violation", "ML/export/eval boundary fake"),
-    "tests/test_local_judge.py": ("violation", "ML/export/eval boundary fake"),
+    "tests/test_local_judge.py": (
+        "unit-guard-with-companion",
+        "ML/export/eval local judge guard with companions tests/test_hybrid_hardening_real_surface.py and tests/test_config_real_surface.py",
+    ),
     "tests/test_managed_training_jobs.py": (
         "violation",
         "ML/export/eval boundary fake",
