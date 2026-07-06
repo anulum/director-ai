@@ -737,6 +737,16 @@ def test_multilingual_corpus_unit_guard_has_real_surface_companion() -> None:
     assert "tests/test_multilingual_corpus_real_surface.py" in category
 
 
+def test_multimodal_factory_unit_guard_has_real_surface_companion() -> None:
+    """Multimodal factory guard should be backed by public adapter coverage."""
+    classification, category = KNOWN_TEST_SURFACE_CLASSIFICATIONS[
+        "tests/test_multimodal_factory.py"
+    ]
+
+    assert classification == "unit-guard-with-companion"
+    assert "tests/test_multimodal_factory_real_surface.py" in category
+
+
 def test_streaming_unit_guard_has_real_surface_companion() -> None:
     classification, category = KNOWN_TEST_SURFACE_CLASSIFICATIONS[
         "tests/test_streaming.py"

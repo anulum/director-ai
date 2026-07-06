@@ -21,9 +21,12 @@ import pytest
 from director_ai.core.guard_control import RiskEnvelope
 from director_ai.core.multimodal_guard import (
     MultimodalCheckRequest,
+    MultimodalVerifierAdapter,
     build_hashbag_adapter,
     text_bag_similarity,
 )
+from director_ai.core.multimodal_guard.factory import ClipLoader
+from director_ai.core.multimodal_guard.guard import MultimodalGuard
 
 _ENVELOPE = RiskEnvelope(
     action_category="multimodal",
@@ -35,39 +38,46 @@ _ENVELOPE = RiskEnvelope(
 
 
 class TestTextBagSimilarity:
-    def test_identical_text_is_one(self):
+    """Exercise text-bag similarity invariants used by fallback grounding."""
+
+    def test_identical_text_is_one(self) -> None:
         assert text_bag_similarity("refund policy terms", "refund policy terms") == (
             pytest.approx(1.0)
         )
 
-    def test_disjoint_text_is_zero(self):
+    def test_disjoint_text_is_zero(self) -> None:
         assert text_bag_similarity("alpha beta", "gamma delta") == pytest.approx(0.0)
 
-    def test_empty_input_is_zero(self):
+    def test_empty_input_is_zero(self) -> None:
         assert text_bag_similarity("", "something") == 0.0
         assert text_bag_similarity("something", "   ") == 0.0
 
-    def test_partial_overlap_between(self):
+    def test_partial_overlap_between(self) -> None:
         score = text_bag_similarity("refund within 30 days", "refund within 14 days")
         assert 0.0 < score < 1.0
 
-    def test_case_insensitive_by_default(self):
+    def test_case_insensitive_by_default(self) -> None:
         assert text_bag_similarity("Refund Policy", "refund policy") == pytest.approx(
             1.0
         )
 
-    def test_invalid_dim_rejected(self):
+    def test_invalid_dim_rejected(self) -> None:
         with pytest.raises(ValueError, match="dim must be positive"):
             text_bag_similarity("a", "b", dim=0)
 
 
 class TestBuildHashbagAdapter:
-    def _adapter(self, **kwargs):
-        kwargs.setdefault("enabled_modalities", ("image", "audio", "video"))
-        kwargs.setdefault("benchmarked_modalities", ("image", "audio", "video"))
-        return build_hashbag_adapter(**kwargs)
+    """Exercise the dependency-free adapter factory used in production config."""
 
-    def test_scores_image(self):
+    @staticmethod
+    def _adapter() -> MultimodalVerifierAdapter:
+        """Return the default hash-bag adapter for all supported modalities."""
+        return build_hashbag_adapter(
+            enabled_modalities=("image", "audio", "video"),
+            benchmarked_modalities=("image", "audio", "video"),
+        )
+
+    def test_scores_image(self) -> None:
         adapter = self._adapter()
         result = adapter.check(
             MultimodalCheckRequest(
@@ -81,7 +91,7 @@ class TestBuildHashbagAdapter:
         )
         assert result.guard_decision.decision in {"allow", "warn", "halt"}
 
-    def test_scores_audio_via_text_similarity(self):
+    def test_scores_audio_via_text_similarity(self) -> None:
         adapter = self._adapter()
         result = adapter.check(
             MultimodalCheckRequest(
@@ -95,7 +105,7 @@ class TestBuildHashbagAdapter:
         )
         assert result.signal.modality == "audio"
 
-    def test_scores_video_with_frame_drift(self):
+    def test_scores_video_with_frame_drift(self) -> None:
         adapter = self._adapter()
         result = adapter.check(
             MultimodalCheckRequest(
@@ -109,7 +119,7 @@ class TestBuildHashbagAdapter:
         )
         assert result.guard_decision.decision == "halt"
 
-    def test_metadata_grounding(self):
+    def test_metadata_grounding(self) -> None:
         adapter = self._adapter()
         result = adapter.check(
             MultimodalCheckRequest(
@@ -124,7 +134,7 @@ class TestBuildHashbagAdapter:
         )
         assert "m#metadata:alt" in result.guard_decision.evidence_refs
 
-    def test_empty_enabled_rejected(self):
+    def test_empty_enabled_rejected(self) -> None:
         with pytest.raises(ValueError, match="at least one enabled modality"):
             build_hashbag_adapter(enabled_modalities=())
 
@@ -137,10 +147,13 @@ class TestBuildClipAdapter:
     shared model; the loader is injected so the wiring is verified offline."""
 
     @staticmethod
-    def _stub_loader_factory():
-        calls = []
+    def _stub_loader_factory() -> tuple[ClipLoader, list[tuple[str, str, str]]]:
+        """Return a typed CLIP loader stub and its captured call arguments."""
+        calls: list[tuple[str, str, str]] = []
 
-        def loader(model_name, pretrained, device):
+        def loader(
+            model_name: str, pretrained: str, device: str
+        ) -> tuple[object, object, object, int]:
             calls.append((model_name, pretrained, device))
             # (model, preprocess, tokenizer, dim) — opaque stubs are enough for
             # construction; encode/verify (which need torch) are not exercised.
@@ -148,7 +161,7 @@ class TestBuildClipAdapter:
 
         return loader, calls
 
-    def test_loader_called_with_configured_model_and_returns_adapter(self):
+    def test_loader_called_with_configured_model_and_returns_adapter(self) -> None:
         from director_ai.core.multimodal_guard import (
             MultimodalVerifierAdapter,
             build_clip_adapter,
@@ -166,7 +179,7 @@ class TestBuildClipAdapter:
         assert isinstance(adapter, MultimodalVerifierAdapter)
         assert calls == [("ViT-L-14", "laion2b_s32b_b82k", "cpu")]
 
-    def test_image_path_uses_clip_encoder_and_verifier(self):
+    def test_image_path_uses_clip_encoder_and_verifier(self) -> None:
         from director_ai.core.multimodal_guard import build_clip_adapter
         from director_ai.core.multimodal_guard.encoders import TorchCLIPImageEncoder
         from director_ai.core.multimodal_guard.verifier import (
@@ -176,10 +189,11 @@ class TestBuildClipAdapter:
         loader, _calls = self._stub_loader_factory()
         adapter = build_clip_adapter(enabled_modalities=("image",), loader=loader)
         guard = adapter._image_guard  # noqa: SLF001 - wiring assertion
+        assert isinstance(guard, MultimodalGuard)
         assert isinstance(guard._encoder, TorchCLIPImageEncoder)  # noqa: SLF001
         assert isinstance(guard._verifier, TorchCLIPCrossModalVerifier)  # noqa: SLF001
 
-    def test_textual_modalities_use_hashbag_similarity(self):
+    def test_textual_modalities_use_hashbag_similarity(self) -> None:
         from director_ai.core.multimodal_guard import build_clip_adapter
 
         loader, _calls = self._stub_loader_factory()
@@ -207,7 +221,7 @@ class TestBuildClipAdapter:
         assert "audio-1#caption" in result.signal.evidence_refs
         assert "audio-1#metadata:title" in result.signal.evidence_refs
 
-    def test_default_loader_without_open_clip_raises_install_hint(self):
+    def test_default_loader_without_open_clip_raises_install_hint(self) -> None:
         # open_clip is not a core dependency; the default loader must point the
         # operator at the [multimodal] extra rather than fail obscurely.
         import importlib.util
@@ -219,7 +233,9 @@ class TestBuildClipAdapter:
         with pytest.raises(ImportError, match=r"director-ai\[multimodal\]"):
             _default_clip_loader("ViT-B-32", "openai", "cpu")
 
-    def test_default_loader_uses_open_clip_quickgelu_and_tokenizer(self, monkeypatch):
+    def test_default_loader_uses_open_clip_quickgelu_and_tokenizer(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         from director_ai.core.multimodal_guard.factory import _default_clip_loader
 
         calls: dict[str, object] = {}
@@ -242,15 +258,18 @@ class TestBuildClipAdapter:
 
         def fake_create_model_and_transforms(
             model_name: str, *, pretrained: str, force_quick_gelu: bool
-        ):
+        ) -> tuple[FakeModel, object, str]:
             calls["model_name"] = model_name
             calls["pretrained"] = pretrained
             calls["force_quick_gelu"] = force_quick_gelu
             return fake_model, object(), "preprocess"
 
+        def fake_get_tokenizer(model_name: str) -> str:
+            return f"tokenizer:{model_name}"
+
         fake_open_clip = types.SimpleNamespace(
             create_model_and_transforms=fake_create_model_and_transforms,
-            get_tokenizer=lambda model_name: f"tokenizer:{model_name}",
+            get_tokenizer=fake_get_tokenizer,
         )
         monkeypatch.setitem(sys.modules, "open_clip", fake_open_clip)
 

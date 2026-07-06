@@ -130,8 +130,8 @@ class MultimodalVerifierAdapter:
         self._benchmarked = _validated_modalities(
             "benchmarked modalities", benchmarked_modalities
         )
-        self._temporal_alpha = temporal_alpha
-        self._temporal_floor = temporal_floor
+        self._temporal_alpha = _temporal_alpha(temporal_alpha)
+        self._temporal_floor = _temporal_floor(temporal_floor)
         self._grounding_floor = _unit(grounding_floor)
         self._grounding_allow = _unit(grounding_allow_threshold)
         if not self._enabled:
@@ -309,6 +309,20 @@ class MultimodalVerifierAdapter:
 def _unit(value: float) -> float:
     if not math.isfinite(value) or value < 0.0 or value > 1.0:
         raise ValueError("score must be finite and in [0, 1]")
+    return value
+
+
+def _temporal_alpha(value: float) -> float:
+    """Return a validated temporal EMA alpha for video checks."""
+    if not math.isfinite(value) or value <= 0.0 or value > 1.0:
+        raise ValueError("temporal_alpha must be finite and in (0, 1]")
+    return value
+
+
+def _temporal_floor(value: float) -> float:
+    """Return a validated temporal consistency floor for video checks."""
+    if not math.isfinite(value) or value < 0.0 or value > 1.0:
+        raise ValueError("temporal_floor must be finite and in [0, 1]")
     return value
 
 

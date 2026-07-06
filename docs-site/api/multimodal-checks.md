@@ -16,6 +16,9 @@ marked benchmarked before a supported result may become `allow`.
   the claim is consistent
 - optional caption and metadata grounding can reduce a modality score before a
   decision is emitted
+- invalid video temporal policy fails during adapter construction:
+  `temporal_alpha` must be finite and in `(0, 1]`, and `temporal_floor` must be
+  finite and in `[0, 1]`
 - audit payloads and safety events include media references, not raw media,
   transcripts, frame data, captions, metadata values, or claim text
 
@@ -116,10 +119,12 @@ print(result.guard_decision.decision)   # allow / warn / halt
 `guard.multimodal_adapter` is built lazily from the `multimodal_*` config (the
 dependency-free hash-bag adapter — no torch). The guard is opt-in: it raises
 unless `multimodal_enabled_modalities` is set, and an enabled-but-unbenchmarked
-modality resolves to `warn`, never a silent `allow`. Pass a torch/CLIP-backed
-adapter as `guard.check_multimodal(request, adapter=...)` for semantic
-verification. The same tenant-safe `MultimodalCheckResult` is returned as the
-endpoint.
+modality resolves to `warn`, never a silent `allow`. Invalid temporal video
+settings fail before the first request is accepted, so a misconfigured
+`multimodal_temporal_alpha` or `multimodal_temporal_floor` cannot silently weaken
+frame-drift halting. Pass a torch/CLIP-backed adapter as
+`guard.check_multimodal(request, adapter=...)` for semantic verification. The
+same tenant-safe `MultimodalCheckResult` is returned as the endpoint.
 
 ## Full API
 
