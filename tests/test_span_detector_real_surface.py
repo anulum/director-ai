@@ -10,15 +10,22 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Any, cast
 
 import pytest
-import torch
 
 from director_ai.core.config import DirectorConfig
 from director_ai.core.scoring.span_detector import HallucinationSpanDetector
 
+_torch = pytest.importorskip("torch", reason="torch required for tensor span detector")
+if not all(hasattr(_torch, name) for name in ("Tensor", "nn", "zeros", "tensor")):
+    pytest.skip(
+        "real torch module required for tensor span detector", allow_module_level=True
+    )
+torch = cast(Any, _torch)
 
-class _TorchEncoding(dict[str, torch.Tensor]):
+
+class _TorchEncoding(dict[str, Any]):
     """Minimal tokenizer output that follows the BatchEncoding public protocol."""
 
     def __init__(
@@ -72,18 +79,18 @@ class _Tokenizer:
 class _ModelOutput:
     """Token-classifier output carrying logits."""
 
-    logits: torch.Tensor
+    logits: Any
 
 
-class _TokenClassifier(torch.nn.Module):
+class _TokenClassifier(torch.nn.Module):  # type: ignore[name-defined,misc] # optional import guard verifies real torch at runtime.
     """Tiny token classifier that emits caller-supplied logits."""
 
-    def __init__(self, logits: torch.Tensor) -> None:
+    def __init__(self, logits: Any) -> None:
         super().__init__()
         self._device_anchor = torch.nn.Parameter(torch.zeros((), dtype=torch.float32))
         self._logits = logits
 
-    def forward(self, **_inputs: torch.Tensor) -> _ModelOutput:
+    def forward(self, **_inputs: Any) -> _ModelOutput:
         """Return logits in the HuggingFace token-classification shape."""
         return _ModelOutput(logits=self._logits.to(self._device_anchor.device))
 

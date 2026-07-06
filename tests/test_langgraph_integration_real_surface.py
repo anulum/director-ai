@@ -13,6 +13,9 @@ from collections.abc import Callable
 from typing import Any, TypedDict, cast
 
 import pytest
+
+pytest.importorskip("langgraph", reason="langgraph extra required for real graph")
+
 from langgraph.graph import END, START, StateGraph
 
 from director_ai.integrations.langgraph import (

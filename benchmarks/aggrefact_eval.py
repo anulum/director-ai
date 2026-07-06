@@ -51,17 +51,12 @@ import json
 import logging
 import os
 import time
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
 
 import numpy as np
 import pytest
-from sklearn.metrics import (
-    balanced_accuracy_score,
-    f1_score,
-    precision_score,
-    recall_score,
-)
 
 from benchmarks._common import add_common_args, save_results
 
@@ -91,6 +86,67 @@ REFERENCE_SCORES = {
     "Llama-3.3-70B": 74.5,
     "HHEM-2.1": 71.8,
 }
+
+
+def balanced_accuracy_score(y_true: Sequence[int], y_pred: Sequence[int]) -> float:
+    """Return balanced accuracy for binary or categorical labels.
+
+    The cached-score replay path intentionally works without the optional
+    ``scikit-learn`` training stack. This implementation covers the benchmark
+    contract directly: balanced accuracy is the mean recall over labels present
+    in ``y_true``.
+    """
+    if len(y_true) != len(y_pred):
+        raise ValueError("y_true and y_pred must have the same length")
+    if not y_true:
+        return 0.0
+
+    recalls: list[float] = []
+    for label in sorted(set(y_true)):
+        total = 0
+        correct = 0
+        for truth, prediction in zip(y_true, y_pred, strict=True):
+            if truth != label:
+                continue
+            total += 1
+            if prediction == label:
+                correct += 1
+        if total:
+            recalls.append(correct / total)
+    return float(np.mean(recalls)) if recalls else 0.0
+
+
+def _precision_recall_f1_for_label(
+    y_true: Sequence[int],
+    y_pred: Sequence[int],
+    label: int,
+) -> tuple[float, float, float]:
+    """Return zero-division-safe precision, recall, and F1 for one label."""
+    if len(y_true) != len(y_pred):
+        raise ValueError("y_true and y_pred must have the same length")
+
+    true_positive = 0
+    false_positive = 0
+    false_negative = 0
+    for truth, prediction in zip(y_true, y_pred, strict=True):
+        if prediction == label:
+            if truth == label:
+                true_positive += 1
+            else:
+                false_positive += 1
+        elif truth == label:
+            false_negative += 1
+
+    precision_denominator = true_positive + false_positive
+    recall_denominator = true_positive + false_negative
+    precision = true_positive / precision_denominator if precision_denominator else 0.0
+    recall = true_positive / recall_denominator if recall_denominator else 0.0
+    f1 = (
+        0.0
+        if precision + recall == 0.0
+        else 2 * precision * recall / (precision + recall)
+    )
+    return precision, recall, f1
 
 
 @dataclass
@@ -389,16 +445,15 @@ def _binary_class_metrics(y_true: list[int], y_pred: list[int]) -> dict:
     labels = sorted(set(y_true) | set(y_pred))
     if len(labels) < 2:
         return {}
-    prec = precision_score(y_true, y_pred, average=None, labels=[0, 1])
-    rec = recall_score(y_true, y_pred, average=None, labels=[0, 1])
-    f1 = f1_score(y_true, y_pred, average=None, labels=[0, 1])
+    hall_prec, hall_rec, hall_f1 = _precision_recall_f1_for_label(y_true, y_pred, 0)
+    supp_prec, supp_rec, supp_f1 = _precision_recall_f1_for_label(y_true, y_pred, 1)
     return {
-        "hallucination_precision": float(prec[0]),
-        "hallucination_recall": float(rec[0]),
-        "hallucination_f1": float(f1[0]),
-        "supported_precision": float(prec[1]),
-        "supported_recall": float(rec[1]),
-        "supported_f1": float(f1[1]),
+        "hallucination_precision": float(hall_prec),
+        "hallucination_recall": float(hall_rec),
+        "hallucination_f1": float(hall_f1),
+        "supported_precision": float(supp_prec),
+        "supported_recall": float(supp_rec),
+        "supported_f1": float(supp_f1),
     }
 
 
