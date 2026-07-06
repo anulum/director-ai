@@ -692,6 +692,7 @@ class ColBERTBackend(VectorBackend):
                     break
             docs.append(
                 {
+                    "id": r.get("document_id", ""),
                     "text": r.get("content", ""),
                     "distance": 1.0 - r.get("score", 0.0),
                     "metadata": {**doc_meta, "doc_id": r.get("document_id", "")},

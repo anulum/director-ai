@@ -864,12 +864,15 @@ class TestColBERTBackend:
             use_faiss=True,
         )
         assert results[0] == {
+            "id": "doc-2",
             "text": "second text",
             "distance": pytest.approx(0.15),
             "metadata": {"tenant_id": "tenant-b", "doc_id": "doc-2"},
         }
         assert results[1]["metadata"] == {"doc_id": "missing"}
+        assert results[1]["id"] == "missing"
         assert second[0]["text"] == "second text"
+        assert second[0]["id"] == "doc-2"
 
     def test_colbert_index_without_persist_dir_uses_plain_index_kwargs(self):
         fake_model = MagicMock()
@@ -890,6 +893,38 @@ class TestColBERTBackend:
             index_name="plain-index",
             split_documents=False,
         )
+
+    def test_colbert_results_flow_through_store_with_source_id(self):
+        """BUG-1 regression: ColBERT results omitted a top-level ``id`` while
+        every other backend supplied one, so
+        ``VectorGroundTruthStore.retrieve_context_with_chunks`` raised
+        ``KeyError`` building ``source=f"vector:{r['id']}"``. The backend now
+        normalises ``id`` and the real store surface yields a sourced chunk."""
+        fake_model = MagicMock()
+        fake_model.search.return_value = [
+            {"document_id": "doc-9", "content": "grounded fact", "score": 0.9},
+        ]
+        ragatouille = MagicMock()
+        ragatouille.RAGPretrainedModel.from_pretrained.return_value = fake_model
+
+        with patch.dict("sys.modules", {"ragatouille": ragatouille}):
+            from director_ai.core.vector_store import (
+                ColBERTBackend,
+                VectorGroundTruthStore,
+            )
+
+            backend = ColBERTBackend(
+                model_name="colbert-test",
+                index_name="director-flow",
+                persist_dir="/tmp/index-flow",
+            )
+            backend.add("doc-9", "grounded fact")
+            store = VectorGroundTruthStore(backend=backend)
+            chunks = store.retrieve_context_with_chunks("grounded", top_k=1)
+
+        assert len(chunks) == 1
+        assert chunks[0].source == "vector:doc-9"
+        assert chunks[0].text == "grounded fact"
 
 
 class TestRemanentiaVectorBackend:
