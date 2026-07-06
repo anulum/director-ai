@@ -15,6 +15,7 @@ from director_ai.core.config import DirectorConfig
 from director_ai.core.retrieval.vector_store.base import InMemoryBackend
 from director_ai.core.retrieval.vector_store.store import VectorGroundTruthStore
 from director_ai.core.scoring.scorer import CoherenceScorer
+from tools.test_surface_policy_manifest import KNOWN_TEST_SURFACE_CLASSIFICATIONS
 
 
 def test_env_loading_coerces_real_process_environment(
@@ -107,6 +108,48 @@ def test_memory_store_and_scorer_build_without_fake_dependencies() -> None:
     assert isinstance(store.backend, InMemoryBackend)
     assert isinstance(scorer, CoherenceScorer)
     assert scorer.ground_truth_store is store
+
+
+def test_scorer_edge_cases_unit_guard_declares_real_surface_companion() -> None:
+    """The scorer edge-case unit guard is backed by this real config surface."""
+    classification, reason = KNOWN_TEST_SURFACE_CLASSIFICATIONS[
+        "tests/test_scorer_edge_cases.py"
+    ]
+
+    assert classification == "unit-guard-with-companion"
+    assert "tests/test_config_real_surface.py" in reason
+
+
+@pytest.mark.parametrize(
+    ("prompt", "response"),
+    [
+        ("", ""),
+        ("   \n\t  ", "Normal response"),
+        ("\u010co je 2+2?", "Odpove\u010f je 4"),
+        ("test\x00prompt", "test\x00response"),
+    ],
+)
+def test_configured_scorer_reviews_edge_inputs_through_public_surface(
+    prompt: str,
+    response: str,
+) -> None:
+    """A config-built scorer reviews edge inputs through the public API."""
+    config = DirectorConfig(
+        use_nli=False,
+        scorer_backend="lite",
+        vector_backend="memory",
+        hybrid_retrieval=False,
+        reranker_enabled=False,
+    )
+    scorer = config.build_scorer()
+
+    approved, score = scorer.review(prompt, response)
+
+    assert isinstance(approved, bool)
+    assert score.approved is approved
+    assert 0.0 <= score.score <= 1.0
+    assert 0.0 <= score.h_logical <= 1.0
+    assert 0.0 <= score.h_factual <= 1.0
 
 
 def test_json_logging_configuration_installs_structured_handler() -> None:

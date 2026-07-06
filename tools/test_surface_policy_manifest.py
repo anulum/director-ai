@@ -529,8 +529,8 @@ KNOWN_TEST_SURFACE_CLASSIFICATIONS: dict[str, tuple[str, str]] = {
         "scorer backend dispatch unit guard with companion tests/test_backends_real_surface.py",
     ),
     "tests/test_scorer_edge_cases.py": (
-        "violation",
-        "module/workflow fake requiring review",
+        "unit-guard-with-companion",
+        "scorer edge-case unit guard with companion tests/test_config_real_surface.py",
     ),
     "tests/test_sdk_guard.py": (
         "unit-guard-with-companion",

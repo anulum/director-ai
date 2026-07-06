@@ -365,6 +365,11 @@ class CoherenceScorer:
         self._nli_fallback_lock = threading.Lock()
         self._nli_fallback_incident_stages: set[str] = set()
 
+    @staticmethod
+    def _has_grounding_query(prompt: str) -> bool:
+        """Return whether ``prompt`` can be sent to a grounding store."""
+        return bool(prompt.strip())
+
     def _build_registry_nli(self, name: str, device: str | None) -> NLIScorer | None:
         """Wrap a registry-resolved ``ScorerBackend`` as the NLI scoring surface.
 
@@ -897,6 +902,9 @@ class CoherenceScorer:
         if not self.ground_truth_store:
             return DIVERGENCE_NEUTRAL
 
+        if not self._has_grounding_query(prompt):
+            return DIVERGENCE_NEUTRAL
+
         # Adaptive retrieval routing: skip KB lookup for non-factual queries.
         if self._adaptive_router is not None:
             decision = self._adaptive_router.should_retrieve(prompt, text_output)
@@ -1069,6 +1077,9 @@ class CoherenceScorer:
             return nli_score, evidence
 
         if not self.ground_truth_store:
+            return DIVERGENCE_NEUTRAL, None
+
+        if not self._has_grounding_query(prompt):
             return DIVERGENCE_NEUTRAL, None
 
         with (
@@ -1943,7 +1954,7 @@ class CoherenceScorer:
         fact_pair_map: list[int] = []  # maps fact_pairs index → batch position
         for pos, i in enumerate(batch_idx):
             prompt = items[i][0]
-            if self.ground_truth_store:
+            if self.ground_truth_store and self._has_grounding_query(prompt):
                 ctx = self.ground_truth_store.retrieve_context(
                     prompt,
                     top_k=self._fact_retrieval_top_k,
