@@ -586,8 +586,11 @@ KNOWN_TEST_SURFACE_CLASSIFICATIONS: dict[str, tuple[str, str]] = {
         "trajectory/preflight unit guard with companion tests/test_trajectory_simulator_real_surface.py",
     ),
     "tests/test_v320_hardening.py": (
-        "violation",
-        "module/workflow fake requiring review",
+        "unit-guard-with-companion",
+        "module/workflow unit guard with companions "
+        "tests/test_agent_real_surface.py, tests/test_cli_core_real_surface.py, "
+        "tests/test_config_real_surface.py, and "
+        "tests/test_vector_store_real_surface.py",
     ),
     "tests/test_v330_hardening.py": (
         "violation",
