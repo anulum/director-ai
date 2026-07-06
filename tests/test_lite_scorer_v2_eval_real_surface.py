@@ -53,6 +53,7 @@ def _write_model_bundle(root: Path) -> Path:
     model_dir = root / "model"
     model_dir.mkdir()
     (model_dir / "model.onnx").write_bytes(b"local-onnx")
+    (model_dir / "tokenizer.json").write_text('{"version": "1.0"}', encoding="utf-8")
     return model_dir
 
 
@@ -124,7 +125,7 @@ from __future__ import annotations
 
 class AutoTokenizer:
     @classmethod
-    def from_pretrained(cls, _model_path: str, *, revision: str) -> "AutoTokenizer":
+    def from_pretrained(cls, _model_path: str, **_kwargs: object) -> "AutoTokenizer":
         return cls()
 
     def __call__(

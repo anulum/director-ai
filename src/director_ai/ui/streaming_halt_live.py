@@ -10,7 +10,6 @@ production behaviors can be exercised without launching a browser server.
 
 from __future__ import annotations
 
-import contextlib
 import html
 import threading
 import time
@@ -419,8 +418,10 @@ def score_callback_for(scenario: Scenario) -> CoherenceCallback:
 
     def _score(_accumulated: str) -> float:
         nonlocal last
-        with contextlib.suppress(StopIteration):
+        try:
             last = next(score_iter)
+        except StopIteration:
+            return last
         return last
 
     return _score
@@ -516,6 +517,8 @@ def _summary_float(
     if isinstance(value, int | float):
         return float(value)
     if isinstance(value, str):
-        with contextlib.suppress(ValueError):
+        try:
             return float(value)
+        except ValueError:
+            return default
     return default
