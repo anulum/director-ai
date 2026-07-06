@@ -9,7 +9,7 @@
     "python_model_classes": 1004,
     "python_model_source_modules": 461,
     "rust_pyo3_model_wrappers": 83,
-    "test_files": 676
+    "test_files": 677
   },
   "documentation": {
     "public_pages": [
@@ -5622,6 +5622,7 @@
       "tests/test_new_integrations.py",
       "tests/test_nli_backend_contracts.py",
       "tests/test_nli_export.py",
+      "tests/test_nli_export_real_surface.py",
       "tests/test_nli_integration.py",
       "tests/test_nli_minicheck.py",
       "tests/test_nli_scorer.py",

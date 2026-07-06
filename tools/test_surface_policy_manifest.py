@@ -419,7 +419,15 @@ KNOWN_TEST_SURFACE_CLASSIFICATIONS: dict[str, tuple[str, str]] = {
         "violation",
         "ML/export/eval boundary fake",
     ),
-    "tests/test_nli_export.py": ("violation", "ML/export/eval boundary fake"),
+    "tests/test_nli_export.py": (
+        "unit-guard-with-companion",
+        "ML/export/eval NLI export guard with companion "
+        "tests/test_nli_export_real_surface.py",
+    ),
+    "tests/test_nli_export_real_surface.py": (
+        "approved-protocol-fake",
+        "real public NLI export surface with local torch/transformers protocol modules",
+    ),
     "tests/test_nli_minicheck.py": (
         "unit-guard-with-companion",
         "ML/export/eval MiniCheck NLI guard with companion "
