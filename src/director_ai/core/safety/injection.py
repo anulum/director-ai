@@ -78,6 +78,12 @@ except ImportError:
 _VERDICTS = frozenset({"grounded", "drifted", "injected"})
 
 
+def _require_unit_interval(name: str, value: float) -> None:
+    """Validate that a detector score threshold is in ``[0, 1]``."""
+    if isinstance(value, bool) or not (0.0 <= value <= 1.0):
+        raise ValueError(f"{name} must be in [0, 1], got {value}")
+
+
 @dataclass
 class _DetectorConfig:
     injection_threshold: float = 0.7
@@ -139,6 +145,14 @@ class InjectionDetector:
         self._sanitizer = sanitizer
         if max_response_length <= 0:
             raise ValueError("max_response_length must be positive")
+        _require_unit_interval("injection_threshold", injection_threshold)
+        _require_unit_interval("drift_threshold", drift_threshold)
+        _require_unit_interval(
+            "injection_claim_threshold",
+            injection_claim_threshold,
+        )
+        _require_unit_interval("baseline_divergence", baseline_divergence)
+        _require_unit_interval("stage1_weight", stage1_weight)
         self._cfg = _DetectorConfig(
             injection_threshold=injection_threshold,
             drift_threshold=drift_threshold,

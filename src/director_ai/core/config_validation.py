@@ -27,6 +27,12 @@ if TYPE_CHECKING:
 logger = logging.getLogger("DirectorAI.Config")
 
 
+def _require_unit_interval(name: str, value: float) -> None:
+    """Validate that a numeric configuration score is in ``[0, 1]``."""
+    if isinstance(value, bool) or not (0.0 <= value <= 1.0):
+        raise ValueError(f"{name} must be in [0, 1], got {value}")
+
+
 def validate_and_normalize(cfg: DirectorConfig) -> None:
     """Apply profile-derived defaults and validate configuration bounds."""
     if cfg.mode not in ("general", "grounded", "auto"):
@@ -100,6 +106,20 @@ def validate_and_normalize(cfg: DirectorConfig) -> None:
             "sanitizer_block_threshold must be in [0, 1], "
             f"got {cfg.sanitizer_block_threshold}",
         )
+    _require_unit_interval("injection_threshold", cfg.injection_threshold)
+    _require_unit_interval(
+        "injection_drift_threshold",
+        cfg.injection_drift_threshold,
+    )
+    _require_unit_interval(
+        "injection_claim_threshold",
+        cfg.injection_claim_threshold,
+    )
+    _require_unit_interval(
+        "injection_baseline_divergence",
+        cfg.injection_baseline_divergence,
+    )
+    _require_unit_interval("injection_stage1_weight", cfg.injection_stage1_weight)
     if not (0.0 <= cfg.span_token_threshold <= 1.0):
         raise ValueError(
             f"span_token_threshold must be in [0, 1], got {cfg.span_token_threshold}",

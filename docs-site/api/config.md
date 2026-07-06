@@ -158,6 +158,10 @@ store = config.build_store()
 | `injection_baseline_divergence` | `float` | `0.4` | Expected normal intent divergence for on-topic responses |
 | `injection_stage1_weight` | `float` | `0.3` | Weight of InputSanitizer score in combined score |
 
+All injection score fields above must be in `[0.0, 1.0]`. `DirectorConfig`
+rejects invalid values during construction so scorer, guard, and server wiring
+cannot start with out-of-range detection thresholds.
+
 ```bash
 DIRECTOR_INJECTION_DETECTION_ENABLED=true
 DIRECTOR_INJECTION_THRESHOLD=0.7

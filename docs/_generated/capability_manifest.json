@@ -9,7 +9,7 @@
     "python_model_classes": 1004,
     "python_model_source_modules": 461,
     "rust_pyo3_model_wrappers": 83,
-    "test_files": 674
+    "test_files": 675
   },
   "documentation": {
     "public_pages": [
@@ -5517,6 +5517,7 @@
       "tests/test_injection_detector.py",
       "tests/test_injection_detector_real_surface.py",
       "tests/test_injection_integration.py",
+      "tests/test_injection_integration_real_surface.py",
       "tests/test_injection_phase3.py",
       "tests/test_injection_phase4.py",
       "tests/test_integrations.py",

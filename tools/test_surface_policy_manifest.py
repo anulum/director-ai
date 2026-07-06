@@ -296,8 +296,8 @@ KNOWN_TEST_SURFACE_CLASSIFICATIONS: dict[str, tuple[str, str]] = {
         "safety/injection unit guard with companion tests/test_injection_detector_real_surface.py",
     ),
     "tests/test_injection_integration.py": (
-        "violation",
-        "module/workflow fake requiring review",
+        "unit-guard-with-companion",
+        "injection integration unit guard with companion tests/test_injection_integration_real_surface.py",
     ),
     "tests/test_injection_phase3.py": (
         "violation",

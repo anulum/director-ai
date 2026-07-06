@@ -136,6 +136,10 @@ curl -X POST http://localhost:8080/v1/injection/detect \
 | `stage1_weight` | `0.3` | Weight of Stage 1 (regex) in combined score |
 
 All parameters are configurable via `DirectorConfig` fields prefixed with `injection_`.
+The score fields (`injection_threshold`, `drift_threshold`,
+`injection_claim_threshold`, `baseline_divergence`, and `stage1_weight`) must be
+in `[0.0, 1.0]`; direct `InjectionDetector` callers and `DirectorConfig` both
+reject out-of-range values before scoring starts.
 
 ## Return Types
 
