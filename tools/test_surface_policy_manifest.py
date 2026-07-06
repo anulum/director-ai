@@ -316,8 +316,8 @@ KNOWN_TEST_SURFACE_CLASSIFICATIONS: dict[str, tuple[str, str]] = {
         "storage/retrieval unit guard with companion tests/test_knowledge_write_security_real_surface.py",
     ),
     "tests/test_langgraph_integration.py": (
-        "violation",
-        "private-helper bypass requiring review",
+        "unit-guard-with-companion",
+        "external SDK adapter unit guard with companion tests/test_langgraph_integration_real_surface.py",
     ),
     "tests/test_lazy_enterprise_import.py": (
         "unit-guard-with-companion",

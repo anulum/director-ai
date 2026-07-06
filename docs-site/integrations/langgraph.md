@@ -57,3 +57,8 @@ After the guardrail node runs, these keys are added to state:
 - `on_fail="raise"` — raises `HallucinationError`
 - `on_fail="flag"` — sets `director_ai_approved=False`, continues
 - `on_fail="rewrite"` — replaces response with KB context
+
+The adapter fails closed during node construction if `on_fail` is not one of
+those three modes. Custom `query_key` and `response_key` values must be
+non-blank and distinct, so a graph cannot silently read and overwrite the same
+state slot.

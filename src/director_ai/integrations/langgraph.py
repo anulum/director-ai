@@ -27,6 +27,8 @@ from director_ai.core import CoherenceScorer, GroundTruthStore
 from director_ai.core.exceptions import HallucinationError
 from director_ai.core.types import CoherenceScore
 
+_FAILURE_MODES = frozenset({"flag", "raise", "rewrite"})
+
 
 def director_ai_node(
     facts: dict[str, str] | None = None,
@@ -49,7 +51,19 @@ def director_ai_node(
     query_key : state key containing the user query.
     response_key : state key containing the LLM response.
 
+    Raises
+    ------
+    ValueError
+        If ``on_fail`` is not supported, or custom state keys are blank or
+        overlapping.
     """
+    if on_fail not in _FAILURE_MODES:
+        raise ValueError('on_fail must be one of "flag", "raise", "rewrite"')
+    query_key = _validated_state_key("query_key", query_key)
+    response_key = _validated_state_key("response_key", response_key)
+    if query_key == response_key:
+        raise ValueError("query_key and response_key must be distinct")
+
     gts = store or GroundTruthStore()
     if facts:
         for k, v in facts.items():
@@ -93,6 +107,13 @@ def director_ai_node(
         return state
 
     return _node
+
+
+def _validated_state_key(name: str, value: str) -> str:
+    stripped = value.strip()
+    if not stripped:
+        raise ValueError(f"{name} must not be blank")
+    return stripped
 
 
 def _latest_message_content(state: dict[str, Any]) -> str:

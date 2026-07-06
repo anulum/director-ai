@@ -12,6 +12,8 @@ enrichment, threshold enforcement, raise_on_fail, conditional edge routing,
 custom node names, missing key fallback, pipeline integration, and performance.
 """
 
+from __future__ import annotations
+
 import pytest
 
 from director_ai.core.exceptions import HallucinationError
@@ -23,7 +25,7 @@ from director_ai.integrations.langgraph import (
 
 @pytest.mark.consumer
 class TestDirectorAINode:
-    def test_approved_state(self):
+    def test_approved_state(self) -> None:
         node = director_ai_node(facts={"sky color": "The sky is blue."}, use_nli=False)
         state = {"query": "What color is the sky?", "response": "The sky is blue."}
         result = node(state)
@@ -32,7 +34,7 @@ class TestDirectorAINode:
         assert "director_ai_h_logical" in result
         assert "director_ai_h_factual" in result
 
-    def test_rejected_raises_by_default(self):
+    def test_rejected_raises_by_default(self) -> None:
         node = director_ai_node(
             facts={"sky color": "The sky is blue."},
             threshold=0.6,
@@ -45,7 +47,7 @@ class TestDirectorAINode:
         with pytest.raises(HallucinationError):
             node(state)
 
-    def test_on_fail_flag(self):
+    def test_on_fail_flag(self) -> None:
         node = director_ai_node(
             facts={"sky color": "The sky is blue."},
             threshold=0.6,
@@ -60,7 +62,7 @@ class TestDirectorAINode:
         assert result["director_ai_approved"] is False
         assert "director_ai_score" in result
 
-    def test_on_fail_rewrite(self):
+    def test_on_fail_rewrite(self) -> None:
         node = director_ai_node(
             facts={"sky color": "The sky is blue."},
             threshold=0.6,
@@ -75,7 +77,7 @@ class TestDirectorAINode:
         if not result.get("director_ai_approved"):
             assert "verified sources" in result.get("response", "").lower() or True
 
-    def test_custom_state_keys(self):
+    def test_custom_state_keys(self) -> None:
         node = director_ai_node(
             facts={"capital": "Paris is the capital of France."},
             use_nli=False,
@@ -89,19 +91,19 @@ class TestDirectorAINode:
         result = node(state)
         assert result["director_ai_approved"] is True
 
-    def test_missing_state_keys_uses_empty(self):
+    def test_missing_state_keys_uses_empty(self) -> None:
         node = director_ai_node(use_nli=False, on_fail="flag")
-        state = {}
+        state: dict[str, object] = {}
         result = node(state)
         assert "director_ai_score" in result
 
-    def test_non_string_state_values(self):
+    def test_non_string_state_values(self) -> None:
         node = director_ai_node(use_nli=False, on_fail="flag")
         state = {"query": 42, "response": None}
         result = node(state)
         assert "director_ai_score" in result
 
-    def test_custom_store(self):
+    def test_custom_store(self) -> None:
         from director_ai.core import GroundTruthStore
 
         store = GroundTruthStore()
@@ -117,7 +119,7 @@ class TestDirectorAINode:
 
 @pytest.mark.consumer
 class TestConditionalEdge:
-    def test_approved_routes_to_output(self):
+    def test_approved_routes_to_output(self) -> None:
         edge = director_ai_conditional_edge(
             approved_node="output",
             rejected_node="retry",
@@ -125,7 +127,7 @@ class TestConditionalEdge:
         state = {"director_ai_approved": True}
         assert edge(state) == "output"
 
-    def test_rejected_routes_to_retry(self):
+    def test_rejected_routes_to_retry(self) -> None:
         edge = director_ai_conditional_edge(
             approved_node="output",
             rejected_node="retry",
@@ -133,12 +135,12 @@ class TestConditionalEdge:
         state = {"director_ai_approved": False}
         assert edge(state) == "retry"
 
-    def test_missing_key_routes_to_rejected(self):
+    def test_missing_key_routes_to_rejected(self) -> None:
         edge = director_ai_conditional_edge()
-        state = {}
+        state: dict[str, object] = {}
         assert edge(state) == "retry"
 
-    def test_custom_node_names(self):
+    def test_custom_node_names(self) -> None:
         edge = director_ai_conditional_edge(
             approved_node="done",
             rejected_node="regenerate",
@@ -147,7 +149,7 @@ class TestConditionalEdge:
         assert edge({"director_ai_approved": False}) == "regenerate"
 
 
-def test_latest_message_content_reads_object_attribute():
+def test_latest_message_content_reads_object_attribute() -> None:
     from types import SimpleNamespace
 
     from director_ai.integrations.langgraph import _latest_message_content

@@ -9,7 +9,7 @@
     "python_model_classes": 1003,
     "python_model_source_modules": 461,
     "rust_pyo3_model_wrappers": 83,
-    "test_files": 670
+    "test_files": 671
   },
   "documentation": {
     "public_pages": [
@@ -5537,6 +5537,7 @@
       "tests/test_langchain_callback.py",
       "tests/test_langchain_real_sdk.py",
       "tests/test_langgraph_integration.py",
+      "tests/test_langgraph_integration_real_surface.py",
       "tests/test_langgraph_swarm.py",
       "tests/test_lazy_enterprise_import.py",
       "tests/test_lazy_enterprise_import_real_surface.py",
