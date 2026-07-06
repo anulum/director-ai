@@ -10,9 +10,12 @@
 from __future__ import annotations
 
 import importlib
+import json
+from pathlib import Path
 from types import ModuleType
 
 import director_ai
+from director_ai.core.config import DirectorConfig
 from director_ai.core.scoring import backends as scoring_backends
 from director_ai.core.scoring.backends import (
     LiteBackend,
@@ -22,6 +25,7 @@ from director_ai.core.scoring.backends import (
     register_backend,
 )
 from director_ai.core.scoring.scorer import CoherenceScorer
+from tools.test_surface_policy_manifest import KNOWN_TEST_SURFACE_CLASSIFICATIONS
 
 
 class _LengthDeltaBackend(ScorerBackend):
@@ -57,6 +61,16 @@ def test_legacy_core_backend_import_path_is_live_registry_module() -> None:
     assert _runtime_symbol(director_ai, "register_backend") is register_backend
 
 
+def test_scorer_backend_unit_guard_declares_this_companion() -> None:
+    """The scorer backend unit guard should be backed by this real surface."""
+    classification, reason = KNOWN_TEST_SURFACE_CLASSIFICATIONS[
+        "tests/test_scorer_backend.py"
+    ]
+
+    assert classification == "unit-guard-with-companion"
+    assert "tests/test_backends_real_surface.py" in reason
+
+
 def test_builtin_lite_backend_is_available_through_public_registry() -> None:
     """The zero-dependency Lite backend should score real text via registry."""
     registry = list_backends()
@@ -83,6 +97,40 @@ def test_builtin_lite_backend_is_available_through_public_registry() -> None:
     assert aligned < divergent
     assert len(batch) == 2
     assert all(0.0 <= score <= 1.0 for score in batch)
+
+
+def test_config_file_lite_backend_drives_public_scorer_review(tmp_path: Path) -> None:
+    """A real config file should build a working Lite backend scorer."""
+    config_path = tmp_path / "director-scorer.json"
+    config_path.write_text(
+        json.dumps(
+            {
+                "mode": "general",
+                "coherence_threshold": 0.2,
+                "hard_limit": 0.1,
+                "soft_limit": 0.3,
+                "scorer_backend": "lite",
+                "use_nli": False,
+                "vector_backend": "memory",
+                "hybrid_retrieval": False,
+                "reranker_enabled": False,
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    config = DirectorConfig.from_yaml(str(config_path))
+    scorer = config.build_scorer()
+
+    approved, score = scorer.review(
+        "Saturn has visible rings.",
+        "Saturn has visible rings.",
+    )
+
+    assert scorer.scorer_backend == "lite"
+    assert approved is True
+    assert score.approved is True
+    assert score.score >= config.coherence_threshold
 
 
 def test_custom_backend_registered_through_public_api_scores_batches() -> None:
