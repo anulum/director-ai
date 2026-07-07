@@ -258,8 +258,9 @@ KNOWN_TEST_SURFACE_CLASSIFICATIONS: dict[str, tuple[str, str]] = {
         "tests/test_gemma_aggrefact_logprob_real_surface.py",
     ),
     "tests/test_gemma_aggrefact_logprob_routed.py": (
-        "violation",
-        "ML/export/eval boundary fake",
+        "unit-guard-with-companion",
+        "ML/export/eval Gemma AggreFact routed logprob evaluator guard with companion "
+        "tests/test_gemma_aggrefact_logprob_routed_real_surface.py",
     ),
     "tests/test_gemma_aggrefact_routed.py": (
         "unit-guard-with-companion",
