@@ -777,7 +777,13 @@ class TestRouterSuccessPaths:
 
         resp = client.post(f"/v1/finetune/{job.job_id}/activate")
         assert resp.status_code == 200
-        assert resp.json()["activated"] is True
+        body = resp.json()
+        assert body["activated"] is True
+        assert body["model_path"] == job.model_path
+        # The endpoint is honest about not hot-swapping the live scorer and
+        # points to the real way to serve the model.
+        assert "nli_model" in body["detail"]
+        assert "restart" in body["detail"]
 
     def test_rollback_activated_job(self, tmp_path):
         from fastapi import FastAPI

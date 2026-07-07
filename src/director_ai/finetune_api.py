@@ -785,7 +785,14 @@ def create_finetune_router(models_dir: Path | None = None) -> APIRouter:
 
     @router.post("/{job_id}/activate")
     async def activate_model(job_id: str) -> dict[str, Any]:
-        """Activate a fine-tuned model as the default scorer."""
+        """Mark a completed fine-tune as the designated active model.
+
+        Activation records the designation (surfaced by ``list_models``) and
+        protects the model from deletion until it is rolled back. It does **not**
+        hot-swap the already-running scorer, which is built once at startup: to
+        serve the model, set the server's ``nli_model`` to this ``model_path``
+        and restart. (Live hot-swapping is tracked as a separate feature.)
+        """
         job = store.get(job_id)
         if not job:
             raise HTTPException(404, f"Job {job_id} not found")
@@ -795,8 +802,17 @@ def create_finetune_router(models_dir: Path | None = None) -> APIRouter:
                 f"Job {job_id} is not completed (state={job.state})",
             )
         job.activated = True
-        logger.info("Model %s activated: %s", job_id, job.model_path)
-        return {"job_id": job_id, "activated": True, "model_path": job.model_path}
+        logger.info("Model %s marked active: %s", job_id, job.model_path)
+        return {
+            "job_id": job_id,
+            "activated": True,
+            "model_path": job.model_path,
+            "detail": (
+                "Model marked active and protected from deletion. To serve it, "
+                "set the server's nli_model to this model_path and restart; the "
+                "running scorer is not hot-swapped."
+            ),
+        }
 
     @router.post("/{job_id}/rollback")
     async def rollback_model(job_id: str) -> dict[str, Any]:
