@@ -37,7 +37,6 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 dependencies = [
-    "backfire-kernel>=0.1.1,<0.2",
     "numpy>=1.24",
     "requests>=2.32",
 ]
@@ -50,6 +49,7 @@ backfire-kernel = { path = "backfire-kernel/crates/backfire-ffi" }
 # Three entry points that compose the granular extras below, so you do not have
 # to assemble them by hand. The granular extras stay available for fine control.
 recommended = [
+    "director-ai[rust]",
     "director-ai[nli]",
     "director-ai[vector]",
     "director-ai[server]",
@@ -256,7 +256,11 @@ colbert = [
 # under GHSA-p4gq-832x-fm9v with no patched nltk release. Keep the ColBERT
 # backend and extra name stable, but do not install this optional stack until
 # upstream ships a safe dependency path.
-rust = []
+# The compiled PyO3/Rust accelerator. Opt-in per ADR-0001: a base
+# `pip install director-ai` runs a pure-Python floor (bit-exact integer kernels
+# fall back in-process); this extra adds the compiled kernel and unlocks the
+# float/crypto/model features that have no bit-exact pure-Python equivalent.
+rust = ["backfire-kernel>=0.1.1,<0.2"]
 enterprise = [
     "redis>=4.5,<9",
     "pyjwt>=2.8,<3",
@@ -296,6 +300,7 @@ security = [
     "hypothesis>=6.0",
 ]
 dev = [
+    "director-ai[rust]",
     "pytest>=7.0",
     "pytest-cov>=4.0",
     "pytest-asyncio>=0.21",
