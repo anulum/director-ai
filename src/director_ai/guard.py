@@ -59,6 +59,7 @@ from director_ai.core.canary import (
 from director_ai.core.config import DirectorConfig
 from director_ai.core.eval_trace import eval_record_from_guard, record_guard_decision
 from director_ai.core.labelling_cockpit import ActiveLabellingCockpit
+from director_ai.core.license import enforce_capability_tier
 from director_ai.core.redactor import PIIRedactor
 from director_ai.core.risk_threshold import (
     RiskAdaptiveThreshold,
@@ -366,6 +367,7 @@ class ProductionGuard:
             raise ValueError(
                 "sector_policy must be one of: banking, financial-services"
             )
+        enforce_capability_tier("sector_policy")
         try:
             from director_ai.core.financial_services import assess_banking_response
         except ModuleNotFoundError as exc:  # pragma: no cover - advanced tier only
@@ -573,6 +575,7 @@ class ProductionGuard:
         Returns a :class:`RepairResult` with the corrected text, per-clause
         actions, and a tenant-safe repair event per fix.
         """
+        enforce_capability_tier("repair_stream")
         try:
             from director_ai.core.streaming_repair import StreamingRepairer
         except ModuleNotFoundError as exc:  # pragma: no cover - advanced tier only

@@ -29,6 +29,66 @@ logger = logging.getLogger("director_ai.license")
 
 TIERS = {"community", "indie", "pro", "enterprise", "trial"}
 
+# Capability rank of each tier for gating: a higher rank unlocks everything at
+# or below it. Community/open-core is 0; ``trial`` grants pro-level access for
+# the trial window. The exact tier-to-capability matrix (which features require
+# which tier, and whether enforcement is on by default) is a commercial policy
+# decision layered on top of this mechanism.
+_TIER_RANK = {"community": 0, "indie": 1, "trial": 2, "pro": 2, "enterprise": 3}
+_ENFORCE_ENV = "DIRECTOR_ENFORCE_LICENSE_TIER"
+
+
+class LicenseError(RuntimeError):
+    """Raised when the active license does not cover a requested capability."""
+
+
+def tier_rank(tier: str) -> int:
+    """Return the capability rank of a tier; unknown tiers rank as community (0)."""
+    return _TIER_RANK.get(tier.strip().lower(), 0)
+
+
+def require_tier(info: LicenseInfo, minimum: str, *, capability: str = "") -> None:
+    """Raise :class:`LicenseError` unless the license reaches ``minimum``.
+
+    Rank-based, so a higher tier satisfies a lower minimum. A ``minimum`` at
+    community rank (0) always passes. An invalid license is treated as
+    community. The message names the required and active tiers so the caller can
+    surface an actionable upgrade path.
+    """
+    required = tier_rank(minimum)
+    if required <= 0:
+        return
+    current = tier_rank(info.tier) if info.valid else 0
+    if current < required:
+        detail = f" for {capability}" if capability else ""
+        active = info.tier if info.valid else "community"
+        raise LicenseError(
+            f"This capability{detail} requires the '{minimum}' tier or higher; "
+            f"the active license is '{active}'. See https://anulum.li for licensing."
+        )
+
+
+def tier_enforcement_enabled() -> bool:
+    """Whether runtime license-tier enforcement is opted in via the environment."""
+    return os.environ.get(_ENFORCE_ENV, "").strip().lower() in (
+        "1",
+        "true",
+        "yes",
+        "on",
+    )
+
+
+def enforce_capability_tier(capability: str, *, minimum: str = "pro") -> None:
+    """Enforce the license tier for an advanced capability when opted in.
+
+    No-op unless ``DIRECTOR_ENFORCE_LICENSE_TIER`` is truthy, so the default
+    stays backward-compatible (advisory). When enabled, loads the active license
+    and raises :class:`LicenseError` if it does not reach ``minimum``.
+    """
+    if not tier_enforcement_enabled():
+        return
+    require_tier(load_license(), minimum, capability=capability)
+
 
 def _signing_secret() -> bytes:
     secret = os.environ.get("DIRECTOR_LICENSE_SIGNING_KEY", "").strip()
