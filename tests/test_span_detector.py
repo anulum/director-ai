@@ -88,7 +88,29 @@ except ImportError:  # pragma: no cover - environment-dependent optional extra
         softmax=lambda logits, *, dim: _FakeProbabilityMatrix(logits.probs),
         tensor=lambda _value: _FakeInputTensor(),
     )
-    sys.modules.setdefault("torch", torch)
+
+@pytest.fixture(autouse=True)
+def _scope_fake_torch():
+    """Expose the fake ``torch`` for this module's tests only.
+
+    The span detector imports ``torch`` lazily inside its functions, so the fake
+    must live in ``sys.modules`` while a test runs. Injecting it at import time
+    (as this module previously did) leaked the fake into the whole pytest
+    session, so any later test guarding on ``pytest.importorskip("torch")``
+    received the fake instead of skipping. Scope it per test, with cleanup.
+    """
+    if not _USING_FAKE_TORCH:
+        yield
+        return
+    original = sys.modules.get("torch")
+    sys.modules["torch"] = torch
+    try:
+        yield
+    finally:
+        if original is None:
+            sys.modules.pop("torch", None)
+        else:
+            sys.modules["torch"] = original
 
 
 class TestMergeFlaggedSpans:
