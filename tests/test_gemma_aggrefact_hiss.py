@@ -1,25 +1,16 @@
 # SPDX-License-Identifier: Apache-2.0
 # Commercial license available
-# © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
-# © Code 2020–2026 Miroslav Šotek. All rights reserved.
-# ORCID: 0009-0009-3560-0851
-# Contact: www.anulum.li | protoscience@anulum.li
-"""Tests for ``benchmarks.gemma_aggrefact_hiss``.
-
-Covers:
-
-* ``parse_subclaims()`` — numbered lists, bullet lists, empty decomposition,
-  fallback to original claim, max 5 cap, filtering of meta-labels.
-* ``main()`` — mocked Llama + datasets, verifies JSON schema, HiSS-specific
-  fields (subclaim_counts, first_10_samples), per-dataset metrics, exception path.
-"""
+# Copyright 2020-2026 Miroslav Sotek
+"""Unit coverage for the Gemma AggreFact HiSS evaluator."""
 
 from __future__ import annotations
 
 import json
 import sys
+from collections.abc import Iterator, Mapping
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from typing import Any, cast
+from unittest.mock import patch
 
 import pytest
 
@@ -28,31 +19,73 @@ pytestmark = pytest.mark.usefixtures("_ensure_datasets_stub")
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT_ROOT / "benchmarks"))
 
-from gemma_aggrefact_hiss import parse_subclaims  # noqa: E402
+from gemma_aggrefact_hiss import (  # noqa: E402
+    build_report,
+    evaluate_dataset,
+    main,
+    parse_subclaims,
+)
 
-# ── MockDataset ─────────────────────────────────────────────────────────
+AggreFactRow = dict[str, object]
 
 
 class MockDataset:
-    """Simulates a HuggingFace Dataset with .select() and iteration."""
+    """Small Hugging Face Dataset-compatible in-memory dataset."""
 
-    def __init__(self, rows: list[dict]):
+    def __init__(self, rows: list[AggreFactRow]) -> None:
+        """Store rows for iteration and selection."""
         self._rows = rows
 
-    def select(self, indices):
-        return MockDataset([self._rows[i] for i in indices])
+    def select(self, indices: range) -> MockDataset:
+        """Return a selected subset of rows."""
+        return MockDataset([self._rows[index] for index in indices])
 
-    def __len__(self):
+    def __len__(self) -> int:
+        """Return the number of stored rows."""
         return len(self._rows)
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[Mapping[str, object]]:
+        """Iterate over stored AggreFact rows."""
         return iter(self._rows)
 
-    def __getitem__(self, idx):
-        return self._rows[idx]
+
+class StubLlama:
+    """Small llama-cpp-compatible HiSS chat-completion stub."""
+
+    def __init__(self, *, fail: bool = False) -> None:
+        """Configure deterministic responses or a backend failure."""
+        self._fail = fail
+        self.calls: list[dict[str, object]] = []
+
+    def create_chat_completion(
+        self,
+        *,
+        messages: list[dict[str, str]],
+        max_tokens: int,
+        temperature: float,
+    ) -> Mapping[str, object]:
+        """Return a llama-cpp-compatible chat-completion payload."""
+        self.calls.append(
+            {
+                "messages": messages,
+                "max_tokens": max_tokens,
+                "temperature": temperature,
+            }
+        )
+        if self._fail:
+            raise RuntimeError("OOM")
+        content = messages[0]["content"]
+        if "Break the CLAIM" in content:
+            return {
+                "choices": [
+                    {"message": {"content": "1. First sub-claim\n2. Second sub-claim"}}
+                ]
+            }
+        return {"choices": [{"message": {"content": "SUPPORTED"}}]}
 
 
-def _toy_dataset():
+def _toy_dataset() -> MockDataset:
+    """Return minimal AggreFact-like samples for CLI unit tests."""
     return MockDataset(
         [
             {
@@ -83,194 +116,191 @@ def _toy_dataset():
     )
 
 
-# ── parse_subclaims ────────────────────────────────────────────────────
+@pytest.mark.parametrize(
+    ("raw", "fallback", "expected_count", "expected_fragment"),
+    [
+        (
+            "1. The sky is blue.\n2. The grass is green.\n3. Water flows.",
+            "orig",
+            3,
+            "sky is blue",
+        ),
+        ("- The sky is blue.\n- The grass is green.", "orig", 2, "sky is blue"),
+        ("* First claim\n* Second claim", "orig", 2, "First claim"),
+        ("1) First sub\n2) Second sub", "orig", 2, "First sub"),
+        ("I cannot break this down.", "The claim.", 1, "cannot break"),
+        ("The claim is atomic and cannot be split.", "fallback", 1, "atomic"),
+    ],
+)
+def test_parse_subclaims_formats(
+    raw: str,
+    fallback: str,
+    expected_count: int,
+    expected_fragment: str,
+) -> None:
+    """Parse common HiSS decomposition response formats."""
+    result = parse_subclaims(raw, fallback)
+    assert len(result) == expected_count
+    assert expected_fragment in result[0]
 
 
-class TestParseSubclaims:
-    def test_numbered_list(self):
-        raw = "The sky is blue.\n2. The grass is green.\n3. Water flows."
-        result = parse_subclaims(raw, "original")
-        assert len(result) == 3
-        assert "sky is blue" in result[0].lower()
-
-    def test_bullet_list(self):
-        raw = "- The sky is blue.\n- The grass is green."
-        result = parse_subclaims(raw, "original")
-        assert len(result) == 2
-
-    def test_asterisk_list(self):
-        raw = "* First claim\n* Second claim"
-        result = parse_subclaims(raw, "original")
-        assert len(result) == 2
-
-    def test_paren_numbering(self):
-        raw = "1) First sub\n2) Second sub"
-        result = parse_subclaims(raw, "original")
-        assert len(result) == 2
-
-    def test_empty_returns_original(self):
-        result = parse_subclaims("", "The original claim.")
-        assert result == ["The original claim."]
-
-    def test_gibberish_without_list_format_parsed_as_single(self):
-        """Gibberish text gets '1. ' prepended and parsed as a single sub-claim."""
-        result = parse_subclaims("I cannot break this down.", "The claim.")
-        assert len(result) == 1
-        assert "cannot break" in result[0]
-
-    def test_truly_empty_returns_original(self):
-        """Only whitespace → no regex matches → fallback to original."""
-        result = parse_subclaims("   \n  \n", "The original claim.")
-        assert result == ["The original claim."]
-
-    def test_max_five_cap(self):
-        raw = "\n".join(f"{i}. Sub-claim number {i}" for i in range(1, 10))
-        result = parse_subclaims(raw, "original")
-        assert len(result) == 5
-
-    def test_meta_labels_filtered(self):
-        """Lines containing just 'sub-claims' or 'claim' are filtered out."""
-        raw = "1. sub-claims\n2. The actual sub-claim\n3. claim"
-        result = parse_subclaims(raw, "original")
-        assert len(result) == 1
-        assert "actual" in result[0].lower()
-
-    def test_leading_1_prefix_added(self):
-        """If raw doesn't start with a list marker, '1. ' is prepended."""
-        raw = "The claim is atomic and cannot be split."
-        result = parse_subclaims(raw, "fallback")
-        # Should try to parse "1. The claim is atomic..." as a single sub-claim
-        assert len(result) == 1
-        assert "atomic" in result[0].lower()
-
-    def test_whitespace_stripped(self):
-        raw = "1.   Lots of spaces   \n2.   Also padded   "
-        result = parse_subclaims(raw, "original")
-        assert not result[0].startswith(" ")
-        assert not result[0].endswith(" ")
+def test_parse_subclaims_empty_returns_original() -> None:
+    """Empty decomposition responses should fall back to the original claim."""
+    assert parse_subclaims("", "The original claim.") == ["The original claim."]
 
 
-# ── main() CLI integration ──────────────────────────────────────────────
+def test_parse_subclaims_whitespace_returns_original() -> None:
+    """Whitespace-only decomposition responses should fall back to the claim."""
+    assert parse_subclaims("   \n  \n", "The original claim.") == [
+        "The original claim."
+    ]
 
 
-def _mock_hiss_llm():
-    """Mock Llama for HiSS: decompose returns 2 subclaims, verify returns SUPPORTED."""
-    mock = MagicMock()
-    call_count = [0]
-
-    def side_effect(**kwargs):
-        call_count[0] += 1
-        messages = kwargs.get("messages", [])
-        content = messages[0]["content"] if messages else ""
-        # Decompose prompt contains "Break the CLAIM"
-        if "Break the CLAIM" in content:
-            return {
-                "choices": [
-                    {"message": {"content": "First sub-claim\n2. Second sub-claim"}}
-                ]
-            }
-        # Verify prompt contains "SUPPORTED or NOT_SUPPORTED"
-        return {"choices": [{"message": {"content": "SUPPORTED"}}]}
-
-    mock.create_chat_completion.side_effect = side_effect
-    return mock
+def test_parse_subclaims_caps_at_five() -> None:
+    """HiSS decomposition should cap parsed subclaims at five."""
+    raw = "\n".join(f"{index}. Sub-claim number {index}" for index in range(1, 10))
+    assert len(parse_subclaims(raw, "original")) == 5
 
 
-class TestMainCli:
-    def _run_main(self, tmp_path, mock_llm=None):
-        out_file = tmp_path / "hiss_result.json"
-        if mock_llm is None:
-            mock_llm = _mock_hiss_llm()
-        mock_ds = _toy_dataset()
+def test_parse_subclaims_filters_meta_labels() -> None:
+    """Meta-label lines should not become subclaims."""
+    result = parse_subclaims("1. sub-claims\n2. The actual sub-claim\n3. claim", "orig")
+    assert result == ["The actual sub-claim"]
 
-        with (
-            patch(
-                "sys.argv",
-                [
-                    "prog",
-                    "--model",
-                    "/fake.gguf",
-                    "--max-samples",
-                    "4",
-                    "--output",
-                    str(out_file),
-                    "--log-every",
-                    "2",
-                ],
-            ),
-            patch("llama_cpp.Llama", return_value=mock_llm),
-            patch("datasets.load_dataset", return_value=mock_ds),
-        ):
-            from gemma_aggrefact_hiss import main
 
-            main()
+def test_parse_subclaims_strips_padding() -> None:
+    """Parsed subclaims should not retain surrounding whitespace."""
+    result = parse_subclaims("1.   Lots of spaces   \n2.   Also padded   ", "orig")
+    assert result == ["Lots of spaces", "Also padded"]
 
-        return json.loads(out_file.read_text())
 
-    def test_output_schema_completeness(self, tmp_path):
-        results = self._run_main(tmp_path)
-        for key in (
-            "model",
-            "method",
-            "samples",
-            "global_balanced_accuracy",
-            "per_dataset",
-            "unknown_predictions",
-            "mean_subclaims_per_sample",
-            "total_time_seconds",
-            "predictions",
-            "labels",
-            "datasets_per_sample",
-            "subclaim_counts",
-            "first_10_samples",
-        ):
-            assert key in results, f"missing key {key!r}"
+def _run_main(
+    tmp_path: Path,
+    *,
+    stub_llm: StubLlama | None = None,
+) -> dict[str, Any]:
+    """Run the HiSS CLI with patched protocol modules and return its report."""
+    output_path = tmp_path / "hiss_result.json"
+    if stub_llm is None:
+        stub_llm = StubLlama()
 
-    def test_samples_count(self, tmp_path):
-        results = self._run_main(tmp_path)
-        assert results["samples"] == 4
+    with (
+        patch(
+            "sys.argv",
+            [
+                "prog",
+                "--model",
+                "/fake.gguf",
+                "--max-samples",
+                "4",
+                "--output",
+                str(output_path),
+                "--log-every",
+                "2",
+            ],
+        ),
+        patch("llama_cpp.Llama", return_value=stub_llm),
+        patch("datasets.load_dataset", return_value=_toy_dataset()),
+    ):
+        assert main() == 0
 
-    def test_all_supported_subclaims_gives_supported(self, tmp_path):
-        """Mock returns SUPPORTED for all subclaims → all preds = 1."""
-        results = self._run_main(tmp_path)
-        # All subclaims SUPPORTED → pred=1 for all
-        assert all(p == 1 for p in results["predictions"])
-        # BA = 0.5 (2 correct pos, 2 wrong neg → recall_pos=1, recall_neg=0)
-        assert results["global_balanced_accuracy"] == 0.5
+    return cast(dict[str, Any], json.loads(output_path.read_text(encoding="utf-8")))
 
-    def test_subclaim_counts_populated(self, tmp_path):
-        results = self._run_main(tmp_path)
-        assert len(results["subclaim_counts"]) == 4
-        # Each decomposition should produce 2 subclaims (from our mock)
-        assert all(c == 2 for c in results["subclaim_counts"])
 
-    def test_first_10_samples_field(self, tmp_path):
-        results = self._run_main(tmp_path)
-        # With 4 samples, first_10_samples has 4 entries
-        assert len(results["first_10_samples"]) == 4
-        for entry in results["first_10_samples"]:
-            assert "claim" in entry
-            assert "n_sub" in entry
-            assert "pred" in entry
-            assert "label" in entry
+def test_output_schema_completeness(tmp_path: Path) -> None:
+    """The HiSS CLI report must include the complete public schema."""
+    results = _run_main(tmp_path)
+    assert set(results) >= {
+        "model",
+        "method",
+        "samples",
+        "global_balanced_accuracy",
+        "per_dataset",
+        "unknown_predictions",
+        "mean_subclaims_per_sample",
+        "total_time_seconds",
+        "predictions",
+        "labels",
+        "datasets_per_sample",
+        "subclaim_counts",
+        "first_10_samples",
+    }
 
-    def test_per_dataset_keys(self, tmp_path):
-        results = self._run_main(tmp_path)
-        assert "AggreFact-CNN" in results["per_dataset"]
-        assert "RAGTruth" in results["per_dataset"]
 
-    def test_exception_in_decompose(self, tmp_path):
-        """If Llama fails on decompose, sample gets pred=-1."""
-        mock_llm = MagicMock()
-        mock_llm.create_chat_completion.side_effect = RuntimeError("OOM")
-        results = self._run_main(tmp_path, mock_llm=mock_llm)
-        assert results["unknown_predictions"] == 4
-        assert all(p == -1 for p in results["predictions"])
+def test_samples_count(tmp_path: Path) -> None:
+    """The report should preserve the selected sample count."""
+    assert _run_main(tmp_path)["samples"] == 4
 
-    def test_method_mentions_hiss(self, tmp_path):
-        results = self._run_main(tmp_path)
-        assert "HiSS" in results["method"]
 
-    def test_mean_subclaims_positive(self, tmp_path):
-        results = self._run_main(tmp_path)
-        assert results["mean_subclaims_per_sample"] > 0
+def test_all_supported_subclaims_give_supported_predictions(tmp_path: Path) -> None:
+    """All-supported subclaim verdicts should yield supported predictions."""
+    results = _run_main(tmp_path)
+    assert results["predictions"] == [1, 1, 1, 1]
+    assert results["global_balanced_accuracy"] == 0.5
+
+
+def test_subclaim_counts_are_populated(tmp_path: Path) -> None:
+    """The report should record parsed subclaim counts for every sample."""
+    results = _run_main(tmp_path)
+    assert results["subclaim_counts"] == [2, 2, 2, 2]
+
+
+def test_first_10_samples_field(tmp_path: Path) -> None:
+    """The trace field should include compact sample-level diagnostics."""
+    results = _run_main(tmp_path)
+    traces = cast(list[dict[str, object]], results["first_10_samples"])
+    assert len(traces) == 4
+    for entry in traces:
+        assert set(entry) == {"claim", "n_sub", "sub_verdicts", "pred", "label"}
+
+
+def test_per_dataset_keys(tmp_path: Path) -> None:
+    """Per-dataset metrics should include both represented datasets."""
+    per_dataset = cast(dict[str, object], _run_main(tmp_path)["per_dataset"])
+    assert set(per_dataset) == {"AggreFact-CNN", "RAGTruth"}
+
+
+def test_exception_in_decompose_becomes_unknown(tmp_path: Path) -> None:
+    """Backend failures should produce unknown predictions without aborting."""
+    results = _run_main(tmp_path, stub_llm=StubLlama(fail=True))
+    assert results["unknown_predictions"] == 4
+    assert results["predictions"] == [-1, -1, -1, -1]
+
+
+def test_method_mentions_hiss(tmp_path: Path) -> None:
+    """The method label should identify the HiSS prompt strategy."""
+    assert "HiSS" in str(_run_main(tmp_path)["method"])
+
+
+def test_mean_subclaims_positive(tmp_path: Path) -> None:
+    """Successful decomposition should produce a positive mean subclaim count."""
+    assert _run_main(tmp_path)["mean_subclaims_per_sample"] > 0
+
+
+def test_evaluate_dataset_rejects_empty_dataset() -> None:
+    """Direct HiSS evaluation calls should reject empty datasets early."""
+    with pytest.raises(ValueError, match="dataset is empty"):
+        evaluate_dataset(
+            MockDataset([]),
+            StubLlama(),
+            max_decompose_tokens=16,
+            max_verify_tokens=4,
+            log_every=1,
+        )
+
+
+def test_build_report_rejects_empty_metrics() -> None:
+    """Direct report calls should not divide by zero on empty metrics."""
+    with pytest.raises(ValueError, match="requires at least one sample"):
+        build_report(
+            model_path="/fake.gguf",
+            sample_count=0,
+            preds=[],
+            labels=[],
+            datasets_per_sample=[],
+            subclaim_counts=[],
+            latencies=[],
+            traces=[],
+            unknown=0,
+            total_time=0.0,
+        )
