@@ -246,7 +246,7 @@ class LoraGuardrailTrainer:
         except ImportError as exc:
             raise ImportError(
                 "LoraGuardrailTrainer.train requires peft, torch, and "
-                "transformers. Install with: pip install director-ai[training]",
+                "transformers. Install with: pip install director-ai[train]",
             ) from exc
         base_model_revision = resolve_model_revision(
             self._base_model,
