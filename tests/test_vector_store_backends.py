@@ -135,7 +135,6 @@ class TestWeaviateBackend:
         backend._weaviate = MagicMock()
         backend._class_name = "Fact"
         backend._embed_fn = None
-        backend._count = 0
 
         obj = SimpleNamespace(
             properties={
@@ -182,7 +181,6 @@ class TestWeaviateBackend:
         backend._client = MagicMock()
         backend._class_name = "Fact"
         backend._embed_fn = lambda text: [0.4, 0.6]
-        backend._count = 0
 
         backend._weaviate = MagicMock()
 
@@ -199,7 +197,6 @@ class TestWeaviateBackend:
             vector=[0.4, 0.6],
         )
         backend._weaviate.util.generate_uuid5.assert_called_once_with("doc-1")
-        assert backend.count() == 1
 
     def test_weaviate_query_falls_back_to_object_uuid_without_doc_id(self):
         from director_ai.core.vector_store import WeaviateBackend
@@ -209,7 +206,6 @@ class TestWeaviateBackend:
         backend._weaviate = MagicMock()
         backend._class_name = "Fact"
         backend._embed_fn = lambda text: [0.2, 0.8]
-        backend._count = 0
 
         obj = SimpleNamespace(
             properties={"text": "vector fact"},
@@ -257,7 +253,6 @@ class TestWeaviateBackend:
         backend._weaviate = MagicMock()
         backend._class_name = "Fact"
         backend._embed_fn = None
-        backend._count = 0
 
         backend.add("doc-1", "plain fact")
 
@@ -267,7 +262,6 @@ class TestWeaviateBackend:
             uuid=backend._weaviate.util.generate_uuid5.return_value,
             vector=None,
         )
-        assert backend.count() == 1
 
     def test_weaviate_query_defaults_distance_when_metadata_missing(self):
         from director_ai.core.vector_store import WeaviateBackend
@@ -277,7 +271,6 @@ class TestWeaviateBackend:
         backend._weaviate = MagicMock()
         backend._class_name = "Fact"
         backend._embed_fn = None
-        backend._count = 0
 
         obj = SimpleNamespace(
             properties={"text": "no distance", "doc_id": "doc-9"},
@@ -291,6 +284,32 @@ class TestWeaviateBackend:
 
         assert result[0]["distance"] == 0.0
         assert result[0]["id"] == "doc-9"
+
+    def test_weaviate_count_queries_server_aggregate(self):
+        from director_ai.core.vector_store import WeaviateBackend
+
+        backend = WeaviateBackend.__new__(WeaviateBackend)
+        backend._client = MagicMock()
+        backend._class_name = "Fact"
+        collection = backend._client.collections.get.return_value
+        collection.aggregate.over_all.return_value = SimpleNamespace(total_count=42)
+
+        # count() reports the live server total, not an in-process counter.
+        assert backend.count() == 42
+        backend._client.collections.get.assert_called_once_with("Fact")
+        collection.aggregate.over_all.assert_called_once_with(total_count=True)
+
+    def test_weaviate_count_defaults_to_zero_when_total_count_none(self):
+        from director_ai.core.vector_store import WeaviateBackend
+
+        backend = WeaviateBackend.__new__(WeaviateBackend)
+        backend._client = MagicMock()
+        backend._class_name = "Fact"
+        backend._client.collections.get.return_value.aggregate.over_all.return_value = (
+            SimpleNamespace(total_count=None)
+        )
+
+        assert backend.count() == 0
 
 
 class TestQdrantBackend:
@@ -689,7 +708,6 @@ class TestElasticsearchBackend:
                 embed_fn=None,
             )
             backend.add("d1", "hello world")
-            assert backend.count() == 1
             mock_client.index.assert_called_once()
 
             results = backend.query("hello", n_results=1)
@@ -846,6 +864,18 @@ class TestElasticsearchBackend:
 
         mappings = mock_client.indices.create.call_args.kwargs["mappings"]
         assert "embedding" not in mappings["properties"]
+
+    def test_elasticsearch_count_reads_server_count(self):
+        from director_ai.core.vector_store import ElasticsearchBackend
+
+        backend = ElasticsearchBackend.__new__(ElasticsearchBackend)
+        backend._client = MagicMock()
+        backend._index = "facts"
+        backend._client.count.return_value = {"count": 5}
+
+        # count() reflects the server's document total, not an in-process counter.
+        assert backend.count() == 5
+        backend._client.count.assert_called_once_with(index="facts")
 
 
 class TestColBERTBackend:

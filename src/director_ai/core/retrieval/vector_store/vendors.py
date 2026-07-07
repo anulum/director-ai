@@ -166,7 +166,6 @@ class WeaviateBackend(VectorBackend):
         self._weaviate = weaviate
         self._class_name = class_name
         self._embed_fn = embed_fn
-        self._count = 0
 
     def add(
         self,
@@ -183,7 +182,6 @@ class WeaviateBackend(VectorBackend):
             uuid=self._weaviate.util.generate_uuid5(doc_id),
             vector=vector,
         )
-        self._count += 1
 
     def query(
         self,
@@ -230,8 +228,10 @@ class WeaviateBackend(VectorBackend):
         return docs
 
     def count(self) -> int:
-        """Return the in-process count of added Weaviate objects."""
-        return self._count
+        """Return the object count reported by the Weaviate server."""
+        collection = self._client.collections.get(self._class_name)
+        result = collection.aggregate.over_all(total_count=True)
+        return int(result.total_count or 0)
 
 
 class QdrantBackend(VectorBackend):
@@ -512,7 +512,6 @@ class ElasticsearchBackend(VectorBackend):
         self._embed_fn = embed_fn
         self._vector_size = vector_size
         self._hybrid_weight = max(0.0, min(1.0, hybrid_weight))
-        self._count = 0
         self._ensure_index()
 
     def _ensure_index(self) -> None:
@@ -546,7 +545,6 @@ class ElasticsearchBackend(VectorBackend):
         if self._embed_fn:
             body["embedding"] = self._embed_fn(text)
         self._client.index(index=self._index, id=doc_id, document=body)
-        self._count += 1
 
     def query(
         self,
@@ -611,8 +609,8 @@ class ElasticsearchBackend(VectorBackend):
         return docs
 
     def count(self) -> int:
-        """Return the in-process count of indexed Elasticsearch documents."""
-        return self._count
+        """Return the document count reported by the Elasticsearch server."""
+        return int(self._client.count(index=self._index)["count"])
 
 
 class ColBERTBackend(VectorBackend):
