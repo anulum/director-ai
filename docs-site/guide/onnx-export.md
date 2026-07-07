@@ -41,6 +41,19 @@ The ONNX backend selects execution providers automatically:
 | CUDAExecutionProvider | `onnxruntime-gpu` installed | 14.6 ms/pair (GTX 1060) |
 | CPUExecutionProvider | Fallback | 383 ms/pair |
 
+To pre-build the TensorRT engine cache for a local ONNX export, point the CLI at
+the ONNX directory explicitly:
+
+```bash
+director-ai export --format tensorrt \
+  --onnx-dir models/factcg_onnx \
+  --output models/factcg_onnx/trt_cache
+```
+
+The export rejects non-positive `max_batch`, `max_seq_len`, and `warmup_pairs`
+profile values before it touches ONNX Runtime, which keeps configuration errors
+separate from optional GPU-provider availability.
+
 ## GPU Docker image (pre-exported)
 
 The `Dockerfile.gpu` multi-stage build exports the model at build time:

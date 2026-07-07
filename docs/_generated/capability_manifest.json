@@ -9,7 +9,7 @@
     "python_model_classes": 1005,
     "python_model_source_modules": 461,
     "rust_pyo3_model_wrappers": 83,
-    "test_files": 687
+    "test_files": 688
   },
   "documentation": {
     "public_pages": [
@@ -5854,6 +5854,7 @@
       "tests/test_temporal_refresh.py",
       "tests/test_tenant.py",
       "tests/test_tensorrt_export.py",
+      "tests/test_tensorrt_export_real_surface.py",
       "tests/test_test_surface_policy.py",
       "tests/test_text_overlap.py",
       "tests/test_threat_intel.py",

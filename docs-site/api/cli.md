@@ -134,8 +134,10 @@ python -m benchmarks.regression_suite
 # Export to ONNX
 director-ai export --format onnx --output ./models/onnx/
 
-# Export to TensorRT
-director-ai export --format tensorrt --output ./models/trt/
+# Build a TensorRT engine cache from an existing ONNX export
+director-ai export --format tensorrt \
+  --onnx-dir ./models/onnx/ \
+  --output ./models/onnx/trt_cache/
 ```
 
 ### Guardrail Forensics

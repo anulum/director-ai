@@ -611,7 +611,11 @@ KNOWN_TEST_SURFACE_CLASSIFICATIONS: dict[str, tuple[str, str]] = {
         "unit-guard-with-companion",
         "module/workflow unit guard with companion tests/test_task_scoring_paths_real_surface.py",
     ),
-    "tests/test_tensorrt_export.py": ("violation", "ML/export/eval boundary fake"),
+    "tests/test_tensorrt_export.py": (
+        "unit-guard-with-companion",
+        "ML/export/eval TensorRT export guard with companion "
+        "tests/test_tensorrt_export_real_surface.py",
+    ),
     "tests/test_tools/test_capability_manifest.py": (
         "unit-guard-with-companion",
         "generated/docs/config guard with companion tools/capability_manifest.py",

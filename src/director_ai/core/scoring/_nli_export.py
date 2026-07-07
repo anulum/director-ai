@@ -51,6 +51,20 @@ def _validate_onnx_scheduler_config(
         )
 
 
+def _validate_tensorrt_export_config(
+    max_batch: int,
+    max_seq_len: int,
+    warmup_pairs: int,
+) -> None:
+    """Reject impossible TensorRT export profile settings."""
+    if isinstance(max_batch, bool) or max_batch < 1:
+        raise ValueError(f"max_batch must be >= 1, got {max_batch!r}")
+    if isinstance(max_seq_len, bool) or max_seq_len < 1:
+        raise ValueError(f"max_seq_len must be >= 1, got {max_seq_len!r}")
+    if isinstance(warmup_pairs, bool) or warmup_pairs < 1:
+        raise ValueError(f"warmup_pairs must be >= 1, got {warmup_pairs!r}")
+
+
 def _configured_onnx_allowed_dirs() -> tuple[Path, ...]:
     raw = os.environ.get("DIRECTOR_ONNX_ALLOWED_DIRS", "").strip()
     if not raw:
@@ -316,6 +330,8 @@ def export_tensorrt(
     Requires ``pip install onnxruntime-gpu tensorrt``.
 
     """
+    _validate_tensorrt_export_config(max_batch, max_seq_len, warmup_pairs)
+
     import onnxruntime as ort
 
     if output_dir is None:
