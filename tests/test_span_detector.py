@@ -89,6 +89,7 @@ except ImportError:  # pragma: no cover - environment-dependent optional extra
         tensor=lambda _value: _FakeInputTensor(),
     )
 
+
 @pytest.fixture(autouse=True)
 def _scope_fake_torch():
     """Expose the fake ``torch`` for this module's tests only.
