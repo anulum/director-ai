@@ -14,6 +14,11 @@ Every call through the gateway gets logged here. The log is the compliance trail
 
 from __future__ import annotations
 
+import hashlib
+import hmac as _hmac
+import json
+import logging
+import os
 import sqlite3
 import threading
 from dataclasses import dataclass
@@ -21,6 +26,15 @@ from pathlib import Path
 from typing import Any
 
 __all__ = ["AuditEntry", "AuditLog"]
+
+_ZERO_HASH = "0" * 64
+# Entry columns that carry the tamper-evident chain itself, excluded from the
+# content hash so it covers only the interaction payload. Mirrors the sealing
+# scheme proven in ``core/safety/audit.py`` (SHA-256 content hash + prev_hash
+# linkage + HMAC chain tag) applied to this SQLite compliance trail.
+_CHAIN_COLUMNS = ("prev_hash", "entry_hash", "chain_tag")
+
+_logger = logging.getLogger("DirectorAI.ComplianceAudit")
 
 
 @dataclass
@@ -50,9 +64,22 @@ class AuditLog:
     documentation.
     """
 
-    def __init__(self, db_path: str | Path = "director_audit.db"):
+    def __init__(
+        self,
+        db_path: str | Path = "director_audit.db",
+        hmac_secret: str | None = None,
+    ):
         self._db_path = str(db_path)
         self._lock = threading.Lock()
+        explicit = hmac_secret or os.environ.get("DIRECTOR_AUDIT_HMAC_SECRET") or ""
+        if explicit:
+            self._hmac_key = explicit.encode("utf-8")
+        else:
+            self._hmac_key = os.urandom(32)
+            _logger.warning(
+                "DIRECTOR_AUDIT_HMAC_SECRET not set — audit chain tags will not "
+                "be reproducible across restarts; set it to make the seal durable"
+            )
         self._conn: sqlite3.Connection | None = sqlite3.connect(
             self._db_path, check_same_thread=False
         )
@@ -72,9 +99,21 @@ class AuditLog:
                 latency_ms REAL NOT NULL DEFAULT 0.0,
                 tenant_id TEXT NOT NULL DEFAULT '',
                 human_override INTEGER,
-                timestamp REAL NOT NULL
+                timestamp REAL NOT NULL,
+                prev_hash TEXT,
+                entry_hash TEXT,
+                chain_tag TEXT
             )
         """)
+        # Older databases predate the tamper-evident chain columns; add them so
+        # the seal can extend an existing compliance trail (legacy rows stay
+        # unsealed and are skipped by verify_chain).
+        existing = {
+            row[1] for row in self._conn.execute("PRAGMA table_info(audit_log)")
+        }
+        for column in _CHAIN_COLUMNS:
+            if column not in existing:
+                self._conn.execute(f"ALTER TABLE audit_log ADD COLUMN {column} TEXT")
         self._conn.execute("""
             CREATE INDEX IF NOT EXISTS idx_audit_timestamp ON audit_log(timestamp)
         """)
@@ -82,18 +121,27 @@ class AuditLog:
             CREATE INDEX IF NOT EXISTS idx_audit_model ON audit_log(model)
         """)
         self._conn.commit()
+        self._prev_hash = self._load_chain_head()
 
     def log(self, entry: AuditEntry) -> None:
-        """Record a scored LLM interaction."""
+        """Record a scored LLM interaction, sealed into the tamper-evident chain.
+
+        The parent-hash read, chain update and insert run under the lock so a
+        concurrent ``log`` cannot fork the on-disk chain.
+        """
         with self._lock:
             if self._conn is None:
                 return
+            prev_hash = self._prev_hash
+            entry_hash = self._content_hash(entry, prev_hash)
+            chain_tag = self._chain_tag(prev_hash, entry_hash)
             self._conn.execute(
                 """INSERT INTO audit_log
                    (prompt, response, model, provider, score, approved,
                     verdict_confidence, task_type, domain, latency_ms,
-                    tenant_id, human_override, timestamp)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                    tenant_id, human_override, timestamp,
+                    prev_hash, entry_hash, chain_tag)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 (
                     entry.prompt,
                     entry.response,
@@ -110,9 +158,13 @@ class AuditLog:
                     if entry.human_override is not None
                     else None,
                     entry.timestamp,
+                    prev_hash,
+                    entry_hash,
+                    chain_tag,
                 ),
             )
             self._conn.commit()
+            self._prev_hash = entry_hash
 
     def query(
         self,
@@ -196,6 +248,136 @@ class AuditLog:
                 query += " WHERE " + " AND ".join(clauses)
             row = self._conn.execute(query, params).fetchone()
             return row[0] if row else 0
+
+    @staticmethod
+    def _canonical_payload(
+        *,
+        prompt: str,
+        response: str,
+        model: str,
+        provider: str,
+        score: float,
+        approved: int,
+        verdict_confidence: float,
+        task_type: str,
+        domain: str,
+        latency_ms: float,
+        tenant_id: str,
+        human_override: int | None,
+        timestamp: float,
+        prev_hash: str,
+    ) -> str:
+        """SHA-256 over the canonical stored interaction payload plus the parent hash.
+
+        Built from the persisted primitive forms (``approved``/``human_override``
+        as integers) so the log-time and verify-time digests are byte-identical.
+        """
+        content = {
+            "prompt": prompt,
+            "response": response,
+            "model": model,
+            "provider": provider,
+            "score": score,
+            "approved": approved,
+            "verdict_confidence": verdict_confidence,
+            "task_type": task_type,
+            "domain": domain,
+            "latency_ms": latency_ms,
+            "tenant_id": tenant_id,
+            "human_override": human_override,
+            "timestamp": timestamp,
+            "prev_hash": prev_hash,
+        }
+        payload = json.dumps(content, sort_keys=True, separators=(",", ":")).encode(
+            "utf-8"
+        )
+        return hashlib.sha256(payload).hexdigest()
+
+    def _content_hash(self, entry: AuditEntry, prev_hash: str) -> str:
+        """Content hash for an in-memory entry about to be sealed."""
+        return self._canonical_payload(
+            prompt=entry.prompt,
+            response=entry.response,
+            model=entry.model,
+            provider=entry.provider,
+            score=entry.score,
+            approved=int(entry.approved),
+            verdict_confidence=entry.verdict_confidence,
+            task_type=entry.task_type,
+            domain=entry.domain,
+            latency_ms=entry.latency_ms,
+            tenant_id=entry.tenant_id,
+            human_override=(
+                int(entry.human_override) if entry.human_override is not None else None
+            ),
+            timestamp=entry.timestamp,
+            prev_hash=prev_hash,
+        )
+
+    def _chain_tag(self, prev_hash: str, entry_hash: str) -> str:
+        """HMAC-SHA-256 over ``prev_hash + entry_hash`` keyed on the audit secret."""
+        message = (prev_hash + entry_hash).encode("utf-8")
+        return _hmac.new(self._hmac_key, message, hashlib.sha256).hexdigest()
+
+    def _load_chain_head(self) -> str:
+        """Return the most recent sealed ``entry_hash``, or the genesis zero hash."""
+        if self._conn is None:
+            return _ZERO_HASH
+        row = self._conn.execute(
+            "SELECT entry_hash FROM audit_log WHERE entry_hash IS NOT NULL "
+            "ORDER BY id DESC LIMIT 1"
+        ).fetchone()
+        return row[0] if row and row[0] else _ZERO_HASH
+
+    def verify_chain(self) -> tuple[bool, int | None]:
+        """Re-derive the sealed hash chain and report the first tampered row.
+
+        Returns ``(ok, first_bad_id)``. ``ok`` is ``False`` when any row's
+        payload was altered (content-hash mismatch), the linkage was broken (a
+        row deleted, reordered, or its ``prev_hash`` edited), or a tag fails
+        (HMAC mismatch — needs the same secret that wrote the log). Rows written
+        before sealing was enabled (NULL ``entry_hash``) are skipped.
+        """
+        with self._lock:
+            if self._conn is None:
+                return True, None
+            rows = self._conn.execute(
+                "SELECT id, prompt, response, model, provider, score, approved, "
+                "verdict_confidence, task_type, domain, latency_ms, tenant_id, "
+                "human_override, timestamp, prev_hash, entry_hash, chain_tag "
+                "FROM audit_log WHERE entry_hash IS NOT NULL ORDER BY id ASC"
+            ).fetchall()
+        previous_hash = _ZERO_HASH
+        for r in rows:
+            row_id = r[0]
+            prev_hash = r[14]
+            entry_hash = r[15]
+            chain_tag = r[16]
+            recomputed = self._canonical_payload(
+                prompt=r[1],
+                response=r[2],
+                model=r[3],
+                provider=r[4],
+                score=r[5],
+                approved=r[6],
+                verdict_confidence=r[7],
+                task_type=r[8],
+                domain=r[9],
+                latency_ms=r[10],
+                tenant_id=r[11],
+                human_override=r[12],
+                timestamp=r[13],
+                prev_hash=prev_hash,
+            )
+            if recomputed != entry_hash:
+                return False, row_id
+            if prev_hash != previous_hash:
+                return False, row_id
+            expected_tag = self._chain_tag(prev_hash, entry_hash)
+            if not _hmac.compare_digest(expected_tag, str(chain_tag or "")):
+                return False, row_id
+            previous_hash = entry_hash
+        return True, None
 
     def close(self) -> None:
         """Close the database. Safe to call multiple times."""
