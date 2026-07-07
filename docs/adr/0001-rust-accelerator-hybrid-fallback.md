@@ -110,8 +110,18 @@ silent degradation this ADR forbids.
    integrity defect). — **done 2026-07-07**
 2. A shared `core` fallback helper for the proven bit-exact kernels
    (`sum_i64` first), each covered by a Rust-parity test.
-3. Per-module conversion of the fallback-eligible modules (except-branch
-   delegates to the helper and sets `_RUST_* = False`), Rust-absent tested.
+3. Per-module conversion of the fallback-eligible modules. Each such module
+   already gated its accelerated call behind a `_RUST_*` flag with an inline
+   `sum(values)` else-branch that the always-`True` flag made unreachable. The
+   conversion (a) imports the shared helper at module top level
+   (`from director_ai.core.accelerator_fallback import sum_i64`), (b) sets
+   `_RUST_* = False` and binds `rust_sum_i64 = sum_i64` in the except branch so
+   the name stays defined, and (c) routes the else-branch through the helper
+   (`return sum_i64(values)`) instead of the naive `sum(values)`, so the module
+   returns the identical value whether or not the compiled kernel is present
+   (naive `sum` would not wrap on overflow the way the i64 kernel does). The
+   10 integer-sum-only modules were converted this way; the flag-False path is
+   covered by the existing monkeypatch tests. — **done 2026-07-08**
 4. For mandatory modules: keep the honest raise, add a one-line "rust extra
    required" note, and mark the `rust` extra required for those features in the
    backend-tier docs.

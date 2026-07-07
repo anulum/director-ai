@@ -17,18 +17,18 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any
 
+from director_ai.core.accelerator_fallback import sum_i64
+
 from ..mandatory import mandatory_execution
 
 try:  # pragma: no cover - optional acceleration
     from backfire_kernel import rust_sum_i64
 
     _RUST_DATASET_CONTRACT = True
-except ImportError:  # pragma: no cover - mandatory accelerator guard
-    _RUST_DATASET_CONTRACT = True
+except ImportError:  # pragma: no cover - bit-exact pure-Python fallback (ADR-0001)
+    rust_sum_i64 = sum_i64
 
-    def rust_sum_i64(_values: list[int]) -> int:
-        """Raise to signal the mandatory Rust int-sum accelerator is missing."""
-        raise RuntimeError("backfire_kernel rust_sum_i64 is unavailable")
+    _RUST_DATASET_CONTRACT = False
 
 
 SCHEMA_VERSION = "1.0.0"
@@ -451,4 +451,5 @@ def _sum_int(values: list[int]) -> int:
     if _RUST_DATASET_CONTRACT:
         with mandatory_execution(__name__, component="mandatory accelerated path"):
             return int(rust_sum_i64(values))
-    return sum(values)
+    # kernel absent: use the bit-exact pure-Python fallback (ADR-0001)
+    return sum_i64(values)

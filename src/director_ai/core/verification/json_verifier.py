@@ -29,6 +29,8 @@ import re
 from collections.abc import Callable, Mapping
 from typing import Any, cast
 
+from director_ai.core.accelerator_fallback import sum_i64
+
 from ..mandatory import mandatory_execution
 from .types import FieldVerdict, StructuredVerificationResult
 
@@ -36,11 +38,10 @@ try:
     from backfire_kernel import rust_sum_i64
 
     _RUST_JSON_VERIFY = True
-except ImportError:  # pragma: no cover - mandatory dependency
-    _RUST_JSON_VERIFY = True
+except ImportError:  # pragma: no cover - bit-exact pure-Python fallback (ADR-0001)
+    rust_sum_i64 = sum_i64
 
-    def rust_sum_i64(_values: list[int]) -> int:
-        raise RuntimeError("backfire_kernel rust_sum_i64 is unavailable")
+    _RUST_JSON_VERIFY = False
 
 
 __all__ = ["StructuredVerificationResult", "verify_json"]
@@ -331,4 +332,5 @@ def _sum_int(values: list[int]) -> int:
     if _RUST_JSON_VERIFY:
         with mandatory_execution(__name__, component="mandatory accelerated path"):
             return int(rust_sum_i64(values))
-    return sum(values)
+    # kernel absent: use the bit-exact pure-Python fallback (ADR-0001)
+    return sum_i64(values)

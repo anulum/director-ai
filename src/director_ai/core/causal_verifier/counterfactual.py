@@ -21,16 +21,16 @@ from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass
 from typing import Literal
 
+from director_ai.core.accelerator_fallback import sum_i64
+
 try:
     from backfire_kernel import rust_sum_i64
 
     _RUST_COUNTERFACTUAL = True
-except Exception:  # pragma: no cover - mandatory dependency
-    _RUST_COUNTERFACTUAL = True
+except ImportError:  # pragma: no cover - bit-exact pure-Python fallback (ADR-0001)
+    rust_sum_i64 = sum_i64
 
-    def rust_sum_i64(_values: list[int]) -> int:
-        """Raise when the Rust integer summation accelerator is unavailable."""
-        raise RuntimeError("backfire_kernel rust_sum_i64 is unavailable")
+    _RUST_COUNTERFACTUAL = False
 
 
 from ..mandatory import mandatory_execution
@@ -224,4 +224,5 @@ def _sum_int(values: list[int]) -> int:
     if _RUST_COUNTERFACTUAL:
         with mandatory_execution(__name__, component="mandatory accelerated path"):
             return int(rust_sum_i64(values))
-    return sum(values)
+    # kernel absent: use the bit-exact pure-Python fallback (ADR-0001)
+    return sum_i64(values)

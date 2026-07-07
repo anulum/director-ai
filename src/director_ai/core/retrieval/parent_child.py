@@ -33,15 +33,16 @@ import logging
 import threading
 from typing import Any
 
+from director_ai.core.accelerator_fallback import sum_i64
+
 try:  # pragma: no cover - optional acceleration
     from backfire_kernel import rust_sum_i64
 
     _RUST_PARENT_CHILD = True
-except ImportError:  # pragma: no cover - mandatory accelerator guard
-    _RUST_PARENT_CHILD = True
+except ImportError:  # pragma: no cover - bit-exact pure-Python fallback (ADR-0001)
+    rust_sum_i64 = sum_i64
 
-    def rust_sum_i64(_values: list[int]) -> int:
-        raise RuntimeError("backfire_kernel rust_sum_i64 is unavailable")
+    _RUST_PARENT_CHILD = False
 
 
 from director_ai.core.retrieval.doc_chunker import ChunkConfig, split
@@ -227,4 +228,5 @@ def _sum_int(values: list[int]) -> int:
     if _RUST_PARENT_CHILD:
         with mandatory_execution(__name__, component="mandatory accelerated path"):
             return int(rust_sum_i64(values))
-    return sum(values)
+    # kernel absent: use the bit-exact pure-Python fallback (ADR-0001)
+    return sum_i64(values)

@@ -25,16 +25,16 @@ import threading
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass, field
 
+from director_ai.core.accelerator_fallback import sum_i64
+
 try:
     from backfire_kernel import rust_sum_i64
 
     _RUST_AGGREGATOR = True
-except Exception:  # pragma: no cover - mandatory dependency
-    _RUST_AGGREGATOR = True
+except ImportError:  # pragma: no cover - bit-exact pure-Python fallback (ADR-0001)
+    rust_sum_i64 = sum_i64
 
-    def rust_sum_i64(_values: list[int]) -> int:
-        """Report that the Rust integer sum helper is unavailable."""
-        raise RuntimeError("backfire_kernel rust_sum_i64 is unavailable")
+    _RUST_AGGREGATOR = False
 
 
 from .accountant import AccountantEntry, PrivacyAccountant
@@ -276,4 +276,5 @@ def _sum_int(values: list[int]) -> int:
                 "Rust federated-aggregator sum unavailable; using Python fallback: %s",
                 exc,
             )
-    return sum(values)
+    # kernel absent or the kernel raised: bit-exact pure-Python fallback (ADR-0001)
+    return sum_i64(values)
