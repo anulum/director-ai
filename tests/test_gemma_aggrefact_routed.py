@@ -17,7 +17,9 @@ from __future__ import annotations
 
 import json
 import sys
+from collections.abc import Iterator, Mapping, Sequence
 from pathlib import Path
+from typing import Any, cast
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -31,23 +33,30 @@ from _judge_common import DATASET_TO_FAMILY  # noqa: E402
 
 
 class MockDataset:
-    def __init__(self, rows):
-        self._rows = rows
+    """In-memory dataset implementing the benchmark's Hugging Face subset."""
 
-    def select(self, indices):
+    def __init__(self, rows: Sequence[Mapping[str, object]]) -> None:
+        """Store rows in deterministic iteration order."""
+        self._rows = list(rows)
+
+    def select(self, indices: range) -> MockDataset:
+        """Return a selected dataset subset."""
         return MockDataset([self._rows[i] for i in indices])
 
-    def __len__(self):
+    def __len__(self) -> int:
+        """Return the number of rows."""
         return len(self._rows)
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[Mapping[str, object]]:
+        """Iterate over stored rows."""
         return iter(self._rows)
 
-    def __getitem__(self, idx):
+    def __getitem__(self, idx: int) -> Mapping[str, object]:
+        """Return one row by index."""
         return self._rows[idx]
 
 
-def _toy_dataset():
+def _toy_dataset() -> MockDataset:
     """One sample from each family: summ, rag, claim."""
     return MockDataset(
         [
@@ -61,7 +70,8 @@ def _toy_dataset():
     )
 
 
-def _mock_llm(response="SUPPORTED"):
+def _mock_llm(response: str = "SUPPORTED") -> MagicMock:
+    """Return a llama-cpp chat-completion mock with one fixed verdict."""
     mock = MagicMock()
     mock.create_chat_completion.return_value = {
         "choices": [{"message": {"content": response}}],
@@ -70,7 +80,10 @@ def _mock_llm(response="SUPPORTED"):
 
 
 class TestMainCli:
-    def _run_main(self, tmp_path, response="SUPPORTED"):
+    """Unit guard for routed benchmark report semantics."""
+
+    def _run_main(self, tmp_path: Path, response: str = "SUPPORTED") -> dict[str, Any]:
+        """Run the benchmark in-process against patched optional dependencies."""
         out_file = tmp_path / "routed_result.json"
         mock = _mock_llm(response)
 
@@ -94,11 +107,12 @@ class TestMainCli:
         ):
             from gemma_aggrefact_routed import main
 
-            main()
+            assert main() == 0
 
-        return json.loads(out_file.read_text())
+        return cast(dict[str, Any], json.loads(out_file.read_text(encoding="utf-8")))
 
-    def test_schema_completeness(self, tmp_path):
+    def test_schema_completeness(self, tmp_path: Path) -> None:
+        """Verify the routed report includes every public schema field."""
         r = self._run_main(tmp_path)
         for key in (
             "model",
@@ -116,47 +130,55 @@ class TestMainCli:
         ):
             assert key in r, f"missing {key!r}"
 
-    def test_samples_count(self, tmp_path):
+    def test_samples_count(self, tmp_path: Path) -> None:
+        """Verify the report records the evaluated sample count."""
         r = self._run_main(tmp_path)
         assert r["samples"] == 6
 
-    def test_per_family_keys(self, tmp_path):
+    def test_per_family_keys(self, tmp_path: Path) -> None:
+        """Verify the report includes all routed task families."""
         r = self._run_main(tmp_path)
         # summ (AggreFact-CNN), rag (RAGTruth), claim (Wice)
         assert "summ" in r["per_family"]
         assert "rag" in r["per_family"]
         assert "claim" in r["per_family"]
 
-    def test_per_dataset_keys(self, tmp_path):
+    def test_per_dataset_keys(self, tmp_path: Path) -> None:
+        """Verify the report includes per-dataset metrics."""
         r = self._run_main(tmp_path)
         assert "AggreFact-CNN" in r["per_dataset"]
         assert "RAGTruth" in r["per_dataset"]
         assert "Wice" in r["per_dataset"]
 
-    def test_dataset_to_family_mapping(self, tmp_path):
+    def test_dataset_to_family_mapping(self, tmp_path: Path) -> None:
+        """Verify the report carries the runtime routing table."""
         r = self._run_main(tmp_path)
         assert r["dataset_to_family"] == DATASET_TO_FAMILY
 
-    def test_families_per_sample(self, tmp_path):
+    def test_families_per_sample(self, tmp_path: Path) -> None:
+        """Verify per-sample route labels follow dataset families."""
         r = self._run_main(tmp_path)
         assert len(r["families_per_sample"]) == 6
         assert r["families_per_sample"][0] == "summ"  # AggreFact-CNN
         assert r["families_per_sample"][2] == "rag"  # RAGTruth
         assert r["families_per_sample"][4] == "claim"  # Wice
 
-    def test_all_supported_ba(self, tmp_path):
+    def test_all_supported_ba(self, tmp_path: Path) -> None:
+        """Verify pooled balanced accuracy for all-supported verdicts."""
         r = self._run_main(tmp_path, "SUPPORTED")
         assert r["global_balanced_accuracy"] == 0.5
 
-    def test_unknown_responses(self, tmp_path):
+    def test_unknown_responses(self, tmp_path: Path) -> None:
+        """Verify unparsable routed verdicts are counted as unknown."""
         r = self._run_main(tmp_path, "???")
         assert r["unknown_predictions"] == 6
 
-    def test_method_mentions_routing(self, tmp_path):
+    def test_method_mentions_routing(self, tmp_path: Path) -> None:
+        """Verify the report method identifies prompt routing."""
         r = self._run_main(tmp_path)
         assert "routing" in r["method"].lower()
 
-    def test_prompt_varies_by_family(self, tmp_path):
+    def test_prompt_varies_by_family(self, tmp_path: Path) -> None:
         """Verify the mock LLM receives different prompts for different families."""
         mock = _mock_llm("SUPPORTED")
         out_file = tmp_path / "routed_prompts.json"
@@ -181,10 +203,10 @@ class TestMainCli:
         ):
             from gemma_aggrefact_routed import main
 
-            main()
+            assert main() == 0
 
         # Check that different prompts were used (at least 2 different message contents)
-        prompts_seen = set()
+        prompts_seen: set[str] = set()
         for call in mock.create_chat_completion.call_args_list:
             msg = call.kwargs.get("messages", call[1].get("messages", []))
             content = msg[0]["content"] if msg else ""

@@ -33,153 +33,98 @@ Usage::
 from __future__ import annotations
 
 import argparse
-import json
 import logging
+import sys
 import time
-from collections import defaultdict
+from collections.abc import Sequence
 from pathlib import Path
+from typing import cast
 
-from _judge_common import (
-    DATASET_TO_FAMILY,
-    PROMPTS,
-    aggregate_per_dataset,
-    aggregate_per_family,
-    compute_balanced_accuracy,
-    parse_response,
+from _gemma_aggrefact_routed_core import (
+    build_llama,
+    build_report,
+    evaluate_dataset,
+    family_distribution,
+    load_aggrefact,
+    log_summary,
+    write_report,
 )
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s: %(message)s")
 logger = logging.getLogger(__name__)
 
 
-def main():
-    p = argparse.ArgumentParser()
-    p.add_argument("--model", required=True)
-    p.add_argument("--max-samples", type=int, default=None)
-    p.add_argument("--output", type=str, default="benchmarks/results/gemma_routed.json")
-    p.add_argument("--n-ctx", type=int, default=4096)
-    p.add_argument("--n-threads", type=int, default=2)
-    p.add_argument("--log-every", type=int, default=500)
-    args = p.parse_args()
+def _positive_int(value: str) -> int:
+    """Parse a strictly positive integer command-line value."""
+    parsed = int(value)
+    if parsed <= 0:
+        raise argparse.ArgumentTypeError("value must be a positive integer")
+    return parsed
 
-    from datasets import load_dataset
-    from llama_cpp import Llama
 
-    ds = load_dataset("lytang/LLM-AggreFact", split="test")
-    if args.max_samples:
-        ds = ds.select(range(min(args.max_samples, len(ds))))
-    logger.info("Samples: %d", len(ds))
-
-    # Distribution sanity check
-    family_counts = defaultdict(int)
-    for s in ds:
-        family_counts[DATASET_TO_FAMILY.get(s["dataset"], "claim")] += 1
-    logger.info("Family distribution: %s", dict(family_counts))
-
-    logger.info("Loading: %s", args.model)
-    llm = Llama(
-        model_path=args.model,
-        n_gpu_layers=-1,
-        n_ctx=args.n_ctx,
-        n_threads=args.n_threads,
-        n_batch=512,
-        verbose=False,
-        logits_all=False,
+def _build_parser() -> argparse.ArgumentParser:
+    """Build the routed evaluator command-line parser."""
+    parser = argparse.ArgumentParser(
+        description="Evaluate Gemma LLM-as-judge with per-family AggreFact prompts.",
     )
-    logger.info("Loaded")
+    parser.add_argument("--model", required=True)
+    parser.add_argument("--max-samples", type=_positive_int, default=None)
+    parser.add_argument(
+        "--output", type=str, default="benchmarks/results/gemma_routed.json"
+    )
+    parser.add_argument("--n-ctx", type=_positive_int, default=4096)
+    parser.add_argument("--n-threads", type=_positive_int, default=2)
+    parser.add_argument("--log-every", type=_positive_int, default=500)
+    return parser
 
-    preds: list[int] = []
-    labels: list[int] = []
-    datasets_list: list[str] = []
-    families: list[str] = []
-    latencies: list[float] = []
-    unknown = 0
-    t_start = time.time()
 
-    for i, sample in enumerate(ds):
-        premise = sample["doc"]
-        hypothesis = sample["claim"]
-        label = int(sample["label"])
-        dataset_name = sample["dataset"]
-        family = DATASET_TO_FAMILY.get(dataset_name, "claim")
-        prompt = PROMPTS[family].format(premise=premise, hypothesis=hypothesis)
+def main(argv: Sequence[str] | None = None) -> int:
+    """Run the routed AggreFact benchmark CLI."""
+    parser = _build_parser()
+    args = parser.parse_args(argv)
+    model_path = str(args.model)
+    output_path = Path(str(args.output))
+    max_samples = cast(int | None, args.max_samples)
+    n_ctx = int(args.n_ctx)
+    n_threads = int(args.n_threads)
+    log_every = int(args.log_every)
 
-        t0 = time.time()
-        try:
-            out = llm.create_chat_completion(
-                messages=[{"role": "user", "content": prompt}],
-                max_tokens=8,
-                temperature=0.0,
-            )
-            text = out["choices"][0]["message"]["content"]
-        except Exception as e:
-            logger.warning("Sample %d failed: %s", i, e)
-            text = "ERROR"
-        latencies.append(time.time() - t0)
+    try:
+        dataset = load_aggrefact(max_samples)
+        logger.info("Samples: %d", len(dataset))
+        logger.info("Family distribution: %s", family_distribution(dataset))
 
-        pred = parse_response(text)
-        if pred < 0:
-            unknown += 1
-        preds.append(pred)
-        labels.append(label)
-        datasets_list.append(dataset_name)
-        families.append(family)
+        logger.info("Loading: %s", model_path)
+        llm = build_llama(model_path, n_ctx=n_ctx, n_threads=n_threads)
+        logger.info("Loaded")
 
-        if (i + 1) % args.log_every == 0:
-            elapsed = time.time() - t_start
-            ba = compute_balanced_accuracy(preds, labels)
-            eta = (len(ds) - i - 1) * elapsed / (i + 1) / 60
-            logger.info(
-                "[%d/%d] BA=%.4f unk=%d %.0fms/sample ETA=%.1fmin",
-                i + 1,
-                len(ds),
-                ba,
-                unknown,
-                1000 * elapsed / (i + 1),
-                eta,
-            )
-
-    per_ds_metrics = aggregate_per_dataset(preds, labels, datasets_list)
-    per_family_metrics = aggregate_per_family(preds, labels, families)
-
-    total = time.time() - t_start
-    results = {
-        "model": args.model,
-        "method": "per-dataset prompt routing (summ/rag/claim families)",
-        "samples": len(ds),
-        "global_balanced_accuracy": compute_balanced_accuracy(preds, labels),
-        "per_dataset": per_ds_metrics,
-        "per_family": per_family_metrics,
-        "dataset_to_family": DATASET_TO_FAMILY,
-        "unknown_predictions": unknown,
-        "total_time_seconds": total,
-        "p50_latency_ms": 1000 * sorted(latencies)[len(latencies) // 2]
-        if latencies
-        else 0,
-        "p99_latency_ms": (
-            1000 * sorted(latencies)[int(len(latencies) * 0.99)] if latencies else 0
-        ),
-        "predictions": preds,
-        "labels": labels,
-        "datasets_per_sample": datasets_list,
-        "families_per_sample": families,
-    }
-    Path(args.output).parent.mkdir(parents=True, exist_ok=True)
-    Path(args.output).write_text(json.dumps(results, indent=2))
-
-    logger.info("=" * 60)
-    logger.info("Global BA:    %.4f", results["global_balanced_accuracy"])
-    logger.info("Unknown:      %d (%.1f%%)", unknown, 100 * unknown / len(ds))
-    logger.info("Time:         %.1fmin", total / 60)
-    logger.info("=" * 60)
-    logger.info("Per-family:")
-    for fam, m in sorted(per_family_metrics.items()):
-        logger.info("  %-8s %5d  %.4f", fam, m["samples"], m["balanced_accuracy"])
-    logger.info("Per-dataset:")
-    for n, m in sorted(per_ds_metrics.items()):
-        logger.info("  %-20s %5d  %.4f", n, m["samples"], m["balanced_accuracy"])
-    logger.info("Saved: %s", args.output)
+        preds, labels, datasets_list, families, latencies, unknown, t_start = (
+            evaluate_dataset(dataset, llm, log_every=log_every)
+        )
+        total = time.time() - t_start
+        report = build_report(
+            model_path=model_path,
+            sample_count=len(dataset),
+            preds=preds,
+            labels=labels,
+            datasets_list=datasets_list,
+            families=families,
+            latencies=latencies,
+            unknown=unknown,
+            total=total,
+        )
+        write_report(output_path, report)
+        log_summary(
+            report=report,
+            unknown=unknown,
+            total=total,
+            output_path=output_path,
+        )
+    except ValueError as exc:
+        print(f"Error: {exc}", file=sys.stderr)
+        return 1
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())
