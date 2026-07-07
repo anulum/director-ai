@@ -7,9 +7,9 @@
     "public_api_exports": 226,
     "public_documentation_pages": 203,
     "python_model_classes": 1005,
-    "python_model_source_modules": 462,
+    "python_model_source_modules": 463,
     "rust_pyo3_model_wrappers": 83,
-    "test_files": 702
+    "test_files": 703
   },
   "documentation": {
     "public_pages": [
@@ -4380,6 +4380,7 @@
       "src/director_ai/compliance/reporter.py",
       "src/director_ai/core/_device.py",
       "src/director_ai/core/_heuristics.py",
+      "src/director_ai/core/accelerator_fallback.py",
       "src/director_ai/core/actor.py",
       "src/director_ai/core/agent.py",
       "src/director_ai/core/agent_identity/audit.py",
@@ -5225,6 +5226,7 @@
     ],
     "test_files": [
       "tests/conftest.py",
+      "tests/test_accelerator_fallback_parity.py",
       "tests/test_accuracy_improvements.py",
       "tests/test_accuracy_improvements_real_surface.py",
       "tests/test_actor.py",
