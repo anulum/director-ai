@@ -14,7 +14,9 @@ from __future__ import annotations
 
 import inspect
 import logging
+import math
 import os
+import time
 from collections.abc import Callable
 from functools import lru_cache
 from pathlib import Path
@@ -33,6 +35,20 @@ _DEFAULT_MODEL = "yaxili96/FactCG-DeBERTa-v3-Large"
 _LOCAL_ARTIFACT_REVISION = "local-artifact"
 
 logger = logging.getLogger("DirectorAI.NLI")
+
+
+def _validate_onnx_scheduler_config(
+    max_batch: int,
+    flush_timeout_ms: float,
+) -> None:
+    """Reject impossible ONNX dynamic scheduler settings."""
+    if isinstance(max_batch, bool) or max_batch < 1:
+        raise ValueError(f"max_batch must be >= 1, got {max_batch!r}")
+    if not math.isfinite(flush_timeout_ms) or flush_timeout_ms < 0.0:
+        raise ValueError(
+            f"flush_timeout_ms must be a finite non-negative value, "
+            f"got {flush_timeout_ms!r}",
+        )
 
 
 def _configured_onnx_allowed_dirs() -> tuple[Path, ...]:
@@ -375,7 +391,7 @@ def export_tensorrt(
     return output_dir
 
 
-# â”€â”€ ONNX Dynamic Batcher â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ONNX Dynamic Batcher
 
 
 class OnnxDynamicBatcher:
@@ -403,12 +419,13 @@ class OnnxDynamicBatcher:
     ) -> None:
         import threading
 
+        _validate_onnx_scheduler_config(max_batch, flush_timeout_ms)
         self._score_fn = onnx_scorer_fn
         self.max_batch = max_batch
-        self.flush_timeout_ms = flush_timeout_ms
+        self.flush_timeout_ms = float(flush_timeout_ms)
         self._session = session
         self._buffer: list[tuple[str, str]] = []
-        self._results: list[float] = []
+        self._buffer_started_at: float | None = None
         self._lock = threading.Lock()
         self._has_cuda = False
         if session is not None:
@@ -419,10 +436,16 @@ class OnnxDynamicBatcher:
                 pass
 
     def submit(self, pairs: list[tuple[str, str]]) -> list[float]:
-        """Submit pairs for batched scoring. Flushes immediately if batch full."""
+        """Submit pairs and flush when the batch is full or timeout expires."""
         with self._lock:
-            self._buffer.extend(pairs)
-            if len(self._buffer) >= self.max_batch:
+            now = time.monotonic()
+            if pairs:
+                if not self._buffer:
+                    self._buffer_started_at = now
+                self._buffer.extend(pairs)
+            if self._buffer and (
+                len(self._buffer) >= self.max_batch or self._timeout_elapsed(now)
+            ):
                 return self._flush()
             return []
 
@@ -436,8 +459,19 @@ class OnnxDynamicBatcher:
             return []
         batch = self._buffer[:]
         self._buffer.clear()
+        self._buffer_started_at = None
         return self._score_fn(batch)
+
+    def _timeout_elapsed(self, now: float) -> bool:
+        """Return whether the pending batch exceeded its flush timeout."""
+        if self.flush_timeout_ms == 0.0:
+            return True
+        if self._buffer_started_at is None:
+            return False
+        elapsed_ms = (now - self._buffer_started_at) * 1000.0
+        return elapsed_ms >= self.flush_timeout_ms
 
     @property
     def uses_io_binding(self) -> bool:
+        """Return whether the scheduler detected a CUDA ONNX provider."""
         return self._has_cuda

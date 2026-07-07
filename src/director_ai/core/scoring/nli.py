@@ -136,6 +136,7 @@ except ImportError:
 from ._nli_export import (
     OnnxDynamicBatcher,
     _load_onnx_session,
+    _validate_onnx_scheduler_config,
     export_onnx,
     export_tensorrt,
 )
@@ -221,7 +222,7 @@ def _download_gcs_model_artifact(uri: str) -> str:
         return str(target_dir)
 
     try:
-        from google.cloud import storage
+        import google.cloud.storage as storage  # type: ignore[import-untyped]  # google-cloud-storage lacks py.typed metadata in this venv.
     except ImportError as exc:
         raise RuntimeError(
             "loading managed scorer artefacts requires google-cloud-storage; "
@@ -576,6 +577,11 @@ class NLIScorer:
         if backend != "__custom__" and backend not in self._BACKENDS:
             raise ValueError(
                 f"backend must be one of {self._BACKENDS}, got {backend!r}",
+            )
+        if backend == "onnx":
+            _validate_onnx_scheduler_config(
+                onnx_batch_size,
+                onnx_flush_timeout_ms,
             )
         self.use_model = use_model
         self.max_length = max_length

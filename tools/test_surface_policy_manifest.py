@@ -440,8 +440,9 @@ KNOWN_TEST_SURFACE_CLASSIFICATIONS: dict[str, tuple[str, str]] = {
     "tests/test_notebook_gallery.py": ("violation", "ML/export/eval boundary fake"),
     "tests/test_onnx_backend.py": ("violation", "ML/export/eval boundary fake"),
     "tests/test_onnx_dynamic_scheduler.py": (
-        "violation",
-        "ML/export/eval boundary fake",
+        "unit-guard-with-companion",
+        "ML/export/eval ONNX scheduler guard with companion "
+        "tests/test_onnx_dynamic_scheduler_real_surface.py",
     ),
     "tests/test_otel.py": (
         "unit-guard-with-companion",
