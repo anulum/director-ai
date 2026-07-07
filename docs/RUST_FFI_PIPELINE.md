@@ -14,11 +14,61 @@ streaming safety, and verification signal functions. It exposes a Python
 API via PyO3 (FFI), providing a 14.2× speedup over the equivalent Python
 code for heuristic scoring operations.
 
-The Rust path is not a replacement for the Python stack — it is an
-**accelerator**. The Python CoherenceScorer delegates to the Rust backend
-when `scorer_backend="rust"` is specified and `backfire_kernel` is installed.
-When Rust is unavailable, the system falls back to the Python implementation
-transparently.
+The Backfire Kernel is a **mandatory production accelerator**, not an optional
+add-on: `backfire-kernel` is pinned in `[project].dependencies`, so every
+install ships the compiled extension. In production, accelerated paths dispatch
+to Rust and refuse to silently degrade; the equivalent pure-Python reference
+implementations are retained and unit-tested but are not reached at runtime. See
+[Accelerator policy — Rust is mandatory in production (ADR-1)](#accelerator-policy--rust-is-mandatory-in-production-adr-1)
+for the authoritative statement of this behaviour.
+
+---
+
+## Accelerator policy — Rust is mandatory in production (ADR-1)
+
+**Status:** Accepted — records the shipped v3.16.x behaviour.
+**Scope:** the `backfire_kernel` accelerator across all core and operational modules.
+
+**Context.** `backfire-kernel` is a **mandatory runtime dependency** (pinned in
+`[project].dependencies`), not an optional extra — every `pip install
+director-ai` ships the compiled extension. Each accelerated module imports its
+Rust symbols behind a `try/except ImportError` guard purely so the module stays
+importable in an *unbuilt editable checkout* (type-checking, docs, tooling).
+Crucially, the availability flag is set **`True` in both branches**, and the
+`except` branch installs stub functions that **raise** `RuntimeError`:
+
+```python
+try:
+    from backfire_kernel import rust_entity_overlap, ...
+
+    _RUST_SIGNALS = True
+except ImportError:
+    _RUST_SIGNALS = True
+
+    def rust_entity_overlap(_claim: str, _source: str) -> float:
+        raise RuntimeError("backfire_kernel rust_entity_overlap is unavailable")
+```
+
+Rust-backed calls run inside `mandatory_execution()` (`core/mandatory.py`),
+which logs and **re-raises**: DIRECTOR-AI "treats declared accelerators … as
+required production capabilities … preventing silent fallback or degraded
+behaviour."
+
+**Decision.** In production the mandatory Rust path is always taken; a missing or
+unbuilt extension surfaces a clear `RuntimeError` rather than silently degrading.
+The equivalent **Python floor implementations are retained and unit-tested** —
+the fallback branches are exercised by monkeypatching `_RUST_* = False` (e.g.
+`tests/test_rust_fallback_floor.py`, `tests/test_rust_signals.py`), so every
+kernel keeps a verified pure-Python reference, but that path is unreachable at
+runtime with the flag hard-set to `True`.
+
+**Consequences.**
+1. A correct install always has Rust; there is no automatic production fallback.
+2. The GOTM "Python-floor" rule is satisfied at the *code and test* level — every
+   kernel has a tested Python implementation — while production mandates the
+   accelerated path.
+3. Where prose elsewhere in this document mentions a "Python fallback", it refers
+   to this tested floor, not to automatic runtime degradation.
 
 ---
 
@@ -366,9 +416,10 @@ from director_ai import CoherenceScorer
 scorer = CoherenceScorer(scorer_backend="rust", threshold=0.5)
 approved, score = scorer.review("context", "response")
 
-# Falls back to Python if Rust not installed
+# backfire_kernel is a mandatory dependency, so the Rust backend is always
+# available in a correct install; an unbuilt extension raises rather than
+# silently substituting a Python scorer (see ADR-1 above).
 scorer = CoherenceScorer(scorer_backend="rust", threshold=0.5)
-# → logs warning, uses Python heuristic scorer
 ```
 
 ### Signal Function Dispatch
@@ -385,11 +436,14 @@ try:
     )
     _RUST_SIGNALS = True
 except ImportError:
-    _RUST_SIGNALS = False
+    _RUST_SIGNALS = True  # mandatory: the stub below raises (see ADR-1)
 ```
 
-When `_RUST_SIGNALS is True`, the verified scorer dispatches individual
-signal computations to Rust. The Python fallbacks are used otherwise.
+The flag is `True` in both branches (see [ADR-1](#accelerator-policy--rust-is-mandatory-in-production-adr-1)):
+the verified scorer always dispatches to Rust in production, and a missing
+extension raises rather than degrading. The pure-Python signal implementations
+remain as a unit-tested floor, reached only by monkeypatching
+`_RUST_SIGNALS = False` in tests.
 
 ### Domain Kernel Dispatch (Operational Modules)
 
@@ -553,7 +607,7 @@ Tests cover:
 
 | Scenario                     | Behaviour                              |
 |------------------------------|----------------------------------------|
-| Rust not installed           | Python fallback, warning logged        |
+| Rust extension unbuilt       | `RuntimeError` raised (mandatory; see ADR-1) |
 | Invalid config               | `PyValueError` raised at construction  |
 | Callback exception           | Safe default (0.0), kernel continues   |
 | NaN/Inf score from callback  | Treated as 0.0 (conservative)          |
