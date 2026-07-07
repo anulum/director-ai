@@ -550,7 +550,7 @@ def build_retune_guidance(
             lines.append("- Parse warnings: " + "; ".join(errors[:5]))
         return "\n".join(lines), ""
 
-    from director_ai.core.training.tuner import format_profile_overlay, tune
+    from director_ai.core.calibration.tuner import format_profile_overlay, tune
 
     result = tune(samples)
     labels = [bool(sample["label"]) for sample in samples]

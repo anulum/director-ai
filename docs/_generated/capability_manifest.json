@@ -7,9 +7,9 @@
     "public_api_exports": 226,
     "public_documentation_pages": 203,
     "python_model_classes": 1005,
-    "python_model_source_modules": 461,
+    "python_model_source_modules": 462,
     "rust_pyo3_model_wrappers": 83,
-    "test_files": 699
+    "test_files": 700
   },
   "documentation": {
     "public_pages": [
@@ -678,7 +678,7 @@
       },
       {
         "name": "BoundaryExample",
-        "path": "src/director_ai/core/training/tuner.py"
+        "path": "src/director_ai/core/calibration/tuner.py"
       },
       {
         "name": "BoundedSandbox",
@@ -3966,7 +3966,7 @@
       },
       {
         "name": "ThresholdCandidate",
-        "path": "src/director_ai/core/training/tuner.py"
+        "path": "src/director_ai/core/calibration/tuner.py"
       },
       {
         "name": "ThresholdChange",
@@ -4162,11 +4162,11 @@
       },
       {
         "name": "TuneResult",
-        "path": "src/director_ai/core/retrieval/embedding_tuner.py"
+        "path": "src/director_ai/core/calibration/tuner.py"
       },
       {
         "name": "TuneResult",
-        "path": "src/director_ai/core/training/tuner.py"
+        "path": "src/director_ai/core/retrieval/embedding_tuner.py"
       },
       {
         "name": "TuningConfig",
@@ -4414,6 +4414,7 @@
       "src/director_ai/core/calibration/recall_ledger.py",
       "src/director_ai/core/calibration/runtime_governor.py",
       "src/director_ai/core/calibration/segmented_threshold.py",
+      "src/director_ai/core/calibration/tuner.py",
       "src/director_ai/core/canary/detector.py",
       "src/director_ai/core/canary/registry.py",
       "src/director_ai/core/causal_verifier/contradiction_explainer.py",
@@ -5869,6 +5870,7 @@
       "tests/test_test_surface_policy.py",
       "tests/test_text_overlap.py",
       "tests/test_threat_intel.py",
+      "tests/test_threshold_tuner_relocation.py",
       "tests/test_tool_call_verifier.py",
       "tests/test_tools/test_capability_manifest.py",
       "tests/test_tools/test_emit_studio_manifest.py",

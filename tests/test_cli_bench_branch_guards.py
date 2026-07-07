@@ -76,7 +76,7 @@ def test_tune_without_output_prints_metrics_only(
         '{"prompt":"p","response":"r","label":false}\n',
         encoding="utf-8",
     )
-    fake_tuner = _TunerModule("director_ai.core.training.tuner")
+    fake_tuner = _TunerModule("director_ai.core.calibration.tuner")
     result = SimpleNamespace(
         threshold=0.4,
         w_logic=0.7,
@@ -105,7 +105,7 @@ def test_tune_without_output_prints_metrics_only(
     fake_tuner.tune = tune
     fake_tuner.format_confidence_report = format_confidence_report
     fake_tuner.format_profile_overlay = format_profile_overlay
-    monkeypatch.setitem(sys.modules, "director_ai.core.training.tuner", fake_tuner)
+    monkeypatch.setitem(sys.modules, "director_ai.core.calibration.tuner", fake_tuner)
 
     _cli_bench._cmd_tune([str(dataset)])
 

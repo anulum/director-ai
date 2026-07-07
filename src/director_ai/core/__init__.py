@@ -85,6 +85,7 @@ from .calibration.segmented_threshold import (
     SegmentedThresholdLearner,
     SegmentRecommendation,
 )
+from .calibration.tuner import TuneResult, tune
 from .config import DirectorConfig, ProfileMetadata
 from .edge import (
     EdgeRuntimeCheck,
@@ -232,7 +233,6 @@ from .training.model_registry import (
     list_finetune_model_profiles,
     resolve_finetune_model,
 )
-from .training.tuner import TuneResult, tune
 from .types import (
     ClaimAttribution,
     CoherenceScore,

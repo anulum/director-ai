@@ -20,7 +20,7 @@ AUDITED_PRODUCTION_FILES = (
     "src/director_ai/core/scoring/embed_scorer.py",
     "src/director_ai/core/scoring/nli.py",
     "src/director_ai/core/scoring/scorer.py",
-    "src/director_ai/core/training/tuner.py",
+    "src/director_ai/core/calibration/tuner.py",
 )
 
 

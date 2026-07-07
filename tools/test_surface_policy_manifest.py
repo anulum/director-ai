@@ -76,6 +76,11 @@ KNOWN_TEST_SURFACE_CLASSIFICATIONS: dict[str, tuple[str, str]] = {
         "unit-guard-with-companion",
         "CLI/server/API typed branch guard with companion tests/test_cli_bench_real_surface.py",
     ),
+    "tests/test_threshold_tuner_relocation.py": (
+        "unit-guard-with-companion",
+        "threshold-tuner import-path guard with companion tests/test_tune.py "
+        "and tests/test_cli_bench_real_surface.py",
+    ),
     "tests/test_cli_ingest_formats.py": (
         "unit-guard-with-companion",
         "CLI/server/API unit guard with companion tests/test_cli_ingest_real_surface.py",

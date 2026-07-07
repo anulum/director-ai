@@ -4,11 +4,11 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Backward-compat shim: director_ai.core.tuner -> director_ai.core.training.tuner
-"""Backward-compatibility re-export of :mod:`director_ai.core.training.tuner`."""
+# Backward-compat shim: director_ai.core.tuner -> director_ai.core.calibration.tuner
+"""Backward-compatibility re-export of :mod:`director_ai.core.calibration.tuner`."""
 
 import importlib as _il
 import sys as _sys
 
-_real = _il.import_module("director_ai.core.training.tuner")
+_real = _il.import_module("director_ai.core.calibration.tuner")
 _sys.modules[__name__] = _real

@@ -12,10 +12,15 @@ Extracted from cli.py to reduce module size.
 
 from __future__ import annotations
 
+import importlib
 import json
 import sys
 from collections.abc import Callable
-from typing import Any
+from typing import Any, cast
+
+_TuneFunction = Callable[[list[dict[str, Any]]], Any]
+_ConfidenceReportFunction = Callable[[Any], str]
+_ProfileOverlayFunction = Callable[..., str]
 
 
 def _cmd_eval(args: list[str]) -> None:
@@ -306,11 +311,7 @@ def _cmd_tune(args: list[str]) -> None:
         print("Error: no valid samples found")
         sys.exit(1)
 
-    from director_ai.core.training.tuner import (
-        format_confidence_report,
-        format_profile_overlay,
-        tune,
-    )
+    tune, format_confidence_report, format_profile_overlay = _load_tuner_functions()
 
     result = tune(samples)
 
@@ -333,6 +334,60 @@ def _cmd_tune(args: list[str]) -> None:
                 ),
             )
         print(f"Profile overlay written to {output_file}")
+
+
+def _load_tuner_functions() -> tuple[
+    _TuneFunction,
+    _ConfidenceReportFunction,
+    _ProfileOverlayFunction,
+]:
+    """Load threshold-tuner functions from the canonical calibration module."""
+    canonical_tuner = importlib.import_module("director_ai.core.calibration.tuner")
+
+    legacy_functions: (
+        tuple[
+            _TuneFunction,
+            _ConfidenceReportFunction,
+            _ProfileOverlayFunction,
+        ]
+        | None
+    ) = None
+    legacy = sys.modules.get("director_ai.core.training.tuner")
+    if legacy is not None and legacy is not canonical_tuner:
+        legacy_functions = _tuner_functions_from(legacy)
+        if legacy_functions is not None and _prefer_legacy_tuner_override(
+            legacy,
+            canonical_tuner,
+        ):
+            return legacy_functions
+
+    canonical_functions = _tuner_functions_from(canonical_tuner)
+    if canonical_functions is None:
+        raise RuntimeError("canonical calibration tuner lacks required functions")
+    return canonical_functions
+
+
+def _tuner_functions_from(
+    module: object,
+) -> tuple[_TuneFunction, _ConfidenceReportFunction, _ProfileOverlayFunction] | None:
+    """Return tuner callables from a module-shaped object when all are present."""
+    tune = getattr(module, "tune", None)
+    confidence_report = getattr(module, "format_confidence_report", None)
+    profile_overlay = getattr(module, "format_profile_overlay", None)
+    if callable(tune) and callable(confidence_report) and callable(profile_overlay):
+        return (
+            cast("_TuneFunction", tune),
+            cast("_ConfidenceReportFunction", confidence_report),
+            cast("_ProfileOverlayFunction", profile_overlay),
+        )
+    return None
+
+
+def _prefer_legacy_tuner_override(legacy: object, canonical: object) -> bool:
+    """Return whether a distinct legacy module should override canonical import."""
+    canonical_file = getattr(canonical, "__file__", None)
+    legacy_file = getattr(legacy, "__file__", None)
+    return isinstance(canonical_file, str) and legacy_file != canonical_file
 
 
 def _print_eval_help() -> None:

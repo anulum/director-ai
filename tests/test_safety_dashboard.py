@@ -89,8 +89,10 @@ class _FakeTunerModule(ModuleType):
 class TestSafetyDashboard:
     @pytest.fixture(autouse=True)
     def _fake_tuner_module(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        fake_tuner = _FakeTunerModule("director_ai.core.training.tuner")
-        monkeypatch.setitem(sys.modules, "director_ai.core.training.tuner", fake_tuner)
+        fake_tuner = _FakeTunerModule("director_ai.core.calibration.tuner")
+        monkeypatch.setitem(
+            sys.modules, "director_ai.core.calibration.tuner", fake_tuner
+        )
 
     def test_tables_have_stable_columns(self) -> None:
         assert TENANT_COLUMNS == [

@@ -757,6 +757,17 @@ def test_finetune_benchmark_unit_guard_has_real_surface_companion() -> None:
     assert "tests/test_finetune_benchmark_real_surface.py" in category
 
 
+def test_threshold_tuner_relocation_guard_has_real_surface_companion() -> None:
+    """Threshold-tuner relocation guard should be backed by real tuner coverage."""
+    classification, category = KNOWN_TEST_SURFACE_CLASSIFICATIONS[
+        "tests/test_threshold_tuner_relocation.py"
+    ]
+
+    assert classification == "unit-guard-with-companion"
+    assert "tests/test_tune.py" in category
+    assert "tests/test_cli_bench_real_surface.py" in category
+
+
 def test_multilingual_corpus_unit_guard_has_real_surface_companion() -> None:
     """Multilingual corpus guard should be backed by real CLI validation."""
     classification, category = KNOWN_TEST_SURFACE_CLASSIFICATIONS[
