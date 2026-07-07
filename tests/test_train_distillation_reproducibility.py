@@ -5,6 +5,7 @@
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI - Distillation reproducibility tests
+"""Unit guards for deterministic Lite Scorer v2 distillation helpers."""
 
 from __future__ import annotations
 
@@ -42,20 +43,27 @@ write_training_run_manifest = MODULE.write_training_run_manifest
 
 
 class TinyDataset:
+    """Small in-memory dataset implementing the subset protocol used by training."""
+
     def __init__(self, rows: list[dict[str, Any]]) -> None:
+        """Store rows for deterministic selection assertions."""
         self.rows = rows
 
     def __getitem__(self, key: str) -> list[Any]:
+        """Return a column vector for the requested dataset key."""
         return [row[key] for row in self.rows]
 
     def __len__(self) -> int:
+        """Return the number of stored rows."""
         return len(self.rows)
 
     def select(self, indices: list[int]) -> TinyDataset:
+        """Return a new dataset containing rows selected by index."""
         return TinyDataset([self.rows[index] for index in indices])
 
 
 def _dataset() -> TinyDataset:
+    """Build a mixed summarisation and general-purpose fixture dataset."""
     rows: list[dict[str, Any]] = []
     for index in range(10):
         rows.append(
@@ -78,6 +86,7 @@ def _dataset() -> TinyDataset:
 
 
 def test_build_subset_uses_explicit_seed_for_reproducible_sampling() -> None:
+    """The subset helper should produce stable samples for the same seed."""
     first = build_subset(_dataset(), summ_target=5, general_target=5, seed=11)
     second = build_subset(_dataset(), summ_target=5, general_target=5, seed=11)
     third = build_subset(_dataset(), summ_target=5, general_target=5, seed=12)
@@ -87,6 +96,7 @@ def test_build_subset_uses_explicit_seed_for_reproducible_sampling() -> None:
 
 
 def test_training_parser_exposes_reproducibility_controls() -> None:
+    """The parser should expose the reproducibility defaults used by run plans."""
     args = build_parser().parse_args(
         [
             "--teacher",
@@ -104,6 +114,7 @@ def test_training_parser_exposes_reproducibility_controls() -> None:
 
 
 def test_distillation_loss_rejects_non_finite_logits() -> None:
+    """The loss helper should fail closed on non-finite student logits."""
     torch = pytest.importorskip("torch")
     student_logits = torch.tensor([[0.0, float("nan"), 1.0]])
     teacher_logits = torch.tensor([[0.2, 0.3, 0.5]])
@@ -114,6 +125,7 @@ def test_distillation_loss_rejects_non_finite_logits() -> None:
 
 
 def test_distillation_loss_rejects_mismatched_label_spaces() -> None:
+    """Student and teacher logits should share the same label-space shape."""
     torch = pytest.importorskip("torch")
     student_logits = torch.tensor([[0.0, 1.0, 2.0]])
     teacher_logits = torch.tensor([[0.2, 0.8]])
@@ -124,6 +136,7 @@ def test_distillation_loss_rejects_mismatched_label_spaces() -> None:
 
 
 def test_distillation_loss_rejects_invalid_labels() -> None:
+    """Hard labels outside the classifier range should be rejected."""
     torch = pytest.importorskip("torch")
     student_logits = torch.tensor([[0.0, 1.0, 2.0]])
     teacher_logits = torch.tensor([[0.2, 0.3, 0.5]])
@@ -133,7 +146,10 @@ def test_distillation_loss_rejects_invalid_labels() -> None:
         distillation_loss(student_logits, teacher_logits, labels)
 
 
-def test_teacher_model_load_forces_float32_dtype(monkeypatch) -> None:
+def test_teacher_model_load_forces_float32_dtype(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Teacher loading should request float32 logits for stable distillation."""
     torch = pytest.importorskip("torch")
     calls: list[dict[str, Any]] = []
 
@@ -157,6 +173,7 @@ def test_teacher_model_load_forces_float32_dtype(monkeypatch) -> None:
 
 
 def test_resolve_training_device_falls_back_when_cuda_probe_fails() -> None:
+    """Auto device selection should fall back to CPU when CUDA probes fail."""
     device, warning = resolve_training_device(
         "auto",
         cuda_available=lambda: True,
@@ -168,6 +185,7 @@ def test_resolve_training_device_falls_back_when_cuda_probe_fails() -> None:
 
 
 def test_resolve_training_device_rejects_explicit_unusable_cuda() -> None:
+    """Explicit CUDA selection should fail closed when the runtime probe fails."""
     try:
         resolve_training_device(
             "cuda",
@@ -181,6 +199,7 @@ def test_resolve_training_device_rejects_explicit_unusable_cuda() -> None:
 
 
 def test_validate_training_run_config_rejects_invalid_bounds() -> None:
+    """Training configuration validation should report every invalid bound."""
     config = TrainingRunConfig(
         teacher="teacher",
         student="student",
@@ -212,6 +231,7 @@ def test_validate_training_run_config_rejects_invalid_bounds() -> None:
 def test_write_training_run_manifest_records_inputs_without_score_claim(
     tmp_path: Path,
 ) -> None:
+    """Training manifests should record inputs without publishing scores."""
     config = TrainingRunConfig(
         teacher="training/output/deberta-v3-base-hallucination",
         student="microsoft/MiniLM-L6-H384-uncased",

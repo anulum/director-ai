@@ -613,8 +613,9 @@ KNOWN_TEST_SURFACE_CLASSIFICATIONS: dict[str, tuple[str, str]] = {
         "module/workflow unit guard with companion tests/test_tools/test_emit_studio_manifest_real_surface.py",
     ),
     "tests/test_train_distillation_reproducibility.py": (
-        "violation",
-        "ML/export/eval boundary fake",
+        "unit-guard-with-companion",
+        "ML/export/eval unit guard with companion "
+        "tests/test_train_distillation_reproducibility_real_surface.py",
     ),
     "tests/test_trajectory_simulator.py": (
         "unit-guard-with-companion",
