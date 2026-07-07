@@ -40,6 +40,7 @@ else:
             """Fallback base used when langchain-core is not installed."""
 
             def __class_getitem__(cls, _item: Any) -> type:
+                """Return this fallback class for generic subscription."""
                 # Mimic the real generic so ``Runnable[Any, Any]`` resolves.
                 return cls
 
