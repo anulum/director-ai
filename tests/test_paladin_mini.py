@@ -177,7 +177,7 @@ class TestMainCli:
         assert r["global_balanced_accuracy"] == 0.5
 
     def test_unknown_counted(self, tmp_path: Path) -> None:
-        """Unparseable verdicts should be counted as unknown predictions."""
+        """Unparsable verdicts should be counted as unknown predictions."""
         r = self._run_main(tmp_path, "gibberish")
         assert r["unknown_predictions"] == 4
 
