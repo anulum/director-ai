@@ -9,6 +9,7 @@
 
 import sys
 import types
+import uuid
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
@@ -359,6 +360,34 @@ class TestQdrantBackend:
         backend._client.upsert.assert_called_once()
         kwargs = backend._client.upsert.call_args.kwargs
         assert kwargs["collection_name"] == "facts"
+        # An arbitrary doc id is mapped to a deterministic UUID (Qdrant rejects
+        # non-integer, non-UUID ids) while the original id is kept in the payload.
+        _, point = kwargs["points"][0]
+        assert point["id"] == str(uuid.uuid5(uuid.NAMESPACE_URL, "d1"))
+        assert point["payload"] == {"text": "hello", "doc_id": "d1", "k": "v"}
+
+    def test_qdrant_query_returns_original_doc_id_from_payload(self):
+        from director_ai.core.vector_store import QdrantBackend
+
+        backend = QdrantBackend.__new__(QdrantBackend)
+        backend._client = MagicMock()
+        backend._collection = "facts"
+        backend._embed_fn = lambda text: [0.1, 0.2]
+
+        hit = SimpleNamespace(
+            id="9f1c0000-0000-5000-8000-000000000000",
+            score=0.25,
+            payload={"doc_id": "doc-2", "text": "answer"},
+        )
+        backend._client.query_points.return_value = SimpleNamespace(points=[hit])
+
+        with patch.dict("sys.modules", {"qdrant_client.models": MagicMock()}):
+            result = backend.query("question")
+
+        # The caller-facing id is the original doc id from the payload, not the
+        # internal UUID point id.
+        assert result[0]["id"] == "doc-2"
+        assert result[0]["distance"] == pytest.approx(0.75)
 
     def test_ensure_collection_creates_missing_collection_and_query_filters(self):
         from director_ai.core.vector_store import QdrantBackend

@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import logging
 import threading
+import uuid
 from typing import Any
 from urllib.parse import urlparse
 
@@ -287,8 +288,17 @@ class QdrantBackend(VectorBackend):
         if self._embed_fn is None:
             raise ValueError("QdrantBackend requires embed_fn for text embedding")
         vector = self._embed_fn(text)
-        payload = {"text": text, **(metadata or {})}
-        point = PointStruct(id=doc_id, vector=vector, payload=payload)
+        payload = {"text": text, "doc_id": doc_id, **(metadata or {})}
+        # Qdrant point ids must be an unsigned integer or a UUID, so an arbitrary
+        # string doc id (e.g. "doc-2") is rejected by the server. Map it to a
+        # deterministic UUID — the same doc id always yields the same point id,
+        # so re-adding a document upserts rather than duplicating — and keep the
+        # original id in the payload so ``query`` can return it verbatim.
+        point = PointStruct(
+            id=str(uuid.uuid5(uuid.NAMESPACE_URL, doc_id)),
+            vector=vector,
+            payload=payload,
+        )
         self._client.upsert(collection_name=self._collection, points=[point])
 
     def query(
@@ -328,7 +338,7 @@ class QdrantBackend(VectorBackend):
             payload = hit.payload or {}
             docs.append(
                 {
-                    "id": str(hit.id),
+                    "id": payload.get("doc_id", str(hit.id)),
                     "text": payload.get("text", ""),
                     "distance": 1.0 - hit.score,
                     "metadata": payload,
