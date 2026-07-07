@@ -1,350 +1,181 @@
 # SPDX-License-Identifier: Apache-2.0
 # Commercial license available
-# © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
-# © Code 2020–2026 Miroslav Šotek. All rights reserved.
-# ORCID: 0009-0009-3560-0851
-# Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI — Repaired HiSS with per-task-family verify
-"""HiSS (Hierarchical Step-by-Step) hallucination detection — repaired.
-
-The original ``gemma_aggrefact_hiss.py`` lost to baseline (0.7872 vs
-0.7934) for three reasons:
-
-1. The verify step used a single generic prompt; the routed prompts
-   that win for K=1 were not used.
-2. Aggregation was strict AND ("every sub-claim must be SUPPORTED");
-   for claims with 4-5 sub-claims this systematically biases toward
-   NOT_SUPPORTED.
-3. Decomposition fired on every claim, including short ones where
-   sub-claim splitting is meaningless and adds noise.
-
-This repaired variant fixes all three:
-
-1. **Routed verify** — the verify pass uses ``PROMPT_SUMM`` /
-   ``PROMPT_RAG`` / ``PROMPT_CLAIM`` based on the AggreFact subset's
-   task family, exactly as the 82.11 % routed champion does.
-2. **Soft aggregation** — the verdict is SUPPORTED if at least
-   ``--support-frac 0.75`` of the sub-claims verify positive (default
-   0.75; sweep-able). The strict-AND behaviour of the original is
-   recovered with ``--support-frac 1.0``.
-3. **Length gate** — claims under ``--min-decompose-words 12`` words
-   skip decomposition entirely and fall back to the routed K=1 path,
-   which is the same as the champion. This preserves the champion's
-   performance on short claims while still letting decomposition help
-   on long, multi-fact ones.
-
-Soft score: ``support_fraction = supported_subclaims / total_subclaims``,
-which is threshold-able and ensemble-friendly.
-
-Usage::
-
-    GGML_VK_VISIBLE_DEVICES=5 python benchmarks/gemma_aggrefact_hiss_routed.py \\
-        --model /tmp/gemma-models/google_gemma-4-E4B-it-Q6_K.gguf \\
-        --max-samples 29320 \\
-        --output benchmarks/results/gemma_e4b_q6_hiss_routed.json
-"""
+# Copyright 2020-2026 Miroslav Sotek
+# Director-Class AI - routed HiSS prompting for Gemma LLM-as-judge
+"""CLI wrapper for the routed Gemma AggreFact HiSS evaluator."""
 
 from __future__ import annotations
 
 import argparse
-import json
 import logging
+import sys
 import time
-from collections import defaultdict
+from collections.abc import Sequence
 from pathlib import Path
+from typing import cast
 
+from _gemma_aggrefact_hiss_routed_core import (
+    HiSSRoutedEvaluation,
+    build_llama,
+    evaluate_dataset,
+    family_distribution,
+    load_aggrefact,
+)
+from _gemma_aggrefact_hiss_routed_report import (
+    HiSSRoutedReport,
+    build_report,
+    log_summary,
+    write_report,
+)
 from _judge_common import (
     DATASET_TO_FAMILY,
     DECOMPOSE_PROMPT,
     PROMPTS,
-    aggregate_per_dataset,
-    aggregate_per_family,
     compute_balanced_accuracy,
+    parse_response,
     parse_subclaims,
-)
-from _judge_common import (
-    parse_response as parse_verdict,
 )
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s: %(message)s")
 logger = logging.getLogger(__name__)
 
+__all__ = [
+    "DATASET_TO_FAMILY",
+    "DECOMPOSE_PROMPT",
+    "PROMPTS",
+    "HiSSRoutedEvaluation",
+    "HiSSRoutedReport",
+    "build_llama",
+    "build_report",
+    "compute_balanced_accuracy",
+    "evaluate_dataset",
+    "family_distribution",
+    "load_aggrefact",
+    "log_summary",
+    "main",
+    "parse_response",
+    "parse_subclaims",
+    "write_report",
+]
 
-def main():
-    p = argparse.ArgumentParser()
-    p.add_argument("--model", required=True)
-    p.add_argument("--max-samples", type=int, default=None)
-    p.add_argument(
+
+def _positive_int(value: str) -> int:
+    """Parse a positive integer command-line argument."""
+    try:
+        parsed = int(value)
+    except ValueError as exc:
+        raise argparse.ArgumentTypeError("must be an integer") from exc
+    if parsed <= 0:
+        raise argparse.ArgumentTypeError("must be > 0")
+    return parsed
+
+
+def _support_fraction(value: str) -> float:
+    """Parse a support-fraction threshold in the interval ``(0, 1]``."""
+    try:
+        parsed = float(value)
+    except ValueError as exc:
+        raise argparse.ArgumentTypeError("must be a float") from exc
+    if parsed <= 0.0 or parsed > 1.0:
+        raise argparse.ArgumentTypeError("must be > 0 and <= 1")
+    return parsed
+
+
+def _build_parser() -> argparse.ArgumentParser:
+    """Build the command-line parser for routed HiSS evaluation."""
+    parser = argparse.ArgumentParser(
+        description="Evaluate Gemma LLM-as-judge with routed HiSS prompts.",
+    )
+    parser.add_argument("--model", required=True)
+    parser.add_argument("--max-samples", type=_positive_int, default=None)
+    parser.add_argument(
         "--output",
         type=str,
         default="benchmarks/results/gemma_hiss_routed.json",
     )
-    p.add_argument("--n-ctx", type=int, default=4096)
-    p.add_argument("--n-threads", type=int, default=2)
-    p.add_argument("--log-every", type=int, default=500)
-    p.add_argument(
+    parser.add_argument("--n-ctx", type=_positive_int, default=4096)
+    parser.add_argument("--n-threads", type=_positive_int, default=2)
+    parser.add_argument("--log-every", type=_positive_int, default=500)
+    parser.add_argument(
         "--min-decompose-words",
-        type=int,
+        type=_positive_int,
         default=12,
-        help=(
-            "Claims shorter than this skip decomposition and use the routed K=1 path"
-        ),
+        help="Claims shorter than this skip decomposition and use the routed K=1 path.",
     )
-    p.add_argument(
+    parser.add_argument(
         "--support-frac",
-        type=float,
+        type=_support_fraction,
         default=0.75,
-        help=(
-            "Verdict is SUPPORTED if support_fraction >= this value "
-            "(default 0.75 = at least 75%% of sub-claims must verify)"
-        ),
+        help="Verdict is SUPPORTED when the subclaim support fraction reaches this threshold.",
     )
-    p.add_argument(
+    parser.add_argument(
         "--max-subclaims",
-        type=int,
+        type=_positive_int,
         default=4,
-        help="Cap on sub-claims per decomposition (default 4)",
+        help="Maximum subclaims per decomposition.",
     )
-    args = p.parse_args()
+    parser.add_argument("--max-decompose-tokens", type=_positive_int, default=160)
+    parser.add_argument("--max-verify-tokens", type=_positive_int, default=8)
+    return parser
 
-    from datasets import load_dataset
-    from llama_cpp import Llama
 
-    ds = load_dataset("lytang/LLM-AggreFact", split="test")
-    if args.max_samples:
-        ds = ds.select(range(min(args.max_samples, len(ds))))
-    logger.info(
-        "Samples: %d  min_decompose_words=%d  support_frac=%.2f  max_sub=%d",
-        len(ds),
-        args.min_decompose_words,
-        args.support_frac,
-        args.max_subclaims,
-    )
+def main(argv: Sequence[str] | None = None) -> int:
+    """Run the routed HiSS AggreFact evaluator CLI."""
+    args = _build_parser().parse_args(argv)
+    output_path = Path(cast(str, args.output))
+    model_path = cast(str, args.model)
 
-    family_counts: dict[str, int] = defaultdict(int)
-    for sample in ds:
-        family_counts[DATASET_TO_FAMILY.get(sample["dataset"], "claim")] += 1
-    logger.info("Family distribution: %s", dict(family_counts))
-
-    logger.info("Loading: %s", args.model)
-    llm = Llama(
-        model_path=args.model,
-        n_gpu_layers=-1,
-        n_ctx=args.n_ctx,
-        n_threads=args.n_threads,
-        n_batch=512,
-        verbose=False,
-        logits_all=False,
-    )
-    logger.info("Loaded")
-
-    preds: list[int] = []
-    support_fractions: list[float | None] = []
-    labels: list[int] = []
-    datasets_list: list[str] = []
-    families: list[str] = []
-    subclaim_counts: list[int] = []
-    decomposed_flags: list[bool] = []
-    latencies: list[float] = []
-    unknown = 0
-    skipped_decompose = 0
-    t_start = time.time()
-
-    for i, sample in enumerate(ds):
-        premise = sample["doc"]
-        hypothesis = sample["claim"]
-        label = int(sample["label"])
-        dataset_name = sample["dataset"]
-        family = DATASET_TO_FAMILY.get(dataset_name, "claim")
-        verify_template = PROMPTS[family]
-
-        t0 = time.time()
-        word_count = len(hypothesis.split())
-        if word_count < args.min_decompose_words:
-            # Length gate — fall back to the K=1 routed path
-            skipped_decompose += 1
-            decomposed = False
-            try:
-                out = llm.create_chat_completion(
-                    messages=[
-                        {
-                            "role": "user",
-                            "content": verify_template.format(
-                                premise=premise, hypothesis=hypothesis
-                            ),
-                        }
-                    ],
-                    max_tokens=8,
-                    temperature=0.0,
-                )
-                text = out["choices"][0]["message"]["content"]
-            except Exception as exc:  # noqa: BLE001
-                logger.warning("Sample %d (short) failed: %s", i, exc)
-                text = "ERROR"
-            v = parse_verdict(text)
-            if v < 0:
-                pred = -1
-                support_fraction: float | None = None
-                unknown += 1
-            else:
-                pred = v
-                support_fraction = float(v)
-            n_subclaims = 1
-        else:
-            # Decompose then routed-verify
-            decomposed = True
-            try:
-                out = llm.create_chat_completion(
-                    messages=[
-                        {
-                            "role": "user",
-                            "content": DECOMPOSE_PROMPT.format(claim=hypothesis),
-                        }
-                    ],
-                    max_tokens=160,
-                    temperature=0.0,
-                )
-                decomp_raw = out["choices"][0]["message"]["content"]
-            except Exception as exc:  # noqa: BLE001
-                logger.warning("Sample %d decompose failed: %s", i, exc)
-                decomp_raw = ""
-            subclaims = parse_subclaims(
-                decomp_raw, hypothesis, max_n=args.max_subclaims
-            )
-            n_subclaims = len(subclaims)
-
-            # Verify each sub-claim with the routed prompt for the family
-            sub_supported = 0
-            sub_unknown = 0
-            for sub in subclaims:
-                try:
-                    out = llm.create_chat_completion(
-                        messages=[
-                            {
-                                "role": "user",
-                                "content": verify_template.format(
-                                    premise=premise, hypothesis=sub
-                                ),
-                            }
-                        ],
-                        max_tokens=8,
-                        temperature=0.0,
-                    )
-                    text = out["choices"][0]["message"]["content"]
-                except Exception as exc:  # noqa: BLE001
-                    logger.warning("Sample %d sub-verify failed: %s", i, exc)
-                    text = "ERROR"
-                v = parse_verdict(text)
-                if v == 1:
-                    sub_supported += 1
-                elif v < 0:
-                    sub_unknown += 1
-            valid = n_subclaims - sub_unknown
-            if valid <= 0:
-                pred = -1
-                support_fraction = None
-                unknown += 1
-            else:
-                support_fraction = sub_supported / valid
-                pred = 1 if support_fraction >= args.support_frac else 0
-        latencies.append(time.time() - t0)
-
-        preds.append(pred)
-        support_fractions.append(support_fraction)
-        labels.append(label)
-        datasets_list.append(dataset_name)
-        families.append(family)
-        subclaim_counts.append(n_subclaims)
-        decomposed_flags.append(decomposed)
-
-        if (i + 1) % args.log_every == 0:
-            elapsed = time.time() - t_start
-            ba = compute_balanced_accuracy(preds, labels)
-            eta_min = (len(ds) - i - 1) * elapsed / (i + 1) / 60
-            logger.info(
-                "[%d/%d] BA=%.4f unk=%d skip=%d %.0fms/sample ETA=%.1fmin",
-                i + 1,
-                len(ds),
-                ba,
-                unknown,
-                skipped_decompose,
-                1000 * elapsed / (i + 1),
-                eta_min,
-            )
-
-    per_ds_metrics = aggregate_per_dataset(preds, labels, datasets_list)
-    per_family_metrics = aggregate_per_family(preds, labels, families)
-
-    total = time.time() - t_start
-    results = {
-        "schema_version": 2,
-        "model": args.model,
-        "method": (
-            f"HiSS routed: decompose then per-family verify, "
-            f"min_words={args.min_decompose_words} "
-            f"support_frac={args.support_frac} "
-            f"max_sub={args.max_subclaims}"
-        ),
-        "samples": len(ds),
-        "min_decompose_words": args.min_decompose_words,
-        "support_frac": args.support_frac,
-        "max_subclaims": args.max_subclaims,
-        "skipped_decompose": skipped_decompose,
-        "global_balanced_accuracy": compute_balanced_accuracy(preds, labels),
-        "per_dataset": per_ds_metrics,
-        "per_family": per_family_metrics,
-        "dataset_to_family": DATASET_TO_FAMILY,
-        "unknown_predictions": unknown,
-        "total_time_seconds": total,
-        "p50_latency_ms": 1000 * sorted(latencies)[len(latencies) // 2]
-        if latencies
-        else 0,
-        "p99_latency_ms": 1000 * sorted(latencies)[int(len(latencies) * 0.99)]
-        if latencies
-        else 0,
-        "predictions": preds,
-        "support_fractions": support_fractions,
-        "subclaim_counts": subclaim_counts,
-        "decomposed_flags": decomposed_flags,
-        "labels": labels,
-        "datasets_per_sample": datasets_list,
-        "families_per_sample": families,
-    }
-    out_path = Path(args.output)
-    out_path.parent.mkdir(parents=True, exist_ok=True)
-    out_path.write_text(json.dumps(results, indent=2))
-
-    logger.info("=" * 60)
-    logger.info("Global BA:    %.4f", results["global_balanced_accuracy"])
-    logger.info(
-        "Decomposed:   %d (%.1f%%)",
-        len(ds) - skipped_decompose,
-        100 * (len(ds) - skipped_decompose) / len(ds),
-    )
-    logger.info(
-        "Skipped:      %d (%.1f%%, used K=1 routed)",
-        skipped_decompose,
-        100 * skipped_decompose / len(ds),
-    )
-    logger.info("Unknown:      %d (%.1f%%)", unknown, 100 * unknown / len(ds))
-    logger.info("Time:         %.1fmin", total / 60)
-    logger.info("=" * 60)
-    for fam, m in sorted(per_family_metrics.items()):
+    try:
+        dataset = load_aggrefact(cast(int | None, args.max_samples))
         logger.info(
-            "  %-8s %5d  %.4f",
-            fam,
-            m["samples"],
-            m["balanced_accuracy"],
+            "Samples: %d  min_decompose_words=%d  support_frac=%.2f  max_sub=%d",
+            len(dataset),
+            cast(int, args.min_decompose_words),
+            cast(float, args.support_frac),
+            cast(int, args.max_subclaims),
         )
-    for n, m in sorted(per_ds_metrics.items()):
-        logger.info(
-            "  %-20s %5d  %.4f",
-            n,
-            m["samples"],
-            m["balanced_accuracy"],
+        logger.info("Family distribution: %s", family_distribution(dataset))
+        llm = build_llama(
+            model_path,
+            n_ctx=cast(int, args.n_ctx),
+            n_threads=cast(int, args.n_threads),
         )
-    logger.info("Saved: %s", args.output)
+        evaluation = evaluate_dataset(
+            dataset,
+            llm,
+            min_decompose_words=cast(int, args.min_decompose_words),
+            support_frac=cast(float, args.support_frac),
+            max_subclaims=cast(int, args.max_subclaims),
+            max_decompose_tokens=cast(int, args.max_decompose_tokens),
+            max_verify_tokens=cast(int, args.max_verify_tokens),
+            log_every=cast(int, args.log_every),
+        )
+        report = build_report(
+            model_path=model_path,
+            sample_count=len(dataset),
+            min_decompose_words=cast(int, args.min_decompose_words),
+            support_frac=cast(float, args.support_frac),
+            max_subclaims=cast(int, args.max_subclaims),
+            skipped_decompose=evaluation["skipped_decompose"],
+            preds=evaluation["preds"],
+            support_fractions=evaluation["support_fractions"],
+            labels=evaluation["labels"],
+            datasets_per_sample=evaluation["datasets_per_sample"],
+            families_per_sample=evaluation["families_per_sample"],
+            subclaim_counts=evaluation["subclaim_counts"],
+            decomposed_flags=evaluation["decomposed_flags"],
+            latencies=evaluation["latencies"],
+            unknown_predictions=evaluation["unknown_predictions"],
+            total_time=time.time() - evaluation["started_at"],
+        )
+    except ValueError as exc:
+        print(f"Error: {exc}", file=sys.stderr)
+        return 1
+
+    write_report(output_path, report)
+    log_summary(report, output_path)
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())
