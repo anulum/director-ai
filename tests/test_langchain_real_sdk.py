@@ -62,6 +62,66 @@ class TestDirectorAIGuardWithRealLC:
         assert "approved" in result
 
 
+class TestDirectorAIGuardRunnableContract:
+    """The advertised ``llm | guard`` composition must actually work."""
+
+    def test_guard_is_a_runnable(self):
+        pytest = __import__("pytest")
+        pytest.importorskip("langchain_core")
+        from langchain_core.runnables import Runnable
+
+        from director_ai.integrations.langchain import DirectorAIGuard
+
+        guard = DirectorAIGuard(use_nli=False)
+        assert isinstance(guard, Runnable)
+
+    def test_pipe_composes_and_invokes(self):
+        pytest = __import__("pytest")
+        pytest.importorskip("langchain_core")
+        from langchain_core.runnables import RunnableLambda
+
+        from director_ai.integrations.langchain import DirectorAIGuard
+
+        guard = DirectorAIGuard(
+            facts={"capital": "Paris is the capital of France."},
+            use_nli=False,
+        )
+        llm = RunnableLambda(lambda _q: "Paris is the capital of France.")
+        chain = llm | guard
+        result = chain.invoke("What is the capital of France?")
+        assert isinstance(result, dict)
+        assert "approved" in result
+        assert "score" in result
+
+    def test_pipe_supports_inherited_batch(self):
+        pytest = __import__("pytest")
+        pytest.importorskip("langchain_core")
+        from langchain_core.runnables import RunnableLambda
+
+        from director_ai.integrations.langchain import DirectorAIGuard
+
+        guard = DirectorAIGuard(use_nli=False)
+        llm = RunnableLambda(lambda _q: "The sky is blue.")
+        chain = llm | guard
+        results = chain.batch(["one", "two"])
+        assert len(results) == 2
+        assert all("approved" in r for r in results)
+
+    async def test_pipe_ainvoke(self):
+        pytest = __import__("pytest")
+        pytest.importorskip("langchain_core")
+        from langchain_core.runnables import RunnableLambda
+
+        from director_ai.integrations.langchain import DirectorAIGuard
+
+        guard = DirectorAIGuard(use_nli=False)
+        llm = RunnableLambda(lambda _q: "The sky is blue.")
+        chain = llm | guard
+        result = await chain.ainvoke("What colour is the sky?")
+        assert isinstance(result, dict)
+        assert "approved" in result
+
+
 class TestCallbackHandlerWithRealLC:
     def test_inherits_real_base_callback_handler(self):
         pytest = __import__("pytest")

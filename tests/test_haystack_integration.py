@@ -144,6 +144,43 @@ class TestDirectorAIChecker:
         assert len(result["approved"]) == 1
 
 
+class TestHaystackPipelineContract:
+    """The advertised ``pipeline.add_component`` usage must actually work."""
+
+    def test_add_component_accepts_checker(self):
+        pytest.importorskip("haystack")
+        from haystack import Pipeline
+
+        checker = DirectorAIChecker(
+            facts={"sky color": "The sky is blue."},
+            use_nli=False,
+        )
+        pipeline = Pipeline()
+        pipeline.add_component("checker", checker)
+        assert "checker" in pipeline.graph.nodes
+
+    def test_pipeline_run_executes_checker(self):
+        pytest.importorskip("haystack")
+        from haystack import Pipeline
+
+        checker = DirectorAIChecker(
+            facts={"sky color": "The sky is blue."},
+            use_nli=False,
+        )
+        pipeline = Pipeline()
+        pipeline.add_component("checker", checker)
+        out = pipeline.run(
+            {
+                "checker": {
+                    "query": "What color is the sky?",
+                    "replies": ["The sky is blue."],
+                },
+            },
+        )
+        assert len(out["checker"]["approved"]) == 1
+        assert len(out["checker"]["scores"]) == 1
+
+
 class TestHaystackPerformanceDoc:
     """Document Haystack integration performance."""
 

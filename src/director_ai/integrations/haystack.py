@@ -21,16 +21,46 @@ Usage::
 
 from __future__ import annotations
 
-from typing import Any
+from collections.abc import Callable
+from typing import TYPE_CHECKING, Any
 
 from director_ai.core import CoherenceScorer, GroundTruthStore
 
+if TYPE_CHECKING:
+    # Present the real Haystack decorator to the type checker so this component
+    # is checked against the Haystack contract.
+    from haystack import component
+else:
+    # Runtime resolution: use the real ``@component`` decorator when haystack-ai
+    # is installed (so ``pipeline.add_component`` accepts this class), else fall
+    # back to a no-op that keeps the module importable without the extra.
+    try:
+        from haystack import component
+    except ImportError:
 
+        class _ComponentFallback:
+            """No-op stand-in for ``haystack.component`` when it is absent."""
+
+            def __call__(self, cls: type) -> type:
+                return cls
+
+            def output_types(self, **types: Any) -> Callable[[Any], Any]:
+                def _decorate(func: Any) -> Any:
+                    return func
+
+                return _decorate
+
+        component = _ComponentFallback()
+
+
+@component
 class DirectorAIChecker:
     """Haystack 2.x component for coherence checking.
 
-    Validates LLM responses against a knowledge base and annotates
-    results with coherence scores and approval status.
+    Decorated with ``@component`` so it registers input/output sockets and can
+    be added to a ``haystack.Pipeline`` via ``add_component``. Validates LLM
+    responses against a knowledge base and annotates results with coherence
+    scores and approval status.
     """
 
     def __init__(
@@ -52,6 +82,11 @@ class DirectorAIChecker:
         )
         self.filter_rejected = filter_rejected
 
+    @component.output_types(
+        replies=list[str],
+        scores=list[dict[str, Any]],
+        approved=list[bool],
+    )
     def run(
         self,
         query: str = "",
