@@ -222,6 +222,19 @@ python benchmarks/run_judge_benchmark.py --skip-nli-only --samples 500
 python benchmarks/run_judge_benchmark.py --skip-latency --samples 500
 ```
 
+### Write artefacts outside the default benchmark directory
+
+```bash
+python benchmarks/run_judge_benchmark.py --results-dir /tmp/director-ai-judge-results
+```
+
+### Use an explicit local judge checkpoint
+
+```bash
+python benchmarks/run_judge_benchmark.py \
+  --judge-model-path training/output/deberta-v3-base-judge
+```
+
 ### CLI Flags
 
 | Flag              | Default | Description                              |
@@ -231,6 +244,8 @@ python benchmarks/run_judge_benchmark.py --skip-latency --samples 500
 | `--skip-latency`  | off     | Skip pure latency benchmark              |
 | `--skip-nli-only` | off     | Skip NLI-only baseline                   |
 | `--fp16`          | off     | Use FP16 for NLI model (~50% VRAM saved) |
+| `--results-dir`   | `benchmarks/results` | Directory for benchmark JSON outputs |
+| `--judge-model-path` | `training/output/deberta-v3-base-judge` | Local judge model directory |
 
 ---
 
@@ -278,7 +293,8 @@ raw thresholding.
 
 ## Output Files
 
-All results saved to `benchmarks/results/`:
+By default, results are saved to `benchmarks/results/`. Use `--results-dir`
+when running in CI, temporary smoke tests, or isolated benchmark workspaces.
 
 | File                                    | Content                        |
 |-----------------------------------------|--------------------------------|
@@ -287,8 +303,8 @@ All results saved to `benchmarks/results/`:
 | `judge_bench_latency.json`              | Pure judge latency stats       |
 | `judge_bench_summary_{N}.json`          | Combined status + HW info      |
 
-The summary file records the status (ok/failed) of each benchmark stage
-along with total elapsed time and hardware information.
+The summary file records the status (ok/failed) of each benchmark stage along
+with total elapsed time, hardware information, and any stage error message.
 
 ---
 
@@ -379,18 +395,21 @@ python benchmarks/run_judge_benchmark.py --samples 10000 \
 
 ## Testing
 
-Covered by `tests/test_run_judge_benchmark.py` (18 tests):
+Covered by `tests/test_run_judge_benchmark.py` and
+`tests/test_run_judge_benchmark_real_surface.py` (21 tests):
 
 - Function signature verification (parameters, defaults)
 - `_gpu_info()` return schema
 - `_save()` file writing and JSON validity
 - `print_comparison()` output format
 - FP16 flag propagation (`nli_torch_dtype` parameter presence)
+- Real subprocess execution of the benchmark CLI with `--results-dir` and
+  `--judge-model-path`
 
 Run:
 
 ```bash
-pytest tests/test_run_judge_benchmark.py -v
+pytest tests/test_run_judge_benchmark.py tests/test_run_judge_benchmark_real_surface.py -v
 ```
 
 ---

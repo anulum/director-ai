@@ -558,7 +558,11 @@ KNOWN_TEST_SURFACE_CLASSIFICATIONS: dict[str, tuple[str, str]] = {
         "tests/test_streaming_runtime_real_surface.py, and "
         "tests/test_vector_store_real_surface.py",
     ),
-    "tests/test_run_judge_benchmark.py": ("violation", "ML/export/eval boundary fake"),
+    "tests/test_run_judge_benchmark.py": (
+        "unit-guard-with-companion",
+        "ML/export/eval benchmark guard with companion "
+        "tests/test_run_judge_benchmark_real_surface.py",
+    ),
     "tests/test_safety_dashboard.py": (
         "unit-guard-with-companion",
         "module/workflow unit guard with companion tests/test_safety_dashboard_real_surface.py",

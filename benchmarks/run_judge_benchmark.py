@@ -29,7 +29,9 @@ import json
 import logging
 import sys
 import time
+from collections.abc import Sequence
 from pathlib import Path
+from typing import cast
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
@@ -40,20 +42,24 @@ logging.basicConfig(
 logger = logging.getLogger("JudgeBench")
 
 RESULTS_DIR = Path(__file__).parent / "results"
-RESULTS_DIR.mkdir(exist_ok=True)
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 JUDGE_MODEL_PATH = str(REPO_ROOT / "training" / "output" / "deberta-v3-base-judge")
 
 
-def _save(data: dict, name: str) -> None:
-    path = RESULTS_DIR / name
-    with open(path, "w") as f:
+def _save(data: dict[str, object], name: str, results_dir: Path | None = None) -> Path:
+    """Write benchmark JSON into the requested results directory."""
+    target_dir = RESULTS_DIR if results_dir is None else results_dir
+    target_dir.mkdir(parents=True, exist_ok=True)
+    path = target_dir / name
+    with open(path, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2)
     logger.info("Saved %s (%d bytes)", path, path.stat().st_size)
+    return path
 
 
-def _gpu_info() -> dict:
+def _gpu_info() -> dict[str, object]:
+    """Return a small hardware summary without requiring PyTorch."""
     try:
         import torch
 
@@ -72,7 +78,23 @@ def _gpu_info() -> dict:
         return {"gpu": "unavailable", "cuda": False}
 
 
-def run_nli_only(max_samples: int, nli_torch_dtype: str | None = None) -> dict:
+def _judge_model_path(path: str | Path | None = None) -> Path:
+    """Resolve the judge model path used by latency and local-judge stages."""
+    return Path(JUDGE_MODEL_PATH) if path is None else Path(path)
+
+
+def _metric_float(value: object) -> float:
+    """Return a numeric comparison metric, or zero for malformed payloads."""
+    if isinstance(value, int | float):
+        return float(value)
+    return 0.0
+
+
+def run_nli_only(
+    max_samples: int,
+    nli_torch_dtype: str | None = None,
+    results_dir: Path | None = None,
+) -> dict[str, object]:
     """NLI-only baseline (no judge escalation)."""
     logger.info("=== NLI-only baseline (%d samples/task) ===", max_samples)
     from benchmarks.e2e_eval import print_e2e_results, run_e2e_benchmark
@@ -88,26 +110,33 @@ def run_nli_only(max_samples: int, nli_torch_dtype: str | None = None) -> dict:
     )
     elapsed = time.time() - t0
     print_e2e_results(m)
-    result = {
+    metrics = cast(dict[str, object], m.to_dict())
+    result: dict[str, object] = {
         "benchmark": "E2E-NLI-Only",
         "samples_per_task": max_samples,
         "elapsed_s": round(elapsed, 1),
-        **m.to_dict(),
+        **metrics,
         "hw": _gpu_info(),
     }
-    _save(result, f"judge_bench_nli_only_{max_samples}.json")
+    _save(result, f"judge_bench_nli_only_{max_samples}.json", results_dir)
     return result
 
 
-def run_local_judge(max_samples: int, nli_torch_dtype: str | None = None) -> dict:
+def run_local_judge(
+    max_samples: int,
+    nli_torch_dtype: str | None = None,
+    judge_model_path: str | Path | None = None,
+    results_dir: Path | None = None,
+) -> dict[str, object]:
     """NLI + local DeBERTa-base judge (hybrid scorer)."""
     logger.info("=== NLI + local judge (%d samples/task) ===", max_samples)
-    from benchmarks.e2e_eval import print_e2e_results, run_e2e_benchmark
 
-    judge_path = Path(JUDGE_MODEL_PATH)
+    judge_path = _judge_model_path(judge_model_path)
     if not judge_path.exists():
         logger.error("Judge model not found at %s", judge_path)
         raise FileNotFoundError(f"Judge model not found: {judge_path}")
+
+    from benchmarks.e2e_eval import print_e2e_results, run_e2e_benchmark
 
     t0 = time.time()
     m = run_e2e_benchmark(
@@ -122,24 +151,29 @@ def run_local_judge(max_samples: int, nli_torch_dtype: str | None = None) -> dic
     )
     elapsed = time.time() - t0
     print_e2e_results(m)
-    result = {
+    metrics = cast(dict[str, object], m.to_dict())
+    result: dict[str, object] = {
         "benchmark": "E2E-Local-Judge",
         "samples_per_task": max_samples,
         "elapsed_s": round(elapsed, 1),
-        **m.to_dict(),
+        **metrics,
         "hw": _gpu_info(),
     }
-    _save(result, f"judge_bench_local_judge_{max_samples}.json")
+    _save(result, f"judge_bench_local_judge_{max_samples}.json", results_dir)
     return result
 
 
-def run_judge_latency(n_iters: int = 200) -> dict:
+def run_judge_latency(
+    n_iters: int = 200,
+    judge_model_path: str | Path | None = None,
+    results_dir: Path | None = None,
+) -> dict[str, object]:
     """Measure pure judge inference latency (no NLI overhead)."""
     logger.info("=== Judge inference latency (%d iterations) ===", n_iters)
     import torch
     from transformers import AutoModelForSequenceClassification, AutoTokenizer
 
-    judge_path = Path(JUDGE_MODEL_PATH)
+    judge_path = _judge_model_path(judge_model_path)
     if not judge_path.exists():
         raise FileNotFoundError(f"Judge model not found: {judge_path}")
 
@@ -166,7 +200,7 @@ def run_judge_latency(n_iters: int = 200) -> dict:
     if device == "cuda":
         torch.cuda.synchronize()
 
-    times = []
+    times: list[float] = []
     for _ in range(n_iters):
         if device == "cuda":
             torch.cuda.synchronize()
@@ -180,7 +214,7 @@ def run_judge_latency(n_iters: int = 200) -> dict:
     import numpy as np
 
     times_arr = np.array(times)
-    result = {
+    result: dict[str, object] = {
         "benchmark": "Judge-Latency",
         "device": device,
         "n_iters": n_iters,
@@ -199,11 +233,13 @@ def run_judge_latency(n_iters: int = 200) -> dict:
         result["mean_ms"],
         result["p95_ms"],
     )
-    _save(result, "judge_bench_latency.json")
+    _save(result, "judge_bench_latency.json", results_dir)
     return result
 
 
-def print_comparison(nli_only: dict, local_judge: dict) -> None:
+def print_comparison(
+    nli_only: dict[str, object], local_judge: dict[str, object]
+) -> None:
     """Print side-by-side comparison table."""
     print(f"\n{'=' * 76}")
     print("  Local Judge vs NLI-Only Comparison")
@@ -220,8 +256,8 @@ def print_comparison(nli_only: dict, local_judge: dict) -> None:
         ("Accuracy", "accuracy"),
     ]
     for label, key in metrics:
-        nv = nli_only.get(key, 0)
-        jv = local_judge.get(key, 0)
+        nv = _metric_float(nli_only.get(key, 0))
+        jv = _metric_float(local_judge.get(key, 0))
         delta = jv - nv
         sign = "+" if delta >= 0 else ""
         print(f"  {label:<25} {nv:>11.1%} {jv:>13.1%} {sign}{delta:>10.1%}")
@@ -238,8 +274,12 @@ def print_comparison(nli_only: dict, local_judge: dict) -> None:
     # Per-task breakdown
     print(f"\n  {'Per-task F1:':<25}")
     for task in ["qa", "summarization", "dialogue"]:
-        nf1 = nli_only.get("per_task", {}).get(task, {}).get("f1", 0)
-        jf1 = local_judge.get("per_task", {}).get(task, {}).get("f1", 0)
+        nli_per_task = cast(dict[str, dict[str, float]], nli_only.get("per_task", {}))
+        judge_per_task = cast(
+            dict[str, dict[str, float]], local_judge.get("per_task", {})
+        )
+        nf1 = nli_per_task.get(task, {}).get("f1", 0)
+        jf1 = judge_per_task.get(task, {}).get("f1", 0)
         delta = jf1 - nf1
         sign = "+" if delta >= 0 else ""
         print(f"    {task:<23} {nf1:>11.1%} {jf1:>13.1%} {sign}{delta:>10.1%}")
@@ -247,7 +287,8 @@ def print_comparison(nli_only: dict, local_judge: dict) -> None:
     print(f"{'=' * 76}")
 
 
-def main() -> None:
+def main(argv: Sequence[str] | None = None) -> None:
+    """Run the judge benchmark command-line workflow."""
     parser = argparse.ArgumentParser(description="Local judge E2E benchmark")
     parser.add_argument(
         "--samples",
@@ -276,40 +317,68 @@ def main() -> None:
         action="store_true",
         help="Use FP16 for NLI model (saves ~50%% VRAM)",
     )
-    args = parser.parse_args()
+    parser.add_argument(
+        "--results-dir",
+        type=Path,
+        default=RESULTS_DIR,
+        help="Directory for benchmark JSON outputs",
+    )
+    parser.add_argument(
+        "--judge-model-path",
+        type=Path,
+        default=Path(JUDGE_MODEL_PATH),
+        help="Local judge model directory",
+    )
+    args = parser.parse_args(argv)
 
     nli_dtype = "float16" if args.fp16 else None
+    results_dir = cast(Path, args.results_dir)
+    judge_model_path = cast(Path, args.judge_model_path)
     logger.info("GPU: %s", json.dumps(_gpu_info()))
     logger.info("Samples per task: %d", args.samples)
-    logger.info("Judge model: %s", JUDGE_MODEL_PATH)
+    logger.info("Judge model: %s", judge_model_path)
+    logger.info("Results directory: %s", results_dir)
     if nli_dtype:
         logger.info("NLI dtype: %s", nli_dtype)
 
-    results = {}
+    results: dict[str, object] = {}
     total_t0 = time.time()
 
     # 1. Latency benchmark
     if not args.skip_latency:
         try:
-            results["latency"] = run_judge_latency(args.latency_iters)
+            results["latency"] = run_judge_latency(
+                args.latency_iters,
+                judge_model_path=judge_model_path,
+                results_dir=results_dir,
+            )
         except Exception as e:
             logger.error("Latency benchmark failed: %s", e, exc_info=True)
             results["latency"] = {"status": "failed", "error": str(e)}
 
     # 2. NLI-only baseline
-    nli_result = None
+    nli_result: dict[str, object] | None = None
     if not args.skip_nli_only:
         try:
-            nli_result = run_nli_only(args.samples, nli_torch_dtype=nli_dtype)
+            nli_result = run_nli_only(
+                args.samples,
+                nli_torch_dtype=nli_dtype,
+                results_dir=results_dir,
+            )
             results["nli_only"] = {"status": "ok", "elapsed_s": nli_result["elapsed_s"]}
         except Exception as e:
             logger.error("NLI-only benchmark failed: %s", e, exc_info=True)
             results["nli_only"] = {"status": "failed", "error": str(e)}
 
     # 3. Local judge
-    judge_result = None
+    judge_result: dict[str, object] | None = None
     try:
-        judge_result = run_local_judge(args.samples, nli_torch_dtype=nli_dtype)
+        judge_result = run_local_judge(
+            args.samples,
+            nli_torch_dtype=nli_dtype,
+            judge_model_path=judge_model_path,
+            results_dir=results_dir,
+        )
         results["local_judge"] = {
             "status": "ok",
             "elapsed_s": judge_result["elapsed_s"],
@@ -325,7 +394,7 @@ def main() -> None:
     total_elapsed = time.time() - total_t0
     results["total_elapsed_s"] = round(total_elapsed, 1)
     results["hw"] = _gpu_info()
-    _save(results, f"judge_bench_summary_{args.samples}.json")
+    _save(results, f"judge_bench_summary_{args.samples}.json", results_dir)
 
     logger.info("=== ALL DONE (%.0fs total) ===", total_elapsed)
     for name, info in results.items():
