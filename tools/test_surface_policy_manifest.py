@@ -588,8 +588,9 @@ KNOWN_TEST_SURFACE_CLASSIFICATIONS: dict[str, tuple[str, str]] = {
         "self-evolving unit guard with companion tests/test_self_evolving_real_surface.py",
     ),
     "tests/test_sentinel_judge_analyser.py": (
-        "violation",
-        "ML/export/eval boundary fake",
+        "unit-guard-with-companion",
+        "ML/export/eval Sentinel-Judge analyser guard with companion "
+        "tests/test_sentinel_judge_analyser_real_surface.py",
     ),
     "tests/test_server.py": (
         "unit-guard-with-companion",
