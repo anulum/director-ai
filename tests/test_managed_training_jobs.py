@@ -375,6 +375,24 @@ class TestBackends:
         assert submitted_jobs[0].submit_kwargs["timeout"] == 420
         assert "sync" not in submitted_jobs[0].submit_kwargs
 
+    def test_vertex_submit_missing_sdk_raises_actionable_hint(self):
+        with (
+            patch("importlib.import_module", side_effect=ImportError("boom")),
+            pytest.raises(ImportError, match="google-cloud-aiplatform") as excinfo,
+        ):
+            submit_training_job(_vertex_spec(), backend="vertex", dry_run=False)
+        assert "pip install google-cloud-aiplatform" in str(excinfo.value)
+        assert isinstance(excinfo.value.__cause__, ImportError)
+
+    def test_vertex_status_and_cancel_missing_sdk_raise_actionable_hint(self):
+        backend = VertexTrainingBackend()
+        job_id = "projects/p/locations/us/customJobs/9"
+        with patch("importlib.import_module", side_effect=ImportError("boom")):
+            with pytest.raises(ImportError, match="google-cloud-aiplatform"):
+                backend.status(job_id)
+            with pytest.raises(ImportError, match="google-cloud-aiplatform"):
+                backend.cancel(job_id)
+
     def test_cli_submit_reports_submission_failure(self, capsys):
         with (
             patch(

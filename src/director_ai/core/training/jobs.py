@@ -280,6 +280,21 @@ class LocalTrainingBackend:
         )
 
 
+def _load_aiplatform() -> Any:
+    """Import the Vertex AI SDK, with an actionable hint when it is absent.
+
+    The SDK is an optional heavyweight dependency, imported lazily only when a
+    live (non dry-run) Vertex job is submitted, queried, or cancelled.
+    """
+    try:
+        return importlib.import_module("google.cloud.aiplatform")
+    except ImportError as exc:
+        raise ImportError(
+            "google-cloud-aiplatform is required for the Vertex training "
+            "backend; install it with `pip install google-cloud-aiplatform`"
+        ) from exc
+
+
 class VertexTrainingBackend:
     """Vertex custom training backend."""
 
@@ -298,7 +313,7 @@ class VertexTrainingBackend:
             f"?project={spec.project}"
         )
         if not dry_run:
-            aiplatform = importlib.import_module("google.cloud.aiplatform")
+            aiplatform = _load_aiplatform()
             aiplatform.init(
                 project=spec.project,
                 location=spec.region,
@@ -328,14 +343,14 @@ class VertexTrainingBackend:
 
     def status(self, job_id: str) -> TrainingJobStatus:
         """Fetch Vertex custom job state by resource name."""
-        aiplatform = importlib.import_module("google.cloud.aiplatform")
+        aiplatform = _load_aiplatform()
         job = aiplatform.CustomJob.get(job_id)
         state = str(getattr(job, "state", "unknown"))
         return TrainingJobStatus(backend=self.name, job_id=job_id, state=state)
 
     def cancel(self, job_id: str) -> TrainingJobStatus:
         """Cancel a Vertex custom job by resource name."""
-        aiplatform = importlib.import_module("google.cloud.aiplatform")
+        aiplatform = _load_aiplatform()
         job = aiplatform.CustomJob.get(job_id)
         job.cancel()
         return TrainingJobStatus(backend=self.name, job_id=job_id, state="cancelled")
