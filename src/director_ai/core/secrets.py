@@ -46,7 +46,7 @@ import os
 import threading
 import time
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Protocol, runtime_checkable
+from typing import TYPE_CHECKING, Any, Protocol, cast, runtime_checkable
 
 if TYPE_CHECKING:
     from collections.abc import Iterable, Mapping
@@ -298,7 +298,12 @@ class AzureKeyVaultBackend:
                     "AzureKeyVaultBackend requires 'azure-keyvault-secrets' and "
                     "'azure-identity' (pip install director-ai[azure])"
                 ) from exc
-            credential = self._credential or DefaultAzureCredential()
+            # ``credential`` accepts any azure ``TokenCredential`` (a
+            # caller-supplied one or ``DefaultAzureCredential``); the public
+            # param is typed ``object`` for callers without azure installed, so
+            # narrow to ``Any`` here — azure-present mypy then accepts the
+            # ``TokenCredential`` argument and azure-absent mypy is unaffected.
+            credential = cast(Any, self._credential or DefaultAzureCredential())
             self._client = SecretClient(
                 vault_url=self._vault_url, credential=credential
             )
