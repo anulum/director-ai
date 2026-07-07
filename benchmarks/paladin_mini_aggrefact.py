@@ -34,7 +34,9 @@ import json
 import logging
 import time
 from collections import defaultdict
+from collections.abc import Iterator, Mapping, Sequence
 from pathlib import Path
+from typing import Any, Protocol, cast
 
 from _judge_common import compute_balanced_accuracy as balanced_accuracy
 from _judge_common import parse_response
@@ -53,44 +55,124 @@ CLAIM:
 Answer with exactly one word: SUPPORTED or NOT_SUPPORTED."""
 
 
-def main():
+class AggreFactDataset(Protocol):
+    """Dataset protocol used by the Paladin-mini benchmark."""
+
+    def select(self, indices: range) -> AggreFactDataset:
+        """Return a selected dataset view."""
+
+    def __len__(self) -> int:
+        """Return the number of benchmark samples."""
+
+    def __iter__(self) -> Iterator[Mapping[str, object]]:
+        """Iterate benchmark sample mappings."""
+
+
+class TensorLike(Protocol):
+    """Tensor protocol required by the generation path."""
+
+    @property
+    def shape(self) -> Sequence[int]:
+        """Return tensor dimensions."""
+
+    def to(self, device: object) -> TensorLike:
+        """Move the tensor-like object to ``device``."""
+
+
+class GeneratedOutput(Protocol):
+    """Generation output protocol used for decoding new tokens."""
+
+    def __getitem__(self, index: int) -> Any:
+        """Return one generated sequence."""
+
+
+class PaladinTokenizer(Protocol):
+    """Tokenizer protocol used by the benchmark CLI."""
+
+    eos_token_id: int | None
+
+    def apply_chat_template(
+        self,
+        messages: Sequence[Mapping[str, str]],
+        *,
+        return_tensors: str,
+        add_generation_prompt: bool,
+        truncation: bool,
+        max_length: int,
+    ) -> TensorLike:
+        """Tokenise a chat prompt for generation."""
+
+    def decode(self, token_ids: object, *, skip_special_tokens: bool) -> str:
+        """Decode generated token ids into a verdict string."""
+
+
+class PaladinModel(Protocol):
+    """Causal-language-model protocol used by the benchmark CLI."""
+
+    device: object
+
+    def eval(self) -> object:
+        """Switch the model into evaluation mode."""
+
+    def generate(
+        self,
+        inputs: TensorLike,
+        *,
+        max_new_tokens: int,
+        do_sample: bool,
+        pad_token_id: int | None,
+    ) -> GeneratedOutput:
+        """Generate a short verdict continuation."""
+
+
+def main(argv: Sequence[str] | None = None) -> None:
+    """Run the Paladin-mini AggreFact benchmark CLI."""
     p = argparse.ArgumentParser()
     p.add_argument("--model", default="qualifire/context-grounding-paladin-mini")
     p.add_argument("--max-samples", type=int, default=None)
     p.add_argument("--max-input-tokens", type=int, default=4096)
     p.add_argument("--output", type=str, default="benchmarks/results/paladin_mini.json")
     p.add_argument("--log-every", type=int, default=200)
-    args = p.parse_args()
+    args = p.parse_args(argv)
 
     import torch
     from datasets import load_dataset
     from transformers import AutoModelForCausalLM, AutoTokenizer
 
-    ds = load_dataset("lytang/LLM-AggreFact", split="test")
+    ds = cast(AggreFactDataset, load_dataset("lytang/LLM-AggreFact", split="test"))
     if args.max_samples:
         ds = ds.select(range(min(args.max_samples, len(ds))))
     logger.info("Samples: %d", len(ds))
 
     logger.info("Loading: %s", args.model)
-    tokenizer = AutoTokenizer.from_pretrained(args.model, trust_remote_code=True)
-    model = AutoModelForCausalLM.from_pretrained(
-        args.model,
-        torch_dtype=torch.bfloat16,
-        device_map="cuda",
-        trust_remote_code=True,
+    tokenizer = cast(
+        PaladinTokenizer,
+        AutoTokenizer.from_pretrained(args.model, trust_remote_code=True),
+    )
+    model = cast(
+        PaladinModel,
+        AutoModelForCausalLM.from_pretrained(
+            args.model,
+            torch_dtype=torch.bfloat16,
+            device_map="cuda",
+            trust_remote_code=True,
+        ),
     )
     model.eval()
     logger.info("Loaded on %s", model.device)
 
-    preds, labels, datasets_list, latencies = [], [], [], []
+    preds: list[int] = []
+    labels: list[int] = []
+    datasets_list: list[str] = []
+    latencies: list[float] = []
     unknown = 0
     t_start = time.time()
 
     for i, sample in enumerate(ds):
-        premise = sample["doc"]
-        hypothesis = sample["claim"]
-        label = int(sample["label"])
-        dataset_name = sample["dataset"]
+        premise = str(sample["doc"])
+        hypothesis = str(sample["claim"])
+        label = int(cast(Any, sample["label"]))
+        dataset_name = str(sample["dataset"])
         prompt = JUDGE_PROMPT.format(premise=premise, hypothesis=hypothesis)
 
         t0 = time.time()
@@ -110,7 +192,11 @@ def main():
                     do_sample=False,
                     pad_token_id=tokenizer.eos_token_id,
                 )
-            text = tokenizer.decode(out[0][inputs.shape[1] :], skip_special_tokens=True)
+            generated = cast(Any, out[0])
+            text = tokenizer.decode(
+                generated[inputs.shape[1] :],
+                skip_special_tokens=True,
+            )
         except Exception as e:
             logger.warning("Sample %d failed: %s", i, e)
             text = "ERROR"

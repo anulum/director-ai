@@ -154,7 +154,7 @@ def aggregate_per_dataset(
     preds: list[int],
     labels: list[int],
     datasets: list[str],
-) -> dict[str, dict]:
+) -> dict[str, dict[str, float | int]]:
     """Group predictions by dataset and compute BA for each."""
     from collections import defaultdict
 
@@ -172,7 +172,7 @@ def aggregate_per_family(
     preds: list[int],
     labels: list[int],
     families: list[str],
-) -> dict[str, dict]:
+) -> dict[str, dict[str, float | int]]:
     """Group predictions by task family and compute BA for each."""
     from collections import defaultdict
 

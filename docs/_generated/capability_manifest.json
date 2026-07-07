@@ -9,7 +9,7 @@
     "python_model_classes": 1005,
     "python_model_source_modules": 461,
     "rust_pyo3_model_wrappers": 83,
-    "test_files": 685
+    "test_files": 686
   },
   "documentation": {
     "public_pages": [
@@ -5660,6 +5660,7 @@
       "tests/test_output_integrity_real_surface.py",
       "tests/test_output_trust.py",
       "tests/test_paladin_mini.py",
+      "tests/test_paladin_mini_real_surface.py",
       "tests/test_parent_child_backend.py",
       "tests/test_phase2_hardening.py",
       "tests/test_phase3_hardening.py",
