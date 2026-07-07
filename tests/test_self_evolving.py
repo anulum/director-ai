@@ -456,7 +456,7 @@ class TestLoraTrainerGuard:
         if importlib.util.find_spec("peft") is not None:
             pytest.skip("peft installed; ImportError branch cannot fire")
         t = LoraGuardrailTrainer()
-        with pytest.raises(ImportError, match="training"):
+        with pytest.raises(ImportError, match=r"director-ai\[train\]"):
             t.train(_balanced_events(), version=1)
 
     def test_event_target_unknown_label_returns_none(self):
