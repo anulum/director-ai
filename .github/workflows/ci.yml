@@ -688,6 +688,21 @@ jobs:
       - name: Test
         run: cargo test --workspace
 
+      # Supply-chain gate (WCG-2): fail on known RustSec vulnerabilities, on any
+      # dependency licence outside the permissive allow-list, and on unknown
+      # registries/git sources. Policy lives in backfire-kernel/deny.toml. Yanked
+      # crates are surfaced as warnings, not failures (see deny.toml rationale).
+      - name: Install supply-chain tools
+        uses: taiki-e/install-action@4684b8405694ae9dd42c9f39ba901a70ae83f4a3 # v2.82.9
+        with:
+          tool: cargo-audit,cargo-deny
+
+      - name: Audit advisories (RustSec)
+        run: cargo audit
+
+      - name: Deny check (advisories, licences, bans, sources)
+        run: cargo deny check
+
   lean:
     name: Lean Proofs (HaltMonitor)
     runs-on: ubuntu-latest

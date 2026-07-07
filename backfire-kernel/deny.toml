@@ -1,0 +1,59 @@
+# SPDX-License-Identifier: Apache-2.0
+# Commercial license available
+# © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
+# © Code 2020–2026 Miroslav Šotek. All rights reserved.
+# ORCID: 0009-0009-3560-0851
+# Contact: www.anulum.li | protoscience@anulum.li
+# Director-Class AI — Rust supply-chain policy (cargo-deny)
+
+# Supply-chain policy for the backfire-kernel Rust workspace.
+#
+# Enforced in CI by the `rust-supply-chain` job (WCG-2). Run locally with:
+#   cargo deny check
+#
+# Schema version 2 (cargo-deny >= 0.14): security vulnerabilities always fail;
+# the sections below tune the license, yanked-crate, duplicate and source policy.
+
+[graph]
+# Evaluate every compilation target, including the wasm test harness, so a
+# vulnerable or non-permissive dependency cannot hide behind a target gate.
+all-features = true
+
+[advisories]
+version = 2
+# RustSec advisory database. Known vulnerabilities fail the build outright.
+# Yanked releases are surfaced as warnings rather than hard failures: js-sys and
+# wasm-bindgen 0.x are hard-pinned (`=0.3.88`) by the dev-only wasm-bindgen-test
+# harness and cannot be un-yanked without a wasm-bindgen family migration, which
+# is tracked as a separate dependency-maintenance task.
+yanked = "warn"
+
+[licenses]
+version = 2
+# Only permissive licences actually present in the resolved graph are allowed.
+# Adding a dependency under any other licence deliberately fails the gate so the
+# choice is reviewed rather than absorbed silently.
+allow = [
+    "Apache-2.0",
+    "Apache-2.0 WITH LLVM-exception",
+    "MIT",
+    "BSD-1-Clause",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "Unicode-3.0",
+    "Unlicense",
+]
+confidence-threshold = 0.9
+
+[bans]
+# Duplicate versions and wildcard requirements are reported, not fatal: the
+# criterion/wasm-bindgen dev trees legitimately pull several minor versions.
+multiple-versions = "warn"
+wildcards = "warn"
+
+[sources]
+# Only the public crates.io registry is trusted; any unknown registry or git
+# source fails the gate.
+unknown-registry = "deny"
+unknown-git = "deny"
+allow-registry = ["https://github.com/rust-lang/crates.io-index"]
