@@ -9,7 +9,7 @@
     "python_model_classes": 1005,
     "python_model_source_modules": 461,
     "rust_pyo3_model_wrappers": 83,
-    "test_files": 689
+    "test_files": 690
   },
   "documentation": {
     "public_pages": [
@@ -5468,6 +5468,7 @@
       "tests/test_gem_endpoints.py",
       "tests/test_gemma_aggrefact_cot.py",
       "tests/test_gemma_aggrefact_eval.py",
+      "tests/test_gemma_aggrefact_eval_real_surface.py",
       "tests/test_gemma_aggrefact_hiss.py",
       "tests/test_gemma_aggrefact_hiss_routed.py",
       "tests/test_gemma_aggrefact_logprob.py",
