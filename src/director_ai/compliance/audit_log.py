@@ -21,9 +21,9 @@ import logging
 import os
 import sqlite3
 import threading
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
-from typing import Any
+from typing import Any, Protocol
 
 __all__ = ["AuditEntry", "AuditLog"]
 
@@ -35,6 +35,18 @@ _ZERO_HASH = "0" * 64
 _CHAIN_COLUMNS = ("prev_hash", "entry_hash", "chain_tag")
 
 _logger = logging.getLogger("DirectorAI.ComplianceAudit")
+
+
+class _Redactor(Protocol):
+    """Structural type for a PII redactor (satisfied by ``core.redactor``).
+
+    Only ``redact`` is required so the audit log stays dependency-light and
+    never imports the redaction pipeline directly.
+    """
+
+    def redact(self, text: str) -> str:
+        """Return ``text`` with any detected PII spans masked."""
+        ...
 
 
 @dataclass
@@ -62,15 +74,23 @@ class AuditLog:
     Every LLM call scored by the gateway gets an entry. The log supports
     time-range queries, model/domain filtering, and export for Article 15
     documentation.
+
+    When a ``redactor`` is supplied (opt-in; enabled by ``redact_pii`` at the
+    wiring layer) the prompt and response are masked **before** they are sealed
+    into the tamper-evident chain, so raw PII never touches disk and the seal
+    covers exactly the redacted content that is stored. The default (no
+    redactor) preserves the raw compliance trail unchanged.
     """
 
     def __init__(
         self,
         db_path: str | Path = "director_audit.db",
         hmac_secret: str | None = None,
+        redactor: _Redactor | None = None,
     ):
         self._db_path = str(db_path)
         self._lock = threading.Lock()
+        self._redactor = redactor
         explicit = hmac_secret or os.environ.get("DIRECTOR_AUDIT_HMAC_SECRET") or ""
         if explicit:
             self._hmac_key = explicit.encode("utf-8")
@@ -127,11 +147,20 @@ class AuditLog:
         """Record a scored LLM interaction, sealed into the tamper-evident chain.
 
         The parent-hash read, chain update and insert run under the lock so a
-        concurrent ``log`` cannot fork the on-disk chain.
+        concurrent ``log`` cannot fork the on-disk chain. When a redactor is
+        configured, the prompt and response are masked first — the caller's
+        ``entry`` is left unmodified and the redacted copy is what gets hashed,
+        stored, and sealed.
         """
         with self._lock:
             if self._conn is None:
                 return
+            if self._redactor is not None:
+                entry = replace(
+                    entry,
+                    prompt=self._redactor.redact(entry.prompt),
+                    response=self._redactor.redact(entry.response),
+                )
             prev_hash = self._prev_hash
             entry_hash = self._content_hash(entry, prev_hash)
             chain_tag = self._chain_tag(prev_hash, entry_hash)

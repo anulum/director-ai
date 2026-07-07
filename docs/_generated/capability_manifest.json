@@ -9,7 +9,7 @@
     "python_model_classes": 1005,
     "python_model_source_modules": 462,
     "rust_pyo3_model_wrappers": 83,
-    "test_files": 701
+    "test_files": 702
   },
   "documentation": {
     "public_pages": [
@@ -5312,6 +5312,7 @@
       "tests/test_competitor_aggrefact_suite.py",
       "tests/test_competitor_latency_bench.py",
       "tests/test_competitor_suite.py",
+      "tests/test_compliance_audit_redaction.py",
       "tests/test_compliance_cli.py",
       "tests/test_compliance_reporter.py",
       "tests/test_config.py",

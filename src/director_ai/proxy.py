@@ -168,8 +168,14 @@ def create_proxy_app(
     audit_log = None
     if audit_db:
         from director_ai.compliance.audit_log import AuditLog
+        from director_ai.core.redactor import PIIRedactor
 
-        audit_log = AuditLog(audit_db)
+        # SEC-2: mask PII before it is sealed into the durable compliance chain
+        # when redact_pii is on; a disabled redactor is a passthrough.
+        audit_log = AuditLog(
+            audit_db,
+            redactor=PIIRedactor(enabled=getattr(config, "redact_pii", False)),
+        )
         _log.info("Compliance audit log: %s", audit_db)
 
     @asynccontextmanager

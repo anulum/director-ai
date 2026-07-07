@@ -476,7 +476,14 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
             from .compliance.drift_detector import DriftDetector
             from .compliance.reporter import ComplianceReporter
 
-            c_log = ComplianceAuditLog(cfg.compliance_db_path)
+            # SEC-2: the compliance trail is durable and sealed, so raw PII in
+            # prompt/response would persist forever. Reuse the single pipeline
+            # redactor (enabled by redact_pii) so the sealed content is masked
+            # at the sink; a disabled redactor is a passthrough (raw retained).
+            c_log = ComplianceAuditLog(
+                cfg.compliance_db_path,
+                redactor=app.state._state.get("redactor"),
+            )
             app.state._state["compliance_log"] = c_log
             app.state._state["compliance_reporter"] = ComplianceReporter(c_log)
             app.state._state["compliance_drift"] = DriftDetector(c_log)
