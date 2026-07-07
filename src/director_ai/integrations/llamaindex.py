@@ -39,10 +39,10 @@ class DirectorAIPostprocessor:
 
     Parameters
     ----------
-    facts : dict[str, str] | None â€” key-value facts for the knowledge base.
-    store : GroundTruthStore | None â€” pre-built store (overrides facts).
-    threshold : float â€” minimum coherence to keep a node.
-    use_nli : bool | None â€” NLI mode (None=auto-detect).
+    facts : dict[str, str] | None — key-value facts for the knowledge base.
+    store : GroundTruthStore | None — pre-built store (overrides facts).
+    threshold : float — minimum coherence to keep a node.
+    use_nli : bool | None — NLI mode (None=auto-detect).
 
     """
 

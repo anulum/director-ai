@@ -33,11 +33,11 @@ class DirectorAIGuard:
 
     Parameters
     ----------
-    facts : dict[str, str] | None â€” key-value facts for the knowledge base.
-    store : GroundTruthStore | None â€” pre-built store (overrides facts).
-    threshold : float â€” minimum coherence to pass.
-    use_nli : bool | None â€” NLI mode (None=auto-detect).
-    raise_on_fail : bool â€” if True, raise on failure; if False, return
+    facts : dict[str, str] | None — key-value facts for the knowledge base.
+    store : GroundTruthStore | None — pre-built store (overrides facts).
+    threshold : float — minimum coherence to pass.
+    use_nli : bool | None — NLI mode (None=auto-detect).
+    raise_on_fail : bool — if True, raise on failure; if False, return
         the result dict with ``approved=False``.
 
     """
