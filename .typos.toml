@@ -14,3 +14,6 @@ responde = "responde"
 confirme = "confirme"
 # Proper noun: HashiCorp Vault (camelCase tokenises to "Hashi" + "Corp")
 Hashi = "Hashi"
+# Valid English variant (typos prefers "Unparsable"); both spellings are correct
+# and it recurs in test docstrings — allow it rather than churn agents' files.
+Unparseable = "Unparseable"
