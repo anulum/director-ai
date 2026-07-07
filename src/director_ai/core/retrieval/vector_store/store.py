@@ -69,6 +69,26 @@ def _require_numeric_timestamp(field_name: str, value: str) -> float:
         ) from exc
 
 
+def _result_evidence_text(result: dict[str, Any]) -> str | None:
+    """Return usable evidence text from a backend result, or ``None`` to skip it.
+
+    The ``VectorBackend.query`` contract is loosely typed (``list[dict[str, Any]]``
+    with no enforced keys), so a third-party backend such as ColBERT may return
+    matches without a ``text`` field. A result carrying no non-empty string text
+    holds no evidence to ground against, so it is skipped rather than crashing the
+    whole review with a ``KeyError``.
+    """
+    text = result.get("text")
+    if isinstance(text, str) and text:
+        return text
+    return None
+
+
+def _result_source(result: dict[str, Any]) -> str:
+    """Build the ``vector:<id>`` evidence source label, tolerating a missing id."""
+    return f"vector:{result.get('id', '')}"
+
+
 class VectorGroundTruthStore(GroundTruthStore):
     """Ground truth store with vector-based semantic retrieval.
 
@@ -854,7 +874,11 @@ class VectorGroundTruthStore(GroundTruthStore):
 
                 if results:
                     active_results = self._active_results(results, tenant_id)
-                    texts = [r["text"] for r in active_results]
+                    texts = [
+                        text
+                        for r in active_results
+                        if (text := _result_evidence_text(r)) is not None
+                    ]
                     if not texts:
                         return super().retrieve_context(
                             query,
@@ -953,11 +977,14 @@ class VectorGroundTruthStore(GroundTruthStore):
                     results = self.backend.query(query, n_results=top_k)
                 chunks = []
                 for r in self._active_results(results, tenant_id):
+                    text = _result_evidence_text(r)
+                    if text is None:
+                        continue
                     chunks.append(
                         EvidenceChunk(
-                            text=r["text"],
+                            text=text,
                             distance=r.get("distance", 0.0),
-                            source=f"vector:{r['id']}",
+                            source=_result_source(r),
                         ),
                     )
                 duration = time.monotonic() - start_time

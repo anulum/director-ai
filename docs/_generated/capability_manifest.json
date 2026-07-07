@@ -9,7 +9,7 @@
     "python_model_classes": 1005,
     "python_model_source_modules": 461,
     "rust_pyo3_model_wrappers": 83,
-    "test_files": 682
+    "test_files": 683
   },
   "documentation": {
     "public_pages": [
@@ -5874,6 +5874,7 @@
       "tests/test_validate_external_security_run.py",
       "tests/test_validate_github_app_token_compat.py",
       "tests/test_vector_store.py",
+      "tests/test_vector_store_backend_contract.py",
       "tests/test_vector_store_backends.py",
       "tests/test_vector_store_backends_real_surface.py",
       "tests/test_vector_store_embedding.py",
