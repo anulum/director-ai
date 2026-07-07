@@ -53,6 +53,9 @@ jobs:
       - name: Test surface policy
         run: python tools/check_test_surface_policy.py --root .
 
+      - name: Mojibake guard (source tree)
+        run: python tools/check_mojibake.py --root .
+
       - name: Check formatting (ruff)
         run: ruff format --check src/ tests/ examples/
 
