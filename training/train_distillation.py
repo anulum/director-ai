@@ -26,15 +26,23 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any
 
-import numpy as np
-import torch
-import torch.nn.functional as functional
-from datasets import load_from_disk
-from torch.utils.data import DataLoader
-from transformers import (
-    AutoModelForSequenceClassification,
-    AutoTokenizer,
-)
+try:
+    import numpy as np
+    import torch
+    import torch.nn.functional as functional
+    from datasets import load_from_disk
+    from torch.utils.data import DataLoader
+    from torch.utils.data import Dataset as _DatasetBase
+    from transformers import (
+        AutoModelForSequenceClassification,
+        AutoTokenizer,
+    )
+except ImportError:
+    # Heavy ML stack absent (e.g. the base CI test job): keep the module
+    # importable so CLI argument validation still runs without torch. The
+    # dataset and training functions that use the stack fail naturally if
+    # invoked without it, but bad-config runs are rejected before that point.
+    _DatasetBase = object  # type: ignore[assignment,misc]
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 logger = logging.getLogger(__name__)
@@ -167,9 +175,13 @@ def _cuda_runtime_probe() -> bool:
 def resolve_training_device(
     preference: str,
     *,
-    cuda_available: Callable[[], bool] = torch.cuda.is_available,
+    cuda_available: Callable[[], bool] | None = None,
     cuda_probe: Callable[[], bool] = _cuda_runtime_probe,
 ) -> tuple[torch.device, str | None]:
+    # Resolved at call time (not as a default) so importing this module and
+    # validating the run config does not require torch to be installed.
+    if cuda_available is None:
+        cuda_available = torch.cuda.is_available
     if preference == "cpu":
         return torch.device("cpu"), None
     if preference == "cuda":
@@ -226,7 +238,7 @@ def build_subset(
     return dataset.select(all_idx.tolist())
 
 
-class DistillationDataset(torch.utils.data.Dataset):
+class DistillationDataset(_DatasetBase):
     """Dataset that returns tokenised pairs for both teacher and student."""
 
     def __init__(

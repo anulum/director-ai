@@ -82,7 +82,7 @@ class DirectorAIChecker:
         )
         self.filter_rejected = filter_rejected
 
-    @component.output_types(
+    @component.output_types(  # type: ignore[untyped-decorator,unused-ignore] # haystack `component` is Any when the optional stub is absent (CI).
         replies=list[str],
         scores=list[dict[str, Any]],
         approved=list[bool],
