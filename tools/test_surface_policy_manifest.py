@@ -437,7 +437,11 @@ KNOWN_TEST_SURFACE_CLASSIFICATIONS: dict[str, tuple[str, str]] = {
         "unit-guard-with-companion",
         "ML/export/eval NLI scorer guard with companion tests/test_nli_scorer_real_surface.py",
     ),
-    "tests/test_notebook_gallery.py": ("violation", "ML/export/eval boundary fake"),
+    "tests/test_notebook_gallery.py": (
+        "unit-guard-with-companion",
+        "ML/export/eval notebook gallery guard with companion "
+        "tests/test_notebook_gallery_real_surface.py",
+    ),
     "tests/test_onnx_backend.py": ("violation", "ML/export/eval boundary fake"),
     "tests/test_onnx_dynamic_scheduler.py": (
         "unit-guard-with-companion",

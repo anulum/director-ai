@@ -5,6 +5,7 @@
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI - notebook gallery consistency tests
+"""Unit guard coverage for notebook gallery validation rules."""
 
 from __future__ import annotations
 
@@ -26,6 +27,7 @@ validate_notebook_gallery = MODULE.validate_notebook_gallery
 
 
 def _write_notebook(path: Path) -> None:
+    """Write a minimal valid notebook file for validator fixtures."""
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(
         json.dumps(
@@ -47,16 +49,19 @@ def _write_notebook(path: Path) -> None:
 
 
 def test_notebook_gallery_covers_current_notebooks_and_docs() -> None:
+    """The current repository gallery manifest and docs should be aligned."""
     assert validate_notebook_gallery(ROOT) == []
 
 
 def test_notebook_gallery_is_linked_from_mkdocs_navigation() -> None:
+    """The rendered documentation navigation should include the gallery page."""
     mkdocs = (ROOT / "mkdocs.yml").read_text(encoding="utf-8")
 
     assert "Notebook Gallery: notebook-gallery.md" in mkdocs
 
 
 def test_notebook_gallery_rejects_unlisted_notebook(tmp_path: Path) -> None:
+    """A notebook file missing from the manifest should be rejected."""
     _write_notebook(tmp_path / "notebooks" / "listed.ipynb")
     _write_notebook(tmp_path / "notebooks" / "missing.ipynb")
     (tmp_path / "notebooks" / "gallery.toml").write_text(
@@ -89,6 +94,7 @@ extras = []
 
 
 def test_notebook_gallery_rejects_stale_docs_page(tmp_path: Path) -> None:
+    """A generated gallery page missing a manifest link should be rejected."""
     _write_notebook(tmp_path / "notebooks" / "listed.ipynb")
     (tmp_path / "notebooks" / "gallery.toml").write_text(
         """
