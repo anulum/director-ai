@@ -22,6 +22,8 @@ from __future__ import annotations
 
 import asyncio
 import contextvars
+import dataclasses
+import functools
 import hmac
 import json as _json_mod
 import logging
@@ -219,6 +221,97 @@ if _FASTAPI_AVAILABLE:  # pragma: no branch
     )
 
 
+def _build_coherence_agent(cfg: DirectorConfig, scorer: Any, store: Any) -> Any:
+    """Assemble a ``CoherenceAgent`` wired to a scorer, store, and config.
+
+    Shared by the startup bootstrap and the live scorer hot-swap so both paths
+    wire the agent identically (LLM provider, contradiction-driven halt, and
+    REMANENTIA correctness feedback). Keeping one builder prevents the
+    hot-swapped agent from silently drifting from the one built at startup.
+    """
+    from .core.agent import CoherenceAgent
+
+    agent_kwargs: dict[str, Any] = {
+        "_scorer": scorer,
+        "_store": store,
+        "production_mode": cfg.production_mode,
+        "llm_max_tokens": cfg.llm_max_tokens,
+        "llm_temperature": cfg.llm_temperature,
+        "max_candidates": cfg.max_candidates,
+    }
+    if cfg.llm_provider == "local":
+        agent_kwargs["llm_api_url"] = cfg.llm_api_url
+    elif cfg.llm_provider in ("openai", "anthropic"):
+        agent_kwargs["provider"] = cfg.llm_provider
+        if cfg.llm_api_key:
+            agent_kwargs["api_key"] = cfg.llm_api_key
+        logger.info("LLM provider: %s", cfg.llm_provider)
+    contradiction_halt = cfg.build_contradiction_halt(store)
+    if contradiction_halt is not None:
+        agent_kwargs["contradiction_halt"] = contradiction_halt
+        logger.info(
+            "Contradiction-driven streaming halt enabled (threshold=%.2f)",
+            cfg.streaming_contradiction_threshold,
+        )
+    correctness_feedback = cfg.build_correctness_feedback()
+    if correctness_feedback is not None:
+        agent_kwargs["correctness_feedback"] = correctness_feedback
+        logger.info(
+            "REMANENTIA recall-correctness feedback enabled (%s)",
+            cfg.remanentia_base_url,
+        )
+    return CoherenceAgent(**agent_kwargs)
+
+
+def _swap_scorer(state: dict[str, Any], model_path: str) -> None:
+    """Rebuild the scoring bundle around ``model_path`` and swap it into ``state``.
+
+    Runs synchronously — the NLI load is the heavy step, so the async caller
+    offloads it to a worker thread. Route handlers read ``scorer``/``agent``/
+    ``batch`` fresh from ``state`` on each request, so replacing the entries
+    hot-swaps the live model with no restart. The ground-truth ``store`` is
+    reused, so runtime-added facts survive the swap, and ``config`` is updated
+    so health/introspection endpoints report the now-active model.
+    """
+    from .core.runtime.batch import BatchProcessor
+
+    cfg: DirectorConfig = state["config"]
+    store = state["store"]
+    new_cfg = dataclasses.replace(cfg, nli_model=model_path)
+    new_scorer = new_cfg.build_scorer(store=store)
+    new_agent = _build_coherence_agent(new_cfg, new_scorer, store)
+    new_batch = BatchProcessor(new_agent, max_concurrency=new_cfg.batch_max_concurrency)
+    state["config"] = new_cfg
+    state["scorer"] = new_scorer
+    state["agent"] = new_agent
+    state["batch"] = new_batch
+
+
+async def _activate_scorer(state: dict[str, Any], model_path: str) -> None:
+    """Hot-swap the live scorer to the fine-tuned model at ``model_path``.
+
+    Serialised by ``scorer_swap_lock`` so two activations cannot interleave, with
+    the heavy rebuild offloaded off the event loop. A running review queue is
+    rebuilt around the new scorer and the superseded one drained.
+    """
+    lock: asyncio.Lock = state["scorer_swap_lock"]
+    async with lock:
+        old_queue = state.get("review_queue")
+        await asyncio.to_thread(_swap_scorer, state, model_path)
+        if old_queue is not None:
+            from .core.runtime.review_queue import ReviewQueue
+
+            new_cfg: DirectorConfig = state["config"]
+            new_queue = ReviewQueue(
+                state["scorer"],
+                max_batch=new_cfg.review_queue_max_batch,
+                flush_timeout_ms=new_cfg.review_queue_flush_timeout_ms,
+            )
+            await new_queue.start()
+            state["review_queue"] = new_queue
+            await old_queue.stop()
+
+
 def create_app(config: DirectorConfig | None = None) -> FastAPI:
     """Create and configure the FastAPI application."""
     _check_fastapi()
@@ -277,7 +370,6 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
 
         app.state._state = {}  # Initialize _state on app.state
 
-        from .core.agent import CoherenceAgent
         from .core.runtime.batch import BatchProcessor
         from .core.safety.audit import AuditLogger
         from .core.safety.sanitizer import InputSanitizer
@@ -324,36 +416,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
 
         store = cfg.build_store()
         scorer = cfg.build_scorer(store=store)
-        agent_kwargs: dict[str, Any] = {
-            "_scorer": scorer,
-            "_store": store,
-            "production_mode": cfg.production_mode,
-            "llm_max_tokens": cfg.llm_max_tokens,
-            "llm_temperature": cfg.llm_temperature,
-            "max_candidates": cfg.max_candidates,
-        }
-        if cfg.llm_provider == "local":
-            agent_kwargs["llm_api_url"] = cfg.llm_api_url
-        elif cfg.llm_provider in ("openai", "anthropic"):
-            agent_kwargs["provider"] = cfg.llm_provider
-            if cfg.llm_api_key:
-                agent_kwargs["api_key"] = cfg.llm_api_key
-            logger.info("LLM provider: %s", cfg.llm_provider)
-        contradiction_halt = cfg.build_contradiction_halt(store)
-        if contradiction_halt is not None:
-            agent_kwargs["contradiction_halt"] = contradiction_halt
-            logger.info(
-                "Contradiction-driven streaming halt enabled (threshold=%.2f)",
-                cfg.streaming_contradiction_threshold,
-            )
-        correctness_feedback = cfg.build_correctness_feedback()
-        if correctness_feedback is not None:
-            agent_kwargs["correctness_feedback"] = correctness_feedback
-            logger.info(
-                "REMANENTIA recall-correctness feedback enabled (%s)",
-                cfg.remanentia_base_url,
-            )
-        agent = CoherenceAgent(**agent_kwargs)
+        agent = _build_coherence_agent(cfg, scorer, store)
         batch_proc = BatchProcessor(agent, max_concurrency=cfg.batch_max_concurrency)
 
         stats = None
@@ -384,6 +447,15 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
             )
             await review_queue.start()
         app.state._state["review_queue"] = review_queue
+        # Live scorer hot-swap wiring: the fine-tune activation route calls this
+        # activator (via app.state) to rebuild the scoring bundle around a newly
+        # activated model with no restart. The store is reused so runtime-added
+        # facts survive; the lock serialises concurrent activations.
+        app.state._state["store"] = store
+        app.state._state["scorer_swap_lock"] = asyncio.Lock()
+        app.state._state["scorer_activator"] = functools.partial(
+            _activate_scorer, app.state._state
+        )
 
         if cfg.audit_log_path or cfg.audit_postgres_url:
             audit_logger = AuditLogger(path=cfg.audit_log_path)

@@ -784,14 +784,17 @@ def create_finetune_router(models_dir: Path | None = None) -> APIRouter:
         }
 
     @router.post("/{job_id}/activate")
-    async def activate_model(job_id: str) -> dict[str, Any]:
-        """Mark a completed fine-tune as the designated active model.
+    async def activate_model(job_id: str, request: Request) -> dict[str, Any]:
+        """Activate a completed fine-tune as the live default scorer.
 
-        Activation records the designation (surfaced by ``list_models``) and
-        protects the model from deletion until it is rolled back. It does **not**
-        hot-swap the already-running scorer, which is built once at startup: to
-        serve the model, set the server's ``nli_model`` to this ``model_path``
-        and restart. (Live hot-swapping is tracked as a separate feature.)
+        Mounted in the Director-AI server, activation hot-swaps the running
+        scorer to this ``model_path`` so subsequent reviews use the fine-tuned
+        model with no restart (the swap is serialised and the ground-truth store
+        reused). The designation is also recorded (surfaced by ``list_models``)
+        and protects the model from deletion until it is rolled back. Mounted
+        standalone (no server scorer to swap), activation records the
+        designation only: set the server's ``nli_model`` to this ``model_path``
+        and restart to serve it.
         """
         job = store.get(job_id)
         if not job:
@@ -802,16 +805,38 @@ def create_finetune_router(models_dir: Path | None = None) -> APIRouter:
                 f"Job {job_id} is not completed (state={job.state})",
             )
         job.activated = True
-        logger.info("Model %s marked active: %s", job_id, job.model_path)
+        server_state = getattr(request.app.state, "_state", None)
+        activator = (
+            server_state.get("scorer_activator")
+            if isinstance(server_state, dict)
+            else None
+        )
+        hot_swapped = False
+        if activator is not None and job.model_path:
+            await activator(job.model_path)
+            hot_swapped = True
+        logger.info(
+            "Model %s marked active: %s (hot_swapped=%s)",
+            job_id,
+            job.model_path,
+            hot_swapped,
+        )
+        detail = (
+            "Model activated and hot-swapped into the running scorer; "
+            "subsequent reviews use it."
+            if hot_swapped
+            else (
+                "Model marked active and protected from deletion. To serve it, "
+                "set the server's nli_model to this model_path and restart; the "
+                "running scorer is not hot-swapped."
+            )
+        )
         return {
             "job_id": job_id,
             "activated": True,
             "model_path": job.model_path,
-            "detail": (
-                "Model marked active and protected from deletion. To serve it, "
-                "set the server's nli_model to this model_path and restart; the "
-                "running scorer is not hot-swapped."
-            ),
+            "hot_swapped": hot_swapped,
+            "detail": detail,
         }
 
     @router.post("/{job_id}/rollback")
