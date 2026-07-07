@@ -21,7 +21,7 @@ import pytest
 
 pytest.importorskip("onnxruntime", reason="onnxruntime required for TensorRT tests")
 
-# â”€â”€ export_tensorrt unit tests â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── export_tensorrt unit tests ──────────────────────────────────────
 
 
 class TestExportTensorrt:
@@ -145,7 +145,7 @@ class TestExportTensorrt:
         assert captured_opts.get("trt_fp16_enable") is True
 
 
-# â”€â”€ _load_onnx_session TRT auto-detection â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── _load_onnx_session TRT auto-detection ───────────────────────────
 
 
 class TestTrtAutoDetection:
@@ -240,7 +240,7 @@ class TestTrtAutoDetection:
         assert not trt_in_providers
 
 
-# â”€â”€ CLI export subcommand â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── CLI export subcommand ───────────────────────────────────────────
 
 
 class TestCLIExport:
@@ -298,7 +298,7 @@ class TestCLIExport:
             main(["export", "--format", "badformat"])
 
 
-# â”€â”€ __all__ exports â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── __all__ exports ─────────────────────────────────────────────────
 
 
 class TestExportsUpdated:

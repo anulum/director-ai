@@ -1245,7 +1245,7 @@ class CoherenceScorer:
         if ctx_neg != out_neg:
             divergence += 0.25
 
-        # Novel entities in output not grounded in context â†’ +0.15
+        # Novel entities in output not grounded in context → +0.15
         ctx_ents = set(ENTITY_RE.findall(context))
         out_ents = set(ENTITY_RE.findall(text_output))
         novel_ents = out_ents - ctx_ents
@@ -1254,7 +1254,7 @@ class CoherenceScorer:
 
         return max(0.0, min(1.0, divergence))
 
-    # â"€â"€ Logical divergence â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
+    # ── Logical divergence ────────────────────────────────────────────
 
     def calculate_logical_divergence(
         self,
@@ -1346,7 +1346,7 @@ class CoherenceScorer:
         similarity = len(p_words & o_words) / len(p_words | o_words)
         return max(0.0, min(1.0, 1.0 - similarity))
 
-    # â"€â"€ Shared helpers â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
+    # ── Shared helpers ────────────────────────────────────────────────
 
     def _heuristic_coherence(
         self,
@@ -1656,7 +1656,7 @@ class CoherenceScorer:
         score.approved = new_approved
         return new_approved, score
 
-    # â"€â"€ Composite scoring â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
+    # ── Composite scoring ─────────────────────────────────────────────
 
     def _score_cache_scope(
         self, session: Any | None = None, tenant_id: str = ""
@@ -1887,7 +1887,7 @@ class CoherenceScorer:
                 span.set_attribute("coherence.injection_risk", result[1].injection_risk)
             return result
 
-    # â"€â"€ Batch API (coalesced NLI) â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
+    # ── Batch API (coalesced NLI) ────────────────────────────────────
 
     def review_batch(
         self,
@@ -2058,7 +2058,7 @@ class CoherenceScorer:
                 return True
         return False
 
-    # â"€â"€ Async API â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
+    # ── Async API ──────────────────────────────────────────────────────
 
     async def areview(
         self,

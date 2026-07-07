@@ -54,7 +54,7 @@ MAX_IMBALANCE_RATIO = 5.0
 MAX_TEXT_LENGTH = 4096
 
 # Calibrated on RTX 6000 Ada, bs=24, DeBERTa-Large, 3 epochs
-_SECONDS_PER_SAMPLE_PER_EPOCH = 0.053  # ~1.26 it/s at bs=24 â†’ 24/1.26 â‰ 19s per batch of 24 â‰ 0.79s per sample... no: 1 step = 24 samples, 1.26 steps/s â†’ 30.2 samples/s â†’ 0.033s/sample/epoch... 3 epochs â†’ 0.1s total. Use 0.053 with overhead.
+_SECONDS_PER_SAMPLE_PER_EPOCH = 0.053  # ~1.26 it/s at bs=24 → 24/1.26 ≈ 19s per batch of 24 ≈ 0.79s per sample... no: 1 step = 24 samples, 1.26 steps/s → 30.2 samples/s → 0.033s/sample/epoch... 3 epochs → 0.1s total. Use 0.053 with overhead.
 _GPU_COST_PER_HOUR = 1.0  # USD, RTX 6000 Ada tier
 
 

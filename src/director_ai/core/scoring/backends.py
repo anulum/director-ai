@@ -105,7 +105,7 @@ def _load_entry_points() -> None:
         pass
 
 
-# â”€â”€ Built-in backend wrappers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── Built-in backend wrappers ────────────────────────────────────
 
 
 class DeBERTaBackend(ScorerBackend):

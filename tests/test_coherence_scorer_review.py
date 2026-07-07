@@ -27,7 +27,7 @@ def _python_accelerator_fallbacks(monkeypatch):
     monkeypatch.setattr(task_scoring, "_RUST_TASK", False)
 
 
-# â”€â”€ CoherenceScorer.review_batch â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── CoherenceScorer.review_batch ─────────────────────────────────────
 
 
 class TestScorerReviewBatchEmpty:
@@ -120,7 +120,7 @@ class TestScorerReviewBatchLLMJudge:
         assert len(results) == 2
 
 
-# â”€â”€ BatchProcessor coalesced delegation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── BatchProcessor coalesced delegation ──────────────────────────────
 
 
 class TestBatchSingleParity:
@@ -355,7 +355,7 @@ class TestBatchProcessorCoalesced:
 
         proc = BatchProcessor(WrongLenScorer(), max_concurrency=1)
         result = proc.review_batch([("Q1", "A1"), ("Q2", "A2")])
-        # Wrong length triggers TypeError â†’ fallback to per-item
+        # Wrong length triggers TypeError → fallback to per-item
         assert result.total == 2
         assert result.succeeded == 2
 

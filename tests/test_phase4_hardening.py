@@ -30,7 +30,7 @@ def _fastapi_available() -> bool:
         return False
 
 
-# â”€â”€ H48: Batch per-line size limit â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── H48: Batch per-line size limit ───────────────────────────────────
 
 
 class TestH48LineSize:
@@ -42,7 +42,7 @@ class TestH48LineSize:
         assert _BATCH_MAX_LINE_SIZE == 1 * 1024 * 1024
 
 
-# â”€â”€ H50: NaN/Inf clamp logging â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── H50: NaN/Inf clamp logging ──────────────────────────────────────
 
 
 class TestH50ClampLogging:
@@ -80,7 +80,7 @@ class TestH50ClampLogging:
         assert result == 0.0
 
 
-# â”€â”€ H54: Batch timeout validation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── H54: Batch timeout validation ────────────────────────────────────
 
 
 class TestH54TimeoutValidation:
@@ -119,7 +119,7 @@ class TestH54TimeoutValidation:
             BatchProcessor(MagicMock(), max_concurrency=0)
 
 
-# â”€â”€ H55: LLM error type distinction â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── H55: LLM error type distinction ─────────────────────────────────
 
 
 class TestH55ErrorTypes:
@@ -156,7 +156,7 @@ class TestH55ErrorTypes:
         assert "Error" in candidates[0]["text"]
 
 
-# â”€â”€ H57: CORS origins count limit â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── H57: CORS origins count limit ────────────────────────────────────
 
 
 class TestH57CORSLimit:
@@ -177,7 +177,7 @@ class TestH57CORSLimit:
             create_app(cfg)
 
 
-# â”€â”€ H58: Return type annotations â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── H58: Return type annotations ─────────────────────────────────────
 
 
 class TestH58TypeAnnotations:
@@ -196,7 +196,7 @@ class TestH58TypeAnnotations:
         assert "return" in hints
 
 
-# â”€â”€ H59: Batch limits in help text â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── H59: Batch limits in help text ───────────────────────────────────
 
 
 class TestH59HelpText:
@@ -212,7 +212,7 @@ class TestH59HelpText:
         )
 
 
-# â”€â”€ H64: Bool coercion edge cases â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── H64: Bool coercion edge cases ────────────────────────────────────
 
 
 class TestH64BoolCoercion:

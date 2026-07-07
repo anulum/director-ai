@@ -18,7 +18,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-# â”€â”€ ClaimAttribution dataclass â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── ClaimAttribution dataclass ────────────────────────────────────
 
 
 class TestClaimAttribution:
@@ -51,7 +51,7 @@ class TestClaimAttribution:
         assert a.supported is False
 
 
-# â”€â”€ ScoringEvidence new fields â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── ScoringEvidence new fields ────────────────────────────────────
 
 
 class TestScoringEvidenceNewFields:
@@ -98,7 +98,7 @@ class TestScoringEvidenceNewFields:
         assert len(ev.attributions) == 1
 
 
-# â”€â”€ NLIScorer token counting â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── NLIScorer token counting ─────────────────────────────────────
 
 
 class TestNLITokenCounting:
@@ -124,7 +124,7 @@ class TestNLITokenCounting:
         assert scorer.last_estimated_cost == pytest.approx(0.1)
 
 
-# â”€â”€ score_claim_coverage_with_attribution â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── score_claim_coverage_with_attribution ─────────────────────────
 
 
 class TestClaimCoverageAttribution:
@@ -152,8 +152,8 @@ class TestClaimCoverageAttribution:
 
     def test_multi_claim_picks_best_source(self):
         # 2 claims Ă— 3 source sentences = 6 scores
-        # claim0: [0.8, 0.3, 0.5] â†’ best at idx 1 (0.3, supported)
-        # claim1: [0.7, 0.9, 0.1] â†’ best at idx 2 (0.1, supported)
+        # claim0: [0.8, 0.3, 0.5] → best at idx 1 (0.3, supported)
+        # claim1: [0.7, 0.9, 0.1] → best at idx 2 (0.1, supported)
         scorer = self._mock_scorer([0.8, 0.3, 0.5, 0.7, 0.9, 0.1])
 
         coverage, divs, claims, attrs = scorer.score_claim_coverage_with_attribution(
@@ -172,8 +172,8 @@ class TestClaimCoverageAttribution:
 
     def test_unsupported_claim(self):
         # 2 claims Ă— 2 source sentences = 4 scores
-        # claim0: [0.2, 0.3] â†’ best=0.2 (supported)
-        # claim1: [0.8, 0.7] â†’ best=0.7 (unsupported, threshold=0.6)
+        # claim0: [0.2, 0.3] → best=0.2 (supported)
+        # claim1: [0.8, 0.7] → best=0.7 (unsupported, threshold=0.6)
         scorer = self._mock_scorer([0.2, 0.3, 0.8, 0.7])
 
         coverage, divs, claims, attrs = scorer.score_claim_coverage_with_attribution(
@@ -244,7 +244,7 @@ class TestClaimCoverageAttribution:
             )
 
 
-# â”€â”€ server _evidence_to_dict â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── server _evidence_to_dict ─────────────────────────────────────
 
 
 class TestEvidenceToDictExtensions:
@@ -308,7 +308,7 @@ class TestEvidenceToDictExtensions:
         assert "attributions" not in d
 
 
-# â”€â”€ Public API exports â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── Public API exports ───────────────────────────────────────────
 
 
 class TestExports:

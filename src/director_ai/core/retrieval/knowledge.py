@@ -76,7 +76,7 @@ _STOPWORDS = frozenset(
 class GroundTruthStore:
     """In-memory fact store with keyword matching retrieval.
 
-    Stores keyâ†’value fact pairs and retrieves by word overlap between
+    Stores key→value fact pairs and retrieves by word overlap between
     the query and fact keys. No embeddings or semantic similarity.
 
     For vector-based retrieval, use ``VectorGroundTruthStore`` with a

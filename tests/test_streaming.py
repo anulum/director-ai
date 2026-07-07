@@ -310,7 +310,7 @@ class TestScoringCadence:
         def counting_cb(token):
             nonlocal call_count
             call_count += 1
-            return 0.9  # always high â†’ cadence ramps up
+            return 0.9  # always high → cadence ramps up
 
         kernel = StreamingKernel(soft_limit=0.6, adaptive=True, max_cadence=8)
         tokens = [f"t{i} " for i in range(40)]

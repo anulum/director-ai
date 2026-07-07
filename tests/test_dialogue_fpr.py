@@ -19,7 +19,7 @@ import pytest
 
 from director_ai.core.scorer import _DIALOGUE_TURN_RE, CoherenceScorer
 
-# â”€â”€ Task detection â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── Task detection ─────────────────────────────────────────────────
 
 
 class TestDetectTaskType:
@@ -84,7 +84,7 @@ class TestDetectTaskType:
         assert CoherenceScorer._detect_task_type(prompt) == "dialogue"
 
 
-# â”€â”€ Dialogue regex â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── Dialogue regex ─────────────────────────────────────────────────
 
 
 class TestDialogueRegex:
@@ -125,7 +125,7 @@ class TestDialogueRegex:
         assert _DIALOGUE_TURN_RE.search(text) is None
 
 
-# â”€â”€ Profile resolution â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── Profile resolution ─────────────────────────────────────────────
 
 
 class TestResolveAggProfile:
@@ -176,7 +176,7 @@ class TestResolveAggProfile:
         assert fo == "max"
 
 
-# â”€â”€ Dialogue baseline calibration â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── Dialogue baseline calibration ─────────────────────────────────
 
 
 class TestDialogueBaseline:
@@ -192,7 +192,7 @@ class TestDialogueBaseline:
         assert scorer._dialogue_nli_baseline == 0.85
 
     def test_calibration_formula_zero(self):
-        """Score at baseline â†’ adjusted divergence = 0."""
+        """Score at baseline → adjusted divergence = 0."""
         baseline = 0.80
         raw = 0.80
         adjusted = max(0.0, (raw - baseline) / (1.0 - baseline))
@@ -206,21 +206,21 @@ class TestDialogueBaseline:
         assert adjusted == pytest.approx(0.5)
 
     def test_calibration_formula_max(self):
-        """Score at 1.0 â†’ adjusted divergence = 1.0."""
+        """Score at 1.0 → adjusted divergence = 1.0."""
         baseline = 0.80
         raw = 1.0
         adjusted = max(0.0, (raw - baseline) / (1.0 - baseline))
         assert adjusted == pytest.approx(1.0)
 
     def test_calibration_below_baseline(self):
-        """Score below baseline â†’ clamped to 0."""
+        """Score below baseline → clamped to 0."""
         baseline = 0.80
         raw = 0.60
         adjusted = max(0.0, (raw - baseline) / (1.0 - baseline))
         assert adjusted == pytest.approx(0.0)
 
 
-# â”€â”€ Dialogue detection in heuristic_coherence â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── Dialogue detection in heuristic_coherence ─────────────────────
 
 
 class TestDialogueDetectionInCoherence:
@@ -257,7 +257,7 @@ class TestDialogueDetectionInCoherence:
         assert isinstance(h_fact, float)
 
 
-# â”€â”€ Integration: review() with dialogue â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── Integration: review() with dialogue ────────────────────────────
 
 
 class TestDialogueReview:

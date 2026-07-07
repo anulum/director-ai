@@ -61,7 +61,7 @@ class TestShardedNLIScorer:
             use_model=False,
             backend="lite",
         )
-        # use_model=False â†’ model_available is False (model not loaded)
+        # use_model=False → model_available is False (model not loaded)
         assert scorer.model_available is False
 
     def test_score_chunked(self):

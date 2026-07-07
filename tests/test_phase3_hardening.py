@@ -24,7 +24,7 @@ import threading
 
 import pytest
 
-# â”€â”€ H28: NLI assert â†’ RuntimeError â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── H28: NLI assert → RuntimeError ──────────────────────────────────
 
 
 class TestH28NLIAssert:
@@ -58,7 +58,7 @@ class TestH28NLIAssert:
         assert results[0] < results[1]
 
 
-# â”€â”€ H29: batch asyncio.get_running_loop â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── H29: batch asyncio.get_running_loop ──────────────────────────────
 
 
 class TestH29AsyncLoop:
@@ -87,7 +87,7 @@ class TestH29AsyncLoop:
         assert len(batch_result.results) == 1
 
 
-# â”€â”€ H30: batch coherence None guard â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── H30: batch coherence None guard ──────────────────────────────────
 
 
 class TestH30CoherenceNoneGuard:
@@ -112,7 +112,7 @@ class TestH30CoherenceNoneGuard:
         assert result.coherence is None
 
 
-# â”€â”€ H34: actor response.text truncation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── H34: actor response.text truncation ─────────────────────────────
 
 
 class TestH34ResponseTruncation:
@@ -133,7 +133,7 @@ class TestH34ResponseTruncation:
         assert "Error" in candidates[0]["text"]
 
 
-# â”€â”€ H35: config _coerce error message â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── H35: config _coerce error message ───────────────────────────────
 
 
 class TestH35CoerceError:
@@ -153,7 +153,7 @@ class TestH35CoerceError:
             os.environ.update(original)
 
 
-# â”€â”€ H36: config server_port / server_workers validation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── H36: config server_port / server_workers validation ──────────────
 
 
 class TestH36ServerValidation:
@@ -190,7 +190,7 @@ class TestH36ServerValidation:
         assert cfg.server_workers == 4
 
 
-# â”€â”€ H37: config from_yaml UTF-8 â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── H37: config from_yaml UTF-8 ─────────────────────────────────────
 
 
 class TestH37YamlUtf8:
@@ -235,7 +235,7 @@ class TestH37YamlUtf8:
             os.unlink(path)
 
 
-# â”€â”€ H39: CLI --port safety â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── H39: CLI --port safety ──────────────────────────────────────────
 
 
 class TestH39CLIPort:
@@ -254,7 +254,7 @@ class TestH39CLIPort:
             _cmd_batch(["nonexistent_file.jsonl"])
 
 
-# â”€â”€ H42: scorer history thread lock â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── H42: scorer history thread lock ─────────────────────────────────
 
 
 class TestH42ScorerThreadLock:
@@ -290,7 +290,7 @@ class TestH42ScorerThreadLock:
         assert len(scorer.history) <= scorer.window
 
 
-# â”€â”€ H44: scorer setLevel removed â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── H44: scorer setLevel removed ────────────────────────────────────
 
 
 class TestH44ScorerSetLevel:

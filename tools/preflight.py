@@ -5,11 +5,12 @@
 Gates (must match ci.yml):
   1. ruff-format   — src/ tests/ examples/
   2. ruff-check    — src/ tests/ examples/
-  3. version-sync  — pyproject.toml == __init__.py == CITATION.cff
-  4. mypy          — src/director_ai/
-  5. bandit        — src/director_ai/
-  6. spdx-guard    — all .py files in src/ tests/
-  7. pytest        — tests/ with the CI coverage gate (97%)
+  3. mojibake      — src/ tools/ tests/
+  4. version-sync  — pyproject.toml == __init__.py == CITATION.cff
+  5. mypy          — src/director_ai/
+  6. bandit        — src/director_ai/
+  7. spdx-guard    — all .py files in src/ tests/
+  8. pytest        — tests/ with the CI coverage gate (97%)
 """
 
 import argparse
@@ -27,7 +28,10 @@ SPDX_MARKER = "SPDX-License-Identifier"
 # in ``pyproject.toml`` covers the same set.
 SPDX_EXCLUDE_FRAGMENTS = ("src/director_ai/proto/",)
 
-GATES = [
+GateCommand = list[str]
+Gate = tuple[str, GateCommand | None]
+
+GATES: list[Gate] = [
     (
         "ruff-format",
         [
@@ -53,6 +57,15 @@ GATES = [
             "tests/",
             "examples/",
             "tools/",
+        ],
+    ),
+    (
+        "mojibake-guard",
+        [
+            sys.executable,
+            "tools/check_mojibake.py",
+            "--root",
+            ".",
         ],
     ),
     ("version-sync", None),
@@ -102,6 +115,7 @@ WARN_ONLY = {"spdx-guard"}
 
 
 def check_version_sync() -> bool:
+    """Return True when all release-version declarations are identical."""
     root = pathlib.Path()
     try:
         import tomllib
@@ -141,6 +155,7 @@ def check_version_sync() -> bool:
 
 
 def check_spdx() -> bool:
+    """Return True when all hand-maintained Python files carry SPDX headers."""
     missing = []
     for d in SPDX_DIRS:
         root = pathlib.Path(d)
@@ -166,7 +181,8 @@ def check_spdx() -> bool:
     return True
 
 
-def run_gate(name: str, cmd) -> bool:
+def run_gate(name: str, cmd: GateCommand | None) -> bool:
+    """Execute one named preflight gate and return its pass/fail state."""
     print(f"\n{'=' * 60}")
     print(f"  GATE: {name}")
     print(f"{'=' * 60}")
@@ -184,6 +200,7 @@ def run_gate(name: str, cmd) -> bool:
 
 
 def main() -> int:
+    """Run the configured preflight gates and return a process exit code."""
     parser = argparse.ArgumentParser(description="Director-AI preflight checks")
     parser.add_argument(
         "--no-tests",

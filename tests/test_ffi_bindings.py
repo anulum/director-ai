@@ -24,7 +24,7 @@ except ImportError:
 pytestmark = pytest.mark.skipif(not HAS_RUST, reason="backfire_kernel not installed")
 
 
-# â”€â”€ BackfireConfig â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── BackfireConfig ────────────────────────────────────────────────────
 
 
 class TestBackfireConfig:
@@ -75,7 +75,7 @@ class TestBackfireConfig:
             backfire_kernel.BackfireConfig.from_json("{invalid json")
 
 
-# â”€â”€ RustSafetyKernel â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── RustSafetyKernel ─────────────────────────────────────────────────
 
 
 class TestRustSafetyKernel:
@@ -101,7 +101,7 @@ class TestRustSafetyKernel:
         assert k.is_active is True
 
     def test_callback_exception_safe(self):
-        """Python callback raising â†’ Rust treats as score=0."""
+        """Python callback raising → Rust treats as score=0."""
         k = backfire_kernel.RustSafetyKernel(hard_limit=0.5)
 
         def bad_cb(t):
@@ -111,7 +111,7 @@ class TestRustSafetyKernel:
         assert result != "a"
 
 
-# â”€â”€ RustStreamingKernel â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── RustStreamingKernel ──────────────────────────────────────────────
 
 
 class TestRustStreamingKernel:
@@ -146,7 +146,7 @@ class TestRustStreamingKernel:
         assert k.is_active
 
 
-# â”€â”€ RustCoherenceScorer â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── RustCoherenceScorer ──────────────────────────────────────────────
 
 
 class TestRustCoherenceScorer:
@@ -341,7 +341,7 @@ class TestRustReduceClaimAttribution:
             backfire_kernel.rust_reduce_claim_attribution([0.1, 0.2], 2, 2)
 
 
-# â”€â”€ RustUPDEStepper â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── RustUPDEStepper ──────────────────────────────────────────────────
 
 
 class TestRustUPDEStepper:
@@ -349,7 +349,7 @@ class TestRustUPDEStepper:
         state = backfire_kernel.RustUPDEStepper.create_state([0.0] * 16)
         assert len(state["theta"]) == 16
         assert state["step_count"] == 0
-        assert abs(state["r_global"] - 1.0) < 1e-6  # all phases equal â†’ R=1
+        assert abs(state["r_global"] - 1.0) < 1e-6  # all phases equal → R=1
 
     def test_random_state(self):
         state = backfire_kernel.RustUPDEStepper.random_state()
@@ -379,7 +379,7 @@ class TestRustUPDEStepper:
             stepper.run([float("nan")] * 16, 1)
 
 
-# â”€â”€ RustSECFunctional â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── RustSECFunctional ───────────────────────────────────────────────
 
 
 class TestRustSECFunctional:
@@ -411,7 +411,7 @@ class TestRustSECFunctional:
         assert kc > 0
 
 
-# â”€â”€ RustL16Controller â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── RustL16Controller ───────────────────────────────────────────────
 
 
 class TestRustL16Controller:
@@ -439,7 +439,7 @@ class TestRustL16Controller:
         assert isinstance(ctrl.plv_gate_open(), bool)
 
 
-# â”€â”€ RustTCBOObserver â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── RustTCBOObserver ────────────────────────────────────────────────
 
 
 class TestRustTCBOObserver:
@@ -461,7 +461,7 @@ class TestRustTCBOObserver:
         assert obs.p_h1 == 0.0 or obs.p_h1 >= 0.0  # reset behavior
 
 
-# â”€â”€ RustTCBOController â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── RustTCBOController ──────────────────────────────────────────────
 
 
 class TestRustTCBOController:
@@ -482,7 +482,7 @@ class TestRustTCBOController:
         ctrl.reset()
 
 
-# â”€â”€ RustPGBOEngine â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── RustPGBOEngine ──────────────────────────────────────────────────
 
 
 class TestRustPGBOEngine:
@@ -512,7 +512,7 @@ class TestRustPGBOEngine:
         assert pgbo.u_norm == 0.0
 
 
-# â”€â”€ RustSSGFEngine â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── RustSSGFEngine ──────────────────────────────────────────────────
 
 
 class TestRustSSGFEngine:

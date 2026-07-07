@@ -23,7 +23,7 @@ from director_ai.core.exceptions import (
     ValidationError,
 )
 
-# â”€â”€ Inheritance chain â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── Inheritance chain ────────────────────────────────────────────────
 
 
 class TestHierarchy:
@@ -63,7 +63,7 @@ class TestHierarchy:
             raise ValidationError("bad input")
 
 
-# â”€â”€ HallucinationError attributes â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── HallucinationError attributes ────────────────────────────────────
 
 
 @dataclass

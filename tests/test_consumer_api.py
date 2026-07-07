@@ -337,7 +337,7 @@ class TestSafetyKernel:
         from director_ai.core import SafetyKernel
 
         kernel = SafetyKernel(hard_limit=0.7)
-        # Score 0.6 is above default 0.5 but below custom 0.7 â†’ should halt
+        # Score 0.6 is above default 0.5 but below custom 0.7 → should halt
         output = kernel.stream_output(["test"], lambda t: 0.6)
         assert "HALT" in output
 

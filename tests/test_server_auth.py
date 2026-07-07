@@ -460,7 +460,7 @@ def test_valid_body_sizes_accepted():
     assert r.status_code == 200
 
 
-# â”€â”€ Stats backend tests â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── Stats backend tests ──────────────────────────────────────────────
 
 
 def test_prometheus_stats_returns_summary():

@@ -215,7 +215,7 @@ class TestLLMJudgeParsing:
 
         call_kwargs = mock_client.chat.completions.create.call_args
         assert call_kwargs[1]["model"] == "gpt-4o"
-        assert result < 0.5  # agrees â†’ lower divergence
+        assert result < 0.5  # agrees → lower divergence
 
 
 class TestRustBackend:

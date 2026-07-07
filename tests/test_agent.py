@@ -21,7 +21,7 @@ import pytest
 from director_ai.core.agent import CoherenceAgent
 from director_ai.core.types import ReviewResult
 
-# â”€â”€ Construction â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── Construction ─────────────────────────────────────────────────────
 
 
 class TestConstruction:
@@ -97,7 +97,7 @@ class TestConstruction:
         assert agent.generator.asked == 5
 
 
-# â”€â”€ process() happy path â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── process() happy path ─────────────────────────────────────────────
 
 
 class TestProcessHappyPath:
@@ -124,7 +124,7 @@ class TestProcessHappyPath:
         assert 0.0 <= result.coherence.score <= 1.0
 
 
-# â”€â”€ process() rejection path â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── process() rejection path ─────────────────────────────────────────
 
 
 class TestProcessRejection:
@@ -144,7 +144,7 @@ class TestProcessRejection:
             agent.process("   ")
 
 
-# â”€â”€ Fallback modes â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── Fallback modes ───────────────────────────────────────────────────
 
 
 class TestFallbacks:

@@ -40,7 +40,7 @@ from director_ai.core.metrics import MetricsCollector
 from director_ai.core.scorer import CoherenceScorer
 from director_ai.core.vector_store import InMemoryBackend, VectorGroundTruthStore
 
-# â”€â”€ Exception Hierarchy â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── Exception Hierarchy ────────────────────────────────────────────
 
 
 class TestExceptionHierarchy:
@@ -83,7 +83,7 @@ class TestExceptionHierarchy:
             raise NumericalError("NaN detected")
 
 
-# â”€â”€ H18: ChromaDB Metadata Fix â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── H18: ChromaDB Metadata Fix ────────────────────────────────────
 
 
 class TestVectorStoreMetadata:
@@ -111,7 +111,7 @@ class TestVectorStoreMetadata:
         assert store.backend.count() == 0
 
 
-# â”€â”€ H19: CORS Origins Configurable â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── H19: CORS Origins Configurable ────────────────────────────────
 
 
 class TestCORSConfig:
@@ -132,7 +132,7 @@ class TestCORSConfig:
         assert d["cors_origins"] == "https://example.com"
 
 
-# â”€â”€ H21: WebSocket Validation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── H21: WebSocket Validation ──────────────────────────────────────
 
 try:
     from fastapi.testclient import TestClient
@@ -203,7 +203,7 @@ class TestWebSocketValidation:
             assert "exceeds" in resp["error"]
 
 
-# â”€â”€ H22: CLI Batch Safety â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── H22: CLI Batch Safety ──────────────────────────────────────────
 
 
 class TestCLIBatchSafety:
@@ -246,7 +246,7 @@ class TestCLIBatchSafety:
         assert "Total:    2" in captured.out
 
 
-# â”€â”€ H25: Async Batch Timeout â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── H25: Async Batch Timeout ──────────────────────────────────────
 
 
 class TestBatchTimeout:
@@ -271,7 +271,7 @@ class TestBatchTimeout:
         assert processor.item_timeout == 30.0
 
 
-# â”€â”€ H27: Shared Score Blending â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── H27: Shared Score Blending ─────────────────────────────────────
 
 
 class TestSharedScoreBlending:
@@ -322,7 +322,7 @@ class TestSharedScoreBlending:
         assert abs(CoherenceScorer.W_LOGIC + CoherenceScorer.W_FACT - 1.0) < 1e-10
 
 
-# â”€â”€ Config Validation (from Phase 1 H12) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── Config Validation (from Phase 1 H12) ──────────────────────────
 
 
 class TestConfigValidation:
@@ -361,7 +361,7 @@ class TestConfigValidation:
             DirectorConfig(batch_max_concurrency=0)
 
 
-# â”€â”€ Metrics Memory Cap (from Phase 1 H7) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── Metrics Memory Cap (from Phase 1 H7) ──────────────────────────
 
 
 class TestMetricsMemoryCap:

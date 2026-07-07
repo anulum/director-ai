@@ -24,7 +24,7 @@ from director_ai.core.config import DirectorConfig
 
 _HAS_GRPC = __import__("importlib").util.find_spec("grpc") is not None
 
-# â”€â”€ Item 1: version sync â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── Item 1: version sync ────────────────────────────────────────────
 
 
 class TestVersionSync:
@@ -34,7 +34,7 @@ class TestVersionSync:
         assert __version__ == "3.16.1"
 
 
-# â”€â”€ Item 3: gRPC proto stubs â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── Item 3: gRPC proto stubs ────────────────────────────────────────
 
 
 @pytest.mark.skipif(not _HAS_GRPC, reason="grpc not installed")
@@ -54,7 +54,7 @@ class TestGRPCProtoStubs:
         assert hasattr(director_pb2_grpc, "DirectorServiceServicer")
 
 
-# â”€â”€ Item 4: async agent â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── Item 4: async agent ─────────────────────────────────────────────
 
 
 class TestAsyncAgent:
@@ -74,7 +74,7 @@ class TestAsyncAgent:
         assert result.coherence.score == 0.9
 
 
-# â”€â”€ Item 5: CLI chunk-size validation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── Item 5: CLI chunk-size validation ────────────────────────────────
 
 
 class TestCLIChunkSizeValidation:
@@ -109,7 +109,7 @@ class TestCLIChunkSizeValidation:
             assert e.code == 1
 
 
-# â”€â”€ Item 6: CORS default â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── Item 6: CORS default ────────────────────────────────────────────
 
 
 class TestCORSDefault:

@@ -106,7 +106,7 @@ async def test_guard_path_filter():
             json={"prompt": "What color is the sky?"},
         )
 
-    # Path not in configured paths â†’ pass through unscored
+    # Path not in configured paths → pass through unscored
     assert resp.status_code == 200
     assert "x-director-score" not in resp.headers
 

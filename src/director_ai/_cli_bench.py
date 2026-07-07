@@ -487,7 +487,7 @@ def _cmd_finetune(args: list[str]) -> None:
     if result.regression_report:
         rr = result.regression_report
         print(
-            f"  Regression:      {rr['regression_pp']:+.1f}pp â†’ {rr['recommendation']}",
+            f"  Regression:      {rr['regression_pp']:+.1f}pp → {rr['recommendation']}",
         )
     if result.onnx_path:
         print(f"  ONNX export:     {result.onnx_path}")

@@ -432,7 +432,7 @@ def create_knowledge_router() -> APIRouter:
 
     @router.post("/ingest", status_code=201)
     async def ingest_text(request: Request, body: IngestRequest) -> dict[str, Any]:
-        """Ingest raw text â†’ chunk â†’ embed â†’ store."""
+        """Ingest raw text → chunk → embed → store."""
         tenant_id = _get_tenant(request)
         _require_write_access(request, tenant_id)
         registry = _get_registry(request)

@@ -14,7 +14,7 @@ import pytest
 
 from director_ai.core.scorer import CoherenceScorer
 
-# â”€â”€ Attribute defaults â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── Attribute defaults ────────────────────────────────────────────
 
 
 class TestSummarizationBaseline:
@@ -40,35 +40,35 @@ class TestSummarizationBaseline:
         assert adjusted == pytest.approx(0.45)
 
     def test_calibration_at_baseline(self):
-        """Score at baseline â†’ adjusted = 0."""
+        """Score at baseline → adjusted = 0."""
         baseline = 0.20
         raw = 0.20
         adjusted = max(0.0, (raw - baseline) / (1.0 - baseline))
         assert adjusted == pytest.approx(0.0)
 
     def test_calibration_above_baseline(self):
-        """Score above baseline â†’ proportional adjusted value."""
+        """Score above baseline → proportional adjusted value."""
         baseline = 0.20
         raw = 0.60
         adjusted = max(0.0, (raw - baseline) / (1.0 - baseline))
         assert adjusted == pytest.approx(0.50)
 
     def test_calibration_below_baseline(self):
-        """Score below baseline â†’ clamped to 0."""
+        """Score below baseline → clamped to 0."""
         baseline = 0.20
         raw = 0.10
         adjusted = max(0.0, (raw - baseline) / (1.0 - baseline))
         assert adjusted == pytest.approx(0.0)
 
     def test_calibration_at_max(self):
-        """Score at 1.0 â†’ adjusted = 1.0."""
+        """Score at 1.0 → adjusted = 1.0."""
         baseline = 0.20
         raw = 1.0
         adjusted = max(0.0, (raw - baseline) / (1.0 - baseline))
         assert adjusted == pytest.approx(1.0)
 
 
-# â”€â”€ Routing logic â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── Routing logic ─────────────────────────────────────────────────
 
 
 class TestSummarizationRouting:
@@ -155,7 +155,7 @@ class TestSummarizationRouting:
         assert evidence.chunks[0].source == "prompt"
 
 
-# â”€â”€ Config wiring â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── Config wiring ─────────────────────────────────────────────────
 
 
 class TestSummarizationConfig:

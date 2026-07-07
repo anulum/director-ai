@@ -21,7 +21,7 @@ from director_ai.core import CoherenceScorer  # noqa: E402, I001
 from director_ai.core.config import DirectorConfig  # noqa: E402
 
 
-# â”€â”€ Fixtures â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── Fixtures ──────────────────────────────────────────────────────────
 
 
 def _mock_judge_model(approve_prob: float = 0.8) -> MagicMock:
@@ -60,14 +60,14 @@ def _make_local_scorer(approve_prob: float = 0.8, **kw: Any) -> CoherenceScorer:
     return scorer
 
 
-# â”€â”€ Tests â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── Tests ─────────────────────────────────────────────────────────────
 
 
 class TestLocalJudgeCheck:
     """Local judge score-adjustment checks for direct scorer proxy calls."""
 
     def test_known_hallucinated_rejects(self) -> None:
-        """High reject probability â†’ divergence shifts toward rejection."""
+        """High reject probability → divergence shifts toward rejection."""
         scorer = _make_local_scorer(approve_prob=0.2)
         result = scorer._local_judge_check(
             "What is the capital of France?",
@@ -77,7 +77,7 @@ class TestLocalJudgeCheck:
         assert result > 0.5
 
     def test_known_correct_approves(self) -> None:
-        """High approve probability â†’ divergence shifts toward approval."""
+        """High approve probability → divergence shifts toward approval."""
         scorer = _make_local_scorer(approve_prob=0.9)
         result = scorer._local_judge_check(
             "What is the capital of France?",
@@ -87,7 +87,7 @@ class TestLocalJudgeCheck:
         assert result < 0.4
 
     def test_borderline_nli_hallucinated_rejects(self) -> None:
-        """Borderline NLI + hallucinated â†’ judge tips to reject."""
+        """Borderline NLI + hallucinated → judge tips to reject."""
         scorer = _make_local_scorer(approve_prob=0.15)
         result = scorer._local_judge_check(
             "Context about topic",
@@ -97,7 +97,7 @@ class TestLocalJudgeCheck:
         assert result >= 0.55
 
     def test_borderline_nli_correct_approves(self) -> None:
-        """Borderline NLI + correct â†’ judge tips to approve."""
+        """Borderline NLI + correct → judge tips to approve."""
         scorer = _make_local_scorer(approve_prob=0.85)
         result = scorer._local_judge_check(
             "Context about topic",
@@ -139,11 +139,11 @@ class TestLocalJudgeConfig:
         scorer = _make_local_scorer()
         assert scorer._should_escalate(0.5) is True
         assert scorer._should_escalate(0.45) is True
-        # High confidence â†’ no escalation needed
+        # High confidence → no escalation needed
         assert scorer._should_escalate(0.1) is False
 
     def test_should_not_escalate_without_model(self) -> None:
-        """No model loaded â†’ no escalation."""
+        """No model loaded → no escalation."""
         scorer = CoherenceScorer(
             use_nli=False,
             llm_judge_enabled=True,
@@ -165,7 +165,7 @@ class TestLocalJudgeFallback:
     """Fallback checks when the local judge model is unavailable."""
 
     def test_missing_model_falls_back_to_nli(self) -> None:
-        """No checkpoint â†’ graceful fallback to raw NLI score."""
+        """No checkpoint → graceful fallback to raw NLI score."""
         scorer = CoherenceScorer(
             use_nli=False,
             llm_judge_enabled=True,

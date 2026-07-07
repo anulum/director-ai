@@ -15,7 +15,7 @@ from director_ai.core.cache import ScoreCache
 from director_ai.core.kernel import SafetyKernel
 from director_ai.core.sanitizer import InputSanitizer
 
-# â”€â”€ Sanitizer: new injection patterns â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── Sanitizer: new injection patterns ─────────────────────────────────
 
 
 class TestSanitizerNewPatterns:
@@ -71,7 +71,7 @@ class TestSanitizerNewPatterns:
         assert r.blocked is False
 
 
-# â”€â”€ Kernel: timeout enforcement â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── Kernel: timeout enforcement ───────────────────────────────────────
 
 
 class TestKernelTimeout:
@@ -112,7 +112,7 @@ class TestKernelTimeout:
         assert k.is_active is False
 
 
-# â”€â”€ Cache: generation versioning â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── Cache: generation versioning ──────────────────────────────────────
 
 
 class TestCacheGeneration:
@@ -150,7 +150,7 @@ class TestCacheGeneration:
         assert c.get("q", "p") is not None
 
 
-# â”€â”€ Rust scorer opt-in â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── Rust scorer opt-in ────────────────────────────────────────────────
 
 
 class TestRustScorerIntegration:

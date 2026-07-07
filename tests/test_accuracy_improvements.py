@@ -24,7 +24,7 @@ import pytest
 from director_ai.core.config import DirectorConfig
 from director_ai.core.metrics import metrics
 
-# â”€â”€ Phase 1: Task-type detection & adaptive thresholds â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── Phase 1: Task-type detection & adaptive thresholds ──────────────
 
 
 class TestTaskTypeDetection:
@@ -101,13 +101,13 @@ class TestAdaptiveThresholds:
             "qa": 0.3,
             "summarization": 0.7,
         }
-        # QA prompt should use 0.3 threshold â†’ more lenient
+        # QA prompt should use 0.3 threshold → more lenient
         approved, score = scorer.review("What is 2+2?", "2+2 is 4")
         # The heuristic score should be above the QA threshold of 0.3
         assert score.score is not None
 
 
-# â”€â”€ Phase 2: Chunking & Aggregation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── Phase 2: Chunking & Aggregation ─────────────────────────────────
 
 
 class TestChunkingConfig:
@@ -158,7 +158,7 @@ class TestNLIConfidence:
         assert confs[2] > confs[1]  # peaked > uniform
 
 
-# â”€â”€ Phase 3: LoRA adapter loading â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── Phase 3: LoRA adapter loading ────────────────────────────────────
 
 
 class TestLoRAConfig:
@@ -173,7 +173,7 @@ class TestLoRAConfig:
         assert cfg.lora_adapter_path == "/path/to/adapter"
 
 
-# â”€â”€ Phase 4: Distillation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── Phase 4: Distillation ────────────────────────────────────────────
 
 
 class TestDistillationPipeline:
@@ -190,7 +190,7 @@ class TestDistillationPipeline:
         )
 
 
-# â”€â”€ Phase 6A: Meta-classifier â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── Phase 6A: Meta-classifier ───────────────────────────────────────
 
 
 class TestMetaClassifierFeatures:
@@ -400,7 +400,7 @@ class TestMetaClassifierIntegration:
             sys.path.pop(0)
 
 
-# â”€â”€ Phase 1A: Threshold analysis tool â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── Phase 1A: Threshold analysis tool ───────────────────────────────
 
 
 class TestThresholdAnalysis:
@@ -435,7 +435,7 @@ class TestThresholdAnalysis:
             sys.path.pop(0)
 
 
-# â”€â”€ LoRA training tool â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── LoRA training tool ──────────────────────────────────────────────
 
 
 class TestLoRATrainingTool:
@@ -502,7 +502,7 @@ class TestLoRATrainingTool:
             sys.path.pop(0)
 
 
-# â”€â”€ Cross-phase integration â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── Cross-phase integration ─────────────────────────────────────────
 
 
 class TestQAPremiseRatio:

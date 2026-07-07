@@ -170,7 +170,7 @@ class TenantRouter:
             )
         raise ValueError(f"Unknown vector backend_type: {backend_type!r}")
 
-    # â”€â”€ Per-tenant model versioning (Phase D) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    # ── Per-tenant model versioning (Phase D) ──────────────────────
 
     def set_model(
         self,

@@ -370,7 +370,7 @@ class TestScoreChunked:
             scorer._score_chunked_with_counts(long_prem, long_hyp)
 
     def test_premise_ratio_reduces_premise_chunks(self):
-        """Higher premise_ratio gives more premise budget â†’ fewer premise chunks."""
+        """Higher premise_ratio gives more premise budget → fewer premise chunks."""
         scorer = NLIScorer(use_model=False, max_length=64)
         long_prem = ". ".join(f"Source paragraph {i} detail" for i in range(30)) + "."
         _, _, np_default, _ = scorer._score_chunked_with_counts(

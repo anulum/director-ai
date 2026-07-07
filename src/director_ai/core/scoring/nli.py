@@ -268,7 +268,7 @@ _DIVERGENCE_ALIGNED = 0.1
 _DIVERGENCE_CONTRADICTED = 0.9
 
 
-# â"€â"€ Helpers â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
+# ── Helpers ──────────────────────────────────────────────────────
 
 
 def _softmax_np(x: np.ndarray) -> np.ndarray:
@@ -385,7 +385,7 @@ def _probs_to_confidence(probs: np.ndarray) -> list[float]:
     return result
 
 
-# â"€â"€ Model Loaders â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
+# ── Model Loaders ───────────────────────────────────────────────
 
 
 @lru_cache(maxsize=4)
@@ -512,7 +512,7 @@ def nli_available() -> bool:
     return True
 
 
-# ── Scorer â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
+# ── Scorer ───────────────────────────────────────────────────────
 
 
 class NLIScorer:
@@ -763,7 +763,7 @@ class NLIScorer:
         loop = asyncio.get_running_loop()
         return await loop.run_in_executor(None, self.score_batch, pairs)
 
-    # â"€â"€ MiniCheck backend â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
+    # ── MiniCheck backend ────────────────────────────────────────
 
     def _ensure_minicheck(self) -> bool:
         """Load the MiniCheck backend if available."""
@@ -907,7 +907,7 @@ class NLIScorer:
             preds = result
         return [float(1.0 - s) for s in preds]
 
-    # â"€â"€ PyTorch backend â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
+    # ── PyTorch backend ──────────────────────────────────────────
 
     @property
     def _is_factcg(self) -> bool:
@@ -998,7 +998,7 @@ class NLIScorer:
 
         return _probs_to_divergence(probs, self._label_indices)
 
-    # â"€â"€ ONNX backend â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
+    # ── ONNX backend ─────────────────────────────────────────────
 
     def _onnx_score_batch(self, pairs: list[tuple[str, str]]) -> list[float]:
         """Batched ONNX Runtime inference."""
@@ -1039,7 +1039,7 @@ class NLIScorer:
 
         return _probs_to_divergence(_softmax_np(logits), self._label_indices)
 
-    # â"€â"€ Chunked scoring â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
+    # ── Chunked scoring ──────────────────────────────────────────
 
     @staticmethod
     def _split_sentences(text: str) -> list[str]:
@@ -1451,7 +1451,7 @@ class NLIScorer:
 
         return agg, per_hyp
 
-    # â"€â"€ Claim decomposition â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
+    # ── Claim decomposition ────────────────────────────────────────
 
     def decompose_claims(self, text: str) -> list[str]:
         """Split text into individual claim sentences."""
@@ -1616,7 +1616,7 @@ class NLIScorer:
         coverage = supported / len(claims)
         return coverage, per_claim_divs, claims, attributions
 
-    # â"€â"€ Lite backend â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
+    # ── Lite backend ─────────────────────────────────────────────
 
     def _ensure_lite(self) -> None:
         """Initialise the lightweight lexical scorer backend."""
@@ -1635,7 +1635,7 @@ class NLIScorer:
         self._ensure_lite()
         return [float(v) for v in self._lite_scorer.score_batch(pairs)]
 
-    # â"€â"€ Heuristic fallback â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
+    # ── Heuristic fallback ───────────────────────────────────────
 
     _NEGATION_WORDS = frozenset(
         {

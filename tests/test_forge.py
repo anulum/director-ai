@@ -29,7 +29,7 @@ F = torch.nn.functional
 from forge import ForgeConfig, ForgeTrainer, focal_loss, model_soup, symmetric_kl  # noqa: E402, I001
 
 
-# â”€â”€ Focal loss â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── Focal loss ──────────────────────────────────────────────────
 
 
 class TestFocalLoss:
@@ -60,7 +60,7 @@ class TestFocalLoss:
         assert logits.grad is not None
 
 
-# â”€â”€ Symmetric KL â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── Symmetric KL ────────────────────────────────────────────────
 
 
 class TestSymmetricKL:
@@ -83,7 +83,7 @@ class TestSymmetricKL:
         assert abs(kl_ab.item() - kl_ba.item()) < 1e-5
 
 
-# â”€â”€ ForgeConfig â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── ForgeConfig ─────────────────────────────────────────────────
 
 
 class TestForgeConfig:
@@ -103,7 +103,7 @@ class TestForgeConfig:
         assert len(cfg.active_techniques()) == 1
 
 
-# â”€â”€ ForgeTrainer â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── ForgeTrainer ────────────────────────────────────────────────
 
 
 class SimpleModel(nn.Module):
@@ -178,7 +178,7 @@ class TestForgeTrainerComputeLoss:
         assert loss.requires_grad
 
 
-# â”€â”€ FGM â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── FGM ─────────────────────────────────────────────────────────
 
 
 class TestFGM:
@@ -211,12 +211,12 @@ class TestFGM:
 
         original = model.word_embeddings.weight.data.clone()
         trainer._fgm_attack(model)
-        # No gradients â†’ no perturbation â†’ no backup
+        # No gradients → no perturbation → no backup
         assert len(trainer._fgm_backup) == 0
         assert torch.equal(model.word_embeddings.weight.data, original)
 
 
-# â”€â”€ Model Soup â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── Model Soup ──────────────────────────────────────────────────
 
 
 class TestModelSoup:

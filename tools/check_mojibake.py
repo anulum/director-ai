@@ -37,6 +37,10 @@ MOJIBAKE_SIGNATURES: tuple[str, ...] = (
     "\u00c3\u00b1",  # n-tilde
     "\u00c3\u00a7",  # c-cedilla
     "\u00e2\u20ac",  # dash/quote prefix
+    "\u00e2\u2020\u2019",  # rightwards arrow
+    "\u00e2\u2030\u0088",  # approximately equal
+    "\u00e2\u201d\u20ac",  # box rule, cp1250 path
+    "\u00e2\u0022\u20ac",  # box rule, cp1252 path
     "\u00e2\u201a\u00ac",  # euro artefact
     "\u0102\u02d8",  # multi-round cp1250
     "\u00c5\u00a1",  # s-caron

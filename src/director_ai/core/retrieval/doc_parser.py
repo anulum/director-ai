@@ -6,7 +6,7 @@
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI — Document Parser
 
-"""File format â†’ plain text. Heavy deps imported lazily.
+"""File format → plain text. Heavy deps imported lazily.
 
 Supports: PDF, DOCX, HTML, CSV, TXT, Markdown.
 Install optional deps: ``pip install director-ai[ingestion]``

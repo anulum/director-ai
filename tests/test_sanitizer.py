@@ -233,7 +233,7 @@ class TestInputSanitizerScrub:
         assert "\t" in result
 
     def test_normalizes_unicode(self):
-        # NFKC normalisation: fullwidth A â†’ A
+        # NFKC normalisation: fullwidth A → A
         result = InputSanitizer.scrub("\uff21")
         assert result == "A"
 

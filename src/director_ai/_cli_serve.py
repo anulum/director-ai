@@ -300,7 +300,7 @@ def _cmd_proxy(args: list[str]) -> None:
     )
 
     print(
-        f"Director-AI proxy on :{port} â†’ {upstream_url} "
+        f"Director-AI proxy on :{port} → {upstream_url} "
         f"(threshold={threshold}, on_fail={on_fail})",
     )
     # CLI proxy bind; production deployments place it behind a reverse proxy.

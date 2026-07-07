@@ -22,7 +22,7 @@ from director_ai.core.lite_scorer import LiteScorer
 from director_ai.core.scorer import CoherenceScorer
 from director_ai.core.vector_store import InMemoryBackend
 
-# â”€â”€ Item 1: quickstart scaffolding â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── Item 1: quickstart scaffolding ────────────────────────────────
 
 
 class TestQuickstartScaffolding:
@@ -38,7 +38,7 @@ class TestQuickstartScaffolding:
         compile(source, str(guard_py), "exec")
 
 
-# â”€â”€ Item 2: process_batch_async â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── Item 2: process_batch_async ────────────────────────────────────
 
 
 class TestBatchAsync:
@@ -86,7 +86,7 @@ class TestBatchAsync:
         assert len(result.errors) == 1
 
 
-# â”€â”€ Item 4: async VectorBackend â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── Item 4: async VectorBackend ────────────────────────────────────
 
 
 class TestAsyncVectorBackend:
@@ -102,7 +102,7 @@ class TestAsyncVectorBackend:
         asyncio.run(_test())
 
 
-# â”€â”€ Item 6: LiteScorer.review() â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── Item 6: LiteScorer.review() ───────────────────────────────────
 
 
 class TestLiteScorerReview:
@@ -129,7 +129,7 @@ class TestLiteScorerReview:
         assert cs_high.approved is False
 
 
-# â”€â”€ Item 7: config validation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── Item 7: config validation ─────────────────────────────────────
 
 
 class TestConfigValidation:
@@ -153,7 +153,7 @@ class TestConfigValidation:
         assert "typo_key" in caplog.text
 
 
-# â”€â”€ Item 8a: cross-turn divergence e2e â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── Item 8a: cross-turn divergence e2e ─────────────────────────────
 
 
 class TestCrossTurnDivergence:
@@ -172,7 +172,7 @@ class TestCrossTurnDivergence:
         assert len(session) == 2
 
 
-# â”€â”€ Item 8c: build_store sentence-transformer branch â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── Item 8c: build_store sentence-transformer branch ──────────────
 
 
 class TestBuildStoreSentenceTransformer:

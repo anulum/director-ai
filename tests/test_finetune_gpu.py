@@ -94,7 +94,7 @@ def _make_nli_data(n_pos: int = 50, n_neg: int = 50) -> JsonlRows:
     return rows
 
 
-# â”€â”€ _evaluate_model (real inference) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── _evaluate_model (real inference) ─────────────────────────────────
 
 
 class TestEvaluateModelReal:
@@ -202,7 +202,7 @@ class TestEvaluateModelReal:
         assert report.regression_pp != 0.0
 
 
-# â”€â”€ _prepare_dataset â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── _prepare_dataset ─────────────────────────────────────────────────
 
 
 class TestPrepareDataset:
@@ -232,7 +232,7 @@ class TestPrepareDataset:
         assert "input_ids" in ds.column_names
 
 
-# â”€â”€ finetune_nli (micro-training on GPU) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── finetune_nli (micro-training on GPU) ─────────────────────────────
 
 
 class TestFinetuneNliGPU:
@@ -380,7 +380,7 @@ class TestFinetuneNliGPU:
         assert result.output_dir == str(tmp_path / "onnx_out")
 
 
-# â”€â”€ _evaluate_model non-FactCG branch â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── _evaluate_model non-FactCG branch ────────────────────────────────
 
 
 class TestEvaluateNonFactCG:
