@@ -9,8 +9,6 @@
 
 from __future__ import annotations
 
-from unittest.mock import patch
-
 import pytest
 
 from director_ai.core.license import (
@@ -122,27 +120,22 @@ class TestEnforceCapabilityTier:
             enforce_capability_tier("federated_dp", minimum="enterprise")
 
 
+def _gate_raises(capability: str, *, minimum: str = "pro") -> None:
+    """enforce_capability_tier stand-in that always gates the given capability."""
+    raise LicenseError(f"gated: {capability}")
+
+
 class TestGuardTierWiring:
-    def test_repair_stream_gates_on_tier(self):
+    def test_repair_stream_gates_on_tier(self, monkeypatch):
         guard = ProductionGuard()
-        with (
-            patch(
-                "director_ai.guard.enforce_capability_tier",
-                side_effect=LicenseError("gated: repair_stream"),
-            ),
-            pytest.raises(LicenseError, match="repair_stream"),
-        ):
+        monkeypatch.setattr("director_ai.guard.enforce_capability_tier", _gate_raises)
+        with pytest.raises(LicenseError, match="repair_stream"):
             guard.repair_stream("prompt", "response")
 
-    def test_sector_policy_gates_on_tier(self):
+    def test_sector_policy_gates_on_tier(self, monkeypatch):
         guard = ProductionGuard()
-        with (
-            patch(
-                "director_ai.guard.enforce_capability_tier",
-                side_effect=LicenseError("gated: sector_policy"),
-            ),
-            pytest.raises(LicenseError, match="sector_policy"),
-        ):
+        monkeypatch.setattr("director_ai.guard.enforce_capability_tier", _gate_raises)
+        with pytest.raises(LicenseError, match="sector_policy"):
             guard._evaluate_sector_policy(
                 sector_policy="banking",
                 prompt="p",
