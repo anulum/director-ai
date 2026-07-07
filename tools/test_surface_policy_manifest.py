@@ -232,7 +232,11 @@ KNOWN_TEST_SURFACE_CLASSIFICATIONS: dict[str, tuple[str, str]] = {
         "unit-guard-with-companion",
         "ML/export/eval unit guard with companion tests/test_frontierfail_packet_real_surface.py",
     ),
-    "tests/test_gemma_aggrefact_cot.py": ("violation", "ML/export/eval boundary fake"),
+    "tests/test_gemma_aggrefact_cot.py": (
+        "unit-guard-with-companion",
+        "ML/export/eval Gemma AggreFact CoT evaluator guard with companion "
+        "tests/test_gemma_aggrefact_cot_real_surface.py",
+    ),
     "tests/test_gemma_aggrefact_eval.py": (
         "unit-guard-with-companion",
         "ML/export/eval Gemma AggreFact evaluator guard with companion "
