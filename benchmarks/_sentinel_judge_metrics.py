@@ -23,12 +23,6 @@ from _sentinel_judge_schema import (
     align_judges,
     load_judge,
 )
-from sklearn.linear_model import (  # type: ignore[import-untyped] # scikit-learn has no py.typed metadata in this environment.
-    LogisticRegression,
-)
-from sklearn.model_selection import (  # type: ignore[import-untyped] # scikit-learn has no py.typed metadata in this environment.
-    StratifiedKFold,
-)
 
 logger = logging.getLogger(__name__)
 
@@ -78,10 +72,6 @@ class _StratifiedKFoldFactory(Protocol):
         random_state: int,
     ) -> _StratifiedKFoldModel:
         """Construct a typed stratified split iterator."""
-
-
-_logistic_regression = cast(_LogisticRegressionFactory, LogisticRegression)
-_stratified_kfold = cast(_StratifiedKFoldFactory, StratifiedKFold)
 
 
 def balanced_accuracy(preds: Sequence[int], labels: Sequence[int]) -> float:
@@ -213,11 +203,23 @@ def lr_fusion_ensemble(
         x[sample_index, n_judges + ds_idx[dataset]] = 1.0
     y = np.asarray(labels, dtype=np.int64)
 
+    # sklearn ships in the finetune extra; import it lazily so the analyser
+    # stays importable and validates its inputs without scikit-learn installed.
+    from sklearn.linear_model import (  # type: ignore[import-untyped] # scikit-learn has no py.typed metadata in this environment.
+        LogisticRegression,
+    )
+    from sklearn.model_selection import (  # type: ignore[import-untyped] # scikit-learn has no py.typed metadata in this environment.
+        StratifiedKFold,
+    )
+
+    stratified_kfold = cast(_StratifiedKFoldFactory, StratifiedKFold)
+    logistic_regression = cast(_LogisticRegressionFactory, LogisticRegression)
+
     out_pred = np.full(n_samples, -1, dtype=np.int64)
     for fold, (train, test) in enumerate(
-        _stratified_kfold(n_splits=5, shuffle=True, random_state=0).split(x, y),
+        stratified_kfold(n_splits=5, shuffle=True, random_state=0).split(x, y),
     ):
-        clf = _logistic_regression(max_iter=2000, C=1.0, solver="liblinear")
+        clf = logistic_regression(max_iter=2000, C=1.0, solver="liblinear")
         clf.fit(x[train], y[train])
         out_pred[test] = clf.predict(x[test])
         logger.info(

@@ -15,6 +15,8 @@ import sys
 from pathlib import Path
 from typing import Any
 
+import pytest
+
 from tools.test_surface_policy_manifest import KNOWN_TEST_SURFACE_CLASSIFICATIONS
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -55,6 +57,7 @@ def test_sentinel_judge_analyser_cli_writes_report(
     tmp_path: Path,
 ) -> None:
     """Run the production analyser CLI against local judge result files."""
+    pytest.importorskip("sklearn")  # LR fusion needs the finetune extra
     labels = [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0]
     datasets = ["alpha"] * 6 + ["beta"] * 6
     judge_a = tmp_path / "judge_a.json"
