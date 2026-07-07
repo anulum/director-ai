@@ -23,6 +23,7 @@ import os
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Any
 from uuid import UUID
 
 logger = logging.getLogger("director_ai.license")
@@ -98,6 +99,67 @@ def _signing_secret() -> bytes:
             "License generation/validation requires the signing key in the environment."
         )
     return secret.encode("utf-8")
+
+
+# ANULUM's Ed25519 license-verification public key (hex, 32 bytes / 64 hex chars).
+# Signed licences are verified against THIS embedded key; the matching private
+# key is held OFFLINE by ANULUM and never ships, so a client — who only has the
+# public key — cannot forge a licence (unlike the legacy symmetric HMAC scheme,
+# where possessing the verification secret is enough to mint any tier).
+#
+# Generate the keypair with ``python tools/generate_license_keypair.py`` on an
+# offline machine and paste the printed public key below. Until the key ceremony
+# is complete this is empty and signed-licence verification is unavailable in
+# this build (legacy HMAC licences still validate).
+_LICENSE_ED25519_PUBLIC_KEY_HEX = ""
+
+# Signature fields excluded from the canonically-serialised message that both the
+# signer and verifier hash over.
+_SIGNATURE_FIELDS = ("signature", "ed25519_signature")
+
+_ED25519_CRYPTO_HINT = (
+    "Ed25519 license verification requires the 'cryptography' package "
+    "(pip install director-ai[crypto])."
+)
+
+
+def _canonical_license_message(data: dict[str, Any]) -> bytes:
+    """Serialise the licence payload (minus signature fields) for signing/verifying."""
+    payload = {k: v for k, v in data.items() if k not in _SIGNATURE_FIELDS}
+    return json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
+
+
+def _verify_ed25519_signature(
+    data: dict[str, Any], signature_hex: str
+) -> tuple[bool, str]:
+    """Verify a licence's Ed25519 signature against the embedded public key.
+
+    Returns ``(ok, message)``. ``ok`` is ``False`` (with an explanatory message)
+    when no public key is embedded, ``cryptography`` is unavailable, or the
+    signature does not verify.
+    """
+    if not _LICENSE_ED25519_PUBLIC_KEY_HEX:
+        return False, (
+            "This build has no embedded license public key; cannot verify signed "
+            "licences. Complete the key ceremony (tools/generate_license_keypair.py)."
+        )
+    try:
+        from cryptography.exceptions import InvalidSignature
+        from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
+    except ImportError:
+        return False, _ED25519_CRYPTO_HINT
+    try:
+        public_key = Ed25519PublicKey.from_public_bytes(
+            bytes.fromhex(_LICENSE_ED25519_PUBLIC_KEY_HEX)
+        )
+        public_key.verify(
+            bytes.fromhex(signature_hex), _canonical_license_message(data)
+        )
+    except InvalidSignature:
+        return False, "Invalid license signature"
+    except ValueError:
+        return False, "Malformed license signature or public key"
+    return True, ""
 
 
 @dataclass(frozen=True)
@@ -180,21 +242,28 @@ def validate_file(path: str | Path) -> LicenseInfo:
     except (json.JSONDecodeError, OSError) as exc:
         return LicenseInfo(message=f"Cannot read license file: {exc}")
 
-    try:
-        secret = _signing_secret()
-    except RuntimeError:
-        return LicenseInfo(
-            message="Signing key not configured; cannot validate license file"
-        )
-
-    sig = data.get("signature", "")
-    payload = {k: v for k, v in data.items() if k != "signature"}
-    expected_sig = hmac.new(
-        secret, json.dumps(payload, sort_keys=True).encode(), hashlib.sha256
-    ).hexdigest()
-
-    if not hmac.compare_digest(sig, expected_sig):
-        return LicenseInfo(message="Invalid license signature")
+    # Prefer the asymmetric Ed25519 signature (forgery-resistant: the private key
+    # never ships). Fall back to the legacy symmetric HMAC signature only for
+    # licences issued before SEC-1, which needs the shared signing secret.
+    ed25519_sig = str(data.get("ed25519_signature", ""))
+    if ed25519_sig:
+        ok, message = _verify_ed25519_signature(data, ed25519_sig)
+        if not ok:
+            return LicenseInfo(message=message)
+    else:
+        try:
+            secret = _signing_secret()
+        except RuntimeError:
+            return LicenseInfo(
+                message="Signing key not configured; cannot validate license file"
+            )
+        sig = data.get("signature", "")
+        payload = {k: v for k, v in data.items() if k != "signature"}
+        expected_sig = hmac.new(
+            secret, json.dumps(payload, sort_keys=True).encode(), hashlib.sha256
+        ).hexdigest()
+        if not hmac.compare_digest(sig, expected_sig):
+            return LicenseInfo(message="Invalid license signature")
 
     tier = data.get("tier", "").lower()
     if tier not in TIERS:
@@ -313,7 +382,22 @@ def generate_license(
         "deployments": deployments,
         "version": "1",
     }
-    payload["signature"] = hmac.new(
-        _signing_secret(), json.dumps(payload, sort_keys=True).encode(), hashlib.sha256
-    ).hexdigest()
+    # Sign asymmetrically with the offline Ed25519 private key when available
+    # (DIRECTOR_LICENSE_PRIVATE_KEY, hex); otherwise fall back to the legacy
+    # symmetric HMAC signature. Only the asymmetric path is forgery-resistant.
+    private_key_hex = os.environ.get("DIRECTOR_LICENSE_PRIVATE_KEY", "").strip()
+    if private_key_hex:
+        from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+
+        private_key = Ed25519PrivateKey.from_private_bytes(
+            bytes.fromhex(private_key_hex)
+        )
+        signature = private_key.sign(_canonical_license_message(payload))
+        payload["ed25519_signature"] = signature.hex()
+    else:
+        payload["signature"] = hmac.new(
+            _signing_secret(),
+            json.dumps(payload, sort_keys=True).encode(),
+            hashlib.sha256,
+        ).hexdigest()
     return payload
