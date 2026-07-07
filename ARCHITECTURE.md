@@ -10,8 +10,16 @@ Python is the primary runtime. Rust handles hot-path compute through
 operators want a high-concurrency HTTP entry point, and calls back
 into the Python scorer over gRPC. A Julia analytics module runs
 offline on exported score logs. A Lean 4 proof artefact pins the
-halt-monitor safety contract. All language components are additive —
-the Python path stands on its own without any of them.
+halt-monitor safety contract.
+
+The Go, Julia, and Lean components are additive. The `backfire-kernel`
+Rust accelerators are currently **required** for the paths that call
+them: when the `rust` extra is absent those paths raise a clear error
+rather than silently degrade. A hybrid Python fallback — reachable only
+where it is proven bit-exact with the Rust kernel — is being rolled out
+per [ADR-0001](docs/adr/0001-rust-accelerator-hybrid-fallback.md);
+integer-arithmetic kernels are bit-exact and fallback-eligible, while
+float, cryptographic, geometric, and model kernels stay Rust-mandatory.
 
 ## Shipped Today - 2026-04-29
 
@@ -20,8 +28,9 @@ the Python path stands on its own without any of them.
 - `CoherenceAgent` hook wiring now covers containment guards, containment
   anchors, physical-grounding hooks, and passport verifiers as optional
   constructor inputs.
-- Rust acceleration for safety primitives is documented as an optional
-  `backfire-kernel` path with pure-Python fallback.
+- Rust acceleration for safety primitives runs through the
+  `backfire-kernel` path; the pure-Python fallback is being rolled out
+  per ADR-0001 (bit-exact integer kernels only — see above).
 - Roadmap status now separates completed simplification work from planned
   physical, attestation, and Rust-extraction hardening.
 

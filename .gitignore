@@ -49,6 +49,7 @@ docs/*
 !docs/_generated/
 !docs/_generated/capability_manifest.json
 !docs/_generated/capability_snapshot.md
+!docs/adr/
 docs/_build/
 
 # =====================================================================
