@@ -9,7 +9,7 @@ SPDX-FileCopyrightText = "1998-2026 Miroslav Šotek <protoscience@anulum.li>"
 SPDX-License-Identifier = "Apache-2.0"
 
 [[annotations]]
-path = ["backfire-kernel/**", "demo/**", "discord-bot/**", "examples/**", "training/**", "proto/**", "scripts/**"]
+path = ["backfire-kernel/**", "demo/**", "discord-bot/**", "examples/**", "training/**", "proto/**", "scripts/**", "studio-web/**"]
 SPDX-FileCopyrightText = "1998-2026 Miroslav Šotek <protoscience@anulum.li>"
 SPDX-License-Identifier = "Apache-2.0"
 
@@ -56,7 +56,7 @@ SPDX-License-Identifier = "Apache-2.0"
 # --- Documentation & media (CC-BY-4.0) ---
 
 [[annotations]]
-path = ["docs/**", "docs-site/**", "notebooks/**", "*.png", "*.svg", "*.jpg"]
+path = ["docs/**", "docs-site/**", "notebooks/**", "assets/**", "*.png", "*.svg", "*.jpg"]
 SPDX-FileCopyrightText = "1998-2026 Miroslav Šotek <protoscience@anulum.li>"
 SPDX-License-Identifier = "CC-BY-4.0"
 

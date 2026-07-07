@@ -734,6 +734,21 @@ jobs:
           lint: false
           use-mathlib-cache: false
 
+  reuse:
+    name: REUSE Compliance (SPDX)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      # Every tracked file must carry SPDX copyright + licence metadata, via an
+      # inline header or a REUSE.toml annotation. Fails the build on any uncovered
+      # file so the open-core (Apache-2.0) / media (CC-BY-4.0) / paid-tier
+      # (BUSL-1.1) licence boundary stays machine-checkable (WCG-3).
+      - name: REUSE lint
+        uses: fsfe/reuse-action@676e2d560c9a403aa252096d99fcab3e1132b0f5 # v6.0.0
+        with:
+          args: lint
+
   discord-notify:
     name: Discord CI Notification
     runs-on: ubuntu-latest
