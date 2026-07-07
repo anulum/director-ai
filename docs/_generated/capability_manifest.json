@@ -6,10 +6,10 @@
     "optional_extras": 62,
     "public_api_exports": 226,
     "public_documentation_pages": 203,
-    "python_model_classes": 1004,
+    "python_model_classes": 1005,
     "python_model_source_modules": 461,
     "rust_pyo3_model_wrappers": 83,
-    "test_files": 679
+    "test_files": 682
   },
   "documentation": {
     "public_pages": [
@@ -2395,6 +2395,10 @@
       {
         "name": "LengthRatioRule",
         "path": "src/director_ai/core/scoring/rules_scorer.py"
+      },
+      {
+        "name": "LicenseError",
+        "path": "src/director_ai/core/license.py"
       },
       {
         "name": "LicenseInfo",
@@ -5274,6 +5278,7 @@
       "tests/test_carbon.py",
       "tests/test_causal_attribution_graph.py",
       "tests/test_causal_verifier.py",
+      "tests/test_check_mojibake.py",
       "tests/test_chroma_integration.py",
       "tests/test_chunked_nli.py",
       "tests/test_ci_gate.py",
@@ -5553,7 +5558,9 @@
       "tests/test_lazy_enterprise_import.py",
       "tests/test_lazy_enterprise_import_real_surface.py",
       "tests/test_license.py",
+      "tests/test_license_ed25519.py",
       "tests/test_license_edge_cases.py",
+      "tests/test_license_tier_enforcement.py",
       "tests/test_lite.py",
       "tests/test_lite_scorer.py",
       "tests/test_lite_scorer_v2_eval.py",
