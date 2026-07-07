@@ -141,6 +141,35 @@ class TestDirectorAITool:
         assert "approved" in result
 
 
+class TestCrewAIAgentContract:
+    """The advertised ``Agent(tools=[tool])`` usage must actually work."""
+
+    def test_tool_is_a_crewai_basetool(self):
+        pytest.importorskip("crewai")
+        from crewai.tools import BaseTool
+
+        tool = DirectorAITool(facts={"company": "Founded in 2020"}, use_nli=False)
+        assert isinstance(tool, BaseTool)
+
+    def test_agent_accepts_tool(self, monkeypatch):
+        pytest.importorskip("crewai")
+        from crewai import Agent
+
+        # The LLM object construction only needs a key to be present; no network
+        # request is made when the agent is built.
+        monkeypatch.setenv("OPENAI_API_KEY", "sk-test-not-used")
+        tool = DirectorAITool(facts={"company": "Founded in 2020"}, use_nli=False)
+        agent = Agent(
+            role="fact checker",
+            goal="verify claims",
+            backstory="a careful reviewer",
+            tools=[tool],
+            llm="gpt-4o-mini",
+        )
+        assert len(agent.tools) == 1
+        assert agent.tools[0] is tool
+
+
 class TestCrewAIPerformanceDoc:
     """Document CrewAI tool pipeline performance."""
 
