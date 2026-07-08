@@ -36,7 +36,7 @@ def test_knowledge_word_overlap_python_floor() -> None:
     assert knowledge._word_overlap("", "x") == 0.0
 
 
-def test_nli_softmax_python_floor_large_input(monkeypatch) -> None:
+def test_nli_softmax_python_floor_large_input(monkeypatch: pytest.MonkeyPatch) -> None:
     from director_ai.core.scoring import nli
 
     monkeypatch.setattr(nli, "_RUST_NLI", False)
@@ -52,7 +52,9 @@ def test_nli_softmax_python_floor_large_input(monkeypatch) -> None:
     np.testing.assert_allclose(out, ref, rtol=1e-9)
 
 
-def test_nli_divergence_python_floor_large_batch(monkeypatch) -> None:
+def test_nli_divergence_python_floor_large_batch(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     from director_ai.core.scoring import nli
 
     monkeypatch.setattr(nli, "_RUST_NLI", False)
@@ -63,7 +65,9 @@ def test_nli_divergence_python_floor_large_batch(monkeypatch) -> None:
     np.testing.assert_allclose(out, [0.3] * 12, rtol=1e-9)
 
 
-def test_nli_confidence_python_floor_large_batch(monkeypatch) -> None:
+def test_nli_confidence_python_floor_large_batch(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     from director_ai.core.scoring import nli
 
     monkeypatch.setattr(nli, "_RUST_NLI", False)
@@ -73,7 +77,7 @@ def test_nli_confidence_python_floor_large_batch(monkeypatch) -> None:
     assert all(0.0 <= v <= 1.0 for v in out)
 
 
-def test_doc_chunker_sum_python_floor(monkeypatch) -> None:
+def test_doc_chunker_sum_python_floor(monkeypatch: pytest.MonkeyPatch) -> None:
     from director_ai.core.retrieval import doc_chunker
 
     monkeypatch.setattr(doc_chunker, "_RUST_DOC_CHUNKER", False)
@@ -85,9 +89,11 @@ def test_rust_flags_are_boolean() -> None:
     # The flags must always be plain booleans so the no-Rust floor is reachable.
     from director_ai.core.retrieval import doc_chunker
     from director_ai.core.scoring import nli
+    from director_ai.core.verification import numeric_verifier
 
     assert isinstance(nli._RUST_NLI, bool)
     assert isinstance(doc_chunker._RUST_DOC_CHUNKER, bool)
+    assert isinstance(numeric_verifier._RUST_NUMERIC, bool)
 
 
 @pytest.mark.skipif(
@@ -109,3 +115,22 @@ def test_core_review_runs_on_the_pure_python_floor() -> None:
     )
     assert isinstance(approved, bool)
     assert 0.0 <= score.score <= 1.0
+
+
+@pytest.mark.skipif(
+    not _KERNEL_ABSENT,
+    reason="genuine floor path — only meaningful in a base install without the kernel",
+)
+def test_numeric_verifier_runs_on_the_pure_python_floor() -> None:
+    """``verify_numeric`` must run kernel-absent via its bit-exact Python floor.
+
+    Exercises the real ``except ImportError`` branch (``_RUST_NUMERIC`` False) in a
+    base install: the arithmetic/date/probability checks run in pure Python and
+    still flag the wrong percentage. Bit-exactness against the kernel is proven
+    separately in ``test_numeric_verifier_parity.py`` (kernel-present).
+    """
+    from director_ai.core.verification.numeric_verifier import verify_numeric
+
+    result = verify_numeric("Revenue grew 15% from $10 million to $12 million.")
+    assert result.valid is False
+    assert any(issue.issue_type == "arithmetic" for issue in result.issues)

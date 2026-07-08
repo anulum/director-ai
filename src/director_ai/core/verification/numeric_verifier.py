@@ -23,6 +23,7 @@ import re
 from dataclasses import dataclass, field
 from datetime import datetime
 
+from ..accelerator_fallback import sum_i64
 from ..mandatory import mandatory_execution
 
 __all__ = [
@@ -32,19 +33,23 @@ __all__ = [
     "verify_numeric",
 ]
 
-try:
+try:  # pragma: no cover - optional acceleration
     from backfire_kernel import rust_sum_i64, rust_verify_numeric
 
     _RUST_NUMERIC = True
-except ImportError:
-    _RUST_NUMERIC = True
-
-    def rust_sum_i64(_values: list[int]) -> int:
-        raise RuntimeError("backfire_kernel rust_sum_i64 is unavailable")
+except ImportError:  # pragma: no cover - bit-exact pure-Python fallback (ADR-0001)
+    # ADR-0001: backfire-kernel is the opt-in ``[rust]`` extra. With it absent this
+    # module runs the bit-exact pure-Python floor below — ``verify_numeric``
+    # rebuilds the identical ``NumericVerificationResult`` (issue strings included)
+    # and ``_sum_int`` routes through ``sum_i64``. Both are certified against the
+    # real kernel by ``tests/test_numeric_verifier_parity.py``, so the flag is
+    # False and every ``if _RUST_NUMERIC`` block takes its Python branch.
+    _RUST_NUMERIC = False
+    rust_sum_i64 = sum_i64
 
     def rust_verify_numeric(
-        _text: str,
-    ) -> tuple[list[tuple[float, str, str]], list[str]]:
+        _text: str, _current_year: int
+    ) -> tuple[int, list[tuple[str, str, str, str]], bool]:
         raise RuntimeError("backfire_kernel rust_verify_numeric is unavailable")
 
 
@@ -122,11 +127,29 @@ class NumericVerificationResult:
         )
 
 
+def _fmt_num(x: float) -> str:
+    """Render a parsed numeric value the way the Rust kernel's ``f64`` Display does.
+
+    ``rust_verify_numeric`` prints whole values without a trailing ``.0``
+    (``10.0 -> "10"``) and the shortest round-tripping form otherwise
+    (``10.5 -> "10.5"``) — which is exactly what CPython's ``repr`` produces for
+    the non-integer case. The values fed here come from ``_parse_number`` on the
+    regex-captured decimals, so they stay in the range where ``repr`` uses fixed
+    notation; matching this keeps the pure-Python issue descriptions bit-identical
+    to the accelerator (see ``tests/test_numeric_verifier_parity.py``).
+    """
+    xf = float(x)
+    if xf.is_integer():
+        return str(int(xf))
+    return repr(xf)
+
+
 def _sum_int(values: list[int]) -> int:
     if _RUST_NUMERIC:
         with mandatory_execution(__name__, component="mandatory accelerated path"):
             return int(rust_sum_i64(values))
-    return sum(values)
+    # kernel absent: the bit-exact pure-Python fallback (ADR-0001)
+    return sum_i64(values)
 
 
 def verify_numeric(text: str) -> NumericVerificationResult:
@@ -171,7 +194,8 @@ def verify_numeric(text: str) -> NumericVerificationResult:
                     NumericIssue(
                         issue_type="arithmetic",
                         description=(
-                            f"Claimed {pct}% change from {val_from} to {val_to}, "
+                            f"Claimed {_fmt_num(pct)}% change from "
+                            f"{_fmt_num(val_from)} to {_fmt_num(val_to)}, "
                             f"but actual change is {actual_pct:.1f}%"
                         ),
                         severity="error",
@@ -205,7 +229,7 @@ def verify_numeric(text: str) -> NumericVerificationResult:
             issues.append(
                 NumericIssue(
                     issue_type="probability",
-                    description=f"Probability {prob}% exceeds 100%",
+                    description=f"Probability {_fmt_num(prob)}% exceeds 100%",
                     severity="error",
                     context=m.group(0),
                 )
@@ -214,7 +238,7 @@ def verify_numeric(text: str) -> NumericVerificationResult:
             issues.append(
                 NumericIssue(
                     issue_type="probability",
-                    description=f"Negative probability {prob}%",
+                    description=f"Negative probability {_fmt_num(prob)}%",
                     severity="error",
                     context=m.group(0),
                 )
@@ -309,8 +333,8 @@ def _check_magnitude(text: str, issues: list[NumericIssue]) -> None:
                     NumericIssue(
                         issue_type="magnitude",
                         description=(
-                            f"{name}: {val} {found_unit} outside expected range "
-                            f"[{lo}-{hi}] {unit}"
+                            f"{name}: {_fmt_num(val)} {found_unit} outside "
+                            f"expected range [{_fmt_num(lo)}-{_fmt_num(hi)}] {unit}"
                         ),
                         severity="warning",
                         context=m.group(0),
@@ -331,9 +355,13 @@ def _check_internal_consistency(text: str, issues: list[NumericIssue]) -> None:
                     NumericIssue(
                         issue_type="internal",
                         description=(
-                            f"Inconsistent totals: {totals[0]} vs {totals[i]}"
+                            f"Inconsistent totals: {_fmt_num(totals[0])} vs "
+                            f"{_fmt_num(totals[i])}"
                         ),
                         severity="error",
-                        context=f"total {totals[0]} ... total {totals[i]}",
+                        context=(
+                            f"total {_fmt_num(totals[0])} ... "
+                            f"total {_fmt_num(totals[i])}"
+                        ),
                     )
                 )
