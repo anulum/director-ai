@@ -189,6 +189,53 @@ jobs:
           name: coverage-report
           path: coverage.xml
 
+  floor:
+    name: Pure-Python floor (no rust extra)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
+        with:
+          python-version: "3.12"
+
+      - name: Install the base floor without the compiled kernel
+        # A base `pip install director-ai` resolves the pure-Python floor
+        # (ADR-0001). Install the dev/test deps, drop backfire-kernel, and never
+        # build it — the kernel is now the opt-in `[rust]` extra, not a base dep.
+        run: |
+          pip install --require-hashes --no-deps -r requirements/ci-dev.txt
+          pip uninstall -y backfire-kernel
+          pip install --no-deps -e .
+
+      - name: Assert the compiled kernel is genuinely absent
+        run: |
+          python - <<'PY'
+          import importlib.util
+          import sys
+
+          if importlib.util.find_spec("backfire_kernel") is not None:
+              sys.exit("backfire_kernel is present; the floor job would not test the floor")
+          print("backfire_kernel absent — floor conditions hold")
+          PY
+
+      - name: Base install imports and reviews in pure Python
+        run: |
+          python - <<'PY'
+          import director_ai
+          from director_ai.core import CoherenceScorer
+
+          assert director_ai.__version__
+          approved, score = CoherenceScorer(use_nli=False).review(
+              "What is 2+2? Explain.", "The answer is 4 because 2+2=4."
+          )
+          assert isinstance(approved, bool)
+          print(f"floor review OK: approved={approved} score={score.score:.4f}")
+          PY
+
+      - name: Run the pure-Python floor test suite
+        run: pytest tests/test_rust_fallback_floor.py tests/test_accelerator_fallback_parity.py -v --tb=short
+
   test-extras:
     name: Test extras (${{ matrix.extras }})
     runs-on: ubuntu-latest

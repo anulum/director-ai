@@ -122,9 +122,23 @@ silent degradation this ADR forbids.
    (naive `sum` would not wrap on overflow the way the i64 kernel does). The
    10 integer-sum-only modules were converted this way; the flag-False path is
    covered by the existing monkeypatch tests. — **done 2026-07-08**
-4. For mandatory modules: keep the honest raise, add a one-line "rust extra
-   required" note, and mark the `rust` extra required for those features in the
-   backend-tier docs.
+4. Make `backfire-kernel` the opt-in `rust` extra (it had been a base dependency
+   since `4c8a01d8`, which also emptied the extra — so the pure-Python floor never
+   actually ran in any install). `pip install director-ai` now resolves the floor;
+   `director-ai[rust]` (also pulled by `recommended` / `all` / `dev`) restores the
+   accelerator. A dedicated `floor` CI job installs the base **without** the
+   kernel, asserts it is absent, and proves the floor imports and runs
+   `CoherenceScorer.review()` end-to-end in pure Python. — **done 2026-07-08**
+5. Extend the fallback conversion beyond the integer-sum modules.
+   `core/scoring/_task_scoring` was converted first because it blocked the core
+   `review()` path: its task classifier, divergence-count coverage and integer sum
+   are all bit-exact (proven against the kernel binary — identical labels, exact
+   count/`n`, overflow-wrapping sum). ~22 `_RUST_*`-always-`True` modules remain;
+   the deterministic ones convert in later waves, while the crypto / model kernels
+   (`rust_verify_reality_anchor_mac`, `zk_attestation`, `provenance`,
+   `RustCoherenceScorer`, …) stay mandatory (honest raise) by design.
 
-Until a module reaches step 3 it remains mandatory; the honest `RuntimeError`
-is the correct interim behaviour (no silent fallback).
+Until a module is converted it remains mandatory; the honest `RuntimeError` is the
+correct interim behaviour (no silent fallback). Mandatory features fail with a
+clear error and require `director-ai[rust]`; a pure-Python-only reviewer is also
+available as the separate `director-ai-lite` package.

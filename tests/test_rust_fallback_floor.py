@@ -18,7 +18,12 @@ the no-Rust path and assert the Python floor produces correct results
 
 from __future__ import annotations
 
+import importlib.util
+
 import numpy as np
+import pytest
+
+_KERNEL_ABSENT = importlib.util.find_spec("backfire_kernel") is None
 
 
 def test_knowledge_word_overlap_python_floor() -> None:
@@ -83,3 +88,24 @@ def test_rust_flags_are_boolean() -> None:
 
     assert isinstance(nli._RUST_NLI, bool)
     assert isinstance(doc_chunker._RUST_DOC_CHUNKER, bool)
+
+
+@pytest.mark.skipif(
+    not _KERNEL_ABSENT,
+    reason="genuine floor path — only meaningful in a base install without the kernel",
+)
+def test_core_review_runs_on_the_pure_python_floor() -> None:
+    """A base ``pip install director-ai`` (no ``[rust]``) must still review.
+
+    This is the end-to-end floor guarantee: with the compiled kernel genuinely
+    absent, ``CoherenceScorer.review()`` runs the pure-Python task classifier and
+    scoring path instead of raising ``RuntimeError``. It runs only in the ``floor``
+    CI job (kernel uninstalled); normal kernel-present jobs skip it.
+    """
+    from director_ai.core import CoherenceScorer
+
+    approved, score = CoherenceScorer(use_nli=False).review(
+        "What is 2+2? Explain.", "The answer is 4 because 2+2=4."
+    )
+    assert isinstance(approved, bool)
+    assert 0.0 <= score.score <= 1.0
