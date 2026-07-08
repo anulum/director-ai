@@ -19,8 +19,8 @@ Usage::
     from director_ai.core.scoring.rules_scorer import RulesBackend
 
     backend = RulesBackend()
-    score = backend.score("The sky is blue.", "The sky is green.")
-    # score ≈ 0.3 (low — entity mismatch + negation-like divergence)
+    score = backend.score("Water boils at 100 degrees.", "Water boils at 500 degrees.")
+    # score ≈ 0.72 — the numeric-consistency rule flags the 100 vs 500 mismatch
 """
 
 from __future__ import annotations
@@ -32,10 +32,20 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from ..mandatory import mandatory_execution
-from ._heuristics import ENTITY_RE, NEGATION_WORDS, STOP_WORDS
+from ._heuristics import STOP_WORDS
+from .lexical_signals import entity_overlap as _py_entity_overlap
+from .lexical_signals import negation_flip as _py_negation_flip
+from .lexical_signals import numerical_consistency as _py_numerical_consistency
+from .lexical_signals import word_overlap_jaccard as _py_word_overlap
 
-# Rust kernels are mandatory in production installs.
-try:
+# The lexical signals are accelerated by backfire-kernel. ADR-0001 makes the
+# kernel the opt-in ``[rust]`` extra, so a base ``pip install director-ai`` runs
+# the bit-exact pure-Python ports in ``lexical_signals`` — proven byte-for-byte
+# against the kernel by ``tests/test_lexical_signals_parity.py``. The scorer's
+# earlier Python fallbacks had *drifted* (entity recall vs Jaccard, a numeric
+# ratio vs the shared-number boolean, F1 vs Jaccard word overlap); the ports
+# restore parity so the kernel-present and floor results are identical.
+try:  # pragma: no cover - optional acceleration
     from backfire_kernel import (
         rust_entity_overlap as _rust_entity_overlap,
     )
@@ -50,20 +60,46 @@ try:
     )
 
     _RUST_AVAILABLE = True
-except ImportError:
-    _RUST_AVAILABLE = True
+except ImportError:  # pragma: no cover - bit-exact pure-Python fallback (ADR-0001)
+    _RUST_AVAILABLE = False
+    _rust_entity_overlap = _py_entity_overlap
+    _rust_negation_flip = _py_negation_flip
+    _rust_numerical_consistency = _py_numerical_consistency
+    _rust_word_overlap = _py_word_overlap
 
-    def _rust_entity_overlap(_premise: str, _hypothesis: str) -> float:
-        raise RuntimeError("backfire_kernel rust_entity_overlap is unavailable")
 
-    def _rust_negation_flip(_premise: str, _hypothesis: str) -> bool:
-        raise RuntimeError("backfire_kernel rust_negation_flip is unavailable")
+def _entity_overlap(premise: str, hypothesis: str) -> float:
+    """Jaccard proper-noun overlap — kernel fast-path or the bit-exact port."""
+    if _RUST_AVAILABLE:
+        with mandatory_execution(__name__, component="mandatory accelerated path"):
+            return float(_rust_entity_overlap(premise, hypothesis))
+    return _py_entity_overlap(premise, hypothesis)
 
-    def _rust_numerical_consistency(_premise: str, _hypothesis: str) -> bool:
-        raise RuntimeError("backfire_kernel rust_numerical_consistency is unavailable")
 
-    def _rust_word_overlap(_premise: str, _hypothesis: str) -> float:
-        raise RuntimeError("backfire_kernel rust_word_overlap is unavailable")
+def _numerical_consistency(premise: str, hypothesis: str) -> bool | None:
+    """Shared-number boolean (``None`` if a side has no numbers)."""
+    if _RUST_AVAILABLE:
+        with mandatory_execution(__name__, component="mandatory accelerated path"):
+            result = _rust_numerical_consistency(premise, hypothesis)
+            return None if result is None else bool(result)
+    return _py_numerical_consistency(premise, hypothesis)
+
+
+def _negation_flip(premise: str, hypothesis: str) -> bool:
+    """Polarity asymmetry gated by three shared content words."""
+    if _RUST_AVAILABLE:
+        with mandatory_execution(__name__, component="mandatory accelerated path"):
+            return bool(_rust_negation_flip(premise, hypothesis))
+    return _py_negation_flip(premise, hypothesis)
+
+
+def _word_overlap(premise: str, hypothesis: str) -> float:
+    """Jaccard word overlap — kernel fast-path or the bit-exact port."""
+    if _RUST_AVAILABLE:
+        with mandatory_execution(__name__, component="mandatory accelerated path"):
+            return float(_rust_word_overlap(premise, hypothesis))
+    return _py_word_overlap(premise, hypothesis)
+
 
 # ── Rule ABC + result ───────────────────────────────────────────────────
 
@@ -97,49 +133,25 @@ class EntityGroundingRule(Rule):
     name = "entity_grounding"
 
     def check(self, premise: str, hypothesis: str) -> RuleResult:
-        """Score how many hypothesis entities are grounded in premise."""
-        if _RUST_AVAILABLE:
-            with mandatory_execution(__name__, component="mandatory accelerated path"):
-                score = _rust_entity_overlap(premise, hypothesis)
-                return RuleResult(self.name, score)
-        premise_ents = set(ENTITY_RE.findall(premise))
-        hyp_ents = set(ENTITY_RE.findall(hypothesis))
-        if not hyp_ents:
-            return RuleResult(self.name, 1.0)
-        grounded = len(hyp_ents & premise_ents)
-        ratio = grounded / len(hyp_ents)
-        novel = hyp_ents - premise_ents
-        reason = f"novel entities: {novel}" if novel else ""
-        return RuleResult(self.name, ratio, reason)
+        """Score the Jaccard overlap of premise/hypothesis proper nouns."""
+        return RuleResult(self.name, _entity_overlap(premise, hypothesis))
 
 
 class NumericConsistencyRule(Rule):
     """Numbers in hypothesis should appear in premise."""
 
     name = "numeric_consistency"
-    _NUM_RE = re.compile(r"\b\d+(?:\.\d+)?(?:%|°[CF]?)?\b")
 
     def check(self, premise: str, hypothesis: str) -> RuleResult:
-        """Score whether hypothesis numbers are present in premise."""
-        if _RUST_AVAILABLE:
-            with mandatory_execution(__name__, component="mandatory accelerated path"):
-                result = _rust_numerical_consistency(premise, hypothesis)
-                if result is None:
-                    return RuleResult(self.name, 1.0, "no numbers")
-                return RuleResult(
-                    self.name,
-                    1.0 if result else 0.0,
-                    "" if result else "numeric mismatch",
-                )
-        premise_nums = set(self._NUM_RE.findall(premise))
-        hyp_nums = set(self._NUM_RE.findall(hypothesis))
-        if not hyp_nums:
-            return RuleResult(self.name, 1.0)
-        grounded = len(hyp_nums & premise_nums)
-        ratio = grounded / len(hyp_nums)
-        novel = hyp_nums - premise_nums
-        reason = f"ungrounded numbers: {novel}" if novel else ""
-        return RuleResult(self.name, ratio, reason)
+        """Score whether premise and hypothesis share at least one number."""
+        result = _numerical_consistency(premise, hypothesis)
+        if result is None:
+            return RuleResult(self.name, 1.0, "no numbers")
+        return RuleResult(
+            self.name,
+            1.0 if result else 0.0,
+            "" if result else "numeric mismatch",
+        )
 
 
 class NegationFlipRule(Rule):
@@ -149,19 +161,9 @@ class NegationFlipRule(Rule):
 
     def check(self, premise: str, hypothesis: str) -> RuleResult:
         """Penalise premise/hypothesis negation asymmetry."""
-        if _RUST_AVAILABLE:
-            with mandatory_execution(__name__, component="mandatory accelerated path"):
-                flipped = _rust_negation_flip(premise, hypothesis)
-                if flipped:
-                    return RuleResult(self.name, 0.3, "negation mismatch")
-                return RuleResult(self.name, 1.0)
-        p_words = set(re.findall(r"\w+", premise.lower()))
-        h_words = set(re.findall(r"\w+", hypothesis.lower()))
-        p_neg = bool(p_words & NEGATION_WORDS)
-        h_neg = bool(h_words & NEGATION_WORDS)
-        if p_neg == h_neg:
-            return RuleResult(self.name, 1.0)
-        return RuleResult(self.name, 0.3, "negation mismatch")
+        if _negation_flip(premise, hypothesis):
+            return RuleResult(self.name, 0.3, "negation mismatch")
+        return RuleResult(self.name, 1.0)
 
 
 class LengthRatioRule(Rule):
@@ -187,23 +189,8 @@ class WordOverlapRule(Rule):
     name = "word_overlap"
 
     def check(self, premise: str, hypothesis: str) -> RuleResult:
-        """Score content-word F1 overlap after stop-word removal."""
-        if _RUST_AVAILABLE:
-            with mandatory_execution(__name__, component="mandatory accelerated path"):
-                return RuleResult(self.name, _rust_word_overlap(premise, hypothesis))
-        p_words = set(re.findall(r"\w+", premise.lower())) - STOP_WORDS
-        h_words = set(re.findall(r"\w+", hypothesis.lower())) - STOP_WORDS
-        if not p_words or not h_words:
-            return RuleResult(self.name, 0.5)
-        overlap = len(p_words & h_words)
-        recall = overlap / max(len(p_words), 1)
-        precision = overlap / max(len(h_words), 1)
-        f1 = (
-            (2 * recall * precision / (recall + precision))
-            if (recall + precision) > 0
-            else 0
-        )
-        return RuleResult(self.name, f1)
+        """Score the Jaccard word overlap of premise and hypothesis."""
+        return RuleResult(self.name, _word_overlap(premise, hypothesis))
 
 
 class ContradictionKeywordRule(Rule):

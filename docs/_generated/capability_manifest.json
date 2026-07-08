@@ -7,9 +7,9 @@
     "public_api_exports": 226,
     "public_documentation_pages": 203,
     "python_model_classes": 1005,
-    "python_model_source_modules": 463,
+    "python_model_source_modules": 464,
     "rust_pyo3_model_wrappers": 83,
-    "test_files": 704
+    "test_files": 705
   },
   "documentation": {
     "public_pages": [
@@ -4659,6 +4659,7 @@
       "src/director_ai/core/scoring/distilled_scorer.py",
       "src/director_ai/core/scoring/embed_scorer.py",
       "src/director_ai/core/scoring/heuristic_coherence.py",
+      "src/director_ai/core/scoring/lexical_signals.py",
       "src/director_ai/core/scoring/lite_scorer.py",
       "src/director_ai/core/scoring/meta_classifier.py",
       "src/director_ai/core/scoring/meta_confidence.py",
@@ -5570,6 +5571,7 @@
       "tests/test_langgraph_swarm.py",
       "tests/test_lazy_enterprise_import.py",
       "tests/test_lazy_enterprise_import_real_surface.py",
+      "tests/test_lexical_signals_parity.py",
       "tests/test_license.py",
       "tests/test_license_ed25519.py",
       "tests/test_license_edge_cases.py",

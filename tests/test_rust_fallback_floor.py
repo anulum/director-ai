@@ -88,12 +88,13 @@ def test_doc_chunker_sum_python_floor(monkeypatch: pytest.MonkeyPatch) -> None:
 def test_rust_flags_are_boolean() -> None:
     # The flags must always be plain booleans so the no-Rust floor is reachable.
     from director_ai.core.retrieval import doc_chunker
-    from director_ai.core.scoring import nli
+    from director_ai.core.scoring import nli, rules_scorer
     from director_ai.core.verification import numeric_verifier
 
     assert isinstance(nli._RUST_NLI, bool)
     assert isinstance(doc_chunker._RUST_DOC_CHUNKER, bool)
     assert isinstance(numeric_verifier._RUST_NUMERIC, bool)
+    assert isinstance(rules_scorer._RUST_AVAILABLE, bool)
 
 
 @pytest.mark.skipif(
@@ -134,3 +135,29 @@ def test_numeric_verifier_runs_on_the_pure_python_floor() -> None:
     result = verify_numeric("Revenue grew 15% from $10 million to $12 million.")
     assert result.valid is False
     assert any(issue.issue_type == "arithmetic" for issue in result.issues)
+
+
+@pytest.mark.skipif(
+    not _KERNEL_ABSENT,
+    reason="genuine floor path — only meaningful in a base install without the kernel",
+)
+def test_rules_scorer_runs_on_the_pure_python_floor() -> None:
+    """The rule scorer must score kernel-absent via its bit-exact lexical ports.
+
+    Exercises the real ``except ImportError`` branch (``_RUST_AVAILABLE`` False) —
+    the entity/numeric/negation/word-overlap signals run in pure Python. This is
+    the "Guardrails-competitive tier that ships in the base install" the module
+    docstring promises. Bit-exactness against the kernel is proven separately in
+    ``test_lexical_signals_parity.py`` (kernel-present).
+    """
+    from director_ai.core.scoring.rules_scorer import RulesBackend
+
+    backend = RulesBackend()
+    grounded = backend.score(
+        "Water boils at 100 degrees.", "Water boils at 100 degrees."
+    )
+    flagged = backend.score(
+        "Water boils at 100 degrees.", "Water boils at 500 degrees."
+    )
+    assert 0.0 <= flagged <= grounded <= 1.0
+    assert grounded > flagged

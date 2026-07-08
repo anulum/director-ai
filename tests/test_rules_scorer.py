@@ -14,6 +14,8 @@ from __future__ import annotations
 
 import json
 
+import pytest
+
 import director_ai.core.scoring.rules_scorer as rules_mod
 from director_ai.core.scoring.rules_scorer import (
     ContentWordDivergenceRule,
@@ -46,24 +48,27 @@ class TestEntityGroundingRule:
 
     def test_no_entities_in_hypothesis(self):
         r = self.rule.check("Paris is nice.", "it is nice.")
-        # Rust returns 0.0 (no entity overlap), Python returns 1.0 (no hyp entities)
-        # Both are valid — the key invariant is: grounded >= ungrounded
+        # Jaccard: the premise has "Paris" but the hypothesis has no proper noun,
+        # so overlap is 0.0 on both the kernel and the pure-Python floor. The key
+        # invariant is grounded >= ungrounded.
         grounded = self.rule.check("Paris is nice.", "Paris is nice.")
         assert grounded.score >= r.score
 
-    def test_python_path_reports_partial_and_missing_entity_grounding(
-        self, monkeypatch
-    ):
+    def test_python_floor_entity_jaccard_matches_kernel(self, monkeypatch):
+        # ADR-0001 floor: the pure-Python port computes the same Jaccard the
+        # kernel does (proven bit-exact in test_lexical_signals_parity). Jaccard
+        # of {"Paris", "France."} vs {"Paris", "Berlin"} is 1/3.
         monkeypatch.setattr(rules_mod, "_RUST_AVAILABLE", False)
         rule = EntityGroundingRule()
 
         partial = rule.check("Paris is in France.", "Paris and Berlin are cities.")
         grounded = rule.check("Paris is in France.", "Paris is in France.")
-        no_entities = rule.check("Paris is in France.", "it is grounded.")
+        # Hypothesis has no proper nouns but the premise does → no overlap → 0.0.
+        no_hyp_entities = rule.check("Paris is in France.", "it is grounded.")
 
-        assert 0.0 < partial.score < grounded.score
-        assert "Berlin" in partial.reason
-        assert no_entities.score == 1.0
+        assert partial.score == pytest.approx(1 / 3)
+        assert grounded.score == 1.0
+        assert no_hyp_entities.score == 0.0
 
 
 # ── NumericConsistencyRule ──────────────────────────────────────────────
@@ -88,18 +93,24 @@ class TestNumericConsistencyRule:
         r = self.rule.check("Accuracy is 75%.", "Accuracy is 90%.")
         assert r.score < 1.0
 
-    def test_python_path_reports_partial_numeric_grounding(self, monkeypatch):
+    def test_python_floor_numeric_shared_number_boolean(self, monkeypatch):
+        # ADR-0001 floor: consistency is a shared-number boolean (the kernel's
+        # semantics), not a grounded-fraction ratio. Sharing "5" is consistent
+        # even though "20" is novel.
         monkeypatch.setattr(rules_mod, "_RUST_AVAILABLE", False)
         rule = NumericConsistencyRule()
 
-        r = rule.check(
+        shared = rule.check(
             "Dose is 5 mg and duration is 10 days.", "Dose is 5 for 20 days."
         )
+        mismatch = rule.check("Dose is 5 mg.", "Dose is 20 mg.")
         no_numbers = rule.check("Dose is five milligrams.", "Dose is five milligrams.")
 
-        assert r.score == 0.5
-        assert "20" in r.reason
+        assert shared.score == 1.0
+        assert mismatch.score == 0.0
+        assert mismatch.reason == "numeric mismatch"
         assert no_numbers.score == 1.0
+        assert no_numbers.reason == "no numbers"
 
 
 # ── NegationFlipRule ────────────────────────────────────────────────────
@@ -120,16 +131,25 @@ class TestNegationFlipRule:
         r = self.rule.check("It is not cold.", "It is not cold.")
         assert r.score == 1.0
 
-    def test_python_path_detects_hypothesis_only_negation(self, monkeypatch):
+    def test_python_floor_negation_needs_three_shared_content_words(self, monkeypatch):
+        # ADR-0001 floor: a flip needs opposite polarity AND ≥3 shared content
+        # words (the kernel's gate), not merely opposite polarity.
         monkeypatch.setattr(rules_mod, "_RUST_AVAILABLE", False)
 
-        r = NegationFlipRule().check("The control passed.", "The control did not pass.")
+        flip = NegationFlipRule().check(
+            "The sky is clear today.", "The sky is not clear today."
+        )
+        # Opposite polarity but only "the"/"control" shared (< 3) → not a flip.
+        too_few = NegationFlipRule().check(
+            "The control passed.", "The control did not pass."
+        )
         aligned = NegationFlipRule().check(
             "The control did not pass.", "It did not pass."
         )
 
-        assert r.score == 0.3
-        assert r.reason == "negation mismatch"
+        assert flip.score == 0.3
+        assert flip.reason == "negation mismatch"
+        assert too_few.score == 1.0
         assert aligned.score == 1.0
 
 
@@ -172,12 +192,17 @@ class TestWordOverlapRule:
         r = self.rule.check("The cat sat on the mat.", "The cat jumped off the mat.")
         assert 0.3 < r.score < 0.9
 
-    def test_python_path_empty_content_words_returns_uncertain_score(self, monkeypatch):
+    def test_python_floor_word_overlap_is_jaccard(self, monkeypatch):
+        # ADR-0001 floor: the kernel computes plain Jaccard over all whitespace
+        # tokens (no stop-word removal), so identical stop-word strings score 1.0
+        # and an empty side scores 0.0.
         monkeypatch.setattr(rules_mod, "_RUST_AVAILABLE", False)
 
-        r = WordOverlapRule().check("the and of", "the and of")
+        identical = WordOverlapRule().check("the and of", "the and of")
+        empty = WordOverlapRule().check("", "anything here")
 
-        assert r.score == 0.5
+        assert identical.score == 1.0
+        assert empty.score == 0.0
 
     def test_python_path_scores_partial_and_zero_word_overlap(self, monkeypatch):
         monkeypatch.setattr(rules_mod, "_RUST_AVAILABLE", False)
