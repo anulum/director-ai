@@ -10,6 +10,7 @@
 
 from __future__ import annotations
 
+import importlib.util
 import sys
 from types import SimpleNamespace
 
@@ -25,6 +26,11 @@ from director_ai.core.scoring._task_scoring import (
     summarization_factual_divergence,
 )
 from director_ai.core.types import ScoringEvidence
+
+_HAS_RUST = importlib.util.find_spec("backfire_kernel") is not None
+_needs_rust = pytest.mark.skipif(
+    not _HAS_RUST, reason="requires the compiled backfire-kernel (director-ai[rust])"
+)
 
 
 def _evidence() -> ScoringEvidence:
@@ -44,6 +50,57 @@ class _NliScorer:
     def score_chunked(self, *args, **kwargs):
         self.score_chunked_calls.append((args, kwargs))
         return self.reverse_divergence, None
+
+
+@_needs_rust
+class TestTaskScoringRustParity:
+    """The pure-Python floor reproduces the Rust kernel bit-for-bit (ADR-0001).
+
+    ``_task_scoring`` became fallback-eligible: with the kernel absent the flag is
+    ``False`` and each accelerated path uses its pure-Python equivalent. These
+    tests prove — against the real ``backfire_kernel`` binary — that the fallback
+    is not a silent degradation but an exact reproduction.
+    """
+
+    _TASK_CASES = (
+        ("What is the capital of France?", "Paris."),
+        ("Summarize the quarterly report.", "Revenue rose."),
+        ("Please write a TLDR of the notes.", "short"),
+        ("User: hi\nAssistant: hello\nUser: bye", "ok"),
+        ("Human: q\nAI: a\nHuman: q2\nAI: a2", "resp"),
+        ("Based on the context, what is X?", "X is Y."),
+        ("Given the document, answer the query.", "answer"),
+        ("According to the passage, respond.", "resp"),
+        ("Verify this claim before release.", "false"),
+        ("Is it true that water boils at 100C?", "Yes at sea level."),
+        ("Explain the deployment architecture.", "It has layers."),
+        ("Write a neutral paragraph about the sea.", "waves crash"),
+        ("A" * 1500, "short reply"),
+        ("", ""),
+        ("?", "x"),
+    )
+
+    def test_detect_task_type_labels_match_rust(self, monkeypatch):
+        from backfire_kernel import rust_detect_task_type
+
+        monkeypatch.setattr(_task_scoring, "_RUST_TASK", False)
+        for prompt, response in self._TASK_CASES:
+            assert detect_task_type(prompt, response) == rust_detect_task_type(
+                prompt, response
+            ), f"label divergence for prompt {prompt[:40]!r}"
+
+    def test_sum_int_matches_rust_including_overflow(self, monkeypatch):
+        from backfire_kernel import rust_sum_i64
+
+        monkeypatch.setattr(_task_scoring, "_RUST_TASK", False)
+        for values in (
+            [1, 2, 3],
+            [0],
+            [2**63 - 1, 1],  # wraps to i64::MIN
+            [2**63 - 1, 2**63 - 1],  # -> -2
+            [-(2**63), -1],  # wraps to i64::MAX
+        ):
+            assert _sum_int(values) == rust_sum_i64(values)
 
 
 class TestTaskDetectionFallback:

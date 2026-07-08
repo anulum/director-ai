@@ -20,10 +20,11 @@ import re
 from collections.abc import Callable
 from typing import Any
 
+from ..accelerator_fallback import sum_i64
 from ..mandatory import mandatory_execution
 from ..types import ScoringEvidence
 
-try:
+try:  # pragma: no cover - optional acceleration
     from backfire_kernel import (
         rust_coverage_from_divergences,
         rust_detect_task_type,
@@ -32,10 +33,17 @@ try:
     )
 
     _RUST_TASK = True
-except ImportError:
-    _RUST_TASK = True
+except ImportError:  # pragma: no cover - bit-exact pure-Python fallback (ADR-0001)
+    # Kernel absent → reachable pure-Python floor (ADR-0001). Every accelerated
+    # path in this module has a bit-exact fallback: detect_task_type reproduces
+    # the classifier heuristics, minicheck_claim_coverage counts divergences
+    # below the threshold (identical to the Rust reducer), sentence splitting
+    # falls back to nltk/regex, and the integer sum routes through the shared
+    # helper. The named stubs below are kept for the accelerated branch and are
+    # never reached while the flag is False.
+    _RUST_TASK = False
 
-    def rust_coverage_from_divergences(
+    def rust_coverage_from_divergences(  # pragma: no cover - accelerated-branch stub
         _divergences: list[float],
         _support_threshold: float,
     ) -> tuple[float, int]:
@@ -44,17 +52,18 @@ except ImportError:
             "backfire_kernel rust_coverage_from_divergences is unavailable"
         )
 
-    def rust_split_sentences(_text: str) -> list[str]:
+    def rust_split_sentences(_text: str) -> list[str]:  # pragma: no cover - stub
         """Raise when the Rust sentence splitter is unavailable."""
         raise RuntimeError("backfire_kernel rust_split_sentences is unavailable")
 
-    def rust_detect_task_type(_prompt: str, _response: str) -> str:
+    def rust_detect_task_type(  # pragma: no cover - accelerated-branch stub
+        _prompt: str, _response: str
+    ) -> str:
         """Raise when the Rust task classifier is unavailable."""
         raise RuntimeError("backfire_kernel rust_detect_task_type is unavailable")
 
-    def rust_sum_i64(_values: list[int]) -> int:
-        """Raise when the Rust integer adder is unavailable."""
-        raise RuntimeError("backfire_kernel rust_sum_i64 is unavailable")
+    # Bit-exact pure-Python fallback for the integer sum (ADR-0001).
+    rust_sum_i64 = sum_i64
 
 
 logger = logging.getLogger("DirectorAI")
@@ -79,7 +88,8 @@ def detect_task_type(prompt: str, response: str = "") -> str:
     Returns one of: ``"dialogue"``, ``"summarization"``, ``"rag"``,
     ``"fact_check"``, ``"qa"``, or ``"default"``.
 
-    Uses the mandatory Rust accelerator for production-sized classification.
+    Uses the Rust accelerator when the compiled kernel is present and an
+    equivalent pure-Python classifier (identical labels, ADR-0001) otherwise.
 
     When *response* is provided, a length-ratio heuristic detects
     summarisation even when the prompt lacks explicit keywords.
@@ -353,4 +363,5 @@ def _sum_int(values: list[int]) -> int:
     if _RUST_TASK:
         with mandatory_execution(__name__, component="mandatory accelerated path"):
             return int(rust_sum_i64(values))
-    return sum(values)
+    # kernel absent: use the bit-exact pure-Python fallback (ADR-0001)
+    return sum_i64(values)
