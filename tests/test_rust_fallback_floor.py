@@ -87,7 +87,7 @@ def test_doc_chunker_sum_python_floor(monkeypatch: pytest.MonkeyPatch) -> None:
 
 def test_rust_flags_are_boolean() -> None:
     # The flags must always be plain booleans so the no-Rust floor is reachable.
-    from director_ai.core.retrieval import doc_chunker
+    from director_ai.core.retrieval import adaptive_router, doc_chunker
     from director_ai.core.scoring import nli, rules_scorer
     from director_ai.core.verification import numeric_verifier
 
@@ -95,6 +95,7 @@ def test_rust_flags_are_boolean() -> None:
     assert isinstance(doc_chunker._RUST_DOC_CHUNKER, bool)
     assert isinstance(numeric_verifier._RUST_NUMERIC, bool)
     assert isinstance(rules_scorer._RUST_AVAILABLE, bool)
+    assert isinstance(adaptive_router._RUST_AVAILABLE, bool)
 
 
 @pytest.mark.skipif(
@@ -161,3 +162,22 @@ def test_rules_scorer_runs_on_the_pure_python_floor() -> None:
     )
     assert 0.0 <= flagged <= grounded <= 1.0
     assert grounded > flagged
+
+
+@pytest.mark.skipif(
+    not _KERNEL_ABSENT,
+    reason="genuine floor path — only meaningful in a base install without the kernel",
+)
+def test_adaptive_router_runs_on_the_pure_python_floor() -> None:
+    """The adaptive router must classify kernel-absent via ``detect_task_type``.
+
+    With the kernel genuinely absent (``_RUST_AVAILABLE`` False) the router falls
+    back to the pure-Python task classifier — proven bit-exact with
+    ``rust_detect_task_type`` in ``test_task_scoring_paths`` — instead of raising.
+    """
+    from director_ai.core.retrieval.adaptive_router import AdaptiveRouter
+
+    factual = AdaptiveRouter().should_retrieve("What is the refund policy?")
+    creative = AdaptiveRouter().should_retrieve("Write me a poem about spring")
+    assert factual.retrieve is True
+    assert creative.retrieve is False

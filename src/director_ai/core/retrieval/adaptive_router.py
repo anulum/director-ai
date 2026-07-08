@@ -47,8 +47,13 @@ try:
     _rust_task_type = _rust_task_type_imported
     _RUST_AVAILABLE = True
 except ImportError:
+    # ADR-0001: the kernel is the opt-in ``[rust]`` extra. Absent it, the router
+    # floors on the pure-Python ``detect_task_type`` classifier (proven bit-exact
+    # with ``rust_detect_task_type`` in test_task_scoring_paths). The flag is
+    # False so ``_detect_task_type_safe`` takes the Python branch honestly, rather
+    # than relying on the ``_rust_task_type is not None`` guard alone.
     _rust_task_type = None
-    _RUST_AVAILABLE = True
+    _RUST_AVAILABLE = False
 
 # Task types that benefit from KB retrieval
 _RETRIEVAL_TYPES = frozenset({"rag", "fact_check", "qa"})
