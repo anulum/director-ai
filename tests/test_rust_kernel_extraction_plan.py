@@ -50,7 +50,11 @@ def test_python_extra_and_wheel_workflow_are_bound_to_plan() -> None:
     assert isinstance(versioning, dict)
     supported_range = versioning["python_supported_range"]
     assert f'"backfire-kernel{supported_range}"' in pyproject
-    assert "rust = []" in pyproject
+    # ADR-0001 endgame: the `rust` extra carries the opt-in compiled kernel, so a
+    # base install runs the pure-Python floor. It had been emptied (`rust = []`)
+    # while the kernel was a base dependency; the plan's `python_extra = "rust"`
+    # binding is now honoured by the populated extra.
+    assert f'rust = ["backfire-kernel{supported_range}"]' in pyproject
     assert "backfire-kernel/crates/backfire-ffi" in workflow
     assert "PyO3/maturin-action" in workflow
     assert "backfire-kernel/crates/backfire-wasm" in workflow
