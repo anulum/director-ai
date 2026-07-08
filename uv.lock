@@ -1629,13 +1629,13 @@ name = "director-ai"
 version = "3.16.1"
 source = { editable = "." }
 dependencies = [
-    { name = "backfire-kernel" },
     { name = "numpy" },
     { name = "requests" },
 ]
 
 [package.optional-dependencies]
 all = [
+    { name = "backfire-kernel" },
     { name = "chromadb" },
     { name = "crewai" },
     { name = "detoxify" },
@@ -1690,6 +1690,7 @@ demo = [
 ]
 dev = [
     { name = "audioop-lts", marker = "python_full_version >= '3.13'" },
+    { name = "backfire-kernel" },
     { name = "bandit" },
     { name = "beautifulsoup4" },
     { name = "build" },
@@ -1851,6 +1852,7 @@ quantize = [
     { name = "bitsandbytes" },
 ]
 recommended = [
+    { name = "backfire-kernel" },
     { name = "chromadb" },
     { name = "fastapi" },
     { name = "httpx" },
@@ -1868,6 +1870,9 @@ reports = [
 ]
 reranker = [
     { name = "sentence-transformers" },
+]
+rust = [
+    { name = "backfire-kernel" },
 ]
 security = [
     { name = "cyclonedx-bom" },
@@ -1924,7 +1929,7 @@ requires-dist = [
     { name = "audioop-lts", marker = "python_full_version >= '3.13' and extra == 'dev'", specifier = ">=0.2.2" },
     { name = "azure-identity", marker = "extra == 'azure'", specifier = ">=1.16,<2" },
     { name = "azure-keyvault-secrets", marker = "extra == 'azure'", specifier = ">=4.7,<5" },
-    { name = "backfire-kernel", directory = "backfire-kernel/crates/backfire-ffi" },
+    { name = "backfire-kernel", marker = "extra == 'rust'", directory = "backfire-kernel/crates/backfire-ffi" },
     { name = "bandit", marker = "extra == 'dev'", specifier = ">=1.7" },
     { name = "beautifulsoup4", marker = "extra == 'dev'", specifier = ">=4.12" },
     { name = "beautifulsoup4", marker = "extra == 'ingestion'", specifier = ">=4.12" },
@@ -1959,6 +1964,8 @@ requires-dist = [
     { name = "director-ai", extras = ["presidio"], marker = "extra == 'all'" },
     { name = "director-ai", extras = ["recommended"], marker = "extra == 'all'" },
     { name = "director-ai", extras = ["reranker"], marker = "extra == 'all'" },
+    { name = "director-ai", extras = ["rust"], marker = "extra == 'dev'" },
+    { name = "director-ai", extras = ["rust"], marker = "extra == 'recommended'" },
     { name = "director-ai", extras = ["server"], marker = "extra == 'recommended'" },
     { name = "director-ai", extras = ["toxicity"], marker = "extra == 'all'" },
     { name = "director-ai", extras = ["vector"], marker = "extra == 'recommended'" },
