@@ -89,13 +89,14 @@ def test_rust_flags_are_boolean() -> None:
     # The flags must always be plain booleans so the no-Rust floor is reachable.
     from director_ai.core.retrieval import adaptive_router, doc_chunker
     from director_ai.core.scoring import nli, rules_scorer
-    from director_ai.core.verification import numeric_verifier
+    from director_ai.core.verification import numeric_verifier, reasoning_verifier
 
     assert isinstance(nli._RUST_NLI, bool)
     assert isinstance(doc_chunker._RUST_DOC_CHUNKER, bool)
     assert isinstance(numeric_verifier._RUST_NUMERIC, bool)
     assert isinstance(rules_scorer._RUST_AVAILABLE, bool)
     assert isinstance(adaptive_router._RUST_AVAILABLE, bool)
+    assert isinstance(reasoning_verifier._RUST_REASONING, bool)
 
 
 @pytest.mark.skipif(
@@ -181,3 +182,26 @@ def test_adaptive_router_runs_on_the_pure_python_floor() -> None:
     creative = AdaptiveRouter().should_retrieve("Write me a poem about spring")
     assert factual.retrieve is True
     assert creative.retrieve is False
+
+
+@pytest.mark.skipif(
+    not _KERNEL_ABSENT,
+    reason="genuine floor path — only meaningful in a base install without the kernel",
+)
+def test_reasoning_verifier_runs_on_the_pure_python_floor() -> None:
+    """The reasoning verifier must segment kernel-absent via the bit-exact ports.
+
+    Exercises the real ``except ImportError`` branch (``_RUST_REASONING`` False):
+    step extraction and sentence splitting run through ``text_segmentation``
+    instead of raising. Bit-exactness against the kernel is proven separately in
+    ``test_text_segmentation_parity.py`` (kernel-present).
+    """
+    from director_ai.core.verification.reasoning_verifier import verify_reasoning_chain
+
+    result = verify_reasoning_chain(
+        "Step 1: All men are mortal. "
+        "Step 2: Socrates is a man. "
+        "Step 3: Therefore Socrates is mortal."
+    )
+    assert result.steps_found >= 2
+    assert isinstance(result.chain_valid, bool)

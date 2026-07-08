@@ -24,6 +24,8 @@ from dataclasses import dataclass, field
 
 from ..mandatory import mandatory_execution
 from ..text_overlap import word_overlap
+from ..text_segmentation import extract_reasoning_steps as _py_extract_steps
+from ..text_segmentation import split_sentences as _py_split_sentences
 from .citation_tracer import TraceResult, trace_citations
 from .fallacy_detector import FallacyMatch, detect_fallacies
 from .math_consistency import ArithmeticCheck, verify_arithmetic
@@ -35,23 +37,44 @@ __all__ = [
     "verify_reasoning_chain",
 ]
 
-try:
+try:  # pragma: no cover - optional acceleration
     from backfire_kernel import (
         rust_extract_reasoning_steps,
         rust_split_sentences,
     )
 
     _RUST_REASONING = True
-except ImportError:
-    _RUST_REASONING = True
+except ImportError:  # pragma: no cover - bit-exact pure-Python fallback (ADR-0001)
+    # ADR-0001: backfire-kernel is the opt-in ``[rust]`` extra. Absent it, the step
+    # extractor and sentence splitter fall back to the bit-exact ``text_segmentation``
+    # ports (proven byte-for-byte against the kernel in
+    # tests/test_text_segmentation_parity.py). The flag is False so the rust-or-port
+    # helpers below take their Python branch.
+    _RUST_REASONING = False
+    rust_extract_reasoning_steps = _py_extract_steps
+    rust_split_sentences = _py_split_sentences
 
-    def rust_extract_reasoning_steps(_text: str) -> list[str]:
-        raise RuntimeError(
-            "backfire_kernel rust_extract_reasoning_steps is unavailable"
-        )
 
-    def rust_split_sentences(_text: str) -> list[str]:
-        raise RuntimeError("backfire_kernel rust_split_sentences is unavailable")
+def _raw_reasoning_steps(text: str) -> list[str]:
+    """Rust step extractor when installed, else the bit-exact Python port."""
+    if _RUST_REASONING:
+        with mandatory_execution(__name__, component="mandatory accelerated path"):
+            return list(rust_extract_reasoning_steps(text))
+    return _py_extract_steps(text)
+
+
+def _raw_split_sentences(text: str) -> list[str]:
+    """Rust sentence splitter when installed, else the bit-exact Python port.
+
+    A present-but-erroring kernel degrades to an empty list here (the caller has a
+    regex secondary fallback), preserving the module's long-standing behaviour.
+    """
+    if _RUST_REASONING:
+        try:
+            return list(rust_split_sentences(text))
+        except Exception:
+            return []
+    return _py_split_sentences(text)
 
 
 _STEP_PATTERNS = [
@@ -141,25 +164,21 @@ def _strip_step_label(text: str) -> str:
 def extract_steps(text: str) -> list[ReasoningStep]:
     """Extract reasoning steps from chain-of-thought text.
 
-    Uses Rust accelerator for regex extraction when available.
-    Every extracted step has its ``Step N:``-style prefix stripped
-    so that downstream word-overlap comparisons are not diluted by
-    the label tokens.
+    Uses the Rust accelerator for extraction when installed, else the bit-exact
+    ``text_segmentation`` port (ADR-0001) — identical either way. Every extracted
+    step has its ``Step N:``-style prefix stripped so that downstream word-overlap
+    comparisons are not diluted by the label tokens.
     """
-    if _RUST_REASONING:
-        with mandatory_execution(__name__, component="mandatory accelerated path"):
-            raw_steps = rust_extract_reasoning_steps(text)
-            if len(raw_steps) >= 2 or (
-                len(raw_steps) == 1 and raw_steps[0] != text.strip()
-            ):
-                return [
-                    ReasoningStep(
-                        index=i,
-                        text=_strip_step_label(s),
-                        is_conclusion=bool(_CONCLUSION_MARKERS.match(s)),
-                    )
-                    for i, s in enumerate(raw_steps)
-                ]
+    raw_steps = _raw_reasoning_steps(text)
+    if len(raw_steps) >= 2 or (len(raw_steps) == 1 and raw_steps[0] != text.strip()):
+        return [
+            ReasoningStep(
+                index=i,
+                text=_strip_step_label(s),
+                is_conclusion=bool(_CONCLUSION_MARKERS.match(s)),
+            )
+            for i, s in enumerate(raw_steps)
+        ]
 
     # Python fallback
     # Try numbered steps first
@@ -177,14 +196,7 @@ def extract_steps(text: str) -> list[ReasoningStep]:
             return steps
 
     # Fallback: split on sentence boundaries with "because" decomposition
-    sentences: list[str] = []
-    if _RUST_REASONING:
-        try:
-            sentences = [
-                s.strip() for s in rust_split_sentences(text) if len(s.strip()) > 10
-            ]
-        except Exception:
-            sentences = []
+    sentences = [s.strip() for s in _raw_split_sentences(text) if len(s.strip()) > 10]
     if not sentences:
         sentences = [
             s.strip() for s in re.split(r"[.!?]\s+", text) if len(s.strip()) > 10
