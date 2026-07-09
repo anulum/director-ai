@@ -536,19 +536,29 @@ class CoherenceAgent:
         prompt: str,
         tenant_id: str = "",
     ) -> AsyncIterator[tuple[str, float]]:
-        """Stream tokens with StreamingKernel oversight.
+        """Stream tokens with real-time halt oversight.
 
-        Uses sliding window, trend detection, and hard/soft halt from
-        ``StreamingKernel``. Yields ``(token, coherence)`` tuples.
-        Halting stops future tokens but does not retract delivered ones.
+        Yields ``(token, coherence)`` tuples. Halting stops future tokens but
+        does not retract delivered ones.
 
-        Experimental. The coherence scores of correct and hallucinated partial
-        text overlap, so the halt cannot yet separate them without a high
-        false-halt rate (see ``benchmarks/streaming_false_halt_bench.py``).
-        Coherence is re-scored only at claim boundaries via
-        :class:`StreamingCoherenceGate` to avoid scoring half-finished
-        sentences, but this does not resolve the underlying signal overlap. Use
-        the response-level scorer for production gating until calibrated.
+        With a configured :class:`ContradictionHalt`
+        (``streaming_contradiction_halt=True``) each completed claim is scored
+        by ``P(contradiction)`` against retrieved grounding facts and the
+        stream halts on genuine contradiction — the calibrated real-time
+        mechanism (false-halt 1.48% over 135 grounded passages at threshold
+        0.2; see ``benchmarks/results/streaming_contradiction_halt_base.json``
+        and the streaming guide).
+
+        Without it, halting falls back to the coherence signal
+        (``StreamingKernel`` sliding window, trend detection, hard/soft halt),
+        which remains experimental: coherence scores of correct and
+        hallucinated partial text overlap, so that path cannot separate them
+        without a high false-halt rate (see
+        ``benchmarks/streaming_false_halt_bench.py``). Coherence is re-scored
+        only at claim boundaries via :class:`StreamingCoherenceGate` to avoid
+        scoring half-finished sentences, but this does not resolve the signal
+        overlap — enable the contradiction halt or use the response-level
+        scorer for production gating.
         """
         if not isinstance(prompt, str) or not prompt.strip():
             raise ValueError("prompt must be a non-empty string")
