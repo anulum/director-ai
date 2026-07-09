@@ -134,6 +134,9 @@ def test_audit_log_closed_connection_paths_are_noops(tmp_path) -> None:
 
     assert log.query() == []
     assert log.count() == 0
+    assert log.verify_chain() == (True, None)
+    # Contract: a closed log serves the genesis hash instead of touching sqlite.
+    assert log._load_chain_head() == "0" * 64
     log.close()
 
 

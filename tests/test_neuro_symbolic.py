@@ -326,3 +326,29 @@ class TestGuardWiring:
         engine = guard.compliance_engine(_finance_policy())
         assert isinstance(engine, NeuroSymbolicComplianceEngine)
         assert engine.check({"amount": 1000, "manager_approved": False}).compliant
+
+    def test_guard_compliance_engine_reports_missing_z3(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """The guard factory surfaces the [formal]-extra hint without z3."""
+        from director_ai.core.config import DirectorConfig
+        from director_ai.guard import ProductionGuard
+
+        guard = ProductionGuard(DirectorConfig(use_nli=False, llm_provider="mock"))
+        original_import = builtins.__import__
+
+        def blocked_import(
+            name: str,
+            globals: dict[str, Any] | None = None,  # noqa: A002
+            locals: dict[str, Any] | None = None,  # noqa: A002
+            fromlist: tuple[str, ...] = (),
+            level: int = 0,
+        ) -> Any:
+            if name == "z3":
+                raise ImportError("synthetic missing z3")
+            return original_import(name, globals, locals, fromlist, level)
+
+        monkeypatch.setattr("builtins.__import__", blocked_import)
+
+        with pytest.raises(RuntimeError, match=r"requires z3.*\[formal\] extra"):
+            guard.compliance_engine(_finance_policy())

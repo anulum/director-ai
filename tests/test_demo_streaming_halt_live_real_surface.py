@@ -76,3 +76,15 @@ def test_live_streaming_halt_runtime_uses_real_kernel_events() -> None:
         outcomes["halted" if "HALTED" in final_banner else "approved"] += 1
 
     assert outcomes == {"halted": 2, "approved": 1}
+
+
+def test_score_callback_repeats_last_score_once_curve_is_exhausted() -> None:
+    """A drained score curve should keep answering with its final value."""
+    scenario = next(iter(SCENARIOS.values()))
+    callback = runtime.score_callback_for(scenario)
+
+    served = [callback(f"token-{i}") for i in range(len(scenario.scores))]
+    assert served == scenario.scores
+
+    assert callback("beyond-the-curve") == scenario.scores[-1]
+    assert callback("still-beyond") == scenario.scores[-1]

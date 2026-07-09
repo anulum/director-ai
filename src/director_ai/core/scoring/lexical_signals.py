@@ -127,9 +127,8 @@ def entity_overlap(text_a: str, text_b: str) -> float:
     ents_b = extract_entities(text_b)
     if not ents_a and not ents_b:
         return 1.0
+    # At least one side is non-empty here, so the union is never zero.
     union = len(ents_a | ents_b)
-    if union == 0:
-        return 1.0
     return len(ents_a & ents_b) / union
 
 
@@ -168,7 +167,6 @@ def word_overlap_jaccard(text_a: str, text_b: str) -> float:
     words_b = {w.lower() for w in text_b.split()}
     if not words_a or not words_b:
         return 0.0
+    # Both sides are non-empty here, so the union is never zero.
     union = len(words_a | words_b)
-    if union == 0:
-        return 0.0
     return len(words_a & words_b) / union

@@ -129,6 +129,15 @@ class TestDirectorAITool:
         result = tool.check("What is the capital?", "Paris is the capital of France.")
         assert result["approved"] is True
 
+    def test_store_and_scorer_properties_expose_wired_components(self):
+        from director_ai.core import CoherenceScorer, GroundTruthStore
+
+        store = GroundTruthStore()
+        tool = DirectorAITool(store=store, use_nli=False)
+
+        assert tool.store is store
+        assert isinstance(tool.scorer, CoherenceScorer)
+
     @pytest.mark.parametrize("threshold", [0.1, 0.3, 0.5, 0.7])
     def test_parametrised_thresholds(self, threshold):
         tool = DirectorAITool(

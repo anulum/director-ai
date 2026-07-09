@@ -331,6 +331,14 @@ class TestProfileLoading:
         with pytest.raises(ValueError, match="verified_scorer_evidence_top_k"):
             DirectorConfig(verified_scorer_evidence_top_k=0)
 
+    def test_span_detector_config_validates_bounds(self):
+        with pytest.raises(ValueError, match="span_token_threshold"):
+            DirectorConfig(span_token_threshold=1.5)
+        with pytest.raises(ValueError, match="span_min_tokens"):
+            DirectorConfig(span_min_tokens=0)
+        with pytest.raises(ValueError, match="span_max_length"):
+            DirectorConfig(span_max_length=0)
+
     def test_list_profile_metadata_matches_builtin_profiles(self):
         names = {meta.name for meta in DirectorConfig.list_profile_metadata()}
 

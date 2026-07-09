@@ -99,6 +99,19 @@ class TestEd25519SigningAndVerification:
 
         assert info.valid is False
 
+    def test_malformed_signature_hex_is_rejected_with_clear_message(
+        self, signing_keypair, tmp_path
+    ):
+        payload = lic.generate_license("pro", "Acme", "a@acme.example")
+        payload["ed25519_signature"] = "not-hex!"
+        path = tmp_path / "malformed.json"
+        path.write_text(json.dumps(payload), encoding="utf-8")
+
+        info = lic.validate_file(path)
+
+        assert info.valid is False
+        assert "malformed" in info.message.lower()
+
     def test_signature_from_a_different_key_is_rejected(self, tmp_path, monkeypatch):
         # A client with only the public key cannot forge: signing with their own
         # private key fails verification against ANULUM's embedded public key.

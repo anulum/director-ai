@@ -1270,3 +1270,20 @@ class TestScorerCoverageGaps:
 
         with pytest.raises(RuntimeError, match="NLI batch scorer not initialised"):
             scorer.review_batch([("Q1", "A1"), ("Q2", "A2")])
+
+
+class TestFactualDivergenceGroundingQuery:
+    """A grounded scorer stays neutral when the prompt carries no query."""
+
+    def test_whitespace_prompt_returns_neutral_despite_store(self):
+        from director_ai.core import GroundTruthStore
+
+        store = GroundTruthStore()
+        store.add("sky colour", "The sky is blue.")
+        scorer = CoherenceScorer(use_nli=False, ground_truth_store=store)
+        # Force the Python path so the grounding-query gate itself runs.
+        scorer._rust_scorer = None
+
+        divergence = scorer.calculate_factual_divergence("   \n\t  ", "The sky is red.")
+
+        assert divergence == scorer_module.DIVERGENCE_NEUTRAL

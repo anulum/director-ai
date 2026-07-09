@@ -16,6 +16,8 @@ import pytest
 from director_ai.core.retrieval.vector_store.embedding import (
     ChromaBackend,
     SentenceTransformerBackend,
+    _DirectorChromaEmbeddingAdapter,
+    _normalise_chroma_embedding_function,
 )
 
 
@@ -237,3 +239,63 @@ def test_chroma_backend_defaults_and_delete_validation(
     with pytest.raises(ValueError, match="non-empty strings"):
         backend.delete([""])
     assert backend.delete([]) == 0
+
+
+def _local_embedder(input: list[str]) -> list[list[float]]:
+    return [[float(len(text)), 0.0] for text in input]
+
+
+def test_chroma_embedding_adapter_wraps_local_callable() -> None:
+    adapter = _DirectorChromaEmbeddingAdapter(_local_embedder)
+
+    assert adapter(["ab", "c"]) == [[2.0, 0.0], [1.0, 0.0]]
+    assert adapter.embed_query(["abc"]) == [[3.0, 0.0]]
+    assert adapter.name() == "director-ai-local-embedding"
+    assert adapter.default_space() == "l2"
+    assert adapter.supported_spaces() == ["cosine", "l2", "ip"]
+    assert adapter.get_config() == {"provider": "director-ai-local-embedding"}
+    assert adapter.is_legacy() is False
+
+
+def test_chroma_embedding_adapter_rejects_config_deserialisation() -> None:
+    with pytest.raises(ValueError, match="must be provided at runtime"):
+        _DirectorChromaEmbeddingAdapter.build_from_config(
+            {"provider": "director-ai-local-embedding"},
+        )
+
+
+def test_normalise_chroma_embedding_function_passes_through_full_providers() -> None:
+    adapter = _DirectorChromaEmbeddingAdapter(_local_embedder)
+
+    assert _normalise_chroma_embedding_function(adapter) is adapter
+
+
+def test_normalise_chroma_embedding_function_wraps_plain_callables() -> None:
+    normalised = _normalise_chroma_embedding_function(_local_embedder)
+
+    assert isinstance(normalised, _DirectorChromaEmbeddingAdapter)
+    assert normalised(["xy"]) == [[2.0, 0.0]]
+
+
+def test_chroma_backend_rejects_model_and_function_together(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _install_chroma(monkeypatch)
+
+    with pytest.raises(ValueError, match="mutually exclusive"):
+        ChromaBackend(
+            embedding_model="local-embedder",
+            embedding_function=_local_embedder,
+        )
+
+
+def test_chroma_backend_normalises_injected_embedding_function(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    calls = _install_chroma(monkeypatch)
+
+    ChromaBackend(embedding_function=_local_embedder)
+
+    injected = calls["client"].create_kwargs["embedding_function"]
+    assert isinstance(injected, _DirectorChromaEmbeddingAdapter)
+    assert injected(["ab"]) == [[2.0, 0.0]]

@@ -25,6 +25,18 @@ from director_ai.integrations.langgraph import (
 
 @pytest.mark.consumer
 class TestDirectorAINode:
+    def test_unknown_on_fail_mode_is_rejected(self) -> None:
+        with pytest.raises(ValueError, match="on_fail must be one of"):
+            director_ai_node(use_nli=False, on_fail="explode")
+
+    def test_identical_state_keys_are_rejected(self) -> None:
+        with pytest.raises(ValueError, match="must be distinct"):
+            director_ai_node(use_nli=False, query_key="text", response_key="text")
+
+    def test_blank_state_key_is_rejected(self) -> None:
+        with pytest.raises(ValueError, match="query_key must not be blank"):
+            director_ai_node(use_nli=False, query_key="   ")
+
     def test_approved_state(self) -> None:
         node = director_ai_node(facts={"sky color": "The sky is blue."}, use_nli=False)
         state = {"query": "What color is the sky?", "response": "The sky is blue."}

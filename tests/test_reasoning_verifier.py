@@ -343,3 +343,16 @@ class TestReasoningChainResult:
         assert result.chain_valid
         assert result.non_sequiturs == []
         assert result.unsupported_leaps == []
+
+
+class TestPythonSentenceFallback:
+    def test_raw_split_sentences_serves_python_port_without_kernel(
+        self, monkeypatch
+    ) -> None:
+        monkeypatch.setattr(reasoning_mod, "_RUST_REASONING", False)
+        text = "First step. Second step! Third step?"
+
+        result = reasoning_mod._raw_split_sentences(text)
+
+        assert result == reasoning_mod._py_split_sentences(text)
+        assert len(result) == 3

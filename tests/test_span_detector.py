@@ -241,6 +241,10 @@ class TestDetectorConstruction:
         with pytest.raises(ValueError, match="min_tokens"):
             HallucinationSpanDetector(object(), object(), min_tokens=0)
 
+    def test_max_length_validated(self) -> None:
+        with pytest.raises(ValueError, match="max_length"):
+            HallucinationSpanDetector(object(), object(), max_length=0)
+
     def test_default_model_id(self) -> None:
         assert DEFAULT_SPAN_MODEL == "anulum/director-ragtruth-token-modernbert"
 

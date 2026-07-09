@@ -187,3 +187,22 @@ def test_validate_data_clean_report_exits_zero(
     assert "1 valid, 0 invalid" in out
     assert "Warnings:" not in out
     assert "Errors:" not in out
+
+
+def test_tuner_functions_from_rejects_incomplete_modules() -> None:
+    incomplete = ModuleType("director_ai.core.calibration.tuner")
+    incomplete.tune = lambda records: SimpleNamespace()  # type: ignore[attr-defined]
+
+    assert _cli_bench._tuner_functions_from(incomplete) is None
+    assert _cli_bench._tuner_functions_from(object()) is None
+
+
+def test_load_tuner_functions_raises_when_canonical_lacks_functions(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    bare = ModuleType("director_ai.core.calibration.tuner")
+    monkeypatch.setitem(sys.modules, "director_ai.core.calibration.tuner", bare)
+    monkeypatch.delitem(sys.modules, "director_ai.core.training.tuner", raising=False)
+
+    with pytest.raises(RuntimeError, match="lacks required functions"):
+        _cli_bench._load_tuner_functions()

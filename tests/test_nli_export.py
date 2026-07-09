@@ -526,3 +526,10 @@ def test_dynamic_batcher_empty_flush_is_noop() -> None:
 
     assert batcher.flush() == []
     assert calls == []
+
+
+def test_dynamic_batcher_timeout_not_elapsed_before_first_submit() -> None:
+    """An unstarted batch never counts as timed out under a non-zero timeout."""
+    batcher = nli_export.OnnxDynamicBatcher(lambda pairs: [0.1], flush_timeout_ms=10.0)
+
+    assert batcher._timeout_elapsed(1_000.0) is False

@@ -541,6 +541,20 @@ class TestFAISSBackend:
 
             FAISSBackend(embed_fn=lambda t: [0.1] * 4)
 
+    def test_faiss_rejects_non_integer_ivf_nlist(self):
+        with patch.dict("sys.modules", {"faiss": MagicMock()}):
+            from director_ai.core.vector_store import FAISSBackend
+
+            with pytest.raises(ValueError, match="must be an integer"):
+                FAISSBackend(embed_fn=lambda t: [0.1] * 4, ivf_nlist=True)
+            with pytest.raises(ValueError, match="must be an integer"):
+                FAISSBackend(
+                    embed_fn=lambda t: [0.1] * 4,
+                    ivf_nlist="16",  # type: ignore[arg-type]
+                )
+            with pytest.raises(ValueError, match="must be positive"):
+                FAISSBackend(embed_fn=lambda t: [0.1] * 4, ivf_nlist=0)
+
     def test_faiss_add_query(self):
         mock_faiss = MagicMock()
         mock_index = MagicMock()
