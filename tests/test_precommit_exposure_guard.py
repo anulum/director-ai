@@ -21,6 +21,7 @@ LOCAL_ONLY_GUARD_PATHS = (
     "CLAUDE.md",
     "TODO",
     "target/build-output.o",
+    "director-models/finetune_jobs.sqlite3",
 )
 FORBIDDEN_COVERAGE_TEST_PATTERNS = (
     "test_cov*.py",

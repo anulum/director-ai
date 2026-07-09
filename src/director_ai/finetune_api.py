@@ -23,6 +23,10 @@ Mount via::
 
     from director_ai.finetune_api import create_finetune_router
     app.include_router(create_finetune_router(), prefix="/v1/finetune")
+
+Job records persist to ``<models_dir>/finetune_jobs.sqlite3`` (see
+:mod:`director_ai.finetune_jobs`), so job state and model-activation
+designations survive restarts and are shared across server workers.
 """
 
 from __future__ import annotations
@@ -34,9 +38,23 @@ import shutil
 import threading
 import time
 import uuid
-from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
+
+# Job records and stores live in ``finetune_jobs``; the private names are
+# re-exported (redundant aliases) because tests and the server exercise them
+# through this module's historical surface.
+from director_ai.finetune_jobs import _MAX_CONCURRENT_JOBS as _MAX_CONCURRENT_JOBS
+from director_ai.finetune_jobs import FinetuneJob as FinetuneJob
+from director_ai.finetune_jobs import ManagedTrainingRecord as ManagedTrainingRecord
+from director_ai.finetune_jobs import _JobStore as _JobStore
+from director_ai.finetune_jobs import _ManagedJobStore as _ManagedJobStore
+
+__all__ = [
+    "FinetuneJob",
+    "ManagedTrainingRecord",
+    "create_finetune_router",
+]
 
 logger = logging.getLogger("DirectorAI.FinetuneAPI")
 
@@ -50,140 +68,8 @@ except ImportError:
 
 _DEFAULT_MODELS_DIR = Path("./director-models")
 _MAX_UPLOAD_BYTES = 500 * 1024 * 1024  # 500 MB
-_MAX_CONCURRENT_JOBS = 4
+_JOB_DB_FILENAME = "finetune_jobs.sqlite3"
 _SAFE_TENANT_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$")
-
-
-# ── Job state ────────────────────────────────────────────────────────
-
-
-@dataclass
-class FinetuneJob:
-    """In-process state for one local fine-tuning job."""
-
-    job_id: str
-    state: str = (
-        "pending"  # pending, validating, training, benchmarking, completed, failed
-    )
-    progress: float = 0.0
-    current_step: int = 0
-    total_steps: int = 0
-    config: dict[str, Any] = field(default_factory=dict)
-    validation_report: dict[str, Any] = field(default_factory=dict)
-    metrics: dict[str, Any] = field(default_factory=dict)
-    regression_report: dict[str, Any] = field(default_factory=dict)
-    model_path: str = ""
-    error: str = ""
-    created_at: float = 0.0
-    completed_at: float = 0.0
-    activated: bool = False
-
-
-class _JobStore:
-    """Thread-safe in-memory job store."""
-
-    def __init__(self) -> None:
-        self._jobs: dict[str, FinetuneJob] = {}
-        self._lock = threading.Lock()
-
-    def create(self, config: dict[str, Any]) -> FinetuneJob:
-        """Create a job unless the in-process concurrency cap is reached."""
-        with self._lock:
-            active = sum(
-                1
-                for j in self._jobs.values()
-                if j.state in ("training", "validating", "benchmarking")
-            )
-            if active >= _MAX_CONCURRENT_JOBS:
-                raise ValueError(
-                    f"Too many concurrent jobs ({active}/{_MAX_CONCURRENT_JOBS})",
-                )
-        job = FinetuneJob(
-            job_id=uuid.uuid4().hex,
-            config=config,
-            created_at=time.time(),
-        )
-        with self._lock:
-            self._jobs[job.job_id] = job
-        return job
-
-    def get(self, job_id: str) -> FinetuneJob | None:
-        """Return a job by id, or ``None`` when it is unknown."""
-        with self._lock:
-            return self._jobs.get(job_id)
-
-    def list_all(self) -> list[FinetuneJob]:
-        """Return a snapshot of all known jobs."""
-        with self._lock:
-            return list(self._jobs.values())
-
-    def delete(self, job_id: str) -> bool:
-        """Delete a job record and report whether it existed."""
-        with self._lock:
-            return self._jobs.pop(job_id, None) is not None
-
-
-@dataclass
-class ManagedTrainingRecord:
-    """Ledger entry for one managed training submission."""
-
-    job_id: str
-    backend: str
-    state: str
-    tenant_id: str
-    dry_run: bool
-    submitted_at: float
-    display_name: str
-    output_uri: str
-    console_uri: str = ""
-    error: str = ""
-
-
-class _ManagedJobStore:
-    """Thread-safe in-process ledger for managed training submissions."""
-
-    def __init__(self) -> None:
-        self._jobs: dict[str, ManagedTrainingRecord] = {}
-        self._lock = threading.Lock()
-
-    def add(self, record: ManagedTrainingRecord) -> None:
-        """Store or replace a managed-training record by job id."""
-        with self._lock:
-            self._jobs[record.job_id] = record
-
-    def get(self, tenant_id: str, job_id: str) -> ManagedTrainingRecord | None:
-        """Return a tenant-owned managed-training record."""
-        with self._lock:
-            record = self._jobs.get(job_id)
-        if record is None or record.tenant_id != tenant_id:
-            return None
-        return record
-
-    def list_for_tenant(self, tenant_id: str) -> list[ManagedTrainingRecord]:
-        """Return all managed-training records visible to one tenant."""
-        with self._lock:
-            return [
-                record
-                for record in self._jobs.values()
-                if record.tenant_id == tenant_id
-            ]
-
-    def update_state(
-        self,
-        tenant_id: str,
-        job_id: str,
-        state: str,
-        *,
-        error: str = "",
-    ) -> ManagedTrainingRecord | None:
-        """Update a tenant-owned record state and optional error."""
-        with self._lock:
-            record = self._jobs.get(job_id)
-            if record is None or record.tenant_id != tenant_id:
-                return None
-            record.state = state
-            record.error = error
-            return record
 
 
 # ── Pydantic models ──────────────────────────────────────────────────
@@ -276,7 +162,9 @@ if _FASTAPI_AVAILABLE:
 # ── Training worker ──────────────────────────────────────────────────
 
 
-def _run_training_worker(job: FinetuneJob, data_path: Path, models_dir: Path) -> None:
+def _run_training_worker(
+    job: FinetuneJob, data_path: Path, models_dir: Path, store: _JobStore
+) -> None:
     """Background thread that runs the fine-tuning pipeline."""
     train_path: Path | None = None
     eval_path: Path | None = None
@@ -285,6 +173,7 @@ def _run_training_worker(job: FinetuneJob, data_path: Path, models_dir: Path) ->
         from director_ai.core.training.model_registry import resolve_finetune_model
 
         job.state = "training"
+        store.save(job)
         cfg = job.config
         model_profile = resolve_finetune_model(
             cfg.get("base_model", "factcg-deberta-v3-large"),
@@ -324,6 +213,7 @@ def _run_training_worker(job: FinetuneJob, data_path: Path, models_dir: Path) ->
                 f.writelines(json.dumps(row, ensure_ascii=False) + "\n" for row in r)
 
         job.total_steps = len(train_rows) // config.batch_size * config.epochs
+        store.save(job)
 
         result = finetune_nli(str(train_path), eval_path=str(eval_path), config=config)
 
@@ -334,6 +224,7 @@ def _run_training_worker(job: FinetuneJob, data_path: Path, models_dir: Path) ->
         job.completed_at = time.time()
         job.progress = 1.0
         job.state = "completed"
+        store.save(job)
 
         logger.info(
             "Job %s completed: bal_acc=%.1f%%",
@@ -344,6 +235,7 @@ def _run_training_worker(job: FinetuneJob, data_path: Path, models_dir: Path) ->
     except Exception as exc:
         job.error = str(exc)
         job.state = "failed"
+        store.save(job)
         logger.error("Job %s failed: %s", job.job_id, exc)
     finally:
         paths_to_clean: tuple[Path | None, ...] = (data_path, train_path, eval_path)
@@ -422,8 +314,13 @@ def create_finetune_router(models_dir: Path | None = None) -> APIRouter:
     upload_dir = models_dir / "_uploads"
     upload_dir.mkdir(parents=True, exist_ok=True)
 
-    store = _JobStore()
-    managed_store = _ManagedJobStore()
+    # Jobs persist next to the model artefacts, so records — including the
+    # ``activated`` designations that protect models from deletion — survive
+    # restarts and are shared across workers (BUG-2). The stores fall back to
+    # memory-only when the database cannot be created (read-only filesystem).
+    job_db_path = models_dir / _JOB_DB_FILENAME
+    store = _JobStore(job_db_path)
+    managed_store = _ManagedJobStore(job_db_path)
     router = APIRouter(tags=["finetune"])
 
     @router.post("/validate")
@@ -520,10 +417,11 @@ def create_finetune_router(models_dir: Path | None = None) -> APIRouter:
             "estimated_train_time_min": report.estimated_train_time_min,
             "estimated_cost_usd": report.estimated_cost_usd,
         }
+        store.save(job)
 
         thread = threading.Thread(
             target=_run_training_worker,
-            args=(job, data_path, models_dir),
+            args=(job, data_path, models_dir, store),
             daemon=True,
         )
         thread.start()
@@ -805,6 +703,7 @@ def create_finetune_router(models_dir: Path | None = None) -> APIRouter:
                 f"Job {job_id} is not completed (state={job.state})",
             )
         job.activated = True
+        store.save(job)
         server_state = getattr(request.app.state, "_state", None)
         activator = (
             server_state.get("scorer_activator")
@@ -846,6 +745,7 @@ def create_finetune_router(models_dir: Path | None = None) -> APIRouter:
         if not job:
             raise HTTPException(404, f"Job {job_id} not found")
         job.activated = False
+        store.save(job)
         logger.info("Model %s rolled back", job_id)
         return {"job_id": job_id, "activated": False}
 

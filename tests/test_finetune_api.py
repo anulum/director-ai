@@ -1200,6 +1200,7 @@ class TestRouterStartEndpoint:
         for _i in range(_MAX_CONCURRENT_JOBS):
             job = store.create({"epochs": 1})
             job.state = "training"
+            store.save(job)  # write-through, as the training worker does
 
         data = self._make_jsonl_bytes()
         resp = client.post(
@@ -1271,7 +1272,7 @@ class TestTrainingWorkerDirect:
             },
         )
 
-        _run_training_worker(job, data_path, models_dir)
+        _run_training_worker(job, data_path, models_dir, _JobStore())
 
         assert job.state == "completed"
         assert job.progress == 1.0
@@ -1295,7 +1296,7 @@ class TestTrainingWorkerDirect:
             config={"epochs": 1, "batch_size": 4},
         )
 
-        _run_training_worker(job, data_path, models_dir)
+        _run_training_worker(job, data_path, models_dir, _JobStore())
 
         assert job.state == "failed"
         assert "No valid samples" in job.error
@@ -1314,7 +1315,7 @@ class TestTrainingWorkerDirect:
         models_dir.mkdir()
 
         job = FinetuneJob(job_id="j1", config={"epochs": 1, "batch_size": 4})
-        _run_training_worker(job, data_path, models_dir)
+        _run_training_worker(job, data_path, models_dir, _JobStore())
 
         assert job.state == "completed"
         call_args = mock_ft.call_args
@@ -1335,7 +1336,7 @@ class TestTrainingWorkerDirect:
         models_dir.mkdir()
 
         job = FinetuneJob(job_id="j2", config={"epochs": 1, "batch_size": 4})
-        _run_training_worker(job, data_path, models_dir)
+        _run_training_worker(job, data_path, models_dir, _JobStore())
 
         assert job.state == "failed"
         assert "GPU OOM" in job.error

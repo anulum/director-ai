@@ -266,3 +266,6 @@ director_class_ai/
 CLAUDE.md
 TODO
 target/
+
+# Default fine-tuning runtime directory (models + persistent job database)
+director-models/

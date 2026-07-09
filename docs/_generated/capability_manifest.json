@@ -7,9 +7,9 @@
     "public_api_exports": 226,
     "public_documentation_pages": 203,
     "python_model_classes": 1005,
-    "python_model_source_modules": 465,
+    "python_model_source_modules": 466,
     "rust_pyo3_model_wrappers": 83,
-    "test_files": 706
+    "test_files": 707
   },
   "documentation": {
     "public_pages": [
@@ -1746,7 +1746,7 @@
       },
       {
         "name": "FinetuneJob",
-        "path": "src/director_ai/finetune_api.py"
+        "path": "src/director_ai/finetune_jobs.py"
       },
       {
         "name": "FinetuneResult",
@@ -2450,7 +2450,7 @@
       },
       {
         "name": "ManagedTrainingRecord",
-        "path": "src/director_ai/finetune_api.py"
+        "path": "src/director_ai/finetune_jobs.py"
       },
       {
         "name": "MathConsistencyResult",
@@ -4757,6 +4757,7 @@
       "src/director_ai/federation/architecture_map.py",
       "src/director_ai/federation/manifest.py",
       "src/director_ai/finetune_api.py",
+      "src/director_ai/finetune_jobs.py",
       "src/director_ai/grpc_scoring.py",
       "src/director_ai/grpc_server.py",
       "src/director_ai/guard.py",
@@ -5457,6 +5458,7 @@
       "tests/test_finetune_benchmark_real_surface.py",
       "tests/test_finetune_gpu.py",
       "tests/test_finetune_hot_swap_real_surface.py",
+      "tests/test_finetune_jobs.py",
       "tests/test_finetune_metrics_real_surface.py",
       "tests/test_finetune_real_surface.py",
       "tests/test_finetune_validator.py",
