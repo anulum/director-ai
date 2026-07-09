@@ -134,9 +134,12 @@ class TestEmbeddedKeyAndBackwardCompatibility:
         assert info.valid is False
         assert "public key" in info.message.lower()
 
-    def test_legacy_hmac_license_still_validates(self, tmp_path, monkeypatch):
+    def test_legacy_hmac_license_validates_only_with_explicit_opt_in(
+        self, tmp_path, monkeypatch
+    ):
         monkeypatch.delenv("DIRECTOR_LICENSE_PRIVATE_KEY", raising=False)
         monkeypatch.setenv("DIRECTOR_LICENSE_SIGNING_KEY", "legacy-secret")
+        monkeypatch.setenv("DIRECTOR_LICENSE_ALLOW_LEGACY_HMAC", "1")
         payload = lic.generate_license("indie", "Old Corp", "old@x.example")
         assert "signature" in payload
         assert "ed25519_signature" not in payload
@@ -152,3 +155,62 @@ class TestEmbeddedKeyAndBackwardCompatibility:
         # Empty until ANULUM completes the key ceremony (see the module comment);
         # this test guards against an accidental placeholder key being committed.
         assert lic._LICENSE_ED25519_PUBLIC_KEY_HEX == ""
+
+
+class TestLegacyHmacDowngradeIsClosed:
+    """The HMAC path must not offer a downgrade forge around Ed25519 (SEC-1)."""
+
+    @pytest.fixture
+    def legacy_minting_env(self, monkeypatch, tmp_path):
+        """Mint a legacy HMAC licence, then drop the migration opt-in."""
+        monkeypatch.delenv("DIRECTOR_LICENSE_PRIVATE_KEY", raising=False)
+        monkeypatch.setenv("DIRECTOR_LICENSE_SIGNING_KEY", "shared-secret")
+        monkeypatch.setenv("DIRECTOR_LICENSE_ALLOW_LEGACY_HMAC", "1")
+        payload = lic.generate_license("enterprise", "Forger", "f@x.example")
+        path = tmp_path / "hmac.json"
+        path.write_text(json.dumps(payload), encoding="utf-8")
+        monkeypatch.delenv("DIRECTOR_LICENSE_ALLOW_LEGACY_HMAC", raising=False)
+        return path
+
+    def test_hmac_licence_rejected_by_default(self, legacy_minting_env):
+        # Holding the shared HMAC secret must NOT be enough to mint a licence:
+        # without the migration opt-in the HMAC branch is closed outright.
+        info = lic.validate_file(legacy_minting_env)
+
+        assert info.valid is False
+        assert "deprecated" in info.message.lower()
+        assert "DIRECTOR_LICENSE_ALLOW_LEGACY_HMAC" in info.message
+
+    def test_stripping_ed25519_signature_cannot_downgrade_to_hmac(
+        self, signing_keypair, tmp_path, monkeypatch
+    ):
+        # Downgrade attack: take a signed licence, strip the Ed25519 signature,
+        # re-sign the upgraded payload with the known shared HMAC secret.
+        import hashlib
+        import hmac as hmac_mod
+
+        payload = lic.generate_license("pro", "Acme", "a@acme.example")
+        del payload["ed25519_signature"]
+        payload["tier"] = "enterprise"
+        payload["key"] = payload["key"].replace("DAI-PRO-", "DAI-ENTERPRISE-")
+        secret = b"shared-secret"
+        payload["signature"] = hmac_mod.new(
+            secret, json.dumps(payload, sort_keys=True).encode(), hashlib.sha256
+        ).hexdigest()
+        monkeypatch.setenv("DIRECTOR_LICENSE_SIGNING_KEY", "shared-secret")
+        monkeypatch.delenv("DIRECTOR_LICENSE_ALLOW_LEGACY_HMAC", raising=False)
+        path = tmp_path / "downgraded.json"
+        path.write_text(json.dumps(payload), encoding="utf-8")
+
+        info = lic.validate_file(path)
+
+        assert info.valid is False
+        assert "deprecated" in info.message.lower()
+
+    def test_generate_refuses_hmac_minting_by_default(self, monkeypatch):
+        monkeypatch.delenv("DIRECTOR_LICENSE_PRIVATE_KEY", raising=False)
+        monkeypatch.delenv("DIRECTOR_LICENSE_ALLOW_LEGACY_HMAC", raising=False)
+        monkeypatch.setenv("DIRECTOR_LICENSE_SIGNING_KEY", "shared-secret")
+
+        with pytest.raises(RuntimeError, match="Ed25519"):
+            lic.generate_license("pro", "Acme", "a@acme.example")

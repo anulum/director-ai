@@ -236,13 +236,17 @@ def _cmd_license(args: list[str]) -> None:
         import json
         from pathlib import Path
 
-        data = generate_license(
-            tier=parsed.tier,
-            licensee=parsed.licensee,
-            email=parsed.email,
-            days=parsed.days,
-            deployments=parsed.deployments,
-        )
+        try:
+            data = generate_license(
+                tier=parsed.tier,
+                licensee=parsed.licensee,
+                email=parsed.email,
+                days=parsed.days,
+                deployments=parsed.deployments,
+            )
+        except RuntimeError as exc:  # missing signing key / legacy opt-in
+            print(f"Error: {exc}")
+            sys.exit(1)
         Path(parsed.output).write_text(json.dumps(data, indent=2) + "\n")
         print(f"License generated: {parsed.output}")
         print(f"Key: {data['key']}")

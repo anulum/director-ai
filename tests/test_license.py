@@ -23,7 +23,10 @@ from director_ai.core.license import (
 
 @pytest.fixture(autouse=True)
 def _set_signing_key(monkeypatch):
+    # This file exercises the legacy HMAC scheme, which is deprecated and
+    # rejected by default (SEC-1) — opt in as a migration-window deployment.
     monkeypatch.setenv("DIRECTOR_LICENSE_SIGNING_KEY", "test-license-key-for-ci")
+    monkeypatch.setenv("DIRECTOR_LICENSE_ALLOW_LEGACY_HMAC", "1")
 
 
 def _resign(payload: dict) -> dict:

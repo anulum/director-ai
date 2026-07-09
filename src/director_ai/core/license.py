@@ -11,6 +11,18 @@ Example: DAI-PRO-a8f3e2b1-9c4d-4e5f-b6a7-1234567890ab
 
 License files are signed JSON containing key, tier, licensee, and dates.
 Validation is offline-only — no phone-home, no DRM.
+
+Key handling (SEC-1)
+--------------------
+Licences are signed with an offline Ed25519 private key
+(``DIRECTOR_LICENSE_PRIVATE_KEY``, held by ANULUM, never distributed) and
+verified against the public key embedded below — holders of the public key
+cannot mint licences. The legacy symmetric-HMAC scheme
+(``DIRECTOR_LICENSE_SIGNING_KEY``) is forgeable by design: the verification
+secret IS the signing secret, so any deployment able to validate could also
+mint any tier. Legacy HMAC licences are therefore rejected by default and
+accepted only during migration when ``DIRECTOR_LICENSE_ALLOW_LEGACY_HMAC`` is
+explicitly set; re-issue customer licences with Ed25519 signatures instead.
 """
 
 from __future__ import annotations
@@ -37,6 +49,7 @@ TIERS = {"community", "indie", "pro", "enterprise", "trial"}
 # decision layered on top of this mechanism.
 _TIER_RANK = {"community": 0, "indie": 1, "trial": 2, "pro": 2, "enterprise": 3}
 _ENFORCE_ENV = "DIRECTOR_ENFORCE_LICENSE_TIER"
+_LEGACY_HMAC_ENV = "DIRECTOR_LICENSE_ALLOW_LEGACY_HMAC"
 
 
 class LicenseError(RuntimeError):
@@ -99,6 +112,21 @@ def _signing_secret() -> bytes:
             "License generation/validation requires the signing key in the environment."
         )
     return secret.encode("utf-8")
+
+
+def _legacy_hmac_allowed() -> bool:
+    """Whether the deprecated symmetric-HMAC licence path is explicitly opted in.
+
+    The HMAC scheme is forgeable by any holder of the shared secret, so both
+    validating and minting HMAC licences require ``DIRECTOR_LICENSE_ALLOW_LEGACY_HMAC``
+    to be set truthily — a migration-window escape hatch, not a supported mode.
+    """
+    return os.environ.get(_LEGACY_HMAC_ENV, "").strip().lower() in (
+        "1",
+        "true",
+        "yes",
+        "on",
+    )
 
 
 # ANULUM's Ed25519 license-verification public key (hex, 32 bytes / 64 hex chars).
@@ -243,14 +271,24 @@ def validate_file(path: str | Path) -> LicenseInfo:
         return LicenseInfo(message=f"Cannot read license file: {exc}")
 
     # Prefer the asymmetric Ed25519 signature (forgery-resistant: the private key
-    # never ships). Fall back to the legacy symmetric HMAC signature only for
-    # licences issued before SEC-1, which needs the shared signing secret.
+    # never ships). The legacy symmetric HMAC signature is rejected by default —
+    # accepting it unconditionally would let any holder of the shared secret
+    # forge a licence simply by omitting ``ed25519_signature`` (downgrade attack).
     ed25519_sig = str(data.get("ed25519_signature", ""))
     if ed25519_sig:
         ok, message = _verify_ed25519_signature(data, ed25519_sig)
         if not ok:
             return LicenseInfo(message=message)
     else:
+        if not _legacy_hmac_allowed():
+            return LicenseInfo(
+                message=(
+                    "License file has no Ed25519 signature. Legacy HMAC licences "
+                    "are deprecated and rejected by default (the shared secret can "
+                    "mint any tier); re-issue the licence with an Ed25519 signature "
+                    f"or set {_LEGACY_HMAC_ENV}=1 during migration."
+                )
+            )
         try:
             secret = _signing_secret()
         except RuntimeError:
@@ -382,9 +420,11 @@ def generate_license(
         "deployments": deployments,
         "version": "1",
     }
-    # Sign asymmetrically with the offline Ed25519 private key when available
-    # (DIRECTOR_LICENSE_PRIVATE_KEY, hex); otherwise fall back to the legacy
-    # symmetric HMAC signature. Only the asymmetric path is forgery-resistant.
+    # Sign asymmetrically with the offline Ed25519 private key
+    # (DIRECTOR_LICENSE_PRIVATE_KEY, hex). Minting new licences with the legacy
+    # symmetric HMAC signature is deprecated — such licences are forgeable by
+    # any secret holder and are rejected by default at validation — so it
+    # requires the same explicit migration opt-in as validating them.
     private_key_hex = os.environ.get("DIRECTOR_LICENSE_PRIVATE_KEY", "").strip()
     if private_key_hex:
         from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
@@ -395,6 +435,12 @@ def generate_license(
         signature = private_key.sign(_canonical_license_message(payload))
         payload["ed25519_signature"] = signature.hex()
     else:
+        if not _legacy_hmac_allowed():
+            raise RuntimeError(
+                "DIRECTOR_LICENSE_PRIVATE_KEY not set. New licences are signed "
+                "with Ed25519; the legacy HMAC path is deprecated (forgeable by "
+                f"any secret holder) and requires {_LEGACY_HMAC_ENV}=1."
+            )
         payload["signature"] = hmac.new(
             _signing_secret(),
             json.dumps(payload, sort_keys=True).encode(),

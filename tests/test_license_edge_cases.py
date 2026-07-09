@@ -19,7 +19,10 @@ from director_ai.core.license import load_license, validate_file, validate_key
 
 @pytest.fixture(autouse=True)
 def _set_signing_key(monkeypatch):
+    # Legacy HMAC path is deprecated and rejected by default (SEC-1) — the
+    # signature edge cases below opt in as a migration-window deployment.
     monkeypatch.setenv("DIRECTOR_LICENSE_SIGNING_KEY", "test-license-key-for-ci")
+    monkeypatch.setenv("DIRECTOR_LICENSE_ALLOW_LEGACY_HMAC", "1")
 
 
 def test_key_with_special_chars():

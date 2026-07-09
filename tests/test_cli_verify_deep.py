@@ -356,6 +356,37 @@ class TestLicenseCliBranches:
         assert data["deployments"] == 3
         assert "License generated" in capsys.readouterr().out
 
+    def test_license_generate_fails_cleanly_without_signing_keys(
+        self, monkeypatch, tmp_path, capsys
+    ):
+        # Real surface: no Ed25519 private key and no legacy HMAC opt-in → the
+        # CLI reports the signing error cleanly (exit 1, no traceback, no file).
+        monkeypatch.setenv("DIRECTOR_ADMIN_KEY", "admin-present")
+        monkeypatch.delenv("DIRECTOR_LICENSE_PRIVATE_KEY", raising=False)
+        monkeypatch.delenv("DIRECTOR_LICENSE_ALLOW_LEGACY_HMAC", raising=False)
+        output = tmp_path / "license.json"
+
+        with pytest.raises(SystemExit) as exc_info:
+            verify_cli._cmd_license(
+                [
+                    "generate",
+                    "--tier",
+                    "pro",
+                    "--licensee",
+                    "Pilot Operator",
+                    "--email",
+                    "pilot@example.test",
+                    "--output",
+                    str(output),
+                ]
+            )
+
+        assert exc_info.value.code == 1
+        out = capsys.readouterr().out
+        assert "Error:" in out
+        assert "Ed25519" in out
+        assert not output.exists()
+
     def test_license_validate_usage_and_exit_code(self, monkeypatch, capsys):
         with pytest.raises(SystemExit) as exc_info:
             verify_cli._cmd_license(["validate"])

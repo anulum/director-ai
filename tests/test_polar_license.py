@@ -44,6 +44,9 @@ class _Response:
 @pytest.fixture(autouse=True)
 def _license_env(monkeypatch):
     monkeypatch.setenv("DIRECTOR_LICENSE_SIGNING_KEY", "test-license-key-for-ci")
+    # The file-fallback test mints a legacy HMAC licence, which needs the
+    # deprecated-path migration opt-in (SEC-1).
+    monkeypatch.setenv("DIRECTOR_LICENSE_ALLOW_LEGACY_HMAC", "1")
     monkeypatch.delenv("DIRECTOR_LICENSE_KEY", raising=False)
     monkeypatch.delenv("DIRECTOR_LICENSE_FILE", raising=False)
     monkeypatch.delenv("DIRECTOR_AI_POLAR_ORG_ID", raising=False)
