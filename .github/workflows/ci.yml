@@ -53,6 +53,9 @@ jobs:
       - name: Test surface policy
         run: python tools/check_test_surface_policy.py --root .
 
+      - name: Capability matrix ratchet
+        run: python tools/capability_matrix.py --check
+
       - name: Mojibake guard (source tree)
         run: python tools/check_mojibake.py --root .
 

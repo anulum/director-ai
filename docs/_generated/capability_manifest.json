@@ -9,7 +9,7 @@
     "python_model_classes": 1005,
     "python_model_source_modules": 466,
     "rust_pyo3_model_wrappers": 83,
-    "test_files": 707
+    "test_files": 708
   },
   "documentation": {
     "public_pages": [
@@ -5281,6 +5281,7 @@
       "tests/test_cache.py",
       "tests/test_cache_concurrent.py",
       "tests/test_canary.py",
+      "tests/test_capability_matrix.py",
       "tests/test_carbon.py",
       "tests/test_causal_attribution_graph.py",
       "tests/test_causal_verifier.py",

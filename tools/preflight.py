@@ -3,14 +3,15 @@
 """Pre-push preflight gate — mirrors CI checks locally.
 
 Gates (must match ci.yml):
-  1. ruff-format   — src/ tests/ examples/
-  2. ruff-check    — src/ tests/ examples/
-  3. mojibake      — src/ tools/ tests/
-  4. version-sync  — pyproject.toml == __init__.py == CITATION.cff
-  5. mypy          — src/director_ai/
-  6. bandit        — src/director_ai/
-  7. spdx-guard    — all .py files in src/ tests/
-  8. pytest        — tests/ with the CI coverage gate (97%)
+  1. ruff-format        — src/ tests/ examples/
+  2. ruff-check         — src/ tests/ examples/
+  3. mojibake           — src/ tools/ tests/
+  4. capability-matrix  — generated matrix current + gap ratchet (WCC-1)
+  5. version-sync       — pyproject.toml == __init__.py == CITATION.cff
+  6. mypy               — src/director_ai/
+  7. bandit             — src/director_ai/
+  8. spdx-guard         — all .py files in src/ tests/
+  9. pytest             — tests/ with the CI coverage gate (97%)
 """
 
 import argparse
@@ -66,6 +67,14 @@ GATES: list[Gate] = [
             "tools/check_mojibake.py",
             "--root",
             ".",
+        ],
+    ),
+    (
+        "capability-matrix",
+        [
+            sys.executable,
+            "tools/capability_matrix.py",
+            "--check",
         ],
     ),
     ("version-sync", None),

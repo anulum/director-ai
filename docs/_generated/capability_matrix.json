@@ -1,0 +1,2324 @@
+{
+  "SPDX-License-Identifier": "Apache-2.0 AND BUSL-1.1",
+  "counts": {
+    "benchmarked": 50,
+    "experimental_hooks": 23,
+    "public_exports": 226,
+    "undocumented": 41,
+    "untested": 21,
+    "unwired": 0
+  },
+  "gaps": {
+    "undocumented": [
+      "AdaptiveRouter",
+      "CitationStatusVerdict",
+      "ContentModerationFinding",
+      "ContextualCompressionBackend",
+      "CostAnalyser",
+      "DIRECTOR_SAFETY_PROTOCOL_VERSION",
+      "DataQualityReport",
+      "ElasticsearchBackend",
+      "FAISSBackend",
+      "FinetuneConfig",
+      "FinetuneResult",
+      "HyDEBackend",
+      "KBHealthCheck",
+      "KBHealthReport",
+      "MetaClassifier",
+      "MultiVectorBackend",
+      "NumericVerificationResult",
+      "ParentChildBackend",
+      "PolicyVariantResult",
+      "ProfileMetadata",
+      "QdrantBackend",
+      "QueryDecompositionBackend",
+      "RegressionReport",
+      "ScorerBackend",
+      "ShardedNLIScorer",
+      "StructuredRecoveryResult",
+      "TuneResult",
+      "WeaviateBackend",
+      "benchmark_finetuned_model",
+      "clear_model_cache",
+      "create_knowledge_router",
+      "export_tensorrt",
+      "get_backend",
+      "list_backends",
+      "new_safety_event_id",
+      "register_backend",
+      "utc_timestamp",
+      "emergence_oracle",
+      "knowledge_graph",
+      "multi_scale_alignment",
+      "swarm_economics"
+    ],
+    "untested": [
+      "AdaptiveThresholdReport",
+      "Article15Report",
+      "BFTConsensusResult",
+      "CalibrationReport",
+      "CitationStatusVerdict",
+      "ClaimVerdict",
+      "CodeCheckResult",
+      "ContentModerationFinding",
+      "ContentModerationResult",
+      "DriftResult",
+      "FieldVerdict",
+      "HipaaDocumentationPacket",
+      "InferenceHookDecision",
+      "PolicyComparisonReport",
+      "PolicyVariantResult",
+      "ProfileMetadata",
+      "Soc2IsoReadinessReport",
+      "StoredDocument",
+      "StructuredVerificationResult",
+      "ToolCallResult",
+      "new_director_safety_signal_id"
+    ],
+    "unwired": []
+  },
+  "rows": [
+    {
+      "benchmarked": false,
+      "documented": false,
+      "kind": "public_export",
+      "module": ".core.retrieval.adaptive_router",
+      "name": "AdaptiveRouter",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".core",
+      "name": "AdaptiveThresholdArm",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": true,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".core",
+      "name": "AdaptiveThresholdLearner",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": true,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".core",
+      "name": "AdaptiveThresholdRecommendation",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".core",
+      "name": "AdaptiveThresholdReport",
+      "tested": false,
+      "wired": true
+    },
+    {
+      "benchmarked": true,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".testing.adversarial_suite",
+      "name": "AdversarialTester",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".agentic.agent_profile",
+      "name": "AgentProfile",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".compliance.reporter",
+      "name": "Article15Report",
+      "tested": false,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".compliance.reporter",
+      "name": "Article15TemplateContext",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": true,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".core",
+      "name": "AsyncStreamingKernel",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".voice.guard",
+      "name": "AsyncVoiceGuard",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".core",
+      "name": "AttributionEdge",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".core",
+      "name": "AttributionNode",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".compliance.audit_log",
+      "name": "AuditEntry",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".compliance.audit_log",
+      "name": "AuditLog",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".core",
+      "name": "BFTConsensusResult",
+      "tested": false,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".core",
+      "name": "BFTConsensusVote",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".core",
+      "name": "BatchProcessor",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".core",
+      "name": "BatchResult",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".core",
+      "name": "ByzantineFaultTolerantConsensus",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".core.calibration.online_calibrator",
+      "name": "CalibrationReport",
+      "tested": false,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".core",
+      "name": "CausalAttributionGraph",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": true,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".core",
+      "name": "ChromaBackend",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".core.scoring.temporal_freshness",
+      "name": "CitationStatusSignal",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": false,
+      "kind": "public_export",
+      "module": ".core.scoring.temporal_freshness",
+      "name": "CitationStatusVerdict",
+      "tested": false,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".core",
+      "name": "ClaimAttribution",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".core",
+      "name": "ClaimVerdict",
+      "tested": false,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".core.verification.types",
+      "name": "CodeCheckResult",
+      "tested": false,
+      "wired": true
+    },
+    {
+      "benchmarked": true,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".core",
+      "name": "CoherenceAgent",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".integrations.langchain_callback",
+      "name": "CoherenceCallbackHandler",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".core.exceptions",
+      "name": "CoherenceError",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": true,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".core",
+      "name": "CoherenceScore",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": true,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".core",
+      "name": "CoherenceScorer",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".core",
+      "name": "ColBERTBackend",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".compliance.reporter",
+      "name": "ComplianceReporter",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".core",
+      "name": "ConflictAwareKnowledgeGuard",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": true,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".core.calibration.conformal",
+      "name": "ConformalPredictor",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".core.calibration.conformal",
+      "name": "ConformalRoutingDecision",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": true,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".core.calibration.conformal",
+      "name": "ConformalRoutingPolicy",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".core.scoring.consensus",
+      "name": "ConsensusScorer",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": false,
+      "kind": "public_export",
+      "module": ".enterprise.moderation",
+      "name": "ContentModerationFinding",
+      "tested": false,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".enterprise.moderation",
+      "name": "ContentModerationResult",
+      "tested": false,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".enterprise.moderation",
+      "name": "ContentModerator",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": false,
+      "kind": "public_export",
+      "module": ".core.retrieval.contextual_compression",
+      "name": "ContextualCompressionBackend",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".core.runtime.contradiction_tracker",
+      "name": "ContradictionReport",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".core.runtime.contradiction_tracker",
+      "name": "ContradictionTracker",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".core",
+      "name": "ConversationSession",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": false,
+      "kind": "public_export",
+      "module": ".compliance.cost_analyser",
+      "name": "CostAnalyser",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".core",
+      "name": "CounterfactualFactChange",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".core",
+      "name": "CounterfactualHaltDiagnostic",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".core.scoring.consensus",
+      "name": "CriticalConsensusProfile",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".core",
+      "name": "CrossDocumentConflict",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".core",
+      "name": "CrossDocumentConsistencyMemory",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".core",
+      "name": "CrossDocumentConsistencyReport",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".core.scoring.consensus",
+      "name": "CrossVerifierConsensus",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".enterprise.rules_dsl",
+      "name": "CustomRule",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".enterprise.rules_dsl",
+      "name": "CustomRuleset",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": false,
+      "kind": "public_export",
+      "module": ".core",
+      "name": "DIRECTOR_SAFETY_PROTOCOL_VERSION",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": false,
+      "kind": "public_export",
+      "module": ".core",
+      "name": "DataQualityReport",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".core",
+      "name": "DatasetTypeClassifier",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".voice.adapters",
+      "name": "DeepgramAdapter",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".core.exceptions",
+      "name": "DependencyError",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".core",
+      "name": "DifferentialPrivacyScoreReleaser",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".core.exceptions",
+      "name": "DirectorAIError",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".core",
+      "name": "DirectorConfig",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".core",
+      "name": "DirectorSafetySignal",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".compliance.drift_detector",
+      "name": "DriftDetector",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".compliance.drift_detector",
+      "name": "DriftResult",
+      "tested": false,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": false,
+      "kind": "public_export",
+      "module": ".core",
+      "name": "ElasticsearchBackend",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".voice.adapters",
+      "name": "ElevenLabsAdapter",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".core",
+      "name": "EvidenceChunk",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": false,
+      "kind": "public_export",
+      "module": ".core",
+      "name": "FAISSBackend",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": true,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".core",
+      "name": "FederatedSafetySignalAggregator",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".core",
+      "name": "FederatedSafetySignalRelease",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".compliance.feedback_loop_detector",
+      "name": "FeedbackLoopDetector",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".core.calibration.feedback_store",
+      "name": "FeedbackStore",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".core.verification.types",
+      "name": "FieldVerdict",
+      "tested": false,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": false,
+      "kind": "public_export",
+      "module": ".core",
+      "name": "FinetuneConfig",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": false,
+      "kind": "public_export",
+      "module": ".core",
+      "name": "FinetuneResult",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".core.exceptions",
+      "name": "GeneratorError",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": true,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".core",
+      "name": "GroundTruthStore",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".guard",
+      "name": "GuardResult",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".core.exceptions",
+      "name": "HallucinationError",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".core",
+      "name": "HaltEvidence",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".core",
+      "name": "HaltMonitor",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".core",
+      "name": "HaltTraceAttribution",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".agentic.handoff_scorer",
+      "name": "HandoffScorer",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".compliance.readiness",
+      "name": "HipaaDeploymentObligation",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".compliance.readiness",
+      "name": "HipaaDocumentationPacket",
+      "tested": false,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".core",
+      "name": "HumanReviewCase",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".core",
+      "name": "HumanReviewDecision",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".core",
+      "name": "HumanReviewQueue",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": false,
+      "kind": "public_export",
+      "module": ".core.retrieval.hyde",
+      "name": "HyDEBackend",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": true,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".core",
+      "name": "HybridBackend",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": true,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".core",
+      "name": "InMemoryBackend",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".integrations.inference_server_hooks",
+      "name": "InferenceHookDecision",
+      "tested": false,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".integrations.inference_server_hooks",
+      "name": "InferenceHookRequest",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".integrations.inference_server_hooks",
+      "name": "InferenceServerHook",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".integrations.inference_server_hooks",
+      "name": "InferenceServerHookPolicy",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".core.types",
+      "name": "InjectedClaim",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": true,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".core.safety.injection",
+      "name": "InjectionDetector",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": true,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".core.types",
+      "name": "InjectionResult",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": true,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".core",
+      "name": "InputSanitizer",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".interlock",
+      "name": "InterlockDecision",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".interlock",
+      "name": "InterlockKernel",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".interlock",
+      "name": "InterlockPolicy",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": false,
+      "kind": "public_export",
+      "module": ".core.retrieval.kb_health",
+      "name": "KBHealthCheck",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": false,
+      "kind": "public_export",
+      "module": ".core.retrieval.kb_health",
+      "name": "KBHealthReport",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".core.exceptions",
+      "name": "KernelHaltError",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".core",
+      "name": "KnowledgeConflict",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".core",
+      "name": "KnowledgeConflictCheck",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".core",
+      "name": "KnowledgeFact",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": true,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".core",
+      "name": "LLMGenerator",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".core",
+      "name": "LabelledPolicySample",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".core",
+      "name": "LiteScorer",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".agentic.loop_monitor",
+      "name": "LoopMonitor",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": false,
+      "kind": "public_export",
+      "module": ".core",
+      "name": "MetaClassifier",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".core",
+      "name": "MockGenerator",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": true,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".core.scoring.consensus",
+      "name": "ModelResponse",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".enterprise.moderation",
+      "name": "ModerationAction",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": false,
+      "kind": "public_export",
+      "module": ".core.retrieval.multi_vector",
+      "name": "MultiVectorBackend",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": true,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".core",
+      "name": "NLIScorer",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".core",
+      "name": "NeuroSymbolicVerificationResult",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".core",
+      "name": "NeuroSymbolicVerifier",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".core",
+      "name": "NeuroSymbolicVerifierInput",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": false,
+      "kind": "public_export",
+      "module": ".core.verification.numeric_verifier",
+      "name": "NumericVerificationResult",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".core.exceptions",
+      "name": "NumericalError",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".core.calibration.online_calibrator",
+      "name": "OnlineCalibrator",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".voice.adapters",
+      "name": "OpenAITTSAdapter",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": false,
+      "kind": "public_export",
+      "module": ".core.retrieval.parent_child",
+      "name": "ParentChildBackend",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".core.exceptions",
+      "name": "PhysicsError",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".core",
+      "name": "PineconeBackend",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".core",
+      "name": "PolicyComparisonReport",
+      "tested": false,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".core",
+      "name": "PolicyEvaluationReport",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".core",
+      "name": "PolicyVariant",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": false,
+      "kind": "public_export",
+      "module": ".core",
+      "name": "PolicyVariantResult",
+      "tested": false,
+      "wired": true
+    },
+    {
+      "benchmarked": true,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".core.calibration.conformal",
+      "name": "PredictionInterval",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".core",
+      "name": "PrivacyScoreRelease",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".guard",
+      "name": "ProductionGuard",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": false,
+      "kind": "public_export",
+      "module": ".core",
+      "name": "ProfileMetadata",
+      "tested": false,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": false,
+      "kind": "public_export",
+      "module": ".core",
+      "name": "QdrantBackend",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": false,
+      "kind": "public_export",
+      "module": ".core.retrieval.query_decomposition",
+      "name": "QueryDecompositionBackend",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".compliance.readiness",
+      "name": "ReadinessStatus",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": true,
+      "documented": false,
+      "kind": "public_export",
+      "module": ".core",
+      "name": "RegressionReport",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".core",
+      "name": "RerankedBackend",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".core",
+      "name": "ReviewQueue",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".core",
+      "name": "ReviewResult",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".enterprise.rules_dsl",
+      "name": "RulesDslError",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".core",
+      "name": "SAFETY_EVENT_JSON_SCHEMA",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": true,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".core",
+      "name": "SafetyEvent",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".core",
+      "name": "SafetyKernel",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".core",
+      "name": "SanitizeResult",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".core",
+      "name": "ScoreCache",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": false,
+      "kind": "public_export",
+      "module": ".core",
+      "name": "ScorerBackend",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".core",
+      "name": "ScoringEvidence",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": true,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".core",
+      "name": "SentenceTransformerBackend",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": false,
+      "kind": "public_export",
+      "module": ".core",
+      "name": "ShardedNLIScorer",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".compliance.readiness",
+      "name": "Soc2IsoControl",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".compliance.readiness",
+      "name": "Soc2IsoReadinessReport",
+      "tested": false,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".core",
+      "name": "StoredDocument",
+      "tested": false,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".lite",
+      "name": "StreamGuard",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".core",
+      "name": "StreamSession",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": true,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".core",
+      "name": "StreamingKernel",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".core",
+      "name": "StructuredRecoveryConfig",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": false,
+      "kind": "public_export",
+      "module": ".core",
+      "name": "StructuredRecoveryResult",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".core.verification.types",
+      "name": "StructuredVerificationResult",
+      "tested": false,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".agentic.swarm_guardian",
+      "name": "SwarmGuardian",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".agentic.swarm_metrics",
+      "name": "SwarmMetrics",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".voice.adapters",
+      "name": "TTSAdapter",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".core",
+      "name": "ThresholdFeedback",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": true,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".core",
+      "name": "TokenEvent",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".core.verification.types",
+      "name": "ToolCallResult",
+      "tested": false,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": false,
+      "kind": "public_export",
+      "module": ".core",
+      "name": "TuneResult",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": true,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".core",
+      "name": "Turn",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".core.exceptions",
+      "name": "ValidationError",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".core",
+      "name": "VectorBackend",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": true,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".core",
+      "name": "VectorGroundTruthStore",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".core",
+      "name": "VerificationResult",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": true,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".core",
+      "name": "VerifiedScorer",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".integrations.voice",
+      "name": "VoiceGuard",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".integrations.voice",
+      "name": "VoiceToken",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": false,
+      "kind": "public_export",
+      "module": ".core",
+      "name": "WeaviateBackend",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": false,
+      "kind": "public_export",
+      "module": ".core",
+      "name": "benchmark_finetuned_model",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".core",
+      "name": "build_causal_attribution_graph",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".compliance.readiness",
+      "name": "build_hipaa_documentation_packet",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": true,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".integrations.inference_server_hooks",
+      "name": "build_inference_server_hook",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".compliance.readiness",
+      "name": "build_soc2_iso_readiness_report",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": false,
+      "kind": "public_export",
+      "module": ".core",
+      "name": "clear_model_cache",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".core",
+      "name": "compare_policy_variants",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".core.scoring.meta_confidence",
+      "name": "compute_meta_confidence",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".server",
+      "name": "create_app",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".grpc_server",
+      "name": "create_grpc_server",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": false,
+      "kind": "public_export",
+      "module": ".knowledge_api",
+      "name": "create_knowledge_router",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": true,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".core.verification.fallacy_detector",
+      "name": "detect_fallacies",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": true,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".core",
+      "name": "director_safety_signal_from_event",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".core",
+      "name": "evaluate_policy_variants",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": true,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".core",
+      "name": "export_onnx",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": false,
+      "kind": "public_export",
+      "module": ".core",
+      "name": "export_tensorrt",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".core",
+      "name": "finetune_nli",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": false,
+      "kind": "public_export",
+      "module": ".core",
+      "name": "get_backend",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".integrations.sdk_guard",
+      "name": "get_score",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".core",
+      "name": "get_vector_backend",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": true,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".integrations.sdk_guard",
+      "name": "guard",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": false,
+      "kind": "public_export",
+      "module": ".core",
+      "name": "list_backends",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".core",
+      "name": "list_vector_backends",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".core",
+      "name": "new_director_safety_signal_id",
+      "tested": false,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": false,
+      "kind": "public_export",
+      "module": ".core",
+      "name": "new_safety_event_id",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".core",
+      "name": "nli_available",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": false,
+      "kind": "public_export",
+      "module": ".core",
+      "name": "register_backend",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".core",
+      "name": "register_vector_backend",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": true,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".integrations.sdk_guard",
+      "name": "score",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": true,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".core.scoring.temporal_freshness",
+      "name": "score_temporal_freshness",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".lite",
+      "name": "streaming_guard",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": true,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".core.verification.citation_tracer",
+      "name": "trace_citations",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": true,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".core",
+      "name": "tune",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": false,
+      "kind": "public_export",
+      "module": ".core",
+      "name": "utc_timestamp",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".core",
+      "name": "validate_director_safety_signal",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".core",
+      "name": "validate_finetune_data",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".core",
+      "name": "validate_safety_event_payload",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": true,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".core.verification.math_consistency",
+      "name": "verify_arithmetic",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".core.verification.code_verifier",
+      "name": "verify_code",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".core.verification.json_verifier",
+      "name": "verify_json",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": true,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".core.verification.numeric_verifier",
+      "name": "verify_numeric",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".core.verification.reasoning_verifier",
+      "name": "verify_reasoning_chain",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".core.verification.tool_call_verifier",
+      "name": "verify_tool_call",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".voice.pipeline",
+      "name": "voice_pipeline",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "experimental_hook",
+      "module": "director_ai.core.agent_identity",
+      "name": "agent_identity",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": true,
+      "documented": true,
+      "kind": "experimental_hook",
+      "module": "director_ai.core.autopoietic",
+      "name": "autopoietic",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "experimental_hook",
+      "module": "director_ai.core.causal_verifier",
+      "name": "causal_verifier",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": true,
+      "documented": true,
+      "kind": "experimental_hook",
+      "module": "director_ai.core.continual_adversarial",
+      "name": "continual_adversarial",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": true,
+      "documented": true,
+      "kind": "experimental_hook",
+      "module": "director_ai.core.defense_genome",
+      "name": "defense_genome",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": false,
+      "kind": "experimental_hook",
+      "module": "director_ai.core.emergence_oracle",
+      "name": "emergence_oracle",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": true,
+      "documented": true,
+      "kind": "experimental_hook",
+      "module": "director_ai.core.federated_privacy",
+      "name": "federated_privacy",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": true,
+      "documented": true,
+      "kind": "experimental_hook",
+      "module": "director_ai.core.formal_verification",
+      "name": "formal_verification",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "experimental_hook",
+      "module": "director_ai.core.irreversibility",
+      "name": "irreversibility",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": false,
+      "kind": "experimental_hook",
+      "module": "director_ai.core.knowledge_graph",
+      "name": "knowledge_graph",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "experimental_hook",
+      "module": "director_ai.core.meta_guard",
+      "name": "meta_guard",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": false,
+      "kind": "experimental_hook",
+      "module": "director_ai.core.multi_scale_alignment",
+      "name": "multi_scale_alignment",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": true,
+      "documented": true,
+      "kind": "experimental_hook",
+      "module": "director_ai.core.multimodal_guard",
+      "name": "multimodal_guard",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "experimental_hook",
+      "module": "director_ai.core.ontology",
+      "name": "ontology",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": true,
+      "documented": true,
+      "kind": "experimental_hook",
+      "module": "director_ai.core.provenance",
+      "name": "provenance",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": true,
+      "documented": true,
+      "kind": "experimental_hook",
+      "module": "director_ai.core.self_evolving",
+      "name": "self_evolving",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "experimental_hook",
+      "module": "director_ai.core.sustainability",
+      "name": "sustainability",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": false,
+      "kind": "experimental_hook",
+      "module": "director_ai.core.swarm_economics",
+      "name": "swarm_economics",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "experimental_hook",
+      "module": "director_ai.core.swarm_equilibrium",
+      "name": "swarm_equilibrium",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "experimental_hook",
+      "module": "director_ai.core.symbolic_chain",
+      "name": "symbolic_chain",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "experimental_hook",
+      "module": "director_ai.core.trace_safe",
+      "name": "trace_safe",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": true,
+      "documented": true,
+      "kind": "experimental_hook",
+      "module": "director_ai.core.trajectory",
+      "name": "trajectory",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": true,
+      "documented": true,
+      "kind": "experimental_hook",
+      "module": "director_ai.core.zk_attestation",
+      "name": "zk_attestation",
+      "tested": true,
+      "wired": true
+    }
+  ],
+  "schema_version": "capability-matrix.v1"
+}
