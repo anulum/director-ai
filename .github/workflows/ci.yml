@@ -560,6 +560,23 @@ jobs:
           pip-audit --strict --desc on -r requirements.txt
           pip-audit --strict --desc on -r requirements/docker-server.txt
 
+      - name: Export vulnerability disclosure reports (CycloneDX VDR)
+        # Machine-readable exploitability statements (WCG-1): a CycloneDX BOM
+        # with the vulnerabilities[] analysis for each audited dependency set —
+        # the VEX-equivalent record; the governed exception register above is
+        # the not-affected justification trail.
+        run: |
+          pip-audit --format cyclonedx-json -o vdr-core.json -r requirements.txt
+          pip-audit --format cyclonedx-json -o vdr-docker-server.json -r requirements/docker-server.txt
+
+      - name: Upload VDR artifacts
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: vdr
+          path: vdr-*.json
+          if-no-files-found: ignore
+
   sbom:
     name: SBOM Generation
     runs-on: ubuntu-latest
@@ -577,14 +594,22 @@ jobs:
           pip install --no-deps -e .
           pip install --require-hashes -r requirements/ci-sbom.txt
 
-      - name: Generate SBOM
+      - name: Generate SBOM (installed environment, resolved versions)
         run: cyclonedx-py environment -o sbom.json --of json
 
-      - name: Upload SBOM artifact
+      - name: Generate SBOM (hashed dependency lock)
+        # Pinned + hashed supply-chain inventory (WCG-1): every component is an
+        # exact ==version from the pip-compile --generate-hashes lock and its
+        # requirement line (including all --hash values) is captured verbatim.
+        run: cyclonedx-py requirements requirements/ci-dev.txt -o sbom-lock.json --of json
+
+      - name: Upload SBOM artifacts
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: sbom
-          path: sbom.json
+          path: |
+            sbom.json
+            sbom-lock.json
 
   fuzz:
     name: Fuzz (Hypothesis)
