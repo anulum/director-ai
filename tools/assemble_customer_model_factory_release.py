@@ -6,118 +6,19 @@
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI - Customer Model Factory release assembler
 
-"""Assemble the final Customer Model Factory release gate from manifest JSON."""
+"""Assemble the final Customer Model Factory release gate from manifest JSON.
+
+The assembler now lives in the shipped package as
+``director_ai._cli_release_gate.assemble_release_gate`` (exposed as
+``director-ai release-gate assemble``, WCC-3); this script remains a thin
+delegating wrapper for existing tooling and CI invocations.
+"""
 
 from __future__ import annotations
 
-import argparse
-import json
-from pathlib import Path
-from typing import Any
+from director_ai._cli_release_gate import assemble_release_gate as main
 
-from director_ai.core.customer_model_factory.evidence_pack import (
-    CustomerEvidencePackManifest,
-)
-from director_ai.core.customer_model_factory.monitoring_manifest import (
-    CustomerMonitoringManifest,
-)
-from director_ai.core.customer_model_factory.release_gate import (
-    AutoRedteamDefenceEvidence,
-    ConformalRoutingEvidence,
-    DeploymentHardeningEvidence,
-    EdgeMobileEvidence,
-    FederatedPrivacyEvidence,
-    FormalSymbolicEvidence,
-    MultimodalTemporalEvidence,
-    ObservabilityOperationsEvidence,
-    ProvenanceLineageEvidence,
-    TrajectoryRollbackEvidence,
-    build_release_gate_manifest,
-)
-from director_ai.core.customer_model_factory.risk_register import CustomerRiskRegister
-from director_ai.core.customer_model_factory.runtime_package import (
-    CustomerRuntimePackage,
-)
-
-
-def main(argv: list[str] | None = None) -> int:
-    """Run the release-gate assembler."""
-
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--release-id", required=True)
-    parser.add_argument("--generated-at", required=True)
-    parser.add_argument("--enterprise-readiness", type=Path, required=True)
-    parser.add_argument("--runtime-package", type=Path, required=True)
-    parser.add_argument("--evidence-pack", type=Path, required=True)
-    parser.add_argument("--monitoring-manifest", type=Path, required=True)
-    parser.add_argument("--risk-register", type=Path, required=True)
-    parser.add_argument("--observability-operations-evidence", type=Path, required=True)
-    parser.add_argument("--provenance-lineage-evidence", type=Path, required=True)
-    parser.add_argument("--conformal-routing-evidence", type=Path, required=True)
-    parser.add_argument("--trajectory-rollback-evidence", type=Path, required=True)
-    parser.add_argument("--multimodal-temporal-evidence", type=Path, required=True)
-    parser.add_argument("--federated-privacy-evidence", type=Path, required=True)
-    parser.add_argument("--edge-mobile-evidence", type=Path, required=True)
-    parser.add_argument("--auto-redteam-defence-evidence", type=Path, required=True)
-    parser.add_argument("--formal-symbolic-evidence", type=Path, required=True)
-    parser.add_argument("--deployment-hardening-evidence", type=Path, required=True)
-    parser.add_argument("--output", type=Path, required=True)
-    args = parser.parse_args(argv)
-
-    enterprise = _read_json(args.enterprise_readiness)
-    release_gate = build_release_gate_manifest(
-        release_id=args.release_id,
-        enterprise_ready=bool(enterprise.get("ready")),
-        enterprise_blocking_debt_ids=tuple(enterprise.get("blocking_debt_ids", ())),
-        runtime_package=CustomerRuntimePackage.from_dict(
-            _read_json(args.runtime_package)
-        ),
-        evidence_pack=CustomerEvidencePackManifest.from_dict(
-            _read_json(args.evidence_pack)
-        ),
-        monitoring_manifest=CustomerMonitoringManifest.from_dict(
-            _read_json(args.monitoring_manifest)
-        ),
-        risk_register=CustomerRiskRegister.from_dict(_read_json(args.risk_register)),
-        observability_operations_evidence=ObservabilityOperationsEvidence.from_dict(
-            _read_json(args.observability_operations_evidence)
-        ),
-        provenance_lineage_evidence=ProvenanceLineageEvidence.from_dict(
-            _read_json(args.provenance_lineage_evidence)
-        ),
-        conformal_routing_evidence=ConformalRoutingEvidence.from_dict(
-            _read_json(args.conformal_routing_evidence)
-        ),
-        trajectory_rollback_evidence=TrajectoryRollbackEvidence.from_dict(
-            _read_json(args.trajectory_rollback_evidence)
-        ),
-        multimodal_temporal_evidence=MultimodalTemporalEvidence.from_dict(
-            _read_json(args.multimodal_temporal_evidence)
-        ),
-        federated_privacy_evidence=FederatedPrivacyEvidence.from_dict(
-            _read_json(args.federated_privacy_evidence)
-        ),
-        edge_mobile_evidence=EdgeMobileEvidence.from_dict(
-            _read_json(args.edge_mobile_evidence)
-        ),
-        auto_redteam_defence_evidence=AutoRedteamDefenceEvidence.from_dict(
-            _read_json(args.auto_redteam_defence_evidence)
-        ),
-        formal_symbolic_evidence=FormalSymbolicEvidence.from_dict(
-            _read_json(args.formal_symbolic_evidence)
-        ),
-        deployment_hardening_evidence=DeploymentHardeningEvidence.from_dict(
-            _read_json(args.deployment_hardening_evidence)
-        ),
-        generated_at=args.generated_at,
-    )
-    release_gate.write_json(args.output)
-    return 0 if release_gate.promotion_allowed else 1
-
-
-def _read_json(path: Path) -> dict[str, Any]:
-    return json.loads(path.read_text(encoding="utf-8"))
-
+__all__ = ["main"]
 
 if __name__ == "__main__":
     raise SystemExit(main())

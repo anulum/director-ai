@@ -133,6 +133,12 @@ KNOWN_TEST_SURFACE_CLASSIFICATIONS: dict[str, tuple[str, str]] = {
         "unit-guard-with-companion",
         "module/workflow unit guard with companion tests/test_cost_integration_real_surface.py",
     ),
+    "tests/test_cli_release_gate.py": (
+        "unit-guard-with-companion",
+        "release-gate + model-activation CLI guard running the real fixture "
+        "generator and a real SQLite job store; companion "
+        "tests/test_customer_model_factory_release_cli.py",
+    ),
     "tests/test_cross_language_contracts.py": (
         "unit-guard-with-companion",
         "cross-language property guard with companion tests/test_cross_language_contracts_real_surface.py",

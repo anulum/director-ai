@@ -42,6 +42,11 @@ from ._cli_bench import (
 from ._cli_gate import _cmd_ci_gate
 from ._cli_ingest import _INGEST_MAX_FILE_SIZE, _cmd_ingest
 from ._cli_production import _cmd_production_check
+from ._cli_release_gate import (
+    _cmd_model_activate,
+    _cmd_model_rollback,
+    _cmd_release_gate,
+)
 from ._cli_train import _cmd_train
 
 # Historical re-export — downstream tests and tooling reach for
@@ -456,6 +461,18 @@ def _command_specs() -> dict[str, _CommandSpec]:
         "validate-data": _CommandSpec(
             _cmd_validate_data,
             "validate-data <file.jsonl>       Validate data before fine-tuning",
+        ),
+        "release-gate": _CommandSpec(
+            _cmd_release_gate,
+            "release-gate assemble [options]  Assemble the release-gate manifest",
+        ),
+        "model-activate": _CommandSpec(
+            _cmd_model_activate,
+            "model-activate <job-id> [--models-dir D]  Persist model activation",
+        ),
+        "model-rollback": _CommandSpec(
+            _cmd_model_rollback,
+            "model-rollback <job-id> [--models-dir D]  Clear model activation",
         ),
         "serve": _CommandSpec(
             _cmd_serve,

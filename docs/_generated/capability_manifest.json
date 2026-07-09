@@ -7,9 +7,9 @@
     "public_api_exports": 226,
     "public_documentation_pages": 203,
     "python_model_classes": 1005,
-    "python_model_source_modules": 466,
+    "python_model_source_modules": 467,
     "rust_pyo3_model_wrappers": 83,
-    "test_files": 708
+    "test_files": 709
   },
   "documentation": {
     "public_pages": [
@@ -4354,6 +4354,7 @@
       "src/director_ai/_cli_gate.py",
       "src/director_ai/_cli_ingest.py",
       "src/director_ai/_cli_production.py",
+      "src/director_ai/_cli_release_gate.py",
       "src/director_ai/_cli_serve.py",
       "src/director_ai/_cli_train.py",
       "src/director_ai/_cli_verify.py",
@@ -5304,6 +5305,7 @@
       "tests/test_cli_ingest_real_surface.py",
       "tests/test_cli_kpis.py",
       "tests/test_cli_new_commands.py",
+      "tests/test_cli_release_gate.py",
       "tests/test_cli_serve_paths.py",
       "tests/test_cli_serve_real_surface.py",
       "tests/test_cli_tools_real_surface.py",
