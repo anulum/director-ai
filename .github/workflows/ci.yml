@@ -65,6 +65,9 @@ jobs:
       - name: Docstring ratchet (source tree)
         run: ruff check src/director_ai --select D
 
+      - name: REUSE compliance (SPDX licensing)
+        uses: fsfe/reuse-action@676e2d560c9a403aa252096d99fcab3e1132b0f5 # v6.0.0
+
   director-lite:
     name: Director-Lite (standalone)
     runs-on: ubuntu-latest
