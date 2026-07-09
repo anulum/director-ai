@@ -17,8 +17,12 @@ policy. See ``docs/adr/0001-rust-accelerator-hybrid-fallback.md``.
 
 from __future__ import annotations
 
+import importlib
+import sys
 import tomllib
 from pathlib import Path
+
+import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -53,3 +57,52 @@ def test_rust_kernel_is_optional_rust_extra() -> None:
 
     assert not any(dep.startswith("backfire-kernel") for dep in dependencies)
     assert any(req.startswith("backfire-kernel") for req in extras["rust"])
+
+
+def test_require_rust_kernel_names_the_kernel_and_the_extra() -> None:
+    """The kernel-absent error is actionable: kernel name + the [rust] extra."""
+    from director_ai.core.mandatory import require_rust_kernel
+
+    with pytest.raises(RuntimeError) as exc_info:
+        require_rust_kernel("rust_sum_f64")
+
+    message = str(exc_info.value)
+    assert "backfire_kernel rust_sum_f64 is unavailable" in message
+    assert "director-ai[rust]" in message
+    assert "ADR-0001" in message
+
+
+@pytest.mark.parametrize(
+    ("module_name", "stub_call"),
+    [
+        (
+            "director_ai.core.scoring.verified_scorer",
+            lambda mod: mod.rust_sum_f64([1.0]),
+        ),
+        (
+            "director_ai.core.scoring.verified_scorer",
+            lambda mod: mod.rust_traceability("claim", "source"),
+        ),
+        (
+            "director_ai.core.scoring.distilled_scorer",
+            lambda mod: mod.rust_softmax([0.1, 0.9], 2),
+        ),
+    ],
+)
+def test_kernel_absent_stubs_point_at_the_rust_extra(module_name, stub_call) -> None:
+    """With backfire_kernel absent, the mandatory stubs tell the user the fix."""
+    module = importlib.import_module(module_name)
+    saved_kernel = sys.modules.get("backfire_kernel")
+    # ``None`` in sys.modules makes ``import backfire_kernel`` raise ImportError,
+    # forcing the except-branch stubs on reload.
+    sys.modules["backfire_kernel"] = None  # type: ignore[assignment]  # import blocker
+    try:
+        reloaded = importlib.reload(module)
+        with pytest.raises(RuntimeError, match=r"director-ai\[rust\]"):
+            stub_call(reloaded)
+    finally:
+        if saved_kernel is not None:
+            sys.modules["backfire_kernel"] = saved_kernel
+        else:
+            sys.modules.pop("backfire_kernel", None)
+        importlib.reload(module)  # restore the kernel-backed module object

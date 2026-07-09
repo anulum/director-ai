@@ -27,7 +27,7 @@ import re
 from dataclasses import dataclass, field
 from typing import Any, Literal, Protocol, cast
 
-from ..mandatory import mandatory_execution
+from ..mandatory import mandatory_execution, require_rust_kernel
 from ..text_overlap import word_overlap
 
 logger = logging.getLogger("DirectorAI.VerifiedScorer")
@@ -49,31 +49,31 @@ except ImportError:
 
     def rust_sum_i64(_values: list[int]) -> int:
         """Raise to signal the mandatory Rust int-sum accelerator is missing."""
-        raise RuntimeError("backfire_kernel rust_sum_i64 is unavailable")
+        require_rust_kernel("rust_sum_i64")
 
     def rust_sum_f64(_values: list[float]) -> float:
         """Raise to signal the mandatory Rust float-sum accelerator is missing."""
-        raise RuntimeError("backfire_kernel rust_sum_f64 is unavailable")
+        require_rust_kernel("rust_sum_f64")
 
     def rust_entity_overlap(_claim: str, _source: str) -> float:
         """Raise to signal the mandatory Rust entity-overlap signal is missing."""
-        raise RuntimeError("backfire_kernel rust_entity_overlap is unavailable")
+        require_rust_kernel("rust_entity_overlap")
 
     def rust_negation_flip(_claim: str, _source: str) -> bool:
         """Raise to signal the mandatory Rust negation-flip signal is missing."""
-        raise RuntimeError("backfire_kernel rust_negation_flip is unavailable")
+        require_rust_kernel("rust_negation_flip")
 
     def rust_numerical_consistency(_claim: str, _source: str) -> bool:
         """Raise to signal the mandatory Rust numeric-consistency signal is missing."""
-        raise RuntimeError("backfire_kernel rust_numerical_consistency is unavailable")
+        require_rust_kernel("rust_numerical_consistency")
 
     def rust_split_sentences(_text: str) -> list[str]:
         """Raise to signal the mandatory Rust sentence splitter is missing."""
-        raise RuntimeError("backfire_kernel rust_split_sentences is unavailable")
+        require_rust_kernel("rust_split_sentences")
 
     def rust_traceability(_claim: str, _source: str) -> float:
         """Raise to signal the mandatory Rust traceability signal is missing."""
-        raise RuntimeError("backfire_kernel rust_traceability is unavailable")
+        require_rust_kernel("rust_traceability")
 
 
 _SENT_SPLIT = re.compile(r"(?<=[.!?])\s+")

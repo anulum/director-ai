@@ -11,6 +11,33 @@ from __future__ import annotations
 import logging
 from collections.abc import Iterator
 from contextlib import contextmanager
+from typing import NoReturn
+
+
+def require_rust_kernel(kernel: str) -> NoReturn:
+    """Raise the actionable kernel-absent error for a mandatory accelerator.
+
+    Import-fallback stubs for kernels that have no bit-exact pure-Python
+    equivalent (ADR-0001) call this instead of raising a bare
+    ``RuntimeError``, so a base install hitting a Rust-only path is told
+    exactly how to fix it.
+
+    Parameters
+    ----------
+    kernel : str
+        Name of the missing ``backfire_kernel`` function.
+
+    Raises
+    ------
+    RuntimeError
+        Always; names the missing kernel and the ``[rust]`` extra that
+        provides it.
+    """
+    raise RuntimeError(
+        f"backfire_kernel {kernel} is unavailable and this capability has no "
+        "bit-exact pure-Python fallback (ADR-0001). Install the Rust "
+        "accelerator: pip install 'director-ai[rust]'."
+    )
 
 
 @contextmanager

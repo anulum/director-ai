@@ -414,6 +414,12 @@ KNOWN_TEST_SURFACE_CLASSIFICATIONS: dict[str, tuple[str, str]] = {
         "unit-guard-with-companion",
         "ML/export/eval managed training job guard with companion tests/test_managed_training_jobs_real_surface.py",
     ),
+    "tests/test_mandatory_runtime_policy.py": (
+        "approved-protocol-fake",
+        "ADR-0001 contract surface; the sys.modules import blocker simulates "
+        "kernel absence for the stub-message tests, with the floor CI job and "
+        "tests/test_rust_fallback_floor.py as the real kernel-absent surface",
+    ),
     "tests/test_metrics.py": (
         "unit-guard-with-companion",
         "module/workflow unit guard with companion tests/test_metrics_real_surface.py",

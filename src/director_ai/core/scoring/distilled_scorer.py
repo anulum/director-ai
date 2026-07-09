@@ -38,7 +38,7 @@ from typing import Any
 
 import numpy as np
 
-from ..mandatory import mandatory_execution
+from ..mandatory import mandatory_execution, require_rust_kernel
 
 logger = logging.getLogger("DirectorAI.DistilledNLI")
 
@@ -51,11 +51,11 @@ except ImportError:
 
     def rust_sum_f64(_values: list[float]) -> float:
         """Raise to signal the mandatory Rust sum accelerator is missing."""
-        raise RuntimeError("backfire_kernel rust_sum_f64 is unavailable")
+        require_rust_kernel("rust_sum_f64")
 
     def rust_softmax(_flat: list[float], _cols: int) -> list[float]:
         """Raise to signal the mandatory Rust softmax accelerator is missing."""
-        raise RuntimeError("backfire_kernel rust_softmax is unavailable")
+        require_rust_kernel("rust_softmax")
 
 
 DEFAULT_DISTILLED_MODEL = "anulum/director-ai-nli-lite"
