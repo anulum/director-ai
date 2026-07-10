@@ -11,12 +11,16 @@
 Extends the keyword-based :class:`GroundTruthStore` with
 embedding-based similarity search and exposes a ``grounded()``
 factory that wires the recommended hybrid (BM25 + dense) recipe.
+
+This module owns the retrieval surface (write path, querying, result
+screening, the ``grounded()`` recipe); the sibling responsibilities are
+composed as mixins — the semantic-version ledger in
+:mod:`._versioning`, conflict detection in :mod:`._conflicts`, and the
+Merkle snapshot audit in :mod:`._snapshot`.
 """
 
 from __future__ import annotations
 
-import hashlib
-import json
 from typing import Any
 
 from ...evidence_firewall import EvidenceFirewall, FirewallContext
@@ -25,6 +29,7 @@ from ...otel import trace_vector_add, trace_vector_query
 from ...types import EvidenceChunk
 from ..knowledge import GroundTruthStore, _require_non_empty_string
 from ._conflicts import ConflictLedgerMixin
+from ._snapshot import SnapshotAuditMixin
 from ._versioning import VersionLedgerMixin
 from .base import (
     RECOMMENDED_EMBEDDING_MODEL,
@@ -77,13 +82,15 @@ def _result_source(result: dict[str, Any]) -> str:
 class VectorGroundTruthStore(
     VersionLedgerMixin,
     ConflictLedgerMixin,
+    SnapshotAuditMixin,
     GroundTruthStore,
 ):
     """Ground truth store with vector-based semantic retrieval.
 
     Extends the keyword-based ``GroundTruthStore`` with embedding-based
     similarity search. Falls back to keyword matching when the vector
-    backend returns no results.
+    backend returns no results. Version bookkeeping, conflict detection,
+    and the snapshot audit come from the composed mixins.
 
     Parameters
     ----------
@@ -117,70 +124,6 @@ class VectorGroundTruthStore(
         if not isinstance(tenant_id, str):
             raise ValueError("tenant_id must be a string")
         return (tenant_id or self.tenant_id).strip()
-
-    def kb_snapshot_records(self, tenant_id: str = "") -> list[dict[str, str]]:
-        """Return canonical KB snapshot records visible to *tenant_id*."""
-        records = []
-        for record in self.version_manifest(tenant_id).values():
-            snapshot_record = {
-                "key": record.get("key", ""),
-                "tenant_id": record.get("tenant_id", ""),
-                "version": record.get("version", ""),
-                "chunk_version": record.get("chunk_version", ""),
-                "content_hash": record.get("content_hash", ""),
-                "previous_hash": record.get("previous_hash", ""),
-                "record_kind": record.get("record_kind", ""),
-                "chunk_index": record.get("chunk_index", ""),
-                "status": record.get("status", "active"),
-                "retraction_reason": record.get("retraction_reason", ""),
-                "replacement_reason": record.get("replacement_reason", ""),
-                "source_id": record.get("source_id", ""),
-                "external_id": record.get("external_id", ""),
-                "source_timestamp": record.get("source_timestamp", ""),
-                "updated_timestamp": record.get("updated_timestamp", ""),
-                "citation_status": record.get("citation_status", ""),
-                "status_source": record.get("status_source", ""),
-                "status_observed_at": record.get("status_observed_at", ""),
-                "claim_id": record.get("claim_id", ""),
-                "claim_source": record.get("claim_source", ""),
-                "signed_fact_id": record.get("signed_fact_id", ""),
-                "passport_claim_id": record.get("passport_claim_id", ""),
-            }
-            records.append(snapshot_record)
-        return sorted(
-            records,
-            key=lambda item: (
-                item["tenant_id"],
-                item["key"],
-                item["record_kind"],
-                item["chunk_index"],
-            ),
-        )
-
-    def kb_snapshot_root(self, tenant_id: str = "") -> str:
-        """Return a deterministic Merkle root for the current KB snapshot."""
-        leaves = [
-            self._snapshot_leaf(record)
-            for record in self.kb_snapshot_records(tenant_id)
-        ]
-        return self._merkle_root_hex(leaves)
-
-    def kb_snapshot_audit_record(self, tenant_id: str = "") -> dict[str, str | int]:
-        """Return a compact audit payload for the current KB snapshot."""
-        tenant_id = self._resolved_tenant_id(tenant_id)
-        records = self.kb_snapshot_records(tenant_id)
-        return {
-            "event": "kb_snapshot",
-            "tenant_id": tenant_id,
-            "revision": self.revision,
-            "record_count": len(records),
-            "retraction_count": len(self.retraction_records(tenant_id)),
-            "replacement_count": len(self.replacement_records(tenant_id)),
-            "conflict_count": len(self.conflict_reports(tenant_id)),
-            "merkle_root": self._merkle_root_hex(
-                [self._snapshot_leaf(record) for record in records]
-            ),
-        }
 
     def add_fact(
         self,
@@ -285,31 +228,6 @@ class VectorGroundTruthStore(
                 span.set_attribute("error.message", str(e))
 
                 raise ValueError(f"Failed to add to vector store: {e}") from e
-
-    @staticmethod
-    def _snapshot_leaf(record: dict[str, str]) -> bytes:
-        """Return a domain-separated Merkle leaf digest for a record."""
-        payload = json.dumps(record, sort_keys=True, separators=(",", ":")).encode(
-            "utf-8"
-        )
-        return hashlib.sha256(b"director-ai/kb-snapshot/v1/leaf\x00" + payload).digest()
-
-    @staticmethod
-    def _merkle_root_hex(leaves: list[bytes]) -> str:
-        """Return the Merkle root for snapshot leaves as hex."""
-        if not leaves:
-            return hashlib.sha256(b"director-ai/kb-snapshot/v1/empty").hexdigest()
-        level = list(leaves)
-        while len(level) > 1:
-            if len(level) % 2 == 1:
-                level.append(level[-1])
-            level = [
-                hashlib.sha256(
-                    b"director-ai/kb-snapshot/v1/node\x00" + level[i] + level[i + 1]
-                ).digest()
-                for i in range(0, len(level), 2)
-            ]
-        return level[0].hex()
 
     def retrieve_context(
         self,

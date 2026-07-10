@@ -6,10 +6,10 @@
     "optional_extras": 62,
     "public_api_exports": 226,
     "public_documentation_pages": 203,
-    "python_model_classes": 1017,
-    "python_model_source_modules": 482,
+    "python_model_classes": 1018,
+    "python_model_source_modules": 483,
     "rust_pyo3_model_wrappers": 83,
-    "test_files": 726
+    "test_files": 727
   },
   "documentation": {
     "public_pages": [
@@ -3697,6 +3697,10 @@
         "path": "src/director_ai/core/knowledge_graph/graph.py"
       },
       {
+        "name": "SnapshotAuditMixin",
+        "path": "src/director_ai/core/retrieval/vector_store/_snapshot.py"
+      },
+      {
         "name": "Soc2IsoControl",
         "path": "src/director_ai/compliance/readiness.py"
       },
@@ -4660,6 +4664,7 @@
       "src/director_ai/core/retrieval/parent_child.py",
       "src/director_ai/core/retrieval/query_decomposition.py",
       "src/director_ai/core/retrieval/vector_store/_conflicts.py",
+      "src/director_ai/core/retrieval/vector_store/_snapshot.py",
       "src/director_ai/core/retrieval/vector_store/_versioning.py",
       "src/director_ai/core/retrieval/vector_store/base.py",
       "src/director_ai/core/retrieval/vector_store/composite.py",
@@ -5925,6 +5930,7 @@
       "tests/test_starter_presets.py",
       "tests/test_stats.py",
       "tests/test_store_conflicts.py",
+      "tests/test_store_snapshot.py",
       "tests/test_store_versioning.py",
       "tests/test_streaming.py",
       "tests/test_streaming_contradiction_halt_bench.py",
