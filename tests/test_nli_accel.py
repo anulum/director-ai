@@ -43,8 +43,14 @@ class TestBindingSurface:
         for name in _ACCEL_NAMES:
             assert callable(getattr(nli_accel, name))
 
-    def test_nli_module_consumes_the_binding_module(self):
-        assert nli_mod._nli_accel is nli_accel
+    def test_scoring_modules_consume_the_binding_module(self):
+        import director_ai.core.scoring._nli_chunking as nli_chunking
+        import director_ai.core.scoring._nli_claims as nli_claims
+        import director_ai.core.scoring._nli_numeric as nli_numeric
+
+        assert nli_numeric._nli_accel is nli_accel
+        assert nli_chunking._nli_accel is nli_accel
+        assert nli_claims._nli_accel is nli_accel
 
 
 class TestCanonicalPatchPoint:

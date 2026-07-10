@@ -6,10 +6,10 @@
     "optional_extras": 62,
     "public_api_exports": 226,
     "public_documentation_pages": 203,
-    "python_model_classes": 1008,
-    "python_model_source_modules": 472,
+    "python_model_classes": 1009,
+    "python_model_source_modules": 473,
     "rust_pyo3_model_wrappers": 83,
-    "test_files": 716
+    "test_files": 717
   },
   "documentation": {
     "public_pages": [
@@ -823,6 +823,10 @@
       {
         "name": "ClaimCitation",
         "path": "src/director_ai/core/verification/citation_tracer.py"
+      },
+      {
+        "name": "ClaimCoverageMixin",
+        "path": "src/director_ai/core/scoring/_nli_claims.py"
       },
       {
         "name": "ClaimGrounding",
@@ -4667,6 +4671,7 @@
       "src/director_ai/core/scoring/_llm_judge.py",
       "src/director_ai/core/scoring/_nli_accel.py",
       "src/director_ai/core/scoring/_nli_chunking.py",
+      "src/director_ai/core/scoring/_nli_claims.py",
       "src/director_ai/core/scoring/_nli_export.py",
       "src/director_ai/core/scoring/_nli_numeric.py",
       "src/director_ai/core/scoring/_review_pipeline.py",
@@ -5672,6 +5677,7 @@
       "tests/test_nli_backend_contracts.py",
       "tests/test_nli_backend_contracts_real_surface.py",
       "tests/test_nli_chunking_mixin.py",
+      "tests/test_nli_claims_mixin.py",
       "tests/test_nli_export.py",
       "tests/test_nli_export_real_surface.py",
       "tests/test_nli_integration.py",
