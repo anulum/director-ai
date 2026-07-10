@@ -22,8 +22,11 @@ node validation, guard z3 factory error path, closed audit-log contract,
 Python sentence-splitter fallback, and others), plus removal of two
 structurally unreachable `union == 0` guards in
 `core/scoring/lexical_signals.py` (both sit behind emptiness checks that
-already guarantee a non-empty union). Expected missed statements after this
-wave: **0**.
+already guarantee a non-empty union).
+
+**CI-confirmed** (run `29059290946`, commit `96a1ded2`): 44 114 statements,
+**0 missed**, 52 partial branch edges, total **99.91 %**. The per-file edge
+table below matches that run exactly.
 
 ## Remaining exclusions: partial branch edges
 
@@ -36,7 +39,7 @@ whose statements are fully covered. They fall into three categories:
 | skip-edge | Forward arc: a defensive condition whose false path is only reachable under object states no public API produces today. |
 | extras-gated | Arc taken only when an optional extra is present/absent in a combination the core CI job does not produce; the behaviour itself is covered by the extras matrix jobs or the floor job. |
 
-Baseline as of run `29051155653` (branch edges, per file):
+Baseline as of run `29059290946` (52 branch edges, per file):
 
 | File | Edges | Category |
 | --- | --- | --- |
