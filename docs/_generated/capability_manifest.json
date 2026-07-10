@@ -6,10 +6,10 @@
     "optional_extras": 62,
     "public_api_exports": 226,
     "public_documentation_pages": 203,
-    "python_model_classes": 1013,
-    "python_model_source_modules": 478,
+    "python_model_classes": 1014,
+    "python_model_source_modules": 479,
     "rust_pyo3_model_wrappers": 83,
-    "test_files": 722
+    "test_files": 723
   },
   "documentation": {
     "public_pages": [
@@ -1339,6 +1339,10 @@
       {
         "name": "DecisionLog",
         "path": "src/director_ai/core/meta_guard/log.py"
+      },
+      {
+        "name": "DecisionQualityMixin",
+        "path": "src/director_ai/_guard_quality.py"
       },
       {
         "name": "DeepgramAdapter",
@@ -4394,6 +4398,7 @@
       "src/director_ai/_guard_defence.py",
       "src/director_ai/_guard_distributed.py",
       "src/director_ai/_guard_hardening.py",
+      "src/director_ai/_guard_quality.py",
       "src/director_ai/_server_helpers.py",
       "src/director_ai/_server_models.py",
       "src/director_ai/agentic/agent_profile.py",
@@ -5553,6 +5558,7 @@
       "tests/test_guard_hardening.py",
       "tests/test_guard_multimodal.py",
       "tests/test_guard_pii_redaction.py",
+      "tests/test_guard_quality.py",
       "tests/test_guard_runtime_real_surface.py",
       "tests/test_guardrails_ai_integration.py",
       "tests/test_guardrails_ai_real_surface.py",
