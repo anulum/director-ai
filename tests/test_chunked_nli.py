@@ -16,7 +16,7 @@ from __future__ import annotations
 
 import pytest
 
-import director_ai.core.scoring.nli as nli_mod
+import director_ai.core.scoring._nli_accel as nli_accel
 from director_ai.core.nli import NLIScorer
 
 
@@ -52,9 +52,9 @@ class TestSplitSentences:
     def test_split_sentences_non_runtime_rust_error_is_mandatory_failure(
         self, monkeypatch
     ):
-        monkeypatch.setattr(nli_mod, "_RUST_NLI", True)
+        monkeypatch.setattr(nli_accel, "_RUST_NLI", True)
         monkeypatch.setattr(
-            nli_mod,
+            nli_accel,
             "rust_split_sentences",
             lambda _text: (_ for _ in ()).throw(ValueError("ffi fail")),
             raising=True,
@@ -63,9 +63,9 @@ class TestSplitSentences:
             NLIScorer._split_sentences("Hello world. How are you?")
 
     def test_split_sentences_rust_type_error_is_mandatory_failure(self, monkeypatch):
-        monkeypatch.setattr(nli_mod, "_RUST_NLI", True)
+        monkeypatch.setattr(nli_accel, "_RUST_NLI", True)
         monkeypatch.setattr(
-            nli_mod,
+            nli_accel,
             "rust_split_sentences",
             lambda _text: (_ for _ in ()).throw(TypeError("ffi signature mismatch")),
             raising=True,
@@ -123,9 +123,9 @@ class TestBuildChunks:
     def test_build_chunks_non_runtime_rust_error_is_mandatory_failure(
         self, monkeypatch
     ):
-        monkeypatch.setattr(nli_mod, "_RUST_NLI", True)
+        monkeypatch.setattr(nli_accel, "_RUST_NLI", True)
         monkeypatch.setattr(
-            nli_mod,
+            nli_accel,
             "rust_build_chunks",
             lambda _sentences, _budget, _overlap_ratio: (_ for _ in ()).throw(
                 ValueError("ffi fail")
@@ -138,9 +138,9 @@ class TestBuildChunks:
             scorer._build_chunks(sentences, budget=20, overlap_ratio=0.0)
 
     def test_build_chunks_rust_type_error_is_mandatory_failure(self, monkeypatch):
-        monkeypatch.setattr(nli_mod, "_RUST_NLI", True)
+        monkeypatch.setattr(nli_accel, "_RUST_NLI", True)
         monkeypatch.setattr(
-            nli_mod,
+            nli_accel,
             "rust_build_chunks",
             lambda _sentences, _budget, _overlap_ratio: (_ for _ in ()).throw(
                 TypeError("ffi signature mismatch")
@@ -349,7 +349,7 @@ class TestScoreChunked:
         long_hyp = ". ".join(f"Claim {i} text" for i in range(20)) + "."
 
         monkeypatch.setattr(
-            "director_ai.core.scoring.nli.rust_aggregate_chunk_scores",
+            "director_ai.core.scoring._nli_accel.rust_aggregate_chunk_scores",
             lambda *_args, **_kwargs: (_ for _ in ()).throw(ValueError("boom")),
         )
         with pytest.raises(ValueError, match="boom"):
@@ -361,7 +361,7 @@ class TestScoreChunked:
         long_hyp = ". ".join(f"Claim {i} text" for i in range(20)) + "."
 
         monkeypatch.setattr(
-            "director_ai.core.scoring.nli.rust_aggregate_chunk_scores",
+            "director_ai.core.scoring._nli_accel.rust_aggregate_chunk_scores",
             lambda *_args, **_kwargs: (_ for _ in ()).throw(
                 TypeError("ffi signature mismatch")
             ),
@@ -484,7 +484,7 @@ class TestScoreChunked:
         long_hyp = ". ".join(f"Claim {i} detail" for i in range(20)) + "."
 
         monkeypatch.setattr(
-            "director_ai.core.scoring.nli.rust_aggregate_chunk_scores_confidence_weighted",
+            "director_ai.core.scoring._nli_accel.rust_aggregate_chunk_scores_confidence_weighted",
             lambda *_args, **_kwargs: (_ for _ in ()).throw(ValueError("boom")),
         )
         with pytest.raises(ValueError, match="boom"):
@@ -500,7 +500,7 @@ class TestScoreChunked:
         long_hyp = ". ".join(f"Claim {i} detail" for i in range(20)) + "."
 
         monkeypatch.setattr(
-            "director_ai.core.scoring.nli.rust_aggregate_chunk_scores_confidence_weighted",
+            "director_ai.core.scoring._nli_accel.rust_aggregate_chunk_scores_confidence_weighted",
             lambda *_args, **_kwargs: (_ for _ in ()).throw(
                 TypeError("ffi signature mismatch")
             ),

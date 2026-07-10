@@ -161,7 +161,7 @@ class TestNLIClaimSupportScoring:
         monkeypatch: pytest.MonkeyPatch,
     ) -> None:
         """Claim coverage should use every decomposed summary statement."""
-        monkeypatch.setattr("director_ai.core.scoring.nli._RUST_NLI", False)
+        monkeypatch.setattr("director_ai.core.scoring._nli_accel._RUST_NLI", False)
         scorer = self._scorer_with_claim_scores(
             {
                 "The sky is blue.": 0.1,
@@ -184,7 +184,7 @@ class TestNLIClaimSupportScoring:
         monkeypatch: pytest.MonkeyPatch,
     ) -> None:
         """Support thresholds should count only divergences below the boundary."""
-        monkeypatch.setattr("director_ai.core.scoring.nli._RUST_NLI", False)
+        monkeypatch.setattr("director_ai.core.scoring._nli_accel._RUST_NLI", False)
         scorer = self._scorer_with_claim_scores({"Claim X.": 0.35})
 
         loose_support, _, _ = scorer.score_claim_coverage(
@@ -232,9 +232,9 @@ class TestNLIClaimSupportScoring:
             """Raise the selected reducer failure."""
             raise failure("ffi unavailable")
 
-        monkeypatch.setattr("director_ai.core.scoring.nli._RUST_NLI", True)
+        monkeypatch.setattr("director_ai.core.scoring._nli_accel._RUST_NLI", True)
         monkeypatch.setattr(
-            "director_ai.core.scoring.nli.rust_coverage_from_divergences",
+            "director_ai.core.scoring._nli_accel.rust_coverage_from_divergences",
             unavailable_reducer,
         )
 

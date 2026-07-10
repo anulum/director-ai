@@ -201,15 +201,15 @@ class TestClaimCoverageAttribution:
         scorer = self._mock_scorer([0.8, 0.3, 0.5, 0.7, 0.9, 0.1])
         with (
             patch(
-                "director_ai.core.scoring.nli._RUST_NLI",
+                "director_ai.core.scoring._nli_accel._RUST_NLI",
                 True,
             ),
             patch(
-                "director_ai.core.scoring.nli.rust_reduce_claim_attribution",
+                "director_ai.core.scoring._nli_accel.rust_reduce_claim_attribution",
                 side_effect=ValueError("ffi unavailable"),
             ),
             patch(
-                "director_ai.core.scoring.nli.rust_coverage_from_divergences",
+                "director_ai.core.scoring._nli_accel.rust_coverage_from_divergences",
                 side_effect=ValueError("ffi unavailable"),
             ),
             pytest.raises(ValueError, match="ffi unavailable"),
@@ -224,15 +224,15 @@ class TestClaimCoverageAttribution:
         scorer = self._mock_scorer([0.8, 0.3, 0.5, 0.7, 0.9, 0.1])
         with (
             patch(
-                "director_ai.core.scoring.nli._RUST_NLI",
+                "director_ai.core.scoring._nli_accel._RUST_NLI",
                 True,
             ),
             patch(
-                "director_ai.core.scoring.nli.rust_reduce_claim_attribution",
+                "director_ai.core.scoring._nli_accel.rust_reduce_claim_attribution",
                 side_effect=TypeError("ffi signature mismatch"),
             ),
             patch(
-                "director_ai.core.scoring.nli.rust_coverage_from_divergences",
+                "director_ai.core.scoring._nli_accel.rust_coverage_from_divergences",
                 side_effect=TypeError("ffi signature mismatch"),
             ),
             pytest.raises(TypeError, match="ffi signature mismatch"),

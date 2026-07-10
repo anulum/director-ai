@@ -42,97 +42,7 @@ from ..model_revisions import (
     MODEL_REVISION_REGISTRY,
     resolve_model_revision,
 )
-
-try:
-    from backfire_kernel import (
-        rust_aggregate_chunk_scores,
-        rust_aggregate_chunk_scores_confidence_weighted,
-        rust_build_chunks,
-        rust_coverage_from_divergences,
-        rust_probs_to_confidence,
-        rust_probs_to_divergence,
-        rust_reduce_claim_attribution,
-        rust_softmax,
-        rust_split_sentences,
-    )
-
-    _RUST_NLI = True
-except ImportError:
-    # Rust unavailable → fall through to the pure-Python floor. The stubs keep
-    # the names bound for the accelerated branch but are never called when False.
-    _RUST_NLI = False
-
-    def rust_softmax(_flat: list[float], _cols: int) -> list[float]:
-        """Raise when the Rust NLI softmax accelerator is unavailable."""
-        raise RuntimeError("backfire_kernel rust_softmax is unavailable")
-
-    def rust_probs_to_divergence(
-        _flat: list[float],
-        _ncols: int,
-        _contradiction_idx: int,
-        _neutral_idx: int,
-    ) -> list[float]:
-        """Raise when the Rust divergence accelerator is unavailable."""
-        raise RuntimeError("backfire_kernel rust_probs_to_divergence is unavailable")
-
-    def rust_probs_to_confidence(_flat: list[float], _ncols: int) -> list[float]:
-        """Raise when the Rust confidence accelerator is unavailable."""
-        raise RuntimeError("backfire_kernel rust_probs_to_confidence is unavailable")
-
-    def rust_aggregate_chunk_scores(
-        _flat_scores: list[float],
-        _n_prem: int,
-        _n_hyp: int,
-        _inner_agg: str,
-        _outer_agg: str,
-    ) -> tuple[float, list[float]]:
-        """Raise when Rust chunk aggregator accelerator is unavailable."""
-        raise RuntimeError("backfire_kernel rust_aggregate_chunk_scores is unavailable")
-
-    def rust_aggregate_chunk_scores_confidence_weighted(
-        _flat_scores: list[float],
-        _flat_confidences: list[float],
-        _n_prem: int,
-        _n_hyp: int,
-        _inner_agg: str,
-    ) -> tuple[float, list[float]]:
-        """Raise when Rust weighted chunk aggregator is unavailable."""
-        raise RuntimeError(
-            "backfire_kernel rust_aggregate_chunk_scores_confidence_weighted is unavailable"
-        )
-
-    def rust_coverage_from_divergences(
-        _divergences: list[float],
-        _support_threshold: float,
-    ) -> tuple[float, int]:
-        """Raise when Rust claim coverage reducer is unavailable."""
-        raise RuntimeError(
-            "backfire_kernel rust_coverage_from_divergences is unavailable"
-        )
-
-    def rust_reduce_claim_attribution(
-        _flat_divergences: list[float],
-        _n_claims: int,
-        _n_src: int,
-    ) -> tuple[list[float], list[int]]:
-        """Raise when Rust claim attribution reducer is unavailable."""
-        raise RuntimeError(
-            "backfire_kernel rust_reduce_claim_attribution is unavailable"
-        )
-
-    def rust_split_sentences(_text: str) -> list[str]:
-        """Raise when Rust sentence splitter accelerator is unavailable."""
-        raise RuntimeError("backfire_kernel rust_split_sentences is unavailable")
-
-    def rust_build_chunks(
-        _sentences: list[str],
-        _budget: int,
-        _overlap_ratio: float,
-    ) -> list[str]:
-        """Raise when Rust chunk builder accelerator is unavailable."""
-        raise RuntimeError("backfire_kernel rust_build_chunks is unavailable")
-
-
+from . import _nli_accel
 from ._nli_export import (
     OnnxDynamicBatcher,
     _load_onnx_session,
@@ -276,11 +186,11 @@ def _softmax_np(x: np.ndarray) -> np.ndarray:
 
     Uses Rust accelerator for large batches when available.
     """
-    if _RUST_NLI and x.size >= 100:
+    if _nli_accel._RUST_NLI and x.size >= 100:
         with mandatory_execution(__name__, component="mandatory accelerated path"):
             flat = x.flatten().tolist()
             cols = x.shape[1]
-            result = rust_softmax(flat, cols)
+            result = _nli_accel.rust_softmax(flat, cols)
             return np.array(result, dtype=np.float64).reshape(x.shape)
     e = np.exp(x - x.max(axis=1, keepdims=True))
     denom = np.asarray(
@@ -353,10 +263,13 @@ def _probs_to_divergence(
     """
     ncols = probs.shape[1]
     ci, ni = label_indices or (2, 1)
-    if _RUST_NLI and probs.shape[0] >= 10:
+    if _nli_accel._RUST_NLI and probs.shape[0] >= 10:
         with mandatory_execution(__name__, component="mandatory accelerated path"):
             flat = probs.flatten().tolist()
-            return [float(v) for v in rust_probs_to_divergence(flat, ncols, ci, ni)]
+            return [
+                float(v)
+                for v in _nli_accel.rust_probs_to_divergence(flat, ncols, ci, ni)
+            ]
     if ncols == 2:
         return [float(1.0 - row[1]) for row in probs]
     return [float(row[ci]) + float(row[ni]) * 0.5 for row in probs]
@@ -372,10 +285,10 @@ def _probs_to_confidence(probs: np.ndarray) -> list[float]:
     Uses Rust accelerator for large batches when available.
     """
     ncols = probs.shape[1]
-    if _RUST_NLI and probs.shape[0] >= 10:
+    if _nli_accel._RUST_NLI and probs.shape[0] >= 10:
         with mandatory_execution(__name__, component="mandatory accelerated path"):
             flat = probs.flatten().tolist()
-            return [float(v) for v in rust_probs_to_confidence(flat, ncols)]
+            return [float(v) for v in _nli_accel.rust_probs_to_confidence(flat, ncols)]
     log_k = float(np.log(ncols)) if ncols > 1 else 1.0
     result: list[float] = []
     for row in probs:
@@ -1048,9 +961,13 @@ class NLIScorer:
         Avoids splitting after abbreviations (e.g. U.S., Dr., etc.)
         and decimal numbers (e.g. 2.3%).
         """
-        if _RUST_NLI:
+        if _nli_accel._RUST_NLI:
             with mandatory_execution(__name__, component="mandatory accelerated path"):
-                return [s.strip() for s in rust_split_sentences(text) if s.strip()]
+                return [
+                    s.strip()
+                    for s in _nli_accel.rust_split_sentences(text)
+                    if s.strip()
+                ]
         abbrev_re = re.compile(
             r"(?:Mr|Mrs|Ms|Dr|Prof|Sr|Jr|St|Inc|Ltd|Corp|vs|etc|e\.g|i\.e|U\.S|U\.K)\.\s+",
             re.IGNORECASE,
@@ -1083,9 +1000,11 @@ class NLIScorer:
         ``(1 - overlap_ratio) * chunk_length`` position. With the
         default ``overlap_ratio=0``, uses 1-sentence overlap (legacy).
         """
-        if _RUST_NLI:
+        if _nli_accel._RUST_NLI:
             with mandatory_execution(__name__, component="mandatory accelerated path"):
-                return list(rust_build_chunks(sentences, budget, overlap_ratio))
+                return list(
+                    _nli_accel.rust_build_chunks(sentences, budget, overlap_ratio)
+                )
         if overlap_ratio > 0:
             return self._build_chunks_overlap(sentences, budget, overlap_ratio)
 
@@ -1113,9 +1032,11 @@ class NLIScorer:
         overlap_ratio: float,
     ) -> list[str]:
         """Sliding-window chunking with configurable token overlap."""
-        if _RUST_NLI:
+        if _nli_accel._RUST_NLI:
             with mandatory_execution(__name__, component="mandatory accelerated path"):
-                return list(rust_build_chunks(sentences, budget, overlap_ratio))
+                return list(
+                    _nli_accel.rust_build_chunks(sentences, budget, overlap_ratio)
+                )
         chunks: list[str] = []
         i = 0
         while i < len(sentences):
@@ -1194,9 +1115,9 @@ class NLIScorer:
 
         n_prem = len(prem_chunks)
         n_hyp = len(hyp_chunks)
-        if _RUST_NLI:
+        if _nli_accel._RUST_NLI:
             with mandatory_execution(__name__, component="mandatory accelerated path"):
-                agg_rust, per_hyp_rust = rust_aggregate_chunk_scores(
+                agg_rust, per_hyp_rust = _nli_accel.rust_aggregate_chunk_scores(
                     [float(v) for v in all_scores],
                     n_prem,
                     n_hyp,
@@ -1412,12 +1333,12 @@ class NLIScorer:
 
         n_prem = len(prem_chunks)
         n_hyp = len(hyp_chunks)
-        if _RUST_NLI:
+        if _nli_accel._RUST_NLI:
             with mandatory_execution(__name__, component="mandatory accelerated path"):
                 flat_scores = [float(v[0]) for v in results_with_conf]
                 flat_conf = [float(v[1]) for v in results_with_conf]
                 agg_rust, per_hyp_rust = (
-                    rust_aggregate_chunk_scores_confidence_weighted(
+                    _nli_accel.rust_aggregate_chunk_scores_confidence_weighted(
                         flat_scores,
                         flat_conf,
                         n_prem,
@@ -1512,9 +1433,9 @@ class NLIScorer:
             )
             divs.append(div)
 
-        if _RUST_NLI:
+        if _nli_accel._RUST_NLI:
             with mandatory_execution(__name__, component="mandatory accelerated path"):
-                coverage, _supported = rust_coverage_from_divergences(
+                coverage, _supported = _nli_accel.rust_coverage_from_divergences(
                     [float(d) for d in divs],
                     float(support_threshold),
                 )
@@ -1569,9 +1490,9 @@ class NLIScorer:
         all_divs = self.score_batch(pairs)
 
         n_src = len(source_sents)
-        if _RUST_NLI:
+        if _nli_accel._RUST_NLI:
             try:
-                per_claim_divs, best_indices = rust_reduce_claim_attribution(
+                per_claim_divs, best_indices = _nli_accel.rust_reduce_claim_attribution(
                     [float(v) for v in all_divs],
                     len(claims),
                     n_src,
@@ -1605,9 +1526,9 @@ class NLIScorer:
                 ),
             )
 
-        if _RUST_NLI:
+        if _nli_accel._RUST_NLI:
             with mandatory_execution(__name__, component="mandatory accelerated path"):
-                coverage, _supported = rust_coverage_from_divergences(
+                coverage, _supported = _nli_accel.rust_coverage_from_divergences(
                     [float(d) for d in per_claim_divs],
                     float(support_threshold),
                 )

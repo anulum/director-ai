@@ -15,6 +15,7 @@ from types import ModuleType, SimpleNamespace
 import numpy as np
 import pytest
 
+import director_ai.core.scoring._nli_accel as nli_accel
 import director_ai.core.scoring.nli as nli_mod
 from director_ai.core.scoring.backends import ScorerBackend
 from director_ai.core.scoring.nli import NLIScorer
@@ -266,7 +267,7 @@ def test_nli_download_gcs_artifact_fails_when_no_model_files(tmp_path, monkeypat
 
 
 def test_nli_numpy_softmax_and_reducers_use_python_path(monkeypatch) -> None:
-    monkeypatch.setattr(nli_mod, "_RUST_NLI", False)
+    monkeypatch.setattr(nli_accel, "_RUST_NLI", False)
     logits = np.array([[1.0, 2.0], [2.0, 1.0]], dtype=np.float64)
 
     probs = nli_mod._softmax_np(logits)
@@ -281,19 +282,19 @@ def test_nli_numpy_softmax_and_reducers_use_python_path(monkeypatch) -> None:
 
 
 def test_nli_rust_reducer_adapters_are_used_for_large_batches(monkeypatch) -> None:
-    monkeypatch.setattr(nli_mod, "_RUST_NLI", True)
+    monkeypatch.setattr(nli_accel, "_RUST_NLI", True)
     monkeypatch.setattr(
-        nli_mod,
+        nli_accel,
         "rust_softmax",
         lambda flat, cols: [1.0 / cols for _ in flat],
     )
     monkeypatch.setattr(
-        nli_mod,
+        nli_accel,
         "rust_probs_to_divergence",
         lambda flat, ncols, ci, ni: [float(ci + ni + ncols)] * (len(flat) // ncols),
     )
     monkeypatch.setattr(
-        nli_mod,
+        nli_accel,
         "rust_probs_to_confidence",
         lambda flat, ncols: [0.42] * (len(flat) // ncols),
     )
@@ -306,7 +307,7 @@ def test_nli_rust_reducer_adapters_are_used_for_large_batches(monkeypatch) -> No
 
 
 def test_nli_three_class_divergence_respects_label_indices(monkeypatch) -> None:
-    monkeypatch.setattr(nli_mod, "_RUST_NLI", False)
+    monkeypatch.setattr(nli_accel, "_RUST_NLI", False)
     probs = np.array([[0.7, 0.2, 0.1]], dtype=np.float64)
 
     assert nli_mod._probs_to_divergence(probs, (2, 1)) == pytest.approx([0.2])
@@ -810,7 +811,7 @@ def test_nli_public_score_routes_model_backed_paths(monkeypatch) -> None:
 
 
 def test_nli_onnx_score_batch_and_confidence_casts_expected_inputs(monkeypatch) -> None:
-    monkeypatch.setattr(nli_mod, "_RUST_NLI", False)
+    monkeypatch.setattr(nli_accel, "_RUST_NLI", False)
     scorer = NLIScorer(use_model=False, backend="onnx", model_name="plain-nli")
     scorer._tokenizer = FakeTokenizer()
     scorer._onnx_session = FakeOnnxSession([[2.0, 0.0], [0.0, 2.0]])
@@ -826,7 +827,7 @@ def test_nli_onnx_score_batch_and_confidence_casts_expected_inputs(monkeypatch) 
 
 
 def test_nli_factcg_onnx_batch_templates(monkeypatch) -> None:
-    monkeypatch.setattr(nli_mod, "_RUST_NLI", False)
+    monkeypatch.setattr(nli_accel, "_RUST_NLI", False)
     scorer = NLIScorer(use_model=False, backend="onnx", model_name="derenlei/FactCG")
     scorer._tokenizer = FakeTokenizer()
     scorer._onnx_session = FakeOnnxSession([[0.0, 0.2, 0.8], [0.1, 0.3, 0.6]])
@@ -902,7 +903,7 @@ def test_nli_score_batch_with_confidence_heuristic_path() -> None:
 
 
 def test_nli_python_chunking_and_claim_paths(monkeypatch) -> None:
-    monkeypatch.setattr(nli_mod, "_RUST_NLI", False)
+    monkeypatch.setattr(nli_accel, "_RUST_NLI", False)
     scorer = NLIScorer(use_model=False, max_length=40)
     long_source = ". ".join(f"Source sentence {idx} supports sky" for idx in range(8))
     long_summary = ". ".join(f"Claim sentence {idx} supports sky" for idx in range(6))
@@ -935,7 +936,7 @@ def test_nli_python_chunking_and_claim_paths(monkeypatch) -> None:
 
 
 def test_nli_python_chunking_empty_and_max_aggregation(monkeypatch) -> None:
-    monkeypatch.setattr(nli_mod, "_RUST_NLI", False)
+    monkeypatch.setattr(nli_accel, "_RUST_NLI", False)
     scorer = NLIScorer(use_model=False, max_length=40)
     assert scorer._build_chunks([], budget=10) == [""]
 
@@ -954,7 +955,7 @@ def test_nli_python_chunking_empty_and_max_aggregation(monkeypatch) -> None:
 def test_nli_chunked_short_text_scores_once_and_records_single_chunks(
     monkeypatch,
 ) -> None:
-    monkeypatch.setattr(nli_mod, "_RUST_NLI", False)
+    monkeypatch.setattr(nli_accel, "_RUST_NLI", False)
     observed: list[tuple[str, int]] = []
     scorer = NLIScorer(use_model=False, max_length=512)
     monkeypatch.setattr(scorer, "score", lambda _premise, _hypothesis: 0.42)
@@ -971,7 +972,7 @@ def test_nli_chunked_short_text_scores_once_and_records_single_chunks(
 
 
 def test_nli_python_overlap_handles_single_sentence_over_budget(monkeypatch) -> None:
-    monkeypatch.setattr(nli_mod, "_RUST_NLI", False)
+    monkeypatch.setattr(nli_accel, "_RUST_NLI", False)
     scorer = NLIScorer(use_model=False)
 
     assert scorer._build_chunks_overlap(["x" * 200], budget=1, overlap_ratio=0.5) == [
@@ -980,9 +981,9 @@ def test_nli_python_overlap_handles_single_sentence_over_budget(monkeypatch) -> 
 
 
 def test_nli_rust_overlap_chunk_adapter(monkeypatch) -> None:
-    monkeypatch.setattr(nli_mod, "_RUST_NLI", True)
+    monkeypatch.setattr(nli_accel, "_RUST_NLI", True)
     monkeypatch.setattr(
-        nli_mod,
+        nli_accel,
         "rust_build_chunks",
         lambda sentences, budget, overlap_ratio: [
             f"{budget}:{overlap_ratio}:{'|'.join(sentences)}"
@@ -994,9 +995,9 @@ def test_nli_rust_overlap_chunk_adapter(monkeypatch) -> None:
 
 
 def test_nli_rust_default_chunk_adapter(monkeypatch) -> None:
-    monkeypatch.setattr(nli_mod, "_RUST_NLI", True)
+    monkeypatch.setattr(nli_accel, "_RUST_NLI", True)
     monkeypatch.setattr(
-        nli_mod,
+        nli_accel,
         "rust_build_chunks",
         lambda sentences, budget, overlap_ratio: [
             f"{budget}:{overlap_ratio}:{'|'.join(sentences)}"
@@ -1008,7 +1009,7 @@ def test_nli_rust_default_chunk_adapter(monkeypatch) -> None:
 
 
 def test_nli_rust_chunked_score_aggregation_adapter(monkeypatch) -> None:
-    monkeypatch.setattr(nli_mod, "_RUST_NLI", True)
+    monkeypatch.setattr(nli_accel, "_RUST_NLI", True)
     observed: list[tuple[str, int]] = []
     scorer = NLIScorer(use_model=False, max_length=40)
     monkeypatch.setattr(
@@ -1017,7 +1018,7 @@ def test_nli_rust_chunked_score_aggregation_adapter(monkeypatch) -> None:
         lambda pairs: [0.1 + 0.01 * (idx % 50) for idx, _ in enumerate(pairs)],
     )
     monkeypatch.setattr(
-        nli_mod,
+        nli_accel,
         "rust_aggregate_chunk_scores",
         lambda scores, n_prem, n_hyp, inner_agg, outer_agg: (
             sum(scores) / len(scores),
@@ -1050,7 +1051,7 @@ def test_nli_rust_chunked_score_aggregation_adapter(monkeypatch) -> None:
 
 
 def test_nli_confidence_weighted_python_aggregation(monkeypatch) -> None:
-    monkeypatch.setattr(nli_mod, "_RUST_NLI", False)
+    monkeypatch.setattr(nli_accel, "_RUST_NLI", False)
     scorer = NLIScorer(use_model=False, max_length=40)
     monkeypatch.setattr(
         scorer,
@@ -1075,7 +1076,7 @@ def test_nli_confidence_weighted_python_aggregation(monkeypatch) -> None:
 
 
 def test_nli_confidence_weighted_short_text_uses_single_pair(monkeypatch) -> None:
-    monkeypatch.setattr(nli_mod, "_RUST_NLI", False)
+    monkeypatch.setattr(nli_accel, "_RUST_NLI", False)
     scorer = NLIScorer(use_model=False, max_length=512)
     monkeypatch.setattr(
         scorer,
@@ -1090,7 +1091,7 @@ def test_nli_confidence_weighted_short_text_uses_single_pair(monkeypatch) -> Non
 
 
 def test_nli_confidence_weighted_default_inner_max(monkeypatch) -> None:
-    monkeypatch.setattr(nli_mod, "_RUST_NLI", False)
+    monkeypatch.setattr(nli_accel, "_RUST_NLI", False)
     scorer = NLIScorer(use_model=False, max_length=40)
     monkeypatch.setattr(
         scorer,
@@ -1109,7 +1110,7 @@ def test_nli_confidence_weighted_default_inner_max(monkeypatch) -> None:
 def test_nli_confidence_weighted_zero_confidence_falls_back_to_mean(
     monkeypatch,
 ) -> None:
-    monkeypatch.setattr(nli_mod, "_RUST_NLI", False)
+    monkeypatch.setattr(nli_accel, "_RUST_NLI", False)
     scorer = NLIScorer(use_model=False, max_length=40)
     monkeypatch.setattr(
         scorer,
@@ -1129,7 +1130,7 @@ def test_nli_confidence_weighted_zero_confidence_falls_back_to_mean(
 
 
 def test_nli_rust_confidence_weighted_aggregation_adapter(monkeypatch) -> None:
-    monkeypatch.setattr(nli_mod, "_RUST_NLI", True)
+    monkeypatch.setattr(nli_accel, "_RUST_NLI", True)
     scorer = NLIScorer(use_model=False, max_length=40)
     monkeypatch.setattr(
         scorer,
@@ -1140,7 +1141,7 @@ def test_nli_rust_confidence_weighted_aggregation_adapter(monkeypatch) -> None:
         ],
     )
     monkeypatch.setattr(
-        nli_mod,
+        nli_accel,
         "rust_aggregate_chunk_scores_confidence_weighted",
         lambda scores, conf, n_prem, n_hyp, inner_agg: (
             sum(score * weight for score, weight in zip(scores, conf, strict=True))
@@ -1163,7 +1164,7 @@ def test_nli_rust_confidence_weighted_aggregation_adapter(monkeypatch) -> None:
 
 
 def test_nli_claim_attribution_python_fallback_and_limits(monkeypatch) -> None:
-    monkeypatch.setattr(nli_mod, "_RUST_NLI", False)
+    monkeypatch.setattr(nli_accel, "_RUST_NLI", False)
     scorer = NLIScorer(use_model=False)
     source = "Sky is blue. Grass is green."
     summary = "Sky is blue. Grass is green."
@@ -1191,7 +1192,7 @@ def test_nli_claim_attribution_python_fallback_and_limits(monkeypatch) -> None:
 def test_nli_claim_attribution_uses_source_when_sentence_split_empty(
     monkeypatch,
 ) -> None:
-    monkeypatch.setattr(nli_mod, "_RUST_NLI", False)
+    monkeypatch.setattr(nli_accel, "_RUST_NLI", False)
     scorer = NLIScorer(use_model=False)
     monkeypatch.setattr(
         scorer,
@@ -1210,7 +1211,7 @@ def test_nli_claim_attribution_uses_source_when_sentence_split_empty(
 
 
 def test_nli_claim_empty_paths(monkeypatch) -> None:
-    monkeypatch.setattr(nli_mod, "_RUST_NLI", False)
+    monkeypatch.setattr(nli_accel, "_RUST_NLI", False)
     scorer = NLIScorer(use_model=False)
     monkeypatch.setattr(scorer, "decompose_claims", lambda _text: [])
 
@@ -1238,7 +1239,7 @@ def test_nli_claim_empty_paths(monkeypatch) -> None:
 
 
 def test_nli_score_decomposed_single_and_multi_claims(monkeypatch) -> None:
-    monkeypatch.setattr(nli_mod, "_RUST_NLI", False)
+    monkeypatch.setattr(nli_accel, "_RUST_NLI", False)
     scorer = NLIScorer(use_model=False)
     monkeypatch.setattr(
         scorer,
@@ -1257,9 +1258,9 @@ def test_nli_score_decomposed_single_and_multi_claims(monkeypatch) -> None:
 
 
 def test_nli_claim_coverage_uses_rust_reducer(monkeypatch) -> None:
-    monkeypatch.setattr(nli_mod, "_RUST_NLI", True)
+    monkeypatch.setattr(nli_accel, "_RUST_NLI", True)
     monkeypatch.setattr(
-        nli_mod, "rust_coverage_from_divergences", lambda divs, threshold: (0.75, 3)
+        nli_accel, "rust_coverage_from_divergences", lambda divs, threshold: (0.75, 3)
     )
     scorer = NLIScorer(use_model=False)
     monkeypatch.setattr(scorer, "decompose_claims", lambda _summary: ["a", "b"])

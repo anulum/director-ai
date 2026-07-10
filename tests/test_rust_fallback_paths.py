@@ -41,10 +41,11 @@ def test_lite_scorer_batch_rust_failure_raises(monkeypatch):
 
 def test_nli_softmax_rust_failure_raises(monkeypatch):
     """Large NLI softmax batches must fail when the mandatory kernel fails."""
+    import director_ai.core.scoring._nli_accel as accel
     import director_ai.core.scoring.nli as mod
 
-    monkeypatch.setattr(mod, "_RUST_NLI", True)
-    monkeypatch.setattr(mod, "rust_softmax", _raise_kernel_unavailable)
+    monkeypatch.setattr(accel, "_RUST_NLI", True)
+    monkeypatch.setattr(accel, "rust_softmax", _raise_kernel_unavailable)
 
     logits = np.ones((50, 3), dtype=np.float64)
     with pytest.raises(RuntimeError, match="kernel unavailable"):
@@ -53,10 +54,11 @@ def test_nli_softmax_rust_failure_raises(monkeypatch):
 
 def test_nli_divergence_rust_failure_raises(monkeypatch):
     """Large NLI divergence batches must fail when the mandatory kernel fails."""
+    import director_ai.core.scoring._nli_accel as accel
     import director_ai.core.scoring.nli as mod
 
-    monkeypatch.setattr(mod, "_RUST_NLI", True)
-    monkeypatch.setattr(mod, "rust_probs_to_divergence", _raise_kernel_unavailable)
+    monkeypatch.setattr(accel, "_RUST_NLI", True)
+    monkeypatch.setattr(accel, "rust_probs_to_divergence", _raise_kernel_unavailable)
 
     probs = np.full((15, 3), 1 / 3, dtype=np.float64)
     with pytest.raises(RuntimeError, match="kernel unavailable"):
@@ -65,10 +67,11 @@ def test_nli_divergence_rust_failure_raises(monkeypatch):
 
 def test_nli_confidence_rust_failure_raises(monkeypatch):
     """Large NLI confidence batches must fail when the mandatory kernel fails."""
+    import director_ai.core.scoring._nli_accel as accel
     import director_ai.core.scoring.nli as mod
 
-    monkeypatch.setattr(mod, "_RUST_NLI", True)
-    monkeypatch.setattr(mod, "rust_probs_to_confidence", _raise_kernel_unavailable)
+    monkeypatch.setattr(accel, "_RUST_NLI", True)
+    monkeypatch.setattr(accel, "rust_probs_to_confidence", _raise_kernel_unavailable)
 
     probs = np.full((15, 3), 1 / 3, dtype=np.float64)
     with pytest.raises(RuntimeError, match="kernel unavailable"):

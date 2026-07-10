@@ -37,9 +37,10 @@ def test_knowledge_word_overlap_python_floor() -> None:
 
 
 def test_nli_softmax_python_floor_large_input(monkeypatch: pytest.MonkeyPatch) -> None:
+    import director_ai.core.scoring._nli_accel as _nli_accel
     from director_ai.core.scoring import nli
 
-    monkeypatch.setattr(nli, "_RUST_NLI", False)
+    monkeypatch.setattr(_nli_accel, "_RUST_NLI", False)
     # 60x2 = 120 elements → size >= 100, the branch that previously demanded Rust.
     x = np.linspace(-3.0, 3.0, 120, dtype=np.float64).reshape(60, 2)
     out = nli._softmax_np(x)
@@ -55,9 +56,10 @@ def test_nli_softmax_python_floor_large_input(monkeypatch: pytest.MonkeyPatch) -
 def test_nli_divergence_python_floor_large_batch(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    import director_ai.core.scoring._nli_accel as _nli_accel
     from director_ai.core.scoring import nli
 
-    monkeypatch.setattr(nli, "_RUST_NLI", False)
+    monkeypatch.setattr(_nli_accel, "_RUST_NLI", False)
     # 12 rows >= 10 → the Rust-preferring branch; 2-class divergence = 1 - P(sup).
     probs = np.tile(np.array([0.3, 0.7]), (12, 1))
     out = nli._probs_to_divergence(probs)
@@ -68,9 +70,10 @@ def test_nli_divergence_python_floor_large_batch(
 def test_nli_confidence_python_floor_large_batch(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    import director_ai.core.scoring._nli_accel as _nli_accel
     from director_ai.core.scoring import nli
 
-    monkeypatch.setattr(nli, "_RUST_NLI", False)
+    monkeypatch.setattr(_nli_accel, "_RUST_NLI", False)
     probs = np.tile(np.array([0.25, 0.75]), (15, 1))  # 15 rows >= 10
     out = nli._probs_to_confidence(probs)
     assert len(out) == 15
@@ -87,11 +90,12 @@ def test_doc_chunker_sum_python_floor(monkeypatch: pytest.MonkeyPatch) -> None:
 
 def test_rust_flags_are_boolean() -> None:
     # The flags must always be plain booleans so the no-Rust floor is reachable.
+    import director_ai.core.scoring._nli_accel as _nli_accel
     from director_ai.core.retrieval import adaptive_router, doc_chunker
-    from director_ai.core.scoring import nli, rules_scorer
+    from director_ai.core.scoring import rules_scorer
     from director_ai.core.verification import numeric_verifier, reasoning_verifier
 
-    assert isinstance(nli._RUST_NLI, bool)
+    assert isinstance(_nli_accel._RUST_NLI, bool)
     assert isinstance(doc_chunker._RUST_DOC_CHUNKER, bool)
     assert isinstance(numeric_verifier._RUST_NUMERIC, bool)
     assert isinstance(rules_scorer._RUST_AVAILABLE, bool)
