@@ -47,15 +47,10 @@ from collections.abc import Callable, Iterable, Sequence
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
+from director_ai._guard_canary import CanaryOperationsMixin
 from director_ai.core import CoherenceScorer, GroundTruthStore
 from director_ai.core.agent_preflight import AgentPreflightGuard
 from director_ai.core.answer_bom import AnswerBOM, build_answer_bom
-from director_ai.core.canary import (
-    CanaryDetector,
-    CanaryFact,
-    CanaryRegistry,
-    CanarySignal,
-)
 from director_ai.core.config import DirectorConfig
 from director_ai.core.eval_trace import eval_record_from_guard, record_guard_decision
 from director_ai.core.labelling_cockpit import ActiveLabellingCockpit
@@ -182,7 +177,7 @@ class FirewallDecision:
         }
 
 
-class ProductionGuard:
+class ProductionGuard(CanaryOperationsMixin):
     """Batteries-included guardrail for production deployments.
 
     Wires together CoherenceScorer, OnlineCalibrator, FeedbackStore,
@@ -217,8 +212,8 @@ class ProductionGuard:
         self._uncertainty_router: Any = None
         self._injection_detector: InjectionDetector | None = None
         self._moderation_detectors: Any = None
-        self._canary_registry: CanaryRegistry | None = None
-        self._canary_detector: CanaryDetector | None = None
+        self._canary_registry = None
+        self._canary_detector = None
         self._preflight: AgentPreflightGuard | None = None
         self._risk_threshold: RiskAdaptiveThreshold | None = None
         self._labelling_cockpit: ActiveLabellingCockpit | None = None
@@ -602,55 +597,6 @@ class ProductionGuard:
             rewrite_fn=rewrite_fn,
         )
         return repairer.repair(response, tenant_id=tenant_id, request_id=request_id)
-
-    def _ensure_canary(self) -> CanaryDetector:
-        if self._canary_detector is None:
-            self._canary_registry = CanaryRegistry()
-            self._canary_detector = CanaryDetector(
-                self._canary_registry,
-                alert=lambda s: logger.warning(
-                    "canary tripped: id=%s tenant=%s signal=%s",
-                    s.canary_id,
-                    s.tenant_id,
-                    s.signal,
-                ),
-            )
-        return self._canary_detector
-
-    def plant_canary(
-        self,
-        tenant_id: str,
-        *,
-        template: str = "Internal reference marker {token}: do not disclose.",
-        token: str | None = None,
-    ) -> CanaryFact:
-        """Mint a tenant-scoped canary, plant it in the KB, and return it.
-
-        The canary text is added to the knowledge base so retrieval can surface
-        it under attack; its sentinel token must never appear in a legitimate
-        answer. Detect trips with :meth:`scan_canaries`.
-        """
-        self._ensure_canary()
-        assert self._canary_registry is not None
-        fact = self._canary_registry.mint(tenant_id, template=template, token=token)
-        self._store.add(fact.canary_id, fact.text)
-        return fact
-
-    def scan_canaries(
-        self,
-        response: str,
-        tenant_id: str,
-        *,
-        evidence: Iterable[Any] = (),
-    ) -> list[CanarySignal]:
-        """Scan a response (and optional evidence chunks) for tripped canaries.
-
-        Returns a :class:`CanarySignal` for each canary token found in the
-        response (leakage) and each canary chunk present in ``evidence``
-        (citation).
-        """
-        detector = self._ensure_canary()
-        return detector.scan(response, tenant_id, evidence=list(evidence))
 
     @property
     def preflight(self) -> AgentPreflightGuard:
