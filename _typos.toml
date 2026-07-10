@@ -5,6 +5,12 @@
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI — Typos Configuration
+[default]
+# Hexadecimal identifiers (short/full git SHAs, digests) are not prose;
+# without this, the checker splits hex runs into pseudo-words and flags
+# fragments of commit SHAs quoted in docs as misspellings.
+extend-ignore-re = ["\\b[0-9a-f]{8,64}\\b"]
+
 [default.extend-words]
 # Domain-specific terms that are not typos
 nli = "nli"
