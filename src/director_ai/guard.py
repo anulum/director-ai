@@ -54,6 +54,7 @@ from director_ai._guard_defence import (
 from director_ai._guard_defence import (
     ResponseDefenceMixin,
 )
+from director_ai._guard_distributed import DistributedTrustMixin
 from director_ai.core import CoherenceScorer, GroundTruthStore
 from director_ai.core.agent_preflight import AgentPreflightGuard
 from director_ai.core.answer_bom import AnswerBOM, build_answer_bom
@@ -77,22 +78,11 @@ if TYPE_CHECKING:
     from director_ai.core.calibration.runtime_governor import (
         RuntimeThresholdGovernor,
     )
-    from director_ai.core.consensus import (
-        ConsensusResult,
-        CrossModelConsensus,
-        ModelResponse,
-    )
     from director_ai.core.cyber_physical import (
         PhysicalConstraint,
         RobotCommandGuard,
     )
-    from director_ai.core.dp_rag import DifferentiallyPrivateRetrieval, DPRagPipeline
     from director_ai.core.execution_rings import ExecutionRingGate
-    from director_ai.core.federated_dp import (
-        FederatedCalibrationRound,
-        FederatedDPEvidence,
-    )
-    from director_ai.core.federated_privacy import SecureAggregator
     from director_ai.core.financial_services import BankingPolicyReport
     from director_ai.core.forecasting import (
         ForecastHistory,
@@ -115,8 +105,6 @@ if TYPE_CHECKING:
     from director_ai.core.output_trust import ZeroTrustOutputGuard
     from director_ai.core.rasp import RuntimeSelfProtection
     from director_ai.core.routing import EconomicDecision, HallucinationEconomics
-    from director_ai.core.scoring.consensus import ByzantineFaultTolerantConsensus
-    from director_ai.core.scoring.contradiction import ContradictionScorer
     from director_ai.core.scoring.span_detector import (
         HallucinationSpanDetector,
         SpanDetection,
@@ -127,7 +115,6 @@ if TYPE_CHECKING:
     )
     from director_ai.core.scoring.verified_scorer import VerificationResult
     from director_ai.core.self_healing import SelfHealingThresholdController
-    from director_ai.core.swarm_coherence import SwarmCoherenceMonitor
     from director_ai.core.temporal_consistency import TemporalConsistencyGraph
     from director_ai.core.temporal_logic import TrajectorySafetyMonitor
     from director_ai.core.threat_intel import ThreatIntelligenceMatcher
@@ -148,7 +135,11 @@ class GuardResult:
     uncertainty_action: str | None = None
 
 
-class ProductionGuard(CanaryOperationsMixin, ResponseDefenceMixin):
+class ProductionGuard(
+    CanaryOperationsMixin,
+    ResponseDefenceMixin,
+    DistributedTrustMixin,
+):
     """Batteries-included guardrail for production deployments.
 
     Wires together CoherenceScorer, OnlineCalibrator, FeedbackStore,
@@ -190,7 +181,7 @@ class ProductionGuard(CanaryOperationsMixin, ResponseDefenceMixin):
         self._labelling_cockpit: ActiveLabellingCockpit | None = None
         self._temporal_consistency: TemporalConsistencyGraph | None = None
         self._self_healing: SelfHealingThresholdController | None = None
-        self._dp_retrieval: DifferentiallyPrivateRetrieval | None = None
+        self._dp_retrieval = None
         self._root_cause: HallucinationRootCauseAnalyzer | None = None
         self._output_trust: ZeroTrustOutputGuard | None = None
         self._execution_rings: ExecutionRingGate | None = None
@@ -200,7 +191,7 @@ class ProductionGuard(CanaryOperationsMixin, ResponseDefenceMixin):
         self._threat_intel: ThreatIntelligenceMatcher | None = None
         self._forecaster: HallucinationForecaster | None = None
         self._temporal_refresher: TemporalRefresher | None = None
-        self._cross_model: CrossModelConsensus | None = None
+        self._cross_model = None
         self._economics: HallucinationEconomics | None = None
         self._multimodal: MultimodalVerifierAdapter | None = None
         self._span_detector: HallucinationSpanDetector | None = None
@@ -643,38 +634,6 @@ class ProductionGuard(CanaryOperationsMixin, ResponseDefenceMixin):
         assert forecaster.history is not None
         return forecaster.history
 
-    def cross_model_consensus(
-        self,
-        responses: Sequence[ModelResponse],
-        *,
-        nli: ContradictionScorer | None = None,
-    ) -> ConsensusResult:
-        """Measure agreement across several models' answers to one prompt.
-
-        Scores a *panel* rather than a single response: given the same question
-        answered by two or more models (each a
-        :class:`~director_ai.core.consensus.ModelResponse` of ``model_id`` +
-        ``text``), returns a
-        :class:`~director_ai.core.consensus.ConsensusResult` with a consensus in
-        ``[0, 1]``, an ``accept`` / ``review`` / ``escalate`` recommendation, the
-        pairwise agreement matrix, and the specific diverging claim pairs as
-        evidence.
-
-        Pass an NLI contradiction scorer as *nli* (e.g.
-        :meth:`director_ai.core.scoring.contradiction.ContradictionScorer.from_pretrained`)
-        to get semantic, claim-level divergence with contradiction evidence;
-        without one the consensus falls back to lexical Jaccard agreement and the
-        single least-agreeing answer pair. The engine (and any supplied scorer)
-        persists on the guard across calls.
-        """
-        from director_ai.core.consensus import CrossModelConsensus
-
-        engine = self._cross_model
-        if not isinstance(engine, CrossModelConsensus) or nli is not None:
-            engine = CrossModelConsensus(nli=nli)
-            self._cross_model = engine
-        return engine.consensus(responses)
-
     @property
     def economics(self) -> HallucinationEconomics:
         """Cost-risk guard-action selector (created on first use).
@@ -706,29 +665,6 @@ class ProductionGuard(CanaryOperationsMixin, ResponseDefenceMixin):
         (e.g. higher for medical or financial domains).
         """
         return self.economics.decide(risk, hallucination_cost=hallucination_cost)
-
-    def new_swarm_monitor(
-        self,
-        *,
-        nli: ContradictionScorer | None = None,
-        contradiction_threshold: float | None = None,
-    ) -> SwarmCoherenceMonitor:
-        """Create a stateful cross-agent cascade-coherence monitor.
-
-        Returns a fresh
-        :class:`~director_ai.core.swarm_coherence.SwarmCoherenceMonitor` for one
-        multi-agent cascade: feed each agent's output to ``monitor.observe(agent_id,
-        text)`` in turn and it checks the new claims against every earlier agent's
-        established claims, halting the cascade (``update.halted``) on the first
-        cross-agent contradiction so downstream agents never consume a poisoned
-        context. Pass an NLI scorer as *nli* for contradiction detection (a fresh
-        monitor per cascade keeps each conversation's state isolated).
-        """
-        from director_ai.core.swarm_coherence import SwarmCoherenceMonitor
-
-        return SwarmCoherenceMonitor(
-            nli=nli, contradiction_threshold=contradiction_threshold
-        )
 
     def new_threshold_governor(
         self,
@@ -953,120 +889,6 @@ class ProductionGuard(CanaryOperationsMixin, ResponseDefenceMixin):
 
             self._threat_intel = ThreatIntelligenceMatcher()
         return self._threat_intel
-
-    def secure_aggregator(self, *, party_count: int) -> SecureAggregator:
-        """Secure multi-party aggregation of scores (additive secret sharing).
-
-        Each party secret-shares its value; the returned
-        :class:`~director_ai.core.federated_privacy.SecureAggregator` sums the
-        shares component-wise and reconstructs the multi-party total without ever
-        materialising any single party's value — scoring across confidential
-        knowledge bases without sharing the data. For dropout/threshold tolerance
-        (any ``t`` of ``n`` parties), use the package's Shamir helpers
-        (:func:`~director_ai.core.federated_privacy.shamir_split` /
-        :func:`~director_ai.core.federated_privacy.shamir_reconstruct`).
-        """
-        from director_ai.core.federated_privacy import SecureAggregator
-
-        return SecureAggregator(party_count=party_count)
-
-    def byzantine_consensus(
-        self, *, fault_tolerance: int = 1
-    ) -> ByzantineFaultTolerantConsensus:
-        """PBFT-style quorum over independent verifier votes.
-
-        Tolerates up to ``fault_tolerance`` Byzantine (compromised/malicious)
-        verifiers: it requires ``3f + 1`` independent votes and a ``2f + 1``
-        quorum for the same verdict, so ``f`` adversarial verifiers can neither
-        force a wrong decision nor block one the honest supermajority agrees on.
-        Builds a fresh
-        :class:`~director_ai.core.scoring.consensus.ByzantineFaultTolerantConsensus`
-        each call (it is stateless); feed it
-        :class:`~director_ai.core.scoring.consensus.BFTConsensusVote` objects.
-        """
-        from director_ai.core.scoring.consensus import (
-            ByzantineFaultTolerantConsensus,
-        )
-
-        return ByzantineFaultTolerantConsensus(fault_tolerance=fault_tolerance)
-
-    @property
-    def dp_retrieval(self) -> DifferentiallyPrivateRetrieval:
-        """Differentially private retrieval ranking with a per-tenant budget.
-
-        Adds calibrated Laplace noise to retrieval similarity scores before
-        ranking and meters each query against a per-tenant ``(ε, δ)`` budget
-        (default cap 10.0), refusing a query that would exceed it. Persists
-        across calls so the budget accumulates; construct
-        :class:`~director_ai.core.dp_rag.DifferentiallyPrivateRetrieval` directly
-        for a custom budget, sensitivity, or seed.
-        """
-        if self._dp_retrieval is None:
-            from director_ai.core.dp_rag import DifferentiallyPrivateRetrieval
-
-            self._dp_retrieval = DifferentiallyPrivateRetrieval(max_epsilon=10.0)
-        return self._dp_retrieval
-
-    def dp_rag_pipeline(
-        self, max_epsilon: float = 10.0, **kwargs: Any
-    ) -> DPRagPipeline:
-        """Build a unified DP-RAG pipeline metering one per-tenant budget.
-
-        Charges retrieval ranking, exponential-mechanism token decoding, and
-        coherence-score release against a single per-tenant ``(ε)`` accountant,
-        refusing any stage that would exceed ``max_epsilon`` before spending.
-        Each call returns a fresh
-        :class:`~director_ai.core.dp_rag.DPRagPipeline`; pass ``seed`` and the
-        per-stage sensitivities through ``kwargs`` for reproducible tests or
-        custom calibration.
-        """
-        from director_ai.core.dp_rag import DPRagPipeline
-
-        return DPRagPipeline(max_epsilon=max_epsilon, **kwargs)
-
-    def federated_calibration(
-        self, initial_value: float | None = None, **kwargs: Any
-    ) -> FederatedCalibrationRound:
-        """Build a federated DP calibration round for a shared parameter.
-
-        Tenants submit clipped local updates; the server aggregates them with
-        Gaussian noise behind a minimum-cohort gate, so the shared parameter
-        (default: this guard's coherence threshold) improves without any tenant's
-        raw data leaving. Returns a fresh
-        :class:`~director_ai.core.federated_dp.FederatedCalibrationRound`; pass
-        ``clip_norm``, ``noise_multiplier``, ``min_cohort``, ``learning_rate``,
-        ``value_bounds``, or ``seed`` via ``kwargs``.
-        """
-        from director_ai.core.federated_dp import FederatedCalibrationRound
-
-        start = (
-            self._config.coherence_threshold if initial_value is None else initial_value
-        )
-        return FederatedCalibrationRound(start, **kwargs)
-
-    def federated_dp_evidence(
-        self,
-        calibration_round: FederatedCalibrationRound | None = None,
-        **kwargs: Any,
-    ) -> FederatedDPEvidence:
-        """Build the formal-privacy + poisoning-resilience evidence for a round.
-
-        Wraps a
-        :class:`~director_ai.core.federated_dp.FederatedCalibrationRound` (the
-        given one, or a fresh :meth:`federated_calibration` built from ``kwargs``)
-        and produces its formal ``(ε, δ)`` bound (via the Rényi-DP accountant) and
-        the certified worst-case poisoning shift from clipping, plus a simulated
-        attack-vs-baseline check. Returns a
-        :class:`~director_ai.core.federated_dp.FederatedDPEvidence`.
-        """
-        from director_ai.core.federated_dp import FederatedDPEvidence
-
-        round_obj = (
-            self.federated_calibration(**kwargs)
-            if calibration_round is None
-            else calibration_round
-        )
-        return FederatedDPEvidence(round_obj)
 
     def robot_command_guard(
         self, constraints: Sequence[PhysicalConstraint] = (), **kwargs: Any
