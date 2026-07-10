@@ -6,10 +6,10 @@
     "optional_extras": 62,
     "public_api_exports": 226,
     "public_documentation_pages": 203,
-    "python_model_classes": 1012,
-    "python_model_source_modules": 477,
+    "python_model_classes": 1013,
+    "python_model_source_modules": 478,
     "rust_pyo3_model_wrappers": 83,
-    "test_files": 721
+    "test_files": 722
   },
   "documentation": {
     "public_pages": [
@@ -3493,6 +3493,10 @@
         "path": "src/director_ai/enterprise/rules_dsl.py"
       },
       {
+        "name": "RuntimeHardeningMixin",
+        "path": "src/director_ai/_guard_hardening.py"
+      },
+      {
         "name": "RuntimeSelfProtection",
         "path": "src/director_ai/core/rasp/monitor.py"
       },
@@ -4389,6 +4393,7 @@
       "src/director_ai/_guard_canary.py",
       "src/director_ai/_guard_defence.py",
       "src/director_ai/_guard_distributed.py",
+      "src/director_ai/_guard_hardening.py",
       "src/director_ai/_server_helpers.py",
       "src/director_ai/_server_models.py",
       "src/director_ai/agentic/agent_profile.py",
@@ -5545,6 +5550,7 @@
       "tests/test_guard_defence.py",
       "tests/test_guard_distributed.py",
       "tests/test_guard_firewall.py",
+      "tests/test_guard_hardening.py",
       "tests/test_guard_multimodal.py",
       "tests/test_guard_pii_redaction.py",
       "tests/test_guard_runtime_real_surface.py",

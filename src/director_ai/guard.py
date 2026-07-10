@@ -43,7 +43,7 @@ Usage::
 from __future__ import annotations
 
 import logging
-from collections.abc import Iterable, Sequence
+from collections.abc import Iterable
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
@@ -55,8 +55,8 @@ from director_ai._guard_defence import (
     ResponseDefenceMixin,
 )
 from director_ai._guard_distributed import DistributedTrustMixin
+from director_ai._guard_hardening import RuntimeHardeningMixin
 from director_ai.core import CoherenceScorer, GroundTruthStore
-from director_ai.core.agent_preflight import AgentPreflightGuard
 from director_ai.core.answer_bom import AnswerBOM, build_answer_bom
 from director_ai.core.config import DirectorConfig
 from director_ai.core.eval_trace import eval_record_from_guard, record_guard_decision
@@ -78,20 +78,13 @@ if TYPE_CHECKING:
     from director_ai.core.calibration.runtime_governor import (
         RuntimeThresholdGovernor,
     )
-    from director_ai.core.cyber_physical import (
-        PhysicalConstraint,
-        RobotCommandGuard,
-    )
-    from director_ai.core.execution_rings import ExecutionRingGate
     from director_ai.core.financial_services import BankingPolicyReport
     from director_ai.core.forecasting import (
         ForecastHistory,
         ForecastResult,
         HallucinationForecaster,
     )
-    from director_ai.core.fuzzing import ContinuousFuzzer
     from director_ai.core.interpretability import HallucinationRootCauseAnalyzer
-    from director_ai.core.ml_bom import MachineLearningBOM
     from director_ai.core.multimodal_guard import (
         MultimodalCheckRequest,
         MultimodalCheckResult,
@@ -101,9 +94,6 @@ if TYPE_CHECKING:
         CompliancePolicy,
         NeuroSymbolicComplianceEngine,
     )
-    from director_ai.core.output_integrity import OutputIntegrityGuard
-    from director_ai.core.output_trust import ZeroTrustOutputGuard
-    from director_ai.core.rasp import RuntimeSelfProtection
     from director_ai.core.routing import EconomicDecision, HallucinationEconomics
     from director_ai.core.scoring.span_detector import (
         HallucinationSpanDetector,
@@ -117,7 +107,6 @@ if TYPE_CHECKING:
     from director_ai.core.self_healing import SelfHealingThresholdController
     from director_ai.core.temporal_consistency import TemporalConsistencyGraph
     from director_ai.core.temporal_logic import TrajectorySafetyMonitor
-    from director_ai.core.threat_intel import ThreatIntelligenceMatcher
 
 logger = logging.getLogger("DirectorAI.Guard")
 
@@ -139,6 +128,7 @@ class ProductionGuard(
     CanaryOperationsMixin,
     ResponseDefenceMixin,
     DistributedTrustMixin,
+    RuntimeHardeningMixin,
 ):
     """Batteries-included guardrail for production deployments.
 
@@ -176,19 +166,19 @@ class ProductionGuard(
         self._moderation_detectors = None
         self._canary_registry = None
         self._canary_detector = None
-        self._preflight: AgentPreflightGuard | None = None
+        self._preflight = None
         self._risk_threshold: RiskAdaptiveThreshold | None = None
         self._labelling_cockpit: ActiveLabellingCockpit | None = None
         self._temporal_consistency: TemporalConsistencyGraph | None = None
         self._self_healing: SelfHealingThresholdController | None = None
         self._dp_retrieval = None
         self._root_cause: HallucinationRootCauseAnalyzer | None = None
-        self._output_trust: ZeroTrustOutputGuard | None = None
-        self._execution_rings: ExecutionRingGate | None = None
-        self._output_integrity: OutputIntegrityGuard | None = None
-        self._ml_bom: MachineLearningBOM | None = None
-        self._rasp: RuntimeSelfProtection | None = None
-        self._threat_intel: ThreatIntelligenceMatcher | None = None
+        self._output_trust = None
+        self._execution_rings = None
+        self._output_integrity = None
+        self._ml_bom = None
+        self._rasp = None
+        self._threat_intel = None
         self._forecaster: HallucinationForecaster | None = None
         self._temporal_refresher: TemporalRefresher | None = None
         self._cross_model = None
@@ -369,22 +359,6 @@ class ProductionGuard(
         if self._conformal is not None:
             self._conformal.add_observation(result.score, correct_label)
 
-    @property
-    def preflight(self) -> AgentPreflightGuard:
-        """Agent/MCP preflight guard wired to this guard's scorer.
-
-        Provides the five seam gates (before/after tool call, before final
-        answer, before handoff, before irreversible action); result plausibility
-        is scored with this guard's coherence scorer.
-        """
-        if self._preflight is None:
-
-            def _score(premise: str, hypothesis: str) -> float:
-                return self._scorer.review(premise, hypothesis)[1].score
-
-            self._preflight = AgentPreflightGuard(score_fn=_score)
-        return self._preflight
-
     def risk_threshold(self, factors: RiskFactors) -> RiskThresholdDecision:
         """Compute a per-request approval threshold from a risk profile.
 
@@ -523,82 +497,6 @@ class ProductionGuard(
 
             self._root_cause = HallucinationRootCauseAnalyzer()
         return self._root_cause
-
-    @property
-    def output_trust(self) -> ZeroTrustOutputGuard:
-        """Zero-trust output handling for untrusted model output (OWASP LLM05).
-
-        Encodes a model output for the specific
-        :class:`~director_ai.core.output_trust.OutputSink` it will enter (HTML,
-        shell argument, SQL identifier, filesystem path, JSON, URL query, email
-        header, log line) so one string cannot be an XSS payload in one context
-        and a command-injection payload in another, and flags constructs that
-        must never be executed or deserialised. Stateless; persists on the guard
-        only to avoid re-instantiation.
-        """
-        if self._output_trust is None:
-            from director_ai.core.output_trust import ZeroTrustOutputGuard
-
-            self._output_trust = ZeroTrustOutputGuard()
-        return self._output_trust
-
-    def execution_rings(
-        self, *, cooling_period_seconds: float = 86_400.0
-    ) -> ExecutionRingGate:
-        """Graduated human authorisation for agent actions (execution rings).
-
-        Classifies an action into an ordered
-        :class:`~director_ai.core.execution_rings.ExecutionRing` (read → write →
-        delete → execute → exfiltrate) and allows it only when the human
-        authorisation factors that ring demands (operator approval, cooling
-        period, second operator, CISO notification) have been collected — so a
-        prompt-injected agent cannot delete or exfiltrate without out-of-band
-        confirmation. ``cooling_period_seconds`` defaults to 24 hours.
-        """
-        if self._execution_rings is None:
-            from director_ai.core.execution_rings import ExecutionRingGate
-
-            self._execution_rings = ExecutionRingGate(
-                cooling_period_seconds=cooling_period_seconds
-            )
-        return self._execution_rings
-
-    def output_integrity(
-        self, *, signing_seed: bytes | None = None
-    ) -> OutputIntegrityGuard:
-        """Cryptographic integrity + non-repudiation for model outputs (ML09).
-
-        Signs an output with a detached Ed25519 signature a third party can
-        verify with only the public key, and records its digest in an append-only
-        tamper-evident
-        :class:`~director_ai.core.output_integrity.TamperEvidentLedger`. The
-        ledger is stdlib-only and always available; signing needs the optional
-        ``cryptography`` backend (``pip install director-ai[crypto]``). Supply a
-        32-byte ``signing_seed`` from a secret manager for a stable identity.
-        """
-        if self._output_integrity is None:
-            from director_ai.core.output_integrity import OutputIntegrityGuard
-
-            self._output_integrity = OutputIntegrityGuard(signing_seed=signing_seed)
-        return self._output_integrity
-
-    @property
-    def ml_bom(self) -> MachineLearningBOM:
-        """Supply-chain bill of materials for the ML system (OWASP ASVS).
-
-        Record each model, dataset, and dependency with a SHA-256 digest and
-        provenance via
-        :class:`~director_ai.core.ml_bom.MachineLearningBOM`, then
-        :meth:`~director_ai.core.ml_bom.MachineLearningBOM.verify` the deployed
-        artefacts to detect a swapped or poisoned component. The BOM carries its
-        own digest so the inventory is itself tamper-evident. Persists on the
-        guard so components accumulate across calls.
-        """
-        if self._ml_bom is None:
-            from director_ai.core.ml_bom import MachineLearningBOM
-
-            self._ml_bom = MachineLearningBOM()
-        return self._ml_bom
 
     def _ensure_forecaster(self) -> HallucinationForecaster:
         if self._forecaster is None:
@@ -840,72 +738,6 @@ class ProductionGuard(
         )
         policy_id = getattr(cfg, "multimodal_policy_id", "multimodal-default")
         return used.check(request, risk_envelope=risk_envelope, policy_id=policy_id)
-
-    @property
-    def rasp(self) -> RuntimeSelfProtection:
-        """Runtime application self-protection from behavioural anomalies.
-
-        The last line of defence once input filters and guardrails are bypassed:
-        feed per-request behavioural metrics (request rate, payload size, halt
-        rate) to
-        :meth:`~director_ai.core.rasp.RuntimeSelfProtection.observe` and read back
-        a tenant-safe ok/watch/alert verdict scored by a dependency-free robust
-        (median/MAD) detector. Persists across calls so each metric's baseline
-        accumulates; the host decides whether to shed load or block.
-        """
-        if self._rasp is None:
-            from director_ai.core.rasp import RuntimeSelfProtection
-
-            self._rasp = RuntimeSelfProtection()
-        return self._rasp
-
-    def continuous_fuzzer(self, *, seed: int = 0) -> ContinuousFuzzer:
-        """Mutation-based fuzzer that hunts for guard bypasses.
-
-        Where the static adversarial suite checks a fixed list, the returned
-        :class:`~director_ai.core.fuzzing.ContinuousFuzzer` mutates a seed corpus
-        of attacks (homoglyph, zero-width, leetspeak, delimiter, …) against a
-        ``predicate`` you supply — ``True`` = the guard flags it — and reports
-        every obfuscation that slipped through plus any seed the guard missed
-        outright. The ``seed`` makes a found bypass replayable as a regression.
-        """
-        from director_ai.core.fuzzing import ContinuousFuzzer
-
-        return ContinuousFuzzer(seed=seed)
-
-    @property
-    def threat_intel(self) -> ThreatIntelligenceMatcher:
-        """Threat-intelligence IOC matching with attribution (STIX-aligned).
-
-        Register indicators directly or import them from a STIX 2.1 feed with
-        :func:`~director_ai.core.threat_intel.from_stix_bundle`, then
-        :meth:`~director_ai.core.threat_intel.ThreatIntelligenceMatcher.match`
-        prompts/responses against them to get every triggered indicator with its
-        attribution and severity — block *and* report "matches the APT29 kit".
-        Persists across calls so the indicator set accumulates.
-        """
-        if self._threat_intel is None:
-            from director_ai.core.threat_intel import ThreatIntelligenceMatcher
-
-            self._threat_intel = ThreatIntelligenceMatcher()
-        return self._threat_intel
-
-    def robot_command_guard(
-        self, constraints: Sequence[PhysicalConstraint] = (), **kwargs: Any
-    ) -> RobotCommandGuard:
-        """Build an embodied-AI guard for an LLM-planned robot command sequence.
-
-        Verifies a whole plan before execution against per-action physical
-        constraints plus temporal caps (bounded step displacement and path
-        length). Warn-only by default; pass ``high_risk_enabled=True`` to block an
-        unsafe plan. Returns a fresh
-        :class:`~director_ai.core.cyber_physical.RobotCommandGuard`; pass
-        ``model``, ``high_risk_enabled``, ``max_step_displacement``, or
-        ``max_path_length`` via ``kwargs``.
-        """
-        from director_ai.core.cyber_physical import RobotCommandGuard
-
-        return RobotCommandGuard(constraints, **kwargs)
 
     def compliance_engine(
         self, policy: CompliancePolicy
