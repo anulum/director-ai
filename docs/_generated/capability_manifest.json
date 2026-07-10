@@ -7,9 +7,9 @@
     "public_api_exports": 226,
     "public_documentation_pages": 203,
     "python_model_classes": 1009,
-    "python_model_source_modules": 473,
+    "python_model_source_modules": 474,
     "rust_pyo3_model_wrappers": 83,
-    "test_files": 717
+    "test_files": 718
   },
   "documentation": {
     "public_pages": [
@@ -4674,6 +4674,7 @@
       "src/director_ai/core/scoring/_nli_claims.py",
       "src/director_ai/core/scoring/_nli_export.py",
       "src/director_ai/core/scoring/_nli_numeric.py",
+      "src/director_ai/core/scoring/_nli_provisioning.py",
       "src/director_ai/core/scoring/_review_pipeline.py",
       "src/director_ai/core/scoring/_task_scoring.py",
       "src/director_ai/core/scoring/backends.py",
@@ -5683,6 +5684,7 @@
       "tests/test_nli_integration.py",
       "tests/test_nli_minicheck.py",
       "tests/test_nli_numeric.py",
+      "tests/test_nli_provisioning.py",
       "tests/test_nli_scorer.py",
       "tests/test_nli_scorer_real_surface.py",
       "tests/test_no_go.py",

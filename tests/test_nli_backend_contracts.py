@@ -16,6 +16,7 @@ import numpy as np
 import pytest
 
 import director_ai.core.scoring._nli_accel as nli_accel
+import director_ai.core.scoring._nli_provisioning as nli_provisioning
 import director_ai.core.scoring.nli as nli_mod
 from director_ai.core.scoring.backends import ScorerBackend
 from director_ai.core.scoring.nli import NLIScorer
@@ -134,13 +135,13 @@ def _install_fake_torch(monkeypatch):
 def test_nli_model_source_resolves_gcs_via_managed_artifact(monkeypatch) -> None:
     calls: list[str] = []
     monkeypatch.setattr(
-        nli_mod,
+        nli_provisioning,
         "_download_gcs_model_artifact",
         lambda uri: calls.append(uri) or "/cache/model",
     )
 
-    assert nli_mod._resolve_model_source("gs://bucket/model") == "/cache/model"
-    assert nli_mod._resolve_model_source("local/model") == "local/model"
+    assert nli_provisioning._resolve_model_source("gs://bucket/model") == "/cache/model"
+    assert nli_provisioning._resolve_model_source("local/model") == "local/model"
     assert calls == ["gs://bucket/model"]
 
 
@@ -150,19 +151,19 @@ def test_nli_model_source_resolves_gcs_via_managed_artifact(monkeypatch) -> None
 )
 def test_nli_split_gs_uri_rejects_invalid_locations(uri: str) -> None:
     with pytest.raises(ValueError):
-        nli_mod._split_gs_uri(uri)
+        nli_provisioning._split_gs_uri(uri)
 
 
 def test_nli_split_gs_uri_accepts_bucket_and_prefix() -> None:
-    assert nli_mod._split_gs_uri("gs://bucket/path/to/model") == (
+    assert nli_provisioning._split_gs_uri("gs://bucket/path/to/model") == (
         "bucket",
         "path/to/model",
     )
 
 
 def test_nli_safe_cache_name_is_stable_and_filesystem_safe() -> None:
-    first = nli_mod._safe_cache_name("gs://bucket/path with spaces/model")
-    second = nli_mod._safe_cache_name("gs://bucket/path with spaces/model")
+    first = nli_provisioning._safe_cache_name("gs://bucket/path with spaces/model")
+    second = nli_provisioning._safe_cache_name("gs://bucket/path with spaces/model")
 
     assert first == second
     assert " " not in first
@@ -180,7 +181,7 @@ def test_nli_safe_cache_name_is_stable_and_filesystem_safe() -> None:
     ],
 )
 def test_nli_artifact_skip_policy(rel_path: str, expected: bool) -> None:
-    assert nli_mod._should_skip_artifact(rel_path) is expected
+    assert nli_provisioning._should_skip_artifact(rel_path) is expected
 
 
 def test_nli_download_gcs_artifact_uses_cache_marker(tmp_path, monkeypatch) -> None:
@@ -188,13 +189,15 @@ def test_nli_download_gcs_artifact_uses_cache_marker(tmp_path, monkeypatch) -> N
     target = (
         cache_root
         / "director-ai-scorers"
-        / nli_mod._safe_cache_name("gs://bucket/path/model")
+        / nli_provisioning._safe_cache_name("gs://bucket/path/model")
     )
     target.mkdir(parents=True)
     (target / ".director-ai-complete").write_text("cached\n", encoding="utf-8")
     monkeypatch.setenv("DIRECTOR_MODEL_CACHE_DIR", str(cache_root))
 
-    assert nli_mod._download_gcs_model_artifact("gs://bucket/path/model") == str(target)
+    assert nli_provisioning._download_gcs_model_artifact(
+        "gs://bucket/path/model"
+    ) == str(target)
 
 
 def test_nli_download_gcs_artifact_fetches_non_training_files(tmp_path, monkeypatch):
@@ -235,11 +238,11 @@ def test_nli_download_gcs_artifact_fetches_non_training_files(tmp_path, monkeypa
     monkeypatch.setitem(sys.modules, "google.cloud", cloud_module)
     monkeypatch.setitem(sys.modules, "google.cloud.storage", storage_module)
 
-    model_dir = nli_mod._download_gcs_model_artifact("gs://bucket/path/model")
+    model_dir = nli_provisioning._download_gcs_model_artifact("gs://bucket/path/model")
 
     assert (tmp_path / "hf").as_posix() in model_dir
     assert len(downloaded) == 2
-    assert (nli_mod.Path(model_dir) / ".director-ai-complete").exists()
+    assert (nli_provisioning.Path(model_dir) / ".director-ai-complete").exists()
 
 
 def test_nli_download_gcs_artifact_fails_when_no_model_files(tmp_path, monkeypatch):
@@ -263,7 +266,7 @@ def test_nli_download_gcs_artifact_fails_when_no_model_files(tmp_path, monkeypat
     monkeypatch.setitem(sys.modules, "google.cloud.storage", storage_module)
 
     with pytest.raises(FileNotFoundError, match="no model artefact files"):
-        nli_mod._download_gcs_model_artifact("gs://bucket/path/model")
+        nli_provisioning._download_gcs_model_artifact("gs://bucket/path/model")
 
 
 def test_nli_numpy_softmax_and_reducers_use_python_path(monkeypatch) -> None:
@@ -385,7 +388,7 @@ def test_nli_load_model_success_uses_revision_dtype_and_device(monkeypatch) -> N
     fake_transformers.AutoTokenizer = FakeAutoTokenizer
     fake_transformers.AutoModelForSequenceClassification = FakeAutoModel
     monkeypatch.setitem(sys.modules, "transformers", fake_transformers)
-    monkeypatch.setattr(nli_mod, "_resolve_revision", lambda *_args: "abc123")
+    monkeypatch.setattr(nli_provisioning, "_resolve_revision", lambda *_args: "abc123")
     nli_mod._load_nli_model.cache_clear()
 
     tokenizer, model = nli_mod._load_nli_model(
@@ -420,7 +423,7 @@ def test_nli_load_model_auto_selects_cuda_device(monkeypatch) -> None:
     fake_device.select_torch_device = lambda: "cuda:0"
     monkeypatch.setitem(sys.modules, "transformers", fake_transformers)
     monkeypatch.setitem(sys.modules, "director_ai.core._device", fake_device)
-    monkeypatch.setattr(nli_mod, "_resolve_revision", lambda *_args: "abc123")
+    monkeypatch.setattr(nli_provisioning, "_resolve_revision", lambda *_args: "abc123")
     nli_mod._load_nli_model.cache_clear()
 
     _, model = nli_mod._load_nli_model("model/name")
@@ -446,7 +449,7 @@ def test_nli_load_model_quantized_path_skips_manual_device_move(monkeypatch) -> 
         from_pretrained=lambda *_args, **_kwargs: fake_model
     )
     monkeypatch.setitem(sys.modules, "transformers", fake_transformers)
-    monkeypatch.setattr(nli_mod, "_resolve_revision", lambda *_args: "abc123")
+    monkeypatch.setattr(nli_provisioning, "_resolve_revision", lambda *_args: "abc123")
     nli_mod._load_nli_model.cache_clear()
 
     _, model = nli_mod._load_nli_model(

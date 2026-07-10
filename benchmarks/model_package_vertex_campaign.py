@@ -26,7 +26,7 @@ from benchmarks.model_benchmark_packages import (
     ModelEvidenceItem,
     load_package_manifest,
 )
-from director_ai.core.scoring.nli import _resolve_model_source
+from director_ai.core.scoring._nli_provisioning import _resolve_model_source
 
 
 @dataclass(frozen=True)

@@ -8,8 +8,8 @@
 
 import pytest
 
+import director_ai.core.scoring._nli_provisioning as nli_provisioning
 from director_ai.core.config import DirectorConfig
-from director_ai.core.scoring import nli
 from director_ai.core.scoring.model_choices import (
     DEFAULT_SCORER_MODEL_ALIAS,
     FINAL_VERTEX_REPORT_URI,
@@ -104,11 +104,13 @@ def test_config_custom_model_requires_opt_in():
 
 
 def test_gcs_artifact_cache_helpers():
-    bucket, prefix = nli._split_gs_uri("gs://bucket/path/to/model")
+    bucket, prefix = nli_provisioning._split_gs_uri("gs://bucket/path/to/model")
 
     assert bucket == "bucket"
     assert prefix == "path/to/model"
-    assert nli._safe_cache_name("gs://bucket/path/to/model").startswith("bucket-path")
-    assert nli._should_skip_artifact("checkpoint-1/model.safetensors")
-    assert nli._should_skip_artifact("trainer_state.json")
-    assert not nli._should_skip_artifact("config.json")
+    assert nli_provisioning._safe_cache_name("gs://bucket/path/to/model").startswith(
+        "bucket-path"
+    )
+    assert nli_provisioning._should_skip_artifact("checkpoint-1/model.safetensors")
+    assert nli_provisioning._should_skip_artifact("trainer_state.json")
+    assert not nli_provisioning._should_skip_artifact("config.json")
