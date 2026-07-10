@@ -6,10 +6,10 @@
     "optional_extras": 62,
     "public_api_exports": 226,
     "public_documentation_pages": 203,
-    "python_model_classes": 1015,
-    "python_model_source_modules": 480,
+    "python_model_classes": 1016,
+    "python_model_source_modules": 481,
     "rust_pyo3_model_wrappers": 83,
-    "test_files": 724
+    "test_files": 725
   },
   "documentation": {
     "public_pages": [
@@ -4325,6 +4325,10 @@
         "path": "src/director_ai/_server_models.py"
       },
       {
+        "name": "VersionLedgerMixin",
+        "path": "src/director_ai/core/retrieval/vector_store/_versioning.py"
+      },
+      {
         "name": "VertexTrainingBackend",
         "path": "src/director_ai/core/training/jobs.py"
       },
@@ -4651,6 +4655,7 @@
       "src/director_ai/core/retrieval/multi_vector.py",
       "src/director_ai/core/retrieval/parent_child.py",
       "src/director_ai/core/retrieval/query_decomposition.py",
+      "src/director_ai/core/retrieval/vector_store/_versioning.py",
       "src/director_ai/core/retrieval/vector_store/base.py",
       "src/director_ai/core/retrieval/vector_store/composite.py",
       "src/director_ai/core/retrieval/vector_store/embedding.py",
@@ -5914,6 +5919,7 @@
       "tests/test_span_detector_real_surface.py",
       "tests/test_starter_presets.py",
       "tests/test_stats.py",
+      "tests/test_store_versioning.py",
       "tests/test_streaming.py",
       "tests/test_streaming_contradiction_halt_bench.py",
       "tests/test_streaming_debug.py",
