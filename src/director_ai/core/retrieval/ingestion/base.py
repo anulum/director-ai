@@ -24,7 +24,7 @@ from collections.abc import Iterable, Iterator, Mapping
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 
-if TYPE_CHECKING:  # pragma: no cover
+if TYPE_CHECKING:
     from ..knowledge import GroundTruthStore
 
 logger = logging.getLogger("DirectorAI.Ingestion")
@@ -82,7 +82,7 @@ class IngestionPlugin(ABC):
         object in memory. Raise :class:`RuntimeError` for transport
         failures; :class:`PermissionError` for auth issues.
         """
-        ...  # pragma: no cover
+        ...
 
     def _prepare_document(self, doc: IngestedDocument) -> IngestedDocument | None:
         """Post-process one document before it lands in the store.

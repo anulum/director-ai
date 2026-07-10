@@ -93,9 +93,15 @@ def _load_entry_points() -> None:
         for ep in group:
             try:
                 cls = ep.load()
-                if ep.name not in _REGISTRY:  # pragma: no cover
+                if (
+                    ep.name not in _REGISTRY
+                ):  # pragma: no cover — plugin-gated: third-party entry points
                     register_backend(ep.name, cls)
-            except (ImportError, AttributeError, TypeError) as exc:  # pragma: no cover
+            except (
+                ImportError,
+                AttributeError,
+                TypeError,
+            ) as exc:  # pragma: no cover — plugin-gated: entry-point load failure
                 logger.warning(
                     "Failed to load backend entry point %s: %s",
                     ep.name,
@@ -268,9 +274,9 @@ try:
     # environment, so this import-time branch is excluded.
     if (
         importlib.util.find_spec("sentence_transformers") is not None
-    ):  # pragma: no cover
+    ):  # pragma: no cover — extras-gated: embed registration
         register_backend("embed", EmbedBackendWrapper)
-except ImportError:  # pragma: no cover
+except ImportError:
     pass
 
 
@@ -318,5 +324,7 @@ if importlib.util.find_spec("backfire_kernel") is not None:
         _ = _bk.RustCoherenceScorer
         register_backend("rust", RustBackend)
         register_backend("backfire", RustBackend)
-    except AttributeError as _attr_err:  # pragma: no cover
+    except (
+        AttributeError
+    ) as _attr_err:  # pragma: no cover — defensive: broken-kernel probe
         logger.warning("backfire_kernel found but broken: %s", _attr_err)

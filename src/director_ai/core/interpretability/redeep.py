@@ -136,11 +136,11 @@ class ActivationProvider(Protocol):
 
     def layer_signals(self) -> Sequence[LayerSignal]:
         """Return the per-layer FFN-knowledge and external-attention signals."""
-        ...  # pragma: no cover
+        ...
 
     def head_signals(self) -> Sequence[HeadSignal]:
         """Return the per-head copying scores for the analysed response."""
-        ...  # pragma: no cover
+        ...
 
 
 class MechanisticAttributor:

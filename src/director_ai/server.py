@@ -149,7 +149,9 @@ except ImportError:
 
 def _check_fastapi() -> None:
     """Raise an install hint when FastAPI server extras are unavailable."""
-    if not _FASTAPI_AVAILABLE:  # pragma: no cover
+    if (
+        not _FASTAPI_AVAILABLE
+    ):  # pragma: no cover — extras-gated: FastAPI import guard ([server] extra)
         raise ImportError(
             "FastAPI is required for the server. "
             "Install with: pip install director-ai[server]",

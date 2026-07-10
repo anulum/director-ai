@@ -134,7 +134,7 @@ class NashBargainingSolver:
         # Every grid point scores a strictly positive Nash product (surplus is
         # floored at epsilon), beating the tracker's -1.0 seed, so at least one
         # allocation is always recorded. The guard is defensive only.
-        if best.allocation is None:  # pragma: no cover
+        if best.allocation is None:  # pragma: no cover — defensive: grid always records
             raise ValueError("no feasible allocation found")
         return BargainingSolution(
             allocation=best.allocation,

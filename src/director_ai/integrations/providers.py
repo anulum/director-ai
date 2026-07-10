@@ -33,13 +33,13 @@ class LLMProvider(ABC):
     @abstractmethod
     def generate_candidates(self, prompt: str, n: int = 3) -> list[dict[str, str]]:
         """Generate n candidate responses for the given prompt."""
-        ...  # pragma: no cover
+        ...
 
     @property
     @abstractmethod
     def name(self) -> str:
         """Provider name for logging."""
-        ...  # pragma: no cover
+        ...
 
     def stream_generate(self, prompt: str) -> Iterator[str]:
         """Yield tokens from a streaming completion.

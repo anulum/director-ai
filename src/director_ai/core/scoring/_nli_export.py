@@ -150,7 +150,7 @@ def _load_onnx_session(
         available = ort.get_available_providers()
         # GPU/TensorRT provider selection only fires on accelerator hardware,
         # which the CPU-only test environment does not expose.
-        if (  # pragma: no cover
+        if (  # pragma: no cover — hardware-gated: CUDA provider
             device and "cuda" in device
         ) or "CUDAExecutionProvider" in available:
             providers.insert(0, "CUDAExecutionProvider")
@@ -158,7 +158,9 @@ def _load_onnx_session(
         trt_cache = str(onnx_dir / "trt_cache")
         trt_requested = os.environ.get("DIRECTOR_ENABLE_TRT") == "1"
         trt_cache_exists = os.path.isdir(trt_cache)
-        if (trt_requested or trt_cache_exists) and (  # pragma: no cover
+        if (
+            trt_requested or trt_cache_exists
+        ) and (  # pragma: no cover — hardware-gated: TensorRT provider
             "TensorrtExecutionProvider" in available
         ):
             trt_opts: dict[str, object] = {
@@ -448,7 +450,10 @@ class OnnxDynamicBatcher:
             try:
                 providers = session.get_providers()
                 self._has_cuda = any("CUDA" in p for p in providers)
-            except (AttributeError, RuntimeError):  # pragma: no cover
+            except (
+                AttributeError,
+                RuntimeError,
+            ):  # pragma: no cover — defensive: foreign session probe
                 pass
 
     def submit(self, pairs: list[tuple[str, str]]) -> list[float]:

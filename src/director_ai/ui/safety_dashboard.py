@@ -926,7 +926,7 @@ def _drift_alert_rows(
         current = tenant_records[split_at:]
         # len >= 2*min_window_events above guarantees each half holds at least
         # min_window_events records, so this second window check never trips.
-        if (  # pragma: no cover
+        if (  # pragma: no cover — unreachable: split keeps both windows full
             len(baseline) < min_window_events or len(current) < min_window_events
         ):
             continue

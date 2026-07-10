@@ -282,7 +282,9 @@ def progress(formula: Formula, state: frozenset[str]) -> Formula:
             progress(formula.right, state),
             and_(progress(formula.left, state), formula),
         )
-    raise TypeError(f"unknown formula node: {formula!r}")  # pragma: no cover
+    raise TypeError(
+        f"unknown formula node: {formula!r}"
+    )  # pragma: no cover — unreachable: exhaustive dispatch
 
 
 def value_at_end(formula: Formula) -> bool:
@@ -313,4 +315,6 @@ def value_at_end(formula: Formula) -> bool:
         return False
     if isinstance(formula, Until):
         return False
-    raise TypeError(f"unknown formula node: {formula!r}")  # pragma: no cover
+    raise TypeError(
+        f"unknown formula node: {formula!r}"
+    )  # pragma: no cover — unreachable: exhaustive dispatch

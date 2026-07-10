@@ -206,7 +206,7 @@ class AsyncStreamingKernel(HaltMonitor):
             # Token timeout check
             if (
                 self.token_timeout > 0 and (now - token_start) > self.token_timeout
-            ):  # pragma: no cover
+            ):  # pragma: no cover — timing-gated: needs a stalled stream
                 self.emergency_stop()
                 yield TokenEvent(
                     token=token,

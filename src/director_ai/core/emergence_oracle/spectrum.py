@@ -259,7 +259,9 @@ class CommunityDetector:
                 # Every node in an event-built graph has at least one undirected
                 # neighbour (nodes only exist because an edge created them), so
                 # the isolated-node skip is a defensive guard.
-                if not neighbours:  # pragma: no cover
+                if (
+                    not neighbours
+                ):  # pragma: no cover — defensive: nodes have neighbours
                     continue
                 tally: dict[str, int] = {}
                 for neighbour, weight in neighbours.items():

@@ -159,7 +159,7 @@ class WebSearchProvider(Protocol):
 
     def search(self, query: str, *, max_results: int) -> list[SearchHit]:
         """Return up to ``max_results`` ranked web-search hits for ``query``."""
-        ...  # pragma: no cover
+        ...
 
 
 @dataclass(frozen=True)
@@ -214,12 +214,10 @@ class ContradictionEngine(Protocol):
     so the refresher need not import the heavy ``transformers`` stack.
     """
 
-    def contradiction(
-        self, premise: str, hypothesis: str
-    ) -> float: ...  # pragma: no cover
+    def contradiction(self, premise: str, hypothesis: str) -> float: ...
 
     @property
-    def threshold(self) -> float: ...  # pragma: no cover
+    def threshold(self) -> float: ...
 
 
 def _ddg_hits(body: bytes, max_results: int) -> list[SearchHit]:

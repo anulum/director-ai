@@ -70,4 +70,4 @@ class ModerationDetector(ABC):
         change weights between calls should expose that behaviour through a
         separate method.
         """
-        ...  # pragma: no cover
+        ...

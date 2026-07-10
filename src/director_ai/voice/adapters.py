@@ -38,8 +38,8 @@ class TTSAdapter(ABC):
     @abstractmethod
     async def synthesise(self, text: str) -> AsyncIterator[bytes]:
         """Stream audio bytes for a text fragment."""
-        ...  # pragma: no cover
-        yield b""  # pragma: no cover
+        ...
+        yield b""  # pragma: no cover — protocol stub: yield marks the generator
 
     async def flush(self) -> AsyncIterator[bytes]:
         """Flush any buffered audio. Override if your TTS buffers internally."""

@@ -18,6 +18,11 @@ repos:
         entry: python tools/check_test_surface_policy.py --root .
         language: system
         pass_filenames: false
+      - id: pragma-justification-guard
+        name: pragma no-cover justification guard
+        entry: python tools/check_pragma_justifications.py --root .
+        language: system
+        pass_filenames: false
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.15.6
     hooks:

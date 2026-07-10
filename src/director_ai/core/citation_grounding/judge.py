@@ -48,7 +48,7 @@ class Scorer(Protocol):
 
     def score(self, premise: str, hypothesis: str) -> float:
         """Return divergence for ``hypothesis`` against ``premise``."""
-        ...  # pragma: no cover
+        ...
 
 
 @dataclass(frozen=True)

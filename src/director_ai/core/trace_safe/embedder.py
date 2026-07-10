@@ -56,7 +56,7 @@ class TraceEmbedder(ABC):
     @abstractmethod
     def embed(self, text: str) -> tuple[float, ...]:
         """Return the embedding vector for ``text``."""
-        ...  # pragma: no cover
+        ...
 
 
 class HashBagEmbedder(TraceEmbedder):

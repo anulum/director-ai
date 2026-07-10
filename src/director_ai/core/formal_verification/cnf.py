@@ -82,7 +82,9 @@ class CnfConverter:
             left = self._remove_iff(formula.left)
             right = self._remove_iff(formula.right)
             return And(Implies(left, right), Implies(right, left))
-        raise TypeError(f"unknown node {type(formula).__name__}")  # pragma: no cover
+        raise TypeError(
+            f"unknown node {type(formula).__name__}"
+        )  # pragma: no cover — unreachable: exhaustive dispatch
 
     def _remove_implications(self, formula: Formula) -> Formula:
         if isinstance(formula, Variable):
@@ -162,7 +164,9 @@ class CnfConverter:
                     self._distribute(Or(left, right.right)),
                 )
             return Or(left, right)
-        raise TypeError(f"unexpected node {type(formula).__name__}")  # pragma: no cover
+        raise TypeError(
+            f"unexpected node {type(formula).__name__}"
+        )  # pragma: no cover — unreachable: exhaustive dispatch
 
     def _flatten(self, formula: Formula) -> tuple[Clause, ...]:
         if isinstance(formula, And):
@@ -180,4 +184,4 @@ class CnfConverter:
             return (Literal(name=formula.operand.name, positive=False),)
         raise TypeError(
             f"unexpected literal node {type(formula).__name__}"
-        )  # pragma: no cover
+        )  # pragma: no cover — unreachable: CNF guarantees literals

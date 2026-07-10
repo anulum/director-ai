@@ -130,7 +130,7 @@ class LLMJudge:
         device: str | None = None,
         *,
         model_revision: str | None = None,
-    ) -> None:  # pragma: no cover
+    ) -> None:  # pragma: no cover — extras-gated: transformers judge ([nli])
         """Load local DeBERTa-base judge model for borderline escalation."""
         resolved_revision = resolve_model_revision(model_path, model_revision)
         try:

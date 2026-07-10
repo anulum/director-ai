@@ -407,7 +407,7 @@ def tune(
     # The public entrypoint validates non-empty samples and supplies a default
     # threshold grid, so the candidate loop always records a best; this is a
     # defensive guard against an internal caller bypassing those checks.
-    if best is None:  # pragma: no cover
+    if best is None:  # pragma: no cover — defensive: entrypoint rejects empty samples
         raise ValueError("No valid tuning result — check that samples is non-empty")
 
     positives = _sum_int([1 if s.label else 0 for s in best_samples])

@@ -96,7 +96,7 @@ class HttpGetter(Protocol):
         self, url: str, *, headers: Mapping[str, str] | None = None
     ) -> tuple[int, bytes, str]:
         """Fetch ``url`` with optional headers."""
-        ...  # pragma: no cover
+        ...
 
 
 @dataclass(frozen=True)

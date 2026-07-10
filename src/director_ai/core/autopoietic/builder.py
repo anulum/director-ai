@@ -67,7 +67,7 @@ class ModuleBuilder:
             return self._build_ensemble(blueprint)
         raise BuildError(
             f"unknown blueprint kind {blueprint.kind!r}"
-        )  # pragma: no cover
+        )  # pragma: no cover — unreachable: exhaustive kind dispatch
 
     def _build_length(self, blueprint: ModuleBlueprint) -> Scorer:
         saturation = float(blueprint.length_saturation)
@@ -103,7 +103,7 @@ class ModuleBuilder:
             )
             # len(tokens) >= n is guaranteed above, so at least one gram always
             # exists; the empty-grams guard is defensive only.
-            if not grams:  # pragma: no cover
+            if not grams:  # pragma: no cover — defensive: len(tokens) >= n holds here
                 return 0.0
             if _RUST_AUTOPOIETIC:
                 gram_tokens = " ".join(gram.replace(" ", "_") for gram in grams)
@@ -115,7 +115,7 @@ class ModuleBuilder:
             union = grams | reference
             # grams is non-empty here, so the union always is too; the guard is
             # defensive against a zero-division that cannot occur.
-            if not union:  # pragma: no cover
+            if not union:  # pragma: no cover — defensive: grams is non-empty here
                 return 0.0
             return len(intersection) / len(union)
 
@@ -190,7 +190,9 @@ class BoundedSandbox:
             raise result.error  # pragma: no cover — defensive
         # A completed run with no error always carries a float value (float()
         # raises rather than returning None), so this is a defensive guard.
-        if result.value is None:  # pragma: no cover
+        if (
+            result.value is None
+        ):  # pragma: no cover — defensive: completed runs carry a float
             raise BuildError("scorer returned None")
         return max(0.0, min(1.0, result.value))
 

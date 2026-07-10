@@ -58,7 +58,7 @@ class Actor(Protocol):
         Must be deterministic given ``seed`` so the preflight decision is
         reproducible.
         """
-        ...  # pragma: no cover
+        ...
 
 
 class VerdictProducer(Protocol):
@@ -74,7 +74,7 @@ class VerdictProducer(Protocol):
         self, prompt: str, action: str, tenant_id: str = ""
     ) -> tuple[bool, object]:
         """Return ``(approved, score)`` for ``action`` taken after ``prompt``."""
-        ...  # pragma: no cover
+        ...
 
 
 @dataclass(frozen=True)

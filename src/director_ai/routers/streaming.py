@@ -253,7 +253,7 @@ def create_streaming_router() -> APIRouter:
                     ValueError,
                     TypeError,
                     OSError,
-                ) as exc:  # pragma: no cover
+                ) as exc:  # pragma: no cover — defensive: websocket transport failure
                     logger.error("WebSocket streaming failed: %s", exc)
                     await _send(
                         {"session_id": session_id, "error": "streaming failed"},

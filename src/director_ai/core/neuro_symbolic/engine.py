@@ -214,7 +214,9 @@ class NeuroSymbolicComplianceEngine:
             if expr.op == "sub":
                 return left - right
             return left * right
-        raise TypeError(f"unknown expression node: {expr!r}")  # pragma: no cover
+        raise TypeError(
+            f"unknown expression node: {expr!r}"
+        )  # pragma: no cover — unreachable: exhaustive Expr dispatch
 
     def _fact_assignments(
         self, facts: dict[str, bool | int | float], zvars: dict[str, Any]

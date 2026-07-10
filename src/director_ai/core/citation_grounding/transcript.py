@@ -51,7 +51,7 @@ class Generator(Protocol):
 
     def generate_candidates(self, prompt: str, n: int) -> Sequence[Mapping[str, Any]]:
         """Generate up to ``n`` candidate responses for ``prompt``."""
-        ...  # pragma: no cover
+        ...
 
 
 @dataclass(frozen=True)

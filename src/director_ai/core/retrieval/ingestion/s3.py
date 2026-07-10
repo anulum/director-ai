@@ -24,7 +24,7 @@ from typing import TYPE_CHECKING, Any
 
 from .base import IngestedDocument, IngestionPlugin
 
-if TYPE_CHECKING:  # pragma: no cover
+if TYPE_CHECKING:
     pass
 
 logger = logging.getLogger("DirectorAI.Ingestion.S3")

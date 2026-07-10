@@ -73,7 +73,7 @@ class TokenTraceCallback(ABC):
     @abstractmethod
     def on_token(self, event: TokenTraceEvent) -> None:
         """Receive one token event. Must not raise."""
-        ...  # pragma: no cover
+        ...
 
     def on_stream_end(
         self, *, tenant_id: str, request_id: str, summary: dict[str, Any]

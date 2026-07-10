@@ -69,7 +69,7 @@ except ImportError:
 
 __all__ = ["StreamSession", "StreamingKernel", "TokenEvent"]
 
-if TYPE_CHECKING:  # pragma: no cover
+if TYPE_CHECKING:
     from ..scoring.scorer import CoherenceScorer
 
 logger = logging.getLogger("DirectorAI.Streaming")

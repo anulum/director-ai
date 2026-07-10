@@ -26,7 +26,7 @@ try:
     from backfire_kernel import rust_split_sentences, rust_sum_f64
 
     _RUST_DOC_CHUNKER = True
-except ImportError:  # pragma: no cover
+except ImportError:
 
     def rust_split_sentences(_text: str) -> list[str]:
         """Raise to signal the mandatory Rust sentence splitter is missing."""

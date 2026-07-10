@@ -172,7 +172,7 @@ class ContinualEngine:
         # away. The first case is never a duplicate (seen is empty), so deduped
         # is only empty when the upstream pattern set produced no cases, which
         # the caller already rejects — defensive only.
-        if not deduped:  # pragma: no cover
+        if not deduped:  # pragma: no cover — defensive: caller rejects empty
             raise ValueError("no unique cases survived deduplication")
         # _events is intentionally unused by the default policy;
         # subclasses can override _cases_from_patterns to sample

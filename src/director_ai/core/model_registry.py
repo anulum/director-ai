@@ -70,7 +70,7 @@ class AvailabilityProbe(Protocol):
 
     def __call__(self, model_id: str, revision: str | None) -> bool:
         """Return True when the model revision is currently available."""
-        ...  # pragma: no cover
+        ...
 
 
 class FallbackModelRegistry:

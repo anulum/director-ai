@@ -117,4 +117,4 @@ def variables(formula: Formula) -> frozenset[str]:
         return variables(formula.left) | variables(formula.right)
     raise TypeError(
         f"unknown formula type {type(formula).__name__}"
-    )  # pragma: no cover
+    )  # pragma: no cover — unreachable: exhaustive dispatch

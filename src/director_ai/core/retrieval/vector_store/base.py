@@ -100,7 +100,9 @@ def _load_vector_entry_points() -> None:
         for ep in group:
             try:
                 cls = ep.load()
-                if ep.name not in _VECTOR_REGISTRY:  # pragma: no cover
+                if (
+                    ep.name not in _VECTOR_REGISTRY
+                ):  # pragma: no cover — plugin-gated: third-party entry points
                     register_vector_backend(ep.name, cls)
             except (  # pragma: no cover - defensive: plugin entry-point load failure
                 ImportError,
@@ -127,7 +129,7 @@ class VectorBackend(ABC):
         metadata: dict[str, Any] | None = None,
     ) -> None:
         """Index ``text`` under ``doc_id`` with optional metadata."""
-        ...  # pragma: no cover
+        ...
 
     @abstractmethod
     def query(
@@ -137,12 +139,12 @@ class VectorBackend(ABC):
         tenant_id: str = "",
     ) -> list[dict[str, Any]]:
         """Return the ``n_results`` closest matches to ``text`` for the tenant."""
-        ...  # pragma: no cover
+        ...
 
     @abstractmethod
     def count(self) -> int:
         """Return the number of indexed documents."""
-        ...  # pragma: no cover
+        ...
 
     def delete(self, doc_ids: list[str]) -> int:
         """Delete documents by id when a backend supports mutation."""

@@ -196,7 +196,7 @@ class CoherenceAgent:
             OSError,
         ) as exc:
             self.logger.debug("Rust scorer unavailable (%s) — Python fallback", exc)
-        return CoherenceScorer(  # pragma: no cover
+        return CoherenceScorer(  # pragma: no cover — kernel-absent fallback (wheel in coverage job)
             threshold=0.6,
             ground_truth_store=self.store,
             use_nli=use_nli,

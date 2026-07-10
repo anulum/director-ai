@@ -201,7 +201,9 @@ class ArchitectureMutation:
                     f"index {self.index} out of range [0, {len(blueprint.components)})"
                 )
             return _rebalance(blueprint, self.index, self.delta)
-        raise ValueError(f"unknown mutation kind {self.kind!r}")  # pragma: no cover
+        raise ValueError(
+            f"unknown mutation kind {self.kind!r}"
+        )  # pragma: no cover — unreachable: exhaustive kind dispatch
 
 
 def _rebalance(blueprint: ModuleBlueprint, index: int, delta: float) -> ModuleBlueprint:
