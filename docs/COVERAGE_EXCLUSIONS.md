@@ -41,9 +41,10 @@ whose statements are fully covered. They fall into three categories:
 
 Baseline as of run `29059290946` (52 branch edges, per file). The
 `core/scoring/scorer.py` rows were re-mapped locally after the WCB-1
-decomposition into `_divergence.py` (same edges at their new locations;
-two `_heuristic_factual` edges closed by the new mixin test surface —
-local full run: 44 153 statements, 0 missed, 47 partial):
+decomposition into `_divergence.py` and `_review_pipeline.py` (same
+edges at their new locations; two `_heuristic_factual` edges closed by
+the new mixin test surface — local full run: 44 178 statements,
+0 missed, 47 partial):
 
 | File | Edges | Category |
 | --- | --- | --- |
@@ -65,7 +66,8 @@ local full run: 44 153 statements, 0 missed, 47 partial):
 | core/scoring/_nli_export.py | 139->147 | extras-gated |
 | core/scoring/lexical_signals.py | 113->115, 119->121 | loop-edge |
 | core/scoring/_divergence.py | 359->370, 365->370, 404->424 | skip-edge |
-| core/scoring/scorer.py | 504->507, 1020->1033, 1028->1033, 1064->1068, 1245->1250 | skip-edge |
+| core/scoring/_review_pipeline.py | 395->408, 403->408, 439->443, 620->625 | skip-edge |
+| core/scoring/scorer.py | 497->500 | skip-edge |
 | core/self_evolving/calibration.py | 63->61 | loop-edge |
 | core/symbolic_chain/prover.py | 115->114 | loop-edge |
 | core/tenant.py | 243->242 | loop-edge |

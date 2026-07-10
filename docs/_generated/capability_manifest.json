@@ -6,10 +6,10 @@
     "optional_extras": 62,
     "public_api_exports": 226,
     "public_documentation_pages": 203,
-    "python_model_classes": 1006,
-    "python_model_source_modules": 468,
+    "python_model_classes": 1007,
+    "python_model_source_modules": 469,
     "rust_pyo3_model_wrappers": 83,
-    "test_files": 712
+    "test_files": 713
   },
   "documentation": {
     "public_pages": [
@@ -3337,6 +3337,10 @@
         "path": "src/director_ai/core/irreversibility/reversibility.py"
       },
       {
+        "name": "ReviewPipelineMixin",
+        "path": "src/director_ai/core/scoring/_review_pipeline.py"
+      },
+      {
         "name": "ReviewQueue",
         "path": "src/director_ai/core/runtime/review_queue.py"
       },
@@ -4658,6 +4662,7 @@
       "src/director_ai/core/scoring/_heuristics.py",
       "src/director_ai/core/scoring/_llm_judge.py",
       "src/director_ai/core/scoring/_nli_export.py",
+      "src/director_ai/core/scoring/_review_pipeline.py",
       "src/director_ai/core/scoring/_task_scoring.py",
       "src/director_ai/core/scoring/backends.py",
       "src/director_ai/core/scoring/consensus.py",
@@ -5776,6 +5781,7 @@
       "tests/test_request_processor.py",
       "tests/test_reranker.py",
       "tests/test_retrieval_benchmark_quality.py",
+      "tests/test_review_pipeline_mixin.py",
       "tests/test_review_queue.py",
       "tests/test_review_queue_real_surface.py",
       "tests/test_risk_threshold.py",
