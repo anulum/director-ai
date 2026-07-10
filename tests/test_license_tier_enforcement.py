@@ -128,7 +128,9 @@ def _gate_raises(capability: str, *, minimum: str = "pro") -> None:
 class TestGuardTierWiring:
     def test_repair_stream_gates_on_tier(self, monkeypatch):
         guard = ProductionGuard()
-        monkeypatch.setattr("director_ai.guard.enforce_capability_tier", _gate_raises)
+        monkeypatch.setattr(
+            "director_ai._guard_defence.enforce_capability_tier", _gate_raises
+        )
         with pytest.raises(LicenseError, match="repair_stream"):
             guard.repair_stream("prompt", "response")
 

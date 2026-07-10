@@ -6,10 +6,10 @@
     "optional_extras": 62,
     "public_api_exports": 226,
     "public_documentation_pages": 203,
-    "python_model_classes": 1010,
-    "python_model_source_modules": 475,
+    "python_model_classes": 1011,
+    "python_model_source_modules": 476,
     "rust_pyo3_model_wrappers": 83,
-    "test_files": 719
+    "test_files": 720
   },
   "documentation": {
     "public_pages": [
@@ -1774,7 +1774,7 @@
       },
       {
         "name": "FirewallDecision",
-        "path": "src/director_ai/guard.py"
+        "path": "src/director_ai/_guard_defence.py"
       },
       {
         "name": "FirewallPolicy",
@@ -3337,6 +3337,10 @@
         "path": "src/director_ai/core/swarm_economics/pool.py"
       },
       {
+        "name": "ResponseDefenceMixin",
+        "path": "src/director_ai/_guard_defence.py"
+      },
+      {
         "name": "RetrievedChunk",
         "path": "src/director_ai/core/evidence_firewall/chunk.py"
       },
@@ -4379,6 +4383,7 @@
       "src/director_ai/_cli_train.py",
       "src/director_ai/_cli_verify.py",
       "src/director_ai/_guard_canary.py",
+      "src/director_ai/_guard_defence.py",
       "src/director_ai/_server_helpers.py",
       "src/director_ai/_server_models.py",
       "src/director_ai/agentic/agent_profile.py",
@@ -5532,6 +5537,7 @@
       "tests/test_grpc_server_real_surface.py",
       "tests/test_guard_canary.py",
       "tests/test_guard_control.py",
+      "tests/test_guard_defence.py",
       "tests/test_guard_firewall.py",
       "tests/test_guard_multimodal.py",
       "tests/test_guard_pii_redaction.py",
