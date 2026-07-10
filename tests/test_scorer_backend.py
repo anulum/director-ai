@@ -524,7 +524,7 @@ class TestCoherenceScorerInternalContracts:
         monkeypatch,
     ):
         monkeypatch.setattr(
-            "director_ai.core.scorer.detect_task_type",
+            "director_ai.core.scoring._divergence.detect_task_type",
             lambda _prompt, _response="": "dialogue",
         )
         scorer = CoherenceScorer(use_nli=False)
@@ -748,10 +748,14 @@ class TestCoherenceScorerInternalContracts:
     ):
         import pytest
 
-        import director_ai.core.scoring.scorer as scorer_module
+        import director_ai.core.scoring._divergence as divergence_module
 
-        monkeypatch.setattr(scorer_module, "rust_heuristic_factual_divergence", None)
-        monkeypatch.setattr(scorer_module, "rust_heuristic_logical_divergence", None)
+        monkeypatch.setattr(
+            divergence_module, "rust_heuristic_factual_divergence", None
+        )
+        monkeypatch.setattr(
+            divergence_module, "rust_heuristic_logical_divergence", None
+        )
 
         assert CoherenceScorer._heuristic_factual("", "answer") == 0.5
         assert CoherenceScorer._heuristic_logical("answer") == 0.5

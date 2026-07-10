@@ -19,6 +19,7 @@ import threading
 
 import pytest
 
+import director_ai.core.scoring._divergence as divergence_module
 import director_ai.core.scoring.scorer as scorer_module
 from director_ai.core import CoherenceScorer
 from director_ai.core.metrics import metrics
@@ -498,7 +499,7 @@ class TestScorerCoverageGaps:
         scorer = CoherenceScorer(use_nli=False)
         scorer._nli = fake_nli
         monkeypatch.setattr(
-            scorer_module,
+            divergence_module,
             "dialogue_factual_divergence",
             fake_dialogue_factual_divergence,
         )
@@ -708,14 +709,14 @@ class TestScorerCoverageGaps:
         )
 
     def test_heuristic_logical_returns_neutral_for_empty_token_sets(self):
-        old_rust = scorer_module.rust_heuristic_logical_divergence
-        scorer_module.rust_heuristic_logical_divergence = None
+        old_rust = divergence_module.rust_heuristic_logical_divergence
+        divergence_module.rust_heuristic_logical_divergence = None
         try:
             assert CoherenceScorer._heuristic_logical("!!!", "???") == (
                 scorer_module.DIVERGENCE_NEUTRAL
             )
         finally:
-            scorer_module.rust_heuristic_logical_divergence = old_rust
+            divergence_module.rust_heuristic_logical_divergence = old_rust
 
     def test_parallel_coherence_cleans_up_factual_future_after_logic_failure(self):
         import time
