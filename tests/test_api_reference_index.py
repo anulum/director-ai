@@ -50,8 +50,10 @@ def test_signature_docs_match_current_api_surfaces() -> None:
     assert scorer_init.parameters["w_logic"].default is None
     assert scorer_init.parameters["w_fact"].default is None
     assert scorer_init.parameters["nli_devices"].default is None
-    assert "score_chunked" not in CoherenceScorer.__dict__
-    assert "score_chunked" in NLIScorer.__dict__
+    # Resolved via the class (ChunkingMixin provides it on NLIScorer);
+    # __dict__ membership would miss mixin-provided methods.
+    assert not hasattr(CoherenceScorer, "score_chunked")
+    assert hasattr(NLIScorer, "score_chunked")
     assert agent_process.parameters["prompt"].annotation in {str, "str"}
     assert "query" not in agent_process.parameters
     assert agent_aprocess.parameters["prompt"].annotation in {str, "str"}

@@ -32,7 +32,7 @@ class TestSplitSentences:
         result = NLIScorer._split_sentences("Just one sentence.")
         assert len(result) == 1
 
-    def test_rust_split_sentences_parity_when_available(self):
+    def test_rust_split_sentences_parity_when_available(self, monkeypatch):
         try:
             from backfire_kernel import rust_split_sentences
         except Exception:
@@ -42,8 +42,13 @@ class TestSplitSentences:
             "Hello world. How are you? Fine!",
             "Dr. Smith arrived. We started.",
             "Revenue grew from 2.3 million to 2.5 million. Good quarter.",
+            "Dr. Smith measured 2.5 mm. The probe worked.",
             "",
         ]
+        # Force the pure-Python floor so the comparison is genuinely
+        # Python-vs-Rust; with the flag left on, both sides would take
+        # the Rust branch and the parity assertion would be trivial.
+        monkeypatch.setattr(nli_accel, "_RUST_NLI", False)
         for text in samples:
             py_result = NLIScorer._split_sentences(text)
             rust_result = [s.strip() for s in rust_split_sentences(text) if s.strip()]

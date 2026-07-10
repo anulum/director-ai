@@ -6,10 +6,10 @@
     "optional_extras": 62,
     "public_api_exports": 226,
     "public_documentation_pages": 203,
-    "python_model_classes": 1007,
-    "python_model_source_modules": 471,
+    "python_model_classes": 1008,
+    "python_model_source_modules": 472,
     "rust_pyo3_model_wrappers": 83,
-    "test_files": 715
+    "test_files": 716
   },
   "documentation": {
     "public_pages": [
@@ -783,6 +783,10 @@
       {
         "name": "ChunkVerdict",
         "path": "src/director_ai/core/evidence_firewall/firewall.py"
+      },
+      {
+        "name": "ChunkingMixin",
+        "path": "src/director_ai/core/scoring/_nli_chunking.py"
       },
       {
         "name": "Citation",
@@ -4662,6 +4666,7 @@
       "src/director_ai/core/scoring/_heuristics.py",
       "src/director_ai/core/scoring/_llm_judge.py",
       "src/director_ai/core/scoring/_nli_accel.py",
+      "src/director_ai/core/scoring/_nli_chunking.py",
       "src/director_ai/core/scoring/_nli_export.py",
       "src/director_ai/core/scoring/_nli_numeric.py",
       "src/director_ai/core/scoring/_review_pipeline.py",
@@ -5666,6 +5671,7 @@
       "tests/test_nli_accel.py",
       "tests/test_nli_backend_contracts.py",
       "tests/test_nli_backend_contracts_real_surface.py",
+      "tests/test_nli_chunking_mixin.py",
       "tests/test_nli_export.py",
       "tests/test_nli_export_real_surface.py",
       "tests/test_nli_integration.py",
