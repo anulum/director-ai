@@ -150,6 +150,20 @@ def test_parity_randomised() -> None:
         "(e.g.) parenthetical abbrev here. Next sentence follows now.",
         "Multiple!!! Punctuation??? Marks... here now really.",
         "\n\nStep 1: leading newlines.\nStep 2: second.\n",
+        # Whitespace-degenerate shapes around the ReDoS-hardened patterns: the
+        # bullet tail must keep the greedy `\s+(.+)$` semantics (a whitespace-
+        # only remainder still yields one non-newline whitespace character),
+        # and the numbered split must keep consuming whole newline runs.
+        "-   ",
+        "-  \n",
+        "- \nx",
+        "- \nx\n- \ny",
+        "*  \t \n- y z w",
+        "\n" * 50 + "1. first here\n" + "\n" * 50 + "2. second here",
+        "* " + "  " * 30 + "\nmore text here",
+        "\n\n\n   \n\n2) after blank flood 3) and more",
+        "Step  10:  wide gaps\nStep  11:  more gaps",
+        "•\t\ttab bullet content\n• another bullet line",
     ],
 )
 def test_parity_adversarial_edges(text: str) -> None:

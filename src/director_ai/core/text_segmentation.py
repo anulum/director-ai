@@ -29,8 +29,25 @@ __all__ = ["extract_reasoning_steps", "split_sentences"]
 # Mirror ``compute::{NUMBERED_SPLIT_RE, BULLET_STEP_RE, NL_STEP_RE}`` exactly. The
 # numbered/NL patterns anchor on start-of-string or a newline (not a bare ``^``),
 # so a base install must not enable ``re.MULTILINE`` on them.
-_NUMBERED_SPLIT_RE = re.compile(r"(?:^|\n)\s*(?:Step\s+)?\d+[.):]")
-_BULLET_STEP_RE = re.compile(r"^\s*[-*•]\s+(.+)$", re.MULTILINE)
+#
+# The Rust originals run on the linear-time ``regex`` engine; Python's ``re``
+# backtracks, so the two patterns below are hardened against polynomial ReDoS
+# (CodeQL py/polynomial-redos) while accepting the exact same language:
+# possessive quantifiers are sound because every quantified class is disjoint
+# from its successor token, and the ``(?<!\n)`` start guard only discards
+# newline start positions that leftmost-first matching could never select
+# (an earlier newline in the same run always wins, and a ``re.split`` scan
+# never resumes inside a newline run because matches end on ``[.):]``).
+# ``tests/test_text_segmentation_parity.py`` pins bit-exact behaviour against
+# the compiled kernel, including whitespace-degenerate adversarial inputs.
+_NUMBERED_SPLIT_RE = re.compile(r"(?:^|(?<!\n)\n)\s*+(?:Step\s++)?\d++[.):]")
+# Language-equivalent split of the greedy ``\s+(.+)$`` tail: either the content
+# starts at the first non-space character of the line (possessive whitespace,
+# then ``\S``), or the remainder is whitespace-only and greedy backtracking
+# yields exactly one non-newline whitespace character before the line boundary.
+_BULLET_STEP_RE = re.compile(
+    r"^\s*+[-*•](?:\s++(\S[^\n]*+)$|\s+([^\S\n])$)", re.MULTILINE
+)
 _NL_STEP_RE = re.compile(
     r"(?:^|\n)(?:First|Second|Third|Next|Then|Finally|Therefore|Thus|Hence|So)[,]?\s+",
     re.IGNORECASE,
@@ -75,7 +92,11 @@ def extract_reasoning_steps(text: str) -> list[str]:
     if len(numbered) >= 2:
         return numbered
 
-    bullets = [m.strip() for m in _BULLET_STEP_RE.findall(text)]
+    # Exactly one of the two content groups matches per bullet (see the
+    # pattern comment above), so the ``or`` picks the populated one.
+    bullets = [
+        (m.group(1) or m.group(2)).strip() for m in _BULLET_STEP_RE.finditer(text)
+    ]
     if len(bullets) >= 2:
         return bullets
 

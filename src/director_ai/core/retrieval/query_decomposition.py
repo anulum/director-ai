@@ -43,14 +43,21 @@ logger = logging.getLogger("DirectorAI.QueryDecomp")
 
 __all__ = ["QueryDecompositionBackend"]
 
-# Heuristic split patterns: conjunctions, semicolons, numbered lists
+# Heuristic split patterns: conjunctions, semicolons, numbered lists.
+# Hardened against polynomial ReDoS (CodeQL py/polynomial-redos) while
+# accepting the exact same language: the possessive quantifiers are sound
+# because every quantified class is disjoint from its successor token, and
+# ``(?<!\d)`` only discards digit start positions that leftmost-first
+# matching could never select (an earlier digit in the same run always
+# wins, and no alternative ends on a digit, so a split scan never resumes
+# inside a digit run).
 _SPLIT_PATTERN = re.compile(
-    r"\s*(?:"
+    r"\s*+(?:"
     r"\band\b|\bor\b|\balso\b|\badditionally\b|"
-    r"[;]\s*|"
-    r"[?]\s+(?=[A-Z])|"  # question mark followed by capital (new question)
-    r"\d+[.)]\s"  # numbered lists: "1. ", "2) "
-    r")\s*",
+    r"[;]\s*+|"
+    r"[?]\s++(?=[A-Z])|"  # question mark followed by capital (new question)
+    r"(?<!\d)\d++[.)]\s"  # numbered lists: "1. ", "2) "
+    r")\s*+",
     re.IGNORECASE,
 )
 
