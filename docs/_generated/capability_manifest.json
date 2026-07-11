@@ -7,9 +7,9 @@
     "public_api_exports": 226,
     "public_documentation_pages": 203,
     "python_model_classes": 1018,
-    "python_model_source_modules": 485,
+    "python_model_source_modules": 486,
     "rust_pyo3_model_wrappers": 83,
-    "test_files": 729
+    "test_files": 730
   },
   "documentation": {
     "public_pages": [
@@ -938,7 +938,7 @@
       },
       {
         "name": "ComplianceExportRef",
-        "path": "src/director_ai/ui/safety_dashboard.py"
+        "path": "src/director_ai/ui/_dashboard_reports.py"
       },
       {
         "name": "CompliancePolicy",
@@ -1998,7 +1998,7 @@
       },
       {
         "name": "HaltDashboardRecord",
-        "path": "src/director_ai/ui/safety_dashboard.py"
+        "path": "src/director_ai/ui/_dashboard_reports.py"
       },
       {
         "name": "HaltEvidence",
@@ -2798,7 +2798,7 @@
       },
       {
         "name": "ObservabilityOperationsReport",
-        "path": "src/director_ai/ui/safety_dashboard.py"
+        "path": "src/director_ai/ui/_dashboard_reports.py"
       },
       {
         "name": "OnlineCalibrator",
@@ -4202,11 +4202,11 @@
       },
       {
         "name": "TrustConsoleReport",
-        "path": "src/director_ai/ui/safety_dashboard.py"
+        "path": "src/director_ai/ui/_dashboard_reports.py"
       },
       {
         "name": "TrustControl",
-        "path": "src/director_ai/ui/safety_dashboard.py"
+        "path": "src/director_ai/ui/_dashboard_reports.py"
       },
       {
         "name": "TuneResult",
@@ -4879,6 +4879,7 @@
       "src/director_ai/server.py",
       "src/director_ai/server_support.py",
       "src/director_ai/testing/adversarial_suite.py",
+      "src/director_ai/ui/_dashboard_reports.py",
       "src/director_ai/ui/_field_groups.py",
       "src/director_ai/ui/config_wizard.py",
       "src/director_ai/ui/safety_dashboard.py",
@@ -5879,6 +5880,7 @@
       "tests/test_safety_contracts.py",
       "tests/test_safety_dashboard.py",
       "tests/test_safety_dashboard_real_surface.py",
+      "tests/test_safety_dashboard_reports.py",
       "tests/test_safety_event.py",
       "tests/test_safety_ops_mixin.py",
       "tests/test_safety_protocol.py",
