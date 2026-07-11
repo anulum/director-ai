@@ -7,9 +7,9 @@
     "public_api_exports": 226,
     "public_documentation_pages": 203,
     "python_model_classes": 1018,
-    "python_model_source_modules": 483,
+    "python_model_source_modules": 484,
     "rust_pyo3_model_wrappers": 83,
-    "test_files": 727
+    "test_files": 728
   },
   "documentation": {
     "public_pages": [
@@ -602,7 +602,7 @@
       },
       {
         "name": "AutoRedteamDefenceEvidence",
-        "path": "src/director_ai/core/customer_model_factory/release_gate.py"
+        "path": "src/director_ai/core/customer_model_factory/_gate_evidence.py"
       },
       {
         "name": "AutoRedteamDefenceLoop",
@@ -1006,7 +1006,7 @@
       },
       {
         "name": "ConformalRoutingEvidence",
-        "path": "src/director_ai/core/customer_model_factory/release_gate.py"
+        "path": "src/director_ai/core/customer_model_factory/_gate_evidence.py"
       },
       {
         "name": "ConformalRoutingPolicy",
@@ -1386,7 +1386,7 @@
       },
       {
         "name": "DeploymentHardeningEvidence",
-        "path": "src/director_ai/core/customer_model_factory/release_gate.py"
+        "path": "src/director_ai/core/customer_model_factory/_gate_evidence.py"
       },
       {
         "name": "DeploymentPolicy",
@@ -1526,7 +1526,7 @@
       },
       {
         "name": "EdgeMobileEvidence",
-        "path": "src/director_ai/core/customer_model_factory/release_gate.py"
+        "path": "src/director_ai/core/customer_model_factory/_gate_evidence.py"
       },
       {
         "name": "EdgeRuntimeCheck",
@@ -1706,7 +1706,7 @@
       },
       {
         "name": "FederatedPrivacyEvidence",
-        "path": "src/director_ai/core/customer_model_factory/release_gate.py"
+        "path": "src/director_ai/core/customer_model_factory/_gate_evidence.py"
       },
       {
         "name": "FederatedSafetySignalAggregator",
@@ -1834,7 +1834,7 @@
       },
       {
         "name": "FormalSymbolicEvidence",
-        "path": "src/director_ai/core/customer_model_factory/release_gate.py"
+        "path": "src/director_ai/core/customer_model_factory/_gate_evidence.py"
       },
       {
         "name": "Formula",
@@ -2670,7 +2670,7 @@
       },
       {
         "name": "MultimodalTemporalEvidence",
-        "path": "src/director_ai/core/customer_model_factory/release_gate.py"
+        "path": "src/director_ai/core/customer_model_factory/_gate_evidence.py"
       },
       {
         "name": "MultimodalVerdict",
@@ -2794,7 +2794,7 @@
       },
       {
         "name": "ObservabilityOperationsEvidence",
-        "path": "src/director_ai/core/customer_model_factory/release_gate.py"
+        "path": "src/director_ai/core/customer_model_factory/_gate_evidence.py"
       },
       {
         "name": "ObservabilityOperationsReport",
@@ -3174,7 +3174,7 @@
       },
       {
         "name": "ProvenanceLineageEvidence",
-        "path": "src/director_ai/core/customer_model_factory/release_gate.py"
+        "path": "src/director_ai/core/customer_model_factory/_gate_evidence.py"
       },
       {
         "name": "ProvenanceVerdict",
@@ -4166,7 +4166,7 @@
       },
       {
         "name": "TrajectoryRollbackEvidence",
-        "path": "src/director_ai/core/customer_model_factory/release_gate.py"
+        "path": "src/director_ai/core/customer_model_factory/_gate_evidence.py"
       },
       {
         "name": "TrajectoryRollbackManager",
@@ -4502,6 +4502,7 @@
       "src/director_ai/core/continual_adversarial/redteam_engine.py",
       "src/director_ai/core/continual_adversarial/scorer.py",
       "src/director_ai/core/continual_adversarial/suite.py",
+      "src/director_ai/core/customer_model_factory/_gate_evidence.py",
       "src/director_ai/core/customer_model_factory/benchmark_selection.py",
       "src/director_ai/core/customer_model_factory/dataset_contract.py",
       "src/director_ai/core/customer_model_factory/deployment_manifest.py",
@@ -5845,6 +5846,7 @@
       "tests/test_redis_enterprise.py",
       "tests/test_redis_enterprise_real_surface.py",
       "tests/test_redteam_engine.py",
+      "tests/test_release_gate_evidence.py",
       "tests/test_report_generator.py",
       "tests/test_report_templates.py",
       "tests/test_request_processor.py",
