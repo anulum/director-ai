@@ -11,6 +11,11 @@
 The dashboard consumes tenant-safe ``SafetyEvent`` JSONL plus optional
 calibration feedback JSONL. It does not need a running server, database,
 or Gradio dependency for its core summaries.
+
+This module owns the report builders; the report models live in
+:mod:`._dashboard_reports`, the event analytics in
+:mod:`._dashboard_analytics`, and the Gradio app in
+:mod:`._dashboard_app` — all re-exported here unchanged.
 """
 
 from __future__ import annotations
@@ -30,6 +35,7 @@ from ._dashboard_analytics import (
     _validated_rate,
 )
 from ._dashboard_analytics import parse_dashboard_records as parse_dashboard_records
+from ._dashboard_app import launch_safety_dashboard as launch_safety_dashboard
 from ._dashboard_reports import (
     COMPLIANCE_EXPORT_COLUMNS as COMPLIANCE_EXPORT_COLUMNS,
 )
@@ -291,68 +297,3 @@ def build_retune_guidance(
     if errors:
         lines.append("- Parse warnings: " + "; ".join(errors[:5]))
     return "\n".join(lines), overlay
-
-
-def launch_safety_dashboard(port: int = 7861, share: bool = False) -> None:
-    """Launch the Gradio safety operations dashboard."""
-    try:
-        import gradio as gr
-    except ImportError as exc:
-        raise ImportError(
-            "Safety dashboard requires Gradio. Install with: pip install director-ai[ui]"
-        ) from exc
-
-    with gr.Blocks(title="Director-AI Safety Operations") as demo:
-        gr.Markdown("# Director-AI Safety Operations")
-
-        events = gr.Textbox(label="SafetyEvent JSONL", lines=14)
-        feedback = gr.Textbox(label="Feedback JSONL", lines=8)
-        with gr.Row():
-            halt_threshold = gr.Slider(
-                label="Halt-rate alert threshold",
-                minimum=0.0,
-                maximum=1.0,
-                value=0.15,
-                step=0.01,
-            )
-            fp_threshold = gr.Slider(
-                label="False-positive alert threshold",
-                minimum=0.0,
-                maximum=1.0,
-                value=0.05,
-                step=0.01,
-            )
-            drift_threshold = gr.Slider(
-                label="Drift alert threshold",
-                minimum=0.0,
-                maximum=1.0,
-                value=0.10,
-                step=0.01,
-            )
-
-        render = gr.Button("Render Dashboard", variant="primary")
-        summary = gr.Markdown()
-        tenants = gr.Dataframe(headers=TENANT_COLUMNS, label="Tenant halt rates")
-        sources = gr.Dataframe(headers=SOURCE_COLUMNS, label="Contradiction sources")
-        evidence = gr.Dataframe(headers=EVIDENCE_COLUMNS, label="Recent halt evidence")
-        retune = gr.Code(label="Retune command", language="shell")
-        operations = gr.Markdown(label="Observability operations report")
-
-        render.click(
-            fn=build_safety_dashboard,
-            inputs=[events, feedback, halt_threshold, fp_threshold],
-            outputs=[summary, tenants, sources, evidence, retune],
-        )
-        render.click(
-            fn=build_observability_operations_markdown,
-            inputs=[
-                events,
-                feedback,
-                halt_threshold,
-                fp_threshold,
-                drift_threshold,
-            ],
-            outputs=[operations],
-        )
-
-    demo.launch(server_port=port, share=share)
