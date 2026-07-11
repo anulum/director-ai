@@ -24,14 +24,19 @@ structurally unreachable `union == 0` guards in
 `core/scoring/lexical_signals.py` (both sit behind emptiness checks that
 already guarantee a non-empty union).
 
-**CI-confirmed** (run `29169607735`, commit `256892b0`, job "Test
-(Python 3.12)"): 44 432 statements, **0 missed**, 50 partial branch
+**CI-confirmed** (run `29171385300`, commit `2a2bdfbb`, job "Test
+(Python 3.12)"): 44 465 statements, **0 missed**, **48** partial branch
 edges, total **99.91 %**. The per-file edge table below matches that run
-exactly — the WCA-7 grounded() ANN + rerank default (with the hermetic
-builder-test fix) and the SEC-3 tier-alignment test added no partial
-edges and renumbered none: the branch total grew 13 348 → 13 364 with
-every new conditional fully covered. (Previous confirmations: run
-`29151154365` at commit `21282dc7`, 44 389 statements after the WCA-4
+exactly. The WCB-7 finetune decomposition initially re-shaped the
+`finetune_api.py` entry (its extras-gated block split across three
+modules); module-reload and pre-split-failure tests then closed every
+split edge, so the file's four documented edges shrank to the two
+req-defaulting skip-edges and the baseline fell 50 → 48. The same
+commit removed the hash-seed-dependent `has_cycle` coverage flake by
+iterating graph nodes in sorted order. (Previous confirmations: run
+`29169607735` at commit `256892b0`, 44 432 statements, 50 edges after
+WCA-7 + SEC-3; run `29151154365` at commit `21282dc7`, 44 389
+statements after the WCA-4
 conformal-review intervals; run `29149449959` at commit
 `00e1b8f9`, 44 363 statements after the WCB-2 follow-up `_task_accel`
 binding; run `29147266122` at commit `82236e4e`, 44 357 statements
@@ -57,7 +62,7 @@ whose statements are fully covered. They fall into three categories:
 | skip-edge | Forward arc: a defensive condition whose false path is only reachable under object states no public API produces today. |
 | extras-gated | Arc taken only when an optional extra is present/absent in a combination the core CI job does not produce; the behaviour itself is covered by the extras matrix jobs or the floor job. |
 
-Baseline as of run `29169607735` (50 branch edges, per file):
+Baseline as of run `29171385300` (48 branch edges, per file):
 
 | File | Edges | Category |
 | --- | --- | --- |
@@ -87,7 +92,7 @@ Baseline as of run `29169607735` (50 branch edges, per file):
 | core/trace_safe/oracle.py | 137->134 | loop-edge |
 | core/verification/code_verifier.py | 102->104, 106->94 | loop-edge |
 | core/verification/tool_call_verifier.py | 124->109, 171->185 | loop-edge |
-| finetune_api.py | 77->165, 243->242, 331->337, 366->380 | extras-gated |
+| finetune_api.py | 157->163, 192->206 | skip-edge |
 | integrations/crewai_swarm.py | 79->86 | extras-gated |
 | integrations/inference_server_hooks.py | 203->206, 383->386 | extras-gated |
 | integrations/langchain.py | 78->81 | extras-gated |
