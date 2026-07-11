@@ -117,7 +117,23 @@ class TestEnforceCapabilityTier:
             "director_ai.core.license.load_license", lambda: _license("pro")
         )
         with pytest.raises(LicenseError, match="enterprise"):
-            enforce_capability_tier("federated_dp", minimum="enterprise")
+            enforce_capability_tier(
+                "future_enterprise_capability", minimum="enterprise"
+            )
+
+    def test_federated_dp_is_gated_at_pro(self, monkeypatch):
+        """SEC-3 taxonomy (D6): ``federated_dp`` sits in the Pro tier."""
+        monkeypatch.setenv(_ENV, "1")
+        monkeypatch.setattr(
+            "director_ai.core.license.load_license", lambda: _license("pro")
+        )
+        enforce_capability_tier("federated_dp")
+
+        monkeypatch.setattr(
+            "director_ai.core.license.load_license", lambda: _license("community")
+        )
+        with pytest.raises(LicenseError, match="federated_dp"):
+            enforce_capability_tier("federated_dp")
 
 
 def _gate_raises(capability: str, *, minimum: str = "pro") -> None:
