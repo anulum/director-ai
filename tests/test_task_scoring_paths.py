@@ -16,7 +16,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from director_ai.core.scoring import _task_scoring
+from director_ai.core.scoring import _task_accel, _task_scoring
 from director_ai.core.scoring._task_scoring import (
     _normalize_claim_sentence,
     _sum_int,
@@ -83,7 +83,7 @@ class TestTaskScoringRustParity:
     def test_detect_task_type_labels_match_rust(self, monkeypatch):
         from backfire_kernel import rust_detect_task_type
 
-        monkeypatch.setattr(_task_scoring, "_RUST_TASK", False)
+        monkeypatch.setattr(_task_accel, "_RUST_TASK", False)
         for prompt, response in self._TASK_CASES:
             assert detect_task_type(prompt, response) == rust_detect_task_type(
                 prompt, response
@@ -92,7 +92,7 @@ class TestTaskScoringRustParity:
     def test_sum_int_matches_rust_including_overflow(self, monkeypatch):
         from backfire_kernel import rust_sum_i64
 
-        monkeypatch.setattr(_task_scoring, "_RUST_TASK", False)
+        monkeypatch.setattr(_task_accel, "_RUST_TASK", False)
         for values in (
             [1, 2, 3],
             [0],
@@ -105,9 +105,9 @@ class TestTaskScoringRustParity:
 
 class TestTaskDetectionFallback:
     def test_rust_detector_is_used_when_available(self, monkeypatch):
-        monkeypatch.setattr(_task_scoring, "_RUST_TASK", True)
+        monkeypatch.setattr(_task_accel, "_RUST_TASK", True)
         monkeypatch.setattr(
-            _task_scoring,
+            _task_accel,
             "rust_detect_task_type",
             lambda prompt, response: "qa",
             raising=False,
@@ -116,9 +116,9 @@ class TestTaskDetectionFallback:
         assert detect_task_type("Question?", "Answer") == "qa"
 
     def test_rust_detector_exception_falls_back_to_python(self, monkeypatch):
-        monkeypatch.setattr(_task_scoring, "_RUST_TASK", True)
+        monkeypatch.setattr(_task_accel, "_RUST_TASK", True)
         monkeypatch.setattr(
-            _task_scoring,
+            _task_accel,
             "rust_detect_task_type",
             lambda _prompt, _response: (_ for _ in ()).throw(RuntimeError("ffi fail")),
             raising=False,
@@ -128,9 +128,9 @@ class TestTaskDetectionFallback:
     def test_rust_detector_non_runtime_exception_falls_back_to_python(
         self, monkeypatch
     ):
-        monkeypatch.setattr(_task_scoring, "_RUST_TASK", True)
+        monkeypatch.setattr(_task_accel, "_RUST_TASK", True)
         monkeypatch.setattr(
-            _task_scoring,
+            _task_accel,
             "rust_detect_task_type",
             lambda _prompt, _response: (_ for _ in ()).throw(ValueError("ffi fail")),
             raising=False,
@@ -138,21 +138,21 @@ class TestTaskDetectionFallback:
         assert detect_task_type("What is the deployment status?", "Answer") == "qa"
 
     def test_python_dialogue_detection_precedes_summarisation(self, monkeypatch):
-        monkeypatch.setattr(_task_scoring, "_RUST_TASK", False)
+        monkeypatch.setattr(_task_accel, "_RUST_TASK", False)
 
         prompt = "User: Please summarise this.\nAssistant: I can help."
 
         assert detect_task_type(prompt, "short reply") == "dialogue"
 
     def test_python_summary_keyword_detection(self, monkeypatch):
-        monkeypatch.setattr(_task_scoring, "_RUST_TASK", False)
+        monkeypatch.setattr(_task_accel, "_RUST_TASK", False)
 
         assert detect_task_type("Please write a TLDR for the deployment notes") == (
             "summarization"
         )
 
     def test_python_length_ratio_detects_summarisation(self, monkeypatch):
-        monkeypatch.setattr(_task_scoring, "_RUST_TASK", False)
+        monkeypatch.setattr(_task_accel, "_RUST_TASK", False)
 
         prompt = "Policy text. " * 120
         response = "Short operational summary."
@@ -160,7 +160,7 @@ class TestTaskDetectionFallback:
         assert detect_task_type(prompt, response) == "summarization"
 
     def test_python_rag_fact_check_qa_and_default_order(self, monkeypatch):
-        monkeypatch.setattr(_task_scoring, "_RUST_TASK", False)
+        monkeypatch.setattr(_task_accel, "_RUST_TASK", False)
 
         assert detect_task_type("Based on the following source document, answer") == (
             "rag"
@@ -172,7 +172,7 @@ class TestTaskDetectionFallback:
         assert detect_task_type("Write a neutral paragraph") == "default"
 
     def test_python_question_detection_uses_instruction_keywords(self, monkeypatch):
-        monkeypatch.setattr(_task_scoring, "_RUST_TASK", False)
+        monkeypatch.setattr(_task_accel, "_RUST_TASK", False)
 
         assert detect_task_type("Answer the question using the brief") == "qa"
         assert detect_task_type("According to the cited source, respond") == "qa"
@@ -230,7 +230,7 @@ class TestSummarizationFactualDivergence:
         fake_tokenize.sent_tokenize = lambda text: ["Sentence one.", "Sentence two."]
         monkeypatch.setitem(sys.modules, "nltk", types.ModuleType("nltk"))
         monkeypatch.setitem(sys.modules, "nltk.tokenize", fake_tokenize)
-        monkeypatch.setattr(_task_scoring, "_RUST_TASK", False)
+        monkeypatch.setattr(_task_accel, "_RUST_TASK", False)
 
         mc = SimpleNamespace(score=lambda source, sentence: 0.2)
         coverage, divs, sentences = _task_scoring.minicheck_claim_coverage(
@@ -387,14 +387,14 @@ class TestSummarizationFactualDivergence:
 
 class TestSumIntPaths:
     def test_sum_int_uses_rust_when_available(self, monkeypatch):
-        monkeypatch.setattr(_task_scoring, "_RUST_TASK", True)
+        monkeypatch.setattr(_task_accel, "_RUST_TASK", True)
         monkeypatch.setattr(
-            _task_scoring, "rust_sum_i64", lambda values: sum(values), raising=False
+            _task_accel, "rust_sum_i64", lambda values: sum(values), raising=False
         )
         assert _sum_int([1, 2, 3, 4]) == 10
 
     def test_sum_int_falls_back_to_python_without_rust(self, monkeypatch):
-        monkeypatch.setattr(_task_scoring, "_RUST_TASK", False)
+        monkeypatch.setattr(_task_accel, "_RUST_TASK", False)
         assert _sum_int([5, 6]) == 11
 
 
@@ -428,7 +428,7 @@ class TestMiniCheckClaimCoverage:
         assert sentences == ["One claim.", "Two claim."]
 
     def test_rust_reducer_used_when_available(self, monkeypatch):
-        monkeypatch.setattr(_task_scoring, "_RUST_TASK", True)
+        monkeypatch.setattr(_task_accel, "_RUST_TASK", True)
 
         called = {"count": 0}
 
@@ -439,7 +439,7 @@ class TestMiniCheckClaimCoverage:
             return 0.5, 1
 
         monkeypatch.setattr(
-            _task_scoring,
+            _task_accel,
             "rust_coverage_from_divergences",
             _reduce,
             raising=True,
@@ -460,13 +460,13 @@ class TestMiniCheckClaimCoverage:
         assert sentences == ["One claim.", "Two claim."]
 
     def test_python_reducer_fallback_on_rust_runtime_error(self, monkeypatch):
-        monkeypatch.setattr(_task_scoring, "_RUST_TASK", True)
+        monkeypatch.setattr(_task_accel, "_RUST_TASK", True)
 
         def _raise_runtime(divs, threshold):
             raise RuntimeError("ffi unavailable")
 
         monkeypatch.setattr(
-            _task_scoring,
+            _task_accel,
             "rust_coverage_from_divergences",
             _raise_runtime,
             raising=True,
@@ -486,9 +486,9 @@ class TestMiniCheckClaimCoverage:
         assert sentences == ["One claim.", "Two claim."]
 
     def test_python_reducer_fallback_on_non_runtime_rust_error(self, monkeypatch):
-        monkeypatch.setattr(_task_scoring, "_RUST_TASK", True)
+        monkeypatch.setattr(_task_accel, "_RUST_TASK", True)
         monkeypatch.setattr(
-            _task_scoring,
+            _task_accel,
             "rust_coverage_from_divergences",
             lambda _divs, _threshold: (_ for _ in ()).throw(ValueError("ffi fail")),
             raising=True,
@@ -506,9 +506,9 @@ class TestMiniCheckClaimCoverage:
         assert sentences == ["One claim.", "Two claim."]
 
     def test_python_reducer_fallback_on_rust_type_error(self, monkeypatch):
-        monkeypatch.setattr(_task_scoring, "_RUST_TASK", True)
+        monkeypatch.setattr(_task_accel, "_RUST_TASK", True)
         monkeypatch.setattr(
-            _task_scoring,
+            _task_accel,
             "rust_coverage_from_divergences",
             lambda _divs, _threshold: (_ for _ in ()).throw(
                 TypeError("ffi signature mismatch")
@@ -528,15 +528,15 @@ class TestMiniCheckClaimCoverage:
         assert sentences == ["One claim.", "Two claim."]
 
     def test_rust_sentence_splitter_used_when_available(self, monkeypatch):
-        monkeypatch.setattr(_task_scoring, "_RUST_TASK", True)
+        monkeypatch.setattr(_task_accel, "_RUST_TASK", True)
         monkeypatch.setattr(
-            _task_scoring,
+            _task_accel,
             "rust_split_sentences",
             lambda text: ["Claim from rust A.", "Claim from rust B."],
             raising=True,
         )
         monkeypatch.setattr(
-            _task_scoring,
+            _task_accel,
             "rust_coverage_from_divergences",
             lambda divs, threshold: (0.5, 1),
             raising=True,
@@ -556,19 +556,19 @@ class TestMiniCheckClaimCoverage:
         assert sentences == ["Claim from rust A.", "Claim from rust B."]
 
     def test_sentence_splitter_fallback_when_rust_runtime_error(self, monkeypatch):
-        monkeypatch.setattr(_task_scoring, "_RUST_TASK", True)
+        monkeypatch.setattr(_task_accel, "_RUST_TASK", True)
 
         def _raise_runtime(text):
             raise RuntimeError("ffi unavailable")
 
         monkeypatch.setattr(
-            _task_scoring,
+            _task_accel,
             "rust_split_sentences",
             _raise_runtime,
             raising=True,
         )
         monkeypatch.setattr(
-            _task_scoring,
+            _task_accel,
             "rust_coverage_from_divergences",
             lambda divs, threshold: (0.5, 1),
             raising=True,
@@ -588,15 +588,15 @@ class TestMiniCheckClaimCoverage:
         assert sentences == ["One claim.", "Two claim."]
 
     def test_sentence_splitter_fallback_when_rust_non_runtime_error(self, monkeypatch):
-        monkeypatch.setattr(_task_scoring, "_RUST_TASK", True)
+        monkeypatch.setattr(_task_accel, "_RUST_TASK", True)
         monkeypatch.setattr(
-            _task_scoring,
+            _task_accel,
             "rust_split_sentences",
             lambda _text: (_ for _ in ()).throw(ValueError("ffi fail")),
             raising=True,
         )
         monkeypatch.setattr(
-            _task_scoring,
+            _task_accel,
             "rust_coverage_from_divergences",
             lambda divs, threshold: (0.5, 1),
             raising=True,
@@ -614,15 +614,15 @@ class TestMiniCheckClaimCoverage:
         assert sentences == ["One claim.", "Two claim."]
 
     def test_sentence_splitter_fallback_when_rust_type_error(self, monkeypatch):
-        monkeypatch.setattr(_task_scoring, "_RUST_TASK", True)
+        monkeypatch.setattr(_task_accel, "_RUST_TASK", True)
         monkeypatch.setattr(
-            _task_scoring,
+            _task_accel,
             "rust_split_sentences",
             lambda _text: (_ for _ in ()).throw(TypeError("ffi signature mismatch")),
             raising=True,
         )
         monkeypatch.setattr(
-            _task_scoring,
+            _task_accel,
             "rust_coverage_from_divergences",
             lambda divs, threshold: (0.5, 1),
             raising=True,
@@ -647,12 +647,12 @@ class TestMiniCheckClaimCoverage:
         assert _normalize_claim_sentence("   ") == ""
 
     def test_sum_int_uses_python_when_rust_disabled(self, monkeypatch):
-        monkeypatch.setattr(_task_scoring, "_RUST_TASK", False)
+        monkeypatch.setattr(_task_accel, "_RUST_TASK", False)
 
         assert _sum_int([1, 0, 1, 1]) == 3
 
     def test_minicheck_uses_python_reducer_when_rust_disabled(self, monkeypatch):
-        monkeypatch.setattr(_task_scoring, "_RUST_TASK", False)
+        monkeypatch.setattr(_task_accel, "_RUST_TASK", False)
         scorer = SimpleNamespace(
             score=lambda source, sentence: 0.2 if "One" in sentence else 0.9
         )
@@ -671,7 +671,7 @@ class TestMiniCheckClaimCoverage:
         self,
         monkeypatch,
     ):
-        monkeypatch.setattr(_task_scoring, "_RUST_TASK", False)
+        monkeypatch.setattr(_task_accel, "_RUST_TASK", False)
         real_import = __import__
 
         def guarded_import(name, globals=None, locals=None, fromlist=(), level=0):

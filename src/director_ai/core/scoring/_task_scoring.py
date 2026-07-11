@@ -23,48 +23,7 @@ from typing import Any
 from ..accelerator_fallback import sum_i64
 from ..mandatory import mandatory_execution
 from ..types import ScoringEvidence
-
-try:  # pragma: no cover - optional acceleration
-    from backfire_kernel import (
-        rust_coverage_from_divergences,
-        rust_detect_task_type,
-        rust_split_sentences,
-        rust_sum_i64,
-    )
-
-    _RUST_TASK = True
-except ImportError:  # pragma: no cover - bit-exact pure-Python fallback (ADR-0001)
-    # Kernel absent → reachable pure-Python floor (ADR-0001). Every accelerated
-    # path in this module has a bit-exact fallback: detect_task_type reproduces
-    # the classifier heuristics, minicheck_claim_coverage counts divergences
-    # below the threshold (identical to the Rust reducer), sentence splitting
-    # falls back to nltk/regex, and the integer sum routes through the shared
-    # helper. The named stubs below are kept for the accelerated branch and are
-    # never reached while the flag is False.
-    _RUST_TASK = False
-
-    def rust_coverage_from_divergences(  # pragma: no cover - accelerated-branch stub
-        _divergences: list[float],
-        _support_threshold: float,
-    ) -> tuple[float, int]:
-        """Raise when the Rust claim coverage reducer is unavailable."""
-        raise RuntimeError(
-            "backfire_kernel rust_coverage_from_divergences is unavailable"
-        )
-
-    def rust_split_sentences(_text: str) -> list[str]:  # pragma: no cover - stub
-        """Raise when the Rust sentence splitter is unavailable."""
-        raise RuntimeError("backfire_kernel rust_split_sentences is unavailable")
-
-    def rust_detect_task_type(  # pragma: no cover - accelerated-branch stub
-        _prompt: str, _response: str
-    ) -> str:
-        """Raise when the Rust task classifier is unavailable."""
-        raise RuntimeError("backfire_kernel rust_detect_task_type is unavailable")
-
-    # Bit-exact pure-Python fallback for the integer sum (ADR-0001).
-    rust_sum_i64 = sum_i64
-
+from . import _task_accel
 
 logger = logging.getLogger("DirectorAI")
 
@@ -97,9 +56,9 @@ def detect_task_type(prompt: str, response: str = "") -> str:
     30 % of the prompt length is classified as summarisation —
     unless dialogue markers are present.
     """
-    if _RUST_TASK:
+    if _task_accel._RUST_TASK:
         with mandatory_execution(__name__, component="mandatory accelerated path"):
-            return str(rust_detect_task_type(prompt, response))
+            return str(_task_accel.rust_detect_task_type(prompt, response))
     matches = _DIALOGUE_TURN_RE.findall(prompt)
     if len(matches) >= 2:
         return "dialogue"
@@ -317,11 +276,11 @@ def minicheck_claim_coverage(
     Returns (coverage, per_sentence_divergences, sentences).
     Coverage = fraction of sentences with divergence < 0.5.
     """
-    if _RUST_TASK:
+    if _task_accel._RUST_TASK:
         try:
             sentences = [
                 _normalize_claim_sentence(s)
-                for s in rust_split_sentences(summary)
+                for s in _task_accel.rust_split_sentences(summary)
                 if s.strip()
             ]
         except Exception:
@@ -339,9 +298,9 @@ def minicheck_claim_coverage(
         return 1.0, [], []
 
     divs = [mc_scorer.score(source, sent) for sent in sentences]
-    if _RUST_TASK:
+    if _task_accel._RUST_TASK:
         with mandatory_execution(__name__, component="mandatory accelerated path"):
-            coverage, _supported = rust_coverage_from_divergences(
+            coverage, _supported = _task_accel.rust_coverage_from_divergences(
                 [float(d) for d in divs],
                 0.5,
             )
@@ -360,8 +319,8 @@ def _normalize_claim_sentence(sentence: str) -> str:
 
 
 def _sum_int(values: list[int]) -> int:
-    if _RUST_TASK:
+    if _task_accel._RUST_TASK:
         with mandatory_execution(__name__, component="mandatory accelerated path"):
-            return int(rust_sum_i64(values))
+            return int(_task_accel.rust_sum_i64(values))
     # kernel absent: use the bit-exact pure-Python fallback (ADR-0001)
     return sum_i64(values)

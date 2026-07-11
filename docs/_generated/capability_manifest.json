@@ -7,9 +7,9 @@
     "public_api_exports": 226,
     "public_documentation_pages": 203,
     "python_model_classes": 1018,
-    "python_model_source_modules": 488,
+    "python_model_source_modules": 489,
     "rust_pyo3_model_wrappers": 83,
-    "test_files": 732
+    "test_files": 733
   },
   "documentation": {
     "public_pages": [
@@ -4723,6 +4723,7 @@
       "src/director_ai/core/scoring/_nli_numeric.py",
       "src/director_ai/core/scoring/_nli_provisioning.py",
       "src/director_ai/core/scoring/_review_pipeline.py",
+      "src/director_ai/core/scoring/_task_accel.py",
       "src/director_ai/core/scoring/_task_scoring.py",
       "src/director_ai/core/scoring/backends.py",
       "src/director_ai/core/scoring/consensus.py",
@@ -5967,6 +5968,7 @@
       "tests/test_swarm_metrics.py",
       "tests/test_symbolic_chain.py",
       "tests/test_synthetic_distillation.py",
+      "tests/test_task_accel.py",
       "tests/test_task_scoring_paths.py",
       "tests/test_task_scoring_paths_real_surface.py",
       "tests/test_temporal_consistency.py",
