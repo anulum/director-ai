@@ -17,6 +17,7 @@ from typing import Literal, TypedDict
 
 import pytest
 
+import director_ai.ui._dashboard_analytics as analytics_mod
 import director_ai.ui.safety_dashboard as dashboard_mod
 from director_ai.ui.safety_dashboard import (
     COMPLIANCE_EXPORT_COLUMNS,
@@ -944,12 +945,12 @@ class TestObservabilityOperationsReport:
 
 class TestSafetyDashboardUtilityContracts:
     def test_drift_severity_and_recommendations_are_stable(self) -> None:
-        assert dashboard_mod._drift_severity(0.31) == "severe"
-        assert dashboard_mod._drift_severity(0.16) == "moderate"
-        assert dashboard_mod._drift_severity(0.01) == "mild"
-        assert "Freeze rollout" in dashboard_mod._drift_recommendation("severe")
-        assert "labelled feedback" in dashboard_mod._drift_recommendation("moderate")
-        assert "Monitor the next window" in dashboard_mod._drift_recommendation("mild")
+        assert analytics_mod._drift_severity(0.31) == "severe"
+        assert analytics_mod._drift_severity(0.16) == "moderate"
+        assert analytics_mod._drift_severity(0.01) == "mild"
+        assert "Freeze rollout" in analytics_mod._drift_recommendation("severe")
+        assert "labelled feedback" in analytics_mod._drift_recommendation("moderate")
+        assert "Monitor the next window" in analytics_mod._drift_recommendation("mild")
 
     def test_drift_alert_rows_skip_small_and_stable_windows(self) -> None:
         small = [
@@ -1111,23 +1112,23 @@ class TestSafetyDashboardUtilityContracts:
 
     def test_source_and_nested_value_fallbacks(self) -> None:
         assert (
-            dashboard_mod._contradiction_source(
+            analytics_mod._contradiction_source(
                 {"attributes": {"source": "kb://attributes"}}
             )
             == "kb://attributes"
         )
         assert (
-            dashboard_mod._contradiction_source(
+            analytics_mod._contradiction_source(
                 {"attributes": {}, "trace_attribution": {"source": "kb://trace"}}
             )
             == "kb://trace"
         )
         assert (
-            dashboard_mod._contradiction_source({"evidence_refs": ["kb://top-level"]})
+            analytics_mod._contradiction_source({"evidence_refs": ["kb://top-level"]})
             == "kb://top-level"
         )
         assert (
-            dashboard_mod._contradiction_source(
+            analytics_mod._contradiction_source(
                 {
                     "trace_attribution": {},
                     "evidence_refs": ["kb://trace-fallback"],
@@ -1136,19 +1137,19 @@ class TestSafetyDashboardUtilityContracts:
             == "kb://trace-fallback"
         )
         assert (
-            dashboard_mod._contradiction_source(
+            analytics_mod._contradiction_source(
                 {"halt_evidence": {"evidence_refs": ["kb://nested"]}}
             )
             == "kb://nested"
         )
         assert (
-            dashboard_mod._contradiction_source(
+            analytics_mod._contradiction_source(
                 {"evidence_chunks": [{"id": "chunk-a"}]}
             )
             == "chunk-a"
         )
         assert (
-            dashboard_mod._first_nested(
+            analytics_mod._first_nested(
                 {"attributes": {"tenant_id": "tenant-a"}},
                 "tenant_id",
                 default="default",
@@ -1156,24 +1157,24 @@ class TestSafetyDashboardUtilityContracts:
             == "tenant-a"
         )
         assert (
-            dashboard_mod._first_nested({"attributes": {}}, "tenant_id", default="x")
+            analytics_mod._first_nested({"attributes": {}}, "tenant_id", default="x")
             == "x"
         )
 
     def test_truthy_accepts_numeric_and_string_forms(self) -> None:
-        assert dashboard_mod._truthy(1) is True
-        assert dashboard_mod._truthy(0) is False
-        assert dashboard_mod._truthy("yes") is True
-        assert dashboard_mod._truthy("no") is False
-        assert dashboard_mod._truthy(object()) is False
+        assert analytics_mod._truthy(1) is True
+        assert analytics_mod._truthy(0) is False
+        assert analytics_mod._truthy("yes") is True
+        assert analytics_mod._truthy("no") is False
+        assert analytics_mod._truthy(object()) is False
 
     def test_feedback_label_string_contracts(self) -> None:
-        assert dashboard_mod._feedback_label({"label": "accepted"}) is True
-        assert dashboard_mod._feedback_label({"label": " approve "}) is True
-        assert dashboard_mod._feedback_label({"label": "blocked"}) is False
-        assert dashboard_mod._feedback_label({"label": "0"}) is False
-        assert dashboard_mod._feedback_label({"label": "maybe"}) is None
-        assert dashboard_mod._feedback_label({"label": []}) is None
+        assert analytics_mod._feedback_label({"label": "accepted"}) is True
+        assert analytics_mod._feedback_label({"label": " approve "}) is True
+        assert analytics_mod._feedback_label({"label": "blocked"}) is False
+        assert analytics_mod._feedback_label({"label": "0"}) is False
+        assert analytics_mod._feedback_label({"label": "maybe"}) is None
+        assert analytics_mod._feedback_label({"label": []}) is None
 
 
 class _FakeClick(TypedDict):

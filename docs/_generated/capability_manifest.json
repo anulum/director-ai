@@ -7,9 +7,9 @@
     "public_api_exports": 226,
     "public_documentation_pages": 203,
     "python_model_classes": 1018,
-    "python_model_source_modules": 486,
+    "python_model_source_modules": 487,
     "rust_pyo3_model_wrappers": 83,
-    "test_files": 730
+    "test_files": 731
   },
   "documentation": {
     "public_pages": [
@@ -4879,6 +4879,7 @@
       "src/director_ai/server.py",
       "src/director_ai/server_support.py",
       "src/director_ai/testing/adversarial_suite.py",
+      "src/director_ai/ui/_dashboard_analytics.py",
       "src/director_ai/ui/_dashboard_reports.py",
       "src/director_ai/ui/_field_groups.py",
       "src/director_ai/ui/config_wizard.py",
@@ -5879,6 +5880,7 @@
       "tests/test_rust_signals.py",
       "tests/test_safety_contracts.py",
       "tests/test_safety_dashboard.py",
+      "tests/test_safety_dashboard_analytics.py",
       "tests/test_safety_dashboard_real_surface.py",
       "tests/test_safety_dashboard_reports.py",
       "tests/test_safety_event.py",
