@@ -394,6 +394,28 @@ class TestServerOperationalReadiness:
         ):
             create_app(config)
 
+    def test_finetune_models_dir_knob_reaches_the_router(self, tmp_path, monkeypatch):
+        from pathlib import Path
+
+        from fastapi import APIRouter
+
+        captured = {}
+
+        def recording_factory(models_dir=None):
+            captured["models_dir"] = models_dir
+            return APIRouter(tags=["finetune"])
+
+        monkeypatch.setattr(
+            "director_ai.finetune_api.create_finetune_router",
+            recording_factory,
+        )
+        knob_dir = tmp_path / "knob-models"
+        create_app(DirectorConfig(use_nli=False, finetune_models_dir=str(knob_dir)))
+        assert captured["models_dir"] == Path(str(knob_dir))
+
+        create_app(DirectorConfig(use_nli=False))
+        assert captured["models_dir"] is None
+
     def test_ready_endpoint_is_available_without_nli(self):
         app = create_app(DirectorConfig(use_nli=False))
 

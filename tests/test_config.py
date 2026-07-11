@@ -415,10 +415,12 @@ class TestEnvLoading:
         monkeypatch.setenv("DIRECTOR_COHERENCE_THRESHOLD", "0.8")
         monkeypatch.setenv("DIRECTOR_USE_NLI", "true")
         monkeypatch.setenv("DIRECTOR_SERVER_PORT", "9999")
+        monkeypatch.setenv("DIRECTOR_FINETUNE_MODELS_DIR", "/srv/director-models")
         cfg = DirectorConfig.from_env()
         assert cfg.coherence_threshold == 0.8
         assert cfg.use_nli is True
         assert cfg.server_port == 9999
+        assert cfg.finetune_models_dir == "/srv/director-models"
 
     def test_env_ignores_unknown(self, monkeypatch):
         monkeypatch.setenv("DIRECTOR_TOTALLY_UNKNOWN", "value")

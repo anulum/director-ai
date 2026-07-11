@@ -7,9 +7,9 @@
     "public_api_exports": 226,
     "public_documentation_pages": 203,
     "python_model_classes": 1018,
-    "python_model_source_modules": 489,
+    "python_model_source_modules": 492,
     "rust_pyo3_model_wrappers": 83,
-    "test_files": 734
+    "test_files": 737
   },
   "documentation": {
     "public_pages": [
@@ -4410,6 +4410,9 @@
       "src/director_ai/_cli_serve.py",
       "src/director_ai/_cli_train.py",
       "src/director_ai/_cli_verify.py",
+      "src/director_ai/_finetune_managed.py",
+      "src/director_ai/_finetune_schemas.py",
+      "src/director_ai/_finetune_worker.py",
       "src/director_ai/_guard_canary.py",
       "src/director_ai/_guard_defence.py",
       "src/director_ai/_guard_distributed.py",
@@ -5538,9 +5541,12 @@
       "tests/test_finetune_gpu.py",
       "tests/test_finetune_hot_swap_real_surface.py",
       "tests/test_finetune_jobs.py",
+      "tests/test_finetune_managed.py",
       "tests/test_finetune_metrics_real_surface.py",
       "tests/test_finetune_real_surface.py",
+      "tests/test_finetune_schemas.py",
       "tests/test_finetune_validator.py",
+      "tests/test_finetune_worker.py",
       "tests/test_forge.py",
       "tests/test_formal_code_adapter.py",
       "tests/test_formal_symbolic_evidence.py",

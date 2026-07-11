@@ -7,7 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `DirectorConfig.finetune_models_dir` (env: `DIRECTOR_FINETUNE_MODELS_DIR`)
+  — the server now passes a configurable models/jobs directory to the
+  fine-tuning router instead of always mounting the hard-coded
+  `./director-models` default.
+
 ### Changed
+
+- Decompose `finetune_api.py` by responsibility: request/response
+  contracts move to `_finetune_schemas`, the local training worker to
+  `_finetune_worker`, and the `/managed/*` endpoints to
+  `_finetune_managed`; the `finetune_api` facade keeps the local lane,
+  the router factory, and the historical import surface unchanged.
 
 - `VectorGroundTruthStore.grounded()` now builds the full retrieval stack by
   default: FAISS-indexed dense search (`use_ann`), BM25 + RRF hybrid fusion,

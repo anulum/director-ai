@@ -30,6 +30,7 @@ import logging
 import time
 from collections.abc import AsyncIterator, Awaitable, Callable
 from contextlib import asynccontextmanager
+from pathlib import Path
 from typing import Any
 
 from .core.config import DirectorConfig
@@ -578,7 +579,13 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
     try:
         from .finetune_api import create_finetune_router
 
-        app.include_router(create_finetune_router(), prefix="/v1/finetune")
+        finetune_models_dir = (
+            Path(cfg.finetune_models_dir) if cfg.finetune_models_dir else None
+        )
+        app.include_router(
+            create_finetune_router(models_dir=finetune_models_dir),
+            prefix="/v1/finetune",
+        )
         app.state.router_mounts["finetune"] = "mounted"
     except ImportError as exc:
         app.state.router_mounts["finetune"] = f"unavailable:{exc}"

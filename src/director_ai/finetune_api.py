@@ -24,6 +24,13 @@ Mount via::
     from director_ai.finetune_api import create_finetune_router
     app.include_router(create_finetune_router(), prefix="/v1/finetune")
 
+This module owns the local training lane (upload validation, worker
+spawn, activation/rollback/deletion) and the router factory; the sibling
+responsibilities are composed from dedicated modules — request/response
+contracts in :mod:`._finetune_schemas`, the background training worker in
+:mod:`._finetune_worker`, and the ``/managed/*`` endpoints in
+:mod:`._finetune_managed`.
+
 Job records persist to ``<models_dir>/finetune_jobs.sqlite3`` (see
 :mod:`director_ai.finetune_jobs`), so job state and model-activation
 designations survive restarts and are shared across server workers.
@@ -31,12 +38,10 @@ designations survive restarts and are shared across server workers.
 
 from __future__ import annotations
 
-import json
 import logging
 import re
 import shutil
 import threading
-import time
 import uuid
 from pathlib import Path
 from typing import Any
@@ -50,6 +55,10 @@ from director_ai.finetune_jobs import ManagedTrainingRecord as ManagedTrainingRe
 from director_ai.finetune_jobs import _JobStore as _JobStore
 from director_ai.finetune_jobs import _ManagedJobStore as _ManagedJobStore
 
+from ._finetune_managed import _managed_record_to_dict as _managed_record_to_dict
+from ._finetune_managed import register_managed_routes as register_managed_routes
+from ._finetune_worker import _run_training_worker as _run_training_worker
+
 __all__ = [
     "FinetuneJob",
     "ManagedTrainingRecord",
@@ -60,188 +69,21 @@ logger = logging.getLogger("DirectorAI.FinetuneAPI")
 
 try:
     from fastapi import APIRouter, HTTPException, Request, UploadFile
-    from pydantic import BaseModel, Field
 
     _FASTAPI_AVAILABLE = True
 except ImportError:
     _FASTAPI_AVAILABLE = False
 
+if _FASTAPI_AVAILABLE:
+    from ._finetune_schemas import JobStatus as JobStatus
+    from ._finetune_schemas import ModelInfo as ModelInfo
+    from ._finetune_schemas import StartRequest as StartRequest
+    from ._finetune_schemas import ValidateRequest as ValidateRequest
+
 _DEFAULT_MODELS_DIR = Path("./director-models")
 _MAX_UPLOAD_BYTES = 500 * 1024 * 1024  # 500 MB
 _JOB_DB_FILENAME = "finetune_jobs.sqlite3"
 _SAFE_TENANT_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$")
-
-
-# ── Pydantic models ──────────────────────────────────────────────────
-
-if _FASTAPI_AVAILABLE:
-
-    class ValidateRequest(BaseModel):
-        """Validation parameters for uploaded fine-tuning JSONL."""
-
-        epochs: int = Field(3, ge=1, le=20)
-        batch_size: int = Field(16, ge=1, le=128)
-
-    class StartRequest(BaseModel):
-        """Configuration for starting a local fine-tuning job."""
-
-        base_model: str = "factcg-deberta-v3-large"
-        allow_experimental_model: bool = False
-        epochs: int = Field(3, ge=1, le=20)
-        batch_size: int = Field(16, ge=1, le=128)
-        learning_rate: float = Field(2e-5, gt=0, le=1e-3)
-        mix_general_data: bool = False
-        general_data_ratio: float = Field(0.2, ge=0.0, le=0.5)
-        early_stopping_patience: int = Field(0, ge=0, le=20)
-        class_weighted_loss: bool = False
-        auto_benchmark: bool = True
-        auto_onnx_export: bool = False
-
-    class JobStatus(BaseModel):
-        """Public job progress response."""
-
-        job_id: str
-        state: str
-        progress: float
-        current_step: int
-        total_steps: int
-        error: str = ""
-
-    class ModelInfo(BaseModel):
-        """Stored fine-tuned model metadata."""
-
-        job_id: str
-        model_path: str
-        activated: bool
-        created_at: float
-        metrics: dict[str, Any] = {}
-        regression_report: dict[str, Any] = {}
-
-    class ManagedTrainingRequest(BaseModel):
-        """Managed-training submission request."""
-
-        backend: str = "vertex"
-        dry_run: bool = True
-        display_name: str = "director-ai-managed-training"
-        dataset_uri: str
-        output_uri: str
-        eval_uri: str | None = None
-        project: str | None = None
-        region: str = "us-central1"
-        container_image_uri: str
-        base_model: str = "factcg-deberta-v3-large"
-        allow_experimental_model: bool = False
-        machine_type: str = "g2-standard-8"
-        accelerator_type: str = "NVIDIA_L4"
-        accelerator_count: int = Field(1, ge=0, le=8)
-        boot_disk_gb: int = Field(100, ge=50, le=4096)
-        epochs: int = Field(3, ge=1, le=20)
-        batch_size: int = Field(16, ge=1, le=128)
-        learning_rate: float = Field(2e-5, gt=0, le=1e-3)
-        timeout_minutes: int = Field(180, ge=1, le=1440)
-        service_account: str | None = None
-        network: str | None = None
-        suite: str = ""
-
-    class ManagedTrainingLookupRequest(BaseModel):
-        """Managed-training job lookup request."""
-
-        backend: str = "vertex"
-        job_id: str = Field(..., min_length=1, max_length=500)
-
-    class ManagedModelBenchmarkRequest(BaseModel):
-        """Managed-model benchmark request."""
-
-        model_artifacts: dict[str, str]
-        general_path: str | None = None
-        eval_path: str | None = None
-        batch_size: int | None = Field(None, ge=1, le=128)
-        allow_experimental_model: bool = False
-
-
-# ── Training worker ──────────────────────────────────────────────────
-
-
-def _run_training_worker(
-    job: FinetuneJob, data_path: Path, models_dir: Path, store: _JobStore
-) -> None:
-    """Background thread that runs the fine-tuning pipeline."""
-    train_path: Path | None = None
-    eval_path: Path | None = None
-    try:
-        from director_ai.core.training.finetune import FinetuneConfig, finetune_nli
-        from director_ai.core.training.model_registry import resolve_finetune_model
-
-        job.state = "training"
-        store.save(job)
-        cfg = job.config
-        model_profile = resolve_finetune_model(
-            cfg.get("base_model", "factcg-deberta-v3-large"),
-            allow_experimental=cfg.get("allow_experimental_model", False),
-        )
-
-        output_dir = str(models_dir / job.job_id)
-        config = FinetuneConfig(
-            base_model=model_profile.model_id,
-            output_dir=output_dir,
-            epochs=cfg.get("epochs", 3),
-            batch_size=cfg.get("batch_size", 16),
-            learning_rate=cfg.get("learning_rate", 2e-5),
-            mix_general_data=cfg.get("mix_general_data", False),
-            general_data_ratio=cfg.get("general_data_ratio", 0.2),
-            early_stopping_patience=cfg.get("early_stopping_patience", 0),
-            class_weighted_loss=cfg.get("class_weighted_loss", False),
-            auto_benchmark=cfg.get("auto_benchmark", True),
-            auto_onnx_export=cfg.get("auto_onnx_export", False),
-        )
-
-        import random
-
-        from director_ai.core.training.finetune import _load_jsonl
-
-        rows = _load_jsonl(data_path)
-        rng = random.Random(42)
-        rng.shuffle(rows)
-        n_eval = max(1, int(len(rows) * 0.1))
-        eval_rows = rows[:n_eval]
-        train_rows = rows[n_eval:]
-
-        train_path = data_path.parent / f"{job.job_id}_train.jsonl"
-        eval_path = data_path.parent / f"{job.job_id}_eval.jsonl"
-        for p, r in [(train_path, train_rows), (eval_path, eval_rows)]:
-            with open(p, "w", encoding="utf-8") as f:
-                f.writelines(json.dumps(row, ensure_ascii=False) + "\n" for row in r)
-
-        job.total_steps = len(train_rows) // config.batch_size * config.epochs
-        store.save(job)
-
-        result = finetune_nli(str(train_path), eval_path=str(eval_path), config=config)
-
-        # Set result fields before state so readers see consistent data
-        job.model_path = result.output_dir
-        job.metrics = result.eval_metrics
-        job.regression_report = result.regression_report
-        job.completed_at = time.time()
-        job.progress = 1.0
-        job.state = "completed"
-        store.save(job)
-
-        logger.info(
-            "Job %s completed: bal_acc=%.1f%%",
-            job.job_id,
-            result.best_balanced_accuracy * 100,
-        )
-
-    except Exception as exc:
-        job.error = str(exc)
-        job.state = "failed"
-        store.save(job)
-        logger.error("Job %s failed: %s", job.job_id, exc)
-    finally:
-        paths_to_clean: tuple[Path | None, ...] = (data_path, train_path, eval_path)
-        for _p in paths_to_clean:
-            if _p is not None:
-                _p.unlink(missing_ok=True)
 
 
 # ── Router factory ───────────────────────────────────────────────────
@@ -274,22 +116,6 @@ def _tenant_from_request(request: Request) -> str:
             "underscore, colon, dash",
         )
     return tenant_id
-
-
-def _managed_record_to_dict(record: ManagedTrainingRecord) -> dict[str, Any]:
-    """Serialise a managed training record for REST responses."""
-    return {
-        "job_id": record.job_id,
-        "backend": record.backend,
-        "state": record.state,
-        "tenant_id": record.tenant_id,
-        "dry_run": record.dry_run,
-        "submitted_at": record.submitted_at,
-        "display_name": record.display_name,
-        "output_uri": record.output_uri,
-        "console_uri": record.console_uri,
-        "error": record.error,
-    }
 
 
 def create_finetune_router(models_dir: Path | None = None) -> APIRouter:
@@ -434,219 +260,7 @@ def create_finetune_router(models_dir: Path | None = None) -> APIRouter:
             "total_samples": report.total_samples,
         }
 
-    @router.post("/managed/submit")
-    async def submit_managed_training(
-        req: ManagedTrainingRequest, request: Request
-    ) -> dict[str, Any]:
-        """Submit or dry-run a managed training job."""
-        from director_ai.core.training.jobs import (
-            TrainingHardware,
-            TrainingJobSpec,
-            build_internal_suite_spec,
-            submit_training_job,
-        )
-
-        hardware = TrainingHardware(
-            machine_type=req.machine_type,
-            accelerator_type=req.accelerator_type,
-            accelerator_count=req.accelerator_count,
-            boot_disk_gb=req.boot_disk_gb,
-        )
-        if req.suite:
-            spec = build_internal_suite_spec(
-                suite=req.suite,
-                dataset_uri=req.dataset_uri,
-                output_uri=req.output_uri,
-                project=req.project,
-                region=req.region,
-                container_image_uri=req.container_image_uri,
-                hardware=hardware,
-            )
-        else:
-            spec = TrainingJobSpec(
-                display_name=req.display_name,
-                caller="product",
-                dataset_uri=req.dataset_uri,
-                output_uri=req.output_uri,
-                eval_uri=req.eval_uri,
-                project=req.project,
-                region=req.region,
-                base_model=req.base_model,
-                allow_experimental_model=req.allow_experimental_model,
-                epochs=req.epochs,
-                batch_size=req.batch_size,
-                learning_rate=req.learning_rate,
-                timeout_minutes=req.timeout_minutes,
-                container_image_uri=req.container_image_uri,
-                service_account=req.service_account,
-                network=req.network,
-                hardware=hardware,
-            )
-        try:
-            submission = submit_training_job(
-                spec,
-                backend=req.backend,
-                dry_run=req.dry_run,
-            )
-        except ValueError as exc:
-            raise HTTPException(422, str(exc)) from exc
-        tenant_id = _tenant_from_request(request)
-        managed_store.add(
-            ManagedTrainingRecord(
-                job_id=submission.job_id,
-                backend=submission.backend,
-                state=submission.state,
-                tenant_id=tenant_id,
-                dry_run=submission.dry_run,
-                submitted_at=submission.submitted_at,
-                display_name=spec.display_name,
-                output_uri=spec.output_uri,
-                console_uri=submission.console_uri,
-            )
-        )
-        return {
-            "backend": submission.backend,
-            "job_id": submission.job_id,
-            "state": submission.state,
-            "dry_run": submission.dry_run,
-            "tenant_id": tenant_id,
-            "submitted_at": submission.submitted_at,
-            "console_uri": submission.console_uri,
-            "request": submission.request,
-        }
-
-    @router.get("/managed/jobs")
-    async def list_managed_training_jobs(request: Request) -> dict[str, Any]:
-        """List managed training submissions for the current tenant."""
-        tenant_id = _tenant_from_request(request)
-        records = managed_store.list_for_tenant(tenant_id)
-        return {
-            "tenant_id": tenant_id,
-            "count": len(records),
-            "jobs": [_managed_record_to_dict(record) for record in records],
-        }
-
-    @router.post("/managed/status")
-    async def get_managed_training_status(
-        req: ManagedTrainingLookupRequest,
-        request: Request,
-    ) -> dict[str, Any]:
-        """Return backend status for a managed training job."""
-        from director_ai.core.training.jobs import get_training_backend
-
-        tenant_id = _tenant_from_request(request)
-        record = managed_store.get(tenant_id, req.job_id)
-        if record is None:
-            raise HTTPException(404, "Managed training job not found")
-        if record.backend != req.backend:
-            raise HTTPException(409, f"Job was submitted to backend {record.backend!r}")
-        if record.dry_run:
-            return {
-                "backend": record.backend,
-                "job_id": record.job_id,
-                "state": record.state,
-                "metrics": {},
-                "artifact_uri": "",
-                "error": record.error,
-            }
-        try:
-            status = get_training_backend(req.backend).status(req.job_id)
-        except ValueError as exc:
-            raise HTTPException(422, str(exc)) from exc
-        except Exception as exc:
-            raise HTTPException(502, f"Training backend status failed: {exc}") from exc
-
-        managed_store.update_state(
-            tenant_id,
-            req.job_id,
-            status.state,
-            error=status.error,
-        )
-        return {
-            "backend": status.backend,
-            "job_id": status.job_id,
-            "state": status.state,
-            "metrics": status.metrics,
-            "artifact_uri": status.artifact_uri,
-            "error": status.error,
-        }
-
-    @router.post("/managed/cancel")
-    async def cancel_managed_training(
-        req: ManagedTrainingLookupRequest,
-        request: Request,
-    ) -> dict[str, Any]:
-        """Cancel a managed training job owned by the current tenant."""
-        from director_ai.core.training.jobs import get_training_backend
-
-        tenant_id = _tenant_from_request(request)
-        record = managed_store.get(tenant_id, req.job_id)
-        if record is None:
-            raise HTTPException(404, "Managed training job not found")
-        if record.backend != req.backend:
-            raise HTTPException(409, f"Job was submitted to backend {record.backend!r}")
-        if record.dry_run:
-            raise HTTPException(
-                409, "Dry-run managed training jobs cannot be cancelled"
-            )
-        try:
-            status = get_training_backend(req.backend).cancel(req.job_id)
-        except ValueError as exc:
-            raise HTTPException(422, str(exc)) from exc
-        except Exception as exc:
-            raise HTTPException(502, f"Training backend cancel failed: {exc}") from exc
-
-        managed_store.update_state(
-            tenant_id,
-            req.job_id,
-            status.state,
-            error=status.error,
-        )
-        return {
-            "backend": status.backend,
-            "job_id": status.job_id,
-            "state": status.state,
-            "metrics": status.metrics,
-            "artifact_uri": status.artifact_uri,
-            "error": status.error,
-        }
-
-    @router.get("/managed/models")
-    async def list_managed_training_models(
-        include_experimental: bool = False,
-    ) -> dict[str, Any]:
-        """List selectable managed fine-tune base models."""
-        from director_ai.core.training.model_registry import (
-            finetune_model_registry_to_dict,
-        )
-
-        return {
-            "models": finetune_model_registry_to_dict(
-                include_experimental=include_experimental,
-            ),
-        }
-
-    @router.post("/managed/benchmark-models")
-    async def benchmark_managed_training_models(
-        req: ManagedModelBenchmarkRequest,
-    ) -> dict[str, Any]:
-        """Benchmark trained model artifacts before activation."""
-        from director_ai.core.training.finetune_benchmark import (
-            benchmark_model_candidates,
-        )
-
-        try:
-            report = benchmark_model_candidates(
-                req.model_artifacts,
-                general_path=req.general_path,
-                eval_path=req.eval_path,
-                batch_size=req.batch_size,
-                allow_experimental=req.allow_experimental_model,
-            )
-        except ValueError as exc:
-            raise HTTPException(422, str(exc)) from exc
-        payload: dict[str, Any] = report.to_dict()
-        return payload
+    register_managed_routes(router, managed_store, _tenant_from_request)
 
     @router.get("/{job_id}")
     async def get_job_status(job_id: str) -> dict[str, Any]:

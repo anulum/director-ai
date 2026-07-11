@@ -262,6 +262,9 @@ class DirectorConfig:
     server_host: str = "127.0.0.1"
     server_port: int = 8080
     server_workers: int = 1
+    # Directory for fine-tuned model artefacts and the persistent job store
+    # mounted at /v1/finetune (empty = the router default ./director-models).
+    finetune_models_dir: str = ""
     cors_origins: str = ""
     # Lifetime of a single-use browser WebSocket handshake ticket (seconds).
     ws_ticket_ttl_seconds: float = 30.0
