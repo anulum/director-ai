@@ -16,6 +16,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Stop tracking the `benchmarks/models/factcg-cb` tokeniser blobs
+  (`tokenizer.json` 8.4 MB, `spm.model` 2.4 MB) in git; they are inherited
+  unchanged from the fine-tune's base model and the directory README now
+  documents the one-line restore. Configs and training results stay
+  tracked; nothing in `src/` or `tests/` reads the directory.
 - Consolidate the four typos configurations into the single canonical
   `.typos.toml` (union of all allow-lists and file excludes) and delete
   `typos.toml`, `_typos.toml`, and `backfire-kernel/_typos.toml`. The
