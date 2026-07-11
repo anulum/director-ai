@@ -24,14 +24,15 @@ structurally unreachable `union == 0` guards in
 `core/scoring/lexical_signals.py` (both sit behind emptiness checks that
 already guarantee a non-empty union).
 
-**CI-confirmed** (run `29151154365`, commit `21282dc7`, job "Test
-(Python 3.12)"): 44 389 statements, **0 missed**, 50 partial branch
+**CI-confirmed** (run `29169607735`, commit `256892b0`, job "Test
+(Python 3.12)"): 44 432 statements, **0 missed**, 50 partial branch
 edges, total **99.91 %**. The per-file edge table below matches that run
-exactly — the WCA-4 conformal-review feature added no edges: the same
-five scoring edges merely renumbered (identical spans) after the
-insertions in `_review_pipeline.py` and `scorer.py`, and the branch
-total grew 13 344 → 13 348 with all four new conditionals fully
-covered. (Previous confirmations: run `29149449959` at commit
+exactly — the WCA-7 grounded() ANN + rerank default (with the hermetic
+builder-test fix) and the SEC-3 tier-alignment test added no partial
+edges and renumbered none: the branch total grew 13 348 → 13 364 with
+every new conditional fully covered. (Previous confirmations: run
+`29151154365` at commit `21282dc7`, 44 389 statements after the WCA-4
+conformal-review intervals; run `29149449959` at commit
 `00e1b8f9`, 44 363 statements after the WCB-2 follow-up `_task_accel`
 binding; run `29147266122` at commit `82236e4e`, 44 357 statements
 after the WCB-6 safety-dashboard decomposition; run `29136571356` at
@@ -56,7 +57,7 @@ whose statements are fully covered. They fall into three categories:
 | skip-edge | Forward arc: a defensive condition whose false path is only reachable under object states no public API produces today. |
 | extras-gated | Arc taken only when an optional extra is present/absent in a combination the core CI job does not produce; the behaviour itself is covered by the extras matrix jobs or the floor job. |
 
-Baseline as of run `29151154365` (50 branch edges, per file):
+Baseline as of run `29169607735` (50 branch edges, per file):
 
 | File | Edges | Category |
 | --- | --- | --- |
