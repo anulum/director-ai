@@ -7,6 +7,8 @@
 # Director-Class AI — Vector Store Tests
 """Multi-angle tests for vector store pipeline."""
 
+import importlib.machinery
+import importlib.util
 import sys
 import types
 from unittest.mock import patch
@@ -1144,6 +1146,21 @@ def _install_fake_sentence_transformers(monkeypatch, transformer_factory):
     monkeypatch.setitem(sys.modules, "sentence_transformers", module)
 
 
+_REAL_FIND_SPEC = importlib.util.find_spec
+
+
+def _find_spec_with_fake_faiss(name, *args, **kwargs):
+    """Report faiss as installed regardless of the local environment.
+
+    The ANN builder probes ``find_spec("faiss")`` before touching the heavy
+    stack; CI does not install the faiss extra, so the probe must be faked
+    for the post-probe branches to be exercised everywhere.
+    """
+    if name == "faiss":
+        return importlib.machinery.ModuleSpec("faiss", loader=None)
+    return _REAL_FIND_SPEC(name, *args, **kwargs)
+
+
 @pytest.mark.consumer
 class TestGroundedAnnDenseBuilder:
     def test_returns_none_when_faiss_is_missing(self):
@@ -1152,14 +1169,16 @@ class TestGroundedAnnDenseBuilder:
 
     def test_returns_none_when_sentence_transformers_is_missing(self, monkeypatch):
         monkeypatch.setitem(sys.modules, "sentence_transformers", None)
-        assert vector_store_module._build_ann_dense_backend("any-model") is None
+        with patch("importlib.util.find_spec", _find_spec_with_fake_faiss):
+            assert vector_store_module._build_ann_dense_backend("any-model") is None
 
     def test_returns_none_when_embedding_model_fails_to_load(self, monkeypatch):
         def raising_factory(model_name, device=None):
             raise RuntimeError("model download blocked")
 
         _install_fake_sentence_transformers(monkeypatch, raising_factory)
-        assert vector_store_module._build_ann_dense_backend("blocked") is None
+        with patch("importlib.util.find_spec", _find_spec_with_fake_faiss):
+            assert vector_store_module._build_ann_dense_backend("blocked") is None
 
     def test_builds_faiss_backend_with_model_dimension(self, monkeypatch):
         class FakeModel:
@@ -1182,9 +1201,12 @@ class TestGroundedAnnDenseBuilder:
                 captured["embed_fn"] = embed_fn
                 captured["vector_size"] = vector_size
 
-        with patch(
-            "director_ai.core.retrieval.vector_store.store.FAISSBackend",
-            FakeFAISSBackend,
+        with (
+            patch("importlib.util.find_spec", _find_spec_with_fake_faiss),
+            patch(
+                "director_ai.core.retrieval.vector_store.store.FAISSBackend",
+                FakeFAISSBackend,
+            ),
         ):
             backend = vector_store_module._build_ann_dense_backend("model-x")
 
@@ -1211,9 +1233,12 @@ class TestGroundedAnnDenseBuilder:
             def __init__(self, embed_fn, vector_size):
                 captured["vector_size"] = vector_size
 
-        with patch(
-            "director_ai.core.retrieval.vector_store.store.FAISSBackend",
-            FakeFAISSBackend,
+        with (
+            patch("importlib.util.find_spec", _find_spec_with_fake_faiss),
+            patch(
+                "director_ai.core.retrieval.vector_store.store.FAISSBackend",
+                FakeFAISSBackend,
+            ),
         ):
             backend = vector_store_module._build_ann_dense_backend("model-y")
 
