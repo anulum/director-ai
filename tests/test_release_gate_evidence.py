@@ -22,7 +22,8 @@ import dataclasses
 
 import pytest
 
-from director_ai.core.customer_model_factory import _gate_evidence, release_gate
+import director_ai.core.customer_model_factory._gate_evidence as gate_evidence_module
+from director_ai.core.customer_model_factory import release_gate
 
 _EVIDENCE_CLASS_NAMES = (
     "AutoRedteamDefenceEvidence",
@@ -40,33 +41,33 @@ _EVIDENCE_CLASS_NAMES = (
 
 class TestModulePlacement:
     def test_module_exports_exactly_the_ten_evidence_classes(self):
-        assert _gate_evidence.__all__ == list(_EVIDENCE_CLASS_NAMES)
+        assert gate_evidence_module.__all__ == list(_EVIDENCE_CLASS_NAMES)
 
     def test_classes_are_defined_in_the_evidence_module(self):
         for name in _EVIDENCE_CLASS_NAMES:
-            cls = getattr(_gate_evidence, name)
-            assert cls.__module__ == _gate_evidence.__name__
+            cls = getattr(gate_evidence_module, name)
+            assert cls.__module__ == gate_evidence_module.__name__
 
     def test_release_gate_re_exports_the_same_objects(self):
         for name in _EVIDENCE_CLASS_NAMES:
-            assert getattr(release_gate, name) is getattr(_gate_evidence, name)
+            assert getattr(release_gate, name) is getattr(gate_evidence_module, name)
 
     def test_package_surface_still_serves_the_evidence_classes(self):
         from director_ai.core import customer_model_factory as package
 
         for name in _EVIDENCE_CLASS_NAMES:
-            assert getattr(package, name) is getattr(_gate_evidence, name)
+            assert getattr(package, name) is getattr(gate_evidence_module, name)
 
 
 class TestRecordContracts:
     def test_records_are_frozen_dataclasses(self):
         for name in _EVIDENCE_CLASS_NAMES:
-            cls = getattr(_gate_evidence, name)
+            cls = getattr(gate_evidence_module, name)
             assert dataclasses.is_dataclass(cls)
             assert cls.__dataclass_params__.frozen
 
     def test_round_trip_preserves_every_field(self):
-        evidence = _gate_evidence.DeploymentHardeningEvidence(
+        evidence = gate_evidence_module.DeploymentHardeningEvidence(
             ready=True,
             environment="staging",
             observation_window="72h",
@@ -78,10 +79,12 @@ class TestRecordContracts:
             evidence_hash="a" * 64,
         )
         payload = evidence.to_dict()
-        rebuilt = _gate_evidence.DeploymentHardeningEvidence.from_dict(payload)
+        rebuilt = gate_evidence_module.DeploymentHardeningEvidence.from_dict(payload)
         assert rebuilt == evidence
         assert set(payload) == {field.name for field in dataclasses.fields(evidence)}
 
     def test_from_dict_requires_every_field(self):
         with pytest.raises(KeyError):
-            _gate_evidence.ObservabilityOperationsEvidence.from_dict({"ready": True})
+            gate_evidence_module.ObservabilityOperationsEvidence.from_dict(
+                {"ready": True}
+            )

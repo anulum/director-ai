@@ -18,7 +18,8 @@ stays in ``tests/test_customer_model_factory_release_gate.py``.
 
 from __future__ import annotations
 
-from director_ai.core.customer_model_factory import _gate_blockers, release_gate
+import director_ai.core.customer_model_factory._gate_blockers as gate_blockers_module
+from director_ai.core.customer_model_factory import release_gate
 
 _COLLECTOR_NAMES = (
     "_extend_readiness_blockers",
@@ -39,11 +40,11 @@ _COLLECTOR_NAMES = (
 class TestModulePlacement:
     def test_collectors_are_defined_in_the_blockers_module(self):
         for name in _COLLECTOR_NAMES:
-            func = getattr(_gate_blockers, name)
-            assert func.__module__ == _gate_blockers.__name__
+            func = getattr(gate_blockers_module, name)
+            assert func.__module__ == gate_blockers_module.__name__
 
     def test_module_exports_collectors_and_helpers(self):
-        assert set(_gate_blockers.__all__) == {
+        assert set(gate_blockers_module.__all__) == {
             *_COLLECTOR_NAMES,
             "_blocker",
             "_is_sha256",
@@ -51,24 +52,26 @@ class TestModulePlacement:
 
     def test_release_gate_serves_the_same_collector_objects(self):
         for name in _COLLECTOR_NAMES:
-            assert getattr(release_gate, name) is getattr(_gate_blockers, name)
+            assert getattr(release_gate, name) is getattr(gate_blockers_module, name)
 
 
 class TestBlockerContracts:
     def test_blocker_record_shape_and_blank_extra_dropped(self):
-        record = _gate_blockers._blocker("code_x", "message x", debt_ids="")
+        record = gate_blockers_module._blocker("code_x", "message x", debt_ids="")
         assert record == {
             "code": "code_x",
             "severity": "error",
             "message": "message x",
         }
-        with_extra = _gate_blockers._blocker("code_x", "message x", debt_ids="a,b")
+        with_extra = gate_blockers_module._blocker(
+            "code_x", "message x", debt_ids="a,b"
+        )
         assert with_extra["debt_ids"] == "a,b"
 
     def test_sha256_guard_accepts_only_lowercase_hex_digests(self):
-        assert _gate_blockers._is_sha256("a" * 64)
-        assert not _gate_blockers._is_sha256("A" * 64)
-        assert not _gate_blockers._is_sha256("a" * 63)
+        assert gate_blockers_module._is_sha256("a" * 64)
+        assert not gate_blockers_module._is_sha256("A" * 64)
+        assert not gate_blockers_module._is_sha256("a" * 63)
 
     def test_environment_policy_flags_non_staging_production(self):
         evidence = release_gate.DeploymentHardeningEvidence(
@@ -83,7 +86,7 @@ class TestBlockerContracts:
             evidence_hash="a" * 64,
         )
         blockers: list[dict[str, str]] = []
-        _gate_blockers._extend_deployment_hardening_blockers(evidence, blockers)
+        gate_blockers_module._extend_deployment_hardening_blockers(evidence, blockers)
         assert [b["code"] for b in blockers] == [
             "deployment_hardening_environment_invalid"
         ]
