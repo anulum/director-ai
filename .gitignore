@@ -182,6 +182,8 @@ benchmarks/results/*
 !benchmarks/results/finance_eval.json
 !benchmarks/results/legal_eval.json
 !benchmarks/results/jailbreak_detection.json
+# grounded() ANN + rerank latency/recall evidence referenced by the CHANGELOG.
+!benchmarks/results/grounded_ann_bench.json
 benchmarks/.cache/
 benchmarks/*.jsonl
 benchmarks/heldout/

@@ -20,6 +20,7 @@ from importlib.util import find_spec
 from .base import _VECTOR_EP_LOADED as _VECTOR_EP_LOADED
 from .base import _VECTOR_REGISTRY as _VECTOR_REGISTRY
 from .base import RECOMMENDED_EMBEDDING_MODEL as RECOMMENDED_EMBEDDING_MODEL
+from .base import RECOMMENDED_RERANKER_MODEL as RECOMMENDED_RERANKER_MODEL
 from .base import InMemoryBackend as InMemoryBackend
 from .base import VectorBackend as VectorBackend
 from .base import get_vector_backend as get_vector_backend
@@ -46,6 +47,7 @@ from .vendors import WeaviateBackend as WeaviateBackend
 
 __all__ = [
     "RECOMMENDED_EMBEDDING_MODEL",
+    "RECOMMENDED_RERANKER_MODEL",
     "ChromaBackend",
     "ColBERTBackend",
     "ElasticsearchBackend",

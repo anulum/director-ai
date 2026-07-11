@@ -7,10 +7,13 @@
 # Director-Class AI — Vector Store Tests
 """Multi-angle tests for vector store pipeline."""
 
+import sys
+import types
 from unittest.mock import patch
 
 import pytest
 
+import director_ai.core.retrieval.vector_store.store as vector_store_module
 from director_ai.core.vector_store import (
     _VECTOR_REGISTRY,
     HybridBackend,
@@ -157,6 +160,36 @@ class TestInMemoryBackend:
         backend = InMemoryBackend()
         with pytest.raises(ValueError, match="doc_ids"):
             backend.delete(doc_ids)  # type: ignore[arg-type]
+
+
+class _StubDenseBackend(VectorBackend):
+    """Minimal dense backend stand-in for grounded() recipe tests."""
+
+    def add(self, doc_id, text, metadata=None):
+        pass
+
+    def query(self, text, n_results=3, tenant_id=""):
+        return []
+
+    def count(self):
+        return 0
+
+
+class _RecordingRerankedBackend(VectorBackend):
+    """RerankedBackend stand-in recording its construction arguments."""
+
+    def __init__(self, base, reranker_model):
+        self.base = base
+        self.reranker_model = reranker_model
+
+    def add(self, doc_id, text, metadata=None):
+        pass
+
+    def query(self, text, n_results=3, tenant_id=""):
+        return []
+
+    def count(self):
+        return 0
 
 
 @pytest.mark.consumer
@@ -1011,22 +1044,181 @@ class TestVectorGroundTruthStore:
             store.retrieve_context_with_chunks("policy")
 
     def test_grounded_factory_falls_back_when_dense_backend_is_unavailable(self):
-        with patch(
-            "director_ai.core.retrieval.vector_store.store.SentenceTransformerBackend",
-            side_effect=RuntimeError("missing sentence-transformers"),
+        with (
+            patch(
+                "director_ai.core.retrieval.vector_store.store."
+                "_build_ann_dense_backend",
+                return_value=None,
+            ),
+            patch(
+                "director_ai.core.retrieval.vector_store.store."
+                "SentenceTransformerBackend",
+                side_effect=RuntimeError("missing sentence-transformers"),
+            ),
         ):
-            dense_store = VectorGroundTruthStore.grounded(use_hybrid=False)
-            hybrid_store = VectorGroundTruthStore.grounded(use_hybrid=True, rrf_k=12)
+            dense_store = VectorGroundTruthStore.grounded(
+                use_hybrid=False,
+                use_reranker=False,
+            )
+            hybrid_store = VectorGroundTruthStore.grounded(
+                use_hybrid=True,
+                rrf_k=12,
+                use_reranker=False,
+            )
 
         assert isinstance(dense_store.backend, InMemoryBackend)
         assert isinstance(hybrid_store.backend, HybridBackend)
         assert hybrid_store.backend._rrf_k == 12
+
+    def test_grounded_default_layers_ann_hybrid_and_reranker(self):
+        stub_dense = _StubDenseBackend()
+        with (
+            patch(
+                "director_ai.core.retrieval.vector_store.store."
+                "_build_ann_dense_backend",
+                return_value=stub_dense,
+            ) as ann_builder,
+            patch(
+                "director_ai.core.retrieval.vector_store.store.RerankedBackend",
+                _RecordingRerankedBackend,
+            ),
+        ):
+            store = VectorGroundTruthStore.grounded()
+
+        ann_builder.assert_called_once_with("BAAI/bge-large-en-v1.5")
+        reranked = store.backend
+        assert isinstance(reranked, _RecordingRerankedBackend)
+        assert reranked.reranker_model == "cross-encoder/ms-marco-MiniLM-L-6-v2"
+        assert isinstance(reranked.base, HybridBackend)
+        assert reranked.base._base is stub_dense
+
+    def test_grounded_reranker_failure_keeps_unreranked_backend(self):
+        stub_dense = _StubDenseBackend()
+        with (
+            patch(
+                "director_ai.core.retrieval.vector_store.store."
+                "_build_ann_dense_backend",
+                return_value=stub_dense,
+            ),
+            patch(
+                "director_ai.core.retrieval.vector_store.store.RerankedBackend",
+                side_effect=ImportError("no cross-encoder stack"),
+            ),
+        ):
+            store = VectorGroundTruthStore.grounded(use_hybrid=False)
+
+        assert store.backend is stub_dense
+
+    def test_grounded_use_ann_false_skips_ann_builder(self):
+        stub_dense = _StubDenseBackend()
+        with (
+            patch(
+                "director_ai.core.retrieval.vector_store.store."
+                "_build_ann_dense_backend",
+            ) as ann_builder,
+            patch(
+                "director_ai.core.retrieval.vector_store.store."
+                "SentenceTransformerBackend",
+                return_value=stub_dense,
+            ),
+        ):
+            store = VectorGroundTruthStore.grounded(
+                use_ann=False,
+                use_hybrid=False,
+                use_reranker=False,
+            )
+
+        ann_builder.assert_not_called()
+        assert store.backend is stub_dense
 
     def test_active_results_keep_backend_rows_without_metadata(self):
         store = VectorGroundTruthStore()
         rows = [{"id": "raw", "text": "raw backend row", "metadata": "not a dict"}]
 
         assert store._active_results(rows, tenant_id="tenant-a") == rows
+
+
+def _install_fake_sentence_transformers(monkeypatch, transformer_factory):
+    module = types.ModuleType("sentence_transformers")
+    module.SentenceTransformer = transformer_factory
+    monkeypatch.setitem(sys.modules, "sentence_transformers", module)
+
+
+@pytest.mark.consumer
+class TestGroundedAnnDenseBuilder:
+    def test_returns_none_when_faiss_is_missing(self):
+        with patch("importlib.util.find_spec", return_value=None):
+            assert vector_store_module._build_ann_dense_backend("any-model") is None
+
+    def test_returns_none_when_sentence_transformers_is_missing(self, monkeypatch):
+        monkeypatch.setitem(sys.modules, "sentence_transformers", None)
+        assert vector_store_module._build_ann_dense_backend("any-model") is None
+
+    def test_returns_none_when_embedding_model_fails_to_load(self, monkeypatch):
+        def raising_factory(model_name, device=None):
+            raise RuntimeError("model download blocked")
+
+        _install_fake_sentence_transformers(monkeypatch, raising_factory)
+        assert vector_store_module._build_ann_dense_backend("blocked") is None
+
+    def test_builds_faiss_backend_with_model_dimension(self, monkeypatch):
+        class FakeModel:
+            def __init__(self, model_name, device=None):
+                self.model_name = model_name
+                self.device = device
+
+            def get_embedding_dimension(self):
+                return 8
+
+            def encode(self, text, normalize_embeddings=False):
+                assert normalize_embeddings is True
+                return [0.5] * 8
+
+        _install_fake_sentence_transformers(monkeypatch, FakeModel)
+        captured = {}
+
+        class FakeFAISSBackend(_StubDenseBackend):
+            def __init__(self, embed_fn, vector_size):
+                captured["embed_fn"] = embed_fn
+                captured["vector_size"] = vector_size
+
+        with patch(
+            "director_ai.core.retrieval.vector_store.store.FAISSBackend",
+            FakeFAISSBackend,
+        ):
+            backend = vector_store_module._build_ann_dense_backend("model-x")
+
+        assert isinstance(backend, FakeFAISSBackend)
+        assert captured["vector_size"] == 8
+        assert captured["embed_fn"]("probe text") == [0.5] * 8
+
+    def test_probes_dimension_when_model_reports_none(self, monkeypatch):
+        class DimensionlessModel:
+            def __init__(self, model_name, device=None):
+                self.model_name = model_name
+                self.device = device
+
+            def get_sentence_embedding_dimension(self):
+                return None
+
+            def encode(self, text, normalize_embeddings=False):
+                return [0.1] * 6
+
+        _install_fake_sentence_transformers(monkeypatch, DimensionlessModel)
+        captured = {}
+
+        class FakeFAISSBackend(_StubDenseBackend):
+            def __init__(self, embed_fn, vector_size):
+                captured["vector_size"] = vector_size
+
+        with patch(
+            "director_ai.core.retrieval.vector_store.store.FAISSBackend",
+            FakeFAISSBackend,
+        ):
+            backend = vector_store_module._build_ann_dense_backend("model-y")
+
+        assert isinstance(backend, FakeFAISSBackend)
+        assert captured["vector_size"] == 6
 
 
 @pytest.mark.consumer

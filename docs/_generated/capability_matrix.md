@@ -11,7 +11,7 @@ experimental hook across `tests/`, `docs-site/`, and `benchmarks/`.
 | Unwired | 0 |
 | Untested (by name mention) | 21 |
 | Undocumented (by name mention) | 41 |
-| Benchmarked (informational) | 50 |
+| Benchmarked (informational) | 51 |
 
 ## Unwired (0)
 

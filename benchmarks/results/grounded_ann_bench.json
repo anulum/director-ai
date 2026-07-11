@@ -1,0 +1,141 @@
+{
+  "benchmark": "grounded_ann_bench",
+  "environment": {
+    "python": "3.12.13",
+    "machine": "x86_64",
+    "numpy": "2.4.6",
+    "faiss": "1.14.3",
+    "sentence_transformers": "5.6.0"
+  },
+  "engine": {
+    "dimensions": 384,
+    "query_noise": 0.35,
+    "seed": 20260711,
+    "top_k": 10,
+    "note": "Seeded Gaussian vectors isolate engine cost; flat FAISS is exact search, so its recall matches the linear scan by construction. Unclustered random vectors are the worst case for IVF recall.",
+    "runs": [
+      {
+        "n_docs": 200,
+        "n_queries": 100,
+        "ivf_nlist": 14,
+        "backends": {
+          "linear_scan": {
+            "ingest_seconds": 0.0003,
+            "recall_at_10": 1.0,
+            "mean_ms": 0.2793,
+            "p50_ms": 0.2689,
+            "p95_ms": 0.321
+          },
+          "faiss_flat": {
+            "ingest_seconds": 0.0011,
+            "recall_at_10": 1.0,
+            "mean_ms": 0.024,
+            "p50_ms": 0.0232,
+            "p95_ms": 0.027
+          },
+          "faiss_ivf": {
+            "ingest_seconds": 0.1279,
+            "recall_at_10": 0.162,
+            "mean_ms": 0.0166,
+            "p50_ms": 0.0155,
+            "p95_ms": 0.0192
+          }
+        }
+      },
+      {
+        "n_docs": 2000,
+        "n_queries": 100,
+        "ivf_nlist": 44,
+        "backends": {
+          "linear_scan": {
+            "ingest_seconds": 0.0024,
+            "recall_at_10": 1.0,
+            "mean_ms": 2.1464,
+            "p50_ms": 1.741,
+            "p95_ms": 3.3777
+          },
+          "faiss_flat": {
+            "ingest_seconds": 0.0064,
+            "recall_at_10": 1.0,
+            "mean_ms": 0.0722,
+            "p50_ms": 0.07,
+            "p95_ms": 0.0874
+          },
+          "faiss_ivf": {
+            "ingest_seconds": 0.0394,
+            "recall_at_10": 0.064,
+            "mean_ms": 0.0431,
+            "p50_ms": 0.0351,
+            "p95_ms": 0.0785
+          }
+        }
+      },
+      {
+        "n_docs": 20000,
+        "n_queries": 100,
+        "ivf_nlist": 141,
+        "backends": {
+          "linear_scan": {
+            "ingest_seconds": 0.2133,
+            "recall_at_10": 1.0,
+            "mean_ms": 44.2335,
+            "p50_ms": 25.2896,
+            "p95_ms": 212.7336
+          },
+          "faiss_flat": {
+            "ingest_seconds": 0.099,
+            "recall_at_10": 1.0,
+            "mean_ms": 10.1064,
+            "p50_ms": 8.6332,
+            "p95_ms": 18.2939
+          },
+          "faiss_ivf": {
+            "ingest_seconds": 0.7037,
+            "recall_at_10": 0.03,
+            "mean_ms": 0.1646,
+            "p50_ms": 0.143,
+            "p95_ms": 0.2311
+          }
+        }
+      }
+    ]
+  },
+  "real": {
+    "embedding_model": "sentence-transformers/all-MiniLM-L6-v2",
+    "n_facts": 50,
+    "n_queries": 30,
+    "note": "retrieval_bench EVAL_SET; embedding model overridden to the small cached MiniLM so the benchmark runs offline. The reranker is the recipe default cross-encoder.",
+    "arms": {
+      "pre_wca7_default": {
+        "backend_chain": "HybridBackend -> SentenceTransformerBackend",
+        "build_seconds": 0.82,
+        "hit_at_1": 0.7667,
+        "hit_at_3": 0.9667,
+        "precision_at_3": 0.3222,
+        "mean_ms": 10.3777,
+        "p50_ms": 8.6179,
+        "p95_ms": 16.7265
+      },
+      "ann_only": {
+        "backend_chain": "HybridBackend -> FAISSBackend",
+        "build_seconds": 0.51,
+        "hit_at_1": 0.7667,
+        "hit_at_3": 0.9667,
+        "precision_at_3": 0.3222,
+        "mean_ms": 11.4268,
+        "p50_ms": 9.1804,
+        "p95_ms": 17.1884
+      },
+      "new_default_ann_rerank": {
+        "backend_chain": "RerankedBackend -> HybridBackend -> FAISSBackend",
+        "build_seconds": 0.65,
+        "hit_at_1": 0.9667,
+        "hit_at_3": 1.0,
+        "precision_at_3": 0.3333,
+        "mean_ms": 55.4492,
+        "p50_ms": 56.6214,
+        "p95_ms": 63.0633
+      }
+    }
+  }
+}

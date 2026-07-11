@@ -89,25 +89,52 @@ def _normalise_chroma_embedding_function(
     return _DirectorChromaEmbeddingAdapter(embedding_function)
 
 
+class _EmbeddingModel(Protocol):
+    """Sentence-embedding contract used by ``SentenceTransformerBackend``."""
+
+    def encode(self, text: str, normalize_embeddings: bool = ...) -> Any:
+        """Return the embedding vector for ``text``."""
+        ...
+
+
 class SentenceTransformerBackend(VectorBackend):
     """Embedding-based backend using sentence-transformers directly.
 
     Recommended model: BAAI/bge-large-en-v1.5 (best quality/speed tradeoff).
     Alternative: Snowflake/snowflake-arctic-embed-l for multilingual.
 
-    Requires ``pip install sentence-transformers``.
+    Operators may inject a preloaded embedding object that implements
+    ``encode(text, normalize_embeddings=True)``. This keeps embedded, offline,
+    or model-managed deployments on the same retrieval path without requiring
+    the backend to own model loading.
+
+    Requires ``pip install sentence-transformers`` unless ``model`` is given.
     """
 
-    def __init__(self, model_name: str = "BAAI/bge-large-en-v1.5") -> None:
+    def __init__(
+        self,
+        model_name: str = "BAAI/bge-large-en-v1.5",
+        model: _EmbeddingModel | None = None,
+    ) -> None:
         """Load the embedding model and initialise the in-memory index."""
-        try:
-            from sentence_transformers import SentenceTransformer
-        except ImportError as e:
-            raise ImportError(
-                "SentenceTransformerBackend requires sentence-transformers. "
-                "Install with: pip install sentence-transformers",
-            ) from e
-        self._model = SentenceTransformer(model_name)
+        if model is not None:
+            if not callable(getattr(model, "encode", None)):
+                raise ValueError("model must provide a callable encode method")
+            self._model = model
+        else:
+            try:
+                from sentence_transformers import SentenceTransformer
+            except ImportError as e:
+                raise ImportError(
+                    "SentenceTransformerBackend requires sentence-transformers. "
+                    "Install with: pip install sentence-transformers",
+                ) from e
+            from ..._device import select_torch_device
+
+            self._model = SentenceTransformer(
+                model_name,
+                device=select_torch_device(),
+            )
         self._docs: list[dict[str, Any]] = []
         self._embeddings: list[Any] = []
         self._lock = threading.Lock()

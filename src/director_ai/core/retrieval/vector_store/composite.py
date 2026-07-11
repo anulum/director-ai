@@ -33,7 +33,7 @@ except ImportError:  # pragma: no cover - bit-exact pure-Python fallback (ADR-00
 
 
 from ...mandatory import mandatory_execution
-from .base import VectorBackend
+from .base import RECOMMENDED_RERANKER_MODEL, VectorBackend
 
 __all__ = ["HybridBackend", "RerankedBackend"]
 
@@ -222,7 +222,7 @@ class RerankedBackend(VectorBackend):
     def __init__(
         self,
         base: VectorBackend,
-        reranker_model: str = "cross-encoder/ms-marco-MiniLM-L-6-v2",
+        reranker_model: str = RECOMMENDED_RERANKER_MODEL,
         reranker_revision: str | None = None,
         top_k_multiplier: int = 3,
         reranker: _RerankerModel | None = None,

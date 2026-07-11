@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- `VectorGroundTruthStore.grounded()` now builds the full retrieval stack by
+  default: FAISS-indexed dense search (`use_ann`), BM25 + RRF hybrid fusion,
+  and cross-encoder reranking (`use_reranker`), each degrading gracefully to
+  the previous behaviour when its optional dependency is missing. On the
+  committed benchmark (`benchmarks/results/grounded_ann_bench.json`, run via
+  `python -m benchmarks.grounded_ann_bench`) the reranked default lifts hit@1
+  from 0.767 to 0.967 and hit@3 to 1.000 on the retrieval evaluation set at
+  ~57 ms per query on CPU, and flat FAISS answers 20 000-document queries in
+  8.6 ms (p50) against 25.3 ms for the previous linear scan at identical
+  recall.
+
+### Fixed
+
+- `SentenceTransformerBackend` now selects a compatible torch device via
+  `select_torch_device()`, so a visible-but-unsupported CUDA GPU (for
+  example an sm_61 card next to a modern PyTorch wheel) no longer crashes
+  dense retrieval at the first encode. The backend also accepts a preloaded
+  `model` object for offline and embedded deployments, mirroring the
+  `reranker` injection on `RerankedBackend`.
+
 ## [3.16.1] - 2026-07-03
 
 ### Security

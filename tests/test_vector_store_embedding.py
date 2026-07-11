@@ -25,8 +25,9 @@ def _install_sentence_transformer(monkeypatch: pytest.MonkeyPatch) -> None:
     module = types.ModuleType("sentence_transformers")
 
     class FakeSentenceTransformer:
-        def __init__(self, model_name: str) -> None:
+        def __init__(self, model_name: str, device: str | None = None) -> None:
             self.model_name = model_name
+            self.device = device
 
         def encode(self, text: str, *, normalize_embeddings: bool):
             assert normalize_embeddings is True
@@ -75,6 +76,31 @@ def test_sentence_transformer_backend_add_query_count_and_delete(
     assert backend.delete([]) == 0
     assert backend.delete(["doc-a", "missing"]) == 1
     assert backend.count() == 2
+
+
+def test_sentence_transformer_backend_accepts_injected_model(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setitem(sys.modules, "sentence_transformers", None)
+
+    class InjectedModel:
+        def encode(self, text: str, *, normalize_embeddings: bool):
+            assert normalize_embeddings is True
+            return [0.0, 1.0] if "vertical" in text else [1.0, 0.0]
+
+    backend = SentenceTransformerBackend(model=InjectedModel())
+
+    backend.add("doc-a", "alpha policy")
+    backend.add("doc-b", "vertical policy")
+    assert [row["id"] for row in backend.query("alpha question")] == ["doc-a"]
+
+
+def test_sentence_transformer_backend_rejects_model_without_encode() -> None:
+    class NotAModel:
+        encode = "not callable"
+
+    with pytest.raises(ValueError, match="callable encode method"):
+        SentenceTransformerBackend(model=NotAModel())  # type: ignore[arg-type]
 
 
 class _FakeCollection:

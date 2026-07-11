@@ -1362,8 +1362,9 @@ def test_sentence_transformer_backend_add_query_count_and_tenant_filter():
     from director_ai.core import vector_store
 
     class _SentenceTransformer:
-        def __init__(self, model_name):
+        def __init__(self, model_name, device=None):
             self.model_name = model_name
+            self.device = device
 
         def encode(self, text, normalize_embeddings=True):
             assert normalize_embeddings is True

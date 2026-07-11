@@ -1,7 +1,7 @@
 {
   "SPDX-License-Identifier": "Apache-2.0 AND BUSL-1.1",
   "counts": {
-    "benchmarked": 50,
+    "benchmarked": 51,
     "experimental_hooks": 23,
     "public_exports": 226,
     "undocumented": 41,
@@ -718,7 +718,7 @@
       "wired": true
     },
     {
-      "benchmarked": false,
+      "benchmarked": true,
       "documented": false,
       "kind": "public_export",
       "module": ".core",

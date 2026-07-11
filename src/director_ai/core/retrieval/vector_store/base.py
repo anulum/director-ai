@@ -34,11 +34,13 @@ except ImportError:  # pragma: no cover — pure-Python fallback path
 
 logger = logging.getLogger("DirectorAI.VectorStore")
 
-# Re-export recommended model name for documentation
+# Re-export recommended model names for documentation
 RECOMMENDED_EMBEDDING_MODEL = "BAAI/bge-large-en-v1.5"
+RECOMMENDED_RERANKER_MODEL = "cross-encoder/ms-marco-MiniLM-L-6-v2"
 
 __all__ = [
     "RECOMMENDED_EMBEDDING_MODEL",
+    "RECOMMENDED_RERANKER_MODEL",
     "VectorBackend",
     "InMemoryBackend",
     "register_vector_backend",

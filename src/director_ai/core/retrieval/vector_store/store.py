@@ -33,12 +33,14 @@ from ._snapshot import SnapshotAuditMixin
 from ._versioning import VersionLedgerMixin
 from .base import (
     RECOMMENDED_EMBEDDING_MODEL,
+    RECOMMENDED_RERANKER_MODEL,
     InMemoryBackend,
     VectorBackend,
     logger,
 )
-from .composite import HybridBackend
+from .composite import HybridBackend, RerankedBackend
 from .embedding import SentenceTransformerBackend
+from .vendors import FAISSBackend
 
 __all__ = ["VectorGroundTruthStore"]
 
@@ -77,6 +79,70 @@ def _result_evidence_text(result: dict[str, Any]) -> str | None:
 def _result_source(result: dict[str, Any]) -> str:
     """Build the ``vector:<id>`` evidence source label, tolerating a missing id."""
     return f"vector:{result.get('id', '')}"
+
+
+def _build_ann_dense_backend(embedding_model: str) -> VectorBackend | None:
+    """Build the FAISS-indexed dense backend, or ``None`` when unavailable.
+
+    Loads the sentence-transformer embedding model once and hands its
+    ``encode`` to :class:`FAISSBackend`, so the recipe pays a single model
+    load and queries run through the FAISS index instead of the Python
+    linear scan. Returns ``None`` (caller falls back to the linear-scan
+    backend) when ``faiss`` or ``sentence-transformers`` is missing or the
+    embedding model fails to load.
+    """
+    import importlib.util
+
+    if importlib.util.find_spec("faiss") is None:
+        logger.info(
+            "faiss not installed; grounded() uses the linear-scan dense backend. "
+            "Install with: pip install director-ai[faiss]",
+        )
+        return None
+    try:
+        from sentence_transformers import SentenceTransformer
+    except ImportError:
+        return None
+    from ..._device import select_torch_device
+
+    try:
+        model = SentenceTransformer(embedding_model, device=select_torch_device())
+    except Exception:
+        logger.warning(
+            "embedding model %s failed to load; grounded() falls back to the "
+            "linear-scan dense backend",
+            embedding_model,
+        )
+        return None
+    if hasattr(model, "get_embedding_dimension"):
+        vector_size = model.get_embedding_dimension()
+    else:  # sentence-transformers < 5.6 spelling
+        vector_size = model.get_sentence_embedding_dimension()
+    if not vector_size:
+        vector_size = len(model.encode("dimension probe"))
+
+    def _embed(text: str) -> Any:
+        return model.encode(text, normalize_embeddings=True)
+
+    return FAISSBackend(embed_fn=_embed, vector_size=int(vector_size))
+
+
+def _wrap_reranker(backend: VectorBackend, reranker_model: str) -> VectorBackend:
+    """Wrap ``backend`` with cross-encoder reranking, degrading gracefully.
+
+    Returns the backend unchanged (with a warning) when the reranker stack
+    is missing or the cross-encoder model fails to load, so the recipe never
+    trades a working retrieval path for the quality upgrade.
+    """
+    try:
+        return RerankedBackend(base=backend, reranker_model=reranker_model)
+    except Exception:
+        logger.warning(
+            "reranker %s unavailable; grounded() continues without reranking. "
+            "Install with: pip install director-ai[reranker]",
+            reranker_model,
+        )
+        return backend
 
 
 class VectorGroundTruthStore(
@@ -299,13 +365,23 @@ class VectorGroundTruthStore(
         use_hybrid: bool = True,
         rrf_k: int = 60,
         tenant_id: str = "",
+        use_ann: bool = True,
+        use_reranker: bool = True,
+        reranker_model: str = RECOMMENDED_RERANKER_MODEL,
     ) -> VectorGroundTruthStore:
         """Build the recommended grounded retrieval recipe.
 
-        Sets up hybrid retrieval (BM25 + dense) with a sentence-transformer
-        embedding model. This is the intended production path for domain
-        profiles (medical, finance, legal) where NLI-only scoring has
-        100% FPR without KB grounding.
+        Sets up hybrid retrieval (BM25 + FAISS-indexed dense) with a
+        sentence-transformer embedding model and cross-encoder reranking.
+        This is the intended production path for domain profiles (medical,
+        finance, legal) where NLI-only scoring has 100% FPR without KB
+        grounding.
+
+        Every optional layer degrades gracefully: without ``faiss`` the
+        dense path is the sentence-transformer linear scan, without
+        ``sentence-transformers`` it is the keyword ``InMemoryBackend``,
+        and a missing reranker stack leaves retrieval un-reranked — each
+        with a logged warning, never an exception.
 
         Usage::
 
@@ -324,18 +400,32 @@ class VectorGroundTruthStore(
             Reciprocal Rank Fusion parameter (default 60).
         tenant_id : str
             Default tenant scope for multi-tenant deployments.
+        use_ann : bool
+            Index dense embeddings with FAISS instead of the Python
+            linear scan when ``faiss`` is installed (default True).
+        use_reranker : bool
+            Rerank fused candidates with a cross-encoder when the
+            reranker stack is installed (default True).
+        reranker_model : str
+            HuggingFace model ID for the cross-encoder reranker.
+            Default: ``cross-encoder/ms-marco-MiniLM-L-6-v2``.
         """
-        dense: VectorBackend
-        try:
-            dense = SentenceTransformerBackend(model_name=embedding_model)
-        except Exception:
-            logger.warning(
-                "sentence-transformers not available, falling back to InMemoryBackend. "
-                "Install with: pip install director-ai[vector]"
-            )
-            dense = InMemoryBackend()
+        dense: VectorBackend | None = None
+        if use_ann:
+            dense = _build_ann_dense_backend(embedding_model)
+        if dense is None:
+            try:
+                dense = SentenceTransformerBackend(model_name=embedding_model)
+            except Exception:
+                logger.warning(
+                    "sentence-transformers not available, falling back to "
+                    "InMemoryBackend. Install with: pip install director-ai[vector]"
+                )
+                dense = InMemoryBackend()
 
         backend = HybridBackend(base=dense, rrf_k=rrf_k) if use_hybrid else dense
+        if use_reranker:
+            backend = _wrap_reranker(backend, reranker_model)
 
         return cls(backend=backend, tenant_id=tenant_id)
 
