@@ -16,6 +16,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Consolidate the four typos configurations into the single canonical
+  `.typos.toml` (union of all allow-lists and file excludes) and delete
+  `typos.toml`, `_typos.toml`, and `backfire-kernel/_typos.toml`. The
+  pre-commit hook, the CI Pre-commit workflow, and a loose `typos` run
+  from any repo directory now read the same configuration — previously a
+  loose run silently picked the stale `typos.toml`, which wins CLI
+  discovery over the hook-pinned `.typos.toml`.
 - Decompose `finetune_api.py` by responsibility: request/response
   contracts move to `_finetune_schemas`, the local training worker to
   `_finetune_worker`, and the `/managed/*` endpoints to
