@@ -73,6 +73,13 @@ raw matched values. Use the lower-level `RegexPIIDetector`,
 `PresidioPIIDetector`, `KeywordToxicityDetector`, or `DetoxifyDetector` only
 when building a custom moderation policy.
 
+Each redaction or block is reported as a `ContentModerationFinding`
+(detector, category, character span, action taken) inside the returned
+`ContentModerationResult` — tenant-safe metadata with no raw content.
+
+For usage accounting, `CostAnalyser` (from `director_ai.compliance`)
+estimates and attributes token costs across reviewed traffic.
+
 ## Custom Rules DSL
 
 `CustomRuleset` loads strict operator-owned JSON or YAML policy documents and

@@ -10,7 +10,7 @@ experimental hook across `tests/`, `docs-site/`, and `benchmarks/`.
 | Experimental hooks | 23 |
 | Unwired | 0 |
 | Untested (by name mention) | 0 |
-| Undocumented (by name mention) | 41 |
+| Undocumented (by name mention) | 0 |
 | Benchmarked (informational) | 51 |
 
 ## Unwired (0)
@@ -21,46 +21,6 @@ experimental hook across `tests/`, `docs-site/`, and `benchmarks/`.
 
 (none)
 
-## Undocumented (41)
+## Undocumented (0)
 
-- `AdaptiveRouter`
-- `CitationStatusVerdict`
-- `ContentModerationFinding`
-- `ContextualCompressionBackend`
-- `CostAnalyser`
-- `DIRECTOR_SAFETY_PROTOCOL_VERSION`
-- `DataQualityReport`
-- `ElasticsearchBackend`
-- `FAISSBackend`
-- `FinetuneConfig`
-- `FinetuneResult`
-- `HyDEBackend`
-- `KBHealthCheck`
-- `KBHealthReport`
-- `MetaClassifier`
-- `MultiVectorBackend`
-- `NumericVerificationResult`
-- `ParentChildBackend`
-- `PolicyVariantResult`
-- `ProfileMetadata`
-- `QdrantBackend`
-- `QueryDecompositionBackend`
-- `RegressionReport`
-- `ScorerBackend`
-- `ShardedNLIScorer`
-- `StructuredRecoveryResult`
-- `TuneResult`
-- `WeaviateBackend`
-- `benchmark_finetuned_model`
-- `clear_model_cache`
-- `create_knowledge_router`
-- `export_tensorrt`
-- `get_backend`
-- `list_backends`
-- `new_safety_event_id`
-- `register_backend`
-- `utc_timestamp`
-- `emergence_oracle`
-- `knowledge_graph`
-- `multi_scale_alignment`
-- `swarm_economics`
+(none)

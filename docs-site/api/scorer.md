@@ -104,6 +104,23 @@ configured mode needs sentence-level aggregation.
 | `hybrid` | `[nli]` + judge provider | 20-50 ms/pair | ~78% BA | Yes |
 | `rust` | build `backfire-kernel` | ~1 ms/pair | ~65% BA | No |
 
+### Backend registry and scaling helpers
+
+Programmatic access to the same registry the `scorer_model` knob uses:
+
+- `ScorerBackend` — abstract base class every backend implements.
+- `register_backend(name, cls)`, `get_backend(name)`, `list_backends()`
+  — register and resolve backend classes; `get_backend` raises
+  `KeyError` for unknown names.
+- `ShardedNLIScorer` — fans one logical scorer out over N `NLIScorer`
+  instances pinned to different CUDA devices for multi-GPU hosts.
+- `MetaClassifier` — logistic regression that predicts the dataset type
+  so the pipeline can pick a matching scoring threshold.
+- `clear_model_cache()` — evicts every cached NLI model to free GPU
+  memory (useful between fine-tune activations).
+- `export_tensorrt(...)` — pre-builds the TensorRT engine cache from an
+  exported ONNX model so first-request latency stays flat.
+
 ## Validation Rules
 
 - `threshold` must be in [0.0, 1.0]

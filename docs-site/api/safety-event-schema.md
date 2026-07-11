@@ -53,6 +53,10 @@ For cross-runtime sharing, wrap validated events in
 uses the same event validator internally, so direct event ingestion and protocol
 transport stay aligned.
 
+Two helpers keep records opaque and time-consistent:
+`new_safety_event_id()` returns the opaque event ID and
+`utc_timestamp()` the RFC-3339 UTC timestamp stamped into every record.
+
 ::: director_ai.core.safety_event.SafetyEvent
 
 ::: director_ai.core.safety_event.validate_safety_event_payload

@@ -271,3 +271,16 @@ from director_ai.core.runtime.batch import BatchProcessor
 # Enterprise (lazy-loaded)
 from director_ai.enterprise import TenantRouter, Policy, AuditLogger, CustomRuleset
 ```
+
+
+## Experimental Hooks
+
+Loaded on demand via `director_ai.experimental`; APIs may change between
+minor releases:
+
+| Hook | Description |
+|------|-------------|
+| `emergence_oracle` | Detects dangerous collective patterns on a live swarm trace |
+| `knowledge_graph` | Directed graph of skills and sanctioned transitions between them |
+| `multi_scale_alignment` | Hierarchical alignment check from agent scale upwards |
+| `swarm_economics` | Inter-agent resource economics and tragedy-of-the-commons detection |

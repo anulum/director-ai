@@ -640,6 +640,107 @@ python -m director_ai.grpc_scoring --listen 127.0.0.1:50051 --threshold 0.6
 
 ---
 
+## Retrieval Backends & Decorators
+
+Vendor backends implement the `VectorBackend` contract (`add`, `query`,
+`count`) and plug into `VectorGroundTruthStore`:
+
+| Backend | Description |
+|---------|-------------|
+| `FAISSBackend` | In-process dense vector search (flat exact or IVF index); the default dense engine behind `VectorGroundTruthStore.grounded()` when the `faiss` extra is installed |
+| `QdrantBackend` | Qdrant vector database backend (`director-ai[qdrant]`); maps doc ids to deterministic UUID points |
+| `WeaviateBackend` | Weaviate vector database backend via the v4 collections API (`director-ai[weaviate]`) |
+| `ElasticsearchBackend` | Elasticsearch 8.x backend with hybrid BM25 + kNN retrieval (`director-ai[elasticsearch]`) |
+
+Retrieval decorators wrap any `VectorBackend` to change how queries are
+formed or how results are assembled:
+
+| Decorator | Description |
+|-----------|-------------|
+| `HyDEBackend` | Generates a pseudo-document for the query before dense retrieval (HyDE) |
+| `MultiVectorBackend` | Indexes multiple representations per document and queries across all of them |
+| `ParentChildBackend` | Indexes small child chunks for precision but returns the enclosing parent chunks for context |
+| `ContextualCompressionBackend` | Compresses retrieved passages down to the query-relevant sentences |
+| `QueryDecompositionBackend` | Splits compound queries, retrieves per sub-query, and merges the results |
+| `AdaptiveRouter` | Classifies queries into retrieve-or-skip decisions so trivial prompts bypass retrieval |
+
+Knowledge-base diagnostics: `KBHealthCheck` runs store diagnostics
+(duplicates, staleness, coverage) and returns a `KBHealthReport`.
+
+## Scorer Backend Registry
+
+Alternative scorer implementations register under a name and are resolved
+at configuration time:
+
+- `ScorerBackend` — abstract base class for scorer backends.
+- `register_backend(name, cls)` / `get_backend(name)` / `list_backends()` —
+  registry surface; `get_backend` raises `KeyError` for unknown names.
+- `ShardedNLIScorer` — fans one logical scorer out over N `NLIScorer`
+  instances pinned to different CUDA devices.
+- `MetaClassifier` — logistic regression that predicts the dataset type to
+  select a scoring threshold.
+- `clear_model_cache()` — evicts all cached NLI models to free GPU memory.
+- `export_tensorrt(...)` — pre-builds a TensorRT engine cache from an
+  exported ONNX model.
+
+## Fine-Tuning Types
+
+The `/v1/finetune` REST surface and the local training pipeline exchange
+these types:
+
+| Type | Description |
+|------|-------------|
+| `FinetuneConfig` | Fine-tuning hyperparameters (base model, epochs, batch size, learning rate, mixing and early-stopping knobs) |
+| `FinetuneResult` | Training result summary (output directory, eval metrics, regression report) |
+| `RegressionReport` | Anti-regression benchmark verdict produced by `benchmark_finetuned_model(...)` |
+| `DataQualityReport` | Validation result for uploaded fine-tuning JSONL (label balance, duplicates, cost estimate) |
+| `TuneResult` | Selected threshold and diagnostic evidence from a calibration tuning run |
+
+## Verification & Recovery Types
+
+- `NumericVerificationResult` — result of numeric claim verification on a
+  text (value extraction and comparison against evidence).
+- `StructuredRecoveryResult` — parser-safe structured recovery result
+  attached to a `StreamSession` after a halted stream is repaired.
+- `CitationStatusVerdict` — per-source freshness contribution from an
+  external citation status feed (`retracted`, `superseded`, …) inside
+  temporal-freshness scoring.
+
+## Safety Protocol & Events
+
+- `DIRECTOR_SAFETY_PROTOCOL_VERSION` — wire identifier of the tenant-safe
+  guard-signal envelope (`director.safety_protocol.v1`).
+- `new_safety_event_id()` — opaque ID for a safety event record.
+- `utc_timestamp()` — RFC-3339 UTC timestamp used in event records.
+
+## Evaluation, Profiles & Governance Types
+
+- `PolicyVariantResult` — confusion-matrix metrics for one policy variant
+  in a two-arm policy comparison.
+- `ProfileMetadata` — operator-facing metadata for a built-in configuration
+  profile (intended workload, validation status, calibration requirements).
+- `CostAnalyser` — token cost estimation and attribution for reviewed
+  traffic.
+- `ContentModerationFinding` — tenant-safe metadata for one moderation
+  finding (detector, category, span, action) inside
+  `ContentModerationResult`.
+- `create_knowledge_router()` — builds the `/v1/knowledge` FastAPI router
+  mounted by the server (see the FastAPI Endpoints section).
+
+## Experimental Hooks
+
+Loaded on demand via `director_ai.experimental`; APIs may change between
+minor releases:
+
+| Hook | Description |
+|------|-------------|
+| `emergence_oracle` | Detects dangerous collective patterns on a live swarm trace |
+| `knowledge_graph` | Directed graph of skills and sanctioned transitions between them |
+| `multi_scale_alignment` | Hierarchical alignment check from agent scale upwards |
+| `swarm_economics` | Inter-agent resource economics and tragedy-of-the-commons detection |
+
+---
+
 ## Data Types
 
 | Type | Fields | Description |

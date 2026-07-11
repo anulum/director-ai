@@ -7,6 +7,10 @@ pipelines. It wraps the existing `SafetyEvent` schema rather than replacing it:
 `DirectorSafetySignal` adds producer identity, interoperability hints, privacy
 flags, and deterministic JSON serialization.
 
+The envelope carries the wire identifier
+`DIRECTOR_SAFETY_PROTOCOL_VERSION` (`director.safety_protocol.v1`);
+consumers reject payloads with an unknown version.
+
 ## Contract
 
 `DirectorSafetySignal` enforces these boundaries:

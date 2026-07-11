@@ -60,6 +60,10 @@ print(comparison.delta_balanced_accuracy)
 print(comparison.winner)
 ```
 
+`comparison.baseline` and `comparison.candidate` are `PolicyVariantResult`
+records — the confusion-matrix metrics (`tp`/`fp`/`tn`/`fn`, balanced
+accuracy, false-positive and false-negative rates) for one variant.
+
 ## Scoring Callback
 
 If samples do not carry cached scores, pass a score function. The callback

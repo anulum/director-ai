@@ -4,61 +4,19 @@
     "benchmarked": 51,
     "experimental_hooks": 23,
     "public_exports": 226,
-    "undocumented": 41,
+    "undocumented": 0,
     "untested": 0,
     "unwired": 0
   },
   "gaps": {
-    "undocumented": [
-      "AdaptiveRouter",
-      "CitationStatusVerdict",
-      "ContentModerationFinding",
-      "ContextualCompressionBackend",
-      "CostAnalyser",
-      "DIRECTOR_SAFETY_PROTOCOL_VERSION",
-      "DataQualityReport",
-      "ElasticsearchBackend",
-      "FAISSBackend",
-      "FinetuneConfig",
-      "FinetuneResult",
-      "HyDEBackend",
-      "KBHealthCheck",
-      "KBHealthReport",
-      "MetaClassifier",
-      "MultiVectorBackend",
-      "NumericVerificationResult",
-      "ParentChildBackend",
-      "PolicyVariantResult",
-      "ProfileMetadata",
-      "QdrantBackend",
-      "QueryDecompositionBackend",
-      "RegressionReport",
-      "ScorerBackend",
-      "ShardedNLIScorer",
-      "StructuredRecoveryResult",
-      "TuneResult",
-      "WeaviateBackend",
-      "benchmark_finetuned_model",
-      "clear_model_cache",
-      "create_knowledge_router",
-      "export_tensorrt",
-      "get_backend",
-      "list_backends",
-      "new_safety_event_id",
-      "register_backend",
-      "utc_timestamp",
-      "emergence_oracle",
-      "knowledge_graph",
-      "multi_scale_alignment",
-      "swarm_economics"
-    ],
+    "undocumented": [],
     "untested": [],
     "unwired": []
   },
   "rows": [
     {
       "benchmarked": false,
-      "documented": false,
+      "documented": true,
       "kind": "public_export",
       "module": ".core.retrieval.adaptive_router",
       "name": "AdaptiveRouter",
@@ -274,7 +232,7 @@
     },
     {
       "benchmarked": false,
-      "documented": false,
+      "documented": true,
       "kind": "public_export",
       "module": ".core.scoring.temporal_freshness",
       "name": "CitationStatusVerdict",
@@ -418,7 +376,7 @@
     },
     {
       "benchmarked": false,
-      "documented": false,
+      "documented": true,
       "kind": "public_export",
       "module": ".enterprise.moderation",
       "name": "ContentModerationFinding",
@@ -445,7 +403,7 @@
     },
     {
       "benchmarked": false,
-      "documented": false,
+      "documented": true,
       "kind": "public_export",
       "module": ".core.retrieval.contextual_compression",
       "name": "ContextualCompressionBackend",
@@ -481,7 +439,7 @@
     },
     {
       "benchmarked": false,
-      "documented": false,
+      "documented": true,
       "kind": "public_export",
       "module": ".compliance.cost_analyser",
       "name": "CostAnalyser",
@@ -571,7 +529,7 @@
     },
     {
       "benchmarked": false,
-      "documented": false,
+      "documented": true,
       "kind": "public_export",
       "module": ".core",
       "name": "DIRECTOR_SAFETY_PROTOCOL_VERSION",
@@ -580,7 +538,7 @@
     },
     {
       "benchmarked": false,
-      "documented": false,
+      "documented": true,
       "kind": "public_export",
       "module": ".core",
       "name": "DataQualityReport",
@@ -670,7 +628,7 @@
     },
     {
       "benchmarked": false,
-      "documented": false,
+      "documented": true,
       "kind": "public_export",
       "module": ".core",
       "name": "ElasticsearchBackend",
@@ -697,7 +655,7 @@
     },
     {
       "benchmarked": true,
-      "documented": false,
+      "documented": true,
       "kind": "public_export",
       "module": ".core",
       "name": "FAISSBackend",
@@ -751,7 +709,7 @@
     },
     {
       "benchmarked": false,
-      "documented": false,
+      "documented": true,
       "kind": "public_export",
       "module": ".core",
       "name": "FinetuneConfig",
@@ -760,7 +718,7 @@
     },
     {
       "benchmarked": false,
-      "documented": false,
+      "documented": true,
       "kind": "public_export",
       "module": ".core",
       "name": "FinetuneResult",
@@ -886,7 +844,7 @@
     },
     {
       "benchmarked": false,
-      "documented": false,
+      "documented": true,
       "kind": "public_export",
       "module": ".core.retrieval.hyde",
       "name": "HyDEBackend",
@@ -1012,7 +970,7 @@
     },
     {
       "benchmarked": false,
-      "documented": false,
+      "documented": true,
       "kind": "public_export",
       "module": ".core.retrieval.kb_health",
       "name": "KBHealthCheck",
@@ -1021,7 +979,7 @@
     },
     {
       "benchmarked": false,
-      "documented": false,
+      "documented": true,
       "kind": "public_export",
       "module": ".core.retrieval.kb_health",
       "name": "KBHealthReport",
@@ -1102,7 +1060,7 @@
     },
     {
       "benchmarked": false,
-      "documented": false,
+      "documented": true,
       "kind": "public_export",
       "module": ".core",
       "name": "MetaClassifier",
@@ -1138,7 +1096,7 @@
     },
     {
       "benchmarked": false,
-      "documented": false,
+      "documented": true,
       "kind": "public_export",
       "module": ".core.retrieval.multi_vector",
       "name": "MultiVectorBackend",
@@ -1183,7 +1141,7 @@
     },
     {
       "benchmarked": false,
-      "documented": false,
+      "documented": true,
       "kind": "public_export",
       "module": ".core.verification.numeric_verifier",
       "name": "NumericVerificationResult",
@@ -1219,7 +1177,7 @@
     },
     {
       "benchmarked": false,
-      "documented": false,
+      "documented": true,
       "kind": "public_export",
       "module": ".core.retrieval.parent_child",
       "name": "ParentChildBackend",
@@ -1273,7 +1231,7 @@
     },
     {
       "benchmarked": false,
-      "documented": false,
+      "documented": true,
       "kind": "public_export",
       "module": ".core",
       "name": "PolicyVariantResult",
@@ -1309,7 +1267,7 @@
     },
     {
       "benchmarked": false,
-      "documented": false,
+      "documented": true,
       "kind": "public_export",
       "module": ".core",
       "name": "ProfileMetadata",
@@ -1318,7 +1276,7 @@
     },
     {
       "benchmarked": false,
-      "documented": false,
+      "documented": true,
       "kind": "public_export",
       "module": ".core",
       "name": "QdrantBackend",
@@ -1327,7 +1285,7 @@
     },
     {
       "benchmarked": false,
-      "documented": false,
+      "documented": true,
       "kind": "public_export",
       "module": ".core.retrieval.query_decomposition",
       "name": "QueryDecompositionBackend",
@@ -1345,7 +1303,7 @@
     },
     {
       "benchmarked": true,
-      "documented": false,
+      "documented": true,
       "kind": "public_export",
       "module": ".core",
       "name": "RegressionReport",
@@ -1435,7 +1393,7 @@
     },
     {
       "benchmarked": false,
-      "documented": false,
+      "documented": true,
       "kind": "public_export",
       "module": ".core",
       "name": "ScorerBackend",
@@ -1462,7 +1420,7 @@
     },
     {
       "benchmarked": false,
-      "documented": false,
+      "documented": true,
       "kind": "public_export",
       "module": ".core",
       "name": "ShardedNLIScorer",
@@ -1534,7 +1492,7 @@
     },
     {
       "benchmarked": false,
-      "documented": false,
+      "documented": true,
       "kind": "public_export",
       "module": ".core",
       "name": "StructuredRecoveryResult",
@@ -1606,7 +1564,7 @@
     },
     {
       "benchmarked": false,
-      "documented": false,
+      "documented": true,
       "kind": "public_export",
       "module": ".core",
       "name": "TuneResult",
@@ -1687,7 +1645,7 @@
     },
     {
       "benchmarked": false,
-      "documented": false,
+      "documented": true,
       "kind": "public_export",
       "module": ".core",
       "name": "WeaviateBackend",
@@ -1696,7 +1654,7 @@
     },
     {
       "benchmarked": false,
-      "documented": false,
+      "documented": true,
       "kind": "public_export",
       "module": ".core",
       "name": "benchmark_finetuned_model",
@@ -1741,7 +1699,7 @@
     },
     {
       "benchmarked": false,
-      "documented": false,
+      "documented": true,
       "kind": "public_export",
       "module": ".core",
       "name": "clear_model_cache",
@@ -1786,7 +1744,7 @@
     },
     {
       "benchmarked": false,
-      "documented": false,
+      "documented": true,
       "kind": "public_export",
       "module": ".knowledge_api",
       "name": "create_knowledge_router",
@@ -1831,7 +1789,7 @@
     },
     {
       "benchmarked": false,
-      "documented": false,
+      "documented": true,
       "kind": "public_export",
       "module": ".core",
       "name": "export_tensorrt",
@@ -1849,7 +1807,7 @@
     },
     {
       "benchmarked": false,
-      "documented": false,
+      "documented": true,
       "kind": "public_export",
       "module": ".core",
       "name": "get_backend",
@@ -1885,7 +1843,7 @@
     },
     {
       "benchmarked": false,
-      "documented": false,
+      "documented": true,
       "kind": "public_export",
       "module": ".core",
       "name": "list_backends",
@@ -1912,7 +1870,7 @@
     },
     {
       "benchmarked": false,
-      "documented": false,
+      "documented": true,
       "kind": "public_export",
       "module": ".core",
       "name": "new_safety_event_id",
@@ -1930,7 +1888,7 @@
     },
     {
       "benchmarked": false,
-      "documented": false,
+      "documented": true,
       "kind": "public_export",
       "module": ".core",
       "name": "register_backend",
@@ -1993,7 +1951,7 @@
     },
     {
       "benchmarked": false,
-      "documented": false,
+      "documented": true,
       "kind": "public_export",
       "module": ".core",
       "name": "utc_timestamp",
@@ -2137,7 +2095,7 @@
     },
     {
       "benchmarked": false,
-      "documented": false,
+      "documented": true,
       "kind": "experimental_hook",
       "module": "director_ai.core.emergence_oracle",
       "name": "emergence_oracle",
@@ -2173,7 +2131,7 @@
     },
     {
       "benchmarked": false,
-      "documented": false,
+      "documented": true,
       "kind": "experimental_hook",
       "module": "director_ai.core.knowledge_graph",
       "name": "knowledge_graph",
@@ -2191,7 +2149,7 @@
     },
     {
       "benchmarked": false,
-      "documented": false,
+      "documented": true,
       "kind": "experimental_hook",
       "module": "director_ai.core.multi_scale_alignment",
       "name": "multi_scale_alignment",
@@ -2245,7 +2203,7 @@
     },
     {
       "benchmarked": false,
-      "documented": false,
+      "documented": true,
       "kind": "experimental_hook",
       "module": "director_ai.core.swarm_economics",
       "name": "swarm_economics",

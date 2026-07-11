@@ -278,3 +278,27 @@ Per-claim injection attribution from `InjectionDetector`.
 ::: director_ai.core.types.CounterfactualHaltDiagnostic
 
 ::: director_ai.core.types.CounterfactualFactChange
+
+
+## Verification & Recovery Types
+
+- `NumericVerificationResult` — result of numeric claim verification on a
+  text (extracted values compared against evidence).
+- `StructuredRecoveryResult` — parser-safe structured recovery result
+  attached to a `StreamSession` after a halted stream is repaired.
+- `CitationStatusVerdict` — per-source freshness contribution from an
+  external citation status feed (for example `retracted`) inside
+  temporal-freshness scoring.
+
+## Fine-Tuning & Calibration Types
+
+- `FinetuneConfig` — fine-tuning hyperparameters (base model, epochs,
+  batch size, learning rate, data-mixing and early-stopping knobs).
+- `FinetuneResult` — training result summary (output directory, eval
+  metrics, regression report).
+- `RegressionReport` — anti-regression verdict produced by
+  `benchmark_finetuned_model(...)` before a fine-tune may be activated.
+- `DataQualityReport` — validation result for uploaded fine-tuning JSONL
+  (label balance, duplicates, time and cost estimates).
+- `TuneResult` — selected threshold and diagnostic evidence from a
+  calibration tuning run.

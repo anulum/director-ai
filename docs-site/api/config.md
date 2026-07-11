@@ -61,6 +61,11 @@ Dataclass-based configuration with environment variable, YAML file, and named pr
 | `summarization` | On | 0.15 | 3 | On | Document summarization |
 | `lite` | Off | 0.50 | 1 | Off | Zero-dependency fast path |
 
+Each built-in profile ships `ProfileMetadata` (intended workload,
+validation status, expected false-halt risk, calibration requirements) —
+inspect it via `director_ai.core.config_profiles.PROFILE_METADATA` before
+deploying a profile to production.
+
 ## Building Components from Config
 
 ```python

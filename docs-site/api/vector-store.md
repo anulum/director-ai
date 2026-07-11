@@ -216,6 +216,11 @@ class MyBackend(VectorBackend):
 | `InMemoryBackend` | included | TF-IDF cosine similarity. No deps, good for testing. |
 | `SentenceTransformerBackend` | `pip install director-ai[embeddings]` | Dense embeddings via `sentence-transformers`. Production-quality. |
 | `ChromaBackend` | `pip install director-ai[vector]` | ChromaDB persistent store. Scales to millions of documents. |
+| `FAISSBackend` | `pip install director-ai[faiss]` | In-process FAISS index (flat exact or IVF); the default dense engine behind `grounded()` when the extra is installed. |
+| `QdrantBackend` | `pip install director-ai[qdrant]` | Qdrant vector database; document ids map to deterministic UUID points so re-adds upsert. |
+| `WeaviateBackend` | `pip install director-ai[weaviate]` | Weaviate database via the v4 collections API (HTTP + gRPC). |
+| `ElasticsearchBackend` | `pip install director-ai[elasticsearch]` | Elasticsearch 8.x with hybrid BM25 + kNN retrieval. |
+| `PineconeBackend` | `pip install director-ai[pinecone]` | Pinecone managed vector database. |
 
 ### ChromaBackend
 
@@ -258,6 +263,37 @@ backend = BackendClass(**kwargs)
 | `register_vector_backend(name, cls)` | Register a backend class |
 | `get_vector_backend(name)` | Look up a registered backend class |
 | `list_vector_backends()` | List registered backend names |
+
+## Retrieval Decorators
+
+Each decorator wraps any `VectorBackend` and changes how queries are
+formed or how results are assembled:
+
+| Decorator | Description |
+|-----------|-------------|
+| `HybridBackend` | BM25 + dense fusion via Reciprocal Rank Fusion. |
+| `RerankedBackend` | Cross-encoder reranking over an over-fetched candidate set. |
+| `HyDEBackend` | Generates a pseudo-document for the query before dense retrieval (HyDE). |
+| `MultiVectorBackend` | Indexes multiple representations per document and queries across all of them. |
+| `ParentChildBackend` | Indexes small child chunks for precision, returns the enclosing parent chunks for context. |
+| `ContextualCompressionBackend` | Compresses retrieved passages down to the query-relevant sentences. |
+| `QueryDecompositionBackend` | Splits compound queries, retrieves per sub-query, and merges results. |
+
+`AdaptiveRouter` sits in front of retrieval and classifies each query
+into a retrieve-or-skip decision, so trivial prompts bypass the store
+entirely.
+
+## Knowledge-Base Health
+
+`KBHealthCheck` runs diagnostics over a store (document count,
+queryability, probe-query latency) and returns a `KBHealthReport`
+with `healthy`, per-check counts, and any issues or warnings:
+
+```python
+from director_ai.core.retrieval.kb_health import KBHealthCheck
+
+report = KBHealthCheck(store).run()
+```
 
 ## Reranking
 

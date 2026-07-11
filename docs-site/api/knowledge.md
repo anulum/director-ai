@@ -2,6 +2,10 @@
 
 Upload, manage, and search customer documents for grounded hallucination detection.
 
+The router is built by `create_knowledge_router()` and mounted by the
+server at `/v1/knowledge`; embedders can mount it into their own FastAPI
+app the same way.
+
 ## Endpoints
 
 All endpoints are tenant-scoped via `X-Tenant-ID` header.
