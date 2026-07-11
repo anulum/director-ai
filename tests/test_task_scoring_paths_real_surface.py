@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import pytest
 
-import director_ai.core.scoring._task_scoring as task_scoring
+import director_ai.core.scoring._task_accel as task_accel
 import director_ai.core.scoring.lite_scorer as lite_scorer
 from director_ai.core.config import DirectorConfig
 from director_ai.core.retrieval.knowledge import GroundTruthStore
@@ -18,7 +18,7 @@ from tools.test_surface_policy_manifest import KNOWN_TEST_SURFACE_CLASSIFICATION
 @pytest.fixture
 def deterministic_python_scoring(monkeypatch: pytest.MonkeyPatch) -> None:
     """Run optional accelerator paths through deterministic Python fallbacks."""
-    monkeypatch.setattr(task_scoring, "_RUST_TASK", False)
+    monkeypatch.setattr(task_accel, "_RUST_TASK", False)
     monkeypatch.setattr(lite_scorer, "_RUST_LITE", False)
 
 

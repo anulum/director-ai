@@ -19,12 +19,12 @@ from director_ai.core.types import CoherenceScore
 
 @pytest.fixture(autouse=True)
 def _python_accelerator_fallbacks(monkeypatch):
-    import director_ai.core.scoring._task_scoring as task_scoring
+    import director_ai.core.scoring._task_accel as task_accel
 
     # Knowledge-store lexical overlap now runs through the shared text_overlap
     # helper (bit-exact Python/Rust paths), so no module-level kernel flag needs
     # forcing here — the task-type classifier kernel still does.
-    monkeypatch.setattr(task_scoring, "_RUST_TASK", False)
+    monkeypatch.setattr(task_accel, "_RUST_TASK", False)
 
 
 # ── CoherenceScorer.review_batch ─────────────────────────────────────
