@@ -9,7 +9,7 @@
     "python_model_classes": 1018,
     "python_model_source_modules": 489,
     "rust_pyo3_model_wrappers": 83,
-    "test_files": 733
+    "test_files": 734
   },
   "documentation": {
     "public_pages": [
@@ -5858,6 +5858,7 @@
       "tests/test_request_processor.py",
       "tests/test_reranker.py",
       "tests/test_retrieval_benchmark_quality.py",
+      "tests/test_review_conformal.py",
       "tests/test_review_pipeline_mixin.py",
       "tests/test_review_queue.py",
       "tests/test_review_queue_real_surface.py",

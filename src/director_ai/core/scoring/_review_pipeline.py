@@ -29,6 +29,7 @@ from ._divergence import DIVERGENCE_NEUTRAL, DivergenceMixin
 
 if TYPE_CHECKING:
     from ..cache import ScoreCache
+    from ..calibration.conformal import ConformalPredictor
     from ..redactor import PIIRedactor
     from ._llm_judge import LLMJudge
     from .reasoning_scorer import ReasoningScorer
@@ -63,6 +64,7 @@ class ReviewPipelineMixin(DivergenceMixin):
     _verified_scorer_low_confidence_margin: float
     _verified_scorer_min_coverage: float
     _verified_scorer_task_types: set[str]
+    _conformal_predictor: ConformalPredictor | None
     _judge: LLMJudge
     _reasoning: ReasoningScorer
     _redactor: PIIRedactor
@@ -75,6 +77,52 @@ class ReviewPipelineMixin(DivergenceMixin):
         def _get_meta_classifier(self) -> Any | None: ...
 
         def _get_injection_runtime_state(self) -> tuple[Any | None, bool]: ...
+
+    def enable_conformal(
+        self,
+        predictor: ConformalPredictor | None = None,
+        *,
+        coverage: float = 0.95,
+        min_samples: int = 30,
+    ) -> ConformalPredictor:
+        """Opt in to conformal hallucination-risk intervals on ``review()``.
+
+        Attaches a :class:`~director_ai.core.calibration.conformal.
+        ConformalPredictor` (a supplied one, or a fresh predictor at the
+        given *coverage* and *min_samples*) and returns it so the caller
+        can calibrate it — ``calibrate()``, ``calibrate_from_feedback()``,
+        or per-observation ``add_observation()``. Until enabled, review
+        results carry no conformal fields and behaviour is unchanged.
+        """
+        if predictor is None:
+            from ..calibration.conformal import ConformalPredictor
+
+            predictor = ConformalPredictor(coverage=coverage, min_samples=min_samples)
+        self._conformal_predictor = predictor
+        return predictor
+
+    def _apply_conformal_interval(
+        self,
+        result: tuple[bool, CoherenceScore],
+    ) -> tuple[bool, CoherenceScore]:
+        """Attach the calibrated risk interval to a finalised review result.
+
+        A no-op until :meth:`enable_conformal` is called, so the default
+        review path is unchanged. The interval bounds P(hallucination) at
+        the predictor's coverage level; approval is not altered — routing
+        on the bounds stays with the caller (see ``ConformalRoutingPolicy``).
+        """
+        predictor = self._conformal_predictor
+        if predictor is None:
+            return result
+        interval = predictor.predict(result[1].score)
+        score = result[1]
+        score.conformal_risk_lower = interval.lower
+        score.conformal_risk_upper = interval.upper
+        score.conformal_coverage = interval.coverage
+        score.conformal_calibration_size = interval.calibration_size
+        score.conformal_reliable = interval.is_reliable
+        return result
 
     def _finalise_review(
         self,
@@ -341,7 +389,9 @@ class ReviewPipelineMixin(DivergenceMixin):
                 h_f = getattr(score_obj, "h_factual", 0.0)
                 fallback = 1.0 - (self.W_LOGIC * h_l + self.W_FACT * h_f)
                 coh = getattr(score_obj, "score", fallback)
-                result = self._finalise_review(coh, h_l, h_f, action)
+                result = self._apply_conformal_interval(
+                    self._finalise_review(coh, h_l, h_f, action)
+                )
                 span.set_attribute("coherence.score", result[1].score)
                 span.set_attribute("coherence.approved", result[0])
                 span.set_attribute("coherence.backend", "rust")
@@ -359,11 +409,13 @@ class ReviewPipelineMixin(DivergenceMixin):
                     )
                     cache_span.set_attribute("cache.hit", cached is not None)
                 if cached is not None:
-                    result = self._finalise_review(
-                        cached.score,
-                        cached.h_logical,
-                        cached.h_factual,
-                        action,
+                    result = self._apply_conformal_interval(
+                        self._finalise_review(
+                            cached.score,
+                            cached.h_logical,
+                            cached.h_factual,
+                            action,
+                        )
                     )
                     span.set_attribute("coherence.score", cached.score)
                     span.set_attribute("coherence.approved", result[0])
@@ -499,6 +551,7 @@ class ReviewPipelineMixin(DivergenceMixin):
                 result[1].intent_drift_risk = drift.drift_risk
                 result[1].intent_drift_triggered = drift.triggered
 
+            result = self._apply_conformal_interval(result)
             span.set_attribute("coherence.score", result[1].score)
             span.set_attribute("coherence.approved", result[0])
             span.set_attribute("coherence.cached", False)
@@ -637,14 +690,16 @@ class ReviewPipelineMixin(DivergenceMixin):
                 if nli_threshold is not None:
                     effective_threshold = self.W_FACT + self.W_LOGIC * nli_threshold
 
-            results[i] = self._finalise_review(
-                coherence,
-                h_logic,
-                h_fact,
-                items[i][1],
-                evidence,
-                threshold_override=effective_threshold,
-                detected_task_type=task_type,
+            results[i] = self._apply_conformal_interval(
+                self._finalise_review(
+                    coherence,
+                    h_logic,
+                    h_fact,
+                    items[i][1],
+                    evidence,
+                    threshold_override=effective_threshold,
+                    detected_task_type=task_type,
+                )
             )
 
         return [r for r in results if r is not None]

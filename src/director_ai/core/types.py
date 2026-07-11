@@ -133,6 +133,13 @@ class CoherenceScore:
     # Long-context intent-drift interlock (None unless the session tracks it)
     intent_drift_risk: float | None = None  # 0-1 accumulated drift
     intent_drift_triggered: bool | None = None  # slow-burn jailbreak tripped
+    # Conformal hallucination-risk interval (opt-in via enable_conformal()):
+    # distribution-free bounds on P(hallucination) at the stated coverage.
+    conformal_risk_lower: float | None = None
+    conformal_risk_upper: float | None = None
+    conformal_coverage: float | None = None  # target coverage, e.g. 0.95
+    conformal_calibration_size: int | None = None
+    conformal_reliable: bool | None = None  # calibration_size >= min_samples
 
     # -- Claim-Level Provenance (Gem 2) ------------------------------------
 
