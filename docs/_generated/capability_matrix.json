@@ -5,7 +5,7 @@
     "experimental_hooks": 23,
     "public_exports": 226,
     "undocumented": 41,
-    "untested": 14,
+    "untested": 0,
     "unwired": 0
   },
   "gaps": {
@@ -52,22 +52,7 @@
       "multi_scale_alignment",
       "swarm_economics"
     ],
-    "untested": [
-      "ContentModerationFinding",
-      "ContentModerationResult",
-      "DriftResult",
-      "FieldVerdict",
-      "HipaaDocumentationPacket",
-      "InferenceHookDecision",
-      "PolicyComparisonReport",
-      "PolicyVariantResult",
-      "ProfileMetadata",
-      "Soc2IsoReadinessReport",
-      "StoredDocument",
-      "StructuredVerificationResult",
-      "ToolCallResult",
-      "new_director_safety_signal_id"
-    ],
+    "untested": [],
     "unwired": []
   },
   "rows": [
@@ -437,7 +422,7 @@
       "kind": "public_export",
       "module": ".enterprise.moderation",
       "name": "ContentModerationFinding",
-      "tested": false,
+      "tested": true,
       "wired": true
     },
     {
@@ -446,7 +431,7 @@
       "kind": "public_export",
       "module": ".enterprise.moderation",
       "name": "ContentModerationResult",
-      "tested": false,
+      "tested": true,
       "wired": true
     },
     {
@@ -680,7 +665,7 @@
       "kind": "public_export",
       "module": ".compliance.drift_detector",
       "name": "DriftResult",
-      "tested": false,
+      "tested": true,
       "wired": true
     },
     {
@@ -761,7 +746,7 @@
       "kind": "public_export",
       "module": ".core.verification.types",
       "name": "FieldVerdict",
-      "tested": false,
+      "tested": true,
       "wired": true
     },
     {
@@ -869,7 +854,7 @@
       "kind": "public_export",
       "module": ".compliance.readiness",
       "name": "HipaaDocumentationPacket",
-      "tested": false,
+      "tested": true,
       "wired": true
     },
     {
@@ -932,7 +917,7 @@
       "kind": "public_export",
       "module": ".integrations.inference_server_hooks",
       "name": "InferenceHookDecision",
-      "tested": false,
+      "tested": true,
       "wired": true
     },
     {
@@ -1265,7 +1250,7 @@
       "kind": "public_export",
       "module": ".core",
       "name": "PolicyComparisonReport",
-      "tested": false,
+      "tested": true,
       "wired": true
     },
     {
@@ -1292,7 +1277,7 @@
       "kind": "public_export",
       "module": ".core",
       "name": "PolicyVariantResult",
-      "tested": false,
+      "tested": true,
       "wired": true
     },
     {
@@ -1328,7 +1313,7 @@
       "kind": "public_export",
       "module": ".core",
       "name": "ProfileMetadata",
-      "tested": false,
+      "tested": true,
       "wired": true
     },
     {
@@ -1499,7 +1484,7 @@
       "kind": "public_export",
       "module": ".compliance.readiness",
       "name": "Soc2IsoReadinessReport",
-      "tested": false,
+      "tested": true,
       "wired": true
     },
     {
@@ -1508,7 +1493,7 @@
       "kind": "public_export",
       "module": ".core",
       "name": "StoredDocument",
-      "tested": false,
+      "tested": true,
       "wired": true
     },
     {
@@ -1562,7 +1547,7 @@
       "kind": "public_export",
       "module": ".core.verification.types",
       "name": "StructuredVerificationResult",
-      "tested": false,
+      "tested": true,
       "wired": true
     },
     {
@@ -1616,7 +1601,7 @@
       "kind": "public_export",
       "module": ".core.verification.types",
       "name": "ToolCallResult",
-      "tested": false,
+      "tested": true,
       "wired": true
     },
     {
@@ -1922,7 +1907,7 @@
       "kind": "public_export",
       "module": ".core",
       "name": "new_director_safety_signal_id",
-      "tested": false,
+      "tested": true,
       "wired": true
     },
     {

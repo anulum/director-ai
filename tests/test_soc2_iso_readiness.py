@@ -296,3 +296,19 @@ def test_hipaa_obligation_validation_rejects_invalid_operator_input(
 
     with pytest.raises(ValueError, match=message):
         HipaaDeploymentObligation(**base)
+
+
+def test_builders_return_the_readiness_report_and_hipaa_packet_contracts() -> None:
+    from director_ai.compliance.readiness import (
+        HipaaDocumentationPacket,
+        Soc2IsoReadinessReport,
+    )
+
+    packet = build_hipaa_documentation_packet(generated_at="2026-07-12T00:00:00Z")
+
+    assert isinstance(packet, HipaaDocumentationPacket)
+    assert packet.generated_at == "2026-07-12T00:00:00Z"
+    assert packet.baa_required is True
+    assert packet.obligations
+    assert isinstance(packet.readiness_report, Soc2IsoReadinessReport)
+    assert packet.readiness_report.generated_at == packet.generated_at

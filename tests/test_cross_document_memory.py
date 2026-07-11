@@ -269,3 +269,23 @@ def test_builtin_similarity_jaccard_values(tmp_path):
         "the quick brown fox", "the lazy brown dog"
     ) == pytest.approx(2 / 6)
     assert memory._builtin_similarity("no shared tokens", "completely different") == 0.0
+
+
+def test_persisted_documents_round_trip_as_stored_documents(tmp_path):
+    from director_ai.core.memory.consistency import StoredDocument
+
+    memory = CrossDocumentConsistencyMemory(
+        tmp_path / "consistency.sqlite",
+        score_fn=_contradiction_score,
+        contradiction_threshold=0.8,
+    )
+    memory.record_document("tenant-a", "doc-1", "Policy remains stable.")
+
+    stored = memory.get_document("tenant-a", "doc-1")
+    assert isinstance(stored, StoredDocument)
+    assert stored.document_id == "doc-1"
+    assert stored.tenant_id == "tenant-a"
+
+    listing = memory.list_documents("tenant-a")
+    assert listing and all(isinstance(doc, StoredDocument) for doc in listing)
+    assert memory.get_document("tenant-a", "missing") is None

@@ -314,3 +314,24 @@ def test_policy_evaluation_uses_python_sum_fallback_when_accelerator_disabled(
         "internal": 0,
         "synthetic": 0,
     }
+
+
+def test_comparison_returns_report_and_variant_result_contracts():
+    from director_ai.core.evaluation.policy import (
+        PolicyComparisonReport,
+        PolicyVariantResult,
+    )
+
+    report = compare_policy_variants(
+        _samples(),
+        baseline=PolicyVariant(name="baseline", threshold=0.7),
+        candidate=PolicyVariant(name="candidate", threshold=0.5),
+    )
+
+    assert isinstance(report, PolicyComparisonReport)
+    assert isinstance(report.baseline, PolicyVariantResult)
+    assert isinstance(report.candidate, PolicyVariantResult)
+    assert report.winner in {"baseline", "candidate", "tie"}
+    for variant in (report.baseline, report.candidate):
+        assert 0.0 <= variant.balanced_accuracy <= 1.0
+        assert variant.tp + variant.fp + variant.tn + variant.fn == 4

@@ -78,3 +78,23 @@ def test_disabled_pii_detector_still_applies_toxicity_policy() -> None:
     assert "jane@example.com" in result.safe_text
     assert "email" not in result.category_counts
     assert result.category_counts["threat"] >= 1
+
+
+def test_moderate_returns_the_content_moderation_contract() -> None:
+    from director_ai.enterprise.moderation import (
+        ContentModerationFinding,
+        ContentModerationResult,
+    )
+
+    result = ContentModerator(prefer_rust=False).moderate(
+        "Contact jane@example.com about the invoice."
+    )
+
+    assert isinstance(result, ContentModerationResult)
+    assert result.action is ModerationAction.REDACT
+    assert "jane@example.com" not in result.safe_text
+    assert result.findings
+    finding = result.findings[0]
+    assert isinstance(finding, ContentModerationFinding)
+    assert finding.category == "email"
+    assert finding.end > finding.start >= 0

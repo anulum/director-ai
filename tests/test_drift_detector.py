@@ -203,3 +203,20 @@ class TestDriftDetectorClassify:
 
     def test_severe(self):
         assert DriftDetector._classify(0.20, True, 0.001) == "severe"
+
+
+def test_analyze_returns_the_drift_result_contract(tmp_path):
+    from director_ai.compliance.drift_detector import DriftResult
+
+    log = AuditLog(tmp_path / "contract.db")
+    try:
+        result = DriftDetector(log, window_days=7).analyze()
+    finally:
+        log.close()
+
+    assert isinstance(result, DriftResult)
+    assert result.detected is False
+    assert result.severity == "none"
+    assert result.z_score == 0.0
+    assert 0.0 <= result.p_value <= 1.0
+    assert result.windows == []

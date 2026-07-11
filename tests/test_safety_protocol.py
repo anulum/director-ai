@@ -196,3 +196,15 @@ def test_validate_rejects_bad_protocol_version_and_raw_payload():
     bad_privacy["privacy"]["raw_payload_included"] = True
     with pytest.raises(ValueError, match="raw payloads must not be included"):
         validate_director_safety_signal(bad_privacy)
+
+
+def test_new_director_safety_signal_id_is_opaque_and_unique():
+    from director_ai.core.safety_protocol import new_director_safety_signal_id
+
+    first = new_director_safety_signal_id()
+    second = new_director_safety_signal_id()
+
+    assert first.startswith("dsp_")
+    assert len(first) == len("dsp_") + 32
+    assert set(first[4:]) <= set("0123456789abcdef")
+    assert first != second

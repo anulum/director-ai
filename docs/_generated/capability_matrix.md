@@ -9,7 +9,7 @@ experimental hook across `tests/`, `docs-site/`, and `benchmarks/`.
 | Public exports | 226 |
 | Experimental hooks | 23 |
 | Unwired | 0 |
-| Untested (by name mention) | 14 |
+| Untested (by name mention) | 0 |
 | Undocumented (by name mention) | 41 |
 | Benchmarked (informational) | 51 |
 
@@ -17,22 +17,9 @@ experimental hook across `tests/`, `docs-site/`, and `benchmarks/`.
 
 (none)
 
-## Untested (14)
+## Untested (0)
 
-- `ContentModerationFinding`
-- `ContentModerationResult`
-- `DriftResult`
-- `FieldVerdict`
-- `HipaaDocumentationPacket`
-- `InferenceHookDecision`
-- `PolicyComparisonReport`
-- `PolicyVariantResult`
-- `ProfileMetadata`
-- `Soc2IsoReadinessReport`
-- `StoredDocument`
-- `StructuredVerificationResult`
-- `ToolCallResult`
-- `new_director_safety_signal_id`
+(none)
 
 ## Undocumented (41)
 

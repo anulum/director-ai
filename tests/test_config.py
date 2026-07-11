@@ -1804,3 +1804,15 @@ class TestBuildBackendBranches:
         # Invoke the wired callback so the recording body runs.
         scorer._judge._cost_callback("gpt-x", 12, 34)
         assert "gpt-x" in scorer._cost_analyser._records
+
+
+def test_profile_metadata_registry_contract():
+    from director_ai.core.config_profiles import PROFILE_METADATA, ProfileMetadata
+
+    assert PROFILE_METADATA
+    for name, meta in PROFILE_METADATA.items():
+        assert isinstance(meta, ProfileMetadata)
+        assert meta.name == name
+        assert meta.intended_workload
+        assert meta.validation_status
+        assert meta.min_calibration_samples >= 0

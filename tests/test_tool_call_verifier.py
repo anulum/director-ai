@@ -177,3 +177,19 @@ class TestResultPlausibility:
             score_fn=lambda p, h: 0.9,
         )
         assert r.result_plausible is False
+
+
+def test_verify_tool_call_returns_the_tool_call_result_contract():
+    from director_ai.core.verification.types import FieldVerdict, ToolCallResult
+
+    known = verify_tool_call("get_weather", {"city": "Prague"}, manifest=MANIFEST)
+    assert isinstance(known, ToolCallResult)
+    assert known.function_exists is True
+    assert known.arguments_valid is True
+    assert all(isinstance(v, FieldVerdict) for v in known.verdicts)
+
+    unknown = verify_tool_call("no_such_tool", {}, manifest=MANIFEST)
+    assert isinstance(unknown, ToolCallResult)
+    assert unknown.function_exists is False
+    assert isinstance(unknown.fabrication_suspected, bool)
+    assert unknown.reason

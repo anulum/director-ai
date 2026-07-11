@@ -7,20 +7,6 @@
 # prune the entry). Shrink this file over time; never grow it for new work.
 
 untested = [
-    "ContentModerationFinding",
-    "ContentModerationResult",
-    "DriftResult",
-    "FieldVerdict",
-    "HipaaDocumentationPacket",
-    "InferenceHookDecision",
-    "PolicyComparisonReport",
-    "PolicyVariantResult",
-    "ProfileMetadata",
-    "Soc2IsoReadinessReport",
-    "StoredDocument",
-    "StructuredVerificationResult",
-    "ToolCallResult",
-    "new_director_safety_signal_id",
 ]
 
 undocumented = [

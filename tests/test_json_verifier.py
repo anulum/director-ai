@@ -394,3 +394,27 @@ class TestAcceleratedCounting:
         monkeypatch.setattr(json_verifier, "_RUST_JSON_VERIFY", False)
 
         assert json_verifier._sum_int([1, 0, 1]) == 2
+
+
+def test_verify_json_returns_the_structured_verification_contract():
+    from director_ai.core.verification.types import (
+        FieldVerdict,
+        StructuredVerificationResult,
+    )
+
+    result = verify_json(
+        '{"status": "shipped"}',
+        schema={"type": "object", "properties": {"status": {"type": "string"}}},
+    )
+
+    assert isinstance(result, StructuredVerificationResult)
+    assert result.valid_json is True
+    assert result.schema_valid is True
+    assert result.error_count == 0
+    assert result.parse_error == ""
+    assert all(isinstance(v, FieldVerdict) for v in result.field_verdicts)
+
+    malformed = verify_json('{"status": shipped}')
+    assert isinstance(malformed, StructuredVerificationResult)
+    assert malformed.valid_json is False
+    assert malformed.parse_error != ""

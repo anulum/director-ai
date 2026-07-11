@@ -455,3 +455,24 @@ def _steering_decision(
 def test_policy_rejects_non_finite_steering_bias() -> None:
     with pytest.raises(ValueError, match="steering_bias_logit must be finite"):
         InferenceServerHookPolicy(steering_bias_logit=float("nan"))
+
+
+def test_check_returns_the_inference_hook_decision_contract() -> None:
+    from director_ai.integrations.inference_server_hooks import InferenceHookDecision
+
+    hook = InferenceServerHook("vllm", lambda text: 0.91)
+    decision = hook.check(
+        InferenceHookRequest(
+            server="vllm",
+            accumulated_text="known fact: ",
+            candidate_token="grounded",
+            token_id=2,
+        ),
+        logits=[0.1, 0.2, 0.3],
+    )
+
+    assert isinstance(decision, InferenceHookDecision)
+    assert decision.allow is True
+    assert decision.reason
+    assert decision.adjusted_logits == (0.1, 0.2, 0.3)
+    assert decision.blocked_token_ids == ()
