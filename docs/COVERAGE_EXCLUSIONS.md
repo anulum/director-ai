@@ -24,23 +24,26 @@ structurally unreachable `union == 0` guards in
 `core/scoring/lexical_signals.py` (both sit behind emptiness checks that
 already guarantee a non-empty union).
 
-**CI-confirmed** (run `29149449959`, commit `00e1b8f9`, job "Test
-(Python 3.12)"): 44 363 statements, **0 missed**, 50 partial branch
+**CI-confirmed** (run `29151154365`, commit `21282dc7`, job "Test
+(Python 3.12)"): 44 389 statements, **0 missed**, 50 partial branch
 edges, total **99.91 %**. The per-file edge table below matches that run
-exactly — the WCB-2 follow-up (`_task_accel` canonical task-lane
-accelerator binding) added no edges: the binding and the re-pointed
-`_task_scoring` report 100 % with zero partial branches. (Previous
-confirmations: run `29147266122` at commit `82236e4e`, 44 357
-statements, same 50-edge table after the WCB-6 safety-dashboard
-decomposition; run `29136571356` at commit `92e38750`, 44 331
-statements after the WCB-5 release-gate decomposition; run
-`29127043353` at commit `b51601bd`, 44 309 statements after the WCB-4
-vector-store decomposition; run `29116702160` at commit `90d46433`,
-44 287 statements after the WCB-3 guard decomposition; run
-`29104405247` at commit `e699b2ca`, 44 221 statements after the WCB-2
-NLI decomposition; run `29070724970` at commit `f57b8867`, 44 178
-statements; run `29059290946` at 52 edges before the WCB-1 scorer
-decomposition closed two `_heuristic_factual` edges.)
+exactly — the WCA-4 conformal-review feature added no edges: the same
+five scoring edges merely renumbered (identical spans) after the
+insertions in `_review_pipeline.py` and `scorer.py`, and the branch
+total grew 13 344 → 13 348 with all four new conditionals fully
+covered. (Previous confirmations: run `29149449959` at commit
+`00e1b8f9`, 44 363 statements after the WCB-2 follow-up `_task_accel`
+binding; run `29147266122` at commit `82236e4e`, 44 357 statements
+after the WCB-6 safety-dashboard decomposition; run `29136571356` at
+commit `92e38750`, 44 331 statements after the WCB-5 release-gate
+decomposition; run `29127043353` at commit `b51601bd`, 44 309
+statements after the WCB-4 vector-store decomposition; run
+`29116702160` at commit `90d46433`, 44 287 statements after the WCB-3
+guard decomposition; run `29104405247` at commit `e699b2ca`, 44 221
+statements after the WCB-2 NLI decomposition; run `29070724970` at
+commit `f57b8867`, 44 178 statements; run `29059290946` at 52 edges
+before the WCB-1 scorer decomposition closed two `_heuristic_factual`
+edges.)
 
 ## Remaining exclusions: partial branch edges
 
@@ -53,7 +56,7 @@ whose statements are fully covered. They fall into three categories:
 | skip-edge | Forward arc: a defensive condition whose false path is only reachable under object states no public API produces today. |
 | extras-gated | Arc taken only when an optional extra is present/absent in a combination the core CI job does not produce; the behaviour itself is covered by the extras matrix jobs or the floor job. |
 
-Baseline as of run `29149449959` (50 branch edges, per file):
+Baseline as of run `29151154365` (50 branch edges, per file):
 
 | File | Edges | Category |
 | --- | --- | --- |
@@ -75,8 +78,8 @@ Baseline as of run `29149449959` (50 branch edges, per file):
 | core/scoring/_nli_export.py | 139->147 | extras-gated |
 | core/scoring/lexical_signals.py | 113->115, 119->121 | loop-edge |
 | core/scoring/_divergence.py | 359->370, 365->370, 404->424 | skip-edge |
-| core/scoring/_review_pipeline.py | 395->408, 403->408, 439->443, 620->625 | skip-edge |
-| core/scoring/scorer.py | 497->500 | skip-edge |
+| core/scoring/_review_pipeline.py | 447->460, 455->460, 491->495, 673->678 | skip-edge |
+| core/scoring/scorer.py | 498->501 | skip-edge |
 | core/self_evolving/calibration.py | 63->61 | loop-edge |
 | core/symbolic_chain/prover.py | 115->114 | loop-edge |
 | core/tenant.py | 243->242 | loop-edge |
