@@ -250,3 +250,26 @@ def test_posterior_mean_python_fallback(monkeypatch):
     arm.observe(ThresholdFeedback(score=0.9, human_approved=True))
     arm.observe(ThresholdFeedback(score=0.1, human_approved=False))
     assert arm.posterior_mean == pytest.approx(arm.alpha / (arm.alpha + arm.beta))
+
+
+def test_observe_returns_the_adaptive_threshold_report_contract():
+    from director_ai.core.calibration.adaptive_threshold import (
+        AdaptiveThresholdReport,
+    )
+
+    learner = AdaptiveThresholdLearner(
+        candidate_thresholds=[0.3, 0.5],
+        current_threshold=0.5,
+        min_samples=1,
+        random_seed=7,
+    )
+
+    report = learner.observe(0.9, human_approved=True)
+
+    assert isinstance(report, AdaptiveThresholdReport)
+    assert report.total_feedback == 1
+    assert report.current_threshold == 0.5
+    assert report.best_observed_threshold in (0.3, 0.5)
+    payload = report.to_dict()
+    assert payload["total_feedback"] == 1
+    assert payload["current_threshold"] == 0.5

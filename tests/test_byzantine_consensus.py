@@ -114,3 +114,25 @@ def test_production_guard_exposes_byzantine_consensus():
     )
     assert result.decision == "allow"
     assert result.byzantine_resilient is True
+
+
+def test_decide_returns_the_bft_consensus_result_contract():
+    from director_ai.core.scoring.consensus import BFTConsensusResult
+
+    consensus = ByzantineFaultTolerantConsensus(fault_tolerance=1)
+    result = consensus.decide(
+        (
+            BFTConsensusVote("nli-a", "allow", 0.1, "claim://1"),
+            BFTConsensusVote("nli-b", "allow", 0.2, "claim://2"),
+            BFTConsensusVote("symbolic", "allow", 0.0, "proof://1"),
+            BFTConsensusVote("compromised", "halt", 0.9, "claim://bad"),
+        ),
+        policy_id="policy.bft",
+    )
+
+    assert isinstance(result, BFTConsensusResult)
+    assert result.policy_id == "policy.bft"
+    assert result.fault_tolerance == 1
+    assert result.required_replicas == 4
+    assert set(result.participating_verifiers) >= {"nli-a", "nli-b", "symbolic"}
+    assert result.evidence_refs != ()

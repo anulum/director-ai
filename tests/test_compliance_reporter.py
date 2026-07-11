@@ -326,3 +326,18 @@ class TestArticle15Template:
 
         assert report.total_interactions == 0
         log.close()
+
+
+def test_generate_report_returns_the_article15_report_contract(tmp_path):
+    from director_ai.compliance.reporter import Article15Report
+
+    log = AuditLog(tmp_path / "contract.db")
+    try:
+        report = ComplianceReporter(log).generate_report()
+    finally:
+        log.close()
+
+    assert isinstance(report, Article15Report)
+    assert report.total_interactions == 0
+    assert report.period_start <= report.period_end
+    assert report.report_timestamp > 0

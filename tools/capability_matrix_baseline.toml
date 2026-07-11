@@ -7,13 +7,6 @@
 # prune the entry). Shrink this file over time; never grow it for new work.
 
 untested = [
-    "AdaptiveThresholdReport",
-    "Article15Report",
-    "BFTConsensusResult",
-    "CalibrationReport",
-    "CitationStatusVerdict",
-    "ClaimVerdict",
-    "CodeCheckResult",
     "ContentModerationFinding",
     "ContentModerationResult",
     "DriftResult",

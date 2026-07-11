@@ -9,7 +9,7 @@ experimental hook across `tests/`, `docs-site/`, and `benchmarks/`.
 | Public exports | 226 |
 | Experimental hooks | 23 |
 | Unwired | 0 |
-| Untested (by name mention) | 21 |
+| Untested (by name mention) | 14 |
 | Undocumented (by name mention) | 41 |
 | Benchmarked (informational) | 51 |
 
@@ -17,15 +17,8 @@ experimental hook across `tests/`, `docs-site/`, and `benchmarks/`.
 
 (none)
 
-## Untested (21)
+## Untested (14)
 
-- `AdaptiveThresholdReport`
-- `Article15Report`
-- `BFTConsensusResult`
-- `CalibrationReport`
-- `CitationStatusVerdict`
-- `ClaimVerdict`
-- `CodeCheckResult`
 - `ContentModerationFinding`
 - `ContentModerationResult`
 - `DriftResult`

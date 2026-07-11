@@ -117,3 +117,19 @@ class TestCombined:
         assert r.syntax_valid is False
         assert r.unknown_imports == []
         assert r.hallucinated_apis == []
+
+
+def test_verify_code_returns_the_code_check_result_contract():
+    from director_ai.core.verification.types import CodeCheckResult
+
+    clean = verify_code("x = 1 + 2\nprint(x)")
+    assert isinstance(clean, CodeCheckResult)
+    assert clean.syntax_valid is True
+    assert clean.error_count == 0
+    assert clean.parse_error == ""
+
+    broken = verify_code("def foo(:\n  pass")
+    assert isinstance(broken, CodeCheckResult)
+    assert broken.syntax_valid is False
+    assert broken.error_count >= 1
+    assert broken.parse_error != ""

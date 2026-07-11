@@ -262,3 +262,27 @@ class TestExternalCitationStatus:
             assert "max_age_days" in str(exc)
         else:
             raise AssertionError("expected ValueError")
+
+
+def test_status_feed_produces_citation_status_verdicts():
+    from director_ai.core.scoring.temporal_freshness import CitationStatusVerdict
+
+    result = score_temporal_freshness(
+        "Trial X reported a 12 percent response rate.",
+        citation_statuses=[
+            CitationStatusSignal(
+                source_id="doi:10.example/withdrawn",
+                status="retracted",
+                status_source="publisher-feed",
+            )
+        ],
+    )
+
+    risky = result.risky_statuses
+    assert risky and all(isinstance(v, CitationStatusVerdict) for v in risky)
+    verdict = risky[0]
+    assert verdict.source_id == "doi:10.example/withdrawn"
+    assert verdict.status == "retracted"
+    assert verdict.status_source == "publisher-feed"
+    assert verdict.risk == 1.0
+    assert verdict.reason

@@ -723,3 +723,20 @@ class TestSignalImplementations:
             k=2,
         )
         assert spans[0].index == 1  # the highest-overlap source ranks first
+
+
+def test_verify_emits_claim_verdicts_with_full_signal_contract():
+    from director_ai.core.scoring.verified_scorer import ClaimVerdict
+
+    r = VerifiedScorer().verify(
+        "Paris is the capital of France.",
+        "France is a country. Paris is the capital of France.",
+    )
+
+    assert r.claims and all(isinstance(c, ClaimVerdict) for c in r.claims)
+    first = r.claims[0]
+    assert first.claim
+    assert first.claim_index == 0
+    assert first.verdict in {"supported", "contradicted", "unverifiable", "fabricated"}
+    assert 0.0 <= first.nli_divergence <= 1.0
+    assert 0.0 <= first.traceability <= 1.0

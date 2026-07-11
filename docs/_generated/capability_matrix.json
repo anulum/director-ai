@@ -5,7 +5,7 @@
     "experimental_hooks": 23,
     "public_exports": 226,
     "undocumented": 41,
-    "untested": 21,
+    "untested": 14,
     "unwired": 0
   },
   "gaps": {
@@ -53,13 +53,6 @@
       "swarm_economics"
     ],
     "untested": [
-      "AdaptiveThresholdReport",
-      "Article15Report",
-      "BFTConsensusResult",
-      "CalibrationReport",
-      "CitationStatusVerdict",
-      "ClaimVerdict",
-      "CodeCheckResult",
       "ContentModerationFinding",
       "ContentModerationResult",
       "DriftResult",
@@ -120,7 +113,7 @@
       "kind": "public_export",
       "module": ".core",
       "name": "AdaptiveThresholdReport",
-      "tested": false,
+      "tested": true,
       "wired": true
     },
     {
@@ -147,7 +140,7 @@
       "kind": "public_export",
       "module": ".compliance.reporter",
       "name": "Article15Report",
-      "tested": false,
+      "tested": true,
       "wired": true
     },
     {
@@ -219,7 +212,7 @@
       "kind": "public_export",
       "module": ".core",
       "name": "BFTConsensusResult",
-      "tested": false,
+      "tested": true,
       "wired": true
     },
     {
@@ -264,7 +257,7 @@
       "kind": "public_export",
       "module": ".core.calibration.online_calibrator",
       "name": "CalibrationReport",
-      "tested": false,
+      "tested": true,
       "wired": true
     },
     {
@@ -300,7 +293,7 @@
       "kind": "public_export",
       "module": ".core.scoring.temporal_freshness",
       "name": "CitationStatusVerdict",
-      "tested": false,
+      "tested": true,
       "wired": true
     },
     {
@@ -318,7 +311,7 @@
       "kind": "public_export",
       "module": ".core",
       "name": "ClaimVerdict",
-      "tested": false,
+      "tested": true,
       "wired": true
     },
     {
@@ -327,7 +320,7 @@
       "kind": "public_export",
       "module": ".core.verification.types",
       "name": "CodeCheckResult",
-      "tested": false,
+      "tested": true,
       "wired": true
     },
     {

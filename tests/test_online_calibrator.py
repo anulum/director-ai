@@ -312,3 +312,21 @@ class TestCalibratorPerformanceDoc:
         assert hasattr(report, "fnr")
         assert hasattr(report, "optimal_threshold")
         store.close()
+
+
+def test_calibrate_returns_the_calibration_report_contract(tmp_path):
+    from director_ai.core.calibration.online_calibrator import CalibrationReport
+
+    store = FeedbackStore(tmp_path / "contract.db")
+    try:
+        report = OnlineCalibrator(store).calibrate()
+    finally:
+        store.close()
+
+    assert isinstance(report, CalibrationReport)
+    assert report.correction_count == 0
+    assert report.optimal_threshold is None
+    for rate in (report.tpr, report.tnr, report.fpr, report.fnr):
+        assert 0.0 <= rate <= 1.0
+    assert report.fpr_ci >= 0.0
+    assert report.fnr_ci >= 0.0
