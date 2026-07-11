@@ -175,8 +175,11 @@ class InteractionGraph:
     def has_cycle(self) -> bool:
         """DFS-based cycle detection."""
         color: dict[str, int] = {n: 0 for n in self._nodes}
-        # 0 = unvisited, 1 = in-stack, 2 = finished.
-        for start in self._nodes:
+        # 0 = unvisited, 1 = in-stack, 2 = finished. Iterate in sorted
+        # order: cycle detection is order-independent, but iterating the
+        # raw set makes the already-visited `continue` arc dependent on
+        # the hash seed (observed as nondeterministic coverage).
+        for start in sorted(self._nodes):
             if color[start] != 0:
                 continue
             stack: list[tuple[str, list[str]]] = [

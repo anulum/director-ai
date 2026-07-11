@@ -10,11 +10,39 @@
 
 from __future__ import annotations
 
+import importlib.util
+import sys
+import types
+from unittest.mock import patch
+
 import pytest
 
 import director_ai._finetune_managed as managed_module
 import director_ai.finetune_api as finetune_api_module
 from director_ai.finetune_jobs import ManagedTrainingRecord
+
+
+def test_module_import_without_fastapi_skips_route_models():
+    fake_schemas = types.ModuleType("director_ai._finetune_schemas")
+    fake_schemas._FASTAPI_AVAILABLE = False
+
+    spec = importlib.util.spec_from_file_location(
+        "director_ai._finetune_managed_no_fastapi",
+        managed_module.__file__,
+    )
+    assert spec is not None
+    assert spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    with patch.dict(
+        sys.modules,
+        {"fastapi": None, "director_ai._finetune_schemas": fake_schemas},
+    ):
+        spec.loader.exec_module(module)
+
+    assert module._FASTAPI_AVAILABLE is False
+    # The serialiser has no FastAPI dependency and must survive the degrade.
+    assert callable(module._managed_record_to_dict)
+
 
 pytestmark = pytest.mark.skipif(
     not managed_module._FASTAPI_AVAILABLE,

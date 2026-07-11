@@ -133,6 +133,18 @@ class TestInteractionGraph:
         g = InteractionGraph.from_events(_cycle_events())
         assert g.has_cycle()
 
+    def test_has_cycle_skips_nodes_finished_by_an_earlier_dfs(self):
+        """The sorted start loop must hit the already-visited `continue` arc.
+
+        A single chain component guarantees the DFS from the sorted-first
+        node colours every other node, so each later start takes the
+        ``continue`` branch — deterministically, independent of hash seed.
+        """
+        g = InteractionGraph.from_events(
+            [SwarmEvent("a", "b", 0.0), SwarmEvent("b", "c", 1.0)]
+        )
+        assert not g.has_cycle()
+
     def test_local_clustering_isolated(self):
         g = InteractionGraph.from_events(_pipeline_events())
         # b has two neighbours (a, c) but no edge between them.

@@ -231,10 +231,20 @@ KNOWN_TEST_SURFACE_CLASSIFICATIONS: dict[str, tuple[str, str]] = {
         "unit-guard-with-companion",
         "GPU fine-tune unit guard with companions tests/test_finetune_real_surface.py, tests/test_finetune_api_real_surface.py, and tests/test_finetune_benchmark_real_surface.py",
     ),
+    "tests/test_finetune_managed.py": (
+        "unit-guard-with-companion",
+        "managed-lane module-boundary guard (WCB-7 split) with companion "
+        "tests/test_finetune_api_real_surface.py",
+    ),
     "tests/test_finetune_jobs.py": (
         "unit-guard-with-companion",
         "persistent job-store guard exercising real SQLite and live router "
         "surfaces in-file; companion tests/test_finetune_api_real_surface.py",
+    ),
+    "tests/test_finetune_schemas.py": (
+        "unit-guard-with-companion",
+        "schema contract guard (WCB-7 split) with companion "
+        "tests/test_finetune_api_real_surface.py",
     ),
     "tests/test_finetune_metrics_real_surface.py": (
         "unit-guard-with-companion",

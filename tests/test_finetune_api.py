@@ -198,6 +198,24 @@ class TestCreateRouter:
         with pytest.raises(ImportError, match="director-ai\\[server\\]"):
             create_finetune_router()
 
+    def test_module_import_without_fastapi_marks_router_unavailable(self):
+        import importlib.util
+        import sys
+
+        spec = importlib.util.spec_from_file_location(
+            "director_ai._finetune_api_no_fastapi",
+            finetune_api_module.__file__,
+        )
+        assert spec is not None
+        assert spec.loader is not None
+        module = importlib.util.module_from_spec(spec)
+        with patch.dict(sys.modules, {"fastapi": None}):
+            spec.loader.exec_module(module)
+
+        assert module._FASTAPI_AVAILABLE is False
+        with pytest.raises(ImportError, match="director-ai\\[server\\]"):
+            module.create_finetune_router()
+
     def test_router_warns_when_models_dir_cannot_be_created(
         self,
         tmp_path,

@@ -10,10 +10,30 @@
 
 from __future__ import annotations
 
+import importlib.util
+import sys
+from unittest.mock import patch
+
 import pytest
 
 import director_ai._finetune_schemas as schemas_module
 import director_ai.finetune_api as finetune_api_module
+
+
+def test_module_import_without_pydantic_defines_no_models():
+    spec = importlib.util.spec_from_file_location(
+        "director_ai._finetune_schemas_no_pydantic",
+        schemas_module.__file__,
+    )
+    assert spec is not None
+    assert spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    with patch.dict(sys.modules, {"pydantic": None}):
+        spec.loader.exec_module(module)
+
+    assert module._FASTAPI_AVAILABLE is False
+    assert not hasattr(module, "ValidateRequest")
+
 
 pytestmark = pytest.mark.skipif(
     not schemas_module._FASTAPI_AVAILABLE,
