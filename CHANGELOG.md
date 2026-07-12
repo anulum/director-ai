@@ -80,8 +80,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   readings, and claim boundary in `benchmarks/BENCHMARK_REPORT.md`
   §11; the table is registered in
   `benchmarks/public_accuracy_manifest.toml`. Quality numbers
-  cross-checked CPU vs GPU (identical nDCG@10 on the arms measured on
-  both hosts).
+  cross-checked CPU vs GPU: the committed
+  `beir_competitive_bench_cpu_i5_11600K.json` re-runs all five NFCorpus
+  arms end-to-end on CPU and reproduces the GPU nDCG@10 values exactly,
+  while measuring CPU rerank latency under load (ms-marco ~3 s/query,
+  bge-reranker-v2-m3 ~70 s/query on 30 candidates).
 - `DirectorConfig.finetune_models_dir` (env: `DIRECTOR_FINETUNE_MODELS_DIR`)
   — the server now passes a configurable models/jobs directory to the
   fine-tuning router instead of always mounting the hard-coded

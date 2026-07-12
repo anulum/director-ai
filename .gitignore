@@ -187,6 +187,7 @@ benchmarks/results/*
 # Embedder/reranker refresh A/B + BEIR public-benchmark evidence (WCA-8).
 !benchmarks/results/retrieval_model_refresh_ab.json
 !benchmarks/results/beir_competitive_bench.json
+!benchmarks/results/beir_competitive_bench_cpu_i5_11600K.json
 # Tokeniser blobs are fetchable from the fine-tune's base model (WCH-6);
 # see benchmarks/models/factcg-cb/README.md. Configs/results stay tracked.
 benchmarks/models/factcg-cb/tokenizer.json

@@ -526,6 +526,17 @@ Readings:
 - Quality numbers are hardware-independent: the arms measured on both
   an i5-11600K (CPU) and the L4 host produced identical nDCG@10.
 
+CPU cross-check (`benchmarks/results/beir_competitive_bench_cpu_i5_11600K.json`,
+committed): all five NFCorpus arms re-run end-to-end on a heavily loaded
+i5-11600K reproduce the GPU nDCG@10 values exactly (0.3703 / 0.3625 /
+0.3440 / 0.3529 / 0.3465). CPU latency under that load: hybrid p50
+~0.26–0.30 s/query, ms-marco rerank ~2.7–3.1 s/query, and
+bge-reranker-v2-m3 ~70 s/query — the practical argument against the
+large cross-encoder as a CPU default. The SciFact CPU arms were
+intentionally not run: the quality cross-check was already conclusive on
+a full dataset, the script resumes per-arm if they are ever wanted, and
+the shared workstation was needed back.
+
 Claim boundary: retrieval-quality evidence for the shipped pipeline on
 two public BEIR test splits; it is not a leaderboard submission and
 makes no claim about corpora or configurations that were not measured.

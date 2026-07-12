@@ -1,0 +1,134 @@
+{
+  "benchmark": "beir_competitive_bench",
+  "top_k": 10,
+  "note": "BEIR test splits through the public grounded() recipe (hybrid BM25+dense RRF k=60, title+text as one field, rerank arms rescore the top 30 candidates). Published baselines were measured by their authors under their own pipelines \u2014 see each source; the bge-large MTEB rows use a query instruction prefix grounded() does not add.",
+  "published_baselines": {
+    "nfcorpus": {
+      "bm25": {
+        "ndcg_at_10": 0.325,
+        "source": "arXiv:2104.08663 Table 2"
+      },
+      "bm25_ce_msmarco_minilm": {
+        "ndcg_at_10": 0.35,
+        "source": "arXiv:2104.08663 Table 2"
+      },
+      "bge_large_en_v15_dense": {
+        "ndcg_at_10": 0.38129,
+        "source": "https://huggingface.co/BAAI/bge-large-en-v1.5 model-index (MTEB NFCorpus)"
+      }
+    },
+    "scifact": {
+      "bm25": {
+        "ndcg_at_10": 0.665,
+        "source": "arXiv:2104.08663 Table 2"
+      },
+      "bm25_ce_msmarco_minilm": {
+        "ndcg_at_10": 0.688,
+        "source": "arXiv:2104.08663 Table 2"
+      },
+      "bge_large_en_v15_dense": {
+        "ndcg_at_10": 0.74607,
+        "source": "https://huggingface.co/BAAI/bge-large-en-v1.5 model-index (MTEB SciFact)"
+      }
+    }
+  },
+  "datasets": {
+    "nfcorpus": {
+      "n_docs": 3633,
+      "n_test_queries": 323,
+      "arms": {
+        "bge_large__msmarco": {
+          "embedding_model": "BAAI/bge-large-en-v1.5",
+          "reranker_model": "cross-encoder/ms-marco-MiniLM-L-6-v2",
+          "ingest_seconds": 6209.1,
+          "n_queries": 323,
+          "ndcg_at_10_own": 0.36251,
+          "scorer": "pytrec_eval",
+          "ndcg_at_10": 0.36251,
+          "recall_at_10": 0.17183,
+          "own_vs_pytrec_max_abs_diff": 0.0,
+          "mean_ms": 3119.8439,
+          "p50_ms": 3102.845,
+          "p95_ms": 3463.2414,
+          "arm_seconds": 1007.9
+        },
+        "bge_large__none": {
+          "embedding_model": "BAAI/bge-large-en-v1.5",
+          "reranker_model": null,
+          "ingest_seconds": 6209.1,
+          "n_queries": 323,
+          "ndcg_at_10_own": 0.37026,
+          "scorer": "pytrec_eval",
+          "ndcg_at_10": 0.37026,
+          "recall_at_10": 0.18516,
+          "own_vs_pytrec_max_abs_diff": 0.0,
+          "mean_ms": 326.748,
+          "p50_ms": 303.3909,
+          "p95_ms": 478.4359,
+          "arm_seconds": 105.6
+        },
+        "bge_m3__bge_v2_m3": {
+          "embedding_model": "BAAI/bge-m3",
+          "reranker_model": "BAAI/bge-reranker-v2-m3",
+          "ingest_seconds": 5458.9,
+          "n_queries": 323,
+          "ndcg_at_10_own": 0.34647,
+          "scorer": "pytrec_eval",
+          "ndcg_at_10": 0.34647,
+          "recall_at_10": 0.16844,
+          "own_vs_pytrec_max_abs_diff": 0.0,
+          "mean_ms": 98261.2543,
+          "p50_ms": 70215.8949,
+          "p95_ms": 358673.4112,
+          "arm_seconds": 31738.6
+        },
+        "bge_m3__msmarco": {
+          "embedding_model": "BAAI/bge-m3",
+          "reranker_model": "cross-encoder/ms-marco-MiniLM-L-6-v2",
+          "ingest_seconds": 5458.9,
+          "n_queries": 323,
+          "ndcg_at_10_own": 0.35292,
+          "scorer": "pytrec_eval",
+          "ndcg_at_10": 0.35292,
+          "recall_at_10": 0.16535,
+          "own_vs_pytrec_max_abs_diff": 0.0,
+          "mean_ms": 2764.9331,
+          "p50_ms": 2728.0241,
+          "p95_ms": 3216.9308,
+          "arm_seconds": 893.1
+        },
+        "bge_m3__none": {
+          "embedding_model": "BAAI/bge-m3",
+          "reranker_model": null,
+          "ingest_seconds": 5458.9,
+          "n_queries": 323,
+          "ndcg_at_10_own": 0.34401,
+          "scorer": "pytrec_eval",
+          "ndcg_at_10": 0.34401,
+          "recall_at_10": 0.16332,
+          "own_vs_pytrec_max_abs_diff": 0.0,
+          "mean_ms": 283.9635,
+          "p50_ms": 257.7991,
+          "p95_ms": 410.9801,
+          "arm_seconds": 91.7
+        }
+      }
+    }
+  },
+  "environment": {
+    "python": "3.12.13",
+    "machine": "x86_64",
+    "cpu_model": "11th Gen Intel(R) Core(TM) i5-11600K @ 3.90GHz",
+    "torch_device": "cpu",
+    "numpy": "2.4.6",
+    "faiss": "1.14.3",
+    "sentence_transformers": "5.6.0",
+    "torch": "2.12.0+cu130"
+  },
+  "model_revisions": {
+    "BAAI/bge-large-en-v1.5": "d4aa6901d3a41ba39fb536a557fa166f842b0e09",
+    "BAAI/bge-m3": "5617a9f61b028005a4858fdac845db406aefb181",
+    "cross-encoder/ms-marco-MiniLM-L-6-v2": "c5ee24cb16019beea0893ab7796b1df96625c6b8",
+    "BAAI/bge-reranker-v2-m3": "953dc6f6f85a1b2dbfca4c34a2796e7dde08d41e"
+  }
+}
