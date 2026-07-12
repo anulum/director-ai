@@ -16,6 +16,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Add native unit tests to the `backfire-ffi` crate (18 tests: Bulletproof
+  range-proof round-trip/tamper/error paths, geometry containment,
+  two-link inverse kinematics, Merkle root/auth-path/walk parity,
+  HMAC challenge derivation, reality-anchor MAC verification, and the
+  statistical helper contracts). The crate's `extension-module` flag is
+  now a default crate feature so `cargo test -p backfire-ffi
+  --no-default-features` can link libpython for the test binary; maturin
+  wheel builds are unchanged.
 - Stop tracking the `benchmarks/models/factcg-cb` tokeniser blobs
   (`tokenizer.json` 8.4 MB, `spm.model` 2.4 MB) in git; they are inherited
   unchanged from the fine-tune's base model and the directory README now
@@ -47,6 +55,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Align the Rust `rust_standard_normal_quantile` domain guard with the
+  Python reference: `p = 0.0` now raises instead of returning negative
+  infinity (the documented domain is the open interval, and the Python
+  dispatcher already rejected it).
 - `SentenceTransformerBackend` now selects a compatible torch device via
   `select_torch_device()`, so a visible-but-unsupported CUDA GPU (for
   example an sm_61 card next to a modern PyTorch wheel) no longer crashes

@@ -14,7 +14,10 @@ cd "${ROOT}"
 
 cargo fmt --all -- --check
 cargo check -p backfire-ffi
-cargo test --workspace
+cargo test --workspace --exclude backfire-ffi
+# The ffi crate's default extension-module feature cannot link a test
+# binary; drop it so the unit tests link libpython instead.
+cargo test -p backfire-ffi --no-default-features
 
 if [[ "${BACKFIRE_KERNEL_BUILD_WHEEL:-0}" == "1" ]]; then
     command -v maturin >/dev/null

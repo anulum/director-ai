@@ -361,3 +361,149 @@ pub fn register(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(rust_verify_reality_anchor_mac, m)?)?;
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn sha(data: &[u8]) -> Vec<u8> {
+        Sha256::digest(data).to_vec()
+    }
+
+    #[test]
+    fn geometry_containment_includes_boundaries() {
+        let lo = (0.0, 0.0, 0.0);
+        let hi = (1.0, 2.0, 3.0);
+        assert!(rust_aabb_contains(lo, hi, (0.0, 2.0, 1.5)));
+        assert!(!rust_aabb_contains(lo, hi, (1.0000001, 0.0, 0.0)));
+
+        assert!(rust_sphere_contains((0.0, 0.0, 0.0), 1.0, (1.0, 0.0, 0.0)));
+        assert!(!rust_sphere_contains((0.0, 0.0, 0.0), 1.0, (1.0, 0.1, 0.0)));
+    }
+
+    #[test]
+    fn geometry_intersections_match_closest_point_tests() {
+        // Touching spheres intersect; separated ones do not.
+        assert!(rust_sphere_intersects_sphere(
+            (0.0, 0.0, 0.0),
+            1.0,
+            (2.0, 0.0, 0.0),
+            1.0
+        ));
+        assert!(!rust_sphere_intersects_sphere(
+            (0.0, 0.0, 0.0),
+            1.0,
+            (2.5, 0.0, 0.0),
+            1.0
+        ));
+        // Sphere just reaching the box face intersects; beyond it does not.
+        let lo = (1.0, -1.0, -1.0);
+        let hi = (2.0, 1.0, 1.0);
+        assert!(rust_sphere_intersects_aabb((0.0, 0.0, 0.0), 1.0, lo, hi));
+        assert!(!rust_sphere_intersects_aabb((0.0, 0.0, 0.0), 0.9, lo, hi));
+    }
+
+    #[test]
+    fn two_link_ik_solves_reaches_and_rejects() {
+        // Fully stretched arm: both joint angles are zero.
+        let (t1, t2) = rust_two_link_ik(1.0, 1.0, (0.0, 0.0), (2.0, 0.0), true)
+            .unwrap()
+            .unwrap();
+        assert!(t1.abs() < 1e-9 && t2.abs() < 1e-9);
+
+        // Elbow branches mirror each other for an in-annulus target.
+        let up = rust_two_link_ik(1.0, 1.0, (0.0, 0.0), (1.0, 1.0), true)
+            .unwrap()
+            .unwrap();
+        let down = rust_two_link_ik(1.0, 1.0, (0.0, 0.0), (1.0, 1.0), false)
+            .unwrap()
+            .unwrap();
+        assert!((up.1 + down.1).abs() < 1e-9);
+
+        // Unreachable target reports None; invalid link lengths raise.
+        assert!(rust_two_link_ik(1.0, 1.0, (0.0, 0.0), (3.0, 0.0), true)
+            .unwrap()
+            .is_none());
+        assert!(rust_two_link_ik(0.0, 1.0, (0.0, 0.0), (0.5, 0.0), true).is_err());
+    }
+
+    #[test]
+    fn merkle_auth_paths_reconstruct_the_root_for_odd_and_even_trees() {
+        for n in [1_usize, 2, 3, 4, 5, 8] {
+            let leaves: Vec<Vec<u8>> = (0..n)
+                .map(|i| sha(format!("leaf-{i}").as_bytes()))
+                .collect();
+            let root = rust_merkle_root(leaves.clone()).unwrap();
+            for (index, leaf) in leaves.iter().enumerate() {
+                let path = rust_merkle_auth_path(leaves.clone(), index).unwrap();
+                let walked = rust_merkle_walk_path(leaf.clone(), index, path);
+                assert_eq!(walked, root, "n={n} index={index}");
+            }
+        }
+        // Single leaf: the root is the leaf itself and the path is empty.
+        let single = vec![sha(b"only")];
+        assert_eq!(rust_merkle_root(single.clone()).unwrap(), single[0]);
+        assert!(rust_merkle_auth_path(single, 0).unwrap().is_empty());
+    }
+
+    #[test]
+    fn merkle_rejects_empty_and_out_of_range_inputs() {
+        assert!(rust_merkle_root(vec![]).is_err());
+        assert!(rust_merkle_auth_path(vec![], 0).is_err());
+        assert!(rust_merkle_auth_path(vec![sha(b"x")], 1).is_err());
+    }
+
+    #[test]
+    fn challenge_indices_are_deterministic_unique_and_bounded() {
+        let seed = sha(b"commitment-root");
+        let first = rust_derive_challenge_indices(seed.clone(), 100, 16).unwrap();
+        let second = rust_derive_challenge_indices(seed.clone(), 100, 16).unwrap();
+        assert_eq!(first, second);
+        assert_eq!(first.len(), 16);
+        let mut unique = first.clone();
+        unique.sort_unstable();
+        unique.dedup();
+        assert_eq!(unique.len(), first.len());
+        assert!(first.iter().all(|&i| i < 100));
+
+        // Different seed material derives a different set.
+        let other = rust_derive_challenge_indices(sha(b"other-root"), 100, 16).unwrap();
+        assert_ne!(first, other);
+
+        assert!(rust_derive_challenge_indices(seed.clone(), 100, 0)
+            .unwrap()
+            .is_empty());
+        assert!(rust_derive_challenge_indices(seed, 0, 4).is_err());
+    }
+
+    #[test]
+    fn reality_anchor_mac_verifies_and_rejects() {
+        let key = b"anchor-key".to_vec();
+        let payload = b"canonical-payload".to_vec();
+        let mut mac = HmacSha256::new_from_slice(&key).unwrap();
+        mac.update(&payload);
+        let mac_hex: String = mac
+            .finalize()
+            .into_bytes()
+            .iter()
+            .map(|b| format!("{b:02x}"))
+            .collect();
+
+        assert!(rust_verify_reality_anchor_mac(key.clone(), payload.clone(), &mac_hex).unwrap());
+        // Uppercase hex decodes to the same digest.
+        assert!(rust_verify_reality_anchor_mac(
+            key.clone(),
+            payload.clone(),
+            &mac_hex.to_uppercase()
+        )
+        .unwrap());
+        // Tampered payload, malformed hex, and wrong-length MACs all report false.
+        assert!(
+            !rust_verify_reality_anchor_mac(key.clone(), b"tampered".to_vec(), &mac_hex).unwrap()
+        );
+        assert!(!rust_verify_reality_anchor_mac(key.clone(), payload.clone(), "zz").unwrap());
+        let mut wrong = mac_hex.clone();
+        wrong.replace_range(0..1, if &mac_hex[0..1] == "0" { "1" } else { "0" });
+        assert!(!rust_verify_reality_anchor_mac(key, payload, &wrong).unwrap());
+    }
+}

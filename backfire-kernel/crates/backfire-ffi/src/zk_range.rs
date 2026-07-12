@@ -159,3 +159,81 @@ pub fn rust_bulletproof_verify_threshold(
         .verify_single(&bp_gens, &pc_gens, &mut verifier_transcript, &c_d, bits)
         .is_ok())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const CTX: &[u8] = b"test-context";
+
+    #[test]
+    fn prove_then_verify_round_trips() {
+        let (proof, commitments) =
+            rust_bulletproof_prove_threshold(vec![10, 20, 30], 50, 16, CTX).unwrap();
+        assert!(commitments.iter().all(|c| c.len() == 32));
+        assert!(rust_bulletproof_verify_threshold(&proof, commitments, 50, 16, CTX).unwrap());
+    }
+
+    #[test]
+    fn verify_rejects_wrong_threshold_context_and_tampering() {
+        let (proof, commitments) =
+            rust_bulletproof_prove_threshold(vec![10, 20, 30], 50, 16, CTX).unwrap();
+
+        // Different public threshold changes C_d — proof no longer binds.
+        assert!(
+            !rust_bulletproof_verify_threshold(&proof, commitments.clone(), 40, 16, CTX).unwrap()
+        );
+        // Different transcript context.
+        assert!(!rust_bulletproof_verify_threshold(
+            &proof,
+            commitments.clone(),
+            50,
+            16,
+            b"other-context"
+        )
+        .unwrap());
+        // Tampered proof bytes.
+        let mut bad_proof = proof.clone();
+        bad_proof[0] ^= 0x01;
+        assert!(
+            !rust_bulletproof_verify_threshold(&bad_proof, commitments.clone(), 50, 16, CTX)
+                .unwrap()
+        );
+        // Tampered commitment bytes (still 32 bytes, wrong point/bits).
+        let mut bad_commitments = commitments;
+        bad_commitments[0][0] ^= 0x01;
+        assert!(!rust_bulletproof_verify_threshold(&proof, bad_commitments, 50, 16, CTX).unwrap());
+    }
+
+    #[test]
+    fn verify_handles_malformed_inputs_without_raising() {
+        let (proof, commitments) =
+            rust_bulletproof_prove_threshold(vec![5, 6], 10, 8, CTX).unwrap();
+
+        // Empty commitment set, garbage proof, and wrong-length commitment
+        // all report false rather than raising.
+        assert!(!rust_bulletproof_verify_threshold(&proof, vec![], 10, 8, CTX).unwrap());
+        assert!(
+            !rust_bulletproof_verify_threshold(b"garbage", commitments.clone(), 10, 8, CTX)
+                .unwrap()
+        );
+        assert!(
+            !rust_bulletproof_verify_threshold(&proof, vec![vec![0_u8; 31]], 10, 8, CTX).unwrap()
+        );
+    }
+
+    #[test]
+    fn prove_rejects_bad_parameters() {
+        // Unsupported bit width (prover and verifier).
+        assert!(rust_bulletproof_prove_threshold(vec![1], 1, 12, CTX).is_err());
+        assert!(rust_bulletproof_verify_threshold(b"", vec![], 1, 12, CTX).is_err());
+        // Empty values.
+        assert!(rust_bulletproof_prove_threshold(vec![], 1, 8, CTX).is_err());
+        // False statement: aggregate below threshold is unprovable.
+        assert!(rust_bulletproof_prove_threshold(vec![1, 2], 10, 8, CTX).is_err());
+        // Difference does not fit the requested range.
+        assert!(rust_bulletproof_prove_threshold(vec![300], 0, 8, CTX).is_err());
+        // Aggregate exceeding u64 is rejected before proving.
+        assert!(rust_bulletproof_prove_threshold(vec![u64::MAX, 1], 0, 64, CTX).is_err());
+    }
+}

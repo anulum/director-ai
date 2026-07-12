@@ -31,5 +31,12 @@ curve25519-dalek = "4.1"
 merlin = "3"
 rand = "0.8"
 
+[features]
+# Default for maturin wheel builds. Unit tests run with
+# --no-default-features so the test binary links libpython instead of
+# leaving the interpreter symbols to the host process.
+default = ["extension-module"]
+extension-module = ["pyo3/extension-module"]
+
 [lints]
 workspace = true

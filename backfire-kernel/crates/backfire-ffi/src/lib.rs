@@ -1525,7 +1525,7 @@ fn rust_mean(values: Vec<f64>) -> PyResult<f64> {
 
 #[pyfunction]
 fn rust_standard_normal_quantile(p: f64) -> PyResult<f64> {
-    if !(0.0..1.0).contains(&p) || !p.is_finite() {
+    if !p.is_finite() || p <= 0.0 || p >= 1.0 {
         return Err(PyValueError::new_err("p must be finite and in (0, 1)"));
     }
     let a = [
@@ -1760,5 +1760,111 @@ impl PyPiiScanner {
     /// Number of registered pattern/category pairs.
     fn __len__(&self) -> usize {
         self.inner.len()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn conformal_quantile_orders_and_validates() {
+        // n=5: index = ceil((n+1)*coverage) - 1 = ceil(4.8) - 1 = 4 -> 0.5.
+        let q = rust_conformal_quantile(vec![0.3, 0.1, 0.2, 0.4, 0.5], 0.8).unwrap();
+        assert!((q - 0.5).abs() < 1e-12);
+        // Quantile index clamps to the largest residual at high coverage.
+        let top = rust_conformal_quantile(vec![0.1, 0.9], 0.99).unwrap();
+        assert!((top - 0.9).abs() < 1e-12);
+
+        assert!(rust_conformal_quantile(vec![], 0.9).is_err());
+        assert!(rust_conformal_quantile(vec![0.1], 1.0).is_err());
+        assert!(rust_conformal_quantile(vec![-0.1], 0.9).is_err());
+        assert!(rust_conformal_quantile(vec![f64::NAN], 0.9).is_err());
+    }
+
+    #[test]
+    fn ema_update_seeds_and_blends() {
+        // No previous value: the observation seeds the average.
+        assert!((rust_ema_update(None, 0.6, 0.5).unwrap() - 0.6).abs() < 1e-12);
+        // Blend: 0.5*0.0 + 0.5*1.0.
+        assert!((rust_ema_update(Some(1.0), 0.0, 0.5).unwrap() - 0.5).abs() < 1e-12);
+
+        assert!(rust_ema_update(Some(1.0), f64::INFINITY, 0.5).is_err());
+        assert!(rust_ema_update(Some(f64::NAN), 0.5, 0.5).is_err());
+        assert!(rust_ema_update(None, 0.5, 0.0).is_err());
+        assert!(rust_ema_update(None, 0.5, 1.5).is_err());
+    }
+
+    #[test]
+    fn beta_posterior_mean_matches_closed_form() {
+        // (1 + 3) / (1 + 3 + 1 + 1) with alpha=beta=1, 3/4 successes.
+        let mean = rust_beta_posterior_mean(1.0, 1.0, 3, 4).unwrap();
+        assert!((mean - 4.0 / 6.0).abs() < 1e-12);
+
+        assert!(rust_beta_posterior_mean(0.0, 1.0, 0, 0).is_err());
+        assert!(rust_beta_posterior_mean(1.0, -1.0, 0, 0).is_err());
+        assert!(rust_beta_posterior_mean(1.0, 1.0, 5, 4).is_err());
+    }
+
+    #[test]
+    fn wilson_interval_is_bounded_and_validated() {
+        let (lo, hi) = rust_wilson_score_interval(0.9, 100, 0.95).unwrap();
+        assert!((0.0..0.9).contains(&lo));
+        assert!(hi > 0.9 && hi <= 1.0);
+        // Zero samples collapse to (0, 0) by contract.
+        assert_eq!(
+            rust_wilson_score_interval(0.5, 0, 0.95).unwrap(),
+            (0.0, 0.0)
+        );
+
+        assert!(rust_wilson_score_interval(1.5, 10, 0.95).is_err());
+        assert!(rust_wilson_score_interval(0.5, 10, 1.0).is_err());
+    }
+
+    #[test]
+    fn rank_mean_sums_and_products_validate_finiteness() {
+        assert!(
+            (rust_percentile_rank(vec![1.0, 2.0, 3.0], 2.0).unwrap() - 2.0 / 3.0).abs() < 1e-12
+        );
+        assert!((rust_percentile_rank(vec![], 5.0).unwrap() - 1.0).abs() < 1e-12);
+        assert!(rust_percentile_rank(vec![f64::NAN], 0.5).is_err());
+
+        assert!((rust_mean(vec![1.0, 2.0, 3.0]).unwrap() - 2.0).abs() < 1e-12);
+        assert!(rust_mean(vec![]).is_err());
+
+        assert!((rust_sum_f64(vec![0.5, 0.25]).unwrap() - 0.75).abs() < 1e-12);
+        assert!(rust_sum_f64(vec![f64::INFINITY]).is_err());
+        assert_eq!(rust_sum_i64(vec![1, -2, 4]), 3);
+        assert!((rust_product_f64(vec![2.0, 3.0]).unwrap() - 6.0).abs() < 1e-12);
+        assert!(rust_product_f64(vec![f64::NAN]).is_err());
+    }
+
+    #[test]
+    fn standard_normal_quantile_hits_known_points() {
+        // Symmetric around the median and matches the 97.5 % point used by
+        // the Wilson interval.
+        assert!(rust_standard_normal_quantile(0.5).unwrap().abs() < 1e-9);
+        let z975 = rust_standard_normal_quantile(0.975).unwrap();
+        assert!((z975 - 1.959_963_984_540_054).abs() < 1e-6);
+        let z025 = rust_standard_normal_quantile(0.025).unwrap();
+        assert!((z975 + z025).abs() < 1e-6);
+
+        assert!(rust_standard_normal_quantile(0.0).is_err());
+        assert!(rust_standard_normal_quantile(1.0).is_err());
+    }
+
+    #[test]
+    fn confusion_counts_split_by_threshold() {
+        let (tp, tn, fp, fnn) = rust_confusion_counts_threshold(
+            vec![0.9, 0.8, 0.4, 0.2],
+            vec![true, false, true, false],
+            0.5,
+        )
+        .unwrap();
+        assert_eq!((tp, tn, fp, fnn), (1, 1, 1, 1));
+
+        assert!(rust_confusion_counts_threshold(vec![0.5], vec![], 0.5).is_err());
+        assert!(rust_confusion_counts_threshold(vec![f64::NAN], vec![true], 0.5).is_err());
+        assert!(rust_confusion_counts_threshold(vec![0.5], vec![true], f64::INFINITY).is_err());
     }
 }

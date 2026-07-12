@@ -766,8 +766,17 @@ jobs:
       - name: Build
         run: cargo build --workspace
 
+      # backfire-ffi's default extension-module feature leaves the
+      # interpreter symbols to the host Python process, so its unit-test
+      # binary must link libpython instead: test it separately with
+      # --no-default-features against the system python3-dev.
+      - name: Install libpython for ffi unit tests
+        run: sudo apt-get update && sudo apt-get install -y python3-dev
+
       - name: Test
-        run: cargo test --workspace
+        run: |
+          cargo test --workspace --exclude backfire-ffi
+          cargo test -p backfire-ffi --no-default-features
 
       # Supply-chain gate (WCG-2): fail on known RustSec vulnerabilities, on any
       # dependency licence outside the permissive allow-list, and on unknown
