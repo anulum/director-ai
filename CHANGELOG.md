@@ -9,6 +9,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Hybrid retrieval fusion strategies beyond RRF
+  (`director_ai.core.retrieval.vector_store.fusion`): `convex`
+  (min-max normalised convex combination, CombSUM family), `combmnz`
+  (CombSUM × cross-run agreement) and `zscore` (standardised-score
+  sum) join the default weighted `rrf`. Selectable via
+  `HybridBackend(fusion_method=...)`,
+  `VectorGroundTruthStore.grounded(fusion_method=...)` and the new
+  `DirectorConfig.hybrid_fusion_method` /
+  `hybrid_sparse_weight` / `hybrid_dense_weight` fields;
+  `HybridBackend.with_fusion()` derives query views that share one
+  BM25 + dense index so strategies can be compared without
+  re-indexing. The BM25 run now carries native scores into the
+  fusion layer, and the RRF docstring cites the actual source
+  (Cormack, Clarke & Büttcher, SIGIR 2009).
 - NeMo Guardrails rails-as-config loader
   (`director_ai.integrations.rails_config.load_rails_config`): maps the
   honest subset of a NeMo config directory (`config.yml` + Colang `.co`

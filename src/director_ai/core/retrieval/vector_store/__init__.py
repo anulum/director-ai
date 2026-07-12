@@ -30,6 +30,9 @@ from .composite import HybridBackend as HybridBackend
 from .composite import RerankedBackend as RerankedBackend
 from .embedding import ChromaBackend as ChromaBackend
 from .embedding import SentenceTransformerBackend as SentenceTransformerBackend
+from .fusion import FUSION_METHODS as FUSION_METHODS
+from .fusion import fuse_results as fuse_results
+from .fusion import validate_fusion_method as validate_fusion_method
 from .http_embedding import HttpEmbeddingConnectionError as HttpEmbeddingConnectionError
 from .http_embedding import HttpEmbeddingDimensionError as HttpEmbeddingDimensionError
 from .http_embedding import HttpEmbeddingError as HttpEmbeddingError
@@ -46,6 +49,7 @@ from .vendors import QdrantBackend as QdrantBackend
 from .vendors import WeaviateBackend as WeaviateBackend
 
 __all__ = [
+    "FUSION_METHODS",
     "RECOMMENDED_EMBEDDING_MODEL",
     "RECOMMENDED_RERANKER_MODEL",
     "ChromaBackend",
@@ -68,9 +72,11 @@ __all__ = [
     "VectorBackend",
     "VectorGroundTruthStore",
     "WeaviateBackend",
+    "fuse_results",
     "get_vector_backend",
     "list_vector_backends",
     "register_vector_backend",
+    "validate_fusion_method",
 ]
 
 

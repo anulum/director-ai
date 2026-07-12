@@ -34,6 +34,7 @@ except ImportError:  # pragma: no cover - bit-exact pure-Python fallback (ADR-00
 
 from ...mandatory import mandatory_execution
 from .base import RECOMMENDED_RERANKER_MODEL, VectorBackend
+from .fusion import fuse_results, validate_fusion_method
 
 __all__ = ["HybridBackend", "RerankedBackend"]
 
@@ -48,17 +49,39 @@ class _RerankerModel(Protocol):
         ...
 
 
+class _BM25State:
+    """BM25 term statistics shared between ``HybridBackend`` views.
+
+    ``HybridBackend.with_fusion`` derives query views over the same
+    index; sharing one state object keeps documents, term counts and
+    the average document length coherent no matter which view adds.
+    """
+
+    __slots__ = ("df", "doc_tfs", "docs", "lock", "total_len")
+
+    def __init__(self) -> None:
+        self.docs: list[dict[str, Any]] = []
+        self.doc_tfs: list[dict[str, int]] = []
+        self.df: dict[str, int] = {}
+        self.total_len = 0
+        self.lock = threading.Lock()
+
+
 class HybridBackend(VectorBackend):
-    """BM25 + dense retrieval with Reciprocal Rank Fusion (RRF).
+    """BM25 + dense retrieval with a pluggable fusion strategy.
 
     Wraps any VectorBackend. Maintains a parallel BM25 index over
     the same documents. At query time, runs both sparse (BM25) and
-    dense (wrapped backend) retrieval, then fuses results via RRF.
+    dense (wrapped backend) retrieval, then fuses the runs with the
+    configured method — see
+    :mod:`director_ai.core.retrieval.vector_store.fusion` for the
+    available strategies and their references.
 
     No external dependencies — uses a built-in BM25 implementation.
 
-    RRF: score(d) = 1/(k + rank_sparse) + 1/(k + rank_dense).
-    Croft et al. 2009, default k=60.
+    Default fusion is weighted Reciprocal Rank Fusion:
+    score(d) = w_sparse/(k + rank_sparse) + w_dense/(k + rank_dense)
+    (Cormack, Clarke & Büttcher, SIGIR 2009; default k=60).
     """
 
     def __init__(
@@ -68,6 +91,7 @@ class HybridBackend(VectorBackend):
         sparse_weight: float = 1.0,
         dense_weight: float = 1.0,
         fetch_multiplier: int = 3,
+        fusion_method: str = "rrf",
     ) -> None:
         if base is None:
             raise ValueError("base backend is required")
@@ -88,11 +112,33 @@ class HybridBackend(VectorBackend):
         self._sparse_w = sparse_weight
         self._dense_w = dense_weight
         self._fetch_mul = fetch_multiplier
-        self._docs: list[dict[str, Any]] = []
-        self._doc_tfs: list[dict[str, int]] = []
-        self._df: dict[str, int] = {}
-        self._total_len = 0
-        self._lock = threading.Lock()
+        self._fusion = validate_fusion_method(fusion_method)
+        self._bm25 = _BM25State()
+
+    def with_fusion(
+        self,
+        fusion_method: str,
+        *,
+        rrf_k: int | None = None,
+        sparse_weight: float | None = None,
+        dense_weight: float | None = None,
+    ) -> HybridBackend:
+        """Return a view over the same base backend and BM25 index.
+
+        The view shares document and term statistics with this
+        backend — adding through either stays coherent — so fusion
+        strategies can be compared without re-indexing the corpus.
+        """
+        view = HybridBackend(
+            base=self._base,
+            rrf_k=self._rrf_k if rrf_k is None else rrf_k,
+            sparse_weight=self._sparse_w if sparse_weight is None else sparse_weight,
+            dense_weight=self._dense_w if dense_weight is None else dense_weight,
+            fetch_multiplier=self._fetch_mul,
+            fusion_method=fusion_method,
+        )
+        view._bm25 = self._bm25
+        return view
 
     @staticmethod
     def _tokenize(text: str) -> list[str]:
@@ -112,31 +158,33 @@ class HybridBackend(VectorBackend):
         tf: dict[str, int] = {}
         for t in tokens:
             tf[t] = tf.get(t, 0) + 1
-        with self._lock:
-            self._docs.append({"id": doc_id, "text": text, "metadata": metadata or {}})
-            self._doc_tfs.append(tf)
-            self._total_len += len(tokens)
+        state = self._bm25
+        with state.lock:
+            state.docs.append({"id": doc_id, "text": text, "metadata": metadata or {}})
+            state.doc_tfs.append(tf)
+            state.total_len += len(tokens)
             for term in set(tokens):
-                self._df[term] = self._df.get(term, 0) + 1
+                state.df[term] = state.df.get(term, 0) + 1
 
     def _bm25_query(
         self,
         text: str,
         n_results: int,
         tenant_id: str,
-    ) -> list[dict[str, Any]]:
-        """BM25 scoring: k1=1.2, b=0.75."""
+    ) -> list[tuple[dict[str, Any], float]]:
+        """BM25 scoring (k1=1.2, b=0.75) → (row, native score) pairs."""
         import math
 
         query_tokens = self._tokenize(text)
         if not query_tokens:
             return []
 
-        with self._lock:
-            docs = list(self._docs)
-            tfs = list(self._doc_tfs)
-            df = dict(self._df)
-            total_len = self._total_len
+        state = self._bm25
+        with state.lock:
+            docs = list(state.docs)
+            tfs = list(state.doc_tfs)
+            df = dict(state.df)
+            total_len = state.total_len
 
         n = len(docs)
         if n == 0:
@@ -162,7 +210,7 @@ class HybridBackend(VectorBackend):
         results = []
         for score, idx in scores[:n_results]:
             if score > 0:
-                results.append({**docs[idx], "distance": 1.0 / (1.0 + score)})
+                results.append(({**docs[idx], "distance": 1.0 / (1.0 + score)}, score))
         return results
 
     def query(
@@ -175,29 +223,20 @@ class HybridBackend(VectorBackend):
         fetch_n = n_results * self._fetch_mul
 
         # Run both retrieval paths
-        sparse_results = self._bm25_query(text, fetch_n, tenant_id)
-        dense_results = self._base.query(text, n_results=fetch_n, tenant_id=tenant_id)
+        sparse_run = self._bm25_query(text, fetch_n, tenant_id)
+        dense_rows = self._base.query(text, n_results=fetch_n, tenant_id=tenant_id)
+        # Dense native score: every shipped backend emits distance = 1 − sim.
+        dense_run = [(row, 1.0 - float(row.get("distance", 1.0))) for row in dense_rows]
 
-        # RRF fusion
-        rrf_scores: dict[str, float] = {}
-        doc_map: dict[str, dict[str, Any]] = {}
-
-        for rank, doc in enumerate(sparse_results):
-            did = doc["id"]
-            rrf_scores[did] = rrf_scores.get(did, 0.0) + self._sparse_w / (
-                self._rrf_k + rank + 1
-            )
-            doc_map[did] = doc
-
-        for rank, doc in enumerate(dense_results):
-            did = doc["id"]
-            rrf_scores[did] = rrf_scores.get(did, 0.0) + self._dense_w / (
-                self._rrf_k + rank + 1
-            )
-            doc_map[did] = doc
-
-        ranked = sorted(rrf_scores.items(), key=lambda x: x[1], reverse=True)
-        return [doc_map[did] for did, _ in ranked[:n_results]]
+        fused = fuse_results(
+            self._fusion,
+            sparse_run,
+            dense_run,
+            rrf_k=self._rrf_k,
+            sparse_weight=self._sparse_w,
+            dense_weight=self._dense_w,
+        )
+        return fused[:n_results]
 
     def count(self) -> int:
         """Return the number of documents in the underlying base store."""

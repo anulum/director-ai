@@ -128,6 +128,9 @@ store = config.build_store()
 | `chroma_persist_dir` | `str` | `""` | Persistence directory (empty = in-memory) |
 | `hybrid_retrieval` | `bool` | `True` | Enable BM25 + dense retrieval with Reciprocal Rank Fusion |
 | `hybrid_rrf_k` | `int` | `60` | Reciprocal Rank Fusion rank constant |
+| `hybrid_fusion_method` | `str` | `"rrf"` | Hybrid fusion strategy: `"rrf"`, `"convex"`, `"combmnz"` or `"zscore"` |
+| `hybrid_sparse_weight` | `float` | `1.0` | BM25 run weight in hybrid fusion |
+| `hybrid_dense_weight` | `float` | `1.0` | Dense run weight in hybrid fusion |
 | `reranker_enabled` | `bool` | `True` | Enable cross-encoder reranking |
 | `reranker_model` | `str` | `"cross-encoder/ms-marco-MiniLM-L-6-v2"` | Reranker model |
 | `retrieval_abstention_threshold` | `float` | `0.3` | Minimum retrieval quality before grounded scoring |

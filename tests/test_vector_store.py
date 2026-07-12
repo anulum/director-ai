@@ -1072,6 +1072,31 @@ class TestVectorGroundTruthStore:
         assert isinstance(hybrid_store.backend, HybridBackend)
         assert hybrid_store.backend._rrf_k == 12
 
+    def test_grounded_passes_fusion_method_and_weights(self):
+        with (
+            patch(
+                "director_ai.core.retrieval.vector_store.store."
+                "_build_ann_dense_backend",
+                return_value=None,
+            ),
+            patch(
+                "director_ai.core.retrieval.vector_store.store."
+                "SentenceTransformerBackend",
+                side_effect=RuntimeError("missing sentence-transformers"),
+            ),
+        ):
+            store = VectorGroundTruthStore.grounded(
+                use_reranker=False,
+                fusion_method="convex",
+                sparse_weight=0.25,
+                dense_weight=0.75,
+            )
+
+        assert isinstance(store.backend, HybridBackend)
+        assert store.backend._fusion == "convex"
+        assert store.backend._sparse_w == 0.25
+        assert store.backend._dense_w == 0.75
+
     def test_grounded_default_layers_ann_hybrid_and_reranker(self):
         stub_dense = _StubDenseBackend()
         with (

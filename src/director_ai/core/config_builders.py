@@ -132,9 +132,16 @@ def build_store(cfg: DirectorConfig) -> GroundTruthStore:
         try:
             from .retrieval.vector_store import HybridBackend
 
-            backend = HybridBackend(base=backend, rrf_k=cfg.hybrid_rrf_k)
+            backend = HybridBackend(
+                base=backend,
+                rrf_k=cfg.hybrid_rrf_k,
+                sparse_weight=cfg.hybrid_sparse_weight,
+                dense_weight=cfg.hybrid_dense_weight,
+                fusion_method=cfg.hybrid_fusion_method,
+            )
             logger.info(
-                "Hybrid retrieval enabled (BM25 + dense + RRF, k=%s)",
+                "Hybrid retrieval enabled (BM25 + dense, fusion=%s, k=%s)",
+                cfg.hybrid_fusion_method,
                 cfg.hybrid_rrf_k,
             )
         except ImportError:

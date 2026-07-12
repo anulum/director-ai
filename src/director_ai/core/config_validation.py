@@ -147,6 +147,21 @@ def validate_and_normalize(cfg: DirectorConfig) -> None:
         raise ValueError("hybrid_rrf_k must be an integer")
     if cfg.hybrid_rrf_k < 1:
         raise ValueError("hybrid_rrf_k must be at least 1")
+    from .retrieval.vector_store.fusion import validate_fusion_method
+
+    object.__setattr__(
+        cfg,
+        "hybrid_fusion_method",
+        validate_fusion_method(cfg.hybrid_fusion_method),
+    )
+    for weight_field in ("hybrid_sparse_weight", "hybrid_dense_weight"):
+        weight = getattr(cfg, weight_field)
+        if not isinstance(weight, int | float) or isinstance(weight, bool):
+            raise ValueError(f"{weight_field} must be numeric")
+        if weight < 0.0:
+            raise ValueError(f"{weight_field} must be non-negative")
+    if cfg.hybrid_sparse_weight + cfg.hybrid_dense_weight == 0.0:
+        raise ValueError("at least one hybrid fusion weight must be positive")
     if cfg.scorer_model:
         from .scoring.model_choices import resolve_scorer_model_choice
 

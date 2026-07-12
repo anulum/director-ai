@@ -211,6 +211,9 @@ class DirectorConfig:
     chroma_persist_dir: str = ""
     hybrid_retrieval: bool = True  # BM25 + dense with Reciprocal Rank Fusion
     hybrid_rrf_k: int = 60  # RRF rank constant; 60 is the canonical TREC default
+    hybrid_fusion_method: str = "rrf"  # rrf | convex | combmnz | zscore
+    hybrid_sparse_weight: float = 1.0  # BM25 run weight in hybrid fusion
+    hybrid_dense_weight: float = 1.0  # dense run weight in hybrid fusion
     reranker_enabled: bool = True  # cross-encoder reranking on top of retrieval
     reranker_model: str = "cross-encoder/ms-marco-MiniLM-L-6-v2"
     reranker_model_revision: str = "c5ee24cb16019beea0893ab7796b1df96625c6b8"
@@ -658,8 +661,14 @@ class DirectorConfig:
                 and self.mode != "general",
                 "sparse": "bm25",
                 "dense": self.vector_backend,
-                "fusion": "reciprocal_rank_fusion",
+                "fusion": (
+                    "reciprocal_rank_fusion"
+                    if self.hybrid_fusion_method == "rrf"
+                    else self.hybrid_fusion_method
+                ),
                 "rrf_k": self.hybrid_rrf_k,
+                "sparse_weight": self.hybrid_sparse_weight,
+                "dense_weight": self.hybrid_dense_weight,
             },
             "reranker": {
                 "enabled": self.reranker_enabled

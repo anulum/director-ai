@@ -368,6 +368,9 @@ class VectorGroundTruthStore(
         use_ann: bool = True,
         use_reranker: bool = True,
         reranker_model: str = RECOMMENDED_RERANKER_MODEL,
+        fusion_method: str = "rrf",
+        sparse_weight: float = 1.0,
+        dense_weight: float = 1.0,
     ) -> VectorGroundTruthStore:
         """Build the recommended grounded retrieval recipe.
 
@@ -395,7 +398,8 @@ class VectorGroundTruthStore(
             HuggingFace model ID for dense embeddings.
             Default: ``BAAI/bge-large-en-v1.5``.
         use_hybrid : bool
-            Wrap dense backend with BM25 + RRF fusion (default True).
+            Wrap dense backend with BM25 + rank/score fusion
+            (default True).
         rrf_k : int
             Reciprocal Rank Fusion parameter (default 60).
         tenant_id : str
@@ -409,6 +413,14 @@ class VectorGroundTruthStore(
         reranker_model : str
             HuggingFace model ID for the cross-encoder reranker.
             Default: ``cross-encoder/ms-marco-MiniLM-L-6-v2``.
+        fusion_method : str
+            Hybrid fusion strategy — ``rrf`` (default), ``convex``,
+            ``combmnz`` or ``zscore``; see
+            :mod:`director_ai.core.retrieval.vector_store.fusion`.
+        sparse_weight : float
+            BM25 run weight in the fusion (default 1.0).
+        dense_weight : float
+            Dense run weight in the fusion (default 1.0).
         """
         dense: VectorBackend | None = None
         if use_ann:
@@ -423,7 +435,17 @@ class VectorGroundTruthStore(
                 )
                 dense = InMemoryBackend()
 
-        backend = HybridBackend(base=dense, rrf_k=rrf_k) if use_hybrid else dense
+        backend = (
+            HybridBackend(
+                base=dense,
+                rrf_k=rrf_k,
+                sparse_weight=sparse_weight,
+                dense_weight=dense_weight,
+                fusion_method=fusion_method,
+            )
+            if use_hybrid
+            else dense
+        )
         if use_reranker:
             backend = _wrap_reranker(backend, reranker_model)
 

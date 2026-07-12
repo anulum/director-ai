@@ -4,11 +4,12 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-"""Multi-angle tests for HybridBackend (BM25 + dense with RRF).
+"""Multi-angle tests for HybridBackend (BM25 + dense with fusion).
 
 Covers: add/count, query ordering, empty store, RRF fusion, tenant
 filtering, distance presence, sparse/dense weight emphasis,
-registration, parametrised n_results/weights, pipeline integration,
+registration, parametrised n_results/weights, fusion method
+selection, shared-index ``with_fusion`` views, pipeline integration,
 and performance documentation.
 """
 
@@ -17,7 +18,11 @@ from __future__ import annotations
 import pytest
 
 import director_ai.core.retrieval.vector_store.composite as composite_mod
-from director_ai.core.vector_store import HybridBackend, InMemoryBackend
+from director_ai.core.vector_store import (
+    FUSION_METHODS,
+    HybridBackend,
+    InMemoryBackend,
+)
 
 
 class TestHybridBackend:
@@ -121,6 +126,121 @@ class TestHybridBackend:
         hybrid.add("d1", "test document content")
         results = hybrid.query("test", n_results=1)
         assert len(results) >= 0  # valid even if empty for extreme weights
+
+
+class TestHybridFusionMethods:
+    def _indexed(self, **kwargs) -> HybridBackend:
+        hybrid = HybridBackend(InMemoryBackend(), **kwargs)
+        hybrid.add("d1", "machine learning neural networks deep learning")
+        hybrid.add("d2", "the cat sat on the mat")
+        hybrid.add("d3", "artificial intelligence and machine learning")
+        return hybrid
+
+    def test_rejects_unknown_fusion_method(self):
+        with pytest.raises(ValueError, match="fusion_method"):
+            HybridBackend(InMemoryBackend(), fusion_method="borda")
+
+    @pytest.mark.parametrize("method", FUSION_METHODS)
+    def test_every_method_ranks_relevant_documents(self, method):
+        hybrid = self._indexed(fusion_method=method)
+
+        ids = [r["id"] for r in hybrid.query("machine learning", n_results=3)]
+
+        assert "d1" in ids
+        assert "d3" in ids
+        assert "d2" not in ids
+
+    def test_default_rrf_query_unchanged_by_refactor(self):
+        """Default construction still fuses via weighted RRF."""
+        hybrid = self._indexed()
+
+        assert hybrid._fusion == "rrf"
+        assert hybrid.query("machine learning", n_results=1)[0]["id"] in {
+            "d1",
+            "d3",
+        }
+
+    def test_dense_rows_without_distance_fuse_as_zero_similarity(self):
+        """Backends omitting ``distance`` still fuse (similarity 0.0)."""
+
+        class NoDistanceBackend(InMemoryBackend):
+            def query(self, text, n_results=3, tenant_id=""):
+                rows = super().query(text, n_results, tenant_id)
+                return [
+                    {k: v for k, v in row.items() if k != "distance"} for row in rows
+                ]
+
+        hybrid = HybridBackend(NoDistanceBackend(), fusion_method="convex")
+        hybrid.add("d1", "quantum computing hardware")
+        hybrid.add("d2", "quantum computing software stack")
+
+        results = hybrid.query("quantum computing", n_results=2)
+
+        assert {r["id"] for r in results} == {"d1", "d2"}
+
+
+class TestWithFusionViews:
+    def setup_method(self):
+        self.hybrid = HybridBackend(InMemoryBackend())
+        self.hybrid.add("d1", "python programming language syntax")
+        self.hybrid.add("d2", "python snake reptile animal")
+
+    def test_view_uses_requested_method_without_reindexing(self):
+        view = self.hybrid.with_fusion("zscore")
+
+        assert view._fusion == "zscore"
+        assert view._bm25 is self.hybrid._bm25
+        assert view._base is self.hybrid._base
+        assert {r["id"] for r in view.query("python", n_results=2)} == {"d1", "d2"}
+
+    def test_view_inherits_parameters_by_default(self):
+        parent = HybridBackend(
+            InMemoryBackend(),
+            rrf_k=17,
+            sparse_weight=2.0,
+            dense_weight=3.0,
+            fetch_multiplier=4,
+        )
+
+        view = parent.with_fusion("combmnz")
+
+        assert view._rrf_k == 17
+        assert view._sparse_w == 2.0
+        assert view._dense_w == 3.0
+        assert view._fetch_mul == 4
+
+    def test_view_overrides_selected_parameters(self):
+        view = self.hybrid.with_fusion(
+            "convex",
+            rrf_k=90,
+            sparse_weight=0.3,
+            dense_weight=0.7,
+        )
+
+        assert view._rrf_k == 90
+        assert view._sparse_w == 0.3
+        assert view._dense_w == 0.7
+
+    def test_add_through_view_is_visible_to_parent(self):
+        view = self.hybrid.with_fusion("convex")
+
+        view.add("d3", "python web frameworks")
+
+        assert self.hybrid.count() == 3
+        ids = [r["id"] for r in self.hybrid.query("python web", n_results=3)]
+        assert "d3" in ids
+
+    def test_add_through_parent_is_visible_to_view(self):
+        view = self.hybrid.with_fusion("zscore")
+
+        self.hybrid.add("d4", "python data analysis")
+
+        ids = [r["id"] for r in view.query("data analysis", n_results=3)]
+        assert "d4" in ids
+
+    def test_view_rejects_unknown_method(self):
+        with pytest.raises(ValueError, match="fusion_method"):
+            self.hybrid.with_fusion("unknown")
 
 
 class TestHybridBackendRegistration:

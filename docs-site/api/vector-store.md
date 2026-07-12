@@ -271,7 +271,7 @@ formed or how results are assembled:
 
 | Decorator | Description |
 |-----------|-------------|
-| `HybridBackend` | BM25 + dense fusion via Reciprocal Rank Fusion. |
+| `HybridBackend` | BM25 + dense fusion — weighted RRF by default, with `convex`, `combmnz` and `zscore` score-fusion strategies selectable via `fusion_method`; `with_fusion()` derives strategy views over one shared index. |
 | `RerankedBackend` | Cross-encoder reranking over an over-fetched candidate set. |
 | `HyDEBackend` | Generates a pseudo-document for the query before dense retrieval (HyDE). |
 | `MultiVectorBackend` | Indexes multiple representations per document and queries across all of them. |

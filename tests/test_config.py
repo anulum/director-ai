@@ -566,6 +566,26 @@ class TestBuildStore:
         assert isinstance(store.backend._base, HybridBackend)
         assert store.backend._base._rrf_k == 47
 
+    def test_build_store_passes_fusion_method_and_weights(self):
+        from director_ai.core.vector_store import HybridBackend
+
+        cfg = DirectorConfig(
+            mode="grounded",
+            vector_backend="memory",
+            hybrid_retrieval=True,
+            hybrid_fusion_method="convex",
+            hybrid_sparse_weight=0.3,
+            hybrid_dense_weight=0.7,
+            reranker_enabled=False,
+        )
+
+        store = cfg.build_store()
+
+        assert isinstance(store.backend, HybridBackend)
+        assert store.backend._fusion == "convex"
+        assert store.backend._sparse_w == 0.3
+        assert store.backend._dense_w == 0.7
+
     def test_retrieval_recipe_metadata_exposes_grounded_contract(self):
         cfg = DirectorConfig(mode="grounded")
 
@@ -577,6 +597,22 @@ class TestBuildStore:
         assert recipe["hybrid"]["enabled"] is True
         assert recipe["hybrid"]["fusion"] == "reciprocal_rank_fusion"
         assert recipe["hybrid"]["rrf_k"] == 60
+        assert recipe["hybrid"]["sparse_weight"] == 1.0
+        assert recipe["hybrid"]["dense_weight"] == 1.0
+
+    def test_retrieval_recipe_surfaces_non_default_fusion_method(self):
+        cfg = DirectorConfig(
+            mode="grounded",
+            hybrid_fusion_method="combmnz",
+            hybrid_sparse_weight=0.4,
+            hybrid_dense_weight=0.6,
+        )
+
+        recipe = cfg.retrieval_recipe()
+
+        assert recipe["hybrid"]["fusion"] == "combmnz"
+        assert recipe["hybrid"]["sparse_weight"] == 0.4
+        assert recipe["hybrid"]["dense_weight"] == 0.6
         assert recipe["reranker"]["enabled"] is True
         assert recipe["reranker"]["top_k_multiplier"] == 3
         assert recipe["abstention"]["threshold"] == pytest.approx(0.3)
@@ -655,6 +691,35 @@ class TestBuildStore:
     def test_hybrid_rrf_k_must_not_be_bool(self):
         with pytest.raises(ValueError, match="hybrid_rrf_k must be an integer"):
             DirectorConfig(hybrid_rrf_k=True)
+
+    def test_hybrid_fusion_method_is_canonicalised(self):
+        cfg = DirectorConfig(hybrid_fusion_method="  ZScore ")
+
+        assert cfg.hybrid_fusion_method == "zscore"
+
+    def test_hybrid_fusion_method_rejects_unknown(self):
+        with pytest.raises(ValueError, match="fusion_method must be one of"):
+            DirectorConfig(hybrid_fusion_method="borda")
+
+    @pytest.mark.parametrize(
+        "field",
+        ["hybrid_sparse_weight", "hybrid_dense_weight"],
+    )
+    def test_hybrid_fusion_weight_must_be_non_negative(self, field):
+        with pytest.raises(ValueError, match=f"{field} must be non-negative"):
+            DirectorConfig(**{field: -0.5})
+
+    @pytest.mark.parametrize(
+        "field",
+        ["hybrid_sparse_weight", "hybrid_dense_weight"],
+    )
+    def test_hybrid_fusion_weight_must_be_numeric(self, field):
+        with pytest.raises(ValueError, match=f"{field} must be numeric"):
+            DirectorConfig(**{field: True})
+
+    def test_hybrid_fusion_weights_must_not_both_be_zero(self):
+        with pytest.raises(ValueError, match="at least one hybrid fusion weight"):
+            DirectorConfig(hybrid_sparse_weight=0.0, hybrid_dense_weight=0.0)
 
 
 class TestValidationBoundaries:
