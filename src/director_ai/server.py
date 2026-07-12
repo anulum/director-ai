@@ -930,4 +930,11 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
 
     app.include_router(create_streaming_router())
 
+    # REST SSE streaming - /v1/stream/sse - lives in routers/streaming_sse.py.
+    # Same session shapes as the WebSocket, delivered as text/event-stream;
+    # auth and tenant binding ride the standard REST middleware.
+    from .routers.streaming_sse import create_sse_router
+
+    app.include_router(create_sse_router())
+
     return app

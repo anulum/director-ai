@@ -7,9 +7,9 @@
     "public_api_exports": 226,
     "public_documentation_pages": 204,
     "python_model_classes": 1018,
-    "python_model_source_modules": 493,
+    "python_model_source_modules": 494,
     "rust_pyo3_model_wrappers": 83,
-    "test_files": 738
+    "test_files": 739
   },
   "documentation": {
     "public_pages": [
@@ -4880,6 +4880,7 @@
       "src/director_ai/routers/sessions.py",
       "src/director_ai/routers/stats.py",
       "src/director_ai/routers/streaming.py",
+      "src/director_ai/routers/streaming_sse.py",
       "src/director_ai/routers/tenants.py",
       "src/director_ai/routers/verification.py",
       "src/director_ai/server.py",
@@ -5963,6 +5964,7 @@
       "tests/test_streaming_nli_failure.py",
       "tests/test_streaming_repair.py",
       "tests/test_streaming_runtime_real_surface.py",
+      "tests/test_streaming_sse.py",
       "tests/test_stress_cli.py",
       "tests/test_structured_halt_recovery.py",
       "tests/test_summarization_bidir.py",

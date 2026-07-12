@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `POST /v1/stream/sse` — REST Server-Sent Events streaming endpoint
+  (`routers/streaming_sse.py`). Serves the same two session shapes as
+  the `/v1/stream` WebSocket — whole-answer `result`, or token-level
+  pre-egress oversight with `token`/`halt`/`complete` frames — as
+  `text/event-stream`, for server-to-server callers and clients behind
+  WebSocket-hostile proxies. Auth/tenant binding ride the standard REST
+  middleware (no ticket exchange); validation failures are plain HTTP
+  errors before the stream starts; a per-process concurrent-stream cap
+  mirrors the WebSocket connection budget.
 - OpenAI-compatible proxy: `/v1/moderations` (local mode analyses inputs
   with the shipped dependency-free toxicity/PII detectors and answers in
   the OpenAI moderations shape; `moderations="upstream"` forwards the

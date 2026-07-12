@@ -50,6 +50,7 @@ Production-ready FastAPI server exposing Director-AI scoring over HTTP.
 | `GET` | `/v1/metrics/prometheus` | Prometheus-compatible metrics |
 | `GET` | `/v1/source` | Source-availability pointer |
 | `WS` | `/v1/stream` | WebSocket streaming oversight |
+| `POST` | `/v1/stream/sse` | Server-Sent Events streaming (same session shapes as the WebSocket: `result`, or token-level oversight with `token`/`halt`/`complete`; failures mid-stream arrive as an `error` event) |
 | `POST` | `/v1/knowledge/upload` | Upload file → parse → chunk → embed |
 | `POST` | `/v1/knowledge/ingest` | Ingest raw text → chunk → embed |
 | `GET` | `/v1/knowledge/documents` | List documents per tenant |

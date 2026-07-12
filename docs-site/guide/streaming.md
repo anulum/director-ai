@@ -128,6 +128,29 @@ kernel = AsyncStreamingKernel(
 session = await kernel.stream_to_session(async_token_gen, coherence_fn)
 ```
 
+## REST SSE Endpoint
+
+`POST /v1/stream/sse` serves the same two session shapes as the
+`/v1/stream` WebSocket — whole-answer processing and token-level
+pre-egress oversight — as a `text/event-stream` response, for
+server-to-server callers, `curl`, and clients behind proxies that
+block WebSockets. Auth and tenant binding use the standard REST
+middleware, so no ticket exchange is needed:
+
+```bash
+curl -N -X POST http://localhost:8000/v1/stream/sse \
+  -H "X-API-Key: $KEY" -H "Content-Type: application/json" \
+  -d '{"prompt": "Explain RRF fusion.", "streaming_oversight": true}'
+```
+
+Event names mirror the WebSocket message types: `token` frames carry
+`{token, coherence}`, the terminal frame is `halt` or `complete`
+(oversight) or a single `result` (whole-answer), and mid-stream
+failures arrive as an `error` event. Validation problems are rejected
+before the stream starts as plain HTTP errors (400/413/503). The
+halting token is never delivered — identical pre-egress semantics to
+the WebSocket branch.
+
 ## Pre-Sampling Inference Server Hooks
 
 `InferenceServerHook` is the adapter boundary for vLLM, TGI, and
