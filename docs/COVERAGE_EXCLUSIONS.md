@@ -24,13 +24,14 @@ structurally unreachable `union == 0` guards in
 `core/scoring/lexical_signals.py` (both sit behind emptiness checks that
 already guarantee a non-empty union).
 
-**CI-confirmed** (run `29180899194`, commit `3f59fcec`, job "Test
-(Python 3.12)"): 44 596 statements, **0 missed**, **48** partial branch
+**CI-confirmed** (run `29182000493`, commit `b21dc4ff`, job "Test
+(Python 3.12)"): 44 688 statements, **0 missed**, **48** partial branch
 edges, total **99.91 %**. The per-file edge table below matches that run
-exactly — the WCH-3 proxy broadening (`_proxy_moderations.py` +56
-statements, `proxy.py` +75 for legacy completions/embeddings) landed at
-100 % statements and branches, so the edge set is unchanged from the
-previous anchor. (Previous confirmations: run `29171385300` at commit
+exactly — the WCA-10 SSE endpoint (`routers/streaming_sse.py` +90
+statements) landed at 100 % statements and branches, as did the WCH-3
+proxy broadening before it (run `29180899194` at commit `3f59fcec`,
+44 596 statements — `_proxy_moderations.py` +56, `proxy.py` +75), so
+the edge set is unchanged. (Previous confirmations: run `29171385300` at commit
 `2a2bdfbb`, 44 465 statements — the WCB-7 finetune decomposition
 initially re-shaped the `finetune_api.py` entry, module-reload and
 pre-split-failure tests then closed every split edge, the baseline fell
@@ -64,7 +65,7 @@ whose statements are fully covered. They fall into three categories:
 | skip-edge | Forward arc: a defensive condition whose false path is only reachable under object states no public API produces today. |
 | extras-gated | Arc taken only when an optional extra is present/absent in a combination the core CI job does not produce; the behaviour itself is covered by the extras matrix jobs or the floor job. |
 
-Baseline as of run `29180899194` (48 branch edges, per file):
+Baseline as of run `29182000493` (48 branch edges, per file):
 
 | File | Edges | Category |
 | --- | --- | --- |
