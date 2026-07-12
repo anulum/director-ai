@@ -24,17 +24,19 @@ structurally unreachable `union == 0` guards in
 `core/scoring/lexical_signals.py` (both sit behind emptiness checks that
 already guarantee a non-empty union).
 
-**CI-confirmed** (run `29171385300`, commit `2a2bdfbb`, job "Test
-(Python 3.12)"): 44 465 statements, **0 missed**, **48** partial branch
+**CI-confirmed** (run `29180899194`, commit `3f59fcec`, job "Test
+(Python 3.12)"): 44 596 statements, **0 missed**, **48** partial branch
 edges, total **99.91 %**. The per-file edge table below matches that run
-exactly. The WCB-7 finetune decomposition initially re-shaped the
-`finetune_api.py` entry (its extras-gated block split across three
-modules); module-reload and pre-split-failure tests then closed every
-split edge, so the file's four documented edges shrank to the two
-req-defaulting skip-edges and the baseline fell 50 → 48. The same
-commit removed the hash-seed-dependent `has_cycle` coverage flake by
-iterating graph nodes in sorted order. (Previous confirmations: run
-`29169607735` at commit `256892b0`, 44 432 statements, 50 edges after
+exactly — the WCH-3 proxy broadening (`_proxy_moderations.py` +56
+statements, `proxy.py` +75 for legacy completions/embeddings) landed at
+100 % statements and branches, so the edge set is unchanged from the
+previous anchor. (Previous confirmations: run `29171385300` at commit
+`2a2bdfbb`, 44 465 statements — the WCB-7 finetune decomposition
+initially re-shaped the `finetune_api.py` entry, module-reload and
+pre-split-failure tests then closed every split edge, the baseline fell
+50 → 48, and the same commit removed the hash-seed-dependent
+`has_cycle` coverage flake by iterating graph nodes in sorted order;
+run `29169607735` at commit `256892b0`, 44 432 statements, 50 edges after
 WCA-7 + SEC-3; run `29151154365` at commit `21282dc7`, 44 389
 statements after the WCA-4
 conformal-review intervals; run `29149449959` at commit
@@ -62,7 +64,7 @@ whose statements are fully covered. They fall into three categories:
 | skip-edge | Forward arc: a defensive condition whose false path is only reachable under object states no public API produces today. |
 | extras-gated | Arc taken only when an optional extra is present/absent in a combination the core CI job does not produce; the behaviour itself is covered by the extras matrix jobs or the floor job. |
 
-Baseline as of run `29171385300` (48 branch edges, per file):
+Baseline as of run `29180899194` (48 branch edges, per file):
 
 | File | Edges | Category |
 | --- | --- | --- |
