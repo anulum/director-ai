@@ -9,6 +9,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `benchmarks/retrieval_model_refresh_ab.py` — embedder/reranker refresh
+  A/B evidence for the `grounded()` default pair (WCA-8). Eight arms
+  through the public recipe on the internal retrieval evaluation set
+  (30 queries, CPU): any cross-encoder lifts hit@1 from 0.733–0.767 to
+  0.933–1.000; `bge-m3 + bge-reranker-v2-m3` reaches hit@1 1.000 at
+  ~2.2 s/query, `bge-m3 + ms-marco-MiniLM-L-6-v2` reaches 0.967 at
+  ~0.56 s/query. The internal set saturates near the ceiling, so the
+  refresh decision defers to the public-benchmark run below. Artefact:
+  `benchmarks/results/retrieval_model_refresh_ab.json` (committed) with
+  exact model revisions and host environment.
+- `benchmarks/beir_competitive_bench.py` — BEIR NFCorpus + SciFact test
+  splits through the shipped `grounded()` recipe (hybrid BM25+dense RRF,
+  optional cross-encoder rerank of the top 30), scored with
+  `pytrec_eval` (nDCG@10) and cross-checked against a built-in
+  linear-gain implementation. The artefact embeds published baselines
+  verified at source (BEIR paper Table 2; bge-large-en-v1.5 model-card
+  MTEB metrics) so the numbers are comparable across systems.
 - `DirectorConfig.finetune_models_dir` (env: `DIRECTOR_FINETUNE_MODELS_DIR`)
   — the server now passes a configurable models/jobs directory to the
   fine-tuning router instead of always mounting the hard-coded
