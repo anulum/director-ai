@@ -100,12 +100,13 @@ def _cpu_model() -> str | None:
 
 
 def _environment() -> dict[str, Any]:
-    """Record the hardware and library versions behind the measurements."""
+    """Record the hardware, library versions and host conditions."""
     import faiss
     import numpy as np
     import sentence_transformers
     import torch
 
+    from benchmarks.host_conditions import host_conditions
     from director_ai.core._device import select_torch_device
 
     return {
@@ -117,6 +118,7 @@ def _environment() -> dict[str, Any]:
         "faiss": faiss.__version__,
         "sentence_transformers": sentence_transformers.__version__,
         "torch": torch.__version__,
+        "host_conditions": host_conditions(),
     }
 
 

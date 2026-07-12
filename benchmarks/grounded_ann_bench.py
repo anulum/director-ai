@@ -295,14 +295,17 @@ def _describe_backend_chain(backend: Any) -> str:
 
 
 def _environment() -> dict[str, Any]:
-    """Record the library versions behind the measurements."""
+    """Record the library versions and host conditions."""
     import faiss
 
-    env = {
+    from benchmarks.host_conditions import host_conditions
+
+    env: dict[str, Any] = {
         "python": platform.python_version(),
         "machine": platform.machine(),
         "numpy": np.__version__,
         "faiss": faiss.__version__,
+        "host_conditions": host_conditions(),
     }
     try:
         import sentence_transformers

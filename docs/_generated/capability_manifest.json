@@ -9,7 +9,7 @@
     "python_model_classes": 1024,
     "python_model_source_modules": 498,
     "rust_pyo3_model_wrappers": 83,
-    "test_files": 744
+    "test_files": 745
   },
   "documentation": {
     "public_pages": [
@@ -5648,6 +5648,7 @@
       "tests/test_hf_space_deployment_smoke.py",
       "tests/test_hf_space_deployment_smoke_real_surface.py",
       "tests/test_honesty_redteam.py",
+      "tests/test_host_conditions.py",
       "tests/test_human_review_queue.py",
       "tests/test_hybrid_backend.py",
       "tests/test_hybrid_hardening.py",
