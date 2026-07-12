@@ -9,6 +9,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Computed AI-governance controls (`director_ai.compliance.
+  governance_controls`, BUSL tier): `compute_governance_controls()`
+  derives NIST AI RMF 1.0 / ISO/IEC 42001:2023 / EU AI Act crosswalk
+  controls from observable deployment state — DirectorConfig guard and
+  data-governance knobs, a live `verify_chain()` pass over the
+  tamper-evident audit log, and documentation evidence artefacts under
+  an operator-supplied evidence root. Six controls cover Articles 9
+  (risk management), 10 (data governance), 11 (technical
+  documentation), 12 (record-keeping), plus the Article 15 accuracy
+  bridge and Article 14 human-oversight readiness; every status is
+  derived from named `ControlSignal` observations, so missing inputs
+  degrade honestly instead of aborting. New endpoint
+  `GET /v1/compliance/governance-controls` (never 503s — an
+  unconfigured audit log is itself the reported finding) and CLI
+  subcommand `director-ai compliance governance`. Previously only
+  Article 15 reporting was computed; SOC 2/ISO 27001/HIPAA remain the
+  static readiness catalogue.
 - `POST /v1/stream/sse` — REST Server-Sent Events streaming endpoint
   (`routers/streaming_sse.py`). Serves the same two session shapes as
   the `/v1/stream` WebSocket — whole-answer `result`, or token-level

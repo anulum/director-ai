@@ -6,10 +6,10 @@
     "optional_extras": 62,
     "public_api_exports": 226,
     "public_documentation_pages": 204,
-    "python_model_classes": 1018,
-    "python_model_source_modules": 494,
+    "python_model_classes": 1021,
+    "python_model_source_modules": 495,
     "rust_pyo3_model_wrappers": 83,
-    "test_files": 739
+    "test_files": 740
   },
   "documentation": {
     "public_pages": [
@@ -1154,6 +1154,10 @@
         "path": "src/director_ai/core/runtime/contradiction_tracker.py"
       },
       {
+        "name": "ControlSignal",
+        "path": "src/director_ai/compliance/governance_controls.py"
+      },
+      {
         "name": "ConversationSession",
         "path": "src/director_ai/core/runtime/session.py"
       },
@@ -1896,6 +1900,14 @@
       {
         "name": "GoogleDrivePlugin",
         "path": "src/director_ai/core/retrieval/ingestion/gdrive.py"
+      },
+      {
+        "name": "GovernanceControl",
+        "path": "src/director_ai/compliance/governance_controls.py"
+      },
+      {
+        "name": "GovernanceControlsReport",
+        "path": "src/director_ai/compliance/governance_controls.py"
       },
       {
         "name": "GraderCase",
@@ -4439,6 +4451,7 @@
       "src/director_ai/compliance/cost_analyser.py",
       "src/director_ai/compliance/drift_detector.py",
       "src/director_ai/compliance/feedback_loop_detector.py",
+      "src/director_ai/compliance/governance_controls.py",
       "src/director_ai/compliance/readiness.py",
       "src/director_ai/compliance/report_templates.py",
       "src/director_ai/compliance/reporter.py",
@@ -5579,6 +5592,7 @@
       "tests/test_gemma_aggrefact_routed_real_surface.py",
       "tests/test_gemma_aggrefact_self_consistency.py",
       "tests/test_gemma_aggrefact_self_consistency_real_surface.py",
+      "tests/test_governance_controls.py",
       "tests/test_grader_validation.py",
       "tests/test_grounding_judge.py",
       "tests/test_grpc_api_docs.py",

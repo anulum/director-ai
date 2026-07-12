@@ -10,6 +10,12 @@
 
 from .audit_log import AuditEntry, AuditLog
 from .drift_detector import DriftDetector, DriftResult
+from .governance_controls import (
+    ControlSignal,
+    GovernanceControl,
+    GovernanceControlsReport,
+    compute_governance_controls,
+)
 from .readiness import (
     HipaaDeploymentObligation,
     HipaaDocumentationPacket,
@@ -29,6 +35,10 @@ __all__ = [
     "AuditEntry",
     "AuditLog",
     "ComplianceReporter",
+    "ControlSignal",
+    "GovernanceControl",
+    "GovernanceControlsReport",
+    "compute_governance_controls",
     "DriftDetector",
     "DriftResult",
     "HipaaDeploymentObligation",

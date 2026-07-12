@@ -61,6 +61,52 @@ def _load_article15_context(path: str) -> Article15TemplateContext:
         sys.exit(1)
 
 
+def _print_governance(
+    *,
+    db_path: str,
+    fmt: str,
+    evidence_root: str,
+    config_env: bool,
+) -> None:
+    """Print the computed governance-controls report.
+
+    A missing audit database is not an error here: the record-keeping
+    control degrades to an honest failing signal, which is exactly the
+    finding the operator needs to see.
+    """
+    from pathlib import Path
+
+    from director_ai.compliance.governance_controls import (
+        compute_governance_controls,
+    )
+
+    audit_log = None
+    if Path(db_path).exists():
+        from director_ai.compliance.audit_log import AuditLog
+
+        audit_log = AuditLog(db_path)
+
+    config = None
+    if config_env:
+        from director_ai.core.config import DirectorConfig
+
+        config = DirectorConfig.from_env()
+
+    try:
+        report = compute_governance_controls(
+            config=config,
+            audit_log=audit_log,
+            evidence_root=evidence_root,
+        )
+        if fmt == "json":
+            print(json.dumps(report.to_dict(), indent=2))
+        else:
+            print(report.to_markdown())
+    finally:
+        if audit_log is not None:
+            audit_log.close()
+
+
 def _cmd_compliance(args: list[str]) -> None:
     """EU AI Act Article 15 compliance tools."""
     if not args or args[0] in ("-h", "--help"):
@@ -74,7 +120,11 @@ def _cmd_compliance(args: list[str]) -> None:
             "          operator context file is supplied; pdf writes to --output\n"
             "          (default compliance_report.pdf)\n"
             "  status  [--db PATH]   Quick summary\n"
-            "  drift   [--db PATH]   Drift detection analysis\n",
+            "  drift   [--db PATH]   Drift detection analysis\n"
+            "  governance  [--db PATH] [--format md|json] [--config-env]\n"
+            "          [--evidence-root DIR]  Computed NIST AI RMF / ISO 42001 /\n"
+            "          EU AI Act controls; a missing audit database degrades the\n"
+            "          record-keeping signals instead of aborting\n",
         )
         return
 
@@ -86,6 +136,8 @@ def _cmd_compliance(args: list[str]) -> None:
     until = None
     context_path = None
     output_path = None
+    evidence_root = "."
+    config_env = False
 
     i = 0
     while i < len(rest):
@@ -107,10 +159,25 @@ def _cmd_compliance(args: list[str]) -> None:
         elif rest[i] == "--output" and i + 1 < len(rest):
             output_path = rest[i + 1]
             i += 2
+        elif rest[i] == "--evidence-root" and i + 1 < len(rest):
+            evidence_root = rest[i + 1]
+            i += 2
+        elif rest[i] == "--config-env":
+            config_env = True
+            i += 1
         else:
             i += 1
 
     from pathlib import Path
+
+    if sub == "governance":
+        _print_governance(
+            db_path=db_path,
+            fmt=fmt,
+            evidence_root=evidence_root,
+            config_env=config_env,
+        )
+        return
 
     if not Path(db_path).exists():
         print(f"Audit database not found: {db_path}")

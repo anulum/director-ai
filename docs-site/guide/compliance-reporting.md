@@ -61,6 +61,52 @@ context = Article15TemplateContext(
 print(report.to_article15_markdown(context))
 ```
 
+## Computed NIST AI RMF / ISO 42001 / EU AI Act Controls
+
+`compute_governance_controls()` builds a **computed** control set — unlike
+the static readiness catalogue below, every status is derived from
+observable deployment state at call time: DirectorConfig knobs (guard
+thresholds, PII redaction, tenant routing, vector backend), the attached
+tamper-evident audit log (including a live `verify_chain()` pass over the
+sealed hash chain), and the presence of documentation evidence artefacts
+under an operator-supplied evidence root. Each `GovernanceControl` carries
+crosswalk references to NIST AI RMF 1.0 (function/category level, e.g.
+`GOVERN 1`, `MEASURE 2`), ISO/IEC 42001:2023 (clause or Annex A level,
+e.g. `Clause 6.1`, `A.7`), and EU AI Act articles (`Article 9(2)`,
+`Article 10(2)`, `Article 11(1)`, `Article 12(1)`), and derives its
+status from named `ControlSignal` observations — every signal records
+what was actually seen, so a missing audit log degrades honestly instead
+of aborting.
+
+```python
+from director_ai.compliance import (
+    AuditLog,
+    GovernanceControlsReport,
+    compute_governance_controls,
+)
+from director_ai.core.config import DirectorConfig
+
+report: GovernanceControlsReport = compute_governance_controls(
+    config=DirectorConfig.from_env(),
+    audit_log=AuditLog("director_audit.db"),
+    evidence_root=".",
+)
+print(report.to_markdown())        # or report.to_dict() for JSON
+```
+
+Server: `GET /v1/compliance/governance-controls` (add `?fmt=md` for
+Markdown) — this endpoint never 503s; an unconfigured audit log is
+reported as a failing record-keeping signal, which is the finding the
+operator needs to see. CLI: `director-ai compliance governance
+[--db PATH] [--format md|json] [--config-env] [--evidence-root DIR]`.
+
+The report is computed governance-readiness evidence only; it is not an
+EU AI Act conformity assessment, a NIST AI RMF attestation, an ISO/IEC
+42001 certification, an audit opinion, or legal advice. Note: chain
+verification across process restarts requires a durable
+`DIRECTOR_AUDIT_HMAC_SECRET`; without it the seal is per-process and the
+record-keeping signal will honestly report the mismatch.
+
 ## SOC 2 / ISO 27001 / HIPAA Readiness
 
 `build_soc2_iso_readiness_report()` generates a tenant-safe readiness crosswalk

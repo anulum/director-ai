@@ -146,3 +146,43 @@ class TestCompliancePerformanceDoc:
         data = resp.json()
         for window in ["24h", "7d", "30d"]:
             assert window in data, f"Missing window: {window}"
+
+
+class TestGovernanceControlsEndpoint:
+    def test_configured_deployment_passes_record_keeping(self, tmp_path, monkeypatch):
+        # A durable seal secret is required for the chain to verify across
+        # AuditLog instances (the fixture writer vs the server's own handle).
+        monkeypatch.setenv("DIRECTOR_AUDIT_HMAC_SECRET", "governance-endpoint-test")
+        db_path = str(tmp_path / "compliance.db")
+        _populate(db_path)
+        app = create_app(config=DirectorConfig(compliance_db_path=db_path))
+        with TestClient(app) as client:
+            resp = client.get("/v1/compliance/governance-controls")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["computed"] is True
+        assert data["inputs"]["audit_log_attached"] is True
+        assert data["inputs"]["config_attached"] is True
+        by_id = {c["control_id"]: c for c in data["controls"]}
+        assert by_id["GOV-LOG-01"]["status"] == "passed"
+        signals = {s["name"]: s for s in by_id["GOV-LOG-01"]["signals"]}
+        assert signals["tamper_evident_chain_verified"]["satisfied"] is True
+        assert signals["audit_entries_recorded"]["satisfied"] is True
+
+    def test_unconfigured_deployment_degrades_instead_of_503(
+        self, no_compliance_client
+    ):
+        resp = no_compliance_client.get("/v1/compliance/governance-controls")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["inputs"]["audit_log_attached"] is False
+        by_id = {c["control_id"]: c for c in data["controls"]}
+        assert by_id["GOV-LOG-01"]["status"] == "failing"
+
+    def test_markdown_format(self, compliance_client):
+        resp = compliance_client.get(
+            "/v1/compliance/governance-controls", params={"fmt": "md"}
+        )
+        assert resp.status_code == 200
+        assert "Computed AI-Governance Controls" in resp.text
+        assert "GOV-LOG-01" in resp.text

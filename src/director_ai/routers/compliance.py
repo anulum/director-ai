@@ -148,4 +148,27 @@ def create_compliance_router() -> APIRouter:
             },
         }
 
+    @router.get("/v1/compliance/governance-controls", response_model=None)
+    async def governance_controls(
+        request: Request,
+        fmt: str = "json",
+    ) -> dict[str, Any] | PlainTextResponse:
+        """Return computed NIST AI RMF / ISO 42001 / EU AI Act controls.
+
+        Unlike ``/v1/compliance/report`` this endpoint never 503s: every
+        control degrades honestly when the audit log or config is absent,
+        because "record-keeping is not configured" is itself the finding
+        an operator needs to see.
+        """
+        from ..compliance.governance_controls import compute_governance_controls
+
+        state = request.app.state._state
+        report = compute_governance_controls(
+            config=state.get("config"),
+            audit_log=state.get("compliance_log"),
+        )
+        if fmt == "md":
+            return PlainTextResponse(report.to_markdown(), media_type="text/markdown")
+        return report.to_dict()
+
     return router

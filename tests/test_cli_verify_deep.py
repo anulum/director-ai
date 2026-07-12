@@ -772,6 +772,88 @@ class TestComplianceCliBranches:
         assert "Unknown compliance subcommand: rotate" in capsys.readouterr().out
         assert calls.count("closed") == 3
 
+    def test_compliance_governance_json_without_database(self, tmp_path, capsys):
+        verify_cli._cmd_compliance(
+            [
+                "governance",
+                "--db",
+                str(tmp_path / "missing.db"),
+                "--format",
+                "json",
+                "--evidence-root",
+                str(tmp_path),
+            ]
+        )
+        data = json.loads(capsys.readouterr().out)
+        assert data["computed"] is True
+        assert data["inputs"]["audit_log_attached"] is False
+        assert data["inputs"]["config_attached"] is False
+        by_id = {c["control_id"]: c for c in data["controls"]}
+        assert by_id["GOV-LOG-01"]["status"] == "failing"
+
+    def test_compliance_governance_markdown_with_real_database(
+        self, tmp_path, capsys, monkeypatch
+    ):
+        import time as _time
+
+        from director_ai.compliance.audit_log import AuditEntry, AuditLog
+
+        # A durable seal secret is required for the chain to verify across
+        # separate AuditLog instances (write here, re-open inside the CLI).
+        monkeypatch.setenv("DIRECTOR_AUDIT_HMAC_SECRET", "cli-governance-test")
+        db_file = tmp_path / "gov.db"
+        log = AuditLog(str(db_file))
+        log.log(
+            AuditEntry(
+                prompt="q",
+                response="a",
+                model="m",
+                provider="cli",
+                score=0.9,
+                approved=True,
+                verdict_confidence=0.8,
+                task_type="review",
+                domain="",
+                latency_ms=5.0,
+                timestamp=_time.time(),
+            )
+        )
+        log.close()
+
+        verify_cli._cmd_compliance(
+            [
+                "governance",
+                "--db",
+                str(db_file),
+                "--evidence-root",
+                str(tmp_path),
+            ]
+        )
+        out = capsys.readouterr().out
+        assert "# Computed AI-Governance Controls" in out
+        assert "| GOV-LOG-01 |" in out
+        assert "✓ tamper_evident_chain_verified" in out
+
+    def test_compliance_governance_config_env(self, tmp_path, capsys):
+        verify_cli._cmd_compliance(
+            [
+                "governance",
+                "--db",
+                str(tmp_path / "missing.db"),
+                "--format",
+                "json",
+                "--config-env",
+                "--evidence-root",
+                str(tmp_path),
+            ]
+        )
+        data = json.loads(capsys.readouterr().out)
+        assert data["inputs"]["config_attached"] is True
+
+    def test_compliance_help_mentions_governance(self, capsys):
+        verify_cli._cmd_compliance(["--help"])
+        assert "governance" in capsys.readouterr().out
+
 
 class TestCostReportCliBranches:
     def test_cost_report_disabled_and_missing_analyser_exit(self, monkeypatch, capsys):
