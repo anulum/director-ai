@@ -41,6 +41,8 @@ from .http_embedding import HttpEmbeddingResponseError as HttpEmbeddingResponseE
 from .remanentia import RemanentiaBackendError as RemanentiaBackendError
 from .remanentia import RemanentiaVectorBackend as RemanentiaVectorBackend
 from .store import VectorGroundTruthStore as VectorGroundTruthStore
+from .tenant_guard import TenantIsolationError as TenantIsolationError
+from .tenant_guard import TenantScopedBackend as TenantScopedBackend
 from .vendors import ColBERTBackend as ColBERTBackend
 from .vendors import ElasticsearchBackend as ElasticsearchBackend
 from .vendors import FAISSBackend as FAISSBackend
@@ -69,6 +71,8 @@ __all__ = [
     "RemanentiaBackendError",
     "RemanentiaVectorBackend",
     "SentenceTransformerBackend",
+    "TenantIsolationError",
+    "TenantScopedBackend",
     "VectorBackend",
     "VectorGroundTruthStore",
     "WeaviateBackend",

@@ -6,10 +6,10 @@
     "optional_extras": 62,
     "public_api_exports": 226,
     "public_documentation_pages": 205,
-    "python_model_classes": 1022,
-    "python_model_source_modules": 497,
+    "python_model_classes": 1024,
+    "python_model_source_modules": 498,
     "rust_pyo3_model_wrappers": 83,
-    "test_files": 742
+    "test_files": 744
   },
   "documentation": {
     "public_pages": [
@@ -3991,6 +3991,10 @@
         "path": "src/director_ai/_server_models.py"
       },
       {
+        "name": "TenantIsolationError",
+        "path": "src/director_ai/core/retrieval/vector_store/tenant_guard.py"
+      },
+      {
         "name": "TenantListResponse",
         "path": "src/director_ai/_server_models.py"
       },
@@ -4001,6 +4005,10 @@
       {
         "name": "TenantRouter",
         "path": "src/director_ai/core/tenant.py"
+      },
+      {
+        "name": "TenantScopedBackend",
+        "path": "src/director_ai/core/retrieval/vector_store/tenant_guard.py"
       },
       {
         "name": "TenantVectorFactRequest",
@@ -4698,6 +4706,7 @@
       "src/director_ai/core/retrieval/vector_store/http_embedding.py",
       "src/director_ai/core/retrieval/vector_store/remanentia.py",
       "src/director_ai/core/retrieval/vector_store/store.py",
+      "src/director_ai/core/retrieval/vector_store/tenant_guard.py",
       "src/director_ai/core/retrieval/vector_store/vendors.py",
       "src/director_ai/core/review_queue.py",
       "src/director_ai/core/risk_threshold/adapter.py",
@@ -6011,6 +6020,8 @@
       "tests/test_temporal_logic.py",
       "tests/test_temporal_refresh.py",
       "tests/test_tenant.py",
+      "tests/test_tenant_guard.py",
+      "tests/test_tenant_guard_real_surface.py",
       "tests/test_tensorrt_export.py",
       "tests/test_tensorrt_export_real_surface.py",
       "tests/test_test_surface_policy.py",

@@ -629,6 +629,66 @@ class TestFAISSBackend:
             assert len(results) == 1
             assert results[0]["id"] == "d2"
 
+    def _expansion_backend(self, n_docs, tenant_of):
+        """FAISS backend over a mocked index that honours the k argument."""
+        mock_faiss = MagicMock()
+        mock_index = MagicMock()
+        mock_faiss.IndexFlatIP.return_value = mock_index
+        mock_faiss.normalize_L2 = MagicMock()
+        full_scores = [0.9 - 0.01 * i for i in range(n_docs)]
+        full_indices = list(range(n_docs))
+        mock_index.search.side_effect = lambda vec, k: (
+            [full_scores[:k]],
+            [full_indices[:k]],
+        )
+
+        with patch.dict("sys.modules", {"faiss": mock_faiss}):
+            from director_ai.core.vector_store import FAISSBackend
+
+            backend = FAISSBackend(
+                embed_fn=lambda t: [0.1, 0.2],
+                vector_size=2,
+            )
+        for i in range(n_docs):
+            backend.add(f"d{i}", f"doc {i}", metadata={"tenant_id": tenant_of(i)})
+        return backend, mock_index
+
+    def test_faiss_tenant_overfetch_expands_until_found(self):
+        """A tenant doc beyond the fixed 3x window is still retrieved."""
+        # 8 docs; only rank 7 (index 6) belongs to tenant "a" — the old
+        # fixed k = n_results * 3 = 3 window silently returned nothing.
+        backend, mock_index = self._expansion_backend(
+            8,
+            lambda i: "a" if i == 6 else "b",
+        )
+
+        results = backend.query("q", n_results=1, tenant_id="a")
+
+        assert [r["id"] for r in results] == ["d6"]
+        searched_ks = [call.args[1] for call in mock_index.search.call_args_list]
+        assert searched_ks == [3, 6, 8]
+
+    def test_faiss_tenant_expansion_stops_at_index_size(self):
+        """Fewer tenant docs than requested: full index searched, no loop."""
+        backend, mock_index = self._expansion_backend(
+            5,
+            lambda i: "a" if i == 4 else "b",
+        )
+
+        results = backend.query("q", n_results=3, tenant_id="a")
+
+        assert [r["id"] for r in results] == ["d4"]
+        assert mock_index.search.call_args_list[-1].args[1] == 5
+
+    def test_faiss_untenanted_query_never_expands(self):
+        backend, mock_index = self._expansion_backend(6, lambda i: "a")
+
+        results = backend.query("q", n_results=2)
+
+        assert len(results) == 2
+        assert mock_index.search.call_count == 1
+        assert mock_index.search.call_args.args[1] == 2
+
     def test_faiss_ivf_trains_once_and_skips_invalid_indices(self):
         mock_faiss = MagicMock()
         mock_index = MagicMock()

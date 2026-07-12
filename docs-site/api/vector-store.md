@@ -273,6 +273,7 @@ formed or how results are assembled:
 |-----------|-------------|
 | `HybridBackend` | BM25 + dense fusion — weighted RRF by default, with `convex`, `combmnz` and `zscore` score-fusion strategies selectable via `fusion_method`; `with_fusion()` derives strategy views over one shared index. |
 | `RerankedBackend` | Cross-encoder reranking over an over-fetched candidate set. |
+| `TenantScopedBackend` | Binds any backend to one tenant: stamps the tenant on add, forces the tenant filter on every query, and verifies each returned row (drop + metric, or raise with `strict=True`). |
 | `HyDEBackend` | Generates a pseudo-document for the query before dense retrieval (HyDE). |
 | `MultiVectorBackend` | Indexes multiple representations per document and queries across all of them. |
 | `ParentChildBackend` | Indexes small child chunks for precision, returns the enclosing parent chunks for context. |

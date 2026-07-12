@@ -9,6 +9,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Hardened per-tenant isolation for shared vector indexes:
+  `TenantScopedBackend`
+  (`director_ai.core.retrieval.vector_store.tenant_guard`) binds any
+  `VectorBackend` to one tenant — adds stamp the bound tenant into
+  metadata (conflicting labels raise `TenantIsolationError`), an
+  empty caller tenant can no longer widen a query to the whole
+  index, and every returned row is verified against the bound tenant
+  (foreign or unlabelled rows are dropped and counted in the
+  `tenant_isolation_violations` metric, or raise with
+  `strict=True`). `VectorGroundTruthStore.grounded()` gains
+  `enforce_tenant_isolation=True` to wrap the whole retrieval stack;
+  `FAISSBackend` tenant-filtered queries now expand the over-fetch
+  window geometrically until enough tenant documents are found or
+  the whole index is searched, instead of silently starving tenants
+  whose documents sit beyond the previous fixed 3× window.
 - Hybrid retrieval fusion strategies beyond RRF
   (`director_ai.core.retrieval.vector_store.fusion`): `convex`
   (min-max normalised convex combination, CombSUM family), `combmnz`

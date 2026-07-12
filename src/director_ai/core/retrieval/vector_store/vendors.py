@@ -451,17 +451,45 @@ class FAISSBackend(VectorBackend):
         n_results: int = 3,
         tenant_id: str = "",
     ) -> list[dict[str, Any]]:
-        """Search FAISS and apply tenant filtering in metadata."""
+        """Search FAISS and apply tenant filtering in metadata.
+
+        With a tenant filter the search over-fetch expands
+        geometrically (3×, 6×, 12×, …) until ``n_results`` tenant
+        documents are found or the whole index has been searched — a
+        fixed over-fetch silently starves tenants whose documents sit
+        beyond the first window on a shared index.
+        """
         vec = self._embed(text)
         with self._lock:
             if not self._docs:
                 return []
-            k = min(n_results * 3 if tenant_id else n_results, len(self._docs))
-            distances, indices = self._index.search(vec, k)
+            total = len(self._docs)
             docs_snapshot = list(self._docs)
+            k = min(n_results * 3 if tenant_id else n_results, total)
+            while True:
+                distances, indices = self._index.search(vec, k)
+                results = self._filter_hits(
+                    distances[0],
+                    indices[0],
+                    docs_snapshot,
+                    n_results,
+                    tenant_id,
+                )
+                if len(results) >= n_results or k >= total or not tenant_id:
+                    return results
+                k = min(k * 2, total)
 
+    @staticmethod
+    def _filter_hits(
+        distances: Any,
+        indices: Any,
+        docs_snapshot: list[dict[str, Any]],
+        n_results: int,
+        tenant_id: str,
+    ) -> list[dict[str, Any]]:
+        """Map raw FAISS hits to result rows under the tenant filter."""
         results: list[dict[str, Any]] = []
-        for dist, idx in zip(distances[0], indices[0], strict=True):
+        for dist, idx in zip(distances, indices, strict=True):
             if idx < 0 or idx >= len(docs_snapshot):
                 continue
             doc = docs_snapshot[idx]

@@ -371,6 +371,7 @@ class VectorGroundTruthStore(
         fusion_method: str = "rrf",
         sparse_weight: float = 1.0,
         dense_weight: float = 1.0,
+        enforce_tenant_isolation: bool = False,
     ) -> VectorGroundTruthStore:
         """Build the recommended grounded retrieval recipe.
 
@@ -421,6 +422,11 @@ class VectorGroundTruthStore(
             BM25 run weight in the fusion (default 1.0).
         dense_weight : float
             Dense run weight in the fusion (default 1.0).
+        enforce_tenant_isolation : bool
+            Bind the whole retrieval stack to ``tenant_id`` with
+            :class:`TenantScopedBackend` (default False). Requires a
+            non-empty ``tenant_id``; adds stamp the tenant into
+            metadata and every returned row is verified against it.
         """
         dense: VectorBackend | None = None
         if use_ann:
@@ -448,6 +454,10 @@ class VectorGroundTruthStore(
         )
         if use_reranker:
             backend = _wrap_reranker(backend, reranker_model)
+        if enforce_tenant_isolation:
+            from .tenant_guard import TenantScopedBackend
+
+            backend = TenantScopedBackend(backend, tenant_id)
 
         return cls(backend=backend, tenant_id=tenant_id)
 
