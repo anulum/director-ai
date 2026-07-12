@@ -81,6 +81,44 @@ def _stream_delta_content(chunk: object) -> str:
     return content if isinstance(content, str) else ""
 
 
+def _completion_text(data: object) -> str:
+    """Extract legacy ``/v1/completions`` text without exception control flow."""
+    if not isinstance(data, dict):
+        return ""
+    choices = data.get("choices")
+    if not isinstance(choices, list) or not choices:
+        return ""
+    first = choices[0]
+    if not isinstance(first, dict):
+        return ""
+    text = first.get("text")
+    return text if isinstance(text, str) else ""
+
+
+def _stream_text_content(chunk: object) -> str:
+    """Extract a legacy completions stream text delta."""
+    if not isinstance(chunk, dict):
+        return ""
+    choices = chunk.get("choices")
+    if not isinstance(choices, list) or not choices:
+        return ""
+    first = choices[0]
+    if not isinstance(first, dict):
+        return ""
+    text = first.get("text")
+    return text if isinstance(text, str) else ""
+
+
+def _completion_prompt(body: dict[str, Any]) -> str:
+    """Extract the legacy ``prompt`` field (string or list of strings)."""
+    prompt = body.get("prompt", "")
+    if isinstance(prompt, str):
+        return prompt
+    if isinstance(prompt, list) and prompt and isinstance(prompt[0], str):
+        return prompt[0]
+    return ""
+
+
 def create_proxy_app(
     threshold: float = 0.6,
     facts_path: str | None = None,
@@ -92,6 +130,7 @@ def create_proxy_app(
     allow_http_upstream: bool = False,
     audit_db: str | None = None,
     config: DirectorConfig | None = None,
+    moderations: str = "local",
     _transport: Any = None,
 ) -> FastAPI:
     """Build a FastAPI app that proxies OpenAI requests with scoring.
@@ -126,6 +165,10 @@ def create_proxy_app(
     config
         Optional DirectorConfig. When provided, the proxy builds the configured
         store and scorer instead of the minimal in-memory scorer.
+    moderations : str
+        ``"local"`` serves ``/v1/moderations`` from the shipped
+        dependency-free detectors; ``"upstream"`` forwards the request
+        to the upstream endpoint verbatim.
 
     """
     from contextlib import asynccontextmanager
@@ -134,8 +177,18 @@ def create_proxy_app(
     from fastapi import FastAPI
     from fastapi.responses import JSONResponse
 
+    from director_ai._proxy_moderations import (
+        MODERATION_MODES,
+        register_moderations_route,
+    )
+
     if on_fail not in ("reject", "warn"):
         raise ValueError(f"on_fail must be 'reject' or 'warn', got {on_fail!r}")
+
+    if moderations not in MODERATION_MODES:
+        raise ValueError(
+            f"moderations must be one of {MODERATION_MODES}, got {moderations!r}",
+        )
 
     if upstream_url and not upstream_url.startswith("https://"):
         if not allow_http_upstream:
@@ -229,6 +282,99 @@ def create_proxy_app(
             resp = await client.get(f"{upstream}/v1/models", headers=headers)
             return JSONResponse(content=resp.json(), status_code=resp.status_code)
 
+    @app.post("/v1/embeddings")
+    async def proxy_embeddings(request: Request) -> JSONResponse:
+        # Embeddings carry no natural-language claims to verify — plain
+        # passthrough so OPENAI_BASE_URL can point every client here.
+        body = await request.json()
+        async with _client(timeout=120.0) as client:
+            resp = await client.post(
+                f"{upstream}/v1/embeddings",
+                json=body,
+                headers=_forward_headers(request),
+            )
+        return JSONResponse(content=resp.json(), status_code=resp.status_code)
+
+    @app.post("/v1/completions")
+    async def proxy_completions(request: Request) -> Response:
+        body = await request.json()
+        prompt = _completion_prompt(body)
+        headers = _forward_headers(request)
+
+        if body.get("stream", False):
+            return await _handle_streaming(
+                body,
+                headers,
+                upstream,
+                prompt,
+                scorer,
+                on_fail,
+                _transport,
+                audit_log=audit_log,
+                endpoint="/v1/completions",
+                task_type="completion",
+            )
+
+        async with _client(timeout=120.0) as client:
+            resp = await client.post(
+                f"{upstream}/v1/completions",
+                json=body,
+                headers=headers,
+            )
+
+        if resp.status_code != 200:
+            return JSONResponse(content=resp.json(), status_code=resp.status_code)
+
+        data = resp.json()
+        text = _completion_text(data)
+
+        if not text:
+            return JSONResponse(content=data)
+
+        t0 = _time.monotonic()
+        approved, cs = scorer.review(prompt, text)
+        latency_ms = (_time.monotonic() - t0) * 1000
+        extra_headers = {
+            "X-Director-Score": f"{cs.score:.4f}",
+            "X-Director-Approved": str(approved).lower(),
+        }
+
+        _audit_log_entry(
+            audit_log,
+            prompt,
+            text,
+            model=body.get("model", "unknown"),
+            score=cs.score,
+            approved=approved,
+            confidence=getattr(cs, "verdict_confidence", 0.0),
+            latency_ms=latency_ms,
+            task_type="completion",
+        )
+
+        if not approved and on_fail == "reject":
+            return JSONResponse(
+                status_code=422,
+                content={
+                    "error": {
+                        "message": "Hallucination detected by Director-AI",
+                        "type": "content_filter",
+                        "score": cs.score,
+                        "threshold": threshold,
+                    },
+                },
+                headers=extra_headers,
+            )
+
+        return JSONResponse(content=data, headers=extra_headers)
+
+    register_moderations_route(
+        app,
+        mode=moderations,
+        upstream=upstream,
+        client_factory=_client,
+        forward_headers=_forward_headers,
+    )
+
     @app.post("/v1/chat/completions")
     async def proxy_chat(request: Request) -> Response:
         body = await request.json()
@@ -312,9 +458,21 @@ async def _handle_streaming(
     on_fail: str,
     transport: Any = None,
     audit_log: Any = None,
+    endpoint: str = "/v1/chat/completions",
+    task_type: str = "chat",
 ) -> StreamingResponse:
     import httpx
     from fastapi.responses import StreamingResponse
+
+    # Legacy completions stream text deltas at ``choices[0].text`` and a
+    # halt chunk must mirror that shape; chat streams use ``delta``.
+    legacy = endpoint == "/v1/completions"
+    extract_content = _stream_text_content if legacy else _stream_delta_content
+    halt_choice: dict[str, Any] = {"finish_reason": "content_filter", "index": 0}
+    if legacy:
+        halt_choice["text"] = ""
+    else:
+        halt_choice["delta"] = {}
 
     async def _stream() -> AsyncIterator[str]:
         buffer: list[str] = []
@@ -326,7 +484,7 @@ async def _handle_streaming(
             httpx.AsyncClient(timeout=120.0, transport=transport) as client,
             client.stream(
                 "POST",
-                f"{upstream}/v1/chat/completions",
+                f"{upstream}{endpoint}",
                 json=body,
                 headers=headers,
             ) as resp,
@@ -351,17 +509,10 @@ async def _handle_streaming(
                             approved=approved,
                             confidence=getattr(_cs, "verdict_confidence", 0.0),
                             latency_ms=latency_ms,
+                            task_type=task_type,
                         )
                         if not approved and on_fail == "reject":
-                            halt = {
-                                "choices": [
-                                    {
-                                        "delta": {},
-                                        "finish_reason": "content_filter",
-                                        "index": 0,
-                                    },
-                                ],
-                            }
+                            halt = {"choices": [dict(halt_choice)]}
                             yield f"data: {json.dumps(halt)}\n"
                             yield "data: [DONE]\n"
                             return
@@ -374,7 +525,7 @@ async def _handle_streaming(
                     yield line + "\n"
                     continue
 
-                delta = _stream_delta_content(chunk)
+                delta = extract_content(chunk)
 
                 if delta:
                     buffer.append(delta)
@@ -396,16 +547,9 @@ async def _handle_streaming(
                                 approved=approved,
                                 confidence=getattr(_cs, "verdict_confidence", 0.0),
                                 latency_ms=latency_ms,
+                                task_type=task_type,
                             )
-                            halt = {
-                                "choices": [
-                                    {
-                                        "delta": {},
-                                        "finish_reason": "content_filter",
-                                        "index": 0,
-                                    },
-                                ],
-                            }
+                            halt = {"choices": [dict(halt_choice)]}
                             yield f"data: {json.dumps(halt)}\n"
                             yield "data: [DONE]\n"
                             return
@@ -425,6 +569,7 @@ def _audit_log_entry(
     approved: bool,
     confidence: float,
     latency_ms: float,
+    task_type: str = "chat",
 ) -> None:
     """Log a scored interaction to the compliance audit log (if enabled)."""
     if audit_log is None:
@@ -440,7 +585,7 @@ def _audit_log_entry(
             score=score,
             approved=approved,
             verdict_confidence=confidence,
-            task_type="chat",
+            task_type=task_type,
             domain="",
             latency_ms=latency_ms,
             timestamp=_time.time(),

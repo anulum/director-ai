@@ -137,6 +137,7 @@ nav:
       - Evaluation Onboarding: guide/onboarding.md
   - User Guide:
       - Scoring: guide/scoring.md
+      - OpenAI-Compatible Proxy: guide/openai-proxy.md
       - Streaming Halt: guide/streaming.md
       - Span Detection: guide/span-detection.md
       - Prompt-Injection Guard: guide/prompt-guard.md

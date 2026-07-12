@@ -234,6 +234,7 @@ def _cmd_proxy(args: list[str]) -> None:
     allow_http = False
     audit_db: str | None = None
     config_env = False
+    moderations = "local"
 
     i = 0
     while i < len(args):
@@ -270,6 +271,15 @@ def _cmd_proxy(args: list[str]) -> None:
         elif args[i] == "--config-env":
             config_env = True
             i += 1
+        elif args[i] == "--moderations" and i + 1 < len(args):
+            moderations = args[i + 1]
+            if moderations not in ("local", "upstream"):
+                print(
+                    "Error: --moderations must be 'local' or 'upstream', "
+                    f"got '{moderations}'"
+                )
+                sys.exit(1)
+            i += 2
         else:
             i += 1
 
@@ -297,6 +307,7 @@ def _cmd_proxy(args: list[str]) -> None:
         allow_http_upstream=allow_http,
         audit_db=audit_db,
         config=config,
+        moderations=moderations,
     )
 
     print(

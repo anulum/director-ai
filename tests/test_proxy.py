@@ -855,3 +855,307 @@ async def test_proxy_stream_periodic_approval_continues_to_done(monkeypatch) -> 
     assert resp.text.rstrip().endswith("data: [DONE]")
     assembled = "".join(f"a{idx}" for idx in range(proxy.STREAM_CHECK_INTERVAL))
     assert scorer.calls == [("allow", assembled), ("allow", assembled)]
+
+
+def _completions_transport(text: str) -> httpx.MockTransport:
+    """Upstream returning a fixed legacy text completion."""
+
+    async def _handler(request: httpx.Request):
+        assert request.url.path == "/v1/completions"
+        return httpx.Response(
+            200,
+            json={
+                "id": "cmpl-test",
+                "object": "text_completion",
+                "choices": [{"index": 0, "text": text, "finish_reason": "stop"}],
+            },
+        )
+
+    return httpx.MockTransport(_handler)
+
+
+def _legacy_streaming_transport(lines: list[str]) -> httpx.MockTransport:
+    async def _handler(request: httpx.Request):
+        assert request.url.path == "/v1/completions"
+        return httpx.Response(
+            200,
+            headers={"content-type": "text/event-stream"},
+            content="\n".join(lines) + "\n",
+        )
+
+    return httpx.MockTransport(_handler)
+
+
+@pytest.mark.asyncio
+async def test_proxy_completions_forwards_approved(monkeypatch) -> None:
+    import director_ai.proxy as proxy
+
+    scorer = _FixedScorer(approved=True, score=0.9)
+    monkeypatch.setattr(proxy, "CoherenceScorer", lambda **_kw: scorer)
+    app = create_proxy_app(
+        upstream_url="http://fake-upstream",
+        allow_http_upstream=True,
+        _transport=_completions_transport("The sky is blue."),
+    )
+
+    transport = ASGITransport(app=app)
+    async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+        resp = await client.post(
+            "/v1/completions",
+            json={"model": "gpt-3.5-turbo-instruct", "prompt": "Sky colour?"},
+        )
+
+    assert resp.status_code == 200
+    assert resp.headers["x-director-approved"] == "true"
+    assert "x-director-score" in resp.headers
+    assert scorer.calls == [("Sky colour?", "The sky is blue.")]
+
+
+@pytest.mark.asyncio
+async def test_proxy_completions_rejects_hallucination(monkeypatch) -> None:
+    import director_ai.proxy as proxy
+
+    scorer = _FixedScorer(approved=False, score=0.1)
+    monkeypatch.setattr(proxy, "CoherenceScorer", lambda **_kw: scorer)
+    app = create_proxy_app(
+        upstream_url="http://fake-upstream",
+        allow_http_upstream=True,
+        on_fail="reject",
+        _transport=_completions_transport("Fabricated claim."),
+    )
+
+    transport = ASGITransport(app=app)
+    async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+        resp = await client.post(
+            "/v1/completions",
+            json={"model": "gpt-3.5-turbo-instruct", "prompt": "Fact?"},
+        )
+
+    assert resp.status_code == 422
+    assert resp.json()["error"]["type"] == "content_filter"
+    assert resp.headers["x-director-approved"] == "false"
+
+
+@pytest.mark.asyncio
+async def test_proxy_completions_warn_mode_forwards(monkeypatch) -> None:
+    import director_ai.proxy as proxy
+
+    scorer = _FixedScorer(approved=False, score=0.1)
+    monkeypatch.setattr(proxy, "CoherenceScorer", lambda **_kw: scorer)
+    app = create_proxy_app(
+        upstream_url="http://fake-upstream",
+        allow_http_upstream=True,
+        on_fail="warn",
+        _transport=_completions_transport("Suspect claim."),
+    )
+
+    transport = ASGITransport(app=app)
+    async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+        resp = await client.post(
+            "/v1/completions",
+            json={"prompt": "Fact?"},
+        )
+
+    assert resp.status_code == 200
+    assert resp.headers["x-director-approved"] == "false"
+    assert resp.json()["choices"][0]["text"] == "Suspect claim."
+
+
+@pytest.mark.asyncio
+async def test_proxy_completions_list_prompt_uses_first_entry(monkeypatch) -> None:
+    import director_ai.proxy as proxy
+
+    scorer = _FixedScorer(approved=True, score=0.9)
+    monkeypatch.setattr(proxy, "CoherenceScorer", lambda **_kw: scorer)
+    app = create_proxy_app(
+        upstream_url="http://fake-upstream",
+        allow_http_upstream=True,
+        _transport=_completions_transport("Answer."),
+    )
+
+    transport = ASGITransport(app=app)
+    async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+        resp = await client.post(
+            "/v1/completions",
+            json={"prompt": ["First question?", "Second question?"]},
+        )
+
+    assert resp.status_code == 200
+    assert scorer.calls == [("First question?", "Answer.")]
+
+
+@pytest.mark.asyncio
+async def test_proxy_completions_empty_text_passthrough(monkeypatch) -> None:
+    import director_ai.proxy as proxy
+
+    scorer = _FixedScorer(approved=False, score=0.0)
+    monkeypatch.setattr(proxy, "CoherenceScorer", lambda **_kw: scorer)
+    app = create_proxy_app(
+        upstream_url="http://fake-upstream",
+        allow_http_upstream=True,
+        on_fail="reject",
+        _transport=_completions_transport(""),
+    )
+
+    transport = ASGITransport(app=app)
+    async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+        resp = await client.post("/v1/completions", json={"prompt": "Hi"})
+
+    assert resp.status_code == 200
+    assert "x-director-score" not in resp.headers
+    assert scorer.calls == []
+
+
+@pytest.mark.asyncio
+async def test_proxy_completions_upstream_error_propagated(monkeypatch) -> None:
+    import director_ai.proxy as proxy
+
+    scorer = _FixedScorer(approved=True, score=0.9)
+    monkeypatch.setattr(proxy, "CoherenceScorer", lambda **_kw: scorer)
+
+    async def _handler(request: httpx.Request):
+        return httpx.Response(500, json={"error": {"message": "upstream down"}})
+
+    app = create_proxy_app(
+        upstream_url="http://fake-upstream",
+        allow_http_upstream=True,
+        _transport=httpx.MockTransport(_handler),
+    )
+
+    transport = ASGITransport(app=app)
+    async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+        resp = await client.post("/v1/completions", json={"prompt": "Hi"})
+
+    assert resp.status_code == 500
+    assert resp.json()["error"]["message"] == "upstream down"
+    assert scorer.calls == []
+
+
+@pytest.mark.asyncio
+async def test_proxy_completions_stream_scores_text_deltas(monkeypatch) -> None:
+    import director_ai.proxy as proxy
+
+    scorer = _FixedScorer(approved=True, score=0.9)
+    monkeypatch.setattr(proxy, "CoherenceScorer", lambda **_kw: scorer)
+    app = create_proxy_app(
+        upstream_url="http://fake-upstream",
+        allow_http_upstream=True,
+        _transport=_legacy_streaming_transport(
+            [
+                'data: {"choices":[{"text":"Hello "}]}',
+                'data: {"choices":[{"text":"world"}]}',
+                "data: [DONE]",
+            ],
+        ),
+    )
+
+    transport = ASGITransport(app=app)
+    async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+        resp = await client.post(
+            "/v1/completions",
+            json={"stream": True, "prompt": "greet"},
+        )
+
+    assert resp.status_code == 200
+    assert resp.text.rstrip().endswith("data: [DONE]")
+    assert scorer.calls == [("greet", "Hello world")]
+
+
+@pytest.mark.asyncio
+async def test_proxy_completions_stream_halts_with_text_shape(monkeypatch) -> None:
+    import director_ai.proxy as proxy
+
+    scorer = _FixedScorer(approved=False, score=0.1)
+    monkeypatch.setattr(proxy, "CoherenceScorer", lambda **_kw: scorer)
+    app = create_proxy_app(
+        upstream_url="http://fake-upstream",
+        allow_http_upstream=True,
+        on_fail="reject",
+        _transport=_legacy_streaming_transport(
+            [
+                'data: {"choices":[{"text":"unsafe"}]}',
+                "data: [DONE]",
+            ],
+        ),
+    )
+
+    transport = ASGITransport(app=app)
+    async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+        resp = await client.post(
+            "/v1/completions",
+            json={"stream": True, "prompt": "answer"},
+        )
+
+    assert resp.status_code == 200
+    assert '"finish_reason": "content_filter"' in resp.text
+    assert '"text": ""' in resp.text
+    assert '"delta"' not in resp.text
+    assert scorer.calls == [("answer", "unsafe")]
+
+
+@pytest.mark.asyncio
+async def test_proxy_embeddings_passthrough(monkeypatch) -> None:
+    import director_ai.proxy as proxy
+
+    scorer = _FixedScorer(approved=False, score=0.0)
+    monkeypatch.setattr(proxy, "CoherenceScorer", lambda **_kw: scorer)
+    seen: dict = {}
+
+    async def _handler(request: httpx.Request):
+        seen["path"] = request.url.path
+        seen["auth"] = request.headers.get("Authorization", "")
+        return httpx.Response(
+            200,
+            json={
+                "object": "list",
+                "data": [{"object": "embedding", "index": 0, "embedding": [0.1]}],
+            },
+        )
+
+    app = create_proxy_app(
+        upstream_url="http://fake-upstream",
+        allow_http_upstream=True,
+        _transport=httpx.MockTransport(_handler),
+    )
+
+    transport = ASGITransport(app=app)
+    async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+        resp = await client.post(
+            "/v1/embeddings",
+            json={"model": "text-embedding-3-small", "input": "hello"},
+            headers={"Authorization": "Bearer sk-upstream"},
+        )
+
+    assert resp.status_code == 200
+    assert resp.json()["data"][0]["embedding"] == [0.1]
+    assert seen["path"] == "/v1/embeddings"
+    assert seen["auth"] == "Bearer sk-upstream"
+    assert scorer.calls == []
+
+
+def test_completion_helpers_reject_malformed_shapes() -> None:
+    from director_ai.proxy import (
+        _completion_prompt,
+        _completion_text,
+        _stream_text_content,
+    )
+
+    assert _completion_text("x") == ""
+    assert _completion_text({}) == ""
+    assert _completion_text({"choices": "s"}) == ""
+    assert _completion_text({"choices": []}) == ""
+    assert _completion_text({"choices": ["x"]}) == ""
+    assert _completion_text({"choices": [{"text": 5}]}) == ""
+
+    assert _stream_text_content("x") == ""
+    assert _stream_text_content({}) == ""
+    assert _stream_text_content({"choices": "s"}) == ""
+    assert _stream_text_content({"choices": []}) == ""
+    assert _stream_text_content({"choices": ["x"]}) == ""
+    assert _stream_text_content({"choices": [{"text": None}]}) == ""
+
+    assert _completion_prompt({}) == ""
+    assert _completion_prompt({"prompt": ["ok", "second"]}) == "ok"
+    assert _completion_prompt({"prompt": []}) == ""
+    assert _completion_prompt({"prompt": [1]}) == ""
+    assert _completion_prompt({"prompt": {"weird": 1}}) == ""

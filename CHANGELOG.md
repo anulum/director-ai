@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- OpenAI-compatible proxy: `/v1/moderations` (local mode analyses inputs
+  with the shipped dependency-free toxicity/PII detectors and answers in
+  the OpenAI moderations shape; `moderations="upstream"` forwards the
+  request verbatim), `/v1/completions` (legacy text completions scored
+  through the same review flow as chat, streaming included — halt chunks
+  mirror the legacy `text` delta shape), and `/v1/embeddings`
+  (passthrough). New CLI flag `director-ai proxy --moderations
+  local|upstream`; audit entries record `task_type="completion"` for the
+  legacy route. New guide page `docs-site/guide/openai-proxy.md`.
 - `benchmarks/retrieval_model_refresh_ab.py` — embedder/reranker refresh
   A/B evidence for the `grounded()` default pair (WCA-8). Eight arms
   through the public recipe on the internal retrieval evaluation set

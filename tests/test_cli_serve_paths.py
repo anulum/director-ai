@@ -298,6 +298,7 @@ def test_proxy_builds_app_from_flags_and_config_env(monkeypatch, capsys):
             "allow_http_upstream": True,
             "audit_db": "audit.sqlite",
             "config": proxy_calls[0]["config"],
+            "moderations": "local",
         },
     ]
     assert isinstance(proxy_calls[0]["config"], FakeDirectorConfig)
@@ -306,6 +307,34 @@ def test_proxy_builds_app_from_flags_and_config_env(monkeypatch, capsys):
     ]
     out = capsys.readouterr().out
     assert "threshold=0.42" in out
+
+
+def test_proxy_rejects_unknown_moderations_mode(capsys):
+    with pytest.raises(SystemExit) as exc_info:
+        _cli_serve._cmd_proxy(["--moderations", "panic"])
+
+    assert exc_info.value.code == 1
+    assert "local" in capsys.readouterr().out
+
+
+def test_proxy_moderations_flag_is_forwarded(monkeypatch):
+    _install_fake_config(monkeypatch)
+    proxy_calls: list[dict[str, object]] = []
+    fake_uvicorn = ModuleType("uvicorn")
+    fake_uvicorn.run = lambda *_args, **_kwargs: None
+    fake_proxy = ModuleType("director_ai.proxy")
+    fake_proxy.create_proxy_app = lambda **kwargs: (
+        proxy_calls.append(kwargs)
+        or {
+            "proxy": True,
+        }
+    )
+    monkeypatch.setitem(sys.modules, "uvicorn", fake_uvicorn)
+    monkeypatch.setitem(sys.modules, "director_ai.proxy", fake_proxy)
+
+    _cli_serve._cmd_proxy(["--moderations", "upstream"])
+
+    assert proxy_calls[0]["moderations"] == "upstream"
 
 
 def test_proxy_defaults_do_not_load_environment_config(monkeypatch):
