@@ -24,17 +24,24 @@ structurally unreachable `union == 0` guards in
 `core/scoring/lexical_signals.py` (both sit behind emptiness checks that
 already guarantee a non-empty union).
 
-**CI-confirmed** (run `29203567997`, commit `e189e68e`, job "Test
-(Python 3.12)"): 45 012 statements, **0 missed**, **48** partial branch
+**CI-confirmed** (run `29207146048`, commit `6810a0d8`, job "Test
+(Python 3.12)"): 45 165 statements, **0 missed**, **48** partial branch
 edges, total **99.91 %**. The per-file edge table below matches that run
-exactly — the WCH-8 rails-as-config loader
-(`integrations/rails_config.py` +162 statements) landed at 100 %
-statements and branches, as did WCF-1 (run `29196919122` at commit
+exactly — the WCA-9 fusion strategies
+(`retrieval/vector_store/fusion.py`) and tenant-isolation guard
+(`retrieval/vector_store/tenant_guard.py`, plus the FAISS over-fetch
+expansion and grounded()/config wiring, +153 statements over the two
+commits `5ff07422` + `6810a0d8`) landed at 100 % statements and
+branches, and none of the 33 files in the edge table were touched, so
+the edge set is unchanged (spot-checked arcs identical).
+(Previous confirmations: run `29203567997` at commit `e189e68e`,
+45 012 statements — the WCH-8 rails-as-config loader
+(`integrations/rails_config.py` +162 statements) at 100 %, as were
+WCF-1 (run `29196919122` at commit
 `00f3d9a2`, 44 850 statements), the WCA-10 SSE endpoint (run
 `29182000493` at commit `b21dc4ff`, 44 688 statements), and the WCH-3
 proxy broadening (run `29180899194` at commit `3f59fcec`, 44 596
-statements), so the edge set is unchanged.
-(Previous confirmations: run `29171385300` at commit
+statements); run `29171385300` at commit
 `2a2bdfbb`, 44 465 statements — the WCB-7 finetune decomposition
 initially re-shaped the `finetune_api.py` entry, module-reload and
 pre-split-failure tests then closed every split edge, the baseline fell
@@ -68,7 +75,7 @@ whose statements are fully covered. They fall into three categories:
 | skip-edge | Forward arc: a defensive condition whose false path is only reachable under object states no public API produces today. |
 | extras-gated | Arc taken only when an optional extra is present/absent in a combination the core CI job does not produce; the behaviour itself is covered by the extras matrix jobs or the floor job. |
 
-Baseline as of run `29203567997` (48 branch edges, per file):
+Baseline as of run `29207146048` (48 branch edges, per file):
 
 | File | Edges | Category |
 | --- | --- | --- |
