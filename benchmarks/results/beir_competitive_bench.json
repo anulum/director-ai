@@ -1,0 +1,215 @@
+{
+  "benchmark": "beir_competitive_bench",
+  "top_k": 10,
+  "note": "BEIR test splits through the public grounded() recipe (hybrid BM25+dense RRF k=60, title+text as one field, rerank arms rescore the top 30 candidates). Published baselines were measured by their authors under their own pipelines \u2014 see each source; the bge-large MTEB rows use a query instruction prefix grounded() does not add.",
+  "published_baselines": {
+    "nfcorpus": {
+      "bm25": {
+        "ndcg_at_10": 0.325,
+        "source": "arXiv:2104.08663 Table 2"
+      },
+      "bm25_ce_msmarco_minilm": {
+        "ndcg_at_10": 0.35,
+        "source": "arXiv:2104.08663 Table 2"
+      },
+      "bge_large_en_v15_dense": {
+        "ndcg_at_10": 0.38129,
+        "source": "https://huggingface.co/BAAI/bge-large-en-v1.5 model-index (MTEB NFCorpus)"
+      }
+    },
+    "scifact": {
+      "bm25": {
+        "ndcg_at_10": 0.665,
+        "source": "arXiv:2104.08663 Table 2"
+      },
+      "bm25_ce_msmarco_minilm": {
+        "ndcg_at_10": 0.688,
+        "source": "arXiv:2104.08663 Table 2"
+      },
+      "bge_large_en_v15_dense": {
+        "ndcg_at_10": 0.74607,
+        "source": "https://huggingface.co/BAAI/bge-large-en-v1.5 model-index (MTEB SciFact)"
+      }
+    }
+  },
+  "datasets": {
+    "nfcorpus": {
+      "n_docs": 3633,
+      "n_test_queries": 323,
+      "arms": {
+        "bge_large__msmarco": {
+          "embedding_model": "BAAI/bge-large-en-v1.5",
+          "reranker_model": "cross-encoder/ms-marco-MiniLM-L-6-v2",
+          "ingest_seconds": 125.6,
+          "n_queries": 323,
+          "ndcg_at_10_own": 0.36251,
+          "scorer": "pytrec_eval",
+          "ndcg_at_10": 0.36251,
+          "recall_at_10": 0.17183,
+          "own_vs_pytrec_max_abs_diff": 0.0,
+          "mean_ms": 106.9715,
+          "p50_ms": 105.9875,
+          "p95_ms": 111.2666,
+          "arm_seconds": 34.6
+        },
+        "bge_large__none": {
+          "embedding_model": "BAAI/bge-large-en-v1.5",
+          "reranker_model": null,
+          "ingest_seconds": 125.6,
+          "n_queries": 323,
+          "ndcg_at_10_own": 0.37026,
+          "scorer": "pytrec_eval",
+          "ndcg_at_10": 0.37026,
+          "recall_at_10": 0.18516,
+          "own_vs_pytrec_max_abs_diff": 0.0,
+          "mean_ms": 33.6062,
+          "p50_ms": 32.6722,
+          "p95_ms": 38.1868,
+          "arm_seconds": 10.9
+        },
+        "bge_m3__bge_v2_m3": {
+          "embedding_model": "BAAI/bge-m3",
+          "reranker_model": "BAAI/bge-reranker-v2-m3",
+          "ingest_seconds": 143.8,
+          "n_queries": 323,
+          "ndcg_at_10_own": 0.34647,
+          "scorer": "pytrec_eval",
+          "ndcg_at_10": 0.34647,
+          "recall_at_10": 0.16844,
+          "own_vs_pytrec_max_abs_diff": 0.0,
+          "mean_ms": 2531.2677,
+          "p50_ms": 1822.9208,
+          "p95_ms": 8814.381,
+          "arm_seconds": 817.6
+        },
+        "bge_m3__msmarco": {
+          "embedding_model": "BAAI/bge-m3",
+          "reranker_model": "cross-encoder/ms-marco-MiniLM-L-6-v2",
+          "ingest_seconds": 143.8,
+          "n_queries": 323,
+          "ndcg_at_10_own": 0.35292,
+          "scorer": "pytrec_eval",
+          "ndcg_at_10": 0.35292,
+          "recall_at_10": 0.16535,
+          "own_vs_pytrec_max_abs_diff": 0.0,
+          "mean_ms": 108.8335,
+          "p50_ms": 108.391,
+          "p95_ms": 113.3591,
+          "arm_seconds": 35.2
+        },
+        "bge_m3__none": {
+          "embedding_model": "BAAI/bge-m3",
+          "reranker_model": null,
+          "ingest_seconds": 143.8,
+          "n_queries": 323,
+          "ndcg_at_10_own": 0.34401,
+          "scorer": "pytrec_eval",
+          "ndcg_at_10": 0.34401,
+          "recall_at_10": 0.16332,
+          "own_vs_pytrec_max_abs_diff": 0.0,
+          "mean_ms": 33.9568,
+          "p50_ms": 33.0906,
+          "p95_ms": 38.3403,
+          "arm_seconds": 11.0
+        }
+      }
+    },
+    "scifact": {
+      "n_docs": 5183,
+      "n_test_queries": 300,
+      "arms": {
+        "bge_large__msmarco": {
+          "embedding_model": "BAAI/bge-large-en-v1.5",
+          "reranker_model": "cross-encoder/ms-marco-MiniLM-L-6-v2",
+          "ingest_seconds": 176.2,
+          "n_queries": 300,
+          "ndcg_at_10_own": 0.69933,
+          "scorer": "pytrec_eval",
+          "ndcg_at_10": 0.69933,
+          "recall_at_10": 0.84178,
+          "own_vs_pytrec_max_abs_diff": 0.0,
+          "mean_ms": 126.0516,
+          "p50_ms": 125.5502,
+          "p95_ms": 137.1121,
+          "arm_seconds": 37.8
+        },
+        "bge_large__none": {
+          "embedding_model": "BAAI/bge-large-en-v1.5",
+          "reranker_model": null,
+          "ingest_seconds": 176.2,
+          "n_queries": 300,
+          "ndcg_at_10_own": 0.73314,
+          "scorer": "pytrec_eval",
+          "ndcg_at_10": 0.73314,
+          "recall_at_10": 0.86289,
+          "own_vs_pytrec_max_abs_diff": 0.0,
+          "mean_ms": 52.3691,
+          "p50_ms": 51.74,
+          "p95_ms": 63.5329,
+          "arm_seconds": 15.7
+        },
+        "bge_m3__bge_v2_m3": {
+          "embedding_model": "BAAI/bge-m3",
+          "reranker_model": "BAAI/bge-reranker-v2-m3",
+          "ingest_seconds": 200.3,
+          "n_queries": 300,
+          "ndcg_at_10_own": 0.74067,
+          "scorer": "pytrec_eval",
+          "ndcg_at_10": 0.74067,
+          "recall_at_10": 0.84722,
+          "own_vs_pytrec_max_abs_diff": 0.0,
+          "mean_ms": 2106.4983,
+          "p50_ms": 1836.8506,
+          "p95_ms": 3759.9225,
+          "arm_seconds": 632.0
+        },
+        "bge_m3__msmarco": {
+          "embedding_model": "BAAI/bge-m3",
+          "reranker_model": "cross-encoder/ms-marco-MiniLM-L-6-v2",
+          "ingest_seconds": 200.3,
+          "n_queries": 300,
+          "ndcg_at_10_own": 0.69266,
+          "scorer": "pytrec_eval",
+          "ndcg_at_10": 0.69266,
+          "recall_at_10": 0.82178,
+          "own_vs_pytrec_max_abs_diff": 0.0,
+          "mean_ms": 126.099,
+          "p50_ms": 125.0783,
+          "p95_ms": 137.119,
+          "arm_seconds": 37.8
+        },
+        "bge_m3__none": {
+          "embedding_model": "BAAI/bge-m3",
+          "reranker_model": null,
+          "ingest_seconds": 200.3,
+          "n_queries": 300,
+          "ndcg_at_10_own": 0.70148,
+          "scorer": "pytrec_eval",
+          "ndcg_at_10": 0.70148,
+          "recall_at_10": 0.83889,
+          "own_vs_pytrec_max_abs_diff": 0.0,
+          "mean_ms": 53.0115,
+          "p50_ms": 52.154,
+          "p95_ms": 64.5922,
+          "arm_seconds": 15.9
+        }
+      }
+    }
+  },
+  "environment": {
+    "python": "3.12.13",
+    "machine": "x86_64",
+    "cpu_model": "AMD EPYC 9554 64-Core Processor",
+    "torch_device": "cuda:0",
+    "numpy": "2.5.1",
+    "faiss": "1.14.3",
+    "sentence_transformers": "5.6.0",
+    "torch": "2.13.0+cu130"
+  },
+  "model_revisions": {
+    "BAAI/bge-large-en-v1.5": "d4aa6901d3a41ba39fb536a557fa166f842b0e09",
+    "BAAI/bge-m3": "5617a9f61b028005a4858fdac845db406aefb181",
+    "cross-encoder/ms-marco-MiniLM-L-6-v2": "c5ee24cb16019beea0893ab7796b1df96625c6b8",
+    "BAAI/bge-reranker-v2-m3": "953dc6f6f85a1b2dbfca4c34a2796e7dde08d41e"
+  }
+}

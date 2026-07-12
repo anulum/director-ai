@@ -239,7 +239,16 @@ def _build_indexed_store(embedding_model: str, docs: dict[str, str]) -> Any:
 
 
 def _write_artefact(output: dict[str, Any], path: Path) -> None:
-    """Persist the artefact after every arm so long runs are resumable."""
+    """Persist the artefact after every arm so long runs are resumable.
+
+    Model revisions are refreshed at write time: on a fresh host the
+    models download during the first arm, so a snapshot taken at start-up
+    would record ``None`` for every revision.
+    """
+    output["model_revisions"] = {
+        model: _cached_revision(model)
+        for model in (*EMBEDDERS.values(), *RERANKERS.values())
+    }
     RESULTS_DIR.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(output, indent=2) + "\n", encoding="utf-8")
 
@@ -289,10 +298,6 @@ def main() -> None:
             "datasets": {},
         }
     output["environment"] = _environment()
-    output["model_revisions"] = {
-        model: _cached_revision(model)
-        for model in (*EMBEDDERS.values(), *RERANKERS.values())
-    }
 
     from director_ai.core.vector_store import RerankedBackend
 

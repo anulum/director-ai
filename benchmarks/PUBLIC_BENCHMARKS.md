@@ -38,6 +38,8 @@ External accuracy review packet:
 | `truthfulqa` | TruthfulQA CSV cache | Public CSV cache | `benchmarks/.cache/TruthfulQA.csv` |
 | `hallubench` | `AuwAuwAuw/HalluBench`, train split | Gated Hugging Face dataset; requires accepted access; CC BY-NC-ND 4.0 | none; raw images, questions, answers, and predictions must stay outside the repo |
 | `streaming_good_passages` | In-repo fixture list | Tracked source fixture | none |
+| `beir_nfcorpus` | BEIR NFCorpus zip (test split) | Public zip downloads | `benchmarks/data/beir/nfcorpus/` (not committed) |
+| `beir_scifact` | BEIR SciFact zip (test split) | Public zip downloads | `benchmarks/data/beir/scifact/` (not committed) |
 | `streaming_bad_passages` | In-repo labelled contradiction smoke set | Tracked source fixture | none |
 | `latency_fixture_pairs` | In-repo fixture list | Tracked source fixture | none |
 
@@ -70,6 +72,13 @@ pure NLI result.
 | `hallubench_geospatial_internal` | multimodal geospatial | No public score yet | Gated internal validation harness only; publish no HalluBench score until model provenance, dataset access, and metric review are recorded. |
 
 ## Reproduction Commands
+
+BEIR retrieval (grounded() hybrid pipeline; download the BEIR
+`nfcorpus` and `scifact` zips into `benchmarks/data/beir/` first):
+
+```bash
+python -m benchmarks.beir_competitive_bench
+```
 
 AggreFact default:
 

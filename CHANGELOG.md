@@ -44,6 +44,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   linear-gain implementation. The artefact embeds published baselines
   verified at source (BEIR paper Table 2; bge-large-en-v1.5 model-card
   MTEB metrics) so the numbers are comparable across systems.
+  Measured (L4 GPU, artefact committed): the shipped hybrid pipeline
+  without a reranker reaches nDCG@10 0.3703 (NFCorpus) / 0.7331
+  (SciFact), above the BEIR paper's BM25 (0.325/0.665) and BM25+CE
+  (0.350/0.688) rows; the candidate bge-m3 embedder is below the
+  shipped bge-large default on both datasets, so the `RECOMMENDED_*`
+  defaults stay unchanged — an evidence-based no-change. Full table,
+  readings, and claim boundary in `benchmarks/BENCHMARK_REPORT.md`
+  §11; the table is registered in
+  `benchmarks/public_accuracy_manifest.toml`. Quality numbers
+  cross-checked CPU vs GPU (identical nDCG@10 on the arms measured on
+  both hosts).
 - `DirectorConfig.finetune_models_dir` (env: `DIRECTOR_FINETUNE_MODELS_DIR`)
   — the server now passes a configurable models/jobs directory to the
   fine-tuning router instead of always mounting the hard-coded

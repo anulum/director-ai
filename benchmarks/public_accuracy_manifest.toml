@@ -178,6 +178,26 @@ size_note = "known-good factual passages for false-halt measurement"
 label_fields = ["id", "facts", "passage"]
 
 [[datasets]]
+id = "beir_nfcorpus"
+name = "BEIR NFCorpus"
+source = "BEIR benchmark zips (thakur/BEIR datasets mirror)"
+split = "test"
+access = "public zip downloads extracted under benchmarks/data/beir/nfcorpus (not committed)"
+local_cache = []
+size_note = "3,633 documents, 323 test queries, graded qrels"
+label_fields = ["query-id", "corpus-id", "score"]
+
+[[datasets]]
+id = "beir_scifact"
+name = "BEIR SciFact"
+source = "BEIR benchmark zips (thakur/BEIR datasets mirror)"
+split = "test"
+access = "public zip downloads extracted under benchmarks/data/beir/scifact (not committed)"
+local_cache = []
+size_note = "5,183 documents, 300 test queries, binary qrels"
+label_fields = ["query-id", "corpus-id", "score"]
+
+[[datasets]]
 id = "streaming_bad_passages"
 name = "Streaming labelled bad passages"
 source = "benchmarks/streaming_false_halt_bench.py"
@@ -196,6 +216,18 @@ access = "tracked source fixture"
 local_cache = []
 size_note = "fixed premise/claim pairs for backend latency runs"
 label_fields = ["premise", "claim"]
+
+[[public_accuracy_tables]]
+id = "benchmark_report_beir_retrieval"
+title = "BENCHMARK_REPORT BEIR retrieval (grounded() hybrid pipeline)"
+public_file = "benchmarks/BENCHMARK_REPORT.md"
+runner_files = ["benchmarks/beir_competitive_bench.py"]
+commands = ["python -m benchmarks.beir_competitive_bench"]
+datasets = ["beir_nfcorpus", "beir_scifact"]
+cache_files = []
+result_files = ["benchmarks/results/beir_competitive_bench.json"]
+metrics = ["ndcg_at_10", "recall_at_10", "p50_ms", "p95_ms"]
+notes = "Scored with pytrec_eval, cross-checked against a built-in linear-gain nDCG; the artefact embeds the published baseline rows (BEIR paper Table 2; bge-large model-card MTEB metrics) with their sources and caveats."
 
 [[public_accuracy_tables]]
 id = "readme_scoring_pyramid"

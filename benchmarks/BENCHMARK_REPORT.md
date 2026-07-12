@@ -481,6 +481,55 @@ offers claim-level halt with fully local hybrid scoring.
 
 Full analysis: [`benchmarks/comparison/COMPETITOR_COMPARISON.md`](comparison/COMPETITOR_COMPARISON.md)
 
+## 11. BEIR Retrieval — grounded() Hybrid Pipeline (L4, 2026-07-12)
+
+The shipped `VectorGroundTruthStore.grounded()` retrieval pipeline
+(hybrid BM25 + dense with RRF k=60, `title + text` as one field,
+optional cross-encoder rerank of the top 30 candidates) measured on
+BEIR test splits, scored with `pytrec_eval` and cross-checked against
+a built-in linear-gain nDCG@10 (zero disagreement on every arm).
+Artefact: `benchmarks/results/beir_competitive_bench.json` — records
+exact model revisions, host environment, and the published baseline
+rows with sources.
+
+| Arm (embedder__reranker) | NFCorpus nDCG@10 | SciFact nDCG@10 | p50/query (L4 GPU) |
+|---|---|---|---|
+| bge-large__none (default embedder, no rerank) | 0.3703 | 0.7331 | 33–52 ms |
+| bge-large__ms-marco (default pair) | 0.3625 | 0.6993 | 106–126 ms |
+| bge-m3__none | 0.3440 | 0.7015 | 33–52 ms |
+| bge-m3__ms-marco | 0.3529 | 0.6927 | 108–125 ms |
+| bge-m3__bge-reranker-v2-m3 | 0.3465 | 0.7407 | ~1.8 s |
+
+Published reference rows (verified at source 2026-07-12): BM25
+0.325 / 0.665 and BM25+CE 0.350 / 0.688 (BEIR paper, arXiv:2104.08663,
+Table 2); bge-large-en-v1.5 pure dense 0.38129 / 0.74607 (model-card
+MTEB metrics — measured with a query instruction prefix the shipped
+recipe does not add).
+
+Readings:
+
+- The hybrid pipeline without a reranker scores above the BEIR paper's
+  BM25 and BM25+CE rows on both datasets.
+- The candidate bge-m3 embedder does not improve English BEIR retrieval
+  over the shipped bge-large default (−0.026 NFCorpus, −0.032 SciFact
+  nDCG@10); the default embedder stays bge-large-en-v1.5.
+- The ms-marco cross-encoder rerank lowers nDCG@10 on these
+  out-of-domain corpora (−0.008 / −0.034) while raising hit@1
+  substantially on the internal curated-KB evaluation set
+  (`benchmarks/results/retrieval_model_refresh_ab.json`: 0.73–0.77 →
+  0.93–0.97). The default keeps the reranker because `grounded()`
+  targets curated fact KBs; operators ranking open corpora can pass
+  `use_reranker=False`.
+- bge-reranker-v2-m3 is the strongest SciFact arm (0.7407) at roughly
+  15× the rerank latency; it remains an opt-in alternative
+  (`reranker_model="BAAI/bge-reranker-v2-m3"`), not the default.
+- Quality numbers are hardware-independent: the arms measured on both
+  an i5-11600K (CPU) and the L4 host produced identical nDCG@10.
+
+Claim boundary: retrieval-quality evidence for the shipped pipeline on
+two public BEIR test splits; it is not a leaderboard submission and
+makes no claim about corpora or configurations that were not measured.
+
 ## Reproduction
 
 ```bash
