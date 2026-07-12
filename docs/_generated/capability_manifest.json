@@ -5,11 +5,11 @@
     "model_documentation_pages": 89,
     "optional_extras": 62,
     "public_api_exports": 226,
-    "public_documentation_pages": 204,
-    "python_model_classes": 1021,
-    "python_model_source_modules": 495,
+    "public_documentation_pages": 205,
+    "python_model_classes": 1022,
+    "python_model_source_modules": 496,
     "rust_pyo3_model_wrappers": 83,
-    "test_files": 740
+    "test_files": 741
   },
   "documentation": {
     "public_pages": [
@@ -206,6 +206,7 @@
       "docs-site/integrations/langchain.md",
       "docs-site/integrations/langgraph.md",
       "docs-site/integrations/llamaindex.md",
+      "docs-site/integrations/nemo-rails.md",
       "docs-site/integrations/sdk-guard.md",
       "docs-site/integrations/semantic-kernel.md",
       "docs-site/integrations/vercel-ai.md",
@@ -3214,6 +3215,10 @@
         "path": "src/director_ai/core/sustainability/quota.py"
       },
       {
+        "name": "RailsLoadResult",
+        "path": "src/director_ai/integrations/rails_config.py"
+      },
+      {
         "name": "RandomWalkSpectrum",
         "path": "src/director_ai/core/emergence_oracle/spectrum.py"
       },
@@ -4867,6 +4872,7 @@
       "src/director_ai/integrations/llamaindex.py",
       "src/director_ai/integrations/openai_swarm.py",
       "src/director_ai/integrations/providers.py",
+      "src/director_ai/integrations/rails_config.py",
       "src/director_ai/integrations/sdk_guard.py",
       "src/director_ai/integrations/sdk_proxies/anthropic.py",
       "src/director_ai/integrations/sdk_proxies/base.py",
@@ -5863,6 +5869,7 @@
       "tests/test_ragtruth_reranker_probe.py",
       "tests/test_ragtruth_token_eval_diagnostics.py",
       "tests/test_ragtruth_train_hard_negatives.py",
+      "tests/test_rails_config.py",
       "tests/test_rasp.py",
       "tests/test_rdp_accountant.py",
       "tests/test_reasoning_scorer.py",

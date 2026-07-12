@@ -195,6 +195,7 @@ nav:
       - AutoGen: integrations/autogen.md
       - CrewAI: integrations/crewai.md
       - Guardrails AI: integrations/guardrails-ai.md
+      - NeMo Rails-as-Config: integrations/nemo-rails.md
       - Semantic Kernel: integrations/semantic-kernel.md
       - DSPy / Instructor: integrations/dspy.md
   - Specifications:

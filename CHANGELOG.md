@@ -9,6 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- NeMo Guardrails rails-as-config loader
+  (`director_ai.integrations.rails_config.load_rails_config`): maps the
+  honest subset of a NeMo config directory (`config.yml` + Colang `.co`
+  files) onto Director's native `Policy` — Colang v1 topical refusal
+  rails become forbidden phrases, recognised self-check/content-safety
+  rails enable the dependency-free moderation detectors — and reports
+  every unmapped construct in `RailsLoadResult.unsupported` instead of
+  silently dropping it. RAIL XML deliberately raises with a pointer to
+  the native Guardrails AI validator integration. New docs page
+  `docs-site/integrations/nemo-rails.md`.
 - Computed AI-governance controls (`director_ai.compliance.
   governance_controls`, BUSL tier): `compute_governance_controls()`
   derives NIST AI RMF 1.0 / ISO/IEC 42001:2023 / EU AI Act crosswalk
