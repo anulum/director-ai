@@ -5,11 +5,11 @@
     "model_documentation_pages": 89,
     "optional_extras": 62,
     "public_api_exports": 226,
-    "public_documentation_pages": 203,
+    "public_documentation_pages": 204,
     "python_model_classes": 1018,
-    "python_model_source_modules": 492,
+    "python_model_source_modules": 493,
     "rust_pyo3_model_wrappers": 83,
-    "test_files": 737
+    "test_files": 738
   },
   "documentation": {
     "public_pages": [
@@ -165,6 +165,7 @@
       "docs-site/guide/onboarding.md",
       "docs-site/guide/online-calibration.md",
       "docs-site/guide/onnx-export.md",
+      "docs-site/guide/openai-proxy.md",
       "docs-site/guide/presets.md",
       "docs-site/guide/product-overview.md",
       "docs-site/guide/production-guard.md",
@@ -4419,6 +4420,7 @@
       "src/director_ai/_guard_hardening.py",
       "src/director_ai/_guard_quality.py",
       "src/director_ai/_guard_verification.py",
+      "src/director_ai/_proxy_moderations.py",
       "src/director_ai/_server_helpers.py",
       "src/director_ai/_server_models.py",
       "src/director_ai/agentic/agent_profile.py",
@@ -5825,6 +5827,7 @@
       "tests/test_proxy_facts_path_real_surface.py",
       "tests/test_proxy_facts_path_security.py",
       "tests/test_proxy_full.py",
+      "tests/test_proxy_moderations.py",
       "tests/test_proxy_real_surface.py",
       "tests/test_public_api.py",
       "tests/test_public_benchmark_manifest.py",
