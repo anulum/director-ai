@@ -9,6 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Self-consistency / semantic-entropy uncertainty signal
+  (`director_ai.core.scoring.self_consistency`): `SelfConsistencyScorer`
+  clusters caller-supplied alternative generations by bidirectional
+  entailment (shipped NLI backend, lexical fallback labelled in the
+  result) and scores normalised semantic entropy plus the primary
+  response's consensus agreement. Opt-in fusion on the review
+  pipeline: `enable_self_consistency(weight=…)` +
+  `review_with_samples(prompt, action, samples)` — the fused score can
+  revoke an approval but never approves a rejected review;
+  `CoherenceScore` gains `self_consistency_score`, `semantic_entropy`
+  and `self_consistency_backend` fields.
 - Hardened per-tenant isolation for shared vector indexes:
   `TenantScopedBackend`
   (`director_ai.core.retrieval.vector_store.tenant_guard`) binds any

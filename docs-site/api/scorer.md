@@ -87,6 +87,24 @@ for approved, score in results:
     print(f"approved={approved}  score={score.score:.3f}")
 ```
 
+### review_with_samples()
+
+```python
+scorer.enable_self_consistency(weight=0.25)  # opt-in, once
+approved, score = scorer.review_with_samples(prompt, action, samples)
+```
+
+`review()` fused with a SelfCheckGPT-style semantic-entropy signal:
+`samples` are alternative generations for the same prompt (a proxy
+fanning out `n>1` completions, or an agent re-querying its model).
+Samples are clustered by bidirectional entailment (the scorer's NLI
+backend when model-backed, a lexical fallback otherwise — the backend
+used is recorded in `score.self_consistency_backend`); the fused score
+is `(1 − weight)·review + weight·consistency`. Fusion can revoke an
+approval (fused score under the threshold) but never approves what
+`review()` rejected. Attached fields: `self_consistency_score`,
+`semantic_entropy`, `self_consistency_backend`.
+
 ### Chunked NLI
 
 Sentence-level NLI scoring lives on `NLIScorer.score_chunked()`, not

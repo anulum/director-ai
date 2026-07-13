@@ -209,6 +209,7 @@ from .scoring.nli import (
     nli_available,
 )
 from .scoring.scorer import CoherenceScorer
+from .scoring.self_consistency import ConsistencyResult, SelfConsistencyScorer
 from .scoring.sharded_nli import ShardedNLIScorer
 from .scoring.temporal_freshness import (
     CitationStatusSignal,
@@ -287,6 +288,8 @@ __all__ = [
     "NLIScorer",
     "ScorerBackend",
     "ShardedNLIScorer",
+    "ConsistencyResult",
+    "SelfConsistencyScorer",
     "VerificationResult",
     "VerifiedScorer",
     # Retrieval

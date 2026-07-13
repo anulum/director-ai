@@ -140,6 +140,11 @@ class CoherenceScore:
     conformal_coverage: float | None = None  # target coverage, e.g. 0.95
     conformal_calibration_size: int | None = None
     conformal_reliable: bool | None = None  # calibration_size >= min_samples
+    # Self-consistency / semantic-entropy signal (opt-in via
+    # enable_self_consistency() + review_with_samples()):
+    self_consistency_score: float | None = None  # 0-1, consensus strength
+    semantic_entropy: float | None = None  # 0-1, normalised cluster entropy
+    self_consistency_backend: str | None = None  # "nli" | "lexical"
 
     # -- Claim-Level Provenance (Gem 2) ------------------------------------
 

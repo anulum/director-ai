@@ -33,6 +33,7 @@ if TYPE_CHECKING:
     from ..redactor import PIIRedactor
     from ._llm_judge import LLMJudge
     from .reasoning_scorer import ReasoningScorer
+    from .self_consistency import SelfConsistencyScorer
 
 __all__ = ["ReviewPipelineMixin"]
 
@@ -65,6 +66,8 @@ class ReviewPipelineMixin(DivergenceMixin):
     _verified_scorer_min_coverage: float
     _verified_scorer_task_types: set[str]
     _conformal_predictor: ConformalPredictor | None
+    _self_consistency_scorer: SelfConsistencyScorer | None
+    _self_consistency_weight: float
     _judge: LLMJudge
     _reasoning: ReasoningScorer
     _redactor: PIIRedactor
@@ -123,6 +126,77 @@ class ReviewPipelineMixin(DivergenceMixin):
         score.conformal_calibration_size = interval.calibration_size
         score.conformal_reliable = interval.is_reliable
         return result
+
+    def enable_self_consistency(
+        self,
+        scorer: SelfConsistencyScorer | None = None,
+        *,
+        weight: float = 0.25,
+    ) -> SelfConsistencyScorer:
+        """Opt in to the semantic-entropy signal on ``review_with_samples()``.
+
+        Attaches a :class:`~director_ai.core.scoring.self_consistency.
+        SelfConsistencyScorer` (a supplied one, or a fresh scorer reusing
+        this scorer's NLI backend when model-backed) and the fusion
+        *weight* in [0, 1). Until enabled, ``review_with_samples()``
+        raises and ``review()`` behaviour is unchanged.
+        """
+        if not 0.0 <= weight < 1.0:
+            raise ValueError("weight must be in [0, 1)")
+        if scorer is None:
+            from .self_consistency import SelfConsistencyScorer
+
+            nli = self.nli if getattr(self, "use_nli", False) else None
+            scorer = SelfConsistencyScorer(nli_scorer=nli)
+        self._self_consistency_scorer = scorer
+        self._self_consistency_weight = weight
+        return scorer
+
+    def review_with_samples(
+        self,
+        prompt: str,
+        action: str,
+        samples: list[str],
+        session: Any | None = None,
+        tenant_id: str = "",
+    ) -> tuple[bool, CoherenceScore]:
+        """``review()`` fused with the sample-consistency signal.
+
+        Runs the standard review of ``action``, scores its semantic
+        consistency against caller-supplied alternative ``samples``
+        (same prompt, independent generations), then blends:
+        ``fused = (1 − w)·review_score + w·consistency_score`` and
+        re-gates approval on the same threshold the plain review used
+        (a fused score below it revokes approval; fusion never
+        approves what ``review()`` rejected). The consistency fields
+        are attached to the returned :class:`CoherenceScore`.
+
+        Requires a prior :meth:`enable_self_consistency` call —
+        consistency with zero samples is not evidence, so there is no
+        silent fallback.
+        """
+        if self._self_consistency_scorer is None:
+            raise RuntimeError(
+                "call enable_self_consistency() before review_with_samples()",
+            )
+        approved, score = self.review(
+            prompt,
+            action,
+            session=session,
+            tenant_id=tenant_id,
+        )
+        consistency = self._self_consistency_scorer.score(action, samples)
+        weight = self._self_consistency_weight
+        fused = (1.0 - weight) * score.score + weight * consistency.consistency_score
+
+        score.self_consistency_score = round(consistency.consistency_score, 4)
+        score.semantic_entropy = round(consistency.semantic_entropy, 4)
+        score.self_consistency_backend = consistency.entailment_backend
+        score.score = round(fused, 4)
+        if approved and fused < self.threshold:
+            approved = False
+            score.approved = False
+        return approved, score
 
     def _finalise_review(
         self,

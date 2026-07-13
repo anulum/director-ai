@@ -293,6 +293,8 @@ class CoherenceScorer(ReviewPipelineMixin):
         self._adaptive_threshold_enabled = False
         self._task_type_thresholds: dict[str, float] = {}
         self._conformal_predictor = None
+        self._self_consistency_scorer = None
+        self._self_consistency_weight = 0.25
         self._chunk_overlap_ratio = 0.5
         self._qa_premise_ratio = 0.7
         self._confidence_weighted_agg = False

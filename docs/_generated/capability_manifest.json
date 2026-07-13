@@ -6,10 +6,10 @@
     "optional_extras": 62,
     "public_api_exports": 226,
     "public_documentation_pages": 205,
-    "python_model_classes": 1024,
-    "python_model_source_modules": 498,
+    "python_model_classes": 1026,
+    "python_model_source_modules": 499,
     "rust_pyo3_model_wrappers": 83,
-    "test_files": 745
+    "test_files": 746
   },
   "documentation": {
     "public_pages": [
@@ -1041,6 +1041,10 @@
       {
         "name": "ConsistencyReport",
         "path": "src/director_ai/core/symbolic_chain/prover.py"
+      },
+      {
+        "name": "ConsistencyResult",
+        "path": "src/director_ai/core/scoring/self_consistency.py"
       },
       {
         "name": "Const",
@@ -3659,6 +3663,10 @@
         "path": "src/director_ai/core/calibration/segmented_threshold.py"
       },
       {
+        "name": "SelfConsistencyScorer",
+        "path": "src/director_ai/core/scoring/self_consistency.py"
+      },
+      {
         "name": "SelfEvolver",
         "path": "src/director_ai/core/self_evolving/evolver.py"
       },
@@ -4774,6 +4782,7 @@
       "src/director_ai/core/scoring/rules_scorer.py",
       "src/director_ai/core/scoring/scorer.py",
       "src/director_ai/core/scoring/scorer_config.py",
+      "src/director_ai/core/scoring/self_consistency.py",
       "src/director_ai/core/scoring/sharded_nli.py",
       "src/director_ai/core/scoring/span_detector.py",
       "src/director_ai/core/scoring/temporal_freshness.py",
@@ -5950,6 +5959,7 @@
       "tests/test_security_hardening.py",
       "tests/test_security_physical_risks.py",
       "tests/test_segmented_threshold.py",
+      "tests/test_self_consistency.py",
       "tests/test_self_evolving.py",
       "tests/test_self_evolving_real_surface.py",
       "tests/test_self_healing.py",
