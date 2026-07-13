@@ -146,7 +146,7 @@ class ReviewPipelineMixin(DivergenceMixin):
         if scorer is None:
             from .self_consistency import SelfConsistencyScorer
 
-            nli = self.nli if getattr(self, "use_nli", False) else None
+            nli = self._nli if getattr(self, "use_nli", False) else None
             scorer = SelfConsistencyScorer(nli_scorer=nli)
         self._self_consistency_scorer = scorer
         self._self_consistency_weight = weight
