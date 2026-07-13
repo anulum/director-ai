@@ -38,6 +38,16 @@ def _cmd_train(args: list[str]) -> None:
     if subcommand == "harvest":
         _cmd_train_harvest(args[1:])
         return
+    if subcommand == "runs":
+        from director_ai._cli_train_tracking import _cmd_train_runs
+
+        _cmd_train_runs(args[1:])
+        return
+    if subcommand == "registry":
+        from director_ai._cli_train_tracking import _cmd_train_registry
+
+        _cmd_train_registry(args[1:])
+        return
 
     print(f"Unknown train subcommand: {subcommand}")
     _print_train_help()
@@ -109,6 +119,16 @@ def _cmd_train_submit(args: list[str]) -> None:
         print(f"Error: training job submission failed: {exc}")
         sys.exit(1)
     print(submission_to_json(submission))
+    experiment_dir = _as_optional_str(opts, "experiment_dir")
+    if experiment_dir:
+        from director_ai.core.training.experiment_tracker import ExperimentTracker
+
+        run = ExperimentTracker(experiment_dir).record_submission(
+            submission,
+            spec,
+            fingerprint=spec.dataset_fingerprint(),
+        )
+        print(f"\nTracked run: {run.run_id}")
     command = submission.request.get("command")
     if command:
         print(f"\nCommand: {shell_join(command)}")
@@ -139,9 +159,11 @@ def _parse_submit_args(args: list[str]) -> dict[str, str | bool | None]:
         "boot_disk_gb": "100",
         "suite": "",
         "execute": False,
+        "experiment_dir": None,
     }
     aliases = {
         "--backend": "backend",
+        "--experiment-dir": "experiment_dir",
         "--caller": "caller",
         "--display-name": "display_name",
         "--dataset-uri": "dataset_uri",
@@ -580,6 +602,8 @@ def _print_train_help() -> None:
         "  benchmark-models   Benchmark trained artifacts for model choice\n"
         "  sweep    Plan or submit a managed training scenario matrix\n"
         "  harvest  Collect training_result.json artifacts from a sweep prefix\n"
+        "  runs     List tracked experiment runs (--dir; --metric ranks them)\n"
+        "  registry Inspect or mutate the trained-model registry (--dir)\n"
         "\n"
         "Submit options:\n"
         "  --backend local|portable|vertex  Backend (default: vertex)\n"
@@ -590,5 +614,12 @@ def _print_train_help() -> None:
         "  --suite NAME                 Internal pytest suite instead of fine-tune\n"
         "  --model ALIAS                Registry alias or explicit model id\n"
         "  --allow-experimental-model   Permit experimental/custom model ids\n"
-        "  --execute                    Provision the job; default is dry-run\n",
+        "  --experiment-dir DIR         Record the submission as a tracked run\n"
+        "  --execute                    Provision the job; default is dry-run\n"
+        "\n"
+        "Registry options:\n"
+        "  --model NAME [--version N]   Show one model or one version\n"
+        "  --register --name N --artifact URI --from-run ID --runs-dir DIR\n"
+        "  --promote --model N --version V --evidence benchmark.json\n"
+        "  --retire  --model N --version V\n",
     )

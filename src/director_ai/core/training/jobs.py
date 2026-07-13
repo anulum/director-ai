@@ -24,6 +24,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Protocol
 
+from .dataset_fingerprint import DatasetFingerprint, fingerprint_dataset
 from .model_registry import (
     DEFAULT_FINE_TUNE_MODEL_ALIAS,
     TrainingModelProfile,
@@ -139,8 +140,22 @@ class TrainingJobSpec:
 
     @property
     def dataset_hash(self) -> str:
-        """Return a stable short hash for the configured dataset URI."""
+        """Return a stable short hash for the configured dataset URI.
+
+        This covers the URI *string* only. For content-addressed provenance
+        use :meth:`dataset_fingerprint`, which hashes the dataset bytes where
+        they are reachable and labels its fallbacks.
+        """
         return hashlib.sha256(self.dataset_uri.encode("utf-8")).hexdigest()[:16]
+
+    def dataset_fingerprint(self) -> DatasetFingerprint:
+        """Return a content-addressed fingerprint for the dataset.
+
+        Local datasets are hashed by content; remote URIs and not-yet-staged
+        local paths degrade to an explicitly labelled uri-only fingerprint so
+        dry-run requests still carry honest provenance.
+        """
+        return fingerprint_dataset(self.dataset_uri, strict=False)
 
     @property
     def config_hash(self) -> str:
@@ -252,6 +267,7 @@ class LocalTrainingBackend:
             "cwd": str(Path.cwd()),
             "spec": spec.to_redacted_dict(),
             "dataset_hash": spec.dataset_hash,
+            "dataset_fingerprint": spec.dataset_fingerprint().to_dict(),
             "config_hash": spec.config_hash,
         }
         job_id = f"local-{spec.config_hash}"
@@ -548,6 +564,7 @@ def build_portable_container_job_request(spec: TrainingJobSpec) -> dict[str, Any
         "labels": _normalise_labels(dict(spec.labels)),
         "provenance": {
             "dataset_hash": spec.dataset_hash,
+            "dataset_fingerprint": spec.dataset_fingerprint().to_dict(),
             "config_hash": spec.config_hash,
         },
     }

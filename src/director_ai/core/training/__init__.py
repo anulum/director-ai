@@ -6,6 +6,8 @@
 # Contact: www.anulum.li | protoscience@anulum.li
 """Training helpers and managed job backends."""
 
+from .dataset_fingerprint import DatasetFingerprint, fingerprint_dataset
+from .experiment_tracker import ExperimentRun, ExperimentTracker
 from .jobs import (
     PortableTrainingBackend,
     TrainingHardware,
@@ -36,10 +38,25 @@ from .sweeps import (
     TrainingSweepPlan,
     build_training_sweep_plan,
 )
+from .trained_model_registry import (
+    STAGE_CANDIDATE,
+    STAGE_PRODUCTION,
+    STAGE_RETIRED,
+    TrainedModelRecord,
+    TrainedModelRegistry,
+)
 
 __all__ = [
     "DEFAULT_FINE_TUNE_MODEL_ALIAS",
+    "STAGE_CANDIDATE",
+    "STAGE_PRODUCTION",
+    "STAGE_RETIRED",
+    "DatasetFingerprint",
+    "ExperimentRun",
+    "ExperimentTracker",
     "PortableTrainingBackend",
+    "TrainedModelRecord",
+    "TrainedModelRegistry",
     "TrainingDatasetSplit",
     "TrainingHardware",
     "TrainingJobSpec",
@@ -54,6 +71,7 @@ __all__ = [
     "build_portable_container_job_request",
     "build_training_sweep_plan",
     "build_vertex_custom_job_request",
+    "fingerprint_dataset",
     "finetune_model_registry_to_dict",
     "get_training_backend",
     "harvest_training_results",

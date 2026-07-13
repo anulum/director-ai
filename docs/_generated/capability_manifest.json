@@ -6,10 +6,10 @@
     "optional_extras": 62,
     "public_api_exports": 226,
     "public_documentation_pages": 205,
-    "python_model_classes": 1026,
-    "python_model_source_modules": 499,
+    "python_model_classes": 1031,
+    "python_model_source_modules": 503,
     "rust_pyo3_model_wrappers": 83,
-    "test_files": 746
+    "test_files": 750
   },
   "documentation": {
     "public_pages": [
@@ -1343,6 +1343,10 @@
         "path": "src/director_ai/core/safety/siem.py"
       },
       {
+        "name": "DatasetFingerprint",
+        "path": "src/director_ai/core/training/dataset_fingerprint.py"
+      },
+      {
         "name": "DatasetTypeClassifier",
         "path": "src/director_ai/core/scoring/meta_classifier.py"
       },
@@ -1649,6 +1653,14 @@
       {
         "name": "ExecutionRingGate",
         "path": "src/director_ai/core/execution_rings/gate.py"
+      },
+      {
+        "name": "ExperimentRun",
+        "path": "src/director_ai/core/training/experiment_tracker.py"
+      },
+      {
+        "name": "ExperimentTracker",
+        "path": "src/director_ai/core/training/experiment_tracker.py"
       },
       {
         "name": "Expr",
@@ -4147,6 +4159,14 @@
         "path": "src/director_ai/core/self_evolving/trainer.py"
       },
       {
+        "name": "TrainedModelRecord",
+        "path": "src/director_ai/core/training/trained_model_registry.py"
+      },
+      {
+        "name": "TrainedModelRegistry",
+        "path": "src/director_ai/core/training/trained_model_registry.py"
+      },
+      {
         "name": "TrainingDatasetSplit",
         "path": "src/director_ai/core/training/sweeps.py"
       },
@@ -4443,6 +4463,7 @@
       "src/director_ai/_cli_release_gate.py",
       "src/director_ai/_cli_serve.py",
       "src/director_ai/_cli_train.py",
+      "src/director_ai/_cli_train_tracking.py",
       "src/director_ai/_cli_verify.py",
       "src/director_ai/_finetune_managed.py",
       "src/director_ai/_finetune_schemas.py",
@@ -4831,6 +4852,8 @@
       "src/director_ai/core/threat_intel/stix.py",
       "src/director_ai/core/trace_safe/embedder.py",
       "src/director_ai/core/trace_safe/oracle.py",
+      "src/director_ai/core/training/dataset_fingerprint.py",
+      "src/director_ai/core/training/experiment_tracker.py",
       "src/director_ai/core/training/finetune.py",
       "src/director_ai/core/training/finetune_benchmark.py",
       "src/director_ai/core/training/finetune_validator.py",
@@ -4838,6 +4861,7 @@
       "src/director_ai/core/training/model_registry.py",
       "src/director_ai/core/training/results.py",
       "src/director_ai/core/training/sweeps.py",
+      "src/director_ai/core/training/trained_model_registry.py",
       "src/director_ai/core/training/tuner.py",
       "src/director_ai/core/training/vertex_runner.py",
       "src/director_ai/core/trajectory/rollback.py",
@@ -5428,6 +5452,7 @@
       "tests/test_cli_serve_paths.py",
       "tests/test_cli_serve_real_surface.py",
       "tests/test_cli_tools_real_surface.py",
+      "tests/test_cli_train_tracking.py",
       "tests/test_cli_verify_deep.py",
       "tests/test_cli_verify_real_surface.py",
       "tests/test_cli_verify_reporting_real_surface.py",
@@ -5507,6 +5532,7 @@
       "tests/test_cyber_physical_real_surface.py",
       "tests/test_data_pipeline.py",
       "tests/test_data_pipeline_real_surface.py",
+      "tests/test_dataset_fingerprint.py",
       "tests/test_deception_detection.py",
       "tests/test_decision.py",
       "tests/test_defense_genome.py",
@@ -5555,6 +5581,7 @@
       "tests/test_evidence_packet_real_surface.py",
       "tests/test_exceptions.py",
       "tests/test_execution_rings.py",
+      "tests/test_experiment_tracker.py",
       "tests/test_experimental_deployment_docs.py",
       "tests/test_experimental_namespace.py",
       "tests/test_explainability.py",
@@ -6047,6 +6074,7 @@
       "tests/test_trace_safe.py",
       "tests/test_train_distillation_reproducibility.py",
       "tests/test_train_distillation_reproducibility_real_surface.py",
+      "tests/test_trained_model_registry.py",
       "tests/test_training_model_registry.py",
       "tests/test_trajectory_rollback.py",
       "tests/test_trajectory_rollback_evidence.py",

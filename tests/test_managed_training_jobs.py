@@ -157,6 +157,38 @@ class TestTrainingJobSpec:
         assert spec.dataset_hash == _vertex_spec().dataset_hash
         assert spec.config_hash == _vertex_spec().config_hash
 
+    def test_dataset_fingerprint_hashes_local_content(self, tmp_path):
+        dataset = tmp_path / "train.jsonl"
+        dataset.write_text('{"label": 1}\n', encoding="utf-8")
+        spec = TrainingJobSpec(
+            display_name="local",
+            dataset_uri=str(dataset),
+            output_uri=str(tmp_path / "out"),
+        )
+
+        fingerprint = spec.dataset_fingerprint()
+
+        assert fingerprint.hash_source == "content"
+        assert fingerprint.byte_size == len('{"label": 1}\n')
+
+    def test_dataset_fingerprint_labels_remote_uri_fallback(self):
+        fingerprint = _vertex_spec().dataset_fingerprint()
+
+        assert fingerprint.hash_source == "uri-only"
+        assert fingerprint.reason == "remote-uri-without-reader"
+
+    def test_dataset_fingerprint_labels_missing_local_path(self, tmp_path):
+        spec = TrainingJobSpec(
+            display_name="local",
+            dataset_uri=str(tmp_path / "absent.jsonl"),
+            output_uri=str(tmp_path / "out"),
+        )
+
+        fingerprint = spec.dataset_fingerprint()
+
+        assert fingerprint.hash_source == "uri-only"
+        assert fingerprint.reason == "missing-local-path"
+
     def test_default_model_resolves_to_registry_profile(self):
         spec = _vertex_spec()
         profile = spec.resolved_model_profile()
@@ -306,6 +338,18 @@ class TestBackends:
             "file:///mnt/provider/director-ai/job-1"
         )
 
+    def test_portable_provenance_carries_labelled_dataset_fingerprint(self):
+        spec = _vertex_spec(project=None)
+
+        request = build_portable_container_job_request(spec)
+
+        provenance = request["provenance"]
+        assert provenance["dataset_hash"] == spec.dataset_hash
+        fingerprint = provenance["dataset_fingerprint"]
+        assert fingerprint["hash_source"] == "uri-only"
+        assert fingerprint["reason"] == "remote-uri-without-reader"
+        assert fingerprint["uri"] == spec.dataset_uri
+
     def test_portable_command_omits_eval_argument_without_eval_uri(self):
         # A spec with no eval set must not emit a dangling --eval-uri flag in the
         # provider-neutral command.
@@ -430,6 +474,22 @@ class TestBackends:
         result = submit_training_job(spec, backend="local", dry_run=True)
         assert result.request["command"][:2] == ["director-ai", "finetune"]
         assert "--epochs" in result.request["command"]
+
+    def test_local_request_carries_content_dataset_fingerprint(self, tmp_path):
+        dataset = tmp_path / "train.jsonl"
+        dataset.write_text('{"label": 1}\n', encoding="utf-8")
+        spec = TrainingJobSpec(
+            display_name="local",
+            dataset_uri=str(dataset),
+            output_uri=str(tmp_path / "model"),
+        )
+
+        result = submit_training_job(spec, backend="local", dry_run=True)
+
+        fingerprint = result.request["dataset_fingerprint"]
+        assert fingerprint["hash_source"] == "content"
+        assert fingerprint["file_count"] == 1
+        assert result.request["dataset_hash"] == spec.dataset_hash
 
     def test_local_execute_runs_finetune_api(self, tmp_path):
         spec = TrainingJobSpec(
