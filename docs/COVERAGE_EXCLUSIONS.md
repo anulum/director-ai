@@ -24,17 +24,23 @@ structurally unreachable `union == 0` guards in
 `core/scoring/lexical_signals.py` (both sit behind emptiness checks that
 already guarantee a non-empty union).
 
-**CI-confirmed** (run `29207146048`, commit `6810a0d8`, job "Test
-(Python 3.12)"): 45 165 statements, **0 missed**, **48** partial branch
+**CI-confirmed** (run `29218718368`, commit `9ce2c76d`, job "Test
+(Python 3.12)"): 45 274 statements, **0 missed**, **48** partial branch
 edges, total **99.91 %**. The per-file edge table below matches that run
-exactly — the WCA-9 fusion strategies
+exactly — the WCA-3 self-consistency signal
+(`scoring/self_consistency.py` + the review-pipeline fusion seam,
+commits `99dfaecc` + `11bb81bc`) landed at 100 % statements and
+branches; its `_review_pipeline.py` insertion renumbered that file's
+four long-standing edges (+74 lines, arcs otherwise identical) and
+briefly introduced a 49th edge (untested supplied-scorer branch of
+`enable_self_consistency`, run `29218014990`), closed the same night
+by a dedicated test in `9ce2c76d` rather than by widening this ledger.
+(Previous confirmations: run `29207146048` at commit `6810a0d8`,
+45 165 statements — WCA-9 fusion strategies
 (`retrieval/vector_store/fusion.py`) and tenant-isolation guard
-(`retrieval/vector_store/tenant_guard.py`, plus the FAISS over-fetch
-expansion and grounded()/config wiring, +153 statements over the two
-commits `5ff07422` + `6810a0d8`) landed at 100 % statements and
-branches, and none of the 33 files in the edge table were touched, so
-the edge set is unchanged (spot-checked arcs identical).
-(Previous confirmations: run `29203567997` at commit `e189e68e`,
+(`retrieval/vector_store/tenant_guard.py`, +153 statements over
+`5ff07422` + `6810a0d8`) at 100 %, edge table untouched;
+run `29203567997` at commit `e189e68e`,
 45 012 statements — the WCH-8 rails-as-config loader
 (`integrations/rails_config.py` +162 statements) at 100 %, as were
 WCF-1 (run `29196919122` at commit
@@ -75,7 +81,7 @@ whose statements are fully covered. They fall into three categories:
 | skip-edge | Forward arc: a defensive condition whose false path is only reachable under object states no public API produces today. |
 | extras-gated | Arc taken only when an optional extra is present/absent in a combination the core CI job does not produce; the behaviour itself is covered by the extras matrix jobs or the floor job. |
 
-Baseline as of run `29207146048` (48 branch edges, per file):
+Baseline as of run `29218718368` (48 branch edges, per file):
 
 | File | Edges | Category |
 | --- | --- | --- |
@@ -97,7 +103,7 @@ Baseline as of run `29207146048` (48 branch edges, per file):
 | core/scoring/_nli_export.py | 139->147 | extras-gated |
 | core/scoring/lexical_signals.py | 113->115, 119->121 | loop-edge |
 | core/scoring/_divergence.py | 359->370, 365->370, 404->424 | skip-edge |
-| core/scoring/_review_pipeline.py | 447->460, 455->460, 491->495, 673->678 | skip-edge |
+| core/scoring/_review_pipeline.py | 521->534, 529->534, 565->569, 747->752 | skip-edge |
 | core/scoring/scorer.py | 498->501 | skip-edge |
 | core/self_evolving/calibration.py | 63->61 | loop-edge |
 | core/symbolic_chain/prover.py | 115->114 | loop-edge |
