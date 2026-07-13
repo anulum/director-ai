@@ -601,6 +601,50 @@ Readings:
 Claim boundary: same as §11 — two public BEIR test splits, shipped
 pipeline, no leaderboard claim, no claim about unmeasured corpora.
 
+## 13. Self-consistency signal — lexical vs NLI (WikiBio GPT-3, H100, 2026-07-13)
+
+SelfCheckGPT-style evaluation of the opt-in
+`director_ai.core.scoring.self_consistency.SelfConsistencyScorer` (WCA-3)
+on the public `potsawee/wiki_bio_gpt3_hallucination` dataset, evaluation
+split (238 GPT-3 passages, each with 20 dataset-shipped samples). Signal =
+`1 - consistency_score` of each passage against its 20 samples; truth =
+mean sentence-level hallucination annotation. The two entailment backends
+of the scorer are compared: `lexical` (Jaccard overlap) and `nli`
+(DeBERTa-v3-large MNLI, bidirectional-entailment clustering). Artefact:
+`benchmarks/results/self_consistency_wikibio_bench.json`.
+
+| Backend | Pearson | Spearman | AUROC (strong halluc.) | s/passage |
+|---|---|---|---|---|
+| **lexical (Jaccard)** | **0.3090** | **0.3784** | **0.5800** | 0.015 |
+| nli (DeBERTa-v3-large MNLI) | 0.1793 | −0.0310 | 0.5051 | 8.699 |
+
+Readings:
+
+- The cheap lexical overlap signal beats the NLI entailment signal on
+  every metric here: higher rank correlation with the human hallucination
+  annotation (Spearman 0.378 vs −0.031, i.e. essentially none) and a
+  better strong-hallucination AUROC (0.580 vs 0.505, where 0.5 is chance).
+  Bidirectional NLI clustering over the 20 samples adds no usable signal
+  over token overlap on this dataset.
+- It is also ~580× slower per passage (8.699 s vs 0.015 s on an H100). The
+  full NLI run is ~35 min on an H100 GPU and 11 h+ on a loaded shared CPU
+  (≈100k DeBERTa-large forward passes; the scorer scores sample pairs
+  one at a time). This backend is GPU-only in practice.
+- Consequence for the shipped opt-in scorer: when self-consistency is
+  enabled, the **lexical backend is the sensible default** — it is both
+  stronger and effectively free here; the NLI backend is not worth its
+  cost on WikiBio-style passage self-consistency. This is a measured
+  result, not a design preference — mirroring §12, the cheaper path won.
+- The lexical row reproduced bit-identically across an earlier loaded-CPU
+  run and this GPU run (pearson 0.3090 / spearman 0.3784 / AUROC 0.5800),
+  confirming the signal is deterministic. Environment recorded in the
+  artefact: JarvisLabs H100 (EU1), torch 2.6.0+cu124, `cuda:0`.
+
+Claim boundary: one public dataset (WikiBio GPT-3 hallucination,
+evaluation split), the shipped `SelfConsistencyScorer` at its default
+20-sample protocol; no leaderboard claim and no claim about other
+self-consistency corpora, sample counts, or NLI checkpoints.
+
 ## Reproduction
 
 ```bash

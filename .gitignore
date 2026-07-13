@@ -191,6 +191,8 @@ benchmarks/results/*
 # Fusion-strategy BEIR evidence (WCA-9).
 !benchmarks/results/beir_fusion_bench.json
 !benchmarks/results/retrieval_fusion_internal_ab.json
+# Self-consistency signal evidence on WikiBio GPT-3 hallucination (WCA-3).
+!benchmarks/results/self_consistency_wikibio_bench.json
 # Tokeniser blobs are fetchable from the fine-tune's base model (WCH-6);
 # see benchmarks/models/factcg-cb/README.md. Configs/results stay tracked.
 benchmarks/models/factcg-cb/tokenizer.json
