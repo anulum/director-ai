@@ -248,41 +248,43 @@ The judge runs on borderline NLI scores only; same 70/30 blending as hybrid mode
 | P5 | 3.94 ms |
 | P95 | 4.01 ms |
 
-**E2E comparison — 500 samples/task (3000 reviews per pass):**
+**E2E comparison — 200 samples/task (1200 reviews per pass), threshold 0.5,
+tracked artefacts (full escalation analysis in §14):**
 
 | Metric | NLI-Only | + Local Judge | Delta |
 |--------|----------|---------------|-------|
-| Catch rate | 93.47% | 93.67% | +0.20pp |
-| FPR | 67.13% | 66.47% | -0.67pp |
-| Precision | 58.21% | 58.54% | +0.33pp |
-| F1 | 71.73% | 72.01% | +0.28pp |
+| Catch rate | 33.5% | 33.8% | +0.3pp |
+| FPR | 4.0% | 3.7% | −0.3pp |
+| Precision | 89.3% | 90.2% | +0.9pp |
+| F1 | 48.7% | 49.2% | +0.5pp |
 
-**E2E comparison — 1000 samples/task (6000 reviews per pass):**
+**Per-task, + Local Judge (200 samples/task):**
 
-| Metric | NLI-Only | + Local Judge | Delta |
-|--------|----------|---------------|-------|
-| Catch rate | 93.63% | 93.80% | +0.17pp |
-| FPR | 66.87% | **66.33%** | **-0.54pp** |
-| Precision | 58.34% | **58.58%** | **+0.24pp** |
-| F1 | 71.89% | **72.12%** | **+0.23pp** |
+| Task | Catch | FPR | Precision | F1 |
+|------|-------|-----|-----------|-----|
+| QA | 84.5% | 4.0% | 95.5% | 89.7% |
+| Summarization | 12.5% | 2.5% | 83.3% | 21.7% |
+| Dialogue | 4.5% | 4.5% | 50.0% | 8.3% |
 
-**Per-task QA (1000 samples/task):**
+This is a conservative, high-precision operating point: the aggregate catch
+(33.8%) is dominated by QA (84.5% catch at 95.5% precision), while
+summarisation and dialogue stay low because FactCG NLI divergence on
+long-context tasks is too extreme for the 30% judge weight to flip. The judge
+adds precision at near-zero cost (§14: 8.6 ms isolated inference on an L4,
+zero API cost) — the same mechanism as the hybrid remote judge without the
+per-call latency.
 
-| Metric | NLI-Only | + Local Judge | Delta |
-|--------|----------|---------------|-------|
-| QA Catch rate | 81.90% | 82.40% | +0.50pp |
-| QA FPR | 4.90% | **4.20%** | **-0.70pp** |
-| QA Precision | 94.35% | **95.15%** | **+0.80pp** |
-| QA F1 | 87.69% | **88.32%** | **+0.63pp** |
-
-The local judge matches or exceeds GPT-4o-mini hybrid accuracy at 575x lower
-latency (3.97ms vs 2,300ms) and zero API cost. QA precision exceeds the 90%
-acceptance threshold at 95.15%. Summarization/dialogue are unchanged because
-NLI divergence in those tasks is too extreme for the 30% judge weight to flip.
+> **Superseded numbers.** An earlier untracked 1000/task L40S run recorded
+> 93.63% → 93.80% catch at ~66% FPR. That aggregate was inflated by
+> summarisation and dialogue flagging ~99% of *all* outputs (FPR ~98% on those
+> tasks) — a degenerate over-flagging point, not detection — and it does not
+> reproduce on the current pipeline, which yields 33.8% catch at 3.7% FPR at
+> the identical threshold (0.5). QA is stable across both pipelines (≈82–85%
+> catch, ≈95% precision). The tracked 200/task run above is the current claim.
 
 Reproduce:
 ```bash
-python benchmarks/run_judge_benchmark.py --samples 1000
+python benchmarks/run_judge_benchmark.py --samples 200
 ```
 
 ## 4. False-Positive Rate

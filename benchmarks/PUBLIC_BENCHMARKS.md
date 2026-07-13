@@ -51,7 +51,7 @@ External accuracy review packet:
 | `readme_aggrefact_leaderboard` | `README.md` | `aggrefact_eval.py` | `benchmarks/results/aggrefact_yaxili96_FactCG-DeBERTa-v3-Large.json` |
 | `readme_routed_local_judge` | `README.md` | `gemma_aggrefact_routed.py` | `benchmarks/results/gemma_e4b_q6_routed.json` |
 | `benchmark_report_e2e_halueval` | `benchmarks/BENCHMARK_REPORT.md` | `e2e_eval.py`, `halueval_eval.py` | `benchmarks/results/e2e_guardrail.json` |
-| `benchmark_report_local_judge` | `benchmarks/BENCHMARK_REPORT.md` | `run_judge_benchmark.py` | `benchmarks/results/judge_bench_summary_1000.json` |
+| `benchmark_report_local_judge` | `benchmarks/BENCHMARK_REPORT.md` | `run_judge_benchmark.py` | `benchmarks/results/judge_bench_summary_200.json` |
 | `benchmark_report_hallubench_internal` | `benchmarks/PUBLIC_BENCHMARKS.md` | `hallubench_eval.py` | `benchmarks/results/hallubench_internal_validation.json` |
 | `benchmark_report_streaming_false_halt` | `benchmarks/BENCHMARK_REPORT.md` | `streaming_false_halt_bench.py` | `benchmarks/results/streaming_false_halt_heuristic.json` |
 
@@ -68,7 +68,7 @@ pure NLI result.
 | `tuned_threshold_aggrefact` | tuned-threshold NLI | 77.76% per-dataset mean BA | Threshold replay only; not default runtime behaviour. |
 | `pure_nli_halueval_e2e` | pure NLI | 46.7% catch, 56.9% precision | End-to-end HaluEval guardrail mode; not an AggreFact row. |
 | `hybrid_remote_judge_halueval` | hybrid judge | 90.7% catch, 64.0% FPR | Judge-assisted HaluEval mode; never merge with pure NLI. |
-| `local_judge_halueval` | local judge | 93.80% catch, 66.33% FPR | Local classifier mode; report apart from remote-judge rows. |
+| `local_judge_halueval` | local judge | 33.8% catch, 3.7% FPR, 90.2% precision (200/task, threshold 0.5); QA subset 84.5% catch, 95.5% precision | Local classifier mode; report apart from remote-judge rows. Conservative operating point; the earlier 93.8%/66.3% figure over-flagged summarisation/dialogue and does not reproduce. |
 | `hallubench_geospatial_internal` | multimodal geospatial | No public score yet | Gated internal validation harness only; publish no HalluBench score until model provenance, dataset access, and metric review are recorded. |
 
 ## Reproduction Commands
@@ -134,7 +134,7 @@ Local judge comparison:
 
 ```bash
 python -m benchmarks.run_judge_benchmark \
-  --samples 1000 \
+  --samples 200 \
   --latency-iters 200
 ```
 

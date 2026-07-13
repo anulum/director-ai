@@ -96,17 +96,17 @@ claim_boundary = "Judge-assisted mode; never merge this catch-rate claim into pu
 id = "local_judge_halueval"
 mode_family = "local_judge"
 claim_scope = "NLI plus local borderline-case classifier on HaluEval traces"
-public_metric = "93.80% catch rate with 66.33% FPR on 6000 reviews"
+public_metric = "33.8% catch at 3.7% FPR and 90.2% precision on 1200 HaluEval traces (200/task, threshold 0.5); QA subset 84.5% catch at 95.5% precision"
 public_tables = ["benchmark_report_local_judge"]
 datasets = ["halueval"]
 runner_files = ["benchmarks/run_judge_benchmark.py"]
-commands = ["python benchmarks/run_judge_benchmark.py --samples 1000"]
+commands = ["python benchmarks/run_judge_benchmark.py --samples 200"]
 result_files = [
-  "benchmarks/results/judge_bench_summary_1000.json",
-  "benchmarks/results/judge_bench_local_judge_1000.json",
+  "benchmarks/results/judge_bench_summary_200.json",
+  "benchmarks/results/judge_bench_local_judge_200.json",
 ]
 metrics = ["catch_rate", "false_positive_rate", "precision", "f1"]
-claim_boundary = "Local judge mode; report separately from remote-judge and pure-NLI rows."
+claim_boundary = "Local judge mode; report separately from remote-judge and pure-NLI rows. Conservative operating point (threshold 0.5): high precision and low FPR, aggregate catch dominated by the QA task while summarisation/dialogue stay low. An earlier untracked 1000/task L40S run reported 93.8% catch at 66.3% FPR; that aggregate over-flagged summarisation/dialogue (~98% FPR on those tasks) and does not reproduce on the current pipeline (33.8% catch at 3.7% FPR at the same threshold), so it is not claimed."
 
 [[benchmark_mode_cards]]
 id = "hallubench_geospatial_internal"
@@ -323,7 +323,7 @@ title = "Benchmark report local judge comparison tables"
 public_file = "benchmarks/BENCHMARK_REPORT.md"
 runner_files = ["benchmarks/run_judge_benchmark.py"]
 commands = [
-  "python -m benchmarks.run_judge_benchmark --samples 1000 --latency-iters 200",
+  "python -m benchmarks.run_judge_benchmark --samples 200 --latency-iters 200",
 ]
 datasets = ["halueval"]
 cache_files = [
@@ -332,12 +332,12 @@ cache_files = [
   "benchmarks/.cache/halueval_dialogue.parquet",
 ]
 result_files = [
-  "benchmarks/results/judge_bench_summary_1000.json",
-  "benchmarks/results/judge_bench_nli_only_1000.json",
-  "benchmarks/results/judge_bench_local_judge_1000.json",
+  "benchmarks/results/judge_bench_summary_200.json",
+  "benchmarks/results/judge_bench_nli_only_200.json",
+  "benchmarks/results/judge_bench_local_judge_200.json",
 ]
 metrics = ["catch_rate", "false_positive_rate", "precision", "f1", "median_latency_ms"]
-notes = "Local judge rows depend on the trained local judge directory referenced by the runner."
+notes = "Local judge rows depend on the trained local judge directory referenced by the runner. Numbers are the tracked 200/task (1200-trace) run at threshold 0.5 (report section 14); the earlier untracked 1000/task run over-flagged summarisation/dialogue and does not reproduce on the current pipeline."
 
 [[public_accuracy_tables]]
 id = "benchmark_report_hallubench_internal"
