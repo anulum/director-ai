@@ -255,3 +255,20 @@ class TestReviewWithSamplesFusion:
 
         # use_nli=False -> lexical fallback, never a phantom NLI handle.
         assert consistency.entailment_backend == "lexical"
+
+    def test_enable_accepts_a_supplied_scorer(self):
+        scorer = CoherenceScorer(use_nli=False, threshold=0.5)
+        supplied = SelfConsistencyScorer(lexical_overlap=0.9)
+
+        attached = scorer.enable_self_consistency(supplied, weight=0.4)
+
+        assert attached is supplied
+        assert scorer._self_consistency_scorer is supplied
+        assert scorer._self_consistency_weight == 0.4
+        answer = "The warranty period is 24 months."
+        approved, score = scorer.review_with_samples(
+            "What is the warranty period?",
+            answer,
+            [answer],
+        )
+        assert score.self_consistency_score == 1.0
