@@ -27,7 +27,7 @@ def test_readme_declares_three_tier_product_ladder() -> None:
     assert "pip install director-ai-lite" in doc
     assert "Director-AI Pro" in doc
     assert "Director-Class AI" in doc
-    assert "not a separate wheel" in doc
+    assert "separate product and repository" in doc
 
 
 def test_pricing_page_uses_usd_and_package_boundary() -> None:
@@ -37,12 +37,15 @@ def test_pricing_page_uses_usd_and_package_boundary() -> None:
     assert "USD 0" in doc
     assert "Director-AI Pro self-host" in doc
     assert "USD 199/mo" in doc
+    assert "USD 499/mo" in doc
+    assert "USD 999/mo" in doc
     assert "Director-Class AI" in doc
-    assert "not a separate wheel" in doc
+    assert "separate product and repository" in doc
+    assert "Perpetual" not in doc
     assert "CHF 199/mo" not in doc
     assert "CHF 49/mo" not in doc
     assert "polar.sh/checkout" not in doc
-    assert "Request USD checkout" in doc
+    assert "www.remanentia.com/pricing.html" in doc
 
 
 def test_lite_package_readme_points_to_upgrade_path() -> None:

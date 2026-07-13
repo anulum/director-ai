@@ -44,20 +44,17 @@ Director-Class AI — Repository overview
 |---|---|---:|---|
 | **Director-Lite** | `pip install director-ai-lite` | USD 0 | Three-line guard facade, model-free heuristic default, facts/RAG handoff, optional NLI upgrade |
 | **Director-AI** | `pip install director-ai` | USD 0 | Open-core runtime: `guard()`, 5-tier scoring, REST/gRPC server, SDK and framework integrations, evidence packets, opt-in streaming contradiction halt |
-| **Director-AI Pro** | `pip install director-ai-pro` (private index) | USD 199/mo | Adds the BUSL-1.1 Advanced modules: compliance, enterprise, streaming repair, multimodal, routing, threat intel, and more |
-| **Director-AI Full** | `pip install director-ai-full` (private index) | Contact | Pro plus the Labs/Research modules (neuro-symbolic, self-evolving, swarm economics, emergence oracle, …) |
-| **Director-Class AI** | Commercial engagement | Custom | Premium category: managed deployment, customer-specific sector packs, tuning/evaluation, evidence reviews, SLA, procurement support |
+| **Director-AI Pro** | Private self-hosted delivery | USD 199/mo or 1,990/yr | Advanced production modules and priority support |
+| **Director-AI Full** | Private self-hosted delivery | USD 499/mo or 4,990/yr | Pro plus Labs/Research modules and direct engineering support |
+| **Director-Class AI** | Separate commercial product | USD 999/mo or 9,990/yr | Action-control and evidence boundary; deployment and support are scoped separately |
 
-**→ [Full pricing &amp; plans](https://anulum.github.io/director-ai/pricing/)** — Pro
-self-host, Founding Member, and the Director-Class engagement, with a free 30-day
-pilot.
+**→ [Canonical pricing &amp; plans](https://www.remanentia.com/pricing.html)**
 
 PyPI is the adoption front door. `director-ai-lite` is the free package we
 publish and promote first for the smallest useful experience; `director-ai`
 remains the full open-core package and the technical base for paid Pro
-self-hosting. Director-Class AI is promoted from PyPI and the docs, but it is
-not a separate wheel: it is the premium implementation and evidence programme
-around the software.
+self-hosting. Director-Class AI is a separate product and repository. It is
+sold through a commercial order rather than as a Director-AI PyPI wheel.
 
 ## The one-command demo
 

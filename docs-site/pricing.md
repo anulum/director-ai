@@ -18,15 +18,15 @@ Pay when you need Advanced & Labs in production, managed deployment, or support 
 |---|---|---:|---|
 | **Director-Lite** | `pip install director-ai-lite` | **USD 0** | Three-line `guard()` facade, model-free heuristic default, facts/RAG handoff, optional NLI upgrade |
 | **Director-AI** | `pip install director-ai` | **USD 0** | Full open-core runtime: SDK guard, 5-tier scoring, REST/gRPC server, framework integrations, evidence packets, opt-in streaming contradiction halt |
-| **Director-AI Pro** | `pip install director-ai-pro` (private index) | **USD 199/mo** | Adds the BUSL-1.1 Advanced modules: compliance, enterprise, streaming repair, multimodal guard, routing, threat intel, interpretability, and more |
-| **Director-AI Full** | `pip install director-ai-full` (private index) | **Contact** | Pro plus the Labs/Research modules: neuro-symbolic, self-evolving, swarm economics/equilibrium, emergence oracle, ontology, and the rest of the research curve |
-| **Director-Class AI** | Commercial engagement | **Custom** | Premium category: managed/on-prem deployment, customer-specific sector packs, tuning/evaluation, evidence reviews, SLA, procurement support |
+| **Director-AI Pro** | Private self-hosted delivery | **USD 199/mo or 1,990/yr** | Advanced production modules and priority support |
+| **Director-AI Full** | Private self-hosted delivery | **USD 499/mo or 4,990/yr** | Pro plus Labs/Research modules and direct engineering support |
+| **Director-Class AI** | Separate commercial product | **USD 999/mo or 9,990/yr** | Action-control and evidence boundary; deployment and support are scoped separately |
 
 PyPI promotes the whole ladder but only distributes code packages. Publish and
 push users into `director-ai-lite` for the smallest first run, then upgrade them
-to `director-ai` when they need the full runtime. Director-Class AI is not a
-separate wheel; it is the premium implementation and evidence programme around
-the software.
+to `director-ai` when they need the full runtime. Director-Class AI is a
+separate product and repository, sold through a commercial order rather than
+as a Director-AI PyPI wheel.
 
 ## :material-gift: Director-Lite — free package
 
@@ -99,16 +99,13 @@ production and hosted/SaaS deployments, and adds support and SLAs.
 | Path | Price | Package | Choose it when |
 |---|---:|---|---|
 | **Director-Lite** | USD 0 | Free PyPI package and Apache-2.0 adoption path | You want the smallest response-level guard integration |
-| **Director-AI Pro self-host** | USD 199/mo | BUSL-1.1 advanced-tier production licence, unlimited deployments, priority support, 99.5 % support target | You run Director-AI inside your own product or internal platform |
-| **Director-Class AI** | Custom | Pro self-host plus managed/on-prem help, customer-specific tuning, evidence packs, architecture reviews, custom SLA | You need regulated deployment support, domain adaptation, procurement terms, or a new premium AI assurance category |
+| **Director-AI Pro self-host** | USD 199/mo or 1,990/yr | Advanced-tier production licence and priority support | You run Director-AI inside your own product or internal platform |
+| **Director-AI Full self-host** | USD 499/mo or 4,990/yr | Pro plus Labs/Research modules and direct engineering support | You need the complete research curve in a self-hosted deployment |
+| **Director-Class AI** | USD 999/mo or 9,990/yr | Separate action-control and evidence product; deployment starts at USD 24,000 and support at USD 2,500/mo | You need controlled agent action, auditable decisions, and procurement terms |
 
 ROI threshold: at USD 199/mo, Pro self-host costs less than one hour of senior
 incident response in most regulated teams. One prevented fabricated citation,
 incorrect policy quote, or wrong numerical answer can pay for the licence.
-
-!!! tip "Founding Member — 10 spots, permanent lock"
-    Founding Members keep **40–50 % off, locked permanently**, plus direct access
-    to the maintainer. Once 10 spots fill, prices move to the standard tier.
 
 === ":material-package-variant: Director-Lite — USD 0"
 
@@ -132,21 +129,22 @@ incorrect policy quote, or wrong numerical answer can pay for the licence.
     - 99.5 % support target
     - self-hosted and air-gapped deployment path
 
-    **Founding Member: USD 99/mo** (50 % off, locked)
+    Annual option: **USD 1,990**.
 
-    [Request USD checkout :material-cart:](mailto:director.class.ai@anulum.li?subject=Director-AI%20Pro%20USD%20Checkout){ .md-button .md-button--primary }
+    [View canonical pricing :material-cart:](https://www.remanentia.com/pricing.html){ .md-button .md-button--primary }
 
-=== ":material-infinity: Director-AI Perpetual — USD 999"
+=== ":material-layers-triple: Director-AI Full — USD 499/mo"
 
-    **For:** one-time purchase, no subscription.
+    **For:** teams using the complete Advanced and Labs/Research surface.
 
-    - Equivalent to Pro self-host entitlement for one deployment
-    - 12 months of updates included
-    - No recurring payments, ever
+    - Everything in Pro
+    - Labs/Research production entitlement
+    - Direct engineering support
+    - Annual option: USD 4,990
 
-    [Request perpetual checkout :material-license:](mailto:director.class.ai@anulum.li?subject=Director-AI%20Perpetual%20USD%20Checkout){ .md-button .md-button--primary }
+    [View canonical pricing :material-cart:](https://www.remanentia.com/pricing.html){ .md-button .md-button--primary }
 
-=== ":material-office-building: Director-Class AI — custom"
+=== ":material-office-building: Director-Class AI — USD 999/mo"
 
     **For:** regulated industries, multi-tenant SaaS, high volume, and premium assurance programmes.
 
@@ -157,13 +155,16 @@ incorrect policy quote, or wrong numerical answer can pay for the licence.
     - Customer-specific evaluation, threshold tuning, and model-adaptation evidence
     - Quarterly architecture reviews + roadmap input
 
-    [Contact us :material-email:](mailto:director.class.ai@anulum.li?subject=Director-Class%20AI%20Enterprise){ .md-button .md-button--primary }
+    Annual licence: **USD 9,990**. Deployment starts at **USD 24,000**;
+    ongoing support starts at **USD 2,500/mo**. Final scope is recorded in an order form.
+
+    [View canonical pricing :material-cart:](https://www.remanentia.com/pricing.html){ .md-button .md-button--primary }
 
 ---
 
-## :material-api: Usage-based API _(coming Q2 2026)_
+## :material-api: Usage-based API _(roadmap; not currently sold)_
 
-For teams that prefer pay-per-use over fixed licensing:
+The following volume model is exploratory and is not an offer or active checkout:
 
 | Volume / month | Per 1,000 checks | |
 |---|:---:|---|
