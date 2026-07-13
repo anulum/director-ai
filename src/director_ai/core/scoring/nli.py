@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import logging
 import os
+import threading
 from typing import TYPE_CHECKING, Any
 
 import numpy as np
@@ -190,6 +191,7 @@ class NLIScorer(ClaimCoverageMixin):
         self._onnx_batch_size = onnx_batch_size
         self._onnx_flush_timeout_ms = onnx_flush_timeout_ms
         self._tokenizer = None
+        self._tokenizer_lock = threading.Lock()
         self._model = None
         self._onnx_session = None
         self._model_loaded = False
@@ -511,6 +513,21 @@ class NLIScorer(ClaimCoverageMixin):
         """Return whether the configured model expects the FactCG prompt template."""
         return "factcg" in self._model_name.lower()
 
+    def _tokenize(self, *args: Any, **kwargs: Any) -> Any:
+        """Serialise access to the shared tokenizer.
+
+        The fast (Rust) tokenizer mutates its truncation/padding state on
+        every call, so concurrent invocations from the parallel logical and
+        factual divergence futures raise ``RuntimeError("Already borrowed")``
+        on fast hardware. Guard only the encode step — the model forward
+        stays outside the lock and runs in parallel — so scores are identical
+        and throughput is preserved.
+        """
+        if self._tokenizer is None:
+            raise RuntimeError("NLI model not loaded")
+        with self._tokenizer_lock:
+            return self._tokenizer(*args, **kwargs)
+
     def _model_score(self, premise: str, hypothesis: str) -> float:
         """Single-pair PyTorch inference.
 
@@ -528,14 +545,14 @@ class NLIScorer(ClaimCoverageMixin):
         with metrics.timer("nli_inference_seconds"):
             if self._is_factcg:
                 text = _FACTCG_TEMPLATE.format(text_a=premise, text_b=hypothesis)
-                inputs = self._tokenizer(
+                inputs = self._tokenize(
                     text,
                     return_tensors="pt",
                     truncation=True,
                     max_length=self.max_length,
                 )
             else:
-                inputs = self._tokenizer(
+                inputs = self._tokenize(
                     premise,
                     hypothesis,
                     return_tensors="pt",
@@ -567,7 +584,7 @@ class NLIScorer(ClaimCoverageMixin):
         with metrics.timer("nli_batch_inference_seconds"):
             if self._is_factcg:
                 texts = [_FACTCG_TEMPLATE.format(text_a=p, text_b=h) for p, h in pairs]
-                inputs = self._tokenizer(
+                inputs = self._tokenize(
                     texts,
                     return_tensors="pt",
                     truncation=True,
@@ -577,7 +594,7 @@ class NLIScorer(ClaimCoverageMixin):
             else:
                 premises = [p for p, _ in pairs]
                 hypotheses = [h for _, h in pairs]
-                inputs = self._tokenizer(
+                inputs = self._tokenize(
                     premises,
                     hypotheses,
                     return_tensors="pt",
@@ -605,7 +622,7 @@ class NLIScorer(ClaimCoverageMixin):
         with metrics.timer("nli_onnx_batch_seconds"):
             if self._is_factcg:
                 texts = [_FACTCG_TEMPLATE.format(text_a=p, text_b=h) for p, h in pairs]
-                inputs = self._tokenizer(
+                inputs = self._tokenize(
                     texts,
                     return_tensors="np",
                     truncation=True,
@@ -615,7 +632,7 @@ class NLIScorer(ClaimCoverageMixin):
             else:
                 premises = [p for p, _ in pairs]
                 hypotheses = [h for _, h in pairs]
-                inputs = self._tokenizer(
+                inputs = self._tokenize(
                     premises,
                     hypotheses,
                     return_tensors="np",
@@ -676,7 +693,7 @@ class NLIScorer(ClaimCoverageMixin):
         with metrics.timer("nli_batch_inference_seconds"):
             if self._is_factcg:
                 texts = [_FACTCG_TEMPLATE.format(text_a=p, text_b=h) for p, h in pairs]
-                inputs = self._tokenizer(
+                inputs = self._tokenize(
                     texts,
                     return_tensors="pt",
                     truncation=True,
@@ -686,7 +703,7 @@ class NLIScorer(ClaimCoverageMixin):
             else:
                 premises = [p for p, _ in pairs]
                 hypotheses = [h for _, h in pairs]
-                inputs = self._tokenizer(
+                inputs = self._tokenize(
                     premises,
                     hypotheses,
                     return_tensors="pt",
@@ -716,7 +733,7 @@ class NLIScorer(ClaimCoverageMixin):
         with metrics.timer("nli_onnx_batch_seconds"):
             if self._is_factcg:
                 texts = [_FACTCG_TEMPLATE.format(text_a=p, text_b=h) for p, h in pairs]
-                inputs = self._tokenizer(
+                inputs = self._tokenize(
                     texts,
                     return_tensors="np",
                     truncation=True,
@@ -726,7 +743,7 @@ class NLIScorer(ClaimCoverageMixin):
             else:
                 premises = [p for p, _ in pairs]
                 hypotheses = [h for _, h in pairs]
-                inputs = self._tokenizer(
+                inputs = self._tokenize(
                     premises,
                     hypotheses,
                     return_tensors="np",

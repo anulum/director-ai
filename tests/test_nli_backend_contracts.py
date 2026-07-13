@@ -9,6 +9,9 @@
 from __future__ import annotations
 
 import sys
+import threading
+import time
+from concurrent.futures import ThreadPoolExecutor
 from contextlib import contextmanager
 from types import ModuleType, SimpleNamespace
 
@@ -1280,3 +1283,45 @@ def test_nli_heuristic_contract_edges() -> None:
     assert NLIScorer._heuristic_score("", "anything") == pytest.approx(0.5)
     assert NLIScorer._heuristic_score("sky is blue", "sky is not blue") >= 0.7
     assert NLIScorer._heuristic_score("premise", "depends on your perspective") == 0.5
+
+
+def test_tokenize_serialises_concurrent_calls() -> None:
+    """``_tokenize`` must hold a lock around the shared tokenizer.
+
+    The fast (Rust) tokenizer raises ``RuntimeError("Already borrowed")`` when
+    two threads encode at once — which happens because the logical and factual
+    divergence futures run in parallel on the same scorer. The lock must keep
+    at most one thread inside the tokenizer at any instant.
+    """
+    scorer = NLIScorer(use_model=False)
+    state = {"active": 0, "max_active": 0}
+    probe_guard = threading.Lock()
+
+    def probe(*_args, **_kwargs):
+        with probe_guard:
+            state["active"] += 1
+            state["max_active"] = max(state["max_active"], state["active"])
+        time.sleep(0.002)
+        with probe_guard:
+            state["active"] -= 1
+        return {"input_ids": FakeTensor(np.ones((1, 3), dtype=np.int64))}
+
+    scorer._tokenizer = probe
+
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        futures = [
+            pool.submit(scorer._tokenize, "premise", "hypothesis") for _ in range(64)
+        ]
+        for future in futures:
+            future.result()
+
+    # Without the lock, up to 8 threads sit inside ``probe`` at once; the lock
+    # forces strict serialisation so the observed peak is exactly one.
+    assert state["max_active"] == 1
+
+
+def test_tokenize_raises_when_tokenizer_missing() -> None:
+    scorer = NLIScorer(use_model=False)
+    scorer._tokenizer = None
+    with pytest.raises(RuntimeError, match="NLI model not loaded"):
+        scorer._tokenize("premise", "hypothesis")
