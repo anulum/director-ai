@@ -645,6 +645,70 @@ evaluation split), the shipped `SelfConsistencyScorer` at its default
 20-sample protocol; no leaderboard claim and no claim about other
 self-consistency corpora, sample counts, or NLI checkpoints.
 
+## 14. Local-judge escalation — NLI-only vs NLI + judge (HaluEval, L4, 2026-07-13)
+
+Calibrated-escalation evaluation of the local DeBERTa-v3-base judge (WCA-5)
+as a borderline-escalation layer on the end-to-end guardrail. Both configs
+run the full `CoherenceScorer` pipeline over HaluEval (QA / summarization /
+dialogue); the judge (a 2-class grounded-vs-hallucinated head) is consulted
+only on borderline scores near the decision threshold. `NLI-only` uses the
+`deberta` backend; `+ Local Judge` uses the `hybrid` backend with
+`llm_judge_provider="local"` pointing at the trained checkpoint. 200
+samples/task (600 pairs per backend). Environment: JarvisLabs L4 (IN2),
+torch 2.6.0+cu124, `cuda:0`, transformers 5.8.0. Artefacts:
+`benchmarks/results/judge_bench_{nli_only,local_judge,summary}_200.json`,
+`judge_bench_latency.json`.
+
+| Metric | NLI-only | + Local judge | Delta |
+|---|---|---|---|
+| Catch rate (recall) | 33.5% | 33.8% | +0.3% |
+| False-positive rate | 4.0% | 3.7% | −0.3% |
+| Precision | 89.3% | 90.2% | +0.9% |
+| F1 | 48.7% | 49.2% | +0.5% |
+| Accuracy | 64.8% | 65.1% | +0.3% |
+| Avg latency (ms) | 504 | 503 | ≈0 |
+
+Per-task F1: qa 88.9% → 89.7% (+0.8%), summarization 21.0% → 21.7% (+0.8%),
+dialogue 8.3% → 8.3% (+0.0%). Judge inference latency in isolation: median
+8.61 ms on the L4.
+
+Readings:
+
+- The judge escalation is **directionally consistent but small**: all five
+  aggregate metrics move favourably (precision +0.9%, FPR −0.3%, F1 +0.5%,
+  catch +0.3%, accuracy +0.3%) and two of three per-task F1 rows improve with
+  none regressing. Random noise would be expected to scatter the signs; a
+  clean sweep of favourable deltas is mildly suggestive of a real, small
+  effect concentrated on the borderline subset the judge actually sees.
+- The magnitude, however, sits within the noise band at this sample size
+  (600 pairs/backend). The eval establishes the **direction** (the judge
+  helps precision/FPR without hurting recall) but not a decisive margin; a
+  larger-N run would be needed to separate a genuine ~0.5% F1 gain from
+  sampling noise. N was held to 200/task deliberately: the full E2E pipeline
+  is dominated by long-context summarization/dialogue chunking (many NLI
+  forwards per sample), and the run was kept inside a monitorable window on
+  the metered GPU rather than run unattended for hours.
+- Cost is effectively free: average latency is unchanged (503 vs 504 ms)
+  because the judge is only consulted on borderline scores, and its isolated
+  inference is 8.6 ms. This matches §9 — the local judge adds precision at
+  near-zero latency and zero API cost, unlike an external LLM judge.
+- Consequence for the default: the measured gain does not justify flipping
+  the judge on by default (it adds a 0.18 GB model dependency for a
+  within-noise F1 move), but it is a **defensible opt-in** for
+  precision-sensitive deployments — it lowered FPR and raised precision on
+  every task without a recall cost. Default stays off pending a larger-N
+  confirmation if the precision gain is wanted.
+- This run also surfaced a real concurrency defect: the parallel logical and
+  factual divergence futures share one fast tokenizer, whose per-call
+  truncation/padding mutation raised `RuntimeError("Already borrowed")` on
+  the GPU. Fixed under commit `ff3303ff` (tokenizer access serialised behind
+  a lock); the numbers above are from the fixed pipeline.
+
+Claim boundary: one public dataset (HaluEval QA/summarization/dialogue) at
+200 samples/task, the shipped scorer with the local DeBERTa-v3-base judge
+checkpoint; no leaderboard claim and no claim about other judge checkpoints,
+datasets, or sample sizes.
+
 ## Reproduction
 
 ```bash

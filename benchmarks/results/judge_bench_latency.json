@@ -1,0 +1,17 @@
+{
+  "benchmark": "Judge-Latency",
+  "device": "cuda",
+  "n_iters": 200,
+  "median_ms": 8.61,
+  "mean_ms": 8.73,
+  "p5_ms": 8.56,
+  "p95_ms": 9.62,
+  "min_ms": 8.54,
+  "max_ms": 11.11,
+  "hw": {
+    "gpu": "NVIDIA L4",
+    "vram_gb": 22.0,
+    "cuda": true,
+    "torch": "2.6.0+cu124"
+  }
+}

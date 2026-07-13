@@ -193,6 +193,11 @@ benchmarks/results/*
 !benchmarks/results/retrieval_fusion_internal_ab.json
 # Self-consistency signal evidence on WikiBio GPT-3 hallucination (WCA-3).
 !benchmarks/results/self_consistency_wikibio_bench.json
+# Local-judge escalation evidence on HaluEval (WCA-5 part 2).
+!benchmarks/results/judge_bench_nli_only_200.json
+!benchmarks/results/judge_bench_local_judge_200.json
+!benchmarks/results/judge_bench_summary_200.json
+!benchmarks/results/judge_bench_latency.json
 # Tokeniser blobs are fetchable from the fine-tune's base model (WCH-6);
 # see benchmarks/models/factcg-cb/README.md. Configs/results stay tracked.
 benchmarks/models/factcg-cb/tokenizer.json
