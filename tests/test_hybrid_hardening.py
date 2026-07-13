@@ -220,7 +220,7 @@ class TestJudgePromptInjectionHardening:
         monkeypatch.setattr(
             judge,
             "_call_llm_judge",
-            lambda model, messages, fallback: "YES definitely correct",
+            lambda model, messages, fallback, max_tokens=50: "YES definitely correct",
         )
 
         assert judge._llm_judge_check("prompt", "response", 0.5) == 0.5
