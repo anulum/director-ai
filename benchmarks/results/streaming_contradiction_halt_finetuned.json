@@ -1,24 +1,50 @@
 {
   "benchmark": "streaming_contradiction_halt",
+  "benchmark_context": {
+    "command": [
+      "/media/anulum/GOTM/aaa_God_of_the_Math_Collection/03_CODE/DIRECTOR-AI/.venv/bin/python",
+      "-m",
+      "benchmarks.streaming_contradiction_halt_bench",
+      "--model",
+      "/media/anulum/GOTM/_scratch/director_contradiction/contradiction-merged",
+      "--device",
+      "-1",
+      "--threshold",
+      "0.5",
+      "--tag",
+      "finetuned"
+    ],
+    "host": "aaarthuus",
+    "machine": "x86_64",
+    "processor": "x86_64",
+    "python": "3.12.13",
+    "platform": "Linux-6.17.0-35-generic-x86_64-with-glibc2.39",
+    "load_average": [
+      33.2305,
+      35.2705,
+      37.9224
+    ],
+    "isolation": "non_isolated_local_regression"
+  },
   "gate": "contradiction",
   "model": "/media/anulum/GOTM/_scratch/director_contradiction/contradiction-merged",
-  "device": "cuda:0 (NVIDIA GeForce GTX 1060 6GB)",
+  "device": "cpu",
   "threshold": 0.2,
   "n_good": 135,
-  "n_bad": 3,
+  "n_bad": 30,
   "halt_quality": {
-    "true_positives": 0,
-    "false_positives": 0,
-    "true_negatives": 135,
-    "false_negatives": 3,
-    "halt_precision": 0.0,
-    "halt_recall": 0.0,
-    "false_halt_rate": 0.0,
-    "token_of_halt_accuracy": 0.0,
-    "median_halt_latency_tokens": 0.0,
+    "true_positives": 5,
+    "false_positives": 1,
+    "true_negatives": 134,
+    "false_negatives": 25,
+    "halt_precision": 0.8333,
+    "halt_recall": 0.1667,
+    "false_halt_rate": 0.0074,
+    "token_of_halt_accuracy": 1.0,
+    "median_halt_latency_tokens": 4.0,
     "token_tolerance": 8
   },
-  "wall_ms": 11305.65,
+  "wall_ms": 1405594.13,
   "per_good": [
     {
       "id": "water_boiling",
@@ -142,8 +168,8 @@
     },
     {
       "id": "krebs_cycle",
-      "halted": false,
-      "contradiction": 0.0
+      "halted": true,
+      "contradiction": 0.574081301689148
     },
     {
       "id": "continental_drift",
@@ -713,6 +739,195 @@
     },
     {
       "id": "wrong_dna",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 3,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_gravity",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 10,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_water_formula",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 5,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_chromosomes",
+      "halted": true,
+      "halt_index": 9,
+      "expected_halt_index": 5,
+      "contradiction": 0.9219480752944946
+    },
+    {
+      "id": "wrong_freezing",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 6,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_moon_landing",
+      "halted": true,
+      "halt_index": 12,
+      "expected_halt_index": 8,
+      "contradiction": 0.9503032565116882
+    },
+    {
+      "id": "wrong_continents",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 6,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_pi",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 8,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_photosynthesis",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 4,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_red_cells",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 0,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_earth_shape",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 5,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_hydrogen_number",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 11,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_speed_sound",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 7,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_everest",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 8,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_year_days",
+      "halted": true,
+      "halt_index": 11,
+      "expected_halt_index": 8,
+      "contradiction": 0.9294396042823792
+    },
+    {
+      "id": "wrong_week_days",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 2,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_heart_chambers",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 6,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_planets",
+      "halted": true,
+      "halt_index": 8,
+      "expected_halt_index": 4,
+      "contradiction": 0.8406584858894348
+    },
+    {
+      "id": "wrong_oxygen_atmosphere",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 4,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_electron_charge",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 4,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_mammals",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 2,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_light_year",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 7,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_body_temp",
+      "halted": true,
+      "halt_index": 11,
+      "expected_halt_index": 9,
+      "contradiction": 0.9111399054527283
+    },
+    {
+      "id": "wrong_sound_vacuum",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 5,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_metal_conductor",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 7,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_dna_helix",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 6,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_sun_star",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 5,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_ice_state",
       "halted": false,
       "halt_index": -1,
       "expected_halt_index": 3,
