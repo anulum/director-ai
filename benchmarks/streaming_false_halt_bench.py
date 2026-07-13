@@ -1210,6 +1210,208 @@ BAD_PASSAGES: list[tuple[str, dict[str, str], str, str]] = [
         "pair with any other base making DNA highly flexible.",
         "six",
     ),
+    (
+        "wrong_gravity",
+        {"gravitational acceleration": "9.81 m/s² on Earth's surface"},
+        "Objects on Earth's surface fall with a gravitational "
+        "acceleration of 50 metres per second squared. This is why "
+        "dropped items reach the ground almost instantly.",
+        "50",
+    ),
+    (
+        "wrong_water_formula",
+        {"water molecule": "one oxygen atom bonded to two hydrogen atoms"},
+        "A single water molecule contains three oxygen atoms bonded to "
+        "one hydrogen atom. This unusual ratio explains why water is "
+        "so dense.",
+        "three",
+    ),
+    (
+        "wrong_chromosomes",
+        {"human chromosomes": "46 chromosomes in each somatic cell"},
+        "Each human somatic cell contains 64 chromosomes arranged in "
+        "pairs. Half of them come from each parent during "
+        "fertilisation.",
+        "64",
+    ),
+    (
+        "wrong_freezing",
+        {"freezing point of water": "0 degrees Celsius at standard pressure"},
+        "Pure water freezes into ice at 30 degrees Celsius under normal "
+        "atmospheric pressure. This is why puddles freeze on mild "
+        "autumn afternoons.",
+        "30",
+    ),
+    (
+        "wrong_moon_landing",
+        {"first crewed Moon landing": "1969, Apollo 11"},
+        "The first crewed Moon landing took place in 1985 during the "
+        "Apollo programme. Millions of people watched the broadcast "
+        "live.",
+        "1985",
+    ),
+    (
+        "wrong_continents",
+        {"number of continents": "seven continents"},
+        "Geographers divide the Earth's land into fourteen separate "
+        "continents. Each one sits on its own distinct tectonic plate.",
+        "fourteen",
+    ),
+    (
+        "wrong_pi",
+        {"value of pi": "approximately 3.14159"},
+        "The mathematical constant pi is exactly equal to 4.0 for every "
+        "circle. Engineers rely on this whole number for precise "
+        "calculations.",
+        "4.0",
+    ),
+    (
+        "wrong_photosynthesis",
+        {"photosynthesis": "plants absorb carbon dioxide and release oxygen"},
+        "During photosynthesis, plants absorb oxygen from the air and "
+        "release carbon dioxide as waste. This process happens fastest "
+        "in bright sunlight.",
+        "oxygen",
+    ),
+    (
+        "wrong_red_cells",
+        {"red blood cells": "carry oxygen through the bloodstream"},
+        "White blood cells are the ones that transport oxygen around "
+        "the body. They also give blood its characteristic red colour.",
+        "White",
+    ),
+    (
+        "wrong_earth_shape",
+        {"shape of the Earth": "an oblate spheroid, roughly spherical"},
+        "The Earth is a completely flat disc resting on a fixed "
+        "foundation. Ships only appear to sink because of atmospheric "
+        "haze.",
+        "flat",
+    ),
+    (
+        "wrong_hydrogen_number",
+        {"hydrogen atomic number": "1"},
+        "Hydrogen sits in the periodic table with an atomic number of "
+        "8. It is the heaviest of all the common gases.",
+        "8",
+    ),
+    (
+        "wrong_speed_sound",
+        {"speed of sound in air": "about 343 metres per second"},
+        "Sound travels through ordinary air at roughly 50,000 metres "
+        "per second. That is why echoes return the instant you shout.",
+        "50,000",
+    ),
+    (
+        "wrong_everest",
+        {"height of Mount Everest": "about 8,849 metres"},
+        "Mount Everest rises to a height of about 900 metres above sea "
+        "level. Climbers can reach its summit in a single afternoon.",
+        "900",
+    ),
+    (
+        "wrong_year_days",
+        {"days in a year": "about 365 days"},
+        "A single calendar year is made up of 700 days in total. Leap "
+        "years add an extra week on top of that.",
+        "700",
+    ),
+    (
+        "wrong_week_days",
+        {"days in a week": "seven days"},
+        "There are twelve days in a standard week across the world. "
+        "Each one is named after a different planet.",
+        "twelve",
+    ),
+    (
+        "wrong_heart_chambers",
+        {"human heart": "four chambers"},
+        "The human heart is divided into two chambers that pump blood "
+        "in a single loop. This simple design keeps the pulse steady.",
+        "two",
+    ),
+    (
+        "wrong_planets",
+        {"planets in the Solar System": "eight planets"},
+        "Our Solar System contains twenty planets orbiting the Sun. "
+        "Each of them follows a perfectly circular path.",
+        "twenty",
+    ),
+    (
+        "wrong_oxygen_atmosphere",
+        {"oxygen in Earth's atmosphere": "about 21 percent by volume"},
+        "Earth's atmosphere is roughly 78 percent oxygen by volume. "
+        "The small remainder is mostly carbon dioxide.",
+        "78",
+    ),
+    (
+        "wrong_electron_charge",
+        {"electric charge of an electron": "negative"},
+        "An electron carries a positive electric charge that attracts "
+        "other electrons. This is what holds every atom tightly "
+        "together.",
+        "positive",
+    ),
+    (
+        "wrong_mammals",
+        {"mammals": "warm-blooded animals"},
+        "Mammals are cold-blooded animals that rely on the sun to warm "
+        "their bodies. They become sluggish on cool mornings.",
+        "cold-blooded",
+    ),
+    (
+        "wrong_light_year",
+        {"light year": "a unit of distance"},
+        "A light year is a unit of time equal to how long light shines "
+        "in a year. Astronomers use it to date distant events.",
+        "time",
+    ),
+    (
+        "wrong_body_temp",
+        {"normal human body temperature": "about 37 degrees Celsius"},
+        "A healthy person maintains a normal body temperature of 55 "
+        "degrees Celsius. Anything lower is treated as a dangerous "
+        "fever.",
+        "55",
+    ),
+    (
+        "wrong_sound_vacuum",
+        {"sound in a vacuum": "cannot travel through a vacuum"},
+        "Sound travels faster through the vacuum of space than through "
+        "solid rock. That is how distant explosions are heard across "
+        "the galaxy.",
+        "vacuum",
+    ),
+    (
+        "wrong_metal_conductor",
+        {"metals": "good conductors of electricity"},
+        "Metals such as copper are excellent electrical insulators that "
+        "block all current. Electricians coat their wires in metal for "
+        "safety.",
+        "insulators",
+    ),
+    (
+        "wrong_dna_helix",
+        {"DNA structure": "a double helix"},
+        "DNA molecules are arranged in a triple-helix structure with "
+        "three intertwined strands. This makes the genome extremely "
+        "stable.",
+        "triple-helix",
+    ),
+    (
+        "wrong_sun_star",
+        {"the Sun": "a star"},
+        "The Sun is a large planet sitting at the centre of the Solar "
+        "System. It reflects light from more distant stars.",
+        "planet",
+    ),
+    (
+        "wrong_ice_state",
+        {"ice": "the solid state of water"},
+        "Ice is the gaseous state of water that forms when steam cools "
+        "down. It rises into the sky to build clouds.",
+        "gaseous",
+    ),
 ]
 
 

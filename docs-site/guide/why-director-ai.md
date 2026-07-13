@@ -28,7 +28,7 @@ stored, routed, or acted on.
 completed streamed claims are checked against retrieved facts and the stream
 halts when a claim contradicts governed knowledge. The latest local benchmark
 artifact (`benchmarks/results/streaming_contradiction_halt_base.json`) reports
-2/135 false halts and 2/3 caught contradiction passages on the small streaming
+4/135 false halts and 28/30 caught contradiction passages on the small streaming
 suite; broader held-out contradiction evidence is recorded in
 `benchmarks/results/contradiction_holdout_finetuned.json`.
 

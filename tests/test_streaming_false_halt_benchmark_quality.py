@@ -28,7 +28,6 @@ def test_expected_halt_index_tracks_first_contradictory_fragment() -> None:
 
 def test_halt_quality_metrics_report_confusion_and_timing() -> None:
     good_count = len(GOOD_PASSAGES)
-    bad_count = len(BAD_PASSAGES)
     good_results = [{"halted": False} for _ in range(good_count)]
     bad_results = [
         {"halted": True, "halt_index": 4, "expected_halt_index": 4},
@@ -46,7 +45,8 @@ def test_halt_quality_metrics_report_confusion_and_timing() -> None:
     assert metrics["false_positives"] == 0
     assert metrics["false_negatives"] == 1
     assert metrics["halt_precision"] == 1.0
-    assert metrics["halt_recall"] == round(2 / bad_count, 4)
+    # Recall is over the supplied bad_results, not the module-level set.
+    assert metrics["halt_recall"] == round(2 / len(bad_results), 4)
     assert metrics["token_of_halt_accuracy"] == 1.0
     assert metrics["median_halt_latency_tokens"] == 2.5
 

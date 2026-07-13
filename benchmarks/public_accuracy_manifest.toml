@@ -204,7 +204,7 @@ source = "benchmarks/streaming_false_halt_bench.py"
 split = "in-repo fixture list"
 access = "tracked source fixture"
 local_cache = []
-size_note = "small labelled contradiction smoke set for halt precision, recall, and token-timing diagnostics"
+size_note = "30 labelled contradiction passages for halt precision, recall, and token-timing diagnostics"
 label_fields = ["id", "facts", "passage", "expected_fragment"]
 
 [[datasets]]

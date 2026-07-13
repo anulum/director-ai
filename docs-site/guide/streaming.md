@@ -10,9 +10,9 @@
 
     Current local proof is
     `benchmarks/results/streaming_contradiction_halt_base.json`: threshold 0.2,
-    135 grounded passages, 3 contradiction passages, false-halt rate 0.0148
-    (2/135), recall 0.6667 (2/3), CPU rerun on host `aaarthuus`, Python 3.12.13,
-    labelled `non_isolated_local_regression`. The broader held-out
+    135 grounded passages, 30 contradiction passages, false-halt rate 0.0296
+    (4/135), recall 0.9333 (28/30), CPU rerun on host `aaarthuus`, Python
+    3.12.13, labelled `non_isolated_local_regression`. The broader held-out
     contradiction evaluation in
     `benchmarks/results/contradiction_holdout_finetuned.json` reports AUC
     0.9885 and recall 0.9741 at threshold 0.2 over 6,321 held-out pairs; promote
@@ -447,13 +447,16 @@ Current streaming proof:
 
 | Artefact | Device | Correct passages | Contradiction passages | False-halt | Recall | Notes |
 |---|---|---:|---:|---:|---:|---|
-| `benchmarks/results/streaming_contradiction_halt_base.json` | CPU | 135 | 3 | 0.0148 | 0.6667 | Local non-isolated rerun on `aaarthuus`; command and load average are recorded in `benchmark_context` |
+| `benchmarks/results/streaming_contradiction_halt_base.json` | CPU | 135 | 30 | 0.0296 | 0.9333 | Local non-isolated rerun on `aaarthuus`; command and load average are recorded in `benchmark_context` |
 
 This proves the streaming halt is fixed for contradiction-scoped claims: the
-current gate keeps 133/135 grounded passages open and catches 2/3 labelled
-contradiction passages. It does not claim to halt every unsupported addition;
-ungrounded claims are deliberately left to response-level review because absence
-of evidence is not a contradiction.
+current gate keeps 131/135 grounded passages open and catches 28/30 labelled
+contradiction passages (halt precision 0.875, token-of-halt accuracy 0.7857
+within an 8-token window). The two misses are direction-reversal claims
+(swapped photosynthesis gases; oxygen mislabelled as the dominant atmospheric
+gas) that the MNLI backend scores as weak contradictions. It does not claim to
+halt every unsupported addition; ungrounded claims are deliberately left to
+response-level review because absence of evidence is not a contradiction.
 
 On synthesised, unambiguous contradictions
 (`benchmarks/contradiction_recall.py`, 25,882 injected variants of supported
