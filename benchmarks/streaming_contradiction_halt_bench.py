@@ -283,7 +283,7 @@ def main() -> None:
     result = run_benchmark(args.model, threshold=args.threshold, device=args.device)
     RESULTS_DIR.mkdir(parents=True, exist_ok=True)
     out = RESULTS_DIR / f"streaming_contradiction_halt_{args.tag}.json"
-    out.write_text(json.dumps(result, indent=2), encoding="utf-8")
+    out.write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
 
     q = result["halt_quality"]
     print(f"\nStreaming contradiction-halt ({args.tag}, {result['device']}):")
