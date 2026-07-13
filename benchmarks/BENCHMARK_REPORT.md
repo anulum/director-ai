@@ -584,12 +584,19 @@ Readings:
   (`pinned-loaded-host`-era run, pre host-conditions wiring) and are
   not comparable across arms; quality numbers are load-independent
   (identical CPU/GPU nDCG established in §11).
-- Default status: `rrf` (k=60) REMAINS the shipped default pending a
-  fusion A/B on the internal curated-KB evaluation set —
-  `grounded()`'s primary target — with `convex` s30/d70 as the
-  measured candidate. Operators can opt in today:
-  `grounded(fusion_method="convex", sparse_weight=0.3,
-  dense_weight=0.7)`.
+- Default decision (internal A/B measured, 2026-07-13,
+  `benchmarks/results/retrieval_fusion_internal_ab.json` — curated-KB
+  EVAL_SET + distractors, one shared bge-large index, each fusion arm
+  ± the default ms-marco reranker): **unreranked**, convex s30/d70
+  dominates (hit@1 0.967 vs 0.733 for RRF, hit@3 1.000 vs 0.933);
+  **under the full default chain (reranker on)** the gain disappears
+  (hit@1 0.933 = 0.933, hit@3 0.967 vs 1.000 — the reranker's 3×
+  over-fetch washes out fusion differences and RRF fed it a slightly
+  better pool on one query). `rrf` (k=60) therefore REMAINS the
+  shipped default; `convex` s30/d70 is the measured recommendation
+  for unreranked / open-corpus / CPU-latency-sensitive deployments:
+  `grounded(use_reranker=False, fusion_method="convex",
+  sparse_weight=0.3, dense_weight=0.7)`.
 
 Claim boundary: same as §11 — two public BEIR test splits, shipped
 pipeline, no leaderboard claim, no claim about unmeasured corpora.

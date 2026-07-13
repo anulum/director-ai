@@ -1,0 +1,121 @@
+{
+  "benchmark": "retrieval_fusion_internal_ab",
+  "note": "Fusion A/B on the internal retrieval_bench EVAL_SET + DISTRACTORS corpus through grounded() (bge-large), one shared index, with_fusion() views, each arm measured unreranked and under the default ms-marco cross-encoder. Companion to results/beir_fusion_bench.json for the fusion-default decision.",
+  "environment": {
+    "python": "3.12.13",
+    "machine": "x86_64",
+    "cpu_model": "11th Gen Intel(R) Core(TM) i5-11600K @ 3.90GHz",
+    "torch_device": "cpu",
+    "numpy": "2.4.6",
+    "faiss": "1.14.3",
+    "sentence_transformers": "5.6.0",
+    "torch": "2.12.0+cu130",
+    "host_conditions": {
+      "captured_utc": "2026-07-13T01:04:46+00:00",
+      "load_avg": [
+        23.81,
+        20.05,
+        22.33
+      ],
+      "load_per_cpu_1m": 1.984,
+      "cpu_count": 12,
+      "cpu_affinity": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11
+      ],
+      "pinned": false,
+      "cpu_governor": "powersave",
+      "isolation_verdict": "shared"
+    }
+  },
+  "embedding_model": "BAAI/bge-large-en-v1.5",
+  "embedding_revision": "d4aa6901d3a41ba39fb536a557fa166f842b0e09",
+  "reranker_revision": "c5ee24cb16019beea0893ab7796b1df96625c6b8",
+  "n_facts": 50,
+  "n_queries": 30,
+  "build_seconds": 41.24,
+  "arms": {
+    "rrf_s50_d50__none": {
+      "fusion_method": "rrf",
+      "sparse_weight": 1.0,
+      "dense_weight": 1.0,
+      "reranker_model": null,
+      "hit_at_1": 0.7333,
+      "hit_at_3": 0.9333,
+      "precision_at_3": 0.3111,
+      "mean_ms": 646.4447,
+      "p50_ms": 605.8437,
+      "p95_ms": 828.1174
+    },
+    "convex_s30_d70__none": {
+      "fusion_method": "convex",
+      "sparse_weight": 0.3,
+      "dense_weight": 0.7,
+      "reranker_model": null,
+      "hit_at_1": 0.9667,
+      "hit_at_3": 1.0,
+      "precision_at_3": 0.3333,
+      "mean_ms": 579.4494,
+      "p50_ms": 547.6742,
+      "p95_ms": 780.8068
+    },
+    "convex_s50_d50__none": {
+      "fusion_method": "convex",
+      "sparse_weight": 0.5,
+      "dense_weight": 0.5,
+      "reranker_model": null,
+      "hit_at_1": 0.8,
+      "hit_at_3": 1.0,
+      "precision_at_3": 0.3333,
+      "mean_ms": 599.9613,
+      "p50_ms": 621.7619,
+      "p95_ms": 709.1512
+    },
+    "rrf_s50_d50__msmarco": {
+      "fusion_method": "rrf",
+      "sparse_weight": 1.0,
+      "dense_weight": 1.0,
+      "reranker_model": "cross-encoder/ms-marco-MiniLM-L-6-v2",
+      "hit_at_1": 0.9333,
+      "hit_at_3": 1.0,
+      "precision_at_3": 0.3333,
+      "mean_ms": 577.5775,
+      "p50_ms": 579.1913,
+      "p95_ms": 709.4161
+    },
+    "convex_s30_d70__msmarco": {
+      "fusion_method": "convex",
+      "sparse_weight": 0.3,
+      "dense_weight": 0.7,
+      "reranker_model": "cross-encoder/ms-marco-MiniLM-L-6-v2",
+      "hit_at_1": 0.9333,
+      "hit_at_3": 0.9667,
+      "precision_at_3": 0.3222,
+      "mean_ms": 551.8799,
+      "p50_ms": 542.2329,
+      "p95_ms": 668.4814
+    },
+    "convex_s50_d50__msmarco": {
+      "fusion_method": "convex",
+      "sparse_weight": 0.5,
+      "dense_weight": 0.5,
+      "reranker_model": "cross-encoder/ms-marco-MiniLM-L-6-v2",
+      "hit_at_1": 0.9667,
+      "hit_at_3": 0.9667,
+      "precision_at_3": 0.3222,
+      "mean_ms": 586.1527,
+      "p50_ms": 584.1764,
+      "p95_ms": 711.4694
+    }
+  }
+}
