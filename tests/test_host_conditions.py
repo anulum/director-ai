@@ -120,7 +120,14 @@ class TestGovernorRead:
 
 
 class TestEnvironmentWiring:
+    """Wiring checks need the optional extras the recorders import —
+    the core CI dependency set has no faiss/torch, so these are
+    extras-gated (they run locally and in the extras matrix jobs)."""
+
     def test_grounded_ann_bench_environment_embeds_conditions(self):
+        import pytest
+
+        pytest.importorskip("faiss")
         from benchmarks.grounded_ann_bench import _environment
 
         env = _environment()
@@ -134,6 +141,11 @@ class TestEnvironmentWiring:
         assert len(conditions["load_avg"]) == 3
 
     def test_retrieval_refresh_environment_embeds_conditions(self):
+        import pytest
+
+        pytest.importorskip("faiss")
+        pytest.importorskip("torch")
+        pytest.importorskip("sentence_transformers")
         from benchmarks.retrieval_model_refresh_ab import _environment
 
         env = _environment()
