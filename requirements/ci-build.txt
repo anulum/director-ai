@@ -1,6 +1,6 @@
-build==1.2.2 \
-    --hash=sha256:119b2fb462adef986483438377a13b2f42064a2a3a4161f24a0cca698a07ac8c \
-    --hash=sha256:277ccc71619d98afdd841a0e96ac9fe1593b823af481d3b0cea748e8894e0613
+build==1.5.1 \
+    --hash=sha256:94e17f1db803ab22f46049376c44c8437c52090f0dfdf1adc43df56542d644fb \
+    --hash=sha256:f1a58fe2e5af5b0238a07b9e70207492c79ddebbdb1ad954fc86d62a56be3e0d
     # via -r build.in
 certifi==2026.6.17 \
     --hash=sha256:024c88eeec92ca068db80f02b8b07c9cef7b9fe261d1d535abfd5abd6f6af432 \

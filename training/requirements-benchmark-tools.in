@@ -6,7 +6,7 @@
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-AI benchmark container build/test tools.
 
-maturin==1.12.6
-pytest==9.0.3
-hypothesis==6.151.10
+maturin==1.14.1
+pytest==9.1.1
+hypothesis==6.156.6
 pytest-cov==7.1.0
