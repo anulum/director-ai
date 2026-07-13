@@ -1,0 +1,97 @@
+{
+  "per_config": {
+    "no-decomp": {
+      "samples": 358,
+      "positives": 111,
+      "avg_subclaims": 1.0,
+      "backends": {},
+      "fixed_0.5": {
+        "threshold": 0.5,
+        "balanced_accuracy": 0.7664770033191086,
+        "hallucination_precision": 0.8357142857142857,
+        "hallucination_recall": 0.9473684210526315,
+        "hallucination_f1": 0.8880455407969639,
+        "supported_precision": 0.8333333333333334,
+        "supported_recall": 0.5855855855855856,
+        "supported_f1": 0.6878306878306879
+      },
+      "oracle": {
+        "threshold": 0.2,
+        "balanced_accuracy": 0.8163365794944742,
+        "hallucination_precision": 0.90625,
+        "hallucination_recall": 0.8218623481781376,
+        "hallucination_f1": 0.8619957537154989,
+        "supported_precision": 0.6716417910447762,
+        "supported_recall": 0.8108108108108109,
+        "supported_f1": 0.7346938775510204
+      }
+    },
+    "regex-decomp": {
+      "samples": 358,
+      "positives": 111,
+      "avg_subclaims": 1.047486033519553,
+      "backends": {},
+      "fixed_0.5": {
+        "threshold": 0.5,
+        "balanced_accuracy": 0.761972498814604,
+        "hallucination_precision": 0.8327402135231317,
+        "hallucination_recall": 0.9473684210526315,
+        "hallucination_f1": 0.8863636363636362,
+        "supported_precision": 0.8311688311688312,
+        "supported_recall": 0.5765765765765766,
+        "supported_f1": 0.6808510638297872
+      },
+      "oracle": {
+        "threshold": 0.2,
+        "balanced_accuracy": 0.8138563664879455,
+        "hallucination_precision": 0.9026548672566371,
+        "hallucination_recall": 0.8259109311740891,
+        "hallucination_f1": 0.8625792811839323,
+        "supported_precision": 0.6742424242424242,
+        "supported_recall": 0.8018018018018018,
+        "supported_f1": 0.7325102880658437
+      }
+    },
+    "llm-decomp": {
+      "samples": 358,
+      "positives": 111,
+      "avg_subclaims": 3.2541899441340782,
+      "backends": {
+        "llm": 355,
+        "sentence-fallback": 3
+      },
+      "fixed_0.5": {
+        "threshold": 0.5,
+        "balanced_accuracy": 0.7833825728562571,
+        "hallucination_precision": 0.8513011152416357,
+        "hallucination_recall": 0.9271255060728745,
+        "hallucination_f1": 0.8875968992248062,
+        "supported_precision": 0.797752808988764,
+        "supported_recall": 0.6396396396396397,
+        "supported_f1": 0.71
+      },
+      "oracle": {
+        "threshold": 0.15,
+        "balanced_accuracy": 0.8319290950869899,
+        "hallucination_precision": 0.9533678756476683,
+        "hallucination_recall": 0.7449392712550608,
+        "hallucination_f1": 0.8363636363636363,
+        "supported_precision": 0.6181818181818182,
+        "supported_recall": 0.918918918918919,
+        "supported_f1": 0.7391304347826088
+      }
+    }
+  },
+  "delta_llm_minus_regex": {
+    "hallucination_f1_fixed": 0.0012332628611699814,
+    "balanced_accuracy_fixed": 0.02141007404165307,
+    "hallucination_f1_oracle": -0.026215644820296036,
+    "balanced_accuracy_oracle": 0.018072728599044408
+  },
+  "meta": {
+    "samples": 358,
+    "decomposer_model": "Qwen/Qwen2.5-7B-Instruct",
+    "nli_model": "default",
+    "elapsed_s": 2069.905782885151
+  }
+}

@@ -709,6 +709,70 @@ Claim boundary: one public dataset (HaluEval QA/summarization/dialogue) at
 checkpoint; no leaderboard claim and no claim about other judge checkpoints,
 datasets, or sample sizes.
 
+## 15. Claim decomposition — LLM atomic vs regex sentence split (WICE, L4, 2026-07-13)
+
+Downstream detection measurement for the WCA-2 gate ("claim-coverage F1 vs
+regex baseline needs a live provider or local checkpoint; without a
+measurement the default does not flip"). Three decomposition strategies are
+scored on the full WICE test subset of `lytang/LLM-AggreFact` (358 rows, 111
+supported / 247 not-supported): `no-decomp` (NLI the whole claim),
+`regex-decomp` (the production `split_sentences`, then min over sub-claims),
+and `llm-decomp` (`AtomicClaimDecomposer` with a **local** Qwen2.5-7B-Instruct
+as its injected transport, then min over atomic claims). NLI is
+FactCG-DeBERTa-v3-Large. Each support score is thresholded at both a fixed
+0.5 cut and the balanced-accuracy-maximising oracle cut. Environment:
+JarvisLabs L4 (IN2), torch 2.6.0+cu124, transformers 5.8.0, ~34.5 min.
+Artefact: `benchmarks/results/claim_decomp_wice.json`.
+
+| Config | avg claims | BA @0.5 | BA @oracle | Halluc F1 @0.5 | Halluc F1 @oracle |
+|---|---|---|---|---|---|
+| no-decomp | 1.00 | 0.766 | 0.816 | 0.888 | 0.862 |
+| regex-decomp | 1.05 | 0.762 | 0.814 | 0.886 | 0.863 |
+| llm-decomp | 3.25 | 0.783 | 0.832 | 0.888 | 0.836 |
+
+Delta (llm − regex): balanced accuracy +0.021 (fixed) / +0.018 (oracle);
+hallucination F1 +0.001 (fixed) / −0.026 (oracle). The LLM decomposer drove
+355/358 rows (3 fell to the labelled sentence fallback).
+
+Readings:
+
+- **Regex barely decomposes on WICE.** The claims are single sentences, so
+  `split_sentences` produces 1.05 sub-claims on average — effectively
+  `no-decomp`. The LLM genuinely splits compound claims into 3.25 atomic
+  facts, which is exactly the regime the decomposer was built for; this is a
+  fair test of atomic decomposition, not of the sentence splitter.
+- **The gain is small, consistent, and in balanced accuracy — not in
+  hallucination F1.** LLM decomposition lifts BA by +1.8 to +2.1 points over
+  regex (and +1.6 over no-decomp) at **both** threshold regimes, a clean
+  favourable direction. The improvement lands on the supported class
+  (supported recall 0.64 vs 0.58, supported F1 0.71 vs 0.68 at 0.5), because
+  weakest-link `min` over more atomic claims makes a fully-supported claim
+  easier to certify. Hallucination F1 is flat at the fixed cut and slightly
+  **negative** at the oracle cut: the stricter aggregation shifts the
+  operating point (oracle threshold 0.15, hallucination precision 0.953 but
+  recall 0.745), trading recall for precision rather than raising F1.
+- **Magnitude sits within the noise band.** A ~2-point BA difference at
+  N=358 is roughly one standard error; the eval establishes the direction
+  (atomic decomposition helps supported-class balanced accuracy) but not a
+  decisive margin. This is the same expensive-addition / marginal-benefit
+  shape as §13 (NLI worse than lexical) and §14 (judge escalation).
+- **Cost is not free here, unlike §14.** Each claim costs a 7B-model
+  generation plus 3.25× the NLI forwards (~5.8 s/row end-to-end vs
+  near-instant for regex), and the decomposer sends the passage off-host — it
+  emits a privacy warning at construction for exactly that reason.
+- **Consequence for the default:** the measured gain does not justify
+  flipping the LLM-decomposition default on — a within-noise BA move and a
+  flat-to-negative hallucination F1 do not clear the latency and privacy
+  cost. The default stays on the regex splitter; LLM decomposition is a
+  **defensible opt-in** where supported-class balanced accuracy matters and a
+  local instruct model is already hosted. The gate is answered with a
+  measurement, and it does not flip the default.
+
+Claim boundary: one public dataset (WICE subset of LLM-AggreFact) at the full
+358 test rows, FactCG-DeBERTa-v3-Large NLI with a local Qwen2.5-7B-Instruct
+decomposer and weakest-link `min` aggregation; no leaderboard claim and no
+claim about other datasets, decomposers, aggregations, or sample sizes.
+
 ## Reproduction
 
 ```bash
@@ -729,6 +793,12 @@ python -m benchmarks.e2e_eval --nli --scorer-backend hybrid \
 
 # Local judge E2E (requires trained model at training/output/deberta-v3-base-judge/)
 python benchmarks/run_judge_benchmark.py --samples 500
+
+# Claim decomposition — LLM atomic vs regex (WICE, GPU + HF_TOKEN)
+export HF_TOKEN=hf_...
+PYTHONPATH=src:. python benchmarks/run_claim_decomp_benchmark.py \
+    --decomposer-model Qwen/Qwen2.5-7B-Instruct \
+    --out benchmarks/results/claim_decomp_wice.json
 ```
 
 ## Throughput (QPS)

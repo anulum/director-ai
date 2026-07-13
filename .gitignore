@@ -198,6 +198,8 @@ benchmarks/results/*
 !benchmarks/results/judge_bench_local_judge_200.json
 !benchmarks/results/judge_bench_summary_200.json
 !benchmarks/results/judge_bench_latency.json
+# Claim-decomposition detection on WICE (WCA-2 part 2).
+!benchmarks/results/claim_decomp_wice.json
 # Tokeniser blobs are fetchable from the fine-tune's base model (WCH-6);
 # see benchmarks/models/factcg-cb/README.md. Configs/results stay tracked.
 benchmarks/models/factcg-cb/tokenizer.json
