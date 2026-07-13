@@ -149,6 +149,10 @@ class DirectorConfig:
     llm_judge_model_revision: str = ""
     llm_judge_rubric: bool = False  # rubric-scored judge (G-Eval-style dims)
     llm_judge_ensemble: int = 1  # independent judge calls per escalation (1-5)
+    # FActScore-style LLM claim decomposition ("" = regex sentence split).
+    # Sends passage text to the named provider - respect privacy_mode.
+    claim_decomposition_provider: str = ""
+    claim_decomposition_model: str = ""
     privacy_mode: bool = False
 
     # Tier-6 reasoning escalation (causal-LM safety chain-of-thought above NLI).

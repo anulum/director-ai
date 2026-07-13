@@ -27,6 +27,7 @@ import numpy as np
 
 if TYPE_CHECKING:
     from .backends import ScorerBackend
+    from .claim_decomposition import AtomicClaimDecomposer
 
 from ..metrics import metrics
 from ._nli_claims import ClaimCoverageMixin
@@ -154,6 +155,7 @@ class NLIScorer(ClaimCoverageMixin):
         lora_adapter_path: str | None = None,
         revision: str | None = None,
         minicheck_variant: str = "deberta-v3-large",
+        claim_decomposer: AtomicClaimDecomposer | None = None,
     ) -> None:
         # Accept ScorerBackend instance directly
         self._custom_backend = None
@@ -203,6 +205,7 @@ class NLIScorer(ClaimCoverageMixin):
         self._label_indices: tuple[int, int] | None = None
         self._lora_adapter_path = lora_adapter_path
         self._revision = revision
+        self._claim_decomposer = claim_decomposer
         if minicheck_variant not in self._MINICHECK_CKPTS:
             raise ValueError(
                 f"minicheck_variant must be one of "

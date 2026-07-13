@@ -145,6 +145,19 @@ def validate_and_normalize(cfg: DirectorConfig) -> None:
         raise ValueError("llm_judge_ensemble must be an integer")
     if not 1 <= cfg.llm_judge_ensemble <= 5:
         raise ValueError("llm_judge_ensemble must be between 1 and 5")
+    if cfg.claim_decomposition_provider:
+        from .scoring.claim_decomposition import VALID_DECOMPOSITION_PROVIDERS
+
+        if cfg.claim_decomposition_provider not in VALID_DECOMPOSITION_PROVIDERS:
+            raise ValueError(
+                "claim_decomposition_provider must be one of "
+                f"{VALID_DECOMPOSITION_PROVIDERS} or empty"
+            )
+        if not cfg.claim_decomposition_model.strip():
+            raise ValueError(
+                "claim_decomposition_model must be set when "
+                "claim_decomposition_provider is enabled"
+            )
     if cfg.verified_scorer_evidence_top_k < 1:
         raise ValueError("verified_scorer_evidence_top_k must be >= 1")
     if not (0.0 <= cfg.verified_scorer_low_confidence_margin <= 1.0):

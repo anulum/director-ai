@@ -134,6 +134,8 @@ class CoherenceScorer(ReviewPipelineMixin):
         reasoning_model_revision: str | None = None,
         reasoning_escalation_margin: float = 0.15,
         minicheck_variant: str = "deberta-v3-large",
+        claim_decomposition_provider: str = "",
+        claim_decomposition_model: str = "",
     ) -> None:
         """Initialise backend, cache, threshold, and escalation state.
 
@@ -224,9 +226,23 @@ class CoherenceScorer(ReviewPipelineMixin):
         else:
             self._rust_scorer = None
 
+        claim_decomposer = None
+        if claim_decomposition_provider:
+            from .claim_decomposition import AtomicClaimDecomposer
+
+            claim_decomposer = AtomicClaimDecomposer(
+                provider=claim_decomposition_provider,
+                model=claim_decomposition_model,
+            )
+        self._claim_decomposition_provider = claim_decomposition_provider
+
         nli_backend = "deberta" if scorer_backend == "hybrid" else scorer_backend
         if nli_backend == "lite":
-            self._nli = NLIScorer(use_model=False, backend="lite")
+            self._nli = NLIScorer(
+                use_model=False,
+                backend="lite",
+                claim_decomposer=claim_decomposer,
+            )
         elif scorer_backend not in _NATIVE_NLI_BACKENDS:
             # Registered non-native backend (embed, nli-lite, or a third-party
             # backend registered via register_backend): route it through the
@@ -266,6 +282,7 @@ class CoherenceScorer(ReviewPipelineMixin):
                 max_length=nli_max_length,
                 revision=nli_revision,
                 minicheck_variant=minicheck_variant,
+                claim_decomposer=claim_decomposer,
             )
         self._minicheck_variant = minicheck_variant
         self._privacy_mode = privacy_mode

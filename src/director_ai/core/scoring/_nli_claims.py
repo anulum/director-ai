@@ -28,6 +28,7 @@ from ._nli_numeric import _count_below_threshold
 
 if TYPE_CHECKING:
     from ..types import ClaimAttribution
+    from .claim_decomposition import AtomicClaimDecomposer
 
 __all__ = ["ClaimCoverageMixin"]
 
@@ -40,8 +41,25 @@ class ClaimCoverageMixin(ChunkingMixin):
     the contracts declared on :class:`ChunkingMixin`.
     """
 
+    # Optional FActScore-style LLM decomposer set by the composing
+    # scorer's __init__; None keeps the regex sentence-split behaviour.
+    _claim_decomposer: AtomicClaimDecomposer | None
+
     def decompose_claims(self, text: str) -> list[str]:
-        """Split text into individual claim sentences."""
+        """Split text into individual claims.
+
+        With a configured :class:`AtomicClaimDecomposer` this is the
+        FActScore-style LLM extraction (falling back to sentence
+        splitting on provider failure, honestly labelled inside the
+        decomposer result); without one it is the regex sentence split.
+        """
+        decomposer = getattr(self, "_claim_decomposer", None)
+        if decomposer is not None:
+            result = decomposer.decompose(
+                text,
+                sentence_splitter=self._split_sentences,
+            )
+            return list(result.claims)
         return self._split_sentences(text)
 
     def score_decomposed(

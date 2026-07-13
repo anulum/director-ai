@@ -6,10 +6,10 @@
     "optional_extras": 62,
     "public_api_exports": 226,
     "public_documentation_pages": 205,
-    "python_model_classes": 1031,
-    "python_model_source_modules": 503,
+    "python_model_classes": 1033,
+    "python_model_source_modules": 504,
     "rust_pyo3_model_wrappers": 83,
-    "test_files": 750
+    "test_files": 752
   },
   "documentation": {
     "public_pages": [
@@ -537,6 +537,10 @@
       {
         "name": "Atom",
         "path": "src/director_ai/core/temporal_logic/formula.py"
+      },
+      {
+        "name": "AtomicClaimDecomposer",
+        "path": "src/director_ai/core/scoring/claim_decomposition.py"
       },
       {
         "name": "AttackOutcome",
@@ -1361,6 +1365,10 @@
       {
         "name": "DecisionQualityMixin",
         "path": "src/director_ai/_guard_quality.py"
+      },
+      {
+        "name": "DecompositionResult",
+        "path": "src/director_ai/core/scoring/claim_decomposition.py"
       },
       {
         "name": "DeepgramAdapter",
@@ -4788,6 +4796,7 @@
       "src/director_ai/core/scoring/_task_accel.py",
       "src/director_ai/core/scoring/_task_scoring.py",
       "src/director_ai/core/scoring/backends.py",
+      "src/director_ai/core/scoring/claim_decomposition.py",
       "src/director_ai/core/scoring/consensus.py",
       "src/director_ai/core/scoring/contradiction.py",
       "src/director_ai/core/scoring/distilled_scorer.py",
@@ -5437,6 +5446,8 @@
       "tests/test_ci_optional_extras_matrix.py",
       "tests/test_citation_tracer.py",
       "tests/test_citations.py",
+      "tests/test_claim_decomposition.py",
+      "tests/test_claim_decomposition_transport_guard.py",
       "tests/test_claim_provenance.py",
       "tests/test_cli.py",
       "tests/test_cli_bench_branch_guards.py",

@@ -716,6 +716,41 @@ class TestBuildStore:
         assert scorer._judge._rubric is True
         assert scorer._judge._ensemble_n == 3
 
+    def test_claim_decomposition_provider_rejects_unknown(self):
+        with pytest.raises(
+            ValueError, match="claim_decomposition_provider must be one of"
+        ):
+            DirectorConfig(
+                claim_decomposition_provider="local",
+                claim_decomposition_model="m",
+            )
+
+    def test_claim_decomposition_provider_requires_model(self):
+        with pytest.raises(ValueError, match="claim_decomposition_model must be set"):
+            DirectorConfig(claim_decomposition_provider="openai")
+
+    def test_claim_decomposition_defaults_stay_off(self):
+        cfg = DirectorConfig()
+
+        assert cfg.claim_decomposition_provider == ""
+        assert cfg.claim_decomposition_model == ""
+
+    def test_build_scorer_passes_claim_decomposition(self):
+        cfg = DirectorConfig(
+            use_nli=False,
+            scorer_backend="lite",
+            claim_decomposition_provider="openai",
+            claim_decomposition_model="gpt-4o-mini",
+        )
+
+        with pytest.warns(UserWarning, match="third-party"):
+            scorer = cfg.build_scorer()
+
+        decomposer = scorer._nli._claim_decomposer
+        assert decomposer is not None
+        assert decomposer.provider == "openai"
+        assert decomposer.model == "gpt-4o-mini"
+
     def test_hybrid_fusion_method_is_canonicalised(self):
         cfg = DirectorConfig(hybrid_fusion_method="  ZScore ")
 

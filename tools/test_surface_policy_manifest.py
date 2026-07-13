@@ -418,6 +418,10 @@ KNOWN_TEST_SURFACE_CLASSIFICATIONS: dict[str, tuple[str, str]] = {
         "unit-guard-with-companion",
         "module/workflow unit guard with companion tests/test_live_red_team_real_surface.py",
     ),
+    "tests/test_claim_decomposition_transport_guard.py": (
+        "unit-guard-with-companion",
+        "scoring claim-decomposition provider-transport guard (fake openai/anthropic SDK modules) with companion tests/test_claim_decomposition.py",
+    ),
     "tests/test_llm_judge.py": (
         "unit-guard-with-companion",
         "ML/export/eval LLM judge guard with companion tests/test_hybrid_hardening_real_surface.py",
