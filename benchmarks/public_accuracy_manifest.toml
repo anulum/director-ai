@@ -230,6 +230,18 @@ metrics = ["ndcg_at_10", "recall_at_10", "p50_ms", "p95_ms"]
 notes = "Scored with pytrec_eval, cross-checked against a built-in linear-gain nDCG; the artefact embeds the published baseline rows (BEIR paper Table 2; bge-large model-card MTEB metrics) with their sources and caveats."
 
 [[public_accuracy_tables]]
+id = "benchmark_report_beir_fusion"
+title = "BENCHMARK_REPORT BEIR fusion strategies (hybrid grounded() pipeline)"
+public_file = "benchmarks/BENCHMARK_REPORT.md"
+runner_files = ["benchmarks/beir_fusion_bench.py"]
+commands = ["python -m benchmarks.beir_fusion_bench"]
+datasets = ["beir_nfcorpus", "beir_scifact"]
+cache_files = []
+result_files = ["benchmarks/results/beir_fusion_bench.json"]
+metrics = ["ndcg_at_10", "recall_at_10", "p50_ms"]
+notes = "All shipped fusion strategies (rrf/convex/combmnz/zscore) as with_fusion() views over one shared index per dataset; rrf__s50_d50 must reproduce the beir_competitive_bench bge_large__none arm exactly (in-artefact regression check). Same scoring and caveats as the competitive bench."
+
+[[public_accuracy_tables]]
 id = "readme_scoring_pyramid"
 title = "README five-tier scoring pyramid"
 public_file = "README.md"

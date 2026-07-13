@@ -80,6 +80,13 @@ BEIR retrieval (grounded() hybrid pipeline; download the BEIR
 python -m benchmarks.beir_competitive_bench
 ```
 
+BEIR fusion strategies (same datasets, unreranked pipeline, all
+shipped fusion methods as shared-index views):
+
+```bash
+python -m benchmarks.beir_fusion_bench
+```
+
 AggreFact default:
 
 ```bash

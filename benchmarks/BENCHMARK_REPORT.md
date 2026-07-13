@@ -541,6 +541,59 @@ Claim boundary: retrieval-quality evidence for the shipped pipeline on
 two public BEIR test splits; it is not a leaderboard submission and
 makes no claim about corpora or configurations that were not measured.
 
+## 12. BEIR Fusion Strategies — beyond RRF (CPU i5-11600K, 2026-07-13)
+
+Every fusion strategy shipped in
+`director_ai.core.retrieval.vector_store.fusion` measured on the same
+two BEIR test splits through the unreranked `grounded()` recipe
+(bge-large embedder, one shared index per dataset,
+`HybridBackend.with_fusion()` views — arms differ only in query-time
+fusion). Scored identically to §11 (pytrec_eval + built-in nDCG
+cross-check). Artefact: `benchmarks/results/beir_fusion_bench.json`.
+Arm naming: `<method>__s<sparse%>_d<dense%>`.
+
+| Arm | NFCorpus nDCG@10 | SciFact nDCG@10 |
+|---|---|---|
+| **convex__s30_d70** | **0.3796** | **0.7537** |
+| zscore__s50_d50 | 0.3641 | 0.7500 |
+| convex__s50_d50 | 0.3726 | 0.7467 |
+| combmnz__s50_d50 | 0.3725 | 0.7435 |
+| rrf__s30_d70 | 0.3731 | 0.7413 |
+| rrf__s50_d50 (shipped default) | 0.3703 | 0.7331 |
+| rrf__s70_d30 | 0.3569 | 0.7168 |
+| convex__s70_d30 | 0.3528 | 0.7149 |
+
+Readings:
+
+- `rrf__s50_d50` reproduces the §11 `bge_large__none` numbers exactly
+  on both datasets — the fusion refactor left the shipped default
+  bit-identical (regression check inside the artefact).
+- `convex__s30_d70` (min-max CombSUM, dense-weighted convex
+  combination) is the strongest arm on both datasets: +0.009 NFCorpus
+  and +0.021 SciFact nDCG@10 over the shipped RRF default. On SciFact
+  it also scores above the best §11 rerank arm (bge-reranker-v2-m3,
+  0.7407) and the bge-large MTEB dense row (0.74607, measured with an
+  instruction prefix this recipe does not add); on NFCorpus it sits
+  0.003 below that MTEB row.
+- The pattern is consistent: dense-leaning weights beat balanced beat
+  sparse-leaning on both corpora, and score fusion (convex) beats rank
+  fusion (RRF) at equal weights. Z-score fusion is strong on SciFact
+  (0.7500) but below the default on NFCorpus (0.3641) — not a
+  candidate.
+- Latencies in the artefact are from a loaded shared host
+  (`pinned-loaded-host`-era run, pre host-conditions wiring) and are
+  not comparable across arms; quality numbers are load-independent
+  (identical CPU/GPU nDCG established in §11).
+- Default status: `rrf` (k=60) REMAINS the shipped default pending a
+  fusion A/B on the internal curated-KB evaluation set —
+  `grounded()`'s primary target — with `convex` s30/d70 as the
+  measured candidate. Operators can opt in today:
+  `grounded(fusion_method="convex", sparse_weight=0.3,
+  dense_weight=0.7)`.
+
+Claim boundary: same as §11 — two public BEIR test splits, shipped
+pipeline, no leaderboard claim, no claim about unmeasured corpora.
+
 ## Reproduction
 
 ```bash

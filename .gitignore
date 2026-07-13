@@ -188,6 +188,8 @@ benchmarks/results/*
 !benchmarks/results/retrieval_model_refresh_ab.json
 !benchmarks/results/beir_competitive_bench.json
 !benchmarks/results/beir_competitive_bench_cpu_i5_11600K.json
+# Fusion-strategy BEIR evidence (WCA-9).
+!benchmarks/results/beir_fusion_bench.json
 # Tokeniser blobs are fetchable from the fine-tune's base model (WCH-6);
 # see benchmarks/models/factcg-cb/README.md. Configs/results stay tracked.
 benchmarks/models/factcg-cb/tokenizer.json
