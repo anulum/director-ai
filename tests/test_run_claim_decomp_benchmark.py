@@ -30,6 +30,7 @@ from benchmarks.run_claim_decomp_benchmark import (
     CONFIGS,
     ConfigScores,
     _balanced_accuracy,
+    _extract_json_object,
     _prf1,
     _subclaims,
     _support_score,
@@ -377,3 +378,54 @@ class TestRunBenchmark:
         assert report["meta"]["decomposer_model"] == "fake"
         assert "elapsed_s" in report["meta"]
         assert "delta_llm_minus_regex" in report
+
+
+# ── _extract_json_object ───────────────────────────────────────────
+
+
+class TestExtractJsonObject:
+    """Normalise raw instruct-model output to a clean first JSON object."""
+
+    def test_clean_json_passthrough(self) -> None:
+        raw = '{"claims": ["a", "b"]}'
+        assert json.loads(_extract_json_object(raw)) == {"claims": ["a", "b"]}
+
+    def test_trailing_tokens_after_object_stripped(self) -> None:
+        # Greedy decoding that does not stop at EOS appends trailing text.
+        raw = '{"claims": ["a"]}\nThat is my answer.'
+        assert json.loads(_extract_json_object(raw)) == {"claims": ["a"]}
+
+    def test_markdown_fence_unwrapped(self) -> None:
+        raw = '```json\n{"claims": ["a", "b"]}\n```'
+        assert json.loads(_extract_json_object(raw)) == {"claims": ["a", "b"]}
+
+    def test_preamble_before_object(self) -> None:
+        raw = 'Here you go: {"claims": ["a"]} done'
+        assert json.loads(_extract_json_object(raw)) == {"claims": ["a"]}
+
+    def test_no_brace_returned_unchanged(self) -> None:
+        raw = "I cannot help with that."
+        assert _extract_json_object(raw) == raw
+
+    def test_invalid_json_after_brace_returned_unchanged(self) -> None:
+        raw = "{not really json at all"
+        assert _extract_json_object(raw) == raw
+
+    def test_extracted_json_survives_strict_decomposer_parse(self) -> None:
+        # The whole point: a fenced/trailing reply must parse via the real
+        # AtomicClaimDecomposer strict parser once normalised.
+        def messy_transport(
+            model: str, messages: list[dict[str, str]], max_tokens: int
+        ) -> str | None:
+            return _extract_json_object(
+                '```json\n{"claims": ["X happened", "Y happened"]}\n```extra'
+            )
+
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", UserWarning)
+            decomposer = AtomicClaimDecomposer(
+                provider="openai", model="fake", transport=messy_transport
+            )
+        result = decomposer.decompose("ignored", sentence_splitter=split_sentences)
+        assert result.backend == "llm"
+        assert result.claims == ("X happened", "Y happened")

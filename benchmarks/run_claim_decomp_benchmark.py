@@ -278,17 +278,46 @@ def summarise(scores: dict[str, ConfigScores]) -> dict[str, Any]:
 # ── Local instruct-model transport ───────────────────────────────────────
 
 
+def _extract_json_object(text: str) -> str:
+    """Return the first complete JSON object embedded in *text*.
+
+    Local instruct models emit the ``{"claims": [...]}`` object but may wrap
+    it in a ```json fence or append trailing tokens under greedy decoding,
+    which ``json.loads`` rejects as "extra data" — the same clean-JSON
+    guarantee a hosted ``response_format=json_object`` transport gives for
+    free. This normalises the raw generation to just that first object so the
+    decomposer's strict parser sees clean JSON; unparseable text is returned
+    unchanged so the decomposer still fails honestly to its sentence
+    fallback.
+    """
+    stripped = text.strip()
+    if stripped.startswith("```"):
+        stripped = stripped.split("```", 2)[1] if "```" in stripped[3:] else stripped
+        if stripped.lstrip().lower().startswith("json"):
+            stripped = stripped.lstrip()[4:]
+    start = stripped.find("{")
+    if start == -1:
+        return text
+    try:
+        obj, _end = json.JSONDecoder().raw_decode(stripped[start:])
+    except json.JSONDecodeError:
+        return text
+    return json.dumps(obj)
+
+
 def build_local_transport(
     model_name: str,
     *,
-    max_new_tokens: int = 512,
+    max_new_tokens: int = 256,
 ) -> Callable[[str, list[dict[str, str]], int], str | None]:
     """Load an instruct model and return an AtomicClaimDecomposer transport.
 
     The returned callable applies the model's chat template to the
-    ``messages`` and greedily decodes a JSON reply. On any generation error
-    it returns ``None`` so the decomposer degrades to its labelled sentence
-    fallback (never a fabricated claim list).
+    ``messages``, greedily decodes, and normalises the reply to its first
+    JSON object (:func:`_extract_json_object`) so the decomposer's strict
+    parser is not defeated by fences or trailing tokens. On any generation
+    error it returns ``None`` so the decomposer degrades to its labelled
+    sentence fallback (never a fabricated claim list).
     """
     import torch
     from transformers import AutoModelForCausalLM, AutoTokenizer
@@ -320,7 +349,8 @@ def build_local_transport(
                     pad_token_id=tok.eos_token_id,
                 )
             gen = out[0][inputs["input_ids"].shape[1] :]
-            return tok.decode(gen, skip_special_tokens=True)
+            raw = tok.decode(gen, skip_special_tokens=True)
+            return _extract_json_object(raw)
         except Exception as exc:  # pragma: no cover - GPU-only path
             logger.warning("local decomposer transport failed: %s", exc)
             return None
