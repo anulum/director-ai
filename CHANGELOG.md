@@ -9,6 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Rubric-scored, optionally ensembled LLM judge
+  (`DirectorConfig.llm_judge_rubric` / `llm_judge_ensemble`): the
+  escalation judge can score grounding / fabrication-risk /
+  contradiction-risk dimensions (G-Eval-style, composite decides the
+  verdict) instead of a bare YES/NO, and can aggregate 1–5
+  independent calls — majority vote with confidence damped by the
+  agreement fraction, so a split panel weakens the judge's influence
+  on the blended score. Defaults unchanged (single-shot verdict);
+  invalid or empty panels fall back to the NLI score exactly as
+  before.
 - Self-consistency / semantic-entropy uncertainty signal
   (`director_ai.core.scoring.self_consistency`): `SelfConsistencyScorer`
   clusters caller-supplied alternative generations by bidirectional

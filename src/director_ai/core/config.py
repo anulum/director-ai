@@ -147,6 +147,8 @@ class DirectorConfig:
     llm_judge_model: str = ""
     llm_judge_local_model: str = ""  # path to local judge checkpoint
     llm_judge_model_revision: str = ""
+    llm_judge_rubric: bool = False  # rubric-scored judge (G-Eval-style dims)
+    llm_judge_ensemble: int = 1  # independent judge calls per escalation (1-5)
     privacy_mode: bool = False
 
     # Tier-6 reasoning escalation (causal-LM safety chain-of-thought above NLI).

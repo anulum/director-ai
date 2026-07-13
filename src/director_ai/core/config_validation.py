@@ -137,6 +137,14 @@ def validate_and_normalize(cfg: DirectorConfig) -> None:
         )
     if cfg.reranker_enabled and not cfg.reranker_model.strip():
         raise ValueError("reranker_model must be set when reranker_enabled=True")
+    if not isinstance(cfg.llm_judge_rubric, bool):
+        raise ValueError("llm_judge_rubric must be a boolean")
+    if not isinstance(cfg.llm_judge_ensemble, int) or isinstance(
+        cfg.llm_judge_ensemble, bool
+    ):
+        raise ValueError("llm_judge_ensemble must be an integer")
+    if not 1 <= cfg.llm_judge_ensemble <= 5:
+        raise ValueError("llm_judge_ensemble must be between 1 and 5")
     if cfg.verified_scorer_evidence_top_k < 1:
         raise ValueError("verified_scorer_evidence_top_k must be >= 1")
     if not (0.0 <= cfg.verified_scorer_low_confidence_margin <= 1.0):

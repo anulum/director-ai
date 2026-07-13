@@ -116,6 +116,8 @@ store = config.build_store()
 | `llm_judge_confidence_threshold` | `float` | `0.3` | Softmax margin for escalation |
 | `llm_judge_provider` | `str` | `""` | `"openai"`, `"anthropic"`, or `"local"` |
 | `llm_judge_model` | `str` | `""` | Model name for judge |
+| `llm_judge_rubric` | `bool` | `False` | Rubric-scored judge: grounding/fabrication/contradiction dimensions instead of a bare verdict |
+| `llm_judge_ensemble` | `int` | `1` | Independent judge calls per escalation (1–5); majority vote, disagreement damps the judge's weight |
 | `privacy_mode` | `bool` | `False` | Redact PII before sending |
 
 ### Vector Store

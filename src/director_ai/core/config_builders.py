@@ -298,6 +298,8 @@ def build_scorer(
         "llm_judge_provider": cfg.llm_judge_provider,
         "llm_judge_model": judge_model,
         "llm_judge_model_revision": cfg.llm_judge_model_revision or None,
+        "llm_judge_rubric": cfg.llm_judge_rubric,
+        "llm_judge_ensemble": cfg.llm_judge_ensemble,
         "reasoning_enabled": cfg.reasoning_enabled,
         "reasoning_provider": cfg.reasoning_provider,
         "reasoning_model": cfg.reasoning_model,

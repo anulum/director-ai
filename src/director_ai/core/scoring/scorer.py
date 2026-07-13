@@ -117,6 +117,8 @@ class CoherenceScorer(ReviewPipelineMixin):
         llm_judge_provider: str = "",
         llm_judge_model: str = "",
         llm_judge_model_revision: str | None = None,
+        llm_judge_rubric: bool = False,
+        llm_judge_ensemble: int = 1,
         scorer_backend: str = "deberta",
         onnx_path: str | None = None,
         nli_devices: list[str] | None = None,
@@ -318,6 +320,8 @@ class CoherenceScorer(ReviewPipelineMixin):
             confidence_threshold=llm_judge_confidence_threshold,
             device=nli_device,
             privacy_mode=privacy_mode,
+            rubric=llm_judge_rubric,
+            ensemble_n=llm_judge_ensemble,
         )
         # Backward-compat aliases used by tests
         self._llm_judge_enabled = self._judge.enabled

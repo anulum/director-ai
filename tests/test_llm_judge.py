@@ -132,6 +132,7 @@ def test_external_judge_applies_privacy_redactor_before_call(
         model: str,
         messages: str | list[dict[str, str]],
         fallback: float,
+        max_tokens: int = 50,
     ) -> str:
         """Capture provider payloads and return a rejecting judge verdict."""
         assert model == "gpt-4o-mini"
@@ -236,6 +237,7 @@ def test_external_egress_is_logged(
         model: str,
         messages: str | list[dict[str, str]],
         fallback: float,
+        max_tokens: int = 50,
     ) -> str:
         """Return a deterministic accepting judge verdict."""
         assert model == "gpt-4o-mini"
@@ -362,3 +364,172 @@ def test_lenient_parser_clamps_json_confidence_and_falls_back_to_text() -> None:
         1.0,
     )
     assert LLMJudge._parse_judge_reply("yes, supported") == (True, 0.5)
+
+
+# -- WCA-5: rubric scoring + ensemble aggregation -----------------------------
+
+
+class TestRubricJudge:
+    def test_constructor_rejects_bad_rubric_and_ensemble(self) -> None:
+        with pytest.raises(ValueError, match="rubric must be a boolean"):
+            LLMJudge(rubric="yes")
+        with pytest.raises(ValueError, match="ensemble_n must be an integer"):
+            LLMJudge(ensemble_n=True)
+        with pytest.raises(ValueError, match="between 1 and 5"):
+            LLMJudge(ensemble_n=0)
+        with pytest.raises(ValueError, match="between 1 and 5"):
+            LLMJudge(ensemble_n=6)
+
+    def test_rubric_messages_carry_dimension_schema(self) -> None:
+        messages = LLMJudge._build_rubric_messages("prompt", "response", 0.4)
+
+        assert '"grounding"' in messages[0]["content"]
+        assert '"fabrication"' in messages[0]["content"]
+        assert '"contradiction"' in messages[0]["content"]
+        assert "untrusted data" in messages[0]["content"]
+        assert '"nli_divergence": 0.4' in messages[1]["content"]
+
+    @pytest.mark.parametrize(
+        ("reply", "expected"),
+        [
+            # composite = (0.4*5 + 0.3*5 + 0.3*5)/5 = 1.0 -> agrees
+            (
+                '{"grounding":5,"fabrication":0,"contradiction":0,"confidence":90}',
+                (True, 0.9),
+            ),
+            # composite = (0.4*0 + 0.3*0 + 0.3*0)/5 = 0.0 -> disagrees
+            (
+                '{"grounding":0,"fabrication":5,"contradiction":5,"confidence":80}',
+                (False, 0.8),
+            ),
+            # boundary: composite exactly 0.5 counts as agrees
+            (
+                '{"grounding":2,"fabrication":2,"contradiction":2,"confidence":50}',
+                (True, 0.5),
+            ),
+        ],
+    )
+    def test_rubric_parser_composites(self, reply: str, expected: tuple) -> None:
+        agrees, confidence = LLMJudge._parse_rubric_reply_strict(reply)
+
+        assert agrees is expected[0]
+        assert confidence == pytest.approx(expected[1])
+
+    @pytest.mark.parametrize(
+        "reply",
+        [
+            "not json",
+            "[1, 2]",
+            '{"grounding":6,"fabrication":0,"contradiction":0,"confidence":50}',
+            '{"grounding":5,"fabrication":-1,"contradiction":0,"confidence":50}',
+            '{"grounding":5,"fabrication":0,"contradiction":0,"confidence":101}',
+            '{"grounding":5,"fabrication":0,"confidence":50}',
+            '{"grounding":"high","fabrication":0,"contradiction":0,"confidence":5}',
+        ],
+    )
+    def test_rubric_parser_rejects_invalid(self, reply: str) -> None:
+        assert LLMJudge._parse_rubric_reply_strict(reply) is None
+
+    def test_rubric_check_uses_rubric_messages_and_budget(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        judge = LLMJudge(provider="openai", model="gpt-4o-mini", rubric=True)
+        seen: dict[str, Any] = {}
+
+        def fake_call(
+            model: str,
+            messages: str | list[dict[str, str]],
+            fallback: float,
+            max_tokens: int = 50,
+        ) -> str:
+            seen["max_tokens"] = max_tokens
+            seen["system"] = messages[0]["content"]
+            return '{"grounding":5,"fabrication":0,"contradiction":0,"confidence":90}'
+
+        monkeypatch.setattr(judge, "_call_llm_judge", fake_call)
+
+        result = judge._llm_judge_check("prompt", "response", 0.5)
+
+        assert seen["max_tokens"] == 120
+        assert '"grounding"' in seen["system"]
+        assert result < 0.5  # agreeing judge pulls divergence down
+
+
+class TestEnsembleAggregation:
+    def _judge(self, replies: list[str | None], **kwargs: Any) -> LLMJudge:
+        judge = LLMJudge(provider="openai", model="gpt-4o-mini", **kwargs)
+        queue = list(replies)
+
+        def fake_call(
+            model: str,
+            messages: str | list[dict[str, str]],
+            fallback: float,
+            max_tokens: int = 50,
+        ) -> str | None:
+            return queue.pop(0)
+
+        judge._call_llm_judge = fake_call  # type: ignore[method-assign]
+        return judge
+
+    def test_majority_vote_wins(self) -> None:
+        judge = self._judge(
+            [
+                '{"verdict": "YES", "confidence": 80}',
+                '{"verdict": "NO", "confidence": 90}',
+                '{"verdict": "YES", "confidence": 60}',
+            ],
+            ensemble_n=3,
+        )
+
+        result = judge._llm_judge_check("prompt", "response", 0.5)
+
+        # Majority YES; conf = mean(0.8, 0.6) * agreement(2/3)
+        assert result < 0.5
+
+    def test_disagreement_damps_confidence(self) -> None:
+        unanimous = self._judge(
+            ['{"verdict": "YES", "confidence": 80}'] * 3,
+            ensemble_n=3,
+        )
+        split = self._judge(
+            [
+                '{"verdict": "YES", "confidence": 80}',
+                '{"verdict": "YES", "confidence": 80}',
+                '{"verdict": "NO", "confidence": 80}',
+            ],
+            ensemble_n=3,
+        )
+
+        unanimous_score = unanimous._llm_judge_check("p", "r", 0.5)
+        split_score = split._llm_judge_check("p2", "r2", 0.5)
+
+        # Split panel -> weaker judge influence -> closer to the NLI 0.5.
+        assert abs(split_score - 0.5) < abs(unanimous_score - 0.5)
+
+    def test_tie_follows_first_verdict(self) -> None:
+        judge = self._judge(
+            [
+                '{"verdict": "NO", "confidence": 70}',
+                '{"verdict": "YES", "confidence": 70}',
+                "not json",
+            ],
+            ensemble_n=3,
+        )
+
+        result = judge._llm_judge_check("prompt", "response", 0.5)
+
+        # Two valid verdicts tie -> first (NO) wins -> divergence rises.
+        assert result > 0.5
+
+    def test_all_invalid_falls_back_to_nli(self) -> None:
+        judge = self._judge(["not json", None, "{}"], ensemble_n=3)
+
+        assert judge._llm_judge_check("prompt", "response", 0.42) == 0.42
+
+    def test_single_call_path_unchanged(self) -> None:
+        judge = self._judge(['{"verdict": "NO", "confidence": 100}'])
+
+        result = judge._llm_judge_check("prompt", "response", 0.5)
+
+        assert result > 0.5

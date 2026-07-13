@@ -692,6 +692,30 @@ class TestBuildStore:
         with pytest.raises(ValueError, match="hybrid_rrf_k must be an integer"):
             DirectorConfig(hybrid_rrf_k=True)
 
+    def test_llm_judge_rubric_must_be_boolean(self):
+        with pytest.raises(ValueError, match="llm_judge_rubric must be a boolean"):
+            DirectorConfig(llm_judge_rubric="yes")
+
+    def test_llm_judge_ensemble_must_be_integer(self):
+        with pytest.raises(ValueError, match="llm_judge_ensemble must be an integer"):
+            DirectorConfig(llm_judge_ensemble=True)
+
+    @pytest.mark.parametrize("value", [0, 6])
+    def test_llm_judge_ensemble_range(self, value):
+        with pytest.raises(ValueError, match="between 1 and 5"):
+            DirectorConfig(llm_judge_ensemble=value)
+
+    def test_build_scorer_passes_rubric_and_ensemble(self):
+        cfg = DirectorConfig(
+            llm_judge_rubric=True,
+            llm_judge_ensemble=3,
+        )
+
+        scorer = cfg.build_scorer()
+
+        assert scorer._judge._rubric is True
+        assert scorer._judge._ensemble_n == 3
+
     def test_hybrid_fusion_method_is_canonicalised(self):
         cfg = DirectorConfig(hybrid_fusion_method="  ZScore ")
 
