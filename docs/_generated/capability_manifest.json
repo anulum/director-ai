@@ -7,7 +7,7 @@
     "public_api_exports": 226,
     "public_documentation_pages": 205,
     "python_model_classes": 1035,
-    "python_model_source_modules": 505,
+    "python_model_source_modules": 507,
     "rust_pyo3_model_wrappers": 83,
     "test_files": 754
   },
@@ -4491,7 +4491,9 @@
       "src/director_ai/_guard_quality.py",
       "src/director_ai/_guard_verification.py",
       "src/director_ai/_proxy_moderations.py",
+      "src/director_ai/_server_auth_middleware.py",
       "src/director_ai/_server_helpers.py",
+      "src/director_ai/_server_lifecycle.py",
       "src/director_ai/_server_models.py",
       "src/director_ai/agentic/agent_profile.py",
       "src/director_ai/agentic/handoff_scorer.py",

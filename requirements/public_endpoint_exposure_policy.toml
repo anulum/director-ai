@@ -9,7 +9,7 @@
 id = "public-endpoint-exposure"
 status = "active"
 deployment_doc = "docs-site/deployment/public-endpoints.md"
-server_module = "src/director_ai/server.py"
+server_module = "src/director_ai/_server_auth_middleware.py"
 config_module = "src/director_ai/core/config.py"
 
 [[endpoints]]
