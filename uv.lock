@@ -2051,7 +2051,7 @@ requires-dist = [
     { name = "requests", specifier = ">=2.32" },
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.5,<1" },
     { name = "scikit-learn", marker = "extra == 'finetune'", specifier = ">=1.3" },
-    { name = "scpn-studio-platform", marker = "python_full_version >= '3.12' and extra == 'honesty'", specifier = ">=0.10,<0.11" },
+    { name = "scpn-studio-platform", marker = "python_full_version >= '3.12' and extra == 'honesty'", specifier = ">=0.11,<0.12" },
     { name = "sentence-transformers", marker = "extra == 'embed'", specifier = ">=4,<6" },
     { name = "sentence-transformers", marker = "extra == 'embeddings'", specifier = ">=4,<6" },
     { name = "sentence-transformers", marker = "extra == 'reranker'", specifier = ">=4,<6" },
@@ -7890,14 +7890,14 @@ wheels = [
 
 [[package]]
 name = "scpn-studio-platform"
-version = "0.10.0"
+version = "0.11.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "cryptography", marker = "python_full_version >= '3.12'" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/e9/cf/ee8234b39b782302805333c69a42b14c071a3e4c5c3e3c8a366894cda7c5/scpn_studio_platform-0.10.0.tar.gz", hash = "sha256:5a70488403838704468500a787cfa73852b4aece7f191aaa8ada29ea1accf8a5", size = 79122, upload-time = "2026-06-25T00:19:55.803Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/77/e2/d0ebd9282064353954dc753fe1c088c3bf2b9ac206525e7127bcee847836/scpn_studio_platform-0.11.2.tar.gz", hash = "sha256:566676c1457bc31de14d6e449430eecc9f69b387063302f66ac67c514ee0c863", size = 169036, upload-time = "2026-07-10T22:52:47.608Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/67/55/514034234b6e288addb237ad5a9b6e45de14a1cbafd22ea39030e84b32ef/scpn_studio_platform-0.10.0-py3-none-any.whl", hash = "sha256:4ae25cd795fa97e8386d1204c7aa49499fb135b11ec7d86e2af3f9b081d4cd43", size = 80397, upload-time = "2026-06-25T00:19:54.621Z" },
+    { url = "https://files.pythonhosted.org/packages/3d/94/3617361424b2d85b975bfaab8cab2e65c48064dc8558c266c61bb5c9131d/scpn_studio_platform-0.11.2-py3-none-any.whl", hash = "sha256:ec438e71a16ce0b8689bef7de1284fcd8750871b3e2beb981c1aefeb44713cc6", size = 154765, upload-time = "2026-07-10T22:52:46.417Z" },
 ]
 
 [[package]]
