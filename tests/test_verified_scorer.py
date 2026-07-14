@@ -27,7 +27,13 @@ from director_ai.core.verified_scorer import (
 
 class TestSignalReExports:
     def test_verified_scorer_re_exports_claim_signal_kernels(self):
-        """The historical import surface must resolve to _claim_signals."""
+        """The historical import surface must resolve to _claim_signals.
+
+        Compares by defining module rather than object identity: the
+        mandatory-runtime-policy suite reloads _claim_signals to exercise
+        the kernel-absent stubs, so identity across modules is test-order
+        dependent while ``__module__`` provenance is not.
+        """
         for name in (
             "_split_sentences",
             "_decompose_atomic",
@@ -39,7 +45,7 @@ class TestSignalReExports:
             "_sum_int",
             "_sum_float",
         ):
-            assert getattr(verified_mod, name) is getattr(signals_mod, name)
+            assert getattr(verified_mod, name).__module__ == signals_mod.__name__, name
 
 
 class TestSplitSentences:
