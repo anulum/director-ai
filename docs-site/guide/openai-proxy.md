@@ -9,6 +9,11 @@ director-ai proxy --port 8080 --facts kb.txt --threshold 0.6
 export OPENAI_BASE_URL=http://localhost:8080/v1
 ```
 
+The proxy binds to `127.0.0.1` by default. To expose it beyond the local
+machine (LAN, container), opt in explicitly with `--host 0.0.0.0` or the
+`DIRECTOR_SERVER_HOST` environment variable — and put authentication
+(`--api-keys`) in front of any non-loopback bind.
+
 Build it programmatically with `create_proxy_app` (reference below):
 
 ```python

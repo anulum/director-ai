@@ -481,7 +481,9 @@ def _command_specs() -> dict[str, _CommandSpec]:
         ),
         "proxy": _CommandSpec(
             _cmd_proxy,
-            "proxy [--port N] [--facts F]   Chat-completions guardrail proxy",
+            "proxy [--host H] [--port N] [--facts F]   Chat-completions "
+            "guardrail proxy (binds 127.0.0.1; --host/DIRECTOR_SERVER_HOST "
+            "to expose)",
         ),
         "export": _CommandSpec(
             _cmd_export,

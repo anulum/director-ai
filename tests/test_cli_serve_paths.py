@@ -263,6 +263,7 @@ def test_proxy_builds_app_from_flags_and_config_env(monkeypatch, capsys):
     )
     monkeypatch.setitem(sys.modules, "uvicorn", fake_uvicorn)
     monkeypatch.setitem(sys.modules, "director_ai.proxy", fake_proxy)
+    monkeypatch.delenv("DIRECTOR_SERVER_HOST", raising=False)
 
     _cli_serve._cmd_proxy(
         [
@@ -302,11 +303,61 @@ def test_proxy_builds_app_from_flags_and_config_env(monkeypatch, capsys):
         },
     ]
     assert isinstance(proxy_calls[0]["config"], FakeDirectorConfig)
+    # DIR-G03: without an explicit --host or DIRECTOR_SERVER_HOST the proxy
+    # binds loopback, never all interfaces.
     assert uvicorn_calls == [
-        {"app": {"proxy": True}, "host": "0.0.0.0", "port": 8088},
+        {"app": {"proxy": True}, "host": "127.0.0.1", "port": 8088},
     ]
     out = capsys.readouterr().out
     assert "threshold=0.42" in out
+    assert "127.0.0.1:8088" in out
+
+
+def _install_fake_proxy_stack(monkeypatch):
+    """Fake uvicorn + proxy app; returns the uvicorn call list."""
+    uvicorn_calls: list[dict[str, object]] = []
+    fake_uvicorn = ModuleType("uvicorn")
+    fake_uvicorn.run = lambda app, **kwargs: uvicorn_calls.append(
+        {"app": app, **kwargs},
+    )
+    fake_proxy = ModuleType("director_ai.proxy")
+    fake_proxy.create_proxy_app = lambda **kwargs: {"proxy": True}
+    monkeypatch.setitem(sys.modules, "uvicorn", fake_uvicorn)
+    monkeypatch.setitem(sys.modules, "director_ai.proxy", fake_proxy)
+    monkeypatch.delenv("DIRECTOR_SERVER_HOST", raising=False)
+    return uvicorn_calls
+
+
+def test_proxy_defaults_to_loopback_bind(monkeypatch):
+    uvicorn_calls = _install_fake_proxy_stack(monkeypatch)
+
+    _cli_serve._cmd_proxy([])
+
+    assert uvicorn_calls == [
+        {"app": {"proxy": True}, "host": "127.0.0.1", "port": 8080},
+    ]
+
+
+def test_proxy_explicit_host_flag_wins(monkeypatch):
+    uvicorn_calls = _install_fake_proxy_stack(monkeypatch)
+    monkeypatch.setenv("DIRECTOR_SERVER_HOST", "10.0.0.9")
+
+    _cli_serve._cmd_proxy(["--host", "0.0.0.0", "--port", "9001"])  # noqa: S104
+
+    assert uvicorn_calls == [
+        {"app": {"proxy": True}, "host": "0.0.0.0", "port": 9001},  # noqa: S104
+    ]
+
+
+def test_proxy_honours_container_host_env(monkeypatch):
+    uvicorn_calls = _install_fake_proxy_stack(monkeypatch)
+    monkeypatch.setenv("DIRECTOR_SERVER_HOST", "0.0.0.0")  # noqa: S104
+
+    _cli_serve._cmd_proxy([])
+
+    assert uvicorn_calls == [
+        {"app": {"proxy": True}, "host": "0.0.0.0", "port": 8080},  # noqa: S104
+    ]
 
 
 def test_proxy_rejects_unknown_moderations_mode(capsys):

@@ -53,7 +53,9 @@ def _apply_run_mode(config: DirectorConfig, run_mode: str) -> DirectorConfig:
     return config
 
 
-def _resolve_bind_host(config: DirectorConfig, host: str, host_explicit: bool) -> str:
+def _resolve_bind_host(
+    config: DirectorConfig | None, host: str, host_explicit: bool
+) -> str:
     """Resolve the server bind host from the ``--host`` flag and run mode.
 
     Precedence: an explicit ``--host`` wins; then an explicit
@@ -63,7 +65,9 @@ def _resolve_bind_host(config: DirectorConfig, host: str, host_explicit: bool) -
     keeps its configured/all-interfaces bind for a reverse-proxy deployment;
     otherwise a dev server binds to loopback so an unauthenticated ``serve --dev``
     is not exposed on every interface. Operators who want LAN access in dev opt
-    in with ``--host 0.0.0.0`` or ``DIRECTOR_SERVER_HOST``.
+    in with ``--host 0.0.0.0`` or ``DIRECTOR_SERVER_HOST``. ``config`` may be
+    ``None`` (the proxy command without ``--config-env``), which resolves like
+    a non-production run.
     """
     if host_explicit:
         return host
@@ -223,8 +227,16 @@ def _print_serve_help() -> None:
 
 
 def _cmd_proxy(args: list[str]) -> None:
-    """Start OpenAI-compatible guardrail proxy."""
+    """Start OpenAI-compatible guardrail proxy.
+
+    Binds to loopback by default; LAN/container exposure is an explicit
+    opt-in via ``--host`` or ``DIRECTOR_SERVER_HOST`` (same resolution as
+    ``serve``), so an unauthenticated dev proxy is never silently exposed
+    on every interface.
+    """
     port = 8080
+    host = ""
+    host_explicit = False
     threshold = 0.6
     facts_path = None
     facts_root: str | None = None
@@ -240,6 +252,10 @@ def _cmd_proxy(args: list[str]) -> None:
     while i < len(args):
         if args[i] == "--port" and i + 1 < len(args):
             port = int(args[i + 1])
+            i += 2
+        elif args[i] == "--host" and i + 1 < len(args):
+            host = args[i + 1]
+            host_explicit = True
             i += 2
         elif args[i] == "--threshold" and i + 1 < len(args):
             threshold = float(args[i + 1])
@@ -310,12 +326,14 @@ def _cmd_proxy(args: list[str]) -> None:
         moderations=moderations,
     )
 
+    # Same bind resolution as `serve`: explicit --host wins, then
+    # DIRECTOR_SERVER_HOST (container opt-in), otherwise loopback.
+    bind_host = _resolve_bind_host(config, host, host_explicit)
     print(
-        f"Director-AI proxy on :{port} → {upstream_url} "
+        f"Director-AI proxy on {bind_host}:{port} → {upstream_url} "
         f"(threshold={threshold}, on_fail={on_fail})",
     )
-    # CLI proxy bind; production deployments place it behind a reverse proxy.
-    uvicorn.run(app, host="0.0.0.0", port=port)  # nosec B104
+    uvicorn.run(app, host=bind_host, port=port)
 
 
 def _cmd_stress_test(args: list[str]) -> None:
