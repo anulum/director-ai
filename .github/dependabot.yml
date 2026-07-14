@@ -40,3 +40,12 @@ updates:
     labels:
       - "dependencies"
       - "python"
+    # crewai 1.x pins json-repair exactly (==0.25.2) and caps chromadb at
+    # ~=1.1.0, so a standalone bump of either can only resolve by downgrading
+    # crewai to the ancient 0.95.0 line — which is exactly what the #148/#149
+    # updates did before being reverted. Both move together with a crewai
+    # upgrade instead; chromadb 1.1.x patches stay allowed.
+    ignore:
+      - dependency-name: "json-repair"
+      - dependency-name: "chromadb"
+        versions: [">=1.2"]
