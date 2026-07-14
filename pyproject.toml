@@ -171,7 +171,7 @@ embeddings = [
     "sentence-transformers>=4,<6",
 ]
 license = [
-    "polar-sdk==0.31.3",
+    "polar-sdk==0.31.7",
 ]
 crypto = [
     "cryptography>=42,<49",
@@ -226,7 +226,7 @@ moderation = [
     "detoxify>=0.5",
 ]
 demo = [
-    "gradio>=4.0",
+    "gradio>=4.0,<7",
 ]
 ingestion = [
     "pypdf>=6.13.3",
