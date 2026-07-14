@@ -175,12 +175,14 @@ class TestComputedReportWithoutInputs:
             "GOV-DATA-01",
             "GOV-DOC-01",
             "GOV-LOG-01",
+            "GOV-TRA-01",
             "GOV-ACC-01",
             "GOV-OVR-01",
+            "GOV-PMM-01",
         ):
             assert _control(report, control_id).status is ReadinessStatus.FAIL
         summary = report.summary()
-        assert summary["failures"] == 6
+        assert summary["failures"] == 8
         assert summary["risk_level"] == "critical"
         assert summary["readiness_score"] == 0.0
 
@@ -312,8 +314,10 @@ class TestReportSerialisation:
             "GOV-DATA-01",
             "GOV-DOC-01",
             "GOV-LOG-01",
+            "GOV-TRA-01",
             "GOV-ACC-01",
             "GOV-OVR-01",
+            "GOV-PMM-01",
         ]
         first = payload["controls"][0]
         assert first["nist_ai_rmf_refs"] == ["GOVERN 1", "MANAGE 1"]
@@ -339,15 +343,137 @@ class TestReportSerialisation:
             audit_log=audit_log, evidence_root=tmp_path
         )
         summary = report.summary()
-        assert summary["total_controls"] == 6
+        assert summary["total_controls"] == 8
         assert (
             summary["passed"]
             + summary["warnings"]
             + summary["failures"]
             + summary["not_applicable"]
-            == 6
+            == 8
         )
         assert summary["risk_level"] in ("critical", "attention_required", "ready")
+
+
+class TestTransparencyControl:
+    def _config(self, **overrides):
+        base = {"use_nli": False, "scorer_backend": "lite"}
+        base.update(overrides)
+        return DirectorConfig(**base)
+
+    def test_full_state_passes(self, audit_log, tmp_path):
+        (tmp_path / "README.md").write_text("# Guide", encoding="utf-8")
+        (tmp_path / "docs").mkdir()
+        (tmp_path / "docs" / "PRODUCTION_CHECKLIST.md").write_text(
+            "# Checklist", encoding="utf-8"
+        )
+        report = compute_governance_controls(
+            config=self._config(profile="production"),
+            audit_log=audit_log,
+            evidence_root=tmp_path,
+        )
+        control = _control(report, "GOV-TRA-01")
+        assert control.status is ReadinessStatus.PASS
+        assert _signal(control, "instructions_for_use_present").satisfied is True
+        assert _signal(control, "operating_profile_declared").satisfied is True
+        assert _signal(control, "interpretability_metadata_recorded").satisfied is True
+
+    def test_missing_docs_fail_instructions_signal(self, audit_log, tmp_path):
+        (tmp_path / "README.md").write_text("# Guide", encoding="utf-8")
+        report = compute_governance_controls(
+            audit_log=audit_log, evidence_root=tmp_path
+        )
+        control = _control(report, "GOV-TRA-01")
+        docs = _signal(control, "instructions_for_use_present")
+        assert docs.satisfied is False
+        assert "not found under evidence root" in docs.observed
+        assert control.status is ReadinessStatus.WARNING
+
+    def test_blank_profile_fails_profile_signal(self, tmp_path):
+        report = compute_governance_controls(
+            config=self._config(profile=""), evidence_root=tmp_path
+        )
+        control = _control(report, "GOV-TRA-01")
+        assert _signal(control, "operating_profile_declared").satisfied is False
+
+    def test_no_audit_log_degrades_interpretability_signal(self, tmp_path):
+        report = compute_governance_controls(evidence_root=tmp_path)
+        control = _control(report, "GOV-TRA-01")
+        signal = _signal(control, "interpretability_metadata_recorded")
+        assert signal.satisfied is False
+        assert "no audit log attached" in signal.observed
+
+    def test_crosswalk_references(self, tmp_path):
+        control = _control(
+            compute_governance_controls(evidence_root=tmp_path), "GOV-TRA-01"
+        )
+        assert control.eu_ai_act_refs == ("Article 13(1)", "Article 13(3)")
+        assert control.nist_ai_rmf_refs == ("MAP 3", "GOVERN 4")
+        assert control.iso42001_refs == ("A.8",)
+
+
+class TestPostMarketMonitoringControl:
+    def _config(self, **overrides):
+        base = {"use_nli": False, "scorer_backend": "lite"}
+        base.update(overrides)
+        return DirectorConfig(**base)
+
+    def test_full_state_passes(self, audit_log, tmp_path):
+        report = compute_governance_controls(
+            config=self._config(metrics_enabled=True),
+            audit_log=audit_log,
+            evidence_root=tmp_path,
+        )
+        control = _control(report, "GOV-PMM-01")
+        assert control.status is ReadinessStatus.PASS
+        assert _signal(control, "drift_analysis_available").satisfied is True
+        recorded = _signal(control, "monitoring_data_recorded")
+        assert recorded.satisfied is True
+        assert "2 recorded interactions" in recorded.observed
+        assert _signal(control, "metrics_export_configured").satisfied is True
+
+    def test_empty_audit_log_is_warning(self, tmp_path):
+        log = AuditLog(str(tmp_path / "empty.sqlite"))
+        try:
+            report = compute_governance_controls(
+                config=self._config(metrics_enabled=True),
+                audit_log=log,
+                evidence_root=tmp_path,
+            )
+            control = _control(report, "GOV-PMM-01")
+            assert _signal(control, "drift_analysis_available").satisfied is True
+            assert _signal(control, "monitoring_data_recorded").satisfied is False
+            assert control.status is ReadinessStatus.WARNING
+        finally:
+            log.close()
+
+    def test_no_inputs_fails_every_signal(self, tmp_path):
+        control = _control(
+            compute_governance_controls(evidence_root=tmp_path), "GOV-PMM-01"
+        )
+        assert control.status is ReadinessStatus.FAIL
+        drift = _signal(control, "drift_analysis_available")
+        assert "no audit log attached" in drift.observed
+        assert (
+            _signal(control, "monitoring_data_recorded").observed
+            == "0 recorded interactions available to monitoring windows"
+        )
+
+    def test_metrics_disabled_fails_metrics_signal(self, audit_log, tmp_path):
+        report = compute_governance_controls(
+            config=self._config(metrics_enabled=False),
+            audit_log=audit_log,
+            evidence_root=tmp_path,
+        )
+        control = _control(report, "GOV-PMM-01")
+        assert _signal(control, "metrics_export_configured").satisfied is False
+
+    def test_crosswalk_references(self, tmp_path):
+        control = _control(
+            compute_governance_controls(evidence_root=tmp_path), "GOV-PMM-01"
+        )
+        assert control.eu_ai_act_refs == ("Article 72(1)", "Article 72(2)")
+        assert control.nist_ai_rmf_refs == ("MEASURE 3", "MANAGE 4")
+        assert control.iso42001_refs == ("Clause 9.1", "A.6")
 
 
 _DISCLAIMER_SNIPPET = "not an EU AI Act conformity assessment"

@@ -6,10 +6,10 @@
     "optional_extras": 62,
     "public_api_exports": 226,
     "public_documentation_pages": 205,
-    "python_model_classes": 1033,
-    "python_model_source_modules": 504,
+    "python_model_classes": 1035,
+    "python_model_source_modules": 505,
     "rust_pyo3_model_wrappers": 83,
-    "test_files": 753
+    "test_files": 754
   },
   "documentation": {
     "public_pages": [
@@ -1629,6 +1629,14 @@
       {
         "name": "EvidenceFirewall",
         "path": "src/director_ai/core/evidence_firewall/firewall.py"
+      },
+      {
+        "name": "EvidenceKitResult",
+        "path": "src/director_ai/cli_verify/evidence_kit.py"
+      },
+      {
+        "name": "EvidenceKitSection",
+        "path": "src/director_ai/cli_verify/evidence_kit.py"
       },
       {
         "name": "EvolutionCycle",
@@ -4495,6 +4503,7 @@
       "src/director_ai/cli_quickstart.py",
       "src/director_ai/cli_verify/compliance.py",
       "src/director_ai/cli_verify/diagnostics.py",
+      "src/director_ai/cli_verify/evidence_kit.py",
       "src/director_ai/cli_verify/tools.py",
       "src/director_ai/cli_verify/verification.py",
       "src/director_ai/compliance/audit_log.py",
@@ -5588,6 +5597,7 @@
       "tests/test_eval_trace.py",
       "tests/test_evidence.py",
       "tests/test_evidence_firewall.py",
+      "tests/test_evidence_kit.py",
       "tests/test_evidence_packet.py",
       "tests/test_evidence_packet_real_surface.py",
       "tests/test_exceptions.py",

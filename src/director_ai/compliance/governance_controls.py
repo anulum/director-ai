@@ -559,6 +559,96 @@ def _human_oversight_control(
     )
 
 
+def _transparency_control(
+    config: DirectorConfig | None,
+    audit_log: AuditLog | None,
+    evidence_root: Path,
+) -> GovernanceControl:
+    """Article 13 transparency control computed from docs and interpretability."""
+    readme = evidence_root / "README.md"
+    checklist = evidence_root / "docs" / "PRODUCTION_CHECKLIST.md"
+    docs_present = readme.is_file() and checklist.is_file()
+    signals = [
+        ControlSignal(
+            name="instructions_for_use_present",
+            observed=(
+                f"{readme} and {checklist} exist"
+                if docs_present
+                else "operator documentation not found under evidence root "
+                f"({readme}, {checklist})"
+            ),
+            satisfied=docs_present,
+        ),
+        _config_signal(
+            config,
+            "operating_profile_declared",
+            absent="no DirectorConfig supplied",
+            present=f"profile={getattr(config, 'profile', '')!r}",
+            satisfied=bool(config is not None and config.profile),
+        ),
+        ControlSignal(
+            name="interpretability_metadata_recorded",
+            observed=(
+                "audit log attached; entries carry model, score, confidence "
+                "and latency for output interpretation"
+                if audit_log is not None
+                else "no audit log attached; scored interactions are not "
+                "recorded with interpretability metadata"
+            ),
+            satisfied=audit_log is not None,
+        ),
+    ]
+    return GovernanceControl(
+        control_id="GOV-TRA-01",
+        title="Transparency: operator instructions and interpretable output records",
+        nist_ai_rmf_refs=("MAP 3", "GOVERN 4"),
+        iso42001_refs=("A.8",),
+        eu_ai_act_refs=("Article 13(1)", "Article 13(3)"),
+        signals=tuple(signals),
+    )
+
+
+def _post_market_monitoring_control(
+    config: DirectorConfig | None,
+    audit_log: AuditLog | None,
+) -> GovernanceControl:
+    """Article 72 post-market monitoring control computed from live telemetry."""
+    entry_count = audit_log.count() if audit_log is not None else 0
+    signals = [
+        ControlSignal(
+            name="drift_analysis_available",
+            observed=(
+                "audit log attached; window-over-window drift analysis "
+                "(rate change + two-proportion z-test) can run"
+                if audit_log is not None
+                else "no audit log attached; drift analysis has no data source"
+            ),
+            satisfied=audit_log is not None,
+        ),
+        ControlSignal(
+            name="monitoring_data_recorded",
+            observed=f"{entry_count} recorded interactions available to "
+            "monitoring windows",
+            satisfied=entry_count > 0,
+        ),
+        _config_signal(
+            config,
+            "metrics_export_configured",
+            absent="no DirectorConfig supplied",
+            present=f"metrics_enabled={getattr(config, 'metrics_enabled', None)}",
+            satisfied=bool(config is not None and config.metrics_enabled),
+        ),
+    ]
+    return GovernanceControl(
+        control_id="GOV-PMM-01",
+        title="Post-market monitoring: drift analysis over recorded traffic",
+        nist_ai_rmf_refs=("MEASURE 3", "MANAGE 4"),
+        iso42001_refs=("Clause 9.1", "A.6"),
+        eu_ai_act_refs=("Article 72(1)", "Article 72(2)"),
+        signals=tuple(signals),
+    )
+
+
 def compute_governance_controls(
     *,
     config: DirectorConfig | None = None,
@@ -593,8 +683,10 @@ def compute_governance_controls(
         _data_governance_control(config),
         _technical_documentation_control(audit_log, root),
         _record_keeping_control(audit_log),
+        _transparency_control(config, audit_log, root),
         _accuracy_monitoring_control(audit_log),
         _human_oversight_control(config, audit_log),
+        _post_market_monitoring_control(config, audit_log),
     )
     return GovernanceControlsReport(
         generated_at=generated_at or time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),

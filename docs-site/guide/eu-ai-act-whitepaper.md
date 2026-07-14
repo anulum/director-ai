@@ -1,6 +1,6 @@
 # EU AI Act Compliance with Director-AI
 
-A technical guide for engineering teams preparing high-risk AI systems for EU AI Act enforcement (August 2, 2026).
+A technical guide for engineering teams preparing high-risk AI systems for EU AI Act enforcement (high-risk obligations apply from 2 December 2027 for Annex III systems, after the Digital Omnibus deferral agreed in mid-2026).
 
 ## Scope
 
@@ -145,10 +145,15 @@ For teams deploying Director-AI as part of EU AI Act compliance:
 | August 1, 2024 | EU AI Act entered into force |
 | February 2, 2025 | Prohibited AI practices take effect |
 | August 2, 2025 | GPAI model obligations take effect |
-| **August 2, 2026** | **High-risk AI system obligations take effect** |
-| August 2, 2027 | Obligations for Annex I high-risk systems |
+| August 2, 2026 | Transparency obligations (Article 50) take effect (watermarking grace period to 2 December 2026 for systems already on the market) |
+| **December 2, 2027** | **High-risk obligations take effect — stand-alone Annex III systems** (deferred from 2 August 2026 by the Digital Omnibus) |
+| August 2, 2028 | High-risk obligations for AI embedded in regulated products (Annex I) |
 
-The high-risk deadline is 4 months away at time of writing. Systems deployed before August 2, 2026 must comply by the deadline. Systems already on the market have until August 2, 2027 if they are substantially modified.
+The Digital Omnibus amendment — approved by the European Parliament on
+16 June 2026 and the Council on 29 June 2026 — replaced the original
+2 August 2026 high-risk deadline with the fixed dates above. Verify
+current dates against the Official Journal: the deferral was awaiting
+formal publication when this guide was last updated (July 2026).
 
 ## Further Reading
 

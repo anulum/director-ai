@@ -124,7 +124,13 @@ def _cmd_compliance(args: list[str]) -> None:
             "  governance  [--db PATH] [--format md|json] [--config-env]\n"
             "          [--evidence-root DIR]  Computed NIST AI RMF / ISO 42001 /\n"
             "          EU AI Act controls; a missing audit database degrades the\n"
-            "          record-keeping signals instead of aborting\n",
+            "          record-keeping signals instead of aborting\n"
+            "  evidence-kit  [--db PATH] [--context FILE.json] [--config-env]\n"
+            "          [--evidence-root DIR] [--output DIR] [--since TS]\n"
+            "          [--until TS]  Write the complete evidence bundle\n"
+            "          (governance controls, Article 15 report, SOC 2/ISO\n"
+            "          readiness, HIPAA packet, INDEX.md) into one directory\n"
+            "          (default compliance_evidence/)\n",
         )
         return
 
@@ -177,6 +183,32 @@ def _cmd_compliance(args: list[str]) -> None:
             evidence_root=evidence_root,
             config_env=config_env,
         )
+        return
+
+    if sub == "evidence-kit":
+        from director_ai.cli_verify.evidence_kit import build_evidence_kit
+
+        context = (
+            _load_article15_context(context_path) if context_path is not None else None
+        )
+        config = None
+        if config_env:
+            from director_ai.core.config import DirectorConfig
+
+            config = DirectorConfig.from_env()
+        kit = build_evidence_kit(
+            db_path=db_path,
+            context=context,
+            config=config,
+            evidence_root=evidence_root,
+            out_dir=output_path or "compliance_evidence",
+            since=since,
+            until=until,
+        )
+        for section in kit.sections:
+            marker = "+" if section.included else "-"
+            print(f"  {marker} {section.name}: {section.note}")
+        print(kit.summary_line())
         return
 
     if not Path(db_path).exists():

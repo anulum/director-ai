@@ -4,9 +4,9 @@ Automated Article 15 documentation — accuracy metrics, drift detection, and au
 
 ## Why Compliance Reporting?
 
-The EU AI Act Article 15 requires high-risk AI systems to document accuracy metrics, maintain audit trails, and demonstrate continuous monitoring. Enforcement begins **August 2, 2026**. Fines reach up to **€35M or 7% of global turnover**.
+The EU AI Act Article 15 requires high-risk AI systems to document accuracy metrics, maintain audit trails, and demonstrate continuous monitoring. Following the Digital Omnibus amendment (approved by the European Parliament on 16 June 2026 and the Council on 29 June 2026), high-risk obligations apply from **2 December 2027** for stand-alone Annex III systems and **2 August 2028** for AI embedded in regulated products; transparency obligations (Article 50) still apply from **2 August 2026**. Penalties for non-compliance with high-risk obligations reach up to **€15M or 3% of global turnover** (Article 99(4); prohibited practices carry up to €35M or 7%). Verify current dates against the Official Journal.
 
-Director-AI generates this documentation automatically from production scoring data. No manual effort. No consultants. Self-hosted, so your data never leaves your infrastructure.
+Director-AI generates this documentation automatically from production scoring data. Self-hosted, so your data never leaves your infrastructure.
 
 ## Quick Start
 
@@ -72,11 +72,14 @@ sealed hash chain), and the presence of documentation evidence artefacts
 under an operator-supplied evidence root. Each `GovernanceControl` carries
 crosswalk references to NIST AI RMF 1.0 (function/category level, e.g.
 `GOVERN 1`, `MEASURE 2`), ISO/IEC 42001:2023 (clause or Annex A level,
-e.g. `Clause 6.1`, `A.7`), and EU AI Act articles (`Article 9(2)`,
-`Article 10(2)`, `Article 11(1)`, `Article 12(1)`), and derives its
+e.g. `Clause 6.1`, `A.7`), and EU AI Act articles, and derives its
 status from named `ControlSignal` observations — every signal records
 what was actually seen, so a missing audit log degrades honestly instead
-of aborting.
+of aborting. The eight controls cover risk management (Article 9), data
+governance (Article 10), technical documentation (Article 11),
+record-keeping (Article 12), transparency (Article 13), accuracy
+monitoring (Article 15), human oversight (Article 14), and post-market
+monitoring (Article 72).
 
 ```python
 from director_ai.compliance import (
@@ -106,6 +109,28 @@ EU AI Act conformity assessment, a NIST AI RMF attestation, an ISO/IEC
 verification across process restarts requires a durable
 `DIRECTOR_AUDIT_HMAC_SECRET`; without it the seal is per-process and the
 record-keeping signal will honestly report the mismatch.
+
+## One Command: the Evidence Kit
+
+`director-ai compliance evidence-kit` assembles every compliance artefact
+into a single reviewable directory — the computed governance controls, the
+Article 15 report (full technical documentation when `--context` is
+supplied), the SOC 2 / ISO 27001 readiness report, the HIPAA documentation
+packet, and an `INDEX.md` recording what was produced, what was skipped,
+and why:
+
+```bash
+director-ai compliance evidence-kit \
+    --db audit/compliance.sqlite \
+    --context article15.json \
+    --config-env \
+    --output compliance_evidence/
+```
+
+Degradation is honest: without an audit database the Article 15 section is
+skipped with an explicit note and the record-keeping controls report
+failing signals — the kit never fabricates evidence it does not have. In
+code, the same assembly is `director_ai.cli_verify.evidence_kit.build_evidence_kit()`.
 
 ## SOC 2 / ISO 27001 / HIPAA Readiness
 

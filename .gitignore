@@ -45,6 +45,7 @@ docs/*
 !docs/RUST_FFI_PIPELINE.md
 !docs/BENCHMARKS.md
 !docs/PRODUCTION_CHECKLIST.md
+!docs/COMPLIANCE.md
 !docs/SIEVING.md
 !docs/COVERAGE_EXCLUSIONS.md
 !docs/_generated/
