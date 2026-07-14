@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import pytest
 
+import director_ai.core.scoring._claim_signals as signals_mod
 import director_ai.core.scoring.verified_scorer as verified_mod
 from director_ai.core.verified_scorer import (
     VerifiedScorer,
@@ -22,6 +23,23 @@ from director_ai.core.verified_scorer import (
     _traceability,
     _word_overlap,
 )
+
+
+class TestSignalReExports:
+    def test_verified_scorer_re_exports_claim_signal_kernels(self):
+        """The historical import surface must resolve to _claim_signals."""
+        for name in (
+            "_split_sentences",
+            "_decompose_atomic",
+            "_entity_overlap",
+            "_numerical_consistency",
+            "_negation_flip",
+            "_traceability",
+            "_word_overlap",
+            "_sum_int",
+            "_sum_float",
+        ):
+            assert getattr(verified_mod, name) is getattr(signals_mod, name)
 
 
 class TestSplitSentences:
@@ -39,7 +57,7 @@ class TestSplitSentences:
         assert _split_sentences("") == []
 
     def test_python_sentence_splitter_path(self, monkeypatch):
-        monkeypatch.setattr(verified_mod, "_RUST_SIGNALS", False)
+        monkeypatch.setattr(signals_mod, "_RUST_SIGNALS", False)
 
         assert _split_sentences("Tiny. This is a python fallback sentence.") == [
             "This is a python fallback sentence."
@@ -48,14 +66,14 @@ class TestSplitSentences:
     def test_python_sum_paths_without_rust(self, monkeypatch):
         # With the Rust signal kernels disabled the integer/float reducers fall
         # back to the built-in sum.
-        monkeypatch.setattr(verified_mod, "_RUST_SIGNALS", False)
+        monkeypatch.setattr(signals_mod, "_RUST_SIGNALS", False)
         assert verified_mod._sum_int([1, 2, 3, 4]) == 10
         assert verified_mod._sum_float([0.5, 0.25, 0.25]) == pytest.approx(1.0)
 
     def test_rust_sentence_splitter_delegation(self, monkeypatch):
-        monkeypatch.setattr(verified_mod, "_RUST_SIGNALS", True)
+        monkeypatch.setattr(signals_mod, "_RUST_SIGNALS", True)
         monkeypatch.setattr(
-            verified_mod,
+            signals_mod,
             "rust_split_sentences",
             lambda text: ["Rust sentence one.", "Rust sentence two has enough words."],
             raising=False,
@@ -64,13 +82,13 @@ class TestSplitSentences:
         assert result == ["Rust sentence one.", "Rust sentence two has enough words."]
 
     def test_rust_sentence_splitter_runtime_fallback(self, monkeypatch):
-        monkeypatch.setattr(verified_mod, "_RUST_SIGNALS", True)
+        monkeypatch.setattr(signals_mod, "_RUST_SIGNALS", True)
 
         def _raise_runtime(text):
             raise RuntimeError("ffi unavailable")
 
         monkeypatch.setattr(
-            verified_mod,
+            signals_mod,
             "rust_split_sentences",
             _raise_runtime,
             raising=False,
@@ -81,9 +99,9 @@ class TestSplitSentences:
     def test_rust_sentence_splitter_empty_filtered_result_uses_python_fallback(
         self, monkeypatch
     ):
-        monkeypatch.setattr(verified_mod, "_RUST_SIGNALS", True)
+        monkeypatch.setattr(signals_mod, "_RUST_SIGNALS", True)
         monkeypatch.setattr(
-            verified_mod,
+            signals_mod,
             "rust_split_sentences",
             lambda _text: ["Tiny."],
             raising=False,
@@ -94,13 +112,13 @@ class TestSplitSentences:
         assert result == ["This is a fallback sentence."]
 
     def test_rust_sentence_splitter_non_runtime_fallback(self, monkeypatch):
-        monkeypatch.setattr(verified_mod, "_RUST_SIGNALS", True)
+        monkeypatch.setattr(signals_mod, "_RUST_SIGNALS", True)
 
         def _raise_value_error(text):
             raise ValueError("ffi unavailable")
 
         monkeypatch.setattr(
-            verified_mod,
+            signals_mod,
             "rust_split_sentences",
             _raise_value_error,
             raising=False,
@@ -127,9 +145,9 @@ class TestEntityOverlap:
         assert _entity_overlap("Paris France", "London Berlin") == 0.0
 
     def test_rust_exception_falls_back_to_python(self, monkeypatch):
-        monkeypatch.setattr(verified_mod, "_RUST_SIGNALS", True)
+        monkeypatch.setattr(signals_mod, "_RUST_SIGNALS", True)
         monkeypatch.setattr(
-            verified_mod,
+            signals_mod,
             "rust_entity_overlap",
             lambda _a, _b: (_ for _ in ()).throw(RuntimeError("ffi fail")),
             raising=False,
@@ -138,9 +156,9 @@ class TestEntityOverlap:
         assert 0.0 <= score <= 1.0
 
     def test_rust_non_runtime_exception_falls_back_to_python(self, monkeypatch):
-        monkeypatch.setattr(verified_mod, "_RUST_SIGNALS", True)
+        monkeypatch.setattr(signals_mod, "_RUST_SIGNALS", True)
         monkeypatch.setattr(
-            verified_mod,
+            signals_mod,
             "rust_entity_overlap",
             lambda _a, _b: (_ for _ in ()).throw(ValueError("ffi fail")),
             raising=False,
@@ -149,9 +167,9 @@ class TestEntityOverlap:
         assert 0.0 <= score <= 1.0
 
     def test_rust_type_error_falls_back_to_python(self, monkeypatch):
-        monkeypatch.setattr(verified_mod, "_RUST_SIGNALS", True)
+        monkeypatch.setattr(signals_mod, "_RUST_SIGNALS", True)
         monkeypatch.setattr(
-            verified_mod,
+            signals_mod,
             "rust_entity_overlap",
             lambda _a, _b: (_ for _ in ()).throw(TypeError("ffi fail")),
             raising=False,
@@ -173,9 +191,9 @@ class TestNumericalConsistency:
     def test_rust_numerical_non_runtime_exception_falls_back_to_python(
         self, monkeypatch
     ):
-        monkeypatch.setattr(verified_mod, "_RUST_SIGNALS", True)
+        monkeypatch.setattr(signals_mod, "_RUST_SIGNALS", True)
         monkeypatch.setattr(
-            verified_mod,
+            signals_mod,
             "rust_numerical_consistency",
             lambda _a, _b: (_ for _ in ()).throw(ValueError("ffi fail")),
             raising=False,
@@ -183,9 +201,9 @@ class TestNumericalConsistency:
         assert _numerical_consistency("costs $99", "costs $49") is False
 
     def test_rust_numerical_type_error_falls_back_to_python(self, monkeypatch):
-        monkeypatch.setattr(verified_mod, "_RUST_SIGNALS", True)
+        monkeypatch.setattr(signals_mod, "_RUST_SIGNALS", True)
         monkeypatch.setattr(
-            verified_mod,
+            signals_mod,
             "rust_numerical_consistency",
             lambda _a, _b: (_ for _ in ()).throw(TypeError("ffi fail")),
             raising=False,
@@ -215,9 +233,9 @@ class TestNegationFlip:
     def test_rust_negation_non_runtime_exception_falls_back_to_python(
         self, monkeypatch
     ):
-        monkeypatch.setattr(verified_mod, "_RUST_SIGNALS", True)
+        monkeypatch.setattr(signals_mod, "_RUST_SIGNALS", True)
         monkeypatch.setattr(
-            verified_mod,
+            signals_mod,
             "rust_negation_flip",
             lambda _claim, _source: (_ for _ in ()).throw(ValueError("ffi fail")),
             raising=False,
@@ -228,9 +246,9 @@ class TestNegationFlip:
         )
 
     def test_rust_negation_type_error_falls_back_to_python(self, monkeypatch):
-        monkeypatch.setattr(verified_mod, "_RUST_SIGNALS", True)
+        monkeypatch.setattr(signals_mod, "_RUST_SIGNALS", True)
         monkeypatch.setattr(
-            verified_mod,
+            signals_mod,
             "rust_negation_flip",
             lambda _claim, _source: (_ for _ in ()).throw(TypeError("ffi fail")),
             raising=False,
@@ -265,9 +283,9 @@ class TestTraceability:
         assert _traceability("", "some source") == 1.0
 
     def test_rust_traceability_exception_falls_back_to_python(self, monkeypatch):
-        monkeypatch.setattr(verified_mod, "_RUST_SIGNALS", True)
+        monkeypatch.setattr(signals_mod, "_RUST_SIGNALS", True)
         monkeypatch.setattr(
-            verified_mod,
+            signals_mod,
             "rust_traceability",
             lambda _a, _b: (_ for _ in ()).throw(RuntimeError("ffi fail")),
             raising=False,
@@ -278,9 +296,9 @@ class TestTraceability:
     def test_rust_traceability_non_runtime_exception_falls_back_to_python(
         self, monkeypatch
     ):
-        monkeypatch.setattr(verified_mod, "_RUST_SIGNALS", True)
+        monkeypatch.setattr(signals_mod, "_RUST_SIGNALS", True)
         monkeypatch.setattr(
-            verified_mod,
+            signals_mod,
             "rust_traceability",
             lambda _a, _b: (_ for _ in ()).throw(ValueError("ffi fail")),
             raising=False,
@@ -289,9 +307,9 @@ class TestTraceability:
         assert 0.0 <= score <= 1.0
 
     def test_rust_traceability_type_error_falls_back_to_python(self, monkeypatch):
-        monkeypatch.setattr(verified_mod, "_RUST_SIGNALS", True)
+        monkeypatch.setattr(signals_mod, "_RUST_SIGNALS", True)
         monkeypatch.setattr(
-            verified_mod,
+            signals_mod,
             "rust_traceability",
             lambda _a, _b: (_ for _ in ()).throw(TypeError("ffi fail")),
             raising=False,
@@ -622,7 +640,7 @@ class TestAtomicDecomposition:
 
 class TestSignalImplementations:
     def test_python_signal_fallback_paths(self, monkeypatch):
-        monkeypatch.setattr(verified_mod, "_RUST_SIGNALS", False)
+        monkeypatch.setattr(signals_mod, "_RUST_SIGNALS", False)
 
         assert _entity_overlap("Paris France", "Paris France") == 1.0
         assert _entity_overlap("Paris France", "Berlin Germany") == 0.0
@@ -655,27 +673,27 @@ class TestSignalImplementations:
         assert indices == [0, 1]
 
     def test_rust_signal_delegation_paths(self, monkeypatch):
-        monkeypatch.setattr(verified_mod, "_RUST_SIGNALS", True)
+        monkeypatch.setattr(signals_mod, "_RUST_SIGNALS", True)
         monkeypatch.setattr(
-            verified_mod,
+            signals_mod,
             "rust_entity_overlap",
             lambda text_a, text_b: 0.25 if text_a and text_b else 0.0,
             raising=False,
         )
         monkeypatch.setattr(
-            verified_mod,
+            signals_mod,
             "rust_numerical_consistency",
             lambda text_a, text_b: "42" in text_a and "42" in text_b,
             raising=False,
         )
         monkeypatch.setattr(
-            verified_mod,
+            signals_mod,
             "rust_negation_flip",
             lambda claim, source: claim != source,
             raising=False,
         )
         monkeypatch.setattr(
-            verified_mod,
+            signals_mod,
             "rust_traceability",
             lambda claim, source: 0.75 if claim in source else 0.0,
             raising=False,
@@ -698,13 +716,13 @@ class TestSignalImplementations:
         # _word_overlap delegates to the shared helper; drive ranking with real
         # lexical overlap. The claim shares "target source" with index 1.
         monkeypatch.setattr(
-            verified_mod,
+            signals_mod,
             "rust_entity_overlap",
             lambda text_a, text_b: 0.0,
             raising=False,
         )
         monkeypatch.setattr(
-            verified_mod,
+            signals_mod,
             "rust_numerical_consistency",
             lambda text_a, text_b: None,
             raising=False,

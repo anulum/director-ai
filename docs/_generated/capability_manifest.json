@@ -7,7 +7,7 @@
     "public_api_exports": 226,
     "public_documentation_pages": 205,
     "python_model_classes": 1039,
-    "python_model_source_modules": 511,
+    "python_model_source_modules": 512,
     "rust_pyo3_model_wrappers": 83,
     "test_files": 754
   },
@@ -4810,6 +4810,7 @@
       "src/director_ai/core/safety_protocol.py",
       "src/director_ai/core/sanitizer.py",
       "src/director_ai/core/scorer.py",
+      "src/director_ai/core/scoring/_claim_signals.py",
       "src/director_ai/core/scoring/_divergence.py",
       "src/director_ai/core/scoring/_divergence_factual.py",
       "src/director_ai/core/scoring/_divergence_routing.py",

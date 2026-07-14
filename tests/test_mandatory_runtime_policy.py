@@ -76,11 +76,11 @@ def test_require_rust_kernel_names_the_kernel_and_the_extra() -> None:
     ("module_name", "stub_call"),
     [
         (
-            "director_ai.core.scoring.verified_scorer",
+            "director_ai.core.scoring._claim_signals",
             lambda mod: mod.rust_sum_f64([1.0]),
         ),
         (
-            "director_ai.core.scoring.verified_scorer",
+            "director_ai.core.scoring._claim_signals",
             lambda mod: mod.rust_traceability("claim", "source"),
         ),
         (

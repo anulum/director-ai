@@ -186,10 +186,10 @@ class TestRustDispatch:
     """Verify that the Rust dispatch flag exists and is consistent."""
 
     def test_verified_scorer_has_flag(self):
-        from director_ai.core.scoring import verified_scorer
+        from director_ai.core.scoring import _claim_signals
 
-        assert hasattr(verified_scorer, "_RUST_SIGNALS")
-        assert isinstance(verified_scorer._RUST_SIGNALS, bool)
+        assert hasattr(_claim_signals, "_RUST_SIGNALS")
+        assert isinstance(_claim_signals._RUST_SIGNALS, bool)
 
     def test_streaming_has_flag(self):
         from director_ai.core.runtime import streaming
@@ -265,7 +265,7 @@ class TestRustPythonParity:
 
     @staticmethod
     def _python(fn, *args):
-        import director_ai.core.scoring.verified_scorer as vs
+        import director_ai.core.scoring._claim_signals as vs
 
         saved = vs._RUST_SIGNALS
         vs._RUST_SIGNALS = False
@@ -275,7 +275,7 @@ class TestRustPythonParity:
             vs._RUST_SIGNALS = saved
 
     def test_traceability_rust_python_parity(self):
-        import director_ai.core.scoring.verified_scorer as vs
+        import director_ai.core.scoring._claim_signals as vs
 
         for claim, source in self._CORPUS:
             rust = _traceability(claim, source)
@@ -283,7 +283,7 @@ class TestRustPythonParity:
             assert rust == python, (claim, rust, python)
 
     def test_negation_flip_rust_python_parity(self):
-        import director_ai.core.scoring.verified_scorer as vs
+        import director_ai.core.scoring._claim_signals as vs
 
         for claim, source in self._CORPUS:
             rust = _negation_flip(claim, source)

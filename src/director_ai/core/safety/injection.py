@@ -27,7 +27,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from ..mandatory import mandatory_execution
-from ..scoring.verified_scorer import _entity_overlap, _traceability
+from ..scoring._claim_signals import _entity_overlap, _traceability
 from ..types import InjectedClaim, InjectionResult
 
 logger = logging.getLogger("DirectorAI.Injection")
