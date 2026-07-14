@@ -20,6 +20,8 @@ from __future__ import annotations
 import pytest
 
 import director_ai.core.scoring._divergence as divergence_module
+import director_ai.core.scoring._divergence_factual as divergence_factual_module
+import director_ai.core.scoring._divergence_routing as divergence_routing_module
 import director_ai.core.scoring.scorer as scorer_module
 from director_ai.core import CoherenceScorer
 from director_ai.core.scoring._divergence import DivergenceMixin
@@ -43,6 +45,33 @@ class TestDivergenceComposition:
             "_has_grounding_query",
         ):
             assert getattr(CoherenceScorer, name) is getattr(DivergenceMixin, name)
+
+    def test_divergence_mixin_composes_factual_and_routing_bases(self):
+        assert issubclass(
+            DivergenceMixin, divergence_factual_module.FactualDivergenceMixin
+        )
+        assert issubclass(
+            DivergenceMixin, divergence_routing_module.TaskRoutedCoherenceMixin
+        )
+        for name in (
+            "calculate_factual_divergence",
+            "calculate_factual_divergence_with_evidence",
+            "_calculate_prompt_premise_divergence_with_evidence",
+            "_has_grounding_query",
+        ):
+            assert getattr(DivergenceMixin, name) is getattr(
+                divergence_factual_module.FactualDivergenceMixin, name
+            )
+        for name in (
+            "_heuristic_coherence",
+            "_dialogue_factual_divergence",
+            "_summarization_factual_divergence",
+            "_resolve_agg_profile",
+            "_detect_task_type",
+        ):
+            assert getattr(DivergenceMixin, name) is getattr(
+                divergence_routing_module.TaskRoutedCoherenceMixin, name
+            )
 
     def test_divergence_constants_re_export_from_scorer_module(self):
         assert scorer_module.DIVERGENCE_NEUTRAL is divergence_module.DIVERGENCE_NEUTRAL
@@ -174,3 +203,106 @@ class TestTaskRouting:
         assert scorer.calculate_factual_divergence("prompt", "output") == (
             divergence_module.DIVERGENCE_NEUTRAL
         )
+
+
+class _KeywordStore:
+    """Non-vector grounding store: abstention gating must not apply."""
+
+    def retrieve_context(self, prompt, top_k=3, tenant_id=""):
+        del prompt, top_k, tenant_id
+        return "verified context"
+
+
+class _EmptyChunkVectorStore:
+    """Vector-store double built lazily as a real subclass (isinstance path)."""
+
+    def __new__(cls):
+        from director_ai.core.retrieval.vector_store import VectorGroundTruthStore
+
+        class _Store(VectorGroundTruthStore):
+            def __init__(self):
+                pass
+
+            def retrieve_context(self, prompt, top_k=3, tenant_id=""):
+                del prompt, top_k, tenant_id
+                return "verified context"
+
+            def retrieve_context_with_chunks(self, prompt, top_k=3, tenant_id=""):
+                del prompt, top_k, tenant_id
+                return []
+
+        return _Store()
+
+
+class _SingleClaimNLI:
+    """NLI double whose sentence splitter always yields one claim."""
+
+    model_available = True
+
+    def score_chunked(self, *args, **kwargs):
+        del args, kwargs
+        return 0.2, [0.2]
+
+    def _split_sentences(self, text):
+        return [text]
+
+
+class TestFactualDivergenceBranches:
+    def test_abstention_gate_skips_non_vector_stores(self):
+        scorer = CoherenceScorer(use_nli=False, ground_truth_store=_KeywordStore())
+        scorer._rust_scorer = None
+        scorer._retrieval_abstention_threshold = 0.4
+
+        assert scorer.calculate_factual_divergence(
+            "verified context", "verified context"
+        ) == pytest.approx(0.0)
+
+    def test_abstention_gate_continues_when_vector_store_returns_no_chunks(self):
+        scorer = CoherenceScorer(
+            use_nli=False,
+            ground_truth_store=_EmptyChunkVectorStore(),
+        )
+        scorer._rust_scorer = None
+        scorer._retrieval_abstention_threshold = 0.4
+
+        assert scorer.calculate_factual_divergence(
+            "verified context", "verified context"
+        ) == pytest.approx(0.0)
+
+    def test_claim_decomposition_skips_single_claim_outputs(self):
+        scorer = CoherenceScorer(use_nli=False, ground_truth_store=_KeywordStore())
+        scorer._rust_scorer = None
+        scorer._nli = _SingleClaimNLI()
+        scorer._rag_claim_decomposition = True
+        long_single_claim = "word " * 30
+
+        assert scorer.calculate_factual_divergence(
+            "prompt", long_single_claim
+        ) == pytest.approx(0.2)
+
+    def test_factual_with_evidence_blank_prompt_is_neutral(self):
+        scorer = CoherenceScorer(use_nli=False, ground_truth_store=_KeywordStore())
+        scorer._rust_scorer = None
+
+        score, evidence = scorer.calculate_factual_divergence_with_evidence(
+            "   \n\t  ",
+            "answer",
+        )
+
+        assert score == divergence_module.DIVERGENCE_NEUTRAL
+        assert evidence is None
+
+    def test_factual_with_evidence_vector_store_without_chunks_is_neutral(self):
+        scorer = CoherenceScorer(
+            use_nli=False,
+            ground_truth_store=_EmptyChunkVectorStore(),
+        )
+        scorer._rust_scorer = None
+
+        score, evidence = scorer.calculate_factual_divergence_with_evidence(
+            "prompt",
+            "answer",
+        )
+
+        assert score == divergence_module.DIVERGENCE_NEUTRAL
+        assert evidence is None

@@ -524,7 +524,7 @@ class TestCoherenceScorerInternalContracts:
         monkeypatch,
     ):
         monkeypatch.setattr(
-            "director_ai.core.scoring._divergence.detect_task_type",
+            "director_ai.core.scoring._divergence_routing.detect_task_type",
             lambda _prompt, _response="": "dialogue",
         )
         scorer = CoherenceScorer(use_nli=False)

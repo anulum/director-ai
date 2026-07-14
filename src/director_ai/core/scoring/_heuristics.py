@@ -6,11 +6,16 @@
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI — Shared Heuristic Patterns
 
-"""Negation words and entity regex shared by lite_scorer.py and scorer.py."""
+"""Negation words, entity regex and divergence defaults shared by scorers."""
 
 from __future__ import annotations
 
 import re
+
+# Heuristic divergence defaults (used when NLI model unavailable)
+DIVERGENCE_NEUTRAL = 0.5  # no signal → agnostic
+DIVERGENCE_ALIGNED = 0.1  # keyword heuristic: "consistent with reality"
+DIVERGENCE_CONTRADICTED = 0.9  # keyword heuristic: "opposite is true"
 
 NEGATION_WORDS = frozenset(
     {

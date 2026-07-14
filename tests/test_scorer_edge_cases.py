@@ -20,6 +20,7 @@ import threading
 import pytest
 
 import director_ai.core.scoring._divergence as divergence_module
+import director_ai.core.scoring._divergence_routing as divergence_routing_module
 import director_ai.core.scoring.scorer as scorer_module
 from director_ai.core import CoherenceScorer
 from director_ai.core.metrics import metrics
@@ -499,7 +500,7 @@ class TestScorerCoverageGaps:
         scorer = CoherenceScorer(use_nli=False)
         scorer._nli = fake_nli
         monkeypatch.setattr(
-            divergence_module,
+            divergence_routing_module,
             "dialogue_factual_divergence",
             fake_dialogue_factual_divergence,
         )

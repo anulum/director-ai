@@ -6,8 +6,8 @@
     "optional_extras": 62,
     "public_api_exports": 226,
     "public_documentation_pages": 205,
-    "python_model_classes": 1035,
-    "python_model_source_modules": 507,
+    "python_model_classes": 1037,
+    "python_model_source_modules": 509,
     "rust_pyo3_model_wrappers": 83,
     "test_files": 754
   },
@@ -1697,6 +1697,10 @@
       {
         "name": "FactVerificationError",
         "path": "src/director_ai/core/provenance/facts.py"
+      },
+      {
+        "name": "FactualDivergenceMixin",
+        "path": "src/director_ai/core/scoring/_divergence_factual.py"
       },
       {
         "name": "FailureEvent",
@@ -3999,6 +4003,10 @@
         "path": "src/director_ai/integrations/crewai_swarm.py"
       },
       {
+        "name": "TaskRoutedCoherenceMixin",
+        "path": "src/director_ai/core/scoring/_divergence_routing.py"
+      },
+      {
         "name": "TemporalClaim",
         "path": "src/director_ai/core/temporal_consistency/graph.py"
       },
@@ -4795,6 +4803,8 @@
       "src/director_ai/core/sanitizer.py",
       "src/director_ai/core/scorer.py",
       "src/director_ai/core/scoring/_divergence.py",
+      "src/director_ai/core/scoring/_divergence_factual.py",
+      "src/director_ai/core/scoring/_divergence_routing.py",
       "src/director_ai/core/scoring/_heuristics.py",
       "src/director_ai/core/scoring/_llm_judge.py",
       "src/director_ai/core/scoring/_nli_accel.py",
