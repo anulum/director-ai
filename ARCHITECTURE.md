@@ -1,6 +1,6 @@
 # Architecture
 
-Last updated: 2026-04-29
+Last updated: 2026-07-14
 
 Director-AI is a dual-entropy hallucination guardrail: NLI contradiction
 detection + RAG fact-checking with claim-level streaming halt.
@@ -13,13 +13,21 @@ offline on exported score logs. A Lean 4 proof artefact pins the
 halt-monitor safety contract.
 
 The Go, Julia, and Lean components are additive. The `backfire-kernel`
-Rust accelerators are currently **required** for the paths that call
-them: when the `rust` extra is absent those paths raise a clear error
-rather than silently degrade. A hybrid Python fallback — reachable only
-where it is proven bit-exact with the Rust kernel — is being rolled out
-per [ADR-0001](docs/adr/0001-rust-accelerator-hybrid-fallback.md);
-integer-arithmetic kernels are bit-exact and fallback-eligible, while
-float, cryptographic, geometric, and model kernels stay Rust-mandatory.
+Rust accelerators are an **optional extra** (`pip install
+"director-ai[rust]"`; abi3 wheels ship for Linux x86_64/aarch64, macOS
+x86_64/arm64, and Windows amd64). What happens without the extra is a
+per-kernel-class contract per
+[ADR-0001](docs/adr/0001-rust-accelerator-hybrid-fallback.md):
+
+| Kernel class | Without the `rust` extra |
+|---|---|
+| Integer/text kernels (sentence split, chunking, aggregation, task detection, counters) | Bit-exact pure-Python fallback — same results, slower |
+| Heuristic float divergences (`_heuristic_factual`/`_heuristic_logical`) | Pure-Python fallback (heuristic tier only; install `[nli]` for production scoring) |
+| Cryptographic / geometric / model kernels (zk-attestation bulletproofs, `RustBackend`, `RustCoherenceScorer`) | Deliberately Rust-mandatory: an honest `RuntimeError` naming the missing extra — never a silent degrade |
+
+A plain `pip install director-ai` therefore runs the full default
+guardrail path in pure Python; the `rust` extra is a performance
+upgrade, and only the explicitly Rust-native surfaces above require it.
 
 ## Shipped Today - 2026-04-29
 

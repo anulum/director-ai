@@ -626,6 +626,13 @@ verify.
    non-production and evaluation use; production and hosted/SaaS use require a
    commercial licence. Each file converts to Apache-2.0 on its change date.
 
+Build deployments on the **supported-for-production shortlist** (guard SDK,
+CoherenceScorer, knowledge store, server/proxy, injection firewall,
+compliance CLI) — see
+[docs/PRODUCTION_CHECKLIST.md](docs/PRODUCTION_CHECKLIST.md). The remaining
+advanced surfaces are labs-grade: source-available for evaluation, APIs may
+change, no production-support commitment.
+
 Commercial licences for the advanced tier:
 [anulum.li/licensing](https://www.anulum.li/licensing) ·
 [director.class.ai@anulum.li](mailto:director.class.ai@anulum.li)

@@ -20,6 +20,26 @@
 
 **Recommendation**: Start with `[nli]` for accuracy. Add `[vector]` when you have a knowledge base.
 
+### Supported for production vs. labs
+
+The import surface is large; the **supported-for-production core** is a
+deliberate shortlist. Build deployments on these surfaces:
+
+| Surface | Module |
+|---|---|
+| Guard SDK | `director_ai.guard` (`ProductionGuard`), `director_ai.lite` |
+| Scoring | `director_ai.core.scorer` (`CoherenceScorer`) + the 5-tier scoring stack |
+| Knowledge / grounding | `director_ai.core.retrieval` (vector store, RAG), `core.vector_store` |
+| Server & proxy | `director_ai.server`, `director-ai serve` / `proxy` |
+| Injection & safety firewall | `director_ai.core.safety`, sanitizer, redactor |
+| Evidence & compliance CLI | `director-ai compliance …` (report, governance, evidence-kit) |
+
+Everything else — the advanced `core/<package>` research surfaces (swarm,
+self-evolving, neuro-symbolic, zk-attestation, …) and `experimental/` — is
+**labs**: source-available for evaluation, no production-support commitment,
+APIs may change without deprecation. If a labs capability matters to your
+deployment, raise an issue so it can graduate deliberately.
+
 ---
 
 ## 2. Minimal Integration (3 min)
