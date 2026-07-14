@@ -99,7 +99,7 @@ llamaindex = [
 # and extra name stable, but do not install the vulnerable optional stack until
 # upstream ships a safe dependency path.
 server = [
-    "fastapi>=0.100,<1",
+    "fastapi>=0.100",
     "uvicorn>=0.23,<1",
     "pydantic>=2.0,<3",
     "httpx>=0.27,<1",
@@ -120,7 +120,7 @@ voice = [
 # Secret backends for managed deployments (imported lazily in core/secrets.py,
 # whose ImportError messages point operators at these extras).
 vault = ["hvac>=2,<3"]
-aws = ["boto3>=1.34,<2"]
+aws = ["boto3>=1.26"]
 azure = [
     "azure-keyvault-secrets>=4.7,<5",
     "azure-identity>=1.16,<2",
@@ -171,7 +171,7 @@ embeddings = [
     "sentence-transformers>=4,<6",
 ]
 license = [
-    "polar-sdk==0.31.3",
+    "polar-sdk==0.31.7",
 ]
 crypto = [
     "cryptography>=42,<49",
@@ -226,7 +226,7 @@ moderation = [
     "detoxify>=0.5",
 ]
 demo = [
-    "gradio>=4.0",
+    "gradio<7,>=4.0",
 ]
 ingestion = [
     "pypdf>=6.13.3",
@@ -268,7 +268,7 @@ enterprise = [
     "psycopg2-binary>=2.9,<3",
 ]
 ui = [
-    "gradio>=4.0,<7",
+    "gradio<7,>=4.0,<7",
 ]
 reports = [
     "weasyprint>=60",
@@ -327,7 +327,7 @@ dev = [
     "python-docx>=1.0",
     "beautifulsoup4>=4.12",
     "opentelemetry-sdk>=1.20",
-    "gradio>=4.0,<7",
+    "gradio<7,>=4.0,<7",
     "audioop-lts>=0.2.2; python_version >= '3.13'",
 ]
 
