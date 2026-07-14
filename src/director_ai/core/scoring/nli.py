@@ -30,7 +30,6 @@ if TYPE_CHECKING:
     from .backends import ScorerBackend
     from .claim_decomposition import AtomicClaimDecomposer
 
-from ..metrics import metrics
 from ._nli_claims import ClaimCoverageMixin
 from ._nli_export import (
     OnnxDynamicBatcher,
@@ -39,6 +38,8 @@ from ._nli_export import (
     export_onnx,
     export_tensorrt,
 )
+from ._nli_minicheck import MiniCheckBackendMixin
+from ._nli_model_inference import ModelInferenceMixin
 from ._nli_numeric import (
     _count_below_threshold as _count_below_threshold,
 )
@@ -49,9 +50,13 @@ from ._nli_numeric import (
     _probs_to_confidence as _probs_to_confidence,
 )
 from ._nli_numeric import (
-    _probs_to_divergence,
+    _probs_to_divergence as _probs_to_divergence,
+)
+from ._nli_numeric import (
     _resolve_label_indices,
-    _softmax_np,
+)
+from ._nli_numeric import (
+    _softmax_np as _softmax_np,
 )
 from ._nli_numeric import (
     _sum_float_list as _sum_float_list,
@@ -95,13 +100,6 @@ _DEFAULT_COST_PER_TOKEN = 1e-5
 
 logger = logging.getLogger("DirectorAI.NLI")
 
-# FactCG instruction template (NAACL 2025, derenlei/FactCG)
-_FACTCG_TEMPLATE = (
-    "{text_a}\n\nChoose your answer: based on the paragraph above "
-    'can we conclude that "{text_b}"?\n\nOPTIONS:\n- Yes\n- No\n'
-    "I think the answer is "
-)
-
 # Heuristic divergence defaults (shared with scorer.py)
 _DIVERGENCE_NEUTRAL = 0.5
 _DIVERGENCE_ALIGNED = 0.1
@@ -111,7 +109,7 @@ _DIVERGENCE_CONTRADICTED = 0.9
 # ── Scorer ───────────────────────────────────────────────────────
 
 
-class NLIScorer(ClaimCoverageMixin):
+class NLIScorer(ClaimCoverageMixin, MiniCheckBackendMixin, ModelInferenceMixin):
     """NLI-based logical divergence scorer.
 
     Parameters
@@ -129,16 +127,6 @@ class NLIScorer(ClaimCoverageMixin):
     """
 
     _BACKENDS = ("deberta", "minicheck", "onnx", "lite")
-
-    # MiniCheck library variant name → pinned HuggingFace checkpoint. The variant
-    # string is what the ``minicheck`` package's ``MiniCheck(model_name=...)``
-    # accepts; the checkpoint is used for the immutable revision pin and the
-    # manual DeBERTa fallback loader. Ordered fast/small → slow/accurate.
-    _MINICHECK_CKPTS = {
-        "deberta-v3-large": "lytang/MiniCheck-DeBERTa-v3-Large",
-        "flan-t5-large": "lytang/MiniCheck-Flan-T5-Large",
-        "Bespoke-MiniCheck-7B": "bespokelabs/Bespoke-MiniCheck-7B",
-    }
 
     def __init__(
         self,
@@ -362,297 +350,6 @@ class NLIScorer(ClaimCoverageMixin):
         loop = asyncio.get_running_loop()
         return await loop.run_in_executor(None, self.score_batch, pairs)
 
-    # ── MiniCheck backend ────────────────────────────────────────
-
-    def _ensure_minicheck(self) -> bool:
-        """Load the MiniCheck backend if available."""
-        if self._minicheck_loaded:
-            return self._minicheck is not None
-        self._minicheck_loaded = True
-        try:  # pragma: no cover — requires minicheck package with model
-            try:
-                from minicheck import MiniCheck
-            except ImportError:
-                from minicheck.minicheck import MiniCheck
-
-            variant = self._minicheck_variant
-            try:
-                self._minicheck = MiniCheck(
-                    model_name=variant,
-                    cache_dir=self._cache_dir,
-                )
-            except (RuntimeError, ValueError):
-                if variant != "deberta-v3-large":
-                    # The manual reconstruction below is DeBERTa-specific
-                    # (sequence-classification head); larger variants such as
-                    # Bespoke-MiniCheck-7B are causal LMs the package must load.
-                    raise
-                # device_map="auto" fails on ROCm/older torch — load manually
-                logger.info("MiniCheck device_map=auto failed, loading manually")
-                self._minicheck = MiniCheck.__new__(MiniCheck)
-                from minicheck.inference import Inferencer
-
-                inf = Inferencer.__new__(Inferencer)
-                inf.model_name = variant
-                inf.max_model_len = 2048
-                inf.batch_size = 16
-
-                import torch
-                from transformers import (
-                    AutoConfig,
-                    AutoModelForSequenceClassification,
-                    AutoTokenizer,
-                )
-
-                ckpt = self._MINICHECK_CKPTS[variant]
-                mc_rev = _resolve_revision(ckpt)
-                config = AutoConfig.from_pretrained(
-                    ckpt,
-                    num_labels=2,
-                    finetuning_task="text-classification",
-                    cache_dir=self._cache_dir,
-                    revision=mc_rev,
-                )
-                config.problem_type = "single_label_classification"
-                inf.tokenizer = AutoTokenizer.from_pretrained(
-                    ckpt,
-                    use_fast=True,
-                    cache_dir=self._cache_dir,
-                    revision=mc_rev,
-                )
-                inf.model = AutoModelForSequenceClassification.from_pretrained(
-                    ckpt,
-                    config=config,
-                    cache_dir=self._cache_dir,
-                    revision=mc_rev,
-                )
-                from .._device import select_torch_device
-
-                device = select_torch_device()
-                inf.model.to(device).eval()
-                inf.softmax = torch.nn.Softmax(dim=-1)
-                if self._minicheck is None:
-                    raise RuntimeError("MiniCheck wrapper not initialised") from None
-                self._minicheck.model = inf
-
-            logger.info("MiniCheck backend loaded.")
-            return True
-        except ImportError:
-            logger.warning("minicheck package not installed — pip install minicheck")
-            return False
-        except (
-            RuntimeError,
-            OSError,
-            ValueError,
-            AttributeError,
-        ) as e:
-            logger.warning(
-                "MiniCheck init failed: %s — using heuristic fallback",
-                e,
-            )
-            self._minicheck = None
-            return False
-
-    def _minicheck_score(self, premise: str, hypothesis: str) -> float:
-        """Score one pair through MiniCheck or fall back heuristically."""
-        if not getattr(self, "use_model", True) and not self._minicheck_loaded:
-            return self._heuristic_score(premise, hypothesis)
-        if not self._ensure_minicheck() or self._minicheck is None:
-            return self._heuristic_score(premise, hypothesis)
-        try:
-            result = self._minicheck.score(docs=[premise], claims=[hypothesis])
-        except (
-            RuntimeError,
-            OSError,
-            ValueError,
-            AttributeError,
-            NotImplementedError,
-        ) as e:
-            logger.warning("MiniCheck score failed: %s; using heuristic fallback", e)
-            self._minicheck = None
-            return self._heuristic_score(premise, hypothesis)
-        # MiniCheck returns (pred_labels, max_probs, sentences, prob_arrays)
-        if isinstance(result, tuple):
-            _, max_probs, *_ = result
-            return float(1.0 - max_probs[0])
-        return float(1.0 - result[0])
-
-    def _minicheck_score_batch(self, pairs: list[tuple[str, str]]) -> list[float]:
-        """Score pairs through MiniCheck or fall back heuristically."""
-        if not getattr(self, "use_model", True) and not self._minicheck_loaded:
-            return [self._heuristic_score(p, h) for p, h in pairs]
-        if not self._ensure_minicheck() or self._minicheck is None:
-            return [self._heuristic_score(p, h) for p, h in pairs]
-        docs = [p for p, _ in pairs]
-        claims = [h for _, h in pairs]
-        try:
-            result = self._minicheck.score(docs=docs, claims=claims)
-        except (
-            RuntimeError,
-            OSError,
-            ValueError,
-            AttributeError,
-            NotImplementedError,
-        ) as e:
-            logger.warning(
-                "MiniCheck batch score failed: %s; using heuristic fallback", e
-            )
-            self._minicheck = None
-            return [self._heuristic_score(p, h) for p, h in pairs]
-        if isinstance(result, tuple):
-            _, max_probs, *_ = result
-            preds = max_probs
-        else:
-            preds = result
-        return [float(1.0 - s) for s in preds]
-
-    # ── PyTorch backend ──────────────────────────────────────────
-
-    @property
-    def _is_factcg(self) -> bool:
-        """Return whether the configured model expects the FactCG prompt template."""
-        return "factcg" in self._model_name.lower()
-
-    def _tokenize(self, *args: Any, **kwargs: Any) -> Any:
-        """Serialise access to the shared tokenizer.
-
-        The fast (Rust) tokenizer mutates its truncation/padding state on
-        every call, so concurrent invocations from the parallel logical and
-        factual divergence futures raise ``RuntimeError("Already borrowed")``
-        on fast hardware. Guard only the encode step — the model forward
-        stays outside the lock and runs in parallel — so scores are identical
-        and throughput is preserved.
-        """
-        if self._tokenizer is None:
-            raise RuntimeError("NLI model not loaded")
-        with self._tokenizer_lock:
-            return self._tokenizer(*args, **kwargs)
-
-    def _model_score(self, premise: str, hypothesis: str) -> float:
-        """Single-pair PyTorch inference.
-
-        Handles 2-class (supported/not-supported) and 3-class
-        (entailment/neutral/contradiction) models. FactCG uses an
-        instruction template; standard NLI uses two-segment input.
-        """
-        if self._tokenizer is None or self._model is None:
-            raise RuntimeError("NLI model not loaded")
-
-        import torch
-
-        device = next(self._model.parameters()).device
-
-        with metrics.timer("nli_inference_seconds"):
-            if self._is_factcg:
-                text = _FACTCG_TEMPLATE.format(text_a=premise, text_b=hypothesis)
-                inputs = self._tokenize(
-                    text,
-                    return_tensors="pt",
-                    truncation=True,
-                    max_length=self.max_length,
-                )
-            else:
-                inputs = self._tokenize(
-                    premise,
-                    hypothesis,
-                    return_tensors="pt",
-                    truncation=True,
-                    max_length=self.max_length,
-                )
-
-            self._last_token_count += inputs["input_ids"].numel()
-            inputs = {k: v.to(device) for k, v in inputs.items()}
-            with torch.no_grad():
-                logits = self._model(**inputs).logits
-
-            probs = torch.softmax(logits, dim=1).cpu().numpy()[0]
-
-        if len(probs) == 2:
-            return float(1.0 - probs[1])
-        ci, ni = self._label_indices or (2, 1)
-        return float(probs[ci]) + float(probs[ni]) * 0.5
-
-    def _model_score_batch(self, pairs: list[tuple[str, str]]) -> list[float]:
-        """Batched PyTorch inference — single forward pass."""
-        if self._tokenizer is None or self._model is None:
-            raise RuntimeError("NLI model not loaded")
-
-        import torch
-
-        device = next(self._model.parameters()).device
-
-        with metrics.timer("nli_batch_inference_seconds"):
-            if self._is_factcg:
-                texts = [_FACTCG_TEMPLATE.format(text_a=p, text_b=h) for p, h in pairs]
-                inputs = self._tokenize(
-                    texts,
-                    return_tensors="pt",
-                    truncation=True,
-                    padding=True,
-                    max_length=self.max_length,
-                )
-            else:
-                premises = [p for p, _ in pairs]
-                hypotheses = [h for _, h in pairs]
-                inputs = self._tokenize(
-                    premises,
-                    hypotheses,
-                    return_tensors="pt",
-                    truncation=True,
-                    padding=True,
-                    max_length=self.max_length,
-                )
-
-            self._last_token_count += inputs["input_ids"].numel()
-            inputs = {k: v.to(device) for k, v in inputs.items()}
-            with torch.no_grad():
-                logits = self._model(**inputs).logits
-
-            probs = torch.softmax(logits, dim=1).cpu().numpy()
-
-        return _probs_to_divergence(probs, self._label_indices)
-
-    # ── ONNX backend ─────────────────────────────────────────────
-
-    def _onnx_score_batch(self, pairs: list[tuple[str, str]]) -> list[float]:
-        """Batched ONNX Runtime inference."""
-        if self._tokenizer is None or self._onnx_session is None:
-            raise RuntimeError("ONNX session not loaded")
-
-        with metrics.timer("nli_onnx_batch_seconds"):
-            if self._is_factcg:
-                texts = [_FACTCG_TEMPLATE.format(text_a=p, text_b=h) for p, h in pairs]
-                inputs = self._tokenize(
-                    texts,
-                    return_tensors="np",
-                    truncation=True,
-                    padding=True,
-                    max_length=self.max_length,
-                )
-            else:
-                premises = [p for p, _ in pairs]
-                hypotheses = [h for _, h in pairs]
-                inputs = self._tokenize(
-                    premises,
-                    hypotheses,
-                    return_tensors="np",
-                    truncation=True,
-                    padding=True,
-                    max_length=self.max_length,
-                )
-
-            self._last_token_count += inputs["input_ids"].size
-            # Feed only inputs the ONNX graph expects, cast to int64
-            expected = {i.name for i in self._onnx_session.get_inputs()}
-            feed = {
-                k: v.astype(np.int64) if v.dtype != np.int64 else v
-                for k, v in inputs.items()
-                if k in expected
-            }
-            logits = self._onnx_session.run(None, feed)[0]
-
-        return _probs_to_divergence(_softmax_np(logits), self._label_indices)
-
     def score_batch_with_confidence(
         self,
         pairs: list[tuple[str, str]],
@@ -677,94 +374,6 @@ class NLIScorer(ClaimCoverageMixin):
         if self.backend == "onnx":
             return self._onnx_score_batch_with_confidence(pairs)
         return self._model_score_batch_with_confidence(pairs)
-
-    def _model_score_batch_with_confidence(
-        self,
-        pairs: list[tuple[str, str]],
-    ) -> list[tuple[float, float]]:
-        """Batched PyTorch inference returning (divergence, confidence)."""
-        if self._tokenizer is None or self._model is None:
-            raise RuntimeError("NLI model not loaded")
-
-        import torch
-
-        device = next(self._model.parameters()).device
-
-        with metrics.timer("nli_batch_inference_seconds"):
-            if self._is_factcg:
-                texts = [_FACTCG_TEMPLATE.format(text_a=p, text_b=h) for p, h in pairs]
-                inputs = self._tokenize(
-                    texts,
-                    return_tensors="pt",
-                    truncation=True,
-                    padding=True,
-                    max_length=self.max_length,
-                )
-            else:
-                premises = [p for p, _ in pairs]
-                hypotheses = [h for _, h in pairs]
-                inputs = self._tokenize(
-                    premises,
-                    hypotheses,
-                    return_tensors="pt",
-                    truncation=True,
-                    padding=True,
-                    max_length=self.max_length,
-                )
-
-            self._last_token_count += inputs["input_ids"].numel()
-            inputs = {k: v.to(device) for k, v in inputs.items()}
-            with torch.no_grad():
-                logits = self._model(**inputs).logits
-            probs = torch.softmax(logits, dim=1).cpu().numpy()
-
-        divergences = _probs_to_divergence(probs, self._label_indices)
-        confidences = _probs_to_confidence(probs)
-        return list(zip(divergences, confidences, strict=True))
-
-    def _onnx_score_batch_with_confidence(
-        self,
-        pairs: list[tuple[str, str]],
-    ) -> list[tuple[float, float]]:
-        """Batched ONNX inference returning (divergence, confidence)."""
-        if self._tokenizer is None or self._onnx_session is None:
-            raise RuntimeError("ONNX session not loaded")
-
-        with metrics.timer("nli_onnx_batch_seconds"):
-            if self._is_factcg:
-                texts = [_FACTCG_TEMPLATE.format(text_a=p, text_b=h) for p, h in pairs]
-                inputs = self._tokenize(
-                    texts,
-                    return_tensors="np",
-                    truncation=True,
-                    padding=True,
-                    max_length=self.max_length,
-                )
-            else:
-                premises = [p for p, _ in pairs]
-                hypotheses = [h for _, h in pairs]
-                inputs = self._tokenize(
-                    premises,
-                    hypotheses,
-                    return_tensors="np",
-                    truncation=True,
-                    padding=True,
-                    max_length=self.max_length,
-                )
-
-            self._last_token_count += inputs["input_ids"].size
-            expected = {i.name for i in self._onnx_session.get_inputs()}
-            feed = {
-                k: v.astype(np.int64) if v.dtype != np.int64 else v
-                for k, v in inputs.items()
-                if k in expected
-            }
-            logits = self._onnx_session.run(None, feed)[0]
-
-        sm = _softmax_np(logits)
-        divergences = _probs_to_divergence(sm, self._label_indices)
-        confidences = _probs_to_confidence(sm)
-        return list(zip(divergences, confidences, strict=True))
 
     # ── Lite backend ─────────────────────────────────────────────
 

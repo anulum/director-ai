@@ -61,6 +61,30 @@ class _EmptyClaimScorer(NLIScorer):
 class TestNLIScorer:
     """Core NLI scoring contracts for model-free and fallback paths."""
 
+    def test_scorer_composes_backend_mixins(self) -> None:
+        """Backend methods must resolve to their dedicated mixin modules."""
+        from director_ai.core.scoring._nli_minicheck import MiniCheckBackendMixin
+        from director_ai.core.scoring._nli_model_inference import ModelInferenceMixin
+
+        assert issubclass(NLIScorer, MiniCheckBackendMixin)
+        assert issubclass(NLIScorer, ModelInferenceMixin)
+        for name in (
+            "_ensure_minicheck",
+            "_minicheck_score",
+            "_minicheck_score_batch",
+        ):
+            assert getattr(NLIScorer, name) is getattr(MiniCheckBackendMixin, name)
+        for name in (
+            "_tokenize",
+            "_model_score",
+            "_model_score_batch",
+            "_onnx_score_batch",
+            "_model_score_batch_with_confidence",
+            "_onnx_score_batch_with_confidence",
+        ):
+            assert getattr(NLIScorer, name) is getattr(ModelInferenceMixin, name)
+        assert NLIScorer._MINICHECK_CKPTS is MiniCheckBackendMixin._MINICHECK_CKPTS
+
     def test_heuristic_fallback_consistent(self) -> None:
         """Aligned heuristic responses should receive low divergence."""
         scorer = NLIScorer(use_model=False)

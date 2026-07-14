@@ -6,8 +6,8 @@
     "optional_extras": 62,
     "public_api_exports": 226,
     "public_documentation_pages": 205,
-    "python_model_classes": 1037,
-    "python_model_source_modules": 509,
+    "python_model_classes": 1039,
+    "python_model_source_modules": 511,
     "rust_pyo3_model_wrappers": 83,
     "test_files": 754
   },
@@ -2595,6 +2595,10 @@
         "path": "src/director_ai/core/scoring/backends.py"
       },
       {
+        "name": "MiniCheckBackendMixin",
+        "path": "src/director_ai/core/scoring/_nli_minicheck.py"
+      },
+      {
         "name": "MinimumCoherence",
         "path": "src/director_ai/core/zk_attestation/statements.py"
       },
@@ -2617,6 +2621,10 @@
       {
         "name": "ModelBenchmarkResult",
         "path": "src/director_ai/core/training/finetune_benchmark.py"
+      },
+      {
+        "name": "ModelInferenceMixin",
+        "path": "src/director_ai/core/scoring/_nli_model_inference.py"
       },
       {
         "name": "ModelMetrics",
@@ -4811,6 +4819,8 @@
       "src/director_ai/core/scoring/_nli_chunking.py",
       "src/director_ai/core/scoring/_nli_claims.py",
       "src/director_ai/core/scoring/_nli_export.py",
+      "src/director_ai/core/scoring/_nli_minicheck.py",
+      "src/director_ai/core/scoring/_nli_model_inference.py",
       "src/director_ai/core/scoring/_nli_numeric.py",
       "src/director_ai/core/scoring/_nli_provisioning.py",
       "src/director_ai/core/scoring/_review_pipeline.py",

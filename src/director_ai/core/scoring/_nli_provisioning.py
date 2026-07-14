@@ -110,7 +110,7 @@ def _download_gcs_model_artifact(uri: str) -> str:
         return str(target_dir)
 
     try:
-        import google.cloud.storage as storage  # type: ignore[import-untyped]  # google-cloud-storage lacks py.typed metadata in this venv.
+        import google.cloud.storage as storage
     except ImportError as exc:
         raise RuntimeError(
             "loading managed scorer artefacts requires google-cloud-storage; "

@@ -21,6 +21,7 @@ import pytest
 import director_ai.core.scoring._nli_accel as nli_accel
 import director_ai.core.scoring._nli_provisioning as nli_provisioning
 import director_ai.core.scoring.nli as nli_mod
+from director_ai.core.metrics import metrics
 from director_ai.core.scoring.backends import ScorerBackend
 from director_ai.core.scoring.nli import NLIScorer
 
@@ -966,7 +967,7 @@ def test_nli_chunked_short_text_scores_once_and_records_single_chunks(
     scorer = NLIScorer(use_model=False, max_length=512)
     monkeypatch.setattr(scorer, "score", lambda _premise, _hypothesis: 0.42)
     monkeypatch.setattr(
-        nli_mod.metrics,
+        metrics,
         "observe",
         lambda name, value: observed.append((name, value)),
     )
@@ -1032,7 +1033,7 @@ def test_nli_rust_chunked_score_aggregation_adapter(monkeypatch) -> None:
         ),
     )
     monkeypatch.setattr(
-        nli_mod.metrics,
+        metrics,
         "observe",
         lambda name, value: observed.append((name, value)),
     )

@@ -937,6 +937,7 @@ module = [
     "elevenlabs.*",
     "elasticsearch",
     "faiss",
+    "google",
     "google.cloud",
     "google.cloud.*",
     "googleapiclient.*",
