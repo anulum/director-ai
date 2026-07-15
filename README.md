@@ -666,11 +666,11 @@ accepted under the Apache-2.0 licence.
 
 <p align="center">
   <a href="https://www.anulum.li">
-    <img src="docs/assets/anulum_logo_company.jpg" width="180" alt="ANULUM">
+    <img src="docs/assets/anulum_logo_company.jpg" height="70" alt="ANULUM">
   </a>
   &nbsp;&nbsp;&nbsp;&nbsp;
   <a href="https://www.anulum.li">
-    <img src="docs/assets/fortis_studio_logo.jpg" width="180" alt="Fortis Studio">
+    <img src="docs/assets/fortis_studio_logo.jpg" height="70" alt="Fortis Studio">
   </a>
   <br>
   <em>Developed by <a href="https://www.anulum.li">ANULUM Institute</a> / Fortis Studio — Marbach SG, Switzerland</em>
