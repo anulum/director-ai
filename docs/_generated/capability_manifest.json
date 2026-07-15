@@ -7,7 +7,7 @@
     "public_api_exports": 226,
     "public_documentation_pages": 205,
     "python_model_classes": 1040,
-    "python_model_source_modules": 517,
+    "python_model_source_modules": 518,
     "rust_pyo3_model_wrappers": 83,
     "test_files": 757
   },
@@ -5005,6 +5005,7 @@
       "src/director_ai/ui/config_wizard.py",
       "src/director_ai/ui/safety_dashboard.py",
       "src/director_ai/ui/streaming_halt_live.py",
+      "src/director_ai/ui/trace_explorer.py",
       "src/director_ai/voice/adapters.py",
       "src/director_ai/voice/demo.py",
       "src/director_ai/voice/guard.py",

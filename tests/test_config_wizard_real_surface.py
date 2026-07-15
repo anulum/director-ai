@@ -15,7 +15,8 @@ import pytest
 import yaml
 
 import director_ai.ui.config_wizard as config_wizard_module
-from director_ai.ui.config_wizard import build_trace_explorer, launch_cli
+from director_ai.ui.config_wizard import launch_cli
+from director_ai.ui.trace_explorer import build_trace_explorer
 
 
 def test_trace_explorer_handles_sparse_attribution_and_counterfactual() -> None:

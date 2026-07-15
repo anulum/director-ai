@@ -24,7 +24,7 @@ from director_ai.core.cyber_physical import (
     Vec3,
     WorkspaceConstraint,
 )
-from director_ai.ui.config_wizard import build_trace_explorer
+from director_ai.ui.trace_explorer import build_trace_explorer
 
 
 def _streaming_event() -> dict:
