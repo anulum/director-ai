@@ -16,6 +16,7 @@ GPU pass and are out of scope here.
 
 from __future__ import annotations
 
+import json
 import sys
 from pathlib import Path
 
@@ -333,6 +334,73 @@ class TestHaluEvalDataSurface:
 
         assert halueval_eval._download_task_data.__module__ == _halueval_data.__name__
         assert halueval_eval._DATASET_URLS is _halueval_data._DATASET_URLS
+
+
+# ── RAGTruth loader (second long-context set) ──────────────────────
+
+
+class TestRagtruthLoader:
+    @staticmethod
+    def _write_corpus(tmp_path):
+        src = tmp_path / "source_info.jsonl"
+        resp = tmp_path / "response.jsonl"
+        sources = [
+            {"source_id": "s1", "task_type": "Summary", "source_info": "Doc one."},
+            {"source_id": "s2", "task_type": "QA", "source_info": {"q": "x"}},
+            {"source_id": "s3", "task_type": "Summary", "source_info": "Doc three."},
+        ]
+        responses = [
+            {"source_id": "s1", "split": "test", "labels": [], "response": "Fine."},
+            {
+                "source_id": "s1",
+                "split": "test",
+                "labels": [{"start": 0}],
+                "response": "Wrong.",
+            },
+            {"source_id": "s1", "split": "train", "labels": [], "response": "Train."},
+            {"source_id": "s2", "split": "test", "labels": [], "response": "QA row."},
+            {"source_id": "s3", "split": "test", "labels": [], "response": ""},
+        ]
+        src.write_text("\n".join(json.dumps(s) for s in sources), encoding="utf-8")
+        resp.write_text("\n".join(json.dumps(r) for r in responses), encoding="utf-8")
+        return src, resp
+
+    def test_loader_filters_task_split_and_empty(self, tmp_path):
+        from benchmarks._ragtruth_data import load_summary_rows
+
+        src, resp = self._write_corpus(tmp_path)
+        rows = load_summary_rows("test", source_path=src, response_path=resp)
+        # QA source, train split and empty response are all excluded
+        assert [(r["response"], r["hallucinated"]) for r in rows] == [
+            ("Fine.", False),
+            ("Wrong.", True),
+        ]
+        assert all(r["doc"] == "Doc one." for r in rows)
+
+    def test_dispatch_builds_summarization_rows(self, tmp_path, monkeypatch):
+        import benchmarks._ragtruth_data as ragtruth_data
+        from benchmarks.run_longcontext_bench import load_ragtruth_rows
+
+        src, resp = self._write_corpus(tmp_path)
+        monkeypatch.setattr(
+            ragtruth_data,
+            "_download_file",
+            lambda name: {"source_info": src, "response": resp}[name],
+        )
+        rows = load_ragtruth_rows(max_samples=1)
+        assert len(rows) == 1
+        assert rows[0].task == "summarization"
+        assert rows[0].history == ""
+
+    def test_unknown_dataset_raises(self):
+        with pytest.raises(ValueError, match="unknown dataset"):
+            run_longcontext_bench(dataset="tofueval")
+
+    def test_pinned_revision_in_urls(self):
+        from benchmarks._ragtruth_data import _FILES, _RAGTRUTH_COMMIT
+
+        assert len(_RAGTRUTH_COMMIT) == 40
+        assert all(_RAGTRUTH_COMMIT in url for url in _FILES.values())
 
 
 # ── matrix serialisation round-trip ────────────────────────────────

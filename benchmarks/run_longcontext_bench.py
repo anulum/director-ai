@@ -395,11 +395,32 @@ def load_rows(tasks: Sequence[str], max_samples: int | None) -> list[Row]:
     return rows
 
 
+def load_ragtruth_rows(max_samples: int | None) -> list[Row]:
+    """Load RAGTruth Summary test rows (the WCS-1 second long-context set).
+
+    RAGTruth's labels are natural (unpaired): each model response over a
+    source document is hallucinated iff any span was annotated. Rows map
+    onto the ``summarization`` task, so the evidence variants and matched
+    FPR target are shared with the HaluEval sweep; ``max_samples`` caps
+    the response count in corpus order.
+    """
+    from benchmarks._ragtruth_data import load_summary_rows
+
+    raw = load_summary_rows("test")
+    if max_samples:
+        raw = raw[:max_samples]
+    return [
+        Row("summarization", r["doc"], "", r["response"], r["hallucinated"])
+        for r in raw
+    ]
+
+
 # ── Orchestration ────────────────────────────────────────────────────────
 
 
 def run_longcontext_bench(
     *,
+    dataset: str = "halueval",
     tasks: Sequence[str] = ("summarization", "dialogue"),
     max_samples: int | None = None,
     checker: str = "factcg",
@@ -422,7 +443,12 @@ def run_longcontext_bench(
 
             splitter = split_sentences
         if rows is None:
-            rows = load_rows(tasks, max_samples)
+            if dataset == "halueval":
+                rows = load_rows(tasks, max_samples)
+            elif dataset == "ragtruth":
+                rows = load_ragtruth_rows(max_samples)
+            else:
+                raise ValueError(f"unknown dataset {dataset!r}")
         if predictor is None:
             predictor = build_predictor(checker, nli_model=nli_model)
         matrix = score_matrix(rows, predictor, splitter=splitter)
@@ -430,6 +456,7 @@ def run_longcontext_bench(
     report = summarise(matrix)
     meta: dict[str, Any] = {
         "benchmark": "longcontext-evidence-agg-sweep",
+        "dataset": dataset,
         "checker": checker,
         "nli_model": nli_model or os.environ.get("DIRECTOR_NLI_MODEL", "default"),
         "rows": len(matrix),
@@ -451,6 +478,9 @@ def main(argv: Sequence[str] | None = None) -> int:
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(message)s")
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--samples", type=int, default=None)
+    parser.add_argument(
+        "--dataset", choices=("halueval", "ragtruth"), default="halueval"
+    )
     parser.add_argument("--tasks", default="summarization,dialogue")
     parser.add_argument("--checker", choices=("factcg", "minicheck"), default="factcg")
     parser.add_argument("--nli-model", default=None)
@@ -467,6 +497,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         matrix = matrix_from_json(payload["matrix"])
 
     report, matrix = run_longcontext_bench(
+        dataset=args.dataset,
         tasks=tuple(t.strip() for t in args.tasks.split(",") if t.strip()),
         max_samples=args.samples,
         checker=args.checker,
