@@ -384,7 +384,7 @@ def build_predictor(checker: str, *, nli_model: str | None = None) -> Predictor:
 
 def load_rows(tasks: Sequence[str], max_samples: int | None) -> list[Row]:
     """Load HaluEval rows for *tasks* via the cached benchmark downloader."""
-    from benchmarks.halueval_eval import _download_task_data
+    from benchmarks._halueval_data import _download_task_data
 
     rows: list[Row] = []
     for task in tasks:

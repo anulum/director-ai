@@ -304,6 +304,37 @@ class TestScoreMatrix:
         assert max(entry.scores["knowledge+history"]) > max(entry.scores["history"])
 
 
+# ── data-loader import surface ─────────────────────────────────────
+
+
+class TestHaluEvalDataSurface:
+    def test_loader_module_is_pytest_free(self):
+        # The 2026-07-15 metered run failed because halueval_eval imports
+        # pytest at module level; the loader must stay importable lean.
+        import ast
+
+        src = (
+            Path(__file__).resolve().parent.parent / "benchmarks" / "_halueval_data.py"
+        ).read_text(encoding="utf-8")
+        names = {
+            alias.name.split(".")[0]
+            for node in ast.walk(ast.parse(src))
+            if isinstance(node, ast.Import)
+            for alias in node.names
+        } | {
+            node.module.split(".")[0]
+            for node in ast.walk(ast.parse(src))
+            if isinstance(node, ast.ImportFrom) and node.module
+        }
+        assert "pytest" not in names
+
+    def test_halueval_eval_re_exports_loader(self):
+        from benchmarks import _halueval_data, halueval_eval
+
+        assert halueval_eval._download_task_data.__module__ == _halueval_data.__name__
+        assert halueval_eval._DATASET_URLS is _halueval_data._DATASET_URLS
+
+
 # ── matrix serialisation round-trip ────────────────────────────────
 
 
