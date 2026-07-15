@@ -105,6 +105,26 @@ class TestRateLimit:
             assert seen_rate_error
 
 
+class TestPromptLengthCap:
+    def test_oversized_prompt_is_rejected_per_message(self, monkeypatch):
+        # KIMI-E: the SSE path has capped prompts since its introduction;
+        # a single oversized WebSocket message must be rejected the same
+        # way instead of riding on the slower connection-level budget.
+        monkeypatch.setattr(streaming_mod, "_WS_MAX_PROMPT_LENGTH", 100)
+        monkeypatch.setattr(streaming_mod, "_WS_CONN_CHAR_BUDGET", 10_000)
+        with (
+            TestClient(_app()) as client,
+            client.websocket_connect("/v1/stream") as ws,
+        ):
+            ws.send_json({"prompt": "x" * 101, "session_id": "s1"})
+            resp = ws.receive_json()
+            assert resp["error"] == "prompt exceeds 100 chars"
+            # The connection survives; a bounded prompt still works.
+            ws.send_json({"prompt": "short", "session_id": "s2"})
+            resp2 = ws.receive_json()
+            assert resp2.get("error") != "prompt exceeds 100 chars"
+
+
 class TestCharBudget:
     def test_budget_closes_connection(self, monkeypatch):
         monkeypatch.setattr(streaming_mod, "_WS_CONN_CHAR_BUDGET", 10)

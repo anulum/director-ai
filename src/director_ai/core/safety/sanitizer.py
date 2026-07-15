@@ -34,6 +34,7 @@ import unicodedata
 from dataclasses import dataclass, field
 
 from ..mandatory import mandatory_execution
+from ._regex_guard import ensure_safe_pattern
 from .harm_taxonomy import HarmCategory, to_harm_category
 
 __all__ = ["InputSanitizer", "SanitizeResult"]
@@ -341,9 +342,23 @@ class InputSanitizer:
         self._weights = dict(_PATTERN_WEIGHTS)
         if extra_patterns:
             for name, regex in extra_patterns:
-                self._patterns.append((name, re.compile(regex, re.IGNORECASE)))
+                self._patterns.append(
+                    (
+                        name,
+                        ensure_safe_pattern(
+                            regex,
+                            source=f"sanitizer extra pattern '{name}'",
+                            flags=re.IGNORECASE,
+                        ),
+                    )
+                )
                 self._weights.setdefault(name, 0.5)
-        self._allowlist = [re.compile(p, re.IGNORECASE) for p in (allowlist or [])]
+        self._allowlist = [
+            ensure_safe_pattern(
+                p, source="sanitizer allowlist entry", flags=re.IGNORECASE
+            )
+            for p in (allowlist or [])
+        ]
 
     def _is_allowlisted(self, text: str) -> bool:
         return any(p.search(text) for p in self._allowlist)

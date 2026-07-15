@@ -39,6 +39,47 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   restorable via `DirectorConfig.nli_summarization_premise_chars = 3000`
   (`DIRECTOR_NLI_SUMMARIZATION_PREMISE_CHARS`).
 
+### Security
+
+- Defence-in-depth hardening from the validated 2026-07-15 external
+  review intake: SQL DDL identifiers and column clauses are strictly
+  validated before f-string composition (audit log chain migration,
+  feedback-store column migration — internal constants today, now
+  guarded against future callers); gRPC server reflection is an
+  explicit opt-in (`grpc_reflection_enabled`, default off — the full
+  service schema is a reconnaissance aid); the regulated-domain
+  profiles (`medical`, `finance`, `legal`) enable `privacy_mode` so
+  PII is redacted from logs and review queues by default.
+- Streaming trend statistics (`core/runtime/streaming.py`) now state
+  their contract honestly: they are MANDATORY Rust accelerators
+  (enforced 2026-05-22) — the unreachable pure-Python fallback bodies,
+  the misleading `_RUST_TREND` dispatch flag, and the stale
+  "falls back to Python" tests (inverted by a conftest hook) are
+  gone; kernel-absent installs raise the actionable `[rust]`-extra
+  error, and the tests assert that propagation directly.
+- Operator-supplied regexes (policy YAML patterns, sanitiser
+  `extra_patterns`/`allowlist`) are validated before compilation:
+  the classic catastrophic-backtracking shape — an unbounded repeat
+  nested inside another unbounded repeat, e.g. `(a+)+` — is rejected
+  with an actionable error, as are patterns over 4 096 chars
+  (`core/safety/_regex_guard.py`). Bounded repetitions pass.
+- WebSocket streaming sessions cap each prompt at 100 000 chars
+  (mirrors the SSE cap; the per-connection char budget still applies).
+- Prompt/query hashes in logs are now keyed (HMAC-SHA256 with a
+  per-process ephemeral key) instead of bare SHA-256, so exfiltrated
+  log lines cannot be brute-forced offline against short prompts;
+  in-run correlation is unchanged (the meta-guard decision log is
+  in-memory, retrieval query hashes are log-line correlators).
+
+### Fixed
+
+- **PII redaction was quadratic in the number of findings**: the
+  non-overlapping span selection rescanned every accepted span per
+  candidate, so a 2 MB input of dense PII took 13 minutes to redact —
+  a denial-of-service vector wherever `privacy_mode` is enabled. The
+  selection is now linear (2.4 s on the same input, 324× faster),
+  with the old implementation kept as a behavioural oracle in tests.
+
 ### Added
 
 - Weakest-link summarisation aggregation

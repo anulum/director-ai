@@ -11,7 +11,9 @@
 from __future__ import annotations
 
 import hashlib
+import hmac
 import logging
+import os
 from typing import TYPE_CHECKING, Any
 
 from ..text_overlap import word_overlap
@@ -71,6 +73,9 @@ _STOPWORDS = frozenset(
         "your",
     }
 )
+# Per-process ephemeral key: query hashes in logs stay correlatable
+# within one run but cannot be brute-forced offline (KIMI-H).
+_QUERY_LOG_HASH_KEY = os.urandom(32)
 
 
 class GroundTruthStore:
@@ -206,7 +211,9 @@ class GroundTruthStore:
             if top_k > 0:
                 context = context[:top_k]
             retrieved = "; ".join(context)
-            qhash = hashlib.sha256(query.encode()).hexdigest()[:12]
+            qhash = hmac.new(
+                _QUERY_LOG_HASH_KEY, query.encode(), hashlib.sha256
+            ).hexdigest()[:12]
             self.logger.info(
                 "RAG Retrieval: %d facts matched (query=%s, len=%d)",
                 len(context),

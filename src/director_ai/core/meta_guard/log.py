@@ -19,6 +19,8 @@ off via ``hash_prompts=False``.
 from __future__ import annotations
 
 import hashlib
+import hmac
+import os
 import threading
 import time
 from collections import deque
@@ -190,5 +192,14 @@ class DecisionLog:
         yield from self.window(last_n=last_n, since_seconds=since_seconds)
 
 
+#: Per-process ephemeral key for the default prompt hasher. The decision
+#: log is an in-memory deque, so identifiers only ever need to correlate
+#: within one process lifetime — and keying the hash makes exfiltrated
+#: log lines useless for offline brute-forcing of short prompts (KIMI-H).
+_LOG_HASH_KEY = os.urandom(32)
+
+
 def _default_hasher(prompt: str) -> str:
-    return hashlib.sha256(prompt.encode("utf-8")).hexdigest()[:16]
+    return hmac.new(_LOG_HASH_KEY, prompt.encode("utf-8"), hashlib.sha256).hexdigest()[
+        :16
+    ]

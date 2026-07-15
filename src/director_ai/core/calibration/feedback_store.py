@@ -19,6 +19,7 @@ Usage::
 
 from __future__ import annotations
 
+import re
 import sqlite3
 import threading
 import time
@@ -376,7 +377,21 @@ class FeedbackStore:
                 self._conn = None
 
 
+_SQL_IDENTIFIER_RE = re.compile(r"^[a-z_][a-z0-9_]*$")
+_SQL_COLUMN_DDL_RE = re.compile(r"^[A-Z]+(?: NOT NULL)?(?: DEFAULT (?:''|0|0\.0))?$")
+
+
 def _ensure_column(conn: sqlite3.Connection, name: str, ddl: str) -> None:
+    """Add a column if absent; identifiers and DDL are strictly validated.
+
+    The statement is composed by f-string, so both pieces must match the
+    conservative allowlists above — a caller can never smuggle SQL
+    through a column name or type clause.
+    """
+    if not _SQL_IDENTIFIER_RE.fullmatch(name):
+        raise ValueError(f"unsafe SQL column identifier: {name!r}")
+    if not _SQL_COLUMN_DDL_RE.fullmatch(ddl):
+        raise ValueError(f"unsafe SQL column DDL: {ddl!r}")
     columns = {row[1] for row in conn.execute("PRAGMA table_info(corrections)")}
     if name not in columns:
         conn.execute(f"ALTER TABLE corrections ADD COLUMN {name} {ddl}")

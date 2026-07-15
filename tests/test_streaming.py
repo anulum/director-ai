@@ -399,28 +399,19 @@ class _NoChunkScoreScorer:
 
 
 class TestStreamingTraceHelpers:
-    def test_math_helpers_use_python_floor_when_acceleration_disabled(
-        self, monkeypatch
-    ):
-        monkeypatch.setattr(streaming_mod, "_RUST_TREND", False)
-
+    def test_math_helpers_compute_through_the_mandatory_kernel(self):
+        # KIMI-F: the streaming trend statistics have no pure-Python
+        # floor — these values come from the mandatory Rust kernel.
         assert streaming_mod._mean([0.2, 0.4, 0.6]) == pytest.approx(0.4)
+        assert streaming_mod._mean([]) == 0.0
         assert streaming_mod._trend_drop([0.9]) == 0.0
         assert streaming_mod._trend_drop([0.9, 0.7, 0.5]) == pytest.approx(0.4)
-        assert streaming_mod._sum_float([0.25, 0.5, 1.25]) == pytest.approx(2.0)
 
-    def test_accelerated_sum_helper_dispatches_to_rust_kernel(self, monkeypatch):
-        monkeypatch.setattr(streaming_mod, "_RUST_TREND", True)
-        calls = {"values": []}
-
-        def rust_sum(values: list[float]) -> float:
-            calls["values"].append(values)
-            return 3.5
-
-        monkeypatch.setattr(streaming_mod, "_rust_sum_f64", rust_sum, raising=True)
-
-        assert streaming_mod._sum_float([1.0, 2.0]) == pytest.approx(3.5)
-        assert calls["values"] == [[1.0, 2.0]]
+    def test_math_helpers_have_no_fallback_surface(self):
+        # The removed _RUST_TREND flag and _sum_float floor must not
+        # silently return: their absence is the honest contract.
+        assert not hasattr(streaming_mod, "_RUST_TREND")
+        assert not hasattr(streaming_mod, "_sum_float")
 
     def test_check_halt_reports_direct_window_average_breach(self):
         kernel = StreamingKernel(
@@ -520,8 +511,7 @@ class TestStreamingTraceHelpers:
 
 
 class TestStreamingRustMean:
-    def test_rust_mean_kernel_is_used_when_available(self, monkeypatch):
-        monkeypatch.setattr(streaming_mod, "_RUST_TREND", True)
+    def test_rust_mean_kernel_is_always_used(self, monkeypatch):
         called = {"count": 0}
 
         def _mean(values: list[float]) -> float:
@@ -532,15 +522,16 @@ class TestStreamingRustMean:
         assert streaming_mod._mean([0.5, 1.0]) == pytest.approx(0.75)
         assert called["count"] == 1
 
-    def test_rust_mean_type_error_falls_back_to_python(self, monkeypatch):
-        monkeypatch.setattr(streaming_mod, "_RUST_TREND", True)
+    def test_rust_mean_failure_propagates_as_mandatory(self, monkeypatch):
+        # KIMI-F: no silent pure-Python degradation on the streaming path.
         monkeypatch.setattr(
             streaming_mod,
             "_rust_mean",
             lambda _values: (_ for _ in ()).throw(TypeError("ffi signature mismatch")),
             raising=True,
         )
-        assert streaming_mod._mean([0.2, 0.4, 0.6]) == pytest.approx(0.4)
+        with pytest.raises(TypeError, match="ffi signature mismatch"):
+            streaming_mod._mean([0.2, 0.4, 0.6])
 
 
 @pytest.mark.consumer

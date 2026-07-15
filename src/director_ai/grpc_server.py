@@ -338,20 +338,25 @@ def create_grpc_server(
         options=server_options,
     )
 
-    # Optional server reflection
-    try:
-        from grpc_reflection.v1alpha import reflection
+    # Server reflection is an explicit opt-in (KIMI-D 2026-07-15):
+    # exposing the full service schema aids reconnaissance, so deployments
+    # must enable it deliberately via grpc_reflection_enabled.
+    if cfg.grpc_reflection_enabled:
+        try:
+            from grpc_reflection.v1alpha import reflection
 
-        service_names = []
-        if has_proto:
-            service_names.append(
-                director_pb2.DESCRIPTOR.services_by_name["DirectorService"].full_name,
-            )
-        service_names.append(reflection.SERVICE_NAME)
-        reflection.enable_server_reflection(service_names, server)
-        logger.debug("gRPC reflection enabled")
-    except (ImportError, AttributeError, KeyError):
-        pass
+            service_names = []
+            if has_proto:
+                service_names.append(
+                    director_pb2.DESCRIPTOR.services_by_name[
+                        "DirectorService"
+                    ].full_name,
+                )
+            service_names.append(reflection.SERVICE_NAME)
+            reflection.enable_server_reflection(service_names, server)
+            logger.debug("gRPC reflection enabled")
+        except (ImportError, AttributeError, KeyError):
+            pass
 
     if has_proto:
         from . import director_pb2_grpc

@@ -472,3 +472,38 @@ class TestFeedbackStorePerformanceDoc:
         ]:
             assert field in data[0], f"Missing: {field}"
         store.close()
+
+
+class TestEnsureColumnGuards:
+    """KIMI-A: DDL pieces are strictly validated before f-string composition."""
+
+    def _conn(self):
+        import sqlite3
+
+        conn = sqlite3.connect(":memory:")
+        conn.execute("CREATE TABLE corrections (id INTEGER PRIMARY KEY)")
+        return conn
+
+    def test_rejects_unsafe_identifier(self):
+        from director_ai.core.calibration.feedback_store import _ensure_column
+
+        with pytest.raises(ValueError, match="unsafe SQL column identifier"):
+            _ensure_column(self._conn(), "name; drop table corrections", "TEXT")
+
+    def test_rejects_unsafe_ddl_clause(self):
+        from director_ai.core.calibration.feedback_store import _ensure_column
+
+        with pytest.raises(ValueError, match="unsafe SQL column DDL"):
+            _ensure_column(
+                self._conn(), "safe_name", "TEXT); DROP TABLE corrections; --"
+            )
+
+    def test_accepts_the_known_migration_shape(self):
+        from director_ai.core.calibration.feedback_store import _ensure_column
+
+        conn = self._conn()
+        _ensure_column(conn, "tenant_id", "TEXT NOT NULL DEFAULT ''")
+        columns = {row[1] for row in conn.execute("PRAGMA table_info(corrections)")}
+        assert "tenant_id" in columns
+        # Idempotent on re-run.
+        _ensure_column(conn, "tenant_id", "TEXT NOT NULL DEFAULT ''")

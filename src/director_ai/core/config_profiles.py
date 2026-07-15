@@ -142,6 +142,9 @@ PROFILE_DEFINITIONS: dict[str, dict[str, Any]] = {
         "llm_judge_enabled": True,
         "llm_judge_provider": "local",
         "verified_scorer_enabled": True,
+        # Regulated-domain profiles redact PII from logs and review queues
+        # by default (KIMI-C 2026-07-15).
+        "privacy_mode": True,
         "w_logic": 0.5,
         "w_fact": 0.5,
         "profile": "medical",
@@ -159,6 +162,9 @@ PROFILE_DEFINITIONS: dict[str, dict[str, Any]] = {
         "llm_judge_enabled": True,
         "llm_judge_provider": "local",
         "verified_scorer_enabled": True,
+        # Regulated-domain profiles redact PII from logs and review queues
+        # by default (KIMI-C 2026-07-15).
+        "privacy_mode": True,
         "w_logic": 0.4,
         "w_fact": 0.6,
         "profile": "finance",
@@ -175,6 +181,9 @@ PROFILE_DEFINITIONS: dict[str, dict[str, Any]] = {
         "llm_judge_enabled": True,
         "llm_judge_provider": "local",
         "verified_scorer_enabled": True,
+        # Regulated-domain profiles redact PII from logs and review queues
+        # by default (KIMI-C 2026-07-15).
+        "privacy_mode": True,
         "w_logic": 0.6,
         "w_fact": 0.4,
         "profile": "legal",

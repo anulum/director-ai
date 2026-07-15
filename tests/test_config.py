@@ -1047,6 +1047,17 @@ class TestClaimSupportConfigWiring:
         assert cfg.nli_summarization_aggregation == "weakest_link"
         assert cfg.nli_summarization_support_threshold == pytest.approx(0.08)
 
+    def test_grpc_reflection_is_an_explicit_opt_in(self, monkeypatch):
+        # KIMI-D: reflection exposes the full service schema, default off.
+        assert DirectorConfig().grpc_reflection_enabled is False
+        monkeypatch.setenv("DIRECTOR_GRPC_REFLECTION_ENABLED", "true")
+        assert DirectorConfig.from_env().grpc_reflection_enabled is True
+
+    @pytest.mark.parametrize("profile", ["medical", "finance", "legal"])
+    def test_regulated_profiles_redact_pii_by_default(self, profile):
+        # KIMI-C: regulated-domain profiles carry privacy_mode.
+        assert DirectorConfig.from_profile(profile).privacy_mode is True
+
     @pytest.mark.parametrize(
         ("kwargs", "match"),
         [

@@ -19,6 +19,7 @@ import hmac as _hmac
 import json
 import logging
 import os
+import re
 import sqlite3
 import threading
 from dataclasses import dataclass, replace
@@ -33,6 +34,10 @@ _ZERO_HASH = "0" * 64
 # scheme proven in ``core/safety/audit.py`` (SHA-256 content hash + prev_hash
 # linkage + HMAC chain tag) applied to this SQLite compliance trail.
 _CHAIN_COLUMNS = ("prev_hash", "entry_hash", "chain_tag")
+
+# DDL below is composed by f-string; every identifier must satisfy this
+# pattern so a future caller cannot smuggle SQL through a column name.
+_SQL_IDENTIFIER_RE = re.compile(r"^[a-z_][a-z0-9_]*$")
 
 _logger = logging.getLogger("DirectorAI.ComplianceAudit")
 
@@ -132,6 +137,8 @@ class AuditLog:
             row[1] for row in self._conn.execute("PRAGMA table_info(audit_log)")
         }
         for column in _CHAIN_COLUMNS:
+            if not _SQL_IDENTIFIER_RE.fullmatch(column):
+                raise ValueError(f"unsafe SQL column identifier: {column!r}")
             if column not in existing:
                 self._conn.execute(f"ALTER TABLE audit_log ADD COLUMN {column} TEXT")
         self._conn.execute("""

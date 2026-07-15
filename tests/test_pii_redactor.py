@@ -142,3 +142,63 @@ def test_explicit_detectors_are_used_without_building_defaults() -> None:
     assert redactor._resolve_detectors() == (detector,)
     report = redactor.redact_with_report("Email bob@example.com")
     assert report.redacted_text == "Email [EMAIL]"
+
+
+class TestSelectionScalesLinearly:
+    """KIMI-I: the span selection was quadratic on dense findings."""
+
+    def _reference_selection(self, findings):
+        # The pre-fix full-scan implementation, kept here as the
+        # behavioural oracle for the linear selection.
+        ordered = sorted(
+            findings, key=lambda f: (f.start, -(f.end - f.start), f.category)
+        )
+        selected = []
+        occupied = []
+        for finding in ordered:
+            if finding.start < 0 or finding.end <= finding.start:
+                continue
+            if any(
+                finding.start < end and finding.end > start for start, end in occupied
+            ):
+                continue
+            selected.append(finding)
+            occupied.append((finding.start, finding.end))
+        return tuple(sorted(selected, key=lambda f: f.start))
+
+    def test_linear_selection_matches_the_full_scan_oracle(self):
+        import random
+
+        from director_ai.core.redactor import (
+            PIIRedactionFinding,
+            _select_non_overlapping,
+        )
+
+        rng = random.Random(20260715)
+        findings = []
+        for _ in range(500):
+            start = rng.randint(-2, 300)
+            end = start + rng.randint(-1, 12)
+            findings.append(
+                PIIRedactionFinding(
+                    detector="pii_regex",
+                    category=rng.choice(["email", "phone", "ssn"]),
+                    start=start,
+                    end=end,
+                    replacement="[X]",
+                    score=1.0,
+                )
+            )
+        assert _select_non_overlapping(findings) == self._reference_selection(findings)
+
+    def test_dense_input_redacts_in_linear_time(self):
+        # 40 000 findings: the quadratic selection needed ~0.8 s of pure
+        # span-scanning here and 13 minutes on a real 2 MB input; the
+        # linear selection is effectively instant. No timing assert —
+        # a regression would show up as a hung suite, and the oracle
+        # test above pins the behaviour.
+        from director_ai.core.redactor import PIIRedactor
+
+        text = "mail john.doe@example.com now. " * 40_000
+        redacted = PIIRedactor(enabled=True).redact(text)
+        assert "example.com" not in redacted

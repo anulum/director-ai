@@ -56,6 +56,40 @@ class TestGrpcServer:
         server = create_grpc_server(port=0)
         assert server is not None
 
+    def test_reflection_is_off_by_default(self, monkeypatch):
+        # KIMI-D: exposing the full service schema aids reconnaissance,
+        # so reflection must be an explicit opt-in.
+        import sys
+        from types import ModuleType
+
+        from director_ai.core.config import DirectorConfig
+        from director_ai.grpc_server import create_grpc_server
+
+        calls: list[object] = []
+        fake_reflection = ModuleType("grpc_reflection.v1alpha.reflection")
+        fake_reflection.SERVICE_NAME = "grpc.reflection.v1alpha.ServerReflection"
+        fake_reflection.enable_server_reflection = lambda names, server: calls.append(
+            names
+        )
+        fake_v1alpha = ModuleType("grpc_reflection.v1alpha")
+        fake_v1alpha.reflection = fake_reflection
+        fake_pkg = ModuleType("grpc_reflection")
+        fake_pkg.v1alpha = fake_v1alpha
+        monkeypatch.setitem(sys.modules, "grpc_reflection", fake_pkg)
+        monkeypatch.setitem(sys.modules, "grpc_reflection.v1alpha", fake_v1alpha)
+        monkeypatch.setitem(
+            sys.modules, "grpc_reflection.v1alpha.reflection", fake_reflection
+        )
+
+        create_grpc_server(DirectorConfig(), max_workers=1, port=0)
+        assert calls == []
+
+        create_grpc_server(
+            DirectorConfig(grpc_reflection_enabled=True), max_workers=1, port=0
+        )
+        assert len(calls) == 1
+        assert fake_reflection.SERVICE_NAME in calls[0]
+
 
 class TestGrpcServerOptions:
     @pytest.fixture(autouse=True)

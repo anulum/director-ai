@@ -490,6 +490,9 @@ class DirectorConfig:
     # gRPC limits
     grpc_max_message_mb: int = 4
     grpc_deadline_seconds: float = 30.0
+    # Server reflection exposes the full service schema to any client —
+    # a reconnaissance aid — so it is an explicit opt-in (KIMI-D).
+    grpc_reflection_enabled: bool = False
 
     # Profile name (informational)
     profile: str = "default"

@@ -41,6 +41,8 @@ from collections.abc import Iterable
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 
+from ._regex_guard import ensure_safe_pattern
+
 if TYPE_CHECKING:
     from .moderation.detectors import ModerationDetector
 
@@ -95,8 +97,12 @@ class Policy:
             action = p.get("action", "block")
             if regex:
                 try:
-                    compiled = re.compile(regex, re.IGNORECASE)
-                except re.error as e:
+                    compiled = ensure_safe_pattern(
+                        regex,
+                        source=f"policy pattern '{name}'",
+                        flags=re.IGNORECASE,
+                    )
+                except ValueError as e:
                     raise ValueError(
                         f"Invalid regex in policy pattern '{name}': {e}",
                     ) from e

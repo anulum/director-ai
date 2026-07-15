@@ -92,9 +92,9 @@ class TestInputSanitizerCheck:
         assert "custom" in r.matches
 
     def test_extra_patterns_invalid_regex_raises(self):
-        import re
-
-        with pytest.raises(re.error):
+        # The ReDoS guard (KIMI-B) wraps the underlying re.error in a
+        # ValueError that names the offending pattern source.
+        with pytest.raises(ValueError, match="invalid regex for sanitizer"):
             InputSanitizer(extra_patterns=[("bad", "[invalid(")])
 
     def test_base64_payload_detected(self):

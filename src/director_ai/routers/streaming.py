@@ -43,6 +43,10 @@ _WS_IDLE_TIMEOUT_S = 300.0  # close a connection idle this long between messages
 _WS_MAX_LIFETIME_S = 3600.0  # close a connection older than this
 _WS_RATE_WINDOW_S = 10.0  # sliding window for the per-connection message rate
 _WS_MAX_MSGS_PER_WINDOW = 60  # messages allowed per window before rate limiting
+# Per-session prompt byte budget — the SSE twin (_SSE_MAX_PROMPT_LENGTH in
+# streaming_sse.py) has capped prompts since its introduction; the WebSocket
+# path gained the same cap in the 2026-07-15 hardening slice (KIMI-E).
+_WS_MAX_PROMPT_LENGTH = 100_000
 _WS_CONN_CHAR_BUDGET = 5_000_000  # total prompt chars one connection may submit
 
 try:
@@ -180,6 +184,14 @@ def create_streaming_router() -> APIRouter:
         async def _handle_session(session_id: str, data: dict[str, Any]) -> None:
             """Process one WebSocket session payload."""
             prompt = data.get("prompt", "")
+            if len(prompt) > _WS_MAX_PROMPT_LENGTH:
+                await _send(
+                    {
+                        "session_id": session_id,
+                        "error": (f"prompt exceeds {_WS_MAX_PROMPT_LENGTH} chars"),
+                    },
+                )
+                return
 
             sanitizer = ws.app.state._state.get("sanitizer")
             if sanitizer:

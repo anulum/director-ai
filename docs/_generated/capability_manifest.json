@@ -7,7 +7,7 @@
     "public_api_exports": 226,
     "public_documentation_pages": 205,
     "python_model_classes": 1040,
-    "python_model_source_modules": 513,
+    "python_model_source_modules": 514,
     "rust_pyo3_model_wrappers": 83,
     "test_files": 756
   },
@@ -4800,6 +4800,7 @@
       "src/director_ai/core/runtime/streaming_gate.py",
       "src/director_ai/core/runtime/structured_recovery.py",
       "src/director_ai/core/runtime/ws_ticket.py",
+      "src/director_ai/core/safety/_regex_guard.py",
       "src/director_ai/core/safety/audit.py",
       "src/director_ai/core/safety/audit_salt.py",
       "src/director_ai/core/safety/harm_taxonomy.py",

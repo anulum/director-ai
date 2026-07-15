@@ -13,6 +13,8 @@ and against the Rust implementation when it is.
 
 from __future__ import annotations
 
+import pytest
+
 import director_ai.core.runtime.streaming as streaming_mod
 from director_ai.core.runtime.streaming import _trend_drop
 from director_ai.core.scoring.verified_scorer import (
@@ -146,40 +148,20 @@ class TestTrendDrop:
     def test_empty(self):
         assert _trend_drop([]) == 0.0
 
-    def test_rust_trend_drop_exception_falls_back_to_python(self, monkeypatch):
-        monkeypatch.setattr(streaming_mod, "_RUST_TREND", True)
-        monkeypatch.setattr(
-            streaming_mod,
-            "_rust_trend_drop",
-            lambda _values: (_ for _ in ()).throw(RuntimeError("ffi fail")),
-            raising=False,
-        )
-        drop = _trend_drop([0.9, 0.7, 0.5, 0.3, 0.1])
-        assert drop > 0.5
-
-    def test_rust_trend_drop_non_runtime_exception_falls_back_to_python(
-        self, monkeypatch
+    @pytest.mark.parametrize("exc_type", [RuntimeError, ValueError, TypeError])
+    def test_rust_trend_drop_failure_propagates_as_mandatory(
+        self, monkeypatch, exc_type
     ):
-        monkeypatch.setattr(streaming_mod, "_RUST_TREND", True)
+        # Streaming trend statistics are mandatory accelerators (KIMI-F):
+        # a kernel failure must propagate loudly, never degrade silently.
         monkeypatch.setattr(
             streaming_mod,
             "_rust_trend_drop",
-            lambda _values: (_ for _ in ()).throw(ValueError("ffi fail")),
-            raising=False,
+            lambda _values: (_ for _ in ()).throw(exc_type("ffi fail")),
+            raising=True,
         )
-        drop = _trend_drop([0.9, 0.7, 0.5, 0.3, 0.1])
-        assert drop > 0.5
-
-    def test_rust_trend_drop_type_error_falls_back_to_python(self, monkeypatch):
-        monkeypatch.setattr(streaming_mod, "_RUST_TREND", True)
-        monkeypatch.setattr(
-            streaming_mod,
-            "_rust_trend_drop",
-            lambda _values: (_ for _ in ()).throw(TypeError("ffi fail")),
-            raising=False,
-        )
-        drop = _trend_drop([0.9, 0.7, 0.5, 0.3, 0.1])
-        assert drop > 0.5
+        with pytest.raises(exc_type, match="ffi fail"):
+            _trend_drop([0.9, 0.7, 0.5, 0.3, 0.1])
 
 
 class TestRustDispatch:
@@ -191,11 +173,14 @@ class TestRustDispatch:
         assert hasattr(_claim_signals, "_RUST_SIGNALS")
         assert isinstance(_claim_signals._RUST_SIGNALS, bool)
 
-    def test_streaming_has_flag(self):
+    def test_streaming_kernel_surface_is_mandatory(self):
+        # KIMI-F: streaming has no fallback dispatch flag — its trend
+        # statistics are mandatory Rust kernels with actionable stubs.
         from director_ai.core.runtime import streaming
 
-        assert hasattr(streaming, "_RUST_TREND")
-        assert isinstance(streaming._RUST_TREND, bool)
+        assert not hasattr(streaming, "_RUST_TREND")
+        assert callable(streaming._rust_trend_drop)
+        assert callable(streaming._rust_mean)
 
 
 class TestBM25RustFallback:

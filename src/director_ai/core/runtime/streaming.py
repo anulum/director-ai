@@ -25,7 +25,7 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 
 from ..causal_verifier import CounterfactualVerifier
-from ..mandatory import mandatory_execution
+from ..mandatory import mandatory_execution, require_rust_kernel
 from ..observability.callbacks import (
     TokenTraceCallback,
     TokenTraceEmitter,
@@ -42,29 +42,26 @@ from .structured_recovery import (
     StructuredRecoveryState,
 )
 
+# Streaming trend statistics are MANDATORY accelerators (enforced
+# 2026-05-22, commit 4c8a01d8): a kernel-absent install raises the
+# actionable [rust]-extra error instead of silently degrading the
+# streaming halt's latency. There is deliberately no pure-Python floor
+# here (KIMI-F 2026-07-15 removed the unreachable fallback bodies that
+# made this look optional).
 try:
     from backfire_kernel import (
         rust_mean as _rust_mean,
     )
     from backfire_kernel import (
-        rust_sum_f64 as _rust_sum_f64,
-    )
-    from backfire_kernel import (
         rust_trend_drop as _rust_trend_drop,
     )
-
-    _RUST_TREND = True
 except ImportError:
-    _RUST_TREND = True
 
     def _rust_mean(_values: list[float]) -> float:
-        raise RuntimeError("backfire_kernel rust_mean is unavailable")
-
-    def _rust_sum_f64(_values: list[float]) -> float:
-        raise RuntimeError("backfire_kernel rust_sum_f64 is unavailable")
+        require_rust_kernel("rust_mean")
 
     def _rust_trend_drop(_values: list[float]) -> float:
-        raise RuntimeError("backfire_kernel rust_trend_drop is unavailable")
+        require_rust_kernel("rust_trend_drop")
 
 
 __all__ = ["StreamSession", "StreamingKernel", "TokenEvent"]
@@ -76,40 +73,22 @@ logger = logging.getLogger("DirectorAI.Streaming")
 
 
 def _mean(values: Sequence[float] | deque[float]) -> float:
-    """Return arithmetic mean with optional Rust kernel acceleration."""
+    """Return the arithmetic mean via the mandatory Rust kernel."""
     if not values:
         return 0.0
-    if _RUST_TREND:
-        with mandatory_execution(__name__, component="mandatory accelerated path"):
-            return float(_rust_mean(list(values)))
-    return _sum_float([float(v) for v in values]) / len(values)
+    with mandatory_execution(__name__, component="mandatory accelerated path"):
+        return float(_rust_mean(list(values)))
 
 
 def _trend_drop(values: list[float] | deque[float]) -> float:
     """Linear regression slope drop over a window of coherence scores.
 
     Returns the projected drop magnitude: -slope * (n - 1).
-    Positive values indicate downward trend.
+    Positive values indicate downward trend. Computed by the mandatory
+    Rust kernel.
     """
-    if _RUST_TREND:
-        with mandatory_execution(__name__, component="mandatory accelerated path"):
-            return float(_rust_trend_drop(list(values)))
-    n = len(values)
-    if n < 2:
-        return 0.0
-    x_mean = (n - 1) / 2.0
-    y_mean = _mean(values)
-    num = _sum_float([(i - x_mean) * (y - y_mean) for i, y in enumerate(values)])
-    den = _sum_float([(i - x_mean) ** 2 for i in range(n)])
-    slope = num / den if den > 1e-12 else 0.0
-    return -slope * (n - 1)
-
-
-def _sum_float(values: list[float]) -> float:
-    if _RUST_TREND:
-        with mandatory_execution(__name__, component="mandatory accelerated path"):
-            return float(_rust_sum_f64(values))
-    return sum(values)
+    with mandatory_execution(__name__, component="mandatory accelerated path"):
+        return float(_rust_trend_drop(list(values)))
 
 
 @dataclass

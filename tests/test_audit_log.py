@@ -12,6 +12,8 @@ from __future__ import annotations
 import sqlite3
 import time
 
+import pytest
+
 from director_ai.compliance.audit_log import AuditEntry, AuditLog
 
 
@@ -39,6 +41,21 @@ def _entry(
         tenant_id=tenant_id,
         human_override=human_override,
     )
+
+
+def test_audit_log_rejects_unsafe_chain_column_identifier(
+    tmp_path, monkeypatch
+) -> None:
+    """DDL identifiers are strictly validated before f-string composition."""
+    from director_ai.compliance import audit_log as audit_log_mod
+
+    monkeypatch.setattr(
+        audit_log_mod,
+        "_CHAIN_COLUMNS",
+        ("prev_hash; drop table audit_log",),
+    )
+    with pytest.raises(ValueError, match="unsafe SQL column identifier"):
+        AuditLog(str(tmp_path / "audit.db"))
 
 
 def test_audit_log_persists_and_queries_entries(tmp_path) -> None:
