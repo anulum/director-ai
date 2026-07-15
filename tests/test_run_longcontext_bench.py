@@ -335,6 +335,36 @@ class TestHaluEvalDataSurface:
         assert halueval_eval._download_task_data.__module__ == _halueval_data.__name__
         assert halueval_eval._DATASET_URLS is _halueval_data._DATASET_URLS
 
+    def test_extract_pairs_dialogue_composes_knowledge_and_history(self):
+        # D1 (BENCHMARK_REPORT §16): knowledge must be IN the premise, not a
+        # fallback — the hallucinated fact is usually refutable only from it.
+        from benchmarks.halueval_eval import _extract_pairs
+
+        pairs = _extract_pairs(
+            "dialogue",
+            {
+                "knowledge": "Zodiac stars Jake Gyllenhaal.",
+                "dialogue_history": "A: seen Zodiac?",
+                "right_response": "Yes.",
+                "hallucinated_response": "Tom Hanks stars.",
+            },
+        )
+        assert len(pairs) == 2
+        expected = "Zodiac stars Jake Gyllenhaal.\nA: seen Zodiac?"
+        assert all(ctx == expected for ctx, _r, _h in pairs)
+
+    def test_extract_pairs_dialogue_single_field_still_works(self):
+        from benchmarks.halueval_eval import _extract_pairs
+
+        history_only = _extract_pairs(
+            "dialogue", {"dialogue_history": "A: hi", "right_response": "Hey."}
+        )
+        assert history_only[0][0] == "A: hi"
+        knowledge_only = _extract_pairs(
+            "dialogue", {"knowledge": "K fact.", "right_response": "Hey."}
+        )
+        assert knowledge_only[0][0] == "K fact."
+
 
 # ── RAGTruth loader (second long-context set) ──────────────────────
 

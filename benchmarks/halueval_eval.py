@@ -106,7 +106,15 @@ def _extract_pairs(task: str, sample: dict) -> list[tuple[str, str, bool]]:
         if halluc:
             pairs.append((ctx, halluc, True))
     elif task == "dialogue":
-        ctx = sample.get("dialogue_history", "") or sample.get("knowledge", "")
+        # D1 (WCS-1, BENCHMARK_REPORT §16): the hallucinated fact is usually
+        # refutable only from `knowledge`, so the premise composes knowledge
+        # AND history — knowledge-as-fallback hid the evidence and capped
+        # dialogue catch at 4.5 %.
+        knowledge = sample.get("knowledge", "") or ""
+        history = sample.get("dialogue_history", "") or ""
+        ctx = (
+            f"{knowledge}\n{history}" if knowledge and history else knowledge or history
+        )
         right = sample.get("right_response", "")
         halluc = sample.get("hallucinated_response", "")
         if right:

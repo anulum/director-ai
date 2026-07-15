@@ -303,6 +303,9 @@ class CoherenceScorer(ReviewPipelineMixin):
         self._rag_claim_decomposition = True  # per-sentence scoring for RAG path
         self._retrieval_abstention_threshold = 0.0
         self._claim_coverage_alpha = 0.4
+        # 0 = whole source document for the summarisation coverage layers
+        # (WCS-1 2026-07-15; the pre-WCS-1 truncation was 3000 chars)
+        self._summarization_premise_chars = 0
         self._verified_scorer_enabled = False
         self._verified_scorer_atomic = True
         self._verified_scorer_evidence_top_k = 3

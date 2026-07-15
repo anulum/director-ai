@@ -384,6 +384,73 @@ class TestSummarizationFactualDivergence:
         assert adjusted == 0.4
         assert evidence is None
 
+    def test_minicheck_layer_sees_whole_document_by_default(self):
+        # WCS-1 D2: the pre-2026-07-15 behaviour truncated the source to
+        # 3000 chars, hiding late-document evidence; the default is now
+        # the whole document.
+        long_doc = "early. " * 500 + "The decisive late fact."
+        assert len(long_doc) > 3000
+        seen: list[str] = []
+
+        def capture(source, sentence):
+            seen.append(source)
+            return 0.2
+
+        summarization_factual_divergence(
+            _NliScorer(reverse_divergence=0.2),
+            long_doc,
+            "summary claim.",
+            "tenant-a",
+            calculate_factual_with_evidence=lambda *args, **kwargs: (0.3, None),
+            get_minicheck_scorer=lambda: SimpleNamespace(score=capture),
+        )
+
+        assert seen and all(source == long_doc for source in seen)
+
+    def test_factcg_layer_sees_whole_document_by_default(self):
+        long_doc = "early. " * 500 + "The decisive late fact."
+        seen: list[str] = []
+
+        class _CoverageNli(_NliScorer):
+            def score_claim_coverage_with_attribution(
+                self, premise, response, **kwargs
+            ):
+                seen.append(premise)
+                return 1.0, [0.1], ["claim"], ["span"]
+
+        summarization_factual_divergence(
+            _CoverageNli(reverse_divergence=0.2),
+            long_doc,
+            "summary claim.",
+            "tenant-a",
+            calculate_factual_with_evidence=lambda *args, **kwargs: (0.3, None),
+        )
+
+        assert seen == [long_doc]
+
+    def test_premise_chars_restores_the_truncated_budget(self):
+        long_doc = "early. " * 500 + "The decisive late fact."
+        seen: list[str] = []
+
+        class _CoverageNli(_NliScorer):
+            def score_claim_coverage_with_attribution(
+                self, premise, response, **kwargs
+            ):
+                seen.append(premise)
+                return 1.0, [0.1], ["claim"], ["span"]
+
+        summarization_factual_divergence(
+            _CoverageNli(reverse_divergence=0.2),
+            long_doc,
+            "summary claim.",
+            "tenant-a",
+            calculate_factual_with_evidence=lambda *args, **kwargs: (0.3, None),
+            premise_chars=3000,
+        )
+
+        assert seen == [long_doc[:3000]]
+        assert "decisive late fact" not in seen[0]
+
 
 class TestSumIntPaths:
     def test_sum_int_uses_rust_when_available(self, monkeypatch):

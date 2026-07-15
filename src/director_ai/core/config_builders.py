@@ -350,6 +350,7 @@ def build_scorer(
     scorer._claim_coverage_enabled = cfg.nli_claim_coverage_enabled
     scorer._claim_support_threshold = cfg.nli_claim_support_threshold
     scorer._claim_coverage_alpha = cfg.nli_claim_coverage_alpha
+    scorer._summarization_premise_chars = cfg.nli_summarization_premise_chars
     scorer._verified_scorer_enabled = cfg.verified_scorer_enabled
     scorer._verified_scorer_atomic = cfg.verified_scorer_atomic
     scorer._verified_scorer_evidence_top_k = cfg.verified_scorer_evidence_top_k

@@ -178,6 +178,7 @@ def summarization_factual_divergence(
     claim_coverage_alpha: float = 0.4,
     baseline: float = 0.20,
     get_minicheck_scorer: Callable[[], Any] | None = None,
+    premise_chars: int = 0,
 ) -> tuple[float, ScoringEvidence | None]:
     """Bidirectional NLI + claim coverage for summarisation.
 
@@ -193,7 +194,14 @@ def summarization_factual_divergence(
         The NLI scorer instance.
     get_minicheck_scorer : callable | None
         Returns MiniCheck NLIScorer or None.
+    premise_chars : int
+        Source-document budget for the coverage layers; ``0`` (default)
+        passes the WHOLE document and lets each backend chunk long inputs
+        itself. The pre-WCS-1 behaviour was a 3000-char truncation, which
+        the 2026-07-15 evidence sweep showed hides late-document evidence
+        on both HaluEval and RAGTruth (BENCHMARK_REPORT §16).
     """
+    coverage_premise = prompt[:premise_chars] if premise_chars > 0 else prompt
     # Layer A: bidirectional FactCG NLI
     h_fact_fwd, evidence = calculate_factual_with_evidence(
         prompt,
@@ -222,7 +230,7 @@ def summarization_factual_divergence(
     mc_scorer = get_minicheck_scorer() if get_minicheck_scorer else None
     if mc_scorer is not None:
         coverage, per_claim_divs, claims = minicheck_claim_coverage(
-            mc_scorer, prompt[:3000], response
+            mc_scorer, coverage_premise, response
         )
         mc_alpha = 0.6
         adjusted = mc_alpha * (1.0 - coverage) + (1.0 - mc_alpha) * layer_a
@@ -235,11 +243,10 @@ def summarization_factual_divergence(
 
     # Layer C (fallback): FactCG claim decomposition + coverage.
     if claim_coverage_enabled:
-        truncated_premise = prompt[:3000]
         try:
             coverage, per_claim_divs, claims, attributions = (
                 nli_scorer.score_claim_coverage_with_attribution(
-                    truncated_premise,
+                    coverage_premise,
                     response,
                     support_threshold=claim_support_threshold,
                 )

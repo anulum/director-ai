@@ -1001,6 +1001,20 @@ class TestClaimSupportConfigWiring:
         assert scorer._claim_support_threshold == 0.7
         assert scorer._claim_coverage_alpha == 0.25
 
+    def test_summarization_premise_budget_defaults_to_whole_document(self):
+        # WCS-1 D2 (BENCHMARK_REPORT §16): 0 = whole document; the pre-WCS-1
+        # 3000-char truncation stays available as an explicit rollback.
+        assert DirectorConfig().nli_summarization_premise_chars == 0
+
+        cfg = DirectorConfig(nli_summarization_premise_chars=3000)
+        scorer = cfg.build_scorer()
+        assert scorer._summarization_premise_chars == 3000
+
+    def test_summarization_premise_budget_reads_from_env(self, monkeypatch):
+        monkeypatch.setenv("DIRECTOR_NLI_SUMMARIZATION_PREMISE_CHARS", "3000")
+        cfg = DirectorConfig.from_env()
+        assert cfg.nli_summarization_premise_chars == 3000
+
 
 class TestConfigCoverageGaps:
     """Dedicated tests for DirectorConfig validation and scorer wiring branches."""

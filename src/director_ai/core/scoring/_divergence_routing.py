@@ -69,6 +69,7 @@ class TaskRoutedCoherenceMixin:
     _claim_coverage_enabled: bool
     _claim_support_threshold: float
     _claim_coverage_alpha: float
+    _summarization_premise_chars: int
 
     if TYPE_CHECKING:
         # Divergence calculators and services provided by the composing scorer.
@@ -178,6 +179,7 @@ class TaskRoutedCoherenceMixin:
             claim_coverage_alpha=self._claim_coverage_alpha,
             baseline=self._summarization_nli_baseline,
             get_minicheck_scorer=self._get_minicheck_scorer,
+            premise_chars=self._summarization_premise_chars,
         )
 
     # ── Composite heuristic coherence ─────────────────────────────────

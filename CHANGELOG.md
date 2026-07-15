@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Summarisation claim-coverage layers (MiniCheck and FactCG) now score
+  against the **whole source document** instead of a 3 000-character
+  prefix; each backend applies its own long-input chunking. The
+  2026-07-15 evidence sweep (BENCHMARK_REPORT §16) showed the prefix
+  truncation is dominated on both HaluEval and RAGTruth — catch at the
+  matched false-positive rate rose from 0.049 to 0.289 on RAGTruth
+  Summary with whole-document scoring. The previous behaviour is
+  restorable via `DirectorConfig.nli_summarization_premise_chars = 3000`
+  (`DIRECTOR_NLI_SUMMARIZATION_PREMISE_CHARS`).
+
 ### Added
 
 - Rubric-scored, optionally ensembled LLM judge

@@ -429,6 +429,12 @@ class DirectorConfig:
     nli_claim_coverage_enabled: bool = True
     nli_claim_support_threshold: float = 0.6
     nli_claim_coverage_alpha: float = 0.4
+    # Source-document budget for the summarisation claim-coverage layers.
+    # 0 = the WHOLE document (each backend applies its own long-input
+    # chunking). The pre-WCS-1 behaviour was a 3000-char truncation, which
+    # the 2026-07-15 sweep showed is dominated on both HaluEval and
+    # RAGTruth (BENCHMARK_REPORT §16); set 3000 to restore it.
+    nli_summarization_premise_chars: int = 0
 
     # Adaptive task-type thresholding (Phase 1B)
     # Validated on LLM-AggreFact 29K: per-task-type BA 76.68% vs global 75.82%
