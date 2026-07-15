@@ -1,0 +1,164 @@
+{
+  "meta": {
+    "benchmark": "longcontext-evidence-agg-sweep",
+    "dataset": "ragtruth",
+    "checker": "factcg",
+    "nli_model": "default",
+    "rows": 900,
+    "elapsed_s": 1463.31,
+    "matched_fpr_source": "benchmarks/results/judge_bench_nli_only_200.json",
+    "host_conditions": {
+      "captured_utc": "2026-07-15T11:53:49+00:00",
+      "load_avg": [
+        2.1,
+        2.66,
+        2.89
+      ],
+      "load_per_cpu_1m": 0.008,
+      "cpu_count": 256,
+      "cpu_affinity": [
+        196,
+        197,
+        198,
+        199,
+        200,
+        201,
+        202,
+        203,
+        204,
+        205,
+        206,
+        207,
+        208,
+        209,
+        210,
+        211,
+        212,
+        213,
+        214,
+        215,
+        216,
+        217,
+        218,
+        219,
+        220,
+        221,
+        222,
+        223
+      ],
+      "pinned": true,
+      "cpu_governor": "performance",
+      "isolation_verdict": "isolated-quiet"
+    },
+    "isolation_verdict": "isolated-quiet"
+  },
+  "per_task": {
+    "summarization": {
+      "n_good": 696,
+      "n_bad": 204,
+      "matched_fpr_target": 0.025,
+      "baseline_catch_tracked_200": 0.12,
+      "grid": {
+        "prefix3000": {
+          "min": {
+            "threshold_at_matched_fpr": 0.01170264557003975,
+            "catch_at_matched_fpr": 0.049019607843137254,
+            "actual_fpr": 0.02442528735632184,
+            "oracle_threshold": 0.3,
+            "oracle_balanced_accuracy": 0.7058823529411764
+          },
+          "mean": {
+            "threshold_at_matched_fpr": 0.369110095832083,
+            "catch_at_matched_fpr": 0.08823529411764706,
+            "actual_fpr": 0.02442528735632184,
+            "oracle_threshold": 0.75,
+            "oracle_balanced_accuracy": 0.7024594320486814
+          },
+          "low2mean": {
+            "threshold_at_matched_fpr": 0.017899262718856335,
+            "catch_at_matched_fpr": 0.03431372549019608,
+            "actual_fpr": 0.02442528735632184,
+            "oracle_threshold": 0.55,
+            "oracle_balanced_accuracy": 0.7068542934415145
+          },
+          "coverage": {
+            "threshold_at_matched_fpr": 0.3333333333333333,
+            "catch_at_matched_fpr": 0.10784313725490197,
+            "actual_fpr": 0.021551724137931036,
+            "oracle_threshold": 0.85,
+            "oracle_balanced_accuracy": 0.6949797160243407
+          }
+        },
+        "fulldoc": {
+          "min": {
+            "threshold_at_matched_fpr": 0.07967831194400787,
+            "catch_at_matched_fpr": 0.28921568627450983,
+            "actual_fpr": 0.02442528735632184,
+            "oracle_threshold": 0.35,
+            "oracle_balanced_accuracy": 0.765762339418526
+          },
+          "mean": {
+            "threshold_at_matched_fpr": 0.5423232465982437,
+            "catch_at_matched_fpr": 0.18137254901960784,
+            "actual_fpr": 0.02442528735632184,
+            "oracle_threshold": 0.8,
+            "oracle_balanced_accuracy": 0.7281947261663286
+          },
+          "low2mean": {
+            "threshold_at_matched_fpr": 0.1897827610373497,
+            "catch_at_matched_fpr": 0.16176470588235295,
+            "actual_fpr": 0.02442528735632184,
+            "oracle_threshold": 0.55,
+            "oracle_balanced_accuracy": 0.746239012846518
+          },
+          "coverage": {
+            "threshold_at_matched_fpr": 0.5,
+            "catch_at_matched_fpr": 0.13725490196078433,
+            "actual_fpr": 0.020114942528735632,
+            "oracle_threshold": 0.9,
+            "oracle_balanced_accuracy": 0.7401960784313726
+          }
+        },
+        "anchored@5": {
+          "min": {
+            "threshold_at_matched_fpr": 0.013797876425087452,
+            "catch_at_matched_fpr": 0.06372549019607843,
+            "actual_fpr": 0.02442528735632184,
+            "oracle_threshold": 0.15,
+            "oracle_balanced_accuracy": 0.7054597701149425
+          },
+          "mean": {
+            "threshold_at_matched_fpr": 0.2227276496589184,
+            "catch_at_matched_fpr": 0.08823529411764706,
+            "actual_fpr": 0.02442528735632184,
+            "oracle_threshold": 0.6,
+            "oracle_balanced_accuracy": 0.6846264367816092
+          },
+          "low2mean": {
+            "threshold_at_matched_fpr": 0.027486426290124655,
+            "catch_at_matched_fpr": 0.07352941176470588,
+            "actual_fpr": 0.02442528735632184,
+            "oracle_threshold": 0.2,
+            "oracle_balanced_accuracy": 0.6807386747802568
+          },
+          "coverage": {
+            "threshold_at_matched_fpr": 0.0,
+            "catch_at_matched_fpr": 0.0,
+            "actual_fpr": 0.0,
+            "oracle_threshold": 0.7,
+            "oracle_balanced_accuracy": 0.6706389452332657
+          }
+        }
+      },
+      "best_by_matched_catch": {
+        "variant": "fulldoc",
+        "aggregation": "min",
+        "threshold_at_matched_fpr": 0.07967831194400787,
+        "catch_at_matched_fpr": 0.28921568627450983,
+        "actual_fpr": 0.02442528735632184,
+        "oracle_threshold": 0.35,
+        "oracle_balanced_accuracy": 0.765762339418526
+      }
+    }
+  }
+}

@@ -833,17 +833,53 @@ Readings:
   MiniCheck's direction matches but its dialogue ceiling is half of
   FactCG's here.
 
-Gate status (WCS-1): the task-routed config beats the single-threshold
-baseline on BOTH long-context tasks at matched FPR on HaluEval, but the
-BACKLOG gate requires the same result on a second long-context set
-(TofuEval / RAGTruth-long) before any default flips. **No default changes
-from this section alone.**
+**Second set — RAGTruth Summary (test split, same day):** 900 natural
+(unpaired) rows — 696 supported / 204 hallucinated model responses over
+CNN/DM-style documents (median ~2.5 k chars, 37 % past the 3 000-char
+prefix), response-level label = any annotated span; corpus pinned to
+ParticleMedia/RAGTruth@c103204b. Single L4, `isolated-quiet`, FactCG,
+1 463 s, 11 810 unique calls. Catch at matched FPR 0.025:
 
-Claim boundary: HaluEval summarisation + dialogue at 200 samples/task,
-two checkers, evidence/aggregation sweep at matched per-task FPR against
-the tracked _200 baseline; no leaderboard claim, no claim about QA, other
-datasets, other checkers, or the E2E production path (whose calibration
-layer is not part of this matrix).
+| Evidence (RAGTruth Summary) | min | mean | low2mean | coverage |
+|---|---|---|---|---|
+| prefix3000 (production shape) | 0.049 | 0.088 | 0.034 | 0.108 |
+| **fulldoc** | **0.289** | 0.181 | 0.162 | 0.137 |
+| anchored@5 | 0.064 | 0.088 | 0.074 | 0.000 |
+
+Cross-dataset readings:
+
+- **The production prefix truncation is dominated on BOTH datasets** —
+  it is the worst evidence family everywhere it appears.
+- **The winning variant is dataset-dependent.** HaluEval's synthetic
+  single-fact swaps favour claim-anchored evidence (0.205); RAGTruth's
+  natural model errors favour the whole document (0.289, near-six-fold
+  over the production shape at the same FPR) while anchored@5 stays weak
+  (lexical top-k retrieves similar-but-not-refuting sentences for
+  unsupported-addition errors).
+- **`fulldoc / min` is the only configuration that improves or matches
+  the baseline on BOTH sets** (HaluEval 0.125 vs baseline 0.120 — thin,
+  within noise at N=200; RAGTruth 0.289 vs a 0.049 production-shape
+  arm). The honest production consequence is therefore *stop truncating
+  the summarisation premise at 3 000 chars* (whole-document chunked
+  scoring), not *switch to anchored evidence*; anchoring remains a
+  HaluEval-style-error tunable, not a default.
+
+Gate status (WCS-1): **summarisation axis passed on both sets** — a
+task-routed config (fulldoc/min) beats the single-threshold production
+shape at matched FPR on tracked HaluEval AND RAGTruth Summary. The
+dialogue axis (knowledge+history, six-fold on HaluEval) has no second
+public set with the same task shape in this sweep; its premise
+composition is an evidence-completeness fix (the `knowledge` field was
+silently dropped) rather than an operating-point retune, and is
+recommended independently of the gate. Default flips remain a separate,
+CEO-visible wiring decision.
+
+Claim boundary: HaluEval summarisation + dialogue at 200 samples/task
+(two checkers) and RAGTruth Summary test split at 900 rows (FactCG),
+evidence/aggregation sweep at matched per-task FPR against the tracked
+_200 baseline; no leaderboard claim, no claim about QA, other datasets,
+other checkers, or the E2E production path (whose calibration layer is
+not part of this matrix).
 
 ## Reproduction
 
