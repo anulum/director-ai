@@ -23,7 +23,7 @@ Metric: macro-averaged balanced accuracy (standard for [LLM-AggreFact](https://l
 | 3 | FactCG-DeBERTa-L (paper) | 77.2% | 0.4B | No | — | MIT |
 | 4 | Granite Guardian 3.3 (IBM) | 76.5% | 8B | No | — | Apache 2.0 |
 | 5 | GPT-4o | 75.9% | ~200B | No | API | Proprietary |
-| **6** | **Director-AI (FactCG)** | **75.86%** | **0.4B** | **Yes** | **0.5 ms** | **Apache-2.0 / BUSL-1.1** |
+| **6** | **Director-AI (FactCG)** | **75.86%** | **0.4B** | **Yes** | **0.5 ms** (L40S FP16, batch 32) | **Apache-2.0 / BUSL-1.1** |
 | 7 | MiniCheck-Flan-T5-L | 75.0% | 0.8B | No | ~120 ms | MIT |
 | 8 | MiniCheck-DeBERTa-L | 74.1% | 0.4B | No | ~120 ms | MIT |
 | 9 | Paladin-mini (Microsoft) | 73.1% | 3.8B | No | — | Phi-4 license |
@@ -236,16 +236,26 @@ latency.
 
 ### Local Judge — DeBERTa Binary Classifier (L40S)
 
-Replaces LLM API judge with a locally fine-tuned DeBERTa-v3-base (86M params) trained on 35K borderline NLI samples. Judge inference: **3.97 ms median**.
+Replaces the LLM API judge with a locally fine-tuned DeBERTa-v3-base (86M params) trained on 35K borderline NLI samples. Judge inference: **3.97 ms median**.
+
+Conservative operating point on 1,200 HaluEval traces (200/task, threshold 0.5):
 
 | Metric | NLI-Only | + Local Judge | Delta |
 |--------|----------|---------------|-------|
-| Catch rate | 93.63% | 93.80% | +0.17pp |
-| FPR | 66.87% | **66.33%** | **-0.54pp** |
-| Precision | 58.34% | **58.58%** | **+0.24pp** |
-| F1 | 71.89% | **72.12%** | **+0.23pp** |
+| Catch rate | 33.5% | 33.8% | +0.3pp |
+| FPR | 4.0% | **3.7%** | **-0.3pp** |
+| Precision | 89.3% | **90.2%** | **+0.9pp** |
 
-QA precision: **95.15%** at 4.2% FPR. Matches GPT-4o-mini hybrid accuracy at **575x lower latency** (3.97 ms vs 2,300 ms) and zero API cost.
+The aggregate is dominated by the QA task (**84.5% catch at 95.5% precision**);
+summarisation (12.5% catch) and dialogue (4.5% catch) stay low at this
+high-precision point. The local judge holds GPT-4o-mini-class QA precision at
+**575x lower latency** (3.97 ms vs 2,300 ms) with zero API cost.
+
+!!! warning "Retracted figure"
+    An earlier untracked 1,000/task L40S run reported 93.8% catch at 66.3% FPR.
+    That aggregate over-flagged summarisation and dialogue (~98% FPR on those
+    tasks) and does not reproduce on the current pipeline (33.8% catch at 3.7%
+    FPR at the same threshold), so it is not claimed.
 
 ---
 

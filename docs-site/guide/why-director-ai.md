@@ -85,7 +85,7 @@ You can (and should) combine Director-AI with these tools. Director-AI guards fa
 | GuardrailsAI (LLM-as-judge) | LLM cost | 2.26 s | No |
 | SelfCheckGPT (multi-call) | 3-5x LLM cost | 5-10 s | No |
 
-NLI-only mode is free, fast, and fully offline. Add an LLM judge only if you need the 90.7% hybrid catch rate — and even then, GPT-4o-mini matches Claude at 6x lower cost.
+NLI-only mode is free, fast, and fully offline. Add an LLM judge only if you need the 90.7% hybrid catch rate — which carries a 64.0% overall false-positive rate and multi-second latency (the QA subset stays high-precision at 3-4% FPR; summarisation and dialogue drive the aggregate FPR). Even then, GPT-4o-mini matches Claude at 6x lower cost.
 
 ---
 
