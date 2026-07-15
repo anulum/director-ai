@@ -9,7 +9,7 @@
     "python_model_classes": 1039,
     "python_model_source_modules": 512,
     "rust_pyo3_model_wrappers": 83,
-    "test_files": 754
+    "test_files": 755
   },
   "documentation": {
     "public_pages": [
@@ -5994,6 +5994,7 @@
       "tests/test_run_claim_decomp_benchmark.py",
       "tests/test_run_judge_benchmark.py",
       "tests/test_run_judge_benchmark_real_surface.py",
+      "tests/test_run_longcontext_bench.py",
       "tests/test_runtime_governor.py",
       "tests/test_runtime_session.py",
       "tests/test_rust_compute.py",
