@@ -1,0 +1,40 @@
+{
+  "benchmark": "WCS-2a-on-device-calibration",
+  "samples": 800,
+  "points": [
+    {
+      "task": "dialogue",
+      "support_threshold": 0.008875429630279541,
+      "target_fpr": 0.045,
+      "actual_fpr": 0.041884816753926704,
+      "catch_rate": 0.27225130890052357,
+      "n_good": 191,
+      "n_bad": 191
+    },
+    {
+      "task": "summarization",
+      "support_threshold": 0.03996998071670532,
+      "target_fpr": 0.025,
+      "actual_fpr": 0.02127659574468085,
+      "catch_rate": 0.09302325581395349,
+      "n_good": 188,
+      "n_bad": 172
+    }
+  ],
+  "config_overlay": {
+    "nli_dialogue_support_threshold": 0.008875,
+    "nli_dialogue_scoring": "raw_support",
+    "nli_summarization_support_threshold": 0.03997,
+    "nli_summarization_aggregation": "weakest_link"
+  },
+  "seed_thresholds": {
+    "dialogue": 0.0091,
+    "summarization": 0.0402
+  },
+  "elapsed_s": 206.4,
+  "hw": {
+    "gpu": "NVIDIA L4",
+    "cuda": true,
+    "torch": "2.6.0+cu124"
+  }
+}

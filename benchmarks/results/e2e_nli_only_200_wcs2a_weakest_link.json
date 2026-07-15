@@ -1,0 +1,72 @@
+{
+  "benchmark": "E2E-NLI-Only-WCS2a",
+  "samples_per_task": 200,
+  "elapsed_s": 239.5,
+  "scorer_overrides": {
+    "_dialogue_support_threshold": 0.008875,
+    "_summarization_aggregation": "weakest_link",
+    "_summarization_support_threshold": 0.03997
+  },
+  "calibration_source": "wcs2a_operating_points_calibration.json",
+  "total": 1200,
+  "threshold": 0.5,
+  "soft_limit": 0.6,
+  "fallback_mode": null,
+  "tp": 269,
+  "fp": 37,
+  "tn": 563,
+  "fn": 331,
+  "catch_rate": 0.4483,
+  "false_positive_rate": 0.0617,
+  "precision": 0.8791,
+  "f1": 0.5938,
+  "accuracy": 0.6933,
+  "warning_rate": 0.4094,
+  "fallback_rate": 0.0,
+  "evidence_coverage": 1.0,
+  "avg_latency_ms": 199.41,
+  "p95_latency_ms": 835.11,
+  "per_task": {
+    "dialogue": {
+      "total": 400,
+      "tp": 61,
+      "fp": 17,
+      "tn": 183,
+      "fn": 139,
+      "catch_rate": 0.305,
+      "false_positive_rate": 0.085,
+      "precision": 0.7821,
+      "f1": 0.4388,
+      "avg_latency_ms": 53.82
+    },
+    "qa": {
+      "total": 400,
+      "tp": 168,
+      "fp": 10,
+      "tn": 190,
+      "fn": 32,
+      "catch_rate": 0.84,
+      "false_positive_rate": 0.05,
+      "precision": 0.9438,
+      "f1": 0.8889,
+      "avg_latency_ms": 55.7
+    },
+    "summarization": {
+      "total": 400,
+      "tp": 40,
+      "fp": 10,
+      "tn": 190,
+      "fn": 160,
+      "catch_rate": 0.2,
+      "false_positive_rate": 0.05,
+      "precision": 0.8,
+      "f1": 0.32,
+      "avg_latency_ms": 488.71
+    }
+  },
+  "hw": {
+    "gpu": "NVIDIA L4",
+    "cuda": true,
+    "torch": "2.6.0+cu124"
+  }
+}

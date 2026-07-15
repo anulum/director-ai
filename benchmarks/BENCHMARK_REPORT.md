@@ -900,6 +900,65 @@ _200 baseline; no leaderboard claim, no claim about QA, other datasets,
 other checkers, or the E2E production path beyond the recorded
 decision-identical proof run above.
 
+## 17. Task-routed operating points — E2E decision proof (WCS-2a, L4, 2026-07-15)
+
+Follow-on to §16: the raw-support routes landed (commit `721e7cbe` —
+dialogue gates raw weakest-link claim support at a matched-FPR
+operating point by default; summarisation weakest-link stays an opt-in)
+and the full deployment flow was exercised on one L4:
+**on-device calibration first, then two E2E runs at the calibrated
+gates** (artefacts `wcs2a_operating_points_calibration.json`,
+`e2e_nli_only_200_wcs2a_dialogue_raw.json`,
+`e2e_nli_only_200_wcs2a_weakest_link.json`; instance destroyed,
+run cost ≈ $0.19).
+
+**On-device calibration** (`director-ai operating-points` flow through
+`CoherenceScorer.raw_task_support`, HaluEval 200-sample pairs):
+dialogue threshold 0.008875 (target FPR 0.045, realised 0.042 on the
+calibration pairs, predicted catch 27.2 %); summarisation threshold
+0.039970 (target 0.025, realised 0.021, predicted catch 9.3 %). Both
+land within 2 % of the sweep-seeded defaults (0.0091 / 0.0402) —
+the seeds transfer, but calibrate per deployment anyway.
+
+| Task (200/200 per task) | Baseline catch @ FPR | WCS-2a catch @ FPR | Δ decisions |
+|---|---|---|---|
+| dialogue (raw support, default) | 4.5 % @ 4.5 % | **30.5 % @ 8.5 %** | TP 9 → 61 |
+| summarisation (blend, default) | 12.0 % @ 2.5 % | 12.0 % @ 2.5 % (unchanged) | — |
+| summarisation (weakest-link opt-in) | 12.0 % @ 2.5 % | **20.0 % @ 5.0 %** | TP 24 → 40 |
+| QA (untouched control) | 84.0 % @ 5.0 % | 84.0 % @ 5.0 % | — |
+
+**The §16 recorded negative is resolved:** with the operating point
+made a first-class, calibrated decision instead of a squeeze
+side-effect, the evidence gains finally move E2E decisions — dialogue
+catch 4.5 % → 30.5 % (6.8×). QA is decision-identical (control holds),
+and the default summarisation path is untouched.
+
+**Honest deltas against the calibration targets:** the realised E2E
+false-positive rates run above the calibration targets (dialogue 8.5 %
+vs 4.5 % target; weakest-link summarisation 5.0 % vs 2.5 %). The
+calibration pairs and the E2E harness compose premises through
+different extraction paths, so the support distributions shift slightly
+between calibration and production scoring — at thresholds this deep in
+the lower tail, a small shift doubles the tail mass. Deployment lesson,
+now written into the tool's docs: calibrate on samples scored through
+the SAME path that will gate production traffic, and re-fit on real
+traffic rather than benchmark pairs. A threshold re-fit on the E2E
+distribution would trade part of the catch back for the target FPR;
+the artefacts carry both distributions so that choice stays visible.
+
+**Weakest-link latency win:** the opt-in summarisation mode skips the
+Layer-A bidirectional pass entirely — per-task average latency fell
+from 1713 ms (blend, whole-document) to 489 ms (−71 %) while catch
+rose 12 % → 20 %. The FPR doubling (2.5 % → 5.0 %) is the cost; the
+mode stays opt-in and per-deployment calibrated.
+
+Claim boundary: HaluEval 200 samples/task through the E2E NLI-only
+path (FactCG default backend, threshold 0.5 elsewhere); dialogue gains
+generalise only as far as §16's dialogue axis (no second public set
+with the same task shape); no leaderboard claim; weakest-link
+summarisation numbers are for the opt-in mode at its calibrated gate,
+not the shipped default.
+
 ## Reproduction
 
 ```bash

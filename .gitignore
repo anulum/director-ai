@@ -209,6 +209,10 @@ benchmarks/results/*
 !benchmarks/results/longcontext_sweep_ragtruth_factcg.json
 !benchmarks/results/longcontext_matrix_ragtruth_factcg.json
 !benchmarks/results/e2e_nli_only_200_wcs1_wired.json
+# Task-routed operating points proof (WCS-2a): on-device calibration + 2 E2E runs.
+!benchmarks/results/wcs2a_operating_points_calibration.json
+!benchmarks/results/e2e_nli_only_200_wcs2a_dialogue_raw.json
+!benchmarks/results/e2e_nli_only_200_wcs2a_weakest_link.json
 # Tokeniser blobs are fetchable from the fine-tune's base model (WCH-6);
 # see benchmarks/models/factcg-cb/README.md. Configs/results stay tracked.
 benchmarks/models/factcg-cb/tokenizer.json

@@ -31,6 +31,15 @@ Supports are collected through
 which scores through the SAME premise composition and checker the
 raw-support routes use in production — so the resulting threshold is
 self-consistent with the decision path by construction.
+
+Calibrate on samples whose prompts are composed exactly like the
+production traffic that the gate will score. The WCS-2a proof run
+(``benchmarks/BENCHMARK_REPORT.md`` §17) measured what happens
+otherwise: benchmark-pair calibration realised roughly double the
+target false-positive rate end-to-end, because thresholds this deep in
+the support distribution's lower tail double their tail mass under a
+small distribution shift. Prefer real traffic samples, and re-fit when
+the premise composition, checker, or traffic mix changes.
 """
 
 from __future__ import annotations
