@@ -6,9 +6,9 @@
     "component": {
       "type": "application",
       "name": "director-ai",
-      "version": "3.16.1",
-      "bom-ref": "pkg:pypi/director-ai@3.16.1",
-      "purl": "pkg:pypi/director-ai@3.16.1"
+      "version": "3.17.0",
+      "bom-ref": "pkg:pypi/director-ai@3.17.0",
+      "purl": "pkg:pypi/director-ai@3.17.0"
     },
     "properties": [
       {
@@ -22,13 +22,6 @@
     ]
   },
   "components": [
-    {
-      "type": "library",
-      "name": "backfire-kernel",
-      "purl": "pkg:pypi/backfire-kernel",
-      "bom-ref": "pkg:pypi/backfire-kernel",
-      "version": "<0.2,>=0.1.1"
-    },
     {
       "type": "library",
       "name": "numpy",

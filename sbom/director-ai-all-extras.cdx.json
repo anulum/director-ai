@@ -6,9 +6,9 @@
     "component": {
       "type": "application",
       "name": "director-ai",
-      "version": "3.16.1",
-      "bom-ref": "pkg:pypi/director-ai@3.16.1",
-      "purl": "pkg:pypi/director-ai@3.16.1"
+      "version": "3.17.0",
+      "bom-ref": "pkg:pypi/director-ai@3.17.0",
+      "purl": "pkg:pypi/director-ai@3.17.0"
     },
     "properties": [
       {
@@ -45,6 +45,27 @@
     },
     {
       "type": "library",
+      "name": "audioop-lts",
+      "purl": "pkg:pypi/audioop-lts",
+      "bom-ref": "pkg:pypi/audioop-lts",
+      "version": ">=0.2.2"
+    },
+    {
+      "type": "library",
+      "name": "azure-identity",
+      "purl": "pkg:pypi/azure-identity",
+      "bom-ref": "pkg:pypi/azure-identity",
+      "version": "<2,>=1.16"
+    },
+    {
+      "type": "library",
+      "name": "azure-keyvault-secrets",
+      "purl": "pkg:pypi/azure-keyvault-secrets",
+      "bom-ref": "pkg:pypi/azure-keyvault-secrets",
+      "version": "<5,>=4.7"
+    },
+    {
+      "type": "library",
       "name": "backfire-kernel",
       "purl": "pkg:pypi/backfire-kernel",
       "bom-ref": "pkg:pypi/backfire-kernel",
@@ -76,6 +97,13 @@
       "name": "boto3",
       "purl": "pkg:pypi/boto3",
       "bom-ref": "pkg:pypi/boto3",
+      "version": "<2,>=1.34"
+    },
+    {
+      "type": "library",
+      "name": "boto3",
+      "purl": "pkg:pypi/boto3",
+      "bom-ref": "pkg:pypi/boto3",
       "version": ">=1.26"
     },
     {
@@ -90,7 +118,7 @@
       "name": "chromadb",
       "purl": "pkg:pypi/chromadb",
       "bom-ref": "pkg:pypi/chromadb",
-      "version": "<1,>=0.4.0"
+      "version": "<2,>=0.4.0"
     },
     {
       "type": "library",
@@ -98,6 +126,13 @@
       "purl": "pkg:pypi/crewai",
       "bom-ref": "pkg:pypi/crewai",
       "version": ">=0.50"
+    },
+    {
+      "type": "library",
+      "name": "cryptography",
+      "purl": "pkg:pypi/cryptography",
+      "bom-ref": "pkg:pypi/cryptography",
+      "version": "<49,>=42"
     },
     {
       "type": "library",
@@ -129,10 +164,262 @@
     },
     {
       "type": "library",
+      "name": "director-ai",
+      "purl": "pkg:pypi/director-ai",
+      "bom-ref": "pkg:pypi/director-ai",
+      "properties": [
+        {
+          "name": "pypi:extras",
+          "value": "autogen"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "director-ai",
+      "purl": "pkg:pypi/director-ai",
+      "bom-ref": "pkg:pypi/director-ai",
+      "properties": [
+        {
+          "name": "pypi:extras",
+          "value": "crewai"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "director-ai",
+      "purl": "pkg:pypi/director-ai",
+      "bom-ref": "pkg:pypi/director-ai",
+      "properties": [
+        {
+          "name": "pypi:extras",
+          "value": "embeddings"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "director-ai",
+      "purl": "pkg:pypi/director-ai",
+      "bom-ref": "pkg:pypi/director-ai",
+      "properties": [
+        {
+          "name": "pypi:extras",
+          "value": "grpc"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "director-ai",
+      "purl": "pkg:pypi/director-ai",
+      "bom-ref": "pkg:pypi/director-ai",
+      "properties": [
+        {
+          "name": "pypi:extras",
+          "value": "haystack"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "director-ai",
+      "purl": "pkg:pypi/director-ai",
+      "bom-ref": "pkg:pypi/director-ai",
+      "properties": [
+        {
+          "name": "pypi:extras",
+          "value": "integrations"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "director-ai",
+      "purl": "pkg:pypi/director-ai",
+      "bom-ref": "pkg:pypi/director-ai",
+      "properties": [
+        {
+          "name": "pypi:extras",
+          "value": "langchain"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "director-ai",
+      "purl": "pkg:pypi/director-ai",
+      "bom-ref": "pkg:pypi/director-ai",
+      "properties": [
+        {
+          "name": "pypi:extras",
+          "value": "langgraph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "director-ai",
+      "purl": "pkg:pypi/director-ai",
+      "bom-ref": "pkg:pypi/director-ai",
+      "properties": [
+        {
+          "name": "pypi:extras",
+          "value": "llamaindex"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "director-ai",
+      "purl": "pkg:pypi/director-ai",
+      "bom-ref": "pkg:pypi/director-ai",
+      "properties": [
+        {
+          "name": "pypi:extras",
+          "value": "minicheck"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "director-ai",
+      "purl": "pkg:pypi/director-ai",
+      "bom-ref": "pkg:pypi/director-ai",
+      "properties": [
+        {
+          "name": "pypi:extras",
+          "value": "moderation"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "director-ai",
+      "purl": "pkg:pypi/director-ai",
+      "bom-ref": "pkg:pypi/director-ai",
+      "properties": [
+        {
+          "name": "pypi:extras",
+          "value": "nli"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "director-ai",
+      "purl": "pkg:pypi/director-ai",
+      "bom-ref": "pkg:pypi/director-ai",
+      "properties": [
+        {
+          "name": "pypi:extras",
+          "value": "onnx"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "director-ai",
+      "purl": "pkg:pypi/director-ai",
+      "bom-ref": "pkg:pypi/director-ai",
+      "properties": [
+        {
+          "name": "pypi:extras",
+          "value": "otel"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "director-ai",
+      "purl": "pkg:pypi/director-ai",
+      "bom-ref": "pkg:pypi/director-ai",
+      "properties": [
+        {
+          "name": "pypi:extras",
+          "value": "presidio"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "director-ai",
+      "purl": "pkg:pypi/director-ai",
+      "bom-ref": "pkg:pypi/director-ai",
+      "properties": [
+        {
+          "name": "pypi:extras",
+          "value": "recommended"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "director-ai",
+      "purl": "pkg:pypi/director-ai",
+      "bom-ref": "pkg:pypi/director-ai",
+      "properties": [
+        {
+          "name": "pypi:extras",
+          "value": "reranker"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "director-ai",
+      "purl": "pkg:pypi/director-ai",
+      "bom-ref": "pkg:pypi/director-ai",
+      "properties": [
+        {
+          "name": "pypi:extras",
+          "value": "rust"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "director-ai",
+      "purl": "pkg:pypi/director-ai",
+      "bom-ref": "pkg:pypi/director-ai",
+      "properties": [
+        {
+          "name": "pypi:extras",
+          "value": "server"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "director-ai",
+      "purl": "pkg:pypi/director-ai",
+      "bom-ref": "pkg:pypi/director-ai",
+      "properties": [
+        {
+          "name": "pypi:extras",
+          "value": "toxicity"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "director-ai",
+      "purl": "pkg:pypi/director-ai",
+      "bom-ref": "pkg:pypi/director-ai",
+      "properties": [
+        {
+          "name": "pypi:extras",
+          "value": "vector"
+        }
+      ]
+    },
+    {
+      "type": "library",
       "name": "elasticsearch",
       "purl": "pkg:pypi/elasticsearch",
       "bom-ref": "pkg:pypi/elasticsearch",
-      "version": "<9,>=8.0"
+      "version": "<10,>=8.0"
     },
     {
       "type": "library",
@@ -192,16 +479,16 @@
     },
     {
       "type": "library",
-      "name": "gradio",
-      "purl": "pkg:pypi/gradio",
-      "bom-ref": "pkg:pypi/gradio",
-      "version": ">=4.0"
-    },
-    {
-      "type": "library",
       "name": "grpcio",
       "purl": "pkg:pypi/grpcio",
       "bom-ref": "pkg:pypi/grpcio",
+      "version": ">=1.60"
+    },
+    {
+      "type": "library",
+      "name": "grpcio-reflection",
+      "purl": "pkg:pypi/grpcio-reflection",
+      "bom-ref": "pkg:pypi/grpcio-reflection",
       "version": ">=1.60"
     },
     {
@@ -231,6 +518,13 @@
       "purl": "pkg:pypi/httpx",
       "bom-ref": "pkg:pypi/httpx",
       "version": ">=0.27"
+    },
+    {
+      "type": "library",
+      "name": "hvac",
+      "purl": "pkg:pypi/hvac",
+      "bom-ref": "pkg:pypi/hvac",
+      "version": "<3,>=2"
     },
     {
       "type": "library",
@@ -280,13 +574,6 @@
       "purl": "pkg:pypi/litellm",
       "bom-ref": "pkg:pypi/litellm",
       "version": ">=1.83.7"
-    },
-    {
-      "type": "library",
-      "name": "llama-index-core",
-      "purl": "pkg:pypi/llama-index-core",
-      "bom-ref": "pkg:pypi/llama-index-core",
-      "version": ">=0.10"
     },
     {
       "type": "library",
@@ -387,6 +674,13 @@
     },
     {
       "type": "library",
+      "name": "open_clip_torch",
+      "purl": "pkg:pypi/open_clip_torch",
+      "bom-ref": "pkg:pypi/open_clip_torch",
+      "version": "<4,>=2.24"
+    },
+    {
+      "type": "library",
       "name": "openai",
       "purl": "pkg:pypi/openai",
       "bom-ref": "pkg:pypi/openai",
@@ -397,6 +691,13 @@
       "name": "opentelemetry-api",
       "purl": "pkg:pypi/opentelemetry-api",
       "bom-ref": "pkg:pypi/opentelemetry-api",
+      "version": ">=1.20"
+    },
+    {
+      "type": "library",
+      "name": "opentelemetry-sdk",
+      "purl": "pkg:pypi/opentelemetry-sdk",
+      "bom-ref": "pkg:pypi/opentelemetry-sdk",
       "version": ">=1.20"
     },
     {
@@ -425,7 +726,7 @@
       "name": "polar-sdk",
       "purl": "pkg:pypi/polar-sdk",
       "bom-ref": "pkg:pypi/polar-sdk",
-      "version": "==0.31.3"
+      "version": "==0.31.7"
     },
     {
       "type": "library",
@@ -481,7 +782,7 @@
       "name": "pypdf",
       "purl": "pkg:pypi/pypdf",
       "bom-ref": "pkg:pypi/pypdf",
-      "version": ">=3.0"
+      "version": ">=6.13.3"
     },
     {
       "type": "library",
@@ -541,17 +842,10 @@
     },
     {
       "type": "library",
-      "name": "ragatouille",
-      "purl": "pkg:pypi/ragatouille",
-      "bom-ref": "pkg:pypi/ragatouille",
-      "version": ">=0.0.8"
-    },
-    {
-      "type": "library",
       "name": "redis",
       "purl": "pkg:pypi/redis",
       "bom-ref": "pkg:pypi/redis",
-      "version": "<8,>=4.5"
+      "version": "<9,>=4.5"
     },
     {
       "type": "library",
@@ -576,6 +870,13 @@
     },
     {
       "type": "library",
+      "name": "scpn-studio-platform",
+      "purl": "pkg:pypi/scpn-studio-platform",
+      "bom-ref": "pkg:pypi/scpn-studio-platform",
+      "version": "<0.12,>=0.11"
+    },
+    {
+      "type": "library",
       "name": "sentence-transformers",
       "purl": "pkg:pypi/sentence-transformers",
       "bom-ref": "pkg:pypi/sentence-transformers",
@@ -594,6 +895,13 @@
       "purl": "pkg:pypi/torch",
       "bom-ref": "pkg:pypi/torch",
       "version": "<3,>=2.8"
+    },
+    {
+      "type": "library",
+      "name": "torchvision",
+      "purl": "pkg:pypi/torchvision",
+      "bom-ref": "pkg:pypi/torchvision",
+      "version": ">=0.15"
     },
     {
       "type": "library",

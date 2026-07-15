@@ -19,7 +19,7 @@ under 0.1 seconds.
 
 from typing import Any
 
-__version__ = "3.16.1"
+__version__ = "3.17.0"
 
 # Symbol → (module_path, attribute_name)
 # Module paths are relative to director_ai package.

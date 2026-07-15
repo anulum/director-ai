@@ -6,9 +6,9 @@
     "component": {
       "type": "application",
       "name": "director-ai",
-      "version": "3.16.1",
-      "bom-ref": "pkg:pypi/director-ai@3.16.1",
-      "purl": "pkg:pypi/director-ai@3.16.1"
+      "version": "3.17.0",
+      "bom-ref": "pkg:pypi/director-ai@3.17.0",
+      "purl": "pkg:pypi/director-ai@3.17.0"
     },
     "properties": [
       {
@@ -28,13 +28,6 @@
       "purl": "pkg:pypi/argon2-cffi",
       "bom-ref": "pkg:pypi/argon2-cffi",
       "version": "<26,>=23.1"
-    },
-    {
-      "type": "library",
-      "name": "backfire-kernel",
-      "purl": "pkg:pypi/backfire-kernel",
-      "bom-ref": "pkg:pypi/backfire-kernel",
-      "version": "<0.2,>=0.1.1"
     },
     {
       "type": "library",
@@ -62,7 +55,7 @@
       "name": "redis",
       "purl": "pkg:pypi/redis",
       "bom-ref": "pkg:pypi/redis",
-      "version": "<8,>=4.5"
+      "version": "<9,>=4.5"
     },
     {
       "type": "library",

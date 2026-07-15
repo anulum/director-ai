@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.17.0] - 2026-07-16
+
 ### Changed
 
 - **Dialogue reviews now gate raw weakest-link claim support at a
@@ -2435,7 +2437,8 @@ Production stable release. Research modules permanently removed.
 - Demo script for end-to-end flow validation
 - Documentation: Manifesto, Architecture, Roadmap, Technical Spec, API Reference
 
-[Unreleased]: https://github.com/anulum/director-ai/compare/v2.7.0...HEAD
+[Unreleased]: https://github.com/anulum/director-ai/compare/v3.17.0...HEAD
+[3.17.0]: https://github.com/anulum/director-ai/compare/v3.16.0...v3.17.0
 [2.7.0]: https://github.com/anulum/director-ai/compare/v2.6.1...v2.7.0
 [2.6.1]: https://github.com/anulum/director-ai/compare/v2.6.0...v2.6.1
 [2.6.0]: https://github.com/anulum/director-ai/compare/v2.5.0...v2.6.0

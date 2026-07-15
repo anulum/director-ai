@@ -1,6 +1,6 @@
 # Production Deployment Checklist
 
-> **Module**: Director-AI | **Version**: 3.16.1 | **License**: Apache-2.0 core / BUSL-1.1 advanced
+> **Module**: Director-AI | **Version**: 3.17.0 | **License**: Apache-2.0 core / BUSL-1.1 advanced
 >
 > © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
 
