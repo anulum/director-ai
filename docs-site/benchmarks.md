@@ -23,16 +23,17 @@ Metric: macro-averaged balanced accuracy (standard for [LLM-AggreFact](https://l
 | 3 | FactCG-DeBERTa-L (paper) | 77.2% | 0.4B | No | — | MIT |
 | 4 | Granite Guardian 3.3 (IBM) | 76.5% | 8B | No | — | Apache 2.0 |
 | 5 | GPT-4o | 75.9% | ~200B | No | API | Proprietary |
-| **6** | **Director-AI (FactCG)** | **75.86%** | **0.4B** | **Yes** | **0.5 ms** (L40S FP16, batch 32) | **Apache-2.0 / BUSL-1.1** |
+| **6** | **Director-AI (FactCG)** | **75.6%** | **0.4B** | **Yes** | **0.5 ms** (L40S FP16, batch 32) | **Apache-2.0 / BUSL-1.1** |
 | 7 | MiniCheck-Flan-T5-L | 75.0% | 0.8B | No | ~120 ms | MIT |
 | 8 | MiniCheck-DeBERTa-L | 74.1% | 0.4B | No | ~120 ms | MIT |
 | 9 | Paladin-mini (Microsoft) | 73.1% | 3.8B | No | — | Phi-4 license |
 | 10 | AlignScore | 72.5–73.4% | 0.355B | No | — | MIT |
 | 11 | HHEM-2.1-Open (Vectara) | ~71.8% | 0.25B | No | ~200 ms (est.) | Apache 2.0 |
 
-Director-AI wraps the same FactCG-DeBERTa-L model family. The local packet
-reports 75.86 percent in an earlier result set and 75.8 percent in the current
-submission packet; both are close to the public FactCG leaderboard row.
+Director-AI wraps the same FactCG-DeBERTa-L model family. The row above uses
+the leaderboard's threshold-0.50 convention (75.6 percent); the committed local
+packet reports 75.8 percent on the same per-dataset-mean metric at threshold
+0.46.
 
 ### Visual Comparison
 
@@ -41,11 +42,11 @@ xychart-beta
     title "AggreFact Balanced Accuracy (29,320 samples)"
     x-axis ["Bespoke-7B", "Claude-3.5", "FactCG paper", "Granite-8B", "GPT-4o", "Director-AI", "MiniCheck-T5", "MiniCheck-D", "Paladin", "AlignScore"]
     y-axis "Balanced Accuracy (%)" 70 --> 78
-    bar [77.4, 77.2, 77.2, 76.5, 75.9, 75.86, 75.0, 74.1, 73.1, 72.5]
+    bar [77.4, 77.2, 77.2, 76.5, 75.9, 75.6, 75.0, 74.1, 73.1, 72.5]
 ```
 
 !!! success "Near-top factuality with local scoring"
-    75.8-75.86 percent BA with a 0.4B parameter model, local execution, and no per-call API cost. The public leaderboard measures the scorer only; Director-AI adds streaming halt, RAG evidence, structured verification, and audit surfaces around that scorer.
+    75.6 percent BA on the public leaderboard (threshold 0.50) and 75.8 percent on the local packet (threshold 0.46), with a 0.4B parameter model, local execution, and no per-call API cost. The public leaderboard measures the scorer only; Director-AI adds streaming halt, RAG evidence, structured verification, and audit surfaces around that scorer.
 
 ### Per-Dataset Breakdown (threshold=0.46)
 
@@ -71,7 +72,7 @@ and fewshot examples plus confidence.
 
 | # | Model | Params | Confidence BA | Fewshot BA | Cost/1K calls |
 |---|-------|--------|---------------|------------|---------------|
-| — | **Director-AI** | **0.4B** | **75.86%** | — | **$0** |
+| — | **Director-AI** | **0.4B** | **75.6%** | — | **$0** |
 | 1 | Claude Haiku 4.5 | ~20B | 75.10% (-0.76pp) | — | $0.37 |
 | 2 | Claude Sonnet 4.6 | ~200B | 74.25% (-1.61pp) | 73.30% (-2.56pp) | $1.40 |
 | 3 | GPT-4o | ~200B | 73.46% (-2.40pp) | 71.69% (-4.17pp) | $1.16 |
@@ -394,7 +395,7 @@ Unlike the NLI benchmarks, this is a standalone tool (it generates fresh transcr
 | **Latency** | 0.5 ms (L40S FP16); 0.124 / 0.200 ms p50/p95 local guard on i5-11600K | 0.818 / 1.418 ms config-load + LLM round trip | 1–10 s | 0.659 / 0.996 ms parse overhead + LLM round trip | 5–10 s |
 | **Streaming contradiction halt** | Opt-in | No | No | No | No |
 | **Offline/local** | Yes (NLI mode) | No | Yes (GPU) | No | No |
-| **AggreFact BA** | 75.86% (0.4B) | N/A | N/A | N/A | N/A |
+| **AggreFact BA** | 75.6% (0.4B) | N/A | N/A | N/A | N/A |
 | **E2E catch rate** | 46.7% NLI-only; 90.7% hybrid with 64.0% FPR | N/A | N/A | N/A | N/A |
 | **Integrations** | LC/LI/LG/HS/CrewAI | LangChain | Python | LC/LI | Python |
 | **License** | Apache-2.0 / BUSL-1.1 | Apache 2.0 | Apache 2.0 | Apache 2.0 | MIT |
@@ -427,7 +428,7 @@ These systems publish results on benchmarks other than LLM-AggreFact. Scores are
 
 1. **Opt-in streaming interlock** — contradiction halt for grounded streaming deployments; response-level scoring remains the production gate
 2. **Sub-millisecond latency** — 0.5 ms/pair on L40S FP16 (measured, batch=32)
-3. **Competitive against local frontier-judge comparisons** - 75.8-75.86% BA using the FactCG-DeBERTa-v3-Large model family
+3. **Competitive against local frontier-judge comparisons** - 75.6% leaderboard / 75.8% packet BA using the FactCG-DeBERTa-v3-Large model family
 4. **$0 per-call cost** — vs $0.07–$1.40/1K for API-based competitors
 5. **0.4B params** — runs on consumer hardware (GTX 1060: 14.6 ms/pair)
 6. **90.7% E2E catch rate (hybrid)** — NLI + LLM judge catches 9/10 hallucinations in the HaluEval trace set, but with 64.0% overall FPR and multi-second latency
@@ -447,13 +448,13 @@ These systems publish results on benchmarks other than LLM-AggreFact. Scores are
 
 ## NLI Fine-Tuning Survey (21 Models)
 
-All fine-tuned from `FactCG-DeBERTa-v3-Large` (75.86% BA baseline) on the named dataset, then benchmarked on the full AggreFact test set.
+All fine-tuned from `FactCG-DeBERTa-v3-Large` (75.8% packet BA baseline) on the named dataset, then benchmarked on the full AggreFact test set.
 
 **Finding: 22/23 fine-tunes hurt performance. Only CommitmentBank (+0.54pp) helps.**
 
 | Model | BA | Delta | Pattern |
 |-------|-----|-------|---------|
-| **base (FactCG)** | **75.86%** | — | Production model |
+| **base (FactCG)** | **75.8%** | — | Production model |
 | factcg-cb (CommitmentBank) | 76.40% | +0.54pp | Complex inference, diverse, too small to trigger catastrophic forgetting |
 | factcg-cb-lowlr (LR=5e-6) | 72.33% | -3.53pp | Even conservative LR hurts |
 | factcg-rte | 73.28% | -2.58pp | Entailment pairs |

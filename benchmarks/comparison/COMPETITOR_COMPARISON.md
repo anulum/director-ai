@@ -84,7 +84,7 @@ FactCG (arXiv 2501.17144), MiniCheck (arXiv 2404.10774), Granite Guardian 3.3
 | 5 | Granite Guardian 3.3 (IBM) | 76.5% | 8B | No | — | Apache 2.0 |
 | 6 | Mistral-Large 2 | 76.5% | 123B | No | API | Proprietary |
 | 7 | GPT-4o (leaderboard) | 75.9% | ~200B | No | API | Proprietary |
-| **8** | **Director-AI (FactCG)** | **75.86%** | **0.4B** | **Yes** | **0.5 ms (L40S FP16)** | **Apache-2.0 / BUSL-1.1** |
+| **8** | **Director-AI (FactCG)** | **75.6%** | **0.4B** | **Yes** | **0.5 ms (L40S FP16)** | **Apache-2.0 / BUSL-1.1** |
 | 9 | Qwen2.5-72B | 75.6% | 72B | No | — | Proprietary |
 | 10 | FactCG-RBT (RoBERTa) | 75.4% | 0.4B | No | — | MIT |
 | 11 | MiniCheck-Flan-T5-L | 75.0% | 0.8B | No | ~120 ms | MIT |
@@ -98,9 +98,9 @@ FactCG (arXiv 2501.17144), MiniCheck (arXiv 2404.10774), Granite Guardian 3.3
 | 19 | SummaC-Conv | 69.8% | 0.35B | No | — | MIT |
 
 Director-AI wraps the same FactCG-DeBERTa-L model that scores 77.2% in the
-NAACL 2025 paper. Our eval yields 75.86% — a 1.4pp gap likely from threshold
-tuning methodology and data split version. Closing this gap puts Director-AI
-at #3 overall.
+NAACL 2025 paper. Our eval yields 75.6% on the leaderboard (threshold 0.50) and
+75.8% on the local packet (threshold 0.46) — a ~1.5pp gap likely from threshold
+tuning methodology and data split version.
 
 ### Frontier LLM Evaluation (measured by us, 1K samples each)
 
@@ -110,7 +110,7 @@ We evaluated frontier LLMs on the same AggreFact test set using
 
 | # | Model | Params | Confidence BA | Fewshot BA | Cost/1K calls |
 |---|-------|--------|---------------|------------|---------------|
-| — | **Director-AI** | **0.4B** | **75.86%** | — | **$0** |
+| — | **Director-AI** | **0.4B** | **75.6%** | — | **$0** |
 | 1 | Claude Haiku 4.5 | ~20B | 75.10% (-0.76pp) | — | $0.37 |
 | 2 | Claude Sonnet 4.6 | ~200B | 74.25% (-1.61pp) | 73.30% (-2.56pp) | $1.40 |
 | 3 | GPT-4o | ~200B | 73.46% (-2.40pp) | 71.69% (-4.17pp) | $1.16 |
@@ -212,7 +212,7 @@ commitment, too small to trigger catastrophic forgetting.
 ## Different Benchmarks (Not Directly Comparable)
 
 These systems publish results on benchmarks other than LLM-AggreFact.
-Scores cannot be compared directly to Director-AI's 75.86% BA.
+Scores cannot be compared directly to Director-AI's 75.6% leaderboard BA.
 
 | System | Benchmark | Score | Params | Approach | License |
 |--------|-----------|-------|--------|----------|---------|
@@ -319,7 +319,7 @@ cannot verify consistency and defaults to flagging.
 
 1. **Only streaming guardrail** — claim-level halt. Zero competitors offer this.
 2. **0.5 ms/pair on L40S FP16** — sub-millisecond latency, faster than any competitor.
-3. **Beats all frontier LLMs** — 75.86% BA > Claude Haiku (75.10%), Sonnet (74.25%), GPT-4o (73.46%).
+3. **Competitive with frontier LLMs on this eval** — 75.6% BA vs Claude Haiku (75.10%), Sonnet (74.25%), GPT-4o (73.46%) on the same run.
 4. **$0 per-call cost** — vs $0.07-$1.40/1K for API-based competitors.
 5. **0.4B params** — runs on consumer hardware (GTX 1060: 14.6 ms/pair).
 6. **Offline capable** — no API dependency in NLI mode.

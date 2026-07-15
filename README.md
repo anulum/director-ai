@@ -449,7 +449,7 @@ pip install "director-ai[all]"                     # the common capability set i
 Or pick granular extras for fine control:
 
 ```bash
-pip install "director-ai[nli]"                     # NLI model scoring (75.8% global BA; 77.76% tuned replay)
+pip install "director-ai[nli]"                     # NLI scoring (75.6% leaderboard / 75.8% packet BA; 77.76% tuned replay)
 pip install "director-ai[embed]"                   # embedding scorer (~65% BA, CPU-only, 3ms)
 pip install director-ai-lite                       # 3-line guard facade
 pip install "director-ai[nli,vector,server]"       # equivalent to [recommended]
@@ -479,7 +479,7 @@ pip install "minicheck @ git+https://github.com/Liyan06/MiniCheck.git"
 
 | Tier | Backend | Accuracy | Latency | Install |
 |------|---------|----------|---------|---------|
-| **5** | NLI (FactCG) | **75.8% global BA** (77.76% tuned replay) | see latency table | `[nli]` |
+| **5** | NLI (FactCG) | **75.6% leaderboard / 75.8% packet BA** (77.76% tuned replay) | see latency table | `[nli]` |
 | **4** | Distilled NLI (preview) | validation required | measured per artefact | `[nli-lite]` |
 | **3** | Embedding (bge-small) | ~65% BA | 3 ms | `[embed]` |
 | **2** | Rules engine (8 rules) | rule-based | <1 ms | — (base) |
@@ -520,20 +520,21 @@ Two judges ship with this release.
 | Rank | Model | Per-dataset mean BA | Params | Latency | Streaming |
 |------|-------|---------------------|--------|---------|-----------|
 | #1 | Bespoke-MiniCheck-7B | **77.4%** | 7B | ~100 ms | No |
-| **#8** | **Director-AI (FactCG)** | **75.86% global** | 0.4B | see latency table | **Yes** |
+| **#6** | **Director-AI (FactCG)** | **75.6%** | 0.4B | see latency table | **Yes** |
 | #9 | MiniCheck-Flan-T5-L | 75.0% | 0.8B | ~120 ms | No |
 
-With per-dataset threshold replay (no retraining), FactCG reaches **77.76%** in the committed threshold packet. This is the same 0.4B model and single `pip install`; latency depends on backend and hardware.
+The row above uses the leaderboard's threshold-0.50 convention (**75.6%**); the committed local packet reports **75.8%** on the same per-dataset-mean metric at threshold 0.46. With per-dataset threshold replay (no retraining), FactCG reaches **77.76%** in the committed threshold packet. This is the same 0.4B model and single `pip install`; latency depends on backend and hardware.
 
 Latency: the committed GTX 1060 6GB local packet reports 17.9 ms/pair p99 for a 16-pair batch. Full comparison: [`benchmarks/comparison/COMPETITOR_COMPARISON.md`](benchmarks/comparison/COMPETITOR_COMPARISON.md).
 
-> **Note on metrics.** The numbers in the table above use the
-> AggreFact leaderboard convention — **per-dataset mean balanced
-> accuracy across the 11 datasets** ([source: llm-aggrefact.github.io](https://llm-aggrefact.github.io/)).
-> Sample-pooled balanced accuracy is a different metric and is
-> systematically higher on heterogeneous benchmarks. Both numbers
-> are reported in `training/EXPERIMENT_RESULTS.md` for
-> traceability.
+> **Note on metrics.** The table above uses the AggreFact leaderboard
+> convention — **per-dataset mean balanced accuracy across the 11 datasets**
+> at threshold 0.50, giving **75.6%** ([source: llm-aggrefact.github.io](https://llm-aggrefact.github.io/)).
+> The committed local packet reports **75.8%** on the same per-dataset-mean
+> metric at threshold 0.46; the two differ by operating threshold, not by
+> method. Sample-pooled balanced accuracy is a different metric and is
+> systematically higher (~78%) on heterogeneous benchmarks. All are
+> reported in `training/EXPERIMENT_RESULTS.md` for traceability.
 
 **Optional — Gemma 4 E4B Q6 with per-task-family routing.** A zero-training LLM-as-judge alternative for users who prefer LLM-as-judge architectures over NLI. Per-task-family prompts (`summ` / `rag` / `claim`) bring the routed Gemma judge to 75.55% per-dataset mean BA on the AggreFact 29K test set, comparable to the FactCG default. The routed judge is opt-in (`--backend llama-cpp`); FactCG remains the default.
 

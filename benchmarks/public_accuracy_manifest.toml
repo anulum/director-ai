@@ -33,7 +33,7 @@ claim_boundary = "False-halt rate and synthetic bad-passage halt diagnostics onl
 id = "pure_nli_aggrefact_global"
 mode_family = "pure_nli"
 claim_scope = "Global-threshold FactCG factual-consistency scoring"
-public_metric = "75.8% per-dataset mean balanced accuracy"
+public_metric = "75.8% per-dataset mean balanced accuracy at threshold 0.46"
 public_tables = ["readme_aggrefact_leaderboard"]
 datasets = ["llm_aggrefact"]
 runner_files = ["benchmarks/aggrefact_eval.py"]
@@ -42,7 +42,7 @@ commands = [
 ]
 result_files = ["benchmarks/results/aggrefact_yaxili96_FactCG-DeBERTa-v3-Large.json"]
 metrics = ["avg_balanced_accuracy_pct", "threshold", "latency_ms_avg"]
-claim_boundary = "Global-threshold NLI; do not compare directly with tuned-threshold or judge-assisted catch-rate rows."
+claim_boundary = "Global-threshold NLI; do not compare directly with tuned-threshold or judge-assisted catch-rate rows. The public LLM-AggreFact leaderboard uses threshold 0.50, giving 75.6% on the same per-dataset-mean metric."
 
 [[benchmark_mode_cards]]
 id = "tuned_threshold_aggrefact"

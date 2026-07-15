@@ -14,9 +14,9 @@
 |------|---------|----------|---------|----------|
 | **Rules** | `pip install director-ai` | Rule-based | <1 ms | Input validation, cheap filter |
 | **Embed** | `pip install "director-ai[embed]"` | ~65% BA | 3 ms | Fast similarity check |
-| **NLI** | `pip install "director-ai[nli]"` | 75.8% global BA | See benchmark packets | Production fact-checking |
-| **NLI+RAG** | `pip install "director-ai[nli,vector]"` | 75.8%+ global BA | See benchmark packets | KB-grounded verification |
-| **Full** | `pip install "director-ai[nli,vector,server]"` | 75.8%+ global BA | See benchmark packets | Self-hosted API |
+| **NLI** | `pip install "director-ai[nli]"` | 75.6% leaderboard / 75.8% packet BA | See benchmark packets | Production fact-checking |
+| **NLI+RAG** | `pip install "director-ai[nli,vector]"` | 75.6% leaderboard / 75.8% packet BA | See benchmark packets | KB-grounded verification |
+| **Full** | `pip install "director-ai[nli,vector,server]"` | 75.6% leaderboard / 75.8% packet BA | See benchmark packets | Self-hosted API |
 
 **Recommendation**: Start with `[nli]` for accuracy. Add `[vector]` when you have a knowledge base.
 

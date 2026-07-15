@@ -97,7 +97,7 @@ Director-AI uses a 5-tier scoring pyramid. Each tier trades latency for accuracy
 | 2 | Rules engine | ~58% | <1ms | 0 | Configurable rule chains |
 | 3 | Embedding similarity | ~65% | 5ms | varies | SentenceTransformers cosine |
 | 4 | Distilled NLI (DeBERTa-v3-xsmall) | 49.8% (**FAIL**) | 27ms CPU | 70M | Insufficient capacity, needs re-training |
-| 5 | Full NLI (FactCG-DeBERTa-v3-Large) | 75.8% | 574ms GPU | 400M | Reference model |
+| 5 | Full NLI (FactCG-DeBERTa-v3-Large) | 75.8% (thr 0.46; 75.6% leaderboard thr 0.50) | 574ms GPU | 400M | Reference model |
 
 ### Full NLI (Tier 5) — AggreFact Breakdown
 

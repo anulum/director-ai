@@ -64,7 +64,7 @@ pure NLI result.
 | Card id | Mode family | Public metric | Boundary |
 |---|---|---|---|
 | `heuristic_streaming_false_halt` | heuristic | 4.4% false-halt rate; 33.3% halt recall on labelled smoke set | False-halt rate and small smoke-set diagnostics only; not a customer-domain hallucination catch-rate claim. |
-| `pure_nli_aggrefact_global` | pure NLI | 75.8% per-dataset mean BA | Global-threshold FactCG result; separate from tuned thresholds. |
+| `pure_nli_aggrefact_global` | pure NLI | 75.8% per-dataset mean BA at threshold 0.46 (75.6% at the leaderboard's threshold 0.50) | Global-threshold FactCG result; separate from tuned thresholds. |
 | `tuned_threshold_aggrefact` | tuned-threshold NLI | 77.76% per-dataset mean BA | Threshold replay only; not default runtime behaviour. |
 | `pure_nli_halueval_e2e` | pure NLI | 46.7% catch, 56.9% precision | End-to-end HaluEval guardrail mode; not an AggreFact row. |
 | `hybrid_remote_judge_halueval` | hybrid judge | 90.7% catch, 64.0% FPR | Judge-assisted HaluEval mode; never merge with pure NLI. |

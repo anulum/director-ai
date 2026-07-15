@@ -32,7 +32,7 @@ Key terms used throughout Director-AI documentation.
 :   A specific passage from the knowledge base returned with every rejection. Tells the user *why* the response was flagged. See [Evidence & Fallback](guide/evidence.md).
 
 **FactCG**
-:   The fine-tuned DeBERTa-v3-Large model from Li et al. (NAACL 2025) that Director-AI uses as its default NLI backend. 77.2% BA (paper) / 75.86% BA (our eval). See [Benchmarks](benchmarks.md).
+:   The fine-tuned DeBERTa-v3-Large model from Li et al. (NAACL 2025) that Director-AI uses as its default NLI backend. 77.2% BA (paper) / 75.6% BA (our leaderboard eval at threshold 0.50; 75.8% on the local packet at 0.46). See [Benchmarks](benchmarks.md).
 
 **False-Halt Rate**
 :   Percentage of *correct* responses incorrectly halted by the streaming kernel. See [Benchmarks — Streaming False-Halt](benchmarks.md#streaming-false-halt) for current measured values.

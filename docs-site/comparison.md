@@ -3,7 +3,7 @@
 Director-AI is unusual: it is a **response-level runtime guardrail** *and* a
 **CI eval gate** in one tool, with its hallucination accuracy benchmarked on
 LLM-AggreFact. Its default grounding model (FactCG-DeBERTa-Large, 0.4B) sits at
-**75.6 balanced accuracy on the public [LLM-AggreFact leaderboard](https://llm-aggrefact.github.io/)**
+**75.6 balanced accuracy on the public [LLM-AggreFact leaderboard](https://llm-aggrefact.github.io/)** (threshold 0.50; 75.8 on the local packet at threshold 0.46)
 — the strongest sub-1B model there and within ~2 points of the 7B leader
 (Bespoke-MiniCheck-7B, 77.4), which Director-AI can also load as a higher-tier
 backend. Accuracy-per-parameter is the headline; raw top accuracy is not. It

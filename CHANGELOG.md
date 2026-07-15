@@ -1011,11 +1011,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 421 new tests across 20 modules.
 
 ### Fixed
-- **Metric correction**: FactCG accuracy corrected from 75.8% to **75.6%**
-  per-dataset mean balanced accuracy (AggreFact leaderboard convention,
-  verified 2026-04-12). With per-dataset threshold tuning: **77.76%**
-  (potential #1, ahead of Bespoke-MiniCheck-7B at 77.4%). Previous 75.8%
-  figure was rounded from sample-pooled BA, a different metric.
+- **Metric correction**: the headline AggreFact figure now follows the
+  leaderboard convention — **75.6%** per-dataset mean balanced accuracy at
+  threshold 0.50 (verified 2026-04-12). The earlier **75.8%** is the same
+  per-dataset-mean metric on the committed local packet at threshold 0.46;
+  the two differ by operating threshold, not by pooling method. (Sample-pooled
+  balanced accuracy is a separate, systematically higher figure, ~78%, and is
+  not used.) With per-dataset threshold tuning: **77.76%** (potential #1,
+  ahead of Bespoke-MiniCheck-7B at 77.4%).
 - **Leaderboard position**: corrected from #8/19 to **#6** on the published
   AggreFact leaderboard (llm-aggrefact.github.io, verified 2026-04-12).
 - **FaithLens retraction**: the "FaithLens 86.4%" figure cited in earlier
