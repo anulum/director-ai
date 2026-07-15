@@ -874,12 +874,31 @@ silently dropped) rather than an operating-point retune, and is
 recommended independently of the gate. Default flips remain a separate,
 CEO-visible wiring decision.
 
+**E2E wiring proof (same day, recorded negative at the fixed operating
+point):** after wiring whole-document coverage premises (D2) and the
+composed dialogue premise (D1) into the production path, the E2E
+NLI-only benchmark re-run (200/task, L4, artefact
+`e2e_nli_only_200_wcs1_wired.json`) produced **decision-identical
+results to the tracked baseline** — TP/FP unchanged to the unit on all
+three tasks (dialogue 4.5 %, summarisation 12.0 %, QA 84.0 %) — while
+per-task latencies rose 15–27 % (the longer premises really were
+scored). The evidence-composition fixes are therefore **necessary but
+not sufficient at threshold 0.5 through the calibration layer**: the
+dialogue 0.80-baseline squeeze demands raw divergence > 0.90 and the
+summarisation coverage blend buffers the improved evidence, exactly the
+D3 mechanism. The sweep's catch gains materialise only with the D3 fix
+family — task-routed weakest-link aggregation and matched-FPR
+operating points — which is the follow-on wiring lane, not a threshold
+tweak to sneak past. The premise fixes stay (they are correct evidence
+hygiene and the sweep shows the signal is now present at the checker);
+no E2E improvement is claimed for them alone.
+
 Claim boundary: HaluEval summarisation + dialogue at 200 samples/task
 (two checkers) and RAGTruth Summary test split at 900 rows (FactCG),
 evidence/aggregation sweep at matched per-task FPR against the tracked
 _200 baseline; no leaderboard claim, no claim about QA, other datasets,
-other checkers, or the E2E production path (whose calibration layer is
-not part of this matrix).
+other checkers, or the E2E production path beyond the recorded
+decision-identical proof run above.
 
 ## Reproduction
 

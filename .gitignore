@@ -208,6 +208,7 @@ benchmarks/results/*
 !benchmarks/results/longcontext_matrix_minicheck.json
 !benchmarks/results/longcontext_sweep_ragtruth_factcg.json
 !benchmarks/results/longcontext_matrix_ragtruth_factcg.json
+!benchmarks/results/e2e_nli_only_200_wcs1_wired.json
 # Tokeniser blobs are fetchable from the fine-tune's base model (WCH-6);
 # see benchmarks/models/factcg-cb/README.md. Configs/results stay tracked.
 benchmarks/models/factcg-cb/tokenizer.json
