@@ -43,7 +43,13 @@ def test_dialogue_fpr_unit_guard_has_real_surface_companion() -> None:
 
 
 def test_public_review_routes_multi_turn_dialogue_without_false_reject() -> None:
-    """A real scorer review should accept aligned multi-turn dialogue."""
+    """A real scorer review should accept aligned multi-turn dialogue.
+
+    WCS-2a: the dialogue route reports the raw weakest-link claim
+    divergence (no 0.80-baseline squeeze), and approval gates the raw
+    support against the matched-FPR operating point instead of the
+    composite-coherence threshold.
+    """
     scorer = _build_public_lite_scorer()
 
     approved, score = scorer.review(
@@ -56,8 +62,9 @@ def test_public_review_routes_multi_turn_dialogue_without_false_reject() -> None
     assert score.approved is True
     assert score.detected_task_type == "dialogue"
     assert score.h_logical == pytest.approx(0.0)
-    assert score.h_factual == pytest.approx(0.0)
-    assert score.score == pytest.approx(1.0)
+    assert 0.0 < score.h_factual < 1.0
+    assert score.score == pytest.approx(1.0 - score.h_factual)
+    assert score.score >= scorer._dialogue_support_threshold
 
 
 def test_public_review_keeps_single_speaker_question_out_of_dialogue() -> None:

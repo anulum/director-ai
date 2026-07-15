@@ -93,6 +93,24 @@ def validate_and_normalize(cfg: DirectorConfig) -> None:
             f"stats_backend must be 'prometheus' or 'sqlite', "
             f"got {cfg.stats_backend!r}",
         )
+    if cfg.nli_dialogue_scoring not in ("raw_support", "baseline_squeeze"):
+        raise ValueError(
+            f"nli_dialogue_scoring must be 'raw_support' or 'baseline_squeeze', "
+            f"got {cfg.nli_dialogue_scoring!r}",
+        )
+    if cfg.nli_summarization_aggregation not in ("blend", "weakest_link"):
+        raise ValueError(
+            f"nli_summarization_aggregation must be 'blend' or 'weakest_link', "
+            f"got {cfg.nli_summarization_aggregation!r}",
+        )
+    _require_unit_interval(
+        "nli_dialogue_support_threshold",
+        cfg.nli_dialogue_support_threshold,
+    )
+    _require_unit_interval(
+        "nli_summarization_support_threshold",
+        cfg.nli_summarization_support_threshold,
+    )
     if cfg.grpc_max_message_mb < 1:
         raise ValueError(
             f"grpc_max_message_mb must be >= 1, got {cfg.grpc_max_message_mb}",

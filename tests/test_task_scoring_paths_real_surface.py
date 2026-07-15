@@ -53,10 +53,14 @@ def test_task_scoring_paths_unit_guard_declares_this_real_surface_companion() ->
     assert "tests/test_task_scoring_paths_real_surface.py" in category
 
 
-def test_review_routes_dialogue_through_public_bidirectional_profile(
+def test_review_routes_dialogue_through_public_raw_support_profile(
     deterministic_python_scoring: None,
 ) -> None:
-    """Public review should expose dialogue routing without logical scoring."""
+    """Public review should expose dialogue routing without logical scoring.
+
+    WCS-2a: dialogue coherence is the raw weakest-link support gated at
+    the matched-FPR operating point — not a squeezed composite score.
+    """
     _ = deterministic_python_scoring
     scorer = _build_lite_scorer()
 
@@ -69,8 +73,9 @@ def test_review_routes_dialogue_through_public_bidirectional_profile(
     assert approved is True
     assert score.detected_task_type == "dialogue"
     assert score.h_logical == pytest.approx(0.0)
-    assert score.h_factual == pytest.approx(0.0)
-    assert score.score == pytest.approx(1.0)
+    assert 0.0 < score.h_factual < 1.0
+    assert score.score == pytest.approx(1.0 - score.h_factual)
+    assert score.score >= scorer._dialogue_support_threshold
 
 
 def test_review_routes_summarization_to_prompt_evidence(

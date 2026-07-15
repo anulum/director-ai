@@ -306,6 +306,17 @@ class CoherenceScorer(ReviewPipelineMixin):
         # 0 = whole source document for the summarisation coverage layers
         # (WCS-1 2026-07-15; the pre-WCS-1 truncation was 3000 chars)
         self._summarization_premise_chars = 0
+        # Task-routed operating points (WCS-2a 2026-07-15). Dialogue gates
+        # raw weakest-link support at a matched-FPR threshold instead of
+        # the 0.80-baseline squeeze, which the WCS-1 E2E proof showed
+        # absorbs evidence gains (BENCHMARK_REPORT §16). The seed
+        # thresholds come from the FactCG sweep (dialogue FPR 0.045 →
+        # catch 0.27; summarisation FPR 0.025) — recalibrate per
+        # deployment via calibration.operating_points.
+        self._dialogue_scoring = "raw_support"  # | "baseline_squeeze"
+        self._dialogue_support_threshold = 0.0091
+        self._summarization_aggregation = "blend"  # | "weakest_link"
+        self._summarization_support_threshold = 0.0402
         self._verified_scorer_enabled = False
         self._verified_scorer_atomic = True
         self._verified_scorer_evidence_top_k = 3

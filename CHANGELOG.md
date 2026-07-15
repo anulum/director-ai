@@ -9,6 +9,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Dialogue reviews now gate raw weakest-link claim support at a
+  matched-FPR operating point** instead of squeezing bidirectional NLI
+  through the 0.80 baseline (WCS-2a). The WCS-1 end-to-end proof
+  (BENCHMARK_REPORT §16, tracked artefact
+  `e2e_nli_only_200_wcs1_wired.json`) showed the squeeze absorbs
+  evidence improvements — decisions were identical at catch 4.5 % —
+  while the raw operating point measures catch 27 % at the same 4.5 %
+  false-positive rate on HaluEval-dialogue. Each response claim is
+  scored independently against the conversation context and the
+  weakest claim decides; coherence for the dialogue route is that raw
+  support. New config: `nli_dialogue_scoring`
+  (`"raw_support"` default, `"baseline_squeeze"` restores the previous
+  behaviour) and `nli_dialogue_support_threshold` (seeded 0.0091 from
+  the FactCG sweep; recalibrate per deployment — see the calibration
+  tool below).
+- Cache hits now resolve the review gate exactly like fresh scoring
+  (task detection + adaptive per-task threshold + meta-classifier +
+  raw-support operating point). Previously a cache hit re-gated the
+  cached score on the **global** threshold, so a decision could differ
+  between a cache miss and a cache hit of the same input.
 - Summarisation claim-coverage layers (MiniCheck and FactCG) now score
   against the **whole source document** instead of a 3 000-character
   prefix; each backend applies its own long-input chunking. The
@@ -20,6 +40,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (`DIRECTOR_NLI_SUMMARIZATION_PREMISE_CHARS`).
 
 ### Added
+
+- Weakest-link summarisation aggregation
+  (`nli_summarization_aggregation="weakest_link"` +
+  `nli_summarization_support_threshold`): scores every summary claim
+  against the whole source and gates the least-supported claim at a
+  matched-FPR support operating point — the only WCS-1 configuration
+  that improved on both HaluEval (catch 0.120 → 0.125) and RAGTruth
+  (0.049 → 0.289). Default stays the coverage/Layer-A blend.
+- Matched-FPR operating-point calibration
+  (`director_ai.core.calibration.operating_points` and
+  `director-ai operating-points <labeled.jsonl>`): collects raw
+  weakest-link supports through the production scorer
+  (`CoherenceScorer.raw_task_support`), picks the largest support
+  threshold whose false-positive rate on labelled good responses stays
+  within a per-task target, and emits a ready-to-use config/env
+  overlay. Shipped thresholds are sweep seeds — deployments should
+  calibrate on their own traffic.
 
 - Rubric-scored, optionally ensembled LLM judge
   (`DirectorConfig.llm_judge_rubric` / `llm_judge_ensemble`): the

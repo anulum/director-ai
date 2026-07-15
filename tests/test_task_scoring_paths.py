@@ -22,8 +22,10 @@ from director_ai.core.scoring._task_scoring import (
     _sum_int,
     detect_task_type,
     dialogue_factual_divergence,
+    dialogue_raw_support_divergence,
     minicheck_claim_coverage,
     summarization_factual_divergence,
+    weakest_link_claim_divergence,
 )
 from director_ai.core.types import ScoringEvidence
 
@@ -450,6 +452,167 @@ class TestSummarizationFactualDivergence:
 
         assert seen == [long_doc[:3000]]
         assert "decisive late fact" not in seen[0]
+
+
+class _ClaimCoverageNli(_NliScorer):
+    """NLI fake exposing the claim-coverage surface the raw routes use."""
+
+    def __init__(self, divs, claims=None, **kwargs):
+        super().__init__(**kwargs)
+        self.divs = list(divs)
+        self.claims = (
+            list(claims)
+            if claims is not None
+            else [f"claim-{i}" for i in range(len(self.divs))]
+        )
+        self.coverage_calls = []
+
+    def score_claim_coverage(self, premise, response, support_threshold=0.6):
+        self.coverage_calls.append((premise, response))
+        return 0.5, list(self.divs), list(self.claims)
+
+
+def _no_layer_a(*args, **kwargs):
+    raise AssertionError("weakest-link mode must not run Layer A")
+
+
+class TestWeakestLinkRawSupport:
+    """WCS-2a raw-support scoring: weakest link, no squeeze, no blend."""
+
+    def test_weakest_link_returns_maximum_claim_divergence(self):
+        nli = _ClaimCoverageNli([0.1, 0.7, 0.3])
+
+        divergence, divs, claims = weakest_link_claim_divergence(
+            nli, "premise", "response"
+        )
+
+        assert divergence == pytest.approx(0.7)
+        assert divs == [0.1, 0.7, 0.3]
+        assert claims == ["claim-0", "claim-1", "claim-2"]
+        assert nli.coverage_calls == [("premise", "response")]
+
+    def test_dialogue_raw_support_skips_the_baseline_squeeze(self):
+        # Pre-WCS-2a the 0.80 squeeze mapped divergence 0.7 to 0.0 —
+        # invisible to any threshold. The raw route reports it as-is.
+        nli = _ClaimCoverageNli([0.1, 0.7])
+
+        divergence, evidence = dialogue_raw_support_divergence(
+            nli, "User: hi\nAssistant: context", "reply"
+        )
+
+        assert divergence == pytest.approx(0.7)
+        assert evidence is not None
+        assert evidence.nli_premise == "User: hi\nAssistant: context"
+        assert evidence.nli_hypothesis == "reply"
+        assert evidence.nli_score == pytest.approx(0.7)
+        assert evidence.per_claim_divergences == [0.1, 0.7]
+        assert evidence.claims == ["claim-0", "claim-1"]
+        assert evidence.chunks == []
+        # The bidirectional reverse pass belongs to the squeeze mode only.
+        assert nli.score_chunked_calls == []
+
+    def test_summarisation_weakest_link_uses_minicheck_sentences(self):
+        mc = SimpleNamespace(
+            score=lambda source, sentence: (
+                0.9 if sentence.startswith("unsupported") else 0.1
+            )
+        )
+
+        divergence, evidence = summarization_factual_divergence(
+            _ClaimCoverageNli([0.5]),
+            "source text",
+            "supported claim. unsupported claim.",
+            "tenant-a",
+            calculate_factual_with_evidence=_no_layer_a,
+            get_minicheck_scorer=lambda: mc,
+            aggregation="weakest_link",
+        )
+
+        assert divergence == pytest.approx(0.9)
+        assert evidence is not None
+        assert evidence.per_claim_divergences == [0.1, 0.9]
+        assert evidence.claims == ["supported claim.", "unsupported claim."]
+
+    def test_summarisation_weakest_link_falls_back_to_nli_claims(self):
+        nli = _ClaimCoverageNli([0.2, 0.6])
+
+        divergence, evidence = summarization_factual_divergence(
+            nli,
+            "source text",
+            "summary",
+            "tenant-a",
+            calculate_factual_with_evidence=_no_layer_a,
+            get_minicheck_scorer=lambda: None,
+            aggregation="weakest_link",
+        )
+
+        assert divergence == pytest.approx(0.6)
+        assert evidence is not None
+        assert evidence.nli_premise == "source text"
+        assert nli.coverage_calls == [("source text", "summary")]
+
+    def test_summarisation_weakest_link_without_minicheck_getter(self):
+        nli = _ClaimCoverageNli([0.3])
+
+        divergence, _ = summarization_factual_divergence(
+            nli,
+            "source text",
+            "summary",
+            "tenant-a",
+            calculate_factual_with_evidence=_no_layer_a,
+            aggregation="weakest_link",
+        )
+
+        assert divergence == pytest.approx(0.3)
+
+    def test_summarisation_weakest_link_empty_response_is_coherent(self):
+        mc = SimpleNamespace(score=lambda source, sentence: 0.9)
+
+        divergence, evidence = summarization_factual_divergence(
+            _ClaimCoverageNli([0.5]),
+            "source text",
+            "",
+            "tenant-a",
+            calculate_factual_with_evidence=_no_layer_a,
+            get_minicheck_scorer=lambda: mc,
+            aggregation="weakest_link",
+        )
+
+        assert divergence == 0.0
+        assert evidence is not None
+        assert evidence.per_claim_divergences == []
+        assert evidence.claims == []
+
+    def test_summarisation_weakest_link_respects_premise_budget(self):
+        long_doc = "early. " * 500 + "The decisive late fact."
+        nli = _ClaimCoverageNli([0.2])
+
+        summarization_factual_divergence(
+            nli,
+            long_doc,
+            "summary claim.",
+            "tenant-a",
+            calculate_factual_with_evidence=_no_layer_a,
+            aggregation="weakest_link",
+            premise_chars=3000,
+        )
+
+        assert nli.coverage_calls == [(long_doc[:3000], "summary claim.")]
+
+    def test_summarisation_weakest_link_sees_whole_document_by_default(self):
+        long_doc = "early. " * 500 + "The decisive late fact."
+        nli = _ClaimCoverageNli([0.2])
+
+        summarization_factual_divergence(
+            nli,
+            long_doc,
+            "summary claim.",
+            "tenant-a",
+            calculate_factual_with_evidence=_no_layer_a,
+            aggregation="weakest_link",
+        )
+
+        assert nli.coverage_calls == [(long_doc, "summary claim.")]
 
 
 class TestSumIntPaths:

@@ -26,7 +26,9 @@ from ..types import ScoringEvidence
 from ._task_scoring import (
     detect_task_type,
     dialogue_factual_divergence,
+    dialogue_raw_support_divergence,
     summarization_factual_divergence,
+    weakest_link_claim_divergence,
 )
 from .heuristic_coherence import (
     HeuristicCoherenceInputs,
@@ -70,6 +72,10 @@ class TaskRoutedCoherenceMixin:
     _claim_support_threshold: float
     _claim_coverage_alpha: float
     _summarization_premise_chars: int
+    _dialogue_scoring: str
+    _dialogue_support_threshold: float
+    _summarization_aggregation: str
+    _summarization_support_threshold: float
 
     if TYPE_CHECKING:
         # Divergence calculators and services provided by the composing scorer.
@@ -138,9 +144,18 @@ class TaskRoutedCoherenceMixin:
         response: str,
         tenant_id: str = "",
     ) -> tuple[float, ScoringEvidence | None]:
-        """Bidirectional NLI scoring with baseline calibration for dialogue."""
+        """Dialogue factual divergence in the configured scoring mode.
+
+        ``raw_support`` (default, WCS-2a) returns the raw weakest-link
+        claim divergence — the review gate compares the resulting
+        support against the matched-FPR dialogue operating point.
+        ``baseline_squeeze`` restores the pre-WCS-2a bidirectional NLI
+        with 0.80-baseline calibration.
+        """
         if self._nli is None or not self._nli.model_available:
             raise RuntimeError("NLI model required for dialogue factual divergence")
+        if self._dialogue_scoring == "raw_support":
+            return dialogue_raw_support_divergence(self._nli, prompt, response)
         return dialogue_factual_divergence(
             self._nli,
             prompt,
@@ -180,7 +195,63 @@ class TaskRoutedCoherenceMixin:
             baseline=self._summarization_nli_baseline,
             get_minicheck_scorer=self._get_minicheck_scorer,
             premise_chars=self._summarization_premise_chars,
+            aggregation=self._summarization_aggregation,
         )
+
+    # -- Raw-support operating points (WCS-2a) ------------------------------
+
+    def _raw_support_operating_point(self, prompt: str, action: str) -> float | None:
+        """Support threshold when a raw-support route will score this input.
+
+        Mirrors the :meth:`_heuristic_coherence` route selection exactly
+        so the review gate and the scoring route stay consistent; returns
+        ``None`` when the input takes a squeeze/blend route, where
+        composite-coherence thresholds apply instead.
+        """
+        nli_ok = self._nli is not None and self._nli.model_available
+        task = self._detect_task_type(prompt, action) if nli_ok else "default"
+        route = select_heuristic_coherence_route(
+            HeuristicCoherenceInputs(
+                auto_dialogue_profile=self._auto_dialogue_profile,
+                use_prompt_as_premise=self._use_prompt_as_premise,
+                nli_available=nli_ok,
+                task_type=task,
+                w_logic=self.W_LOGIC,
+            )
+        )
+        if (
+            route is HeuristicCoherenceRoute.DIALOGUE
+            and self._dialogue_scoring == "raw_support"
+        ):
+            return self._dialogue_support_threshold
+        if (
+            route is HeuristicCoherenceRoute.SUMMARISATION
+            and self._summarization_aggregation == "weakest_link"
+        ):
+            return self._summarization_support_threshold
+        return None
+
+    def raw_task_support(self, prompt: str, response: str) -> tuple[str, float]:
+        """Return the detected task type and raw weakest-link support.
+
+        Calibration surface for
+        :mod:`director_ai.core.calibration.operating_points`: scores
+        through the same premise the raw-support routes use (dialogue —
+        the whole conversation context; summarisation — the configured
+        premise-chars budget of the source), regardless of the currently
+        configured scoring mode, so a deployment can collect supports and
+        pick its operating point BEFORE switching modes.
+        """
+        if self._nli is None or not self._nli.model_available:
+            raise RuntimeError("NLI model required for raw support calibration")
+        task = self._detect_task_type(prompt, response)
+        premise = prompt
+        if task == "summarization" and self._summarization_premise_chars > 0:
+            premise = prompt[: self._summarization_premise_chars]
+        divergence, _divs, _claims = weakest_link_claim_divergence(
+            self._nli, premise, response
+        )
+        return task, 1.0 - divergence
 
     # ── Composite heuristic coherence ─────────────────────────────────
 
@@ -278,6 +349,13 @@ class TaskRoutedCoherenceMixin:
                         )
                 raise
             h_fact, evidence = future_fact.result()
+        raw_support_route = (
+            route is HeuristicCoherenceRoute.DIALOGUE
+            and self._dialogue_scoring == "raw_support"
+        ) or (
+            route is HeuristicCoherenceRoute.SUMMARISATION
+            and self._summarization_aggregation == "weakest_link"
+        )
         coherence = combine_weighted_coherence(
             h_logic=h_logic,
             h_factual=h_fact,
@@ -286,6 +364,7 @@ class TaskRoutedCoherenceMixin:
             nli_available=_nli_available,
             evidence_present=evidence is not None,
             dialogue_route=route is HeuristicCoherenceRoute.DIALOGUE,
+            raw_support_route=raw_support_route,
         )
 
         return h_logic, h_fact, coherence, evidence

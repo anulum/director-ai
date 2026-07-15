@@ -205,6 +205,164 @@ class TestTaskRouting:
         )
 
 
+class _ClaimSupportNLI:
+    """NLI double exposing the claim-coverage surface of the raw routes."""
+
+    model_available = True
+
+    def __init__(self, divs):
+        self.divs = list(divs)
+        self.coverage_calls = []
+
+    def score_claim_coverage(self, premise, response, support_threshold=0.6):
+        self.coverage_calls.append((premise, response))
+        return 0.5, list(self.divs), [f"claim-{i}" for i in range(len(self.divs))]
+
+    def score_chunked(self, *args, **kwargs):
+        raise AssertionError("raw-support routes must not run chunked passes")
+
+    def _ensure_model(self):
+        return True
+
+
+_DIALOGUE_PROMPT = "User: hi\nAssistant: hello\nUser: how are you?"
+
+
+class TestRawSupportRouting:
+    """WCS-2a: raw-support routes and their operating-point mirror."""
+
+    def _scorer(self, divs=(0.1, 0.7)):
+        scorer = CoherenceScorer(use_nli=False)
+        scorer._nli = _ClaimSupportNLI(divs)
+        return scorer
+
+    def test_dialogue_route_defaults_to_raw_support(self):
+        scorer = self._scorer(divs=(0.1, 0.7))
+
+        divergence, evidence = scorer._dialogue_factual_divergence(
+            _DIALOGUE_PROMPT, "reply"
+        )
+
+        assert divergence == pytest.approx(0.7)
+        assert evidence is not None
+        assert evidence.per_claim_divergences == [0.1, 0.7]
+        assert scorer._nli.coverage_calls == [(_DIALOGUE_PROMPT, "reply")]
+
+    def test_dialogue_baseline_squeeze_mode_restores_the_old_path(self):
+        scorer = self._scorer()
+        scorer._dialogue_scoring = "baseline_squeeze"
+        scorer._nli.score_chunked = lambda *args, **kwargs: (0.85, None)
+        scorer.calculate_factual_divergence_with_evidence = lambda *args, **kwargs: (
+            0.90,
+            None,
+        )
+
+        divergence, _ = scorer._dialogue_factual_divergence(_DIALOGUE_PROMPT, "reply")
+
+        assert divergence == pytest.approx((0.85 - 0.80) / 0.20)
+        assert scorer._nli.coverage_calls == []
+
+    def test_operating_point_mirrors_the_dialogue_route(self):
+        scorer = self._scorer()
+
+        assert scorer._raw_support_operating_point(
+            _DIALOGUE_PROMPT, "reply"
+        ) == pytest.approx(0.0091)
+
+    def test_operating_point_is_none_in_baseline_squeeze_mode(self):
+        scorer = self._scorer()
+        scorer._dialogue_scoring = "baseline_squeeze"
+
+        assert scorer._raw_support_operating_point(_DIALOGUE_PROMPT, "reply") is None
+
+    def test_operating_point_is_none_without_a_model_backed_nli(self):
+        scorer = self._scorer()
+        scorer._nli.model_available = False
+
+        assert scorer._raw_support_operating_point(_DIALOGUE_PROMPT, "reply") is None
+
+    def test_operating_point_is_none_for_composite_routes(self):
+        scorer = self._scorer()
+
+        assert (
+            scorer._raw_support_operating_point(
+                "What is the capital of France?", "Paris."
+            )
+            is None
+        )
+
+    def test_summarisation_blend_default_keeps_composite_thresholds(self):
+        scorer = self._scorer()
+
+        assert (
+            scorer._raw_support_operating_point(
+                "Summarize the quarterly report.", "Revenue rose."
+            )
+            is None
+        )
+
+    def test_summarisation_weakest_link_exposes_its_operating_point(self):
+        scorer = self._scorer()
+        scorer._summarization_aggregation = "weakest_link"
+
+        assert scorer._raw_support_operating_point(
+            "Summarize the quarterly report.", "Revenue rose."
+        ) == pytest.approx(0.0402)
+
+    def test_prompt_as_premise_summarisation_route_is_mirrored(self):
+        # The SUMMARISATION route also triggers for prompt-as-premise
+        # zero-logic deployments regardless of the detected task type —
+        # the operating-point mirror must follow the ROUTE, not the task.
+        scorer = self._scorer()
+        scorer._summarization_aggregation = "weakest_link"
+        scorer._use_prompt_as_premise = True
+        scorer.W_LOGIC = 0.0
+        scorer.W_FACT = 1.0
+
+        assert scorer._raw_support_operating_point(
+            "What is the capital of France?", "Paris."
+        ) == pytest.approx(0.0402)
+
+    def test_heuristic_coherence_returns_raw_support_for_dialogue(self):
+        scorer = self._scorer(divs=(0.1, 0.7))
+
+        h_logic, h_fact, coherence, evidence = scorer._heuristic_coherence(
+            _DIALOGUE_PROMPT, "reply"
+        )
+
+        assert h_logic == 0.0
+        assert h_fact == pytest.approx(0.7)
+        assert coherence == pytest.approx(0.3)
+        assert evidence is not None
+
+    def test_raw_task_support_scores_the_dialogue_context(self):
+        scorer = self._scorer(divs=(0.1, 0.4))
+
+        task, support = scorer.raw_task_support(_DIALOGUE_PROMPT, "reply")
+
+        assert task == "dialogue"
+        assert support == pytest.approx(0.6)
+        assert scorer._nli.coverage_calls == [(_DIALOGUE_PROMPT, "reply")]
+
+    def test_raw_task_support_applies_the_summarisation_premise_budget(self):
+        scorer = self._scorer(divs=(0.2,))
+        scorer._summarization_premise_chars = 10
+        prompt = "Summarize: " + "x" * 100
+
+        task, support = scorer.raw_task_support(prompt, "short")
+
+        assert task == "summarization"
+        assert support == pytest.approx(0.8)
+        assert scorer._nli.coverage_calls == [(prompt[:10], "short")]
+
+    def test_raw_task_support_requires_a_model_backed_nli(self):
+        scorer = CoherenceScorer(use_nli=False)
+        scorer._nli = None
+
+        with pytest.raises(RuntimeError, match="NLI model required"):
+            scorer.raw_task_support(_DIALOGUE_PROMPT, "reply")
+
+
 class _KeywordStore:
     """Non-vector grounding store: abstention gating must not apply."""
 

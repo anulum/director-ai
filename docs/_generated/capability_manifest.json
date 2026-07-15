@@ -6,10 +6,10 @@
     "optional_extras": 62,
     "public_api_exports": 226,
     "public_documentation_pages": 205,
-    "python_model_classes": 1039,
-    "python_model_source_modules": 512,
+    "python_model_classes": 1040,
+    "python_model_source_modules": 513,
     "rust_pyo3_model_wrappers": 83,
-    "test_files": 755
+    "test_files": 756
   },
   "documentation": {
     "public_pages": [
@@ -2895,6 +2895,10 @@
         "path": "src/director_ai/voice/adapters.py"
       },
       {
+        "name": "OperatingPoint",
+        "path": "src/director_ai/core/calibration/operating_points.py"
+      },
+      {
         "name": "Or",
         "path": "src/director_ai/core/formal_verification/formula.py"
       },
@@ -4564,6 +4568,7 @@
       "src/director_ai/core/calibration/honesty_redteam.py",
       "src/director_ai/core/calibration/miscoverage.py",
       "src/director_ai/core/calibration/online_calibrator.py",
+      "src/director_ai/core/calibration/operating_points.py",
       "src/director_ai/core/calibration/recall_correctness.py",
       "src/director_ai/core/calibration/recall_correctness_client.py",
       "src/director_ai/core/calibration/recall_ledger.py",
@@ -5883,6 +5888,7 @@
       "tests/test_onnx_dynamic_scheduler_real_surface.py",
       "tests/test_ontology.py",
       "tests/test_openai_swarm.py",
+      "tests/test_operating_points_calibration.py",
       "tests/test_optional_extra_lock_policy.py",
       "tests/test_orchestrator_environment_vertex_metadata.py",
       "tests/test_otel.py",

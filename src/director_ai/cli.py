@@ -36,6 +36,7 @@ from ._cli_bench import (
     _cmd_eval,
     _cmd_export,
     _cmd_finetune,
+    _cmd_operating_points,
     _cmd_tune,
     _cmd_validate_data,
 )
@@ -449,6 +450,11 @@ def _command_specs() -> dict[str, _CommandSpec]:
             _cmd_tune,
             "tune <file.jsonl>|--dataset D [--output config.yaml]  "
             "Tune profile overlay",
+        ),
+        "operating-points": _CommandSpec(
+            _cmd_operating_points,
+            "operating-points <file.jsonl> [--target-fpr task=rate]  "
+            "Calibrate matched-FPR support gates",
         ),
         "train": _CommandSpec(
             _cmd_train,

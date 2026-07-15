@@ -336,6 +336,139 @@ def _cmd_tune(args: list[str]) -> None:
         print(f"Profile overlay written to {output_file}")
 
 
+def _cmd_operating_points(args: list[str]) -> None:
+    """Calibrate matched-FPR support operating points (WCS-2a).
+
+    Input format matches ``tune``: one JSON object per line with
+    ``{"prompt": str, "response": str, "label": bool}`` where
+    ``label=True`` means the response is correct (should be approved).
+    Prints one calibrated operating point per raw-support task route
+    plus a ready-to-use ``DIRECTOR_*`` environment overlay.
+    """
+    if args and args[0] in ("-h", "--help", "help"):
+        _print_operating_points_help()
+        return
+
+    if not args:
+        _print_operating_points_help()
+        sys.exit(1)
+
+    import os
+
+    input_file = ""
+    output_file = None
+    fpr_overrides: dict[str, float] = {}
+
+    i = 0
+    while i < len(args):
+        arg = args[i]
+        if arg == "--dataset" and i + 1 < len(args):
+            input_file = args[i + 1]
+            i += 2
+        elif arg == "--output" and i + 1 < len(args):
+            output_file = args[i + 1]
+            i += 2
+        elif arg == "--target-fpr" and i + 1 < len(args):
+            spec = args[i + 1]
+            task, sep, value = spec.partition("=")
+            try:
+                if not sep:
+                    raise ValueError(spec)
+                fpr_overrides[task.strip()] = float(value)
+            except ValueError:
+                print(f"Error: invalid --target-fpr {spec!r} (expected task=rate)")
+                sys.exit(1)
+            i += 2
+        elif not arg.startswith("-") and not input_file:
+            input_file = arg
+            i += 1
+        else:
+            i += 1
+
+    if not input_file:
+        print("Error: missing dataset file")
+        sys.exit(1)
+
+    if not os.path.isfile(input_file):
+        print(f"Error: file not found: {input_file}")
+        sys.exit(1)
+
+    samples: list[tuple[str, str, bool]] = []
+    with open(input_file, encoding="utf-8") as f:
+        for line_no, line in enumerate(f, 1):
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                data = json.loads(line)
+            except json.JSONDecodeError as e:
+                print(f"Warning: skipping line {line_no}: {e}")
+                continue
+            if "prompt" not in data or "response" not in data or "label" not in data:
+                print(f"Warning: skipping line {line_no}: missing required fields")
+                continue
+            samples.append(
+                (str(data["prompt"]), str(data["response"]), not bool(data["label"]))
+            )
+
+    if not samples:
+        print("Error: no valid samples found")
+        sys.exit(1)
+
+    from .core.calibration.operating_points import (
+        calibrate_from_samples,
+        format_env_overlay,
+    )
+    from .core.config import DirectorConfig
+
+    scorer = DirectorConfig.from_env().build_scorer()
+    points = calibrate_from_samples(
+        scorer,
+        samples,
+        target_fpr_by_task=fpr_overrides or None,
+    )
+    if not points:
+        print(
+            "Error: no dialogue/summarization samples with correct "
+            "(label=true) responses found — nothing to calibrate"
+        )
+        sys.exit(1)
+
+    for point in points:
+        catch = f"{point.catch_rate:.3f}" if point.catch_rate is not None else "n/a"
+        print(
+            f"{point.task}: support_threshold={point.support_threshold:.6f} "
+            f"target_fpr={point.target_fpr:.3f} actual_fpr={point.actual_fpr:.3f} "
+            f"catch={catch} (good={point.n_good}, bad={point.n_bad})"
+        )
+    overlay = format_env_overlay(points)
+    print(overlay)
+
+    if output_file:
+        with open(output_file, "w", encoding="utf-8") as f:
+            f.write(overlay + "\n")
+        print(f"Environment overlay written to {output_file}")
+
+
+def _print_operating_points_help() -> None:
+    """Print operating-points subcommand options without loading models."""
+    print(
+        "Usage: director-ai operating-points <labeled.jsonl> [options]\n"
+        "\n"
+        "Calibrate matched-FPR support operating points for the\n"
+        "raw-support task routes (dialogue, summarisation) from\n"
+        "labelled prompt/response samples scored by the production\n"
+        "checker.\n"
+        "\n"
+        "Options:\n"
+        "  --dataset FILE          Labelled evaluation JSONL input\n"
+        "  --target-fpr TASK=RATE  Override the FPR target per task\n"
+        "                          (default dialogue=0.045,\n"
+        "                          summarization=0.025); repeatable\n"
+        "  --output FILE           Write DIRECTOR_* env overlay\n"
+    )
+
+
 def _load_tuner_functions() -> tuple[
     _TuneFunction,
     _ConfidenceReportFunction,

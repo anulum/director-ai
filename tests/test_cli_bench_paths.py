@@ -593,3 +593,127 @@ def test_eval_runs_suite_and_writes_results(monkeypatch, tmp_path, capsys):
     out = capsys.readouterr().out
     assert "HF_TOKEN not set" in out
     assert '"judge"' in out
+
+
+class _OperatingPointScorer:
+    """Scorer double: task from the prompt prefix, support from the response."""
+
+    def raw_task_support(self, prompt, response):
+        task = prompt.split(":", 1)[0]
+        return task, float(response)
+
+
+@pytest.fixture
+def _operating_point_config(monkeypatch):
+    from director_ai.core.config import DirectorConfig
+
+    fake_cfg = SimpleNamespace(build_scorer=lambda store=None: _OperatingPointScorer())
+    monkeypatch.setattr(
+        DirectorConfig,
+        "from_env",
+        classmethod(lambda cls, prefix="DIRECTOR_": fake_cfg),
+    )
+
+
+def _write_jsonl(path, rows):
+    path.write_text(
+        "\n".join(json.dumps(row) for row in rows) + "\n",
+        encoding="utf-8",
+    )
+
+
+def test_operating_points_help_paths(capsys):
+    _cli_bench._cmd_operating_points(["--help"])
+    assert "matched-FPR" in capsys.readouterr().out
+
+    with pytest.raises(SystemExit) as exc_info:
+        _cli_bench._cmd_operating_points([])
+    assert exc_info.value.code == 1
+    assert "Usage" in capsys.readouterr().out
+
+
+def test_operating_points_missing_file_paths(capsys):
+    with pytest.raises(SystemExit) as exc_info:
+        _cli_bench._cmd_operating_points(["--dataset", ""])
+    assert exc_info.value.code == 1
+    assert "missing dataset file" in capsys.readouterr().out
+
+    with pytest.raises(SystemExit) as exc_info:
+        _cli_bench._cmd_operating_points(["/nonexistent/file.jsonl"])
+    assert exc_info.value.code == 1
+    assert "file not found" in capsys.readouterr().out
+
+
+def test_operating_points_rejects_malformed_target_fpr(capsys):
+    with pytest.raises(SystemExit) as exc_info:
+        _cli_bench._cmd_operating_points(["--target-fpr", "dialogue0.05"])
+    assert exc_info.value.code == 1
+    assert "invalid --target-fpr" in capsys.readouterr().out
+
+    with pytest.raises(SystemExit) as exc_info:
+        _cli_bench._cmd_operating_points(["--target-fpr", "dialogue=high"])
+    assert exc_info.value.code == 1
+    assert "invalid --target-fpr" in capsys.readouterr().out
+
+
+def test_operating_points_skips_bad_lines_and_requires_samples(tmp_path, capsys):
+    dataset = tmp_path / "empty.jsonl"
+    dataset.write_text(
+        'not-json\n{"prompt": "p"}\n\n',
+        encoding="utf-8",
+    )
+
+    with pytest.raises(SystemExit) as exc_info:
+        _cli_bench._cmd_operating_points([str(dataset)])
+
+    assert exc_info.value.code == 1
+    out = capsys.readouterr().out
+    assert "skipping line 1" in out
+    assert "skipping line 2" in out
+    assert "no valid samples" in out
+
+
+def test_operating_points_requires_calibratable_tasks(
+    tmp_path, capsys, _operating_point_config
+):
+    dataset = tmp_path / "qa.jsonl"
+    _write_jsonl(dataset, [{"prompt": "qa: q", "response": "0.9", "label": True}])
+
+    with pytest.raises(SystemExit) as exc_info:
+        _cli_bench._cmd_operating_points([str(dataset)])
+
+    assert exc_info.value.code == 1
+    assert "nothing to calibrate" in capsys.readouterr().out
+
+
+def test_operating_points_calibrates_and_writes_the_overlay(
+    tmp_path, capsys, _operating_point_config
+):
+    dataset = tmp_path / "labeled.jsonl"
+    _write_jsonl(
+        dataset,
+        [
+            {"prompt": "dialogue: a", "response": "0.9", "label": True},
+            {"prompt": "dialogue: b", "response": "0.5", "label": True},
+            {"prompt": "dialogue: c", "response": "0.01", "label": False},
+        ],
+    )
+    output = tmp_path / "overlay.env"
+
+    _cli_bench._cmd_operating_points(
+        [
+            str(dataset),
+            "--target-fpr",
+            "dialogue=0.5",
+            "--output",
+            str(output),
+        ]
+    )
+
+    out = capsys.readouterr().out
+    assert "dialogue: support_threshold=0.900000" in out
+    assert "catch=1.000" in out
+    assert "DIRECTOR_NLI_DIALOGUE_SCORING=raw_support" in out
+    saved = output.read_text(encoding="utf-8")
+    assert "DIRECTOR_NLI_DIALOGUE_SUPPORT_THRESHOLD=0.9" in saved
+    assert "overlay written" in out

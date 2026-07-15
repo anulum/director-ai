@@ -219,6 +219,43 @@ class TestRunE2EBenchmarkWiring:
         assert "llm_judge_provider" in sig.parameters
         assert "llm_judge_model" in sig.parameters
 
+    def test_scorer_overrides_land_on_the_scorer(self, monkeypatch):
+        # WCS-2a proof runs flip scorer attributes a constructor kwarg
+        # does not reach (e.g. weakest-link summarisation); the override
+        # hook must apply them before any sample is scored.
+        import benchmarks.e2e_eval as e2e_eval
+
+        seen: dict[str, object] = {}
+
+        def fake_download(task):
+            del task
+            return []
+
+        monkeypatch.setattr(e2e_eval, "_download_task_data", fake_download)
+
+        from benchmarks.e2e_eval import run_e2e_benchmark
+        from director_ai.core.scorer import CoherenceScorer
+
+        original_setattr = CoherenceScorer.__setattr__
+
+        def recording_setattr(self, name, value):
+            if name == "_summarization_aggregation":
+                seen[name] = value
+            original_setattr(self, name, value)
+
+        monkeypatch.setattr(CoherenceScorer, "__setattr__", recording_setattr)
+
+        metrics = run_e2e_benchmark(
+            tasks=["qa"],
+            max_samples_per_task=1,
+            use_nli=False,
+            scorer_backend="lite",
+            scorer_overrides={"_summarization_aggregation": "weakest_link"},
+        )
+
+        assert seen["_summarization_aggregation"] == "weakest_link"
+        assert metrics.samples == []
+
 
 # ── Pipeline performance documentation ──────────────────────────────
 

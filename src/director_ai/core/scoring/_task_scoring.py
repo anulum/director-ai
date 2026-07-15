@@ -161,6 +161,69 @@ def dialogue_factual_divergence(
     return adjusted, evidence
 
 
+def weakest_link_claim_divergence(
+    nli_scorer: Any,
+    premise: str,
+    response: str,
+) -> tuple[float, list[float], list[str]]:
+    """Weakest-link claim divergence of *response* against *premise*.
+
+    Scores every response claim independently with chunked NLI (the
+    best-matching source chunk wins per claim) and returns the MAXIMUM
+    per-claim divergence: a response is only as supported as its
+    least-supported claim. This is the production twin of the WCS-1
+    sweep's ``min`` support aggregation (BENCHMARK_REPORT §16) —
+    weakest-link support ``= 1 − divergence``.
+
+    Returns ``(divergence, per_claim_divergences, claims)``.
+    """
+    _coverage, divs, claims = nli_scorer.score_claim_coverage(premise, response)
+    return max(divs), divs, claims
+
+
+def _raw_support_evidence(
+    premise: str,
+    response: str,
+    divergence: float,
+    per_claim_divs: list[float],
+    claims: list[str],
+) -> ScoringEvidence:
+    """Package raw-support claim scores as scoring evidence."""
+    return ScoringEvidence(
+        chunks=[],
+        nli_premise=premise,
+        nli_hypothesis=response,
+        nli_score=divergence,
+        per_claim_divergences=per_claim_divs,
+        claims=claims,
+    )
+
+
+def dialogue_raw_support_divergence(
+    nli_scorer: Any,
+    prompt: str,
+    response: str,
+) -> tuple[float, ScoringEvidence | None]:
+    """Raw weakest-link divergence for the dialogue route (WCS-2a).
+
+    No baseline squeeze: the returned divergence is ``1 − support``
+    where support is the weakest-link per-claim support of the response
+    against the full conversation context. The review gate compares the
+    resulting coherence (= support) directly against the dialogue
+    support operating point — matched-FPR calibrated per deployment
+    (:mod:`director_ai.core.calibration.operating_points`). The WCS-1
+    E2E proof showed the 0.80-baseline squeeze absorbs evidence gains
+    (decisions identical at catch 4.5 %); the raw operating point lifts
+    measured catch to 27 % at the same FPR (BENCHMARK_REPORT §16).
+    """
+    divergence, per_claim, claims = weakest_link_claim_divergence(
+        nli_scorer, prompt, response
+    )
+    return divergence, _raw_support_evidence(
+        prompt, response, divergence, per_claim, claims
+    )
+
+
 def summarization_factual_divergence(
     nli_scorer: Any,
     prompt: str,
@@ -179,6 +242,7 @@ def summarization_factual_divergence(
     baseline: float = 0.20,
     get_minicheck_scorer: Callable[[], Any] | None = None,
     premise_chars: int = 0,
+    aggregation: str = "blend",
 ) -> tuple[float, ScoringEvidence | None]:
     """Bidirectional NLI + claim coverage for summarisation.
 
@@ -187,6 +251,13 @@ def summarization_factual_divergence(
     Layer C (fallback): FactCG claim decomposition + coverage.
 
     Final divergence = alpha * (1 - coverage) + (1 - alpha) * layer_a.
+
+    With ``aggregation="weakest_link"`` the blend is replaced by the
+    raw weakest-link claim divergence against the source document —
+    the only WCS-1 configuration that improved on both HaluEval and
+    RAGTruth (BENCHMARK_REPORT §16). The review gate then compares the
+    resulting coherence (= support) against the summarisation support
+    operating point instead of a composite-coherence threshold.
 
     Parameters
     ----------
@@ -200,8 +271,28 @@ def summarization_factual_divergence(
         itself. The pre-WCS-1 behaviour was a 3000-char truncation, which
         the 2026-07-15 evidence sweep showed hides late-document evidence
         on both HaluEval and RAGTruth (BENCHMARK_REPORT §16).
+    aggregation : str
+        ``"blend"`` (default) keeps the coverage/Layer-A alpha blend;
+        ``"weakest_link"`` returns the raw weakest-link claim divergence
+        (WCS-2a) and skips the blend layers entirely.
     """
     coverage_premise = prompt[:premise_chars] if premise_chars > 0 else prompt
+
+    if aggregation == "weakest_link":
+        mc_scorer = get_minicheck_scorer() if get_minicheck_scorer else None
+        if mc_scorer is not None:
+            _coverage, per_claim, claims = minicheck_claim_coverage(
+                mc_scorer, coverage_premise, response
+            )
+            divergence = max(per_claim) if per_claim else 0.0
+        else:
+            divergence, per_claim, claims = weakest_link_claim_divergence(
+                nli_scorer, coverage_premise, response
+            )
+        return divergence, _raw_support_evidence(
+            coverage_premise, response, divergence, per_claim, claims
+        )
+
     # Layer A: bidirectional FactCG NLI
     h_fact_fwd, evidence = calculate_factual_with_evidence(
         prompt,

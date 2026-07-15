@@ -174,6 +174,12 @@ class ReviewPipelineMixin(DivergenceMixin):
         Requires a prior :meth:`enable_self_consistency` call —
         consistency with zero samples is not evidence, so there is no
         silent fallback.
+
+        Raw-support routes (WCS-2a) attach the consistency fields but do
+        NOT blend them into the score: their coherence is a raw support
+        gated at a matched-FPR operating point, and averaging it with a
+        composite-scale consistency score would silently move that
+        calibrated operating point.
         """
         if self._self_consistency_scorer is None:
             raise RuntimeError(
@@ -186,17 +192,58 @@ class ReviewPipelineMixin(DivergenceMixin):
             tenant_id=tenant_id,
         )
         consistency = self._self_consistency_scorer.score(action, samples)
-        weight = self._self_consistency_weight
-        fused = (1.0 - weight) * score.score + weight * consistency.consistency_score
 
         score.self_consistency_score = round(consistency.consistency_score, 4)
         score.semantic_entropy = round(consistency.semantic_entropy, 4)
         score.self_consistency_backend = consistency.entailment_backend
+        if self._raw_support_operating_point(prompt, action) is not None:
+            return approved, score
+
+        weight = self._self_consistency_weight
+        fused = (1.0 - weight) * score.score + weight * consistency.consistency_score
         score.score = round(fused, 4)
         if approved and fused < self.threshold:
             approved = False
             score.approved = False
         return approved, score
+
+    def _effective_review_threshold(
+        self,
+        prompt: str,
+        action: str,
+        task_type: str,
+        raw_op: float | None = None,
+    ) -> tuple[float, float | None]:
+        """Resolve the review gate for one input.
+
+        Returns ``(threshold, soft_limit_override)``. A raw-support route
+        (WCS-2a) gates on its matched-FPR support operating point and
+        carries the configured soft-limit margin onto the support scale;
+        otherwise the adaptive per-task-type threshold and the
+        meta-classifier override apply on the composite-coherence scale,
+        with ``soft_limit_override=None`` (the configured soft limit is
+        already on that scale).
+        """
+        if raw_op is None:
+            raw_op = self._raw_support_operating_point(prompt, action)
+        if raw_op is not None:
+            margin = max(0.0, self.soft_limit - self.threshold)
+            return raw_op, min(1.0, raw_op + margin)
+
+        threshold = self.threshold
+        if self._adaptive_threshold_enabled and self._task_type_thresholds:
+            threshold = self._task_type_thresholds.get(task_type, self.threshold)
+
+        # Meta-classifier: dataset-type mode predicts which sub-dataset
+        # the input resembles, then applies the optimal NLI threshold
+        # for that dataset. Falls back to per-task-type if uncertain.
+        meta_clf = self._get_meta_classifier()
+        if meta_clf is not None:
+            nli_threshold, _meta_conf = meta_clf.predict_threshold(prompt, action)
+            if nli_threshold is not None:
+                # NLI-scale to coherence-scale
+                threshold = self.W_FACT + self.W_LOGIC * nli_threshold
+        return threshold, None
 
     def _finalise_review(
         self,
@@ -208,6 +255,7 @@ class ReviewPipelineMixin(DivergenceMixin):
         threshold_override: float | None = None,
         detected_task_type: str | None = None,
         escalated_to_judge: bool | None = None,
+        soft_limit_override: float | None = None,
     ) -> tuple[bool, CoherenceScore]:
         """Build CoherenceScore, gate on threshold, update history.
 
@@ -233,7 +281,12 @@ class ReviewPipelineMixin(DivergenceMixin):
                 t,
             )
         else:
-            if coherence < self.soft_limit:
+            soft = (
+                soft_limit_override
+                if soft_limit_override is not None
+                else self.soft_limit
+            )
+            if coherence < soft:
                 warning = True
             with self._history_lock:
                 self.history.append(action)
@@ -473,6 +526,11 @@ class ReviewPipelineMixin(DivergenceMixin):
 
             cache_scope = self._score_cache_scope(session=session, tenant_id=tenant_id)
 
+            # Raw-support operating point (WCS-2a): resolved once so the
+            # cache-hit and fresh-scoring paths gate identically — a
+            # decision must not depend on cache state.
+            raw_op = self._raw_support_operating_point(prompt, action)
+
             if self.cache:
                 with trace_cache(scope_present=bool(cache_scope)) as cache_span:
                     cached = self.cache.get(
@@ -483,12 +541,22 @@ class ReviewPipelineMixin(DivergenceMixin):
                     )
                     cache_span.set_attribute("cache.hit", cached is not None)
                 if cached is not None:
+                    cached_task = self._detect_task_type(prompt, action)
+                    cached_t, cached_soft = self._effective_review_threshold(
+                        prompt,
+                        action,
+                        cached_task,
+                        raw_op=raw_op,
+                    )
                     result = self._apply_conformal_interval(
                         self._finalise_review(
                             cached.score,
                             cached.h_logical,
                             cached.h_factual,
                             action,
+                            threshold_override=cached_t,
+                            detected_task_type=cached_task,
+                            soft_limit_override=cached_soft,
                         )
                     )
                     span.set_attribute("coherence.score", cached.score)
@@ -502,7 +570,11 @@ class ReviewPipelineMixin(DivergenceMixin):
             )
 
             cross_turn = None
-            _skip_cross_turn = (
+            # Raw-support routes also skip the cross-turn blend: their
+            # coherence is a calibrated raw support, and reweighting it
+            # with a cross-turn component would move the matched-FPR
+            # operating point.
+            _skip_cross_turn = raw_op is not None or (
                 self._auto_dialogue_profile
                 and not self._use_prompt_as_premise
                 and self._nli is not None
@@ -545,26 +617,14 @@ class ReviewPipelineMixin(DivergenceMixin):
             # Always detect task type for explainability
             task_type = self._detect_task_type(prompt, action)
 
-            # Adaptive threshold: select per-task-type threshold
-            effective_threshold = self.threshold
-            if self._adaptive_threshold_enabled and self._task_type_thresholds:
-                effective_threshold = self._task_type_thresholds.get(
-                    task_type,
-                    self.threshold,
-                )
-
-            # Meta-classifier: dataset-type mode predicts which sub-dataset
-            # the input resembles, then applies the optimal NLI threshold
-            # for that dataset. Falls back to per-task-type if uncertain.
-            meta_clf = self._get_meta_classifier()
-            if meta_clf is not None:
-                nli_threshold, meta_conf = meta_clf.predict_threshold(
-                    prompt,
-                    action,
-                )
-                if nli_threshold is not None:
-                    # NLI-scale to coherence-scale
-                    effective_threshold = self.W_FACT + self.W_LOGIC * nli_threshold
+            # Gate resolution: raw-support operating point, adaptive
+            # per-task-type threshold, or meta-classifier override.
+            effective_threshold, soft_override = self._effective_review_threshold(
+                prompt,
+                action,
+                task_type,
+                raw_op=raw_op,
+            )
 
             result = self._finalise_review(
                 coherence,
@@ -574,6 +634,7 @@ class ReviewPipelineMixin(DivergenceMixin):
                 evidence,
                 threshold_override=effective_threshold,
                 detected_task_type=task_type,
+                soft_limit_override=soft_override,
             )
             result = self._apply_verified_scorer(
                 result[1],
@@ -748,21 +809,16 @@ class ReviewPipelineMixin(DivergenceMixin):
                     coherence = max(0.0, min(1.0, (coherence - lo) / span))
 
             # Match review() finalisation: task-type, adaptive threshold,
-            # meta-classifier — ensures batch/single parity.
+            # meta-classifier — ensures batch/single parity. Dialogue and
+            # summarisation items fall back to sequential review(), so
+            # the raw-support operating point resolves to None here.
             prompt = items[i][0]
             task_type = self._detect_task_type(prompt, items[i][1])
-            effective_threshold = self.threshold
-            if self._adaptive_threshold_enabled and self._task_type_thresholds:
-                effective_threshold = self._task_type_thresholds.get(
-                    task_type, self.threshold
-                )
-            meta_clf = self._get_meta_classifier()
-            if meta_clf is not None:
-                nli_threshold, _meta_conf = meta_clf.predict_threshold(
-                    prompt, items[i][1]
-                )
-                if nli_threshold is not None:
-                    effective_threshold = self.W_FACT + self.W_LOGIC * nli_threshold
+            effective_threshold, soft_override = self._effective_review_threshold(
+                prompt,
+                items[i][1],
+                task_type,
+            )
 
             results[i] = self._apply_conformal_interval(
                 self._finalise_review(
@@ -773,6 +829,7 @@ class ReviewPipelineMixin(DivergenceMixin):
                     evidence,
                     threshold_override=effective_threshold,
                     detected_task_type=task_type,
+                    soft_limit_override=soft_override,
                 )
             )
 

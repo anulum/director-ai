@@ -351,6 +351,10 @@ def build_scorer(
     scorer._claim_support_threshold = cfg.nli_claim_support_threshold
     scorer._claim_coverage_alpha = cfg.nli_claim_coverage_alpha
     scorer._summarization_premise_chars = cfg.nli_summarization_premise_chars
+    scorer._dialogue_scoring = cfg.nli_dialogue_scoring
+    scorer._dialogue_support_threshold = cfg.nli_dialogue_support_threshold
+    scorer._summarization_aggregation = cfg.nli_summarization_aggregation
+    scorer._summarization_support_threshold = cfg.nli_summarization_support_threshold
     scorer._verified_scorer_enabled = cfg.verified_scorer_enabled
     scorer._verified_scorer_atomic = cfg.verified_scorer_atomic
     scorer._verified_scorer_evidence_top_k = cfg.verified_scorer_evidence_top_k

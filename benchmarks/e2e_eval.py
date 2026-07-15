@@ -218,6 +218,7 @@ def run_e2e_benchmark(
     llm_judge_provider: str | None = None,
     llm_judge_model: str | None = None,
     nli_torch_dtype: str | None = None,
+    scorer_overrides: dict[str, object] | None = None,
 ) -> E2EMetrics:
     """Run end-to-end guardrail benchmark on HaluEval.
 
@@ -234,6 +235,11 @@ def run_e2e_benchmark(
     llm_judge_provider : "openai" or "anthropic" (required for hybrid).
     llm_judge_model : model name for LLM judge.
     nli_torch_dtype : "float16", "bfloat16", or None (FP32).
+    scorer_overrides : post-construction scorer attribute overrides for
+        variants a constructor kwarg does not reach (e.g. WCS-2a
+        ``{"_summarization_aggregation": "weakest_link"}``). Applied
+        verbatim with ``setattr``; the caller's artefact must record the
+        overrides so the measured configuration stays explicit.
 
     """
     from director_ai.core.scorer import CoherenceScorer
@@ -262,6 +268,8 @@ def run_e2e_benchmark(
         llm_judge_provider=llm_judge_provider or "",
         llm_judge_model=llm_judge_model or "",
     )
+    for attr, value in (scorer_overrides or {}).items():
+        setattr(scorer, attr, value)
 
     total_pairs = 0
     for task in tasks:

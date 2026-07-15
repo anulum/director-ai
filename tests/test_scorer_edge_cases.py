@@ -488,6 +488,37 @@ class TestScorerCoverageGaps:
         self,
         monkeypatch,
     ):
+        # WCS-2a default: the dialogue route delegates to the raw
+        # weakest-link support scorer, not the baseline squeeze.
+        class FakeNLI:
+            model_available = True
+
+        def fake_dialogue_raw_support_divergence(*args, **kwargs):
+            assert args[0] is fake_nli
+            return 0.12, None
+
+        fake_nli = FakeNLI()
+        scorer = CoherenceScorer(use_nli=False)
+        scorer._nli = fake_nli
+        monkeypatch.setattr(
+            divergence_routing_module,
+            "dialogue_raw_support_divergence",
+            fake_dialogue_raw_support_divergence,
+        )
+
+        score, evidence = scorer._dialogue_factual_divergence(
+            "User: hi",
+            "Assistant: hi",
+            tenant_id="tenant-a",
+        )
+
+        assert score == 0.12
+        assert evidence is None
+
+    def test_dialogue_factual_divergence_squeeze_mode_delegates_legacy_path(
+        self,
+        monkeypatch,
+    ):
         class FakeNLI:
             model_available = True
 
@@ -499,6 +530,7 @@ class TestScorerCoverageGaps:
         fake_nli = FakeNLI()
         scorer = CoherenceScorer(use_nli=False)
         scorer._nli = fake_nli
+        scorer._dialogue_scoring = "baseline_squeeze"
         monkeypatch.setattr(
             divergence_routing_module,
             "dialogue_factual_divergence",

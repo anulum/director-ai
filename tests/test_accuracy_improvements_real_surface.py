@@ -37,6 +37,10 @@ def _adaptive_lite_scorer(
         w_fact=1.0,
         threshold_dialogue=threshold_dialogue,
         threshold_qa=threshold_qa,
+        # Adaptive per-task thresholds gate the composite-coherence scale;
+        # the WCS-2a raw-support dialogue route gates its own matched-FPR
+        # operating point instead, so this surface pins the squeeze mode.
+        nli_dialogue_scoring="baseline_squeeze",
     )
     return config.build_scorer()
 

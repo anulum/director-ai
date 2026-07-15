@@ -98,6 +98,7 @@ def combine_weighted_coherence(
     nli_available: bool,
     evidence_present: bool,
     dialogue_route: bool,
+    raw_support_route: bool = False,
 ) -> float:
     """Combine component divergences into a calibrated coherence score.
 
@@ -119,12 +120,21 @@ def combine_weighted_coherence(
     dialogue_route:
         Whether the dialogue route produced the score. Dialogue calibration is
         already handled by the route-specific factual scorer.
+    raw_support_route:
+        Whether a raw-support route (WCS-2a) produced the factual score.
+        Coherence is then the raw weakest-link support ``1 − h_factual``
+        with no component weighting — the review gate compares it against
+        a matched-FPR support operating point, so any reweighting here
+        would silently move that calibrated operating point.
 
     Returns
     -------
     float
         Composite coherence score in the inclusive range [0, 1].
     """
+    if raw_support_route:
+        return max(0.0, min(1.0, 1.0 - h_factual))
+
     total_divergence = w_logic * h_logic + w_fact * h_factual
     coherence = 1.0 - total_divergence
 

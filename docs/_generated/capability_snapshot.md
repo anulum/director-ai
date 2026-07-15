@@ -7,12 +7,12 @@
 |---|---:|
 | Package version | 3.16.1 |
 | Public API exports | 226 |
-| Python capability source modules | 512 |
-| Python capability classes | 1039 |
+| Python capability source modules | 513 |
+| Python capability classes | 1040 |
 | API documentation pages | 89 |
 | Rust PyO3 bindings | 83 |
 | Optional extras | 62 |
-| Python test files | 755 |
+| Python test files | 756 |
 | Public documentation pages | 205 |
 | GitHub Actions workflows | 14 |
 

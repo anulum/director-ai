@@ -1015,6 +1015,63 @@ class TestClaimSupportConfigWiring:
         cfg = DirectorConfig.from_env()
         assert cfg.nli_summarization_premise_chars == 3000
 
+    def test_operating_point_defaults_and_scorer_wiring(self):
+        # WCS-2a (BENCHMARK_REPORT §16): dialogue defaults to the raw
+        # weakest-link support gate; summarisation keeps the blend with
+        # weakest_link available as an explicit choice.
+        cfg = DirectorConfig()
+        assert cfg.nli_dialogue_scoring == "raw_support"
+        assert cfg.nli_dialogue_support_threshold == pytest.approx(0.0091)
+        assert cfg.nli_summarization_aggregation == "blend"
+        assert cfg.nli_summarization_support_threshold == pytest.approx(0.0402)
+
+        wired = DirectorConfig(
+            nli_dialogue_scoring="baseline_squeeze",
+            nli_dialogue_support_threshold=0.02,
+            nli_summarization_aggregation="weakest_link",
+            nli_summarization_support_threshold=0.05,
+        ).build_scorer()
+        assert wired._dialogue_scoring == "baseline_squeeze"
+        assert wired._dialogue_support_threshold == 0.02
+        assert wired._summarization_aggregation == "weakest_link"
+        assert wired._summarization_support_threshold == 0.05
+
+    def test_operating_point_fields_read_from_env(self, monkeypatch):
+        monkeypatch.setenv("DIRECTOR_NLI_DIALOGUE_SCORING", "baseline_squeeze")
+        monkeypatch.setenv("DIRECTOR_NLI_DIALOGUE_SUPPORT_THRESHOLD", "0.015")
+        monkeypatch.setenv("DIRECTOR_NLI_SUMMARIZATION_AGGREGATION", "weakest_link")
+        monkeypatch.setenv("DIRECTOR_NLI_SUMMARIZATION_SUPPORT_THRESHOLD", "0.08")
+        cfg = DirectorConfig.from_env()
+        assert cfg.nli_dialogue_scoring == "baseline_squeeze"
+        assert cfg.nli_dialogue_support_threshold == pytest.approx(0.015)
+        assert cfg.nli_summarization_aggregation == "weakest_link"
+        assert cfg.nli_summarization_support_threshold == pytest.approx(0.08)
+
+    @pytest.mark.parametrize(
+        ("kwargs", "match"),
+        [
+            (
+                {"nli_dialogue_scoring": "squeeze"},
+                "nli_dialogue_scoring",
+            ),
+            (
+                {"nli_summarization_aggregation": "mean"},
+                "nli_summarization_aggregation",
+            ),
+            (
+                {"nli_dialogue_support_threshold": 1.5},
+                "nli_dialogue_support_threshold",
+            ),
+            (
+                {"nli_summarization_support_threshold": -0.1},
+                "nli_summarization_support_threshold",
+            ),
+        ],
+    )
+    def test_operating_point_fields_are_validated(self, kwargs, match):
+        with pytest.raises(ValueError, match=match):
+            DirectorConfig(**kwargs)
+
 
 class TestConfigCoverageGaps:
     """Dedicated tests for DirectorConfig validation and scorer wiring branches."""

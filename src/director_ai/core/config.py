@@ -436,6 +436,30 @@ class DirectorConfig:
     # RAGTruth (BENCHMARK_REPORT §16); set 3000 to restore it.
     nli_summarization_premise_chars: int = 0
 
+    # Task-routed operating points (WCS-2a). The dialogue route scores raw
+    # weakest-link claim support and gates it directly at a matched-FPR
+    # operating point: the WCS-1 E2E proof (BENCHMARK_REPORT §16) showed
+    # the pre-WCS-2a 0.80-baseline squeeze absorbs evidence gains
+    # (decisions identical, catch 4.5 %), while the raw operating point
+    # measures catch 27 % at the same 4.5 % FPR (HaluEval-dialogue,
+    # FactCG). "baseline_squeeze" restores the pre-WCS-2a behaviour.
+    nli_dialogue_scoring: str = "raw_support"
+    # Matched-FPR support threshold for the raw dialogue route — seeded
+    # from the 2026-07-15 FactCG sweep (knowledge+history evidence,
+    # weakest-link aggregation, FPR target 0.045). Recalibrate per
+    # deployment: director-ai operating-points, or
+    # director_ai.core.calibration.operating_points.
+    nli_dialogue_support_threshold: float = 0.0091
+    # Summarisation aggregation: "blend" (default; coverage/Layer-A alpha
+    # blend gated on composite-coherence thresholds) or "weakest_link"
+    # (raw weakest-link claim support against the whole source, gated on
+    # nli_summarization_support_threshold — the only WCS-1 configuration
+    # that improved on both HaluEval and RAGTruth).
+    nli_summarization_aggregation: str = "blend"
+    # Seeded from the FactCG fulldoc sweep at FPR target 0.025; used only
+    # with nli_summarization_aggregation="weakest_link".
+    nli_summarization_support_threshold: float = 0.0402
+
     # Adaptive task-type thresholding (Phase 1B)
     # Validated on LLM-AggreFact 29K: per-task-type BA 76.68% vs global 75.82%
     # Coherence values derived from optimal NLI thresholds:

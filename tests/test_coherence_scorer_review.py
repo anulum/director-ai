@@ -212,6 +212,7 @@ class TestBatchSingleParity:
             evidence,
             threshold_override=None,
             detected_task_type=None,
+            soft_limit_override=None,
         ):
             approved = coherence >= threshold_override
             captured.append(

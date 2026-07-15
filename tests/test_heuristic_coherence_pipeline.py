@@ -84,3 +84,63 @@ def test_combine_weighted_coherence_skips_no_kb_calibration_for_dialogue():
     )
 
     assert result == pytest.approx(0.8)
+
+
+@pytest.mark.parametrize(
+    ("h_factual", "expected"),
+    [
+        (0.0, 1.0),
+        (0.3, 0.7),
+        (0.9909, 0.0091),
+        (1.0, 0.0),
+    ],
+)
+def test_combine_raw_support_route_is_the_unweighted_support(
+    h_factual: float,
+    expected: float,
+):
+    # WCS-2a: raw-support routes gate on a matched-FPR support operating
+    # point, so coherence must be the raw support — any component
+    # weighting would silently move the calibrated operating point.
+    for w_logic, w_fact in ((0.6, 0.4), (0.0, 1.0), (1.0, 0.0)):
+        result = combine_weighted_coherence(
+            h_logic=0.7,
+            h_factual=h_factual,
+            w_logic=w_logic,
+            w_fact=w_fact,
+            nli_available=True,
+            evidence_present=False,
+            dialogue_route=True,
+            raw_support_route=True,
+        )
+
+        assert result == pytest.approx(expected)
+
+
+def test_combine_raw_support_route_clamps_to_unit_interval():
+    assert (
+        combine_weighted_coherence(
+            h_logic=0.0,
+            h_factual=1.2,
+            w_logic=0.6,
+            w_fact=0.4,
+            nli_available=True,
+            evidence_present=False,
+            dialogue_route=False,
+            raw_support_route=True,
+        )
+        == 0.0
+    )
+    assert (
+        combine_weighted_coherence(
+            h_logic=0.0,
+            h_factual=-0.2,
+            w_logic=0.6,
+            w_fact=0.4,
+            nli_available=True,
+            evidence_present=False,
+            dialogue_route=False,
+            raw_support_route=True,
+        )
+        == 1.0
+    )
