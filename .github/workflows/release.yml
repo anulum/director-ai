@@ -42,8 +42,15 @@ jobs:
         run: |
           TAG="${GITHUB_REF#refs/tags/}"
           VERSION="${TAG#v}"
-          awk "/^## \[?${VERSION}/,/^## \[?[0-9]/" CHANGELOG.md \
-            | head -n -1 > /tmp/release_notes.md
+          # Print the section body between this version's heading and the next
+          # "## [" heading, excluding both. A plain awk range /start/,/end/ fails
+          # here because the version heading matches the end pattern too, closing
+          # the range on its own line and yielding only the heading.
+          awk -v ver="$VERSION" '
+            $0 ~ ("^## \\[?" ver) { flag = 1; next }
+            flag && /^## \[?[0-9]/ { exit }
+            flag { print }
+          ' CHANGELOG.md > /tmp/release_notes.md
           echo "notes_file=/tmp/release_notes.md" >> "$GITHUB_OUTPUT"
 
       # Create the Release with RELEASE_PAT when it is configured. A Release
