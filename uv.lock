@@ -24,6 +24,7 @@ constraints = [
     { name = "grpcio-status", specifier = ">=1.81.0" },
     { name = "protobuf", specifier = ">=6.31.1" },
 ]
+overrides = [{ name = "json-repair", specifier = ">=0.60.1" }]
 
 [[package]]
 name = "absl-py"
@@ -3718,11 +3719,11 @@ wheels = [
 
 [[package]]
 name = "json-repair"
-version = "0.25.2"
+version = "0.61.5"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/66/cb/50b0bbc3e504ef875aea0062cdc108077e4923fb8c1209c70c80dc043933/json_repair-0.25.2.tar.gz", hash = "sha256:161a56d7e6bbfd4cad3a614087e3e0dbd0e10d402dd20dc7db418432428cb32b", size = 20458, upload-time = "2024-06-27T16:26:15.492Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/b3/43/189737dfa70d1f455fb26770935437f36645725e8cd54f5fff3e9fa2014f/json_repair-0.61.5.tar.gz", hash = "sha256:965cc39a7cddc84aad0a1b00a4ce44906cf14893bd0e3890a386d28ca21dd0f0", size = 51190, upload-time = "2026-07-15T18:59:50.262Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/aa/43/ac6691c7b5aa7191c964a04ae926d2bb06d9297dba1f2287df5b85cb3715/json_repair-0.25.2-py3-none-any.whl", hash = "sha256:51d67295c3184b6c41a3572689661c6128cef6cfc9fb04db63130709adfc5bf0", size = 12740, upload-time = "2024-06-27T16:26:13.823Z" },
+    { url = "https://files.pythonhosted.org/packages/79/c9/d87adfa561f3de18631214a0d29d1414bb1dba7caaf1d025ea5fe892097c/json_repair-0.61.5-py3-none-any.whl", hash = "sha256:766a712a05b5a2673212ca0df0e27e6dbb446c9b59ab837613a369304b222886", size = 49720, upload-time = "2026-07-15T18:59:48.899Z" },
 ]
 
 [[package]]

@@ -995,3 +995,10 @@ ignore_missing_imports = true
 # whose grpc extra otherwise drags grpcio-status down to 1.71.2 (protobuf<6) on
 # Python <3.14, splitting the universal lock and breaking the stubs.
 constraint-dependencies = ["grpcio-status>=1.81.0", "protobuf>=6.31.1"]
+# Force json-repair past crewai 1.6.1's hard pin (json-repair==0.25.2) onto the
+# patched line: GHSA-xf7x-x43h-rpqh (HIGH — a circular JSON Schema $ref causes
+# unbounded CPU DoS) is fixed in 0.60.1. json-repair reaches us only transitively
+# through the optional crewai extra and our own code never calls it; crewai's
+# used surface (repair_json/loads) is unchanged across the bump, verified by a
+# crewai import smoke. Drop this override once crewai relaxes its pin.
+override-dependencies = ["json-repair>=0.60.1"]
