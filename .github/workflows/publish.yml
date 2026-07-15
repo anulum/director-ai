@@ -156,6 +156,10 @@ jobs:
     name: Discord Release Announcement
     runs-on: ubuntu-latest
     needs: [publish, attach-artifacts]
+    # A missing DISCORD_ANNOUNCE_WEBHOOK secret (or an empty changelog section)
+    # must never red the publish run — the PyPI upload has already succeeded by
+    # the time this job runs. The Post step is also gated on the secret below.
+    continue-on-error: true
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
 

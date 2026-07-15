@@ -46,9 +46,18 @@ jobs:
             | head -n -1 > /tmp/release_notes.md
           echo "notes_file=/tmp/release_notes.md" >> "$GITHUB_OUTPUT"
 
+      # Create the Release with RELEASE_PAT when it is configured. A Release
+      # created by the default GITHUB_TOKEN does NOT emit `release: published`
+      # (GitHub anti-recursion), so publish.yml / publish-lite.yml never fire and
+      # PyPI upload has to be dispatched by hand. A fine-grained PAT (contents:
+      # write on this repo) restores the automatic chain. Without the secret it
+      # falls back to GITHUB_TOKEN — same one-click-blocked behaviour as before,
+      # so this is safe to leave unset.
+      #   Operator setup (one-time): add repository secret RELEASE_PAT.
       - name: Create GitHub Release
         uses: softprops/action-gh-release@718ea10b132b3b2eba29c1007bb80653f286566b # v2
         with:
+          token: ${{ secrets.RELEASE_PAT || secrets.GITHUB_TOKEN }}
           body_path: ${{ steps.changelog.outputs.notes_file }}
           generate_release_notes: false
           files: |
@@ -57,4 +66,7 @@ jobs:
             sbom.json
 
   # PyPI publishing handled by publish.yml (triggered by release: [published]).
-  # Do NOT add a publish job here — the trusted publisher is configured for publish.yml.
+  # Do NOT add a publish job here — the trusted publisher is configured for
+  # publish.yml. The release:published trigger only fires when the Release above
+  # is created with RELEASE_PAT (see the note on that step); otherwise dispatch
+  # publish.yml and publish-lite.yml manually with the tag.
