@@ -6,7 +6,7 @@
 # nvidia/setuptools blocks; the wrapper installs the lock with --no-deps.
 transformers==5.10.2
 datasets==3.6.0
-accelerate==1.7.0
+accelerate==1.14.0
 scikit-learn==1.6.1
 sentencepiece==0.2.1
 protobuf==6.33.6
