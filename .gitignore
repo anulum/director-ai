@@ -201,6 +201,11 @@ benchmarks/results/*
 !benchmarks/results/judge_bench_latency.json
 # Claim-decomposition detection on WICE (WCA-2 part 2).
 !benchmarks/results/claim_decomp_wice.json
+# Long-context evidence x aggregation sweep on HaluEval (WCS-1).
+!benchmarks/results/longcontext_sweep_factcg.json
+!benchmarks/results/longcontext_sweep_minicheck.json
+!benchmarks/results/longcontext_matrix_factcg.json
+!benchmarks/results/longcontext_matrix_minicheck.json
 # Tokeniser blobs are fetchable from the fine-tune's base model (WCH-6);
 # see benchmarks/models/factcg-cb/README.md. Configs/results stay tracked.
 benchmarks/models/factcg-cb/tokenizer.json

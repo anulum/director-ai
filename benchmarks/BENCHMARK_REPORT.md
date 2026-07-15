@@ -775,6 +775,76 @@ Claim boundary: one public dataset (WICE subset of LLM-AggreFact) at the full
 decomposer and weakest-link `min` aggregation; no leaderboard claim and no
 claim about other datasets, decomposers, aggregations, or sample sizes.
 
+## 16. Long-context evidence composition × aggregation (HaluEval, 2×L4, 2026-07-15)
+
+WCS-1 measurement, HaluEval half. The tracked _200 baseline
+(`benchmarks/results/judge_bench_nli_only_200.json`) catches 84.5 % on QA
+but only 12 % on summarisation and 4.5 % on dialogue; the 2026-07-14
+diagnosis attributed this to three mechanical causes — D1 dialogue premises
+omit the `knowledge` field, D2 summarisation premises truncate to a
+3 000-char prefix (60 % of documents are longer), D3 coverage-style
+aggregation dilutes single-fact-swap responses. `run_longcontext_bench.py`
+scores the claim×evidence support matrix once per checker (200 samples/task,
+800 paired rows, 4 148 unique checker calls after memoisation) and sweeps
+evidence composition × aggregation offline. The headline metric is **catch
+at the baseline's matched per-task FPR** (summarisation 0.025, dialogue
+0.045). Environment: two JarvisLabs L4 (IN2) instances, torch 2.6.0+cu124,
+`isolated-quiet` host verdict on both; FactCG scoring 361 s, MiniCheck
+(`lytang/MiniCheck-DeBERTa-v3-Large`, pinned revision) ~5 min. Artefacts:
+`benchmarks/results/longcontext_{matrix,sweep}_{factcg,minicheck}.json`.
+
+Catch at matched FPR — FactCG-DeBERTa-v3-Large:
+
+| Evidence (summarisation) | min | mean | low2mean | coverage |
+|---|---|---|---|---|
+| prefix3000 (production shape) | 0.090 | 0.070 | 0.105 | 0.000 |
+| fulldoc | 0.125 | 0.115 | 0.075 | 0.000 |
+| **anchored@5** | 0.105 | 0.165 | **0.205** | 0.000 |
+
+| Evidence (dialogue) | min | mean | low2mean | coverage |
+|---|---|---|---|---|
+| history (production shape) | 0.205 | 0.090 | 0.125 | 0.000 |
+| **knowledge+history** | **0.270** | 0.095 | 0.150 | 0.000 |
+
+MiniCheck-DeBERTa-v3-Large agrees on direction, weaker on dialogue: best
+summarisation 0.200 (anchored@5 / mean), best dialogue 0.140
+(knowledge+history / min).
+
+Readings:
+
+- **D1 confirmed and it is the largest single lever.** Composing
+  `knowledge` into the dialogue premise lifts catch from the 0.045
+  baseline to 0.270 at the same 4.5 % FPR — six-fold. Part of the lift
+  (0.205) already comes from claim-split + weakest-link `min` against the
+  history alone, i.e. the E2E path's calibration/aggregation was hiding
+  signal the checker already had (D3).
+- **D2 confirmed for summarisation.** Claim-anchored top-5 source
+  sentences over the whole document beat both the production 3 000-char
+  prefix and the full document (0.205 vs 0.105/0.125 at best aggregation);
+  the full document dilutes (SummaC max over more chunks raises the score
+  of wrong claims), the prefix simply cannot see late evidence.
+- **D3 confirmed negatively: `coverage` is unusable at strict FPR.** Its
+  quantised scores collapse the matched-FPR threshold to zero catch in
+  every cell of both checkers' grids.
+- **Aggregation is task-dependent:** dialogue favours weakest-link `min`
+  (single-fact-swap responses), summarisation favours `low2mean`/`mean`
+  over anchored evidence (min alone over-fires on the strict FPR budget).
+- **FactCG stays the better checker** of the two on this sweep;
+  MiniCheck's direction matches but its dialogue ceiling is half of
+  FactCG's here.
+
+Gate status (WCS-1): the task-routed config beats the single-threshold
+baseline on BOTH long-context tasks at matched FPR on HaluEval, but the
+BACKLOG gate requires the same result on a second long-context set
+(TofuEval / RAGTruth-long) before any default flips. **No default changes
+from this section alone.**
+
+Claim boundary: HaluEval summarisation + dialogue at 200 samples/task,
+two checkers, evidence/aggregation sweep at matched per-task FPR against
+the tracked _200 baseline; no leaderboard claim, no claim about QA, other
+datasets, other checkers, or the E2E production path (whose calibration
+layer is not part of this matrix).
+
 ## Reproduction
 
 ```bash
