@@ -81,6 +81,13 @@ KNOWN_TEST_SURFACE_CLASSIFICATIONS: dict[str, tuple[str, str]] = {
         "threshold-tuner import-path guard with companion tests/test_tune.py "
         "and tests/test_cli_bench_real_surface.py",
     ),
+    "tests/test_cli_lazy_dispatch.py": (
+        "approved-protocol-fake",
+        "ladder P2 lazy-dispatch boundary; the sys.modules reset simulates a "
+        "fresh import to prove no pro-tier _cli_* module loads at import "
+        "time, with the same file's real _lazy_handler resolution test and "
+        "the CLI suites dispatching through main as the real surface",
+    ),
     "tests/test_cli_ingest_formats.py": (
         "unit-guard-with-companion",
         "CLI/server/API unit guard with companion tests/test_cli_ingest_real_surface.py",
