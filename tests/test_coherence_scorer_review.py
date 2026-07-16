@@ -240,7 +240,13 @@ class TestBatchSingleParity:
         results = scorer.review_batch(items)
 
         assert len(fake_nli.calls) == 2
-        assert fake_nli.calls[0] == items
+        # KIMI2-K: the logical pass now also scores against the retrieved
+        # grounding context (not the bare interrogative prompt), so both
+        # coalesced passes share the grounded premise — parity with review().
+        assert fake_nli.calls[0] == [
+            ("context for Prompt A", "Response A"),
+            ("context for Prompt B", "Response B"),
+        ]
         assert fake_nli.calls[1] == [
             ("context for Prompt A", "Response A"),
             ("context for Prompt B", "Response B"),

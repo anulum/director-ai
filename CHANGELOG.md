@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Grounded true answers to questions are no longer false-halted.** When a
+  grounding store is configured, the logical-coherence signal (`h_logical`)
+  now scores against the retrieved context instead of the raw prompt. A bare
+  interrogative prompt is a degenerate NLI premise — a true declarative answer
+  does not entail the question that prompted it, so the old premise=prompt
+  scoring inflated `h_logical` for *every* true answer and blocked correct
+  outputs (reproduced on GPU against the KIMI red-team, 2026-07-16). Scoring
+  the logical signal against the context keeps false claims caught (the
+  context contradicts them) while letting true claims through, on both the
+  single `review()` and coalesced `review_batch()` paths. Ungrounded reviews
+  (no store) are unchanged. No change to the score weights or threshold.
+
 ## [3.18.1] - 2026-07-16
 
 ### Fixed

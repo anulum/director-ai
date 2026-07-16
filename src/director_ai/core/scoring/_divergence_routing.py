@@ -20,7 +20,7 @@ document the divergence calculators and scorer services the routes call.
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from ..types import ScoringEvidence
 from ._task_scoring import (
@@ -58,6 +58,7 @@ class TaskRoutedCoherenceMixin:
     W_LOGIC: float
     W_FACT: float
     logger: logging.Logger
+    ground_truth_store: Any
     _nli: NLIScorer | None
     _fact_inner_agg: str
     _fact_outer_agg: str
@@ -317,6 +318,35 @@ class TaskRoutedCoherenceMixin:
                 tenant_id,
                 _inner_agg=fact_ia,
                 _outer_agg=fact_oa,
+            )
+        elif self.ground_truth_store is not None and not self._use_prompt_as_premise:
+            # Grounded path: the factual retrieval yields the context that is
+            # ALSO the correct premise for the logical NLI. A bare interrogative
+            # prompt is a degenerate NLI premise — a true declarative answer does
+            # not entail the question that prompted it, so premise=prompt inflates
+            # h_logical for EVERY true answer and false-halts true inputs
+            # (KIMI2-K, GPU-reproduced 2026-07-16). Scoring the logical signal
+            # against the retrieved context keeps false claims caught (the context
+            # contradicts them) while letting true claims through (the context
+            # entails them). Serialised because the premise is only known after
+            # retrieval; the ungrounded branch below keeps the parallel overlap.
+            h_fact, evidence = self.calculate_factual_divergence_with_evidence(
+                prompt,
+                action,
+                tenant_id,
+                _inner_agg=fact_ia,
+                _outer_agg=fact_oa,
+            )
+            logical_premise = (
+                evidence.nli_premise
+                if evidence is not None and evidence.nli_premise
+                else prompt
+            )
+            h_logic = self.calculate_logical_divergence(
+                logical_premise,
+                action,
+                _inner_agg=logic_ia,
+                _outer_agg=logic_oa,
             )
         else:
             pool = self._get_parallel_pool()

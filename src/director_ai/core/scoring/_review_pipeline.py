@@ -746,10 +746,35 @@ class ReviewPipelineMixin(DivergenceMixin):
         if not batch_idx:
             return [r for r in results if r is not None]
 
-        # Coalesced NLI: batch logical pairs
+        # Coalesced NLI. Retrieve the grounding context once per item first,
+        # because it is the premise for BOTH the factual pass AND the logical
+        # pass. A bare interrogative prompt is a degenerate NLI premise for the
+        # logical signal — a true declarative answer does not entail the
+        # question, inflating h_logical and false-halting true inputs (KIMI2-K).
+        # Scoring the logical signal against the context keeps review_batch() in
+        # parity with review() and fixes the false-halt on both paths.
         if self._nli is None:
             raise RuntimeError("NLI batch scorer not initialised")
-        logic_pairs = [(items[i][0], items[i][1]) for i in batch_idx]
+        contexts: list[str | None] = []
+        for i in batch_idx:
+            prompt = items[i][0]
+            if self.ground_truth_store and self._has_grounding_query(prompt):
+                contexts.append(
+                    self.ground_truth_store.retrieve_context(
+                        prompt,
+                        top_k=self._fact_retrieval_top_k,
+                        tenant_id=tenant_id,
+                    )
+                    or None
+                )
+            else:
+                contexts.append(None)
+
+        # Logical: premise = grounding context when present, else the prompt.
+        logic_pairs = [
+            (contexts[pos] or items[i][0], items[i][1])
+            for pos, i in enumerate(batch_idx)
+        ]
         h_logics = self._nli.score_batch(logic_pairs)
         if len(h_logics) != len(logic_pairs):
             raise RuntimeError(
@@ -757,29 +782,18 @@ class ReviewPipelineMixin(DivergenceMixin):
                 f"{len(h_logics)} scores for {len(logic_pairs)} pairs",
             )
 
-        # Factual: retrieve KB context per item, batch NLI where possible
+        # Factual: batch the context-grounded items.
         h_facts: list[float] = []
         evidences: list[ScoringEvidence | None] = []
         fact_pairs: list[tuple[str, str]] = []
         fact_pair_map: list[int] = []  # maps fact_pairs index → batch position
         for pos, i in enumerate(batch_idx):
-            prompt = items[i][0]
-            if self.ground_truth_store and self._has_grounding_query(prompt):
-                ctx = self.ground_truth_store.retrieve_context(
-                    prompt,
-                    top_k=self._fact_retrieval_top_k,
-                    tenant_id=tenant_id,
-                )
-            else:
-                ctx = None
+            ctx = contexts[pos]
             if ctx and self._nli:
                 fact_pairs.append((ctx, items[i][1]))
                 fact_pair_map.append(pos)
-                h_facts.append(DIVERGENCE_NEUTRAL)
-                evidences.append(None)
-            else:
-                h_facts.append(DIVERGENCE_NEUTRAL)
-                evidences.append(None)
+            h_facts.append(DIVERGENCE_NEUTRAL)
+            evidences.append(None)
 
         if fact_pairs:
             fact_scores = self._nli.score_batch(fact_pairs)
