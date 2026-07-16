@@ -43,6 +43,12 @@ jobs:
       - name: Check distribution
         run: twine check dist/*
 
+      - name: Verify the free wheel is core-only (D1 re-slice)
+        # Contents check + unpacked-wheel import simulation: no paid packages
+        # or paid single modules may reach the public artefact, and the lazy
+        # facades must raise the friendly "advanced tier" error.
+        run: python scripts/check_free_wheel.py dist
+
       - name: Generate SBOM
         run: cyclonedx-py environment -o sbom.json --of json
 
@@ -119,6 +125,19 @@ jobs:
         with:
           name: dist
           path: dist/
+
+      - name: Refuse paid artefacts on the public lane
+        # Hard gate (decision D3): director-ai-pro / director-ai-full are
+        # BUSL wheels for the private index only. If one ever appears here,
+        # a public copy could shadow the private index for every customer
+        # (dependency confusion) — fail the release instead.
+        run: |
+          if ls dist/ | grep -E '^director_ai_(pro|full)-'; then
+            echo "FATAL: paid tier artefact found in the public PyPI lane"
+            exit 1
+          fi
+          ls dist/ | grep -E '^director_ai-' >/dev/null \
+            || { echo "FATAL: free core artefact missing from dist/"; exit 1; }
 
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@cef221092ed1bacb1cc03d23a2d87d1d172e277b # v1.14.0

@@ -4,19 +4,21 @@
 name: Publish paid tiers (pro + full)
 
 # The BUSL-1.1 paid wheels (director-ai-pro, director-ai-full) are distributed
-# as Release assets on a SEPARATE PRIVATE repository — the access-to-artifact
-# gate (decision D4). GitHub Packages does not host pip indexes, so a private
-# repo's Releases are the GitHub-native gated channel: licensed customers
-# install with a token, e.g.
-#   pip install \
-#     "https://<token>@github.com/<owner>/<dist-repo>/releases/download/v3.17.0/director_ai_pro-3.17.0-py3-none-any.whl"
+# through the access-to-artifact gate (decisions D2/D3, 2026-07-16). PRIMARY
+# channel: the self-hosted private index at pypi.remanentia.com (pypiserver,
+# per-customer basic-auth tokens) — licensed customers install with
+#   pip install director-ai-pro \
+#     --index-url https://pypi.org/simple/ \
+#     --extra-index-url https://<customer>:<token>@pypi.remanentia.com/simple/
+# FALLBACK channel: Release assets on a separate private repository.
 #
 # Operator setup (one-time):
-#   - create the private distribution repo and set repo variable PAID_DIST_REPO
-#     to "<owner>/<dist-repo>";
-#   - add secret PAID_DIST_TOKEN — a fine-grained PAT with contents:write on the
-#     dist repo only.
-# Until both are set the job is a documented no-op (it skips the upload).
+#   - private index: add secret PRIVATE_INDEX_PUBLISHER_TOKEN (the `publisher`
+#     htpasswd token from the index box — see CREDENTIALS.md);
+#   - fallback repo: set repo variable PAID_DIST_REPO to "<owner>/<dist-repo>"
+#     and add secret PAID_DIST_TOKEN (fine-grained PAT, contents:write on the
+#     dist repo only).
+# Until configured, each upload step is a documented no-op.
 
 on:
   release:
@@ -61,11 +63,29 @@ jobs:
       - name: Check distributions + namespace safety
         run: |
           twine check dist-paid/*
+          # This lane must carry ONLY the paid tiers — the free core publishes
+          # from publish.yml to public PyPI, never from here.
+          if ls dist-paid/ | grep -Ev '^director_ai_(pro|full)-'; then
+            echo "FATAL: non-paid artefact in the paid lane"
+            exit 1
+          fi
           for tier in pro full; do
             mkdir -p "verify-$tier"
             cp dist-paid/director_ai_${tier}-*.whl "verify-$tier"/
-            python scripts/check_paid_wheel.py "verify-$tier"
+            python scripts/check_paid_wheel.py "verify-$tier" "$tier"
           done
+
+      - name: Publish to the private index (pypi.remanentia.com)
+        env:
+          TWINE_USERNAME: publisher
+          TWINE_PASSWORD: ${{ secrets.PRIVATE_INDEX_PUBLISHER_TOKEN }}
+        run: |
+          if [ -z "$TWINE_PASSWORD" ]; then
+            echo "PRIVATE_INDEX_PUBLISHER_TOKEN is not set — skipping the"
+            echo "private-index upload (index not live yet; see ladder P4)."
+            exit 0
+          fi
+          twine upload --repository-url https://pypi.remanentia.com/ dist-paid/*.whl
 
       - name: Publish to the private distribution repo
         if: ${{ vars.PAID_DIST_REPO != '' }}
