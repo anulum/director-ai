@@ -93,7 +93,10 @@ def test_public_preflight_allows_low_risk_mock_generator_draws() -> None:
     assert verdict.recommended == "proceed"
     assert verdict.n_simulations == 3
     assert verdict.halt_rate == pytest.approx(0.0)
-    assert verdict.mean_coherence == pytest.approx(0.34545454545454546)
+    # KIMI2-K: the lite backend is a model-backed entailment scorer, so its
+    # grounded logical signal now scores against the retrieved context rather
+    # than the raw question — a small, deterministic shift in mean coherence.
+    assert verdict.mean_coherence == pytest.approx(0.34727272727272734)
     assert verdict.ci_low <= verdict.mean_coherence <= verdict.ci_high
     assert [trajectory.seed for trajectory in verdict.trajectories] == [
         101,
@@ -120,7 +123,9 @@ def test_public_preflight_fails_closed_when_all_draws_cross_threshold() -> None:
 
     assert verdict.recommended == "halt"
     assert verdict.halt_rate == pytest.approx(1.0)
-    assert verdict.mean_coherence == pytest.approx(0.34545454545454546)
+    # KIMI2-K: lite backend now scores the grounded logical signal against the
+    # retrieved context (see the sibling allow-path test for the rationale).
+    assert verdict.mean_coherence == pytest.approx(0.34727272727272734)
     assert [trajectory.approved for trajectory in verdict.trajectories] == [
         False,
         False,

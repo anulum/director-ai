@@ -124,6 +124,24 @@ def test_grounded_false_answer_to_a_question_is_still_caught() -> None:
     assert score.score < 0.5
 
 
+def test_grounded_heuristic_fallback_is_not_redirected_to_the_context() -> None:
+    # The premise=context redirect is an ENTAILMENT argument, valid only for a
+    # model-backed NLI. With no model, the keyword fallback scores word overlap,
+    # which is length-sensitive — a short grounding fact ("blue") scores a low
+    # Jaccard against a full-sentence true answer — so the redirect is gated off
+    # and a clearly-true answer still approves through the fallback path.
+    from director_ai.core import GroundTruthStore
+
+    store = GroundTruthStore()
+    store.add("sky color", "The sky is blue.")
+    scorer = CoherenceScorer(use_nli=False, threshold=0.5, ground_truth_store=store)
+    scorer._rust_scorer = None
+
+    approved, _score = scorer.review("What color is the sky?", "The sky is blue.")
+
+    assert approved
+
+
 def test_ungrounded_review_keeps_the_prompt_premise() -> None:
     # No grounding store: the logical premise cannot improve on the prompt, so
     # the original prompt-premise path is preserved (degraded — see KIMI2-F).

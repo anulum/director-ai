@@ -319,8 +319,12 @@ class TaskRoutedCoherenceMixin:
                 _inner_agg=fact_ia,
                 _outer_agg=fact_oa,
             )
-        elif self.ground_truth_store is not None and not self._use_prompt_as_premise:
-            # Grounded path: the factual retrieval yields the context that is
+        elif (
+            _nli_available
+            and self.ground_truth_store is not None
+            and not self._use_prompt_as_premise
+        ):
+            # Grounded NLI path: the factual retrieval yields the context that is
             # ALSO the correct premise for the logical NLI. A bare interrogative
             # prompt is a degenerate NLI premise — a true declarative answer does
             # not entail the question that prompted it, so premise=prompt inflates
@@ -330,6 +334,13 @@ class TaskRoutedCoherenceMixin:
             # contradicts them) while letting true claims through (the context
             # entails them). Serialised because the premise is only known after
             # retrieval; the ungrounded branch below keeps the parallel overlap.
+            #
+            # This is gated on a model-backed NLI because the argument is an
+            # ENTAILMENT argument: it holds for any NLI model but NOT for the
+            # no-model keyword fallback, whose word-overlap divergence is
+            # length-sensitive (a short grounding fact scores a low Jaccard
+            # against a full-sentence true answer). The heuristic fallback keeps
+            # its prompt-premise scoring in the parallel branch below.
             h_fact, evidence = self.calculate_factual_divergence_with_evidence(
                 prompt,
                 action,

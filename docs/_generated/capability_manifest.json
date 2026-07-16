@@ -9,7 +9,7 @@
     "python_model_classes": 1040,
     "python_model_source_modules": 518,
     "rust_pyo3_model_wrappers": 83,
-    "test_files": 759
+    "test_files": 761
   },
   "documentation": {
     "public_pages": [
@@ -5700,6 +5700,7 @@
       "tests/test_gemma_aggrefact_self_consistency_real_surface.py",
       "tests/test_governance_controls.py",
       "tests/test_grader_validation.py",
+      "tests/test_grounded_logical_premise.py",
       "tests/test_grounding_judge.py",
       "tests/test_grpc_api_docs.py",
       "tests/test_grpc_scoring.py",
@@ -5868,6 +5869,7 @@
       "tests/test_nli_claims_mixin.py",
       "tests/test_nli_export.py",
       "tests/test_nli_export_real_surface.py",
+      "tests/test_nli_input_normalisation.py",
       "tests/test_nli_integration.py",
       "tests/test_nli_minicheck.py",
       "tests/test_nli_numeric.py",

@@ -224,6 +224,12 @@ class TrajectorySimulator:
         mean = statistics.fmean(coherences) if coherences else 0.0
         std = statistics.stdev(coherences) if len(coherences) >= 2 else 0.0
         ci_low, ci_high = _credible_interval(coherences, self._ci_level)
+        # The empirical quantiles are drawn samples while the mean is an fmean;
+        # for (near-)identical samples the two can disagree by a floating-point
+        # ULP, which would put the mean a hair outside the interval. A reported
+        # interval must contain its own point estimate, so widen it to the mean.
+        ci_low = min(ci_low, mean)
+        ci_high = max(ci_high, mean)
         action, reason = self._decide(halt_rate, mean)
         latency_ms = (time.monotonic() - start) * 1000.0
         return PreflightVerdict(
