@@ -99,7 +99,7 @@ llamaindex = [
 # and extra name stable, but do not install the vulnerable optional stack until
 # upstream ships a safe dependency path.
 server = [
-    "fastapi>=0.100,<1",
+    "fastapi>=0.100",
     "uvicorn>=0.23,<1",
     "pydantic>=2.0,<3",
     "httpx>=0.27,<1",
@@ -120,7 +120,7 @@ voice = [
 # Secret backends for managed deployments (imported lazily in core/secrets.py,
 # whose ImportError messages point operators at these extras).
 vault = ["hvac>=2,<3"]
-aws = ["boto3>=1.34,<2"]
+aws = ["boto3>=1.26"]
 azure = [
     "azure-keyvault-secrets>=4.7,<5",
     "azure-identity>=1.16,<2",

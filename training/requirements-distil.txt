@@ -4,9 +4,9 @@
 #
 #    pip-compile --allow-unsafe --generate-hashes --output-file=training/requirements-distil.txt training/requirements-distil.in
 #
-accelerate==1.7.0 \
-    --hash=sha256:cf57165cca28769c6cf2650812371c81b18e05743dfa3c748524b1bb4f2b272f \
-    --hash=sha256:e8a2a5503d6237b9eee73cc8d36cf543f9c2d8dd2c6713450b322f5e6d53a610
+accelerate==1.14.0 \
+    --hash=sha256:41b9c4377a54e0b460a959b0defa1b736e4ca0a2373252d9a539964c2afe3c8d \
+    --hash=sha256:e94390c2863b873be18f623f9df48a0d8fe5eff13ea7f1a00092b0a7904888c6
     # via -r training/requirements-distil.in
 aiohappyeyeballs==2.6.2 \
     --hash=sha256:4708045e2d7a6c6bdf8aafa8ed39649eaf926a4543b54560659129e3365953c4 \
