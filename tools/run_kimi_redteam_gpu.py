@@ -7,16 +7,17 @@
 # Director-Class AI — JarvisLabs GPU runner for the KIMI red-team reproduction
 """Provision a JarvisLabs GPU, run the KIMI red-team reproduction, tear down.
 
-Reuses the provisioning + rsync mechanics from
-:mod:`tools.jarvislabs_train` but runs the detection-efficacy harness
-(``benchmarks/kimi_redteam_reproduction.py``) against the current source
-instead of training, then downloads the JSON artefact. The instance is
-destroyed in a ``finally`` block so a failure never leaks a paid GPU.
+Provisions a small GPU via the current jlclient API, has the remote
+git-clone the tag and run the detection-efficacy harness
+(``benchmarks/kimi_redteam_reproduction.py``) in a fresh Python 3.11 conda
+env, downloads the JSON artefact, and destroys the instance in a ``finally``
+block so a failure never leaks a paid GPU. The remote recipe (region, GPU
+availability, py3.11, ensurepip) is encoded in :data:`REMOTE_SCRIPT`.
 
 Usage::
 
     export JARVISLABS_TOKEN=...
-    python tools/run_kimi_redteam_gpu.py --gpu RTX5000 --out kimi_repro.json
+    python tools/run_kimi_redteam_gpu.py --gpu A30 --tag v3.18.1
 """
 
 from __future__ import annotations
@@ -25,29 +26,84 @@ import argparse
 import logging
 import os
 import subprocess
-import sys
+import time
 from pathlib import Path
-
-sys.path.insert(0, str(Path(__file__).resolve().parent))
-from jarvislabs_train import provision_instance, upload_code  # noqa: E402
+from typing import Any
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(message)s")
 logger = logging.getLogger("DirectorAI.KimiRedteamGPU")
 
 REPO_DIR = Path(__file__).resolve().parent.parent
 
+# jlclient 0.1 (git HEAD) auto-resolves RTX-class GPUs to a deprecated India
+# region; the live non-Europe region is india-noida-01 (Europe only offers
+# expensive H100/H200). Pin it explicitly for a small, cheap GPU.
+NOIDA_REGION = "india-noida-01"
+
+# The JarvisLabs pytorch template ships Python 3.10 (miniconda base +
+# py3.10 env), but director-ai requires >=3.11. So the remote recipe builds a
+# fresh 3.11 env via conda-forge (the default anaconda channel needs a ToS
+# accept and fails), bootstraps pip with ensurepip (conda-forge's minimal
+# python has no pip), git-clones the tag (rsyncing the 15 GB working tree is
+# wasteful — the repo's committed datasets alone are ~3.5 GB), and runs the
+# harness. An editable install carries proxy.py + all source (the wheel
+# exclude does not apply to a source install).
 REMOTE_SCRIPT = r"""#!/usr/bin/env bash
-set -euo pipefail
+set -uo pipefail
 echo "=== KIMI red-team reproduction (JarvisLabs) ==="
 nvidia-smi --query-gpu=name --format=csv,noheader || echo "no GPU?"
+rm -rf /home/director-ai
+git clone --depth 1 --branch __TAG__ https://github.com/anulum/director-ai /home/director-ai
 cd /home/director-ai
-python -m pip install --quiet --upgrade pip
-# Editable install carries proxy.py + all source (the wheel exclude does not
-# apply to an editable/source install), plus the NLI extra for FactCG.
-python -m pip install --quiet -e '.[nli]'
-python benchmarks/kimi_redteam_reproduction.py --out /home/director-ai/kimi_repro.json
+CONDA=/root/miniconda3/bin/conda
+$CONDA create -n py311 python=3.11 -y -c conda-forge --override-channels
+CR="$CONDA run -n py311 --no-capture-output"
+$CR python -m ensurepip --upgrade
+$CR python -m pip install --quiet "torch>=2.8,<3" "transformers>=5.0.0rc3,<6" numpy requests
+$CR python -m pip install --quiet -e . --no-deps
+$CR python -c "import torch; print('cuda:', torch.cuda.is_available())"
+$CR python benchmarks/kimi_redteam_reproduction.py --out /home/director-ai/kimi_repro.json
 echo "=== done; artefact at /home/director-ai/kimi_repro.json ==="
 """
+
+
+def provision(gpu_type: str, storage: int, token: str) -> Any:
+    """Create a GPU instance and return the running Instance object.
+
+    Uses the current jlclient API directly (``Instance.create`` returns an
+    Instance on success or an ``{'error_message': ...}`` dict on failure) and
+    pins :data:`NOIDA_REGION` because auto-resolution picks a deprecated region.
+    """
+    from jlclient import jarvisclient
+    from jlclient.jarvisclient import Instance
+
+    jarvisclient.token = token
+    logger.info("Creating %s x1 (%dGB) in %s...", gpu_type, storage, NOIDA_REGION)
+    inst = Instance.create(
+        "GPU",
+        gpu_type=gpu_type,
+        template="pytorch",
+        num_gpus=1,
+        storage=storage,
+        name="director-ai-kimi-redteam",
+        is_reserved=True,
+        duration="hour",
+        region=NOIDA_REGION,
+    )
+    if isinstance(inst, dict):
+        raise RuntimeError(
+            f"instance creation failed: {inst.get('error_message', inst)}"
+        )
+
+    logger.info("Instance machine_id=%s; waiting for Running...", inst.machine_id)
+    for i in range(60):
+        inst._refresh()
+        if getattr(inst, "status", "") == "Running" and getattr(inst, "ssh_str", ""):
+            logger.info("Running. SSH: %s", inst.ssh_str)
+            return inst
+        logger.info("  status=%s (%d/60)...", getattr(inst, "status", "?"), i + 1)
+        time.sleep(10)
+    raise TimeoutError("instance did not reach Running in 10 minutes")
 
 
 def _ssh_parts(ssh_str: str) -> tuple[str, str]:
@@ -56,19 +112,23 @@ def _ssh_parts(ssh_str: str) -> tuple[str, str]:
     return port, parts[-1]
 
 
-def run_redteam(ssh_str: str) -> None:
-    """Write and execute the red-team script on the remote, streaming output."""
+def run_redteam(ssh_str: str, tag: str) -> None:
+    """Write and execute the red-team script on the remote, streaming output.
+
+    The remote clones *tag* from GitHub itself, so no local upload is needed.
+    """
     port, host = _ssh_parts(ssh_str)
     ssh_base = f"ssh -p {port} -o StrictHostKeyChecking=no {host}"
-    script_path = "/home/director-ai/run_kimi_redteam.sh"
+    script = REMOTE_SCRIPT.replace("__TAG__", tag)
+    remote = "/tmp/run_kimi_redteam.sh"
     subprocess.run(
-        f"{ssh_base} 'cat > {script_path}' << 'REMOTE_EOF'\n{REMOTE_SCRIPT}\nREMOTE_EOF",
+        f"{ssh_base} 'cat > {remote}' << 'REMOTE_EOF'\n{script}\nREMOTE_EOF",
         shell=True,
         check=True,
     )
-    subprocess.run(f'{ssh_base} "chmod +x {script_path}"', shell=True, check=True)
+    subprocess.run(f'{ssh_base} "chmod +x {remote}"', shell=True, check=True)
     logger.info("Running red-team on the GPU (streaming)...")
-    subprocess.run(f'{ssh_base} "bash {script_path}"', shell=True, check=True)
+    subprocess.run(f'{ssh_base} "bash {remote}"', shell=True, check=True)
 
 
 def download_artefact(ssh_str: str, out: str) -> None:
@@ -85,25 +145,27 @@ def download_artefact(ssh_str: str, out: str) -> None:
     logger.info("Artefact downloaded to %s", dest)
 
 
-def destroy_instance(instance_id: int) -> None:
+def destroy_instance(inst: Any) -> None:
     """Destroy the instance so a paid GPU never leaks."""
     try:
-        from jlclient.jarvisclient import User
-
-        inst = User.get_instance(instance_id=instance_id)
-        inst.destroy()
-        logger.info("Instance %s destroyed.", instance_id)
+        result = inst.destroy()
+        logger.info("Instance %s destroyed: %s", inst.machine_id, result)
     except Exception as exc:  # noqa: BLE001 - teardown must never raise
         logger.error(
-            "FAILED to destroy instance %s: %s — DESTROY MANUALLY", instance_id, exc
+            "FAILED to destroy instance %s: %s — DESTROY MANUALLY IN THE UI",
+            getattr(inst, "machine_id", "?"),
+            exc,
         )
 
 
 def main(argv: list[str] | None = None) -> int:
     """Provision, run, download, and always destroy."""
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--gpu", default="RTX5000", help="JarvisLabs GPU type")
+    parser.add_argument(
+        "--gpu", default="A30", help="JarvisLabs GPU type (A30/L4/A100 in noida)"
+    )
     parser.add_argument("--storage", type=int, default=20)
+    parser.add_argument("--tag", default="v3.18.1", help="git tag to clone + run")
     parser.add_argument("--out", default="kimi_redteam_reproduction.json")
     args = parser.parse_args(argv)
 
@@ -112,14 +174,12 @@ def main(argv: list[str] | None = None) -> int:
         logger.error("JARVISLABS_TOKEN not set")
         return 2
 
-    info = provision_instance(gpu_type=args.gpu, storage=args.storage, token=token)
-    instance_id = info["instance_id"]
+    inst = provision(args.gpu, args.storage, token)
     try:
-        upload_code(info["ssh_str"], hf_token=os.environ.get("HF_TOKEN", ""))
-        run_redteam(info["ssh_str"])
-        download_artefact(info["ssh_str"], args.out)
+        run_redteam(inst.ssh_str, args.tag)
+        download_artefact(inst.ssh_str, args.out)
     finally:
-        destroy_instance(instance_id)
+        destroy_instance(inst)
     return 0
 
 
