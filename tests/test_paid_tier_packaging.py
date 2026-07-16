@@ -138,6 +138,43 @@ def test_no_busl_headered_file_escapes_the_paid_boundary() -> None:
     assert not leaks, f"BUSL files outside the paid boundary (would ship free): {leaks}"
 
 
+def test_paid_single_modules_are_filtered_from_the_free_wheel_by_exact_path() -> None:
+    """Every paid single module is dropped from the free wheel by exact path.
+
+    The BUSL-header guard cannot catch an **Apache-2.0-headed** paid module
+    that the manifest forgets — e.g. ``core/verified_scorer.py`` (paid) has
+    an Apache header, so only its manifest membership keeps it out of the
+    free wheel. This asserts the free build hook filters each manifest path
+    by its exact dotted name, and pins the two same-basename modules whose
+    tiers differ so a directory-level exclusion can never sweep the wrong
+    one:
+
+    * ``director_ai/core/verified_scorer.py`` — PAID (filtered from free)
+    * ``director_ai/core/scoring/verified_scorer.py`` — FREE (ships)
+    """
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location(
+        "tier_build_hooks", ROOT / "packages" / "tier_build_hooks.py"
+    )
+    assert spec is not None and spec.loader is not None
+    hooks = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(hooks)
+    filtered = hooks.FreeTierBuildPy._paid_names
+
+    paid_verified = "director_ai/core/verified_scorer.py"
+    free_verified = "director_ai/core/scoring/verified_scorer.py"
+    assert paid_verified in PAID_MODULES, "paid verified_scorer must be filtered"
+    assert free_verified not in PAID_MODULES, "free scoring verified_scorer must ship"
+    assert (SRC / paid_verified).is_file() and (SRC / free_verified).is_file()
+    assert "director_ai.core.verified_scorer" in filtered
+    assert "director_ai.core.scoring.verified_scorer" not in filtered
+
+    for mod in PAID_MODULES:
+        dotted = mod[: -len(".py")].replace("/", ".")
+        assert dotted in filtered, f"paid module not filtered from free wheel: {mod}"
+
+
 def test_build_hooks_agree_with_the_manifest() -> None:
     import importlib.util
 
