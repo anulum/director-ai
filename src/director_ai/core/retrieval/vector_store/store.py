@@ -21,13 +21,15 @@ Merkle snapshot audit in :mod:`._snapshot`.
 
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from ...evidence_firewall import EvidenceFirewall, FirewallContext
 from ...metrics import metrics
 from ...otel import trace_vector_add, trace_vector_query
 from ...types import EvidenceChunk
 from ..knowledge import GroundTruthStore, _require_non_empty_string
+
+if TYPE_CHECKING:  # pro-tier type — annotations only (ladder P2.4)
+    from ...evidence_firewall import EvidenceFirewall
 from ._conflicts import ConflictLedgerMixin
 from ._snapshot import SnapshotAuditMixin
 from ._versioning import VersionLedgerMixin
@@ -552,6 +554,9 @@ class VectorGroundTruthStore(
         if self.evidence_firewall is None:
             return results
         import time
+
+        # Lazy: only reachable when a firewall was injected (pro-tier install).
+        from ...evidence_firewall import FirewallContext
 
         context = FirewallContext(tenant_id=tenant_id, now_unix=time.time())
         report = self.evidence_firewall.screen(results, context)

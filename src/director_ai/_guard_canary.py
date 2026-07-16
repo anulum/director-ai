@@ -20,15 +20,14 @@ import logging
 from collections.abc import Iterable
 from typing import TYPE_CHECKING, Any
 
-from director_ai.core.canary import (
-    CanaryDetector,
-    CanaryFact,
-    CanaryRegistry,
-    CanarySignal,
-)
-
 if TYPE_CHECKING:
     from director_ai.core import GroundTruthStore
+    from director_ai.core.canary import (
+        CanaryDetector,
+        CanaryFact,
+        CanaryRegistry,
+        CanarySignal,
+    )
 
 logger = logging.getLogger("DirectorAI.Guard")
 
@@ -52,6 +51,8 @@ class CanaryOperationsMixin:
 
     def _ensure_canary(self) -> CanaryDetector:
         if self._canary_detector is None:
+            from director_ai.core.canary import CanaryDetector, CanaryRegistry
+
             self._canary_registry = CanaryRegistry()
             self._canary_detector = CanaryDetector(
                 self._canary_registry,

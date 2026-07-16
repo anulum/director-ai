@@ -12,11 +12,14 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass, field
+from typing import TYPE_CHECKING
 
 from director_ai.core.continual_adversarial import EvolveReport
-from director_ai.core.self_evolving import GuardLoopProposal
 
 from .registry import Defense, DefenseRegistry, DefenseSnapshot
+
+if TYPE_CHECKING:  # full-tier type — annotations only (ladder P2.4)
+    from director_ai.core.self_evolving import GuardLoopProposal
 
 
 @dataclass(frozen=True)

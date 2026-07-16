@@ -24,7 +24,6 @@ from collections.abc import Callable, Iterable, Sequence
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 
-from ..causal_verifier import CounterfactualVerifier
 from ..mandatory import mandatory_execution, require_rust_kernel
 from ..observability.callbacks import (
     TokenTraceCallback,
@@ -68,6 +67,14 @@ __all__ = ["StreamSession", "StreamingKernel", "TokenEvent"]
 
 if TYPE_CHECKING:
     from ..scoring.scorer import CoherenceScorer
+
+# Pro tier — the counterfactual halt explanation degrades gracefully on a
+# core-only install (the halt itself is unaffected; only the enrichment is
+# skipped). Guarded import so the free wheel never hard-imports the paid unit.
+try:
+    from ..causal_verifier import CounterfactualVerifier
+except ModuleNotFoundError:  # pragma: no cover - advanced tier only
+    CounterfactualVerifier = None  # type: ignore[assignment,misc]
 
 logger = logging.getLogger("DirectorAI.Streaming")
 
@@ -472,7 +479,7 @@ class StreamingKernel(HaltMonitor):
                             else accumulated
                         ),
                     )
-                    if threshold is not None
+                    if CounterfactualVerifier is not None and threshold is not None
                     else None
                 )
                 structured = HaltEvidence(

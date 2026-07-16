@@ -23,9 +23,6 @@ from __future__ import annotations
 from collections.abc import Iterable
 from typing import TYPE_CHECKING
 
-from director_ai.core.answer_bom import AnswerBOM, build_answer_bom
-from director_ai.core.eval_trace import eval_record_from_guard, record_guard_decision
-from director_ai.core.labelling_cockpit import ActiveLabellingCockpit
 from director_ai.core.risk_threshold import (
     RiskAdaptiveThreshold,
     RiskFactors,
@@ -34,6 +31,7 @@ from director_ai.core.risk_threshold import (
 
 if TYPE_CHECKING:
     from director_ai.core import GroundTruthStore
+    from director_ai.core.answer_bom import AnswerBOM
     from director_ai.core.calibration.runtime_governor import (
         RuntimeThresholdGovernor,
     )
@@ -44,6 +42,7 @@ if TYPE_CHECKING:
         HallucinationForecaster,
     )
     from director_ai.core.interpretability import HallucinationRootCauseAnalyzer
+    from director_ai.core.labelling_cockpit import ActiveLabellingCockpit
     from director_ai.core.routing import EconomicDecision, HallucinationEconomics
     from director_ai.core.self_healing import SelfHealingThresholdController
     from director_ai.guard import GuardResult
@@ -95,6 +94,8 @@ class DecisionQualityMixin:
         and recommend a threshold from reviewer-labelled outcomes.
         """
         if self._labelling_cockpit is None:
+            from director_ai.core.labelling_cockpit import ActiveLabellingCockpit
+
             self._labelling_cockpit = ActiveLabellingCockpit(
                 threshold=self._config.coherence_threshold
             )
@@ -118,6 +119,11 @@ class DecisionQualityMixin:
         dict is the same record, for tracers that take metadata rather than
         OTLP spans.
         """
+        from director_ai.core.eval_trace import (
+            eval_record_from_guard,
+            record_guard_decision,
+        )
+
         record = eval_record_from_guard(
             result,
             model=model,
@@ -306,6 +312,8 @@ class DecisionQualityMixin:
             if result.calibrated_threshold is not None
             else self._config.coherence_threshold
         )
+        from director_ai.core.answer_bom import build_answer_bom
+
         return build_answer_bom(
             result.coherence,
             model=model,

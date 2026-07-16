@@ -13,11 +13,12 @@ from __future__ import annotations
 import math
 from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import Protocol
-
-from director_ai.core.irreversibility import Forecast, IrreversibilityForecaster
+from typing import TYPE_CHECKING, Protocol
 
 from .decision import GuardDecision
+
+if TYPE_CHECKING:  # pro-tier type — annotations only (ladder P2.4)
+    from director_ai.core.irreversibility import Forecast
 
 _HIGH_RISK_ACTION_CATEGORIES = frozenset(
     {"code", "physical", "tool", "training", "inference_steering", "multimodal"}
@@ -127,7 +128,20 @@ class NoGoPolicy:
         self._reviewed_irreversibility_threshold = reviewed_irreversibility_threshold
         self._forecaster: _IrreversibilityForecasterLike | None
         if enable_irreversibility_forecast:
-            self._forecaster = irreversibility_forecaster or IrreversibilityForecaster()
+            if irreversibility_forecaster is None:
+                try:
+                    from director_ai.core.irreversibility import (
+                        IrreversibilityForecaster,
+                    )
+                except (
+                    ModuleNotFoundError
+                ) as exc:  # pragma: no cover - advanced tier only
+                    raise RuntimeError(
+                        "irreversibility forecasting requires the advanced tier "
+                        "(director_ai.core.irreversibility is not installed)."
+                    ) from exc
+                irreversibility_forecaster = IrreversibilityForecaster()
+            self._forecaster = irreversibility_forecaster
         else:
             self._forecaster = None
 

@@ -23,10 +23,9 @@ from __future__ import annotations
 from collections.abc import Sequence
 from typing import TYPE_CHECKING, Any
 
-from director_ai.core.agent_preflight import AgentPreflightGuard
-
 if TYPE_CHECKING:
     from director_ai.core import CoherenceScorer
+    from director_ai.core.agent_preflight import AgentPreflightGuard
     from director_ai.core.cyber_physical import (
         PhysicalConstraint,
         RobotCommandGuard,
@@ -74,6 +73,8 @@ class RuntimeHardeningMixin:
 
             def _score(premise: str, hypothesis: str) -> float:
                 return self._scorer.review(premise, hypothesis)[1].score
+
+            from director_ai.core.agent_preflight import AgentPreflightGuard
 
             self._preflight = AgentPreflightGuard(score_fn=_score)
         return self._preflight

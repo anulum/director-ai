@@ -29,10 +29,13 @@ from __future__ import annotations
 
 import math
 from collections.abc import Callable, Iterable, Sequence
+from typing import TYPE_CHECKING
 
-from ..calibration.feedback_store import Correction
 from ..types import EvidenceChunk
 from .credibility import SourceCredibility, SourceScore
+
+if TYPE_CHECKING:  # pro-tier type — annotations only (ladder P2.4)
+    from ..calibration.feedback_store import Correction
 
 __all__ = ["CredibilityFeedbackLoop"]
 

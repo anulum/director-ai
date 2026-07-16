@@ -13,10 +13,12 @@ from __future__ import annotations
 import math
 from collections.abc import Sequence
 from dataclasses import dataclass, field
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from ..formal_verification import ReasoningStep, ReasoningVerdict, ReasoningVerifier
 from .numeric_verifier import NumericVerificationResult, verify_numeric
+
+if TYPE_CHECKING:  # pro-tier types — annotations only (ladder P2.4)
+    from ..formal_verification import ReasoningStep, ReasoningVerdict, ReasoningVerifier
 
 __all__ = [
     "NeuroSymbolicVerificationResult",
@@ -99,7 +101,12 @@ class NeuroSymbolicVerifier:
         run_numeric: bool = True,
     ) -> None:
         self.neural_accept_threshold = _unit_score(neural_accept_threshold)
-        self._reasoning_verifier = reasoning_verifier or ReasoningVerifier()
+        if reasoning_verifier is None:
+            # Lazy: the labs verifier layers on the pro-tier formal_verification.
+            from ..formal_verification import ReasoningVerifier
+
+            reasoning_verifier = ReasoningVerifier()
+        self._reasoning_verifier = reasoning_verifier
         self._run_numeric = bool(run_numeric)
 
     def verify(

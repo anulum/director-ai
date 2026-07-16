@@ -53,12 +53,14 @@ import html as _html
 import re
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
-from typing import Protocol
+from typing import TYPE_CHECKING, Protocol
 from urllib.parse import parse_qs, unquote, urlsplit
 
-from ..citation_grounding.fetch import HttpGetter
 from ..text_overlap import word_overlap
 from .temporal_freshness import FreshnessClaim, FreshnessResult
+
+if TYPE_CHECKING:  # pro-tier protocol — annotations only (ladder P2.4)
+    from ..citation_grounding.fetch import HttpGetter
 
 __all__ = [
     "ClaimRefresh",

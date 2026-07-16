@@ -24,9 +24,10 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from dataclasses import dataclass, field
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from ..labelling_cockpit.items import GROUNDED, HALLUCINATION, LabelItem
+if TYPE_CHECKING:  # pro-tier type — annotations only (ladder P2.4)
+    from ..labelling_cockpit.items import LabelItem
 
 __all__ = ["KpiReport", "compute_kpis"]
 
@@ -71,6 +72,9 @@ class KpiReport:
 
 def _false_positive_rate(items: Sequence[LabelItem]) -> float | None:
     """Fraction of grounded answers the guard wrongly blocked, or None."""
+    # Lazy: label constants live in the pro-tier cockpit that produced `items`.
+    from ..labelling_cockpit.items import GROUNDED
+
     grounded = [i for i in items if i.label == GROUNDED]
     if not grounded:
         return None
@@ -105,6 +109,8 @@ def compute_kpis(
 
     halt_precision: float | None = None
     if halted:
+        from ..labelling_cockpit.items import HALLUCINATION
+
         correct_halts = sum(1 for i in halted if i.label == HALLUCINATION)
         halt_precision = round(correct_halts / len(halted), 4)
 

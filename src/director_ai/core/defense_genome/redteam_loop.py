@@ -27,7 +27,7 @@ import hashlib
 import math
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from director_ai.core.continual_adversarial import (
     AdversarialCase,
@@ -36,10 +36,12 @@ from director_ai.core.continual_adversarial import (
     FailurePattern,
     FailureStore,
 )
-from director_ai.core.self_evolving import GuardLoopProposal
 
 from .registry import Defense, DefenseRegistry
 from .update_pipeline import DefenseUpdatePipeline
+
+if TYPE_CHECKING:  # full-tier type — annotations only (ladder P2.4)
+    from director_ai.core.self_evolving import GuardLoopProposal
 
 
 @dataclass(frozen=True)
