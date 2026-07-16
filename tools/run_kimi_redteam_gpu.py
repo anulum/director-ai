@@ -62,7 +62,7 @@ $CR python -m ensurepip --upgrade
 $CR python -m pip install --quiet "torch>=2.8,<3" "transformers>=5.0.0rc3,<6" numpy requests
 $CR python -m pip install --quiet -e . --no-deps
 $CR python -c "import torch; print('cuda:', torch.cuda.is_available())"
-$CR python benchmarks/kimi_redteam_reproduction.py --out /home/director-ai/kimi_repro.json
+$CR python __SCRIPT__ --out /home/director-ai/kimi_repro.json
 echo "=== done; artefact at /home/director-ai/kimi_repro.json ==="
 """
 
@@ -112,14 +112,16 @@ def _ssh_parts(ssh_str: str) -> tuple[str, str]:
     return port, parts[-1]
 
 
-def run_redteam(ssh_str: str, tag: str) -> None:
+def run_redteam(ssh_str: str, tag: str, script_path: str) -> None:
     """Write and execute the red-team script on the remote, streaming output.
 
     The remote clones *tag* from GitHub itself, so no local upload is needed.
+    *script_path* is the repo-relative benchmark run on the GPU; it must accept
+    ``--out`` and write its JSON artefact there.
     """
     port, host = _ssh_parts(ssh_str)
     ssh_base = f"ssh -p {port} -o StrictHostKeyChecking=no {host}"
-    script = REMOTE_SCRIPT.replace("__TAG__", tag)
+    script = REMOTE_SCRIPT.replace("__TAG__", tag).replace("__SCRIPT__", script_path)
     remote = "/tmp/run_kimi_redteam.sh"
     subprocess.run(
         f"{ssh_base} 'cat > {remote}' << 'REMOTE_EOF'\n{script}\nREMOTE_EOF",
@@ -166,6 +168,11 @@ def main(argv: list[str] | None = None) -> int:
     )
     parser.add_argument("--storage", type=int, default=20)
     parser.add_argument("--tag", default="v3.18.1", help="git tag to clone + run")
+    parser.add_argument(
+        "--script",
+        default="benchmarks/kimi_redteam_reproduction.py",
+        help="repo-relative benchmark to run on the GPU (must accept --out)",
+    )
     parser.add_argument("--out", default="kimi_redteam_reproduction.json")
     args = parser.parse_args(argv)
 
@@ -176,7 +183,7 @@ def main(argv: list[str] | None = None) -> int:
 
     inst = provision(args.gpu, args.storage, token)
     try:
-        run_redteam(inst.ssh_str, args.tag)
+        run_redteam(inst.ssh_str, args.tag, args.script)
         download_artefact(inst.ssh_str, args.out)
     finally:
         destroy_instance(inst)
