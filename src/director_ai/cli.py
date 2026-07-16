@@ -27,35 +27,20 @@ import json
 import sys
 from collections.abc import Callable
 from dataclasses import dataclass
+from importlib import import_module
 from pathlib import Path
-from typing import TYPE_CHECKING
-
-# CLI subcommands extracted to reduce module size
-from ._cli_bench import (
-    _cmd_bench,
-    _cmd_eval,
-    _cmd_export,
-    _cmd_finetune,
-    _cmd_operating_points,
-    _cmd_tune,
-    _cmd_validate_data,
-)
-from ._cli_gate import _cmd_ci_gate
-from ._cli_ingest import _INGEST_MAX_FILE_SIZE, _cmd_ingest
-from ._cli_production import _cmd_production_check
-from ._cli_release_gate import (
-    _cmd_model_activate,
-    _cmd_model_rollback,
-    _cmd_release_gate,
-)
-from ._cli_train import _cmd_train
+from typing import TYPE_CHECKING, Any
 
 # Historical re-export — downstream tests and tooling reach for
-# ``director_ai.cli._INGEST_MAX_FILE_SIZE``. Listing it in
-# ``__all__`` documents the public surface so ruff does not flag
-# the import as unused.
+# ``director_ai.cli._INGEST_MAX_FILE_SIZE``. It resolves lazily through the
+# module ``__getattr__`` below (the pro-tier ``_cli_ingest`` module is absent
+# from a core-only install); ``__all__`` documents the public surface.
 __all__ = ["_INGEST_MAX_FILE_SIZE"]
-from ._cli_serve import _cmd_proxy, _cmd_serve, _cmd_stress_test
+
+# Free-tier subcommands stay module-level. The pro-tier ``_cli_*`` modules
+# (bench, gate, ingest, production, release_gate, train, serve) resolve via
+# ``_lazy_handler`` at dispatch time so the free CLI imports without the
+# paid wheel installed.
 from ._cli_verify import (
     _cmd_adversarial_test,
     _cmd_check_step,
@@ -76,7 +61,38 @@ from ._cli_verify import (
 from .cli_quickstart import _cmd_quickstart
 
 if TYPE_CHECKING:
-    pass
+    from ._cli_ingest import _INGEST_MAX_FILE_SIZE
+
+
+def _lazy_handler(module: str, attr: str) -> Callable[[list[str]], None]:
+    """Resolve a pro-tier subcommand handler on first invocation.
+
+    Keeps the free CLI importable without the paid ``_cli_*`` modules;
+    invoking a paid subcommand on a core-only install exits with the
+    friendly tier message instead of an ImportError at import time.
+    """
+
+    def _dispatch(args: list[str]) -> None:
+        try:
+            mod = import_module(module, __package__)
+        except ModuleNotFoundError as exc:
+            raise SystemExit(
+                f"this subcommand requires the advanced tier "
+                f"(director_ai{module} is not installed). "
+                "Install director-ai-pro to use it."
+            ) from exc
+        handler: Callable[[list[str]], None] = getattr(mod, attr)
+        handler(args)
+
+    return _dispatch
+
+
+def __getattr__(name: str) -> Any:
+    if name == "_INGEST_MAX_FILE_SIZE":
+        from ._cli_ingest import _INGEST_MAX_FILE_SIZE
+
+        return _INGEST_MAX_FILE_SIZE
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 
 @dataclass(frozen=True)
@@ -415,7 +431,7 @@ def _command_specs() -> dict[str, _CommandSpec]:
             "quickstart [--profile P] [--run]  Scaffold a working project",
         ),
         "production-check": _CommandSpec(
-            _cmd_production_check,
+            _lazy_handler("._cli_production", "_cmd_production_check"),
             "production-check [--path D]  Validate a generated production scaffold",
         ),
         "review": _CommandSpec(
@@ -431,72 +447,73 @@ def _command_specs() -> dict[str, _CommandSpec]:
             "batch <file.jsonl>    Batch process (max 10K prompts, <100MB)",
         ),
         "ingest": _CommandSpec(
-            _cmd_ingest,
+            _lazy_handler("._cli_ingest", "_cmd_ingest"),
             "ingest <file-or-dir> [--persist DIR] [--chunk-size N]  "
             "Ingest txt/md/pdf/docx/html/csv",
         ),
         "eval": _CommandSpec(
-            _cmd_eval, "eval [--dataset D]    Run NLI benchmark suite"
+            _lazy_handler("._cli_bench", "_cmd_eval"),
+            "eval [--dataset D]    Run NLI benchmark suite",
         ),
         "ci-gate": _CommandSpec(
-            _cmd_ci_gate,
+            _lazy_handler("._cli_gate", "_cmd_ci_gate"),
             "ci-gate --dataset F --min-accuracy R  Fail CI when guard quality drops",
         ),
         "bench": _CommandSpec(
-            _cmd_bench,
+            _lazy_handler("._cli_bench", "_cmd_bench"),
             "bench [--dataset D] [--seed N] [--output F]  Run regression benchmarks",
         ),
         "tune": _CommandSpec(
-            _cmd_tune,
+            _lazy_handler("._cli_bench", "_cmd_tune"),
             "tune <file.jsonl>|--dataset D [--output config.yaml]  "
             "Tune profile overlay",
         ),
         "operating-points": _CommandSpec(
-            _cmd_operating_points,
+            _lazy_handler("._cli_bench", "_cmd_operating_points"),
             "operating-points <file.jsonl> [--target-fpr task=rate]  "
             "Calibrate matched-FPR support gates",
         ),
         "train": _CommandSpec(
-            _cmd_train,
+            _lazy_handler("._cli_train", "_cmd_train"),
             "train submit [options]  Submit or dry-run a managed training job",
         ),
         "finetune": _CommandSpec(
-            _cmd_finetune,
+            _lazy_handler("._cli_bench", "_cmd_finetune"),
             "finetune <train.jsonl> [options]  Fine-tune NLI model on domain data",
         ),
         "validate-data": _CommandSpec(
-            _cmd_validate_data,
+            _lazy_handler("._cli_bench", "_cmd_validate_data"),
             "validate-data <file.jsonl>       Validate data before fine-tuning",
         ),
         "release-gate": _CommandSpec(
-            _cmd_release_gate,
+            _lazy_handler("._cli_release_gate", "_cmd_release_gate"),
             "release-gate assemble [options]  Assemble the release-gate manifest",
         ),
         "model-activate": _CommandSpec(
-            _cmd_model_activate,
+            _lazy_handler("._cli_release_gate", "_cmd_model_activate"),
             "model-activate <job-id> [--models-dir D]  Persist model activation",
         ),
         "model-rollback": _CommandSpec(
-            _cmd_model_rollback,
+            _lazy_handler("._cli_release_gate", "_cmd_model_rollback"),
             "model-rollback <job-id> [--models-dir D]  Clear model activation",
         ),
         "serve": _CommandSpec(
-            _cmd_serve,
+            _lazy_handler("._cli_serve", "_cmd_serve"),
             "serve [--port N] [--transport http|grpc] [--workers W] "
             "[--dev|--production]  Start the server",
         ),
         "proxy": _CommandSpec(
-            _cmd_proxy,
+            _lazy_handler("._cli_serve", "_cmd_proxy"),
             "proxy [--host H] [--port N] [--facts F]   Chat-completions "
             "guardrail proxy (binds 127.0.0.1; --host/DIRECTOR_SERVER_HOST "
             "to expose)",
         ),
         "export": _CommandSpec(
-            _cmd_export,
+            _lazy_handler("._cli_bench", "_cmd_export"),
             "export [--format F]   Export model to ONNX/TensorRT",
         ),
         "stress-test": _CommandSpec(
-            _cmd_stress_test,
+            _lazy_handler("._cli_serve", "_cmd_stress_test"),
             "stress-test [options] Benchmark streaming kernel throughput",
         ),
         "doctor": _CommandSpec(
