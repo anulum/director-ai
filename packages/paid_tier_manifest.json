@@ -44,7 +44,8 @@
     "director_ai/core/sharded_nli.py",
     "director_ai/core/tenant.py",
     "director_ai/core/tuner.py",
-    "director_ai/core/verified_scorer.py"
+    "director_ai/core/verified_scorer.py",
+    "director_ai/core/scoring/temporal_refresh.py"
   ],
   "labs_packages": [
     "director_ai.core.autopoietic*",

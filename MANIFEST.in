@@ -125,3 +125,4 @@ exclude src/director_ai/core/sharded_nli.py
 exclude src/director_ai/core/tenant.py
 exclude src/director_ai/core/tuner.py
 exclude src/director_ai/core/verified_scorer.py
+exclude src/director_ai/core/scoring/temporal_refresh.py

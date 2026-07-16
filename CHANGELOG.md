@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **`core/scoring/temporal_refresh.py` (BUSL-1.1) no longer ships in the
+  free Apache-2.0 wheel.** The live web-search temporal refresher was
+  BUSL-headered and lazy-guarded during the boundary work but the 3.18.0
+  re-slice omitted it from the paid manifest, so the compiled free wheel
+  carried a BUSL module. It now ships only in `director-ai-pro` /
+  `director-ai-full`; the free guard's `temporal_refresher` and
+  `temporal_consistency` properties raise the friendly "requires the
+  advanced tier" error on a core-only install instead of a raw
+  `ModuleNotFoundError`. The Apache-2.0 `temporal_freshness` flagger
+  stays in the free wheel.
+
 ## [3.18.0] - 2026-07-16
 
 ### Changed

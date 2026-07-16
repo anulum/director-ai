@@ -78,9 +78,16 @@ class ExtendedVerificationMixin:
         directly with ``functional_predicates``.
         """
         if self._temporal_consistency is None:
-            from director_ai.core.temporal_consistency import (
-                TemporalConsistencyGraph,
-            )
+            try:
+                from director_ai.core.temporal_consistency import (
+                    TemporalConsistencyGraph,
+                )
+            except ModuleNotFoundError as exc:  # pragma: no cover - advanced tier only
+                raise RuntimeError(
+                    "temporal consistency requires the advanced tier "
+                    "(director_ai.core.temporal_consistency is not installed). "
+                    "Install director-ai-pro to use it."
+                ) from exc
 
             self._temporal_consistency = TemporalConsistencyGraph()
         return self._temporal_consistency
@@ -99,7 +106,16 @@ class ExtendedVerificationMixin:
         ``TemporalRefresher(nli=...)`` for adjudicated ``contradicted`` verdicts.
         """
         if self._temporal_refresher is None:
-            from director_ai.core.scoring.temporal_refresh import TemporalRefresher
+            try:
+                from director_ai.core.scoring.temporal_refresh import (
+                    TemporalRefresher,
+                )
+            except ModuleNotFoundError as exc:  # pragma: no cover - advanced tier only
+                raise RuntimeError(
+                    "live temporal refresh requires the advanced tier "
+                    "(director_ai.core.scoring.temporal_refresh is not installed). "
+                    "Install director-ai-pro to use it."
+                ) from exc
 
             self._temporal_refresher = TemporalRefresher()
         return self._temporal_refresher

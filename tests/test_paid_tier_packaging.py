@@ -112,6 +112,32 @@ def test_free_package_data_does_not_leak_proto_stubs() -> None:
     assert not leaks, f"root package-data would leak paid stub files: {leaks}"
 
 
+def test_no_busl_headered_file_escapes_the_paid_boundary() -> None:
+    """Every BUSL-1.1 file under ``src/`` must be paid-tier only.
+
+    A BUSL-headered module that is neither inside an excluded package nor a
+    paid single module would ship in the Apache-2.0 free wheel — the exact
+    leak that shipped ``core/scoring/temporal_refresh.py`` in 3.18.0. This
+    guard fails the build before such a file can reach the public wheel.
+    """
+    excluded_pkg_dirs = [
+        (SRC / g.rstrip("*").replace(".", "/")).resolve() for g in ROOT_EXCLUDE
+    ]
+    paid_module_files = {(SRC / m).resolve() for m in PAID_MODULES}
+
+    leaks: list[str] = []
+    for py in (SRC / "director_ai").rglob("*.py"):
+        if "__pycache__" in py.parts:
+            continue
+        first_line = py.read_text(encoding="utf-8", errors="replace").partition("\n")[0]
+        if first_line.endswith("BUSL-1.1"):
+            resolved = py.resolve()
+            in_pkg = any(d in resolved.parents for d in excluded_pkg_dirs)
+            if not in_pkg and resolved not in paid_module_files:
+                leaks.append(str(py.relative_to(SRC)))
+    assert not leaks, f"BUSL files outside the paid boundary (would ship free): {leaks}"
+
+
 def test_build_hooks_agree_with_the_manifest() -> None:
     import importlib.util
 
