@@ -41,6 +41,28 @@ if you do not want to advertise the source location:
 export DIRECTOR_SOURCE_ENDPOINT_ENABLED=false
 ```
 
+## The Tier Boundary in Practice
+
+Since 3.18.0 the public PyPI wheel is **core-only**: the BUSL-1.1 advanced
+packages and the paid single modules (server, verified scorer, calibration,
+training, …) are not in the artefact. Every public name stays importable —
+using one in a core-only install raises a clear
+`requires the advanced tier` error instead of failing obscurely. The source
+of all tiers remains visible in this repository (source-available).
+
+Subscribers install a paid tier from the private index; it layers into the
+same `director_ai` namespace:
+
+```bash
+pip install director-ai-pro \
+  --index-url https://pypi.org/simple/ \
+  --extra-index-url https://CUSTOMER:TOKEN@pypi.remanentia.com/simple/
+```
+
+An annual subscription (Pro CHF/USD 490, Full CHF/USD 980 per year) covers
+index access and all releases of the tier while active. Checkout and plans:
+[remanentia.com/pricing](https://www.remanentia.com/pricing.html).
+
 ## Operator Notes
 
 1. **Unmodified deployments**: the default endpoint points at the upstream GitHub
@@ -49,4 +71,5 @@ export DIRECTOR_SOURCE_ENDPOINT_ENABLED=false
    so users can find your changes.
 3. **Advanced tier in production**: the Apache-2.0 core is free for production;
    running the BUSL-1.1 advanced tier in production or as a hosted service needs
-   a commercial licence — contact `director.class.ai@anulum.li`.
+   an active commercial subscription or licence — see the pricing page or
+   contact `director.class.ai@anulum.li`.

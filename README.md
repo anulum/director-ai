@@ -40,21 +40,38 @@ Director-Class AI — Repository overview
 
 ## Product Ladder
 
-| Tier | Install / delivery | Price | Ships |
-|---|---|---:|---|
-| **Director-Lite** | `pip install director-ai-lite` | USD 0 | Three-line guard facade, model-free heuristic default, facts/RAG handoff, optional NLI upgrade |
-| **Director-AI** | `pip install director-ai` | USD 0 | Open-core runtime: `guard()`, 5-tier scoring, REST/gRPC server, SDK and framework integrations, evidence packets, opt-in streaming contradiction halt |
-| **Director-AI Pro** | Private self-hosted delivery | USD 199/mo or 1,990/yr | Advanced production modules and priority support |
-| **Director-AI Full** | Private self-hosted delivery | USD 499/mo or 4,990/yr | Pro plus Labs/Research modules and direct engineering support |
-| **Director-Class AI** | Separate commercial product | USD 999/mo or 9,990/yr | Action-control and evidence boundary; deployment and support are scoped separately |
+| Tier | Install / delivery | Licence · billing | Ships |
+|---|---|---|---|
+| **Director-Lite** | `pip install director-ai-lite` | Apache-2.0 · free | Three-line guard facade, model-free heuristic default, facts/RAG handoff, optional NLI upgrade |
+| **Director-AI** | `pip install director-ai` | Apache-2.0 · free | Core runtime: `guard()`, 5-tier scoring, RAG grounding and evidence packets, SDK and framework integrations, CLI verification, opt-in streaming contradiction halt |
+| **Director-AI Pro** | Private index (`pypi.remanentia.com`) | BUSL-1.1 · CHF/USD 490 per year | Production surface: REST/gRPC server and proxy, advanced accuracy (verified scorer, sharded NLI, cross-model consensus, forecasting, calibration), training tools, enterprise packages |
+| **Director-AI Full** | Private index (`pypi.remanentia.com`) | BUSL-1.1 · CHF/USD 980 per year | Everything in Pro plus the Labs/Research module set |
+| **Director-Class AI** | Commercial engagement | scoped per engagement | Action-control and evidence boundary for agent fleets; requested via [protoscience@anulum.li](mailto:protoscience@anulum.li) |
 
-**→ [Canonical pricing &amp; plans](https://www.remanentia.com/pricing.html)**
+An annual subscription covers private-index access and every release of the
+purchased tier while it is active. Pricing and checkout:
+**[remanentia.com/pricing](https://www.remanentia.com/pricing.html)**.
 
 PyPI is the adoption front door. `director-ai-lite` is the free package we
 publish and promote first for the smallest useful experience; `director-ai`
-remains the full open-core package and the technical base for paid Pro
-self-hosting. Director-Class AI is a separate product and repository. It is
-sold through a commercial order rather than as a Director-AI PyPI wheel.
+is the free core and the technical base the paid tiers layer onto.
+Director-Class AI is a separate product and repository, sold through a
+commercial order rather than as a PyPI wheel.
+
+### Installing a paid tier
+
+Subscribers receive a customer name and token; the paid wheel then installs
+alongside the public core:
+
+```bash
+pip install director-ai-pro \
+  --index-url https://pypi.org/simple/ \
+  --extra-index-url https://CUSTOMER:TOKEN@pypi.remanentia.com/simple/
+```
+
+The paid wheels layer into the same `director_ai` namespace — no code
+changes, the names that raise "requires the advanced tier" in a core-only
+install simply start working.
 
 ## The one-command demo
 
