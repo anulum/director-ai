@@ -33,11 +33,17 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends build-essential=12.12 ca-certificates=20250419 \
     && rm -rf /var/lib/apt/lists/*
 
-COPY pyproject.toml README.md LICENSE NOTICE.md ./
+COPY pyproject.toml setup.py README.md LICENSE NOTICE.md ./
 COPY src/ src/
+COPY packages/ packages/
 COPY requirements/ requirements/
 COPY backfire-kernel/ backfire-kernel/
 
+# The production server image composes TWO wheels since the D1 re-slice
+# (2026-07-16): the Apache-2.0 free core wheel (sliced by the setup.py
+# build hook) plus the BUSL-1.1 director-ai-pro overlay that carries the
+# server surface. The image label already declares Apache-2.0 AND BUSL-1.1;
+# production use of the pro modules stays licence-gated by BUSL.
 ARG EXTRAS="server"
 ARG REQUIREMENTS="requirements/docker-server.txt"
 ARG BUILD_REQUIREMENTS="requirements/docker-build.txt"
@@ -50,7 +56,11 @@ RUN python -m pip install --no-cache-dir --require-hashes --no-deps --prefix=/in
     && PYTHONPATH=/install/lib/python3.11/site-packages PATH="/install/bin:${PATH}" \
         python -m build --wheel --no-isolation --outdir /tmp/director-wheel . \
     && PYTHONPATH=/install/lib/python3.11/site-packages \
-        python -m installer --prefix=/install /tmp/director-wheel/director_ai-*-py3-none-any.whl
+        python -m installer --prefix=/install /tmp/director-wheel/director_ai-*-py3-none-any.whl \
+    && PYTHONPATH=/install/lib/python3.11/site-packages PATH="/install/bin:${PATH}" \
+        python -m build --wheel --no-isolation --outdir /tmp/director-wheel-pro packages/director-ai-pro \
+    && PYTHONPATH=/install/lib/python3.11/site-packages \
+        python -m installer --prefix=/install /tmp/director-wheel-pro/director_ai_pro-*-py3-none-any.whl
 
 # ── Stage 2: Runtime ────────────────────────────────────────────────
 
