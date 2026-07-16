@@ -24,6 +24,7 @@ from typing import Any
 import numpy as np
 
 from ..metrics import metrics
+from ..safety.sanitizer import InputSanitizer
 from ._nli_numeric import (
     _probs_to_confidence,
     _probs_to_divergence,
@@ -38,6 +39,32 @@ _FACTCG_TEMPLATE = (
     'can we conclude that "{text_b}"?\n\nOPTIONS:\n- Yes\n- No\n'
     "I think the answer is "
 )
+
+
+def _normalise_nli_text(text: str) -> str:
+    """Strip zero-width/confusable perturbations from model input (KIMI2-J).
+
+    An invisible character (e.g. U+200B) inside an otherwise-true claim splits
+    a word for the tokenizer and inflates the divergence, false-halting a true
+    input (measured on GPU 2026-07-16: a single zero-width space pushed a true
+    claim's support from 0.87 to 0.44). ASCII text cannot carry such a
+    perturbation and NFKC is a no-op on it, so the scan is skipped on the
+    common path; non-ASCII text is NFKC-normalised with control/format
+    characters removed via the canonical input sanitiser (no confusable
+    folding, so legitimate non-Latin scripts keep their letters).
+    """
+    if text.isascii():
+        return text
+    return InputSanitizer.scrub(text)
+
+
+def _normalise_nli_arg(value: Any) -> Any:
+    """Normalise a positional tokenizer argument (str or list[str])."""
+    if isinstance(value, str):
+        return _normalise_nli_text(value)
+    if isinstance(value, list) and value and all(isinstance(v, str) for v in value):
+        return [_normalise_nli_text(v) for v in value]
+    return value
 
 
 class ModelInferenceMixin:
@@ -75,6 +102,12 @@ class ModelInferenceMixin:
         """
         if self._tokenizer is None:
             raise RuntimeError("NLI model not loaded")
+        # Scrub zero-width/confusable perturbations from the text arguments
+        # before tokenisation (KIMI2-J); done outside the lock since it is
+        # pure per-string work. Positional args carry the text (a template
+        # string, a premise/hypothesis pair, or batched lists); kwargs carry
+        # tokenizer options and are left untouched.
+        args = tuple(_normalise_nli_arg(a) for a in args)
         with self._tokenizer_lock:
             return self._tokenizer(*args, **kwargs)
 

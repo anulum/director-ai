@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Zero-width and confusable characters no longer false-halt a true claim.**
+  The NLI inference layer now scrubs its text inputs (NFKC normalisation +
+  removal of control/format characters, e.g. a U+200B zero-width space) before
+  tokenisation, at the single `_tokenize` chokepoint. An invisible character
+  inside an otherwise-true claim previously split a word for the tokenizer and
+  inflated the divergence, blocking a correct output (measured: one zero-width
+  space pushed support from 0.87 to 0.44). Confusable letters are left
+  unfolded, so legitimate non-Latin scripts are unaffected; plain-ASCII text
+  skips the scan entirely.
 - **Grounded true answers to questions are no longer false-halted.** When a
   grounding store is configured, the logical-coherence signal (`h_logical`)
   now scores against the retrieved context instead of the raw prompt. A bare
