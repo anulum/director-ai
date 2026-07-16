@@ -87,12 +87,38 @@ def _lazy_handler(module: str, attr: str) -> Callable[[list[str]], None]:
     return _dispatch
 
 
-def __getattr__(name: str) -> Any:
-    if name == "_INGEST_MAX_FILE_SIZE":
-        from ._cli_ingest import _INGEST_MAX_FILE_SIZE
+# Historical module surface — downstream tests and tooling import the
+# pro-tier handlers straight from ``director_ai.cli``. Resolved lazily so the
+# free CLI module never hard-imports a paid ``_cli_*`` module.
+_LAZY_ATTRS = {
+    "_INGEST_MAX_FILE_SIZE": "._cli_ingest",
+    "_cmd_bench": "._cli_bench",
+    "_cmd_eval": "._cli_bench",
+    "_cmd_export": "._cli_bench",
+    "_cmd_finetune": "._cli_bench",
+    "_cmd_operating_points": "._cli_bench",
+    "_cmd_tune": "._cli_bench",
+    "_cmd_validate_data": "._cli_bench",
+    "_cmd_ci_gate": "._cli_gate",
+    "_cmd_ingest": "._cli_ingest",
+    "_cmd_production_check": "._cli_production",
+    "_cmd_model_activate": "._cli_release_gate",
+    "_cmd_model_rollback": "._cli_release_gate",
+    "_cmd_release_gate": "._cli_release_gate",
+    "_cmd_train": "._cli_train",
+    "_cmd_proxy": "._cli_serve",
+    "_cmd_serve": "._cli_serve",
+    "_cmd_stress_test": "._cli_serve",
+}
 
-        return _INGEST_MAX_FILE_SIZE
-    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
+def __getattr__(name: str) -> Any:
+    target = _LAZY_ATTRS.get(name)
+    if target is None:
+        raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+    value = getattr(import_module(target, __package__), name)
+    globals()[name] = value  # cache — subsequent access bypasses __getattr__
+    return value
 
 
 @dataclass(frozen=True)

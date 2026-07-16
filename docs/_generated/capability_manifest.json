@@ -9,7 +9,7 @@
     "python_model_classes": 1040,
     "python_model_source_modules": 518,
     "rust_pyo3_model_wrappers": 83,
-    "test_files": 757
+    "test_files": 758
   },
   "documentation": {
     "public_pages": [
@@ -5500,6 +5500,7 @@
       "tests/test_cli_ingest_formats.py",
       "tests/test_cli_ingest_real_surface.py",
       "tests/test_cli_kpis.py",
+      "tests/test_cli_lazy_dispatch.py",
       "tests/test_cli_new_commands.py",
       "tests/test_cli_release_gate.py",
       "tests/test_cli_serve_paths.py",
