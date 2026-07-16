@@ -43,12 +43,12 @@ def test_lite_package_is_standalone_apache() -> None:
     project = pyproject["project"]
 
     assert project["name"] == "director-ai-lite"
-    assert project["version"] == "3.18.0"
+    assert project["version"] == "3.18.1"
     assert project["license"] == "Apache-2.0"
     assert project["requires-python"] == ">=3.11"
     # Standalone: no runtime dependencies. The full package is an opt-in extra.
     assert project["dependencies"] == []
-    assert "director-ai>=3.18.0,<4" in project["optional-dependencies"]["full"]
+    assert "director-ai>=3.18.1,<4" in project["optional-dependencies"]["full"]
     assert pyproject["tool"]["setuptools"]["package-data"]["director_ai_lite"] == [
         "py.typed"
     ]
@@ -57,7 +57,7 @@ def test_lite_package_is_standalone_apache() -> None:
 def test_lite_exposes_its_own_standalone_surface() -> None:
     import director_ai_lite
 
-    assert director_ai_lite.__version__ == "3.18.0"
+    assert director_ai_lite.__version__ == "3.18.1"
     assert sorted(director_ai_lite.__all__) == [
         "StreamGuard",
         "StreamResult",

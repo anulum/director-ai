@@ -7,18 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.18.1] - 2026-07-16
+
 ### Fixed
 
-- **`core/scoring/temporal_refresh.py` (BUSL-1.1) no longer ships in the
-  free Apache-2.0 wheel.** The live web-search temporal refresher was
-  BUSL-headered and lazy-guarded during the boundary work but the 3.18.0
-  re-slice omitted it from the paid manifest, so the compiled free wheel
-  carried a BUSL module. It now ships only in `director-ai-pro` /
-  `director-ai-full`; the free guard's `temporal_refresher` and
-  `temporal_consistency` properties raise the friendly "requires the
-  advanced tier" error on a core-only install instead of a raw
-  `ModuleNotFoundError`. The Apache-2.0 `temporal_freshness` flagger
-  stays in the free wheel.
+- **Live temporal-refresh moves from the free wheel to the paid tiers —
+  correcting a licence-boundary leak.** `core/scoring/temporal_refresh.py`
+  carries a BUSL-1.1 header (it is the paid live web-search refresher), but
+  the 3.18.0 open-core re-slice omitted it from the paid manifest, so the
+  3.17.0 and 3.18.0 free wheels shipped it **by accident** — a BUSL module
+  physically inside the Apache-2.0 artefact. It now ships only in
+  `director-ai-pro` / `director-ai-full`. If you relied on
+  `guard.temporal_refresher` (live web-search staleness checking) on a free
+  install, it was never licensed for the free tier; it is now a Pro feature
+  and a core-only install raises a clear "requires the advanced tier" error
+  (the sibling Apache-2.0 `temporal_freshness` staleness *flagger* stays
+  free). The `temporal_consistency` property gained the same friendly
+  guard. A parity test now fails the build if any BUSL-headered file falls
+  outside the paid boundary, so this cannot recur.
+- `REUSE.toml` no longer contradicts the per-file BUSL headers: an explicit
+  BUSL-1.1 annotation block was added for the advanced/labs source so a
+  reader of `REUSE.toml` sees the same split the file headers declare
+  (`reuse lint` was already compliant — headers are authoritative).
 
 ## [3.18.0] - 2026-07-16
 

@@ -330,4 +330,4 @@ class TestExports:
     def test_version_bumped(self):
         from director_ai import __version__
 
-        assert __version__ == "3.18.0"
+        assert __version__ == "3.18.1"

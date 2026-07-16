@@ -16,7 +16,7 @@ curl https://your-server:8080/v1/source
 ```json
 {
   "license": "Apache-2.0 AND BUSL-1.1",
-  "version": "3.18.0",
+  "version": "3.18.1",
   "repository_url": "https://github.com/anulum/director-ai",
   "instructions": "git clone https://github.com/anulum/director-ai"
 }
@@ -43,7 +43,7 @@ export DIRECTOR_SOURCE_ENDPOINT_ENABLED=false
 
 ## The Tier Boundary in Practice
 
-Since 3.18.0 the public PyPI wheel is **core-only**: the BUSL-1.1 advanced
+Since 3.18.1 the public PyPI wheel is **core-only**: the BUSL-1.1 advanced
 packages and the paid single modules (server, verified scorer, calibration,
 training, …) are not in the artefact. Every public name stays importable —
 using one in a core-only install raises a clear
