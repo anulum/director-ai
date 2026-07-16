@@ -12,7 +12,7 @@ left three benign true-paraphrase false-halts whose root cause is now purely
 ``h_factual`` — the FactCG model scores hard-but-true paraphrases (deontic
 rephrasings, added qualifiers, hedges) as divergent, in the same score band as
 false claims, so a threshold cannot separate them. Forward NLI alone
-(``premise=context``) mis-reads a paraphrase that adds soft modality.
+(``premise=context``) misreads a paraphrase that adds soft modality.
 
 This harness scores EACH case in BOTH directions — forward
 ``NLI(context -> claim)`` and reverse ``NLI(claim -> context)`` — over an
