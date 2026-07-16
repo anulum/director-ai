@@ -21,12 +21,11 @@ All public symbols are re-exported here for backward compatibility::
     from director_ai.core import CoherenceScorer, HaltMonitor, ...
 """
 
-from typing import NoReturn
+from importlib import import_module
+from typing import TYPE_CHECKING, Any
 
 # --- Scoring ---
 # --- Core-level modules (not moved) ---
-from .actor import LLMGenerator, MockGenerator
-from .agent import CoherenceAgent
 from .attribution import (
     AttributionEdge,
     AttributionNode,
@@ -34,81 +33,7 @@ from .attribution import (
     build_causal_attribution_graph,
 )
 from .cache import ScoreCache
-from .calibration.adaptive_conformal import AdaptiveConformalPredictor
-
-# --- Calibration ---
-from .calibration.adaptive_threshold import (
-    AdaptiveThresholdArm,
-    AdaptiveThresholdLearner,
-    AdaptiveThresholdRecommendation,
-    AdaptiveThresholdReport,
-    ThresholdFeedback,
-)
-from .calibration.conformal import (
-    ConformalPredictor,
-    ConformalRoutingDecision,
-    ConformalRoutingPolicy,
-    PredictionInterval,
-)
-from .calibration.feedback_store import FeedbackStore
-from .calibration.grader_validation import (
-    GraderCase,
-    GraderReport,
-    GraderValidationError,
-    StatusMetrics,
-    assert_grader_admissible,
-    validate_grader,
-)
-from .calibration.miscoverage import (
-    CoverageHealthReport,
-    MiscoverageMonitor,
-    SegmentCoverageHealth,
-)
-from .calibration.online_calibrator import CalibrationReport, OnlineCalibrator
-from .calibration.recall_correctness import (
-    RecallOutcome,
-    correctness_from_verdict,
-    recall_outcome,
-)
-from .calibration.recall_correctness_client import (
-    RemanentiaCorrectnessClient,
-    RemanentiaCorrectnessError,
-)
-from .calibration.recall_ledger import (
-    ColdStartSummary,
-    RecallQuery,
-    cold_start_from_ledger,
-    default_ledger_path,
-    read_recall_ledger,
-)
-from .calibration.segmented_threshold import (
-    SegmentedThresholdLearner,
-    SegmentRecommendation,
-)
-from .calibration.tuner import TuneResult, tune
 from .config import DirectorConfig, ProfileMetadata
-from .edge import (
-    EdgeRuntimeCheck,
-    EdgeRuntimeReadiness,
-    build_edge_runtime_readiness,
-)
-
-# --- Evaluation ---
-from .evaluation import (
-    LabelledPolicySample,
-    PolicyComparisonReport,
-    PolicyEvaluationReport,
-    PolicyVariant,
-    PolicyVariantResult,
-    compare_policy_variants,
-    evaluate_policy_variants,
-)
-from .federated_privacy import (
-    DifferentialPrivacyScoreReleaser,
-    FederatedSafetySignalAggregator,
-    FederatedSafetySignalRelease,
-    PrivacyScoreRelease,
-)
 from .memory import (
     CrossDocumentConflict,
     CrossDocumentConsistencyMemory,
@@ -217,23 +142,6 @@ from .scoring.temporal_freshness import (
     score_temporal_freshness,
 )
 from .scoring.verified_scorer import ClaimVerdict, VerificationResult, VerifiedScorer
-
-# --- Training ---
-from .training.finetune import FinetuneConfig, FinetuneResult, finetune_nli
-from .training.finetune_benchmark import (
-    ModelBenchmarkReport,
-    ModelBenchmarkResult,
-    RegressionReport,
-    benchmark_finetuned_model,
-    benchmark_model_candidates,
-)
-from .training.finetune_validator import DataQualityReport, validate_finetune_data
-from .training.model_registry import (
-    TrainingModelProfile,
-    finetune_model_registry_to_dict,
-    list_finetune_model_profiles,
-    resolve_finetune_model,
-)
 from .types import (
     ClaimAttribution,
     CoherenceScore,
@@ -274,6 +182,96 @@ from .verification.numeric_verifier import NumericVerificationResult, verify_num
 from .verification.reasoning_verifier import verify_reasoning_chain
 from .verification.tool_call_verifier import ToolCallResult, verify_tool_call
 from .verification.types import FieldVerdict
+
+# Pro-tier surface — annotations only; runtime goes through __getattr__.
+if TYPE_CHECKING:
+    from .actor import LLMGenerator, MockGenerator
+    from .agent import CoherenceAgent
+    from .calibration.adaptive_conformal import AdaptiveConformalPredictor
+    from .calibration.adaptive_threshold import (
+        AdaptiveThresholdArm,
+        AdaptiveThresholdLearner,
+        AdaptiveThresholdRecommendation,
+        AdaptiveThresholdReport,
+        ThresholdFeedback,
+    )
+    from .calibration.conformal import (
+        ConformalPredictor,
+        ConformalRoutingDecision,
+        ConformalRoutingPolicy,
+        PredictionInterval,
+    )
+    from .calibration.feedback_store import FeedbackStore
+    from .calibration.grader_validation import (
+        GraderCase,
+        GraderReport,
+        GraderValidationError,
+        StatusMetrics,
+        assert_grader_admissible,
+        validate_grader,
+    )
+    from .calibration.miscoverage import (
+        CoverageHealthReport,
+        MiscoverageMonitor,
+        SegmentCoverageHealth,
+    )
+    from .calibration.online_calibrator import CalibrationReport, OnlineCalibrator
+    from .calibration.recall_correctness import (
+        RecallOutcome,
+        correctness_from_verdict,
+        recall_outcome,
+    )
+    from .calibration.recall_correctness_client import (
+        RemanentiaCorrectnessClient,
+        RemanentiaCorrectnessError,
+    )
+    from .calibration.recall_ledger import (
+        ColdStartSummary,
+        RecallQuery,
+        cold_start_from_ledger,
+        default_ledger_path,
+        read_recall_ledger,
+    )
+    from .calibration.segmented_threshold import (
+        SegmentedThresholdLearner,
+        SegmentRecommendation,
+    )
+    from .calibration.tuner import TuneResult, tune
+    from .edge import (
+        EdgeRuntimeCheck,
+        EdgeRuntimeReadiness,
+        build_edge_runtime_readiness,
+    )
+    from .evaluation import (
+        LabelledPolicySample,
+        PolicyComparisonReport,
+        PolicyEvaluationReport,
+        PolicyVariant,
+        PolicyVariantResult,
+        compare_policy_variants,
+        evaluate_policy_variants,
+    )
+    from .federated_privacy import (
+        DifferentialPrivacyScoreReleaser,
+        FederatedSafetySignalAggregator,
+        FederatedSafetySignalRelease,
+        PrivacyScoreRelease,
+    )
+    from .training.finetune import FinetuneConfig, FinetuneResult, finetune_nli
+    from .training.finetune_benchmark import (
+        ModelBenchmarkReport,
+        ModelBenchmarkResult,
+        RegressionReport,
+        benchmark_finetuned_model,
+        benchmark_model_candidates,
+    )
+    from .training.finetune_validator import DataQualityReport, validate_finetune_data
+    from .training.model_registry import (
+        TrainingModelProfile,
+        finetune_model_registry_to_dict,
+        list_finetune_model_profiles,
+        resolve_finetune_model,
+    )
 
 __all__ = [
     # Scoring
@@ -493,11 +491,109 @@ _MOVED_TO_ENTERPRISE = {
     "AuditEntry": ".safety.audit",
 }
 
+# Pro-tier re-exports resolved lazily (PEP 562): the free wheel keeps the names
+# in its public surface, but the paid submodules are only imported on first
+# attribute access. On a core-only install the access raises the friendly
+# "advanced tier required" ImportError instead of breaking `import
+# director_ai.core` at module load.
+_LAZY_PAID = {
+    # actor / agent
+    "LLMGenerator": ".actor",
+    "MockGenerator": ".actor",
+    "CoherenceAgent": ".agent",
+    # calibration
+    "AdaptiveConformalPredictor": ".calibration.adaptive_conformal",
+    "AdaptiveThresholdArm": ".calibration.adaptive_threshold",
+    "AdaptiveThresholdLearner": ".calibration.adaptive_threshold",
+    "AdaptiveThresholdRecommendation": ".calibration.adaptive_threshold",
+    "AdaptiveThresholdReport": ".calibration.adaptive_threshold",
+    "ThresholdFeedback": ".calibration.adaptive_threshold",
+    "ConformalPredictor": ".calibration.conformal",
+    "ConformalRoutingDecision": ".calibration.conformal",
+    "ConformalRoutingPolicy": ".calibration.conformal",
+    "PredictionInterval": ".calibration.conformal",
+    "FeedbackStore": ".calibration.feedback_store",
+    "GraderCase": ".calibration.grader_validation",
+    "GraderReport": ".calibration.grader_validation",
+    "GraderValidationError": ".calibration.grader_validation",
+    "StatusMetrics": ".calibration.grader_validation",
+    "assert_grader_admissible": ".calibration.grader_validation",
+    "validate_grader": ".calibration.grader_validation",
+    "CoverageHealthReport": ".calibration.miscoverage",
+    "MiscoverageMonitor": ".calibration.miscoverage",
+    "SegmentCoverageHealth": ".calibration.miscoverage",
+    "CalibrationReport": ".calibration.online_calibrator",
+    "OnlineCalibrator": ".calibration.online_calibrator",
+    "RecallOutcome": ".calibration.recall_correctness",
+    "correctness_from_verdict": ".calibration.recall_correctness",
+    "recall_outcome": ".calibration.recall_correctness",
+    "RemanentiaCorrectnessClient": ".calibration.recall_correctness_client",
+    "RemanentiaCorrectnessError": ".calibration.recall_correctness_client",
+    "ColdStartSummary": ".calibration.recall_ledger",
+    "RecallQuery": ".calibration.recall_ledger",
+    "cold_start_from_ledger": ".calibration.recall_ledger",
+    "default_ledger_path": ".calibration.recall_ledger",
+    "read_recall_ledger": ".calibration.recall_ledger",
+    "SegmentedThresholdLearner": ".calibration.segmented_threshold",
+    "SegmentRecommendation": ".calibration.segmented_threshold",
+    "TuneResult": ".calibration.tuner",
+    "tune": ".calibration.tuner",
+    # edge
+    "EdgeRuntimeCheck": ".edge",
+    "EdgeRuntimeReadiness": ".edge",
+    "build_edge_runtime_readiness": ".edge",
+    # evaluation
+    "LabelledPolicySample": ".evaluation",
+    "PolicyComparisonReport": ".evaluation",
+    "PolicyEvaluationReport": ".evaluation",
+    "PolicyVariant": ".evaluation",
+    "PolicyVariantResult": ".evaluation",
+    "compare_policy_variants": ".evaluation",
+    "evaluate_policy_variants": ".evaluation",
+    # federated_privacy
+    "DifferentialPrivacyScoreReleaser": ".federated_privacy",
+    "FederatedSafetySignalAggregator": ".federated_privacy",
+    "FederatedSafetySignalRelease": ".federated_privacy",
+    "PrivacyScoreRelease": ".federated_privacy",
+    # training
+    "FinetuneConfig": ".training.finetune",
+    "FinetuneResult": ".training.finetune",
+    "finetune_nli": ".training.finetune",
+    "ModelBenchmarkReport": ".training.finetune_benchmark",
+    "ModelBenchmarkResult": ".training.finetune_benchmark",
+    "RegressionReport": ".training.finetune_benchmark",
+    "benchmark_finetuned_model": ".training.finetune_benchmark",
+    "benchmark_model_candidates": ".training.finetune_benchmark",
+    "DataQualityReport": ".training.finetune_validator",
+    "validate_finetune_data": ".training.finetune_validator",
+    "TrainingModelProfile": ".training.model_registry",
+    "finetune_model_registry_to_dict": ".training.model_registry",
+    "list_finetune_model_profiles": ".training.model_registry",
+    "resolve_finetune_model": ".training.model_registry",
+}
 
-def __getattr__(name: str) -> NoReturn:
+
+def __getattr__(name: str) -> Any:
     if name in _MOVED_TO_ENTERPRISE:
         raise ImportError(
             f"{name} moved to director_ai.enterprise in v3.0. "
             f"Use: from director_ai.enterprise import {name}",
         )
-    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+    target = _LAZY_PAID.get(name)
+    if target is None:
+        raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+    try:
+        module = import_module(target, __name__)
+    except ModuleNotFoundError as exc:
+        raise ImportError(
+            f"{name} requires the advanced tier "
+            f"(director_ai.core{target} is not installed). "
+            "Install director-ai-pro to use it.",
+        ) from exc
+    value = getattr(module, name)
+    globals()[name] = value  # cache — subsequent access bypasses __getattr__
+    return value
+
+
+def __dir__() -> list[str]:
+    return sorted(set(__all__) | set(globals()))
