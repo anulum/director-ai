@@ -123,8 +123,17 @@ jobs:
           for tier in pro full; do
             python -m build --wheel "packages/director-ai-$tier" --outdir "dist-$tier"
             twine check "dist-$tier"/*
-            python scripts/check_paid_wheel.py "dist-$tier"
+            python scripts/check_paid_wheel.py "dist-$tier" "$tier"
           done
+
+      - name: Build + check the free core wheel
+        run: |
+          # The free wheel must stay core-only after the D1 re-slice: no paid
+          # packages, no paid single modules, and the unpacked wheel must import
+          # standalone with the friendly "advanced tier" boundary errors.
+          python -m build --wheel . --outdir dist-free
+          twine check dist-free/*
+          python scripts/check_free_wheel.py dist-free
 
   typecheck:
     name: Type Check

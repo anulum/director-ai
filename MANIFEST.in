@@ -4,9 +4,15 @@ include CHANGELOG.md
 include NOTICE.md
 recursive-include src *.py *.pyi *.pkl
 
+# The sdist must carry the free-wheel build shim so a wheel built from the
+# sdist applies the same paid-module slicing as a repo build.
+include packages/tier_build_hooks.py
+include packages/paid_tier_manifest.json
+
 # Open-core release: keep the BUSL-1.1 advanced & labs packages out of the PyPI
 # sdist too (they remain source-available in the git repository). The wheel
 # excludes them via pyproject [tool.setuptools.packages.find].exclude.
+# Extended 2026-07-16 per decisions D1/D2 (ladder P3 re-slice).
 prune src/director_ai/agentic
 prune src/director_ai/compliance
 prune src/director_ai/enterprise
@@ -48,3 +54,74 @@ prune src/director_ai/core/temporal_logic
 prune src/director_ai/core/threat_intel
 prune src/director_ai/core/trace_safe
 prune src/director_ai/core/trajectory
+prune src/director_ai/federation
+prune src/director_ai/middleware
+prune src/director_ai/proto
+prune src/director_ai/routers
+prune src/director_ai/testing
+prune src/director_ai/core/agent_preflight
+prune src/director_ai/core/answer_bom
+prune src/director_ai/core/calibration
+prune src/director_ai/core/canary
+prune src/director_ai/core/causal_verifier
+prune src/director_ai/core/consensus
+prune src/director_ai/core/containment
+prune src/director_ai/core/cyber_physical
+prune src/director_ai/core/edge
+prune src/director_ai/core/eval_trace
+prune src/director_ai/core/evaluation
+prune src/director_ai/core/evidence_firewall
+prune src/director_ai/core/federated_privacy
+prune src/director_ai/core/forecasting
+prune src/director_ai/core/formal_verification
+prune src/director_ai/core/irreversibility
+prune src/director_ai/core/labelling_cockpit
+prune src/director_ai/core/swarm_coherence
+prune src/director_ai/core/training
+prune src/director_ai/core/zk_attestation
+
+# Paid single modules inside free packages (packages/paid_tier_manifest.json):
+# kept out of the sdist for the same reason as the pruned packages above.
+exclude src/director_ai/_cli_bench.py
+exclude src/director_ai/_cli_gate.py
+exclude src/director_ai/_cli_ingest.py
+exclude src/director_ai/_cli_production.py
+exclude src/director_ai/_cli_release_gate.py
+exclude src/director_ai/_cli_serve.py
+exclude src/director_ai/_cli_train.py
+exclude src/director_ai/_cli_train_tracking.py
+exclude src/director_ai/_finetune_managed.py
+exclude src/director_ai/_finetune_schemas.py
+exclude src/director_ai/_finetune_worker.py
+exclude src/director_ai/_proxy_moderations.py
+exclude src/director_ai/_server_auth_middleware.py
+exclude src/director_ai/_server_helpers.py
+exclude src/director_ai/_server_lifecycle.py
+exclude src/director_ai/_server_models.py
+exclude src/director_ai/ci_gate.py
+exclude src/director_ai/director_pb2.py
+exclude src/director_ai/director_pb2_grpc.py
+exclude src/director_ai/finetune_api.py
+exclude src/director_ai/finetune_jobs.py
+exclude src/director_ai/grpc_scoring.py
+exclude src/director_ai/grpc_server.py
+exclude src/director_ai/interlock.py
+exclude src/director_ai/knowledge_api.py
+exclude src/director_ai/proxy.py
+exclude src/director_ai/server.py
+exclude src/director_ai/server_support.py
+exclude src/director_ai/core/actor.py
+exclude src/director_ai/core/agent.py
+exclude src/director_ai/core/batch.py
+exclude src/director_ai/core/embedding_tuner.py
+exclude src/director_ai/core/finetune.py
+exclude src/director_ai/core/finetune_benchmark.py
+exclude src/director_ai/core/finetune_validator.py
+exclude src/director_ai/core/kb_write_security.py
+exclude src/director_ai/core/review_queue.py
+exclude src/director_ai/core/secrets.py
+exclude src/director_ai/core/session.py
+exclude src/director_ai/core/sharded_nli.py
+exclude src/director_ai/core/tenant.py
+exclude src/director_ai/core/tuner.py
+exclude src/director_ai/core/verified_scorer.py

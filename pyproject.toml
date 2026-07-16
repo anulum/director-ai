@@ -369,15 +369,45 @@ where = ["src"]
 # Open-core release: the public PyPI wheel ships only the Apache-2.0 core. The
 # BUSL-1.1 advanced & labs packages below stay source-available in the repo but
 # are excluded from the published wheel. The core imports standalone without them
-# (verified via the basic-wheel import simulation); advanced features raise a
+# (verified via scripts/check_free_wheel.py in CI); advanced features raise a
 # friendly "advanced tier required" error when invoked in a core-only install.
+# Extended 2026-07-16 per decisions D1/D2 (ladder P3 re-slice): server surface,
+# advanced accuracy, training and enterprise packages move to the paid wheels.
+# Paid SINGLE MODULES inside free packages (director_ai/server.py, …) cannot be
+# excluded here — setup.py filters them via packages/tier_build_hooks.py; the
+# shared list lives in packages/paid_tier_manifest.json.
 exclude = [
     "director_ai.agentic*",
     "director_ai.compliance*",
     "director_ai.enterprise*",
     "director_ai.experimental*",
+    "director_ai.federation*",
+    "director_ai.middleware*",
+    "director_ai.proto*",
+    "director_ai.routers*",
+    "director_ai.testing*",
     "director_ai.ui*",
     "director_ai.voice*",
+    "director_ai.core.agent_preflight*",
+    "director_ai.core.answer_bom*",
+    "director_ai.core.calibration*",
+    "director_ai.core.canary*",
+    "director_ai.core.causal_verifier*",
+    "director_ai.core.consensus*",
+    "director_ai.core.containment*",
+    "director_ai.core.cyber_physical*",
+    "director_ai.core.edge*",
+    "director_ai.core.eval_trace*",
+    "director_ai.core.evaluation*",
+    "director_ai.core.evidence_firewall*",
+    "director_ai.core.federated_privacy*",
+    "director_ai.core.forecasting*",
+    "director_ai.core.formal_verification*",
+    "director_ai.core.irreversibility*",
+    "director_ai.core.labelling_cockpit*",
+    "director_ai.core.swarm_coherence*",
+    "director_ai.core.training*",
+    "director_ai.core.zk_attestation*",
     "director_ai.core.agent_identity*",
     "director_ai.core.autopoietic*",
     "director_ai.core.citation_grounding*",
@@ -415,11 +445,14 @@ exclude = [
     "director_ai.core.trajectory*",
 ]
 
+# NOTE: no "proto/**/*.pyi" here — the glob is keyed on the parent
+# ``director_ai`` package, so it would leak the gRPC stub type files into the
+# free wheel even though the ``director_ai.proto`` package itself is excluded.
+# The paid pyprojects carry the proto stub package-data instead.
 [tool.setuptools.package-data]
 director_ai = [
     "py.typed",
     "core/models/*.json",
-    "proto/**/*.pyi",
 ]
 
 [tool.ruff]

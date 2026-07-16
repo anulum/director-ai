@@ -9,7 +9,7 @@
     "python_model_classes": 1040,
     "python_model_source_modules": 518,
     "rust_pyo3_model_wrappers": 83,
-    "test_files": 758
+    "test_files": 759
   },
   "documentation": {
     "public_pages": [
@@ -5392,8 +5392,7 @@
     ],
     "shipped_package_data": [
       "py.typed",
-      "core/models/*.json",
-      "proto/**/*.pyi"
+      "core/models/*.json"
     ]
   },
   "project": {
@@ -5902,6 +5901,7 @@
       "tests/test_output_integrity.py",
       "tests/test_output_integrity_real_surface.py",
       "tests/test_output_trust.py",
+      "tests/test_paid_tier_packaging.py",
       "tests/test_paladin_mini.py",
       "tests/test_paladin_mini_real_surface.py",
       "tests/test_parent_child_backend.py",
