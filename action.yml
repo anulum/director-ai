@@ -38,7 +38,7 @@ inputs:
     required: false
     default: "nli"
   version:
-    description: "director-ai version spec to install (e.g. '', '==3.17.0', '>=3.16')."
+    description: "director-ai version spec to install (e.g. '', '==3.18.0', '>=3.16')."
     required: false
     default: ""
   python-version:

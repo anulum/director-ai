@@ -222,7 +222,7 @@ director-ai tune eval_data.jsonl
 
 ```bash
 director-ai version
-# director-ai 3.17.0
+# director-ai 3.18.0
 ```
 
 ## Global Options

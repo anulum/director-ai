@@ -7,6 +7,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.18.0] - 2026-07-16
+
+### Changed
+
+- **The public PyPI wheel is now core-only** (open-core re-slice per the
+  2026-07-16 packaging decisions). The production server surface
+  (REST/gRPC server, proxy, routers, middleware), the advanced-accuracy
+  set (`verified_scorer`, `sharded_nli`, cross-model consensus,
+  forecasting, calibration), evaluation, training/fine-tuning and the
+  enterprise packages now ship only in the commercial
+  `director-ai-pro` / `director-ai-full` wheels (BUSL-1.1), installed
+  from the private index at `pypi.remanentia.com`. Public names remain
+  importable in a core-only install and raise a friendly
+  "requires the advanced tier" error when used; the free streaming
+  halt, 5-tier scorer, RAG grounding, CLI verification surface and
+  integrations are unchanged.
+- The sdist mirrors the same boundary and carries the build shims, so a
+  wheel built from the sdist applies identical slicing.
+- Docker images (CPU + GPU) now compose the free core wheel with the
+  `director-ai-pro` overlay, matching their pre-slice content — the
+  server image has always carried the BUSL production surface.
+- Paid wheels declare `director-ai>=3.18.0,<4`: the slimmed core is a
+  file-level prerequisite for overlaying the pro/full modules.
+
+### Added
+
+- `scripts/check_free_wheel.py` — CI contents check plus an
+  unpacked-wheel import simulation proving the free wheel imports
+  standalone with friendly tier boundaries; the public publish lane
+  refuses paid-tier artefacts (dependency-confusion gate) and the paid
+  lane uploads to the private index.
+- `packages/paid_tier_manifest.json` + `packages/tier_build_hooks.py` —
+  the shared record of paid single modules consumed by the build hooks,
+  wheel checks and the packaging parity test suite.
+
 ## [3.17.0] - 2026-07-16
 
 ### Changed

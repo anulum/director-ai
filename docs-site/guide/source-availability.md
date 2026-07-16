@@ -16,7 +16,7 @@ curl https://your-server:8080/v1/source
 ```json
 {
   "license": "Apache-2.0 AND BUSL-1.1",
-  "version": "3.17.0",
+  "version": "3.18.0",
   "repository_url": "https://github.com/anulum/director-ai",
   "instructions": "git clone https://github.com/anulum/director-ai"
 }

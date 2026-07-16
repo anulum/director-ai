@@ -5400,7 +5400,7 @@
     "name": "director-ai",
     "readme": "README.md",
     "requires_python": ">=3.11",
-    "version": "3.17.0"
+    "version": "3.18.0"
   },
   "project_label": "Director-AI",
   "quality_gates": {

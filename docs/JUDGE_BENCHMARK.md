@@ -1,6 +1,6 @@
 # Director-AI Local Judge Benchmark
 
-> **Module**: `benchmarks/run_judge_benchmark.py` | **Version**: 3.17.0 | **License**: Apache-2.0
+> **Module**: `benchmarks/run_judge_benchmark.py` | **Version**: 3.18.0 | **License**: Apache-2.0
 >
 > © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
 > © Code 2020–2026 Miroslav Šotek. All rights reserved.

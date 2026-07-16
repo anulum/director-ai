@@ -1,6 +1,6 @@
 # Director-AI End-to-End Guardrail Benchmark
 
-> **Module**: `benchmarks/e2e_eval.py` | **Version**: 3.17.0 | **License**: Apache-2.0
+> **Module**: `benchmarks/e2e_eval.py` | **Version**: 3.18.0 | **License**: Apache-2.0
 >
 > © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
 > © Code 2020–2026 Miroslav Šotek. All rights reserved.
