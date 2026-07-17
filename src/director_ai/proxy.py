@@ -433,7 +433,17 @@ def create_proxy_app(
             return JSONResponse(content=data)
 
         t0 = _time.monotonic()
-        approved, cs = scorer.review(prompt, text)
+        try:
+            approved, cs = scorer.review(prompt, text)
+        except Exception:  # noqa: BLE001 - any scorer error fails closed
+            return _scorer_error_response(
+                audit_log,
+                prompt,
+                text,
+                model=body.get("model", "unknown"),
+                task_type="completion",
+                t0=t0,
+            )
         latency_ms = (_time.monotonic() - t0) * 1000
         extra_headers = {
             "X-Director-Score": f"{cs.score:.4f}",
@@ -514,7 +524,17 @@ def create_proxy_app(
             return JSONResponse(content=data)
 
         t0 = _time.monotonic()
-        approved, cs = scorer.review(prompt, content)
+        try:
+            approved, cs = scorer.review(prompt, content)
+        except Exception:  # noqa: BLE001 - any scorer error fails closed
+            return _scorer_error_response(
+                audit_log,
+                prompt,
+                content,
+                model=body.get("model", "unknown"),
+                task_type="chat",
+                t0=t0,
+            )
         latency_ms = (_time.monotonic() - t0) * 1000
         extra_headers = {
             "X-Director-Score": f"{cs.score:.4f}",
@@ -765,6 +785,46 @@ async def _handle_streaming(
                     yield line + "\n"
 
     return StreamingResponse(_stream(), media_type="text/event-stream")
+
+
+def _scorer_error_response(
+    audit_log: Any,
+    prompt: str,
+    text: str,
+    *,
+    model: str,
+    task_type: str,
+    t0: float,
+) -> Response:
+    """Record a non-streaming scorer failure and return a fail-closed 503.
+
+    Mirrors the streaming fail-closed path (KIMI3-H5): a ``scorer.review``
+    exception must not surface the unreviewed model output. It is logged,
+    recorded as an ``approved=False`` audit entry, and answered with a clear
+    503 rather than the bare 500 an uncaught exception would produce. Call only
+    from within the review ``except`` block (uses the active exception context).
+    """
+    _log.exception("scorer.review failed on a non-streaming request; failing closed")
+    _audit_log_entry(
+        audit_log,
+        prompt,
+        text,
+        model=model,
+        score=0.0,
+        approved=False,
+        confidence=0.0,
+        latency_ms=(_time.monotonic() - t0) * 1000,
+        task_type=task_type,
+    )
+    return JSONResponse(
+        status_code=503,
+        content={
+            "error": {
+                "message": "Scoring unavailable — request halted by Director-AI",
+                "type": "scorer_error",
+            },
+        },
+    )
 
 
 def _audit_log_entry(

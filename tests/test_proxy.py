@@ -1159,3 +1159,76 @@ def test_completion_helpers_reject_malformed_shapes() -> None:
     assert _completion_prompt({"prompt": []}) == ""
     assert _completion_prompt({"prompt": [1]}) == ""
     assert _completion_prompt({"prompt": {"weird": 1}}) == ""
+
+
+# --- KIMI3-H5 follow-up: non-streaming scorer error must fail closed + audit ---
+
+
+class _RaisingScorer:
+    """A scorer whose review always raises, to prove the non-streaming halt."""
+
+    def review(self, prompt: str, content: str):
+        raise RuntimeError("scorer boom")
+
+
+def _completion_upstream(text: str) -> httpx.MockTransport:
+    """Upstream returning a legacy /v1/completions payload."""
+
+    async def _handler(request: httpx.Request):
+        return httpx.Response(
+            200,
+            json={
+                "id": "cmpl-test",
+                "object": "text_completion",
+                "choices": [{"index": 0, "text": text, "finish_reason": "stop"}],
+            },
+        )
+
+    return httpx.MockTransport(_handler)
+
+
+@pytest.mark.asyncio
+async def test_non_streaming_chat_scorer_error_fails_closed(monkeypatch):
+    import director_ai.proxy as proxy
+
+    monkeypatch.setattr(proxy, "CoherenceScorer", lambda **_kw: _RaisingScorer())
+    app = create_proxy_app(
+        upstream_url="http://fake-upstream",
+        allow_http_upstream=True,
+        on_fail="reject",
+        _transport=_upstream_transport("the unreviewed answer"),
+    )
+    transport = ASGITransport(app=app)
+    async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+        resp = await client.post(
+            "/v1/chat/completions",
+            json={"model": "m", "messages": [{"role": "user", "content": "q"}]},
+        )
+
+    # fail closed: a 503 scorer_error, and the unreviewed content is not disclosed
+    assert resp.status_code == 503
+    assert resp.json()["error"]["type"] == "scorer_error"
+    assert "unreviewed answer" not in resp.text
+
+
+@pytest.mark.asyncio
+async def test_non_streaming_completion_scorer_error_fails_closed(monkeypatch):
+    import director_ai.proxy as proxy
+
+    monkeypatch.setattr(proxy, "CoherenceScorer", lambda **_kw: _RaisingScorer())
+    app = create_proxy_app(
+        upstream_url="http://fake-upstream",
+        allow_http_upstream=True,
+        on_fail="reject",
+        _transport=_completion_upstream("the unreviewed answer"),
+    )
+    transport = ASGITransport(app=app)
+    async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+        resp = await client.post(
+            "/v1/completions",
+            json={"model": "m", "prompt": "q"},
+        )
+
+    assert resp.status_code == 503
+    assert resp.json()["error"]["type"] == "scorer_error"
+    assert "unreviewed answer" not in resp.text
