@@ -28,11 +28,36 @@ from director_ai.testing.adversarial_suite import (
 class TestPatternGeneration:
     def test_builds_patterns(self):
         patterns = _build_patterns()
-        assert len(patterns) >= 20  # 5 samples × 5 transforms
+        # 5 samples × 5 transforms + NLI-evasion classes (KIMI2-I):
+        # 5 paraphrase + 5 temporal + 3 negation.
+        assert len(patterns) >= 33
         categories = {p.category for p in patterns}
         assert "unicode" in categories
         assert "encoding" in categories
         assert "injection" in categories
+        assert "paraphrase" in categories
+        assert "temporal" in categories
+        assert "negation" in categories
+
+    def test_nli_evasion_patterns_target_the_detector(self):
+        # KIMI2-I: the NLI-evasion adversarials are plain-text falsehoods —
+        # no encoding/wrapping — so a bypass means the DETECTOR itself missed
+        # a reworded/authority-framed/negated falsehood.
+        patterns = _build_patterns()
+        temporal = [p for p in patterns if p.category == "temporal"]
+        assert temporal
+        for p in temporal:
+            assert p.adversarial.startswith("As of 2025, researchers confirmed")
+            assert p.original[0].lower() in p.adversarial
+        negation = [p for p in patterns if p.category == "negation"]
+        assert negation
+        for p in negation:
+            assert " not " in p.adversarial
+            assert p.original != p.adversarial
+        paraphrase = [p for p in patterns if p.category == "paraphrase"]
+        assert len(paraphrase) == 5
+        for p in paraphrase:
+            assert p.adversarial != p.original
 
     def test_zero_width_injection(self):
         result = _inject_zero_width("hello")

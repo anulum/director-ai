@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **The adversarial robustness suite now covers NLI-evasion classes.** The
+  built-in patterns targeted the prompt boundary (encoding tricks, role-play,
+  zero-width/homoglyph); the classes the 2026-07-16 red-team reproduction
+  measured — synonym-reworded falsehoods, authority/recency framing
+  ("As of 2025, researchers confirmed…"), and explicit negations of true
+  facts — target the detector itself and are now first-class pattern
+  categories (`paraphrase`, `temporal`, `negation`) in
+  `testing.adversarial_suite`.
+
 - **AnthropicProvider streams real tokens; no provider degrades silently.**
   `AnthropicProvider.stream_generate()` now streams Messages API server-sent
   events (`content_block_delta`/`text_delta`) instead of silently falling
