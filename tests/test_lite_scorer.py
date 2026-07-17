@@ -82,6 +82,49 @@ class TestLiteScorer:
         text = "The quick brown fox jumps over the lazy dog."
         assert self.scorer.score(text, text) < 0.3
 
+    def test_negation_flip_high_overlap_contradicts(self):
+        # KIMI3-negation: the weighted penalty moves the composite by at
+        # most 0.06 (this pair sat at 0.14, approved); the polarity-flip
+        # floor must push it to the contradiction level.
+        div = self.scorer.score(
+            "Paris is the capital of France.",
+            "Paris is not the capital of France.",
+        )
+        assert div >= 0.9
+
+    def test_negation_flip_below_gate_not_floored(self):
+        # A TRUE claim phrased with negation, content below the 0.8 gate:
+        # the mild penalty applies but the contradiction floor must not.
+        div = self.scorer.score(
+            "The maximum single adult dose of ibuprofen is 400 mg.",
+            "Adults should not exceed 400 mg of ibuprofen in a single dose.",
+        )
+        assert div < 0.9
+
+    def test_negation_flip_python_path_parity(self, monkeypatch):
+        # Rust accelerator and pure-Python body must score identically
+        # across polarity, overlap and entity regimes.
+        pairs = [
+            (
+                "Paris is the capital of France.",
+                "Paris is not the capital of France.",
+            ),
+            ("World War II ended in 1945.", "World War II did not end in 1945."),
+            (
+                "The maximum single adult dose of ibuprofen is 400 mg.",
+                "Adults should not exceed 400 mg of ibuprofen in a single dose.",
+            ),
+            ("The daytime sky appears blue.", "On a clear day the sky looks blue."),
+            (
+                "Phone support is not available on the free plan.",
+                "Phone support is not available on the free plan.",
+            ),
+        ]
+        rust_scores = [self.scorer.score(p, h) for p, h in pairs]
+        monkeypatch.setattr(lite_mod, "_RUST_LITE", False)
+        python_scores = [self.scorer.score(p, h) for p, h in pairs]
+        assert python_scores == pytest.approx(rust_scores, abs=1e-12)
+
     def test_python_path_handles_no_words_and_one_sided_entities(self, monkeypatch):
         monkeypatch.setattr(lite_mod, "_RUST_LITE", False)
         scorer = LiteScorer()

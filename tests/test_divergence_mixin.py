@@ -161,6 +161,44 @@ class TestHeuristicFallbacks:
             divergence_module.DIVERGENCE_NEUTRAL
         )
 
+    def test_heuristic_factual_negation_flip_high_overlap_contradicts(self):
+        # KIMI3-negation regression pins: a polarity flip on near-identical
+        # content must floor at the contradiction level — the flat +0.25
+        # penalty alone left both of these approved at threshold 0.5.
+        paris = CoherenceScorer._heuristic_factual(
+            "Paris is the capital of France.",
+            "Paris is not the capital of France.",
+        )
+        # Content precision here is exactly 0.8, pinning the gate as inclusive.
+        ww2 = CoherenceScorer._heuristic_factual(
+            "World War II ended in 1945.",
+            "World War II did not end in 1945.",
+        )
+        assert paris >= divergence_module.DIVERGENCE_CONTRADICTED
+        assert ww2 >= divergence_module.DIVERGENCE_CONTRADICTED
+
+    def test_heuristic_factual_negated_true_claim_below_gate_keeps_penalty(self):
+        # A TRUE claim phrased with negation against a positively-phrased
+        # fact sits below the overlap gate: the flat penalty still applies
+        # but the contradiction floor must not fire.
+        div = CoherenceScorer._heuristic_factual(
+            "The maximum single adult dose of ibuprofen is 400 mg.",
+            "Adults should not exceed 400 mg of ibuprofen in a single dose.",
+        )
+        assert 0.5 < div < divergence_module.DIVERGENCE_CONTRADICTED
+
+    def test_heuristic_factual_matching_negation_polarity_no_penalty(self):
+        div = CoherenceScorer._heuristic_factual(
+            "Phone support is not available on the free plan.",
+            "Phone support is not available on the free plan.",
+        )
+        assert div == pytest.approx(0.0)
+
+    def test_negation_flip_overlap_constant_exported(self):
+        from director_ai.core.scoring._heuristics import NEGATION_FLIP_OVERLAP
+
+        assert NEGATION_FLIP_OVERLAP == 0.8
+
 
 class TestTaskRouting:
     def test_resolve_agg_profile_switches_to_dialogue_profile(self):

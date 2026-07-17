@@ -256,6 +256,77 @@ class TestRustHeuristicFactualDivergence:
         score = backfire_kernel.rust_heuristic_factual_divergence("", "something")
         assert score == pytest.approx(0.5)
 
+    def test_negation_flip_high_overlap_contradicts(self):
+        # KIMI3-negation: a polarity flip on near-identical content must
+        # floor at the contradiction level, not the flat +0.25 penalty.
+        score = backfire_kernel.rust_heuristic_factual_divergence(
+            "Paris is the capital of France.",
+            "Paris is not the capital of France.",
+        )
+        assert score >= 0.9
+
+    def test_negation_flip_gate_inclusive_at_precision_0_8(self):
+        # Content precision is exactly 0.8 here: the gate is inclusive.
+        score = backfire_kernel.rust_heuristic_factual_divergence(
+            "World War II ended in 1945.",
+            "World War II did not end in 1945.",
+        )
+        assert score >= 0.9
+
+    def test_negated_true_claim_below_gate_not_floored(self):
+        # A TRUE claim phrased with negation against a positive fact sits
+        # below the overlap gate: flat penalty only, no contradiction floor.
+        score = backfire_kernel.rust_heuristic_factual_divergence(
+            "The maximum single adult dose of ibuprofen is 400 mg.",
+            "Adults should not exceed 400 mg of ibuprofen in a single dose.",
+        )
+        assert 0.5 < score < 0.9
+
+    def test_negation_flip_overlap_constant_matches_python(self):
+        from director_ai.core.scoring._heuristics import NEGATION_FLIP_OVERLAP
+
+        assert (
+            pytest.approx(NEGATION_FLIP_OVERLAP)
+            == backfire_kernel.NEGATION_FLIP_OVERLAP
+        )
+
+    def test_parity_with_python_fallback(self, monkeypatch):
+        # The Rust accelerator and the pure-Python fallback must score
+        # identically across polarity, overlap and entity regimes.
+        import director_ai.core.scoring._divergence as divergence_module
+        from director_ai.core import CoherenceScorer
+
+        monkeypatch.setattr(
+            divergence_module, "rust_heuristic_factual_divergence", None
+        )
+        pairs = [
+            ("Paris is the capital of France.", "Paris is not the capital of France."),
+            ("World War II ended in 1945.", "World War II did not end in 1945."),
+            (
+                "The Earth orbits the Sun.",
+                "It is not the case that the Earth orbits the Sun.",
+            ),
+            (
+                "Water is composed of hydrogen and oxygen (H2O).",
+                "Water is not made of hydrogen and oxygen.",
+            ),
+            (
+                "The maximum single adult dose of ibuprofen is 400 mg.",
+                "Adults should not exceed 400 mg of ibuprofen in a single dose.",
+            ),
+            ("The daytime sky appears blue.", "On a clear day the sky looks blue."),
+            ("The sky is blue.", "Planet Mars is red."),
+            (
+                "Phone support is not available on the free plan.",
+                "Phone support is not available on the free plan.",
+            ),
+            ("the a of", "the a of"),
+        ]
+        for context, output in pairs:
+            rust = backfire_kernel.rust_heuristic_factual_divergence(context, output)
+            python = CoherenceScorer._heuristic_factual(context, output)
+            assert rust == pytest.approx(python, abs=1e-12), (context, output)
+
 
 class TestRustSplitSentences:
     def test_basic(self):

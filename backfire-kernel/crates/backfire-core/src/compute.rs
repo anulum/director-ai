@@ -1194,6 +1194,8 @@ static LITE_STOP_WORDS: Lazy<HashSet<&'static str>> = Lazy::new(|| {
 /// named entity heuristics, and negation asymmetry.
 ///
 /// Returns divergence in [0, 1]. 0 = aligned, 1 = contradicted.
+/// A negation polarity flip on near-identical content floors the
+/// divergence at the contradiction level (KIMI3-negation).
 /// Mirrors `LiteScorer.score()` from `lite_scorer.py`.
 pub fn lite_score(premise: &str, hypothesis: &str) -> f64 {
     if premise.is_empty() || hypothesis.is_empty() {
@@ -1250,15 +1252,38 @@ pub fn lite_score(premise: &str, hypothesis: &str) -> f64 {
         .iter()
         .filter(|w| LITE_NEGATION_WORDS.contains(w.as_str()))
         .count();
-    let neg_penalty = if (p_neg == 0) != (h_neg == 0) {
-        0.3
-    } else {
-        0.0
-    };
+    let neg_mismatch = (p_neg == 0) != (h_neg == 0);
+    let neg_penalty = if neg_mismatch { 0.3 } else { 0.0 };
 
     let similarity =
         0.4 * jaccard + 0.2 * len_ratio + 0.2 * ent_overlap + 0.2 * (1.0 - neg_penalty);
-    (1.0 - similarity).clamp(0.0, 1.0)
+    let divergence = (1.0 - similarity).clamp(0.0, 1.0);
+
+    // A polarity flip on near-identical content is a direct
+    // contradiction: the weighted penalty moves this composite by at
+    // most 0.06, so floor at the contradiction level.
+    if neg_mismatch {
+        let p_content: HashSet<&str> = p_words
+            .iter()
+            .filter(|w| !LITE_STOP_WORDS.contains(w.as_str()))
+            .map(|w| w.as_str())
+            .collect();
+        let h_content: HashSet<&str> = h_words
+            .iter()
+            .filter(|w| !LITE_STOP_WORDS.contains(w.as_str()))
+            .map(|w| w.as_str())
+            .collect();
+        if !p_content.is_empty() && !h_content.is_empty() {
+            let overlap = p_content.intersection(&h_content).count() as f64;
+            // Precision of the hypothesis side, mirroring the factual
+            // heuristic: the flip must target grounded content.
+            let content_precision = overlap / h_content.len() as f64;
+            if content_precision >= NEGATION_FLIP_OVERLAP {
+                return divergence.max(0.9);
+            }
+        }
+    }
+    divergence
 }
 
 /// Batch lite scoring for multiple (premise, hypothesis) pairs.
@@ -1307,7 +1332,18 @@ pub fn heuristic_logical_divergence(text_output: &str, prompt: &str) -> f64 {
     (1.0 - intersection as f64 / union as f64).clamp(0.0, 1.0)
 }
 
+/// Content-precision gate above which a negation polarity flip is
+/// treated as a direct contradiction rather than a mild divergence:
+/// the fraction of the output's content words grounded in the premise.
+///
+/// Mirrors `NEGATION_FLIP_OVERLAP` from `_heuristics.py`.
+pub const NEGATION_FLIP_OVERLAP: f64 = 0.8;
+
 /// Factual divergence fallback used when model-backed NLI is unavailable.
+///
+/// Word-overlap scoring with negation and entity checks; a negation
+/// polarity flip on near-identical content floors the divergence at the
+/// contradiction level (KIMI3-negation).
 ///
 /// Mirrors `CoherenceScorer._heuristic_factual()` from `scorer.py`.
 pub fn heuristic_factual_divergence(context: &str, text_output: &str) -> f64 {
@@ -1349,6 +1385,16 @@ pub fn heuristic_factual_divergence(context: &str, text_output: &str) -> f64 {
         .any(|w| LITE_NEGATION_WORDS.contains(w.as_str()));
     if ctx_neg != out_neg {
         divergence += 0.25;
+        // A polarity flip on grounded content is a direct contradiction:
+        // when nearly all of the output's content words come from the
+        // context, the negation necessarily applies to that shared
+        // content, and the flat asymmetry penalty cannot push such
+        // restatements past the rejection threshold. Gate on precision,
+        // not recall — an output that covers the context but adds its
+        // own negated material may be negating the added material.
+        if precision >= NEGATION_FLIP_OVERLAP {
+            divergence = divergence.max(0.9);
+        }
     }
 
     let ctx_ents: HashSet<String> = LITE_ENTITY_RE
@@ -2164,6 +2210,34 @@ mod tests {
     }
 
     #[test]
+    fn test_lite_score_negation_flip_high_overlap_contradicts() {
+        // KIMI3-negation: the weighted penalty alone left this at 0.14.
+        let s = lite_score(
+            "Paris is the capital of France.",
+            "Paris is not the capital of France.",
+        );
+        assert!(s >= 0.9, "expected contradiction floor, got {s}");
+    }
+
+    #[test]
+    fn test_lite_score_negated_true_claim_below_gate_not_floored() {
+        let s = lite_score(
+            "The maximum single adult dose of ibuprofen is 400 mg.",
+            "Adults should not exceed 400 mg of ibuprofen in a single dose.",
+        );
+        assert!(s < 0.9, "content below the gate must not be floored: {s}");
+    }
+
+    #[test]
+    fn test_lite_score_matching_negation_polarity_no_floor() {
+        let s = lite_score(
+            "Phone support is not available on the free plan.",
+            "Phone support is not available on the free plan.",
+        );
+        assert!(s < 0.15, "identical negated texts must align, got {s}");
+    }
+
+    #[test]
     fn test_lite_score_entity_mismatch() {
         let s = lite_score(
             "Apple released a new product.",
@@ -2224,6 +2298,56 @@ mod tests {
     fn test_heuristic_factual_negation_asymmetry() {
         let s = heuristic_factual_divergence("The sky is blue.", "The sky is not blue.");
         assert!(s > 0.2);
+    }
+
+    #[test]
+    fn test_heuristic_factual_negation_flip_high_overlap_contradicts() {
+        // KIMI3-negation: a polarity flip on near-identical content must
+        // floor at the contradiction level, not the flat +0.25 penalty.
+        let s = heuristic_factual_divergence(
+            "Paris is the capital of France.",
+            "Paris is not the capital of France.",
+        );
+        assert!(s >= 0.9, "expected contradiction floor, got {s}");
+    }
+
+    #[test]
+    fn test_heuristic_factual_negation_flip_gate_inclusive() {
+        // Content precision is exactly 0.8 here: the gate is inclusive.
+        let s = heuristic_factual_divergence(
+            "World War II ended in 1945.",
+            "World War II did not end in 1945.",
+        );
+        assert!(
+            s >= 0.9,
+            "expected contradiction floor at precision 0.8, got {s}"
+        );
+    }
+
+    #[test]
+    fn test_heuristic_factual_negated_true_claim_below_gate_not_floored() {
+        // A TRUE claim phrased with negation against a positive fact sits
+        // below the overlap gate: flat penalty only, no contradiction floor.
+        let s = heuristic_factual_divergence(
+            "The maximum single adult dose of ibuprofen is 400 mg.",
+            "Adults should not exceed 400 mg of ibuprofen in a single dose.",
+        );
+        assert!(
+            s > 0.5 && s < 0.9,
+            "expected penalty without floor, got {s}"
+        );
+    }
+
+    #[test]
+    fn test_heuristic_factual_matching_negation_polarity_no_penalty() {
+        let s = heuristic_factual_divergence(
+            "Phone support is not available on the free plan.",
+            "Phone support is not available on the free plan.",
+        );
+        assert!(
+            s.abs() < 1e-9,
+            "identical negated texts must align, got {s}"
+        );
     }
 
     #[test]

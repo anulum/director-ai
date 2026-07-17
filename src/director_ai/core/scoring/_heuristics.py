@@ -17,6 +17,12 @@ DIVERGENCE_NEUTRAL = 0.5  # no signal → agnostic
 DIVERGENCE_ALIGNED = 0.1  # keyword heuristic: "consistent with reality"
 DIVERGENCE_CONTRADICTED = 0.9  # keyword heuristic: "opposite is true"
 
+# Content-precision gate above which a negation polarity flip is treated
+# as a direct contradiction rather than a mild divergence: the fraction
+# of the output's content words grounded in the premise (KIMI3-negation).
+# Mirrors NEGATION_FLIP_OVERLAP in backfire-core compute.rs.
+NEGATION_FLIP_OVERLAP = 0.8
+
 NEGATION_WORDS = frozenset(
     {
         "not",

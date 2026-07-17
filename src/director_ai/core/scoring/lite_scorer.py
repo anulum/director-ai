@@ -22,7 +22,9 @@ from __future__ import annotations
 from ..mandatory import mandatory_execution
 from ..types import CoherenceScore
 from ._heuristics import ENTITY_RE as _ENTITY_RE
+from ._heuristics import NEGATION_FLIP_OVERLAP as _NEGATION_FLIP_OVERLAP
 from ._heuristics import NEGATION_WORDS as _NEGATION_WORDS
+from ._heuristics import STOP_WORDS as _STOP_WORDS
 from ._heuristics import WORD_RE as _WORD_RE
 
 __all__ = ["LiteScorer"]
@@ -49,7 +51,11 @@ class LiteScorer:
     """
 
     def score(self, premise: str, hypothesis: str) -> float:
-        """Compute divergence in [0, 1]. 0 = aligned, 1 = contradicted."""
+        """Compute divergence in [0, 1]. 0 = aligned, 1 = contradicted.
+
+        A negation polarity flip on near-identical content floors the
+        divergence at the contradiction level (KIMI3-negation).
+        """
         if _RUST_LITE:
             with mandatory_execution(__name__, component="mandatory accelerated path"):
                 return float(rust_lite_score(premise, hypothesis))
@@ -87,7 +93,8 @@ class LiteScorer:
         # Negation asymmetry
         p_neg = len(p_words & _NEGATION_WORDS)
         h_neg = len(h_words & _NEGATION_WORDS)
-        neg_penalty = 0.3 if (p_neg == 0) != (h_neg == 0) else 0.0
+        neg_mismatch = (p_neg == 0) != (h_neg == 0)
+        neg_penalty = 0.3 if neg_mismatch else 0.0
 
         similarity = (
             0.4 * jaccard
@@ -96,6 +103,19 @@ class LiteScorer:
             + 0.2 * (1.0 - neg_penalty)
         )
         divergence = max(0.0, min(1.0, 1.0 - similarity))
+
+        # A polarity flip on near-identical content is a direct
+        # contradiction: the weighted penalty moves this composite by at
+        # most 0.06, so floor at the contradiction level.
+        if neg_mismatch:
+            p_content = p_words - _STOP_WORDS
+            h_content = h_words - _STOP_WORDS
+            if p_content and h_content:
+                # Precision of the hypothesis side, mirroring the factual
+                # heuristic: the flip must target grounded content.
+                content_precision = len(p_content & h_content) / len(h_content)
+                if content_precision >= _NEGATION_FLIP_OVERLAP:
+                    return max(divergence, 0.9)
         return divergence
 
     def score_batch(self, pairs: list[tuple[str, str]]) -> list[float]:

@@ -1713,6 +1713,11 @@ fn backfire_kernel(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(rust_sum_i64, m)?)?;
     m.add_function(wrap_pyfunction!(rust_product_f64, m)?)?;
     m.add_function(wrap_pyfunction!(rust_confusion_counts_threshold, m)?)?;
+    // Heuristic parity constants (mirror _heuristics.py)
+    m.add(
+        "NEGATION_FLIP_OVERLAP",
+        backfire_core::compute::NEGATION_FLIP_OVERLAP,
+    )?;
     // PII regex multi-pattern scanner
     m.add_class::<PyPiiScanner>()?;
     // Safety-hook acceleration (cyber-physical geometry/IK +

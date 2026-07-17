@@ -120,12 +120,19 @@ class DivergenceMixin(TaskRoutedCoherenceMixin, FactualDivergenceMixin):
     def _heuristic_factual(context: str, text_output: str) -> float:
         """Word-overlap factual divergence with negation and entity checks.
 
+        A negation polarity flip on near-identical content floors the
+        divergence at the contradiction level (KIMI3-negation).
         Install [nli] for production scoring.
         """
         if rust_heuristic_factual_divergence is not None:
             with mandatory_execution(__name__, component="mandatory accelerated path"):
                 return float(rust_heuristic_factual_divergence(context, text_output))
-        from ._heuristics import ENTITY_RE, NEGATION_WORDS, STOP_WORDS
+        from ._heuristics import (
+            ENTITY_RE,
+            NEGATION_FLIP_OVERLAP,
+            NEGATION_WORDS,
+            STOP_WORDS,
+        )
 
         ctx_raw = set(re.findall(r"\w+", context.lower()))
         out_raw = set(re.findall(r"\w+", text_output.lower()))
@@ -145,6 +152,14 @@ class DivergenceMixin(TaskRoutedCoherenceMixin, FactualDivergenceMixin):
         out_neg = bool(out_raw & NEGATION_WORDS)
         if ctx_neg != out_neg:
             divergence += 0.25
+            # A polarity flip on grounded content is a direct
+            # contradiction: when nearly all of the output's content
+            # words come from the context, the negation necessarily
+            # applies to that shared content. Gate on precision, not
+            # recall — an output that covers the context but adds its
+            # own negated material may be negating the added material.
+            if precision >= NEGATION_FLIP_OVERLAP:
+                divergence = max(divergence, DIVERGENCE_CONTRADICTED)
 
         # Novel entities in output not grounded in context → +0.15
         ctx_ents = set(ENTITY_RE.findall(context))

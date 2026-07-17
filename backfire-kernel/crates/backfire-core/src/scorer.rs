@@ -56,27 +56,16 @@ impl CoherenceScorer {
     /// Calculate factual divergence against the ground truth store.
     ///
     /// Returns 0.0 (perfect alignment) to 1.0 (total hallucination).
-    /// Mirrors `calculate_factual_divergence()` from `scorer.py:52-77`.
+    /// Delegates to [`crate::compute::heuristic_factual_divergence`] so
+    /// this scorer stays in exact parity with the Python
+    /// `CoherenceScorer._heuristic_factual` fallback, including the
+    /// negation polarity-flip contradiction floor (KIMI3-negation).
     pub fn calculate_factual_divergence(&self, prompt: &str, text_output: &str) -> f64 {
         let context = match self.knowledge.retrieve_context(prompt) {
             Some(ctx) => ctx,
             None => return 0.5, // Neutral when no store / no match
         };
-
-        // Word-overlap heuristic (mirrors Python scorer._heuristic_factual)
-        let ctx_lower = context.to_lowercase();
-        let out_lower = text_output.to_lowercase();
-        let ctx_words: std::collections::HashSet<&str> = ctx_lower.split_whitespace().collect();
-        let out_words: std::collections::HashSet<&str> = out_lower.split_whitespace().collect();
-
-        if ctx_words.is_empty() || out_words.is_empty() {
-            return 0.5;
-        }
-
-        let intersection = ctx_words.intersection(&out_words).count() as f64;
-        let union = ctx_words.union(&out_words).count() as f64;
-        let similarity = intersection / union;
-        (1.0 - similarity).clamp(0.0, 1.0)
+        crate::compute::heuristic_factual_divergence(&context, text_output)
     }
 
     /// Calculate logical divergence via NLI.
@@ -206,10 +195,26 @@ mod tests {
         let scorer = make_scorer();
         let h = scorer.calculate_factual_divergence(
             "How many SCPN layers?",
-            "There are many layers in the system",
+            "The system runs on quantum tunnelling cores",
         );
-        // Word-overlap heuristic: low overlap = high divergence
+        // Content-overlap heuristic: fabricated content = high divergence
         assert!(h > 0.5);
+    }
+
+    #[test]
+    fn test_factual_divergence_negation_flip_contradicts() {
+        // KIMI3-negation: the store-backed factual heuristic must floor a
+        // polarity flip of retrieved content at the contradiction level.
+        let mut facts = std::collections::HashMap::new();
+        facts.insert("capital France".to_string(), "Paris".to_string());
+        let scorer = CoherenceScorer::new(
+            BackfireConfig::default(),
+            Arc::new(HeuristicNli),
+            Arc::new(InMemoryKnowledge::with_facts(facts)),
+        );
+        let h = scorer
+            .calculate_factual_divergence("capital of France?", "capital France is not Paris");
+        assert!(h >= 0.9, "expected contradiction floor, got {h}");
     }
 
     #[test]
