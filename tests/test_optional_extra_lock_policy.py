@@ -11,6 +11,7 @@ from __future__ import annotations
 import re
 import tomllib
 from pathlib import Path
+from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
 POLICY_PATH = ROOT / "requirements" / "uv_extra_lock_policy.toml"
@@ -18,10 +19,21 @@ DOC_PATH = ROOT / "requirements" / "OPTIONAL_EXTRA_LOCKS.md"
 PYPROJECT_PATH = ROOT / "pyproject.toml"
 LOCK_PATH = ROOT / "uv.lock"
 
-EXPECTED_EXTRAS = {"enterprise", "nli", "onnx", "physical", "server", "ui", "vector"}
+EXPECTED_EXTRAS = {
+    "auto-kb",
+    "aws",
+    "enterprise",
+    "ingestion-s3",
+    "nli",
+    "onnx",
+    "physical",
+    "server",
+    "ui",
+    "vector",
+}
 
 
-def _load_toml(path: Path) -> dict:
+def _load_toml(path: Path) -> dict[str, Any]:
     return tomllib.loads(path.read_text())
 
 

@@ -14,6 +14,12 @@ Director-Class AI — optional extra lock notes
 `[nli]`, `[onnx]`, `[vector]`, `[ui]`, `[server]`, `[physical]`, and
 `[enterprise]`.
 
+The policy also pins the `boto3` constraint across `[aws]`, `[ingestion-s3]`,
+and `[auto-kb]`: all three declare the identical `>=1.34,<2` range. When one
+of them moves, move the other two in the same change — upward only, never by
+dropping a cap or lowering a floor (see the 2026-07-16 Dependabot #154
+regression for why).
+
 `requirements/pyproject.toml` and `requirements/uv.lock` are intentionally
 empty, non-package graph markers for GitHub's uv dependency grapher. The
 dependency authority for this directory remains the hashed `*.txt` files and

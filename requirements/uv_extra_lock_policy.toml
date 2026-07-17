@@ -10,13 +10,28 @@
 lock_file = "uv.lock"
 lock_command = "uv lock"
 sync_command = "uv sync --locked"
-checked_extras = ["enterprise", "nli", "onnx", "physical", "server", "ui", "vector"]
+checked_extras = ["auto-kb", "aws", "enterprise", "ingestion-s3", "nli", "onnx", "physical", "server", "ui", "vector"]
 upper_bound_required = true
+
+[[extras]]
+name = "auto-kb"
+packages = ["boto3"]
+notes = "boto3 constraint mirrors the aws extra exactly; notion-client and google-api-python-client caps are a separate review."
+
+[[extras]]
+name = "aws"
+packages = ["boto3"]
+notes = "Secret backend stays within the boto3 1.x line; the same constraint must hold in ingestion-s3 and auto-kb."
 
 [[extras]]
 name = "enterprise"
 packages = ["argon2-cffi", "psycopg2-binary", "pyjwt", "redis"]
 notes = "Account, tenant, and store backends stay within known major lines."
+
+[[extras]]
+name = "ingestion-s3"
+packages = ["boto3"]
+notes = "boto3 constraint mirrors the aws extra exactly (harmonised upward 2026-07-17, never downward)."
 
 [[extras]]
 name = "nli"
