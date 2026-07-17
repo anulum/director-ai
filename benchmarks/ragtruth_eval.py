@@ -35,8 +35,10 @@ import json
 import logging
 import time
 from collections.abc import Callable, Sequence
+from typing import Any
 
 from benchmarks._common import save_results
+from benchmarks._provenance import assert_reproducible, stamp
 from benchmarks.e2e_eval import E2EMetrics, E2ESample, print_e2e_results
 
 logger = logging.getLogger("DirectorAI.Benchmark.RAGTruth")
@@ -236,6 +238,44 @@ def run_ragtruth_decomposed(
     return evaluate_decomposed(items, coverage_fn, min_coverage=min_coverage)
 
 
+def per_sample_rows(metrics: E2EMetrics) -> list[dict[str, Any]]:
+    """Extract per-sample scores so the headline aggregate can be re-derived.
+
+    The 2026-07-17 review could not check a committed catch rate because the
+    artefact carried aggregates only; emitting one row per review — its label,
+    the halt decision, and the coherence score — makes the aggregate auditable
+    offline without a GPU re-run.
+    """
+    return [
+        {
+            "index": index,
+            "task": sample.task,
+            "is_hallucinated": bool(sample.is_hallucinated),
+            "approved": bool(sample.approved),
+            "coherence_score": round(float(sample.coherence_score), 6),
+            "latency_ms": round(float(sample.latency_ms), 3),
+        }
+        for index, sample in enumerate(metrics.samples)
+    ]
+
+
+def build_artefact(
+    metrics: E2EMetrics, *, git_sha: str | None = None
+) -> dict[str, Any]:
+    """Assemble a reproducible RAGTruth artefact and fail closed if it is not.
+
+    Combines the aggregate metrics, the per-sample rows, and the source-commit
+    provenance, then asserts the result is reproducible before it can be
+    written — so a RAGTruth artefact can never again ship as an unverifiable
+    headline number.
+    """
+    payload = metrics.to_dict()
+    payload["rows"] = per_sample_rows(metrics)
+    stamp(payload, git_sha=git_sha)
+    assert_reproducible(payload)
+    return payload
+
+
 if __name__ == "__main__":
     import argparse
 
@@ -260,4 +300,4 @@ if __name__ == "__main__":
         results = run_ragtruth(max_samples=args.max_samples, use_nli=args.nli)
         out_name = "ragtruth_results.json"
     print_e2e_results(results)
-    save_results(results.to_dict(), out_name)
+    save_results(build_artefact(results), out_name)

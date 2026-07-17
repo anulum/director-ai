@@ -32,10 +32,10 @@ statistic deployments calibrate with.
 
 Usage::
 
-    python benchmarks/grounded_operating_point_campaign.py --out results.json
-    python benchmarks/grounded_operating_point_campaign.py \
+    python -m benchmarks.grounded_operating_point_campaign --out results.json
+    python -m benchmarks.grounded_operating_point_campaign \
         --out smoke.json --max-samples 3          # CPU smoke
-    python benchmarks/grounded_operating_point_campaign.py \
+    python -m benchmarks.grounded_operating_point_campaign \
         --analyse benchmarks/results/grounded_operating_point_campaign.json
 """
 
@@ -48,6 +48,8 @@ import sys
 import time
 from pathlib import Path
 from typing import Any
+
+from benchmarks._provenance import assert_reproducible, resolve_git_sha, stamp
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s: %(message)s")
 logger = logging.getLogger(__name__)
@@ -194,16 +196,23 @@ def sweep(rows: list[dict]) -> dict:
 
 
 def run_campaign(args: argparse.Namespace) -> dict:
-    """Score the corpus and assemble the artefact payload."""
+    """Score the corpus and assemble a reproducible artefact payload.
+
+    The source commit is resolved from ``HEAD`` when ``--git-sha`` is omitted so
+    the artefact is always traceable, and :func:`assert_reproducible` gates the
+    payload before it is returned — a run that cannot record its commit or its
+    per-sample rows fails loudly rather than emitting an unverifiable number.
+    """
+    git_sha = args.git_sha or resolve_git_sha()
     samples = load_halueval_qa(args.data_url, args.max_samples)
     scorer, store = build_scorer(args.backend)
     started = time.time()
     rows = score_pairs(scorer, store, samples)
-    return {
+    payload = {
         "campaign": "grounded_operating_point",
         "dataset": "HaluEval-QA",
         "data_url": args.data_url,
-        "git_sha": args.git_sha,
+        "git_sha": git_sha,
         "backend": args.backend,
         "nli_model": getattr(scorer, "nli_model_name", None)
         or getattr(getattr(scorer, "_nli", None), "model_name", None),
@@ -213,6 +222,9 @@ def run_campaign(args: argparse.Namespace) -> dict:
         "summary": sweep(rows),
         "rows": rows,
     }
+    stamp(payload, git_sha=git_sha)
+    assert_reproducible(payload)
+    return payload
 
 
 def analyse_artefact(path: Path) -> dict:
@@ -232,7 +244,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--git-sha",
         default="",
-        help="record the source commit in the artefact for reproducibility",
+        help="source commit to record; auto-resolved from HEAD when omitted "
+        "(pass explicitly on a remote runner that clones a specific commit)",
     )
     parser.add_argument(
         "--analyse",
