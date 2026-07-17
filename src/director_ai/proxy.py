@@ -46,6 +46,15 @@ _log = logging.getLogger("DirectorAI.Proxy")
 
 STREAM_CHECK_INTERVAL = 8
 
+# Buffered-mode safety cap on the withheld ``pending`` window (KIMI3-H2). A
+# stream can withhold many lines without ever producing reviewable content — a
+# flood of content-less or non-data lines — which would grow the process memory
+# without bound and never trigger a review. When the withheld window exceeds
+# either cap the stream fails closed with a halt instead of buffering
+# indefinitely; nothing withheld is disclosed.
+STREAM_MAX_PENDING_LINES = 512
+STREAM_MAX_PENDING_CHARS = 256 * 1024
+
 # Streaming disclosure modes (KIMI2-A). ``immediate`` forwards every chunk as
 # it arrives and a mid-stream halt only stops FUTURE tokens — content emitted
 # before the halt has already reached the client (early termination with
@@ -589,6 +598,41 @@ async def _handle_streaming(
         model_name = body.get("model", "unknown")
         t0 = _time.monotonic()
 
+        def _pending_overflow() -> bool:
+            """Report whether the withheld window has exceeded either cap."""
+            return (
+                len(pending) > STREAM_MAX_PENDING_LINES
+                or sum(len(entry) for entry in pending) > STREAM_MAX_PENDING_CHARS
+            )
+
+        def _withhold(text: str) -> bool:
+            """Hold *text* in the buffered window; return True on overflow."""
+            pending.append(text)
+            return _pending_overflow()
+
+        def _fail_closed_frames() -> list[str]:
+            """Drop the withheld window and return the halt frames (KIMI3-H2).
+
+            Nothing withheld is disclosed: the window is cleared and the client
+            receives only the halt marker, with the abort recorded to the audit
+            log like any other terminal halt.
+            """
+            reviewed = "".join(buffer)
+            _audit_log_entry(
+                audit_log,
+                prompt,
+                reviewed,
+                model=model_name,
+                score=0.0,
+                approved=False,
+                confidence=0.0,
+                latency_ms=(_time.monotonic() - t0) * 1000,
+                task_type=task_type,
+            )
+            pending.clear()
+            halt = {"choices": [dict(halt_choice)]}
+            return [f"data: {json.dumps(halt)}\n", "data: [DONE]\n"]
+
         async with (
             httpx.AsyncClient(timeout=120.0, transport=transport) as client,
             client.stream(
@@ -603,7 +647,10 @@ async def _handle_streaming(
                     # Non-data lines are withheld too in buffered mode so
                     # the released stream preserves the upstream ordering.
                     if buffered:
-                        pending.append(line + "\n")
+                        if _withhold(line + "\n"):
+                            for _frame in _fail_closed_frames():
+                                yield _frame
+                            return
                     else:
                         yield line + "\n"
                     continue
@@ -645,7 +692,10 @@ async def _handle_streaming(
                     chunk = json.loads(payload)
                 except json.JSONDecodeError:
                     if buffered:
-                        pending.append(line + "\n")
+                        if _withhold(line + "\n"):
+                            for _frame in _fail_closed_frames():
+                                yield _frame
+                            return
                     else:
                         yield line + "\n"
                     continue
@@ -689,7 +739,10 @@ async def _handle_streaming(
                             continue
 
                 if buffered:
-                    pending.append(line + "\n")
+                    if _withhold(line + "\n"):
+                        for _frame in _fail_closed_frames():
+                            yield _frame
+                        return
                 else:
                     yield line + "\n"
 

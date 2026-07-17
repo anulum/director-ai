@@ -27,6 +27,9 @@ from fastapi import FastAPI
 from httpx import ASGITransport
 
 from director_ai.proxy import (
+    STREAM_CHECK_INTERVAL,
+    STREAM_MAX_PENDING_CHARS,
+    STREAM_MAX_PENDING_LINES,
     _stream_chat_content,
     _stream_tool_call_content,
     create_proxy_app,
@@ -417,3 +420,65 @@ async def test_buffered_multi_choice_later_tool_call_is_reviewed_and_can_halt(
     assert "transfer" not in body
     assert '"finish_reason": "content_filter"' in body
     assert scorer.calls == [("ask", 'transfer{"amount": 999999}')]
+
+
+# --- KIMI3-H2: the withheld pending window must be bounded (memory DoS) ---
+
+
+@pytest.mark.parametrize(
+    "flood_line",
+    [
+        ": keepalive",  # non-data line (withheld for ordering)
+        "data: not-json",  # malformed data line (unparseable)
+        'data: {"choices":[{"delta":{}}]}',  # valid but content-less chunk
+    ],
+    ids=["non-data", "malformed", "content-less"],
+)
+async def test_buffered_pending_line_flood_fails_closed(
+    flood_line: str, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A flood of withheld-but-unreviewable lines halts instead of buffering."""
+    scorer = _FixedScorer(approved=True, score=0.9)
+    lines = (
+        [flood_line] * (STREAM_MAX_PENDING_LINES + 5)
+        + _content_lines(1)
+        + ["data: [DONE]"]
+    )
+    body = await _post_stream(_app(scorer, lines, monkeypatch, disclosure="buffered"))
+
+    # failed closed with a halt marker, and the withheld flood was dropped
+    assert '"finish_reason": "content_filter"' in body
+    assert "data: [DONE]" in body
+    assert flood_line not in body
+    assert "t0" not in body  # content queued after the flood never reached the client
+    # overflow halts before an approving review of released content could run
+    assert scorer.calls == []
+
+
+async def test_buffered_pending_char_flood_fails_closed(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A few oversized withheld lines trip the byte cap before the line cap."""
+    scorer = _FixedScorer(approved=True, score=0.9)
+    big = ": " + "x" * (STREAM_MAX_PENDING_CHARS // 4)
+    lines = [big] * 5 + _content_lines(1) + ["data: [DONE]"]
+    body = await _post_stream(_app(scorer, lines, monkeypatch, disclosure="buffered"))
+
+    assert '"finish_reason": "content_filter"' in body
+    assert "xxxx" not in body  # the oversized withheld lines were dropped
+
+
+async def test_buffered_pending_under_cap_streams_normally(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Withholding below the caps is untouched: released in order after review."""
+    scorer = _FixedScorer(approved=True, score=0.9)
+    lines = (
+        [": keepalive"] * 10 + _content_lines(STREAM_CHECK_INTERVAL) + ["data: [DONE]"]
+    )
+    body = await _post_stream(_app(scorer, lines, monkeypatch, disclosure="buffered"))
+
+    assert '"finish_reason": "content_filter"' not in body
+    assert ": keepalive" in body  # released once the review passed
+    assert "t0" in body
+    assert scorer.calls  # a real review ran and approved the release
