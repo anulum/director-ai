@@ -209,9 +209,9 @@ label_fields = ["source_text", "response", "hallucination_labels_processed"]
 [[datasets]]
 id = "freshqa"
 name = "FreshQA"
-source = "freshllms/freshqa"
-split = "train (600-question evaluation slice)"
-access = "public HuggingFace dataset downloads (trust_remote_code)"
+source = "FreshQA Google Sheets CSV export (run_ragtruth_freshqa.py FRESHQA_SHEET_ID); freshllms/freshqa on HuggingFace is the alternative loader in freshqa_eval.py"
+split = "600-question snapshot (committed artefact produced from the sheet export)"
+access = "public sheet/HuggingFace downloads"
 local_cache = []
 size_note = "600 questions (148 false-premise, 452 valid) for false-premise detection"
 label_fields = ["question", "false_premise"]
