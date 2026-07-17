@@ -21,7 +21,7 @@ import json
 import logging
 import pathlib
 import time as _time
-from collections.abc import AsyncIterator, Awaitable, Callable
+from collections.abc import AsyncIterator, Awaitable, Callable, Iterator
 from typing import TYPE_CHECKING, Any
 
 from director_ai.core import CoherenceScorer, GroundTruthStore
@@ -72,21 +72,85 @@ def _chat_completion_content(data: object) -> str:
     return content if isinstance(content, str) else ""
 
 
-def _stream_delta_content(chunk: object) -> str:
-    """Extract OpenAI-compatible stream delta content without swallowing errors."""
+def _iter_choice_deltas(chunk: object) -> Iterator[object]:
+    """Yield every choice's ``delta`` mapping in wire order.
+
+    A chat completion may carry more than one choice (``n>1``); reviewing
+    only ``choices[0]`` lets a sensitive payload on a later choice reach
+    the client unreviewed, so every disclosure path walks the full list.
+    """
     if not isinstance(chunk, dict):
-        return ""
+        return
     choices = chunk.get("choices")
-    if not isinstance(choices, list) or not choices:
-        return ""
-    first = choices[0]
-    if not isinstance(first, dict):
-        return ""
-    delta = first.get("delta")
+    if not isinstance(choices, list):
+        return
+    for choice in choices:
+        if isinstance(choice, dict):
+            yield choice.get("delta")
+
+
+def _delta_content(delta: object) -> str:
+    """Text content from a single delta mapping."""
     if not isinstance(delta, dict):
         return ""
     content = delta.get("content")
     return content if isinstance(content, str) else ""
+
+
+def _delta_tool_call_text(delta: object) -> str:
+    """Tool-call name and argument text from a single delta mapping.
+
+    OpenAI tool-call streams carry their payload in
+    ``delta.tool_calls[].function.{name,arguments}`` rather than
+    ``delta.content``; a response that only calls tools still discloses
+    model output (the tool it invokes and the arguments it passes) that
+    must reach the review buffer.
+    """
+    if not isinstance(delta, dict):
+        return ""
+    tool_calls = delta.get("tool_calls")
+    if not isinstance(tool_calls, list):
+        return ""
+    parts: list[str] = []
+    for call in tool_calls:
+        if not isinstance(call, dict):
+            continue
+        function = call.get("function")
+        if not isinstance(function, dict):
+            continue
+        name = function.get("name")
+        if isinstance(name, str) and name:
+            parts.append(name)
+        arguments = function.get("arguments")
+        if isinstance(arguments, str) and arguments:
+            parts.append(arguments)
+    return "".join(parts)
+
+
+def _stream_delta_content(chunk: object) -> str:
+    """Extract OpenAI-compatible stream delta content across every choice."""
+    return "".join(_delta_content(delta) for delta in _iter_choice_deltas(chunk))
+
+
+def _stream_tool_call_content(chunk: object) -> str:
+    """Extract tool-call name and argument deltas across every choice."""
+    return "".join(_delta_tool_call_text(delta) for delta in _iter_choice_deltas(chunk))
+
+
+def _stream_chat_content(chunk: object) -> str:
+    """Reviewable chat-stream text across ALL choices in wire order.
+
+    For each choice's delta, in choice order, the message content and the
+    tool-call name/argument deltas are folded into one reviewed string.
+    Walking every choice keeps a multi-choice chunk whose sensitive tool
+    call rides on a later choice — or whose first choice is empty — from
+    leaving the review buffer empty and bypassing the terminal review.
+    """
+    parts: list[str] = []
+    for delta in _iter_choice_deltas(chunk):
+        parts.append(_delta_content(delta))
+        parts.append(_delta_tool_call_text(delta))
+    return "".join(parts)
 
 
 def _completion_text(data: object) -> str:
@@ -507,9 +571,10 @@ async def _handle_streaming(
     from fastapi.responses import StreamingResponse
 
     # Legacy completions stream text deltas at ``choices[0].text`` and a
-    # halt chunk must mirror that shape; chat streams use ``delta``.
+    # halt chunk must mirror that shape; chat streams use ``delta`` and may
+    # carry tool-call deltas that must be reviewed alongside content.
     legacy = endpoint == "/v1/completions"
-    extract_content = _stream_text_content if legacy else _stream_delta_content
+    extract_content = _stream_text_content if legacy else _stream_chat_content
     halt_choice: dict[str, Any] = {"finish_reason": "content_filter", "index": 0}
     if legacy:
         halt_choice["text"] = ""

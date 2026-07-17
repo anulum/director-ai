@@ -18,24 +18,30 @@ modes, the fail-closed upstream-drop path, and the config validation.
 
 from __future__ import annotations
 
+import json
 from types import SimpleNamespace
 
 import httpx
 import pytest
+from fastapi import FastAPI
 from httpx import ASGITransport
 
-from director_ai.proxy import create_proxy_app
+from director_ai.proxy import (
+    _stream_chat_content,
+    _stream_tool_call_content,
+    create_proxy_app,
+)
 
 pytestmark = pytest.mark.asyncio
 
 
 class _FixedScorer:
-    def __init__(self, approved: bool = True, score: float = 0.9):
+    def __init__(self, approved: bool = True, score: float = 0.9) -> None:
         self.approved = approved
         self.score = score
         self.calls: list[tuple[str, str]] = []
 
-    def review(self, prompt: str, content: str):
+    def review(self, prompt: str, content: str) -> tuple[bool, SimpleNamespace]:
         self.calls.append((prompt, content))
         return self.approved, SimpleNamespace(
             score=self.score,
@@ -44,7 +50,7 @@ class _FixedScorer:
 
 
 def _streaming_transport(lines: list[str]) -> httpx.MockTransport:
-    async def _handler(request: httpx.Request):
+    async def _handler(request: httpx.Request) -> httpx.Response:
         assert request.url.path == "/v1/chat/completions"
         return httpx.Response(
             200,
@@ -55,7 +61,13 @@ def _streaming_transport(lines: list[str]) -> httpx.MockTransport:
     return httpx.MockTransport(_handler)
 
 
-def _app(scorer, lines: list[str], monkeypatch, *, disclosure: str):
+def _app(
+    scorer: _FixedScorer,
+    lines: list[str],
+    monkeypatch: pytest.MonkeyPatch,
+    *,
+    disclosure: str,
+) -> FastAPI:
     import director_ai.proxy as proxy
 
     monkeypatch.setattr(proxy, "CoherenceScorer", lambda **_kw: scorer)
@@ -68,7 +80,7 @@ def _app(scorer, lines: list[str], monkeypatch, *, disclosure: str):
     )
 
 
-async def _post_stream(app, prompt: str = "ask") -> str:
+async def _post_stream(app: FastAPI, prompt: str = "ask") -> str:
     transport = ASGITransport(app=app)
     async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
         resp = await client.post(
@@ -89,7 +101,9 @@ def _content_lines(n: int) -> list[str]:
     ]
 
 
-async def test_buffered_halted_stream_discloses_no_content(monkeypatch) -> None:
+async def test_buffered_halted_stream_discloses_no_content(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     # The inverse of KIMI's proof: the periodic review rejects, and the client
     # receives NONE of the withheld tokens — only the halt marker.
     scorer = _FixedScorer(approved=False, score=0.1)
@@ -108,7 +122,9 @@ async def test_buffered_halted_stream_discloses_no_content(monkeypatch) -> None:
     assert body.rstrip().endswith("data: [DONE]")
 
 
-async def test_buffered_clean_stream_releases_everything_in_order(monkeypatch) -> None:
+async def test_buffered_clean_stream_releases_everything_in_order(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     scorer = _FixedScorer(approved=True, score=0.95)
     body = await _post_stream(
         _app(
@@ -124,7 +140,9 @@ async def test_buffered_clean_stream_releases_everything_in_order(monkeypatch) -
     assert body.rstrip().endswith("data: [DONE]")
 
 
-async def test_buffered_final_review_rejection_discards_the_tail(monkeypatch) -> None:
+async def test_buffered_final_review_rejection_discards_the_tail(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     # Fewer chunks than the periodic interval: the only review is at [DONE],
     # and its rejection must withhold the entire stream.
     scorer = _FixedScorer(approved=False, score=0.2)
@@ -143,7 +161,9 @@ async def test_buffered_final_review_rejection_discards_the_tail(monkeypatch) ->
     assert scorer.calls == [("ask", "t0t1t2")]
 
 
-async def test_buffered_final_review_pass_releases_the_tail(monkeypatch) -> None:
+async def test_buffered_final_review_pass_releases_the_tail(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     scorer = _FixedScorer(approved=True, score=0.9)
     body = await _post_stream(
         _app(
@@ -159,7 +179,9 @@ async def test_buffered_final_review_pass_releases_the_tail(monkeypatch) -> None
     assert body.rstrip().endswith("data: [DONE]")
 
 
-async def test_buffered_upstream_drop_without_done_is_fail_closed(monkeypatch) -> None:
+async def test_buffered_upstream_drop_without_done_is_fail_closed(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     # No [DONE]: the unreviewed pending window is discarded rather than
     # released unreviewed.
     scorer = _FixedScorer(approved=True, score=0.9)
@@ -172,7 +194,9 @@ async def test_buffered_upstream_drop_without_done_is_fail_closed(monkeypatch) -
     assert scorer.calls == []
 
 
-async def test_buffered_withholds_non_data_lines_for_ordering(monkeypatch) -> None:
+async def test_buffered_withholds_non_data_lines_for_ordering(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     scorer = _FixedScorer(approved=True, score=0.9)
     body = await _post_stream(
         _app(
@@ -189,7 +213,9 @@ async def test_buffered_withholds_non_data_lines_for_ordering(monkeypatch) -> No
     assert body.rstrip().endswith("data: [DONE]")
 
 
-async def test_immediate_default_still_discloses_pre_halt_tokens(monkeypatch) -> None:
+async def test_immediate_default_still_discloses_pre_halt_tokens(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     # Pin today's default: the tokens streamed BEFORE the rejecting review
     # reach the client (the documented partial-disclosure behaviour), while
     # the line that triggered the review and everything after it do not —
@@ -216,3 +242,178 @@ async def test_immediate_default_still_discloses_pre_halt_tokens(monkeypatch) ->
 async def test_create_proxy_app_rejects_unknown_disclosure_mode() -> None:
     with pytest.raises(ValueError, match="stream_disclosure"):
         create_proxy_app(stream_disclosure="bogus")
+
+
+# --- KIMI3-H1: tool-call streams must not bypass the review ----------------
+
+
+def _tool_call_lines(*fragments: str, name: str | None = "transfer") -> list[str]:
+    """Tool-call-only delta chunks (no ``delta.content``), one per fragment.
+
+    The function name rides on the first chunk (OpenAI streaming shape) and
+    the arguments stream across the remaining chunks.
+    """
+    lines: list[str] = []
+    for index, fragment in enumerate(fragments):
+        function: dict[str, object] = {"arguments": fragment}
+        if index == 0 and name is not None:
+            function["name"] = name
+        chunk = {
+            "choices": [{"delta": {"tool_calls": [{"index": 0, "function": function}]}}]
+        }
+        lines.append("data: " + json.dumps(chunk))
+    return lines
+
+
+async def test_stream_tool_call_content_extracts_name_and_arguments() -> None:
+    chunk = json.loads(_tool_call_lines('{"amount": 1000000}')[0][6:])
+    assert _stream_tool_call_content(chunk) == 'transfer{"amount": 1000000}'
+    # Content-only and malformed shapes contribute nothing.
+    assert _stream_tool_call_content({"choices": [{"delta": {"content": "hi"}}]}) == ""
+    assert _stream_tool_call_content({"choices": []}) == ""
+    assert _stream_tool_call_content("not-a-dict") == ""
+
+
+async def test_stream_chat_content_merges_content_and_tool_calls() -> None:
+    # A chunk carrying both content and a tool call yields the concatenation,
+    # so the reviewed text never silently drops the tool-call payload.
+    chunk = {
+        "choices": [
+            {
+                "delta": {
+                    "content": "calling ",
+                    "tool_calls": [{"function": {"name": "pay", "arguments": "{}"}}],
+                }
+            }
+        ]
+    }
+    assert _stream_chat_content(chunk) == "calling pay{}"
+
+
+async def test_buffered_tool_call_only_stream_is_reviewed_and_can_halt(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # The H1 inverse proof: a stream that ONLY calls a tool (no delta.content)
+    # is still reviewed, and a rejecting review discloses none of the tool-call
+    # arguments — before the fix reviews=0 and the arguments reached the client.
+    scorer = _FixedScorer(approved=False, score=0.1)
+    body = await _post_stream(
+        _app(
+            scorer,
+            _tool_call_lines('{"amount": ', "1000000}") + ["data: [DONE]"],
+            monkeypatch,
+            disclosure="buffered",
+        ),
+    )
+
+    assert "1000000" not in body
+    assert "transfer" not in body
+    assert '"finish_reason": "content_filter"' in body
+    # The review actually ran on the reconstructed tool-call payload.
+    assert scorer.calls == [("ask", 'transfer{"amount": 1000000}')]
+
+
+async def test_buffered_tool_call_clean_stream_releases_in_order(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    scorer = _FixedScorer(approved=True, score=0.95)
+    body = await _post_stream(
+        _app(
+            scorer,
+            _tool_call_lines("city=", "Paris") + ["data: [DONE]"],
+            monkeypatch,
+            disclosure="buffered",
+        ),
+    )
+
+    assert body.index("city=") < body.index("Paris")
+    assert body.rstrip().endswith("data: [DONE]")
+    assert scorer.calls == [("ask", "transfercity=Paris")]
+
+
+async def test_immediate_tool_call_stream_halts_future_chunks(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # In immediate mode a tool-call stream now also triggers the mid-stream
+    # review (previously it never did); the rejecting review stops the chunk
+    # that crossed the interval and everything after it.
+    import director_ai.proxy as proxy
+
+    scorer = _FixedScorer(approved=False, score=0.1)
+    fragments = [f"a{idx}" for idx in range(proxy.STREAM_CHECK_INTERVAL)]
+    body = await _post_stream(
+        _app(
+            scorer,
+            _tool_call_lines(*fragments) + ["data: [DONE]"],
+            monkeypatch,
+            disclosure="immediate",
+        ),
+    )
+
+    assert '"finish_reason": "content_filter"' in body
+    assert scorer.calls, "the tool-call stream must reach the scorer in immediate mode"
+
+
+def _multi_choice_tool_call_line(arg_fragment: str) -> str:
+    """A valid n>1 chunk: empty first choice, sensitive tool call in a later one."""
+    chunk = {
+        "choices": [
+            {"index": 0, "delta": {}},
+            {
+                "index": 1,
+                "delta": {
+                    "tool_calls": [
+                        {
+                            "index": 0,
+                            "function": {
+                                "name": "transfer",
+                                "arguments": arg_fragment,
+                            },
+                        }
+                    ]
+                },
+            },
+        ]
+    }
+    return "data: " + json.dumps(chunk)
+
+
+async def test_stream_chat_content_reads_all_choices_in_wire_order() -> None:
+    # Content on the first choice, tool call on the second — both reviewed.
+    chunk = {
+        "choices": [
+            {"delta": {"content": "hi "}},
+            {
+                "delta": {
+                    "tool_calls": [{"function": {"name": "pay", "arguments": "{}"}}]
+                }
+            },
+        ]
+    }
+    assert _stream_chat_content(chunk) == "hi pay{}"
+    # The second-eye probe: empty first choice, sensitive tool call later.
+    probe = json.loads(_multi_choice_tool_call_line("amt=5")[6:])
+    assert _stream_chat_content(probe) == "transferamt=5"
+
+
+async def test_buffered_multi_choice_later_tool_call_is_reviewed_and_can_halt(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # Second-eye blocking finding: a valid n>1 chunk with an empty first choice
+    # and a sensitive tool call in a later choice must still be reviewed —
+    # reading only choices[0] recreated H1. A rejecting review discloses none
+    # of the later-choice tool-call arguments.
+    scorer = _FixedScorer(approved=False, score=0.1)
+    body = await _post_stream(
+        _app(
+            scorer,
+            [_multi_choice_tool_call_line('{"amount": 999999}'), "data: [DONE]"],
+            monkeypatch,
+            disclosure="buffered",
+        ),
+    )
+
+    assert "999999" not in body
+    assert "transfer" not in body
+    assert '"finish_reason": "content_filter"' in body
+    assert scorer.calls == [("ask", 'transfer{"amount": 999999}')]
