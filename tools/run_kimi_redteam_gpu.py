@@ -27,6 +27,7 @@ import logging
 import os
 import subprocess
 import time
+from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
@@ -147,17 +148,81 @@ def download_artefact(ssh_str: str, out: str) -> None:
     logger.info("Artefact downloaded to %s", dest)
 
 
-def destroy_instance(inst: Any) -> None:
-    """Destroy the instance so a paid GPU never leaks."""
-    try:
-        result = inst.destroy()
-        logger.info("Instance %s destroyed: %s", inst.machine_id, result)
-    except Exception as exc:  # noqa: BLE001 - teardown must never raise
-        logger.error(
-            "FAILED to destroy instance %s: %s — DESTROY MANUALLY IN THE UI",
-            getattr(inst, "machine_id", "?"),
-            exc,
-        )
+def _live_machine_ids(list_instances: Callable[[], list[Any]]) -> set[str]:
+    """Return the ``machine_id``\\ s currently live at source (JarvisLabs)."""
+    return {str(getattr(inst, "machine_id", "")) for inst in list_instances()}
+
+
+def destroy_instance(
+    inst: Any,
+    *,
+    list_instances: Callable[[], list[Any]] | None = None,
+    retries: int = 3,
+    backoff_seconds: float = 5.0,
+    sleep: Callable[[float], None] = time.sleep,
+) -> bool:
+    """Destroy the instance and confirm at source that it is really gone.
+
+    A lone ``inst.destroy()`` is not a safe teardown: the JarvisLabs call can
+    raise a transient network error (e.g. ``RemoteDisconnected``) *after* the
+    request is on the wire, so the destroy looks failed while the paid GPU keeps
+    running — the exact way an A30 once leaked. So this retries on failure and,
+    critically, re-verifies liveness at source via *list_instances*
+    (``User.get_instances`` by default): the instance counts as destroyed only
+    once its ``machine_id`` no longer appears in the live set. Returns ``True``
+    on a confirmed teardown, ``False`` if the GPU may still be leaked (logged
+    ``CRITICAL`` so a watcher or operator destroys it manually).
+    """
+    machine_id = str(getattr(inst, "machine_id", "?"))
+    if list_instances is None:
+        from jlclient.jarvisclient import User
+
+        list_instances = User.get_instances
+
+    for attempt in range(1, retries + 1):
+        try:
+            result = inst.destroy()
+            logger.info(
+                "Instance %s destroy attempt %d/%d: %s",
+                machine_id,
+                attempt,
+                retries,
+                result,
+            )
+        except Exception as exc:  # noqa: BLE001 - teardown must never raise
+            logger.error(
+                "Instance %s destroy attempt %d/%d raised: %s",
+                machine_id,
+                attempt,
+                retries,
+                exc,
+            )
+
+        try:
+            still_live = machine_id in _live_machine_ids(list_instances)
+        except Exception as exc:  # noqa: BLE001 - fail closed on an unverifiable teardown
+            logger.error(
+                "Instance %s liveness re-check failed: %s (assuming still live)",
+                machine_id,
+                exc,
+            )
+            still_live = True
+
+        if not still_live:
+            logger.info(
+                "Instance %s confirmed destroyed (0-live at source)", machine_id
+            )
+            return True
+        if attempt < retries:
+            sleep(backoff_seconds)
+
+    logger.critical(
+        "LEAKED GPU: instance %s STILL LIVE after %d destroy attempts — "
+        "DESTROY MANUALLY IN THE UI",
+        machine_id,
+        retries,
+    )
+    return False
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -182,12 +247,13 @@ def main(argv: list[str] | None = None) -> int:
         return 2
 
     inst = provision(args.gpu, args.storage, token)
+    teardown_confirmed = True
     try:
         run_redteam(inst.ssh_str, args.tag, args.script)
         download_artefact(inst.ssh_str, args.out)
     finally:
-        destroy_instance(inst)
-    return 0
+        teardown_confirmed = destroy_instance(inst)
+    return 0 if teardown_confirmed else 3
 
 
 if __name__ == "__main__":
