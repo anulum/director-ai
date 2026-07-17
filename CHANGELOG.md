@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`stream_disclosure="buffered"` proxy mode — a halted stream discloses
+  nothing unreviewed.** In the default `immediate` mode a mid-stream halt
+  stops future tokens only, so content emitted before the halt has already
+  reached the client (early termination with partial disclosure — now named
+  explicitly in the README caveats). The new opt-in `buffered` mode withholds
+  streamed chunks until the accumulated content passes a review, discards the
+  unreleased window on a halt, gates the final release on the terminal
+  `[DONE]` review, and fails closed if the upstream drops without `[DONE]` —
+  at a latency cost of up to `STREAM_CHECK_INTERVAL` (8) chunks. Available as
+  `create_proxy_app(stream_disclosure=...)` and
+  `director proxy --stream-disclosure buffered`. The default is unchanged.
+
 ### Fixed
 
 - **Zero-width and confusable characters no longer false-halt a true claim.**

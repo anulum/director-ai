@@ -214,7 +214,7 @@ an output.
 ### Core capabilities
 
 - **Response-level grounding** — scores a candidate answer against governed facts with NLI contradiction signals and retrieval evidence; benchmarked on LLM-AggreFact. This is the production-validated path.
-- **Opt-in streaming contradiction halt** — scores completed streamed claims against retrieved facts and can sever output when a claim contradicts governed knowledge. Current local evidence is `benchmarks/results/streaming_contradiction_halt_base.json` (`non_isolated_local_regression`, 135 good / 3 bad cases); unsupported-but-not-contradictory additions remain a response-review concern, and this path is not the sole production gate.
+- **Opt-in streaming contradiction halt** — scores completed streamed claims against retrieved facts and can sever output when a claim contradicts governed knowledge. In the proxy's default `immediate` mode a mid-stream halt stops **future** tokens only: content emitted before the halt has already reached the client (early termination with partial disclosure). The opt-in `stream_disclosure="buffered"` proxy mode withholds chunks until they pass a review and discards the unreleased window on a halt, so a rejected stream discloses nothing unreviewed (up to 8 chunks of added latency). Current local evidence is `benchmarks/results/streaming_contradiction_halt_base.json` (`non_isolated_local_regression`, 135 good / 3 bad cases); unsupported-but-not-contradictory additions remain a response-review concern, and this path is not the sole production gate.
 - **Dual-entropy scoring** — NLI contradiction detection (0.4B DeBERTa) + RAG fact-checking against your knowledge base.
 - **Selectable scorer models** — choose a benchmarked local scorer profile for the latency/accuracy trade-off you need, without changing the guarded LLM provider.
 - **Customer Model Factory primitives** — validate customer-owned guardrail
@@ -257,7 +257,7 @@ inventory below is reference for the deeper surface, navigable under
 | API documentation pages | 89 |
 | Rust PyO3 bindings | 83 |
 | Optional extras | 62 |
-| Python test files | 761 |
+| Python test files | 762 |
 | Public documentation pages | 205 |
 | GitHub Actions workflows | 14 |
 
@@ -595,7 +595,7 @@ Be aware of these before deploying:
 - **Heuristic fallback is weak**: Without `[nli]`, scoring uses word-overlap (~55% accuracy). Not recommended for production.
 - **Summarisation FPR is 10.5%**: Reduced from 95% via bidirectional NLI + baseline calibration (v3.5). Still too high for some use cases — tune thresholds per domain.
 - **NLI needs KB grounding**: Without a knowledge base, stock regulated-domain profiles over-reject badly in checked artifacts (PubMedQA FPR=100%, FinanceBench FPR=100% at t=0.30). Treat them as calibration starting points.
-- **Streaming halt is evidence-bound**: contradiction-driven streaming halt is opt-in. The current contradiction benchmark reports 1.48% false-halt rate on 135 known-good passages and 66.7% recall on a 3-case bad-passage smoke set under non-isolated local conditions. It is useful as a guarded contradiction interlock, not as a standalone hallucination-prevention claim.
+- **Streaming halt is evidence-bound**: contradiction-driven streaming halt is opt-in. The current contradiction benchmark reports 1.48% false-halt rate on 135 known-good passages and 66.7% recall on a 3-case bad-passage smoke set under non-isolated local conditions. It is useful as a guarded contradiction interlock, not as a standalone hallucination-prevention claim. In the proxy's default `immediate` mode, tokens streamed before a mid-stream halt have already been disclosed to the client; use `director proxy --stream-disclosure buffered` when a halted stream must disclose nothing unreviewed.
 - **ONNX CPU is slow**: 383 ms/pair without GPU. Use `onnxruntime-gpu` for production.
 - **Long documents need ≥16 GB VRAM**: Chunked NLI on legal/financial docs exceeds 6 GB.
 - **LLM-as-judge sends data externally**: When enabled, truncated prompt+response (500 chars) go to the configured provider. Off by default.

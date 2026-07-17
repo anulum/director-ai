@@ -9,7 +9,7 @@
     "python_model_classes": 1040,
     "python_model_source_modules": 518,
     "rust_pyo3_model_wrappers": 83,
-    "test_files": 761
+    "test_files": 762
   },
   "documentation": {
     "public_pages": [
@@ -5955,6 +5955,7 @@
       "tests/test_proxy_full.py",
       "tests/test_proxy_moderations.py",
       "tests/test_proxy_real_surface.py",
+      "tests/test_proxy_stream_disclosure.py",
       "tests/test_public_api.py",
       "tests/test_public_benchmark_manifest.py",
       "tests/test_public_endpoint_exposure_policy.py",

@@ -46,6 +46,14 @@ _log = logging.getLogger("DirectorAI.Proxy")
 
 STREAM_CHECK_INTERVAL = 8
 
+# Streaming disclosure modes (KIMI2-A). ``immediate`` forwards every chunk as
+# it arrives and a mid-stream halt only stops FUTURE tokens — content emitted
+# before the halt has already reached the client (early termination with
+# partial disclosure). ``buffered`` withholds chunks until they pass a review,
+# so a halted stream discloses nothing unreviewed, at a latency cost of up to
+# ``STREAM_CHECK_INTERVAL`` chunks.
+STREAM_DISCLOSURE_MODES = ("immediate", "buffered")
+
 
 def _chat_completion_content(data: object) -> str:
     """Extract OpenAI-compatible chat content without exception control flow."""
@@ -131,6 +139,7 @@ def create_proxy_app(
     audit_db: str | None = None,
     config: DirectorConfig | None = None,
     moderations: str = "local",
+    stream_disclosure: str = "immediate",
     _transport: Any = None,
 ) -> FastAPI:
     """Build a FastAPI app that proxies OpenAI requests with scoring.
@@ -169,6 +178,15 @@ def create_proxy_app(
         ``"local"`` serves ``/v1/moderations`` from the shipped
         dependency-free detectors; ``"upstream"`` forwards the request
         to the upstream endpoint verbatim.
+    stream_disclosure : str
+        ``"immediate"`` (default) forwards every streamed chunk as it
+        arrives; a mid-stream halt stops FUTURE tokens only, so content
+        emitted before the halt has already reached the client — early
+        termination with partial disclosure. ``"buffered"`` withholds
+        chunks until they pass a review and discards the unreleased
+        buffer on a halt, so a rejected stream discloses nothing
+        unreviewed (adds up to ``STREAM_CHECK_INTERVAL`` chunks of
+        latency; meaningful with ``on_fail="reject"``).
 
     """
     from contextlib import asynccontextmanager
@@ -188,6 +206,12 @@ def create_proxy_app(
     if moderations not in MODERATION_MODES:
         raise ValueError(
             f"moderations must be one of {MODERATION_MODES}, got {moderations!r}",
+        )
+
+    if stream_disclosure not in STREAM_DISCLOSURE_MODES:
+        raise ValueError(
+            f"stream_disclosure must be one of {STREAM_DISCLOSURE_MODES}, "
+            f"got {stream_disclosure!r}",
         )
 
     if upstream_url and not upstream_url.startswith("https://"):
@@ -313,6 +337,7 @@ def create_proxy_app(
                 audit_log=audit_log,
                 endpoint="/v1/completions",
                 task_type="completion",
+                stream_disclosure=stream_disclosure,
             )
 
         async with _client(timeout=120.0) as client:
@@ -393,6 +418,7 @@ def create_proxy_app(
                 on_fail,
                 _transport,
                 audit_log=audit_log,
+                stream_disclosure=stream_disclosure,
             )
 
         async with _client(timeout=120.0) as client:
@@ -460,7 +486,20 @@ async def _handle_streaming(
     audit_log: Any = None,
     endpoint: str = "/v1/chat/completions",
     task_type: str = "chat",
+    stream_disclosure: str = "immediate",
 ) -> StreamingResponse:
+    """Proxy an SSE stream with periodic mid-stream reviews.
+
+    ``stream_disclosure="immediate"`` forwards each line as it arrives; a
+    halt stops future tokens only (partial disclosure — content already
+    emitted has reached the client). ``"buffered"`` holds lines in a
+    pending window and releases them only after the accumulated content
+    passes a review; a halt discards the unreleased window, and the
+    terminal ``[DONE]`` review gates the final release, so a rejected
+    stream never discloses unreviewed content. If the upstream drops
+    without ``[DONE]``, the unreviewed pending window is discarded
+    (fail-closed).
+    """
     import httpx
     from fastapi.responses import StreamingResponse
 
@@ -473,9 +512,11 @@ async def _handle_streaming(
         halt_choice["text"] = ""
     else:
         halt_choice["delta"] = {}
+    buffered = stream_disclosure == "buffered"
 
     async def _stream() -> AsyncIterator[str]:
         buffer: list[str] = []
+        pending: list[str] = []  # withheld output lines (buffered mode)
         chunk_count = 0
         model_name = body.get("model", "unknown")
         t0 = _time.monotonic()
@@ -491,7 +532,12 @@ async def _handle_streaming(
         ):
             async for line in resp.aiter_lines():
                 if not line.startswith("data: "):
-                    yield line + "\n"
+                    # Non-data lines are withheld too in buffered mode so
+                    # the released stream preserves the upstream ordering.
+                    if buffered:
+                        pending.append(line + "\n")
+                    else:
+                        yield line + "\n"
                     continue
 
                 payload = line[6:]
@@ -512,17 +558,28 @@ async def _handle_streaming(
                             task_type=task_type,
                         )
                         if not approved and on_fail == "reject":
+                            # Buffered: the withheld window is discarded, so
+                            # the client receives only the halt marker.
+                            pending.clear()
                             halt = {"choices": [dict(halt_choice)]}
                             yield f"data: {json.dumps(halt)}\n"
                             yield "data: [DONE]\n"
                             return
+                    # Final review passed (or nothing to review): release
+                    # any withheld tail before the terminal marker.
+                    for held in pending:
+                        yield held
+                    pending.clear()
                     yield line + "\n"
                     continue
 
                 try:
                     chunk = json.loads(payload)
                 except json.JSONDecodeError:
-                    yield line + "\n"
+                    if buffered:
+                        pending.append(line + "\n")
+                    else:
+                        yield line + "\n"
                     continue
 
                 delta = extract_content(chunk)
@@ -549,12 +606,24 @@ async def _handle_streaming(
                                 latency_ms=latency_ms,
                                 task_type=task_type,
                             )
+                            pending.clear()
                             halt = {"choices": [dict(halt_choice)]}
                             yield f"data: {json.dumps(halt)}\n"
                             yield "data: [DONE]\n"
                             return
+                        if buffered:
+                            # Reviewed clean: release the withheld window
+                            # (including this line) up to the review point.
+                            pending.append(line + "\n")
+                            for held in pending:
+                                yield held
+                            pending.clear()
+                            continue
 
-                yield line + "\n"
+                if buffered:
+                    pending.append(line + "\n")
+                else:
+                    yield line + "\n"
 
     return StreamingResponse(_stream(), media_type="text/event-stream")
 

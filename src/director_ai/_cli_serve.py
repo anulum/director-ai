@@ -247,6 +247,7 @@ def _cmd_proxy(args: list[str]) -> None:
     audit_db: str | None = None
     config_env = False
     moderations = "local"
+    stream_disclosure = "immediate"
 
     i = 0
     while i < len(args):
@@ -296,6 +297,15 @@ def _cmd_proxy(args: list[str]) -> None:
                 )
                 sys.exit(1)
             i += 2
+        elif args[i] == "--stream-disclosure" and i + 1 < len(args):
+            stream_disclosure = args[i + 1]
+            if stream_disclosure not in ("immediate", "buffered"):
+                print(
+                    "Error: --stream-disclosure must be 'immediate' or "
+                    f"'buffered', got '{stream_disclosure}'"
+                )
+                sys.exit(1)
+            i += 2
         else:
             i += 1
 
@@ -324,6 +334,7 @@ def _cmd_proxy(args: list[str]) -> None:
         audit_db=audit_db,
         config=config,
         moderations=moderations,
+        stream_disclosure=stream_disclosure,
     )
 
     # Same bind resolution as `serve`: explicit --host wins, then
