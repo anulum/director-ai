@@ -99,6 +99,11 @@ class CoherenceScore:
     warning: bool = False
     cross_turn_divergence: float | None = None
     strict_mode_rejected: bool = False
+    # True when the verdict came from heuristic/lite scoring because no
+    # model-backed NLI was available (KIMI2-F) — the score is a weak
+    # word-overlap signal, so false blocks on true claims are expected.
+    # Install the [nli] extra for production-grade scoring.
+    degraded_mode: bool = False
     verdict_confidence: float | None = (
         None  # 0-1, guardrail confidence in its own verdict
     )

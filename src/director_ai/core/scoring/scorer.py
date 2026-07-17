@@ -725,7 +725,9 @@ class CoherenceScorer(ReviewPipelineMixin):
             labels={"stage": stage, "reason": reason},
         )
         self.logger.error(
-            "NLI fallback incident: stage=%s reason=%s strict_mode=%s backend=%s",
+            "NLI fallback incident: stage=%s reason=%s strict_mode=%s backend=%s "
+            "— heuristic word-overlap scoring false-blocks true claims; "
+            "install director-ai[nli] or expect false blocks",
             stage,
             reason,
             self.strict_mode,

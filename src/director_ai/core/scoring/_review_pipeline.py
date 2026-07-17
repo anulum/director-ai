@@ -77,6 +77,8 @@ class ReviewPipelineMixin(DivergenceMixin):
 
         def _enforce_model_backed_nli_requirement(self) -> None: ...
 
+        def _has_model_backed_nli(self) -> bool: ...
+
         def _get_meta_classifier(self) -> Any | None: ...
 
         def _get_injection_runtime_state(self) -> tuple[Any | None, bool]: ...
@@ -324,6 +326,10 @@ class ReviewPipelineMixin(DivergenceMixin):
             evidence=evidence,
             warning=warning,
             strict_mode_rejected=strict_rejected,
+            # KIMI2-F: surface heuristic/lite scoring as a first-class verdict
+            # field, not just a log line — a weak word-overlap score false
+            # blocks true claims and the caller deserves to know.
+            degraded_mode=not self._has_model_backed_nli(),
             verdict_confidence=vc,
             signal_agreement=sa,
             detected_task_type=detected_task_type,

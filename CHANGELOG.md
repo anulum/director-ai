@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`CoherenceScore.degraded_mode` — the verdict says when it came from
+  heuristic scoring.** Without the `[nli]` extra the scorer falls back to a
+  weak word-overlap heuristic that false-blocks true claims, and the only
+  signal was a log line. The verdict now carries a first-class
+  `degraded_mode: bool` (true when no model-backed contradiction path was
+  available), and the fallback log line states the consequence plainly
+  ("install director-ai[nli] or expect false blocks"). No scoring behaviour
+  or defaults changed.
+
 - **`audit_strict_mode` — the compliance audit trail fails closed.** With
   strict mode on, constructing the audit log raises unless a PII redactor is
   configured (or raw storage is explicitly acknowledged with
