@@ -7,7 +7,7 @@
 # ONNX export is handled by the project exporter on the current
 # torch/transformers stack. The training image stays pure PyTorch;
 # graph/runtime export wheels are installed only in export-capable images.
-torch==2.12.0
+torch==2.13.0
 transformers==5.10.2
 datasets==3.6.0
 scikit-learn==1.6.1
