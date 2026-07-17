@@ -155,3 +155,55 @@ class TestAsyncStreamingPerformance:
         events = await _collect(kernel, iter(["a", "b", "c"]), lambda _: 0.9)
         assert len(events) == 3
         assert not events[-1].halted
+
+
+class TestCallbackErrorBudget:
+    """KIMI3-D4: a scorer that keeps erroring must fail closed, not fail open."""
+
+    @pytest.mark.asyncio
+    async def test_persistent_callback_error_fails_closed(self):
+        kernel = AsyncStreamingKernel(hard_limit=0.5)
+
+        def boom(_):
+            raise RuntimeError("callback boom")
+
+        events = await _collect(kernel, ["a", "b", "c", "d", "e"], boom)
+
+        # halts on the 3rd consecutive error (budget) rather than streaming
+        # unscored forever on the stale last score
+        assert len(events) == 3
+        assert events[-1].halted is True
+        assert events[-1].coherence == 0.0
+
+    @pytest.mark.asyncio
+    async def test_transient_errors_below_budget_reset_on_success(self):
+        kernel = AsyncStreamingKernel(hard_limit=0.1)
+        calls = {"n": 0}
+
+        def flaky(_):
+            calls["n"] += 1
+            if calls["n"] in (1, 2):
+                raise RuntimeError("transient")
+            return 0.9
+
+        events = await _collect(kernel, ["a", "b", "c", "d"], flaky)
+
+        # two transient errors (< budget) then a success -> never fails closed
+        assert not any(e.halted for e in events)
+        assert len(events) == 4
+
+    @pytest.mark.asyncio
+    async def test_alternating_errors_never_reach_budget(self):
+        kernel = AsyncStreamingKernel(hard_limit=0.1)
+        calls = {"n": 0}
+
+        def alternating(_):
+            calls["n"] += 1
+            if calls["n"] % 2 == 1:
+                raise RuntimeError("flap")
+            return 0.9
+
+        events = await _collect(kernel, ["a", "b", "c", "d", "e", "f"], alternating)
+
+        # a success resets the counter, so alternating never hits 3 in a row
+        assert not any(e.halted for e in events)

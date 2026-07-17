@@ -46,6 +46,12 @@ logger = logging.getLogger("DirectorAI.AsyncStreaming")
 # Callback types — sync or async
 CoherenceCallback = Callable[[str], float] | Callable[[str], Awaitable[float]]
 
+# Consecutive coherence-callback errors tolerated before the stream fails closed
+# (KIMI3-D4). Within budget a transient error reuses the last score; on the Nth
+# consecutive failure the stream halts rather than streaming unscored forever
+# (fail-open) on a broken scorer. A successful call resets the counter.
+_MAX_CONSECUTIVE_CALLBACK_ERRORS = 3
+
 
 class AsyncStreamingKernel(HaltMonitor):
     """Async streaming token-by-token safety kernel for WebSocket use.
@@ -144,6 +150,7 @@ class AsyncStreamingKernel(HaltMonitor):
         stream_start = time.monotonic()
         cadence = self.score_every_n
         last_score = 0.5
+        consecutive_callback_errors = 0
         _soft_halt_pending = False
         _soft_halt_extra_tokens = 0
 
@@ -179,6 +186,7 @@ class AsyncStreamingKernel(HaltMonitor):
                 accumulated = "".join(accumulated_tokens) + token
                 try:
                     score = await self._call_callback(coherence_callback, accumulated)
+                    consecutive_callback_errors = 0
                 except (
                     TypeError,
                     ValueError,
@@ -186,8 +194,29 @@ class AsyncStreamingKernel(HaltMonitor):
                     TimeoutError,
                     OSError,
                 ) as exc:
+                    consecutive_callback_errors += 1
+                    if consecutive_callback_errors >= _MAX_CONSECUTIVE_CALLBACK_ERRORS:
+                        # Fail closed (KIMI3-D4): a scorer that keeps erroring
+                        # must not stream unscored forever on a stale last score.
+                        logger.error(
+                            "Coherence callback failed %d times consecutively — "
+                            "failing closed (halting stream): %s",
+                            consecutive_callback_errors,
+                            exc,
+                        )
+                        self.emergency_stop()
+                        yield TokenEvent(
+                            token=token,
+                            index=i,
+                            coherence=0.0,
+                            timestamp=time.monotonic(),
+                            halted=True,
+                        )
+                        return
                     logger.warning(
-                        "Coherence callback error — using last score: %s",
+                        "Coherence callback error %d/%d — using last score: %s",
+                        consecutive_callback_errors,
+                        _MAX_CONSECUTIVE_CALLBACK_ERRORS,
                         exc,
                     )
                     score = last_score
