@@ -143,6 +143,7 @@ REQUIRED_ENV_KEYS = (
     "DIRECTOR_LLM_API_URL",
     "DIRECTOR_UPSTREAM_URL",
     "DIRECTOR_KB_HMAC_KEYS",
+    "DIRECTOR_AUDIT_HMAC_SECRET",
     "DIRECTOR_CORS_ORIGINS",
 )
 
@@ -156,6 +157,7 @@ REQUIRED_TRUE_CONFIG = (
     "injection_fail_closed_on_error",
     "sanitize_inputs",
     "redact_pii",
+    "audit_strict_mode",
     "privacy_mode",
     "metrics_enabled",
     "metrics_require_auth",

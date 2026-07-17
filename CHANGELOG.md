@@ -9,6 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`audit_strict_mode` — the compliance audit trail fails closed.** With
+  strict mode on, constructing the audit log raises unless a PII redactor is
+  configured (or raw storage is explicitly acknowledged with
+  `allow_raw=True`), and raises when no durable HMAC secret is available
+  (`hmac_secret=` or `DIRECTOR_AUDIT_HMAC_SECRET`) — a per-process random
+  key would make the tamper-evident seal unverifiable across restarts, and
+  previously both conditions only warned. The production profile enables it,
+  the production scaffold declares `DIRECTOR_AUDIT_HMAC_SECRET` in its
+  `.env`, and `director-ai production-check` requires it. The non-strict
+  default keeps the previous warn-only behaviour.
+
 - **`stream_disclosure="buffered"` proxy mode — a halted stream discloses
   nothing unreviewed.** In the default `immediate` mode a mid-stream halt
   stops future tokens only, so content emitted before the halt has already

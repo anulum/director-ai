@@ -314,6 +314,10 @@ class DirectorConfig:
     sanitize_inputs: bool = True
     sanitizer_block_threshold: float = 0.8
     redact_pii: bool = False
+    # Fail-closed confidentiality posture for the durable compliance audit
+    # trail (KIMI2-C): construction requires a redactor and a durable HMAC
+    # secret instead of warning. The production profile enables it.
+    audit_strict_mode: bool = False
 
     # Injection Detection (output-side NLI-based)
     injection_detection_enabled: bool = False

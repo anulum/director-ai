@@ -267,9 +267,13 @@ async def server_lifespan(app: FastAPI) -> AsyncIterator[None]:
         # prompt/response would persist forever. Reuse the single pipeline
         # redactor (enabled by redact_pii) so the sealed content is masked
         # at the sink; a disabled redactor is a passthrough (raw retained).
+        # KIMI2-C: audit_strict_mode (on in the production profile) makes
+        # that posture fail-closed — construction raises without a redactor
+        # or a durable HMAC secret instead of warning.
         c_log = ComplianceAuditLog(
             cfg.compliance_db_path,
             redactor=app.state._state.get("redactor"),
+            strict_mode=getattr(cfg, "audit_strict_mode", False),
         )
         app.state._state["compliance_log"] = c_log
         app.state._state["compliance_reporter"] = ComplianceReporter(c_log)

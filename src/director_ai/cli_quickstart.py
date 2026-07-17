@@ -62,6 +62,7 @@ def _write_quickstart_config(
                 "injection_fail_closed_on_error: true\n",
                 "sanitize_inputs: true\n",
                 "redact_pii: true\n",
+                "audit_strict_mode: true\n",
                 "privacy_mode: true\n",
                 "metrics_enabled: true\n",
                 "metrics_require_auth: true\n",
@@ -133,12 +134,14 @@ def _write_quickstart_env(out_dir: Path, profile: str, threshold: float) -> None
             "# DIRECTOR_LLM_API_URL=https://llm-gateway.internal/v1\n"
             "# DIRECTOR_UPSTREAM_URL=https://llm-gateway.internal\n"
             "# DIRECTOR_KB_HMAC_KEYS=key-id:hex-or-random-secret\n"
+            "# DIRECTOR_AUDIT_HMAC_SECRET=hex-or-random-secret\n"
             "# DIRECTOR_CORS_ORIGINS=https://console.example.com\n"
             "DIRECTOR_API_KEY_TENANT_MAP=\n"
             "DIRECTOR_PROXY_API_KEYS=\n"
             "DIRECTOR_LLM_API_URL=\n"
             "DIRECTOR_UPSTREAM_URL=\n"
             "DIRECTOR_KB_HMAC_KEYS=\n"
+            "DIRECTOR_AUDIT_HMAC_SECRET=\n"
             "DIRECTOR_CORS_ORIGINS=\n"
             "DIRECTOR_TENANT_ID=tenant-default\n"
             f"DIRECTOR_COHERENCE_THRESHOLD={threshold}\n"

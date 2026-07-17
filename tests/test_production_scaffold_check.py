@@ -146,6 +146,7 @@ def test_production_check_require_secrets_accepts_filled_env(
                 "DIRECTOR_LLM_API_URL=https://llm.internal.example/v1",
                 "DIRECTOR_UPSTREAM_URL=https://llm.internal.example",
                 "DIRECTOR_KB_HMAC_KEYS=key-id:secret",
+                "DIRECTOR_AUDIT_HMAC_SECRET=audit-seal-secret",
                 "DIRECTOR_CORS_ORIGINS=https://console.example.com",
                 "DIRECTOR_TENANT_ID=tenant-a",
                 "DIRECTOR_COHERENCE_THRESHOLD=0.6",

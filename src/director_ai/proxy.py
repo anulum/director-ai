@@ -249,9 +249,12 @@ def create_proxy_app(
 
         # SEC-2: mask PII before it is sealed into the durable compliance chain
         # when redact_pii is on; a disabled redactor is a passthrough.
+        # KIMI2-C: audit_strict_mode fails construction closed (redactor +
+        # durable HMAC secret required) instead of warning.
         audit_log = AuditLog(
             audit_db,
             redactor=PIIRedactor(enabled=getattr(config, "redact_pii", False)),
+            strict_mode=getattr(config, "audit_strict_mode", False),
         )
         _log.info("Compliance audit log: %s", audit_db)
 

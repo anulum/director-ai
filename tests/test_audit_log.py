@@ -58,6 +58,83 @@ def test_audit_log_rejects_unsafe_chain_column_identifier(
         AuditLog(str(tmp_path / "audit.db"))
 
 
+class _MaskRedactor:
+    """Redactor double that masks every payload it sees."""
+
+    def redact(self, text: str) -> str:
+        del text
+        return "[MASKED]"
+
+
+class TestStrictMode:
+    """KIMI2-C: strict_mode makes the confidentiality posture fail-closed."""
+
+    def test_strict_without_redactor_raises(self, tmp_path, monkeypatch) -> None:
+        monkeypatch.delenv("DIRECTOR_AUDIT_HMAC_SECRET", raising=False)
+        with pytest.raises(ValueError, match="redactor"):
+            AuditLog(str(tmp_path / "strict.db"), strict_mode=True)
+
+    def test_strict_with_redactor_but_no_hmac_raises(
+        self, tmp_path, monkeypatch
+    ) -> None:
+        monkeypatch.delenv("DIRECTOR_AUDIT_HMAC_SECRET", raising=False)
+        with pytest.raises(ValueError, match="HMAC"):
+            AuditLog(
+                str(tmp_path / "strict.db"),
+                redactor=_MaskRedactor(),
+                strict_mode=True,
+            )
+
+    def test_strict_with_redactor_and_secret_stores_redacted_content(
+        self, tmp_path
+    ) -> None:
+        log = AuditLog(
+            str(tmp_path / "strict.db"),
+            hmac_secret="durable-secret",
+            redactor=_MaskRedactor(),
+            strict_mode=True,
+        )
+        log.log(_entry("patient SSN 123-45-6789"))
+
+        entries = log.query(limit=1)
+        assert entries[0].prompt == "[MASKED]"
+        assert entries[0].response == "[MASKED]"
+
+    def test_strict_allow_raw_stores_raw_content_explicitly(self, tmp_path) -> None:
+        log = AuditLog(
+            str(tmp_path / "raw.db"),
+            hmac_secret="durable-secret",
+            strict_mode=True,
+            allow_raw=True,
+        )
+        log.log(_entry("raw prompt"))
+
+        assert log.query(limit=1)[0].prompt == "raw prompt"
+
+    def test_strict_accepts_env_hmac_secret(self, tmp_path, monkeypatch) -> None:
+        monkeypatch.setenv("DIRECTOR_AUDIT_HMAC_SECRET", "env-secret")
+        log = AuditLog(
+            str(tmp_path / "env.db"),
+            redactor=_MaskRedactor(),
+            strict_mode=True,
+        )
+        log.log(_entry())
+
+        assert log.count() == 1
+
+    def test_non_strict_default_behaviour_is_unchanged(self, tmp_path) -> None:
+        # No redactor, no secret: construction still succeeds (warn-only path).
+        log = AuditLog(str(tmp_path / "default.db"))
+        log.log(_entry("raw"))
+
+        assert log.query(limit=1)[0].prompt == "raw"
+
+    def test_production_profile_carries_audit_strict_mode(self) -> None:
+        from director_ai.core.config_profiles import PROFILE_DEFINITIONS
+
+        assert PROFILE_DEFINITIONS["production"]["audit_strict_mode"] is True
+
+
 def test_audit_log_persists_and_queries_entries(tmp_path) -> None:
     log = AuditLog(str(tmp_path / "audit.db"))
 

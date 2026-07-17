@@ -92,6 +92,9 @@ PROFILE_DEFINITIONS: dict[str, dict[str, Any]] = {
         "injection_fail_closed_on_error": True,
         "sanitize_inputs": True,
         "redact_pii": True,
+        # The production compliance trail fails closed: a redactor and a
+        # durable HMAC secret are required at construction (KIMI2-C).
+        "audit_strict_mode": True,
         "privacy_mode": True,
         "vector_backend": "chroma",
         "chroma_collection": "director_production",

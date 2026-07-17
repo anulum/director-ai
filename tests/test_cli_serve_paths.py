@@ -300,6 +300,7 @@ def test_proxy_builds_app_from_flags_and_config_env(monkeypatch, capsys):
             "audit_db": "audit.sqlite",
             "config": proxy_calls[0]["config"],
             "moderations": "local",
+            "stream_disclosure": "immediate",
         },
     ]
     assert isinstance(proxy_calls[0]["config"], FakeDirectorConfig)

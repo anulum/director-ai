@@ -85,6 +85,13 @@ class AuditLog:
     into the tamper-evident chain, so raw PII never touches disk and the seal
     covers exactly the redacted content that is stored. The default (no
     redactor) preserves the raw compliance trail unchanged.
+
+    ``strict_mode`` (KIMI2-C) makes the confidentiality posture fail-closed
+    for regulated deployments: construction raises unless a ``redactor`` is
+    supplied (or raw storage is explicitly acknowledged with
+    ``allow_raw=True``), and raises when no durable HMAC secret is available
+    (a per-process random key would make the seal unverifiable across
+    restarts). The non-strict default keeps today's behaviour.
     """
 
     def __init__(
@@ -92,13 +99,28 @@ class AuditLog:
         db_path: str | Path = "director_audit.db",
         hmac_secret: str | None = None,
         redactor: _Redactor | None = None,
+        strict_mode: bool = False,
+        allow_raw: bool = False,
     ):
         self._db_path = str(db_path)
         self._lock = threading.Lock()
         self._redactor = redactor
+        if strict_mode and redactor is None and not allow_raw:
+            raise ValueError(
+                "strict_mode requires a redactor so raw prompts/responses "
+                "never reach the durable audit trail; pass allow_raw=True "
+                "to explicitly store raw content anyway",
+            )
         explicit = hmac_secret or os.environ.get("DIRECTOR_AUDIT_HMAC_SECRET") or ""
         if explicit:
             self._hmac_key = explicit.encode("utf-8")
+        elif strict_mode:
+            raise ValueError(
+                "strict_mode requires a durable HMAC secret "
+                "(hmac_secret= or DIRECTOR_AUDIT_HMAC_SECRET) — a per-process "
+                "random key would make the audit seal unverifiable across "
+                "restarts",
+            )
         else:
             self._hmac_key = os.urandom(32)
             _logger.warning(
