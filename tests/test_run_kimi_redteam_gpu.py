@@ -184,3 +184,16 @@ def test_main_returns_two_without_token(monkeypatch: pytest.MonkeyPatch) -> None
 def test_ssh_parts_extracts_port_and_host() -> None:
     assert runner._ssh_parts("ssh -p 2222 root@1.2.3.4") == ("2222", "root@1.2.3.4")
     assert runner._ssh_parts("ssh root@1.2.3.4") == ("22", "root@1.2.3.4")
+
+
+def test_rendered_remote_script_records_provenance() -> None:
+    script = runner._render_remote_script("v3.18.1", "benchmarks/foo.py")
+
+    # exact cloned commit is resolved and passed through for artefact provenance
+    assert "git rev-parse HEAD" in script
+    assert '--git-sha "$GIT_SHA"' in script
+    # tag + script placeholders are fully substituted, none left dangling
+    assert "--branch v3.18.1 " in script
+    assert "benchmarks/foo.py --out" in script
+    assert "__TAG__" not in script
+    assert "__SCRIPT__" not in script

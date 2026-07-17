@@ -56,6 +56,8 @@ nvidia-smi --query-gpu=name --format=csv,noheader || echo "no GPU?"
 rm -rf /home/director-ai
 git clone --depth 1 --branch __TAG__ https://github.com/anulum/director-ai /home/director-ai
 cd /home/director-ai
+GIT_SHA="$(git rev-parse HEAD)"
+echo "cloned commit: $GIT_SHA"
 CONDA=/root/miniconda3/bin/conda
 $CONDA create -n py311 python=3.11 -y -c conda-forge --override-channels
 CR="$CONDA run -n py311 --no-capture-output"
@@ -63,7 +65,7 @@ $CR python -m ensurepip --upgrade
 $CR python -m pip install --quiet "torch>=2.8,<3" "transformers>=5.0.0rc3,<6" numpy requests
 $CR python -m pip install --quiet -e . --no-deps
 $CR python -c "import torch; print('cuda:', torch.cuda.is_available())"
-$CR python __SCRIPT__ --out /home/director-ai/kimi_repro.json
+$CR python __SCRIPT__ --out /home/director-ai/kimi_repro.json --git-sha "$GIT_SHA"
 echo "=== done; artefact at /home/director-ai/kimi_repro.json ==="
 """
 
@@ -113,16 +115,26 @@ def _ssh_parts(ssh_str: str) -> tuple[str, str]:
     return port, parts[-1]
 
 
+def _render_remote_script(tag: str, script_path: str) -> str:
+    """Fill the remote recipe for *tag* and *script_path*.
+
+    The remote resolves the exact cloned commit (``git rev-parse HEAD``) and
+    passes it to the benchmark as ``--git-sha`` so the artefact records the true
+    commit that produced the numbers, not just the (movable) tag.
+    """
+    return REMOTE_SCRIPT.replace("__TAG__", tag).replace("__SCRIPT__", script_path)
+
+
 def run_redteam(ssh_str: str, tag: str, script_path: str) -> None:
     """Write and execute the red-team script on the remote, streaming output.
 
     The remote clones *tag* from GitHub itself, so no local upload is needed.
     *script_path* is the repo-relative benchmark run on the GPU; it must accept
-    ``--out`` and write its JSON artefact there.
+    ``--out`` and ``--git-sha`` and write its JSON artefact there.
     """
     port, host = _ssh_parts(ssh_str)
     ssh_base = f"ssh -p {port} -o StrictHostKeyChecking=no {host}"
-    script = REMOTE_SCRIPT.replace("__TAG__", tag).replace("__SCRIPT__", script_path)
+    script = _render_remote_script(tag, script_path)
     remote = "/tmp/run_kimi_redteam.sh"
     subprocess.run(
         f"{ssh_base} 'cat > {remote}' << 'REMOTE_EOF'\n{script}\nREMOTE_EOF",

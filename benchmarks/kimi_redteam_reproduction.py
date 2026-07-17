@@ -422,6 +422,11 @@ def main(argv: list[str] | None = None) -> int:
     """Run every corpus and emit the JSON artefact."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--out", default="kimi_redteam_reproduction.json")
+    parser.add_argument(
+        "--git-sha",
+        default=None,
+        help="git commit SHA to record in the artefact for provenance",
+    )
     args = parser.parse_args(argv)
 
     from director_ai import __version__
@@ -447,6 +452,7 @@ def main(argv: list[str] | None = None) -> int:
 
     artefact = {
         "director_ai_version": __version__,
+        "git_sha": args.git_sha,
         "model": DEFAULT_NLI_MODEL,
         "model_revision": DEFAULT_NLI_MODEL_REVISION,
         "threshold": THRESHOLD,
