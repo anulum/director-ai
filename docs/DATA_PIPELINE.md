@@ -270,6 +270,15 @@ Written alongside the dataset. Contains:
 
 ## CLI Usage
 
+> **Requirements.** The pipeline reads Hugging Face datasets, so it needs the
+> `datasets` package, which ships in the `train` (and `finetune`) extras — not in
+> the base `[nli]`/`[dev]` install. Install one of them before running these
+> commands:
+>
+> ```bash
+> pip install -e ".[train]"
+> ```
+
 ### Basic (4 core sources)
 
 ```bash
