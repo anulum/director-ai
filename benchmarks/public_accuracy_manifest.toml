@@ -123,6 +123,35 @@ result_files = ["benchmarks/results/hallubench_internal_validation.json"]
 metrics = ["accuracy", "exact_match_rate", "numeric_match_rate", "mean_token_f1", "missing_predictions"]
 claim_boundary = "Prepared internal validation harness only; do not publish a HalluBench score until gated access, model provenance, and metric review are recorded."
 
+[[benchmark_mode_cards]]
+id = "pure_nli_ragtruth_freshqa"
+mode_family = "pure_nli"
+claim_scope = "Open weak lanes: NLI-only RAGTruth response grounding and FreshQA false-premise flagging"
+public_metric = "RAGTruth: 49.3% catch at 40.9% FPR, 43.7% F1 on 2,700 samples. FreshQA: 98.6% catch at 97.8% FPR on 600 samples (context-free flagging)"
+public_tables = ["benchmark_report_ragtruth_freshqa"]
+datasets = ["ragtruth", "freshqa"]
+runner_files = ["benchmarks/run_ragtruth_freshqa.py", "benchmarks/ragtruth_eval.py", "benchmarks/freshqa_eval.py"]
+commands = ["python benchmarks/run_ragtruth_freshqa.py"]
+result_files = [
+  "benchmarks/results/ragtruth_nli_results.json",
+  "benchmarks/results/freshqa_nli_results.json",
+]
+metrics = ["catch_rate", "false_positive_rate", "precision", "f1", "avg_latency_ms"]
+claim_boundary = "Open accuracy lanes, not product claims: RAGTruth NLI-only performance is weak (README caveat) and the FreshQA catch rate is inseparable from its near-total FPR, so neither catch rate may be quoted without its FPR or presented as a customer-domain hallucination catch rate."
+
+[[benchmark_mode_cards]]
+id = "pure_nli_fever_prepared"
+mode_family = "pure_nli"
+claim_scope = "Held-out FEVER dev fact-verification runner (prepared only)"
+public_metric = "No public score; no committed result artefact exists for this runner"
+public_tables = ["docs_site_benchmark_runner_matrix"]
+datasets = ["fever_nli"]
+runner_files = ["benchmarks/fever_eval.py"]
+commands = ["python -m benchmarks.fever_eval 500"]
+result_files = []
+metrics = ["accuracy", "f1"]
+claim_boundary = "No FEVER accuracy claim may be published until a result artefact is committed and reviewed; the docs-site row lists the runner only. FEVER train is part of the borderline-classifier training mix, so any future dev-split claim must state that provenance."
+
 [[datasets]]
 id = "llm_aggrefact"
 name = "LLM-AggreFact"
@@ -166,6 +195,36 @@ access = "gated; requires accepted Hugging Face access conditions; CC BY-NC-ND 4
 local_cache = []
 size_note = "200 geospatial VLM questions across emergency and urban domains; raw samples and images are not committed"
 label_fields = ["question_id", "application", "task_type", "output_form", "question", "ground_truth", "img1_path", "img2_path"]
+
+[[datasets]]
+id = "ragtruth"
+name = "RAGTruth (processed)"
+source = "wandb/RAGTruth-processed"
+split = "test"
+access = "public HuggingFace dataset downloads"
+local_cache = []
+size_note = "2,700 test responses (943 hallucinated, 1,757 clean) with span-level annotations"
+label_fields = ["source_text", "response", "hallucination_labels_processed"]
+
+[[datasets]]
+id = "freshqa"
+name = "FreshQA"
+source = "freshllms/freshqa"
+split = "train (600-question evaluation slice)"
+access = "public HuggingFace dataset downloads (trust_remote_code)"
+local_cache = []
+size_note = "600 questions (148 false-premise, 452 valid) for false-premise detection"
+label_fields = ["question", "false_premise"]
+
+[[datasets]]
+id = "fever_nli"
+name = "FEVER (NLI form)"
+source = "pietrolesci/nli_fever"
+split = "dev (held-out; train split is in the borderline-classifier training mix)"
+access = "public HuggingFace dataset downloads"
+local_cache = []
+size_note = "claim/evidence verification pairs; no committed benchmark artefact yet"
+label_fields = ["premise", "hypothesis", "label"]
 
 [[datasets]]
 id = "streaming_good_passages"
@@ -338,6 +397,33 @@ result_files = [
 ]
 metrics = ["catch_rate", "false_positive_rate", "precision", "f1", "median_latency_ms"]
 notes = "Local judge rows depend on the trained local judge directory referenced by the runner. Numbers are the tracked 200/task (1200-trace) run at threshold 0.5 (report section 14); the earlier untracked 1000/task run over-flagged summarisation/dialogue and does not reproduce on the current pipeline."
+
+[[public_accuracy_tables]]
+id = "benchmark_report_ragtruth_freshqa"
+title = "Benchmark report RAGTruth & FreshQA weak-lane tables"
+public_file = "benchmarks/BENCHMARK_REPORT.md"
+runner_files = ["benchmarks/run_ragtruth_freshqa.py"]
+commands = ["python benchmarks/run_ragtruth_freshqa.py"]
+datasets = ["ragtruth", "freshqa"]
+cache_files = []
+result_files = [
+  "benchmarks/results/ragtruth_nli_results.json",
+  "benchmarks/results/freshqa_nli_results.json",
+]
+metrics = ["catch_rate", "false_positive_rate", "precision", "f1", "avg_latency_ms"]
+notes = "Deliberately weak lanes kept public for positioning honesty: the README flags RAGTruth NLI-only as an open accuracy lane, and FreshQA's catch rate is inseparable from its near-total FPR. Numbers must always be quoted with their FPR."
+
+[[public_accuracy_tables]]
+id = "docs_site_benchmark_runner_matrix"
+title = "Docs-site benchmark runner matrix row for FEVER"
+public_file = "docs-site/benchmarks.md"
+runner_files = ["benchmarks/fever_eval.py"]
+commands = ["python -m benchmarks.fever_eval 500"]
+datasets = ["fever_nli"]
+cache_files = []
+result_files = []
+metrics = ["accuracy", "f1"]
+notes = "Runner listing only; no FEVER score is published anywhere and none may be added until a committed result artefact exists."
 
 [[public_accuracy_tables]]
 id = "benchmark_report_hallubench_internal"
