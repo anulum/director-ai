@@ -46,13 +46,22 @@ class LLMProvider(ABC):
 
         Subclasses that support streaming should override this method.
         The default implementation generates a single candidate and yields
-        its text as one token (non-streaming fallback).
+        its text as one token — a NON-streaming fallback, which it announces
+        with a warning instead of degrading silently (KIMI2-G): a caller
+        relying on token-by-token delivery (e.g. a streaming guardrail
+        check) would otherwise see one giant "token" with no indication
+        that streaming never happened.
 
         Yields
         ------
         str — individual tokens from the LLM response.
 
         """
+        logger.warning(
+            "%s does not implement token streaming — falling back to a "
+            "single non-streamed completion yielded as one chunk",
+            self.name,
+        )
         candidates = self.generate_candidates(prompt, n=1)
         if candidates:
             yield candidates[0].get("text", "")
@@ -199,25 +208,31 @@ class AnthropicProvider(LLMProvider):
         model: str = "claude-sonnet-4-5-20250929",
         max_tokens: int = 512,
         timeout: int = 60,
+        base_url: str = "https://api.anthropic.com",
     ) -> None:
         self.api_key = api_key
         self.model = model
         self.max_tokens = max_tokens
         self.timeout = timeout
+        self.base_url = base_url.rstrip("/")
 
     @property
     def name(self) -> str:
         """Return the provider/model label used in candidate metadata."""
         return f"anthropic/{self.model}"
 
-    def _fetch_one(self, prompt: str) -> dict[str, str]:
-        """Request one vendor message completion."""
-        url = "https://api.anthropic.com/v1/messages"
-        headers = {
+    def _headers(self) -> dict[str, str]:
+        """Build the Messages API headers."""
+        return {
             "x-api-key": self.api_key,
             "anthropic-version": "2023-06-01",
             "Content-Type": "application/json",
         }
+
+    def _fetch_one(self, prompt: str) -> dict[str, str]:
+        """Request one vendor message completion."""
+        url = f"{self.base_url}/v1/messages"
+        headers = self._headers()
         payload = {
             "model": self.model,
             "messages": [{"role": "user", "content": prompt}],
@@ -249,6 +264,54 @@ class AnthropicProvider(LLMProvider):
         except (ValueError, KeyError) as e:
             logger.error("Anthropic response parsing failed: %s", e)
             return {"text": "[Parse Error]", "source": "error"}
+
+    def stream_generate(self, prompt: str) -> Iterator[str]:
+        """Yield text deltas from a streaming Messages API response.
+
+        The Messages API streams server-sent events; the text arrives in
+        ``content_block_delta`` events as ``delta.text`` (KIMI2-G — this
+        provider previously fell back to a silent single-shot completion).
+        """
+        import json as _json
+
+        url = f"{self.base_url}/v1/messages"
+        payload = {
+            "model": self.model,
+            "messages": [{"role": "user", "content": prompt}],
+            "max_tokens": self.max_tokens,
+            "stream": True,
+        }
+
+        try:
+            resp = requests.post(
+                url,
+                json=payload,
+                headers=self._headers(),
+                timeout=self.timeout,
+                stream=True,
+            )
+            resp.raise_for_status()
+            for line in resp.iter_lines(decode_unicode=True):  # pragma: no branch
+                if not line or not line.startswith("data: "):
+                    continue
+                data_str = line[len("data: ") :]
+                try:
+                    event = _json.loads(data_str)
+                except _json.JSONDecodeError:
+                    continue
+                event_type = event.get("type", "")
+                if event_type == "message_stop":
+                    break
+                if event_type != "content_block_delta":
+                    continue
+                delta = event.get("delta", {})
+                if delta.get("type") == "text_delta":
+                    text = delta.get("text", "")
+                    if text:
+                        yield text
+        except requests.exceptions.RequestException as e:
+            logger.error("Anthropic streaming request failed: %s", e)
+            yield f"[Error: {e}]"
 
     def generate_candidates(self, prompt: str, n: int = 3) -> list[dict[str, str]]:
         """Generate one or more vendor message candidates concurrently."""

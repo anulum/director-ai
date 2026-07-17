@@ -9,6 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **AnthropicProvider streams real tokens; no provider degrades silently.**
+  `AnthropicProvider.stream_generate()` now streams Messages API server-sent
+  events (`content_block_delta`/`text_delta`) instead of silently falling
+  back to a single non-streamed completion, and gains a `base_url` parameter
+  (Anthropic-compatible gateways, parity with `OpenAIProvider`). The base
+  `LLMProvider` single-shot fallback — still used by providers without a
+  streaming endpoint guarantee (e.g. `HuggingFaceProvider` on the classic
+  Inference API) — now logs a warning naming the degradation instead of
+  yielding one giant chunk with no indication that streaming never happened.
+
 - **`CoherenceScore.degraded_mode` — the verdict says when it came from
   heuristic scoring.** Without the `[nli]` extra the scorer falls back to a
   weak word-overlap heuristic that false-blocks true claims, and the only

@@ -52,6 +52,26 @@ class TestLLMProviderProtocol:
 
         assert list(_Provider().stream_generate("prompt")) == []
 
+    def test_default_stream_generate_warns_about_the_fallback(self, caplog):
+        # KIMI2-G: the single-shot fallback must announce itself — a caller
+        # relying on token-by-token delivery would otherwise silently get one
+        # giant chunk with no indication streaming never happened.
+        class _Provider(LLMProvider):
+            @property
+            def name(self):
+                return "test/provider"
+
+            def generate_candidates(self, prompt: str, n: int = 3):
+                return [{"text": "whole response", "source": self.name}]
+
+        with caplog.at_level("WARNING", logger="DirectorAI.Providers"):
+            list(_Provider().stream_generate("prompt"))
+
+        assert any(
+            "does not implement token streaming" in record.message
+            for record in caplog.records
+        )
+
 
 class TestOpenAIProvider:
     """Tests for OpenAIProvider."""
@@ -159,6 +179,57 @@ class TestAnthropicProvider:
         p = AnthropicProvider(api_key="sk-ant-test")
         assert "claude" in p.model
         assert p.timeout == 60
+        assert p.base_url == "https://api.anthropic.com"
+
+    @patch("director_ai.integrations.providers.requests.post")
+    def test_stream_generate_yields_text_deltas_and_stops_on_message_stop(
+        self, mock_post
+    ):
+        # KIMI2-G: Anthropic previously fell back to a silent single-shot
+        # completion; it now streams real Messages API SSE events.
+        response = MagicMock()
+        response.raise_for_status = MagicMock()
+        response.iter_lines.return_value = [
+            "",
+            "event: message_start",
+            'data: {"type":"message_start","message":{}}',
+            'data: {"type":"content_block_delta","index":0,'
+            '"delta":{"type":"text_delta","text":"Hel"}}',
+            "data: not-json",
+            'data: {"type":"content_block_delta","index":0,'
+            '"delta":{"type":"input_json_delta","partial_json":"{}"}}',
+            'data: {"type":"content_block_delta","index":0,'
+            '"delta":{"type":"text_delta","text":"lo"}}',
+            'data: {"type":"message_stop"}',
+            'data: {"type":"content_block_delta","index":0,'
+            '"delta":{"type":"text_delta","text":"NEVER"}}',
+        ]
+        mock_post.return_value = response
+
+        tokens = list(AnthropicProvider(api_key="sk-ant-test").stream_generate("Hello"))
+
+        assert tokens == ["Hel", "lo"]
+        assert mock_post.call_args.kwargs["stream"] is True
+        assert mock_post.call_args.kwargs["json"]["stream"] is True
+        assert mock_post.call_args.args[0].endswith("/v1/messages")
+
+    @patch("director_ai.integrations.providers.requests.post")
+    def test_stream_generate_request_exception_yields_error_token(self, mock_post):
+        mock_post.side_effect = requests.exceptions.Timeout("slow")
+
+        assert list(AnthropicProvider().stream_generate("Hello")) == ["[Error: slow]"]
+
+    @patch("director_ai.integrations.providers.requests.post")
+    def test_stream_generate_respects_custom_base_url(self, mock_post):
+        response = MagicMock()
+        response.raise_for_status = MagicMock()
+        response.iter_lines.return_value = ['data: {"type":"message_stop"}']
+        mock_post.return_value = response
+
+        provider = AnthropicProvider(base_url="http://127.0.0.1:9999/")
+        list(provider.stream_generate("Hello"))
+
+        assert mock_post.call_args.args[0] == "http://127.0.0.1:9999/v1/messages"
 
     def test_name(self):
         p = AnthropicProvider(model="claude-opus-4-6")
