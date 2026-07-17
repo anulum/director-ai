@@ -611,11 +611,13 @@ async def _handle_streaming(
             return _pending_overflow()
 
         def _fail_closed_frames() -> list[str]:
-            """Drop the withheld window and return the halt frames (KIMI3-H2).
+            """Drop the withheld window and return the halt frames.
 
-            Nothing withheld is disclosed: the window is cleared and the client
-            receives only the halt marker, with the abort recorded to the audit
-            log like any other terminal halt.
+            The shared fail-closed action for a pending-window overflow
+            (KIMI3-H2) or a scorer exception mid-stream (KIMI3-H5): nothing
+            withheld is disclosed — the window is cleared and the client receives
+            only the halt marker, with the abort recorded to the audit log like
+            any other terminal halt.
             """
             reviewed = "".join(buffer)
             _audit_log_entry(
@@ -659,7 +661,15 @@ async def _handle_streaming(
                 if payload.strip() == "[DONE]":
                     text = "".join(buffer)
                     if text:
-                        approved, _cs = scorer.review(prompt, text)
+                        try:
+                            approved, _cs = scorer.review(prompt, text)
+                        except Exception:  # noqa: BLE001 - any scorer error fails closed
+                            _log.exception(
+                                "scorer.review failed at stream end; failing closed"
+                            )
+                            for _frame in _fail_closed_frames():
+                                yield _frame
+                            return
                         latency_ms = (_time.monotonic() - t0) * 1000
                         _audit_log_entry(
                             audit_log,
@@ -708,7 +718,15 @@ async def _handle_streaming(
 
                     if chunk_count % STREAM_CHECK_INTERVAL == 0:
                         text = "".join(buffer)
-                        approved, _cs = scorer.review(prompt, text)
+                        try:
+                            approved, _cs = scorer.review(prompt, text)
+                        except Exception:  # noqa: BLE001 - any scorer error fails closed
+                            _log.exception(
+                                "scorer.review failed mid-stream; failing closed"
+                            )
+                            for _frame in _fail_closed_frames():
+                                yield _frame
+                            return
                         if not approved and on_fail == "reject":
                             # Record the mid-stream halt: like the terminal
                             # [DONE] review, a rejection must leave an audit entry.

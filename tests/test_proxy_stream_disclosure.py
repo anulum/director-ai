@@ -482,3 +482,58 @@ async def test_buffered_pending_under_cap_streams_normally(
     assert ": keepalive" in body  # released once the review passed
     assert "t0" in body
     assert scorer.calls  # a real review ran and approved the release
+
+
+# --- KIMI3-H5: a scorer exception mid-stream must fail closed, not abort ---
+
+
+class _RaisingScorer:
+    """A scorer whose review always raises, to prove the halt/audit path."""
+
+    def __init__(self) -> None:
+        self.calls = 0
+
+    def review(self, prompt: str, content: str) -> tuple[bool, object]:
+        self.calls += 1
+        raise RuntimeError("scorer boom")
+
+
+@pytest.mark.parametrize("disclosure", ["immediate", "buffered"])
+async def test_scorer_exception_at_done_fails_closed(
+    disclosure: str, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Fewer than the interval: the only review is at [DONE]; its raise halts."""
+    scorer = _RaisingScorer()
+    body = await _post_stream(
+        _app(
+            scorer,
+            _content_lines(2) + ["data: [DONE]"],
+            monkeypatch,
+            disclosure=disclosure,
+        ),
+    )
+
+    assert scorer.calls == 1  # the terminal review was attempted and raised
+    # failed closed with a halt + terminal marker, not a silent truncated stream
+    assert '"finish_reason": "content_filter"' in body
+    assert body.rstrip().endswith("data: [DONE]")
+
+
+@pytest.mark.parametrize("disclosure", ["immediate", "buffered"])
+async def test_scorer_exception_at_interval_fails_closed(
+    disclosure: str, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The periodic review raises mid-stream and the generator halts + audits."""
+    scorer = _RaisingScorer()
+    body = await _post_stream(
+        _app(
+            scorer,
+            _content_lines(STREAM_CHECK_INTERVAL + 1) + ["data: [DONE]"],
+            monkeypatch,
+            disclosure=disclosure,
+        ),
+    )
+
+    assert scorer.calls == 1  # raised on the interval review, not swallowed
+    assert '"finish_reason": "content_filter"' in body
+    assert body.rstrip().endswith("data: [DONE]")
