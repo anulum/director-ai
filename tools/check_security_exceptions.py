@@ -37,14 +37,14 @@ _REQUIRED_FIELDS = (
     "expires",
     "scope",
 )
-_ALLOWED_TOOLS = frozenset({"pip-audit", "semgrep", "bandit"})
+_ALLOWED_TOOLS = frozenset({"pip-audit", "semgrep", "bandit", "dependabot"})
 _SCHEMA_VERSION = "director.security_exceptions.v1"
 _DEFAULT_PATH = (
     Path(__file__).resolve().parent.parent / "requirements" / "security-exceptions.toml"
 )
 
 
-def validate(payload: dict, today: date) -> list[str]:
+def validate(payload: dict[str, object], today: date) -> list[str]:
     """Return a list of problems with the register; empty means valid."""
     problems: list[str] = []
     if payload.get("schema_version") != _SCHEMA_VERSION:

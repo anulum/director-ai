@@ -16,8 +16,8 @@
 # Example entry (copy, fill, and remove the leading '#'):
 #
 #   [[exceptions]]
-#   id = "GHSA-xxxx-xxxx-xxxx"          # advisory id from pip-audit / semgrep
-#   tool = "pip-audit"                  # pip-audit | semgrep | bandit
+#   id = "GHSA-xxxx-xxxx-xxxx"          # advisory id from the scanner
+#   tool = "pip-audit"                  # pip-audit | semgrep | bandit | dependabot
 #   package = "torch"                   # affected package or rule
 #   reason = "No fixed release; not reachable from shipped code paths."
 #   compensating_control = "torch only used in optional [nli]/[finetune] extras; \
@@ -29,7 +29,48 @@
 
 schema_version = "director.security_exceptions.v1"
 
-# No active exceptions yet. Populate from a CI `pip-audit -r requirements.txt`
-# run (which surfaces the real advisory ids) before flipping the audit gate from
-# advisory to enforcing.
-exceptions = []
+# Expiring waiver ruled by the owner on 2026-07-17 (same class and conditions
+# as the SC-NEUROCORE mcp-waiver precedent): three HIGH advisories against the
+# transitive mcp==1.23.3 pin inside the CI SAST lock. Blocked upstream — the
+# latest semgrep release (1.170.0 at ruling time) still unconditionally pins
+# mcp==1.23.3, so no clean bump exists and overriding the pin would break the
+# SAST scanner itself. The vulnerable code is MCP *server* transport code this
+# repository never starts: CI installs requirements/ci-sast.txt and invokes
+# `semgrep scan` only (never `semgrep mcp`), and mcp is absent from every
+# runtime dependency surface (pyproject dependencies and extras,
+# requirements.txt, requirements/docker-server.txt).
+# tests/test_security_exceptions.py locks that reachability invariant, the
+# exact waived pin, and the expiry — the waiver is valid only while all hold.
+
+[[exceptions]]
+id = "GHSA-vj7q-gjh5-988w"  # CVE-2026-59950
+tool = "dependabot"
+package = "mcp"
+reason = "MCP WebSocket server transport lacks Host/Origin validation; fixed in mcp 1.28.1, but semgrep (latest 1.170.0) hard-pins mcp==1.23.3, so no clean bump exists."
+compensating_control = "CI-only SAST lane: mcp enters solely via requirements/ci-sast.txt for semgrep; CI runs `semgrep scan` and never starts an MCP server transport; mcp is absent from every runtime dependency surface."
+owner = "protoscience@anulum.li"
+opened = "2026-07-17"
+expires = "2026-10-17"
+scope = "dependabot-ci-sast-lock"
+
+[[exceptions]]
+id = "GHSA-jpw9-pfvf-9f58"  # CVE-2026-52869
+tool = "dependabot"
+package = "mcp"
+reason = "MCP HTTP transports serve session requests without verifying the authenticated user; fixed in mcp 1.27.2, but semgrep (latest 1.170.0) hard-pins mcp==1.23.3, so no clean bump exists."
+compensating_control = "CI-only SAST lane: mcp enters solely via requirements/ci-sast.txt for semgrep; CI runs `semgrep scan` and never starts an MCP server transport; mcp is absent from every runtime dependency surface."
+owner = "protoscience@anulum.li"
+opened = "2026-07-17"
+expires = "2026-10-17"
+scope = "dependabot-ci-sast-lock"
+
+[[exceptions]]
+id = "GHSA-hvrp-rf83-w775"  # CVE-2026-52870
+tool = "dependabot"
+package = "mcp"
+reason = "MCP experimental task handlers allow any client to access and cancel tasks; fixed in mcp 1.27.2, but semgrep (latest 1.170.0) hard-pins mcp==1.23.3, so no clean bump exists."
+compensating_control = "CI-only SAST lane: mcp enters solely via requirements/ci-sast.txt for semgrep; CI runs `semgrep scan` and never starts an MCP server transport; mcp is absent from every runtime dependency surface."
+owner = "protoscience@anulum.li"
+opened = "2026-07-17"
+expires = "2026-10-17"
+scope = "dependabot-ci-sast-lock"
