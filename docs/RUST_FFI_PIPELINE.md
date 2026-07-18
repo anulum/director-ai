@@ -639,6 +639,7 @@ scoring path.
 | Core scorer               | `backfire-kernel/crates/backfire-core/src/scorer.rs` |
 | Safety/streaming kernel   | `backfire-kernel/crates/backfire-core/src/kernel.rs` |
 | Compute accelerators      | `backfire-kernel/crates/backfire-core/src/compute/` (facade: `compute.rs`) |
+| Statistical primitives    | `backfire-kernel/crates/backfire-core/src/stats.rs` (bindings validate, core computes) |
 | Verification signals      | `backfire-kernel/crates/backfire-core/src/signals.rs` |
 | Shared types              | `backfire-kernel/crates/backfire-types/`       |
 | Python integration tests  | `tests/test_rust_pipeline_integration.py`      |

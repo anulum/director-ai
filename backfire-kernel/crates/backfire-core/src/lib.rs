@@ -44,6 +44,7 @@ pub mod nli;
 pub mod pii_scan;
 pub mod scorer;
 pub mod signals;
+pub mod stats;
 
 pub use bm25::BM25Engine;
 pub use kernel::{SafetyKernel, StreamingKernel};
