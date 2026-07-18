@@ -8,6 +8,7 @@
 
 from __future__ import annotations
 
+import json
 import types
 
 from benchmarks import ragtruth_eval
@@ -175,3 +176,87 @@ class TestHasSpanAnnotation:
         assert ragtruth_eval._has_span_annotation("[]") is False
         assert ragtruth_eval._has_span_annotation('[{"a": 1}]') is True
         assert ragtruth_eval._has_span_annotation(None) is False
+
+
+def _stub_metrics() -> ragtruth_eval.E2EMetrics:
+    samples = [
+        ragtruth_eval.E2ESample(
+            task="qa",
+            context="ctx",
+            response="hallucinated answer",
+            is_hallucinated=True,
+            coherence_score=0.1,
+            approved=False,
+        ),
+        ragtruth_eval.E2ESample(
+            task="qa",
+            context="ctx",
+            response="grounded answer",
+            is_hallucinated=False,
+            coherence_score=0.9,
+            approved=True,
+        ),
+    ]
+    return ragtruth_eval.E2EMetrics(samples=samples)
+
+
+def test_main_out_writes_explicit_path_with_provenance(monkeypatch, tmp_path) -> None:
+    """--out + --git-sha satisfy the GPU runner contract with full provenance."""
+    calls: dict[str, object] = {}
+
+    def fake_run_ragtruth(max_samples=None, use_nli=False):
+        calls["max_samples"] = max_samples
+        calls["use_nli"] = use_nli
+        return _stub_metrics()
+
+    monkeypatch.setattr(ragtruth_eval, "run_ragtruth", fake_run_ragtruth)
+    out = tmp_path / "artefact.json"
+    sha = "f" * 40
+    assert ragtruth_eval.main(["--nli", "--out", str(out), "--git-sha", sha]) == 0
+    payload = json.loads(out.read_text())
+    assert payload["provenance"]["git_sha"] == sha
+    assert len(payload["rows"]) == 2
+    assert calls == {"max_samples": None, "use_nli": True}
+
+
+def test_main_default_path_uses_save_results(monkeypatch) -> None:
+    """Without --out the legacy results filename and save_results path hold."""
+    captured: dict[str, object] = {}
+
+    def fake_save_results(payload, filename):
+        captured["payload"] = payload
+        captured["filename"] = filename
+
+    monkeypatch.setattr(
+        ragtruth_eval,
+        "run_ragtruth",
+        lambda max_samples=None, use_nli=False: _stub_metrics(),
+    )
+    monkeypatch.setattr(ragtruth_eval, "save_results", fake_save_results)
+    assert ragtruth_eval.main([]) == 0
+    assert captured["filename"] == "ragtruth_results.json"
+    payload = captured["payload"]
+    assert payload["rows"]
+    assert payload["provenance"]["git_sha"] not in (None, "", "unknown")
+
+
+def test_main_decomposed_branch_forwards_arguments(monkeypatch) -> None:
+    """--decomposed routes to the decomposed runner with its own filename."""
+    calls: dict[str, object] = {}
+
+    def fake_decomposed(max_samples=None, min_coverage=1.0):
+        calls["max_samples"] = max_samples
+        calls["min_coverage"] = min_coverage
+        return _stub_metrics()
+
+    captured: dict[str, object] = {}
+    monkeypatch.setattr(ragtruth_eval, "run_ragtruth_decomposed", fake_decomposed)
+    monkeypatch.setattr(
+        ragtruth_eval,
+        "save_results",
+        lambda payload, filename: captured.update(filename=filename),
+    )
+    argv = ["--decomposed", "--max-samples", "7", "--min-coverage", "0.8"]
+    assert ragtruth_eval.main(argv) == 0
+    assert calls == {"max_samples": 7, "min_coverage": 0.8}
+    assert captured["filename"] == "ragtruth_decomposed_results.json"

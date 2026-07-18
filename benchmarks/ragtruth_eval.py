@@ -31,6 +31,7 @@ Usage::
 
 from __future__ import annotations
 
+import argparse
 import json
 import logging
 import time
@@ -276,9 +277,16 @@ def build_artefact(
     return payload
 
 
-if __name__ == "__main__":
-    import argparse
+def main(argv: Sequence[str] | None = None) -> int:
+    """Run the RAGTruth benchmark and write a reproducible artefact.
 
+    ``--out`` and ``--git-sha`` satisfy the GPU runner contract
+    (``tools/run_kimi_redteam_gpu.py`` invokes every benchmark as
+    ``script --out <path> --git-sha <sha>``): ``--out`` is an explicit
+    filesystem path for the artefact, and ``--git-sha`` records the exact
+    cloned commit so the remote artefact carries true provenance instead of
+    re-resolving HEAD on whatever checkout happens to be current.
+    """
     logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
     parser = argparse.ArgumentParser(description="RAGTruth benchmark")
     parser.add_argument("--max-samples", type=int, default=None)
@@ -289,7 +297,18 @@ if __name__ == "__main__":
         help="Claim-decomposed scoring (the fix for the whole-response gap).",
     )
     parser.add_argument("--min-coverage", type=float, default=1.0)
-    args = parser.parse_args()
+    parser.add_argument(
+        "--out",
+        default=None,
+        help="Explicit artefact path; default keeps the legacy "
+        "benchmarks/results/ filename.",
+    )
+    parser.add_argument(
+        "--git-sha",
+        default=None,
+        help="git commit SHA to record in the artefact for provenance",
+    )
+    args = parser.parse_args(argv)
 
     if args.decomposed:
         results = run_ragtruth_decomposed(
@@ -300,4 +319,14 @@ if __name__ == "__main__":
         results = run_ragtruth(max_samples=args.max_samples, use_nli=args.nli)
         out_name = "ragtruth_results.json"
     print_e2e_results(results)
-    save_results(build_artefact(results), out_name)
+    artefact = build_artefact(results, git_sha=args.git_sha)
+    if args.out:
+        with open(args.out, "w", encoding="utf-8") as fh:
+            json.dump(artefact, fh, indent=2)
+    else:
+        save_results(artefact, out_name)
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
