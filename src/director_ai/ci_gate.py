@@ -81,6 +81,7 @@ class GateThresholds:
     min_accuracy: float = 0.0
     min_catch_rate: float | None = None
     max_false_halt_rate: float | None = None
+    max_ece: float | None = None
 
 
 @dataclass(frozen=True)
@@ -96,6 +97,8 @@ class GateReport:
     thresholds: GateThresholds
     failures: tuple[str, ...]
     outcomes: tuple[CaseOutcome, ...] = field(default_factory=tuple)
+    ece: float | None = None
+    brier: float | None = None
 
     def to_dict(self, *, include_outcomes: bool = True) -> dict[str, object]:
         """Render to a JSON-serialisable summary for CI artefacts."""
@@ -109,11 +112,14 @@ class GateReport:
             "false_halt_rate": (
                 None if self.false_halt_rate is None else round(self.false_halt_rate, 6)
             ),
+            "ece": None if self.ece is None else round(self.ece, 6),
+            "brier": None if self.brier is None else round(self.brier, 6),
             "passed": self.passed,
             "thresholds": {
                 "min_accuracy": self.thresholds.min_accuracy,
                 "min_catch_rate": self.thresholds.min_catch_rate,
                 "max_false_halt_rate": self.thresholds.max_false_halt_rate,
+                "max_ece": self.thresholds.max_ece,
             },
             "failures": list(self.failures),
         }
@@ -135,12 +141,15 @@ class GateReport:
         catch = "n/a" if self.catch_rate is None else f"{self.catch_rate:.1%}"
         halt = "n/a" if self.false_halt_rate is None else f"{self.false_halt_rate:.1%}"
         status = "PASS" if self.passed else "FAIL"
+        ece = "n/a" if self.ece is None else f"{self.ece:.4f}"
+        brier = "n/a" if self.brier is None else f"{self.brier:.4f}"
         lines = [
             f"Director-AI CI gate: {status}",
             f"  cases            : {self.total}",
             f"  accuracy         : {self.accuracy:.1%} ({self.correct}/{self.total})",
             f"  hallucination catch rate : {catch}",
             f"  false-halt rate          : {halt}",
+            f"  calibration ECE / Brier  : {ece} / {brier}",
         ]
         lines.extend(f"  ✗ {reason}" for reason in self.failures)
         return lines
@@ -239,8 +248,11 @@ def run_eval_gate(
     accuracy = correct_count / total
     catch_rate = reject_caught / reject_total if reject_total else None
     false_halt_rate = approve_halted / approve_total if approve_total else None
+    ece, brier = _calibration_metrics(outcomes)
 
-    failures = _threshold_failures(thresholds, accuracy, catch_rate, false_halt_rate)
+    failures = _threshold_failures(
+        thresholds, accuracy, catch_rate, false_halt_rate, ece
+    )
     return GateReport(
         total=total,
         correct=correct_count,
@@ -251,7 +263,38 @@ def run_eval_gate(
         thresholds=thresholds,
         failures=tuple(failures),
         outcomes=tuple(outcomes),
+        ece=ece,
+        brier=brier,
     )
+
+
+def _calibration_metrics(
+    outcomes: Sequence[CaseOutcome],
+) -> tuple[float | None, float | None]:
+    """Return ``(ECE, Brier)`` over scored cases, or ``(None, None)``.
+
+    Each scored case contributes its coherence score as the predicted
+    probability of being grounded and ``1`` when the case is grounded
+    (``expected == approve``). Cases without a numeric score are skipped;
+    with no scored cases both metrics are ``None``.
+    """
+    probabilities: list[float] = []
+    labels: list[int] = []
+    for outcome in outcomes:
+        if outcome.score is None:
+            continue
+        probabilities.append(min(1.0, max(0.0, outcome.score)))
+        labels.append(1 if outcome.expected == _APPROVE else 0)
+    if not probabilities:
+        return None, None
+    from .core.calibration.probability_calibration import (
+        brier_score,
+        expected_calibration_error,
+    )
+
+    ece = expected_calibration_error(probabilities, labels)
+    brier = brier_score(probabilities, labels)
+    return ece, brier
 
 
 def _threshold_failures(
@@ -259,6 +302,7 @@ def _threshold_failures(
     accuracy: float,
     catch_rate: float | None,
     false_halt_rate: float | None,
+    ece: float | None,
 ) -> list[str]:
     """Return one message per breached threshold (empty == gate passes)."""
     failures: list[str] = []
@@ -285,6 +329,13 @@ def _threshold_failures(
             failures.append(
                 f"false-halt rate {false_halt_rate:.1%} > allowed "
                 f"{thresholds.max_false_halt_rate:.1%}"
+            )
+    if thresholds.max_ece is not None:
+        if ece is None:
+            failures.append("max-ece set but no case carried a numeric score")
+        elif ece > thresholds.max_ece:
+            failures.append(
+                f"calibration ECE {ece:.4f} > allowed {thresholds.max_ece:.4f}"
             )
     return failures
 

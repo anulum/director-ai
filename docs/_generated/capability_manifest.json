@@ -6,10 +6,10 @@
     "optional_extras": 62,
     "public_api_exports": 226,
     "public_documentation_pages": 205,
-    "python_model_classes": 1041,
-    "python_model_source_modules": 522,
+    "python_model_classes": 1043,
+    "python_model_source_modules": 523,
     "rust_pyo3_model_wrappers": 83,
-    "test_files": 766
+    "test_files": 768
   },
   "documentation": {
     "public_pages": [
@@ -2343,6 +2343,10 @@
         "path": "src/director_ai/core/irreversibility/forecaster.py"
       },
       {
+        "name": "IsotonicCalibrator",
+        "path": "src/director_ai/core/calibration/probability_calibration.py"
+      },
+      {
         "name": "JSONLFeedbackStore",
         "path": "src/director_ai/core/self_evolving/feedback.py"
       },
@@ -3057,6 +3061,10 @@
       {
         "name": "PlanVerdict",
         "path": "src/director_ai/core/cyber_physical/command_guard.py"
+      },
+      {
+        "name": "PlattCalibrator",
+        "path": "src/director_ai/core/calibration/probability_calibration.py"
       },
       {
         "name": "PoisonScanner",
@@ -4580,6 +4588,7 @@
       "src/director_ai/core/calibration/miscoverage.py",
       "src/director_ai/core/calibration/online_calibrator.py",
       "src/director_ai/core/calibration/operating_points.py",
+      "src/director_ai/core/calibration/probability_calibration.py",
       "src/director_ai/core/calibration/recall_correctness.py",
       "src/director_ai/core/calibration/recall_correctness_client.py",
       "src/director_ai/core/calibration/recall_ledger.py",
@@ -5482,6 +5491,7 @@
       "tests/test_byzantine_consensus.py",
       "tests/test_cache.py",
       "tests/test_cache_concurrent.py",
+      "tests/test_calibration_fit.py",
       "tests/test_canary.py",
       "tests/test_capability_matrix.py",
       "tests/test_carbon.py",
@@ -5947,6 +5957,7 @@
       "tests/test_prepare_threshold_data_real_surface.py",
       "tests/test_pricing_tier_boundary_docs.py",
       "tests/test_private_score_release.py",
+      "tests/test_probability_calibration.py",
       "tests/test_production_asserts.py",
       "tests/test_production_guard.py",
       "tests/test_production_guard_real_surface.py",

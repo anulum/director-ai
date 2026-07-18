@@ -218,6 +218,63 @@ class TestThresholds:
         assert any("no approve-labelled" in f for f in report.failures)
 
 
+class TestCalibrationMetrics:
+    def test_ece_and_brier_computed_from_scores(self):
+        # Two grounded (approve, label 1) cases scored 0.5: one bin, mean
+        # confidence 0.5, empirical accuracy 1.0 -> ECE 0.5; Brier (0.5-1)^2.
+        cases = [_case("g1", "approve"), _case("g2", "approve")]
+        scorer = _StubScorer({"g1", "g2"}, score=0.5)
+        report = run_eval_gate(cases, scorer, GateThresholds())
+        assert report.ece == pytest.approx(0.5)
+        assert report.brier == pytest.approx(0.25)
+
+    def test_metrics_none_without_numeric_scores(self):
+        class _NoScore:
+            def review(self, prompt: str, response: str) -> tuple[bool, object]:
+                return True, object()  # score is not numeric
+
+        report = run_eval_gate([_case("x", "approve")], _NoScore(), GateThresholds())
+        assert report.ece is None
+        assert report.brier is None
+
+    def test_max_ece_breach_fails(self):
+        cases = [_case("g1", "approve"), _case("g2", "approve")]
+        scorer = _StubScorer({"g1", "g2"}, score=0.5)  # ECE 0.5
+        report = run_eval_gate(cases, scorer, GateThresholds(max_ece=0.1))
+        assert not report.passed
+        assert any("calibration ECE" in f for f in report.failures)
+
+    def test_max_ece_pass_when_calibrated(self):
+        # Score 1.0 on grounded cases: bin confidence 1.0 == accuracy 1.0, ECE 0.
+        cases = [_case("g1", "approve"), _case("g2", "approve")]
+        scorer = _StubScorer({"g1", "g2"}, score=1.0)
+        report = run_eval_gate(cases, scorer, GateThresholds(max_ece=0.05))
+        assert report.passed
+        assert report.ece == pytest.approx(0.0)
+
+    def test_max_ece_without_scores_fails(self):
+        class _NoScore:
+            def review(self, prompt: str, response: str) -> tuple[bool, object]:
+                return True, object()
+
+        report = run_eval_gate(
+            [_case("x", "approve")], _NoScore(), GateThresholds(max_ece=0.1)
+        )
+        assert not report.passed
+        assert any("max-ece set but no case" in f for f in report.failures)
+
+    def test_to_dict_and_summary_include_calibration(self):
+        cases = [_case("g1", "approve"), _case("g2", "approve")]
+        report = run_eval_gate(
+            cases, _StubScorer({"g1", "g2"}, score=0.5), GateThresholds()
+        )
+        d = report.to_dict()
+        assert d["ece"] == pytest.approx(0.5)
+        assert d["brier"] == pytest.approx(0.25)
+        assert d["thresholds"]["max_ece"] is None
+        assert any("calibration ECE" in line for line in report.summary_lines())
+
+
 class TestReportRendering:
     def test_to_dict_roundtrip_fields(self):
         cases = [_case("good", "approve"), _case("bad", "reject")]

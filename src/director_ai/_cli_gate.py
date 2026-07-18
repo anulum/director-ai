@@ -28,6 +28,7 @@ class _GateArgs:
     min_accuracy: float
     min_catch_rate: float | None
     max_false_halt: float | None
+    max_ece: float | None
     profile: str | None
     output: str | None
 
@@ -68,6 +69,7 @@ def _cmd_ci_gate(args: list[str]) -> None:
             min_accuracy=opts.min_accuracy,
             min_catch_rate=opts.min_catch_rate,
             max_false_halt_rate=opts.max_false_halt,
+            max_ece=opts.max_ece,
         ),
     )
 
@@ -91,10 +93,12 @@ def _parse_args(args: list[str]) -> _GateArgs | None:
     thresholds: dict[str, float | None] = {
         "min_catch_rate": None,
         "max_false_halt": None,
+        "max_ece": None,
     }
     float_flags = {
         "--min-catch-rate": "min_catch_rate",
         "--max-false-halt": "max_false_halt",
+        "--max-ece": "max_ece",
     }
 
     i = 0
@@ -126,7 +130,7 @@ def _parse_args(args: list[str]) -> _GateArgs | None:
         print(
             "Usage: director-ai ci-gate --dataset cases.jsonl "
             "--min-accuracy 0.9 [--min-catch-rate R] [--max-false-halt R] "
-            "[--profile P] [--output gate.json]"
+            "[--max-ece R] [--profile P] [--output gate.json]"
         )
         return None
 
@@ -135,6 +139,7 @@ def _parse_args(args: list[str]) -> _GateArgs | None:
         min_accuracy=min_accuracy,
         min_catch_rate=thresholds["min_catch_rate"],
         max_false_halt=thresholds["max_false_halt"],
+        max_ece=thresholds["max_ece"],
         profile=profile,
         output=output,
     )
