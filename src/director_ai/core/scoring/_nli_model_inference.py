@@ -40,6 +40,13 @@ _FACTCG_TEMPLATE = (
     "I think the answer is "
 )
 
+#: Upper bound on pairs per batched forward pass. A single forward over an
+#: unbounded claims×chunks pair list allocates activations proportional to
+#: the pair count — a long RAGTruth sample OOMed a 24 GB A30 (2026-07-18).
+#: Rows are scored independently (padding is attention-masked), so chunking
+#: bounds memory without changing any score.
+_MAX_PAIRS_PER_FORWARD = 32
+
 
 def _normalise_nli_text(text: str) -> str:
     """Strip zero-width/confusable perturbations from model input (KIMI2-J).
@@ -156,81 +163,107 @@ class ModelInferenceMixin:
         return float(probs[ci]) + float(probs[ni]) * 0.5
 
     def _model_score_batch(self, pairs: list[tuple[str, str]]) -> list[float]:
-        """Batched PyTorch inference — single forward pass."""
+        """Batched PyTorch inference in memory-bounded chunks.
+
+        At most :data:`_MAX_PAIRS_PER_FORWARD` pairs go through one forward
+        pass; an empty batch short-circuits to an empty result.
+        """
         if self._tokenizer is None or self._model is None:
             raise RuntimeError("NLI model not loaded")
 
+        results: list[float] = []
+        with metrics.timer("nli_batch_inference_seconds"):
+            for start in range(0, len(pairs), _MAX_PAIRS_PER_FORWARD):
+                results.extend(
+                    self._model_score_batch_chunk(
+                        pairs[start : start + _MAX_PAIRS_PER_FORWARD]
+                    )
+                )
+        return results
+
+    def _model_score_batch_chunk(self, pairs: list[tuple[str, str]]) -> list[float]:
+        """One bounded PyTorch forward pass over *pairs*."""
         import torch
 
         device = next(self._model.parameters()).device
 
-        with metrics.timer("nli_batch_inference_seconds"):
-            if self._is_factcg:
-                texts = [_FACTCG_TEMPLATE.format(text_a=p, text_b=h) for p, h in pairs]
-                inputs = self._tokenize(
-                    texts,
-                    return_tensors="pt",
-                    truncation=True,
-                    padding=True,
-                    max_length=self.max_length,
-                )
-            else:
-                premises = [p for p, _ in pairs]
-                hypotheses = [h for _, h in pairs]
-                inputs = self._tokenize(
-                    premises,
-                    hypotheses,
-                    return_tensors="pt",
-                    truncation=True,
-                    padding=True,
-                    max_length=self.max_length,
-                )
+        if self._is_factcg:
+            texts = [_FACTCG_TEMPLATE.format(text_a=p, text_b=h) for p, h in pairs]
+            inputs = self._tokenize(
+                texts,
+                return_tensors="pt",
+                truncation=True,
+                padding=True,
+                max_length=self.max_length,
+            )
+        else:
+            premises = [p for p, _ in pairs]
+            hypotheses = [h for _, h in pairs]
+            inputs = self._tokenize(
+                premises,
+                hypotheses,
+                return_tensors="pt",
+                truncation=True,
+                padding=True,
+                max_length=self.max_length,
+            )
 
-            self._last_token_count += inputs["input_ids"].numel()
-            inputs = {k: v.to(device) for k, v in inputs.items()}
-            with torch.no_grad():
-                logits = self._model(**inputs).logits
+        self._last_token_count += inputs["input_ids"].numel()
+        inputs = {k: v.to(device) for k, v in inputs.items()}
+        with torch.no_grad():
+            logits = self._model(**inputs).logits
 
-            probs = torch.softmax(logits, dim=1).cpu().numpy()
+        probs = torch.softmax(logits, dim=1).cpu().numpy()
 
         return _probs_to_divergence(probs, self._label_indices)
 
     def _onnx_score_batch(self, pairs: list[tuple[str, str]]) -> list[float]:
-        """Batched ONNX Runtime inference."""
+        """Batched ONNX Runtime inference in memory-bounded chunks."""
         if self._tokenizer is None or self._onnx_session is None:
             raise RuntimeError("ONNX session not loaded")
 
+        results: list[float] = []
         with metrics.timer("nli_onnx_batch_seconds"):
-            if self._is_factcg:
-                texts = [_FACTCG_TEMPLATE.format(text_a=p, text_b=h) for p, h in pairs]
-                inputs = self._tokenize(
-                    texts,
-                    return_tensors="np",
-                    truncation=True,
-                    padding=True,
-                    max_length=self.max_length,
+            for start in range(0, len(pairs), _MAX_PAIRS_PER_FORWARD):
+                results.extend(
+                    self._onnx_score_batch_chunk(
+                        pairs[start : start + _MAX_PAIRS_PER_FORWARD]
+                    )
                 )
-            else:
-                premises = [p for p, _ in pairs]
-                hypotheses = [h for _, h in pairs]
-                inputs = self._tokenize(
-                    premises,
-                    hypotheses,
-                    return_tensors="np",
-                    truncation=True,
-                    padding=True,
-                    max_length=self.max_length,
-                )
+        return results
 
-            self._last_token_count += inputs["input_ids"].size
-            # Feed only inputs the ONNX graph expects, cast to int64
-            expected = {i.name for i in self._onnx_session.get_inputs()}
-            feed = {
-                k: v.astype(np.int64) if v.dtype != np.int64 else v
-                for k, v in inputs.items()
-                if k in expected
-            }
-            logits = self._onnx_session.run(None, feed)[0]
+    def _onnx_score_batch_chunk(self, pairs: list[tuple[str, str]]) -> list[float]:
+        """One bounded ONNX Runtime forward pass over *pairs*."""
+        if self._is_factcg:
+            texts = [_FACTCG_TEMPLATE.format(text_a=p, text_b=h) for p, h in pairs]
+            inputs = self._tokenize(
+                texts,
+                return_tensors="np",
+                truncation=True,
+                padding=True,
+                max_length=self.max_length,
+            )
+        else:
+            premises = [p for p, _ in pairs]
+            hypotheses = [h for _, h in pairs]
+            inputs = self._tokenize(
+                premises,
+                hypotheses,
+                return_tensors="np",
+                truncation=True,
+                padding=True,
+                max_length=self.max_length,
+            )
+
+        self._last_token_count += inputs["input_ids"].size
+        # Feed only inputs the ONNX graph expects, cast to int64
+        expected = {i.name for i in self._onnx_session.get_inputs()}
+        feed = {
+            k: v.astype(np.int64) if v.dtype != np.int64 else v
+            for k, v in inputs.items()
+            if k in expected
+        }
+        logits = self._onnx_session.run(None, feed)[0]
 
         return _probs_to_divergence(_softmax_np(logits), self._label_indices)
 
@@ -238,41 +271,55 @@ class ModelInferenceMixin:
         self,
         pairs: list[tuple[str, str]],
     ) -> list[tuple[float, float]]:
-        """Batched PyTorch inference returning (divergence, confidence)."""
+        """Chunked PyTorch inference returning (divergence, confidence)."""
         if self._tokenizer is None or self._model is None:
             raise RuntimeError("NLI model not loaded")
 
+        results: list[tuple[float, float]] = []
+        with metrics.timer("nli_batch_inference_seconds"):
+            for start in range(0, len(pairs), _MAX_PAIRS_PER_FORWARD):
+                results.extend(
+                    self._model_score_batch_with_confidence_chunk(
+                        pairs[start : start + _MAX_PAIRS_PER_FORWARD]
+                    )
+                )
+        return results
+
+    def _model_score_batch_with_confidence_chunk(
+        self,
+        pairs: list[tuple[str, str]],
+    ) -> list[tuple[float, float]]:
+        """One bounded PyTorch forward returning (divergence, confidence)."""
         import torch
 
         device = next(self._model.parameters()).device
 
-        with metrics.timer("nli_batch_inference_seconds"):
-            if self._is_factcg:
-                texts = [_FACTCG_TEMPLATE.format(text_a=p, text_b=h) for p, h in pairs]
-                inputs = self._tokenize(
-                    texts,
-                    return_tensors="pt",
-                    truncation=True,
-                    padding=True,
-                    max_length=self.max_length,
-                )
-            else:
-                premises = [p for p, _ in pairs]
-                hypotheses = [h for _, h in pairs]
-                inputs = self._tokenize(
-                    premises,
-                    hypotheses,
-                    return_tensors="pt",
-                    truncation=True,
-                    padding=True,
-                    max_length=self.max_length,
-                )
+        if self._is_factcg:
+            texts = [_FACTCG_TEMPLATE.format(text_a=p, text_b=h) for p, h in pairs]
+            inputs = self._tokenize(
+                texts,
+                return_tensors="pt",
+                truncation=True,
+                padding=True,
+                max_length=self.max_length,
+            )
+        else:
+            premises = [p for p, _ in pairs]
+            hypotheses = [h for _, h in pairs]
+            inputs = self._tokenize(
+                premises,
+                hypotheses,
+                return_tensors="pt",
+                truncation=True,
+                padding=True,
+                max_length=self.max_length,
+            )
 
-            self._last_token_count += inputs["input_ids"].numel()
-            inputs = {k: v.to(device) for k, v in inputs.items()}
-            with torch.no_grad():
-                logits = self._model(**inputs).logits
-            probs = torch.softmax(logits, dim=1).cpu().numpy()
+        self._last_token_count += inputs["input_ids"].numel()
+        inputs = {k: v.to(device) for k, v in inputs.items()}
+        with torch.no_grad():
+            logits = self._model(**inputs).logits
+        probs = torch.softmax(logits, dim=1).cpu().numpy()
 
         divergences = _probs_to_divergence(probs, self._label_indices)
         confidences = _probs_to_confidence(probs)
@@ -282,40 +329,54 @@ class ModelInferenceMixin:
         self,
         pairs: list[tuple[str, str]],
     ) -> list[tuple[float, float]]:
-        """Batched ONNX inference returning (divergence, confidence)."""
+        """Chunked ONNX inference returning (divergence, confidence)."""
         if self._tokenizer is None or self._onnx_session is None:
             raise RuntimeError("ONNX session not loaded")
 
+        results: list[tuple[float, float]] = []
         with metrics.timer("nli_onnx_batch_seconds"):
-            if self._is_factcg:
-                texts = [_FACTCG_TEMPLATE.format(text_a=p, text_b=h) for p, h in pairs]
-                inputs = self._tokenize(
-                    texts,
-                    return_tensors="np",
-                    truncation=True,
-                    padding=True,
-                    max_length=self.max_length,
+            for start in range(0, len(pairs), _MAX_PAIRS_PER_FORWARD):
+                results.extend(
+                    self._onnx_score_batch_with_confidence_chunk(
+                        pairs[start : start + _MAX_PAIRS_PER_FORWARD]
+                    )
                 )
-            else:
-                premises = [p for p, _ in pairs]
-                hypotheses = [h for _, h in pairs]
-                inputs = self._tokenize(
-                    premises,
-                    hypotheses,
-                    return_tensors="np",
-                    truncation=True,
-                    padding=True,
-                    max_length=self.max_length,
-                )
+        return results
 
-            self._last_token_count += inputs["input_ids"].size
-            expected = {i.name for i in self._onnx_session.get_inputs()}
-            feed = {
-                k: v.astype(np.int64) if v.dtype != np.int64 else v
-                for k, v in inputs.items()
-                if k in expected
-            }
-            logits = self._onnx_session.run(None, feed)[0]
+    def _onnx_score_batch_with_confidence_chunk(
+        self,
+        pairs: list[tuple[str, str]],
+    ) -> list[tuple[float, float]]:
+        """One bounded ONNX forward returning (divergence, confidence)."""
+        if self._is_factcg:
+            texts = [_FACTCG_TEMPLATE.format(text_a=p, text_b=h) for p, h in pairs]
+            inputs = self._tokenize(
+                texts,
+                return_tensors="np",
+                truncation=True,
+                padding=True,
+                max_length=self.max_length,
+            )
+        else:
+            premises = [p for p, _ in pairs]
+            hypotheses = [h for _, h in pairs]
+            inputs = self._tokenize(
+                premises,
+                hypotheses,
+                return_tensors="np",
+                truncation=True,
+                padding=True,
+                max_length=self.max_length,
+            )
+
+        self._last_token_count += inputs["input_ids"].size
+        expected = {i.name for i in self._onnx_session.get_inputs()}
+        feed = {
+            k: v.astype(np.int64) if v.dtype != np.int64 else v
+            for k, v in inputs.items()
+            if k in expected
+        }
+        logits = self._onnx_session.run(None, feed)[0]
 
         sm = _softmax_np(logits)
         divergences = _probs_to_divergence(sm, self._label_indices)

@@ -1326,3 +1326,141 @@ def test_tokenize_raises_when_tokenizer_missing() -> None:
     scorer._tokenizer = None
     with pytest.raises(RuntimeError, match="NLI model not loaded"):
         scorer._tokenize("premise", "hypothesis")
+
+
+class _IndexedChunkModel(FakeModel):
+    """Size-aware fake: one logit row per input row, forward sizes recorded.
+
+    Row logits derive from a running counter so every pair scores
+    differently — concatenation order across chunks becomes observable.
+    """
+
+    def __init__(self) -> None:
+        super().__init__([[0.0, 0.0]])
+        self.forward_sizes: list[int] = []
+        self._next = 0
+
+    def __call__(self, **inputs):
+        rows = int(inputs["input_ids"].values.shape[0])
+        self.forward_sizes.append(rows)
+        logits = [[0.0, 0.1 * (self._next + row)] for row in range(rows)]
+        self._next += rows
+        return SimpleNamespace(logits=FakeTensor(np.asarray(logits)))
+
+
+class _IndexedChunkOnnxSession(FakeOnnxSession):
+    """Size-aware fake ONNX session recording per-run batch sizes."""
+
+    def __init__(self) -> None:
+        super().__init__([[0.0, 0.0]])
+        self.run_sizes: list[int] = []
+        self._next = 0
+
+    def run(self, _outputs, feed):
+        self.feed_seen = feed
+        rows = int(feed["input_ids"].shape[0])
+        self.run_sizes.append(rows)
+        logits = [[0.0, 0.1 * (self._next + row)] for row in range(rows)]
+        self._next += rows
+        return [np.asarray(logits, dtype=np.float64)]
+
+
+def _chunking_pairs(count: int) -> list[tuple[str, str]]:
+    return [(f"premise {i}", f"hypothesis {i}") for i in range(count)]
+
+
+def test_nli_model_batch_chunks_bound_forward_size_and_preserve_scores(
+    monkeypatch,
+) -> None:
+    """Chunked forwards stay bounded and concatenate to the unchunked scores.
+
+    An unbounded claims×chunks forward OOMed a 24 GB A30 on a long RAGTruth
+    sample (2026-07-18); the chunk loop must bound every forward while
+    keeping the resulting score list identical.
+    """
+    import director_ai.core.scoring._nli_model_inference as nli_inference
+
+    _install_fake_torch(monkeypatch)
+
+    def build_scorer() -> tuple[NLIScorer, _IndexedChunkModel]:
+        scorer = NLIScorer(use_model=False, model_name="plain-nli")
+        scorer._tokenizer = FakeTokenizer()
+        model = _IndexedChunkModel()
+        scorer._model = model
+        return scorer, model
+
+    monkeypatch.setattr(nli_inference, "_MAX_PAIRS_PER_FORWARD", 2)
+    chunked_scorer, chunked_model = build_scorer()
+    chunked = chunked_scorer._model_score_batch(_chunking_pairs(5))
+    chunked_conf = chunked_scorer._model_score_batch_with_confidence(_chunking_pairs(5))
+
+    assert chunked_model.forward_sizes == [2, 2, 1, 2, 2, 1]
+    assert len(chunked) == 5
+    assert len(chunked_conf) == 5
+
+    monkeypatch.setattr(nli_inference, "_MAX_PAIRS_PER_FORWARD", 1000)
+    single_scorer, single_model = build_scorer()
+    single = single_scorer._model_score_batch(_chunking_pairs(5))
+    single_conf = single_scorer._model_score_batch_with_confidence(_chunking_pairs(5))
+
+    assert single_model.forward_sizes == [5, 5]
+    assert chunked == single
+    assert chunked_conf == single_conf
+
+
+def test_nli_onnx_batch_chunks_bound_run_size_and_preserve_scores(
+    monkeypatch,
+) -> None:
+    """The ONNX chunk loop mirrors the PyTorch bound with identical scores."""
+    import director_ai.core.scoring._nli_model_inference as nli_inference
+
+    monkeypatch.setattr(nli_accel, "_RUST_NLI", False)
+
+    def build_scorer() -> tuple[NLIScorer, _IndexedChunkOnnxSession]:
+        scorer = NLIScorer(use_model=False, backend="onnx", model_name="plain-nli")
+        scorer._tokenizer = FakeTokenizer()
+        session = _IndexedChunkOnnxSession()
+        scorer._onnx_session = session
+        return scorer, session
+
+    monkeypatch.setattr(nli_inference, "_MAX_PAIRS_PER_FORWARD", 2)
+    chunked_scorer, chunked_session = build_scorer()
+    chunked = chunked_scorer._onnx_score_batch(_chunking_pairs(5))
+    chunked_conf = chunked_scorer._onnx_score_batch_with_confidence(_chunking_pairs(5))
+
+    assert chunked_session.run_sizes == [2, 2, 1, 2, 2, 1]
+    assert len(chunked) == 5
+    assert len(chunked_conf) == 5
+
+    monkeypatch.setattr(nli_inference, "_MAX_PAIRS_PER_FORWARD", 1000)
+    single_scorer, single_session = build_scorer()
+    single = single_scorer._onnx_score_batch(_chunking_pairs(5))
+    single_conf = single_scorer._onnx_score_batch_with_confidence(_chunking_pairs(5))
+
+    assert single_session.run_sizes == [5, 5]
+    assert chunked == single
+    assert chunked_conf == single_conf
+
+
+def test_nli_batch_empty_pairs_short_circuit(monkeypatch) -> None:
+    """An empty batch returns [] without touching the model or session."""
+    _install_fake_torch(monkeypatch)
+    monkeypatch.setattr(nli_accel, "_RUST_NLI", False)
+
+    scorer = NLIScorer(use_model=False, model_name="plain-nli")
+    scorer._tokenizer = FakeTokenizer()
+    model = _IndexedChunkModel()
+    scorer._model = model
+
+    assert scorer._model_score_batch([]) == []
+    assert scorer._model_score_batch_with_confidence([]) == []
+    assert model.forward_sizes == []
+
+    onnx_scorer = NLIScorer(use_model=False, backend="onnx", model_name="plain-nli")
+    onnx_scorer._tokenizer = FakeTokenizer()
+    session = _IndexedChunkOnnxSession()
+    onnx_scorer._onnx_session = session
+
+    assert onnx_scorer._onnx_score_batch([]) == []
+    assert onnx_scorer._onnx_score_batch_with_confidence([]) == []
+    assert session.run_sizes == []
