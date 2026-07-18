@@ -15,11 +15,12 @@ detection at a threshold of 0.5.
 
 Usage::
 
-    # Requires DeBERTa NLI model (~2 GB download on first run)
-    pytest benchmarks/halueval_eval.py -v -m slow
-
-    # Or run directly
+    # Run directly (requires the DeBERTa NLI model, ~2 GB on first run)
     python -m benchmarks.halueval_eval
+
+The pytest smoke tests live in ``tests/test_halueval_benchmark.py`` (moved
+there so this module does not import pytest — a minimal remote runner without
+pytest was breaking the ``benchmarks.*`` import chain).
 """
 
 from __future__ import annotations
@@ -27,8 +28,6 @@ from __future__ import annotations
 import json
 import logging
 from dataclasses import dataclass, field
-
-import pytest
 
 from benchmarks._halueval_data import _CACHE_DIR as _CACHE_DIR
 from benchmarks._halueval_data import _DATASET_URLS as _DATASET_URLS
@@ -220,31 +219,6 @@ def _print_results(result: HaluEvalResult) -> None:
         _print_metrics(metrics, f"Task: {task}")
 
     print("=" * 70)
-
-
-# ── Pytest entry points ───────────────────────────────────────────
-
-
-@pytest.mark.slow
-def test_halueval_qa_sample():
-    """Run HaluEval QA benchmark (small sample, requires NLI model)."""
-    result = run_halueval_benchmark(tasks=["qa"], use_nli=True, max_samples_per_task=25)
-    _print_results(result)
-    assert result.overall.total > 0, "No samples processed"
-    logger.info(
-        "HaluEval QA F1: %.1f%% (precision=%.1f%%, recall=%.1f%%)",
-        result.overall.f1 * 100,
-        result.overall.precision * 100,
-        result.overall.recall * 100,
-    )
-
-
-@pytest.mark.slow
-def test_halueval_full():
-    """Full HaluEval benchmark (all tasks, ~10K samples)."""
-    result = run_halueval_benchmark(use_nli=True, max_samples_per_task=200)
-    _print_results(result)
-    assert result.overall.total > 0
 
 
 # ── CLI entry point ────────────────────────────────────────────────

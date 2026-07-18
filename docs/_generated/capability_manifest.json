@@ -9,7 +9,7 @@
     "python_model_classes": 1043,
     "python_model_source_modules": 523,
     "rust_pyo3_model_wrappers": 83,
-    "test_files": 768
+    "test_files": 769
   },
   "documentation": {
     "public_pages": [
@@ -5745,6 +5745,7 @@
       "tests/test_hallucination_forecaster.py",
       "tests/test_halluhard_eval.py",
       "tests/test_halt_evidence.py",
+      "tests/test_halueval_benchmark.py",
       "tests/test_handoff_scorer.py",
       "tests/test_handoff_scorer_real_surface.py",
       "tests/test_hardened_auto.py",
