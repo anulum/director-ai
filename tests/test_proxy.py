@@ -720,13 +720,18 @@ async def test_proxy_stream_rejects_on_periodic_guardrail_failure(monkeypatch) -
 async def test_proxy_stream_periodic_halt_writes_audit_entry(monkeypatch) -> None:
     # Regression: a mid-stream periodic halt returned without an audit entry,
     # while the terminal [DONE] review logs one. Both rejections must be audited.
+    # The streaming handler resolves _audit_log_entry from _proxy_streaming's
+    # globals, so that module is the patch target.
+    import director_ai._proxy_streaming as proxy_streaming
     import director_ai.proxy as proxy
 
     scorer = _FixedScorer(approved=False, score=0.1)
     monkeypatch.setattr(proxy, "CoherenceScorer", lambda **_kw: scorer)
     entries: list[dict[str, object]] = []
     monkeypatch.setattr(
-        proxy, "_audit_log_entry", lambda *_a, **kwargs: entries.append(kwargs)
+        proxy_streaming,
+        "_audit_log_entry",
+        lambda *_a, **kwargs: entries.append(kwargs),
     )
     app = create_proxy_app(
         upstream_url="http://fake-upstream",

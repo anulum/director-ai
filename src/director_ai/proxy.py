@@ -12,18 +12,78 @@ Set ``OPENAI_BASE_URL=http://localhost:8080/v1`` and get transparent
 hallucination scoring with zero code changes::
 
     director-ai proxy --port 8080 --facts kb.txt --threshold 0.6
+
+This module is the app factory and route orchestration; the supporting
+responsibilities live in sibling modules and are re-exported here so the
+``director_ai.proxy`` namespace is unchanged: wire-format parsing in
+``_proxy_content``, the streaming disclosure handler in
+``_proxy_streaming``, audit/fail-closed plumbing in ``_proxy_audit``,
+and facts-file loading in ``_proxy_facts``.
 """
 
 from __future__ import annotations
 
 import hmac
-import json
 import logging
-import pathlib
 import time as _time
-from collections.abc import AsyncIterator, Awaitable, Callable, Iterator
+from collections.abc import AsyncIterator, Awaitable, Callable
 from typing import TYPE_CHECKING, Any
 
+from director_ai._proxy_audit import (
+    _audit_log_entry as _audit_log_entry,
+)
+from director_ai._proxy_audit import (
+    _scorer_error_response as _scorer_error_response,
+)
+from director_ai._proxy_content import (
+    _chat_completion_content as _chat_completion_content,
+)
+from director_ai._proxy_content import (
+    _completion_prompt as _completion_prompt,
+)
+from director_ai._proxy_content import (
+    _completion_text as _completion_text,
+)
+from director_ai._proxy_content import (
+    _delta_content as _delta_content,
+)
+from director_ai._proxy_content import (
+    _delta_tool_call_text as _delta_tool_call_text,
+)
+from director_ai._proxy_content import (
+    _extract_prompt as _extract_prompt,
+)
+from director_ai._proxy_content import (
+    _iter_choice_deltas as _iter_choice_deltas,
+)
+from director_ai._proxy_content import (
+    _stream_chat_content as _stream_chat_content,
+)
+from director_ai._proxy_content import (
+    _stream_delta_content as _stream_delta_content,
+)
+from director_ai._proxy_content import (
+    _stream_text_content as _stream_text_content,
+)
+from director_ai._proxy_content import (
+    _stream_tool_call_content as _stream_tool_call_content,
+)
+from director_ai._proxy_facts import _load_facts as _load_facts
+from director_ai._proxy_streaming import (
+    STREAM_CHECK_INTERVAL as STREAM_CHECK_INTERVAL,
+)
+from director_ai._proxy_streaming import (
+    STREAM_DISCLOSURE_MODES as STREAM_DISCLOSURE_MODES,
+)
+from director_ai._proxy_streaming import (
+    STREAM_MAX_PENDING_CHARS as STREAM_MAX_PENDING_CHARS,
+)
+from director_ai._proxy_streaming import (
+    STREAM_MAX_PENDING_LINES as STREAM_MAX_PENDING_LINES,
+)
+from director_ai._proxy_streaming import (
+    _handle_streaming as _handle_streaming,
+)
 from director_ai.core import CoherenceScorer, GroundTruthStore
 
 # FastAPI resolves route-handler annotations at runtime (``get_type_hints``), so
@@ -33,7 +93,7 @@ from director_ai.core import CoherenceScorer, GroundTruthStore
 # app raises a clear ImportError instead).
 try:
     from fastapi import FastAPI, Request, Response
-    from fastapi.responses import JSONResponse, StreamingResponse
+    from fastapi.responses import JSONResponse
 except ImportError:  # pragma: no cover — exercised only without the server extra
     pass
 
@@ -43,161 +103,6 @@ if TYPE_CHECKING:
     from director_ai.core.config import DirectorConfig
 
 _log = logging.getLogger("DirectorAI.Proxy")
-
-STREAM_CHECK_INTERVAL = 8
-
-# Buffered-mode safety cap on the withheld ``pending`` window (KIMI3-H2). A
-# stream can withhold many lines without ever producing reviewable content — a
-# flood of content-less or non-data lines — which would grow the process memory
-# without bound and never trigger a review. When the withheld window exceeds
-# either cap the stream fails closed with a halt instead of buffering
-# indefinitely; nothing withheld is disclosed.
-STREAM_MAX_PENDING_LINES = 512
-STREAM_MAX_PENDING_CHARS = 256 * 1024
-
-# Streaming disclosure modes (KIMI2-A). ``immediate`` forwards every chunk as
-# it arrives and a mid-stream halt only stops FUTURE tokens — content emitted
-# before the halt has already reached the client (early termination with
-# partial disclosure). ``buffered`` withholds chunks until they pass a review,
-# so a halted stream discloses nothing unreviewed, at a latency cost of up to
-# ``STREAM_CHECK_INTERVAL`` chunks.
-STREAM_DISCLOSURE_MODES = ("immediate", "buffered")
-
-
-def _chat_completion_content(data: object) -> str:
-    """Extract OpenAI-compatible chat content without exception control flow."""
-    if not isinstance(data, dict):
-        return ""
-    choices = data.get("choices")
-    if not isinstance(choices, list) or not choices:
-        return ""
-    first = choices[0]
-    if not isinstance(first, dict):
-        return ""
-    message = first.get("message")
-    if not isinstance(message, dict):
-        return ""
-    content = message.get("content")
-    return content if isinstance(content, str) else ""
-
-
-def _iter_choice_deltas(chunk: object) -> Iterator[object]:
-    """Yield every choice's ``delta`` mapping in wire order.
-
-    A chat completion may carry more than one choice (``n>1``); reviewing
-    only ``choices[0]`` lets a sensitive payload on a later choice reach
-    the client unreviewed, so every disclosure path walks the full list.
-    """
-    if not isinstance(chunk, dict):
-        return
-    choices = chunk.get("choices")
-    if not isinstance(choices, list):
-        return
-    for choice in choices:
-        if isinstance(choice, dict):
-            yield choice.get("delta")
-
-
-def _delta_content(delta: object) -> str:
-    """Text content from a single delta mapping."""
-    if not isinstance(delta, dict):
-        return ""
-    content = delta.get("content")
-    return content if isinstance(content, str) else ""
-
-
-def _delta_tool_call_text(delta: object) -> str:
-    """Tool-call name and argument text from a single delta mapping.
-
-    OpenAI tool-call streams carry their payload in
-    ``delta.tool_calls[].function.{name,arguments}`` rather than
-    ``delta.content``; a response that only calls tools still discloses
-    model output (the tool it invokes and the arguments it passes) that
-    must reach the review buffer.
-    """
-    if not isinstance(delta, dict):
-        return ""
-    tool_calls = delta.get("tool_calls")
-    if not isinstance(tool_calls, list):
-        return ""
-    parts: list[str] = []
-    for call in tool_calls:
-        if not isinstance(call, dict):
-            continue
-        function = call.get("function")
-        if not isinstance(function, dict):
-            continue
-        name = function.get("name")
-        if isinstance(name, str) and name:
-            parts.append(name)
-        arguments = function.get("arguments")
-        if isinstance(arguments, str) and arguments:
-            parts.append(arguments)
-    return "".join(parts)
-
-
-def _stream_delta_content(chunk: object) -> str:
-    """Extract OpenAI-compatible stream delta content across every choice."""
-    return "".join(_delta_content(delta) for delta in _iter_choice_deltas(chunk))
-
-
-def _stream_tool_call_content(chunk: object) -> str:
-    """Extract tool-call name and argument deltas across every choice."""
-    return "".join(_delta_tool_call_text(delta) for delta in _iter_choice_deltas(chunk))
-
-
-def _stream_chat_content(chunk: object) -> str:
-    """Reviewable chat-stream text across ALL choices in wire order.
-
-    For each choice's delta, in choice order, the message content and the
-    tool-call name/argument deltas are folded into one reviewed string.
-    Walking every choice keeps a multi-choice chunk whose sensitive tool
-    call rides on a later choice — or whose first choice is empty — from
-    leaving the review buffer empty and bypassing the terminal review.
-    """
-    parts: list[str] = []
-    for delta in _iter_choice_deltas(chunk):
-        parts.append(_delta_content(delta))
-        parts.append(_delta_tool_call_text(delta))
-    return "".join(parts)
-
-
-def _completion_text(data: object) -> str:
-    """Extract legacy ``/v1/completions`` text without exception control flow."""
-    if not isinstance(data, dict):
-        return ""
-    choices = data.get("choices")
-    if not isinstance(choices, list) or not choices:
-        return ""
-    first = choices[0]
-    if not isinstance(first, dict):
-        return ""
-    text = first.get("text")
-    return text if isinstance(text, str) else ""
-
-
-def _stream_text_content(chunk: object) -> str:
-    """Extract a legacy completions stream text delta."""
-    if not isinstance(chunk, dict):
-        return ""
-    choices = chunk.get("choices")
-    if not isinstance(choices, list) or not choices:
-        return ""
-    first = choices[0]
-    if not isinstance(first, dict):
-        return ""
-    text = first.get("text")
-    return text if isinstance(text, str) else ""
-
-
-def _completion_prompt(body: dict[str, Any]) -> str:
-    """Extract the legacy ``prompt`` field (string or list of strings)."""
-    prompt = body.get("prompt", "")
-    if isinstance(prompt, str):
-        return prompt
-    if isinstance(prompt, list) and prompt and isinstance(prompt[0], str):
-        return prompt[0]
-    return ""
 
 
 def create_proxy_app(
@@ -571,348 +476,9 @@ def create_proxy_app(
     return app
 
 
-async def _handle_streaming(
-    body: dict[str, Any],
-    headers: dict[str, str],
-    upstream: str,
-    prompt: str,
-    scorer: Any,
-    on_fail: str,
-    transport: Any = None,
-    audit_log: Any = None,
-    endpoint: str = "/v1/chat/completions",
-    task_type: str = "chat",
-    stream_disclosure: str = "immediate",
-) -> StreamingResponse:
-    """Proxy an SSE stream with periodic mid-stream reviews.
-
-    ``stream_disclosure="immediate"`` forwards each line as it arrives; a
-    halt stops future tokens only (partial disclosure — content already
-    emitted has reached the client). ``"buffered"`` holds lines in a
-    pending window and releases them only after the accumulated content
-    passes a review; a halt discards the unreleased window, and the
-    terminal ``[DONE]`` review gates the final release, so a rejected
-    stream never discloses unreviewed content. If the upstream drops
-    without ``[DONE]``, the unreviewed pending window is discarded
-    (fail-closed).
-    """
-    import httpx
-    from fastapi.responses import StreamingResponse
-
-    # Legacy completions stream text deltas at ``choices[0].text`` and a
-    # halt chunk must mirror that shape; chat streams use ``delta`` and may
-    # carry tool-call deltas that must be reviewed alongside content.
-    legacy = endpoint == "/v1/completions"
-    extract_content = _stream_text_content if legacy else _stream_chat_content
-    halt_choice: dict[str, Any] = {"finish_reason": "content_filter", "index": 0}
-    if legacy:
-        halt_choice["text"] = ""
-    else:
-        halt_choice["delta"] = {}
-    buffered = stream_disclosure == "buffered"
-
-    async def _stream() -> AsyncIterator[str]:
-        buffer: list[str] = []
-        pending: list[str] = []  # withheld output lines (buffered mode)
-        chunk_count = 0
-        model_name = body.get("model", "unknown")
-        t0 = _time.monotonic()
-
-        def _pending_overflow() -> bool:
-            """Report whether the withheld window has exceeded either cap."""
-            return (
-                len(pending) > STREAM_MAX_PENDING_LINES
-                or sum(len(entry) for entry in pending) > STREAM_MAX_PENDING_CHARS
-            )
-
-        def _withhold(text: str) -> bool:
-            """Hold *text* in the buffered window; return True on overflow."""
-            pending.append(text)
-            return _pending_overflow()
-
-        def _fail_closed_frames() -> list[str]:
-            """Drop the withheld window and return the halt frames.
-
-            The shared fail-closed action for a pending-window overflow
-            (KIMI3-H2) or a scorer exception mid-stream (KIMI3-H5): nothing
-            withheld is disclosed — the window is cleared and the client receives
-            only the halt marker, with the abort recorded to the audit log like
-            any other terminal halt.
-            """
-            reviewed = "".join(buffer)
-            _audit_log_entry(
-                audit_log,
-                prompt,
-                reviewed,
-                model=model_name,
-                score=0.0,
-                approved=False,
-                confidence=0.0,
-                latency_ms=(_time.monotonic() - t0) * 1000,
-                task_type=task_type,
-            )
-            pending.clear()
-            halt = {"choices": [dict(halt_choice)]}
-            return [f"data: {json.dumps(halt)}\n", "data: [DONE]\n"]
-
-        async with (
-            httpx.AsyncClient(timeout=120.0, transport=transport) as client,
-            client.stream(
-                "POST",
-                f"{upstream}{endpoint}",
-                json=body,
-                headers=headers,
-            ) as resp,
-        ):
-            async for line in resp.aiter_lines():
-                if not line.startswith("data: "):
-                    # Non-data lines are withheld too in buffered mode so
-                    # the released stream preserves the upstream ordering.
-                    if buffered:
-                        if _withhold(line + "\n"):
-                            for _frame in _fail_closed_frames():
-                                yield _frame
-                            return
-                    else:
-                        yield line + "\n"
-                    continue
-
-                payload = line[6:]
-                if payload.strip() == "[DONE]":
-                    text = "".join(buffer)
-                    if text:
-                        try:
-                            approved, _cs = scorer.review(prompt, text)
-                        except Exception:  # noqa: BLE001 - any scorer error fails closed
-                            _log.exception(
-                                "scorer.review failed at stream end; failing closed"
-                            )
-                            for _frame in _fail_closed_frames():
-                                yield _frame
-                            return
-                        latency_ms = (_time.monotonic() - t0) * 1000
-                        _audit_log_entry(
-                            audit_log,
-                            prompt,
-                            text,
-                            model=model_name,
-                            score=_cs.score,
-                            approved=approved,
-                            confidence=getattr(_cs, "verdict_confidence", 0.0),
-                            latency_ms=latency_ms,
-                            task_type=task_type,
-                        )
-                        if not approved and on_fail == "reject":
-                            # Buffered: the withheld window is discarded, so
-                            # the client receives only the halt marker.
-                            pending.clear()
-                            halt = {"choices": [dict(halt_choice)]}
-                            yield f"data: {json.dumps(halt)}\n"
-                            yield "data: [DONE]\n"
-                            return
-                    # Final review passed (or nothing to review): release
-                    # any withheld tail before the terminal marker.
-                    for held in pending:
-                        yield held
-                    pending.clear()
-                    yield line + "\n"
-                    continue
-
-                try:
-                    chunk = json.loads(payload)
-                except json.JSONDecodeError:
-                    if buffered:
-                        if _withhold(line + "\n"):
-                            for _frame in _fail_closed_frames():
-                                yield _frame
-                            return
-                    else:
-                        yield line + "\n"
-                    continue
-
-                delta = extract_content(chunk)
-
-                if delta:
-                    buffer.append(delta)
-                    chunk_count += 1
-
-                    if chunk_count % STREAM_CHECK_INTERVAL == 0:
-                        text = "".join(buffer)
-                        try:
-                            approved, _cs = scorer.review(prompt, text)
-                        except Exception:  # noqa: BLE001 - any scorer error fails closed
-                            _log.exception(
-                                "scorer.review failed mid-stream; failing closed"
-                            )
-                            for _frame in _fail_closed_frames():
-                                yield _frame
-                            return
-                        if not approved and on_fail == "reject":
-                            # Record the mid-stream halt: like the terminal
-                            # [DONE] review, a rejection must leave an audit entry.
-                            latency_ms = (_time.monotonic() - t0) * 1000
-                            _audit_log_entry(
-                                audit_log,
-                                prompt,
-                                text,
-                                model=model_name,
-                                score=_cs.score,
-                                approved=approved,
-                                confidence=getattr(_cs, "verdict_confidence", 0.0),
-                                latency_ms=latency_ms,
-                                task_type=task_type,
-                            )
-                            pending.clear()
-                            halt = {"choices": [dict(halt_choice)]}
-                            yield f"data: {json.dumps(halt)}\n"
-                            yield "data: [DONE]\n"
-                            return
-                        if buffered:
-                            # Reviewed clean: release the withheld window
-                            # (including this line) up to the review point.
-                            pending.append(line + "\n")
-                            for held in pending:
-                                yield held
-                            pending.clear()
-                            continue
-
-                if buffered:
-                    if _withhold(line + "\n"):
-                        for _frame in _fail_closed_frames():
-                            yield _frame
-                        return
-                else:
-                    yield line + "\n"
-
-    return StreamingResponse(_stream(), media_type="text/event-stream")
-
-
-def _scorer_error_response(
-    audit_log: Any,
-    prompt: str,
-    text: str,
-    *,
-    model: str,
-    task_type: str,
-    t0: float,
-) -> Response:
-    """Record a non-streaming scorer failure and return a fail-closed 503.
-
-    Mirrors the streaming fail-closed path (KIMI3-H5): a ``scorer.review``
-    exception must not surface the unreviewed model output. It is logged,
-    recorded as an ``approved=False`` audit entry, and answered with a clear
-    503 rather than the bare 500 an uncaught exception would produce. Call only
-    from within the review ``except`` block (uses the active exception context).
-    """
-    _log.exception("scorer.review failed on a non-streaming request; failing closed")
-    _audit_log_entry(
-        audit_log,
-        prompt,
-        text,
-        model=model,
-        score=0.0,
-        approved=False,
-        confidence=0.0,
-        latency_ms=(_time.monotonic() - t0) * 1000,
-        task_type=task_type,
-    )
-    return JSONResponse(
-        status_code=503,
-        content={
-            "error": {
-                "message": "Scoring unavailable — request halted by Director-AI",
-                "type": "scorer_error",
-            },
-        },
-    )
-
-
-def _audit_log_entry(
-    audit_log: Any,
-    prompt: str,
-    response: str,
-    *,
-    model: str,
-    score: float,
-    approved: bool,
-    confidence: float,
-    latency_ms: float,
-    task_type: str = "chat",
-) -> None:
-    """Log a scored interaction to the compliance audit log (if enabled)."""
-    if audit_log is None:
-        return
-    from director_ai.compliance.audit_log import AuditEntry
-
-    audit_log.log(
-        AuditEntry(
-            prompt=prompt,
-            response=response,
-            model=model,
-            provider="proxy",
-            score=score,
-            approved=approved,
-            verdict_confidence=confidence,
-            task_type=task_type,
-            domain="",
-            latency_ms=latency_ms,
-            timestamp=_time.time(),
-        )
-    )
-
-
-def _extract_prompt(messages: list[dict[str, Any]]) -> str:
-    for msg in reversed(messages):
-        if msg.get("role") == "user":
-            content = msg.get("content", "")
-            if isinstance(content, str):
-                return content
-            if isinstance(content, list):
-                for block in content:
-                    if isinstance(block, dict) and block.get("type") == "text":
-                        return str(block.get("text", ""))
-            return str(content)
-    return ""
-
-
 def _forward_headers(request: Request) -> dict[str, str]:
     headers = {}
     auth = request.headers.get("authorization")
     if auth:
         headers["Authorization"] = auth
     return headers
-
-
-def _load_facts(
-    store: GroundTruthStore,
-    path: str,
-    *,
-    facts_root: str | None = None,
-) -> None:
-    try:
-        resolved = pathlib.Path(path).resolve(strict=True)
-    except FileNotFoundError as exc:
-        raise FileNotFoundError(f"Facts file not found: {path}") from exc
-    if not resolved.is_file():
-        raise FileNotFoundError(f"Facts file not found: {path}")
-    if facts_root is not None:
-        try:
-            root_resolved = pathlib.Path(facts_root).resolve(strict=True)
-        except FileNotFoundError as exc:
-            raise FileNotFoundError(f"facts_root not found: {facts_root}") from exc
-        if not root_resolved.is_dir():
-            raise ValueError(f"facts_root must be a directory: {facts_root}")
-        if not resolved.is_relative_to(root_resolved):
-            raise ValueError(
-                f"facts_path {resolved} is outside facts_root {root_resolved}"
-            )
-    with open(resolved, encoding="utf-8") as f:
-        for line in f:
-            line = line.strip()
-            if not line or line.startswith("#"):
-                continue
-            if ":" in line:
-                key, _, value = line.partition(":")
-                store.add(key.strip(), value.strip())
-            else:
-                store.add(line[:30], line)
