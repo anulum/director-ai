@@ -190,7 +190,11 @@ async def _handle_streaming(
                             yield "data: [DONE]\n"
                             return
                     # Final review passed (or nothing to review): release
-                    # any withheld tail before the terminal marker.
+                    # any withheld tail before the terminal marker. The
+                    # window holds only SSE framing lines and content lines
+                    # from the reviewed buffer — malformed data lines were
+                    # dropped at parse time (KIMI3-H3), so nothing here
+                    # carries unreviewed payload bytes.
                     for held in pending:
                         yield held
                     pending.clear()
@@ -201,10 +205,16 @@ async def _handle_streaming(
                     chunk = json.loads(payload)
                 except json.JSONDecodeError:
                     if buffered:
-                        if _withhold(line + "\n"):
-                            for _frame in _fail_closed_frames():
-                                yield _frame
-                            return
+                        # KIMI3-H3: an unparseable data line can never pass
+                        # review — its bytes never reach the scorer — so the
+                        # buffered contract (nothing unreviewed reaches the
+                        # client) means dropping it, not withholding it for
+                        # a later release with the reviewed window.
+                        _log.warning(
+                            "buffered stream: dropping malformed upstream "
+                            "data line (%d bytes)",
+                            len(line),
+                        )
                     else:
                         yield line + "\n"
                     continue

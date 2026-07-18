@@ -197,9 +197,15 @@ async def test_buffered_upstream_drop_without_done_is_fail_closed(
     assert scorer.calls == []
 
 
-async def test_buffered_withholds_non_data_lines_for_ordering(
+async def test_buffered_drops_malformed_data_and_keeps_framing_order(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """Framing lines stay ordered; malformed data lines never reach the client.
+
+    KIMI3-H3: an unparseable data line can never pass review, so buffered
+    mode drops it at parse time instead of releasing it with the reviewed
+    window (the pre-fix behaviour released it unreviewed).
+    """
     scorer = _FixedScorer(approved=True, score=0.9)
     body = await _post_stream(
         _app(
@@ -210,10 +216,35 @@ async def test_buffered_withholds_non_data_lines_for_ordering(
         ),
     )
 
-    # Everything is released at the passing [DONE] review, upstream order kept.
-    assert body.index(": keepalive") < body.index("data: not-json")
-    assert body.index("data: not-json") < body.index('"content":"t0"')
+    assert "data: not-json" not in body
+    # SSE framing is still withheld and released in upstream order.
+    assert body.index(": keepalive") < body.index('"content":"t0"')
     assert body.rstrip().endswith("data: [DONE]")
+
+
+async def test_buffered_garbage_only_stream_releases_no_unreviewed_bytes(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """KIMI3-H3 regression: a stream of only malformed data lines leaks nothing.
+
+    Pre-fix, the withheld window (including the malformed lines) was
+    released unreviewed at ``[DONE]`` because the empty content buffer
+    skipped the final review entirely.
+    """
+    scorer = _FixedScorer(approved=True, score=0.9)
+    body = await _post_stream(
+        _app(
+            scorer,
+            ["data: {broken", "data: also-broken", "data: [DONE]"],
+            monkeypatch,
+            disclosure="buffered",
+        ),
+    )
+
+    assert "broken" not in body
+    assert body.rstrip().endswith("data: [DONE]")
+    # Nothing parseable ever accumulated, so the scorer was never consulted.
+    assert scorer.calls == []
 
 
 async def test_immediate_default_still_discloses_pre_halt_tokens(
@@ -429,10 +460,13 @@ async def test_buffered_multi_choice_later_tool_call_is_reviewed_and_can_halt(
     "flood_line",
     [
         ": keepalive",  # non-data line (withheld for ordering)
-        "data: not-json",  # malformed data line (unparseable)
         'data: {"choices":[{"delta":{}}]}',  # valid but content-less chunk
     ],
-    ids=["non-data", "malformed", "content-less"],
+    ids=["non-data", "content-less"],
+    # NB: malformed data lines ("data: not-json") no longer flood the window —
+    # KIMI3-H3 drops them at parse time, covered by
+    # test_buffered_drops_malformed_data_and_keeps_framing_order and
+    # test_buffered_garbage_only_stream_releases_no_unreviewed_bytes.
 )
 async def test_buffered_pending_line_flood_fails_closed(
     flood_line: str, monkeypatch: pytest.MonkeyPatch
