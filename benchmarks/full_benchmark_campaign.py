@@ -35,6 +35,8 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+from benchmarks._provenance import resolve_git_sha
+
 ROOT = Path(__file__).resolve().parents[1]
 RESULTS_DIR = ROOT / "benchmarks" / "results"
 
@@ -271,17 +273,6 @@ def _run_case(case: CampaignCase) -> CaseResult:
     )
 
 
-def _git_commit() -> str:
-    try:
-        return (
-            subprocess.check_output(["git", "rev-parse", "HEAD"], text=True, cwd=ROOT)
-            .strip()
-            .lower()
-        )
-    except Exception:
-        return "unknown"
-
-
 def _render_markdown(payload: dict[str, Any]) -> str:
     lines = [
         "# Full Benchmark Campaign",
@@ -329,7 +320,7 @@ def run_campaign(*, strict: bool = False) -> tuple[dict[str, Any], int]:
     payload = {
         "benchmark": "full_benchmark_campaign",
         "generated_utc": datetime.now(UTC).isoformat(),
-        "git_commit": _git_commit(),
+        "git_commit": resolve_git_sha(),
         "python_version": platform.python_version(),
         "platform": platform.platform(),
         "cases": [asdict(result) for result in case_results],

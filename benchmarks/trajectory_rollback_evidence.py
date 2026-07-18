@@ -22,8 +22,6 @@ from __future__ import annotations
 import argparse
 import json
 import platform
-import shutil
-import subprocess  # nosec B404
 import sys
 from collections.abc import Sequence
 from dataclasses import dataclass
@@ -32,6 +30,7 @@ from pathlib import Path
 from typing import Any
 
 from benchmarks._common import save_results
+from benchmarks._provenance import resolve_git_sha
 from director_ai.core.trajectory import (
     RollbackHandle,
     TrajectoryRollbackManager,
@@ -64,23 +63,6 @@ class _SequenceScorer:
         approved, score = self._sequence[self._index % len(self._sequence)]
         self._index += 1
         return approved, _Score(score=score)
-
-
-def _git_commit() -> str:
-    git = shutil.which("git")
-    if not git:
-        return "unknown"
-    try:
-        completed = subprocess.run(  # nosec B603
-            [git, "rev-parse", "HEAD"],
-            check=True,
-            capture_output=True,
-            text=True,
-            timeout=5,
-        )
-    except (OSError, subprocess.SubprocessError):
-        return "unknown"
-    return completed.stdout.strip() or "unknown"
 
 
 def _preflight(sequence: Sequence[tuple[bool, float]], *, simulations: int):
@@ -211,7 +193,7 @@ def run_trajectory_rollback_evidence(*, simulations: int = 4) -> dict[str, Any]:
         "schema_version": "director-ai.trajectory-rollback-evidence.v1",
         "benchmark": "trajectory_rollback_evidence",
         "generated_at": datetime.now(UTC).isoformat(),
-        "git_commit": _git_commit(),
+        "git_commit": resolve_git_sha(),
         "python": sys.version.split()[0],
         "platform": platform.platform(),
         "acceptance": {

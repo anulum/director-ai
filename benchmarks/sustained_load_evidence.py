@@ -23,8 +23,6 @@ import argparse
 import asyncio
 import json
 import platform
-import shutil
-import subprocess  # nosec B404
 import sys
 import time
 from datetime import UTC, datetime
@@ -32,6 +30,7 @@ from pathlib import Path
 from typing import Any
 
 from benchmarks._common import save_results
+from benchmarks._provenance import resolve_git_sha
 from director_ai.core.async_streaming import AsyncStreamingKernel
 from director_ai.core.streaming import TokenEvent
 from director_ai.core.vector_store import InMemoryBackend, VectorGroundTruthStore
@@ -48,23 +47,6 @@ def _percentile(values: list[float], q: float) -> float:
     upper = min(lower + 1, len(ordered) - 1)
     fraction = rank - lower
     return ordered[lower] + (ordered[upper] - ordered[lower]) * fraction
-
-
-def _git_commit() -> str:
-    git = shutil.which("git")
-    if not git:
-        return "unknown"
-    try:
-        completed = subprocess.run(  # nosec B603
-            [git, "rev-parse", "HEAD"],
-            check=True,
-            capture_output=True,
-            text=True,
-            timeout=5,
-        )
-    except (OSError, subprocess.SubprocessError):
-        return "unknown"
-    return completed.stdout.strip() or "unknown"
 
 
 async def _collect_events(
@@ -276,7 +258,7 @@ def run_sustained_load_evidence(
     return {
         "benchmark": "sustained_load_evidence",
         "generated_utc": datetime.now(UTC).isoformat(),
-        "git_commit": _git_commit(),
+        "git_commit": resolve_git_sha(),
         "python_version": sys.version.split()[0],
         "platform": platform.platform(),
         "acceptance": {

@@ -23,14 +23,13 @@ from __future__ import annotations
 import argparse
 import json
 import platform
-import shutil
-import subprocess  # nosec B404
 import sys
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
 from benchmarks._common import save_results
+from benchmarks._provenance import resolve_git_sha
 from director_ai.core.federated_privacy import (
     FederatedSafetySignalAggregator,
     PrivacyAccountant,
@@ -39,23 +38,6 @@ from director_ai.core.federated_privacy import (
 from director_ai.core.federated_privacy.secret_sharing import split
 from director_ai.core.safety_event import SafetyEvent
 from director_ai.core.safety_protocol import director_safety_signal_from_event
-
-
-def _git_commit() -> str:
-    git = shutil.which("git")
-    if not git:
-        return "unknown"
-    try:
-        completed = subprocess.run(  # nosec B603
-            [git, "rev-parse", "HEAD"],
-            check=True,
-            capture_output=True,
-            text=True,
-            timeout=5,
-        )
-    except (OSError, subprocess.SubprocessError):
-        return "unknown"
-    return completed.stdout.strip() or "unknown"
 
 
 def _signal(*, tenant_id: str, decision: str):
@@ -197,7 +179,7 @@ def run_federated_privacy_evidence() -> dict[str, Any]:
         "schema_version": "director-ai.federated-privacy-evidence.v1",
         "benchmark": "federated_privacy_evidence",
         "generated_at": datetime.now(UTC).isoformat(),
-        "git_commit": _git_commit(),
+        "git_commit": resolve_git_sha(),
         "python": sys.version.split()[0],
         "platform": platform.platform(),
         "acceptance": {

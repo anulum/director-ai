@@ -23,7 +23,6 @@ from __future__ import annotations
 import argparse
 import platform
 import random
-import subprocess
 import sys
 import time
 from collections.abc import Callable
@@ -37,6 +36,7 @@ from typing import Any
 import numpy as np
 
 from benchmarks._common import RESULTS_DIR, save_results
+from benchmarks._provenance import resolve_git_sha
 from director_ai.core.mandatory import mandatory_execution
 
 
@@ -45,17 +45,6 @@ class Scenario:
     name: str
     description: str
     fn: Callable[[], int]
-
-
-def _git_commit() -> str:
-    try:
-        return (
-            subprocess.check_output(["git", "rev-parse", "HEAD"], text=True)
-            .strip()
-            .lower()
-        )
-    except Exception:
-        return "unknown"
 
 
 def _pct(values: list[float], q: float) -> float:
@@ -433,7 +422,7 @@ def run_benchmark(iterations: int, warmup: int) -> dict[str, Any]:
     return {
         "benchmark": "rust_python_e2e_compare",
         "generated_utc": datetime.now(UTC).isoformat(),
-        "git_commit": _git_commit(),
+        "git_commit": resolve_git_sha(),
         "python_version": platform.python_version(),
         "platform": platform.platform(),
         "iterations": iterations,

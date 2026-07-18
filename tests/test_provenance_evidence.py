@@ -10,7 +10,6 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Any, cast
 
 from pytest import MonkeyPatch
 
@@ -21,33 +20,6 @@ from benchmarks.provenance_evidence import (
     run_provenance_chain_probe,
     run_provenance_evidence,
 )
-
-
-def test_git_commit_falls_back_when_git_is_unavailable(
-    monkeypatch: MonkeyPatch,
-) -> None:
-    """Verify provenance evidence handles missing and failing git clients."""
-
-    module = cast(Any, provenance_evidence)
-    monkeypatch.setattr(module.shutil, "which", lambda _name: None)
-    assert module._git_commit() == "unknown"
-
-    monkeypatch.setattr(module.shutil, "which", lambda _name: "git")
-
-    def raise_subprocess(*_args: object, **_kwargs: object) -> None:
-        raise module.subprocess.SubprocessError()
-
-    monkeypatch.setattr(module.subprocess, "run", raise_subprocess)
-    assert module._git_commit() == "unknown"
-
-    class Completed:
-        stdout = "abc123\n"
-
-    def complete_subprocess(*_args: object, **_kwargs: object) -> Completed:
-        return Completed()
-
-    monkeypatch.setattr(module.subprocess, "run", complete_subprocess)
-    assert module._git_commit() == "abc123"
 
 
 def test_kb_lineage_probe_reports_root_evolution_and_signed_conflict() -> None:
@@ -140,7 +112,7 @@ def test_main_uses_default_results_path(monkeypatch: MonkeyPatch) -> None:
         saved.append(filename)
 
     monkeypatch.setattr(provenance_evidence, "save_results", save_results)
-    monkeypatch.setattr(provenance_evidence, "_git_commit", lambda: "abc123")
+    monkeypatch.setattr(provenance_evidence, "resolve_git_sha", lambda: "abc123")
 
     assert main(["--fact-count", "2"]) == 0
     assert len(saved) == 1

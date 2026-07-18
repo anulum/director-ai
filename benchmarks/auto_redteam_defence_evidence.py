@@ -24,8 +24,6 @@ from __future__ import annotations
 import argparse
 import json
 import platform
-import shutil
-import subprocess  # nosec B404
 import sys
 from collections.abc import Iterable
 from datetime import UTC, datetime
@@ -33,6 +31,7 @@ from pathlib import Path
 from typing import Any
 
 from benchmarks._common import save_results
+from benchmarks._provenance import resolve_git_sha
 from director_ai.core.continual_adversarial import FailureEvent
 from director_ai.core.defense_genome import (
     AutoRedteamCycleInput,
@@ -52,23 +51,6 @@ class _KeywordDefence:
     def score(self, prompt: str) -> float:
         text = prompt.lower()
         return 0.1 if any(marker in text for marker in self._markers) else 0.9
-
-
-def _git_commit() -> str:
-    git = shutil.which("git")
-    if not git:
-        return "unknown"
-    try:
-        completed = subprocess.run(  # nosec B603
-            [git, "rev-parse", "HEAD"],
-            check=True,
-            capture_output=True,
-            text=True,
-            timeout=5,
-        )
-    except (OSError, subprocess.SubprocessError):
-        return "unknown"
-    return completed.stdout.strip() or "unknown"
 
 
 def _risk_envelope() -> RiskEnvelope:
@@ -258,7 +240,7 @@ def run_auto_redteam_defence_evidence(
         "schema_version": "director-ai.auto-redteam-defence-evidence.v1",
         "benchmark": "auto_redteam_defence_evidence",
         "generated_at": datetime.now(UTC).isoformat(),
-        "git_commit": _git_commit(),
+        "git_commit": resolve_git_sha(),
         "python": sys.version.split()[0],
         "platform": platform.platform(),
         "acceptance": {

@@ -17,33 +17,6 @@ from pytest import MonkeyPatch
 from benchmarks import auto_redteam_defence_evidence as evidence
 
 
-def test_git_commit_falls_back_when_git_is_unavailable(
-    monkeypatch: MonkeyPatch,
-) -> None:
-    """Verify redteam evidence handles missing and failing git clients."""
-
-    module = cast(Any, evidence)
-    monkeypatch.setattr(module.shutil, "which", lambda _name: None)
-    assert module._git_commit() == "unknown"
-
-    monkeypatch.setattr(module.shutil, "which", lambda _name: "git")
-
-    def raise_subprocess(*_args: object, **_kwargs: object) -> None:
-        raise module.subprocess.SubprocessError()
-
-    monkeypatch.setattr(module.subprocess, "run", raise_subprocess)
-    assert module._git_commit() == "unknown"
-
-    class Completed:
-        stdout = "abc123\n"
-
-    def complete_subprocess(*_args: object, **_kwargs: object) -> Completed:
-        return Completed()
-
-    monkeypatch.setattr(module.subprocess, "run", complete_subprocess)
-    assert module._git_commit() == "abc123"
-
-
 def test_repeated_cycle_probe_promotes_two_versions_without_prompt_leak() -> None:
     """Verify repeated redteam cycles promote guards without prompt leakage."""
 
@@ -91,7 +64,7 @@ def test_auto_redteam_defence_evidence_payload_has_acceptance_summary(
 ) -> None:
     """Verify the R15 packet records acceptance checks and release limits."""
 
-    monkeypatch.setattr(evidence, "_git_commit", lambda: "abc123")
+    monkeypatch.setattr(evidence, "resolve_git_sha", lambda: "abc123")
 
     packet = evidence.run_auto_redteam_defence_evidence(
         min_failures=8,
@@ -124,7 +97,7 @@ def test_main_writes_requested_output_path(
 ) -> None:
     """Verify the R15 CLI writes the requested evidence artifact."""
 
-    monkeypatch.setattr(evidence, "_git_commit", lambda: "abc123")
+    monkeypatch.setattr(evidence, "resolve_git_sha", lambda: "abc123")
     output = tmp_path / "auto-redteam-defence.json"
 
     exit_code = evidence.main(["--output", str(output)])
@@ -143,7 +116,7 @@ def test_main_uses_default_results_path(monkeypatch: MonkeyPatch) -> None:
         saved.append(filename)
 
     monkeypatch.setattr(evidence, "save_results", save_results)
-    monkeypatch.setattr(evidence, "_git_commit", lambda: "abc123")
+    monkeypatch.setattr(evidence, "resolve_git_sha", lambda: "abc123")
 
     assert evidence.main(["--min-failures", "8"]) == 0
     assert len(saved) == 1

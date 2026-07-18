@@ -10,38 +10,10 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Any, cast
 
 from pytest import MonkeyPatch
 
 from benchmarks import trajectory_rollback_evidence as evidence
-
-
-def test_git_commit_falls_back_when_git_is_unavailable(
-    monkeypatch: MonkeyPatch,
-) -> None:
-    """Verify trajectory evidence handles missing and failing git clients."""
-
-    module = cast(Any, evidence)
-    monkeypatch.setattr(module.shutil, "which", lambda _name: None)
-    assert module._git_commit() == "unknown"
-
-    monkeypatch.setattr(module.shutil, "which", lambda _name: "git")
-
-    def raise_subprocess(*_args: object, **_kwargs: object) -> None:
-        raise module.subprocess.SubprocessError()
-
-    monkeypatch.setattr(module.subprocess, "run", raise_subprocess)
-    assert module._git_commit() == "unknown"
-
-    class Completed:
-        stdout = "abc123\n"
-
-    def complete_subprocess(*_args: object, **_kwargs: object) -> Completed:
-        return Completed()
-
-    monkeypatch.setattr(module.subprocess, "run", complete_subprocess)
-    assert module._git_commit() == "abc123"
 
 
 def test_preflight_rollback_probe_reports_all_action_bands() -> None:
@@ -93,7 +65,7 @@ def test_trajectory_rollback_evidence_payload_has_acceptance_summary(
 ) -> None:
     """Verify the R11 packet records acceptance checks and release limits."""
 
-    monkeypatch.setattr(evidence, "_git_commit", lambda: "abc123")
+    monkeypatch.setattr(evidence, "resolve_git_sha", lambda: "abc123")
 
     packet = evidence.run_trajectory_rollback_evidence(simulations=4)
 
@@ -124,7 +96,7 @@ def test_main_writes_requested_output_path(
 ) -> None:
     """Verify the R11 CLI writes the requested evidence artifact."""
 
-    monkeypatch.setattr(evidence, "_git_commit", lambda: "abc123")
+    monkeypatch.setattr(evidence, "resolve_git_sha", lambda: "abc123")
     output = tmp_path / "trajectory-rollback.json"
 
     exit_code = evidence.main(
@@ -150,7 +122,7 @@ def test_main_uses_default_results_path(monkeypatch: MonkeyPatch) -> None:
         saved.append(filename)
 
     monkeypatch.setattr(evidence, "save_results", save_results)
-    monkeypatch.setattr(evidence, "_git_commit", lambda: "abc123")
+    monkeypatch.setattr(evidence, "resolve_git_sha", lambda: "abc123")
 
     assert evidence.main(["--simulations", "4"]) == 0
     assert len(saved) == 1

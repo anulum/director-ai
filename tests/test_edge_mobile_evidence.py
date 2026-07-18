@@ -10,7 +10,6 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Any, cast
 
 from pytest import MonkeyPatch
 
@@ -18,39 +17,12 @@ from benchmarks import edge_mobile_evidence as evidence
 from director_ai.core.edge.runtime_profile import EdgeRuntimeCheck, EdgeRuntimeReadiness
 
 
-def test_git_commit_falls_back_when_git_is_unavailable(
-    monkeypatch: MonkeyPatch,
-) -> None:
-    """Verify edge evidence handles missing and failing git clients."""
-
-    module = cast(Any, evidence)
-    monkeypatch.setattr(module.shutil, "which", lambda _name: None)
-    assert module._git_commit(Path.cwd()) == "unknown"
-
-    monkeypatch.setattr(module.shutil, "which", lambda _name: "git")
-
-    def raise_subprocess(*_args: object, **_kwargs: object) -> None:
-        raise module.subprocess.SubprocessError()
-
-    monkeypatch.setattr(module.subprocess, "run", raise_subprocess)
-    assert module._git_commit(Path.cwd()) == "unknown"
-
-    class Completed:
-        stdout = "abc123\n"
-
-    def complete_subprocess(*_args: object, **_kwargs: object) -> Completed:
-        return Completed()
-
-    monkeypatch.setattr(module.subprocess, "run", complete_subprocess)
-    assert module._git_commit(Path.cwd()) == "abc123"
-
-
 def test_edge_mobile_evidence_payload_records_truthful_release_limits(
     monkeypatch: MonkeyPatch,
 ) -> None:
     """Verify the R14 packet records local readiness and release blockers."""
 
-    monkeypatch.setattr(evidence, "_git_commit", lambda _repo: "abc123")
+    monkeypatch.setattr(evidence, "resolve_git_sha", lambda _repo: "abc123")
 
     packet = evidence.run_edge_mobile_evidence()
 
@@ -103,7 +75,7 @@ def test_edge_mobile_evidence_detects_leaked_raw_paths(
         )
 
     monkeypatch.setattr(evidence, "build_edge_runtime_readiness", build_readiness)
-    monkeypatch.setattr(evidence, "_git_commit", lambda _repo: "abc123")
+    monkeypatch.setattr(evidence, "resolve_git_sha", lambda _repo: "abc123")
 
     packet = evidence.run_edge_mobile_evidence(quantised_model_path=raw_path)
 
@@ -117,7 +89,7 @@ def test_edge_mobile_evidence_omits_raw_external_paths(
 ) -> None:
     """Verify external model paths are redacted from edge evidence."""
 
-    monkeypatch.setattr(evidence, "_git_commit", lambda _repo: "abc123")
+    monkeypatch.setattr(evidence, "resolve_git_sha", lambda _repo: "abc123")
     outside = tmp_path.parent / "edge-model.onnx"
 
     packet = evidence.run_edge_mobile_evidence(quantised_model_path=outside)
@@ -134,7 +106,7 @@ def test_main_writes_requested_output_path(
 ) -> None:
     """Verify the R14 CLI writes the requested evidence artifact."""
 
-    monkeypatch.setattr(evidence, "_git_commit", lambda _repo: "abc123")
+    monkeypatch.setattr(evidence, "resolve_git_sha", lambda _repo: "abc123")
     output = tmp_path / "edge-mobile.json"
 
     exit_code = evidence.main(["--output", str(output)])
@@ -153,7 +125,7 @@ def test_main_uses_default_results_path(monkeypatch: MonkeyPatch) -> None:
         saved.append(filename)
 
     monkeypatch.setattr(evidence, "save_results", save_results)
-    monkeypatch.setattr(evidence, "_git_commit", lambda _repo: "abc123")
+    monkeypatch.setattr(evidence, "resolve_git_sha", lambda _repo: "abc123")
 
     assert evidence.main([]) == 0
     assert len(saved) == 1

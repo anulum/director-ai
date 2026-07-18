@@ -22,8 +22,6 @@ from __future__ import annotations
 import argparse
 import json
 import platform
-import shutil
-import subprocess  # nosec B404
 import sys
 from dataclasses import dataclass
 from datetime import UTC, datetime
@@ -31,6 +29,7 @@ from pathlib import Path
 from typing import Any
 
 from benchmarks._common import save_results
+from benchmarks._provenance import resolve_git_sha
 from director_ai.core.guard_control import RiskEnvelope
 from director_ai.core.multimodal_guard import (
     HashBagCrossModalVerifier,
@@ -59,23 +58,6 @@ class _ConstantGuard:
             similarity=self._similarity,
             reason=f"{self._label}:{self._similarity}",
         )
-
-
-def _git_commit() -> str:
-    git = shutil.which("git")
-    if not git:
-        return "unknown"
-    try:
-        completed = subprocess.run(  # nosec B603
-            [git, "rev-parse", "HEAD"],
-            check=True,
-            capture_output=True,
-            text=True,
-            timeout=5,
-        )
-    except (OSError, subprocess.SubprocessError):
-        return "unknown"
-    return completed.stdout.strip() or "unknown"
 
 
 def _envelope() -> RiskEnvelope:
@@ -242,7 +224,7 @@ def run_multimodal_temporal_evidence() -> dict[str, Any]:
         "schema_version": "director-ai.multimodal-temporal-evidence.v1",
         "benchmark": "multimodal_temporal_evidence",
         "generated_at": datetime.now(UTC).isoformat(),
-        "git_commit": _git_commit(),
+        "git_commit": resolve_git_sha(),
         "python": sys.version.split()[0],
         "platform": platform.platform(),
         "acceptance": {

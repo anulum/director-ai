@@ -27,14 +27,13 @@ import argparse
 import importlib.util
 import json
 import platform
-import shutil
-import subprocess  # nosec B404
 import sys
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
 from benchmarks._common import save_results
+from benchmarks._provenance import resolve_git_sha
 from director_ai.core.formal_verification import (
     And,
     FormalCodeVerifierAdapter,
@@ -43,23 +42,6 @@ from director_ai.core.formal_verification import (
     Variable,
 )
 from director_ai.core.guard_control import RiskEnvelope
-
-
-def _git_commit() -> str:
-    git = shutil.which("git")
-    if not git:
-        return "unknown"
-    try:
-        completed = subprocess.run(  # nosec B603
-            [git, "rev-parse", "HEAD"],
-            check=True,
-            capture_output=True,
-            text=True,
-            timeout=5,
-        )
-    except (OSError, subprocess.SubprocessError):
-        return "unknown"
-    return completed.stdout.strip() or "unknown"
 
 
 def _risk_envelope() -> RiskEnvelope:
@@ -255,7 +237,7 @@ def run_formal_symbolic_evidence() -> dict[str, Any]:
         "schema_version": "director-ai.formal-symbolic-evidence.v1",
         "benchmark": "formal_symbolic_evidence",
         "generated_at": datetime.now(UTC).isoformat(),
-        "git_commit": _git_commit(),
+        "git_commit": resolve_git_sha(),
         "python": sys.version.split()[0],
         "platform": platform.platform(),
         "acceptance": {

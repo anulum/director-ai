@@ -13,33 +13,14 @@ from __future__ import annotations
 import argparse
 import json
 import platform
-import shutil
-import subprocess  # nosec B404
 import sys
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
 from benchmarks._common import save_results
+from benchmarks._provenance import resolve_git_sha
 from director_ai.core.edge import build_edge_runtime_readiness
-
-
-def _git_commit(repo: Path) -> str:
-    git = shutil.which("git")
-    if not git:
-        return "unknown"
-    try:
-        completed = subprocess.run(  # nosec B603
-            [git, "rev-parse", "HEAD"],
-            cwd=repo,
-            check=True,
-            capture_output=True,
-            text=True,
-            timeout=5,
-        )
-    except (OSError, subprocess.SubprocessError):
-        return "unknown"
-    return completed.stdout.strip() or "unknown"
 
 
 def run_edge_mobile_evidence(
@@ -80,7 +61,7 @@ def run_edge_mobile_evidence(
         "schema_version": "director-ai.edge-mobile-evidence.v1",
         "benchmark": "edge_mobile_evidence",
         "generated_at": datetime.now(UTC).isoformat(),
-        "git_commit": _git_commit(repo),
+        "git_commit": resolve_git_sha(repo),
         "python": sys.version.split()[0],
         "platform": platform.platform(),
         "acceptance": {

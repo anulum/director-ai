@@ -28,33 +28,6 @@ def test_percentile_handles_empty_and_singleton_inputs() -> None:
     assert evidence._percentile([7.0], 0.95) == 7.0
 
 
-def test_git_commit_falls_back_when_git_is_unavailable(
-    monkeypatch: MonkeyPatch,
-) -> None:
-    """Verify sustained-load evidence handles missing and failing git clients."""
-
-    module = cast(Any, evidence)
-    monkeypatch.setattr(module.shutil, "which", lambda _name: None)
-    assert module._git_commit() == "unknown"
-
-    monkeypatch.setattr(module.shutil, "which", lambda _name: "git")
-
-    def raise_subprocess(*_args: object, **_kwargs: object) -> None:
-        raise module.subprocess.SubprocessError()
-
-    monkeypatch.setattr(module.subprocess, "run", raise_subprocess)
-    assert module._git_commit() == "unknown"
-
-    class Completed:
-        stdout = "abc123\n"
-
-    def complete_subprocess(*_args: object, **_kwargs: object) -> Completed:
-        return Completed()
-
-    monkeypatch.setattr(module.subprocess, "run", complete_subprocess)
-    assert module._git_commit() == "abc123"
-
-
 def test_run_one_stream_records_foreign_stream_contamination() -> None:
     """Verify stream contamination telemetry records foreign prefixes."""
 
@@ -202,7 +175,7 @@ def test_sustained_load_evidence_payload_has_acceptance_summary(
 ) -> None:
     """Verify the R17 packet records acceptance checks and release limits."""
 
-    monkeypatch.setattr(evidence, "_git_commit", lambda: "abc123")
+    monkeypatch.setattr(evidence, "resolve_git_sha", lambda: "abc123")
 
     packet = evidence.run_sustained_load_evidence(
         streams=2,
@@ -232,7 +205,7 @@ def test_main_writes_requested_output_path(
 ) -> None:
     """Verify the R17 CLI writes the requested evidence artifact."""
 
-    monkeypatch.setattr(evidence, "_git_commit", lambda: "abc123")
+    monkeypatch.setattr(evidence, "resolve_git_sha", lambda: "abc123")
     output = tmp_path / "evidence.json"
 
     exit_code = evidence.main(
@@ -262,7 +235,7 @@ def test_main_uses_default_results_path(monkeypatch: MonkeyPatch) -> None:
         saved.append(filename)
 
     monkeypatch.setattr(evidence, "save_results", save_results)
-    monkeypatch.setattr(evidence, "_git_commit", lambda: "abc123")
+    monkeypatch.setattr(evidence, "resolve_git_sha", lambda: "abc123")
 
     assert (
         evidence.main(
