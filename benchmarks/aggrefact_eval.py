@@ -51,8 +51,6 @@ import json
 import logging
 import os
 import time
-from collections.abc import Sequence
-from dataclasses import dataclass, field
 from pathlib import Path
 
 import numpy as np
@@ -60,445 +58,56 @@ import pytest
 
 from benchmarks._common import add_common_args, save_results
 
-logger = logging.getLogger("DirectorAI.Benchmark.AggreFact")
-
-AGGREFACT_DATASETS = [
-    "AggreFact-CNN",
-    "AggreFact-XSum",
-    "TofuEval-MediaS",
-    "TofuEval-MeetB",
-    "Wice",
-    "Reveal",
-    "ClaimVerify",
-    "FactCheck-GPT",
-    "ExpertQA",
-    "Lfqa",
-    "RAGTruth",
-]
-
-# Published reference scores (balanced accuracy %) from the leaderboard
-REFERENCE_SCORES = {
-    "Bespoke-MiniCheck-7B": 77.4,
-    "Claude-3.5-Sonnet": 77.2,
-    "Granite-Guardian-3.3-8B": 76.5,
-    "FactCG-DeBERTa-L (0.4B)": 75.6,
-    "MiniCheck-Flan-T5-L (0.8B)": 75.0,
-    "Llama-3.3-70B": 74.5,
-    "HHEM-2.1": 71.8,
-}
-
-
-def balanced_accuracy_score(y_true: Sequence[int], y_pred: Sequence[int]) -> float:
-    """Return balanced accuracy for binary or categorical labels.
-
-    The cached-score replay path intentionally works without the optional
-    ``scikit-learn`` training stack. This implementation covers the benchmark
-    contract directly: balanced accuracy is the mean recall over labels present
-    in ``y_true``.
-    """
-    if len(y_true) != len(y_pred):
-        raise ValueError("y_true and y_pred must have the same length")
-    if not y_true:
-        return 0.0
-
-    recalls: list[float] = []
-    for label in sorted(set(y_true)):
-        total = 0
-        correct = 0
-        for truth, prediction in zip(y_true, y_pred, strict=True):
-            if truth != label:
-                continue
-            total += 1
-            if prediction == label:
-                correct += 1
-        if total:
-            recalls.append(correct / total)
-    return float(np.mean(recalls)) if recalls else 0.0
-
-
-def _precision_recall_f1_for_label(
-    y_true: Sequence[int],
-    y_pred: Sequence[int],
-    label: int,
-) -> tuple[float, float, float]:
-    """Return zero-division-safe precision, recall, and F1 for one label."""
-    if len(y_true) != len(y_pred):
-        raise ValueError("y_true and y_pred must have the same length")
-
-    true_positive = 0
-    false_positive = 0
-    false_negative = 0
-    for truth, prediction in zip(y_true, y_pred, strict=True):
-        if prediction == label:
-            if truth == label:
-                true_positive += 1
-            else:
-                false_positive += 1
-        elif truth == label:
-            false_negative += 1
-
-    precision_denominator = true_positive + false_positive
-    recall_denominator = true_positive + false_negative
-    precision = true_positive / precision_denominator if precision_denominator else 0.0
-    recall = true_positive / recall_denominator if recall_denominator else 0.0
-    f1 = (
-        0.0
-        if precision + recall == 0.0
-        else 2 * precision * recall / (precision + recall)
-    )
-    return precision, recall, f1
-
-
-@dataclass
-class AggreFactMetrics:
-    """Per-dataset balanced accuracy plus the two aggregate metrics
-    that the AggreFact community uses interchangeably.
-
-    Two distinct aggregates are exposed and **must not be confused**:
-
-    - ``per_dataset_mean_balanced_acc`` — unweighted mean of the
-      per-dataset balanced accuracies. **This is the AggreFact
-      leaderboard convention** (verified verbatim from
-      https://llm-aggrefact.github.io/ on 2026-04-12). Heterogeneous
-      benchmarks are evaluated this way to prevent the largest
-      dataset (RAGTruth, ~16 K samples) from dominating the score.
-    - ``sample_pooled_balanced_acc`` — balanced accuracy computed
-      once across the flat sample pool, weighted by dataset size.
-      Convenient for fast comparison of judges on the same data
-      distribution but **not the leaderboard metric**.
-
-    Historical note: the legacy ``avg_balanced_acc`` property
-    returned the per-dataset mean. It is preserved as an alias for
-    backwards compatibility but new code should call
-    ``per_dataset_mean_balanced_acc`` explicitly so the metric is
-    unambiguous in every call site.
-    """
-
-    per_dataset: dict[str, dict] = field(default_factory=dict)
-    threshold: float = 0.5
-    per_dataset_thresholds: dict[str, float] = field(default_factory=dict)
-    inference_times: list[float] = field(default_factory=list, repr=False)
-
-    @property
-    def per_dataset_mean_balanced_acc(self) -> float:
-        """Unweighted mean of per-dataset BAs (AggreFact leaderboard
-        convention)."""
-        accs = [d["balanced_acc"] for d in self.per_dataset.values() if d["total"] > 0]
-        return float(np.mean(accs)) if accs else 0.0
-
-    @property
-    def avg_balanced_acc(self) -> float:
-        """**Deprecated alias** — same value as
-        ``per_dataset_mean_balanced_acc``.
-
-        Kept so that pre-2026-04-12 callers don't break, but new
-        code should use the explicit name. Every call site of
-        ``avg_balanced_acc`` in the repo should be migrated to
-        either ``per_dataset_mean_balanced_acc`` (when the
-        leaderboard metric is intended) or
-        ``sample_pooled_balanced_acc`` (when sample-pooled is
-        intended).
-        """
-        return self.per_dataset_mean_balanced_acc
-
-    @property
-    def total_samples(self) -> int:
-        return sum(d["total"] for d in self.per_dataset.values())
-
-    @property
-    def avg_latency_ms(self) -> float:
-        if not self.inference_times:
-            return 0.0
-        return float(np.mean(self.inference_times)) * 1000
-
-    def to_dict(self) -> dict:
-        return {
-            "avg_balanced_accuracy": round(self.avg_balanced_acc, 4),
-            "avg_balanced_accuracy_pct": round(self.avg_balanced_acc * 100, 1),
-            "threshold": self.threshold,
-            "total_samples": self.total_samples,
-            "per_dataset": {
-                k: {
-                    kk: round(vv, 4) if isinstance(vv, float) else vv
-                    for kk, vv in v.items()
-                }
-                for k, v in self.per_dataset.items()
-            },
-            "latency_ms_avg": round(self.avg_latency_ms, 2),
-            **(
-                {"per_dataset_thresholds": self.per_dataset_thresholds}
-                if self.per_dataset_thresholds
-                else {}
-            ),
-        }
-
-
-_FACTCG_TEMPLATE = (
-    "{text_a}\n\nChoose your answer: based on the paragraph above "
-    'can we conclude that "{text_b}"?\n\nOPTIONS:\n- Yes\n- No\n'
-    "I think the answer is "
+# Split by responsibility: data loading, metric primitives, and model
+# predictors live in sibling modules; every name is re-exported here so
+# the ``benchmarks.aggrefact_eval`` surface (imports, ``--load-scores``
+# replay, and test patch targets) is unchanged.
+from benchmarks.aggrefact_data import (
+    AGGREFACT_DATASETS as AGGREFACT_DATASETS,
+)
+from benchmarks.aggrefact_data import (
+    REFERENCE_SCORES as REFERENCE_SCORES,
+)
+from benchmarks.aggrefact_data import (
+    _load_aggrefact as _load_aggrefact,
+)
+from benchmarks.aggrefact_metrics import (
+    AggreFactMetrics as AggreFactMetrics,
+)
+from benchmarks.aggrefact_metrics import (
+    _binary_class_metrics as _binary_class_metrics,
+)
+from benchmarks.aggrefact_metrics import (
+    _compute_sample_pooled_ba as _compute_sample_pooled_ba,
+)
+from benchmarks.aggrefact_metrics import (
+    _precision_recall_f1_for_label as _precision_recall_f1_for_label,
+)
+from benchmarks.aggrefact_metrics import (
+    balanced_accuracy_score as balanced_accuracy_score,
+)
+from benchmarks.aggrefact_predictors import (
+    _FACTCG_TEMPLATE as _FACTCG_TEMPLATE,
+)
+from benchmarks.aggrefact_predictors import (
+    _BinaryNLIPredictor as _BinaryNLIPredictor,
+)
+from benchmarks.aggrefact_predictors import (
+    _chunk_source as _chunk_source,
+)
+from benchmarks.aggrefact_predictors import (
+    _NLIScorerPredictor as _NLIScorerPredictor,
+)
+from benchmarks.aggrefact_predictors import (
+    _normalise_scorer_template as _normalise_scorer_template,
+)
+from benchmarks.aggrefact_predictors import (
+    _uses_factcg_template as _uses_factcg_template,
 )
 
-
-def _normalise_scorer_template(template: str | None) -> str:
-    value = (template or os.environ.get("DIRECTOR_SCORER_TEMPLATE", "auto")).strip()
-    if not value:
-        return "auto"
-    allowed = {"auto", "factcg", "sequence-pair"}
-    if value not in allowed:
-        raise ValueError(
-            f"scorer template must be one of auto, factcg, sequence-pair; got {value!r}"
-        )
-    return value
-
-
-def _uses_factcg_template(
-    model_name: str,
-    model_config: object,
-    template: str | None,
-) -> bool:
-    mode = _normalise_scorer_template(template)
-    if mode == "factcg":
-        return True
-    if mode == "sequence-pair":
-        return False
-    return "factcg" in model_name.lower() or bool(
-        getattr(model_config, "factcg", False)
-    )
-
-
-def _chunk_source(text: str, max_tokens: int = 550) -> list[str]:
-    """Split source document into sentence-level chunks (SummaC-style)."""
-    import nltk
-
-    try:
-        sents = nltk.sent_tokenize(text)
-    except LookupError:
-        nltk.download("punkt_tab", quiet=True)
-        sents = nltk.sent_tokenize(text)
-
-    chunks: list[str] = []
-    chunk, chunk_len = "", 0
-    for s in sents:
-        s_len = len(s.split())
-        if chunk and chunk_len + s_len > max_tokens:
-            chunks.append(chunk)
-            chunk, chunk_len = s, s_len
-        else:
-            chunk = f"{chunk}\n{s}".strip("\n") if chunk else s
-            chunk_len += s_len
-    if chunk:
-        chunks.append(chunk)
-    return chunks or [text]
-
-
-class _BinaryNLIPredictor:
-    """NLI model wrapped for binary factual consistency scoring.
-
-    Returns entailment probability as the "supported" score.
-    FactCG models use instruction template + SummaC-style source chunking.
-    """
-
-    def __init__(
-        self,
-        model_name: str | None = None,
-        max_length: int = 2048,
-        scorer_template: str | None = None,
-    ):
-        import torch
-        from transformers import AutoModelForSequenceClassification, AutoTokenizer
-
-        self.model_name = model_name or os.environ.get(
-            "DIRECTOR_NLI_MODEL",
-            "yaxili96/FactCG-DeBERTa-v3-Large",
-        )
-        logger.info("Loading NLI model: %s", self.model_name)
-        self.tokenizer = AutoTokenizer.from_pretrained(self.model_name)
-        self.model = AutoModelForSequenceClassification.from_pretrained(self.model_name)
-        self.model.eval()
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        self.model.to(self.device)
-        self.max_length = max_length
-        self._torch = torch
-        self._num_labels = self.model.config.num_labels
-        self._is_factcg = _uses_factcg_template(
-            self.model_name,
-            self.model.config,
-            scorer_template,
-        )
-        logger.info(
-            "Model loaded on %s (%s, %d labels, factcg=%s)",
-            self.device,
-            self.model_name,
-            self._num_labels,
-            self._is_factcg,
-        )
-
-    def _score_single(self, premise: str, hypothesis: str) -> float:
-        """Score a single (premise, hypothesis) pair."""
-        if self._is_factcg:
-            text = _FACTCG_TEMPLATE.format(text_a=premise, text_b=hypothesis)
-            inputs = self.tokenizer(
-                text,
-                return_tensors="pt",
-                truncation=True,
-                max_length=self.max_length,
-            )
-        else:
-            inputs = self.tokenizer(
-                premise,
-                hypothesis,
-                return_tensors="pt",
-                truncation=True,
-                max_length=self.max_length,
-            )
-        inputs = {k: v.to(self.device) for k, v in inputs.items()}
-        with self._torch.no_grad():
-            logits = self.model(**inputs).logits
-        probs = self._torch.softmax(logits, dim=1).cpu().numpy()[0]
-        if self._num_labels == 2:
-            return float(probs[1])
-        return float(probs[0])
-
-    def _score_batch(self, pairs: list[tuple[str, str]]) -> list[float]:
-        """Batched forward pass — all pairs in one call."""
-        if self._is_factcg:
-            texts = [_FACTCG_TEMPLATE.format(text_a=p, text_b=h) for p, h in pairs]
-            inputs = self.tokenizer(
-                texts,
-                return_tensors="pt",
-                truncation=True,
-                padding=True,
-                max_length=self.max_length,
-            )
-        else:
-            premises = [p for p, _ in pairs]
-            hypotheses = [h for _, h in pairs]
-            inputs = self.tokenizer(
-                premises,
-                hypotheses,
-                return_tensors="pt",
-                truncation=True,
-                padding=True,
-                max_length=self.max_length,
-            )
-        inputs = {k: v.to(self.device) for k, v in inputs.items()}
-        with self._torch.no_grad():
-            logits = self.model(**inputs).logits
-        probs = self._torch.softmax(logits, dim=1).cpu().numpy()
-        if self._num_labels == 2:
-            return [float(row[1]) for row in probs]
-        return [float(row[0]) for row in probs]
-
-    def score(self, premise: str, hypothesis: str) -> float:
-        """Return P(supported) with SummaC source chunking for FactCG.
-
-        Splits premise into sentence chunks, scores each vs hypothesis,
-        returns max (matching official FactCG evaluation).
-        Chunks are batched into a single forward pass.
-        """
-        if not self._is_factcg:
-            return self._score_single(premise, hypothesis)
-        chunks = _chunk_source(premise)
-        if len(chunks) == 1:
-            return self._score_single(chunks[0], hypothesis)
-        try:
-            return max(self._score_batch([(c, hypothesis) for c in chunks]))
-        except (RuntimeError, self._torch.OutOfMemoryError):
-            # Fall back to per-chunk scoring on OOM (8 GB GPUs hit this on
-            # long premises with many chunks).
-            self._torch.cuda.empty_cache()
-            return max(self._score_single(c, hypothesis) for c in chunks)
-
-
-class _NLIScorerPredictor:
-    """Wraps NLIScorer.score_chunked() for bidirectional chunking comparison."""
-
-    def __init__(self, model_name: str | None = None, overlap_ratio: float = 0.0):
-        import torch
-
-        from director_ai.core.nli import NLIScorer
-
-        self.scorer = NLIScorer(
-            use_model=True,
-            model_name=model_name
-            or os.environ.get("DIRECTOR_NLI_MODEL", "yaxili96/FactCG-DeBERTa-v3-Large"),
-            device="cuda" if torch.cuda.is_available() else "cpu",
-        )
-        self._overlap_ratio = overlap_ratio
-        logger.info(
-            "NLIScorerPredictor ready (overlap=%.2f)",
-            overlap_ratio,
-        )
-
-    def score(self, premise: str, hypothesis: str) -> float:
-        score, _ = self.scorer.score_chunked(
-            premise,
-            hypothesis,
-            overlap_ratio=self._overlap_ratio,
-        )
-        return 1.0 - score
-
-
-def _binary_class_metrics(y_true: list[int], y_pred: list[int]) -> dict:
-    """Precision/recall/F1 for both supported (1) and hallucination (0) classes."""
-    labels = sorted(set(y_true) | set(y_pred))
-    if len(labels) < 2:
-        return {}
-    hall_prec, hall_rec, hall_f1 = _precision_recall_f1_for_label(y_true, y_pred, 0)
-    supp_prec, supp_rec, supp_f1 = _precision_recall_f1_for_label(y_true, y_pred, 1)
-    return {
-        "hallucination_precision": float(hall_prec),
-        "hallucination_recall": float(hall_rec),
-        "hallucination_f1": float(hall_f1),
-        "supported_precision": float(supp_prec),
-        "supported_recall": float(supp_rec),
-        "supported_f1": float(supp_f1),
-    }
-
-
-def _load_aggrefact(max_samples: int | None = None) -> list[dict]:
-    """Load LLM-AggreFact test split. Requires HF authentication."""
-    from datasets import load_dataset
-
-    token = os.environ.get("HF_TOKEN")
-    logger.info("Loading LLM-AggreFact (gated dataset)...")
-    ds = load_dataset("lytang/LLM-AggreFact", split="test", token=token)
-    rows = list(ds)
-    if max_samples:
-        rows = rows[:max_samples]
-    n_ds = len(set(r["dataset"] for r in rows))
-    logger.info("Loaded %d samples across %d datasets", len(rows), n_ds)
-    return rows
-
+logger = logging.getLogger("DirectorAI.Benchmark.AggreFact")
 
 SCHEMA_VERSION = 2  # bump when JSON layout changes
-
-
-def _compute_sample_pooled_ba(predictions: list[int], labels: list[int]) -> float:
-    """True sample-pooled balanced accuracy on the flat (preds, labels)
-    pool. Predictions of -1 (unknown) are dropped from the count.
-
-    Returns 0.0 when either class has zero predictions left.
-    Distinct from ``AggreFactMetrics.per_dataset_mean_balanced_acc``
-    which averages BAs across datasets — see the docstring of
-    ``AggreFactMetrics`` for the discussion of when to use which.
-    """
-    pos = neg = tp = tn = 0
-    for p, lab in zip(predictions, labels, strict=True):
-        if p < 0:
-            continue
-        if lab == 1:
-            pos += 1
-            if p == 1:
-                tp += 1
-        else:
-            neg += 1
-            if p == 0:
-                tn += 1
-    if pos == 0 or neg == 0:
-        return 0.0
-    return (tp / pos + tn / neg) / 2
 
 
 def score_and_save(
