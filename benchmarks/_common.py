@@ -248,7 +248,10 @@ def print_nli_metrics(metrics: NLIMetrics, benchmark_name: str) -> None:
 def save_results(data: dict, filename: str) -> Path:
     RESULTS_DIR.mkdir(parents=True, exist_ok=True)
     path = RESULTS_DIR / filename
-    path.write_text(json.dumps(data, indent=2), encoding="utf-8")
+    # Trailing newline so committed artefacts satisfy the end-of-file-fixer
+    # pre-commit hook (json.dumps emits none, which failed CI on the RAGTruth
+    # artefact 2026-07-18).
+    path.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
     print(f"\nResults saved to {path}")
     return path
 

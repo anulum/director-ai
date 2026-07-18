@@ -93,3 +93,18 @@ def test_score_rows_passage_ungrounded_scores_zero():
     rows = [{"doc": "Hi. Ok.", "claim": "anything", "label": "0"}]
     scores = _score_rows(scorer, rows, granularity="passage", top_k=5, batch_size=8)
     assert scores == [0.0]
+
+
+def test_save_results_writes_trailing_newline(tmp_path, monkeypatch):
+    # A committed artefact without a trailing newline fails the end-of-file-fixer
+    # pre-commit hook (the RAGTruth artefact hit this on CI 2026-07-18).
+    import json as _json
+
+    from benchmarks import _common
+
+    monkeypatch.setattr(_common, "RESULTS_DIR", tmp_path)
+    path = _common.save_results({"n": 1, "rows": [{"x": 1}]}, "artefact.json")
+
+    text = path.read_text(encoding="utf-8")
+    assert text.endswith("}\n")
+    assert _json.loads(text) == {"n": 1, "rows": [{"x": 1}]}
