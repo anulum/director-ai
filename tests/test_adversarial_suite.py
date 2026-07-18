@@ -22,6 +22,7 @@ from director_ai.testing.adversarial_suite import (
     _build_patterns,
     _homoglyph_replace,
     _inject_zero_width,
+    grounded_suite,
 )
 
 
@@ -251,3 +252,117 @@ class TestAdversarialPerformanceDoc:
         assert hasattr(report, "detection_rate")
         assert hasattr(report, "is_robust")
         assert hasattr(report, "vulnerable_categories")
+
+
+class TestGroundedSuite:
+    def test_grounded_suite_attaches_relevant_prompts_and_benign_arm(self):
+        """Every pattern carries its relevant prompt; the control arm exists."""
+        suite = grounded_suite()
+        assert len(suite.patterns) == len(_build_patterns())
+        assert all(p.prompt for p in suite.patterns)
+        assert len(suite.facts) == 8
+        assert len(suite.benign_pairs) == 8
+        # Prompts follow the pattern's origin sample, not one fixed string.
+        assert len({p.prompt for p in suite.patterns}) > 1
+
+    def test_per_pattern_prompt_takes_precedence_over_fixed(self):
+        """run() must send each pattern's own prompt to the guardrail."""
+        seen: list[str] = []
+
+        def review_fn(prompt: str, response: str):
+            seen.append(prompt)
+            return False, 0.1
+
+        suite = grounded_suite()
+        tester = AdversarialTester(review_fn=review_fn, prompt="FIXED")
+        tester.run(suite.patterns)
+
+        assert "FIXED" not in seen
+        assert set(seen) == {p.prompt for p in suite.patterns}
+
+    def test_constant_reject_passes_robustness_but_fails_discrimination(self):
+        """The vacuousness regression: reject-everything must not certify.
+
+        Measured 2026-07-18: an ungrounded scorer returned the 0.5 neutral
+        for every input, so it rejected benign truths and falsehoods alike
+        and still scored 100 % detection. The benign arm makes that visible.
+        """
+        suite = grounded_suite()
+        tester = AdversarialTester(review_fn=lambda _p, _r: (False, 0.5))
+        report = tester.run(suite.patterns, benign_pairs=suite.benign_pairs)
+
+        assert report.is_robust  # 100 % "detection"...
+        assert report.benign_total == 8
+        assert report.benign_approved == 0  # ...but approves nothing
+        assert report.benign_approval_rate == 0.0
+        assert not report.is_discriminative
+
+    def test_discriminating_guardrail_passes_both_arms(self):
+        """A guardrail that rejects attacks and approves truths certifies.
+
+        The attack set is the ADVERSARIAL texts only — negation patterns'
+        ``original`` is a true fact shared with the benign arm, so a
+        discriminating guardrail must approve it, not reject it.
+        """
+        suite = grounded_suite()
+        attacks = {p.adversarial for p in suite.patterns}
+
+        def review_fn(prompt: str, response: str):
+            return response not in attacks, 0.2 if response in attacks else 0.8
+
+        tester = AdversarialTester(review_fn=review_fn)
+        report = tester.run(suite.patterns, benign_pairs=suite.benign_pairs)
+
+        assert report.is_robust
+        assert report.benign_approved == report.benign_total == 8
+        assert report.is_discriminative
+
+    def test_report_without_benign_arm_is_never_discriminative(self):
+        """Structure-only runs cannot claim efficacy."""
+        tester = AdversarialTester(review_fn=lambda _p, _r: (False, 0.1))
+        report = tester.run()
+        assert report.is_robust
+        assert report.benign_total == 0
+        assert not report.is_discriminative
+
+
+class TestGroundedEfficacyPinned:
+    """Measured grounded-heuristic efficacy (2026-07-18 probe), pinned.
+
+    The heuristic path is deterministic (BM25 retrieval + lexical overlap,
+    no RNG), so the per-class counts are exact pins: a change here means
+    the detector's real efficacy moved and must be re-measured, not
+    explained away.
+    """
+
+    def test_grounded_heuristic_per_class_efficacy_and_benign_approval(self):
+        from director_ai.core.scoring.scorer import CoherenceScorer
+        from director_ai.core.vector_store import VectorGroundTruthStore
+
+        suite = grounded_suite()
+        store = VectorGroundTruthStore()
+        store.ingest(suite.facts)
+        scorer = CoherenceScorer(use_nli=False, ground_truth_store=store)
+
+        def review_fn(prompt: str, response: str):
+            approved, score = scorer.review(prompt, response)
+            return approved, score.score
+
+        tester = AdversarialTester(review_fn=review_fn)
+        report = tester.run(suite.patterns, benign_pairs=suite.benign_pairs)
+
+        per_class: dict[str, list[bool]] = {}
+        for result in report.results:
+            per_class.setdefault(result.pattern.category, []).append(result.detected)
+
+        assert sum(per_class["encoding"]) == 10
+        assert sum(per_class["unicode"]) == 10
+        assert sum(per_class["injection"]) == 5
+        assert sum(per_class["paraphrase"]) == 5
+        assert sum(per_class["temporal"]) == 5
+        # Pure negation is the known heuristic limit (high lexical overlap);
+        # the model-backed NLI tier handles it (KIMI3-negation, task #52).
+        assert sum(per_class["negation"]) >= 2
+        # Benign truths APPROVE — the arm that kills constant-reject.
+        assert report.benign_approved == report.benign_total == 8
+        assert report.is_discriminative
