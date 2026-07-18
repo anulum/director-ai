@@ -176,9 +176,11 @@ director-ai/
 │
 ├── backfire-kernel/               Rust scorer backend (PyO3/maturin)
 │   └── crates/backfire-core/src/
-│       ├── compute.rs             20 benchmarked Rust compute functions (sanitizer, unicode,
-│       │                          task type, numeric, temporal, reasoning,
-│       │                          word overlap, NLI softmax/div/conf, lite score)
+│       ├── compute.rs             Facade re-exporting the compute/ submodules
+│       ├── compute/               20 benchmarked Rust compute functions, one module
+│       │                          per responsibility (sanitize, task_detect, numeric,
+│       │                          temporal, chunking, reasoning, nli_math, heuristics,
+│       │                          arith, fallacies, spans)
 │       ├── signals.rs             VerifiedScorer signals (entity, negation, etc.)
 │       └── kernel.rs              Safety kernel, streaming gate
 │
