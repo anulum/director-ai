@@ -6,7 +6,7 @@
     "optional_extras": 62,
     "public_api_exports": 226,
     "public_documentation_pages": 205,
-    "python_model_classes": 1040,
+    "python_model_classes": 1041,
     "python_model_source_modules": 522,
     "rust_pyo3_model_wrappers": 83,
     "test_files": 766
@@ -1973,6 +1973,10 @@
       {
         "name": "GroundedCorrectionDraft",
         "path": "src/director_ai/core/runtime/correction.py"
+      },
+      {
+        "name": "GroundedSuite",
+        "path": "src/director_ai/testing/adversarial_suite.py"
       },
       {
         "name": "GroundingHook",

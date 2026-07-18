@@ -8,7 +8,7 @@
 | Package version | 3.18.1 |
 | Public API exports | 226 |
 | Python capability source modules | 522 |
-| Python capability classes | 1040 |
+| Python capability classes | 1041 |
 | API documentation pages | 89 |
 | Rust PyO3 bindings | 83 |
 | Optional extras | 62 |
