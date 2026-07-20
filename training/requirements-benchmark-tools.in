@@ -8,5 +8,5 @@
 
 maturin==1.14.1
 pytest==9.1.1
-hypothesis==6.156.6
+hypothesis==6.157.0
 pytest-cov==7.1.0
