@@ -143,7 +143,7 @@ physical = [
     "mujoco>=3.2,<4",
 ]
 formal = [
-    "z3-solver>=4.12,<5",
+    "z3-solver>=4.12,<6",
 ]
 finetune = [
     "torch>=2.8,<3",
