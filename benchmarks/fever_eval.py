@@ -32,8 +32,6 @@ import os
 import time
 from typing import Any
 
-from datasets import load_dataset
-
 from benchmarks._common import (
     NLIMetrics,
     NLIPredictor,
@@ -49,6 +47,12 @@ _LABEL_MAP = {"entailment": 0, "neutral": 1, "contradiction": 2}
 
 
 def _load_fever_dev() -> list[dict]:
+    # Lazy import: `datasets` is a benchmark-only dependency absent from the core
+    # CI test extras, so keep it out of the module import chain — moving the
+    # smoke tests into tests/ made this module collectable by `pytest tests/`
+    # (KIMI3/#66 class), which broke on a module-level datasets import.
+    from datasets import load_dataset
+
     logger.info("Loading FEVER NLI dev split ...")
     ds = load_dataset("pietrolesci/nli_fever", split="dev")
     return list(ds)
