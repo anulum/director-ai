@@ -29,7 +29,7 @@ from benchmarks._common import NLIMetrics
 from benchmarks.fever_eval import build_fever_artefact, run_fever_benchmark
 from director_ai.core.model_revisions import DEFAULT_NLI_MODEL
 
-_FEVER_MODEL = "training/output/deberta-v3-base-hallucination"
+_FEVER_MODEL = "training/output/deberta-v3-large-hallucination"
 _model_ok = Path(_FEVER_MODEL).is_dir()
 # NLIMetrics.to_dict() computes P/R/F1 via a lazy sklearn import, and sklearn is
 # a benchmark-only dependency absent from the core CI test extras. Tests that

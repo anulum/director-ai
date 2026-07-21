@@ -16,7 +16,7 @@ hallucination detection.
 Usage::
 
     python -m benchmarks.fever_eval --max-samples 500 --out fever_results.json
-    python -m benchmarks.fever_eval --model training/output/deberta-v3-base-hallucination
+    python -m benchmarks.fever_eval --model training/output/deberta-v3-large-hallucination
 
 The pytest smoke tests live in ``tests/test_fever_benchmark.py`` (moved there so
 this module does not import pytest — a minimal remote runner without pytest was
@@ -28,6 +28,7 @@ from __future__ import annotations
 import argparse
 import json
 import logging
+import math
 import os
 import time
 from typing import Any
@@ -70,10 +71,27 @@ def run_fever_benchmark(
             "(entailment / neutral / contradiction); model "
             f"{predictor.model_name!r} exposes {num_labels} labels. Pass a "
             "3-class model via model_name (e.g. "
-            "training/output/deberta-v3-base-hallucination) — the 2-class "
+            "training/output/deberta-v3-large-hallucination) — the 2-class "
             "FactCG default cannot produce a valid FEVER verdict, so scoring "
             "it here would fabricate an accuracy that is not meaningful."
         )
+
+    # A broken checkpoint (NaN weights) emits NaN logits; argmax([nan,nan,nan])
+    # silently collapses to class 0, so the run would "complete" and report a
+    # degenerate always-entailment accuracy instead of failing. Probe one pair
+    # up front and fail loudly — a 5.5h CPU run on the NaN base-hallucination
+    # checkpoint produced exactly this false 35.1% before the guard existed.
+    _, probe_probs = predictor.predict_with_probs(
+        "A cat is sitting on a mat.", "An animal is resting on a mat."
+    )
+    if any(math.isnan(float(p)) for p in probe_probs):
+        raise ValueError(
+            f"model {predictor.model_name!r} produced NaN logits on a probe "
+            "pair — the checkpoint is broken (all-NaN outputs collapse argmax "
+            "to class 0, fabricating a degenerate benchmark). Use a healthy "
+            "3-class NLI checkpoint."
+        )
+
     rows = _load_fever_dev()
     if max_samples:
         rows = rows[:max_samples]
