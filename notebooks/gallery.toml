@@ -52,16 +52,6 @@ use_case = "Run benchmark examples, profile latency, and interpret catch-rate me
 extras = ["nli"]
 
 [[notebook]]
-id = "05-ssgf-geometry"
-path = "notebooks/05_ssgf_geometry.ipynb"
-title = "SSGF Geometry Learning"
-track = "Concepts"
-audience = "Research reader"
-duration_minutes = 10
-use_case = "Explore the self-similar geometry concepts behind the project language."
-extras = []
-
-[[notebook]]
 id = "06-medical-rag-chatbot"
 path = "notebooks/06_medical_rag_chatbot.ipynb"
 title = "Medical RAG Chatbot"
