@@ -145,9 +145,24 @@ def test_aggregate_empty_sets_are_safe() -> None:
     assert m["halt_precision"] == 0.0
 
 
-def test_runtime_metadata_labels_non_isolated_evidence() -> None:
+def test_runtime_metadata_classifies_isolation_from_load() -> None:
+    import os
+
+    from benchmarks.streaming_contradiction_halt_bench import _isolation_verdict
+
+    ncpu = os.cpu_count() or 1
+    assert _isolation_verdict((ncpu * 0.1, 0.0, 0.0)) == "isolated_quiet"
+    assert _isolation_verdict((ncpu * 0.7, 0.0, 0.0)) == "moderate_load"
+    assert _isolation_verdict((ncpu * 2.0, 0.0, 0.0)) == "contended_shared_host"
+    assert _isolation_verdict(()) == "unknown"
+
     meta = _runtime_metadata()
-    assert meta["isolation"] == "non_isolated_local_regression"
+    assert meta["isolation"] in {
+        "isolated_quiet",
+        "moderate_load",
+        "contended_shared_host",
+        "unknown",
+    }
     assert isinstance(meta["command"], list)
     assert meta["python"]
     assert meta["platform"]

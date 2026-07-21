@@ -2,49 +2,61 @@
   "benchmark": "streaming_contradiction_halt",
   "benchmark_context": {
     "command": [
-      "/media/anulum/GOTM/aaa_God_of_the_Math_Collection/03_CODE/DIRECTOR-AI/.venv/bin/python",
+      "/root/miniconda3/envs/p311/bin/python",
       "-m",
       "benchmarks.streaming_contradiction_halt_bench",
       "--model",
       "MoritzLaurer/DeBERTa-v3-large-mnli-fever-anli-ling-wanli",
       "--device",
-      "-1",
+      "0",
       "--threshold",
       "0.5",
       "--tag",
       "base"
     ],
-    "host": "aaarthuus",
+    "host": "955d7347e11e",
     "machine": "x86_64",
     "processor": "x86_64",
-    "python": "3.12.13",
-    "platform": "Linux-6.17.0-35-generic-x86_64-with-glibc2.39",
+    "python": "3.11.15",
+    "platform": "Linux-6.8.0-100-generic-x86_64-with-glibc2.35",
     "load_average": [
-      33.1533,
-      34.1284,
-      36.2192
+      2.2163,
+      4.7485,
+      5.2227
     ],
-    "isolation": "non_isolated_local_regression"
+    "isolation": "isolated_quiet"
   },
   "gate": "contradiction",
   "model": "MoritzLaurer/DeBERTa-v3-large-mnli-fever-anli-ling-wanli",
-  "device": "cpu",
+  "device": "cuda:0 (NVIDIA A30)",
   "threshold": 0.2,
-  "n_good": 135,
-  "n_bad": 30,
+  "n_good": 612,
+  "n_bad": 507,
   "halt_quality": {
-    "true_positives": 28,
+    "true_positives": 364,
     "false_positives": 4,
-    "true_negatives": 131,
-    "false_negatives": 2,
-    "halt_precision": 0.875,
-    "halt_recall": 0.9333,
-    "false_halt_rate": 0.0296,
-    "token_of_halt_accuracy": 0.7857,
-    "median_halt_latency_tokens": 5.5,
+    "true_negatives": 608,
+    "false_negatives": 143,
+    "halt_precision": 0.9891,
+    "halt_recall": 0.7179,
+    "false_halt_rate": 0.0065,
+    "token_of_halt_accuracy": 0.4258,
+    "median_halt_latency_tokens": 9.0,
     "token_tolerance": 8
   },
-  "wall_ms": 3986902.2,
+  "halt_recall_by_kind": {
+    "semantic": {
+      "n": 217,
+      "caught": 202,
+      "recall": 0.9309
+    },
+    "numeric": {
+      "n": 290,
+      "caught": 162,
+      "recall": 0.5586
+    }
+  },
+  "wall_ms": 48252.18,
   "per_good": [
     {
       "id": "water_boiling",
@@ -184,7 +196,7 @@
     {
       "id": "star_lifecycle",
       "halted": true,
-      "contradiction": 0.6689453125
+      "contradiction": 0.67041015625
     },
     {
       "id": "redshift_doppler",
@@ -274,7 +286,7 @@
     {
       "id": "magellan_circumnavigation",
       "halted": true,
-      "contradiction": 0.5029296875
+      "contradiction": 0.50537109375
     },
     {
       "id": "sahara_desert",
@@ -659,7 +671,7 @@
     {
       "id": "summary_periodic_table",
       "halted": true,
-      "contradiction": 0.80712890625
+      "contradiction": 0.806640625
     },
     {
       "id": "summary_moon_landing",
@@ -720,18 +732,2405 @@
       "id": "edge_jupiter_largest",
       "halted": false,
       "contradiction": 0.0
+    },
+    {
+      "id": "element_carbon",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "element_oxygen",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "element_gold",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "element_iron",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "element_hydrogen",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "element_helium",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "element_sodium",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "element_uranium",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "element_nitrogen",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "element_potassium",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "const_absolute_zero",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "const_electron_charge",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "astro_sun_distance",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "astro_moon_distance",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "astro_planets_count",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "astro_mars_moons",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "astro_light_minute_sun",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "astro_milky_way",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "const_water_freezing",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "const_earth_circumference",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "el_hydrogen",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "el_helium",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "el_lithium",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "el_beryllium",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "el_boron",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "el_carbon",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "el_nitrogen",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "el_oxygen",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "el_fluorine",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "el_neon",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "el_sodium",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "el_magnesium",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "el_aluminium",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "el_silicon",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "el_phosphorus",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "el_sulfur",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "el_chlorine",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "el_argon",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "el_calcium",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "el_titanium",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "el_chromium",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "el_manganese",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "el_cobalt",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "el_nickel",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "el_copper",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "el_zinc",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "el_silver",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "el_tin",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "el_iodine",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "el_platinum",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "el_mercury",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "el_lead",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "cap_france",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "cap_japan",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "cap_italy",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "cap_spain",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "cap_germany",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "cap_russia",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "cap_china",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "cap_egypt",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "cap_canada",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "cap_australia",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "cap_brazil",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "cap_portugal",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "cap_greece",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "cap_turkey",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "cap_austria",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "cap_poland",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "cap_norway",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "cap_sweden",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "cap_finland",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "cap_ireland",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "cap_kenya",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "cap_morocco",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "cap_india",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "cap_iran",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "cap_thailand",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "cap_vietnam",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "cap_hungary",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "cap_switzerland",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "cap_belgium",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "cap_netherlands",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "cap_argentina",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "cap_peru",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "cap_cuba",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "cap_chile",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "cap_ukraine",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "cap_romania",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "good_year_0",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "good_year_1",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "good_year_2",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "good_year_3",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "good_year_4",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "good_year_5",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "good_year_6",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "good_year_7",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "good_year_8",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "good_year_9",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "good_year_10",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "good_year_11",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "good_year_12",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "good_year_13",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "good_year_14",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "good_year_15",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "good_year_16",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "good_year_17",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "good_count_0",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "good_count_1",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "good_count_2",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "good_count_3",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "good_count_4",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "good_count_5",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "good_count_6",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "good_count_7",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "good_count_8",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "good_count_9",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "good_count_10",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "good_count_11",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "good_count_12",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "good_count_13",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "good_count_14",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "good_count_15",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "good_count_16",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "good_count_17",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "curr_japan_0",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "curr_india_1",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "curr_russia_2",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "curr_poland_3",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "curr_thailand_4",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "curr_sweden_5",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "curr_switzerland_6",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "curr_mexico_7",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "curr_turkey_8",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "curr_denmark_9",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "curr_hungary_10",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "curr_vietnam_11",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "curr_israel_12",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "curr_nigeria_13",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "curr_kenya_14",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "curr_brazil_15",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "curr_china_16",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "curr_korea_17",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "curr_ghana_18",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "curr_peru_19",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "lang_brazil_0",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "lang_egypt_1",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "lang_austria_2",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "lang_iran_3",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "lang_netherlands_4",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "lang_greece_5",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "lang_poland_6",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "lang_finland_7",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "lang_hungary_8",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "lang_norway_9",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "lang_turkey_10",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "lang_israel_11",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "lang_vietnam_12",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "lang_thailand_13",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "lang_kenya_14",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "lang_ukraine_15",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "formula_0",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "formula_1",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "formula_2",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "formula_3",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "formula_4",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "formula_5",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "formula_6",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "formula_7",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "formula_8",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "formula_9",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "formula_10",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "formula_11",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "formula_12",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "formula_13",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "geo_0",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "geo_1",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "geo_2",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "geo_3",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "geo_4",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "geo_5",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "geo_6",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "geo_7",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "geo_8",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "geo_9",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "geo_10",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "geo_11",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "geo_12",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "geo_13",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "geo_14",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "geo_15",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "unit_0",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "unit_1",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "unit_2",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "unit_3",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "unit_4",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "unit_5",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "unit_6",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "unit_7",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "unit_8",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "unit_9",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "unit_10",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "unit_11",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "unit_12",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "unit_13",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "planet_0",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "planet_1",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "planet_2",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "planet_3",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "planet_4",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "planet_5",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "planet_6",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "planet_7",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "planet_8",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "planet_9",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "who_0",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "who_1",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "who_2",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "who_3",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "who_4",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "who_5",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "who_6",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "who_7",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "who_8",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "who_9",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "who_10",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "who_11",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "square_2",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "square_3",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "square_4",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "square_5",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "square_6",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "square_7",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "square_8",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "square_9",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "square_10",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "square_11",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "square_12",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "square_13",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "square_14",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "square_15",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "square_16",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "square_17",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "square_18",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "square_19",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "square_20",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "square_21",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "square_22",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "square_23",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "square_24",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "square_25",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "square_26",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "square_27",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "square_28",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "square_29",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "square_30",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "square_31",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "square_32",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "square_33",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "square_34",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "square_35",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "square_36",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "square_37",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "square_38",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "square_39",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "square_40",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "square_41",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "square_42",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "square_43",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "square_44",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "square_45",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "square_46",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "square_47",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "square_48",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "square_49",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "square_50",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "square_51",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "square_52",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "square_53",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "square_54",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "cap2_colombia_0",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "cap2_venezuela_1",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "cap2_indonesia_2",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "cap2_malaysia_3",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "cap2_philippines_4",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "cap2_pakistan_5",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "cap2_bangladesh_6",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "cap2_nigeria_7",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "cap2_ethiopia_8",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "cap2_ghana_9",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "cap2_iraq_10",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "cap2_syria_11",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "cap2_saudi_12",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "cap2_jordan_13",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "cap2_lebanon_14",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "cap2_cambodia_15",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "cap2_nepal_16",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "cap2_bolivia_17",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "cap2_ecuador_18",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "cap2_uruguay_19",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "cap2_croatia_20",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "cap2_serbia_21",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "cap2_bulgaria_22",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "cap2_slovakia_23",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "cap2_slovenia_24",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "cap2_iceland_25",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "cap2_estonia_26",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "cap2_latvia_27",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "cap2_lithuania_28",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "cap2_georgia_29",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "el2_potassium",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "el2_bromine",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "el2_barium",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "el2_tungsten",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "el2_uranium",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "el2_gold",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "el2_krypton",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "el2_xenon",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "el2_radon",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "el2_cobalt",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "el2_selenium",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "el2_strontium",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "el2_zirconium",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "el2_molybdenum",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "el2_palladium",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "el2_cadmium",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "el2_antimony",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "el2_caesium",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "el2_tantalum",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "el2_osmium",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "el2_iridium",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "el2_bismuth",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "el2_thorium",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "el2_plutonium",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "year2_0",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "year2_1",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "year2_2",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "year2_3",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "year2_4",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "year2_5",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "year2_6",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "year2_7",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "year2_8",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "year2_9",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "year2_10",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "year2_11",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "year2_12",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "year2_13",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "year2_14",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "year2_15",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "phys_0",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "phys_1",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "phys_2",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "phys_3",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "phys_4",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "phys_5",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "phys_6",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "phys_7",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "phys_8",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "phys_9",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "phys_10",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "phys_11",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "phys_12",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "phys_13",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "nat_0",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "nat_1",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "nat_2",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "nat_3",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "nat_4",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "nat_5",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "nat_6",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "nat_7",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "nat_8",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "nat_9",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "nat_10",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "nat_11",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "nat_12",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "nat_13",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "nat_14",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "nat_15",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "cube_2",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "cube_3",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "cube_4",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "cube_5",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "cube_6",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "cube_7",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "cube_8",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "cube_9",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "cube_10",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "cube_11",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "cube_12",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "cube_13",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "cube_14",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "cube_15",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "cube_16",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "cube_17",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "cap3_chile_0",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "cap3_paraguay_1",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "cap3_panama_2",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "cap3_guatemala_3",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "cap3_honduras_4",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "cap3_nicaragua_5",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "cap3_jamaica_6",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "cap3_tunisia_7",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "cap3_algeria_8",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "cap3_libya_9",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "cap3_sudan_10",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "cap3_tanzania_11",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "cap3_uganda_12",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "cap3_zambia_13",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "cap3_zimbabwe_14",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "cap3_angola_15",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "cap3_senegal_16",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "cap3_mongolia_17",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "cap3_myanmar_18",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "cap3_laos_19",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "cap3_qatar_20",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "cap3_oman_21",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "cap3_yemen_22",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "cap3_afghanistan_23",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "sport_0",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "sport_1",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "sport_2",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "sport_3",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "sport_4",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "sport_5",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "sport_6",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "sport_7",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "sport_8",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "sport_9",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "sport_10",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "sport_11",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "arts_0",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "arts_1",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "arts_2",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "arts_3",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "arts_4",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "arts_5",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "arts_6",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "arts_7",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "el3_lithium",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "el3_beryllium",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "el3_fluorine",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "el3_aluminium",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "el3_silicon",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "el3_chlorine",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "el3_argon",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "el3_titanium",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "el3_vanadium",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "el3_manganese",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "el3_gallium",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "el3_germanium",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "el3_arsenic",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "el3_rubidium",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "el3_yttrium",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "el3_rhodium",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "el3_tellurium",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "el3_lanthanum",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "el3_tungsten2",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "el3_rhenium",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "el3_thallium",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "el3_polonium",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "el3_astatine",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "el3_francium",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "el3_actinium",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "el3_neptunium",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "bio2_0",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "bio2_1",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "bio2_2",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "bio2_3",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "bio2_4",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "bio2_5",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "bio2_6",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "bio2_7",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "bio2_8",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "bio2_9",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "bio2_10",
+      "halted": false,
+      "contradiction": 0.0
+    },
+    {
+      "id": "bio2_11",
+      "halted": false,
+      "contradiction": 0.0
     }
   ],
   "per_bad": [
     {
       "id": "wrong_boiling",
+      "kind": "numeric",
       "halted": true,
       "halt_index": 14,
       "expected_halt_index": 3,
-      "contradiction": 0.91845703125
+      "contradiction": 0.9189453125
     },
     {
       "id": "wrong_light_speed",
+      "kind": "numeric",
       "halted": true,
       "halt_index": 19,
       "expected_halt_index": 6,
@@ -739,6 +3138,7 @@
     },
     {
       "id": "wrong_dna",
+      "kind": "semantic",
       "halted": true,
       "halt_index": 5,
       "expected_halt_index": 3,
@@ -746,6 +3146,7 @@
     },
     {
       "id": "wrong_gravity",
+      "kind": "numeric",
       "halted": true,
       "halt_index": 14,
       "expected_halt_index": 10,
@@ -753,6 +3154,7 @@
     },
     {
       "id": "wrong_water_formula",
+      "kind": "semantic",
       "halted": true,
       "halt_index": 12,
       "expected_halt_index": 5,
@@ -760,6 +3162,7 @@
     },
     {
       "id": "wrong_chromosomes",
+      "kind": "numeric",
       "halted": true,
       "halt_index": 9,
       "expected_halt_index": 5,
@@ -767,6 +3170,7 @@
     },
     {
       "id": "wrong_freezing",
+      "kind": "numeric",
       "halted": true,
       "halt_index": 12,
       "expected_halt_index": 6,
@@ -774,6 +3178,7 @@
     },
     {
       "id": "wrong_moon_landing",
+      "kind": "numeric",
       "halted": true,
       "halt_index": 12,
       "expected_halt_index": 8,
@@ -781,6 +3186,7 @@
     },
     {
       "id": "wrong_continents",
+      "kind": "semantic",
       "halted": true,
       "halt_index": 8,
       "expected_halt_index": 6,
@@ -788,6 +3194,7 @@
     },
     {
       "id": "wrong_pi",
+      "kind": "numeric",
       "halted": true,
       "halt_index": 11,
       "expected_halt_index": 8,
@@ -795,6 +3202,7 @@
     },
     {
       "id": "wrong_photosynthesis",
+      "kind": "semantic",
       "halted": false,
       "halt_index": -1,
       "expected_halt_index": 4,
@@ -802,13 +3210,15 @@
     },
     {
       "id": "wrong_red_cells",
+      "kind": "semantic",
       "halted": true,
       "halt_index": 11,
       "expected_halt_index": 0,
-      "contradiction": 0.56103515625
+      "contradiction": 0.56591796875
     },
     {
       "id": "wrong_earth_shape",
+      "kind": "semantic",
       "halted": true,
       "halt_index": 11,
       "expected_halt_index": 5,
@@ -816,13 +3226,15 @@
     },
     {
       "id": "wrong_hydrogen_number",
+      "kind": "numeric",
       "halted": true,
       "halt_index": 11,
       "expected_halt_index": 11,
-      "contradiction": 0.85107421875
+      "contradiction": 0.8505859375
     },
     {
       "id": "wrong_speed_sound",
+      "kind": "numeric",
       "halted": true,
       "halt_index": 10,
       "expected_halt_index": 7,
@@ -830,6 +3242,7 @@
     },
     {
       "id": "wrong_everest",
+      "kind": "numeric",
       "halted": true,
       "halt_index": 12,
       "expected_halt_index": 8,
@@ -837,6 +3250,7 @@
     },
     {
       "id": "wrong_year_days",
+      "kind": "numeric",
       "halted": true,
       "halt_index": 11,
       "expected_halt_index": 8,
@@ -844,6 +3258,7 @@
     },
     {
       "id": "wrong_week_days",
+      "kind": "semantic",
       "halted": true,
       "halt_index": 10,
       "expected_halt_index": 2,
@@ -851,6 +3266,7 @@
     },
     {
       "id": "wrong_heart_chambers",
+      "kind": "semantic",
       "halted": true,
       "halt_index": 14,
       "expected_halt_index": 6,
@@ -858,6 +3274,7 @@
     },
     {
       "id": "wrong_planets",
+      "kind": "semantic",
       "halted": true,
       "halt_index": 8,
       "expected_halt_index": 4,
@@ -865,6 +3282,7 @@
     },
     {
       "id": "wrong_oxygen_atmosphere",
+      "kind": "numeric",
       "halted": false,
       "halt_index": -1,
       "expected_halt_index": 4,
@@ -872,13 +3290,15 @@
     },
     {
       "id": "wrong_electron_charge",
+      "kind": "semantic",
       "halted": true,
       "halt_index": 10,
       "expected_halt_index": 4,
-      "contradiction": 0.93359375
+      "contradiction": 0.93408203125
     },
     {
       "id": "wrong_mammals",
+      "kind": "semantic",
       "halted": true,
       "halt_index": 12,
       "expected_halt_index": 2,
@@ -886,6 +3306,7 @@
     },
     {
       "id": "wrong_light_year",
+      "kind": "semantic",
       "halted": true,
       "halt_index": 16,
       "expected_halt_index": 7,
@@ -893,6 +3314,7 @@
     },
     {
       "id": "wrong_body_temp",
+      "kind": "numeric",
       "halted": true,
       "halt_index": 11,
       "expected_halt_index": 9,
@@ -900,6 +3322,7 @@
     },
     {
       "id": "wrong_sound_vacuum",
+      "kind": "semantic",
       "halted": true,
       "halt_index": 11,
       "expected_halt_index": 5,
@@ -907,6 +3330,7 @@
     },
     {
       "id": "wrong_metal_conductor",
+      "kind": "semantic",
       "halted": true,
       "halt_index": 11,
       "expected_halt_index": 7,
@@ -914,6 +3338,7 @@
     },
     {
       "id": "wrong_dna_helix",
+      "kind": "semantic",
       "halted": true,
       "halt_index": 11,
       "expected_halt_index": 6,
@@ -921,17 +3346,3835 @@
     },
     {
       "id": "wrong_sun_star",
+      "kind": "semantic",
       "halted": true,
       "halt_index": 13,
       "expected_halt_index": 5,
-      "contradiction": 0.99609375
+      "contradiction": 0.99560546875
     },
     {
       "id": "wrong_ice_state",
+      "kind": "semantic",
       "halted": true,
       "halt_index": 12,
       "expected_halt_index": 3,
       "contradiction": 0.91748046875
+    },
+    {
+      "id": "wrong_element_carbon",
+      "kind": "numeric",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 4,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_element_oxygen",
+      "kind": "numeric",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 4,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_element_gold",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 9,
+      "expected_halt_index": 5,
+      "contradiction": 0.9775390625
+    },
+    {
+      "id": "wrong_element_iron",
+      "kind": "numeric",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 4,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_element_hydrogen",
+      "kind": "numeric",
+      "halted": true,
+      "halt_index": 12,
+      "expected_halt_index": 4,
+      "contradiction": 0.9287109375
+    },
+    {
+      "id": "wrong_element_helium",
+      "kind": "numeric",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 4,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_element_sodium",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 8,
+      "expected_halt_index": 0,
+      "contradiction": 0.9990234375
+    },
+    {
+      "id": "wrong_element_uranium",
+      "kind": "numeric",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 4,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_element_nitrogen",
+      "kind": "numeric",
+      "halted": true,
+      "halt_index": 21,
+      "expected_halt_index": 5,
+      "contradiction": 0.9990234375
+    },
+    {
+      "id": "wrong_element_potassium",
+      "kind": "numeric",
+      "halted": true,
+      "halt_index": 8,
+      "expected_halt_index": 8,
+      "contradiction": 0.9990234375
+    },
+    {
+      "id": "wrong_const_absolute_zero",
+      "kind": "numeric",
+      "halted": true,
+      "halt_index": 11,
+      "expected_halt_index": 3,
+      "contradiction": 1.0
+    },
+    {
+      "id": "wrong_const_electron_charge",
+      "kind": "numeric",
+      "halted": true,
+      "halt_index": 19,
+      "expected_halt_index": 5,
+      "contradiction": 0.974609375
+    },
+    {
+      "id": "wrong_astro_sun_distance",
+      "kind": "numeric",
+      "halted": true,
+      "halt_index": 18,
+      "expected_halt_index": 10,
+      "contradiction": 0.95458984375
+    },
+    {
+      "id": "wrong_astro_moon_distance",
+      "kind": "numeric",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 10,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_astro_planets_count",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 11,
+      "expected_halt_index": 4,
+      "contradiction": 0.99755859375
+    },
+    {
+      "id": "wrong_astro_mars_moons",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 20,
+      "expected_halt_index": 2,
+      "contradiction": 0.9951171875
+    },
+    {
+      "id": "wrong_astro_light_minute_sun",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 22,
+      "expected_halt_index": 6,
+      "contradiction": 0.99951171875
+    },
+    {
+      "id": "wrong_astro_milky_way",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 20,
+      "expected_halt_index": 6,
+      "contradiction": 0.99755859375
+    },
+    {
+      "id": "wrong_const_water_freezing",
+      "kind": "numeric",
+      "halted": true,
+      "halt_index": 19,
+      "expected_halt_index": 3,
+      "contradiction": 0.9990234375
+    },
+    {
+      "id": "wrong_const_earth_circumference",
+      "kind": "numeric",
+      "halted": true,
+      "halt_index": 16,
+      "expected_halt_index": 4,
+      "contradiction": 0.9990234375
+    },
+    {
+      "id": "wrong_el_hydrogen",
+      "kind": "numeric",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 8,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_el_helium",
+      "kind": "numeric",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 8,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_el_lithium",
+      "kind": "numeric",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 8,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_el_beryllium",
+      "kind": "numeric",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 8,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_el_boron",
+      "kind": "numeric",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 8,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_el_carbon",
+      "kind": "numeric",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 8,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_el_nitrogen",
+      "kind": "numeric",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 8,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_el_oxygen",
+      "kind": "numeric",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 8,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_el_fluorine",
+      "kind": "numeric",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 8,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_el_neon",
+      "kind": "numeric",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 8,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_el_sodium",
+      "kind": "numeric",
+      "halted": true,
+      "halt_index": 12,
+      "expected_halt_index": 8,
+      "contradiction": 0.54736328125
+    },
+    {
+      "id": "wrong_el_magnesium",
+      "kind": "numeric",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 8,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_el_aluminium",
+      "kind": "numeric",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 8,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_el_silicon",
+      "kind": "numeric",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 8,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_el_phosphorus",
+      "kind": "numeric",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 8,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_el_sulfur",
+      "kind": "numeric",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 8,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_el_chlorine",
+      "kind": "numeric",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 8,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_el_argon",
+      "kind": "numeric",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 8,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_el_calcium",
+      "kind": "numeric",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 8,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_el_titanium",
+      "kind": "numeric",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 8,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_el_chromium",
+      "kind": "numeric",
+      "halted": true,
+      "halt_index": 12,
+      "expected_halt_index": 8,
+      "contradiction": 0.75732421875
+    },
+    {
+      "id": "wrong_el_manganese",
+      "kind": "numeric",
+      "halted": true,
+      "halt_index": 12,
+      "expected_halt_index": 8,
+      "contradiction": 0.595703125
+    },
+    {
+      "id": "wrong_el_cobalt",
+      "kind": "numeric",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 8,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_el_nickel",
+      "kind": "numeric",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 8,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_el_copper",
+      "kind": "numeric",
+      "halted": true,
+      "halt_index": 12,
+      "expected_halt_index": 8,
+      "contradiction": 0.62109375
+    },
+    {
+      "id": "wrong_el_zinc",
+      "kind": "numeric",
+      "halted": true,
+      "halt_index": 12,
+      "expected_halt_index": 8,
+      "contradiction": 0.8466796875
+    },
+    {
+      "id": "wrong_el_silver",
+      "kind": "numeric",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 8,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_el_tin",
+      "kind": "numeric",
+      "halted": true,
+      "halt_index": 12,
+      "expected_halt_index": 8,
+      "contradiction": 0.75146484375
+    },
+    {
+      "id": "wrong_el_iodine",
+      "kind": "numeric",
+      "halted": true,
+      "halt_index": 12,
+      "expected_halt_index": 8,
+      "contradiction": 0.5830078125
+    },
+    {
+      "id": "wrong_el_platinum",
+      "kind": "numeric",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 8,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_el_mercury",
+      "kind": "numeric",
+      "halted": true,
+      "halt_index": 12,
+      "expected_halt_index": 8,
+      "contradiction": 0.87353515625
+    },
+    {
+      "id": "wrong_el_lead",
+      "kind": "numeric",
+      "halted": true,
+      "halt_index": 12,
+      "expected_halt_index": 8,
+      "contradiction": 0.82568359375
+    },
+    {
+      "id": "wrong_cap_france",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 19,
+      "expected_halt_index": 5,
+      "contradiction": 0.99560546875
+    },
+    {
+      "id": "wrong_cap_japan",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 19,
+      "expected_halt_index": 5,
+      "contradiction": 0.99267578125
+    },
+    {
+      "id": "wrong_cap_italy",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 19,
+      "expected_halt_index": 5,
+      "contradiction": 0.99560546875
+    },
+    {
+      "id": "wrong_cap_spain",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 19,
+      "expected_halt_index": 5,
+      "contradiction": 0.9931640625
+    },
+    {
+      "id": "wrong_cap_germany",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 19,
+      "expected_halt_index": 5,
+      "contradiction": 0.99267578125
+    },
+    {
+      "id": "wrong_cap_russia",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 19,
+      "expected_halt_index": 5,
+      "contradiction": 0.99658203125
+    },
+    {
+      "id": "wrong_cap_china",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 19,
+      "expected_halt_index": 5,
+      "contradiction": 0.9951171875
+    },
+    {
+      "id": "wrong_cap_egypt",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 19,
+      "expected_halt_index": 5,
+      "contradiction": 0.994140625
+    },
+    {
+      "id": "wrong_cap_canada",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 19,
+      "expected_halt_index": 5,
+      "contradiction": 0.99853515625
+    },
+    {
+      "id": "wrong_cap_australia",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 19,
+      "expected_halt_index": 5,
+      "contradiction": 0.998046875
+    },
+    {
+      "id": "wrong_cap_brazil",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 19,
+      "expected_halt_index": 5,
+      "contradiction": 0.99853515625
+    },
+    {
+      "id": "wrong_cap_portugal",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 19,
+      "expected_halt_index": 5,
+      "contradiction": 0.99755859375
+    },
+    {
+      "id": "wrong_cap_greece",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 19,
+      "expected_halt_index": 5,
+      "contradiction": 0.994140625
+    },
+    {
+      "id": "wrong_cap_turkey",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 19,
+      "expected_halt_index": 5,
+      "contradiction": 0.98876953125
+    },
+    {
+      "id": "wrong_cap_austria",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 19,
+      "expected_halt_index": 5,
+      "contradiction": 0.99658203125
+    },
+    {
+      "id": "wrong_cap_poland",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 19,
+      "expected_halt_index": 5,
+      "contradiction": 0.99755859375
+    },
+    {
+      "id": "wrong_cap_norway",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 19,
+      "expected_halt_index": 5,
+      "contradiction": 0.99755859375
+    },
+    {
+      "id": "wrong_cap_sweden",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 19,
+      "expected_halt_index": 5,
+      "contradiction": 0.998046875
+    },
+    {
+      "id": "wrong_cap_finland",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 19,
+      "expected_halt_index": 5,
+      "contradiction": 0.99560546875
+    },
+    {
+      "id": "wrong_cap_ireland",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 19,
+      "expected_halt_index": 5,
+      "contradiction": 0.99755859375
+    },
+    {
+      "id": "wrong_cap_kenya",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 19,
+      "expected_halt_index": 5,
+      "contradiction": 0.99560546875
+    },
+    {
+      "id": "wrong_cap_morocco",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 19,
+      "expected_halt_index": 5,
+      "contradiction": 0.998046875
+    },
+    {
+      "id": "wrong_cap_india",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 19,
+      "expected_halt_index": 5,
+      "contradiction": 0.9970703125
+    },
+    {
+      "id": "wrong_cap_iran",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 19,
+      "expected_halt_index": 5,
+      "contradiction": 0.99755859375
+    },
+    {
+      "id": "wrong_cap_thailand",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 19,
+      "expected_halt_index": 5,
+      "contradiction": 0.99169921875
+    },
+    {
+      "id": "wrong_cap_vietnam",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 19,
+      "expected_halt_index": 5,
+      "contradiction": 0.99755859375
+    },
+    {
+      "id": "wrong_cap_hungary",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 19,
+      "expected_halt_index": 5,
+      "contradiction": 0.99609375
+    },
+    {
+      "id": "wrong_cap_switzerland",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 19,
+      "expected_halt_index": 5,
+      "contradiction": 0.98974609375
+    },
+    {
+      "id": "wrong_cap_belgium",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 19,
+      "expected_halt_index": 5,
+      "contradiction": 0.99462890625
+    },
+    {
+      "id": "wrong_cap_netherlands",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 19,
+      "expected_halt_index": 5,
+      "contradiction": 0.9931640625
+    },
+    {
+      "id": "wrong_cap_argentina",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 19,
+      "expected_halt_index": 5,
+      "contradiction": 0.94580078125
+    },
+    {
+      "id": "wrong_cap_peru",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 19,
+      "expected_halt_index": 5,
+      "contradiction": 0.99609375
+    },
+    {
+      "id": "wrong_cap_cuba",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 19,
+      "expected_halt_index": 5,
+      "contradiction": 0.99072265625
+    },
+    {
+      "id": "wrong_cap_chile",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 19,
+      "expected_halt_index": 5,
+      "contradiction": 0.99462890625
+    },
+    {
+      "id": "wrong_cap_ukraine",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 19,
+      "expected_halt_index": 5,
+      "contradiction": 0.9970703125
+    },
+    {
+      "id": "wrong_cap_romania",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 19,
+      "expected_halt_index": 5,
+      "contradiction": 0.994140625
+    },
+    {
+      "id": "wrong_year_0",
+      "kind": "numeric",
+      "halted": true,
+      "halt_index": 24,
+      "expected_halt_index": 17,
+      "contradiction": 0.990234375
+    },
+    {
+      "id": "wrong_year_1",
+      "kind": "numeric",
+      "halted": true,
+      "halt_index": 23,
+      "expected_halt_index": 16,
+      "contradiction": 0.99462890625
+    },
+    {
+      "id": "wrong_year_2",
+      "kind": "numeric",
+      "halted": true,
+      "halt_index": 21,
+      "expected_halt_index": 14,
+      "contradiction": 0.99267578125
+    },
+    {
+      "id": "wrong_year_3",
+      "kind": "numeric",
+      "halted": true,
+      "halt_index": 23,
+      "expected_halt_index": 16,
+      "contradiction": 0.998046875
+    },
+    {
+      "id": "wrong_year_4",
+      "kind": "numeric",
+      "halted": true,
+      "halt_index": 22,
+      "expected_halt_index": 15,
+      "contradiction": 0.97314453125
+    },
+    {
+      "id": "wrong_year_5",
+      "kind": "numeric",
+      "halted": true,
+      "halt_index": 20,
+      "expected_halt_index": 13,
+      "contradiction": 0.9990234375
+    },
+    {
+      "id": "wrong_year_6",
+      "kind": "numeric",
+      "halted": true,
+      "halt_index": 22,
+      "expected_halt_index": 15,
+      "contradiction": 0.99658203125
+    },
+    {
+      "id": "wrong_year_7",
+      "kind": "numeric",
+      "halted": true,
+      "halt_index": 22,
+      "expected_halt_index": 15,
+      "contradiction": 0.90478515625
+    },
+    {
+      "id": "wrong_year_8",
+      "kind": "numeric",
+      "halted": true,
+      "halt_index": 25,
+      "expected_halt_index": 18,
+      "contradiction": 0.99658203125
+    },
+    {
+      "id": "wrong_year_9",
+      "kind": "numeric",
+      "halted": true,
+      "halt_index": 23,
+      "expected_halt_index": 16,
+      "contradiction": 0.9951171875
+    },
+    {
+      "id": "wrong_year_10",
+      "kind": "numeric",
+      "halted": true,
+      "halt_index": 19,
+      "expected_halt_index": 12,
+      "contradiction": 0.98291015625
+    },
+    {
+      "id": "wrong_year_11",
+      "kind": "numeric",
+      "halted": true,
+      "halt_index": 21,
+      "expected_halt_index": 14,
+      "contradiction": 0.9970703125
+    },
+    {
+      "id": "wrong_year_12",
+      "kind": "numeric",
+      "halted": true,
+      "halt_index": 23,
+      "expected_halt_index": 16,
+      "contradiction": 0.9853515625
+    },
+    {
+      "id": "wrong_year_13",
+      "kind": "numeric",
+      "halted": true,
+      "halt_index": 20,
+      "expected_halt_index": 13,
+      "contradiction": 0.9775390625
+    },
+    {
+      "id": "wrong_year_14",
+      "kind": "numeric",
+      "halted": true,
+      "halt_index": 22,
+      "expected_halt_index": 15,
+      "contradiction": 0.92333984375
+    },
+    {
+      "id": "wrong_year_15",
+      "kind": "numeric",
+      "halted": true,
+      "halt_index": 20,
+      "expected_halt_index": 13,
+      "contradiction": 0.99755859375
+    },
+    {
+      "id": "wrong_year_16",
+      "kind": "numeric",
+      "halted": true,
+      "halt_index": 19,
+      "expected_halt_index": 12,
+      "contradiction": 0.970703125
+    },
+    {
+      "id": "wrong_year_17",
+      "kind": "numeric",
+      "halted": true,
+      "halt_index": 22,
+      "expected_halt_index": 15,
+      "contradiction": 0.99853515625
+    },
+    {
+      "id": "wrong_count_0",
+      "kind": "numeric",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 5,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_count_1",
+      "kind": "numeric",
+      "halted": true,
+      "halt_index": 8,
+      "expected_halt_index": 8,
+      "contradiction": 0.6201171875
+    },
+    {
+      "id": "wrong_count_2",
+      "kind": "numeric",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 4,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_count_3",
+      "kind": "numeric",
+      "halted": true,
+      "halt_index": 6,
+      "expected_halt_index": 3,
+      "contradiction": 0.99462890625
+    },
+    {
+      "id": "wrong_count_4",
+      "kind": "numeric",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 4,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_count_5",
+      "kind": "numeric",
+      "halted": true,
+      "halt_index": 7,
+      "expected_halt_index": 2,
+      "contradiction": 0.99609375
+    },
+    {
+      "id": "wrong_count_6",
+      "kind": "numeric",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 6,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_count_7",
+      "kind": "numeric",
+      "halted": true,
+      "halt_index": 11,
+      "expected_halt_index": 3,
+      "contradiction": 0.5751953125
+    },
+    {
+      "id": "wrong_count_8",
+      "kind": "numeric",
+      "halted": true,
+      "halt_index": 9,
+      "expected_halt_index": 3,
+      "contradiction": 0.986328125
+    },
+    {
+      "id": "wrong_count_9",
+      "kind": "numeric",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 4,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_count_10",
+      "kind": "numeric",
+      "halted": true,
+      "halt_index": 7,
+      "expected_halt_index": 6,
+      "contradiction": 0.99853515625
+    },
+    {
+      "id": "wrong_count_11",
+      "kind": "numeric",
+      "halted": true,
+      "halt_index": 5,
+      "expected_halt_index": 4,
+      "contradiction": 0.9921875
+    },
+    {
+      "id": "wrong_count_12",
+      "kind": "numeric",
+      "halted": true,
+      "halt_index": 5,
+      "expected_halt_index": 4,
+      "contradiction": 0.97998046875
+    },
+    {
+      "id": "wrong_count_13",
+      "kind": "numeric",
+      "halted": true,
+      "halt_index": 9,
+      "expected_halt_index": 8,
+      "contradiction": 0.96875
+    },
+    {
+      "id": "wrong_count_14",
+      "kind": "numeric",
+      "halted": true,
+      "halt_index": 7,
+      "expected_halt_index": 6,
+      "contradiction": 0.5869140625
+    },
+    {
+      "id": "wrong_count_15",
+      "kind": "numeric",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 7,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_count_16",
+      "kind": "numeric",
+      "halted": true,
+      "halt_index": 5,
+      "expected_halt_index": 4,
+      "contradiction": 0.9990234375
+    },
+    {
+      "id": "wrong_count_17",
+      "kind": "numeric",
+      "halted": true,
+      "halt_index": 10,
+      "expected_halt_index": 4,
+      "contradiction": 0.998046875
+    },
+    {
+      "id": "wrong_curr_japan_0",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 18,
+      "expected_halt_index": 7,
+      "contradiction": 0.98876953125
+    },
+    {
+      "id": "wrong_curr_india_1",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 18,
+      "expected_halt_index": 7,
+      "contradiction": 0.96044921875
+    },
+    {
+      "id": "wrong_curr_russia_2",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 18,
+      "expected_halt_index": 7,
+      "contradiction": 0.96923828125
+    },
+    {
+      "id": "wrong_curr_poland_3",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 18,
+      "expected_halt_index": 7,
+      "contradiction": 0.92724609375
+    },
+    {
+      "id": "wrong_curr_thailand_4",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 18,
+      "expected_halt_index": 7,
+      "contradiction": 0.9833984375
+    },
+    {
+      "id": "wrong_curr_sweden_5",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 18,
+      "expected_halt_index": 7,
+      "contradiction": 0.9931640625
+    },
+    {
+      "id": "wrong_curr_switzerland_6",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 18,
+      "expected_halt_index": 7,
+      "contradiction": 0.98095703125
+    },
+    {
+      "id": "wrong_curr_mexico_7",
+      "kind": "semantic",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 7,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_curr_turkey_8",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 18,
+      "expected_halt_index": 7,
+      "contradiction": 0.97216796875
+    },
+    {
+      "id": "wrong_curr_denmark_9",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 18,
+      "expected_halt_index": 7,
+      "contradiction": 0.9951171875
+    },
+    {
+      "id": "wrong_curr_hungary_10",
+      "kind": "semantic",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 7,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_curr_vietnam_11",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 18,
+      "expected_halt_index": 7,
+      "contradiction": 0.96484375
+    },
+    {
+      "id": "wrong_curr_israel_12",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 18,
+      "expected_halt_index": 7,
+      "contradiction": 0.99072265625
+    },
+    {
+      "id": "wrong_curr_nigeria_13",
+      "kind": "semantic",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 7,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_curr_kenya_14",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 18,
+      "expected_halt_index": 7,
+      "contradiction": 0.96533203125
+    },
+    {
+      "id": "wrong_curr_brazil_15",
+      "kind": "semantic",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 7,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_curr_china_16",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 18,
+      "expected_halt_index": 7,
+      "contradiction": 0.9130859375
+    },
+    {
+      "id": "wrong_curr_korea_17",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 18,
+      "expected_halt_index": 7,
+      "contradiction": 0.93115234375
+    },
+    {
+      "id": "wrong_curr_ghana_18",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 18,
+      "expected_halt_index": 7,
+      "contradiction": 0.99169921875
+    },
+    {
+      "id": "wrong_curr_peru_19",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 18,
+      "expected_halt_index": 7,
+      "contradiction": 0.98779296875
+    },
+    {
+      "id": "wrong_lang_brazil_0",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 17,
+      "expected_halt_index": 7,
+      "contradiction": 0.98046875
+    },
+    {
+      "id": "wrong_lang_egypt_1",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 17,
+      "expected_halt_index": 7,
+      "contradiction": 0.962890625
+    },
+    {
+      "id": "wrong_lang_austria_2",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 17,
+      "expected_halt_index": 7,
+      "contradiction": 0.98095703125
+    },
+    {
+      "id": "wrong_lang_iran_3",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 17,
+      "expected_halt_index": 7,
+      "contradiction": 0.99560546875
+    },
+    {
+      "id": "wrong_lang_netherlands_4",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 17,
+      "expected_halt_index": 7,
+      "contradiction": 0.98681640625
+    },
+    {
+      "id": "wrong_lang_greece_5",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 17,
+      "expected_halt_index": 7,
+      "contradiction": 0.994140625
+    },
+    {
+      "id": "wrong_lang_poland_6",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 17,
+      "expected_halt_index": 7,
+      "contradiction": 0.97265625
+    },
+    {
+      "id": "wrong_lang_finland_7",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 17,
+      "expected_halt_index": 7,
+      "contradiction": 0.99365234375
+    },
+    {
+      "id": "wrong_lang_hungary_8",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 17,
+      "expected_halt_index": 7,
+      "contradiction": 0.9912109375
+    },
+    {
+      "id": "wrong_lang_norway_9",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 17,
+      "expected_halt_index": 7,
+      "contradiction": 0.98095703125
+    },
+    {
+      "id": "wrong_lang_turkey_10",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 17,
+      "expected_halt_index": 7,
+      "contradiction": 0.91748046875
+    },
+    {
+      "id": "wrong_lang_israel_11",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 17,
+      "expected_halt_index": 7,
+      "contradiction": 0.95556640625
+    },
+    {
+      "id": "wrong_lang_vietnam_12",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 17,
+      "expected_halt_index": 7,
+      "contradiction": 0.9951171875
+    },
+    {
+      "id": "wrong_lang_thailand_13",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 17,
+      "expected_halt_index": 7,
+      "contradiction": 0.99169921875
+    },
+    {
+      "id": "wrong_lang_kenya_14",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 17,
+      "expected_halt_index": 7,
+      "contradiction": 0.99560546875
+    },
+    {
+      "id": "wrong_lang_ukraine_15",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 17,
+      "expected_halt_index": 7,
+      "contradiction": 0.98828125
+    },
+    {
+      "id": "wrong_formula_0",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 17,
+      "expected_halt_index": 6,
+      "contradiction": 0.99267578125
+    },
+    {
+      "id": "wrong_formula_1",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 18,
+      "expected_halt_index": 7,
+      "contradiction": 0.99560546875
+    },
+    {
+      "id": "wrong_formula_2",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 18,
+      "expected_halt_index": 7,
+      "contradiction": 0.9423828125
+    },
+    {
+      "id": "wrong_formula_3",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 17,
+      "expected_halt_index": 6,
+      "contradiction": 0.998046875
+    },
+    {
+      "id": "wrong_formula_4",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 17,
+      "expected_halt_index": 6,
+      "contradiction": 0.99853515625
+    },
+    {
+      "id": "wrong_formula_5",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 17,
+      "expected_halt_index": 6,
+      "contradiction": 0.90283203125
+    },
+    {
+      "id": "wrong_formula_6",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 17,
+      "expected_halt_index": 6,
+      "contradiction": 0.99560546875
+    },
+    {
+      "id": "wrong_formula_7",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 18,
+      "expected_halt_index": 7,
+      "contradiction": 0.99658203125
+    },
+    {
+      "id": "wrong_formula_8",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 18,
+      "expected_halt_index": 7,
+      "contradiction": 0.99755859375
+    },
+    {
+      "id": "wrong_formula_9",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 18,
+      "expected_halt_index": 7,
+      "contradiction": 0.97900390625
+    },
+    {
+      "id": "wrong_formula_10",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 18,
+      "expected_halt_index": 7,
+      "contradiction": 0.99658203125
+    },
+    {
+      "id": "wrong_formula_11",
+      "kind": "semantic",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 6,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_formula_12",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 18,
+      "expected_halt_index": 7,
+      "contradiction": 0.98193359375
+    },
+    {
+      "id": "wrong_formula_13",
+      "kind": "semantic",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 7,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_geo_0",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 22,
+      "expected_halt_index": 9,
+      "contradiction": 0.85986328125
+    },
+    {
+      "id": "wrong_geo_1",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 22,
+      "expected_halt_index": 9,
+      "contradiction": 0.99853515625
+    },
+    {
+      "id": "wrong_geo_2",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 19,
+      "expected_halt_index": 6,
+      "contradiction": 0.99169921875
+    },
+    {
+      "id": "wrong_geo_3",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 20,
+      "expected_halt_index": 7,
+      "contradiction": 0.99365234375
+    },
+    {
+      "id": "wrong_geo_4",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 21,
+      "expected_halt_index": 8,
+      "contradiction": 0.9833984375
+    },
+    {
+      "id": "wrong_geo_5",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 20,
+      "expected_halt_index": 7,
+      "contradiction": 0.9677734375
+    },
+    {
+      "id": "wrong_geo_6",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 21,
+      "expected_halt_index": 8,
+      "contradiction": 0.8251953125
+    },
+    {
+      "id": "wrong_geo_7",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 19,
+      "expected_halt_index": 6,
+      "contradiction": 0.98974609375
+    },
+    {
+      "id": "wrong_geo_8",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 20,
+      "expected_halt_index": 7,
+      "contradiction": 0.53857421875
+    },
+    {
+      "id": "wrong_geo_9",
+      "kind": "semantic",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 6,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_geo_10",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 22,
+      "expected_halt_index": 9,
+      "contradiction": 0.9384765625
+    },
+    {
+      "id": "wrong_geo_11",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 22,
+      "expected_halt_index": 9,
+      "contradiction": 0.87158203125
+    },
+    {
+      "id": "wrong_geo_12",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 21,
+      "expected_halt_index": 8,
+      "contradiction": 0.99169921875
+    },
+    {
+      "id": "wrong_geo_13",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 19,
+      "expected_halt_index": 6,
+      "contradiction": 0.970703125
+    },
+    {
+      "id": "wrong_geo_14",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 19,
+      "expected_halt_index": 6,
+      "contradiction": 0.982421875
+    },
+    {
+      "id": "wrong_geo_15",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 19,
+      "expected_halt_index": 6,
+      "contradiction": 0.59619140625
+    },
+    {
+      "id": "wrong_unit_0",
+      "kind": "numeric",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 2,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_unit_1",
+      "kind": "numeric",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 3,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_unit_2",
+      "kind": "numeric",
+      "halted": true,
+      "halt_index": 4,
+      "expected_halt_index": 3,
+      "contradiction": 0.99755859375
+    },
+    {
+      "id": "wrong_unit_3",
+      "kind": "numeric",
+      "halted": true,
+      "halt_index": 4,
+      "expected_halt_index": 3,
+      "contradiction": 0.9970703125
+    },
+    {
+      "id": "wrong_unit_4",
+      "kind": "numeric",
+      "halted": true,
+      "halt_index": 4,
+      "expected_halt_index": 3,
+      "contradiction": 0.99853515625
+    },
+    {
+      "id": "wrong_unit_5",
+      "kind": "numeric",
+      "halted": true,
+      "halt_index": 5,
+      "expected_halt_index": 4,
+      "contradiction": 0.9833984375
+    },
+    {
+      "id": "wrong_unit_6",
+      "kind": "numeric",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 3,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_unit_7",
+      "kind": "numeric",
+      "halted": true,
+      "halt_index": 6,
+      "expected_halt_index": 2,
+      "contradiction": 0.96484375
+    },
+    {
+      "id": "wrong_unit_8",
+      "kind": "numeric",
+      "halted": true,
+      "halt_index": 5,
+      "expected_halt_index": 4,
+      "contradiction": 0.87255859375
+    },
+    {
+      "id": "wrong_unit_9",
+      "kind": "numeric",
+      "halted": true,
+      "halt_index": 4,
+      "expected_halt_index": 3,
+      "contradiction": 0.8076171875
+    },
+    {
+      "id": "wrong_unit_10",
+      "kind": "numeric",
+      "halted": true,
+      "halt_index": 4,
+      "expected_halt_index": 3,
+      "contradiction": 0.97509765625
+    },
+    {
+      "id": "wrong_unit_11",
+      "kind": "numeric",
+      "halted": true,
+      "halt_index": 4,
+      "expected_halt_index": 3,
+      "contradiction": 0.97998046875
+    },
+    {
+      "id": "wrong_unit_12",
+      "kind": "numeric",
+      "halted": true,
+      "halt_index": 5,
+      "expected_halt_index": 4,
+      "contradiction": 0.99658203125
+    },
+    {
+      "id": "wrong_unit_13",
+      "kind": "numeric",
+      "halted": true,
+      "halt_index": 16,
+      "expected_halt_index": 4,
+      "contradiction": 0.64599609375
+    },
+    {
+      "id": "wrong_planet_0",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 20,
+      "expected_halt_index": 12,
+      "contradiction": 0.998046875
+    },
+    {
+      "id": "wrong_planet_1",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 20,
+      "expected_halt_index": 12,
+      "contradiction": 0.9677734375
+    },
+    {
+      "id": "wrong_planet_2",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 19,
+      "expected_halt_index": 11,
+      "contradiction": 0.9873046875
+    },
+    {
+      "id": "wrong_planet_3",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 20,
+      "expected_halt_index": 12,
+      "contradiction": 0.99609375
+    },
+    {
+      "id": "wrong_planet_4",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 21,
+      "expected_halt_index": 13,
+      "contradiction": 0.982421875
+    },
+    {
+      "id": "wrong_planet_5",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 20,
+      "expected_halt_index": 12,
+      "contradiction": 0.99755859375
+    },
+    {
+      "id": "wrong_planet_6",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 20,
+      "expected_halt_index": 12,
+      "contradiction": 0.998046875
+    },
+    {
+      "id": "wrong_planet_7",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 19,
+      "expected_halt_index": 11,
+      "contradiction": 0.998046875
+    },
+    {
+      "id": "wrong_planet_8",
+      "kind": "semantic",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 14,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_planet_9",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 18,
+      "expected_halt_index": 10,
+      "contradiction": 0.91748046875
+    },
+    {
+      "id": "wrong_who_0",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 21,
+      "expected_halt_index": 13,
+      "contradiction": 0.9990234375
+    },
+    {
+      "id": "wrong_who_1",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 20,
+      "expected_halt_index": 12,
+      "contradiction": 0.99853515625
+    },
+    {
+      "id": "wrong_who_2",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 22,
+      "expected_halt_index": 14,
+      "contradiction": 0.99755859375
+    },
+    {
+      "id": "wrong_who_3",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 19,
+      "expected_halt_index": 11,
+      "contradiction": 0.9990234375
+    },
+    {
+      "id": "wrong_who_4",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 23,
+      "expected_halt_index": 15,
+      "contradiction": 0.9921875
+    },
+    {
+      "id": "wrong_who_5",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 19,
+      "expected_halt_index": 11,
+      "contradiction": 0.99169921875
+    },
+    {
+      "id": "wrong_who_6",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 21,
+      "expected_halt_index": 13,
+      "contradiction": 0.99658203125
+    },
+    {
+      "id": "wrong_who_7",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 25,
+      "expected_halt_index": 17,
+      "contradiction": 0.9970703125
+    },
+    {
+      "id": "wrong_who_8",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 22,
+      "expected_halt_index": 14,
+      "contradiction": 0.9990234375
+    },
+    {
+      "id": "wrong_who_9",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 21,
+      "expected_halt_index": 13,
+      "contradiction": 0.99755859375
+    },
+    {
+      "id": "wrong_who_10",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 21,
+      "expected_halt_index": 13,
+      "contradiction": 0.99755859375
+    },
+    {
+      "id": "wrong_who_11",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 20,
+      "expected_halt_index": 12,
+      "contradiction": 0.998046875
+    },
+    {
+      "id": "wrong_square_2",
+      "kind": "numeric",
+      "halted": true,
+      "halt_index": 14,
+      "expected_halt_index": 5,
+      "contradiction": 0.76904296875
+    },
+    {
+      "id": "wrong_square_3",
+      "kind": "numeric",
+      "halted": true,
+      "halt_index": 14,
+      "expected_halt_index": 5,
+      "contradiction": 0.8154296875
+    },
+    {
+      "id": "wrong_square_4",
+      "kind": "numeric",
+      "halted": true,
+      "halt_index": 14,
+      "expected_halt_index": 5,
+      "contradiction": 0.501953125
+    },
+    {
+      "id": "wrong_square_5",
+      "kind": "numeric",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 5,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_square_6",
+      "kind": "numeric",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 5,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_square_7",
+      "kind": "numeric",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 5,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_square_8",
+      "kind": "numeric",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 5,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_square_9",
+      "kind": "numeric",
+      "halted": true,
+      "halt_index": 14,
+      "expected_halt_index": 5,
+      "contradiction": 0.5478515625
+    },
+    {
+      "id": "wrong_square_10",
+      "kind": "numeric",
+      "halted": true,
+      "halt_index": 14,
+      "expected_halt_index": 5,
+      "contradiction": 0.74462890625
+    },
+    {
+      "id": "wrong_square_11",
+      "kind": "numeric",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 5,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_square_12",
+      "kind": "numeric",
+      "halted": true,
+      "halt_index": 14,
+      "expected_halt_index": 5,
+      "contradiction": 0.6640625
+    },
+    {
+      "id": "wrong_square_13",
+      "kind": "numeric",
+      "halted": true,
+      "halt_index": 14,
+      "expected_halt_index": 5,
+      "contradiction": 0.58349609375
+    },
+    {
+      "id": "wrong_square_14",
+      "kind": "numeric",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 5,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_square_15",
+      "kind": "numeric",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 5,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_square_16",
+      "kind": "numeric",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 5,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_square_17",
+      "kind": "numeric",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 5,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_square_18",
+      "kind": "numeric",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 5,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_square_19",
+      "kind": "numeric",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 5,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_square_20",
+      "kind": "numeric",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 5,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_square_21",
+      "kind": "numeric",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 5,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_square_22",
+      "kind": "numeric",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 5,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_square_23",
+      "kind": "numeric",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 5,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_square_24",
+      "kind": "numeric",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 5,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_square_25",
+      "kind": "numeric",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 5,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_square_26",
+      "kind": "numeric",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 5,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_square_27",
+      "kind": "numeric",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 5,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_square_28",
+      "kind": "numeric",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 5,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_square_29",
+      "kind": "numeric",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 5,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_square_30",
+      "kind": "numeric",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 5,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_square_31",
+      "kind": "numeric",
+      "halted": true,
+      "halt_index": 14,
+      "expected_halt_index": 5,
+      "contradiction": 0.8486328125
+    },
+    {
+      "id": "wrong_square_32",
+      "kind": "numeric",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 5,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_square_33",
+      "kind": "numeric",
+      "halted": true,
+      "halt_index": 14,
+      "expected_halt_index": 5,
+      "contradiction": 0.92529296875
+    },
+    {
+      "id": "wrong_square_34",
+      "kind": "numeric",
+      "halted": true,
+      "halt_index": 14,
+      "expected_halt_index": 5,
+      "contradiction": 0.8984375
+    },
+    {
+      "id": "wrong_square_35",
+      "kind": "numeric",
+      "halted": true,
+      "halt_index": 14,
+      "expected_halt_index": 5,
+      "contradiction": 0.7783203125
+    },
+    {
+      "id": "wrong_square_36",
+      "kind": "numeric",
+      "halted": true,
+      "halt_index": 14,
+      "expected_halt_index": 5,
+      "contradiction": 0.51123046875
+    },
+    {
+      "id": "wrong_square_37",
+      "kind": "numeric",
+      "halted": true,
+      "halt_index": 14,
+      "expected_halt_index": 5,
+      "contradiction": 0.76806640625
+    },
+    {
+      "id": "wrong_square_38",
+      "kind": "numeric",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 5,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_square_39",
+      "kind": "numeric",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 5,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_square_40",
+      "kind": "numeric",
+      "halted": true,
+      "halt_index": 14,
+      "expected_halt_index": 5,
+      "contradiction": 0.88916015625
+    },
+    {
+      "id": "wrong_square_41",
+      "kind": "numeric",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 5,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_square_42",
+      "kind": "numeric",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 5,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_square_43",
+      "kind": "numeric",
+      "halted": true,
+      "halt_index": 14,
+      "expected_halt_index": 5,
+      "contradiction": 0.7236328125
+    },
+    {
+      "id": "wrong_square_44",
+      "kind": "numeric",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 5,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_square_45",
+      "kind": "numeric",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 5,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_square_46",
+      "kind": "numeric",
+      "halted": true,
+      "halt_index": 14,
+      "expected_halt_index": 5,
+      "contradiction": 0.92822265625
+    },
+    {
+      "id": "wrong_square_47",
+      "kind": "numeric",
+      "halted": true,
+      "halt_index": 14,
+      "expected_halt_index": 5,
+      "contradiction": 0.859375
+    },
+    {
+      "id": "wrong_square_48",
+      "kind": "numeric",
+      "halted": true,
+      "halt_index": 14,
+      "expected_halt_index": 5,
+      "contradiction": 0.890625
+    },
+    {
+      "id": "wrong_square_49",
+      "kind": "numeric",
+      "halted": true,
+      "halt_index": 14,
+      "expected_halt_index": 5,
+      "contradiction": 0.904296875
+    },
+    {
+      "id": "wrong_square_50",
+      "kind": "numeric",
+      "halted": true,
+      "halt_index": 14,
+      "expected_halt_index": 5,
+      "contradiction": 0.939453125
+    },
+    {
+      "id": "wrong_square_51",
+      "kind": "numeric",
+      "halted": true,
+      "halt_index": 14,
+      "expected_halt_index": 5,
+      "contradiction": 0.83203125
+    },
+    {
+      "id": "wrong_square_52",
+      "kind": "numeric",
+      "halted": true,
+      "halt_index": 14,
+      "expected_halt_index": 5,
+      "contradiction": 0.81201171875
+    },
+    {
+      "id": "wrong_square_53",
+      "kind": "numeric",
+      "halted": true,
+      "halt_index": 14,
+      "expected_halt_index": 5,
+      "contradiction": 0.92431640625
+    },
+    {
+      "id": "wrong_square_54",
+      "kind": "numeric",
+      "halted": true,
+      "halt_index": 14,
+      "expected_halt_index": 5,
+      "contradiction": 0.94189453125
+    },
+    {
+      "id": "wrong_cap2_colombia_0",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 15,
+      "expected_halt_index": 5,
+      "contradiction": 0.99755859375
+    },
+    {
+      "id": "wrong_cap2_venezuela_1",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 15,
+      "expected_halt_index": 5,
+      "contradiction": 0.998046875
+    },
+    {
+      "id": "wrong_cap2_indonesia_2",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 15,
+      "expected_halt_index": 5,
+      "contradiction": 0.99755859375
+    },
+    {
+      "id": "wrong_cap2_malaysia_3",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 15,
+      "expected_halt_index": 5,
+      "contradiction": 0.96875
+    },
+    {
+      "id": "wrong_cap2_philippines_4",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 15,
+      "expected_halt_index": 5,
+      "contradiction": 0.998046875
+    },
+    {
+      "id": "wrong_cap2_pakistan_5",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 15,
+      "expected_halt_index": 5,
+      "contradiction": 0.99755859375
+    },
+    {
+      "id": "wrong_cap2_bangladesh_6",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 15,
+      "expected_halt_index": 5,
+      "contradiction": 0.9912109375
+    },
+    {
+      "id": "wrong_cap2_nigeria_7",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 15,
+      "expected_halt_index": 5,
+      "contradiction": 0.99462890625
+    },
+    {
+      "id": "wrong_cap2_ethiopia_8",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 15,
+      "expected_halt_index": 5,
+      "contradiction": 0.998046875
+    },
+    {
+      "id": "wrong_cap2_ghana_9",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 15,
+      "expected_halt_index": 5,
+      "contradiction": 0.99658203125
+    },
+    {
+      "id": "wrong_cap2_iraq_10",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 15,
+      "expected_halt_index": 5,
+      "contradiction": 0.99755859375
+    },
+    {
+      "id": "wrong_cap2_syria_11",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 15,
+      "expected_halt_index": 5,
+      "contradiction": 0.9970703125
+    },
+    {
+      "id": "wrong_cap2_saudi_12",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 15,
+      "expected_halt_index": 5,
+      "contradiction": 0.99658203125
+    },
+    {
+      "id": "wrong_cap2_jordan_13",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 15,
+      "expected_halt_index": 5,
+      "contradiction": 0.99755859375
+    },
+    {
+      "id": "wrong_cap2_lebanon_14",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 15,
+      "expected_halt_index": 5,
+      "contradiction": 0.99853515625
+    },
+    {
+      "id": "wrong_cap2_cambodia_15",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 15,
+      "expected_halt_index": 5,
+      "contradiction": 0.97998046875
+    },
+    {
+      "id": "wrong_cap2_nepal_16",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 15,
+      "expected_halt_index": 5,
+      "contradiction": 0.99658203125
+    },
+    {
+      "id": "wrong_cap2_bolivia_17",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 15,
+      "expected_halt_index": 5,
+      "contradiction": 0.97314453125
+    },
+    {
+      "id": "wrong_cap2_ecuador_18",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 15,
+      "expected_halt_index": 5,
+      "contradiction": 0.99853515625
+    },
+    {
+      "id": "wrong_cap2_uruguay_19",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 15,
+      "expected_halt_index": 5,
+      "contradiction": 0.9970703125
+    },
+    {
+      "id": "wrong_cap2_croatia_20",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 15,
+      "expected_halt_index": 5,
+      "contradiction": 0.998046875
+    },
+    {
+      "id": "wrong_cap2_serbia_21",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 15,
+      "expected_halt_index": 5,
+      "contradiction": 0.98681640625
+    },
+    {
+      "id": "wrong_cap2_bulgaria_22",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 15,
+      "expected_halt_index": 5,
+      "contradiction": 0.99462890625
+    },
+    {
+      "id": "wrong_cap2_slovakia_23",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 15,
+      "expected_halt_index": 5,
+      "contradiction": 0.5595703125
+    },
+    {
+      "id": "wrong_cap2_slovenia_24",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 15,
+      "expected_halt_index": 5,
+      "contradiction": 0.99658203125
+    },
+    {
+      "id": "wrong_cap2_iceland_25",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 15,
+      "expected_halt_index": 5,
+      "contradiction": 0.51025390625
+    },
+    {
+      "id": "wrong_cap2_estonia_26",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 15,
+      "expected_halt_index": 5,
+      "contradiction": 0.99755859375
+    },
+    {
+      "id": "wrong_cap2_latvia_27",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 15,
+      "expected_halt_index": 5,
+      "contradiction": 0.95947265625
+    },
+    {
+      "id": "wrong_cap2_lithuania_28",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 15,
+      "expected_halt_index": 5,
+      "contradiction": 0.9951171875
+    },
+    {
+      "id": "wrong_cap2_georgia_29",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 15,
+      "expected_halt_index": 5,
+      "contradiction": 0.78173828125
+    },
+    {
+      "id": "wrong_el2_potassium",
+      "kind": "numeric",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 8,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_el2_bromine",
+      "kind": "numeric",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 8,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_el2_barium",
+      "kind": "numeric",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 8,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_el2_tungsten",
+      "kind": "numeric",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 8,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_el2_uranium",
+      "kind": "numeric",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 8,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_el2_gold",
+      "kind": "numeric",
+      "halted": true,
+      "halt_index": 12,
+      "expected_halt_index": 8,
+      "contradiction": 0.81640625
+    },
+    {
+      "id": "wrong_el2_krypton",
+      "kind": "numeric",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 8,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_el2_xenon",
+      "kind": "numeric",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 8,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_el2_radon",
+      "kind": "numeric",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 8,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_el2_cobalt",
+      "kind": "numeric",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 8,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_el2_selenium",
+      "kind": "numeric",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 8,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_el2_strontium",
+      "kind": "numeric",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 8,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_el2_zirconium",
+      "kind": "numeric",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 8,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_el2_molybdenum",
+      "kind": "numeric",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 8,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_el2_palladium",
+      "kind": "numeric",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 8,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_el2_cadmium",
+      "kind": "numeric",
+      "halted": true,
+      "halt_index": 12,
+      "expected_halt_index": 8,
+      "contradiction": 0.83203125
+    },
+    {
+      "id": "wrong_el2_antimony",
+      "kind": "numeric",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 8,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_el2_caesium",
+      "kind": "numeric",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 8,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_el2_tantalum",
+      "kind": "numeric",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 8,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_el2_osmium",
+      "kind": "numeric",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 8,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_el2_iridium",
+      "kind": "numeric",
+      "halted": true,
+      "halt_index": 12,
+      "expected_halt_index": 8,
+      "contradiction": 0.66845703125
+    },
+    {
+      "id": "wrong_el2_bismuth",
+      "kind": "numeric",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 8,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_el2_thorium",
+      "kind": "numeric",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 8,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_el2_plutonium",
+      "kind": "numeric",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 8,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_year2_0",
+      "kind": "numeric",
+      "halted": true,
+      "halt_index": 23,
+      "expected_halt_index": 14,
+      "contradiction": 0.97998046875
+    },
+    {
+      "id": "wrong_year2_1",
+      "kind": "numeric",
+      "halted": true,
+      "halt_index": 23,
+      "expected_halt_index": 14,
+      "contradiction": 0.94775390625
+    },
+    {
+      "id": "wrong_year2_2",
+      "kind": "numeric",
+      "halted": true,
+      "halt_index": 25,
+      "expected_halt_index": 16,
+      "contradiction": 0.994140625
+    },
+    {
+      "id": "wrong_year2_3",
+      "kind": "numeric",
+      "halted": true,
+      "halt_index": 24,
+      "expected_halt_index": 15,
+      "contradiction": 0.982421875
+    },
+    {
+      "id": "wrong_year2_4",
+      "kind": "numeric",
+      "halted": true,
+      "halt_index": 25,
+      "expected_halt_index": 16,
+      "contradiction": 0.9951171875
+    },
+    {
+      "id": "wrong_year2_5",
+      "kind": "numeric",
+      "halted": true,
+      "halt_index": 23,
+      "expected_halt_index": 14,
+      "contradiction": 0.9931640625
+    },
+    {
+      "id": "wrong_year2_6",
+      "kind": "numeric",
+      "halted": true,
+      "halt_index": 20,
+      "expected_halt_index": 11,
+      "contradiction": 0.9970703125
+    },
+    {
+      "id": "wrong_year2_7",
+      "kind": "numeric",
+      "halted": true,
+      "halt_index": 22,
+      "expected_halt_index": 13,
+      "contradiction": 0.99560546875
+    },
+    {
+      "id": "wrong_year2_8",
+      "kind": "numeric",
+      "halted": true,
+      "halt_index": 23,
+      "expected_halt_index": 14,
+      "contradiction": 0.99072265625
+    },
+    {
+      "id": "wrong_year2_9",
+      "kind": "numeric",
+      "halted": true,
+      "halt_index": 24,
+      "expected_halt_index": 15,
+      "contradiction": 0.97900390625
+    },
+    {
+      "id": "wrong_year2_10",
+      "kind": "numeric",
+      "halted": true,
+      "halt_index": 22,
+      "expected_halt_index": 13,
+      "contradiction": 0.99853515625
+    },
+    {
+      "id": "wrong_year2_11",
+      "kind": "numeric",
+      "halted": true,
+      "halt_index": 20,
+      "expected_halt_index": 11,
+      "contradiction": 0.966796875
+    },
+    {
+      "id": "wrong_year2_12",
+      "kind": "numeric",
+      "halted": true,
+      "halt_index": 27,
+      "expected_halt_index": 18,
+      "contradiction": 0.98779296875
+    },
+    {
+      "id": "wrong_year2_13",
+      "kind": "numeric",
+      "halted": true,
+      "halt_index": 20,
+      "expected_halt_index": 11,
+      "contradiction": 0.99658203125
+    },
+    {
+      "id": "wrong_year2_14",
+      "kind": "numeric",
+      "halted": true,
+      "halt_index": 22,
+      "expected_halt_index": 13,
+      "contradiction": 0.9921875
+    },
+    {
+      "id": "wrong_year2_15",
+      "kind": "numeric",
+      "halted": true,
+      "halt_index": 20,
+      "expected_halt_index": 11,
+      "contradiction": 0.9990234375
+    },
+    {
+      "id": "wrong_phys_0",
+      "kind": "numeric",
+      "halted": true,
+      "halt_index": 20,
+      "expected_halt_index": 9,
+      "contradiction": 0.767578125
+    },
+    {
+      "id": "wrong_phys_1",
+      "kind": "numeric",
+      "halted": true,
+      "halt_index": 8,
+      "expected_halt_index": 3,
+      "contradiction": 0.8154296875
+    },
+    {
+      "id": "wrong_phys_2",
+      "kind": "numeric",
+      "halted": true,
+      "halt_index": 5,
+      "expected_halt_index": 3,
+      "contradiction": 0.99951171875
+    },
+    {
+      "id": "wrong_phys_3",
+      "kind": "numeric",
+      "halted": true,
+      "halt_index": 8,
+      "expected_halt_index": 6,
+      "contradiction": 0.9990234375
+    },
+    {
+      "id": "wrong_phys_4",
+      "kind": "numeric",
+      "halted": true,
+      "halt_index": 16,
+      "expected_halt_index": 5,
+      "contradiction": 0.9775390625
+    },
+    {
+      "id": "wrong_phys_5",
+      "kind": "numeric",
+      "halted": true,
+      "halt_index": 16,
+      "expected_halt_index": 5,
+      "contradiction": 0.939453125
+    },
+    {
+      "id": "wrong_phys_6",
+      "kind": "numeric",
+      "halted": true,
+      "halt_index": 6,
+      "expected_halt_index": 5,
+      "contradiction": 0.96142578125
+    },
+    {
+      "id": "wrong_phys_7",
+      "kind": "numeric",
+      "halted": true,
+      "halt_index": 6,
+      "expected_halt_index": 5,
+      "contradiction": 0.8447265625
+    },
+    {
+      "id": "wrong_phys_8",
+      "kind": "numeric",
+      "halted": true,
+      "halt_index": 5,
+      "expected_halt_index": 4,
+      "contradiction": 0.99853515625
+    },
+    {
+      "id": "wrong_phys_9",
+      "kind": "numeric",
+      "halted": true,
+      "halt_index": 6,
+      "expected_halt_index": 5,
+      "contradiction": 0.927734375
+    },
+    {
+      "id": "wrong_phys_10",
+      "kind": "numeric",
+      "halted": true,
+      "halt_index": 18,
+      "expected_halt_index": 4,
+      "contradiction": 0.990234375
+    },
+    {
+      "id": "wrong_phys_11",
+      "kind": "numeric",
+      "halted": true,
+      "halt_index": 6,
+      "expected_halt_index": 5,
+      "contradiction": 0.99072265625
+    },
+    {
+      "id": "wrong_phys_12",
+      "kind": "numeric",
+      "halted": true,
+      "halt_index": 7,
+      "expected_halt_index": 7,
+      "contradiction": 0.970703125
+    },
+    {
+      "id": "wrong_phys_13",
+      "kind": "numeric",
+      "halted": true,
+      "halt_index": 6,
+      "expected_halt_index": 5,
+      "contradiction": 0.95556640625
+    },
+    {
+      "id": "wrong_nat_0",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 18,
+      "expected_halt_index": 11,
+      "contradiction": 0.9404296875
+    },
+    {
+      "id": "wrong_nat_1",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 18,
+      "expected_halt_index": 11,
+      "contradiction": 0.9873046875
+    },
+    {
+      "id": "wrong_nat_2",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 18,
+      "expected_halt_index": 11,
+      "contradiction": 0.9970703125
+    },
+    {
+      "id": "wrong_nat_3",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 18,
+      "expected_halt_index": 11,
+      "contradiction": 0.9892578125
+    },
+    {
+      "id": "wrong_nat_4",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 17,
+      "expected_halt_index": 10,
+      "contradiction": 0.84130859375
+    },
+    {
+      "id": "wrong_nat_5",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 18,
+      "expected_halt_index": 11,
+      "contradiction": 0.9951171875
+    },
+    {
+      "id": "wrong_nat_6",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 21,
+      "expected_halt_index": 14,
+      "contradiction": 0.99853515625
+    },
+    {
+      "id": "wrong_nat_7",
+      "kind": "semantic",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 17,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_nat_8",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 18,
+      "expected_halt_index": 11,
+      "contradiction": 0.98681640625
+    },
+    {
+      "id": "wrong_nat_9",
+      "kind": "semantic",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 14,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_nat_10",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 21,
+      "expected_halt_index": 14,
+      "contradiction": 0.99755859375
+    },
+    {
+      "id": "wrong_nat_11",
+      "kind": "semantic",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 15,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_nat_12",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 21,
+      "expected_halt_index": 14,
+      "contradiction": 0.99658203125
+    },
+    {
+      "id": "wrong_nat_13",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 22,
+      "expected_halt_index": 15,
+      "contradiction": 0.958984375
+    },
+    {
+      "id": "wrong_nat_14",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 21,
+      "expected_halt_index": 14,
+      "contradiction": 0.53173828125
+    },
+    {
+      "id": "wrong_nat_15",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 22,
+      "expected_halt_index": 15,
+      "contradiction": 0.98095703125
+    },
+    {
+      "id": "wrong_cube_2",
+      "kind": "numeric",
+      "halted": true,
+      "halt_index": 13,
+      "expected_halt_index": 5,
+      "contradiction": 0.7412109375
+    },
+    {
+      "id": "wrong_cube_3",
+      "kind": "numeric",
+      "halted": true,
+      "halt_index": 13,
+      "expected_halt_index": 5,
+      "contradiction": 0.75537109375
+    },
+    {
+      "id": "wrong_cube_4",
+      "kind": "numeric",
+      "halted": true,
+      "halt_index": 13,
+      "expected_halt_index": 5,
+      "contradiction": 0.71826171875
+    },
+    {
+      "id": "wrong_cube_5",
+      "kind": "numeric",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 5,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_cube_6",
+      "kind": "numeric",
+      "halted": true,
+      "halt_index": 13,
+      "expected_halt_index": 5,
+      "contradiction": 0.6337890625
+    },
+    {
+      "id": "wrong_cube_7",
+      "kind": "numeric",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 5,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_cube_8",
+      "kind": "numeric",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 5,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_cube_9",
+      "kind": "numeric",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 5,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_cube_10",
+      "kind": "numeric",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 5,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_cube_11",
+      "kind": "numeric",
+      "halted": true,
+      "halt_index": 13,
+      "expected_halt_index": 5,
+      "contradiction": 0.6005859375
+    },
+    {
+      "id": "wrong_cube_12",
+      "kind": "numeric",
+      "halted": true,
+      "halt_index": 13,
+      "expected_halt_index": 5,
+      "contradiction": 0.79638671875
+    },
+    {
+      "id": "wrong_cube_13",
+      "kind": "numeric",
+      "halted": true,
+      "halt_index": 13,
+      "expected_halt_index": 5,
+      "contradiction": 0.72607421875
+    },
+    {
+      "id": "wrong_cube_14",
+      "kind": "numeric",
+      "halted": true,
+      "halt_index": 13,
+      "expected_halt_index": 5,
+      "contradiction": 0.78564453125
+    },
+    {
+      "id": "wrong_cube_15",
+      "kind": "numeric",
+      "halted": true,
+      "halt_index": 13,
+      "expected_halt_index": 5,
+      "contradiction": 0.85888671875
+    },
+    {
+      "id": "wrong_cube_16",
+      "kind": "numeric",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 5,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_cube_17",
+      "kind": "numeric",
+      "halted": true,
+      "halt_index": 13,
+      "expected_halt_index": 5,
+      "contradiction": 0.76416015625
+    },
+    {
+      "id": "wrong_cap3_chile_0",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 17,
+      "expected_halt_index": 6,
+      "contradiction": 0.99853515625
+    },
+    {
+      "id": "wrong_cap3_paraguay_1",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 17,
+      "expected_halt_index": 6,
+      "contradiction": 0.99755859375
+    },
+    {
+      "id": "wrong_cap3_panama_2",
+      "kind": "semantic",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 6,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_cap3_guatemala_3",
+      "kind": "semantic",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 6,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_cap3_honduras_4",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 17,
+      "expected_halt_index": 6,
+      "contradiction": 0.99462890625
+    },
+    {
+      "id": "wrong_cap3_nicaragua_5",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 17,
+      "expected_halt_index": 6,
+      "contradiction": 0.9990234375
+    },
+    {
+      "id": "wrong_cap3_jamaica_6",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 17,
+      "expected_halt_index": 6,
+      "contradiction": 0.9873046875
+    },
+    {
+      "id": "wrong_cap3_tunisia_7",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 17,
+      "expected_halt_index": 6,
+      "contradiction": 0.998046875
+    },
+    {
+      "id": "wrong_cap3_algeria_8",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 17,
+      "expected_halt_index": 6,
+      "contradiction": 0.99755859375
+    },
+    {
+      "id": "wrong_cap3_libya_9",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 17,
+      "expected_halt_index": 6,
+      "contradiction": 0.9970703125
+    },
+    {
+      "id": "wrong_cap3_sudan_10",
+      "kind": "semantic",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 6,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_cap3_tanzania_11",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 17,
+      "expected_halt_index": 6,
+      "contradiction": 0.99169921875
+    },
+    {
+      "id": "wrong_cap3_uganda_12",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 17,
+      "expected_halt_index": 6,
+      "contradiction": 0.99658203125
+    },
+    {
+      "id": "wrong_cap3_zambia_13",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 17,
+      "expected_halt_index": 6,
+      "contradiction": 0.99560546875
+    },
+    {
+      "id": "wrong_cap3_zimbabwe_14",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 17,
+      "expected_halt_index": 6,
+      "contradiction": 0.99072265625
+    },
+    {
+      "id": "wrong_cap3_angola_15",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 17,
+      "expected_halt_index": 6,
+      "contradiction": 0.96142578125
+    },
+    {
+      "id": "wrong_cap3_senegal_16",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 17,
+      "expected_halt_index": 6,
+      "contradiction": 0.99755859375
+    },
+    {
+      "id": "wrong_cap3_mongolia_17",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 17,
+      "expected_halt_index": 6,
+      "contradiction": 0.98828125
+    },
+    {
+      "id": "wrong_cap3_myanmar_18",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 17,
+      "expected_halt_index": 6,
+      "contradiction": 0.9296875
+    },
+    {
+      "id": "wrong_cap3_laos_19",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 17,
+      "expected_halt_index": 6,
+      "contradiction": 0.93603515625
+    },
+    {
+      "id": "wrong_cap3_qatar_20",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 17,
+      "expected_halt_index": 6,
+      "contradiction": 0.98388671875
+    },
+    {
+      "id": "wrong_cap3_oman_21",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 17,
+      "expected_halt_index": 6,
+      "contradiction": 0.99267578125
+    },
+    {
+      "id": "wrong_cap3_yemen_22",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 17,
+      "expected_halt_index": 6,
+      "contradiction": 0.99755859375
+    },
+    {
+      "id": "wrong_cap3_afghanistan_23",
+      "kind": "semantic",
+      "halted": true,
+      "halt_index": 17,
+      "expected_halt_index": 6,
+      "contradiction": 0.99609375
+    },
+    {
+      "id": "wrong_sport_0",
+      "kind": "numeric",
+      "halted": true,
+      "halt_index": 5,
+      "expected_halt_index": 4,
+      "contradiction": 0.990234375
+    },
+    {
+      "id": "wrong_sport_1",
+      "kind": "numeric",
+      "halted": true,
+      "halt_index": 16,
+      "expected_halt_index": 5,
+      "contradiction": 0.9931640625
+    },
+    {
+      "id": "wrong_sport_2",
+      "kind": "numeric",
+      "halted": true,
+      "halt_index": 6,
+      "expected_halt_index": 5,
+      "contradiction": 0.9990234375
+    },
+    {
+      "id": "wrong_sport_3",
+      "kind": "numeric",
+      "halted": true,
+      "halt_index": 14,
+      "expected_halt_index": 4,
+      "contradiction": 0.79443359375
+    },
+    {
+      "id": "wrong_sport_4",
+      "kind": "numeric",
+      "halted": true,
+      "halt_index": 8,
+      "expected_halt_index": 4,
+      "contradiction": 0.9931640625
+    },
+    {
+      "id": "wrong_sport_5",
+      "kind": "numeric",
+      "halted": true,
+      "halt_index": 8,
+      "expected_halt_index": 4,
+      "contradiction": 0.92578125
+    },
+    {
+      "id": "wrong_sport_6",
+      "kind": "numeric",
+      "halted": true,
+      "halt_index": 15,
+      "expected_halt_index": 7,
+      "contradiction": 0.99267578125
+    },
+    {
+      "id": "wrong_sport_7",
+      "kind": "numeric",
+      "halted": true,
+      "halt_index": 6,
+      "expected_halt_index": 4,
+      "contradiction": 0.9033203125
+    },
+    {
+      "id": "wrong_sport_8",
+      "kind": "numeric",
+      "halted": true,
+      "halt_index": 12,
+      "expected_halt_index": 4,
+      "contradiction": 0.9931640625
+    },
+    {
+      "id": "wrong_sport_9",
+      "kind": "numeric",
+      "halted": true,
+      "halt_index": 14,
+      "expected_halt_index": 4,
+      "contradiction": 0.98779296875
+    },
+    {
+      "id": "wrong_sport_10",
+      "kind": "numeric",
+      "halted": true,
+      "halt_index": 12,
+      "expected_halt_index": 4,
+      "contradiction": 0.9931640625
+    },
+    {
+      "id": "wrong_sport_11",
+      "kind": "numeric",
+      "halted": true,
+      "halt_index": 13,
+      "expected_halt_index": 5,
+      "contradiction": 0.99658203125
+    },
+    {
+      "id": "wrong_arts_0",
+      "kind": "numeric",
+      "halted": true,
+      "halt_index": 17,
+      "expected_halt_index": 4,
+      "contradiction": 0.9892578125
+    },
+    {
+      "id": "wrong_arts_1",
+      "kind": "numeric",
+      "halted": true,
+      "halt_index": 6,
+      "expected_halt_index": 5,
+      "contradiction": 0.982421875
+    },
+    {
+      "id": "wrong_arts_2",
+      "kind": "numeric",
+      "halted": true,
+      "halt_index": 14,
+      "expected_halt_index": 6,
+      "contradiction": 0.99609375
+    },
+    {
+      "id": "wrong_arts_3",
+      "kind": "numeric",
+      "halted": true,
+      "halt_index": 14,
+      "expected_halt_index": 6,
+      "contradiction": 0.98583984375
+    },
+    {
+      "id": "wrong_arts_4",
+      "kind": "numeric",
+      "halted": true,
+      "halt_index": 13,
+      "expected_halt_index": 5,
+      "contradiction": 0.9873046875
+    },
+    {
+      "id": "wrong_arts_5",
+      "kind": "numeric",
+      "halted": true,
+      "halt_index": 15,
+      "expected_halt_index": 7,
+      "contradiction": 0.9873046875
+    },
+    {
+      "id": "wrong_arts_6",
+      "kind": "numeric",
+      "halted": true,
+      "halt_index": 15,
+      "expected_halt_index": 4,
+      "contradiction": 0.9931640625
+    },
+    {
+      "id": "wrong_arts_7",
+      "kind": "numeric",
+      "halted": true,
+      "halt_index": 15,
+      "expected_halt_index": 7,
+      "contradiction": 0.99609375
+    },
+    {
+      "id": "wrong_el3_lithium",
+      "kind": "numeric",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 8,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_el3_beryllium",
+      "kind": "numeric",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 8,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_el3_fluorine",
+      "kind": "numeric",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 8,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_el3_aluminium",
+      "kind": "numeric",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 8,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_el3_silicon",
+      "kind": "numeric",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 8,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_el3_chlorine",
+      "kind": "numeric",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 8,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_el3_argon",
+      "kind": "numeric",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 8,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_el3_titanium",
+      "kind": "numeric",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 8,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_el3_vanadium",
+      "kind": "numeric",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 8,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_el3_manganese",
+      "kind": "numeric",
+      "halted": true,
+      "halt_index": 12,
+      "expected_halt_index": 8,
+      "contradiction": 0.595703125
+    },
+    {
+      "id": "wrong_el3_gallium",
+      "kind": "numeric",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 8,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_el3_germanium",
+      "kind": "numeric",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 8,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_el3_arsenic",
+      "kind": "numeric",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 8,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_el3_rubidium",
+      "kind": "numeric",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 8,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_el3_yttrium",
+      "kind": "numeric",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 8,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_el3_rhodium",
+      "kind": "numeric",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 8,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_el3_tellurium",
+      "kind": "numeric",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 8,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_el3_lanthanum",
+      "kind": "numeric",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 8,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_el3_tungsten2",
+      "kind": "numeric",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 8,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_el3_rhenium",
+      "kind": "numeric",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 8,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_el3_thallium",
+      "kind": "numeric",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 8,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_el3_polonium",
+      "kind": "numeric",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 8,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_el3_astatine",
+      "kind": "numeric",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 8,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_el3_francium",
+      "kind": "numeric",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 8,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_el3_actinium",
+      "kind": "numeric",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 8,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_el3_neptunium",
+      "kind": "numeric",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 8,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_bio2_0",
+      "kind": "numeric",
+      "halted": true,
+      "halt_index": 5,
+      "expected_halt_index": 4,
+      "contradiction": 0.98876953125
+    },
+    {
+      "id": "wrong_bio2_1",
+      "kind": "numeric",
+      "halted": true,
+      "halt_index": 5,
+      "expected_halt_index": 4,
+      "contradiction": 0.9931640625
+    },
+    {
+      "id": "wrong_bio2_2",
+      "kind": "numeric",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 2,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_bio2_3",
+      "kind": "numeric",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 3,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_bio2_4",
+      "kind": "numeric",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 3,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_bio2_5",
+      "kind": "numeric",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 3,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_bio2_6",
+      "kind": "numeric",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 6,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_bio2_7",
+      "kind": "numeric",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 4,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_bio2_8",
+      "kind": "numeric",
+      "halted": true,
+      "halt_index": 5,
+      "expected_halt_index": 2,
+      "contradiction": 0.9951171875
+    },
+    {
+      "id": "wrong_bio2_9",
+      "kind": "numeric",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 4,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_bio2_10",
+      "kind": "numeric",
+      "halted": false,
+      "halt_index": -1,
+      "expected_halt_index": 5,
+      "contradiction": 0.0
+    },
+    {
+      "id": "wrong_bio2_11",
+      "kind": "numeric",
+      "halted": true,
+      "halt_index": 5,
+      "expected_halt_index": 4,
+      "contradiction": 0.8427734375
     }
   ]
 }

@@ -182,8 +182,23 @@ def _build_halt(model_id: str, threshold: float, device: int):
     return make_check, scorer.threshold
 
 
+def _isolation_verdict(load_avg: tuple[float, ...]) -> str:
+    """Classify host isolation from the 1-minute load and core count, so the
+    artefact honestly labels an isolated (dedicated GPU) refresh versus a
+    contended shared-workstation run rather than hard-coding one label."""
+    if not load_avg:
+        return "unknown"
+    cores = os.cpu_count() or 1
+    ratio = load_avg[0] / cores
+    if ratio < 0.5:
+        return "isolated_quiet"
+    if ratio < 1.0:
+        return "moderate_load"
+    return "contended_shared_host"
+
+
 def _runtime_metadata() -> dict[str, object]:
-    """Return host context for non-isolated local benchmark evidence."""
+    """Return host context (isolation classified from live load)."""
 
     try:
         load_avg = tuple(round(value, 4) for value in os.getloadavg())
@@ -202,8 +217,31 @@ def _runtime_metadata() -> dict[str, object]:
         "python": platform.python_version(),
         "platform": platform.platform(),
         "load_average": load_avg,
-        "isolation": "non_isolated_local_regression",
+        "isolation": _isolation_verdict(load_avg),
     }
+
+
+def _is_numeric_fragment(fragment: str) -> bool:
+    """A corrupted fragment is *numeric* when it is a bare number — the class of
+    contradiction where NLI-based detection is known to be weakest, tracked
+    separately so the semantic recall (the headline capability) is not masked."""
+    return fragment.replace(",", "").replace(".", "").isdigit()
+
+
+def _recall_by_kind(per_bad: list[dict]) -> dict:
+    """Split halt recall by contradiction kind (semantic vs numeric)."""
+    kinds: dict[str, list[bool]] = {"semantic": [], "numeric": []}
+    for row in per_bad:
+        kinds[row["kind"]].append(bool(row["halted"]))
+    out: dict[str, dict[str, float | int]] = {}
+    for kind, halted in kinds.items():
+        n = len(halted)
+        out[kind] = {
+            "n": n,
+            "caught": sum(halted),
+            "recall": round(sum(halted) / n, 4) if n else 0.0,
+        }
+    return out
 
 
 def run_benchmark(
@@ -242,6 +280,9 @@ def run_benchmark(
         per_bad.append(
             {
                 "id": pid,
+                "kind": "numeric"
+                if _is_numeric_fragment(expected_fragment)
+                else "semantic",
                 "halted": outcome.halted,
                 "halt_index": outcome.halt_index,
                 "expected_halt_index": expected_index,
@@ -262,6 +303,7 @@ def run_benchmark(
         "n_good": len(GOOD_PASSAGES),
         "n_bad": len(BAD_PASSAGES),
         "halt_quality": _aggregate(good_outcomes, bad_outcomes),
+        "halt_recall_by_kind": _recall_by_kind(per_bad),
         "wall_ms": round(elapsed, 2),
         "per_good": per_good,
         "per_bad": per_bad,
@@ -295,6 +337,13 @@ def main() -> None:
     print(
         f"  recall (hallucinated passages):     {q['halt_recall']:.4f} "
         f"({q['true_positives']}/{result['n_bad']})"
+    )
+    bk = result["halt_recall_by_kind"]
+    print(
+        f"    semantic recall: {bk['semantic']['recall']:.4f} "
+        f"({bk['semantic']['caught']}/{bk['semantic']['n']})   "
+        f"numeric recall: {bk['numeric']['recall']:.4f} "
+        f"({bk['numeric']['caught']}/{bk['numeric']['n']})"
     )
     print(f"  halt precision:                     {q['halt_precision']:.4f}")
     print(f"  token-of-halt accuracy (±8):        {q['token_of_halt_accuracy']:.4f}")

@@ -31,8 +31,9 @@ def test_streaming_guide_documents_contradiction_replacement() -> None:
 
     assert "Contradiction halt replaces the old coherence callback" in doc
     assert "streaming_contradiction_halt_base.json" in doc
-    assert "false-halt rate 0.0296" in doc
-    assert "recall 0.9333" in doc
+    assert "false-halt rate 0.0065" in doc
+    assert "semantic recall 0.9309" in doc
+    assert "numeric recall 0.5586" in doc
 
 
 def test_market_docs_keep_unsupported_vs_contradiction_boundary() -> None:

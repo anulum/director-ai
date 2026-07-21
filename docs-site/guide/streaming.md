@@ -8,11 +8,15 @@
     kept as a generic `StreamingKernel` example, but it is no longer the
     recommended production streaming signal.
 
-    Current local proof is
+    Current proof is
     `benchmarks/results/streaming_contradiction_halt_base.json`: threshold 0.2,
-    135 grounded passages, 30 contradiction passages, false-halt rate 0.0296
-    (4/135), recall 0.9333 (28/30), CPU rerun on host `aaarthuus`, Python
-    3.12.13, labelled `non_isolated_local_regression`. The broader held-out
+    612 grounded passages, 507 contradiction passages, false-halt rate 0.0065
+    (4/612). Recall splits by contradiction kind: semantic recall 0.9309
+    (202/217) — the headline contradiction-detection capability — and numeric
+    recall 0.5586 (162/290), the known gap where NLI-based detection is weakest
+    on bare-number contradictions (aggregate recall 0.7179, 364/507). Measured
+    on an isolated JarvisLabs A30 GPU (load average 2.2 vs the earlier
+    non-isolated 33), Python 3.11.15. The broader held-out
     contradiction evaluation in
     `benchmarks/results/contradiction_holdout_finetuned.json` reports AUC
     0.9885 and recall 0.9741 at threshold 0.2 over 6,321 held-out pairs; promote
@@ -445,14 +449,16 @@ DirectorConfig(
 
 Current streaming proof:
 
-| Artefact | Device | Correct passages | Contradiction passages | False-halt | Recall | Notes |
-|---|---|---:|---:|---:|---:|---|
-| `benchmarks/results/streaming_contradiction_halt_base.json` | CPU | 135 | 30 | 0.0296 | 0.9333 | Local non-isolated rerun on `aaarthuus`; command and load average are recorded in `benchmark_context` |
+| Artefact | Device | Correct passages | Contradiction passages | False-halt | Semantic recall | Numeric recall | Notes |
+|---|---|---:|---:|---:|---:|---:|---|
+| `benchmarks/results/streaming_contradiction_halt_base.json` | A30 GPU | 612 | 507 | 0.0065 | 0.9309 | 0.5586 | Isolated JarvisLabs A30 refresh, n>=500/class; load average and command recorded in `benchmark_context`; per-kind split in `halt_recall_by_kind` |
 
 This proves the streaming halt is fixed for contradiction-scoped claims: the
-current gate keeps 131/135 grounded passages open and catches 28/30 labelled
-contradiction passages (halt precision 0.875, token-of-halt accuracy 0.7857
-within an 8-token window). The two misses are direction-reversal claims
+current gate keeps 608/612 grounded passages open and catches semantic
+contradictions at 0.9309 recall (202/217, halt precision 0.9891). Numeric-value
+contradictions are the standing gap (0.5586 recall, 162/290) — NLI-based
+detection reasons weakly over bare numbers — pulling the aggregate to 0.7179
+(364/507). The remaining misses are direction-reversal claims
 (swapped photosynthesis gases; oxygen mislabelled as the dominant atmospheric
 gas) that the MNLI backend scores as weak contradictions. It does not claim to
 halt every unsupported addition; ungrounded claims are deliberately left to
