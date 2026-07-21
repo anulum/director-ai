@@ -103,9 +103,9 @@ and deterministic; install the `[nli]` extra for model-backed production scoring
 
 ## About
 
-Director-AI is an internal research tool developed at [ANULUM Institute](https://www.anulum.li) as part of the [God of the Math Collection](https://www.anulum.li) (GOTM) — a multi-project scientific computing ecosystem spanning neuroscience, plasma physics, stochastic computing, and AI safety.
+Director-AI began as an internal research tool at [ANULUM Institute](https://www.anulum.li), built as part of the [God of the Math Collection](https://www.anulum.li) (GOTM) — a multi-project scientific computing ecosystem spanning neuroscience, plasma physics, stochastic computing, and AI safety.
 
-The system was built to solve a specific internal need: **response-level hallucination detection for LLM outputs used in scientific pipelines**, where a single fabricated number or citation can invalidate downstream analysis. The core is open source under Apache-2.0; the advanced and labs capabilities are source-available under BUSL-1.1.
+It was built to solve a specific, high-consequence need: **response-level hallucination detection for LLM outputs used in scientific pipelines**, where a single fabricated number or citation can invalidate downstream analysis. It is now an open-core product any team can adopt for the same class of factual-risk control. The core is open source under Apache-2.0; the advanced and labs capabilities are source-available under BUSL-1.1.
 
 **Team:** ANULUM maintains a research team (intentionally undisclosed). GitHub automation and repository maintenance are handled by the owner. Contributions to the Apache-2.0 core are welcome under the Apache-2.0 terms.
 

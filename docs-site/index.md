@@ -38,33 +38,25 @@ Director-Class AI — Documentation landing page
 | **Injection Detection** — Two-stage pipeline: regex pattern matching + bidirectional NLI intent-drift scoring. Catches injection effects in the output regardless of encoding. Per-claim attribution. [Injection Detector &rarr;](api/injection-detector.md) | **ProductionGuard** — Batteries-included entry point: calibrated scoring, human feedback loop, conformal CIs, tool-call verification, and injection detection. [Guard &rarr;](guide/production-guard.md) |
 | **5-Tier Scoring** — From zero-dep rules engine (<1ms) to embedding similarity (3ms) to full NLI (14.6ms). Choose your accuracy/latency trade-off. [Scoring &rarr;](guide/scoring.md) | **SaaS-Ready** — API key auth + token-bucket rate limiting middleware. Cloud Run Dockerfile included. Self-host or let us host. |
 
-## What It Is For
+## What Director-AI is
 
-Director-AI is for teams that need model outputs to stay tied to governed
-facts before those outputs reach customers, operators, downstream agents, or
-audit records.
+Director-AI is a **factual-coherence guardrail runtime**: a place for application
+builders, platform teams, and evaluators to decide whether generated text is safe
+enough to show, stream, store, route, or hand to another agent — *before* a wrong
+claim reaches a customer, an operator, a downstream agent, or an audit record.
 
-For business users: this is the factual-coherence control point where hallucination
-rejection, auditability, and tenant-safe evidence are introduced before a wrong claim reaches users or automated workflows.
+For each candidate answer it:
 
-## What This Software Is
-
-Director-AI is a factual-coherence guardrail runtime. It gives application
-builders, platform teams, and evaluators a place to decide whether generated
-text is safe enough to show, stream, store, route, or hand to another agent.
-
-It combines:
-
-- governed facts and retrieved evidence from a customer knowledge base;
-- contradiction and coherence scoring through configurable local scorer paths;
-- opt-in streaming contradiction checks for partial outputs;
-- structured checks for numbers, reasoning, freshness, consensus, injection,
+- scores the text against your governed facts and retrieved evidence, using
+  contradiction (NLI) and coherence signals through configurable local scorer paths;
+- can halt a completed streamed claim the moment it contradicts grounding facts (opt-in);
+- runs structured checks for numbers, reasoning, freshness, consensus, injection,
   trajectories, and sector policy;
-- tenant-safe evidence, metrics, and compliance export surfaces.
+- emits tenant-safe evidence, metrics, and compliance records for every decision.
 
-It is not a replacement for access control, moderation, legal review, clinical
-review, or customer data governance. It is the factual-risk control layer that
-connects those controls to LLM output.
+It is **not** a replacement for access control, moderation, legal or clinical
+review, or data governance. It is the factual-risk control layer that connects
+those controls to LLM output.
 
 ## First 30 Minutes
 
@@ -102,15 +94,8 @@ decision-focused buyer view.
 
 For the fastest plain-language explanation of what Director-AI is, who uses it,
 what ships publicly, and where it creates market value, start with
-**[Applications and Market Map](guide/applications-and-market-map.md)**.
-
-| Reader | Start Here | What You Get |
-|---|---|---|
-| Evaluator | [Applications and Market Map](guide/applications-and-market-map.md) | Problem, applications, value, evidence boundaries |
-| New pilot team | [Evaluation Onboarding](guide/onboarding.md) | First pilot shape, install path, validation checklist |
-| Builder | [Quickstart](quickstart.md) | In-process guard and SDK wrapping |
-| Platform operator | [Production Guide](deployment/production.md) | REST/proxy deployment, monitoring, runbooks |
-| RAG engineer | [KB Ingestion](guide/kb-ingestion.md) | Grounding with private facts and vector stores |
+**[Applications and Market Map](guide/applications-and-market-map.md)** or the
+role-based paths in [First 30 Minutes](#first-30-minutes) above.
 
 ## Install
 
@@ -185,7 +170,7 @@ graph LR
 | [Why Director-AI](guide/why-director-ai.md) | 5 min | Problem statement, decision matrix, cost comparison |
 | [Product Overview](guide/product-overview.md) | 7 min | Applications, market value, evidence boundaries |
 | [Evaluation Onboarding](guide/onboarding.md) | 10 min | Pilot checklist from first install to deployment evidence |
-| [Tutorials](tutorials.md) | 30 min | 18 Jupyter notebooks from basics to production |
+| [Tutorials](tutorials.md) | 30 min | 17 Jupyter notebooks from basics to production |
 | [Notebook Gallery](notebook-gallery.md) | 5 min | Buyer- and use-case-oriented notebook index |
 | [API Reference](api/index.md) | — | Every public class and function |
 | [Production Guide](deployment/production.md) | 15 min | Scaling, caching, monitoring, Docker |

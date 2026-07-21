@@ -339,5 +339,5 @@ asyncio.run(main())
 - [Integrations](integrations/sdk-guard.md) — OpenAI, Anthropic, LangChain, and more
 - [Production deployment](deployment/production.md) — scaling, caching, monitoring
 - [Domain presets](guide/presets.md) — medical, finance, legal, creative profiles
-- [Tutorials](tutorials.md) — 18 Jupyter notebooks from basics to production
+- [Tutorials](tutorials.md) — 17 Jupyter notebooks from basics to production
 - [Notebook Gallery](notebook-gallery.md) — use-case index across every published notebook
