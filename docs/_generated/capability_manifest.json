@@ -9,7 +9,7 @@
     "python_model_classes": 1044,
     "python_model_source_modules": 524,
     "rust_pyo3_model_wrappers": 83,
-    "test_files": 770
+    "test_files": 771
   },
   "documentation": {
     "public_pages": [
@@ -5678,6 +5678,7 @@
       "tests/test_feedback_loop_detector.py",
       "tests/test_feedback_store.py",
       "tests/test_feedback_store_real_surface.py",
+      "tests/test_fever_benchmark.py",
       "tests/test_ffi_bindings.py",
       "tests/test_field_groups.py",
       "tests/test_financial_services_banking_policy.py",
