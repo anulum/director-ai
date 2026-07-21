@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: Apache-2.0
+// © Code 2020–2026 Miroslav Šotek. All rights reserved.
+// Director-AI guardrail middleware for the Vercel AI SDK (LanguageModelV3).
+
 import type {
   LanguageModelV3Middleware,
   LanguageModelV3GenerateResult,
