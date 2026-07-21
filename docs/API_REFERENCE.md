@@ -1,6 +1,6 @@
 # Director-AI API Reference
 
-> **Version**: 3.18.1 | **License**: Apache-2.0 core / BUSL-1.1 advanced | Commercial licensing available
+> **Version**: 3.19.0 | **License**: Apache-2.0 core / BUSL-1.1 advanced | Commercial licensing available
 >
 > **Note**: The canonical API docs are at [anulum.github.io/director-ai](https://anulum.github.io/director-ai/api/). This file is a legacy reference.
 

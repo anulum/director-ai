@@ -7,7 +7,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.19.0] - 2026-07-21
+
 ### Added
+
+- **First-class `abstained` verdict + selective-prediction metrics.**
+  `CoherenceScore.abstained` marks a verdict where a ground-truth store was
+  configured but retrieval found no usable context, so the factual signal fell
+  back to the neutral mid-score — a genuine "don't know" now distinguishable
+  from a borderline verdict. The new `core.scoring.selective_prediction` turns a
+  batch of `(CoherenceScore, is_hallucinated)` verdicts into the standard
+  risk-coverage pair (coverage, selective accuracy), counting abstentions as
+  misses in overall accuracy so a guard cannot inflate its score by abstaining
+  on the hard cases. No scoring decision changed — the field is additive.
+
+- **Probability calibration for the coherence score.** Isotonic (PAV) and Platt
+  calibration with ECE / Brier / reliability-bin reporting and a `--max-ece` CI
+  gate threshold. Measured on 20k grounded QA pairs: ECE 0.0345 raw improves to
+  0.0 (isotonic) / 0.0199 (Platt).
+
+- **Committed FEVER dev fact-verification benchmark result.** Accuracy 78.4 %,
+  macro-F1 0.773, on the held-out FEVER dev split scored by a 3-class
+  DeBERTa-v3-large hallucination model (n=18209 scored, per-sample rows + git
+  provenance). A fail-loud guard rejects a 2-class model on the 3-class task and
+  a NaN-logit probe rejects a broken checkpoint, so the number cannot be
+  silently fabricated.
+
+- **Streaming contradiction-halt corpus at n>=500/class + isolated refresh.**
+  The shared halt corpus grew from 135/30 to 612/507 matched fact pairs (values
+  drawn from authoritative reference tables, correct by construction). On an
+  isolated A30 GPU (load average 2.2, not the earlier contended 33), the
+  contradiction-halt gate catches **semantic** contradictions at 0.9309 recall —
+  the headline capability, consistent with the prior measurement — and
+  **numeric-value** contradictions at only 0.5586, a documented gap where
+  NLI-based detection reasons weakly over bare numbers (aggregate recall 0.7179,
+  false-halt 0.0065). The per-mode split is recorded in `halt_recall_by_kind`;
+  numeric-contradiction detection is a roadmap item, not a shipped capability.
 
 - **The adversarial robustness suite now covers NLI-evasion classes.** The
   built-in patterns targeted the prompt boundary (encoding tricks, role-play,

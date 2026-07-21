@@ -18,7 +18,7 @@ from __future__ import annotations
 
 from .guard import StreamGuard, StreamResult, guard, streaming_guard
 
-__version__ = "3.18.1"
+__version__ = "3.19.0"
 
 __all__ = [
     "StreamGuard",

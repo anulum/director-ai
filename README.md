@@ -250,7 +250,7 @@ inventory below is reference for the deeper surface, navigable under
 
 | Surface | Current inventory |
 |---|---:|
-| Package version | 3.18.1 |
+| Package version | 3.19.0 |
 | Public API exports | 226 |
 | Python capability source modules | 524 |
 | Python capability classes | 1044 |
@@ -589,7 +589,7 @@ Reproduction manifest:
 Be aware of these before deploying:
 
 - **Default NLI-only end-to-end catch rate is 46.7% on the committed HaluEval-style trace set**: use this as a calibration baseline, not a finished enterprise claim. Hybrid judge mode reaches 90.7% catch rate on the same family but has 64.0% overall FPR and multi-second latency; it needs threshold tuning and task scoping before production use.
-- **RAGTruth NLI-only performance is weak**: the committed L40S run reports 49.3% catch rate, 40.9% FPR, 39.3% precision, and 43.7% F1. Treat RAGTruth as an open accuracy lane, not a solved product claim.
+- **RAGTruth NLI-only performance is weak**: the committed whole-response A30 run (git `9bd36d4c`) reports 71.8% catch rate at a 55.2% false-positive rate, 41.1% precision, 52.3% F1 — a high catch bought with a high false-alarm rate. This whole-response number is distinct from the claim-level KB-grounded balanced accuracy (~82%) reported for the grounded pipeline. Treat RAGTruth NLI-only as an open accuracy lane, not a solved product claim.
 - **FreshQA without grounding over-rejects**: the committed FreshQA run reports 98.6% catch rate but 97.8% FPR. Do not use ungrounded FreshQA catch rate as a buyer claim.
 - **Fine-tuning is not a current sales capability**: the NLI fine-tuning survey shows 22/23 fine-tunes regressed against the FactCG baseline. Customer Model Factory work must start from evaluation, thresholds, packaging, and evidence review; any customer-specific tuning claim requires new held-out evidence.
 - **Heuristic fallback is weak**: Without `[nli]`, scoring uses word-overlap (~55% accuracy). Not recommended for production.
@@ -623,7 +623,7 @@ Kubernetes: [Helm chart](deploy/helm/director-ai/) with GPU toggle, HPA, Sigstor
   title     = {Director-AI: Real-time LLM Hallucination Guardrail},
   year      = {2026},
   url       = {https://github.com/anulum/director-ai},
-  version   = {3.18.1},
+  version   = {3.19.0},
   license   = {Apache-2.0 AND BUSL-1.1}
 }
 ```

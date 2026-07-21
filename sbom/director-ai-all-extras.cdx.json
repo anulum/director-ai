@@ -6,9 +6,9 @@
     "component": {
       "type": "application",
       "name": "director-ai",
-      "version": "3.18.1",
-      "bom-ref": "pkg:pypi/director-ai@3.18.1",
-      "purl": "pkg:pypi/director-ai@3.18.1"
+      "version": "3.19.0",
+      "bom-ref": "pkg:pypi/director-ai@3.19.0",
+      "purl": "pkg:pypi/director-ai@3.19.0"
     },
     "properties": [
       {
@@ -98,13 +98,6 @@
       "purl": "pkg:pypi/boto3",
       "bom-ref": "pkg:pypi/boto3",
       "version": "<2,>=1.34"
-    },
-    {
-      "type": "library",
-      "name": "boto3",
-      "purl": "pkg:pypi/boto3",
-      "bom-ref": "pkg:pypi/boto3",
-      "version": ">=1.26"
     },
     {
       "type": "library",
@@ -444,13 +437,6 @@
     },
     {
       "type": "library",
-      "name": "fastapi",
-      "purl": "pkg:pypi/fastapi",
-      "bom-ref": "pkg:pypi/fastapi",
-      "version": ">=0.100"
-    },
-    {
-      "type": "library",
       "name": "google-api-python-client",
       "purl": "pkg:pypi/google-api-python-client",
       "bom-ref": "pkg:pypi/google-api-python-client",
@@ -511,13 +497,6 @@
       "purl": "pkg:pypi/httpx",
       "bom-ref": "pkg:pypi/httpx",
       "version": "<1,>=0.27"
-    },
-    {
-      "type": "library",
-      "name": "httpx",
-      "purl": "pkg:pypi/httpx",
-      "bom-ref": "pkg:pypi/httpx",
-      "version": ">=0.27"
     },
     {
       "type": "library",
@@ -765,13 +744,6 @@
     },
     {
       "type": "library",
-      "name": "pydantic",
-      "purl": "pkg:pypi/pydantic",
-      "bom-ref": "pkg:pypi/pydantic",
-      "version": ">=2.0"
-    },
-    {
-      "type": "library",
       "name": "pyjwt",
       "purl": "pkg:pypi/pyjwt",
       "bom-ref": "pkg:pypi/pyjwt",
@@ -818,13 +790,6 @@
       "purl": "pkg:pypi/python-multipart",
       "bom-ref": "pkg:pypi/python-multipart",
       "version": "<1,>=0.0.7"
-    },
-    {
-      "type": "library",
-      "name": "python-multipart",
-      "purl": "pkg:pypi/python-multipart",
-      "bom-ref": "pkg:pypi/python-multipart",
-      "version": ">=0.0.7"
     },
     {
       "type": "library",

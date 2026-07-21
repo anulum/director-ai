@@ -12,7 +12,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "director-ai-pro"
-version = "3.18.1"
+version = "3.19.0"
 description = "Advanced commercial tier for Director-AI — compliance, enterprise, streaming repair, multimodal, routing and more (BUSL-1.1)"
 authors = [
     {name = "Miroslav Šotek", email = "protoscience@anulum.li"}
@@ -44,7 +44,7 @@ classifiers = [
 # tier pulls the core and layers the BUSL-1.1 packages into the same
 # ``director_ai`` namespace (no parent __init__ is shipped here).
 dependencies = [
-    "director-ai>=3.18.1,<4",
+    "director-ai>=3.19.0,<4",
 ]
 
 [project.urls]

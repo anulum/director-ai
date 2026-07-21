@@ -337,14 +337,18 @@ CUAD-RAGBench documents (full legal contracts) exceeded 6GB VRAM during chunked 
 
 ## Additional Datasets
 
-### RAGTruth (2,700 samples, NLI-only, L40S)
+### RAGTruth (2,700 samples, NLI-only, whole-response, A30)
+
+Whole-response scoring — one verdict per full response — kept distinct from the
+claim-level KB-grounded balanced accuracy (~82%) reported elsewhere. Reproducible
+A30 GPU re-run (git provenance `9bd36d4c`):
 
 | Metric | Value |
 |--------|-------|
-| Catch rate | 49.3% (465/943) |
-| False positive rate | 40.9% |
-| Precision | 39.3% |
-| F1 | 43.7% |
+| Catch rate | 71.8% (677/943) |
+| False positive rate | 55.2% |
+| Precision | 41.1% |
+| F1 | 52.3% |
 
 ### FreshQA (600 samples, NLI-only, L40S)
 
@@ -480,7 +484,7 @@ All scripts in `benchmarks/`. Run each with `python -m benchmarks.<name>`.
 | `aggrefact_eval --sweep` | LLM-AggreFact (29K) | Balanced accuracy | **75.6%** |
 | `e2e_eval --nli` | HaluEval (300) | Catch rate / F1 | **46.7% / 51.3%** |
 | `e2e_eval --hybrid` | HaluEval (600) | Catch rate / F1 | **90.7% / 71.2%** |
-| `run_ragtruth_freshqa` | RAGTruth (2,700) | Catch rate | **49.3%** |
+| `run_ragtruth_freshqa` | RAGTruth (2,700) | Catch rate | **71.8%** |
 | `run_ragtruth_freshqa` | FreshQA (600) | Catch rate | **98.6%** |
 | `latency_bench` | N/A | Per-pair ms | **0.9 ms (Ada)** |
 | `gpu_bench` | N/A | Cross-GPU ms | **6 GPUs** |

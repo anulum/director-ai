@@ -5422,7 +5422,7 @@
     "name": "director-ai",
     "readme": "README.md",
     "requires_python": ">=3.11",
-    "version": "3.18.1"
+    "version": "3.19.0"
   },
   "project_label": "Director-AI",
   "quality_gates": {

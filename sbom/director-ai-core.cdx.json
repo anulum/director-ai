@@ -6,9 +6,9 @@
     "component": {
       "type": "application",
       "name": "director-ai",
-      "version": "3.18.1",
-      "bom-ref": "pkg:pypi/director-ai@3.18.1",
-      "purl": "pkg:pypi/director-ai@3.18.1"
+      "version": "3.19.0",
+      "bom-ref": "pkg:pypi/director-ai@3.19.0",
+      "purl": "pkg:pypi/director-ai@3.19.0"
     },
     "properties": [
       {

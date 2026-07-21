@@ -12,7 +12,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "director-ai-lite"
-version = "3.18.1"
+version = "3.19.0"
 description = "Standalone three-line LLM streaming-halt guard — model-free, zero dependencies"
 authors = [
     {name = "Miroslav Šotek", email = "protoscience@anulum.li"}
@@ -46,19 +46,19 @@ dependencies = []
 
 [project.optional-dependencies]
 full = [
-    "director-ai>=3.18.1,<4",
+    "director-ai>=3.19.0,<4",
 ]
 nli = [
-    "director-ai[nli]>=3.18.1,<4",
+    "director-ai[nli]>=3.19.0,<4",
 ]
 rag = [
-    "director-ai[vector]>=3.18.1,<4",
+    "director-ai[vector]>=3.19.0,<4",
 ]
 server = [
-    "director-ai[server]>=3.18.1,<4",
+    "director-ai[server]>=3.19.0,<4",
 ]
 recommended = [
-    "director-ai[recommended]>=3.18.1,<4",
+    "director-ai[recommended]>=3.19.0,<4",
 ]
 
 [project.urls]

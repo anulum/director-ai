@@ -1,6 +1,6 @@
 # Director-AI Benchmark Report
 
-Version: 3.18.1
+Version: 3.19.0
 Date: 2026-03-27
 
 Reproduction index: [`PUBLIC_BENCHMARKS.md`](PUBLIC_BENCHMARKS.md)

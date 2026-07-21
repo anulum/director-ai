@@ -1,6 +1,6 @@
 # Director-AI Training Data Pipeline
 
-> **Module**: `training/data_pipeline.py` | **Version**: 3.18.1 | **License**: Apache-2.0
+> **Module**: `training/data_pipeline.py` | **Version**: 3.19.0 | **License**: Apache-2.0
 >
 > © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
 > © Code 2020–2026 Miroslav Šotek. All rights reserved.
