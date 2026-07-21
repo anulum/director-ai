@@ -95,6 +95,10 @@ inside LLM output flow.
 | Director-AI | `director-ai`, open-core SDK, scorers, APIs, integrations, evidence packet, docs | Paid Pro use for Advanced & Labs production deployment |
 | Director-Class AI | Promoted in docs and PyPI positioning | Customer-specific deployment, sector packs, evidence reviews, tuning, and SLA |
 
+This table is the public-vs-commercial *boundary*; for the full commercial tier
+ladder and prices (Director-Lite, Director-AI, Pro, Full, Director-Class AI) see
+**[Pricing](../pricing.md)**.
+
 The public repository contains the core software and general evidence surfaces.
 Customer-specific sector packs, tuning datasets, deployment recipes, acceptance
 criteria, and performance claims must be validated against the customer's own

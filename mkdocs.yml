@@ -124,17 +124,18 @@ nav:
   - Director-Lite (3 lines): lite.md
   - Getting Started:
       - Quickstart: quickstart.md
-      - Notebook Gallery: notebook-gallery.md
       - Installation: installation.md
+      - Notebook Gallery: notebook-gallery.md
+      - Product Overview: guide/product-overview.md
+      - Evaluation Onboarding: guide/onboarding.md
       - Runtime Boundaries: guide/runtime-boundaries.md
+  - Why & Positioning:
       - Applications & Market Map: guide/applications-and-market-map.md
       - Market Value: guide/market-value-and-positioning.md
-      - Runtime Extraction Evaluation: guide/runtime-extraction-evaluation.md
-      - Product Overview: guide/product-overview.md
       - Why Director-AI: guide/why-director-ai.md
       - Guardrail Landscape: guide/guardrail-landscape.md
       - vs Prompt Engineering: guide/vs-prompt-engineering.md
-      - Evaluation Onboarding: guide/onboarding.md
+      - Runtime Extraction Evaluation: guide/runtime-extraction-evaluation.md
   - User Guide:
       - Scoring: guide/scoring.md
       - OpenAI-Compatible Proxy: guide/openai-proxy.md
