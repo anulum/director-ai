@@ -18,6 +18,7 @@ never the 2-class FactCG production default.
 
 from __future__ import annotations
 
+import importlib.util
 import json
 from pathlib import Path
 
@@ -30,6 +31,14 @@ from director_ai.core.model_revisions import DEFAULT_NLI_MODEL
 
 _FEVER_MODEL = "training/output/deberta-v3-base-hallucination"
 _model_ok = Path(_FEVER_MODEL).is_dir()
+# NLIMetrics.to_dict() computes P/R/F1 via a lazy sklearn import, and sklearn is
+# a benchmark-only dependency absent from the core CI test extras. Tests that
+# build the artefact (which calls to_dict) skip there; the label-space guard
+# test needs neither sklearn nor datasets and always runs.
+_has_sklearn = importlib.util.find_spec("sklearn") is not None
+_needs_sklearn = pytest.mark.skipif(
+    not _has_sklearn, reason="sklearn (benchmark dep) not in core CI extras"
+)
 
 
 class _FakePredictor:
@@ -41,6 +50,7 @@ class _FakePredictor:
         self.model = type("Model", (), {"config": config})()
 
 
+@_needs_sklearn
 def test_build_fever_artefact_carries_rows_model_and_provenance():
     metrics = NLIMetrics()
     metrics.y_true = [0, 1, 2]
@@ -66,6 +76,7 @@ def test_run_fever_benchmark_rejects_non_3class_model(monkeypatch):
         run_fever_benchmark(max_samples=1, model_name="some/2class-model")
 
 
+@_needs_sklearn
 def test_main_writes_artefact_with_model_and_provenance(tmp_path, monkeypatch):
     metrics = NLIMetrics()
     metrics.y_true = [0, 2]
@@ -85,6 +96,7 @@ def test_main_writes_artefact_with_model_and_provenance(tmp_path, monkeypatch):
     assert payload["provenance"]["git_sha"] == "b" * 40
 
 
+@_needs_sklearn
 def test_main_default_records_default_model(tmp_path, monkeypatch):
     metrics = NLIMetrics()
     metrics.y_true = [1]
