@@ -6,10 +6,10 @@
     "optional_extras": 62,
     "public_api_exports": 226,
     "public_documentation_pages": 205,
-    "python_model_classes": 1043,
-    "python_model_source_modules": 523,
+    "python_model_classes": 1044,
+    "python_model_source_modules": 524,
     "rust_pyo3_model_wrappers": 83,
-    "test_files": 769
+    "test_files": 770
   },
   "documentation": {
     "public_pages": [
@@ -3719,6 +3719,10 @@
         "path": "src/director_ai/core/calibration/segmented_threshold.py"
       },
       {
+        "name": "SelectivePredictionReport",
+        "path": "src/director_ai/core/scoring/selective_prediction.py"
+      },
+      {
         "name": "SelfConsistencyScorer",
         "path": "src/director_ai/core/scoring/self_consistency.py"
       },
@@ -4870,6 +4874,7 @@
       "src/director_ai/core/scoring/rules_scorer.py",
       "src/director_ai/core/scoring/scorer.py",
       "src/director_ai/core/scoring/scorer_config.py",
+      "src/director_ai/core/scoring/selective_prediction.py",
       "src/director_ai/core/scoring/self_consistency.py",
       "src/director_ai/core/scoring/sharded_nli.py",
       "src/director_ai/core/scoring/span_detector.py",
@@ -6073,6 +6078,7 @@
       "tests/test_security_hardening.py",
       "tests/test_security_physical_risks.py",
       "tests/test_segmented_threshold.py",
+      "tests/test_selective_prediction.py",
       "tests/test_self_consistency.py",
       "tests/test_self_evolving.py",
       "tests/test_self_evolving_real_surface.py",

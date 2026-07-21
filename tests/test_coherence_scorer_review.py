@@ -429,3 +429,41 @@ class TestBatchProcessorCoalescedAsync:
         result = await proc.review_batch_async([("Q", "A")])
         assert result.total == 1
         assert result.succeeded == 1
+
+
+class TestAbstainedVerdict:
+    """KIMI3-abstain: a configured store that cannot ground marks abstention."""
+
+    def test_no_store_does_not_abstain(self):
+        # No store configured -> logical-only mode, never abstains.
+        scorer = CoherenceScorer(threshold=0.3, use_nli=False)
+        _, score = scorer.review("What is the capital of France?", "Paris.")
+        assert score.abstained is False
+
+    def test_grounded_response_does_not_abstain(self):
+        store = GroundTruthStore()
+        store.add("What is 2+2?", "2+2 equals 4")
+        scorer = CoherenceScorer(threshold=0.3, use_nli=False, ground_truth_store=store)
+        _, score = scorer.review("What is 2+2?", "4")
+        # Retrieval found the fact -> evidence present -> not an abstention.
+        assert score.abstained is False
+        assert score.evidence is not None
+
+    def test_store_without_groundable_context_abstains(self):
+        store = GroundTruthStore()
+        store.add("What is 2+2?", "2+2 equals 4")
+        scorer = CoherenceScorer(threshold=0.3, use_nli=False, ground_truth_store=store)
+        # An empty query cannot be grounded against the store -> neutral factual
+        # signal with no evidence -> first-class abstention.
+        _, score = scorer.review("", "An ungroundable statement.")
+        assert score.abstained is True
+        assert score.evidence is None
+        assert score.h_factual == pytest.approx(0.5)
+
+    def test_abstained_defaults_false_on_plain_score(self):
+        assert (
+            CoherenceScore(
+                score=0.9, approved=True, h_logical=0.0, h_factual=0.0
+            ).abstained
+            is False
+        )

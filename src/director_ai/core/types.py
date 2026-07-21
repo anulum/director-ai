@@ -104,6 +104,13 @@ class CoherenceScore:
     # word-overlap signal, so false blocks on true claims are expected.
     # Install the [nli] extra for production-grade scoring.
     degraded_mode: bool = False
+    # True when a ground-truth store was configured but retrieval could not
+    # ground the response (no usable context), so the factual signal returned
+    # the neutral mid-score instead of a real judgement (KIMI3-abstain). The
+    # verdict is then a logical-only signal on an ungrounded response — a
+    # first-class abstention the caller can route to human review or exclude
+    # from selective-accuracy metrics, rather than a silent 0.5.
+    abstained: bool = False
     verdict_confidence: float | None = (
         None  # 0-1, guardrail confidence in its own verdict
     )

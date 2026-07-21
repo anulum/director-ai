@@ -318,6 +318,16 @@ class ReviewPipelineMixin(DivergenceMixin):
             best = min((c.distance for c in evidence.chunks), default=1.0)
             retrieval_conf = max(0.0, 1.0 - best)
 
+        # KIMI3-abstain: a configured store that produced no usable context
+        # leaves the factual signal at the neutral mid-score with no evidence.
+        # The same (h_fact == NEUTRAL and evidence is None) condition the no-KB
+        # calibration already keys on marks a first-class abstention here.
+        abstained = (
+            self.ground_truth_store is not None
+            and evidence is None
+            and abs(h_fact - DIVERGENCE_NEUTRAL) < 1e-9
+        )
+
         score = CoherenceScore(
             score=coherence,
             approved=approved,
@@ -330,6 +340,7 @@ class ReviewPipelineMixin(DivergenceMixin):
             # field, not just a log line — a weak word-overlap score false
             # blocks true claims and the caller deserves to know.
             degraded_mode=not self._has_model_backed_nli(),
+            abstained=abstained,
             verdict_confidence=vc,
             signal_agreement=sa,
             detected_task_type=detected_task_type,
