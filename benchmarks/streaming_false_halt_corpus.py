@@ -17,6 +17,15 @@ the measured numbers.
 
 from __future__ import annotations
 
+from benchmarks.streaming_halt_corpus_extended import (
+    EXTRA_BAD_PASSAGES,
+    EXTRA_GOOD_PASSAGES,
+)
+from benchmarks.streaming_halt_corpus_reference import (
+    REF_BAD_PASSAGES,
+    REF_GOOD_PASSAGES,
+)
+
 # Known-good passages: factually correct, coherent text that should
 # NEVER trigger a halt. Each is (id, ground_truth_facts, passage).
 GOOD_PASSAGES: list[tuple[str, dict[str, str], str]] = [
@@ -1400,3 +1409,10 @@ BAD_PASSAGES: list[tuple[str, dict[str, str], str, str]] = [
         "gaseous",
     ),
 ]
+
+# n>=500/class extension (WCE-2 isolated refresh) — matched verifiable fact
+# pairs appended so both streaming halt harnesses see one enlarged corpus.
+GOOD_PASSAGES += EXTRA_GOOD_PASSAGES
+BAD_PASSAGES += EXTRA_BAD_PASSAGES
+GOOD_PASSAGES += REF_GOOD_PASSAGES
+BAD_PASSAGES += REF_BAD_PASSAGES

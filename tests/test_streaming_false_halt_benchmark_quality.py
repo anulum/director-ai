@@ -26,6 +26,17 @@ def test_expected_halt_index_tracks_first_contradictory_fragment() -> None:
     assert index == 3
 
 
+def test_streaming_corpus_is_at_least_500_per_class_and_resolvable() -> None:
+    """WCE-2 invariant: the enlarged corpus stays >=500/class, uniquely
+    identified, with every bad fragment resolving to a real halt index."""
+    assert len(GOOD_PASSAGES) >= 500
+    assert len(BAD_PASSAGES) >= 500
+    assert len({g[0] for g in GOOD_PASSAGES}) == len(GOOD_PASSAGES)
+    assert len({b[0] for b in BAD_PASSAGES}) == len(BAD_PASSAGES)
+    for _pid, _facts, passage, fragment in BAD_PASSAGES:
+        assert _expected_halt_index(passage, fragment) >= 0
+
+
 def test_halt_quality_metrics_report_confusion_and_timing() -> None:
     good_count = len(GOOD_PASSAGES)
     good_results = [{"halted": False} for _ in range(good_count)]
