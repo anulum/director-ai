@@ -40,7 +40,6 @@ from benchmarks._common import (
     save_results,
 )
 from benchmarks._provenance import stamp
-from director_ai.core.model_revisions import DEFAULT_NLI_MODEL
 
 logger = logging.getLogger("DirectorAI.Benchmark.FEVER")
 
@@ -166,9 +165,15 @@ def main(argv: list[str] | None = None) -> int:
     )
     args = parser.parse_args(argv)
 
-    resolved_model = args.model or os.environ.get(
-        "DIRECTOR_NLI_MODEL", DEFAULT_NLI_MODEL
-    )
+    resolved_model = args.model or os.environ.get("DIRECTOR_NLI_MODEL")
+    if not resolved_model:
+        # Lazy import: only when no model was named do we need the production
+        # default. Keeps the benchmark import chain free of the director_ai
+        # guardrail core (which eagerly pulls a 3.11-only surface), so the FEVER
+        # run works in a minimal GPU env with just torch/transformers/datasets.
+        from director_ai.core.model_revisions import DEFAULT_NLI_MODEL
+
+        resolved_model = DEFAULT_NLI_MODEL
     metrics = run_fever_benchmark(max_samples=args.max_samples, model_name=args.model)
     print_nli_metrics(metrics, "FEVER Dev")
     artefact = build_fever_artefact(
