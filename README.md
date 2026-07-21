@@ -43,10 +43,10 @@ Director-Class AI — Repository overview
 | Tier | Install / delivery | Licence · billing | Ships |
 |---|---|---|---|
 | **Director-Lite** | `pip install director-ai-lite` | Apache-2.0 · free | Three-line guard facade, model-free heuristic default, facts/RAG handoff, optional NLI upgrade |
-| **Director-AI** | `pip install director-ai` | Apache-2.0 · free | Core runtime: `guard()`, 5-tier scoring, RAG grounding and evidence packets, SDK and framework integrations, CLI verification, opt-in streaming contradiction halt |
-| **Director-AI Pro** | Private index (`pypi.remanentia.com`) | BUSL-1.1 · CHF/USD 490 per year | Production surface: REST/gRPC server and proxy, advanced accuracy (verified scorer, sharded NLI, cross-model consensus, forecasting, calibration), training tools, enterprise packages |
-| **Director-AI Full** | Private index (`pypi.remanentia.com`) | BUSL-1.1 · CHF/USD 980 per year | Everything in Pro plus the Labs/Research module set |
-| **Director-Class AI** | Commercial engagement | scoped per engagement | Action-control and evidence boundary for agent fleets; requested via [protoscience@anulum.li](mailto:protoscience@anulum.li) |
+| **Director-AI** | `pip install director-ai` | Apache-2.0 · free | Full open-core runtime: `guard()`, 5-tier scoring, RAG grounding and evidence packets, REST/gRPC server and proxy, SDK and framework integrations, CLI verification, opt-in streaming contradiction halt |
+| **Director-AI Pro** | Private index (`pypi.remanentia.com`) | BUSL-1.1 · USD 199/mo · 1,990/yr | Advanced production entitlement: verified scorer, sharded NLI, cross-model consensus, forecasting, calibration, training tools, enterprise packages, priority support |
+| **Director-AI Full** | Private index (`pypi.remanentia.com`) | BUSL-1.1 · USD 499/mo · 4,990/yr | Everything in Pro plus the Labs/Research module set and direct engineering support |
+| **Director-Class AI** | Commercial engagement | USD 999/mo · 9,990/yr · deployment scoped | Action-control and evidence boundary for agent fleets; requested via [protoscience@anulum.li](mailto:protoscience@anulum.li) |
 
 An annual subscription covers private-index access and every release of the
 purchased tier while it is active. Pricing and checkout:

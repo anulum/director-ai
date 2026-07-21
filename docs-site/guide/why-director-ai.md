@@ -43,7 +43,7 @@ The final score combines both: `coherence = 1 - (0.6 * H_logical + 0.4 * H_factu
 contradicted the response. No black-box "this was flagged" — your users or QA
 team see exactly why.
 
-**0.4B parameters, sub-millisecond latency.** FactCG-DeBERTa-v3-Large runs at 0.5 ms/pair on an L40S (FP16, batch=32). No API calls, no metering, no rate limits.
+**0.4B parameters, millisecond-scale latency.** FactCG-DeBERTa-v3-Large runs at ~14.6 ms/pair on a commodity ONNX GPU, down to 0.5 ms/pair on a datacentre L40S (FP16, batch=32). No API calls, no metering, no rate limits.
 
 ## When NOT to Use Director-AI
 
@@ -77,7 +77,7 @@ You can (and should) combine Director-AI with these tools. Director-AI guards fa
 
 | System | Cost per 1K calls | Latency | Local/Offline |
 |--------|-------------------|---------|---------------|
-| **Director-AI (NLI mode)** | **$0** | **0.5 ms** (L40S) | **Yes** |
+| **Director-AI (NLI mode)** | **$0** | **~14.6 ms** (ONNX GPU) | **Yes** |
 | Director-AI (hybrid + GPT-4o-mini) | $0.07 | 2.3 s | No |
 | Director-AI (hybrid + Claude Sonnet) | $1.40 | 14.2 s | No |
 | GPT-4o as judge | $1.16 | ~2 s | No |

@@ -185,7 +185,7 @@ The measured differences, from the committed
 | | Director-AI | NeMo Guardrails | GuardrailsAI | SelfCheckGPT |
 |---|:---:|:---:|:---:|:---:|
 | **Opt-in streaming contradiction halt** | :material-check: | :material-close: | :material-close: | :material-close: |
-| **GPU NLI latency / pair** | **~0.9 ms** | LLM-bound | LLM-bound | 5–10 s |
+| **GPU NLI latency / pair** | **~14.6 ms** (ONNX GPU) | LLM-bound | LLM-bound | 5–10 s |
 | **Local guard benchmark p50 / p95** | **0.124 / 0.200 ms** | 0.818 / 1.418 ms config-load + LLM | 0.659 / 0.996 ms parse + LLM | not run in this harness |
 | **Offline / local** | :material-check: | :material-close: | :material-close: | :material-close: |
 | **Self-hosted core price** | **USD 0** | free | free | free |
@@ -205,7 +205,7 @@ contradiction halt is an opt-in interlock for grounded streaming deployments.
 
 In a scientific, legal, medical, or financial pipeline, a single fabricated
 number or citation can invalidate everything downstream. The cost of catching it
-**before** it ships — at sub-millisecond NLI cost on a small model — is a rounding
+**before** it ships — at millisecond-scale NLI cost on a small model — is a rounding
 error next to the cost of one bad answer reaching a customer, a regulator, or a
 court. The commercial tiers price the advanced safeguards and the support that
 stands behind them; the core that does the catching is free.
