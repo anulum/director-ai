@@ -72,8 +72,47 @@ jobs:
             dist/*.whl
             sbom.json
 
-  # PyPI publishing handled by publish.yml (triggered by release: [published]).
-  # Do NOT add a publish job here — the trusted publisher is configured for
-  # publish.yml. The release:published trigger only fires when the Release above
-  # is created with RELEASE_PAT (see the note on that step); otherwise dispatch
-  # publish.yml and publish-lite.yml manually with the tag.
+  # One-click publishing WITHOUT a RELEASE_PAT.
+  #
+  # We NEVER publish from this workflow — PyPI's trusted publisher is keyed to
+  # publish.yml / publish-lite.yml / publish-paid.yml by filename, so a publish
+  # step here would be rejected. Instead we DISPATCH those workflows, so each runs
+  # AS ITSELF with its own OIDC identity (unchanged trusted-publisher binding).
+  #
+  # This works without a PAT because workflow_dispatch is the documented EXCEPTION
+  # to the GITHUB_TOKEN anti-recursion rule (unlike release:published, which a
+  # GITHUB_TOKEN-created Release does not emit). If RELEASE_PAT *is* configured,
+  # the Release above already emits release:published and the publish workflows
+  # auto-fire — so we detect that and SKIP the dispatch to avoid a double upload
+  # (PyPI rejects re-uploading an existing file).
+  dispatch-publish:
+    needs: release
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+    steps:
+      - name: Detect RELEASE_PAT (avoid double-publish with the auto-chain)
+        id: pat
+        env:
+          RELEASE_PAT: ${{ secrets.RELEASE_PAT }}
+        run: |
+          if [ -n "${RELEASE_PAT}" ]; then
+            echo "RELEASE_PAT set — release:published auto-fires; skipping dispatch."
+            echo "has_pat=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "No RELEASE_PAT — dispatching publish workflows for one-click release."
+            echo "has_pat=false" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Dispatch PyPI publish workflows for this tag
+        if: steps.pat.outputs.has_pat == 'false'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ github.ref_name }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          for wf in publish.yml publish-lite.yml publish-paid.yml; do
+            echo "Dispatching ${wf} for tag ${TAG}"
+            gh workflow run "${wf}" --ref main -f tag="${TAG}" -R "${REPO}"
+          done
+          echo "Dispatched. Rust wheels (wheels.yml) stay a separate manual/optional lane."
