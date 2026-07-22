@@ -245,7 +245,7 @@
     "platform_sdk": ">=0.1,<0.2",
     "protocol_version": "1",
     "studio": "director-ai",
-    "studio_version": "3.16.1",
+    "studio_version": "3.18.1",
     "transport_profile": "local-first",
     "ui_module": {
       "exposes": [

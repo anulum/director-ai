@@ -377,6 +377,17 @@ class AuditLog:
         message = (prev_hash + entry_hash).encode("utf-8")
         return _hmac.new(self._hmac_key, message, hashlib.sha256).hexdigest()
 
+    def current_head(self) -> str:
+        """Return the current chain head (latest sealed ``entry_hash``).
+
+        The genesis zero hash when the chain is empty. This is the digest an
+        external timestamp anchor commits to (see
+        :mod:`director_ai.compliance.timestamp_anchor`); through the ``prev_hash``
+        linkage it commits to the whole sealed history up to this point.
+        """
+        with self._lock:
+            return self._prev_hash
+
     def _load_chain_head(self) -> str:
         """Return the most recent sealed ``entry_hash``, or the genesis zero hash."""
         if self._conn is None:

@@ -175,6 +175,7 @@ license = [
 ]
 crypto = [
     "cryptography>=42,<49",
+    "asn1crypto>=1.5,<2",
 ]
 embed = [
     "sentence-transformers>=4,<6",
@@ -957,6 +958,8 @@ ignore_errors = true
 [[tool.mypy.overrides]]
 module = [
     "anthropic",
+    "asn1crypto",
+    "asn1crypto.*",
     "azure.*",
     "backfire_kernel",
     "boto3",

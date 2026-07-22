@@ -6,10 +6,10 @@
     "optional_extras": 62,
     "public_api_exports": 226,
     "public_documentation_pages": 205,
-    "python_model_classes": 1044,
-    "python_model_source_modules": 524,
+    "python_model_classes": 1052,
+    "python_model_source_modules": 525,
     "rust_pyo3_model_wrappers": 83,
-    "test_files": 771
+    "test_files": 772
   },
   "documentation": {
     "public_pages": [
@@ -473,6 +473,18 @@
       {
         "name": "Always",
         "path": "src/director_ai/core/temporal_logic/formula.py"
+      },
+      {
+        "name": "AnchorDependencyError",
+        "path": "src/director_ai/compliance/timestamp_anchor.py"
+      },
+      {
+        "name": "AnchorError",
+        "path": "src/director_ai/compliance/timestamp_anchor.py"
+      },
+      {
+        "name": "AnchorStore",
+        "path": "src/director_ai/compliance/timestamp_anchor.py"
       },
       {
         "name": "AnchorVerification",
@@ -2227,6 +2239,10 @@
         "path": "src/director_ai/core/formal_verification/formula.py"
       },
       {
+        "name": "ImprintMismatchError",
+        "path": "src/director_ai/compliance/timestamp_anchor.py"
+      },
+      {
         "name": "InMemoryBackend",
         "path": "src/director_ai/core/retrieval/vector_store/base.py"
       },
@@ -3475,6 +3491,10 @@
         "path": "src/director_ai/core/guard_control/no_go.py"
       },
       {
+        "name": "Rfc3161Anchorer",
+        "path": "src/director_ai/compliance/timestamp_anchor.py"
+      },
+      {
         "name": "RingDecision",
         "path": "src/director_ai/core/execution_rings/gate.py"
       },
@@ -4135,6 +4155,10 @@
         "path": "src/director_ai/core/runtime/ws_ticket.py"
       },
       {
+        "name": "TimestampAnchor",
+        "path": "src/director_ai/compliance/timestamp_anchor.py"
+      },
+      {
         "name": "TokenEnergyCostEstimator",
         "path": "src/director_ai/core/sustainability/policy_adapter.py"
       },
@@ -4313,6 +4337,14 @@
       {
         "name": "TrustControl",
         "path": "src/director_ai/ui/_dashboard_reports.py"
+      },
+      {
+        "name": "TsaResponseError",
+        "path": "src/director_ai/compliance/timestamp_anchor.py"
+      },
+      {
+        "name": "TsaUnreachableError",
+        "path": "src/director_ai/compliance/timestamp_anchor.py"
       },
       {
         "name": "TuneResult",
@@ -4559,6 +4591,7 @@
       "src/director_ai/compliance/readiness.py",
       "src/director_ai/compliance/report_templates.py",
       "src/director_ai/compliance/reporter.py",
+      "src/director_ai/compliance/timestamp_anchor.py",
       "src/director_ai/core/_device.py",
       "src/director_ai/core/_heuristics.py",
       "src/director_ai/core/accelerator_fallback.py",
@@ -6160,6 +6193,7 @@
       "tests/test_text_segmentation_parity.py",
       "tests/test_threat_intel.py",
       "tests/test_threshold_tuner_relocation.py",
+      "tests/test_timestamp_anchor.py",
       "tests/test_tool_call_verifier.py",
       "tests/test_tools/test_capability_manifest.py",
       "tests/test_tools/test_emit_studio_manifest.py",

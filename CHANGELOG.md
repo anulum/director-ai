@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **RFC 3161 external timestamp anchoring for the compliance audit chain
+  (KIMI3-anchoring).** The tamper-evident audit hash chain
+  (`compliance/audit_log.py`) proves nobody altered a row without the HMAC
+  secret, but not *existence-at-time* — the keyholder could rebuild it with
+  back-dated timestamps. The new `compliance/timestamp_anchor.py` closes that
+  gap: it obtains an RFC 3161 trusted-timestamp token from a Timestamp Authority
+  over the current chain head (which, through the `prev_hash` linkage, commits to
+  the whole prior history), verifies the token (message-imprint binding, the CMS
+  signature over the signed attributes against the embedded TSA certificate — RSA
+  or ECDSA — and the `message-digest` attribute), and stores it in an
+  `audit_anchor` table. `AuditLog.current_head()` exposes the head; the
+  `director-ai compliance anchor` / `verify-anchors` commands drive it. Opt-in
+  (`audit_anchor_enabled`, default off; `audit_anchor_tsa_url`,
+  `audit_anchor_timeout_s`) and offline-graceful — a down or unreachable TSA
+  yields a logged warning, never breaking the audit path. Needs the `crypto`
+  extra (adds `asn1crypto`); the import is lazy so the free/core surface never
+  pulls it. Publishing to a public transparency log (Rekor) is deliberately out
+  of scope. BUSL-1.1 (paid compliance tier).
+
 ## [3.19.0] - 2026-07-21
 
 ### Added

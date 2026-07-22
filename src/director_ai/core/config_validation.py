@@ -155,6 +155,12 @@ def validate_and_normalize(cfg: DirectorConfig) -> None:
         )
     if cfg.reranker_enabled and not cfg.reranker_model.strip():
         raise ValueError("reranker_model must be set when reranker_enabled=True")
+    if cfg.audit_anchor_enabled and not cfg.audit_anchor_tsa_url.strip():
+        raise ValueError(
+            "audit_anchor_tsa_url must be set when audit_anchor_enabled=True"
+        )
+    if cfg.audit_anchor_timeout_s <= 0:
+        raise ValueError("audit_anchor_timeout_s must be positive")
     if not isinstance(cfg.llm_judge_rubric, bool):
         raise ValueError("llm_judge_rubric must be a boolean")
     if not isinstance(cfg.llm_judge_ensemble, int) or isinstance(

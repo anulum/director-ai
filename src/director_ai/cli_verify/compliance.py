@@ -11,6 +11,7 @@ from __future__ import annotations
 import json
 import sys
 from collections.abc import Mapping
+from datetime import UTC
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
@@ -121,6 +122,12 @@ def _cmd_compliance(args: list[str]) -> None:
             "          (default compliance_report.pdf)\n"
             "  status  [--db PATH]   Quick summary\n"
             "  drift   [--db PATH]   Drift detection analysis\n"
+            "  anchor  [--db PATH] [--tsa-url URL] [--timeout S]  Anchor the current\n"
+            "          audit-chain head with an RFC 3161 timestamp (proves\n"
+            "          existence-at-time; TSA from --tsa-url or\n"
+            "          DIRECTOR_AUDIT_ANCHOR_TSA_URL)\n"
+            "  verify-anchors  [--db PATH]  Verify every stored timestamp anchor\n"
+            "          against the audit chain\n"
             "  governance  [--db PATH] [--format md|json] [--config-env]\n"
             "          [--evidence-root DIR]  Computed NIST AI RMF / ISO 42001 /\n"
             "          EU AI Act controls; a missing audit database degrades the\n"
@@ -144,6 +151,8 @@ def _cmd_compliance(args: list[str]) -> None:
     output_path = None
     evidence_root = "."
     config_env = False
+    tsa_url = ""
+    timeout_s = 10.0
 
     i = 0
     while i < len(rest):
@@ -171,6 +180,12 @@ def _cmd_compliance(args: list[str]) -> None:
         elif rest[i] == "--config-env":
             config_env = True
             i += 1
+        elif rest[i] == "--tsa-url" and i + 1 < len(rest):
+            tsa_url = rest[i + 1]
+            i += 2
+        elif rest[i] == "--timeout" and i + 1 < len(rest):
+            timeout_s = float(rest[i + 1])
+            i += 2
         else:
             i += 1
 
@@ -302,6 +317,62 @@ def _cmd_compliance(args: list[str]) -> None:
             f"Rate change: {result.rate_change:+.2%} | "
             f"Windows: {len(result.windows)}"
         )
+
+    elif sub == "anchor":
+        import os
+        from datetime import datetime
+
+        from director_ai.compliance.timestamp_anchor import (
+            AnchorStore,
+            Rfc3161Anchorer,
+            try_anchor_chain_head,
+        )
+
+        url = tsa_url or os.environ.get("DIRECTOR_AUDIT_ANCHOR_TSA_URL", "")
+        if not url:
+            print(
+                "No TSA URL — pass --tsa-url URL or set DIRECTOR_AUDIT_ANCHOR_TSA_URL."
+            )
+            log.close()
+            sys.exit(1)
+        head = log.current_head()
+        store = AnchorStore(db_path)
+        try:
+            anchor = try_anchor_chain_head(
+                head, Rfc3161Anchorer(url, timeout_s=timeout_s), store
+            )
+        finally:
+            store.close()
+        if anchor is None:
+            if head == "0" * 64:
+                print("Audit chain is empty — nothing to anchor.")
+            else:
+                print(f"Anchoring failed (TSA unreachable or rejected): {url}")
+            log.close()
+            sys.exit(1)
+        when = datetime.fromtimestamp(anchor.gen_time, tz=UTC).isoformat()
+        print(
+            f"Anchored chain head {anchor.anchored_hash[:16]}… at {when} "
+            f"(TSA serial {anchor.serial_number}, {url})"
+        )
+
+    elif sub == "verify-anchors":
+        from director_ai.compliance.timestamp_anchor import AnchorStore
+
+        store = AnchorStore(db_path)
+        try:
+            count = len(store.all())
+            ok, bad = store.verify_against_chain()
+        finally:
+            store.close()
+        if count == 0:
+            print("No timestamp anchors recorded yet.")
+        elif ok:
+            print(f"All {count} timestamp anchor(s) verify against the audit chain.")
+        else:
+            print(f"Anchor verification FAILED at head {bad}")
+            log.close()
+            sys.exit(1)
 
     else:
         print(f"Unknown compliance subcommand: {sub}")

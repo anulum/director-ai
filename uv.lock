@@ -339,6 +339,15 @@ wheels = [
 ]
 
 [[package]]
+name = "asn1crypto"
+version = "1.5.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/de/cf/d547feed25b5244fcb9392e288ff9fdc3280b10260362fc45d37a798a6ee/asn1crypto-1.5.1.tar.gz", hash = "sha256:13ae38502be632115abf8a24cbe5f4da52e3b5231990aff31123c805306ccb9c", size = 121080, upload-time = "2022-03-15T14:46:52.889Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/c9/7f/09065fd9e27da0eda08b4d6897f1c13535066174cc023af248fc2a8d5e5a/asn1crypto-1.5.1-py2.py3-none-any.whl", hash = "sha256:db4e40728b728508912cbb3d44f19ce188f218e9eba635821bb4b68564f8fd67", size = 105045, upload-time = "2022-03-15T14:46:51.055Z" },
+]
+
+[[package]]
 name = "ast-serialize"
 version = "0.6.0"
 source = { registry = "https://pypi.org/simple" }
@@ -1788,6 +1797,7 @@ crewai = [
     { name = "litellm" },
 ]
 crypto = [
+    { name = "asn1crypto" },
     { name = "cryptography" },
 ]
 demo = [
@@ -2031,6 +2041,7 @@ requires-dist = [
     { name = "accelerate", marker = "extra == 'train'", specifier = ">=0.21" },
     { name = "anthropic", marker = "extra == 'anthropic'", specifier = ">=0.20" },
     { name = "argon2-cffi", marker = "extra == 'enterprise'", specifier = ">=23.1,<26" },
+    { name = "asn1crypto", marker = "extra == 'crypto'", specifier = ">=1.5,<2" },
     { name = "audioop-lts", marker = "python_full_version >= '3.13' and extra == 'dev'", specifier = ">=0.2.2" },
     { name = "azure-identity", marker = "extra == 'azure'", specifier = ">=1.16,<2" },
     { name = "azure-keyvault-secrets", marker = "extra == 'azure'", specifier = ">=4.7,<5" },

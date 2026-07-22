@@ -304,6 +304,14 @@ class DirectorConfig:
     # EU AI Act compliance
     compliance_db_path: str = ""
 
+    # RFC 3161 external timestamp anchoring for the compliance hash chain
+    # (opt-in; proves existence-at-time on top of the tamper-evident seal).
+    # See director_ai.compliance.timestamp_anchor and the
+    # `director-ai compliance anchor` command.
+    audit_anchor_enabled: bool = False
+    audit_anchor_tsa_url: str = ""
+    audit_anchor_timeout_s: float = 10.0
+
     # Human feedback for online calibration (empty = feedback API disabled)
     feedback_db_path: str = ""
 
