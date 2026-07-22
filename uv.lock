@@ -1804,11 +1804,13 @@ demo = [
     { name = "gradio" },
 ]
 dev = [
+    { name = "asn1crypto" },
     { name = "audioop-lts", marker = "python_full_version >= '3.13'" },
     { name = "backfire-kernel" },
     { name = "bandit" },
     { name = "beautifulsoup4" },
     { name = "build" },
+    { name = "cryptography" },
     { name = "fastapi" },
     { name = "gradio" },
     { name = "grpcio" },
@@ -2065,6 +2067,7 @@ requires-dist = [
     { name = "detoxify", marker = "extra == 'toxicity'", specifier = ">=0.5" },
     { name = "director-ai", extras = ["autogen"], marker = "extra == 'integrations'" },
     { name = "director-ai", extras = ["crewai"], marker = "extra == 'integrations'" },
+    { name = "director-ai", extras = ["crypto"], marker = "extra == 'dev'" },
     { name = "director-ai", extras = ["embeddings"], marker = "extra == 'all'" },
     { name = "director-ai", extras = ["grpc"], marker = "extra == 'all'" },
     { name = "director-ai", extras = ["haystack"], marker = "extra == 'integrations'" },

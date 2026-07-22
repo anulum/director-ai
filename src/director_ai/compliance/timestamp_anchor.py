@@ -131,7 +131,7 @@ def _default_transport(request_der: bytes, tsa_url: str, timeout_s: float) -> by
         headers={"Content-Type": _TIMESTAMP_QUERY},
         method="POST",
     )
-    with urllib.request.urlopen(  # noqa: S310 - operator-configured TSA URL
+    with urllib.request.urlopen(  # noqa: S310  # nosec B310 (operator-set TSA URL)
         request, timeout=timeout_s
     ) as response:
         return bytes(response.read())
@@ -214,7 +214,7 @@ class Rfc3161Anchorer:
         tst_info = _extract_tst_info(token)
         token_imprint = tst_info["message_imprint"]["hashed_message"].native
         token_algo = tst_info["message_imprint"]["hash_algorithm"]["algorithm"].native
-        if token_algo != "sha256" or token_imprint != imprint:
+        if token_algo != "sha256" or token_imprint != imprint:  # nosec B105 (algo name)
             raise ImprintMismatchError(
                 "token message imprint does not match the anchored digest"
             )
