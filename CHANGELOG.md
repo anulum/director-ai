@@ -19,10 +19,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   prior history), verifies the token (message-imprint binding, the `content-type`
   and `message-digest` signed attributes, and the CMS signature over the signed
   attributes against the embedded certificate — RSA or ECDSA), and stores it in an
-  `audit_anchor` table. Scope: verification is internal-consistency only — the
-  chain becomes *TSA-token-anchored*; chaining the signing certificate to a
-  trusted TSA root (which would make it *trusted-TSA-attested*) is a documented
-  follow-up. `AuditLog.current_head()` exposes the head; the
+  `audit_anchor` table. Verification has two tiers: by default internal-consistency
+  only (*TSA-token-anchored*); when trusted TSA roots are configured
+  (`audit_anchor_tsa_roots`, `director-ai compliance verify-anchors --tsa-roots`)
+  the signing certificate must also chain to a pinned root — valid at `genTime`
+  with the time-stamping EKU — which is *trusted-TSA-attested* and completes
+  back-dating resistance. `AuditLog.current_head()` exposes the head; the
   `director-ai compliance anchor` / `verify-anchors` commands drive it. Opt-in
   (`audit_anchor_enabled`, default off; `audit_anchor_tsa_url`,
   `audit_anchor_timeout_s`) and offline-graceful — a down or unreachable TSA

@@ -311,6 +311,10 @@ class DirectorConfig:
     audit_anchor_enabled: bool = False
     audit_anchor_tsa_url: str = ""
     audit_anchor_timeout_s: float = 10.0
+    # PEM bundle of trusted TSA root certificates. When set, stored anchors are
+    # verified with root-of-trust pinning (trusted-TSA-attested); empty leaves
+    # verification at internal-consistency only (TSA-token-anchored).
+    audit_anchor_tsa_roots: str = ""
 
     # Human feedback for online calibration (empty = feedback API disabled)
     feedback_db_path: str = ""

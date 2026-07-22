@@ -17,13 +17,16 @@ with back-dated timestamps.
 This module narrows that gap. A Timestamp Authority (TSA) signs an RFC 3161
 timestamp token over the current chain **head** (``entry_hash`` — which, through
 the ``prev_hash`` linkage, commits to the whole prior history). A stored, verified
-token binds the chain up to that head to the token's ``genTime``: it is
-TSA-token-anchored. Verification here is internal-consistency only — the token is
-signed by the certificate it carries over exactly our digest. Chaining that
-certificate to a *trusted* TSA root (root-of-trust pinning), which is what turns
-"some certificate attested this time" into "a trusted TSA attested this time" and
-completes back-dating resistance, is a documented follow-up. Do not describe an
-anchor as trusted-TSA-attested until that lands.
+token binds the chain up to that head to the token's ``genTime``.
+
+Verification has two tiers (see :func:`verify_token`). By default it is
+internal-consistency only — the token is signed by the certificate it carries over
+exactly our digest — which is **TSA-token-anchored**. When trusted TSA root
+certificates are configured (``audit_anchor_tsa_roots`` /
+:func:`load_trusted_roots`), the signing certificate must additionally chain to a
+pinned root, valid at ``genTime`` with the time-stamping EKU — which is
+**trusted-TSA-attested** and completes back-dating resistance. Do not describe an
+anchor as trusted-TSA-attested unless it was verified against pinned roots.
 
 The feature is **opt-in and offline-graceful**: :func:`try_anchor_chain_head`
 never raises into a caller near the audit path — a down or unreachable TSA yields
@@ -59,6 +62,7 @@ __all__ = [
     "Rfc3161Anchorer",
     "AnchorStore",
     "verify_token",
+    "load_trusted_roots",
     "try_anchor_chain_head",
 ]
 
@@ -256,24 +260,137 @@ def _reencode_signed_attrs(signer_info: Any) -> bytes:
     return b"\x31" + der[1:]
 
 
-def verify_token(anchor: TimestampAnchor, expected_hash_hex: str) -> bool:
-    """Return ``True`` when the token is internally consistent over the digest.
+def _find_signer_cert(certs: Any, signer_info: Any) -> Any:
+    """Return the embedded certificate identified by the ``SignerInfo`` sid.
 
-    Four checks, all of which must pass (fail-closed — any parse error or
-    mismatch returns ``False``): the token's message imprint equals
-    ``SHA-256(expected_hash_hex bytes)``; the ``content-type`` signed attribute
-    is ``id-ct-TSTInfo``; the ``message-digest`` signed attribute equals the hash
-    of the encapsulated ``TSTInfo``; and the CMS signature over the signed
-    attributes verifies against the certificate embedded in the token (RSA or
-    ECDSA; other key types fail closed).
+    The CMS ``certificates`` field is a SET (unordered on the wire — a multi-cert
+    token's DER can reorder the signer past position 0), so the signing cert is
+    located by its issuer name + serial number, not by position. Only the
+    ``IssuerAndSerialNumber`` sid form is handled (what RFC 3161 TSAs use); any
+    other form raises and the caller fails closed.
+    """
+    sid = signer_info["sid"].chosen
+    issuer_der = sid["issuer"].dump()
+    serial = sid["serial_number"].native
+    for choice in certs:
+        cert = choice.chosen
+        if cert.serial_number == serial and cert.issuer.dump() == issuer_der:
+            return cert
+    raise TsaResponseError("signer certificate not found in the token")
 
-    Scope (honest): this establishes that *some* certificate signed this digest
-    at the claimed ``genTime`` — the token is internally consistent and signed by
-    the certificate it carries. It does NOT yet chain that certificate to a
-    trusted TSA root, so back-dating resistance depends on the certificate being
-    trusted out of band. Root-of-trust pinning to a configured TSA root — which
-    would upgrade the guarantee to "a *trusted* TSA attested" — is a documented
-    follow-up.
+
+def load_trusted_roots(pem_path: str | Path) -> list[Any]:
+    """Load trusted TSA root certificates from a PEM bundle.
+
+    Returns the parsed ``cryptography`` ``Certificate`` objects. Raises
+    :class:`AnchorError` when the file is missing or holds no certificate.
+    """
+    from cryptography.x509 import load_pem_x509_certificates
+
+    path = Path(pem_path)
+    if not path.is_file():
+        raise AnchorError(f"trusted-roots PEM not found: {pem_path}")
+    try:
+        certs = load_pem_x509_certificates(path.read_bytes())
+    except ValueError as exc:
+        raise AnchorError(
+            f"no valid certificates in trusted-roots PEM: {pem_path}"
+        ) from exc
+    return list(certs)
+
+
+def _leaf_has_timestamping_eku(leaf: Any) -> bool:
+    """Return whether ``leaf`` carries the id-kp-timeStamping extended key usage."""
+    from cryptography.x509 import ExtensionNotFound
+    from cryptography.x509.oid import ExtendedKeyUsageOID, ExtensionOID
+
+    try:
+        eku = leaf.extensions.get_extension_for_oid(
+            ExtensionOID.EXTENDED_KEY_USAGE
+        ).value
+    except ExtensionNotFound:
+        return False
+    return bool(ExtendedKeyUsageOID.TIME_STAMPING in eku)
+
+
+def _cert_time_valid(cert: Any, at_time: Any) -> bool:
+    """Return whether ``cert`` is inside its validity window at ``at_time`` (UTC)."""
+    return bool(cert.not_valid_before_utc <= at_time <= cert.not_valid_after_utc)
+
+
+def _chain_to_trusted_root(
+    leaf: Any,
+    extra_certs: list[Any],
+    trusted_roots: list[Any],
+    at_time: Any,
+    max_depth: int = 4,
+) -> bool:
+    """Return whether ``leaf`` chains to one of ``trusted_roots`` at ``at_time``.
+
+    The leaf must carry the time-stamping EKU and be time-valid; each hop is a
+    ``verify_directly_issued_by`` (issuer-name match + signature) and every cert
+    on the path — leaf, any intermediates drawn from ``extra_certs``, and the
+    terminal trusted root — must be time-valid at ``at_time``. Bounded depth
+    guards a malformed certificate set. There is no revocation or name-constraint
+    checking: trust is anchored on the operator-pinned root, which is the
+    appropriate model for a pinned-root TSA anchor.
+    """
+    if not _leaf_has_timestamping_eku(leaf) or not _cert_time_valid(leaf, at_time):
+        return False
+    frontier: list[tuple[Any, int]] = [(leaf, 0)]
+    while frontier:
+        node, depth = frontier.pop()
+        for root in trusted_roots:
+            if not _cert_time_valid(root, at_time):
+                continue
+            try:
+                node.verify_directly_issued_by(root)
+                return True
+            except Exception:  # noqa: BLE001  # nosec B112 - not this root; keep searching
+                continue
+        if depth >= max_depth:
+            continue
+        for inter in extra_certs:
+            if not _cert_time_valid(inter, at_time):
+                continue
+            try:
+                node.verify_directly_issued_by(inter)
+            except Exception:  # noqa: BLE001  # nosec B112 - not the issuer; skip
+                continue
+            frontier.append((inter, depth + 1))
+    return False
+
+
+def verify_token(
+    anchor: TimestampAnchor,
+    expected_hash_hex: str,
+    *,
+    trusted_roots: list[Any] | None = None,
+) -> bool:
+    """Return ``True`` when the token verifies over the digest (fail-closed).
+
+    Always applies four internal-consistency checks — any parse error or mismatch
+    returns ``False``: the token's message imprint equals
+    ``SHA-256(expected_hash_hex bytes)``; the ``content-type`` signed attribute is
+    ``id-ct-TSTInfo``; the ``message-digest`` signed attribute equals the hash of
+    the encapsulated ``TSTInfo``; and the CMS signature over the signed attributes
+    verifies against the certificate embedded in the token (RSA or ECDSA; other
+    key types fail closed).
+
+    When ``trusted_roots`` is a non-empty list of ``cryptography`` ``Certificate``
+    roots, a FIFTH check is required: the embedded signing certificate must chain
+    to one of those roots — validated as of the token's ``genTime``, with the
+    time-stamping EKU on the leaf and every cert on the path time-valid (see
+    :func:`_chain_to_trusted_root`).
+
+    Scope (honest): WITHOUT ``trusted_roots`` the result means only that *some*
+    certificate signed this digest at the claimed ``genTime`` — the chain is
+    **TSA-token-anchored**, and back-dating resistance depends on the certificate
+    being trusted out of band. WITH pinned ``trusted_roots`` the result means a
+    *trusted* TSA signed it — **trusted-TSA-attested**. Do not describe an anchor
+    as trusted-TSA-attested unless it was verified against pinned roots. (No
+    revocation/name-constraint checking; the signer is taken as the first embedded
+    certificate, consistent with the CMS signature check.)
     """
     try:
         cms, _tsp = _require_asn1crypto()
@@ -303,8 +420,10 @@ def verify_token(anchor: TimestampAnchor, expected_hash_hex: str) -> bool:
         if signed_attrs.get("message_digest") != hashlib.sha256(econtent_der).digest():
             return False
 
-        cert_der = bytes(signed_data["certificates"][0].chosen.dump())
-        public_key = load_der_x509_certificate(cert_der).public_key()
+        certs = signed_data["certificates"]
+        leaf_der = bytes(_find_signer_cert(certs, signer_info).dump())
+        leaf_cert = load_der_x509_certificate(leaf_der)
+        public_key = leaf_cert.public_key()
         signature = signer_info["signature"].native
         to_verify = _reencode_signed_attrs(signer_info)
         if isinstance(public_key, ec.EllipticCurvePublicKey):
@@ -314,6 +433,20 @@ def verify_token(anchor: TimestampAnchor, expected_hash_hex: str) -> bool:
         else:
             # Unsupported TSA key type (e.g. DSA/Ed25519) — fail closed.
             return False
+
+        if trusted_roots:
+            extra_certs = [
+                load_der_x509_certificate(bytes(c.chosen.dump()))
+                for c in certs
+                if bytes(c.chosen.dump()) != leaf_der
+            ]
+            if not _chain_to_trusted_root(
+                leaf_cert,
+                extra_certs,
+                trusted_roots,
+                tst_info["gen_time"].native,
+            ):
+                return False
     except Exception:  # noqa: BLE001 - fail-closed on any verification error
         return False
     return True
@@ -406,17 +539,23 @@ class AnchorStore:
         ).fetchone()
         return row is not None
 
-    def verify_against_chain(self) -> tuple[bool, str | None]:
+    def verify_against_chain(
+        self, *, trusted_roots: list[Any] | None = None
+    ) -> tuple[bool, str | None]:
         """Verify every stored anchor against the audit chain in the same DB.
 
         For each anchor the ``anchored_hash`` must be a real sealed
         ``entry_hash`` in ``audit_log`` **and** its token must verify against
-        that hash. Returns ``(ok, first_bad_anchored_hash)``.
+        that hash. When ``trusted_roots`` is supplied, each token must also chain
+        to a pinned root (root-of-trust pinning). Returns
+        ``(ok, first_bad_anchored_hash)``.
         """
         for anchor in self.all():
             if not self._chain_has_head(anchor.anchored_hash):
                 return False, anchor.anchored_hash
-            if not verify_token(anchor, anchor.anchored_hash):
+            if not verify_token(
+                anchor, anchor.anchored_hash, trusted_roots=trusted_roots
+            ):
                 return False, anchor.anchored_hash
         return True, None
 

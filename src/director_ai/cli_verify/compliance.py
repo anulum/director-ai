@@ -126,8 +126,10 @@ def _cmd_compliance(args: list[str]) -> None:
             "          audit-chain head with an RFC 3161 timestamp (proves\n"
             "          existence-at-time; TSA from --tsa-url or\n"
             "          DIRECTOR_AUDIT_ANCHOR_TSA_URL)\n"
-            "  verify-anchors  [--db PATH]  Verify every stored timestamp anchor\n"
-            "          against the audit chain\n"
+            "  verify-anchors  [--db PATH] [--tsa-roots PEM]  Verify every stored\n"
+            "          timestamp anchor against the audit chain; --tsa-roots (or\n"
+            "          DIRECTOR_AUDIT_ANCHOR_TSA_ROOTS) pins a trusted-TSA-root\n"
+            "          bundle for full trusted-TSA-attested verification\n"
             "  governance  [--db PATH] [--format md|json] [--config-env]\n"
             "          [--evidence-root DIR]  Computed NIST AI RMF / ISO 42001 /\n"
             "          EU AI Act controls; a missing audit database degrades the\n"
@@ -153,6 +155,7 @@ def _cmd_compliance(args: list[str]) -> None:
     config_env = False
     tsa_url = ""
     timeout_s = 10.0
+    tsa_roots = ""
 
     i = 0
     while i < len(rest):
@@ -185,6 +188,9 @@ def _cmd_compliance(args: list[str]) -> None:
             i += 2
         elif rest[i] == "--timeout" and i + 1 < len(rest):
             timeout_s = float(rest[i + 1])
+            i += 2
+        elif rest[i] == "--tsa-roots" and i + 1 < len(rest):
+            tsa_roots = rest[i + 1]
             i += 2
         else:
             i += 1
@@ -357,20 +363,31 @@ def _cmd_compliance(args: list[str]) -> None:
         )
 
     elif sub == "verify-anchors":
-        from director_ai.compliance.timestamp_anchor import AnchorStore
+        import os
 
+        from director_ai.compliance.timestamp_anchor import (
+            AnchorStore,
+            load_trusted_roots,
+        )
+
+        roots_path = tsa_roots or os.environ.get("DIRECTOR_AUDIT_ANCHOR_TSA_ROOTS", "")
+        trusted_roots = load_trusted_roots(roots_path) if roots_path else None
+        mode = "root-pinned (trusted-TSA-attested)" if trusted_roots else "token-only"
         store = AnchorStore(db_path)
         try:
             count = len(store.all())
-            ok, bad = store.verify_against_chain()
+            ok, bad = store.verify_against_chain(trusted_roots=trusted_roots)
         finally:
             store.close()
         if count == 0:
             print("No timestamp anchors recorded yet.")
         elif ok:
-            print(f"All {count} timestamp anchor(s) verify against the audit chain.")
+            print(
+                f"All {count} timestamp anchor(s) verify against the audit chain "
+                f"[{mode}]."
+            )
         else:
-            print(f"Anchor verification FAILED at head {bad}")
+            print(f"Anchor verification FAILED at head {bad} [{mode}]")
             log.close()
             sys.exit(1)
 

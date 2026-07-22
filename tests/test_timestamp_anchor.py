@@ -25,7 +25,7 @@ from asn1crypto import x509 as a_x509
 from cryptography import x509 as c_x509
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import ec, ed25519, padding, rsa
-from cryptography.x509.oid import NameOID
+from cryptography.x509.oid import ExtendedKeyUsageOID, NameOID
 
 from director_ai.compliance.audit_log import AuditEntry, AuditLog
 from director_ai.compliance.timestamp_anchor import (
@@ -37,8 +37,10 @@ from director_ai.compliance.timestamp_anchor import (
     TimestampAnchor,
     TsaResponseError,
     TsaUnreachableError,
+    _chain_to_trusted_root,
     _default_transport,
     _require_asn1crypto,
+    load_trusted_roots,
     try_anchor_chain_head,
     verify_token,
 )
@@ -81,6 +83,63 @@ def ed25519_tsa():
     return key, _make_cert(key, key.public_key())
 
 
+def _rsa():
+    return rsa.generate_private_key(public_exponent=65537, key_size=2048)
+
+
+def _issue_cert(
+    subject_cn, subject_key, issuer_cn, issuer_key, *, ca, eku_ts, nva=None
+):
+    base = datetime.datetime(2026, 7, 22, tzinfo=datetime.UTC)
+    b = (
+        c_x509.CertificateBuilder()
+        .subject_name(
+            c_x509.Name([c_x509.NameAttribute(NameOID.COMMON_NAME, subject_cn)])
+        )
+        .issuer_name(
+            c_x509.Name([c_x509.NameAttribute(NameOID.COMMON_NAME, issuer_cn)])
+        )
+        .public_key(subject_key.public_key())
+        .serial_number(c_x509.random_serial_number())
+        .not_valid_before(base - datetime.timedelta(days=1))
+        .not_valid_after(nva or base + datetime.timedelta(days=3650))
+    )
+    if ca:
+        b = b.add_extension(
+            c_x509.BasicConstraints(ca=True, path_length=None), critical=True
+        )
+    if eku_ts:
+        b = b.add_extension(
+            c_x509.ExtendedKeyUsage([ExtendedKeyUsageOID.TIME_STAMPING]), critical=True
+        )
+    return b.sign(issuer_key, hashes.SHA256())
+
+
+@pytest.fixture(scope="module")
+def pinned_tsa():
+    """A root CA + a leaf TSA-signer cert (time-stamping EKU) issued by it."""
+    root_key = _rsa()
+    root = _issue_cert(
+        "Root TSA CA", root_key, "Root TSA CA", root_key, ca=True, eku_ts=False
+    )
+    leaf_key = _rsa()
+    leaf = _issue_cert(
+        "TSA Signer", leaf_key, "Root TSA CA", root_key, ca=False, eku_ts=True
+    )
+    return {"root_key": root_key, "root": root, "leaf_key": leaf_key, "leaf": leaf}
+
+
+def _pinned_transport(leaf_key, embed_certs, **mint_kw):
+    def transport(request_der, url, timeout):
+        request = tsp.TimeStampReq.load(request_der)
+        imprint = request["message_imprint"]["hashed_message"].native
+        return _mint(
+            imprint, (leaf_key, embed_certs[0]), embed_certs=embed_certs, **mint_kw
+        )
+
+    return transport
+
+
 def _mint(
     imprint,
     tsa,
@@ -93,9 +152,20 @@ def _mint(
     wrong_message_digest=False,
     use_ec=False,
     use_ed25519=False,
+    signing_key=None,
+    embed_certs=None,
+    sid_cert=None,
 ):
-    """Return DER of a TimeStampResp over ``imprint`` from the synthetic TSA."""
+    """Return DER of a TimeStampResp over ``imprint`` from the synthetic TSA.
+
+    ``signing_key`` / ``embed_certs`` override the self-signed default so a
+    CA-issued leaf (+ optional intermediates) can be embedded for chain tests.
+    ``sid_cert`` overrides the SignerInfo sid (issuer+serial) — used to point the
+    sid at a certificate that is NOT embedded, so the signer lookup fails.
+    """
     key, cert = tsa
+    sign_key = signing_key or key
+    embed = embed_certs if embed_certs is not None else [cert]
     tst = tsp.TSTInfo(
         {
             "version": "v1",
@@ -108,7 +178,15 @@ def _mint(
         }
     )
     tst_der = tst.dump()
-    a_cert = a_x509.Certificate.load(cert.public_bytes(serialization.Encoding.DER))
+    a_certs = [
+        a_x509.Certificate.load(c.public_bytes(serialization.Encoding.DER))
+        for c in embed
+    ]
+    leaf_a = (
+        a_x509.Certificate.load(sid_cert.public_bytes(serialization.Encoding.DER))
+        if sid_cert is not None
+        else a_certs[0]
+    )
     digest_value = (
         b"\x00" * 32 if wrong_message_digest else hashlib.sha256(tst_der).digest()
     )
@@ -123,13 +201,13 @@ def _mint(
     )
     to_sign = b"\x31" + signed_attrs.dump()[1:]
     if use_ed25519:
-        signature = key.sign(to_sign)
+        signature = sign_key.sign(to_sign)
         sig_algo = "ed25519"
     elif use_ec:
-        signature = key.sign(to_sign, ec.ECDSA(hashes.SHA256()))
+        signature = sign_key.sign(to_sign, ec.ECDSA(hashes.SHA256()))
         sig_algo = "sha256_ecdsa"
     else:
-        signature = key.sign(to_sign, padding.PKCS1v15(), hashes.SHA256())
+        signature = sign_key.sign(to_sign, padding.PKCS1v15(), hashes.SHA256())
         sig_algo = "rsassa_pkcs1v15"
     signer = cms.SignerInfo(
         {
@@ -137,7 +215,7 @@ def _mint(
             "sid": cms.SignerIdentifier(
                 {
                     "issuer_and_serial_number": cms.IssuerAndSerialNumber(
-                        {"issuer": a_cert.issuer, "serial_number": a_cert.serial_number}
+                        {"issuer": leaf_a.issuer, "serial_number": leaf_a.serial_number}
                     )
                 }
             ),
@@ -155,7 +233,7 @@ def _mint(
                 "content_type": content_type,
                 "content": tst if content_type == "tst_info" else tst_der,
             },
-            "certificates": [a_cert],
+            "certificates": a_certs,
             "signer_infos": [signer],
         }
     )
@@ -683,3 +761,294 @@ def test_cli_verify_anchors_failure_exits(tmp_path, monkeypatch, capsys, rsa_tsa
     with pytest.raises(SystemExit):
         cli_main(["compliance", "verify-anchors", "--db", db])
     assert "FAILED" in capsys.readouterr().out
+
+
+# --------------------------------------------------------------------------- #
+# Root-of-trust pinning (verify_token trusted_roots)
+# --------------------------------------------------------------------------- #
+def _pinned_anchor(pinned_tsa, embed_certs, **mint_kw):
+    transport = _pinned_transport(pinned_tsa["leaf_key"], embed_certs, **mint_kw)
+    return Rfc3161Anchorer("u", transport=transport).submit(_head())
+
+
+def test_verify_token_root_pinned(pinned_tsa):
+    anchor = _pinned_anchor(pinned_tsa, [pinned_tsa["leaf"]])
+    # Root-pinned: chains to the trusted root → True.
+    assert verify_token(anchor, _head(), trusted_roots=[pinned_tsa["root"]]) is True
+    # Backward compatible: no roots → internal-consistency only → still True.
+    assert verify_token(anchor, _head()) is True
+
+
+def test_verify_token_intermediate_chain(pinned_tsa):
+    inter_key = _rsa()
+    inter = _issue_cert(
+        "TSA Inter",
+        inter_key,
+        "Root TSA CA",
+        pinned_tsa["root_key"],
+        ca=True,
+        eku_ts=False,
+    )
+    leaf2_key = _rsa()
+    leaf2 = _issue_cert(
+        "TSA Signer2", leaf2_key, "TSA Inter", inter_key, ca=False, eku_ts=True
+    )
+    transport = _pinned_transport(leaf2_key, [leaf2, inter])
+    anchor = Rfc3161Anchorer("u", transport=transport).submit(_head())
+    assert verify_token(anchor, _head(), trusted_roots=[pinned_tsa["root"]]) is True
+
+
+def test_verify_token_untrusted_root_rejected(pinned_tsa):
+    other_root_key = _rsa()
+    other_root = _issue_cert(
+        "Evil CA", other_root_key, "Evil CA", other_root_key, ca=True, eku_ts=False
+    )
+    anchor = _pinned_anchor(pinned_tsa, [pinned_tsa["leaf"]])
+    # Real chain is to Root TSA CA, but only Evil CA is pinned → False.
+    assert verify_token(anchor, _head(), trusted_roots=[other_root]) is False
+
+
+def test_verify_token_expired_cert_rejected(pinned_tsa):
+    expired_leaf_key = _rsa()
+    expired_leaf = _issue_cert(
+        "Expired Signer",
+        expired_leaf_key,
+        "Root TSA CA",
+        pinned_tsa["root_key"],
+        ca=False,
+        eku_ts=True,
+        nva=datetime.datetime(
+            2026, 7, 21, 23, 0, tzinfo=datetime.UTC
+        ),  # before genTime
+    )
+    transport = _pinned_transport(expired_leaf_key, [expired_leaf])
+    anchor = Rfc3161Anchorer("u", transport=transport).submit(_head())
+    assert verify_token(anchor, _head(), trusted_roots=[pinned_tsa["root"]]) is False
+
+
+def test_verify_token_missing_timestamping_eku_rejected(pinned_tsa):
+    no_eku_key = _rsa()
+    no_eku = _issue_cert(
+        "No EKU",
+        no_eku_key,
+        "Root TSA CA",
+        pinned_tsa["root_key"],
+        ca=False,
+        eku_ts=False,
+    )
+    transport = _pinned_transport(no_eku_key, [no_eku])
+    anchor = Rfc3161Anchorer("u", transport=transport).submit(_head())
+    assert verify_token(anchor, _head(), trusted_roots=[pinned_tsa["root"]]) is False
+
+
+def test_verify_token_self_signed_rejected_under_pinning(pinned_tsa, rsa_tsa):
+    # The self-signed synthetic token (no EKU, not issued by the root) fails pinning.
+    anchor = Rfc3161Anchorer("u", transport=_transport_for(rsa_tsa)).submit(_head())
+    assert verify_token(anchor, _head(), trusted_roots=[pinned_tsa["root"]]) is False
+
+
+def test_verify_against_chain_root_pinned(tmp_path, pinned_tsa):
+    db = _audit_db_with_head(tmp_path)
+    anchor = _pinned_anchor(pinned_tsa, [pinned_tsa["leaf"]])
+    store = AnchorStore(db)
+    store.record(anchor)
+    ok, bad = store.verify_against_chain(trusted_roots=[pinned_tsa["root"]])
+    assert ok is True and bad is None
+    store.close()
+
+
+def test_verify_against_chain_pinning_rejects_self_signed(
+    tmp_path, pinned_tsa, rsa_tsa
+):
+    db = _audit_db_with_head(tmp_path)
+    anchor = Rfc3161Anchorer("u", transport=_transport_for(rsa_tsa)).submit(_head())
+    store = AnchorStore(db)
+    store.record(anchor)
+    ok, bad = store.verify_against_chain(trusted_roots=[pinned_tsa["root"]])
+    assert ok is False and bad == _head()
+    store.close()
+
+
+def test_load_trusted_roots(tmp_path, pinned_tsa):
+    pem = tmp_path / "roots.pem"
+    pem.write_bytes(pinned_tsa["root"].public_bytes(serialization.Encoding.PEM))
+    roots = load_trusted_roots(str(pem))
+    assert len(roots) == 1
+    assert roots[0].subject == pinned_tsa["root"].subject
+
+
+def test_load_trusted_roots_missing(tmp_path):
+    with pytest.raises(AnchorError):
+        load_trusted_roots(str(tmp_path / "absent.pem"))
+
+
+def test_load_trusted_roots_empty(tmp_path):
+    empty = tmp_path / "empty.pem"
+    empty.write_text("# no certificates here\n")
+    with pytest.raises(AnchorError):
+        load_trusted_roots(str(empty))
+
+
+def test_config_anchor_tsa_roots_env_overlay(monkeypatch):
+    from director_ai.core.config import DirectorConfig
+
+    monkeypatch.setenv("DIRECTOR_AUDIT_ANCHOR_TSA_ROOTS", "/etc/tsa/roots.pem")
+    cfg = DirectorConfig.from_env()
+    assert cfg.audit_anchor_tsa_roots == "/etc/tsa/roots.pem"
+
+
+def test_cli_verify_anchors_root_pinned(tmp_path, monkeypatch, capsys, pinned_tsa):
+    from director_ai.cli import main as cli_main
+    from director_ai.compliance import timestamp_anchor as _mod
+
+    db = _populated_audit_db(tmp_path)
+    monkeypatch.setattr(
+        _mod,
+        "_default_transport",
+        _pinned_transport(pinned_tsa["leaf_key"], [pinned_tsa["leaf"]]),
+    )
+    cli_main(["compliance", "anchor", "--db", db, "--tsa-url", "https://x/tsr"])
+    capsys.readouterr()
+    pem = tmp_path / "roots.pem"
+    pem.write_bytes(pinned_tsa["root"].public_bytes(serialization.Encoding.PEM))
+    cli_main(["compliance", "verify-anchors", "--db", db, "--tsa-roots", str(pem)])
+    out = capsys.readouterr().out
+    assert "root-pinned (trusted-TSA-attested)" in out
+
+
+def test_cli_verify_anchors_root_pinned_from_env(
+    tmp_path, monkeypatch, capsys, pinned_tsa
+):
+    from director_ai.cli import main as cli_main
+    from director_ai.compliance import timestamp_anchor as _mod
+
+    db = _populated_audit_db(tmp_path)
+    monkeypatch.setattr(
+        _mod,
+        "_default_transport",
+        _pinned_transport(pinned_tsa["leaf_key"], [pinned_tsa["leaf"]]),
+    )
+    cli_main(["compliance", "anchor", "--db", db, "--tsa-url", "https://x/tsr"])
+    capsys.readouterr()
+    pem = tmp_path / "roots.pem"
+    pem.write_bytes(pinned_tsa["root"].public_bytes(serialization.Encoding.PEM))
+    monkeypatch.setenv("DIRECTOR_AUDIT_ANCHOR_TSA_ROOTS", str(pem))
+    cli_main(["compliance", "verify-anchors", "--db", db])
+    assert "root-pinned" in capsys.readouterr().out
+
+
+def test_verify_token_signer_cert_not_in_token(pinned_tsa):
+    # The sid claims the leaf, but only an unrelated CA is embedded → signer
+    # lookup fails → fail-closed.
+    unrelated_key = _rsa()
+    unrelated = _issue_cert(
+        "Unrelated CA",
+        unrelated_key,
+        "Unrelated CA",
+        unrelated_key,
+        ca=True,
+        eku_ts=False,
+    )
+
+    def transport(request_der, url, timeout):
+        request = tsp.TimeStampReq.load(request_der)
+        imprint = request["message_imprint"]["hashed_message"].native
+        return _mint(
+            imprint,
+            (pinned_tsa["leaf_key"], pinned_tsa["leaf"]),
+            embed_certs=[unrelated],
+            sid_cert=pinned_tsa["leaf"],
+        )
+
+    anchor = Rfc3161Anchorer("u", transport=transport).submit(_head())
+    assert verify_token(anchor, _head()) is False
+
+
+# --- direct unit coverage of the chain-building defensive branches ---
+def _chain_certs(pinned_tsa):
+    inter_key = _rsa()
+    inter = _issue_cert(
+        "TSA Inter",
+        inter_key,
+        "Root TSA CA",
+        pinned_tsa["root_key"],
+        ca=True,
+        eku_ts=False,
+    )
+    leaf2_key = _rsa()
+    leaf2 = _issue_cert(
+        "TSA Signer2", leaf2_key, "TSA Inter", inter_key, ca=False, eku_ts=True
+    )
+    return inter_key, inter, leaf2
+
+
+def test_chain_rejects_expired_root(pinned_tsa):
+    expired_root = _issue_cert(
+        "Root TSA CA",
+        pinned_tsa["root_key"],
+        "Root TSA CA",
+        pinned_tsa["root_key"],
+        ca=True,
+        eku_ts=False,
+        nva=datetime.datetime(2026, 7, 21, 23, 0, tzinfo=datetime.UTC),
+    )
+    # The leaf really is issued by this root key, but the pinned root is expired
+    # at genTime → the root's time-valid check skips it → no path → False.
+    assert (
+        _chain_to_trusted_root(pinned_tsa["leaf"], [], [expired_root], _GEN_TIME)
+        is False
+    )
+
+
+def test_chain_rejects_expired_intermediate(pinned_tsa):
+    inter_key = _rsa()
+    expired_inter = _issue_cert(
+        "TSA Inter",
+        inter_key,
+        "Root TSA CA",
+        pinned_tsa["root_key"],
+        ca=True,
+        eku_ts=False,
+        nva=datetime.datetime(2026, 7, 21, 23, 0, tzinfo=datetime.UTC),
+    )
+    leaf2_key = _rsa()
+    leaf2 = _issue_cert(
+        "TSA Signer2", leaf2_key, "TSA Inter", inter_key, ca=False, eku_ts=True
+    )
+    assert (
+        _chain_to_trusted_root(leaf2, [expired_inter], [pinned_tsa["root"]], _GEN_TIME)
+        is False
+    )
+
+
+def test_chain_skips_unrelated_extra_cert(pinned_tsa):
+    _inter_key, inter, leaf2 = _chain_certs(pinned_tsa)
+    unrelated_key = _rsa()
+    unrelated = _issue_cert(
+        "Unrelated CA",
+        unrelated_key,
+        "Unrelated CA",
+        unrelated_key,
+        ca=True,
+        eku_ts=False,
+    )
+    # The unrelated cert is not leaf2's issuer (verify raises → skipped); the real
+    # intermediate still completes the path → True.
+    assert (
+        _chain_to_trusted_root(
+            leaf2, [unrelated, inter], [pinned_tsa["root"]], _GEN_TIME
+        )
+        is True
+    )
+
+
+def test_chain_bounded_by_max_depth(pinned_tsa):
+    _inter_key, inter, leaf2 = _chain_certs(pinned_tsa)
+    # max_depth=0 forbids using any intermediate, so leaf2 (issued by inter, not
+    # the root directly) cannot reach the trusted root → False.
+    assert (
+        _chain_to_trusted_root(
+            leaf2, [inter], [pinned_tsa["root"]], _GEN_TIME, max_depth=0
+        )
+        is False
+    )
