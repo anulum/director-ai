@@ -510,6 +510,13 @@ def test_default_transport_posts_and_reads(monkeypatch):
     assert captured["content_type"] == "application/timestamp-query"
 
 
+def test_default_transport_rejects_non_http_scheme():
+    # The file:// (and other local) schemes must be refused before urlopen so a
+    # misconfigured TSA URL cannot turn the anchor client into a local-file reader.
+    with pytest.raises(TsaUnreachableError):
+        _default_transport(b"req", "file:///etc/passwd", 5.0)
+
+
 # --------------------------------------------------------------------------- #
 # AuditLog.current_head + config validation
 # --------------------------------------------------------------------------- #

@@ -124,14 +124,22 @@ def _require_asn1crypto() -> Any:
 
 
 def _default_transport(request_der: bytes, tsa_url: str, timeout_s: float) -> bytes:
-    """POST a DER ``TimeStampReq`` to ``tsa_url`` and return the response bytes."""
-    request = urllib.request.Request(  # noqa: S310 - operator-configured TSA URL
+    """POST a DER ``TimeStampReq`` to ``tsa_url`` and return the response bytes.
+
+    The TSA endpoint is an operator-configured deployment setting, but it is
+    restricted to ``http(s)`` here so the ``urllib`` ``file://`` (and similar
+    local-scheme) read vector cannot be reached even from a misconfigured value.
+    The linters below are silenced because that check makes the call safe.
+    """
+    if not tsa_url.lower().startswith(("https://", "http://")):
+        raise TsaUnreachableError(f"TSA URL scheme must be http(s): {tsa_url!r}")
+    request = urllib.request.Request(  # noqa: S310
         tsa_url,
         data=request_der,
         headers={"Content-Type": _TIMESTAMP_QUERY},
         method="POST",
     )
-    with urllib.request.urlopen(  # noqa: S310  # nosec B310 (operator-set TSA URL)
+    with urllib.request.urlopen(  # noqa: S310  # nosec B310  # nosemgrep
         request, timeout=timeout_s
     ) as response:
         return bytes(response.read())
