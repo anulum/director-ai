@@ -32,6 +32,18 @@ jobs:
     permissions:
       id-token: write
     steps:
+      - name: Validate release tag
+        run: |
+          if [ -z "${RELEASE_TAG}" ]; then
+            echo "::error::No release tag resolved (RELEASE_TAG is empty). Trigger via a published Release, or dispatch with the required 'tag' input (e.g. tag=v3.19.0). Refusing to check out an empty ref."
+            exit 1
+          fi
+          case "${RELEASE_TAG}" in
+            v[0-9]*) : ;;
+            *) echo "::error::Release tag '${RELEASE_TAG}' is not a vX.Y.Z tag; refusing to proceed."; exit 1 ;;
+          esac
+          echo "Release tag: ${RELEASE_TAG}"
+
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           ref: ${{ env.RELEASE_TAG }}
