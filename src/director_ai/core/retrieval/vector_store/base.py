@@ -46,10 +46,25 @@ __all__ = [
     "register_vector_backend",
     "get_vector_backend",
     "list_vector_backends",
+    "validate_non_negative_weight",
 ]
 
 _VECTOR_REGISTRY: dict[str, type[VectorBackend]] = {}
 _VECTOR_EP_LOADED = False
+
+
+def validate_non_negative_weight(value: float, field_name: str) -> float:
+    """Return ``value`` as a float, rejecting non-numeric or negative weights.
+
+    Shared by the fusion and composite backends so the fusion-weight validation
+    lives in one place.
+    """
+    if not isinstance(value, int | float) or isinstance(value, bool):
+        raise ValueError(f"{field_name} must be numeric")
+    value = float(value)
+    if value < 0.0:
+        raise ValueError(f"{field_name} must be non-negative")
+    return value
 
 
 def register_vector_backend(name: str, cls: type[VectorBackend]) -> None:

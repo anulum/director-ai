@@ -45,6 +45,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from .base import validate_non_negative_weight
+
 __all__ = [
     "FUSION_METHODS",
     "ScoredRun",
@@ -90,8 +92,8 @@ def fuse_results(
         raise ValueError("rrf_k must be an integer")
     if rrf_k < 1:
         raise ValueError("rrf_k must be at least 1")
-    sparse_weight = _validate_weight(sparse_weight, "sparse_weight")
-    dense_weight = _validate_weight(dense_weight, "dense_weight")
+    sparse_weight = validate_non_negative_weight(sparse_weight, "sparse_weight")
+    dense_weight = validate_non_negative_weight(dense_weight, "dense_weight")
     total_weight = sparse_weight + dense_weight
     if total_weight == 0.0:
         raise ValueError("at least one fusion weight must be positive")
@@ -157,12 +159,3 @@ def _zscores(scores: list[float]) -> list[float]:
         return [0.0] * count
     deviation = variance**0.5
     return [(score - mean) / deviation for score in scores]
-
-
-def _validate_weight(value: float, field_name: str) -> float:
-    if not isinstance(value, int | float) or isinstance(value, bool):
-        raise ValueError(f"{field_name} must be numeric")
-    value = float(value)
-    if value < 0.0:
-        raise ValueError(f"{field_name} must be non-negative")
-    return value
