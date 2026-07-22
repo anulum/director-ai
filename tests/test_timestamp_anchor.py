@@ -276,7 +276,7 @@ def test_verify_token_ec_signature(ec_tsa):
 
 def test_verify_token_rejects_unsupported_key_type(ed25519_tsa):
     # A well-formed token whose TSA cert uses an unsupported key (Ed25519)
-    # must fail closed rather than mis-dispatch to the RSA path.
+    # must fail closed rather than fall through to the RSA path.
     head = _head(b"ed")
     anchor = Rfc3161Anchorer(
         "u", transport=_transport_for(ed25519_tsa, use_ed25519=True)
