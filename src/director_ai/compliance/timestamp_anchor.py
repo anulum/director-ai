@@ -300,22 +300,57 @@ def load_trusted_roots(pem_path: str | Path) -> list[Any]:
 
 
 def _leaf_has_timestamping_eku(leaf: Any) -> bool:
-    """Return whether ``leaf`` carries the id-kp-timeStamping extended key usage."""
+    """Return whether ``leaf``'s EKU is exactly ``{id-kp-timeStamping}`` and critical.
+
+    RFC 3161 §2.3 requires the time-stamping EKU to be the SOLE extended key usage
+    and marked critical; a leaf carrying timeStamping among other usages, or a
+    non-critical EKU, is not a conformant TSA signing certificate and is rejected.
+    """
     from cryptography.x509 import ExtensionNotFound
     from cryptography.x509.oid import ExtendedKeyUsageOID, ExtensionOID
 
     try:
-        eku = leaf.extensions.get_extension_for_oid(
-            ExtensionOID.EXTENDED_KEY_USAGE
-        ).value
+        ext = leaf.extensions.get_extension_for_oid(ExtensionOID.EXTENDED_KEY_USAGE)
     except ExtensionNotFound:
         return False
-    return bool(ExtendedKeyUsageOID.TIME_STAMPING in eku)
+    return bool(ext.critical) and list(ext.value) == [ExtendedKeyUsageOID.TIME_STAMPING]
 
 
 def _cert_time_valid(cert: Any, at_time: Any) -> bool:
     """Return whether ``cert`` is inside its validity window at ``at_time`` (UTC)."""
     return bool(cert.not_valid_before_utc <= at_time <= cert.not_valid_after_utc)
+
+
+def _valid_ca_issuer(cert: Any, intermediates_below: int) -> bool:
+    """Return whether ``cert`` may act as a CA issuer for a path (RFC 5280).
+
+    ``cryptography``'s ``verify_directly_issued_by`` checks only issuer name +
+    signature, so a non-CA end-entity certificate would otherwise be accepted as
+    an issuer. Because intermediates come from the attacker-controlled token, each
+    non-leaf certificate must independently satisfy the CA constraints before it
+    is trusted to have issued the cert below it: ``basicConstraints`` CA=True, a
+    ``pathLenConstraint`` (if present) that permits ``intermediates_below``
+    subordinate CAs, and — when a ``KeyUsage`` extension is present — the
+    ``keyCertSign`` bit.
+    """
+    from cryptography.x509 import ExtensionNotFound
+    from cryptography.x509.oid import ExtensionOID
+
+    try:
+        basic = cert.extensions.get_extension_for_oid(
+            ExtensionOID.BASIC_CONSTRAINTS
+        ).value
+    except ExtensionNotFound:
+        return False
+    if not basic.ca:
+        return False
+    if basic.path_length is not None and intermediates_below > basic.path_length:
+        return False
+    try:
+        key_usage = cert.extensions.get_extension_for_oid(ExtensionOID.KEY_USAGE).value
+    except ExtensionNotFound:
+        return True
+    return bool(key_usage.key_cert_sign)
 
 
 def _chain_to_trusted_root(
@@ -327,13 +362,16 @@ def _chain_to_trusted_root(
 ) -> bool:
     """Return whether ``leaf`` chains to one of ``trusted_roots`` at ``at_time``.
 
-    The leaf must carry the time-stamping EKU and be time-valid; each hop is a
-    ``verify_directly_issued_by`` (issuer-name match + signature) and every cert
-    on the path — leaf, any intermediates drawn from ``extra_certs``, and the
-    terminal trusted root — must be time-valid at ``at_time``. Bounded depth
-    guards a malformed certificate set. There is no revocation or name-constraint
-    checking: trust is anchored on the operator-pinned root, which is the
-    appropriate model for a pinned-root TSA anchor.
+    The leaf must carry a sole, critical time-stamping EKU and be time-valid. Each
+    hop is a ``verify_directly_issued_by`` (issuer-name match + signature); because
+    the intermediates come from the attacker-controlled token, every candidate
+    ISSUER (each intermediate and the pinned root) must also satisfy the CA
+    constraints (:func:`_valid_ca_issuer`: basicConstraints CA=True, keyCertSign,
+    pathLenConstraint) so a leaked non-CA end-entity key cannot forge a chain.
+    Every cert on the path must be time-valid at ``at_time``. Bounded depth guards
+    a malformed certificate set. There is no revocation or name-constraint
+    checking: trust is anchored on the operator-pinned root, the appropriate model
+    for a pinned-root TSA anchor.
     """
     if not _leaf_has_timestamping_eku(leaf) or not _cert_time_valid(leaf, at_time):
         return False
@@ -341,7 +379,7 @@ def _chain_to_trusted_root(
     while frontier:
         node, depth = frontier.pop()
         for root in trusted_roots:
-            if not _cert_time_valid(root, at_time):
+            if not _cert_time_valid(root, at_time) or not _valid_ca_issuer(root, depth):
                 continue
             try:
                 node.verify_directly_issued_by(root)
@@ -351,7 +389,9 @@ def _chain_to_trusted_root(
         if depth >= max_depth:
             continue
         for inter in extra_certs:
-            if not _cert_time_valid(inter, at_time):
+            if not _cert_time_valid(inter, at_time) or not _valid_ca_issuer(
+                inter, depth
+            ):
                 continue
             try:
                 node.verify_directly_issued_by(inter)

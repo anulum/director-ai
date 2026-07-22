@@ -22,8 +22,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `audit_anchor` table. Verification has two tiers: by default internal-consistency
   only (*TSA-token-anchored*); when trusted TSA roots are configured
   (`audit_anchor_tsa_roots`, `director-ai compliance verify-anchors --tsa-roots`)
-  the signing certificate must also chain to a pinned root — valid at `genTime`
-  with the time-stamping EKU — which is *trusted-TSA-attested* and completes
+  the signing certificate must also chain to a pinned root — validated at
+  `genTime`, with a sole critical time-stamping EKU on the leaf and RFC 5280 CA
+  constraints (basicConstraints CA=True, keyCertSign, pathLen) enforced on every
+  attacker-supplied intermediate — which is *trusted-TSA-attested* and completes
   back-dating resistance. `AuditLog.current_head()` exposes the head; the
   `director-ai compliance anchor` / `verify-anchors` commands drive it. Opt-in
   (`audit_anchor_enabled`, default off; `audit_anchor_tsa_url`,

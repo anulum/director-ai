@@ -87,8 +87,34 @@ def _rsa():
     return rsa.generate_private_key(public_exponent=65537, key_size=2048)
 
 
+def _key_usage(key_cert_sign):
+    return c_x509.KeyUsage(
+        digital_signature=False,
+        content_commitment=False,
+        key_encipherment=False,
+        data_encipherment=False,
+        key_agreement=False,
+        key_cert_sign=key_cert_sign,
+        crl_sign=False,
+        encipher_only=False,
+        decipher_only=False,
+    )
+
+
 def _issue_cert(
-    subject_cn, subject_key, issuer_cn, issuer_key, *, ca, eku_ts, nva=None
+    subject_cn,
+    subject_key,
+    issuer_cn,
+    issuer_key,
+    *,
+    ca,
+    eku_ts,
+    nva=None,
+    path_length=None,
+    key_cert_sign=None,
+    extra_eku=False,
+    eku_critical=True,
+    bc_ca=None,
 ):
     base = datetime.datetime(2026, 7, 22, tzinfo=datetime.UTC)
     b = (
@@ -106,12 +132,19 @@ def _issue_cert(
     )
     if ca:
         b = b.add_extension(
-            c_x509.BasicConstraints(ca=True, path_length=None), critical=True
+            c_x509.BasicConstraints(ca=True, path_length=path_length), critical=True
         )
-    if eku_ts:
+    elif bc_ca is not None:
         b = b.add_extension(
-            c_x509.ExtendedKeyUsage([ExtendedKeyUsageOID.TIME_STAMPING]), critical=True
+            c_x509.BasicConstraints(ca=bc_ca, path_length=None), critical=True
         )
+    if key_cert_sign is not None:
+        b = b.add_extension(_key_usage(key_cert_sign), critical=True)
+    if eku_ts:
+        ekus = [ExtendedKeyUsageOID.TIME_STAMPING]
+        if extra_eku:
+            ekus.append(ExtendedKeyUsageOID.SERVER_AUTH)
+        b = b.add_extension(c_x509.ExtendedKeyUsage(ekus), critical=eku_critical)
     return b.sign(issuer_key, hashes.SHA256())
 
 
@@ -1050,5 +1083,134 @@ def test_chain_bounded_by_max_depth(pinned_tsa):
         _chain_to_trusted_root(
             leaf2, [inter], [pinned_tsa["root"]], _GEN_TIME, max_depth=0
         )
+        is False
+    )
+
+
+# --- CA-constraint gate on attacker-supplied intermediates (CEO Finding 1) ---
+def test_chain_rejects_non_ca_intermediate_no_bc(pinned_tsa):
+    # Exploit: a leaked NON-CA end-entity key must not be usable as an issuer.
+    ee_key = _rsa()
+    ee = _issue_cert(
+        "Leaked EE",
+        ee_key,
+        "Root TSA CA",
+        pinned_tsa["root_key"],
+        ca=False,
+        eku_ts=False,
+    )
+    forged_key = _rsa()
+    forged = _issue_cert(
+        "Forged Signer", forged_key, "Leaked EE", ee_key, ca=False, eku_ts=True
+    )
+    # forged <- ee <- root is cryptographically valid, but ee carries no
+    # basicConstraints (not a CA) → rejected as an issuer.
+    assert (
+        _chain_to_trusted_root(forged, [ee], [pinned_tsa["root"]], _GEN_TIME) is False
+    )
+
+
+def test_chain_rejects_intermediate_bc_ca_false(pinned_tsa):
+    ee_key = _rsa()
+    ee = _issue_cert(
+        "EE CA=False",
+        ee_key,
+        "Root TSA CA",
+        pinned_tsa["root_key"],
+        ca=False,
+        eku_ts=False,
+        bc_ca=False,
+    )
+    forged_key = _rsa()
+    forged = _issue_cert(
+        "Forged", forged_key, "EE CA=False", ee_key, ca=False, eku_ts=True
+    )
+    assert (
+        _chain_to_trusted_root(forged, [ee], [pinned_tsa["root"]], _GEN_TIME) is False
+    )
+
+
+def test_chain_rejects_ca_without_keycertsign(pinned_tsa):
+    inter_key = _rsa()
+    inter = _issue_cert(
+        "Inter NoKCS",
+        inter_key,
+        "Root TSA CA",
+        pinned_tsa["root_key"],
+        ca=True,
+        eku_ts=False,
+        key_cert_sign=False,
+    )
+    leaf2_key = _rsa()
+    leaf2 = _issue_cert(
+        "Signer2", leaf2_key, "Inter NoKCS", inter_key, ca=False, eku_ts=True
+    )
+    assert (
+        _chain_to_trusted_root(leaf2, [inter], [pinned_tsa["root"]], _GEN_TIME) is False
+    )
+
+
+def test_chain_accepts_ca_with_keycertsign(pinned_tsa):
+    inter_key = _rsa()
+    inter = _issue_cert(
+        "Inter KCS",
+        inter_key,
+        "Root TSA CA",
+        pinned_tsa["root_key"],
+        ca=True,
+        eku_ts=False,
+        key_cert_sign=True,
+    )
+    leaf2_key = _rsa()
+    leaf2 = _issue_cert(
+        "Signer2", leaf2_key, "Inter KCS", inter_key, ca=False, eku_ts=True
+    )
+    assert (
+        _chain_to_trusted_root(leaf2, [inter], [pinned_tsa["root"]], _GEN_TIME) is True
+    )
+
+
+def test_chain_rejects_pathlen_exceeded():
+    root_key = _rsa()
+    root0 = _issue_cert(
+        "Root0", root_key, "Root0", root_key, ca=True, eku_ts=False, path_length=0
+    )
+    inter_key = _rsa()
+    inter = _issue_cert("Inter", inter_key, "Root0", root_key, ca=True, eku_ts=False)
+    leaf2_key = _rsa()
+    leaf2 = _issue_cert("Signer2", leaf2_key, "Inter", inter_key, ca=False, eku_ts=True)
+    # root0 has pathLenConstraint=0 → no subordinate CA permitted below it, but
+    # `inter` is a subordinate CA → the leaf2 <- inter <- root0 path is rejected.
+    assert _chain_to_trusted_root(leaf2, [inter], [root0], _GEN_TIME) is False
+
+
+# --- RFC 3161 §2.3 leaf EKU strictness (CEO Finding 2) ---
+def test_chain_rejects_multi_eku_leaf(pinned_tsa):
+    leaf_key = _rsa()
+    multi = _issue_cert(
+        "Multi EKU",
+        leaf_key,
+        "Root TSA CA",
+        pinned_tsa["root_key"],
+        ca=False,
+        eku_ts=True,
+        extra_eku=True,
+    )
+    assert _chain_to_trusted_root(multi, [], [pinned_tsa["root"]], _GEN_TIME) is False
+
+
+def test_chain_rejects_non_critical_eku_leaf(pinned_tsa):
+    leaf_key = _rsa()
+    non_critical = _issue_cert(
+        "NonCrit EKU",
+        leaf_key,
+        "Root TSA CA",
+        pinned_tsa["root_key"],
+        ca=False,
+        eku_ts=True,
+        eku_critical=False,
+    )
+    assert (
+        _chain_to_trusted_root(non_critical, [], [pinned_tsa["root"]], _GEN_TIME)
         is False
     )
