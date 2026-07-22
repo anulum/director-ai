@@ -14,11 +14,16 @@ linkage + HMAC ``chain_tag``). That proves **tamper-evidence** but not
 **existence-at-time**: whoever holds the HMAC secret can rebuild the whole chain
 with back-dated timestamps.
 
-This module closes that gap. A Timestamp Authority (TSA) signs an RFC 3161
+This module narrows that gap. A Timestamp Authority (TSA) signs an RFC 3161
 timestamp token over the current chain **head** (``entry_hash`` — which, through
 the ``prev_hash`` linkage, commits to the whole prior history). A stored, verified
-token proves the chain up to that head existed at or before the TSA's ``genTime``;
-the keyholder cannot back-date past an anchor without also forging a TSA signature.
+token binds the chain up to that head to the token's ``genTime``: it is
+TSA-token-anchored. Verification here is internal-consistency only — the token is
+signed by the certificate it carries over exactly our digest. Chaining that
+certificate to a *trusted* TSA root (root-of-trust pinning), which is what turns
+"some certificate attested this time" into "a trusted TSA attested this time" and
+completes back-dating resistance, is a documented follow-up. Do not describe an
+anchor as trusted-TSA-attested until that lands.
 
 The feature is **opt-in and offline-graceful**: :func:`try_anchor_chain_head`
 never raises into a caller near the audit path — a down or unreachable TSA yields
@@ -244,18 +249,23 @@ def _reencode_signed_attrs(signer_info: Any) -> bytes:
 
 
 def verify_token(anchor: TimestampAnchor, expected_hash_hex: str) -> bool:
-    """Return ``True`` when ``anchor``'s token binds ``expected_hash_hex``.
+    """Return ``True`` when the token is internally consistent over the digest.
 
-    Three checks, all of which must pass: the token's message imprint equals
-    ``SHA-256(expected_hash_hex bytes)``; the CMS signature over the signed
-    attributes verifies against the TSA certificate embedded in the token; and
-    the ``message-digest`` signed attribute equals the hash of the encapsulated
-    ``TSTInfo``. Any parse error or mismatch returns ``False`` — verification is
-    fail-closed.
+    Four checks, all of which must pass (fail-closed — any parse error or
+    mismatch returns ``False``): the token's message imprint equals
+    ``SHA-256(expected_hash_hex bytes)``; the ``content-type`` signed attribute
+    is ``id-ct-TSTInfo``; the ``message-digest`` signed attribute equals the hash
+    of the encapsulated ``TSTInfo``; and the CMS signature over the signed
+    attributes verifies against the certificate embedded in the token (RSA or
+    ECDSA; other key types fail closed).
 
-    Full chain-of-trust validation to a configured TSA root is a documented
-    follow-up; this establishes that the token is internally consistent and
-    signed by the certificate it carries, over exactly our anchored digest.
+    Scope (honest): this establishes that *some* certificate signed this digest
+    at the claimed ``genTime`` — the token is internally consistent and signed by
+    the certificate it carries. It does NOT yet chain that certificate to a
+    trusted TSA root, so back-dating resistance depends on the certificate being
+    trusted out of band. Root-of-trust pinning to a configured TSA root — which
+    would upgrade the guarantee to "a *trusted* TSA attested" — is a documented
+    follow-up.
     """
     try:
         cms, _tsp = _require_asn1crypto()
@@ -273,12 +283,16 @@ def verify_token(anchor: TimestampAnchor, expected_hash_hex: str) -> bool:
         signer_info = signed_data["signer_infos"][0]
         econtent_der = bytes(signed_data["encap_content_info"]["content"].parsed.dump())
 
-        # The message-digest signed attribute must bind the encapsulated content.
-        digest_attr = None
-        for attr in signer_info["signed_attrs"]:
-            if attr["type"].native == "message_digest":
-                digest_attr = attr["values"][0].native
-        if digest_attr != hashlib.sha256(econtent_der).digest():
+        # The signed attributes must bind the content: content-type must be
+        # id-ct-TSTInfo (RFC 3161) and message-digest = SHA-256(the TSTInfo).
+        # A missing attribute reads as None and fails the corresponding check.
+        signed_attrs = {
+            attr["type"].native: attr["values"][0].native
+            for attr in signer_info["signed_attrs"]
+        }
+        if signed_attrs.get("content_type") != "tst_info":
+            return False
+        if signed_attrs.get("message_digest") != hashlib.sha256(econtent_der).digest():
             return False
 
         cert_der = bytes(signed_data["certificates"][0].chosen.dump())

@@ -88,6 +88,7 @@ def _mint(
     serial=42,
     status="granted",
     content_type="tst_info",
+    signed_content_type=None,
     algo="sha256",
     wrong_message_digest=False,
     use_ec=False,
@@ -111,9 +112,12 @@ def _mint(
     digest_value = (
         b"\x00" * 32 if wrong_message_digest else hashlib.sha256(tst_der).digest()
     )
+    attr_content_type = (
+        content_type if signed_content_type is None else signed_content_type
+    )
     signed_attrs = cms.CMSAttributes(
         [
-            cms.CMSAttribute({"type": "content_type", "values": [content_type]}),
+            cms.CMSAttribute({"type": "content_type", "values": [attr_content_type]}),
             cms.CMSAttribute({"type": "message_digest", "values": [digest_value]}),
         ]
     )
@@ -307,6 +311,16 @@ def test_verify_token_rejects_wrong_message_digest(rsa_tsa):
         "u", transport=_transport_for(rsa_tsa, wrong_message_digest=True)
     ).submit(head)
     # imprint + signature verify, but the message-digest attr does not bind eContent.
+    assert verify_token(anchor, head) is False
+
+
+def test_verify_token_rejects_wrong_content_type_attr(rsa_tsa):
+    head = _head()
+    # Encapsulated content is a real TSTInfo (so submit accepts it), but the
+    # signed content-type attribute claims 'data' instead of id-ct-TSTInfo.
+    anchor = Rfc3161Anchorer(
+        "u", transport=_transport_for(rsa_tsa, signed_content_type="data")
+    ).submit(head)
     assert verify_token(anchor, head) is False
 
 
