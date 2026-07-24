@@ -307,3 +307,5 @@ target/
 
 # Default fine-tuning runtime directory (models + persistent job database)
 director-models/
+
+docs/internal/**
