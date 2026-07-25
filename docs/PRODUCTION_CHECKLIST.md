@@ -300,7 +300,7 @@ The only token cost is the optional LLM-as-judge escalation path.
 | Metric | Healthy | Alert Threshold |
 |--------|---------|-----------------|
 | Hallucination rate | <5% | >15% for 5 min |
-| Review latency p95 | <50 ms | >500 ms |
+| Review latency p95 | Meets the deployment's qualified target | Exceeds that target (bundled example: >500 ms) |
 | Streaming halts/min | <1 | >10 |
 | Drift score | <0.1 | >0.2 for 15 min |
 | KB query failures | <1% | >5% |
@@ -313,6 +313,20 @@ For deployment gates, pair Grafana with the tenant-safe operations packet from
 drift alerts, readiness controls, and Article 15/SOC 2/HIPAA evidence
 references are reviewable without exposing raw prompts, responses, PHI, or raw
 security evidence.
+
+Before release, qualify the exact image and host through the live HTTP surface:
+
+```bash
+director-ai latency-slo \
+  --server http://127.0.0.1:8080 \
+  --requests 500 --warmup 50 --concurrency 16 \
+  --target-p95-ms 500 --max-error-rate 0.01 \
+  --output evidence/latency-slo.json
+```
+
+Treat the target as an operator-approved deployment SLO, not a universal
+Director-AI guarantee. Archive the integrity packet and repeat the gate after
+changes to the model, image, hardware, queue, proxy, or concurrency target.
 
 ---
 

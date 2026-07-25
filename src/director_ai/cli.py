@@ -16,6 +16,7 @@ Usage::
     director-ai batch input.jsonl --output results.jsonl
     director-ai bench --dataset regression --seed 42 --output results.json
     director-ai serve --port 8080 --profile thorough
+    director-ai latency-slo --server http://127.0.0.1:8080
     director-ai config --profile fast
 """
 
@@ -109,6 +110,7 @@ _LAZY_ATTRS = {
     "_cmd_proxy": "._cli_serve",
     "_cmd_serve": "._cli_serve",
     "_cmd_stress_test": "._cli_serve",
+    "_cmd_latency_slo": "._cli_latency_slo",
 }
 
 
@@ -541,6 +543,10 @@ def _command_specs() -> dict[str, _CommandSpec]:
         "stress-test": _CommandSpec(
             _lazy_handler("._cli_serve", "_cmd_stress_test"),
             "stress-test [options] Benchmark streaming kernel throughput",
+        ),
+        "latency-slo": _CommandSpec(
+            _lazy_handler("._cli_latency_slo", "_cmd_latency_slo"),
+            "latency-slo [options] Qualify a live deployment latency SLO",
         ),
         "doctor": _CommandSpec(
             _cmd_doctor,

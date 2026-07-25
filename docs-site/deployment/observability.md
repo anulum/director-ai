@@ -54,6 +54,35 @@ For halt-rate, false-positive-rate, stale-knowledge, and retune alerts, also add
 | `ErrorRateHigh` | HTTP 5xx ratio > 1% for 5 min | critical |
 | `StaleKnowledgeSources` | stale KB source count > 0 for 15 min | warning |
 
+The bundled 500 ms alert is a conservative example, not a product-wide SLO.
+Set the Prometheus threshold to the same operator-approved target used to
+qualify the deployment.
+
+## Release-time latency qualification
+
+Prometheus shows the running trend; the installed qualification gate proves
+whether one release met its declared operating point through the full HTTP
+boundary:
+
+```bash
+director-ai latency-slo \
+  --server http://127.0.0.1:8080 \
+  --requests 500 --warmup 50 --concurrency 16 \
+  --target-p95-ms 500 --max-error-rate 0.01 \
+  --output evidence/latency-slo.json
+```
+
+Use a target selected for your service, not the example value above. Store the
+generated packet with release evidence and re-run whenever the serving image,
+model backend, host, proxy, queue configuration, or target concurrency changes.
+The command returns 0 only when readiness, warmup stability, p95, and error-rate
+checks pass; a target miss returns 2 while still writing a verifiable evidence
+packet.
+
+The packet is safe to retain in an internal evidence store: it contains only
+aggregate measurements, workload identity, failure categories, and non-secret
+runtime provenance. It does not contain API keys or raw prompt/response bodies.
+
 ## Setup
 
 ### Prometheus

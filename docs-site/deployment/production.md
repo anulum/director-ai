@@ -291,13 +291,42 @@ Tenant groups inside one flush are dispatched concurrently. This preserves
 tenant-specific scorer calls while avoiding a response-time signal that scales
 linearly with the number of tenants represented in the flush window.
 
-### Throughput Comparison
+### Latency SLO qualification
 
-| Mode | GPU Kernels | Per-Pair Latency | Use Case |
-|------|-------------|------------------|----------|
-| `review()` serial | 2 per pair | 14.6 ms (ONNX GPU) | Single requests |
-| `review_batch()` coalesced | 2 total | ~14.6 ms amortised | Batch API (`/v1/batch`) |
-| ReviewQueue (10ms flush) | ~2 per window | 10-20 ms p95 | High-concurrency API |
+Do not turn a development-machine benchmark into a universal latency claim.
+Hardware, model backend, queue settings, network path, concurrency, and other
+host load all affect end-to-end latency. Qualify the exact deployable operating
+point instead:
+
+```bash
+# DIRECTOR_API_KEY may be set for an authenticated production deployment.
+director-ai latency-slo \
+  --server http://127.0.0.1:8080 \
+  --requests 500 \
+  --warmup 50 \
+  --concurrency 16 \
+  --target-p95-ms 500 \
+  --max-error-rate 0.01 \
+  --output evidence/latency-slo.json
+```
+
+The command checks `/v1/ready`, sends a fixed benign workload through the real
+`/v1/review` HTTP boundary, excludes warmup requests, and exits with status 2
+when either the p95 or error-rate target is missed. Its integrity packet records
+the operating point, aggregate p50/p95/p99, throughput, runtime provenance,
+workload hash, and failure categories. It never records the API key or raw
+prompt/response bodies.
+
+An exit status of 0 supports only this statement: **this deployment met the
+declared target for this workload and operating point**. It does not establish
+a hard real-time or hardware-independent guarantee. Re-run after changing the
+image, model, host, queue settings, reverse proxy, or concurrency target, and
+retain the evidence packet with the release evidence.
+
+ReviewQueue reduces model invocations per flush window when the selected backend
+supports batch scoring. Its flush timeout also adds queueing time. The correct
+latency number is therefore the value measured for the deployed configuration,
+not a generic number attached to ReviewQueue.
 
 ## Security
 
