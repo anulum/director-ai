@@ -12,6 +12,7 @@ error while the instance kept running — is provably caught.
 
 from __future__ import annotations
 
+import argparse
 from collections.abc import Callable
 
 import pytest
@@ -181,6 +182,41 @@ def test_main_returns_two_without_token(monkeypatch: pytest.MonkeyPatch) -> None
     assert runner.main([]) == 2
 
 
+def test_main_passes_validated_remote_dependencies(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class _Inst:
+        ssh_str = "ssh -p 22 root@host"
+        machine_id = "m1"
+
+    calls: list[tuple[str, ...]] = []
+    monkeypatch.setenv("JARVISLABS_TOKEN", "x" * 43)
+    monkeypatch.setattr(runner, "provision", lambda *a, **k: _Inst())
+    monkeypatch.setattr(
+        runner,
+        "run_redteam",
+        lambda _ssh, _tag, _script, deps: calls.append(deps),
+    )
+    monkeypatch.setattr(runner, "download_artefact", lambda *a, **k: None)
+    monkeypatch.setattr(runner, "destroy_instance", lambda inst: True)
+
+    result = runner.main(
+        ["--remote-deps", "datasets", "pandas>=2,<3", "httpx[http2]>=0.27"]
+    )
+
+    assert result == 0
+    assert calls == [("datasets", "pandas<3,>=2", "httpx[http2]>=0.27")]
+
+
+@pytest.mark.parametrize(
+    "requirement",
+    ["--index-url=https://attacker.invalid", "datasets; touch /tmp/pwn", ""],
+)
+def test_remote_dependency_rejects_non_requirement_input(requirement: str) -> None:
+    with pytest.raises(argparse.ArgumentTypeError):
+        runner._remote_dependency(requirement)
+
+
 def test_ssh_parts_extracts_port_and_host() -> None:
     assert runner._ssh_parts("ssh -p 2222 root@1.2.3.4") == ("2222", "root@1.2.3.4")
     assert runner._ssh_parts("ssh root@1.2.3.4") == ("22", "root@1.2.3.4")
@@ -197,3 +233,21 @@ def test_rendered_remote_script_records_provenance() -> None:
     assert "benchmarks/foo.py --out" in script
     assert "__TAG__" not in script
     assert "__SCRIPT__" not in script
+    assert "__REMOTE_DEPS__" not in script
+
+
+def test_rendered_remote_script_shell_quotes_extra_dependencies() -> None:
+    deps = (
+        runner._remote_dependency("datasets"),
+        runner._remote_dependency('importlib-metadata; python_version < "3.12"'),
+    )
+
+    script = runner._render_remote_script(
+        "release candidate",
+        "benchmarks/red team.py",
+        deps,
+    )
+
+    assert "--branch 'release candidate' " in script
+    assert "python 'benchmarks/red team.py' --out" in script
+    assert "requests datasets 'importlib-metadata; python_version < \"3.12\"'" in script

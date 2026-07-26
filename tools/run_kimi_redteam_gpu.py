@@ -17,7 +17,7 @@ availability, py3.11, ensurepip) is encoded in :data:`REMOTE_SCRIPT`.
 Usage::
 
     export JARVISLABS_TOKEN=...
-    python tools/run_kimi_redteam_gpu.py --gpu A30 --tag v3.18.1
+    python tools/run_kimi_redteam_gpu.py --gpu A30 --tag v3.18.1 --remote-deps datasets
 """
 
 from __future__ import annotations
@@ -25,11 +25,14 @@ from __future__ import annotations
 import argparse
 import logging
 import os
+import shlex
 import subprocess
 import time
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any
+
+from packaging.requirements import InvalidRequirement, Requirement
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(message)s")
 logger = logging.getLogger("DirectorAI.KimiRedteamGPU")
@@ -50,7 +53,7 @@ NOIDA_REGION = "india-noida-01"
 # harness. An editable install carries proxy.py + all source (the wheel
 # exclude does not apply to a source install).
 REMOTE_SCRIPT = r"""#!/usr/bin/env bash
-set -uo pipefail
+set -euo pipefail
 echo "=== KIMI red-team reproduction (JarvisLabs) ==="
 nvidia-smi --query-gpu=name --format=csv,noheader || echo "no GPU?"
 rm -rf /home/director-ai
@@ -62,7 +65,7 @@ CONDA=/root/miniconda3/bin/conda
 $CONDA create -n py311 python=3.11 -y -c conda-forge --override-channels
 CR="$CONDA run -n py311 --no-capture-output"
 $CR python -m ensurepip --upgrade
-$CR python -m pip install --quiet "torch>=2.8,<3" "transformers>=5.0.0rc3,<6" numpy requests
+$CR python -m pip install --quiet "torch>=2.8,<3" "transformers>=5.0.0rc3,<6" numpy requests__REMOTE_DEPS__
 $CR python -m pip install --quiet -e . --no-deps
 $CR python -c "import torch; print('cuda:', torch.cuda.is_available())"
 $CR python __SCRIPT__ --out /home/director-ai/kimi_repro.json --git-sha "$GIT_SHA"
@@ -115,26 +118,57 @@ def _ssh_parts(ssh_str: str) -> tuple[str, str]:
     return port, parts[-1]
 
 
-def _render_remote_script(tag: str, script_path: str) -> str:
-    """Fill the remote recipe for *tag* and *script_path*.
+def _remote_dependency(value: str) -> str:
+    """Validate and canonicalise one remote PEP 508 requirement.
+
+    Rejecting pip options and shell fragments here keeps ``--remote-deps`` an
+    explicit package list rather than an escape hatch into the generated
+    remote shell program.
+    """
+    try:
+        return str(Requirement(value.strip()))
+    except InvalidRequirement as exc:
+        raise argparse.ArgumentTypeError(
+            f"invalid PEP 508 remote dependency {value!r}: {exc}"
+        ) from exc
+
+
+def _render_remote_script(
+    tag: str,
+    script_path: str,
+    remote_deps: tuple[str, ...] = (),
+) -> str:
+    """Fill the remote recipe for *tag*, *script_path*, and dependencies.
 
     The remote resolves the exact cloned commit (``git rev-parse HEAD``) and
     passes it to the benchmark as ``--git-sha`` so the artefact records the true
-    commit that produced the numbers, not just the (movable) tag.
+    commit that produced the numbers, not just the (movable) tag. All rendered
+    values are shell-quoted; dependencies have already passed PEP 508 parsing.
     """
-    return REMOTE_SCRIPT.replace("__TAG__", tag).replace("__SCRIPT__", script_path)
+    dependency_args = "".join(f" {shlex.quote(dep)}" for dep in remote_deps)
+    return (
+        REMOTE_SCRIPT.replace("__TAG__", shlex.quote(tag))
+        .replace("__SCRIPT__", shlex.quote(script_path))
+        .replace("__REMOTE_DEPS__", dependency_args)
+    )
 
 
-def run_redteam(ssh_str: str, tag: str, script_path: str) -> None:
+def run_redteam(
+    ssh_str: str,
+    tag: str,
+    script_path: str,
+    remote_deps: tuple[str, ...] = (),
+) -> None:
     """Write and execute the red-team script on the remote, streaming output.
 
     The remote clones *tag* from GitHub itself, so no local upload is needed.
     *script_path* is the repo-relative benchmark run on the GPU; it must accept
-    ``--out`` and ``--git-sha`` and write its JSON artefact there.
+    ``--out`` and ``--git-sha`` and write its JSON artefact there. *remote_deps*
+    adds validated PEP 508 requirements to the reproducible remote environment.
     """
     port, host = _ssh_parts(ssh_str)
     ssh_base = f"ssh -p {port} -o StrictHostKeyChecking=no {host}"
-    script = _render_remote_script(tag, script_path)
+    script = _render_remote_script(tag, script_path, remote_deps)
     remote = "/tmp/run_kimi_redteam.sh"
     subprocess.run(
         f"{ssh_base} 'cat > {remote}' << 'REMOTE_EOF'\n{script}\nREMOTE_EOF",
@@ -250,6 +284,17 @@ def main(argv: list[str] | None = None) -> int:
         default="benchmarks/kimi_redteam_reproduction.py",
         help="repo-relative benchmark to run on the GPU (must accept --out)",
     )
+    parser.add_argument(
+        "--remote-deps",
+        nargs="+",
+        type=_remote_dependency,
+        default=(),
+        metavar="REQUIREMENT",
+        help=(
+            "additional PEP 508 requirements installed in the remote environment "
+            "(for example: --remote-deps datasets 'pandas>=2,<3')"
+        ),
+    )
     parser.add_argument("--out", default="kimi_redteam_reproduction.json")
     args = parser.parse_args(argv)
 
@@ -261,7 +306,7 @@ def main(argv: list[str] | None = None) -> int:
     inst = provision(args.gpu, args.storage, token)
     teardown_confirmed = True
     try:
-        run_redteam(inst.ssh_str, args.tag, args.script)
+        run_redteam(inst.ssh_str, args.tag, args.script, tuple(args.remote_deps))
         download_artefact(inst.ssh_str, args.out)
     finally:
         teardown_confirmed = destroy_instance(inst)
