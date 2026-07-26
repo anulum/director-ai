@@ -4,7 +4,7 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI — Project Configuration
+# Director-AI — Project Configuration
 
 [build-system]
 requires = ["setuptools>=42", "wheel"]
@@ -12,7 +12,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "director-ai"
-version = "3.19.0"
+version = "3.20.0"
 description = "Response-level LLM hallucination guardrail — NLI + RAG fact-checking with audit evidence"
 authors = [
     {name = "Miroslav Šotek", email = "protoscience@anulum.li"}

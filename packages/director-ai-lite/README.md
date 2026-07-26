@@ -59,7 +59,7 @@ Director-Lite is the free, standalone entry point. The wider product ladder:
 | **Director-AI** | The full runtime — model-backed NLI/RAG scoring, REST/gRPC server, framework integrations, sealed evidence packets, tamper-evident audit. |
 | **Director-AI Pro** | Production-tier licence and support on top of the full runtime. |
 | **Director-AI Full** | The complete advanced + labs capability set. |
-| **Director-Class AI** | Enterprise: managed/on-prem deployment, domain tuning, evidence reviews, SLA, procurement support. |
+| **Director-Class AI** | Separate action-control and evidence product for high-impact agent operations; scoped commercial order. |
 
 ## Support development ☕
 

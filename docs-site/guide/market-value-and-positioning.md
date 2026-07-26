@@ -4,7 +4,7 @@
 <!-- Copyright © Code 2020-2026 Miroslav Sotek. All rights reserved. -->
 <!-- ORCID: 0009-0009-3560-0851 -->
 <!-- Contact: www.anulum.li | protoscience@anulum.li -->
-<!-- Director-Class AI - Market Value and Positioning -->
+<!-- Director-AI - Market Value and Positioning -->
 
 ## Why teams buy this
 

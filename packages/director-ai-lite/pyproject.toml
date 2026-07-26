@@ -4,7 +4,7 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI — Director-Lite package metadata
+# Director-AI — Director-Lite package metadata
 
 [build-system]
 requires = ["setuptools>=42", "wheel"]
@@ -12,7 +12,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "director-ai-lite"
-version = "3.19.0"
+version = "3.20.0"
 description = "Standalone three-line LLM streaming-halt guard — model-free, zero dependencies"
 authors = [
     {name = "Miroslav Šotek", email = "protoscience@anulum.li"}
@@ -46,19 +46,19 @@ dependencies = []
 
 [project.optional-dependencies]
 full = [
-    "director-ai>=3.19.0,<4",
+    "director-ai>=3.20.0,<4",
 ]
 nli = [
-    "director-ai[nli]>=3.19.0,<4",
+    "director-ai[nli]>=3.20.0,<4",
 ]
 rag = [
-    "director-ai[vector]>=3.19.0,<4",
+    "director-ai[vector]>=3.20.0,<4",
 ]
 server = [
-    "director-ai[server]>=3.19.0,<4",
+    "director-ai[server]>=3.20.0,<4",
 ]
 recommended = [
-    "director-ai[recommended]>=3.19.0,<4",
+    "director-ai[recommended]>=3.20.0,<4",
 ]
 
 [project.urls]

@@ -23,10 +23,11 @@ Looking for tiers and prices? See the <a href="pricing.md">Pricing page</a>.
 
 ---
 
-## :material-tag-heart: Founding Member Program
+## :material-tag-heart: Commercial Plans
 
-!!! tip "Limited: 10 spots remaining"
-    Founding Members get **permanent pricing lock** at 40–50% off standard rates, plus direct access to the maintainer. Once 10 spots fill, prices move to standard tier. No deadline — lock your rate today.
+Pro and Full are recurring annual subscriptions. The canonical prices,
+checkout links, invoice options, and current terms live on the dedicated
+**[Pricing page](pricing.md)**.
 
 ---
 
@@ -37,15 +38,16 @@ the dedicated **[Pricing page](pricing.md)** — one source of truth for prices.
 
 In short: `director-ai-lite` is the free PyPI adoption package; the
 **Apache-2.0 core** in `director-ai` is free for everyone, in production, with
-no strings; the commercial tiers add a production licence for the **BUSL-1.1
-Advanced & Labs** capabilities plus support and SLAs; Director-Class AI is the
-premium implementation and evidence programme, not a separate Python wheel.
+no strings; the commercial tiers add production entitlement for the **BUSL-1.1
+Advanced & Labs** capabilities plus support; Director-Class AI is a separate
+action-control and evidence product with scoped terms, not a Director-AI wheel.
 
 | Route | Licence status | Support | Production use |
 |---|---|---|---|
 | **Director-Lite** | Free package; Apache-2.0 adoption surface | Community / self-support | Allowed, including closed-source products |
 | **Director-AI Pro self-host** | Commercial licence for BUSL-1.1 advanced tier | Priority support, 99.5 % support target | Allowed for self-hosted production and internal platforms |
-| **Director-Class AI** | Commercial licence with negotiated terms | Dedicated support engineer, custom SLA, tuning and architecture reviews | Allowed for regulated, air-gapped, multi-tenant, or procurement-heavy deployments |
+| **Director-AI Full self-host** | Commercial licence for BUSL-1.1 Advanced plus Labs/Research | Direct engineering support | Allowed for the complete self-hosted capability set |
+| **Director-Class AI** | Separate BUSL action-control product with negotiated terms | Defined in the accepted order form | High-impact agent action control, approval routing, and evidence under the scoped deployment terms |
 
 [See pricing :material-arrow-right:](pricing.md){ .md-button .md-button--primary }
 

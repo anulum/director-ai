@@ -4,7 +4,7 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI — pricing tier-boundary documentation tests
+# Director-AI — pricing tier-boundary documentation tests
 """Regression tests for the public package, pricing, and tier boundary."""
 
 from __future__ import annotations
@@ -30,22 +30,24 @@ def test_readme_declares_three_tier_product_ladder() -> None:
     assert "separate product and repository" in doc
 
 
-def test_pricing_page_uses_usd_and_package_boundary() -> None:
+def test_pricing_page_matches_canonical_annual_plans_and_package_boundary() -> None:
     doc = _doc("docs-site/pricing.md")
 
     assert "Director-Lite" in doc
     assert "USD 0" in doc
     assert "Director-AI Pro self-host" in doc
-    assert "USD 199/mo" in doc
-    assert "USD 499/mo" in doc
-    assert "USD 999/mo" in doc
+    assert "CHF or USD 490/yr" in doc
+    assert "CHF or USD 980/yr" in doc
+    assert "Scoped order form" in doc
     assert "Director-Class AI" in doc
     assert "separate product and repository" in doc
     assert "Perpetual" not in doc
     assert "CHF 199/mo" not in doc
     assert "CHF 49/mo" not in doc
-    assert "polar.sh/checkout" not in doc
-    assert "www.remanentia.com/pricing.html" in doc
+    assert "polar_cl_ZL5n1rzt21MgcB3zZ5yT3ryR4vS5n14ZowXmR0PrsoC" in doc
+    assert "polar_cl_Vwul7eQZziIHUZVM8TBvgIGIKMvqBD5KnAK9E3UTU5w" in doc
+    assert "www.anulum.li/director-ai/pricing.html" in doc
+    assert "www.remanentia.com/pricing.html" not in doc
 
 
 def test_lite_package_readme_points_to_upgrade_path() -> None:

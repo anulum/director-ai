@@ -5,7 +5,7 @@ Commercial license available
 © Code 2020–2026 Miroslav Šotek. All rights reserved.
 ORCID: 0009-0009-3560-0851
 Contact: www.anulum.li | protoscience@anulum.li
-Director-Class AI — Financial services policy API
+Director-AI — Financial services policy API
 -->
 
 # Financial Services Policy API

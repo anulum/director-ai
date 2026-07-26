@@ -32,13 +32,13 @@ class TestCLIHelp:
     def test_help_flag(self, capsys):
         main(["--help"])
         captured = capsys.readouterr()
-        assert "Director-Class AI CLI" in captured.out
+        assert "Director-AI CLI" in captured.out
         assert "Commands:" in captured.out
 
     def test_no_args_shows_help(self, capsys):
         main([])
         captured = capsys.readouterr()
-        assert "Director-Class AI CLI" in captured.out
+        assert "Director-AI CLI" in captured.out
 
     def test_unknown_command(self, capsys):
         with pytest.raises(SystemExit) as exc_info:

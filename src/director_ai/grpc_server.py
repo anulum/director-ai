@@ -6,7 +6,7 @@
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI — gRPC Transport
 
-"""gRPC server for Director-Class AI.
+"""gRPC server for Director-AI.
 
 Usage::
 

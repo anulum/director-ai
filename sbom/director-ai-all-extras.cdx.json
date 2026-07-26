@@ -6,9 +6,9 @@
     "component": {
       "type": "application",
       "name": "director-ai",
-      "version": "3.19.0",
-      "bom-ref": "pkg:pypi/director-ai@3.19.0",
-      "purl": "pkg:pypi/director-ai@3.19.0"
+      "version": "3.20.0",
+      "bom-ref": "pkg:pypi/director-ai@3.20.0",
+      "purl": "pkg:pypi/director-ai@3.20.0"
     },
     "properties": [
       {
@@ -42,6 +42,13 @@
       "purl": "pkg:pypi/argon2-cffi",
       "bom-ref": "pkg:pypi/argon2-cffi",
       "version": "<26,>=23.1"
+    },
+    {
+      "type": "library",
+      "name": "asn1crypto",
+      "purl": "pkg:pypi/asn1crypto",
+      "bom-ref": "pkg:pypi/asn1crypto",
+      "version": "<2,>=1.5"
     },
     {
       "type": "library",
@@ -176,6 +183,18 @@
         {
           "name": "pypi:extras",
           "value": "crewai"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "director-ai",
+      "purl": "pkg:pypi/director-ai",
+      "bom-ref": "pkg:pypi/director-ai",
+      "properties": [
+        {
+          "name": "pypi:extras",
+          "value": "crypto"
         }
       ]
     },
@@ -705,7 +724,7 @@
       "name": "polar-sdk",
       "purl": "pkg:pypi/polar-sdk",
       "bom-ref": "pkg:pypi/polar-sdk",
-      "version": "==0.31.7"
+      "version": "==0.32.0"
     },
     {
       "type": "library",
@@ -922,7 +941,7 @@
       "name": "z3-solver",
       "purl": "pkg:pypi/z3-solver",
       "bom-ref": "pkg:pypi/z3-solver",
-      "version": "<5,>=4.12"
+      "version": "<6,>=4.12"
     }
   ]
 }

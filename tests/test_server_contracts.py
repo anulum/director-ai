@@ -4,7 +4,7 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI — Server endpoint contract tests
+# Director-AI — Server endpoint contract tests
 
 from __future__ import annotations
 
@@ -49,6 +49,13 @@ def _review_result(*, halted: bool = False) -> ReviewResult:
         candidates_evaluated=2,
         fallback_used=True,
     )
+
+
+def test_server_reports_release_identity() -> None:
+    app = create_app(DirectorConfig(api_keys=[], llm_provider="mock", use_nli=False))
+
+    assert app.title == "Director-AI"
+    assert app.version == "3.20.0"
 
 
 def test_server_rejects_excessive_cors_origins() -> None:

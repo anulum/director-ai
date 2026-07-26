@@ -4,7 +4,7 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI — director-ai-pro package metadata
+# Director-AI — director-ai-pro package metadata
 
 [build-system]
 requires = ["setuptools>=42", "wheel"]
@@ -12,7 +12,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "director-ai-pro"
-version = "3.19.0"
+version = "3.20.0"
 description = "Advanced commercial tier for Director-AI — compliance, enterprise, streaming repair, multimodal, routing and more (BUSL-1.1)"
 authors = [
     {name = "Miroslav Šotek", email = "protoscience@anulum.li"}
@@ -44,7 +44,7 @@ classifiers = [
 # tier pulls the core and layers the BUSL-1.1 packages into the same
 # ``director_ai`` namespace (no parent __init__ is shipped here).
 dependencies = [
-    "director-ai>=3.19.0,<4",
+    "director-ai>=3.20.0,<4",
 ]
 
 [project.urls]

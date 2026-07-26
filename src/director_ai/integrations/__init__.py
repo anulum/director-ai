@@ -6,7 +6,7 @@
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI — LLM Provider Integrations
 
-"""LLM provider adapters for Director-Class AI.
+"""LLM provider adapters for Director-AI.
 
 Usage::
 

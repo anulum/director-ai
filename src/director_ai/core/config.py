@@ -55,7 +55,7 @@ logger = logging.getLogger("DirectorAI.Config")
 
 @dataclass
 class DirectorConfig:
-    """Central configuration for Director-Class AI.
+    """Central configuration for Director-AI.
 
     Parameters
     ----------

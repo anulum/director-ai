@@ -5,7 +5,7 @@ Commercial license available
 © Code 2020–2026 Miroslav Šotek. All rights reserved.
 ORCID: 0009-0009-3560-0851
 Contact: www.anulum.li | protoscience@anulum.li
-Director-Class AI — Repository overview
+Director-AI — Repository overview
 -->
 
 <p align="center">
@@ -44,13 +44,13 @@ Director-Class AI — Repository overview
 |---|---|---|---|
 | **Director-Lite** | `pip install director-ai-lite` | Apache-2.0 · free | Three-line guard facade, model-free heuristic default, facts/RAG handoff, optional NLI upgrade |
 | **Director-AI** | `pip install director-ai` | Apache-2.0 · free | Full open-core runtime: `guard()`, 5-tier scoring, RAG grounding and evidence packets, REST/gRPC server and proxy, SDK and framework integrations, CLI verification, opt-in streaming contradiction halt |
-| **Director-AI Pro** | Private index (`pypi.remanentia.com`) | BUSL-1.1 · USD 199/mo · 1,990/yr | Advanced production entitlement: verified scorer, sharded NLI, cross-model consensus, forecasting, calibration, training tools, enterprise packages, priority support |
-| **Director-AI Full** | Private index (`pypi.remanentia.com`) | BUSL-1.1 · USD 499/mo · 4,990/yr | Everything in Pro plus the Labs/Research module set and direct engineering support |
-| **Director-Class AI** | Commercial engagement | USD 999/mo · 9,990/yr · deployment scoped | Action-control and evidence boundary for agent fleets; requested via [protoscience@anulum.li](mailto:protoscience@anulum.li) |
+| **Director-AI Pro** | Private index (`pypi.remanentia.com`) | BUSL-1.1 · CHF or USD 490/yr | Advanced production entitlement: verified scorer, sharded NLI, cross-model consensus, forecasting, calibration, training tools, enterprise packages, priority support |
+| **Director-AI Full** | Private index (`pypi.remanentia.com`) | BUSL-1.1 · CHF or USD 980/yr | Everything in Pro plus the Labs/Research module set and direct engineering support |
+| **Director-Class AI** | Commercial engagement | Scoped order form | Action-control and evidence boundary for agent fleets; requested via [protoscience@anulum.li](mailto:protoscience@anulum.li) |
 
 An annual subscription covers private-index access and every release of the
 purchased tier while it is active. Pricing and checkout:
-**[remanentia.com/pricing](https://www.remanentia.com/pricing.html)**.
+**[anulum.li/director-ai/pricing](https://www.anulum.li/director-ai/pricing.html)**.
 
 PyPI is the adoption front door. `director-ai-lite` is the free package we
 publish and promote first for the smallest useful experience; `director-ai`
@@ -250,7 +250,7 @@ inventory below is reference for the deeper surface, navigable under
 
 | Surface | Current inventory |
 |---|---:|
-| Package version | 3.19.0 |
+| Package version | 3.20.0 |
 | Public API exports | 227 |
 | Python capability source modules | 528 |
 | Python capability classes | 1054 |
@@ -623,7 +623,7 @@ Kubernetes: [Helm chart](deploy/helm/director-ai/) with GPU toggle, HPA, Sigstor
   title     = {Director-AI: Real-time LLM Hallucination Guardrail},
   year      = {2026},
   url       = {https://github.com/anulum/director-ai},
-  version   = {3.19.0},
+  version   = {3.20.0},
   license   = {Apache-2.0 AND BUSL-1.1}
 }
 ```
@@ -662,8 +662,8 @@ Commercial licences for the advanced tier:
 - **Buy Director-AI Pro:** production rights for Advanced & Labs, support, and a
   self-hosted deployment path via [pricing](https://anulum.github.io/director-ai/pricing/)
   or [licensing](https://www.anulum.li/licensing).
-- **Engage Director-Class AI:** managed deployment, tuning, evidence reviews,
-  procurement support, and SLA work.
+- **Engage Director-Class AI:** a separate action-control and evidence product
+  for high-impact agent operations, sold through a scoped commercial order.
 - **Sponsor the public core:** [GitHub Sponsors](https://github.com/sponsors/anulum).
 
 ## Community

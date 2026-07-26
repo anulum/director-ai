@@ -5,7 +5,7 @@ Commercial license available
 © Code 2020–2026 Miroslav Šotek. All rights reserved.
 ORCID: 0009-0009-3560-0851
 Contact: www.anulum.li | protoscience@anulum.li
-Director-Class AI — Applications and market map
+Director-AI — Applications and market map
 -->
 
 # Applications And Market Map
@@ -34,10 +34,10 @@ The runtime combines:
 - tenant-safe evidence, audit, metrics, and forensics records.
 
 The smallest useful path is `director-ai-lite`, which exposes a three-line
-guard facade for free-tier adoption. The full `director-ai` package is
-the open-core runtime. Director-Class AI is the commercial implementation and
-evidence programme around governed customer deployments; it is not a separate
-wheel.
+guard facade for free-tier adoption. The full `director-ai` package is the
+open-core runtime, with Pro and Full adding production entitlement for the
+BUSL capabilities. Director-Class AI is a separate action-control and evidence
+product for high-impact agent operations; it is not a Director-AI wheel.
 
 ## Who Needs It
 
@@ -93,7 +93,7 @@ inside LLM output flow.
 |---|---|---|
 | Director-Lite | `director-ai-lite`, three-line guard facade, free onboarding | None required for free-tier use |
 | Director-AI | `director-ai`, open-core SDK, scorers, APIs, integrations, evidence packet, docs | Paid Pro use for Advanced & Labs production deployment |
-| Director-Class AI | Promoted in docs and PyPI positioning | Customer-specific deployment, sector packs, evidence reviews, tuning, and SLA |
+| Director-Class AI | Separate product and repository; no public PyPI package | Runtime action control, human approval routing, and tamper-evident action evidence under scoped commercial terms |
 
 This table is the public-vs-commercial *boundary*; for the full commercial tier
 ladder and prices (Director-Lite, Director-AI, Pro, Full, Director-Class AI) see
@@ -102,7 +102,8 @@ ladder and prices (Director-Lite, Director-AI, Pro, Full, Director-Class AI) see
 The public repository contains the core software and general evidence surfaces.
 Customer-specific sector packs, tuning datasets, deployment recipes, acceptance
 criteria, and performance claims must be validated against the customer's own
-governed data before they are used commercially.
+governed data before they are used commercially. Director-Class AI integration
+is scoped independently when an agent also needs an effector-bound action gate.
 
 ## First Evidence Packet
 

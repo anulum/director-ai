@@ -1,13 +1,33 @@
 # Changelog
 
-All notable changes to Director-Class AI will be documented in this file.
+All notable changes to Director-AI will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [3.20.0] - 2026-07-26
+
 ### Added
+
+- **Deployment latency SLO qualification.** `director-ai latency-slo` now drives
+  the live `/v1/review` endpoint at a declared request count and concurrency,
+  records p95 latency and error rate in a secret-safe integrity packet, and
+  exits non-zero when the deployment misses its declared operating point. The
+  gate is explicitly deployment- and workload-specific; it does not turn one
+  passing host into a universal latency claim.
+
+- **Fail-closed EU AI Act Annex IV template.** The compliance surface can emit
+  a structured technical-documentation template whose mandatory evidence
+  fields block completion until populated, including system purpose, risk
+  controls, evaluation, monitoring, cybersecurity, and change history.
+
+- **Reusable remote benchmark dependencies.** The remote benchmark launcher
+  accepts validated PEP 508 requirements through repeatable `--remote-deps`
+  options and safely quotes them for installation. The implementation is now
+  the neutral `run_remote_benchmark_gpu.py`; the historical audit-specific path
+  remains only as a deprecated, provenance-preserving reproduction shim.
 
 - **RFC 3161 external timestamp anchoring for the compliance audit chain
   (KIMI3-anchoring).** The tamper-evident audit hash chain
@@ -34,6 +54,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   extra (adds `asn1crypto`); the import is lazy so the free/core surface never
   pulls it. Publishing to a public transparency log (Rekor) is deliberately out
   of scope. BUSL-1.1 (paid compliance tier).
+
+### Changed
+
+- Public pricing and package documentation now follows the canonical annual
+  plans: Pro at CHF or USD 490/year, Full at CHF or USD 980/year, and
+  Director-Class AI under a separately scoped commercial order. The two active
+  Polar checkout links were verified live before being recorded.
+- EU compliance references now cite the final Digital Omnibus instrument rather
+  than proposal-stage material.
+- Release dependency hygiene replaces yanked `build` 1.5.1 with stable 1.5.0
+  and advances the independent hash-pinned SAST stack to Semgrep 1.171.0.
+
+### Fixed
+
+- Tag-driven releases now dispatch the Core, Lite, and paid publish workflows
+  when `RELEASE_PAT` is absent, preserving each workflow's own trusted-publisher
+  identity and preventing duplicate dispatch when the PAT-driven event chain is
+  available. Missing or mismatched release tags fail closed with a clear error.
+- Trusted RFC 3161 verification now selects the CMS signer by signer identifier
+  and enforces RFC 5280 CA constraints, key-cert-sign usage, path length, and a
+  sole critical time-stamping EKU across the supplied chain.
+- `docs/internal/` is guarded as forever-private repository state so internal
+  planning and review material cannot enter public release history.
 
 ## [3.19.0] - 2026-07-21
 
@@ -2634,7 +2677,11 @@ Production stable release. Research modules permanently removed.
 - Demo script for end-to-end flow validation
 - Documentation: Manifesto, Architecture, Roadmap, Technical Spec, API Reference
 
-[Unreleased]: https://github.com/anulum/director-ai/compare/v3.17.0...HEAD
+[Unreleased]: https://github.com/anulum/director-ai/compare/v3.20.0...HEAD
+[3.20.0]: https://github.com/anulum/director-ai/compare/v3.19.0...v3.20.0
+[3.19.0]: https://github.com/anulum/director-ai/compare/v3.18.1...v3.19.0
+[3.18.1]: https://github.com/anulum/director-ai/compare/v3.18.0...v3.18.1
+[3.18.0]: https://github.com/anulum/director-ai/compare/v3.17.0...v3.18.0
 [3.17.0]: https://github.com/anulum/director-ai/compare/v3.16.0...v3.17.0
 [2.7.0]: https://github.com/anulum/director-ai/compare/v2.6.1...v2.7.0
 [2.6.1]: https://github.com/anulum/director-ai/compare/v2.6.0...v2.6.1

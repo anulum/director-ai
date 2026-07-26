@@ -16,7 +16,7 @@ curl https://your-server:8080/v1/source
 ```json
 {
   "license": "Apache-2.0 AND BUSL-1.1",
-  "version": "3.19.0",
+  "version": "3.20.0",
   "repository_url": "https://github.com/anulum/director-ai",
   "instructions": "git clone https://github.com/anulum/director-ai"
 }
@@ -61,7 +61,7 @@ pip install director-ai-pro \
 
 An annual subscription (Pro CHF/USD 490, Full CHF/USD 980 per year) covers
 index access and all releases of the tier while active. Checkout and plans:
-[remanentia.com/pricing](https://www.remanentia.com/pricing.html).
+[anulum.li/director-ai/pricing](https://www.anulum.li/director-ai/pricing.html).
 
 ## Operator Notes
 

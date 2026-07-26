@@ -18,9 +18,9 @@ Pay when you need Advanced & Labs in production, managed deployment, or support 
 |---|---|---:|---|
 | **Director-Lite** | `pip install director-ai-lite` | **USD 0** | Three-line `guard()` facade, model-free heuristic default, facts/RAG handoff, optional NLI upgrade |
 | **Director-AI** | `pip install director-ai` | **USD 0** | Full open-core runtime: SDK guard, 5-tier scoring, REST/gRPC server, framework integrations, evidence packets, opt-in streaming contradiction halt |
-| **Director-AI Pro** | Private self-hosted delivery | **USD 199/mo or 1,990/yr** | Advanced production modules and priority support |
-| **Director-AI Full** | Private self-hosted delivery | **USD 499/mo or 4,990/yr** | Pro plus Labs/Research modules and direct engineering support |
-| **Director-Class AI** | Separate commercial product | **USD 999/mo or 9,990/yr** | Action-control and evidence boundary; deployment and support are scoped separately |
+| **Director-AI Pro** | Private self-hosted delivery | **CHF or USD 490/yr** | Advanced production modules and priority support |
+| **Director-AI Full** | Private self-hosted delivery | **CHF or USD 980/yr** | Pro plus Labs/Research modules and direct engineering support |
+| **Director-Class AI** | Separate commercial product | **Scoped order form** | Action-control and evidence boundary; deployment and support are scoped separately |
 
 PyPI promotes the whole ladder but only distributes code packages. Publish and
 push users into `director-ai-lite` for the smallest first run, then upgrade them
@@ -90,7 +90,7 @@ without paying anyone. [Get started](quickstart.md){ .md-button }
 
 ---
 
-## :material-currency-usd: Commercial tiers — USD
+## :material-currency-usd: Commercial tiers — CHF or USD
 
 The **Advanced & Labs** capabilities are source-available under BUSL-1.1: free to
 read and evaluate, free in non-production. A commercial licence unlocks them in
@@ -99,13 +99,13 @@ production and hosted/SaaS deployments, and adds support and SLAs.
 | Path | Price | Package | Choose it when |
 |---|---:|---|---|
 | **Director-Lite** | USD 0 | Free PyPI package and Apache-2.0 adoption path | You want the smallest response-level guard integration |
-| **Director-AI Pro self-host** | USD 199/mo or 1,990/yr | Advanced-tier production licence and priority support | You run Director-AI inside your own product or internal platform |
-| **Director-AI Full self-host** | USD 499/mo or 4,990/yr | Pro plus Labs/Research modules and direct engineering support | You need the complete research curve in a self-hosted deployment |
-| **Director-Class AI** | USD 999/mo or 9,990/yr | Separate action-control and evidence product; deployment starts at USD 24,000 and support at USD 2,500/mo | You need controlled agent action, auditable decisions, and procurement terms |
+| **Director-AI Pro self-host** | CHF or USD 490/yr | Advanced-tier production licence and priority support | You run Director-AI inside your own product or internal platform |
+| **Director-AI Full self-host** | CHF or USD 980/yr | Pro plus Labs/Research modules and direct engineering support | You need the complete research curve in a self-hosted deployment |
+| **Director-Class AI** | Scoped order form | Separate action-control and evidence product; deployment and support are scoped separately | You need controlled agent action, auditable decisions, and procurement terms |
 
-ROI threshold: at USD 199/mo, Pro self-host costs less than one hour of senior
-incident response in most regulated teams. One prevented fabricated citation,
-incorrect policy quote, or wrong numerical answer can pay for the licence.
+At CHF or USD 490/year, Pro self-host costs less than many single senior
+incident-response engagements. One prevented fabricated citation, incorrect
+policy quote, or wrong numerical answer can pay for the licence.
 
 === ":material-package-variant: Director-Lite — USD 0"
 
@@ -119,7 +119,7 @@ incorrect policy quote, or wrong numerical answer can pay for the licence.
 
     [Install Director-Lite :material-download:](lite.md){ .md-button .md-button--primary }
 
-=== ":material-account-group: Director-AI Pro — USD 199/mo"
+=== ":material-account-group: Director-AI Pro — CHF or USD 490/year"
 
     **For:** teams shipping governed LLM features to production.
 
@@ -129,22 +129,22 @@ incorrect policy quote, or wrong numerical answer can pay for the licence.
     - 99.5 % support target
     - self-hosted and air-gapped deployment path
 
-    Annual option: **USD 1,990**.
+    Recurring annual subscription: **CHF or USD 490**.
 
-    [View canonical pricing :material-cart:](https://www.remanentia.com/pricing.html){ .md-button .md-button--primary }
+    [Buy Pro :material-cart:](https://buy.polar.sh/polar_cl_ZL5n1rzt21MgcB3zZ5yT3ryR4vS5n14ZowXmR0PrsoC){ .md-button .md-button--primary }
 
-=== ":material-layers-triple: Director-AI Full — USD 499/mo"
+=== ":material-layers-triple: Director-AI Full — CHF or USD 980/year"
 
     **For:** teams using the complete Advanced and Labs/Research surface.
 
     - Everything in Pro
     - Labs/Research production entitlement
     - Direct engineering support
-    - Annual option: USD 4,990
+    - Recurring annual subscription: CHF or USD 980
 
-    [View canonical pricing :material-cart:](https://www.remanentia.com/pricing.html){ .md-button .md-button--primary }
+    [Buy Full :material-cart:](https://buy.polar.sh/polar_cl_Vwul7eQZziIHUZVM8TBvgIGIKMvqBD5KnAK9E3UTU5w){ .md-button .md-button--primary }
 
-=== ":material-office-building: Director-Class AI — USD 999/mo"
+=== ":material-office-building: Director-Class AI — scoped commercial terms"
 
     **For:** regulated industries, multi-tenant SaaS, high volume, and premium assurance programmes.
 
@@ -155,10 +155,10 @@ incorrect policy quote, or wrong numerical answer can pay for the licence.
     - Customer-specific evaluation, threshold tuning, and model-adaptation evidence
     - Quarterly architecture reviews + roadmap input
 
-    Annual licence: **USD 9,990**. Deployment starts at **USD 24,000**;
-    ongoing support starts at **USD 2,500/mo**. Final scope is recorded in an order form.
+    Director-Class AI is not offered through an active self-service checkout.
+    Licence, deployment, and support terms are recorded in a scoped order form.
 
-    [View canonical pricing :material-cart:](https://www.remanentia.com/pricing.html){ .md-button .md-button--primary }
+    [Discuss commercial terms :material-email:](mailto:director.class.ai@anulum.li?subject=Director-Class%20AI%20commercial%20terms){ .md-button .md-button--primary }
 
 ---
 
@@ -242,7 +242,7 @@ For the full legal model, see [Licensing](licensing.md).
 
 [Free pilot :material-flask:](mailto:director.class.ai@anulum.li?subject=Director-AI%20Free%20Pilot){ .md-button .md-button--primary }
 &nbsp;&nbsp;
-[Request USD checkout :material-cart:](mailto:director.class.ai@anulum.li?subject=Director-AI%20USD%20Checkout){ .md-button }
+[View canonical pricing :material-cart:](https://www.anulum.li/director-ai/pricing.html){ .md-button }
 &nbsp;&nbsp;
 [Talk to us :material-email:](mailto:director.class.ai@anulum.li?subject=Director-AI%20Inquiry){ .md-button }
 

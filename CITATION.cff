@@ -1,12 +1,12 @@
 # ─────────────────────────────────────────────────────────────────────
-# Director-Class AI — Citation Metadata
+# Director-AI — Citation Metadata
 # © 1998-2026 Miroslav Sotek. All rights reserved.
 # Contact: www.anulum.li | protoscience@anulum.li
 # ORCID: https://orcid.org/0009-0009-3560-0851
 # License: Apache-2.0 core | BUSL-1.1 advanced | Commercial licensing available
 # ─────────────────────────────────────────────────────────────────────
 cff-version: 1.2.0
-title: "Director-Class AI: Coherence Engine"
+title: "Director-AI: Coherence Engine"
 message: "If you use this software, please cite it using the metadata below."
 type: software
 authors:
@@ -14,9 +14,9 @@ authors:
     given-names: "Miroslav"
     orcid: "https://orcid.org/0009-0009-3560-0851"
     affiliation: "ANULUM CH & LI"
-version: "3.19.0"
+version: "3.20.0"
 doi: "10.5281/zenodo.18822167"
-date-released: "2026-07-16"
+date-released: "2026-07-26"
 license:
   - "Apache-2.0"
   - "BUSL-1.1"

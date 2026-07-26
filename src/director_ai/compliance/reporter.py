@@ -24,6 +24,7 @@ import time
 from dataclasses import dataclass, field
 from typing import Any
 
+from .. import __version__
 from .annex_iv import (
     AnnexIVTechnicalDocumentationContext,
     build_annex_iv_template,
@@ -409,7 +410,7 @@ class Article15Report:
             "",
             f"**Generated:** {time.strftime('%Y-%m-%d %H:%M UTC', time.gmtime(self.report_timestamp))}",
             f"**Reporting period:** {time.strftime('%Y-%m-%d', time.gmtime(self.period_start))} to {time.strftime('%Y-%m-%d', time.gmtime(self.period_end))}",
-            "**System:** Director-Class AI Hallucination Guardrail",
+            "**System:** Director-AI Hallucination Guardrail",
             "",
             "## 1. Accuracy Metrics (Article 15(1))",
             "",
@@ -477,7 +478,7 @@ class Article15Report:
                 "",
                 "---",
                 "",
-                "*This report is generated automatically by Director-Class AI v3.11.0.*",
+                f"*This report is generated automatically by Director-AI v{__version__}.*",
                 "*It documents accuracy, robustness, and human oversight per EU AI Act Article 15.*",
             ]
         )

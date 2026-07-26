@@ -6,7 +6,7 @@
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI — FastAPI Server
 
-"""Production-ready FastAPI server for Director-Class AI.
+"""Production-ready FastAPI server for Director-AI.
 
 Usage::
 
@@ -267,7 +267,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
     import director_ai
 
     app = FastAPI(
-        title="Director-Class AI",
+        title="Director-AI",
         version=director_ai.__version__,
         description="Real-time multi-agent orchestration and coherence scoring.",
         lifespan=server_lifespan,

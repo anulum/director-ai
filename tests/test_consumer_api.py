@@ -29,7 +29,7 @@ from director_ai.integrations.providers import AnthropicProvider, OpenAIProvider
 @pytest.mark.consumer
 class TestVersion:
     def test_version_string(self):
-        assert director_ai.__version__ == "3.19.0"
+        assert director_ai.__version__ == "3.20.0"
 
     def test_all_exports_present(self):
         for name in [

@@ -6,7 +6,7 @@
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI — Command Line Interface
 
-"""CLI entry point for Director-Class AI.
+"""CLI entry point for Director-AI.
 
 Usage::
 
@@ -162,7 +162,7 @@ def _print_help() -> None:
         f"  {spec.help_line}" for spec in _command_specs().values()
     )
     print(
-        "Director-Class AI CLI\n"
+        "Director-AI CLI\n"
         "\n"
         "Usage: director-ai <command> [options]\n"
         "\n"

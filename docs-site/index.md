@@ -5,14 +5,14 @@ Commercial license available
 © Code 2020–2026 Miroslav Šotek. All rights reserved.
 ORCID: 0009-0009-3560-0851
 Contact: www.anulum.li | protoscience@anulum.li
-Director-Class AI — Documentation landing page
+Director-AI — Documentation landing page
 -->
 
 # Director-AI
 
 **Response-level LLM hallucination guardrail** — NLI + RAG fact-checking with audit evidence.
 
-<span class="version-badge">v3.19.0 — factual-coherence guard, 5-tier scoring, RAG grounding, opt-in streaming contradiction checks</span>
+<span class="version-badge">v3.20.0 — deployment SLO gate, trusted timestamp anchoring, Annex IV template, and release hardening</span>
 
 [![CI](https://github.com/anulum/director-ai/actions/workflows/ci.yml/badge.svg)](https://github.com/anulum/director-ai/actions/workflows/ci.yml)
 [![Pre-commit](https://github.com/anulum/director-ai/actions/workflows/pre-commit.yml/badge.svg)](https://github.com/anulum/director-ai/actions/workflows/pre-commit.yml)
@@ -215,7 +215,7 @@ Open core: the **Apache-2.0** core is free for any use, including production; th
 [GitHub Discussions](https://github.com/anulum/director-ai/discussions) |
 [www.anulum.li](https://www.anulum.li)
 
-*Maintained by [Miroslav Šotek](https://orcid.org/0009-0009-3560-0851) at [Anulum](https://www.anulum.li). Current release: v3.19.0.*
+*Maintained by [Miroslav Šotek](https://orcid.org/0009-0009-3560-0851) at [Anulum](https://www.anulum.li). Current release: v3.20.0.*
 
 <p align="center">
   <a href="https://www.anulum.li">

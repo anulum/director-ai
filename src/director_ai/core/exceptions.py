@@ -6,7 +6,7 @@
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI — Exception Hierarchy
 
-"""Structured exception hierarchy for Director-Class AI.
+"""Structured exception hierarchy for Director-AI.
 
 All library-specific exceptions descend from ``DirectorAIError`` so
 callers can catch the entire family with a single except clause.
@@ -24,7 +24,7 @@ class _ScoreLike(Protocol):
 
 
 class DirectorAIError(Exception):
-    """Base exception for all Director-Class AI errors."""
+    """Base exception for all Director-AI errors."""
 
 
 class CoherenceError(DirectorAIError):

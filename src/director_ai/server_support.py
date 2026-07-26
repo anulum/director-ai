@@ -6,7 +6,7 @@
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI — FastAPI server support helpers
 
-"""Stateless helpers shared by the Director-Class AI FastAPI server.
+"""Stateless helpers shared by the Director-AI FastAPI server.
 
 These functions carry no application state — they read request headers, derive
 low-cardinality metric labels, normalise request IDs, and record metrics. They
