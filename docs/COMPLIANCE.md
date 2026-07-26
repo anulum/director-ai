@@ -22,10 +22,10 @@ this file is the repo-level operator guide.
 ## 1. Regulatory timeline (EU AI Act, as of July 2026)
 
 The EU AI Act (Regulation (EU) 2024/1689) entered into force on 1 August 2024
-and applies in stages. The "Digital Omnibus on AI" amendment — provisionally
-agreed by the Council and European Parliament in May 2026, endorsed by
-Parliament on 16 June 2026 and approved by the Council on 29 June 2026 —
-changed the high-risk application dates:
+and applies in stages. Regulation (EU) 2026/1744 (the "Digital Omnibus on AI")
+was published in the Official Journal on 24 July 2026 and enters into force on
+27 July 2026, the third day after publication. It changed the high-risk
+application dates:
 
 | Obligation set | Applies from |
 |---|---|
@@ -35,10 +35,11 @@ changed the high-risk application dates:
 | High-risk systems — stand-alone (Annex III) | **2 December 2027** (deferred from 2 August 2026) |
 | High-risk systems — embedded in regulated products (Annex I) | **2 August 2028** |
 
-Sources: [Council press release, 7 May 2026](https://www.consilium.europa.eu/en/press/press-releases/2026/05/07/artificial-intelligence-council-and-parliament-agree-to-simplify-and-streamline-rules/) ·
-[Gibson Dunn omnibus summary](https://www.gibsondunn.com/eu-ai-act-omnibus-agreement-postponed-high-risk-deadlines-and-other-key-changes/).
-Verify current dates against the Official Journal before relying on them —
-the omnibus was awaiting formal publication when this guide was written.
+Primary source: [Regulation (EU) 2026/1744 in the Official Journal](https://eur-lex.europa.eu/eli/reg/2026/1744/oj).
+Article 1(40) sets the Annex III date to 2 December 2027 and the Annex I date
+to 2 August 2028; Article 4 provides the third-day entry into force. This guide
+describes engineering evidence, not legal advice; operators should still obtain
+counsel for scope and transition decisions.
 
 **Where Director-AI fits.** Director-AI is a hallucination/grounding guardrail
 that deployers and providers place around their own AI systems. It is not

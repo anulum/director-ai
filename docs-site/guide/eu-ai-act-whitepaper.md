@@ -1,6 +1,6 @@
 # EU AI Act Compliance with Director-AI
 
-A technical guide for engineering teams preparing high-risk AI systems for EU AI Act enforcement (high-risk obligations apply from 2 December 2027 for Annex III systems, after the Digital Omnibus deferral agreed in mid-2026).
+A technical guide for engineering teams preparing high-risk AI systems for EU AI Act enforcement (high-risk obligations apply from 2 December 2027 for Annex III systems under Regulation (EU) 2026/1744).
 
 ## Scope
 
@@ -142,22 +142,23 @@ For teams deploying Director-AI as part of EU AI Act compliance:
 
 | Date | Milestone |
 |------|-----------|
-| August 1, 2024 | EU AI Act entered into force |
-| February 2, 2025 | Prohibited AI practices take effect |
-| August 2, 2025 | GPAI model obligations take effect |
-| August 2, 2026 | Transparency obligations (Article 50) take effect (watermarking grace period to 2 December 2026 for systems already on the market) |
-| **December 2, 2027** | **High-risk obligations take effect — stand-alone Annex III systems** (deferred from 2 August 2026 by the Digital Omnibus) |
-| August 2, 2028 | High-risk obligations for AI embedded in regulated products (Annex I) |
+| 1 August 2024 | EU AI Act entered into force |
+| 2 February 2025 | Prohibited AI practices take effect |
+| 2 August 2025 | GPAI model obligations take effect |
+| 2 August 2026 | Transparency obligations (Article 50) take effect (watermarking grace period to 2 December 2026 for systems already on the market) |
+| **2 December 2027** | **High-risk obligations take effect — stand-alone Annex III systems** (deferred from 2 August 2026 by the Digital Omnibus) |
+| 2 August 2028 | High-risk obligations for AI embedded in regulated products (Annex I) |
 
-The Digital Omnibus amendment — approved by the European Parliament on
-16 June 2026 and the Council on 29 June 2026 — replaced the original
-2 August 2026 high-risk deadline with the fixed dates above. Verify
-current dates against the Official Journal: the deferral was awaiting
-formal publication when this guide was last updated (July 2026).
+Regulation (EU) 2026/1744 (the Digital Omnibus on AI) was published in the
+Official Journal on 24 July 2026 and enters into force on 27 July 2026, the
+third day after publication. Article 1(40) replaced the original 2 August 2026
+high-risk deadline with the fixed dates above. See the
+[official instrument](https://eur-lex.europa.eu/eli/reg/2026/1744/oj).
 
 ## Further Reading
 
 - [EU AI Act full text (EUR-Lex)](https://eur-lex.europa.eu/eli/reg/2024/1689/oj)
+- [Digital Omnibus on AI — Regulation (EU) 2026/1744](https://eur-lex.europa.eu/eli/reg/2026/1744/oj)
 - [Compliance Reporting guide](compliance-reporting.md) — detailed API reference for `ComplianceReporter`
 - [Architecture overview](architecture.md) — how the scoring pipeline works
 - [Threshold Tuning](threshold-tuning.md) — finding the right coherence threshold for your domain

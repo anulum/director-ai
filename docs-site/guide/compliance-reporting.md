@@ -4,7 +4,7 @@ Automated Article 15 documentation — accuracy metrics, drift detection, and au
 
 ## Why Compliance Reporting?
 
-The EU AI Act Article 15 requires high-risk AI systems to document accuracy metrics, maintain audit trails, and demonstrate continuous monitoring. Following the Digital Omnibus amendment (approved by the European Parliament on 16 June 2026 and the Council on 29 June 2026), high-risk obligations apply from **2 December 2027** for stand-alone Annex III systems and **2 August 2028** for AI embedded in regulated products; transparency obligations (Article 50) still apply from **2 August 2026**. Penalties for non-compliance with high-risk obligations reach up to **€15M or 3% of global turnover** (Article 99(4); prohibited practices carry up to €35M or 7%). Verify current dates against the Official Journal.
+The EU AI Act Article 15 requires high-risk AI systems to document accuracy metrics, maintain audit trails, and demonstrate continuous monitoring. [Regulation (EU) 2026/1744](https://eur-lex.europa.eu/eli/reg/2026/1744/oj), the Digital Omnibus on AI, was published in the Official Journal on **24 July 2026** and enters into force on **27 July 2026**. It sets application of high-risk obligations to **2 December 2027** for stand-alone Annex III systems and **2 August 2028** for AI embedded in regulated products; transparency obligations (Article 50) still apply from **2 August 2026**. Penalties for non-compliance with high-risk obligations reach up to **€15M or 3% of global turnover** (Article 99(4); prohibited practices carry up to €35M or 7%).
 
 Director-AI generates this documentation automatically from production scoring data. Self-hosted, so your data never leaves your infrastructure.
 
