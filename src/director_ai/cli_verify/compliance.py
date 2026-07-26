@@ -15,6 +15,7 @@ from datetime import UTC
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
+    from director_ai.compliance.annex_iv import AnnexIVTechnicalDocumentationContext
     from director_ai.compliance.reporter import Article15TemplateContext
 
 
@@ -26,6 +27,7 @@ def _load_article15_context(path: str) -> Article15TemplateContext:
     """
     from pathlib import Path
 
+    from director_ai.compliance.annex_iv import AnnexIVTechnicalDocumentationContext
     from director_ai.compliance.reporter import Article15TemplateContext
 
     ctx_file = Path(path)
@@ -40,6 +42,54 @@ def _load_article15_context(path: str) -> Article15TemplateContext:
     if not isinstance(data, dict):
         print("Article 15 context must be a JSON object")
         sys.exit(1)
+    annex_data = data.get("annex_iv")
+    annex_context: AnnexIVTechnicalDocumentationContext | None = None
+    if annex_data is not None:
+        if not isinstance(annex_data, dict):
+            print("Article 15 context annex_iv must be a JSON object")
+            sys.exit(1)
+        try:
+            annex_context = AnnexIVTechnicalDocumentationContext(
+                provider_name=str(annex_data.get("provider_name", "")),
+                system_version=str(annex_data.get("system_version", "")),
+                previous_version_relationship=str(
+                    annex_data.get("previous_version_relationship", "")
+                ),
+                external_dependencies=str(annex_data.get("external_dependencies", "")),
+                software_firmware_requirements=str(
+                    annex_data.get("software_firmware_requirements", "")
+                ),
+                distribution_forms=str(annex_data.get("distribution_forms", "")),
+                intended_hardware=str(annex_data.get("intended_hardware", "")),
+                user_interface=str(annex_data.get("user_interface", "")),
+                instructions_for_use=str(annex_data.get("instructions_for_use", "")),
+                development_methods=str(annex_data.get("development_methods", "")),
+                design_specifications=str(annex_data.get("design_specifications", "")),
+                architecture_and_resources=str(
+                    annex_data.get("architecture_and_resources", "")
+                ),
+                data_requirements=str(annex_data.get("data_requirements", "")),
+                predetermined_changes=str(annex_data.get("predetermined_changes", "")),
+                validation_and_testing=str(
+                    annex_data.get("validation_and_testing", "")
+                ),
+                monitoring_functioning_control=str(
+                    annex_data.get("monitoring_functioning_control", "")
+                ),
+                performance_metric_rationale=str(
+                    annex_data.get("performance_metric_rationale", "")
+                ),
+                lifecycle_changes=str(annex_data.get("lifecycle_changes", "")),
+                standards_and_specifications=str(
+                    annex_data.get("standards_and_specifications", "")
+                ),
+                eu_declaration_of_conformity_ref=str(
+                    annex_data.get("eu_declaration_of_conformity_ref", "")
+                ),
+            )
+        except ValueError as exc:
+            print(f"Incomplete Annex IV context: {exc}")
+            sys.exit(1)
     try:
         return Article15TemplateContext(
             system_name=str(data.get("system_name", "")),
@@ -56,6 +106,7 @@ def _load_article15_context(path: str) -> Article15TemplateContext:
             known_limitations=tuple(data.get("known_limitations", ())),
             residual_risks=tuple(data.get("residual_risks", ())),
             evidence_refs=tuple(data.get("evidence_refs", ())),
+            annex_iv=annex_context,
         )
     except ValueError as exc:
         print(f"Incomplete Article 15 context: {exc}")

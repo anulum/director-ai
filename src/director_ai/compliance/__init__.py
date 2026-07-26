@@ -8,6 +8,7 @@
 
 """Compliance: audit log, drift/cost/feedback analysis, and readiness reporting."""
 
+from .annex_iv import AnnexIVTechnicalDocumentationContext
 from .audit_log import AuditEntry, AuditLog
 from .drift_detector import DriftDetector, DriftResult
 from .governance_controls import (
@@ -30,6 +31,7 @@ from .readiness import (
 from .reporter import Article15Report, Article15TemplateContext, ComplianceReporter
 
 __all__ = [
+    "AnnexIVTechnicalDocumentationContext",
     "Article15Report",
     "Article15TemplateContext",
     "AuditEntry",

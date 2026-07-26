@@ -9,15 +9,45 @@
 from __future__ import annotations
 
 import time
+from dataclasses import replace
 
 import pytest
 
+from director_ai.compliance import annex_iv as annex_iv_module
 from director_ai.compliance.audit_log import AuditEntry, AuditLog
 from director_ai.compliance.reporter import (
+    AnnexIVTechnicalDocumentationContext,
     Article15TemplateContext,
     ComplianceReporter,
     _wilson_ci,
 )
+
+
+def _annex_iv_context(**overrides) -> AnnexIVTechnicalDocumentationContext:
+    values = {
+        "provider_name": "Example Provider GmbH",
+        "system_version": "2026.07",
+        "previous_version_relationship": "Supersedes 2026.06; policy-only update.",
+        "external_dependencies": "Director-AI and the approved model endpoint.",
+        "software_firmware_requirements": "CPython 3.12; no firmware dependency.",
+        "distribution_forms": "Container image and authenticated API.",
+        "intended_hardware": "x86-64 server with operator-qualified resources.",
+        "user_interface": "Authenticated review API and operator dashboard.",
+        "instructions_for_use": "See the deployment runbook.",
+        "development_methods": "Reviewed source changes and pinned dependencies.",
+        "design_specifications": "Thresholded evidence-grounding guardrail.",
+        "architecture_and_resources": "Gateway, scorer, audit store, review queue.",
+        "data_requirements": "Versioned grounding corpus and evaluation partitions.",
+        "predetermined_changes": "Threshold changes require release review.",
+        "validation_and_testing": "Focused tests, preflight, and release evidence.",
+        "monitoring_functioning_control": "Metrics, drift, incidents, and overrides.",
+        "performance_metric_rationale": "Rates and Wilson intervals match the risk.",
+        "lifecycle_changes": "Changes are recorded in the release ledger.",
+        "standards_and_specifications": "Operator-maintained standards register.",
+        "eu_declaration_of_conformity_ref": "Pending applicability determination.",
+    }
+    values.update(overrides)
+    return AnnexIVTechnicalDocumentationContext(**values)
 
 
 def _entry(
@@ -244,6 +274,105 @@ class TestArticle15Template:
         assert "docs/PRODUCTION_CHECKLIST.md#compliance" in markdown
         log.close()
 
+    def test_annex_iv_template_preserves_nine_sections_and_claim_boundary(
+        self, tmp_path
+    ):
+        log = AuditLog(tmp_path / "test.db")
+        log.log(_entry(score=0.92, approved=True))
+        report = ComplianceReporter(log).generate_report()
+        context = replace(self._context(), annex_iv=_annex_iv_context())
+
+        payload = report.to_annex_iv_template(context)
+        markdown = report.to_annex_iv_markdown(context)
+        combined = report.to_article15_template(context)
+
+        sections = payload["sections"]
+        assert list(sections) == [
+            "1_general_description",
+            "2_development_and_system_elements",
+            "3_monitoring_functioning_and_control",
+            "4_performance_metrics",
+            "5_risk_management_system",
+            "6_lifecycle_changes",
+            "7_standards_and_specifications",
+            "8_eu_declaration_of_conformity",
+            "9_post_market_monitoring",
+        ]
+        metrics = sections["4_performance_metrics"]["measured_performance"]
+        assert metrics["total_interactions"] == 1
+        assert payload["claim_boundary"] == {
+            "operator_authored_context_required": True,
+            "conformity_assessment_claimed": False,
+            "legal_advice": False,
+        }
+        assert "annex_iv_technical_documentation" in combined
+        assert "## 1. General Description" in markdown
+        assert "## 9. Post-Market Monitoring" in markdown
+        assert "Conformity assessment claimed: false" in markdown
+        assert "'q'" not in repr(payload)
+        assert "'a'" not in repr(payload)
+        log.close()
+
+    def test_annex_iv_template_requires_explicit_nested_context(self, tmp_path):
+        log = AuditLog(tmp_path / "test.db")
+        report = ComplianceReporter(log).generate_report()
+
+        with pytest.raises(ValueError, match="annex_iv context is required"):
+            report.to_annex_iv_template(self._context())
+
+        with pytest.raises(
+            ValueError,
+            match=r"annex_iv\.provider_name is required",
+        ):
+            _annex_iv_context(provider_name=" ")
+        log.close()
+
+    def test_article15_markdown_appends_annex_iv_when_supplied(self, tmp_path):
+        log = AuditLog(tmp_path / "test.db")
+        report = ComplianceReporter(log).generate_report()
+        context = replace(self._context(), annex_iv=_annex_iv_context())
+
+        markdown = report.to_article15_markdown(context)
+
+        assert "# EU AI Act Article 15 Technical Documentation" in markdown
+        assert "# EU AI Act Annex IV Technical Documentation" in markdown
+        assert "Pending applicability determination." in markdown
+        log.close()
+
+    @pytest.mark.parametrize(
+        ("field_name", "invalid_value", "error"),
+        (
+            ("sections", "not-a-map", "sections must be a dict"),
+            ("evidence_refs", "not-a-list", "evidence_refs must be a list"),
+        ),
+    )
+    def test_annex_iv_markdown_rejects_invalid_payload_schema(
+        self,
+        tmp_path,
+        monkeypatch,
+        field_name,
+        invalid_value,
+        error,
+    ):
+        log = AuditLog(tmp_path / "test.db")
+        report = ComplianceReporter(log).generate_report()
+        context = replace(self._context(), annex_iv=_annex_iv_context())
+        original_builder = annex_iv_module.build_annex_iv_template
+
+        def invalid_builder(report_value, context_value):
+            payload = original_builder(report_value, context_value)
+            payload[field_name] = invalid_value
+            return payload
+
+        monkeypatch.setattr(
+            annex_iv_module,
+            "build_annex_iv_template",
+            invalid_builder,
+        )
+        with pytest.raises(TypeError, match=error):
+            report.to_annex_iv_markdown(context)
+        log.close()
+
     def test_article15_markdown_reports_empty_residuals_and_evidence(self, tmp_path):
         log = AuditLog(tmp_path / "test.db")
         report = ComplianceReporter(log).generate_report()
@@ -260,12 +389,14 @@ class TestArticle15Template:
             known_limitations=(" ",),
             residual_risks=(),
             evidence_refs=(" ",),
+            annex_iv=_annex_iv_context(),
         )
 
         markdown = report.to_article15_markdown(context)
 
         assert "- No residual risks supplied in this template context." in markdown
         assert "- No evidence references supplied." in markdown
+        assert "  - None supplied." in markdown
 
         log.close()
 

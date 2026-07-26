@@ -24,9 +24,15 @@ import time
 from dataclasses import dataclass, field
 from typing import Any
 
+from .annex_iv import (
+    AnnexIVTechnicalDocumentationContext,
+    build_annex_iv_template,
+    render_annex_iv_markdown,
+)
 from .audit_log import AuditLog
 
 __all__ = [
+    "AnnexIVTechnicalDocumentationContext",
     "Article15Report",
     "Article15TemplateContext",
     "ComplianceReporter",
@@ -103,6 +109,7 @@ class Article15TemplateContext:
     known_limitations: tuple[str, ...] = ()
     residual_risks: tuple[str, ...] = ()
     evidence_refs: tuple[str, ...] = ()
+    annex_iv: AnnexIVTechnicalDocumentationContext | None = None
 
     def __post_init__(self) -> None:
         """Reject missing required Article 15 system-registration fields."""
@@ -173,12 +180,23 @@ class Article15Report:
     # Incidents (rejections)
     incident_count: int = 0
 
+    def to_annex_iv_template(
+        self,
+        context: Article15TemplateContext,
+    ) -> dict[str, object]:
+        """Return an operator-authored EU AI Act Annex IV document skeleton."""
+        return build_annex_iv_template(self, context)
+
+    def to_annex_iv_markdown(self, context: Article15TemplateContext) -> str:
+        """Render the Annex IV structure as reviewable Markdown."""
+        return render_annex_iv_markdown(self, context)
+
     def to_article15_template(
         self,
         context: Article15TemplateContext,
     ) -> dict[str, object]:
         """Return tenant-safe EU AI Act Article 15 technical documentation."""
-        return {
+        payload: dict[str, object] = {
             "article": "EU AI Act Article 15",
             "generated_at": time.strftime(
                 "%Y-%m-%dT%H:%M:%SZ",
@@ -265,6 +283,11 @@ class Article15Report:
                 "raw_interaction_text_included": False,
             },
         }
+        if context.annex_iv is not None:
+            payload["annex_iv_technical_documentation"] = self.to_annex_iv_template(
+                context
+            )
+        return payload
 
     def to_article15_markdown(self, context: Article15TemplateContext) -> str:
         """Render the structured Article 15 template as Markdown."""
@@ -375,6 +398,8 @@ class Article15Report:
                 "- Raw interaction text included: false",
             ]
         )
+        if context.annex_iv is not None:
+            lines.extend(["", "---", "", self.to_annex_iv_markdown(context)])
         return "\n".join(lines)
 
     def to_markdown(self) -> str:

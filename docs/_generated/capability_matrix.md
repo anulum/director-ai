@@ -6,7 +6,7 @@ experimental hook across `tests/`, `docs-site/`, and `benchmarks/`.
 
 | Metric | Value |
 |---|---:|
-| Public exports | 226 |
+| Public exports | 227 |
 | Experimental hooks | 23 |
 | Unwired | 0 |
 | Untested (by name mention) | 0 |

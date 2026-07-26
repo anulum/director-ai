@@ -207,6 +207,7 @@ See [Online Calibration Guide](../guide/online-calibration.md).
 | `ComplianceReporter` | `compliance.reporter` | Article 15 report generator |
 | `Article15Report` | `compliance.reporter` | Structured report with metrics, drift, incidents |
 | `Article15TemplateContext` | `compliance.reporter` | Operator-supplied Article 15 technical documentation context |
+| `AnnexIVTechnicalDocumentationContext` | `compliance.annex_iv` | Required operator facts for the nine-section Annex IV expansion; never inferred from telemetry |
 | `Soc2IsoReadinessReport` | `compliance.readiness` | Tenant-safe SOC 2 / ISO 27001 readiness report with SOC 2 Type I path guidance |
 | `Soc2IsoControl` | `compliance.readiness` | One readiness control mapped to SOC 2, ISO 27001, and optional HIPAA Security Rule evidence |
 | `HipaaDocumentationPacket` | `compliance.readiness` | Tenant-safe HIPAA documentation readiness packet |

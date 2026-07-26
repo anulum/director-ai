@@ -26,7 +26,10 @@ from director_ai.cli_verify.evidence_kit import (
     build_evidence_kit,
 )
 from director_ai.compliance import AuditEntry, AuditLog
-from director_ai.compliance.reporter import Article15TemplateContext
+from director_ai.compliance.reporter import (
+    AnnexIVTechnicalDocumentationContext,
+    Article15TemplateContext,
+)
 from director_ai.core.config import DirectorConfig
 
 _KIT_FILES = (
@@ -84,6 +87,28 @@ def _context() -> Article15TemplateContext:
         known_limitations=("English-language corpora only",),
         residual_risks=("Long-context summarisation recall",),
         evidence_refs=("benchmarks/PUBLIC_BENCHMARKS.md",),
+        annex_iv=AnnexIVTechnicalDocumentationContext(
+            provider_name="Example Provider GmbH",
+            system_version="2026.07",
+            previous_version_relationship="Supersedes 2026.06.",
+            external_dependencies="Approved model endpoint.",
+            software_firmware_requirements="CPython 3.12.",
+            distribution_forms="Container and API.",
+            intended_hardware="Operator-qualified x86-64 server.",
+            user_interface="Authenticated API.",
+            instructions_for_use="Deployment runbook.",
+            development_methods="Reviewed source changes.",
+            design_specifications="Evidence-grounding guardrail.",
+            architecture_and_resources="Gateway, scorer, and audit store.",
+            data_requirements="Versioned grounding corpus.",
+            predetermined_changes="Release-reviewed threshold updates.",
+            validation_and_testing="Focused and release-gate tests.",
+            monitoring_functioning_control="Metrics and incident review.",
+            performance_metric_rationale="Rates and Wilson intervals.",
+            lifecycle_changes="Release ledger.",
+            standards_and_specifications="Operator standards register.",
+            eu_declaration_of_conformity_ref="Pending applicability review.",
+        ),
     )
 
 
@@ -107,6 +132,8 @@ class TestBuildEvidenceKit:
             assert (out / name).is_file(), f"{name} not written"
         art15 = _section(result, "article15_report")
         assert "full technical documentation" in art15.note
+        article15 = (out / "article15_report.json").read_text(encoding="utf-8")
+        assert '"annex_iv_technical_documentation"' in article15
         index = (out / "INDEX.md").read_text(encoding="utf-8")
         for section in result.sections:
             assert section.name in index

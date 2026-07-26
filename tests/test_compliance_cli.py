@@ -168,6 +168,31 @@ def _write_context(tmp_path, **overrides):
     return str(path)
 
 
+def _annex_iv_json() -> dict[str, str]:
+    return {
+        "provider_name": "Example Provider GmbH",
+        "system_version": "2026.07",
+        "previous_version_relationship": "Supersedes 2026.06.",
+        "external_dependencies": "Approved model endpoint.",
+        "software_firmware_requirements": "CPython 3.12.",
+        "distribution_forms": "Container and API.",
+        "intended_hardware": "Operator-qualified x86-64 server.",
+        "user_interface": "Authenticated API.",
+        "instructions_for_use": "Deployment runbook.",
+        "development_methods": "Reviewed source changes.",
+        "design_specifications": "Evidence-grounding guardrail.",
+        "architecture_and_resources": "Gateway, scorer, and audit store.",
+        "data_requirements": "Versioned grounding corpus.",
+        "predetermined_changes": "Release-reviewed threshold updates.",
+        "validation_and_testing": "Focused and release-gate tests.",
+        "monitoring_functioning_control": "Metrics and incident review.",
+        "performance_metric_rationale": "Rates and Wilson intervals.",
+        "lifecycle_changes": "Release ledger.",
+        "standards_and_specifications": "Operator standards register.",
+        "eu_declaration_of_conformity_ref": "Pending applicability review.",
+    }
+
+
 class TestArticle15FullExport:
     def test_full_json_export_with_context(self, tmp_path, capsys):
         import json
@@ -183,6 +208,42 @@ class TestArticle15FullExport:
         assert "accuracy" in payload["article_15_sections"]
         assert "human_oversight" in payload["article_15_sections"]
         assert payload["privacy"]["raw_interaction_text_included"] is False
+
+    def test_full_json_export_includes_validated_annex_iv(self, tmp_path, capsys):
+        import json
+
+        db = str(tmp_path / "test.db")
+        _populate_db(db)
+        ctx = _write_context(tmp_path, annex_iv=_annex_iv_json())
+
+        cli_main(
+            ["compliance", "report", "--db", db, "--format", "json", "--context", ctx]
+        )
+
+        payload = json.loads(capsys.readouterr().out)
+        annex = payload["annex_iv_technical_documentation"]
+        assert len(annex["sections"]) == 9
+        assert annex["sections"]["1_general_description"]["provider_name"] == (
+            "Example Provider GmbH"
+        )
+        assert annex["claim_boundary"]["conformity_assessment_claimed"] is False
+
+    def test_annex_iv_context_rejects_non_object_and_missing_field(
+        self, tmp_path, capsys
+    ):
+        db = str(tmp_path / "test.db")
+        _populate_db(db)
+        non_object = _write_context(tmp_path, annex_iv="not-an-object")
+        with pytest.raises(SystemExit, match="1"):
+            cli_main(["compliance", "report", "--db", db, "--context", non_object])
+        assert "annex_iv must be a JSON object" in capsys.readouterr().out
+
+        annex = _annex_iv_json()
+        annex["provider_name"] = ""
+        incomplete = _write_context(tmp_path, annex_iv=annex)
+        with pytest.raises(SystemExit, match="1"):
+            cli_main(["compliance", "report", "--db", db, "--context", incomplete])
+        assert "Incomplete Annex IV context" in capsys.readouterr().out
 
     def test_full_markdown_export_with_context(self, tmp_path, capsys):
         db = str(tmp_path / "test.db")

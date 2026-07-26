@@ -270,6 +270,10 @@ _LAZY_IMPORTS: dict[str, tuple[str, str]] = {
         ".compliance.reporter",
         "Article15TemplateContext",
     ),
+    "AnnexIVTechnicalDocumentationContext": (
+        ".compliance.annex_iv",
+        "AnnexIVTechnicalDocumentationContext",
+    ),
     "ReadinessStatus": (".compliance.readiness", "ReadinessStatus"),
     "Soc2IsoControl": (".compliance.readiness", "Soc2IsoControl"),
     "Soc2IsoReadinessReport": (

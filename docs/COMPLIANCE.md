@@ -65,7 +65,7 @@ This writes a single reviewable bundle:
 |---|---|
 | `INDEX.md` | Contents, skip notes, disclaimer, version, timestamp |
 | `governance_controls.{md,json}` | Computed controls with the NIST AI RMF / ISO/IEC 42001 / EU AI Act crosswalk |
-| `article15_report.{md,json}` | Accuracy metrics, drift, incidents from the audit trail; full Article 15 technical documentation when `--context` is supplied |
+| `article15_report.{md,json}` | Accuracy metrics, drift, incidents from the audit trail; full Article 15 documentation and, when nested `annex_iv` context is supplied, the nine-section Annex IV structure |
 | `soc2_iso_readiness.{md,json}` | SOC 2 / ISO/IEC 27001 readiness controls |
 | `hipaa_documentation.{md,json}` | HIPAA documentation packet with deployment obligations |
 
@@ -78,7 +78,16 @@ requires (system name, intended purpose, risk-management / data-governance /
 robustness / cybersecurity / human-oversight / post-market-monitoring
 summaries) — these cannot be derived from telemetry. See
 `Article15TemplateContext` in `director_ai.compliance.reporter` for the field
-list; every field is required.
+list; every core field is required. Its optional nested
+`AnnexIVTechnicalDocumentationContext` from `director_ai.compliance.annex_iv`
+expands the same output into the nine
+sections specified by [Annex IV to Regulation (EU) 2024/1689](https://eur-lex.europa.eu/eli/reg/2024/1689/oj):
+general description; development and system elements; monitoring/functioning;
+metric rationale; risk management; lifecycle changes; standards; EU declaration
+reference; and post-market monitoring. All Annex IV fields are operator-authored
+and required when that expansion is selected. Use an explicit
+`"not applicable — <reason>"` value where appropriate; Director-AI never infers
+provider, standards, lifecycle, or conformity facts from telemetry.
 
 ## 3. Computed governance controls (EU AI Act crosswalk)
 

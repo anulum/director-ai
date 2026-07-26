@@ -12,6 +12,7 @@ Director-AI generates this documentation automatically from production scoring d
 
 ```python
 from director_ai import (
+    AnnexIVTechnicalDocumentationContext,
     Article15TemplateContext,
     AuditLog,
     AuditEntry,
@@ -57,6 +58,28 @@ context = Article15TemplateContext(
     known_limitations=("Does not replace human approval for regulated advice.",),
     residual_risks=("Knowledge-base facts can become stale between reviews.",),
     evidence_refs=("docs/PRODUCTION_CHECKLIST.md#compliance", "SECURITY.md"),
+    annex_iv=AnnexIVTechnicalDocumentationContext(
+        provider_name="Example Provider GmbH",
+        system_version="2026.07",
+        previous_version_relationship="Supersedes 2026.06; policy-only update.",
+        external_dependencies="Director-AI and the approved model endpoint.",
+        software_firmware_requirements="CPython 3.12; no firmware dependency.",
+        distribution_forms="Container image and authenticated API.",
+        intended_hardware="Operator-qualified x86-64 server.",
+        user_interface="Authenticated review API and operator dashboard.",
+        instructions_for_use="See the deployment runbook.",
+        development_methods="Reviewed source changes and pinned dependencies.",
+        design_specifications="Thresholded evidence-grounding guardrail.",
+        architecture_and_resources="Gateway, scorer, audit store, review queue.",
+        data_requirements="Versioned grounding corpus and eval partitions.",
+        predetermined_changes="Threshold changes require release review.",
+        validation_and_testing="Focused tests, preflight, release evidence.",
+        monitoring_functioning_control="Metrics, drift, incidents, overrides.",
+        performance_metric_rationale="Rates and Wilson intervals match the risk.",
+        lifecycle_changes="Changes are recorded in the release ledger.",
+        standards_and_specifications="Operator-maintained standards register.",
+        eu_declaration_of_conformity_ref="Pending applicability determination.",
+    ),
 )
 print(report.to_article15_markdown(context))
 ```
@@ -292,6 +315,15 @@ tenant-safe dictionary with `privacy.raw_interaction_text_included = false`.
 `Article15Report.to_article15_markdown(context)` renders the same structure as a
 reviewable technical-documentation draft.
 
+When `context.annex_iv` is supplied, the JSON adds
+`annex_iv_technical_documentation` and the Markdown appends the numbered Annex IV
+document. Article 11(1) requires high-risk-system technical documentation to
+contain at least the Annex IV elements. Director-AI therefore refuses a partial
+nested Annex IV context instead of presenting it as complete. Explicit
+`not applicable — <reason>` entries are accepted because applicability is a
+provider/legal determination, not a telemetry inference. The generated file is
+an evidence template, not a conformity assessment or legal advice.
+
 Export the full template from the CLI by supplying the operator context as a JSON
 file:
 
@@ -301,7 +333,8 @@ director-ai compliance report --db audit.db --context article15.json  # markdown
 ```
 
 `article15.json` carries the operator-authored narrative fields (`system_name`,
-`intended_purpose`, `risk_management_summary`, `human_oversight_summary`, …).
+`intended_purpose`, `risk_management_summary`, `human_oversight_summary`, …)
+and may contain the nested `annex_iv` object shown above.
 Without `--context`, `--format json` still emits the compact metrics summary for
 quick checks; with it, the command emits the complete Article 15 record.
 

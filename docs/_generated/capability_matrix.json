@@ -3,7 +3,7 @@
   "counts": {
     "benchmarked": 52,
     "experimental_hooks": 23,
-    "public_exports": 226,
+    "public_exports": 227,
     "undocumented": 0,
     "untested": 0,
     "unwired": 0
@@ -74,6 +74,15 @@
       "kind": "public_export",
       "module": ".agentic.agent_profile",
       "name": "AgentProfile",
+      "tested": true,
+      "wired": true
+    },
+    {
+      "benchmarked": false,
+      "documented": true,
+      "kind": "public_export",
+      "module": ".compliance.annex_iv",
+      "name": "AnnexIVTechnicalDocumentationContext",
       "tested": true,
       "wired": true
     },
