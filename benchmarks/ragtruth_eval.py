@@ -281,7 +281,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     """Run the RAGTruth benchmark and write a reproducible artefact.
 
     ``--out`` and ``--git-sha`` satisfy the GPU runner contract
-    (``tools/run_kimi_redteam_gpu.py`` invokes every benchmark as
+    (``tools/run_remote_benchmark_gpu.py`` invokes every benchmark as
     ``script --out <path> --git-sha <sha>``): ``--out`` is an explicit
     filesystem path for the artefact, and ``--git-sha`` records the exact
     cloned commit so the remote artefact carries true provenance instead of

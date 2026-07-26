@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 # Commercial license available
 # Copyright 2020-2026 Miroslav Sotek
-"""Teardown-safety tests for the JarvisLabs KIMI red-team GPU runner.
+"""Safety and rendering tests for the generic JarvisLabs benchmark runner.
 
 The runner's one cost-critical job is that a finished or failed run never leaves
 a paid GPU running. These tests exercise ``destroy_instance``'s retry +
@@ -17,7 +17,8 @@ from collections.abc import Callable
 
 import pytest
 
-import tools.run_kimi_redteam_gpu as runner
+import tools.run_kimi_redteam_gpu as legacy_runner
+import tools.run_remote_benchmark_gpu as runner
 
 
 class _Listed:
@@ -158,7 +159,7 @@ def _wire_main(monkeypatch: pytest.MonkeyPatch, *, teardown_ok: bool) -> None:
 
     monkeypatch.setenv("JARVISLABS_TOKEN", "x" * 43)
     monkeypatch.setattr(runner, "provision", lambda *a, **k: _Inst())
-    monkeypatch.setattr(runner, "run_redteam", lambda *a, **k: None)
+    monkeypatch.setattr(runner, "run_benchmark", lambda *a, **k: None)
     monkeypatch.setattr(runner, "download_artefact", lambda *a, **k: None)
     monkeypatch.setattr(runner, "destroy_instance", lambda inst: teardown_ok)
 
@@ -167,19 +168,52 @@ def test_main_returns_zero_on_confirmed_teardown(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     _wire_main(monkeypatch, teardown_ok=True)
-    assert runner.main([]) == 0
+    assert runner.main(["--script", "benchmarks/example.py"]) == 0
 
 
 def test_main_returns_three_when_teardown_leaks(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     _wire_main(monkeypatch, teardown_ok=False)
-    assert runner.main([]) == 3
+    assert runner.main(["--script", "benchmarks/example.py"]) == 3
 
 
 def test_main_returns_two_without_token(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.delenv("JARVISLABS_TOKEN", raising=False)
-    assert runner.main([]) == 2
+    assert runner.main(["--script", "benchmarks/example.py"]) == 2
+
+
+def test_neutral_runner_requires_explicit_benchmark_script() -> None:
+    with pytest.raises(SystemExit) as excinfo:
+        runner.main([])
+
+    assert excinfo.value.code == 2
+
+
+def test_legacy_command_shim_supplies_only_missing_audit_defaults(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    calls: list[list[str]] = []
+    monkeypatch.setattr(
+        legacy_runner,
+        "_main",
+        lambda argv: calls.append(argv) or 0,
+    )
+
+    assert legacy_runner.main(["--tag", "v3.18.1"]) == 0
+    assert calls == [
+        [
+            "--tag",
+            "v3.18.1",
+            "--script",
+            "benchmarks/kimi_redteam_reproduction.py",
+            "--out",
+            "kimi_redteam_reproduction.json",
+        ]
+    ]
+
+    explicit = ["--script", "benchmarks/other.py", "--out", "other.json"]
+    assert legacy_runner._legacy_argv(explicit) == explicit
 
 
 def test_main_passes_validated_remote_dependencies(
@@ -194,14 +228,21 @@ def test_main_passes_validated_remote_dependencies(
     monkeypatch.setattr(runner, "provision", lambda *a, **k: _Inst())
     monkeypatch.setattr(
         runner,
-        "run_redteam",
+        "run_benchmark",
         lambda _ssh, _tag, _script, deps: calls.append(deps),
     )
     monkeypatch.setattr(runner, "download_artefact", lambda *a, **k: None)
     monkeypatch.setattr(runner, "destroy_instance", lambda inst: True)
 
     result = runner.main(
-        ["--remote-deps", "datasets", "pandas>=2,<3", "httpx[http2]>=0.27"]
+        [
+            "--script",
+            "benchmarks/example.py",
+            "--remote-deps",
+            "datasets",
+            "pandas>=2,<3",
+            "httpx[http2]>=0.27",
+        ]
     )
 
     assert result == 0
@@ -231,6 +272,8 @@ def test_rendered_remote_script_records_provenance() -> None:
     # tag + script placeholders are fully substituted, none left dangling
     assert "--branch v3.18.1 " in script
     assert "benchmarks/foo.py --out" in script
+    assert "/home/director-ai/benchmark_result.json" in script
+    assert "KIMI" not in script
     assert "__TAG__" not in script
     assert "__SCRIPT__" not in script
     assert "__REMOTE_DEPS__" not in script

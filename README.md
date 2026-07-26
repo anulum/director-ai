@@ -251,13 +251,13 @@ inventory below is reference for the deeper surface, navigable under
 | Surface | Current inventory |
 |---|---:|
 | Package version | 3.19.0 |
-| Public API exports | 226 |
-| Python capability source modules | 525 |
-| Python capability classes | 1052 |
+| Public API exports | 227 |
+| Python capability source modules | 528 |
+| Python capability classes | 1054 |
 | API documentation pages | 89 |
 | Rust PyO3 bindings | 83 |
 | Optional extras | 62 |
-| Python test files | 772 |
+| Python test files | 775 |
 | Public documentation pages | 205 |
 | GitHub Actions workflows | 14 |
 

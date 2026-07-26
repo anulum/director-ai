@@ -4,12 +4,12 @@
     "github_workflows": 14,
     "model_documentation_pages": 89,
     "optional_extras": 62,
-    "public_api_exports": 226,
+    "public_api_exports": 227,
     "public_documentation_pages": 205,
-    "python_model_classes": 1052,
-    "python_model_source_modules": 525,
+    "python_model_classes": 1054,
+    "python_model_source_modules": 528,
     "rust_pyo3_model_wrappers": 83,
-    "test_files": 772
+    "test_files": 775
   },
   "documentation": {
     "public_pages": [
@@ -497,6 +497,10 @@
       {
         "name": "And",
         "path": "src/director_ai/core/temporal_logic/formula.py"
+      },
+      {
+        "name": "AnnexIVTechnicalDocumentationContext",
+        "path": "src/director_ai/compliance/annex_iv.py"
       },
       {
         "name": "AnomalyScore",
@@ -2469,6 +2473,10 @@
       {
         "name": "LaplaceMechanism",
         "path": "src/director_ai/core/federated_privacy/mechanisms.py"
+      },
+      {
+        "name": "LatencySLOConfig",
+        "path": "src/director_ai/core/observability/latency_slo.py"
       },
       {
         "name": "LayerContribution",
@@ -4543,6 +4551,7 @@
       "src/director_ai/_cli_bench.py",
       "src/director_ai/_cli_gate.py",
       "src/director_ai/_cli_ingest.py",
+      "src/director_ai/_cli_latency_slo.py",
       "src/director_ai/_cli_production.py",
       "src/director_ai/_cli_release_gate.py",
       "src/director_ai/_cli_serve.py",
@@ -4583,6 +4592,7 @@
       "src/director_ai/compliance/_readiness_base.py",
       "src/director_ai/compliance/_readiness_hipaa.py",
       "src/director_ai/compliance/_readiness_soc2_iso.py",
+      "src/director_ai/compliance/annex_iv.py",
       "src/director_ai/compliance/audit_log.py",
       "src/director_ai/compliance/cost_analyser.py",
       "src/director_ai/compliance/drift_detector.py",
@@ -4777,6 +4787,7 @@
       "src/director_ai/core/observability/forensics.py",
       "src/director_ai/core/observability/kpi_report.py",
       "src/director_ai/core/observability/kpis.py",
+      "src/director_ai/core/observability/latency_slo.py",
       "src/director_ai/core/observability/tracing.py",
       "src/director_ai/core/ontology/checker.py",
       "src/director_ai/core/ontology/graph.py",
@@ -5160,6 +5171,7 @@
     "AdaptiveThresholdReport",
     "AdversarialTester",
     "AgentProfile",
+    "AnnexIVTechnicalDocumentationContext",
     "Article15Report",
     "Article15TemplateContext",
     "AsyncStreamingKernel",
@@ -5576,6 +5588,7 @@
       "tests/test_competitor_suite.py",
       "tests/test_compliance_audit_redaction.py",
       "tests/test_compliance_cli.py",
+      "tests/test_compliance_publication_claims.py",
       "tests/test_compliance_reporter.py",
       "tests/test_config.py",
       "tests/test_config_real_surface.py",
@@ -5849,6 +5862,8 @@
       "tests/test_langgraph_integration.py",
       "tests/test_langgraph_integration_real_surface.py",
       "tests/test_langgraph_swarm.py",
+      "tests/test_latency_slo_protocol_real_surface.py",
+      "tests/test_latency_slo_real_surface.py",
       "tests/test_lazy_enterprise_import.py",
       "tests/test_lazy_enterprise_import_real_surface.py",
       "tests/test_lexical_signals_parity.py",
@@ -6073,8 +6088,8 @@
       "tests/test_run_claim_decomp_benchmark.py",
       "tests/test_run_judge_benchmark.py",
       "tests/test_run_judge_benchmark_real_surface.py",
-      "tests/test_run_kimi_redteam_gpu.py",
       "tests/test_run_longcontext_bench.py",
+      "tests/test_run_remote_benchmark_gpu.py",
       "tests/test_runtime_governor.py",
       "tests/test_runtime_session.py",
       "tests/test_rust_compute.py",
