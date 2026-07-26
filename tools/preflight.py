@@ -7,7 +7,7 @@ Gates (must match ci.yml):
   2. ruff-check         — src/ tests/ examples/
   3. mojibake           — src/ tools/ tests/
   4. capability-matrix  — generated matrix current + gap ratchet (WCC-1)
-  5. version-sync       — pyproject.toml == __init__.py == CITATION.cff
+  5. version-sync       — root, tier, citation, and archive metadata agree
   6. mypy               — src/director_ai/
   7. bandit             — src/director_ai/
   8. spdx-guard         — all .py files in src/ tests/
@@ -15,6 +15,7 @@ Gates (must match ci.yml):
 """
 
 import argparse
+import json
 import pathlib
 import re
 import subprocess
@@ -140,6 +141,16 @@ def check_version_sync() -> bool:
             print("  Cannot read pyproject.toml version")
             return False
 
+    tier_versions: dict[str, str] = {}
+    try:
+        for tier in ("lite", "pro", "full"):
+            tier_path = root / "packages" / f"director-ai-{tier}" / "pyproject.toml"
+            with tier_path.open("rb") as file:
+                tier_versions[tier] = tomllib.load(file)["project"]["version"]
+    except Exception:
+        print("  Cannot read tier package version")
+        return False
+
     try:
         init = (root / "src" / "director_ai" / "__init__.py").read_text()
         m = re.search(r'__version__\s*=\s*"([^"]+)"', init)
@@ -156,8 +167,40 @@ def check_version_sync() -> bool:
         print("  Cannot read CITATION.cff version")
         return False
 
-    print(f"  pyproject.toml={v_toml}  __init__.py={v_init}  CITATION.cff={v_cff}")
-    if v_toml == v_init == v_cff:
+    try:
+        zenodo = json.loads((root / ".zenodo.json").read_text())
+        v_zenodo = str(zenodo["version"])
+    except Exception:
+        print("  Cannot read .zenodo.json version")
+        return False
+
+    try:
+        lite_init = (
+            root
+            / "packages"
+            / "director-ai-lite"
+            / "src"
+            / "director_ai_lite"
+            / "__init__.py"
+        ).read_text()
+        m = re.search(r'__version__\s*=\s*"([^"]+)"', lite_init)
+        v_lite_init = m.group(1) if m else ""
+    except Exception:
+        print("  Cannot read Director-Lite __init__.py version")
+        return False
+
+    declared = {
+        "pyproject.toml": v_toml,
+        "__init__.py": v_init,
+        "CITATION.cff": v_cff,
+        ".zenodo.json": v_zenodo,
+        "lite pyproject": tier_versions["lite"],
+        "lite __init__": v_lite_init,
+        "pro pyproject": tier_versions["pro"],
+        "full pyproject": tier_versions["full"],
+    }
+    print("  " + "  ".join(f"{name}={version}" for name, version in declared.items()))
+    if set(declared.values()) == {v_toml}:
         return True
     print("  Version mismatch!")
     return False
