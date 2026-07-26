@@ -10,6 +10,7 @@ on:
       - "docs-site/**"
       - "notebooks/**"
       - "mkdocs.yml"
+      - "requirements/ci-docs.txt"
       - "src/director_ai/**"
       - ".github/workflows/docs.yml"
 
