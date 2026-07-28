@@ -84,6 +84,42 @@ context = Article15TemplateContext(
 print(report.to_article15_markdown(context))
 ```
 
+## RFC 3161 Anchor Verification and Revocation Evidence
+
+The audit chain can be anchored to an RFC 3161 Timestamp Authority with
+`director-ai compliance anchor`. Verification has three explicit tiers:
+
+1. token-only checks the imprint, CMS attributes, and embedded signer;
+2. `--tsa-roots` additionally requires a valid path to an operator-pinned TSA
+   root (`trusted-TSA-attested`);
+3. repeatable `--tsa-crl` and `--tsa-ocsp` arguments add fresh offline
+   revocation evidence for every non-root certificate on that exact path.
+
+```bash
+director-ai compliance verify-anchors \
+    --db production_audit.db \
+    --tsa-roots tsa-roots.pem \
+    --tsa-crl root-current.crl.pem \
+    --tsa-ocsp tsa-signer.ocsp.der
+```
+
+Each `--tsa-crl` file must contain one direct, complete PEM or DER CRL; each
+`--tsa-ocsp` file must contain one DER OCSP response. Evidence files are capped
+at 8 MiB and read locally. Director-AI does not fetch certificate URLs, so
+operators retain retrieval, freshness, and custody control. Delta and indirect
+CRLs are rejected because partial scope handling could produce a false good
+status. A delegated OCSP responder must be directly issued by the certificate
+issuer, carry only the OCSP-signing EKU, and either carry `OCSPNoCheck` or have
+valid CRL coverage of its own.
+
+Revocation mode is intentionally fail-closed: it requires pinned roots, fresh
+signed evidence, and coverage for every non-root path certificate. RFC 3161
+reason semantics are preserved: unspecified, affiliation, supersession, and
+cessation revocations invalidate tokens at or after the revocation time, while
+a missing reason or key compromise invalidates every token from that TSA key. A
+passing offline check is `trusted-TSA-attested + revocation-evidenced`; it is not
+a live OCSP availability claim or a public-transparency-log proof.
+
 ## Computed NIST AI RMF / ISO 42001 / EU AI Act Controls
 
 `compute_governance_controls()` builds a **computed** control set — unlike

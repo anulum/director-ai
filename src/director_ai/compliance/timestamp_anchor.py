@@ -50,7 +50,10 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 from time import time as _now
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from director_ai.compliance.anchor_revocation import RevocationEvidence
 
 __all__ = [
     "TimestampAnchor",
@@ -353,14 +356,14 @@ def _valid_ca_issuer(cert: Any, intermediates_below: int) -> bool:
     return bool(key_usage.key_cert_sign)
 
 
-def _chain_to_trusted_root(
+def _path_to_trusted_root(
     leaf: Any,
     extra_certs: list[Any],
     trusted_roots: list[Any],
     at_time: Any,
     max_depth: int = 4,
-) -> bool:
-    """Return whether ``leaf`` chains to one of ``trusted_roots`` at ``at_time``.
+) -> list[Any] | None:
+    """Return a validated leaf-to-root path, or ``None`` when none exists.
 
     The leaf must carry a sole, critical time-stamping EKU and be time-valid. Each
     hop is a ``verify_directly_issued_by`` (issuer-name match + signature); because
@@ -374,16 +377,16 @@ def _chain_to_trusted_root(
     for a pinned-root TSA anchor.
     """
     if not _leaf_has_timestamping_eku(leaf) or not _cert_time_valid(leaf, at_time):
-        return False
-    frontier: list[tuple[Any, int]] = [(leaf, 0)]
+        return None
+    frontier: list[tuple[Any, int, list[Any]]] = [(leaf, 0, [leaf])]
     while frontier:
-        node, depth = frontier.pop()
+        node, depth, path = frontier.pop()
         for root in trusted_roots:
             if not _cert_time_valid(root, at_time) or not _valid_ca_issuer(root, depth):
                 continue
             try:
                 node.verify_directly_issued_by(root)
-                return True
+                return [*path, root]
             except Exception:  # noqa: BLE001  # nosec B112 - not this root; keep searching
                 continue
         if depth >= max_depth:
@@ -397,8 +400,28 @@ def _chain_to_trusted_root(
                 node.verify_directly_issued_by(inter)
             except Exception:  # noqa: BLE001  # nosec B112 - not the issuer; skip
                 continue
-            frontier.append((inter, depth + 1))
-    return False
+            frontier.append((inter, depth + 1, [*path, inter]))
+    return None
+
+
+def _chain_to_trusted_root(
+    leaf: Any,
+    extra_certs: list[Any],
+    trusted_roots: list[Any],
+    at_time: Any,
+    max_depth: int = 4,
+) -> bool:
+    """Return whether ``leaf`` has a valid path to a pinned root."""
+    return (
+        _path_to_trusted_root(
+            leaf,
+            extra_certs,
+            trusted_roots,
+            at_time,
+            max_depth=max_depth,
+        )
+        is not None
+    )
 
 
 def verify_token(
@@ -406,6 +429,7 @@ def verify_token(
     expected_hash_hex: str,
     *,
     trusted_roots: list[Any] | None = None,
+    revocation_evidence: RevocationEvidence | None = None,
 ) -> bool:
     """Return ``True`` when the token verifies over the digest (fail-closed).
 
@@ -418,19 +442,22 @@ def verify_token(
     key types fail closed).
 
     When ``trusted_roots`` is a non-empty list of ``cryptography`` ``Certificate``
-    roots, a FIFTH check is required: the embedded signing certificate must chain
+    roots, a fifth check is required: the embedded signing certificate must chain
     to one of those roots — validated as of the token's ``genTime``, with the
     time-stamping EKU on the leaf and every cert on the path time-valid (see
-    :func:`_chain_to_trusted_root`).
+    :func:`_path_to_trusted_root`). When ``revocation_evidence`` is supplied, a
+    sixth fail-closed check requires fresh, signed CRL or OCSP coverage for every
+    non-root certificate on that exact path. Revocation checking is invalid
+    without pinned roots because there would be no authenticated issuer path.
 
     Scope (honest): WITHOUT ``trusted_roots`` the result means only that *some*
     certificate signed this digest at the claimed ``genTime`` — the chain is
     **TSA-token-anchored**, and back-dating resistance depends on the certificate
     being trusted out of band. WITH pinned ``trusted_roots`` the result means a
-    *trusted* TSA signed it — **trusted-TSA-attested**. Do not describe an anchor
-    as trusted-TSA-attested unless it was verified against pinned roots. (No
-    revocation/name-constraint checking; the signer is taken as the first embedded
-    certificate, consistent with the CMS signature check.)
+    *trusted* TSA signed it — **trusted-TSA-attested**. With fresh revocation
+    evidence, the stronger result is **trusted-TSA-attested + revocation-evidenced**.
+    Do not claim either tier unless its inputs were supplied and verified. Name
+    constraints remain outside this pinned-root profile.
     """
     try:
         cms, _tsp = _require_asn1crypto()
@@ -474,19 +501,33 @@ def verify_token(
             # Unsupported TSA key type (e.g. DSA/Ed25519) — fail closed.
             return False
 
+        if revocation_evidence is not None and not trusted_roots:
+            return False
         if trusted_roots:
             extra_certs = [
                 load_der_x509_certificate(bytes(c.chosen.dump()))
                 for c in certs
                 if bytes(c.chosen.dump()) != leaf_der
             ]
-            if not _chain_to_trusted_root(
+            certificate_path = _path_to_trusted_root(
                 leaf_cert,
                 extra_certs,
                 trusted_roots,
                 tst_info["gen_time"].native,
-            ):
+            )
+            if certificate_path is None:
                 return False
+            if revocation_evidence is not None:
+                from director_ai.compliance.anchor_revocation import (
+                    verify_certificate_path_revocation,
+                )
+
+                if not verify_certificate_path_revocation(
+                    certificate_path,
+                    revocation_evidence,
+                    token_time=tst_info["gen_time"].native,
+                ):
+                    return False
     except Exception:  # noqa: BLE001 - fail-closed on any verification error
         return False
     return True
@@ -580,21 +621,29 @@ class AnchorStore:
         return row is not None
 
     def verify_against_chain(
-        self, *, trusted_roots: list[Any] | None = None
+        self,
+        *,
+        trusted_roots: list[Any] | None = None,
+        revocation_evidence: RevocationEvidence | None = None,
     ) -> tuple[bool, str | None]:
         """Verify every stored anchor against the audit chain in the same DB.
 
         For each anchor the ``anchored_hash`` must be a real sealed
         ``entry_hash`` in ``audit_log`` **and** its token must verify against
         that hash. When ``trusted_roots`` is supplied, each token must also chain
-        to a pinned root (root-of-trust pinning). Returns
+        to a pinned root (root-of-trust pinning). When ``revocation_evidence`` is
+        supplied, every non-root path certificate must additionally have fresh,
+        signed CRL or OCSP coverage. Returns
         ``(ok, first_bad_anchored_hash)``.
         """
         for anchor in self.all():
             if not self._chain_has_head(anchor.anchored_hash):
                 return False, anchor.anchored_hash
             if not verify_token(
-                anchor, anchor.anchored_hash, trusted_roots=trusted_roots
+                anchor,
+                anchor.anchored_hash,
+                trusted_roots=trusted_roots,
+                revocation_evidence=revocation_evidence,
             ):
                 return False, anchor.anchored_hash
         return True, None

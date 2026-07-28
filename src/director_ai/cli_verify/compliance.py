@@ -177,10 +177,12 @@ def _cmd_compliance(args: list[str]) -> None:
             "          audit-chain head with an RFC 3161 timestamp (proves\n"
             "          existence-at-time; TSA from --tsa-url or\n"
             "          DIRECTOR_AUDIT_ANCHOR_TSA_URL)\n"
-            "  verify-anchors  [--db PATH] [--tsa-roots PEM]  Verify every stored\n"
+            "  verify-anchors  [--db PATH] [--tsa-roots PEM] [--tsa-crl FILE]\n"
+            "          [--tsa-ocsp FILE]  Verify every stored\n"
             "          timestamp anchor against the audit chain; --tsa-roots (or\n"
             "          DIRECTOR_AUDIT_ANCHOR_TSA_ROOTS) pins a trusted-TSA-root\n"
-            "          bundle for full trusted-TSA-attested verification\n"
+            "          bundle. Repeat --tsa-crl (PEM/DER) and --tsa-ocsp (DER)\n"
+            "          for offline, fail-closed revocation evidence\n"
             "  governance  [--db PATH] [--format md|json] [--config-env]\n"
             "          [--evidence-root DIR]  Computed NIST AI RMF / ISO 42001 /\n"
             "          EU AI Act controls; a missing audit database degrades the\n"
@@ -207,6 +209,8 @@ def _cmd_compliance(args: list[str]) -> None:
     tsa_url = ""
     timeout_s = 10.0
     tsa_roots = ""
+    tsa_crls: list[str] = []
+    tsa_ocsp: list[str] = []
 
     i = 0
     while i < len(rest):
@@ -242,6 +246,12 @@ def _cmd_compliance(args: list[str]) -> None:
             i += 2
         elif rest[i] == "--tsa-roots" and i + 1 < len(rest):
             tsa_roots = rest[i + 1]
+            i += 2
+        elif rest[i] == "--tsa-crl" and i + 1 < len(rest):
+            tsa_crls.append(rest[i + 1])
+            i += 2
+        elif rest[i] == "--tsa-ocsp" and i + 1 < len(rest):
+            tsa_ocsp.append(rest[i + 1])
             i += 2
         else:
             i += 1
@@ -423,11 +433,41 @@ def _cmd_compliance(args: list[str]) -> None:
 
         roots_path = tsa_roots or os.environ.get("DIRECTOR_AUDIT_ANCHOR_TSA_ROOTS", "")
         trusted_roots = load_trusted_roots(roots_path) if roots_path else None
-        mode = "root-pinned (trusted-TSA-attested)" if trusted_roots else "token-only"
+        if (tsa_crls or tsa_ocsp) and not trusted_roots:
+            print(
+                "Revocation evidence requires --tsa-roots (or its environment setting)."
+            )
+            log.close()
+            sys.exit(1)
+        revocation_evidence = None
+        if tsa_crls or tsa_ocsp:
+            from director_ai.compliance.anchor_revocation import (
+                RevocationEvidenceError,
+                load_revocation_evidence,
+            )
+
+            try:
+                revocation_evidence = load_revocation_evidence(
+                    crl_paths=tsa_crls,
+                    ocsp_paths=tsa_ocsp,
+                )
+            except RevocationEvidenceError as exc:
+                print(f"Revocation evidence invalid: {exc}")
+                log.close()
+                sys.exit(1)
+        if revocation_evidence is not None:
+            mode = "root-pinned + revocation-evidenced"
+        elif trusted_roots:
+            mode = "root-pinned (trusted-TSA-attested)"
+        else:
+            mode = "token-only"
         store = AnchorStore(db_path)
         try:
             count = len(store.all())
-            ok, bad = store.verify_against_chain(trusted_roots=trusted_roots)
+            ok, bad = store.verify_against_chain(
+                trusted_roots=trusted_roots,
+                revocation_evidence=revocation_evidence,
+            )
         finally:
             store.close()
         if count == 0:

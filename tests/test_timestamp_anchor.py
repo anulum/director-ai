@@ -87,15 +87,15 @@ def _rsa():
     return rsa.generate_private_key(public_exponent=65537, key_size=2048)
 
 
-def _key_usage(key_cert_sign):
+def _key_usage(key_cert_sign, *, crl_sign=False, digital_signature=False):
     return c_x509.KeyUsage(
-        digital_signature=False,
+        digital_signature=digital_signature,
         content_commitment=False,
         key_encipherment=False,
         data_encipherment=False,
         key_agreement=False,
         key_cert_sign=key_cert_sign,
-        crl_sign=False,
+        crl_sign=crl_sign,
         encipher_only=False,
         decipher_only=False,
     )
@@ -112,6 +112,8 @@ def _issue_cert(
     nva=None,
     path_length=None,
     key_cert_sign=None,
+    crl_sign=False,
+    digital_signature=False,
     extra_eku=False,
     eku_critical=True,
     bc_ca=None,
@@ -138,8 +140,15 @@ def _issue_cert(
         b = b.add_extension(
             c_x509.BasicConstraints(ca=bc_ca, path_length=None), critical=True
         )
-    if key_cert_sign is not None:
-        b = b.add_extension(_key_usage(key_cert_sign), critical=True)
+    if key_cert_sign is not None or crl_sign or digital_signature:
+        b = b.add_extension(
+            _key_usage(
+                bool(key_cert_sign),
+                crl_sign=crl_sign,
+                digital_signature=digital_signature,
+            ),
+            critical=True,
+        )
     if eku_ts:
         ekus = [ExtendedKeyUsageOID.TIME_STAMPING]
         if extra_eku:
@@ -153,11 +162,25 @@ def pinned_tsa():
     """A root CA + a leaf TSA-signer cert (time-stamping EKU) issued by it."""
     root_key = _rsa()
     root = _issue_cert(
-        "Root TSA CA", root_key, "Root TSA CA", root_key, ca=True, eku_ts=False
+        "Root TSA CA",
+        root_key,
+        "Root TSA CA",
+        root_key,
+        ca=True,
+        eku_ts=False,
+        key_cert_sign=True,
+        crl_sign=True,
+        digital_signature=True,
     )
     leaf_key = _rsa()
     leaf = _issue_cert(
-        "TSA Signer", leaf_key, "Root TSA CA", root_key, ca=False, eku_ts=True
+        "TSA Signer",
+        leaf_key,
+        "Root TSA CA",
+        root_key,
+        ca=False,
+        eku_ts=True,
+        digital_signature=True,
     )
     return {"root_key": root_key, "root": root, "leaf_key": leaf_key, "leaf": leaf}
 

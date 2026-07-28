@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- RFC 3161 anchor verification now accepts repeatable, operator-supplied CRL
+  and OCSP files alongside pinned TSA roots. The offline verifier checks fresh
+  validity windows, CRL/OCSP signatures, RFC 10007 cRLSign authority, RFC 6960
+  responder delegation, and complete non-root path coverage. It applies RFC
+  3161 reason semantics: normal retirement preserves tokens generated before
+  revocation, while a missing reason or key compromise invalidates every token.
+  Indirect/delta CRLs, stale or incomplete evidence, unknown status, and
+  revocation evidence without a pinned path all fail closed.
+
 ## [3.20.0] - 2026-07-26
 
 ### Added

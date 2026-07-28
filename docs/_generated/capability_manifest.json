@@ -6,10 +6,10 @@
     "optional_extras": 62,
     "public_api_exports": 227,
     "public_documentation_pages": 205,
-    "python_model_classes": 1054,
-    "python_model_source_modules": 528,
+    "python_model_classes": 1056,
+    "python_model_source_modules": 530,
     "rust_pyo3_model_wrappers": 83,
-    "test_files": 776
+    "test_files": 780
   },
   "documentation": {
     "public_pages": [
@@ -3499,6 +3499,14 @@
         "path": "src/director_ai/core/guard_control/no_go.py"
       },
       {
+        "name": "RevocationEvidence",
+        "path": "src/director_ai/compliance/anchor_revocation.py"
+      },
+      {
+        "name": "RevocationEvidenceError",
+        "path": "src/director_ai/compliance/anchor_revocation.py"
+      },
+      {
         "name": "Rfc3161Anchorer",
         "path": "src/director_ai/compliance/timestamp_anchor.py"
       },
@@ -4589,9 +4597,11 @@
       "src/director_ai/cli_verify/evidence_kit.py",
       "src/director_ai/cli_verify/tools.py",
       "src/director_ai/cli_verify/verification.py",
+      "src/director_ai/compliance/_anchor_revocation_ocsp.py",
       "src/director_ai/compliance/_readiness_base.py",
       "src/director_ai/compliance/_readiness_hipaa.py",
       "src/director_ai/compliance/_readiness_soc2_iso.py",
+      "src/director_ai/compliance/anchor_revocation.py",
       "src/director_ai/compliance/annex_iv.py",
       "src/director_ai/compliance/audit_log.py",
       "src/director_ai/compliance/cost_analyser.py",
@@ -5513,6 +5523,9 @@
       "tests/test_aggrefact_save_scores.py",
       "tests/test_aggrefact_save_scores_real_surface.py",
       "tests/test_airgap_install_example.py",
+      "tests/test_anchor_revocation.py",
+      "tests/test_anchor_revocation_ocsp.py",
+      "tests/test_anchor_revocation_ocsp_profiles.py",
       "tests/test_answer_bom.py",
       "tests/test_api_reference_cli_real_surface.py",
       "tests/test_api_reference_index.py",
@@ -6210,6 +6223,7 @@
       "tests/test_threat_intel.py",
       "tests/test_threshold_tuner_relocation.py",
       "tests/test_timestamp_anchor.py",
+      "tests/test_timestamp_anchor_revocation.py",
       "tests/test_tool_call_verifier.py",
       "tests/test_tools/test_capability_manifest.py",
       "tests/test_tools/test_emit_studio_manifest.py",
