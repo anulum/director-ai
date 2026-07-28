@@ -1,7 +1,7 @@
 {
   "SPDX-License-Identifier": "Apache-2.0 AND BUSL-1.1",
   "counts": {
-    "github_workflows": 14,
+    "github_workflows": 15,
     "model_documentation_pages": 89,
     "optional_extras": 62,
     "public_api_exports": 227,
@@ -9,7 +9,7 @@
     "python_model_classes": 1054,
     "python_model_source_modules": 528,
     "rust_pyo3_model_wrappers": 83,
-    "test_files": 775
+    "test_files": 776
   },
   "documentation": {
     "public_pages": [
@@ -5482,6 +5482,7 @@
       ".github/workflows/publish-lite.yml",
       ".github/workflows/publish-paid.yml",
       ".github/workflows/publish.yml",
+      ".github/workflows/pypi-downloads.yml",
       ".github/workflows/release.yml",
       ".github/workflows/scorecard.yml",
       ".github/workflows/stale.yml",
@@ -6213,6 +6214,7 @@
       "tests/test_tools/test_capability_manifest.py",
       "tests/test_tools/test_emit_studio_manifest.py",
       "tests/test_tools/test_emit_studio_manifest_real_surface.py",
+      "tests/test_tools/test_pypi_downloads.py",
       "tests/test_trace_safe.py",
       "tests/test_train_distillation_reproducibility.py",
       "tests/test_train_distillation_reproducibility_real_surface.py",
