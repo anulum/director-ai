@@ -9,7 +9,7 @@
     "python_model_classes": 1056,
     "python_model_source_modules": 530,
     "rust_pyo3_model_wrappers": 83,
-    "test_files": 780
+    "test_files": 781
   },
   "documentation": {
     "public_pages": [
@@ -5632,6 +5632,7 @@
       "tests/test_contradiction_recall.py",
       "tests/test_contradiction_tracker.py",
       "tests/test_core_moved_imports.py",
+      "tests/test_core_release_supply_chain.py",
       "tests/test_correction_loop.py",
       "tests/test_cors_reverse_proxy_policy.py",
       "tests/test_cost_analyser.py",

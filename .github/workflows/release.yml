@@ -24,19 +24,6 @@ jobs:
         with:
           fetch-depth: 0
 
-      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v6
-        with:
-          python-version: "3.12"
-
-      - name: Install build tools
-        run: pip install --require-hashes -r requirements/ci-release.txt
-
-      - name: Build sdist and wheel
-        run: python -m build
-
-      - name: Generate SBOM
-        run: cyclonedx-py environment -o sbom.json --output-format json
-
       - name: Extract changelog for this tag
         id: changelog
         run: |
@@ -53,6 +40,11 @@ jobs:
           ' CHANGELOG.md > /tmp/release_notes.md
           echo "notes_file=/tmp/release_notes.md" >> "$GITHUB_OUTPUT"
 
+      # This workflow creates release metadata only. publish.yml is the sole
+      # Core builder and attaches the exact distributions that it signs and
+      # sends to PyPI. Keeping dist/* out of this workflow prevents a second,
+      # byte-different build from reaching the GitHub Release.
+      #
       # Create the Release with RELEASE_PAT when it is configured. A Release
       # created by the default GITHUB_TOKEN does NOT emit `release: published`
       # (GitHub anti-recursion), so publish.yml / publish-lite.yml never fire and
@@ -67,10 +59,6 @@ jobs:
           token: ${{ secrets.RELEASE_PAT || secrets.GITHUB_TOKEN }}
           body_path: ${{ steps.changelog.outputs.notes_file }}
           generate_release_notes: false
-          files: |
-            dist/*.tar.gz
-            dist/*.whl
-            sbom.json
 
   # One-click publishing WITHOUT a RELEASE_PAT.
   #

@@ -31,6 +31,20 @@ controls.
 | `hash-pin` | Export-only wheels use `--require-hashes`. |
 | `isolated-build-stage` | Export-only tooling stays out of runtime images. |
 
+## Core Release Artefact Identity
+
+The tag-triggered `release.yml` workflow creates GitHub Release metadata but
+does not build or attach Core distributions. `publish.yml` is the sole Core
+builder. It records a SHA-256 manifest for the wheel and source distribution,
+passes those immutable workflow artefacts through signing, provenance, and
+PyPI publication, then attaches the same files to the GitHub Release.
+
+Every consuming job rechecks the manifest after downloading the workflow
+artefact. GitHub Release attachment runs only after signing, provenance, and
+PyPI publication succeed, and it refuses to overwrite an existing same-name
+asset. A conflict therefore stops the release for operator reconciliation
+instead of silently replacing public bytes.
+
 ## Package Notes
 
 | Package | Extra | Risk class | Required controls |

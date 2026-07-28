@@ -15,8 +15,8 @@ on:
 permissions: read-all
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  group: ${{ github.workflow }}-${{ github.event.release.tag_name || inputs.tag || github.ref }}
+  cancel-in-progress: false
 
 env:
   RELEASE_TAG: ${{ github.event.release.tag_name || inputs.tag }}
@@ -64,6 +64,21 @@ jobs:
       - name: Generate SBOM
         run: cyclonedx-py environment -o sbom.json --of json
 
+      - name: Record distribution checksums
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -t distributions < <(
+            find dist -maxdepth 1 -type f \( -name '*.tar.gz' -o -name '*.whl' \) \
+              -print | LC_ALL=C sort
+          )
+          if [ "${#distributions[@]}" -ne 2 ]; then
+            echo "::error::Expected one Core sdist and one Core wheel, found ${#distributions[@]}."
+            exit 1
+          fi
+          sha256sum -- "${distributions[@]}" > dist-sha256.txt
+          sha256sum --check dist-sha256.txt
+
       - name: Upload dist
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
@@ -76,19 +91,32 @@ jobs:
           name: sbom
           path: sbom.json
 
+      - name: Upload distribution checksums
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: dist-sha256
+          path: dist-sha256.txt
+
   sign:
     name: Sigstore Sign
     needs: build
     runs-on: ubuntu-latest
     permissions:
       id-token: write
-      contents: write
     steps:
       - name: Download dist
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
           name: dist
           path: dist/
+
+      - name: Download distribution checksums
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        with:
+          name: dist-sha256
+
+      - name: Verify distribution checksums
+        run: sha256sum --check dist-sha256.txt
 
       - name: Sign with Sigstore
         uses: sigstore/gh-action-sigstore-python@5b79a39c381910c090341a2c9b0bf022c8b387e1 # v3.4.0
@@ -116,6 +144,14 @@ jobs:
           name: dist
           path: dist/
 
+      - name: Download distribution checksums
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        with:
+          name: dist-sha256
+
+      - name: Verify distribution checksums
+        run: sha256sum --check dist-sha256.txt
+
       - name: Generate provenance attestation
         uses: actions/attest-build-provenance@0f67c3f4856b2e3261c31976d6725780e5e4c373 # v4.1.1
         with:
@@ -126,7 +162,7 @@ jobs:
   # workflow filename and the minted OIDC token is never ambiguous.
   publish:
     name: Publish
-    needs: [build, sign]
+    needs: [build, sign, provenance]
     runs-on: ubuntu-latest
     environment: pypi
     permissions:
@@ -137,6 +173,14 @@ jobs:
         with:
           name: dist
           path: dist/
+
+      - name: Download distribution checksums
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        with:
+          name: dist-sha256
+
+      - name: Verify distribution checksums
+        run: sha256sum --check dist-sha256.txt
 
       - name: Refuse paid artefacts on the public lane
         # Hard gate (decision D3): director-ai-pro / director-ai-full are
@@ -155,13 +199,22 @@ jobs:
         uses: pypa/gh-action-pypi-publish@ba38be9e461d3875417946c167d0b5f3d385a247 # v1.14.1
 
   attach-artifacts:
-    name: Attach SBOM + Signatures to Release
-    needs: [build, sign]
+    name: Attach Published Distribution + Evidence to Release
+    needs: [build, sign, provenance, publish]
     runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - name: Download published distribution
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        with:
+          name: dist
+          path: dist/
+
+      - name: Download distribution checksums
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        with:
+          name: dist-sha256
 
       - name: Download SBOM artifact
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
@@ -178,10 +231,10 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release upload "$RELEASE_TAG" sbom.json --clobber
-          for sig in sigstore/*.sigstore.json; do
-            [ -f "$sig" ] && gh release upload "$RELEASE_TAG" "$sig" --clobber
-          done
+          set -euo pipefail
+          sha256sum --check dist-sha256.txt
+          gh release upload "$RELEASE_TAG" \
+            dist/* dist-sha256.txt sbom.json sigstore/*.sigstore.json
 
   discord-announce:
     name: Discord Release Announcement

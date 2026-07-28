@@ -18,6 +18,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Indirect/delta CRLs, stale or incomplete evidence, unknown status, and
   revocation evidence without a pinned path all fail closed.
 
+### Fixed
+
+- Core releases now build the wheel and source distribution exactly once in
+  `publish.yml`. The same checksum-verified artefacts are signed, attested,
+  published to PyPI, and attached to the GitHub Release alongside their SBOM,
+  Sigstore bundles, and SHA-256 manifest. `release.yml` creates metadata only,
+  and release attachment refuses to overwrite an existing same-name asset.
+
 ## [3.20.0] - 2026-07-26
 
 ### Added
