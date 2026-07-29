@@ -1647,7 +1647,7 @@ wheels = [
 
 [[package]]
 name = "director-ai"
-version = "3.20.0"
+version = "3.21.0"
 source = { editable = "." }
 dependencies = [
     { name = "numpy" },

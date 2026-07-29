@@ -1,6 +1,6 @@
 # Compliance Evidence Guide
 
-> **Module**: Director-AI | **Version**: 3.20.0 | **License**: Apache-2.0 core / BUSL-1.1 advanced
+> **Module**: Director-AI | **Version**: 3.21.0 | **License**: Apache-2.0 core / BUSL-1.1 advanced
 >
 > © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
 

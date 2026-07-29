@@ -55,7 +55,7 @@ def test_server_reports_release_identity() -> None:
     app = create_app(DirectorConfig(api_keys=[], llm_provider="mock", use_nli=False))
 
     assert app.title == "Director-AI"
-    assert app.version == "3.20.0"
+    assert app.version == "3.21.0"
 
 
 def test_server_rejects_excessive_cors_origins() -> None:

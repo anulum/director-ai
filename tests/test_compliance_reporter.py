@@ -195,7 +195,7 @@ class TestReporterMarkdown:
         assert "Drift Detection" in md
         assert "Incident Summary" in md
         assert "**System:** Director-AI Hallucination Guardrail" in md
-        assert "generated automatically by Director-AI v3.20.0" in md
+        assert "generated automatically by Director-AI v3.21.0" in md
         log.close()
 
 

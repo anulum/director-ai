@@ -14,9 +14,9 @@ authors:
     given-names: "Miroslav"
     orcid: "https://orcid.org/0009-0009-3560-0851"
     affiliation: "ANULUM CH & LI"
-version: "3.20.0"
+version: "3.21.0"
 doi: "10.5281/zenodo.18822167"
-date-released: "2026-07-26"
+date-released: "2026-07-29"
 license:
   - "Apache-2.0"
   - "BUSL-1.1"

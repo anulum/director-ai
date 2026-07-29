@@ -1,6 +1,6 @@
 # Director-AI Rust FFI Pipeline (Backfire Kernel)
 
-> **Crate**: `backfire-kernel` | **Director-AI release**: 3.20.0 | **License**: Apache-2.0
+> **Crate**: `backfire-kernel` | **Director-AI release**: 3.21.0 | **License**: Apache-2.0
 >
 > © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
 > © Code 2020–2026 Miroslav Šotek. All rights reserved.

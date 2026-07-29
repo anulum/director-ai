@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.21.0] - 2026-07-29
+
 ### Added
 
 - RFC 3161 anchor verification now accepts repeatable, operator-supplied CRL
@@ -18,6 +20,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Indirect/delta CRLs, stale or incomplete evidence, unknown status, and
   revocation evidence without a pinned path all fail closed.
 
+- Language-native API documentation is now generated and published for the
+  maintained TypeScript, Rust, Go, Julia, Lean, and Protobuf surfaces. The
+  documentation workflow runs each ecosystem's native renderer or checker and
+  assembles the outputs into the MkDocs/Pages site.
+
+- A bounded daily PyPI download-history job records only the `director-ai`
+  series on a dedicated `metrics` branch. The writer constrains its remote
+  endpoint, response size, JSON shape, retry window, CSV schema, and writable
+  path before publishing a snapshot.
+
+### Changed
+
+- GitHub Actions and hash-pinned CI dependencies were refreshed to their
+  current security-maintained releases without weakening the existing audit,
+  typing, documentation, or release gates.
+
 ### Fixed
 
 - Core releases now build the wheel and source distribution exactly once in
@@ -25,6 +43,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   published to PyPI, and attached to the GitHub Release alongside their SBOM,
   Sigstore bundles, and SHA-256 manifest. `release.yml` creates metadata only,
   and release attachment refuses to overwrite an existing same-name asset.
+
+- Documentation publication now pins the supported artifact action and
+  installs Protobuf tooling through a bounded, checksum-verified bootstrap.
+- Timestamp-revocation tests now register fixtures deterministically and use a
+  stable OCSP evidence clock across the complete multi-version test suite.
 
 ## [3.20.0] - 2026-07-26
 
@@ -2696,7 +2719,8 @@ Production stable release. Research modules permanently removed.
 - Demo script for end-to-end flow validation
 - Documentation: Manifesto, Architecture, Roadmap, Technical Spec, API Reference
 
-[Unreleased]: https://github.com/anulum/director-ai/compare/v3.20.0...HEAD
+[Unreleased]: https://github.com/anulum/director-ai/compare/v3.21.0...HEAD
+[3.21.0]: https://github.com/anulum/director-ai/compare/v3.20.0...v3.21.0
 [3.20.0]: https://github.com/anulum/director-ai/compare/v3.19.0...v3.20.0
 [3.19.0]: https://github.com/anulum/director-ai/compare/v3.18.1...v3.19.0
 [3.18.1]: https://github.com/anulum/director-ai/compare/v3.18.0...v3.18.1

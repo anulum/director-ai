@@ -250,7 +250,7 @@ inventory below is reference for the deeper surface, navigable under
 
 | Surface | Current inventory |
 |---|---:|
-| Package version | 3.20.0 |
+| Package version | 3.21.0 |
 | Public API exports | 227 |
 | Python capability source modules | 530 |
 | Python capability classes | 1056 |
@@ -623,7 +623,7 @@ Kubernetes: [Helm chart](deploy/helm/director-ai/) with GPU toggle, HPA, Sigstor
   title     = {Director-AI: Real-time LLM Hallucination Guardrail},
   year      = {2026},
   url       = {https://github.com/anulum/director-ai},
-  version   = {3.20.0},
+  version   = {3.21.0},
   license   = {Apache-2.0 AND BUSL-1.1}
 }
 ```
