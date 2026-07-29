@@ -145,9 +145,9 @@ attrs==26.1.0 \
     --hash=sha256:c647aa4a12dfbad9333ca4e71fe62ddc36f4e63b2d260a37a8b83d2f043ac309 \
     --hash=sha256:d03ceb89cb322a8fd706d4fb91940737b6642aa36998fe130a9bc96c985eff32
     # via aiohttp
-certifi==2026.6.17 \
-    --hash=sha256:024c88eeec92ca068db80f02b8b07c9cef7b9fe261d1d535abfd5abd6f6af432 \
-    --hash=sha256:2227dcbaafe0d2f59279d1762ddddc37783ed4354594f194ffc31d20f41fc3db
+certifi==2026.7.22 \
+    --hash=sha256:62f22742b58a1a33014a2b6b706588a8d7e2a88ae7bd1a6ebe8c992928483775 \
+    --hash=sha256:741e2c3b351ddf169a738da9f2c048608ff7f2c5cc02f1ebc6b118bb090d5d55
     # via
     #   httpcore
     #   httpx
@@ -715,9 +715,9 @@ httpx==0.28.1 \
     --hash=sha256:75e98c5f16b0f35b567856f597f06ff2270a374470a5c2392242528e3e3e42fc \
     --hash=sha256:d909fcccc110f8c7faf814ca82a9a4d816bc5a6dbfea25d6591d6985b8ba59ad
     # via huggingface-hub
-huggingface-hub==1.24.0 \
-    --hash=sha256:18431ff4daae0749aa9ba102fc952e314c98e1d30ebdec5319d85ca0a83e1ae5 \
-    --hash=sha256:6ed4120a84a6beec900640aa7e346bd766a6b7341e41526fef5dc8bd81fb7d59
+huggingface-hub==1.25.1 \
+    --hash=sha256:004d4e70350517e24c68a7dbb7dc5e40b2b6aefef8f94bf7a85f6f9835102ea5 \
+    --hash=sha256:21129595ca7a753be479b319913e22cc8808361ac118bd76cc413db831b28a99
     # via
     #   -r training/requirements-distil.in
     #   accelerate

@@ -39,7 +39,10 @@ def _responder_key_hash(certificate: x509.Certificate) -> bytes:
         serialization.PublicFormat.SubjectPublicKeyInfo,
     )
     public_key_bits = keys.PublicKeyInfo.load(spki)["public_key"].contents[1:]
-    return hashlib.sha1(public_key_bits, usedforsecurity=False).digest()  # noqa: S324
+    # RFC 6960 section 4.2.2.3 requires SHA-1 for ResponderID byKey.
+    return hashlib.sha1(  # noqa: S324  # nosemgrep: python.lang.security.insecure-hash-algorithms.insecure-hash-algorithm-sha1
+        public_key_bits, usedforsecurity=False
+    ).digest()
 
 
 def _matches_responder_id(

@@ -20,6 +20,7 @@ from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.x509 import ocsp
 from cryptography.x509.oid import ExtendedKeyUsageOID
+from test_anchor_revocation import certificate_path as certificate_path
 from test_anchor_revocation_ocsp import (
     _CHECKED_AT,
     _TOKEN_TIME,
