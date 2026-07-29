@@ -243,7 +243,8 @@ jobs:
           set -euo pipefail
           sha256sum --check dist-sha256.txt
           gh release upload "$RELEASE_TAG" \
-            dist/* dist-sha256.txt sbom.json sigstore/*.sigstore.json
+            dist/* dist-sha256.txt sbom.json sigstore/*.sigstore.json \
+            --repo "$GITHUB_REPOSITORY"
 
   discord-announce:
     name: Discord Release Announcement

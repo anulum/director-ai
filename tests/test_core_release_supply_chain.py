@@ -153,6 +153,7 @@ def test_release_attachment_is_exact_and_non_overwriting() -> None:
         "sigstore/*.sigstore.json",
     ):
         assert path in command
+    assert '--repo "$GITHUB_REPOSITORY"' in command
     assert "--clobber" not in command
 
 
