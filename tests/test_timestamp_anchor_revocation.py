@@ -22,6 +22,7 @@ from test_timestamp_anchor import (
     _pinned_transport,
     _populated_audit_db,
 )
+from test_timestamp_anchor import pinned_tsa as pinned_tsa
 
 from director_ai.compliance.anchor_revocation import RevocationEvidence
 from director_ai.compliance.timestamp_anchor import AnchorStore, verify_token
