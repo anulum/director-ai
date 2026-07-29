@@ -9,11 +9,11 @@
 | Public API exports | 227 |
 | Python capability source modules | 530 |
 | Python capability classes | 1056 |
-| API documentation pages | 89 |
+| API documentation pages | 90 |
 | Rust PyO3 bindings | 83 |
 | Optional extras | 62 |
 | Python test files | 781 |
-| Public documentation pages | 205 |
+| Public documentation pages | 206 |
 | GitHub Actions workflows | 15 |
 
 Evidence boundary: this snapshot is a static inventory. Performance, coverage, hardware, and scientific-fidelity claims require their own committed evidence artefacts.
