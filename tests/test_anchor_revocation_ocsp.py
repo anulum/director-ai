@@ -31,7 +31,10 @@ from director_ai.compliance.anchor_revocation import (
 )
 
 _TOKEN_TIME = datetime(2026, 7, 22, 3, 30, tzinfo=UTC)
-_CHECKED_AT = datetime.now(UTC) + timedelta(minutes=1)
+# ``cryptography`` stamps OCSP ``producedAt`` when ``sign()`` runs.  Keep the
+# evidence window independent of how long full-suite collection takes.
+_CHECKED_AT = datetime.now(UTC) + timedelta(days=1)
+_DEFAULT_THIS_UPDATE = _CHECKED_AT - timedelta(days=2)
 
 
 def _key_usage(
@@ -164,7 +167,7 @@ def _ocsp_response(
             issuer=issuer,
             algorithm=hashes.SHA256(),
             cert_status=status,
-            this_update=this_update or _CHECKED_AT - timedelta(minutes=5),
+            this_update=this_update or _DEFAULT_THIS_UPDATE,
             next_update=(
                 None
                 if omit_next_update
