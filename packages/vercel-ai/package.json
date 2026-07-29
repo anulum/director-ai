@@ -13,6 +13,7 @@
   "scripts": {
     "prebuild": "node -e \"import('node:fs').then(fs => fs.rmSync('dist', { recursive: true, force: true }))\"",
     "build": "tsc -p tsconfig.json",
+    "docs": "typedoc --options typedoc.json",
     "prepack": "npm run build",
     "test": "npm run build && node --test test/*.test.mjs"
   },
@@ -24,6 +25,7 @@
     "@ai-sdk/provider": "^3.0.10",
     "@types/json-schema": "^7.0.15",
     "ai": "^6.0.184",
+    "typedoc": "0.28.20",
     "typescript": "^6.0.3"
   }
 }

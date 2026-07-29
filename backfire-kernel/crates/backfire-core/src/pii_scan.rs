@@ -8,7 +8,7 @@
 
 //! Multi-pattern PII regex scanner.
 //!
-//! The Python [`RegexPIIDetector`] iterates a fixed list of
+//! The Python `RegexPIIDetector` iterates a fixed list of
 //! compiled regexes and calls `finditer` on each. Python's `re` is
 //! already C-backed, but batching the scan behind a single
 //! `RegexSet` lets us:

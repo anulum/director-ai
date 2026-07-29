@@ -1,0 +1,20 @@
+# SPDX-License-Identifier: Apache-2.0
+# Commercial license available
+# © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
+# © Code 2020–2026 Miroslav Šotek. All rights reserved.
+# ORCID: 0009-0009-3560-0851
+# Contact: www.anulum.li | protoscience@anulum.li
+# Director-Class AI — Lean doc-gen4 documentation project
+name = "docbuild"
+version = "0.1.0"
+reservoir = false
+packagesDir = "../.lake/packages"
+
+[[require]]
+name = "HaltMonitor"
+path = "../"
+
+[[require]]
+scope = "leanprover"
+name = "doc-gen4"
+rev = "v4.29.1"

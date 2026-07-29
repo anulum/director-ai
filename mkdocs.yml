@@ -203,6 +203,7 @@ nav:
       - Director Safety Telemetry v1: specs/director-safety-telemetry-v1.md
   - Core API:
       - Overview: api/index.md
+      - Polyglot API Reference: api/polyglot.md
       - guard / score / get_score: api/guard.md
       - CoherenceScorer: api/scorer.md
       - StreamingKernel: api/streaming.md

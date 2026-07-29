@@ -2,7 +2,8 @@
 .DEFAULT_GOAL := help
 PYTHON ?= python
 PYTHON_ONLY_CHECK_ARGS ?=
-.PHONY: help test python-only-check test-rust test-julia test-lean test-go test-wasm test-all proto wasm-build lint fmt docs docs-build bench clean build preflight preflight-fast bandit sast install-hooks docker-build docker-run backup julia-instantiate grpc-scoring ab-bench
+GENERATED_DOCS_DIR ?= $(CURDIR)/build/generated-docs
+.PHONY: help test python-only-check test-rust test-julia test-lean test-go test-wasm test-all proto wasm-build lint fmt docs docs-build docs-all docs-polyglot docs-rust docs-go docs-typescript docs-julia docs-lean docs-protobuf bench clean build preflight preflight-fast bandit sast install-hooks docker-build docker-run backup julia-instantiate grpc-scoring ab-bench
 
 help: ## Show available targets
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-18s\033[0m %s\n", $$1, $$2}'
@@ -80,6 +81,35 @@ docs: ## Local docs server
 
 docs-build: ## Build docs (strict)
 	mkdocs build --strict
+
+docs-rust: ## Build warning-fatal Rust API documentation
+	cd backfire-kernel && RUSTDOCFLAGS="-D warnings" cargo doc --workspace --no-deps --locked
+	cd backfire-kernel && cargo test --doc --workspace --exclude backfire-ffi --locked
+
+docs-go: ## Build static Go package documentation
+	$(PYTHON) tools/build_go_docs.py --module-dir gateway/go --output "$(GENERATED_DOCS_DIR)/go"
+
+docs-typescript: ## Build warning-fatal TypeScript API documentation
+	cd packages/vercel-ai && npm ci --ignore-scripts && npm run docs -- --out "$(GENERATED_DOCS_DIR)/typescript"
+
+docs-julia: ## Build warning-fatal Julia API documentation
+	JULIA_PKG_PRECOMPILE_AUTO=0 julia --project=tools/julia_tuner/docs -e 'using Pkg; Pkg.develop(PackageSpec(path="tools/julia_tuner")); Pkg.instantiate()'
+	DIRECTOR_JULIA_DOCS_OUTPUT="$(GENERATED_DOCS_DIR)/julia" julia --project=tools/julia_tuner/docs tools/julia_tuner/docs/make.jl
+
+docs-lean: ## Build Lean API documentation with doc-gen4
+	cd formal/HaltMonitor/docbuild && DISABLE_EQUATIONS=1 lake build HaltMonitor:docs
+
+docs-protobuf: ## Build Protobuf schema documentation
+	mkdir -p "$(CURDIR)/build/tools/bin" "$(GENERATED_DOCS_DIR)/protobuf"
+	GOBIN="$(CURDIR)/build/tools/bin" go install github.com/pseudomuto/protoc-gen-doc/cmd/protoc-gen-doc@v1.5.1
+	PATH="$(CURDIR)/build/tools/bin:$$PATH" protoc \
+		--doc_out="$(GENERATED_DOCS_DIR)/protobuf" \
+		--doc_opt=html,index.html \
+		proto/director.proto schemas/proto/director/v1/director.proto
+
+docs-polyglot: docs-rust docs-go docs-typescript docs-julia docs-lean docs-protobuf ## Build every maintained non-Python API reference
+
+docs-all: docs-build docs-polyglot ## Build the complete Python and polyglot documentation set
 
 bench: ## Run regression benchmark suite
 	python -m benchmarks.regression_suite

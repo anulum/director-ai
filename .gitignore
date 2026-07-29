@@ -113,6 +113,7 @@ dmypy.json
 # JavaScript / TypeScript
 # =====================================================================
 node_modules/
+tools/julia_tuner/docs/Manifest.toml
 
 # =====================================================================
 # IDE / Editor

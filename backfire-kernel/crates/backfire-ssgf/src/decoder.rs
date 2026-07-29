@@ -94,7 +94,7 @@ pub fn decode_gram_softplus(z: &[f64], n: usize, w_out: &mut [f64]) {
 /// Decode z → W via RBF kernel.
 ///
 /// z is interpreted as N points of dimension D, where z.len() = N*D.
-/// W[i,j] = exp(-||z_i - z_j||^2 / (2σ²)), diag = 0.
+/// `W[i,j] = exp(-||z_i - z_j||^2 / (2σ²))`, with a zero diagonal.
 pub fn decode_rbf(z: &[f64], n: usize, sigma: f64, w_out: &mut [f64]) {
     let d = z.len() / n;
     if d == 0 {
@@ -233,8 +233,8 @@ fn compute_du_dw(
 
 /// Analytic gradient for gram_softplus decoder.
 ///
-/// Chain rule: ∂U/∂z[k] = (∂U/∂W[i,j] + ∂U/∂W[j,i]) · sigmoid(z[k])
-/// where k indexes the upper-triangle pair (i,j) with i<j,
+/// Chain rule: `∂U/∂z[k] = (∂U/∂W[i,j] + ∂U/∂W[j,i]) · sigmoid(z[k])`,
+/// where `k` indexes the upper-triangle pair `(i,j)` with `i < j`,
 /// and sigmoid is the derivative of softplus.
 ///
 /// `du_dw` is an n×n scratch buffer (will be overwritten).
@@ -273,9 +273,11 @@ pub fn gradient_analytic_gram(
 
 /// Analytic gradient for RBF decoder.
 ///
-/// W[i,j] = exp(-||z_i - z_j||² / (2σ²))
-/// ∂W[i,j]/∂z[i·D+d] = W[i,j] · (z[j·D+d] - z[i·D+d]) / σ²
-/// ∂W[i,j]/∂z[j·D+d] = W[i,j] · (z[i·D+d] - z[j·D+d]) / σ²
+/// `W[i,j] = exp(-||z_i - z_j||² / (2σ²))`
+///
+/// `∂W[i,j]/∂z[i·D+d] = W[i,j] · (z[j·D+d] - z[i·D+d]) / σ²`
+///
+/// `∂W[i,j]/∂z[j·D+d] = W[i,j] · (z[i·D+d] - z[j·D+d]) / σ²`
 ///
 /// `du_dw` is an n×n scratch buffer (will be overwritten).
 /// Returns gradient vector of length z.len() (= n*D).

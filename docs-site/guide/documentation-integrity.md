@@ -26,6 +26,31 @@ uv run --frozen ruff check README.md mkdocs.yml docs-site src/director_ai
 git diff --check -- README.md mkdocs.yml docs-site src/director_ai
 ```
 
+Build all language-native API references before changing a maintained Rust,
+Go, TypeScript, Julia, Lean, or Protobuf public surface:
+
+```bash
+make docs-polyglot
+```
+
+The aggregate target runs the same generators used by the Pages workflow.
+Focused targets are available as `docs-rust`, `docs-go`, `docs-typescript`,
+`docs-julia`, `docs-lean`, and `docs-protobuf`.
+
+| Surface | Source | Required generator | Failure policy |
+| --- | --- | --- | --- |
+| Rust | `backfire-kernel` workspace | `cargo doc` plus workspace doctests | rustdoc warnings or doctest failures fail |
+| Go | `gateway/go` module | `go list` + `go doc -all` | command or empty-package failure fails |
+| TypeScript | `packages/vercel-ai/src/index.ts` | TypeDoc | generator and validation warnings fail |
+| Julia | `tools/julia_tuner` package | Documenter.jl | missing exported docs and warnings fail |
+| Lean | `formal/HaltMonitor` library | doc-gen4 with equation synthesis disabled | Lake or documentation build failure fails |
+| Protobuf | canonical `.proto` contracts | protoc-gen-doc | compiler or plugin failure fails |
+
+Generated HTML remains under ignored build directories and CI artefacts. The
+Pages build assembles those artefacts under `reference/<language>/` after the
+strict MkDocs build. `studio-web` is intentionally excluded while it remains a
+pre-ratification consumer of unavailable shared SCPN-STUDIO packages.
+
 For API pages that use mkdocstrings, run a focused import smoke when a module
 or public symbol changes:
 

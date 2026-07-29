@@ -53,6 +53,9 @@ make python-only-check PYTHON=.venv/bin/python PYTHON_ONLY_CHECK_ARGS="--print-p
 | `make preflight` | `python tools/preflight.py` | Full preflight gate |
 | `make preflight-fast` | `preflight.py --no-tests` | Lint-only (~5s) |
 | `make docs` | `mkdocs serve` | Local docs server |
+| `make docs-build` | `mkdocs build --strict` | Build the Python/MkDocs reference |
+| `make docs-polyglot` | Language-native generators | Build Rust, Go, TypeScript, Julia, Lean, and Protobuf references |
+| `make docs-all` | docs-build + docs-polyglot | Build the complete documentation set |
 | `make build` | `python -m build` | Build sdist + wheel |
 | `make install-hooks` | `git config core.hooksPath .githooks` | Install local git hooks |
 | `make clean` | Remove dist/, build/, __pycache__ | Clean build artifacts |
