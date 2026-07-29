@@ -66,7 +66,7 @@ jobs:
         run: make docs-rust
 
       - name: Upload Rust API
-        uses: actions/upload-artifact@043fb46b7a8245065e66049a581d73858b1a9c3b # v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: docs-rust
           path: backfire-kernel/target/doc
@@ -93,7 +93,7 @@ jobs:
         run: make docs-go
 
       - name: Upload Go API
-        uses: actions/upload-artifact@043fb46b7a8245065e66049a581d73858b1a9c3b # v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: docs-go
           path: build/generated-docs/go
@@ -117,7 +117,7 @@ jobs:
         run: make docs-typescript
 
       - name: Upload TypeScript API
-        uses: actions/upload-artifact@043fb46b7a8245065e66049a581d73858b1a9c3b # v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: docs-typescript
           path: build/generated-docs/typescript
@@ -139,7 +139,7 @@ jobs:
         run: make docs-julia
 
       - name: Upload Julia API
-        uses: actions/upload-artifact@043fb46b7a8245065e66049a581d73858b1a9c3b # v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: docs-julia
           path: build/generated-docs/julia
@@ -166,7 +166,7 @@ jobs:
         run: make docs-lean
 
       - name: Upload Lean API
-        uses: actions/upload-artifact@043fb46b7a8245065e66049a581d73858b1a9c3b # v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: docs-lean
           path: formal/HaltMonitor/docbuild/.lake/build/doc
@@ -192,7 +192,7 @@ jobs:
         run: make docs-protobuf
 
       - name: Upload Protobuf API
-        uses: actions/upload-artifact@043fb46b7a8245065e66049a581d73858b1a9c3b # v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: docs-protobuf
           path: build/generated-docs/protobuf
