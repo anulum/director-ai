@@ -1,7 +1,7 @@
 build==1.5.1
 twine==6.2.0
 cyclonedx-bom==7.3.1
-lxml==6.1.1
+lxml==6.1.2
 # Free runtime deps for the free-wheel import simulation
 # (scripts/check_free_wheel.py in the CI paid-tiers job).
 numpy>=1.24
