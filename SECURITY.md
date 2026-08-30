@@ -50,15 +50,17 @@ Security concerns for Director-AI:
 Upstream advisories against optional dependencies, with whether they apply to
 Director-AI's usage:
 
-- **chromadb — CVE-2026-45829 / GHSA-f4j7-r4q5-qw2c (critical, unpatched).** A
-  pre-authentication code-injection vulnerability in the **chromadb server's**
-  HTTP API (affected `>= 1.0.0, <= 1.5.9`; no fixed release as of 2026-06-22).
+- **chromadb — CVE-2026-45830/45831/45833
+  (GHSA-2wm9-hf6c-p5cr, GHSA-xph7-9rjv-w5fr, GHSA-36p7-vc44-83pf;
+  high/high/critical, unpatched).** These missing tenant-authorization,
+  cross-tenant RBAC, and authenticated code-injection flaws affect the
+  **chromadb server** through 1.5.9; no fixed release exists as of 2026-08-30.
   **Not applicable to Director-AI:** chromadb is an optional `[vector]` extra
   (not installed by `pip install director-ai`), and the ChromaDB backend uses
   only the embedded in-process client (`chromadb.PersistentClient` /
-  `chromadb.Client`) — it never starts or connects to a chromadb server, so the
-  pre-authentication network surface is absent. We will repin to a patched
-  chromadb release when one ships.
+  `chromadb.Client`). Tests prohibit `HttpClient`, and the unused compose
+  service that previously exposed port 8000 has been removed. We will repin to
+  a patched chromadb release when one ships.
 
 ## Licensing
 
@@ -88,30 +90,33 @@ Execution gate:
 
 Two transitive dependencies carry advisories for which **no patched release
 exists**, so they cannot be resolved by upgrade. Both are assessed as
-**not exploitable in Director-AI's execution path**; each is left as an open,
-tracked Dependabot alert and will be upgraded the moment a fixed version ships.
+**not exploitable in Director-AI's execution path**; each is documented here
+and will be upgraded the moment a fixed version ships.
 
-### chromadb — CVE-2026-45829 / GHSA-f4j7-r4q5-qw2c (critical)
+### chromadb — CVE-2026-45830/45831/45833 (high/high/critical)
 
-Pre-authentication code injection via the ChromaDB **server's** collections
-endpoint when a request supplies a malicious model repository with
-`trust_remote_code=true`. Vulnerable range `>=1.0.0, <=1.5.9`; the latest PyPI
-release (1.5.9, re-verified from PyPI on 2026-06-18) is the top of that range,
-so there is no fixed version.
+The three current advisories are GHSA-2wm9-hf6c-p5cr (missing tenant
+authorization), GHSA-xph7-9rjv-w5fr (`SimpleRBACAuthorizationProvider`
+cross-tenant authorization), and GHSA-36p7-vc44-83pf (authenticated code
+injection through collection updates with `trust_remote_code`). All affect the
+ChromaDB **server** through 1.5.9, and none has a patched release as of
+2026-08-30.
 
 **Exposure: effectively nil.** chromadb is an optional vector backend. The
 `ChromaBackend` integration uses chromadb in **embedded** mode only
 (`PersistentClient(path=…)` / in-memory `Client()`), never `HttpClient` against a
-running server and never `trust_remote_code` — the vulnerable code path (the
-server's HTTP collections endpoint) is not reachable from Director-AI. This
-embedded-only boundary is covered by vector-store unit tests so future Chroma
-adapter changes cannot accidentally switch to the server client path.
+running server and never `trust_remote_code` — the vulnerable server-side
+authentication, authorization, and HTTP collection-update paths are not
+reachable from Director-AI. This embedded-only boundary is covered by
+vector-store unit tests so future Chroma adapter changes cannot accidentally
+switch to the server client path. The dead `chromadb/chroma:latest` compose
+service and its host port publish were removed, eliminating the only shipped
+server exposure.
 
-Dependabot PR #114 is not a safe remediation for this advisory: it bumps
-chromadb only to 1.5.9, still inside the vulnerable no-fix range, and its
-generated lockfile is invalid for the CI `uv` parser. Keep the alert open until
-an upstream fixed release exists, then regenerate and verify the vector extra
-lock from current `main`.
+Upgrading within the vulnerable no-fix range is not a remediation. The alerts
+are dismissed as not used only after the embedded-only tests pass; when an
+upstream fixed release exists, regenerate and verify the vector extra lock from
+current `main`.
 
 ### torch — GHSA-rrmf-rvhw-rf47 (low)
 
