@@ -787,7 +787,7 @@ jobs:
       # registries/git sources. Policy lives in backfire-kernel/deny.toml. Yanked
       # crates are surfaced as warnings, not failures (see deny.toml rationale).
       - name: Install supply-chain tools
-        uses: taiki-e/install-action@6c6fd71fe4fb72c3697d269963d0e15df8adedad # v2.85.10
+        uses: taiki-e/install-action@37f7c5781271959fb65b6b35224e28652ff2b63d # v2.87.0
         with:
           tool: cargo-audit,cargo-deny
 
@@ -820,7 +820,7 @@ jobs:
       # toolchain is read from formal/HaltMonitor/lean-toolchain and no cache is
       # needed. A type error or failed proof fails the build.
       - name: Build and check Lean proofs
-        uses: leanprover/lean-action@38fbc41a8c28c4cbaec22d7f7de508ec2e7c0dd9 # v1.5.0
+        uses: leanprover/lean-action@50fcf42d2e460296f1a34b402e990d1b24f8b596 # v1.6.0
         with:
           lake-package-directory: formal/HaltMonitor
           build: true
