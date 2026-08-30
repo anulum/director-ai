@@ -10,6 +10,7 @@
 from __future__ import annotations
 
 import json
+import os
 import stat
 
 import pytest
@@ -53,11 +54,93 @@ class TestKeygenTool:
         )
 
     def test_main_writes_private_key_0600_and_prints_public(self, tmp_path, capsys):
-        out = tmp_path / "priv.hex"
-        assert keygen_main(["--private-out", str(out)]) == 0
-        assert stat.S_IMODE(out.stat().st_mode) == 0o600
+        private_dir = tmp_path / "private"
+        public_dir = tmp_path / "public"
+        private_dir.mkdir()
+        public_dir.mkdir()
+        out = private_dir / "priv.hex"
+        public_out = public_dir / "PUBLIC_KEY_ONLY.txt"
+        assert (
+            keygen_main(
+                [
+                    "--private-out",
+                    str(out),
+                    "--public-out",
+                    str(public_out),
+                ]
+            )
+            == 0
+        )
+        if os.name != "nt":
+            assert stat.S_IMODE(out.stat().st_mode) == 0o600
         assert len(bytes.fromhex(out.read_text().strip())) == 32
-        assert "Public key" in capsys.readouterr().out
+        assert len(bytes.fromhex(public_out.read_text().strip())) == 32
+        captured = capsys.readouterr()
+        assert "Public key" in captured.out
+        assert out.read_text().strip() not in captured.out
+
+    def test_main_refuses_to_overwrite_private_key(self, tmp_path):
+        out = tmp_path / "priv.hex"
+        out.write_text("keep-me", encoding="utf-8")
+
+        with pytest.raises(FileExistsError):
+            keygen_main(["--private-out", str(out)])
+
+        assert out.read_text(encoding="utf-8") == "keep-me"
+
+    def test_main_refuses_existing_public_output_without_private_residue(
+        self, tmp_path
+    ):
+        private_dir = tmp_path / "private"
+        public_dir = tmp_path / "public"
+        private_dir.mkdir()
+        public_dir.mkdir()
+        private_out = private_dir / "priv.hex"
+        public_out = public_dir / "PUBLIC_KEY_ONLY.txt"
+        public_out.write_text("keep-public", encoding="utf-8")
+
+        with pytest.raises(FileExistsError):
+            keygen_main(
+                [
+                    "--private-out",
+                    str(private_out),
+                    "--public-out",
+                    str(public_out),
+                ]
+            )
+
+        assert not private_out.exists()
+        assert public_out.read_text(encoding="utf-8") == "keep-public"
+
+    def test_main_refuses_private_and_public_outputs_in_same_directory(self, tmp_path):
+        with pytest.raises(SystemExit):
+            keygen_main(
+                [
+                    "--private-out",
+                    str(tmp_path / "priv.hex"),
+                    "--public-out",
+                    str(tmp_path / "PUBLIC_KEY_ONLY.txt"),
+                ]
+            )
+        assert list(tmp_path.iterdir()) == []
+
+    @pytest.mark.skipif(os.name == "nt", reason="symlink setup varies on Windows")
+    def test_main_refuses_private_output_symlink(self, tmp_path):
+        target = tmp_path / "target.hex"
+        target.write_text("keep-target", encoding="utf-8")
+        link = tmp_path / "priv.hex"
+        link.symlink_to(target)
+
+        with pytest.raises(FileExistsError):
+            keygen_main(["--private-out", str(link)])
+
+        assert target.read_text(encoding="utf-8") == "keep-target"
+
+    def test_main_requires_explicit_absolute_private_output(self):
+        with pytest.raises(SystemExit):
+            keygen_main([])
+        with pytest.raises(SystemExit):
+            keygen_main(["--private-out", "relative.hex"])
 
 
 class TestEd25519SigningAndVerification:

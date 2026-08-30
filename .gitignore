@@ -147,6 +147,9 @@ ehthumbs.db
 .env.*.local
 *.pem
 *.key
+director_license_private_key.hex
+license_private_key.hex
+*_license_private_key.hex
 
 # =====================================================================
 # Logs

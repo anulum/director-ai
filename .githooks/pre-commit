@@ -9,7 +9,7 @@
 # BEGIN enterprise-trust local pre-commit exposure guard
 set -eu
 
-blocked_patterns='(^|/)(\.coordination|docs/internal|04_ARCANE_SAPIENCE|ARCHIVE|BACKUP|MODELS)(/|$)|(^|/)\.env($|\.)|(^|/)\.coverage($|\.)|(^|/)coverage\.xml$|(^|/).*\.(pem|key|log)$|(^|/)id_(rsa|ed25519)$|(^|/)(credentials?|secrets?|tokens?)(/|$|[._-])'
+blocked_patterns='(^|/)(\.coordination|docs/internal|04_ARCANE_SAPIENCE|ARCHIVE|BACKUP|MODELS)(/|$)|(^|/)\.env($|\.)|(^|/)\.coverage($|\.)|(^|/)coverage\.xml$|(^|/).*\.(pem|key|log)$|(^|/)(director_)?license_private_key\.hex$|(^|/).*_license_private_key\.hex$|(^|/)id_(rsa|ed25519)$|(^|/)(credentials?|secrets?|tokens?)(/|$|[._-])'
 allowed_patterns='(^|/)discord-bot/\.env\.example$|(^|/)src/.*/secret_sharing\.py$|(^|/)src/director_ai/core/secrets\.py$|(^|/)tests/test_secrets\.py$|(^|/)benchmarks/models/.*/tokenizer(_config)?\.json$'
 agent_identity_names='C[o]dex|OpenA[I]|ChatG[P]T|Cl[a]ude|G[e]mini|Anthr[o]pic'
 agent_identity_patterns="(^|[^[:alnum:]_])(generated|written|created|implemented|authored|produced|made)[[:space:]]+(by|with|using)[[:space:]]+(${agent_identity_names})([^[:alnum:]_]|$)|(^|[^[:alnum:]_])(${agent_identity_names})[[:space:]]+(generated|wrote|created|implemented|authored|produced|made)([^[:alnum:]_]|$)"
@@ -22,8 +22,9 @@ slack_prefix='xo''x[baprs]-'
 polar_prefix='polar''_oat_'
 private_key_pattern='BEGIN (RSA|OPENSSH|PRIV''ATE) KEY'
 license_signing_var='DIRECTOR_LICENSE_SIGNING''_KEY'
+license_private_var='DIRECTOR_LICENSE_PRIVATE''_KEY'
 admin_key_var='DIRECTOR_ADMIN''_KEY'
-secret_patterns="${google_api_prefix}[0-9A-Za-z_-]{20,}|${oauth_prefix}[0-9A-Za-z_-]{20,}|${generic_api_key_pattern}|${github_prefix}[0-9A-Za-z_]{20,}|${ghpat_prefix}[0-9A-Za-z_]{20,}|${slack_prefix}[0-9A-Za-z-]{20,}|${polar_prefix}[0-9A-Za-z_]{20,}|${private_key_pattern}|${license_signing_var}=[^[:space:]]{8,}|${admin_key_var}=[^[:space:]]{8,}"
+secret_patterns="${google_api_prefix}[0-9A-Za-z_-]{20,}|${oauth_prefix}[0-9A-Za-z_-]{20,}|${generic_api_key_pattern}|${github_prefix}[0-9A-Za-z_]{20,}|${ghpat_prefix}[0-9A-Za-z_]{20,}|${slack_prefix}[0-9A-Za-z-]{20,}|${polar_prefix}[0-9A-Za-z_]{20,}|${private_key_pattern}|${license_signing_var}=[^[:space:]]{8,}|${license_private_var}=[0-9A-Fa-f]{64}|${admin_key_var}=[^[:space:]]{8,}"
 
 blocked=''
 while IFS= read -r path; do
