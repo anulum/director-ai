@@ -4,8 +4,9 @@ ml_dtypes==0.5.4 \
 onnx==1.22.0 \
     --hash=sha256:1d0a2bdb15eb2b3cb65c438f3423d9620d14fdce32f92380e6bb1b2e09568ef5 \
     --hash=sha256:955e02e1f6d385b53d52f9cd7b9cdf5caf417c300bcfe3c64c6d542be763845b
-onnx_ir==0.2.1 \
-    --hash=sha256:c7285da889312f91882de2092e298a9eeeefbfc1d1951c49d983992967eb09a7
+onnx_ir==1.0.0 \
+    --hash=sha256:9e261f25fde8da9612ae5cb43b3b374d5ff469c04af0363cad588b2bb000b812 \
+    --hash=sha256:e578f0d608d3062866b48223616eb2d10a6d6d01f8b8faac596129034f483cc7
 onnxruntime==1.28.0 \
     --hash=sha256:07fb3cbe990d6bf0ab3c22bfbbfb0e314151266046ea6edb4a07f556b4258c5f \
     --hash=sha256:0a83bdb70d143cede762b677789bf2a7acca54b3fb82565601d5c30695aa933c \
