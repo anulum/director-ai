@@ -13,5 +13,5 @@ datasets==5.0.1
 scikit-learn==1.6.1
 accelerate==1.7.0
 huggingface-hub==1.25.1
-google-cloud-storage==3.13.0
+google-cloud-storage==3.13.1
 sentencepiece==0.2.1
