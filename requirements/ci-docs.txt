@@ -434,9 +434,9 @@ mkdocs-jupyter==0.25.1 \
     --hash=sha256:0e9272ff4947e0ec683c92423a4bfb42a26477c103ab1a6ab8277e2dcc8f7afe \
     --hash=sha256:3f679a857609885d322880e72533ef5255561bbfdb13cfee2a1e92ef4d4ad8d8
     # via director-ai (pyproject.toml)
-mkdocs-material==9.7.5 \
-    --hash=sha256:7cf9df2ff121fd098ff6e05c732b0be3699afca9642e2dfe4926c40eb5873eec \
-    --hash=sha256:f76bdab532bad1d9c57ca7187b37eccf64dd12e1586909307f8856db3be384ea
+mkdocs-material==9.7.7 \
+    --hash=sha256:8ea9bb1737a5b524a5f9dcf2e1b4ebda8274ae3008aa7845720a97083bef708f \
+    --hash=sha256:c0649c065b1b0512d60aad8c10f947f8e455284475239b364b610f2deb4d0855
     # via
     #   director-ai (pyproject.toml)
     #   mkdocs-jupyter
