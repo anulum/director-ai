@@ -10,6 +10,7 @@
 from __future__ import annotations
 
 import argparse
+import contextlib
 import hashlib
 import os
 import shutil
@@ -38,10 +39,8 @@ def _copy_exclusive(source: Path, destination: Path) -> None:
             output_stream.flush()
             os.fsync(output_stream.fileno())
     except BaseException:
-        try:
+        with contextlib.suppress(OSError):
             os.close(fd)
-        except OSError:
-            pass
         destination.unlink(missing_ok=True)
         raise
 
