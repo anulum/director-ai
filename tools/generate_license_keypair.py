@@ -22,7 +22,6 @@ signed licence, so treat it as a deliberate, audited operation.
 from __future__ import annotations
 
 import argparse
-import contextlib
 import os
 from pathlib import Path
 
@@ -79,8 +78,10 @@ def _close_quietly(fd: int | None) -> None:
     """Close a descriptor during rollback without masking the original error."""
     if fd is None or fd < 0:
         return
-    with contextlib.suppress(OSError):
+    try:  # noqa: SIM105 - rollback must ignore only a redundant close.
         os.close(fd)
+    except OSError:
+        pass
 
 
 def main(argv: list[str] | None = None) -> int:
