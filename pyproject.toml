@@ -84,7 +84,7 @@ vector = [
     # CVE-2026-45829 (chromadb server pre-auth injection, unpatched as of
     # 2026-06-22) does not apply: used embedded-only, no server. See SECURITY.md.
     "chromadb>=0.4.0,<2",
-    "sentence-transformers>=4,<6",
+    "sentence-transformers>=4,<7",
 ]
 openai = ["openai>=1.0"]
 anthropic = ["anthropic>=0.20"]
@@ -165,10 +165,10 @@ elasticsearch = ["elasticsearch>=8.0,<10"]
 # battery in core/calibration/honesty_redteam.py. Requires Python >=3.12.
 honesty = ["scpn-studio-platform>=0.11,<0.12; python_version >= '3.12'"]
 reranker = [
-    "sentence-transformers>=4,<6",
+    "sentence-transformers>=4,<7",
 ]
 embeddings = [
-    "sentence-transformers>=4,<6",
+    "sentence-transformers>=4,<7",
 ]
 license = [
     "polar-sdk==0.32.0",
@@ -178,7 +178,7 @@ crypto = [
     "asn1crypto>=1.5,<2",
 ]
 embed = [
-    "sentence-transformers>=4,<6",
+    "sentence-transformers>=4,<7",
 ]
 nli-lite = [
     "onnx>=1.21,<2",
