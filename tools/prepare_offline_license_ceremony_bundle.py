@@ -19,7 +19,6 @@ import sys
 import tempfile
 from pathlib import Path
 
-
 PLATFORMS = {
     "windows-x64": "win_amd64",
     "linux-x64": "manylinux_2_17_x86_64",
