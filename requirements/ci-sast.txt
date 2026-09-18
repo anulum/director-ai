@@ -8,9 +8,9 @@ annotated-types==0.7.0 \
     --hash=sha256:1f02e8b43a8fbbc3f3e0d4f0f4bfc8131bcb4eebe8849b8e5c773f3a1c582a53 \
     --hash=sha256:aff07c09a53a08bc8cfccb9c85b05f1aa9a2a6f23728d790723543408344ce89
     # via pydantic
-anyio==4.14.0 \
-    --hash=sha256:b47c1f9ccf73e67021df785332508f99379c68fa7d0684e8e3492cb1d4b23f89 \
-    --hash=sha256:dd9b7a2a9799ed6552fde617b2c5df02b7fdd7d88392fc48101e51bae46164d9
+anyio==4.14.2 \
+    --hash=sha256:9f505dda5ac9f0c8309b5e8bd445a8c2bf7246f3ce950121e45ea15bc41d1494 \
+    --hash=sha256:cfa139f3ed1a23ee8f88a145ddb5ac7605b8bbfd8592baacd7ce3d8bb4313c7f
     # via
     #   httpx
     #   mcp
@@ -27,7 +27,7 @@ attrs==26.1.0 \
 bandit==1.9.4 \
     --hash=sha256:b589e5de2afe70bd4d53fa0c1da6199f4085af666fde00e8a034f152a52cd628 \
     --hash=sha256:f89ffa663767f5a0585ea075f01020207e966a9c0f2b9ef56a57c7963a3f6f8e
-    # via -r requirements/ci-sast.in
+    # via -r ci-sast.in
 boltons==21.0.0 \
     --hash=sha256:65e70a79a731a7fe6e98592ecfb5ccf2115873d01dbc576079874629e5c90f13 \
     --hash=sha256:b9bb7b58b2b420bbe11a6025fdef6d3e5edc9f76a42fb467afe7ca212ef9948b
@@ -471,7 +471,6 @@ protobuf==6.33.6 \
     --hash=sha256:e9db7e292e0ab79dd108d7f1a94fe31601ce1ee3f7b79e0692043423020b0593 \
     --hash=sha256:f443a394af5ed23672bc6c486be138628fbe5c651ccbc536873d7da23d1868cf
     # via
-    #   -c (workspace)
     #   googleapis-common-protos
     #   opentelemetry-proto
 pycparser==3.0 \
@@ -935,7 +934,7 @@ semgrep==1.171.0 \
     --hash=sha256:8683ecbceef6476402a23e1b7b39c6a98c55f11e0389974d160de48a0491e37c \
     --hash=sha256:a3b08d3581ae4d3fc815fc34452e6d9cac91ca94885a4fce27ec96f92edc0dae \
     --hash=sha256:c5aa8db65daabfd9644dcb09b4651ab914f5beaa547ec2cb15c02a056a7bc0be
-    # via -r requirements/ci-sast.in
+    # via -r ci-sast.in
 sse-starlette==3.4.4 \
     --hash=sha256:07e0fa0460138baf25cdd5fb28683472c3995dc1642225191b3832d62526bcb0 \
     --hash=sha256:3f4dd50d8aed2771a091f3a83000323fc3844541c16b4fe585ae2420cc6df973
