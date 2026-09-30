@@ -24,6 +24,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Protocol
 
+from ..exceptions import DomainRefusalError
 from .dataset_fingerprint import DatasetFingerprint, fingerprint_dataset
 from .model_registry import (
     DEFAULT_FINE_TUNE_MODEL_ALIAS,
@@ -60,15 +61,23 @@ class TrainingHardware:
     boot_disk_type: str = "pd-ssd"
 
     def validate(self) -> None:
-        """Validate machine, accelerator, and boot-disk constraints."""
+        """Validate machine, accelerator, and boot-disk constraints.
+
+        Raises
+        ------
+        DomainRefusalError
+            Machine selection, accelerator count, or boot-disk size is invalid.
+        """
         if not self.machine_type:
-            raise ValueError("machine_type is required")
+            raise DomainRefusalError("machine_type is required")
         if self.accelerator_count < 0:
-            raise ValueError("accelerator_count must be >= 0")
+            raise DomainRefusalError("accelerator_count must be >= 0")
         if self.accelerator_count and not self.accelerator_type:
-            raise ValueError("accelerator_type is required when GPUs are requested")
+            raise DomainRefusalError(
+                "accelerator_type is required when GPUs are requested"
+            )
         if self.boot_disk_gb < 50:
-            raise ValueError("boot_disk_gb must be at least 50")
+            raise DomainRefusalError("boot_disk_gb must be at least 50")
 
 
 @dataclass(frozen=True)
@@ -98,45 +107,57 @@ class TrainingJobSpec:
     args: list[str] = field(default_factory=list)
 
     def validate(self, backend: str) -> None:
-        """Validate cross-backend and backend-specific training inputs."""
+        """Validate cross-backend and backend-specific training inputs.
+
+        Parameters
+        ----------
+        backend : str
+            Backend whose URI, project, region, and hardware constraints apply.
+
+        Raises
+        ------
+        DomainRefusalError
+            A required input, model choice, training bound, or backend setting
+            is invalid.
+        """
         if backend not in _VALID_BACKENDS:
-            raise ValueError(f"backend must be one of {_VALID_BACKENDS}")
+            raise DomainRefusalError(f"backend must be one of {_VALID_BACKENDS}")
         if self.caller not in _VALID_CALLERS:
-            raise ValueError(f"caller must be one of {_VALID_CALLERS}")
+            raise DomainRefusalError(f"caller must be one of {_VALID_CALLERS}")
         if self.task_type not in _VALID_TASKS:
-            raise ValueError(f"task_type must be one of {_VALID_TASKS}")
+            raise DomainRefusalError(f"task_type must be one of {_VALID_TASKS}")
         if not self.display_name:
-            raise ValueError("display_name is required")
+            raise DomainRefusalError("display_name is required")
         if not self.dataset_uri:
-            raise ValueError("dataset_uri is required")
+            raise DomainRefusalError("dataset_uri is required")
         if not self.output_uri:
-            raise ValueError("output_uri is required")
+            raise DomainRefusalError("output_uri is required")
         if self.epochs < 1:
-            raise ValueError("epochs must be >= 1")
+            raise DomainRefusalError("epochs must be >= 1")
         if self.batch_size < 1:
-            raise ValueError("batch_size must be >= 1")
+            raise DomainRefusalError("batch_size must be >= 1")
         if self.learning_rate <= 0:
-            raise ValueError("learning_rate must be > 0")
+            raise DomainRefusalError("learning_rate must be > 0")
         if self.task_type == "finetune-nli":
             self.resolved_model_profile()
         if self.timeout_minutes < 1 or self.timeout_minutes > _MAX_TIMEOUT_MINUTES:
-            raise ValueError(
+            raise DomainRefusalError(
                 f"timeout_minutes must be between 1 and {_MAX_TIMEOUT_MINUTES}"
             )
         self.hardware.validate()
         if backend == _PORTABLE_BACKEND and self.container_image_uri == (
             _DEFAULT_CONTAINER_IMAGE
         ):
-            raise ValueError("container_image_uri must be a training image")
+            raise DomainRefusalError("container_image_uri must be a training image")
         if backend == _VERTEX_BACKEND:
             if not self.project:
-                raise ValueError("project is required for vertex backend")
+                raise DomainRefusalError("project is required for vertex backend")
             _require_gcs_uri("dataset_uri", self.dataset_uri)
             _require_gcs_uri("output_uri", self.output_uri)
             if self.eval_uri:
                 _require_gcs_uri("eval_uri", self.eval_uri)
             if self.container_image_uri == _DEFAULT_CONTAINER_IMAGE:
-                raise ValueError("container_image_uri must be a training image")
+                raise DomainRefusalError("container_image_uri must be a training image")
 
     @property
     def dataset_hash(self) -> str:
@@ -426,14 +447,30 @@ def submit_training_job(
 
 
 def get_training_backend(name: str) -> TrainingJobBackend:
-    """Return the managed training backend named *name*."""
+    """Return the managed training backend named by the caller.
+
+    Parameters
+    ----------
+    name : str
+        Supported local, portable, or Vertex backend name.
+
+    Returns
+    -------
+    TrainingJobBackend
+        Local, portable, or Vertex training backend.
+
+    Raises
+    ------
+    DomainRefusalError
+        The backend name is unsupported.
+    """
     if name == _LOCAL_BACKEND:
         return LocalTrainingBackend()
     if name == _PORTABLE_BACKEND:
         return PortableTrainingBackend()
     if name == _VERTEX_BACKEND:
         return VertexTrainingBackend()
-    raise ValueError(f"backend must be one of {_VALID_BACKENDS}")
+    raise DomainRefusalError(f"backend must be one of {_VALID_BACKENDS}")
 
 
 def build_internal_suite_spec(
@@ -450,9 +487,34 @@ def build_internal_suite_spec(
 
     Internal jobs exercise the same managed backend as product jobs, but their
     command runs a test suite instead of fine-tuning on customer data.
+
+    Parameters
+    ----------
+    suite : str
+        Test module basename to run under the tests directory.
+    dataset_uri, output_uri : str
+        Suite input location and retained result destination.
+    project : str or None
+        Cloud project for backends that require it.
+    region : str
+        Cloud region for managed execution.
+    container_image_uri : str
+        Runtime container carrying the suite and its dependencies.
+    hardware : TrainingHardware or None
+        Machine settings, or None to use the default hardware profile.
+
+    Returns
+    -------
+    TrainingJobSpec
+        Internal-caller specification with the suite command and labels.
+
+    Raises
+    ------
+    DomainRefusalError
+        The suite name is empty.
     """
     if not suite:
-        raise ValueError("suite is required")
+        raise DomainRefusalError("suite is required")
     labels = _normalise_labels({"director_ai_caller": "internal", "suite": suite})
     return TrainingJobSpec(
         display_name=f"director-ai-{suite}",
@@ -693,9 +755,22 @@ def _run_local_job(spec: TrainingJobSpec) -> None:
 
 
 def _require_gcs_uri(name: str, uri: str) -> None:
-    """Require a Vertex-bound URI to use the gs:// scheme."""
+    """Require a non-empty Vertex URI to use the gs:// scheme.
+
+    Parameters
+    ----------
+    name : str
+        Input field named in the authored refusal.
+    uri : str
+        Required URI to validate against the gs:// scheme.
+
+    Raises
+    ------
+    DomainRefusalError
+        A non-empty URI does not use the required scheme.
+    """
     if not uri.startswith("gs://"):
-        raise ValueError(f"{name} must be a gs:// URI for vertex backend")
+        raise DomainRefusalError(f"{name} must be a gs:// URI for vertex backend")
 
 
 def _vertex_accelerator_type(accelerator_type: str) -> str:

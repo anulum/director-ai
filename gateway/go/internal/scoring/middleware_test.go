@@ -12,13 +12,57 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"io"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
+
+	"google.golang.org/grpc"
 
 	directorv1 "github.com/anulum/director-ai/gateway/proto/director/v1"
 )
+
+func TestHandler_RealGRPCFailureUsesFixedHeader(t *testing.T) {
+	lis, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	// A real server with no service produces gRPC's own Unimplemented error.
+	rpc := grpc.NewServer()
+	go func() { _ = rpc.Serve(lis) }()
+	t.Cleanup(rpc.Stop)
+	c, err := Dial(lis.Addr().String(), time.Second)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = c.Close() })
+	m := Middleware{Scorer: c, Timeout: time.Second}
+	server := httptest.NewServer(m.Handler(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		chatResponse(w, http.StatusOK, "The sky is blue.")
+	})))
+	defer server.Close()
+	resp, err := server.Client().Post(server.URL+"/v1/chat/completions", "application/json", strings.NewReader(`{}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("optional scoring changed upstream status: %d", resp.StatusCode)
+	}
+	if got := resp.Header.Get("X-Coherence-Error"); got != "scoring unavailable" {
+		t.Fatalf("incidental gRPC error reached header: %q", got)
+	}
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(body), "The sky is blue.") || strings.Contains(string(body), "Unimplemented") {
+		t.Fatalf("unexpected upstream body: %s", body)
+	}
+}
 
 type stubScorer struct {
 	verdict   *directorv1.CoherenceVerdict

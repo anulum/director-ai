@@ -86,3 +86,9 @@ for approved, cs in results:
 ## Full API
 
 ::: director_ai.core.runtime.batch.BatchProcessor
+
+Per-item incidental failures carry `Batch item failed` in `BatchResult.errors`,
+with diagnostic exception details in server logs. Explicit
+`DomainRefusalError` messages and the fixed `item timeout` refusal remain
+available. The HTTP route maps malformed batch input to 422 and unexpected
+processing faults to the fixed 500 detail `Internal processing error`.

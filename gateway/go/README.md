@@ -196,3 +196,11 @@ make ab-bench          # defaults: VUS=50 DURATION=30s
 - Structured metrics (Prometheus or OpenTelemetry).
 - TLS termination on the gateway itself (still recommend a
   reverse proxy / load balancer in front).
+
+## Failure response messages
+
+An unreachable upstream returns 502 with the fixed JSON message
+`upstream unreachable`. Scoring transport failures retain the upstream response
+and set `X-Coherence-Error: scoring unavailable`, so clients can detect that the
+optional score is absent. Native HTTP/gRPC error details are logged on the
+server and do not enter these response bodies or headers.

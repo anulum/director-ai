@@ -312,6 +312,7 @@ dev = [
     "maturin>=1.12,<2",
     "types-requests>=2.31",
     "types-PyYAML>=6.0",
+    "lxml-stubs>=0.5.1",
     "hypothesis>=6.0",
     "grpcio>=1.60",
     "grpcio-tools>=1.60",

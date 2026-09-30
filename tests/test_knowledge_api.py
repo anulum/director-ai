@@ -9,15 +9,23 @@
 from __future__ import annotations
 
 import importlib.util
+import io
 import sys
+from collections.abc import Awaitable, Callable
 from types import SimpleNamespace
+from typing import cast
 from unittest.mock import patch
 
 import pytest
-from fastapi import HTTPException
+from fastapi import FastAPI, HTTPException, Request, UploadFile
 from fastapi.testclient import TestClient
+from starlette.responses import Response
 
 from director_ai.core.kb_write_security import canonical_kb_payload, sign_kb_payload
+from director_ai.core.retrieval.vector_store import (
+    VectorBackend,
+    VectorGroundTruthStore,
+)
 from director_ai.knowledge_api import (
     _cleanup_chunk_ids,
     _content_hash,
@@ -120,7 +128,9 @@ class _EndpointBackend:
             self.docs.pop(doc_id, None)
         return self.delete_result
 
-    def query(self, text: str, n_results: int = 3, tenant_id: str = ""):
+    def query(
+        self, text: str, n_results: int = 3, tenant_id: str = ""
+    ) -> list[dict[str, object]]:
         if tenant_id and self.raise_type_error_on_tenant_query:
             raise TypeError("tenant_id unsupported")
         return [
@@ -144,7 +154,7 @@ def _request(
     headers: dict[str, str] | None = None,
     kb_write_key_ok: bool = False,
     kb_tenant_binding_ok: bool = False,
-) -> SimpleNamespace:
+) -> Request:
     state_data: dict[str, object] = {}
     if config is not None:
         state_data["config"] = config
@@ -155,15 +165,22 @@ def _request(
     app_state = SimpleNamespace(_state=state_data)
     if config is not None:
         app_state.config = config
-    return SimpleNamespace(
-        headers=headers or {},
-        state=SimpleNamespace(
-            tenant_id=tenant_id,
-            kb_write_key_ok=kb_write_key_ok,
-            kb_tenant_binding_ok=kb_tenant_binding_ok,
-        ),
-        app=SimpleNamespace(state=app_state),
+    request = Request(
+        {
+            "type": "http",
+            "method": "POST",
+            "path": "/",
+            "headers": [
+                (key.lower().encode(), value.encode())
+                for key, value in (headers or {}).items()
+            ],
+            "app": SimpleNamespace(state=app_state),
+        }
     )
+    request.state.tenant_id = tenant_id
+    request.state.kb_write_key_ok = kb_write_key_ok
+    request.state.kb_tenant_binding_ok = kb_tenant_binding_ok
+    return request
 
 
 def _make_app(
@@ -171,14 +188,14 @@ def _make_app(
     registry: _Registry | None = None,
     backend: _EndpointBackend | None = None,
     tenant_id: str = "tenant-a",
-):
+) -> tuple[FastAPI, _Registry, VectorGroundTruthStore, _EndpointBackend]:
     from fastapi import FastAPI
 
     from director_ai.core.retrieval.vector_store import VectorGroundTruthStore
     from director_ai.knowledge_api import create_knowledge_router
 
     backend = backend or _EndpointBackend()
-    store = VectorGroundTruthStore(backend=backend)
+    store = VectorGroundTruthStore(backend=cast(VectorBackend, backend))
     scorer = SimpleNamespace(ground_truth_store=store)
     app = FastAPI()
     app.state.config = SimpleNamespace(
@@ -191,7 +208,9 @@ def _make_app(
     app.state.scorer = scorer
 
     @app.middleware("http")
-    async def _tenant(request, call_next):
+    async def _tenant(
+        request: Request, call_next: Callable[[Request], Awaitable[Response]]
+    ) -> Response:
         request.state.tenant_id = tenant_id
         return await call_next(request)
 
@@ -199,7 +218,9 @@ def _make_app(
     return app, app.state.doc_registry, store, backend
 
 
-def _assert_http(excinfo, status_code: int, detail: str) -> None:
+def _assert_http(
+    excinfo: pytest.ExceptionInfo[HTTPException], status_code: int, detail: str
+) -> None:
     assert excinfo.value.status_code == status_code
     assert detail in excinfo.value.detail
 
@@ -342,7 +363,9 @@ def test_write_access_and_signature_metadata_paths() -> None:
     assert _signature_metadata(_request(config=optional_cfg), payload) == {}
 
 
-def test_chunk_store_content_hash_cleanup_and_delete_paths(monkeypatch) -> None:
+def test_chunk_store_content_hash_cleanup_and_delete_paths(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     import director_ai.knowledge_api as knowledge_api
 
     class _Backend:
@@ -398,7 +421,9 @@ def test_chunk_store_content_hash_cleanup_and_delete_paths(monkeypatch) -> None:
     assert "tenant-a:doc1:chunk:1" not in store.facts
 
 
-def test_chunk_store_rolls_back_staged_chunks_on_add_failure(monkeypatch) -> None:
+def test_chunk_store_rolls_back_staged_chunks_on_add_failure(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     import director_ai.knowledge_api as knowledge_api
 
     class _Backend:
@@ -428,10 +453,10 @@ def test_chunk_store_rolls_back_staged_chunks_on_add_failure(monkeypatch) -> Non
 
 def test_delete_chunks_reports_backend_contract_violations() -> None:
     class _Backend:
-        def __init__(self, result):
+        def __init__(self, result: object) -> None:
             self.result = result
 
-        def delete(self, doc_ids: list[str]):
+        def delete(self, doc_ids: list[str]) -> object:
             if self.result == "raise":
                 raise RuntimeError("offline")
             return self.result
@@ -448,7 +473,7 @@ def test_delete_chunks_reports_backend_contract_violations() -> None:
         _delete_chunks(SimpleNamespace(chunk_ids=["c1"]), store)
 
 
-def test_create_router_requires_fastapi(monkeypatch) -> None:
+def test_create_router_requires_fastapi(monkeypatch: pytest.MonkeyPatch) -> None:
     import director_ai.knowledge_api as knowledge_api
 
     monkeypatch.setattr(knowledge_api, "_FASTAPI_AVAILABLE", False)
@@ -563,7 +588,9 @@ def test_search_falls_back_for_backends_without_tenant_query() -> None:
     assert response.json()["results"][0]["metadata"]["tenant_id"] == ""
 
 
-def test_upload_endpoint_success_and_parse_errors(monkeypatch) -> None:
+def test_upload_endpoint_success_and_parse_errors(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     import director_ai.core.retrieval.doc_parser as doc_parser
 
     monkeypatch.setattr(doc_parser, "parse", lambda content, filename: "parsed text")
@@ -599,7 +626,8 @@ def test_upload_endpoint_success_and_parse_errors(monkeypatch) -> None:
             files={"file": ("policy.txt", b"raw bytes", "text/plain")},
         )
     assert bad_parse.status_code == 422
-    assert "bad document" in bad_parse.json()["detail"]
+    assert bad_parse.json() == {"detail": "Invalid document"}
+    assert "bad document" not in bad_parse.text
 
     monkeypatch.setattr(doc_parser, "parse", lambda content, filename: "   ")
     with TestClient(app) as client:
@@ -618,7 +646,47 @@ def test_upload_endpoint_success_and_parse_errors(monkeypatch) -> None:
     assert bad_type.status_code == 415
 
 
-def test_upload_endpoint_rejects_body_that_exceeds_size_after_read(monkeypatch) -> None:
+@pytest.mark.parametrize(
+    ("exception", "status", "detail"),
+    [
+        (
+            ImportError("ordinary optional parser fixture failure"),
+            503,
+            "Document parser unavailable",
+        ),
+        (OSError("ordinary document fixture failure"), 500, "Document parsing failed"),
+    ],
+)
+def test_upload_parser_dependency_failure_has_fixed_response(
+    monkeypatch: pytest.MonkeyPatch,
+    exception: Exception,
+    status: int,
+    detail: str,
+) -> None:
+    """Unavailable and failed parser dependencies preserve distinct statuses."""
+    import director_ai.core.retrieval.doc_parser as doc_parser
+
+    def fail(content: bytes, filename: str) -> str:
+        """Simulate a parser dependency failure before persistence."""
+        raise exception
+
+    monkeypatch.setattr(doc_parser, "parse", fail)
+    app, registry, store, _backend = _make_app()
+    with TestClient(app) as client:
+        response = client.post(
+            "/v1/knowledge/upload",
+            files={"file": ("policy.txt", b"ordinary document", "text/plain")},
+        )
+    assert response.status_code == status
+    assert response.json() == {"detail": detail}
+    assert str(exception) not in response.text
+    assert registry.records == {}
+    assert store.facts == {}
+
+
+def test_upload_endpoint_rejects_body_that_exceeds_size_after_read(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     import director_ai.knowledge_api as knowledge_api
 
     app, _registry, _store, _backend = _make_app()
@@ -635,7 +703,9 @@ def test_upload_endpoint_rejects_body_that_exceeds_size_after_read(monkeypatch) 
     assert "File exceeds" in response.json()["detail"]
 
 
-def test_ingest_endpoint_registers_tenant_scoped_text_chunks(monkeypatch) -> None:
+def test_ingest_endpoint_registers_tenant_scoped_text_chunks(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     monkeypatch.setattr(
         "director_ai.core.retrieval.doc_chunker.split",
         lambda text, config: ["first chunk", "second chunk"],
@@ -671,14 +741,18 @@ def test_ingest_endpoint_registers_tenant_scoped_text_chunks(monkeypatch) -> Non
         "tenant-a:policy-1:chunk:1": "second chunk",
     }
     assert (
-        backend.docs["tenant-a:policy-1:chunk:0"]["metadata"]["tenant_id"] == "tenant-a"
+        cast(dict[str, object], backend.docs["tenant-a:policy-1:chunk:0"]["metadata"])[
+            "tenant_id"
+        ]
+        == "tenant-a"
     )
 
 
-class _ChunkedUpload:
-    """Minimal async UploadFile stub that yields the body in small reads."""
+class _ChunkedUpload(UploadFile):
+    """UploadFile fixture that yields its body in small reads."""
 
     def __init__(self, data: bytes, per_read: int = 4) -> None:
+        super().__init__(file=io.BytesIO(data))
         self._data = data
         self._pos = 0
         self._per_read = per_read
@@ -695,7 +769,9 @@ class _ChunkedUpload:
         return out
 
 
-async def test_read_within_limit_returns_full_body(monkeypatch) -> None:
+async def test_read_within_limit_returns_full_body(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     import director_ai.knowledge_api as knowledge_api
 
     monkeypatch.setattr(knowledge_api, "_MAX_UPLOAD_BYTES", 100)
@@ -703,7 +779,9 @@ async def test_read_within_limit_returns_full_body(monkeypatch) -> None:
     assert await knowledge_api._read_within_limit(up) == b"hello world payload"
 
 
-async def test_read_within_limit_at_exact_limit_ok(monkeypatch) -> None:
+async def test_read_within_limit_at_exact_limit_ok(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     import director_ai.knowledge_api as knowledge_api
 
     monkeypatch.setattr(knowledge_api, "_MAX_UPLOAD_BYTES", 5)
@@ -712,14 +790,16 @@ async def test_read_within_limit_at_exact_limit_ok(monkeypatch) -> None:
     )
 
 
-async def test_read_within_limit_empty_body(monkeypatch) -> None:
+async def test_read_within_limit_empty_body(monkeypatch: pytest.MonkeyPatch) -> None:
     import director_ai.knowledge_api as knowledge_api
 
     monkeypatch.setattr(knowledge_api, "_MAX_UPLOAD_BYTES", 100)
     assert await knowledge_api._read_within_limit(_ChunkedUpload(b"")) == b""
 
 
-async def test_read_within_limit_rejects_over_limit(monkeypatch) -> None:
+async def test_read_within_limit_rejects_over_limit(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     from fastapi import HTTPException
 
     import director_ai.knowledge_api as knowledge_api
@@ -731,7 +811,7 @@ async def test_read_within_limit_rejects_over_limit(monkeypatch) -> None:
 
 
 async def test_read_within_limit_does_not_buffer_whole_oversized_body(
-    monkeypatch,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     from fastapi import HTTPException
 
@@ -739,10 +819,11 @@ async def test_read_within_limit_does_not_buffer_whole_oversized_body(
 
     monkeypatch.setattr(knowledge_api, "_MAX_UPLOAD_BYTES", 10)
 
-    class _Huge:
+    class _Huge(UploadFile):
         """A body with no Content-Length far larger than the limit."""
 
         def __init__(self, total: int) -> None:
+            super().__init__(file=io.BytesIO(b"x" * total))
             self._remaining = total
             self.bytes_read = 0
 
@@ -762,7 +843,7 @@ async def test_read_within_limit_does_not_buffer_whole_oversized_body(
     assert huge.bytes_read <= 2 * 1024 * 1024
 
 
-def test_ingest_duplicate_and_update_paths(monkeypatch) -> None:
+def test_ingest_duplicate_and_update_paths(monkeypatch: pytest.MonkeyPatch) -> None:
     import director_ai.knowledge_api as knowledge_api
 
     unchanged_text = "same policy"
@@ -822,7 +903,9 @@ def test_update_missing_document_returns_404() -> None:
     assert response.status_code == 404
 
 
-def test_update_reports_stage_and_replace_failures(monkeypatch) -> None:
+def test_update_reports_stage_and_replace_failures(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     import director_ai.knowledge_api as knowledge_api
 
     def _registry() -> _Registry:
@@ -879,7 +962,9 @@ def test_update_reports_stage_and_replace_failures(monkeypatch) -> None:
     assert "replace" in replaced.json()["detail"]
 
 
-def test_tune_embeddings_endpoint_validation_and_success(monkeypatch) -> None:
+def test_tune_embeddings_endpoint_validation_and_success(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     import director_ai.core.retrieval.embedding_tuner as tuner
 
     one_doc = _Registry(

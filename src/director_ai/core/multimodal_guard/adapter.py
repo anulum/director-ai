@@ -15,6 +15,7 @@ from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field
 from typing import Any, Literal, cast
 
+from director_ai.core.exceptions import DomainRefusalError
 from director_ai.core.guard_control import GuardDecision, RiskEnvelope, VerifierSignal
 from director_ai.core.safety_event import SafetyEvent
 
@@ -52,11 +53,11 @@ class MultimodalCheckRequest:
     def __post_init__(self) -> None:
         """Reject an unknown modality or an empty claim text."""
         if self.modality not in _MODALITIES:
-            raise ValueError(f"unsupported modality {self.modality!r}")
+            raise DomainRefusalError(f"unsupported modality {self.modality!r}")
         if not self.claim_text.strip():
-            raise ValueError("claim_text is required")
+            raise DomainRefusalError("claim_text is required")
         if not self.media_ref.strip():
-            raise ValueError("media_ref is required")
+            raise DomainRefusalError("media_ref is required")
         object.__setattr__(
             self,
             "frame_similarities",
@@ -150,9 +151,29 @@ class MultimodalVerifierAdapter:
         risk_envelope: RiskEnvelope,
         policy_id: str,
     ) -> MultimodalCheckResult:
-        """Run the modality check and return a shared guard decision."""
+        """Run the modality check and return a shared guard decision.
+
+        Parameters
+        ----------
+        request : MultimodalCheckRequest
+            Claim and image, audio, or video evidence.
+        risk_envelope : RiskEnvelope
+            Risk classification and policy decision thresholds.
+        policy_id : str
+            Identifier recorded in the resulting guard decision.
+
+        Returns
+        -------
+        MultimodalCheckResult
+            Scores, evidence references, and an allow, warn, or halt decision.
+
+        Raises
+        ------
+        DomainRefusalError
+            The modality is disabled, evidence is absent, or a score is invalid.
+        """
         if request.modality not in self._enabled:
-            raise ValueError(f"modality {request.modality!r} is not enabled")
+            raise DomainRefusalError(f"modality {request.modality!r} is not enabled")
         score, verdict, evidence_refs = self._score(request)
         if request.modality not in self._benchmarked:
             decision = "warn"
@@ -214,9 +235,26 @@ class MultimodalVerifierAdapter:
     def _score(
         self, request: MultimodalCheckRequest
     ) -> tuple[float, str, tuple[str, ...]]:
+        """Score the request with the configured modality backend.
+
+        Parameters
+        ----------
+        request : MultimodalCheckRequest
+            Claim and paired evidence for an enabled modality.
+
+        Returns
+        -------
+        tuple
+            Consistency score, evidence source, and modality findings.
+
+        Raises
+        ------
+        DomainRefusalError
+            Required modality evidence or its configured backend is absent.
+        """
         if request.modality == "image":
             if self._image_guard is None:
-                raise ValueError("image modality requires image_guard")
+                raise DomainRefusalError("image modality requires image_guard")
             verdict = self._image_guard.check(
                 MultimodalClaim(
                     image_bytes=request.image_bytes,
@@ -231,9 +269,9 @@ class MultimodalVerifierAdapter:
             )
         if request.modality == "audio":
             if self._audio_score is None:
-                raise ValueError("audio modality requires audio_score_fn")
+                raise DomainRefusalError("audio modality requires audio_score_fn")
             if not request.transcript_text.strip():
-                raise ValueError("audio modality requires transcript_text")
+                raise DomainRefusalError("audio modality requires transcript_text")
             score = _unit(
                 float(self._audio_score(request.transcript_text, request.claim_text))
             )
@@ -246,7 +284,7 @@ class MultimodalVerifierAdapter:
             )
             return self._apply_grounding(request, score, verdict, (request.media_ref,))
         if not request.frame_similarities:
-            raise ValueError("video modality requires frame_similarities")
+            raise DomainRefusalError("video modality requires frame_similarities")
         temporal = TemporalConsistencyGuard(
             alpha=self._temporal_alpha,
             consistency_floor=self._temporal_floor,
@@ -307,8 +345,25 @@ class MultimodalVerifierAdapter:
 
 
 def _unit(value: float) -> float:
+    """Require a finite score in the closed unit interval.
+
+    Parameters
+    ----------
+    value : float
+        Similarity or grounding score to validate.
+
+    Returns
+    -------
+    float
+        The original score when valid.
+
+    Raises
+    ------
+    DomainRefusalError
+        The score is non-finite or outside [0, 1].
+    """
     if not math.isfinite(value) or value < 0.0 or value > 1.0:
-        raise ValueError("score must be finite and in [0, 1]")
+        raise DomainRefusalError("score must be finite and in [0, 1]")
     return value
 
 

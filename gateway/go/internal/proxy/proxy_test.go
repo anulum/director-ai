@@ -110,6 +110,9 @@ func TestForward_UpstreamErrorReturns502(t *testing.T) {
 	if w.Code != http.StatusBadGateway {
 		t.Errorf("status = %d; want 502", w.Code)
 	}
+	if got := w.Body.String(); got != `{"error":{"message":"upstream unreachable","type":"gateway_error"}}` {
+		t.Errorf("unexpected failure response: %s", got)
+	}
 }
 
 func TestForward_DoesNotForwardAuthWhenDisabled(t *testing.T) {

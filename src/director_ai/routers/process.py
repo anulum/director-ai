@@ -19,6 +19,7 @@ import logging
 import time
 from typing import Any
 
+from ..core.exceptions import DomainRefusalError
 from ..core.metrics import metrics
 from ..server_support import (
     _can_suppress_batcher_metrics,
@@ -149,7 +150,26 @@ def create_process_router() -> APIRouter:
         req: BatchRequest,
         request: Request,
     ) -> BatchResponse:
-        """Process a batch of prompts through the active pipeline."""
+        """Process or review prompts through the active batch pipeline.
+
+        Parameters
+        ----------
+        req : BatchRequest
+            Task, prompts, responses, and optional sector-policy inputs.
+        request : Request
+            HTTP request providing tenant context and active pipeline components.
+
+        Returns
+        -------
+        BatchResponse
+            Item results, counts, duration, and fixed native per-item errors.
+
+        Raises
+        ------
+        HTTPException
+            422 for invalid inputs or an authored execution refusal; unexpected
+            pipeline failures return 500. Access and readiness checks retain their statuses.
+        """
         # Per-item size limits (same as single-item endpoints)
         for i, p in enumerate(req.prompts):
             if len(p) > _MAX_PROMPT_CHARS:
@@ -314,8 +334,11 @@ def create_process_router() -> APIRouter:
             )
         except HTTPException:
             raise
-        except ValueError as e:
+        except DomainRefusalError as e:
             raise HTTPException(status_code=422, detail=str(e)) from e
+        except (ValueError, KeyError, TypeError, AttributeError) as e:
+            logger.exception("Invalid batch request")
+            raise HTTPException(status_code=422, detail="Invalid batch request") from e
         except Exception as e:
             logger.error("Batch processing failed: %s", e, exc_info=True)
             raise HTTPException(

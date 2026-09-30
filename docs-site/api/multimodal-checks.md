@@ -136,3 +136,9 @@ same tenant-safe `MultimodalCheckResult` is returned as the endpoint.
 ::: director_ai.core.multimodal_guard.adapter.MultimodalCheckResult
 
 ::: director_ai.core.multimodal_guard.adapter.MultimodalVerifierAdapter
+
+The REST boundary preserves explicit adapter refusal messages, including
+missing transcript/frame evidence and invalid similarity ranges. Incidental
+structural errors return 400 with `Invalid multimodal request`; unexpected
+processing faults return 500 with `Multimodal processing failed`. Diagnostic
+exception text is recorded only in server logs.

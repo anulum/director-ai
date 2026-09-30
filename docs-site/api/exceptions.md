@@ -112,3 +112,14 @@ except DirectorAIError as e:
 ::: director_ai.core.exceptions.DependencyError
 
 ::: director_ai.core.exceptions.GeneratorError
+
+## Authored operation refusals
+
+`director_ai.core.exceptions.DomainRefusalError` extends `ValidationError` and
+`ValueError`. It marks a message deliberately written for callers where the
+operation is refused. Catching a plain `ValueError` does not establish that its
+message is safe to return. REST handlers preserve explicit refusal messages,
+log incidental exception details on the server, and return a fixed sentence
+for other failures.
+
+::: director_ai.core.exceptions.DomainRefusalError

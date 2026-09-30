@@ -58,6 +58,7 @@ from director_ai.finetune_jobs import _ManagedJobStore as _ManagedJobStore
 from ._finetune_managed import _managed_record_to_dict as _managed_record_to_dict
 from ._finetune_managed import register_managed_routes as register_managed_routes
 from ._finetune_worker import _run_training_worker as _run_training_worker
+from .core.exceptions import DomainRefusalError
 
 __all__ = [
     "FinetuneJob",
@@ -188,7 +189,26 @@ def create_finetune_router(models_dir: Path | None = None) -> APIRouter:
     async def start_training(
         file: UploadFile, req: StartRequest | None = None
     ) -> dict[str, Any]:
-        """Upload data and start a fine-tuning job."""
+        """Validate an upload and start a local fine-tuning job.
+
+        Parameters
+        ----------
+        file : UploadFile
+            JSONL training dataset.
+        req : StartRequest or None
+            Training settings, or None to select the documented defaults.
+
+        Returns
+        -------
+        dict
+            Job identifier and validation estimates after the worker starts.
+
+        Raises
+        ------
+        HTTPException
+            422 for invalid data or inputs, 429 for an authored concurrency refusal,
+            or 500 for an unexpected model-resolution or job-creation failure.
+        """
         if req is None:
             req = StartRequest(
                 base_model="factcg-deberta-v3-large",
@@ -227,15 +247,31 @@ def create_finetune_router(models_dir: Path | None = None) -> APIRouter:
                 req.base_model,
                 allow_experimental=req.allow_experimental_model,
             )
-        except ValueError as exc:
+        except DomainRefusalError as exc:
             data_path.unlink(missing_ok=True)
             raise HTTPException(422, str(exc)) from exc
+        except (ValueError, KeyError, TypeError, AttributeError) as exc:
+            data_path.unlink(missing_ok=True)
+            logger.exception("Invalid fine-tune model request")
+            raise HTTPException(422, "Invalid fine-tune model request") from exc
+        except Exception as exc:
+            data_path.unlink(missing_ok=True)
+            logger.exception("Fine-tune model resolution failed")
+            raise HTTPException(500, "Fine-tune model resolution failed") from exc
 
         try:
             job = store.create(req.model_dump())
-        except ValueError as exc:
+        except DomainRefusalError as exc:
             data_path.unlink(missing_ok=True)
             raise HTTPException(429, str(exc)) from exc
+        except (ValueError, KeyError, TypeError, AttributeError) as exc:
+            data_path.unlink(missing_ok=True)
+            logger.exception("Invalid fine-tune job request")
+            raise HTTPException(422, "Invalid fine-tune job request") from exc
+        except Exception as exc:
+            data_path.unlink(missing_ok=True)
+            logger.exception("Fine-tune job creation failed")
+            raise HTTPException(500, "Fine-tune job creation failed") from exc
 
         job.validation_report = {
             "total_samples": report.total_samples,

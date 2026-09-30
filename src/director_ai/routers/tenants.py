@@ -17,6 +17,7 @@ checks are module-level helpers that resolve config from the request.
 
 from __future__ import annotations
 
+import logging
 from typing import Any
 
 from ..core.kb_write_security import (
@@ -26,6 +27,8 @@ from ..core.kb_write_security import (
     parse_hmac_keys,
     verify_kb_payload_signature,
 )
+
+logger = logging.getLogger("DirectorAI.Server")
 
 try:
     from fastapi import APIRouter, HTTPException, Request
@@ -151,7 +154,27 @@ def create_tenants_router() -> APIRouter:
         tenant_id: str,
         req: TenantVectorFactRequest,
     ) -> dict[str, Any]:
-        """Add a tenant-scoped vector fact to the configured vector store."""
+        """Add a tenant-scoped fact to the configured vector store.
+
+        Parameters
+        ----------
+        request : Request
+            HTTP request providing tenant identity and server configuration.
+        tenant_id : str
+            Tenant named by the route and checked against request ownership.
+        req : TenantVectorFactRequest
+            Fact key, text, and optional backend selection.
+
+        Returns
+        -------
+        dict
+            Added fact metadata.
+
+        Raises
+        ------
+        HTTPException
+            400 for an invalid backend selection; tenant access checks retain their statuses.
+        """
         tenant_router = request.app.state._state.get("tenant_router")
         if not tenant_router:
             raise HTTPException(404, "Tenant routing not enabled")
@@ -172,8 +195,9 @@ def create_tenants_router() -> APIRouter:
             store = tenant_router.get_vector_store(
                 tenant_id, backend_type=req.backend_type
             )
-        except (ValueError, KeyError) as exc:
-            raise HTTPException(400, f"Invalid backend_type: {exc}") from exc
+        except (ValueError, KeyError, TypeError, AttributeError) as exc:
+            logger.exception("Invalid vector backend request")
+            raise HTTPException(400, "Invalid backend_type") from exc
         store.add_fact(req.key, req.value, metadata=sig_meta)
         return {
             "status": "ok",

@@ -17,12 +17,14 @@ inert config defaults."""
 from __future__ import annotations
 
 import base64
+from collections.abc import Iterator, Sequence
 
 import pytest
 
 from director_ai.core.config import DirectorConfig
 
 try:
+    from fastapi import FastAPI
     from fastapi.testclient import TestClient
 
     from director_ai.server import create_app
@@ -43,7 +45,8 @@ _ALL = ("image", "audio", "video")
 
 
 @pytest.fixture
-def experimental_on():
+def experimental_on() -> Iterator[None]:
+    """Enable the experimental route for the lifetime of each test."""
     enable_experimental_hooks()
     try:
         yield
@@ -51,10 +54,16 @@ def experimental_on():
         disable_experimental_hooks()
 
 
-def _app(*, enabled=_ALL, benchmarked=_ALL):
+def _app(
+    *, enabled: Sequence[str] = _ALL, benchmarked: Sequence[str] = _ALL
+) -> FastAPI:
+    """Build the actual server with configured multimodal hash-bag backends."""
     cfg = DirectorConfig(
         api_keys=[],
         llm_provider="mock",
+        use_nli=False,
+        hybrid_retrieval=False,
+        reranker_enabled=False,
         multimodal_enabled_modalities=tuple(enabled),
         multimodal_benchmarked_modalities=tuple(benchmarked),
     )
@@ -62,7 +71,7 @@ def _app(*, enabled=_ALL, benchmarked=_ALL):
 
 
 class TestDisabledPosture:
-    def test_refused_without_experimental_hooks(self):
+    def test_refused_without_experimental_hooks(self) -> None:
         disable_experimental_hooks()
         with TestClient(_app()) as client:
             r = client.post(
@@ -76,7 +85,7 @@ class TestDisabledPosture:
             )
         assert r.status_code == 404
 
-    def test_refused_when_no_modalities_configured(self, experimental_on):
+    def test_refused_when_no_modalities_configured(self, experimental_on: None) -> None:
         with TestClient(_app(enabled=(), benchmarked=())) as client:
             r = client.post(
                 "/v1/multimodal/check",
@@ -91,7 +100,7 @@ class TestDisabledPosture:
 
 
 class TestEnabledDecisions:
-    def test_image_returns_guard_decision(self, experimental_on):
+    def test_image_returns_guard_decision(self, experimental_on: None) -> None:
         with TestClient(_app()) as client:
             r = client.post(
                 "/v1/multimodal/check",
@@ -108,7 +117,7 @@ class TestEnabledDecisions:
         assert body["media_ref"] == "img-1"
         assert body["guard_decision"]["decision"] in {"allow", "warn", "halt"}
 
-    def test_unbenchmarked_modality_warns(self, experimental_on):
+    def test_unbenchmarked_modality_warns(self, experimental_on: None) -> None:
         with TestClient(_app(enabled=("image",), benchmarked=())) as client:
             r = client.post(
                 "/v1/multimodal/check",
@@ -124,7 +133,7 @@ class TestEnabledDecisions:
         assert decision["decision"] == "warn"
         assert decision["reason"] == "multimodal_unbenchmarked"
 
-    def test_audio_returns_decision(self, experimental_on):
+    def test_audio_returns_decision(self, experimental_on: None) -> None:
         with TestClient(_app()) as client:
             r = client.post(
                 "/v1/multimodal/check",
@@ -138,7 +147,7 @@ class TestEnabledDecisions:
         assert r.status_code == 200
         assert r.json()["modality"] == "audio"
 
-    def test_video_frame_drift_halts(self, experimental_on):
+    def test_video_frame_drift_halts(self, experimental_on: None) -> None:
         with TestClient(_app()) as client:
             r = client.post(
                 "/v1/multimodal/check",
@@ -156,7 +165,7 @@ class TestEnabledDecisions:
 
 
 class TestValidation:
-    def test_invalid_modality_rejected(self, experimental_on):
+    def test_invalid_modality_rejected(self, experimental_on: None) -> None:
         with TestClient(_app()) as client:
             r = client.post(
                 "/v1/multimodal/check",
@@ -164,7 +173,7 @@ class TestValidation:
             )
         assert r.status_code == 422
 
-    def test_invalid_base64_rejected(self, experimental_on):
+    def test_invalid_base64_rejected(self, experimental_on: None) -> None:
         with TestClient(_app()) as client:
             r = client.post(
                 "/v1/multimodal/check",
@@ -177,7 +186,7 @@ class TestValidation:
             )
         assert r.status_code == 400
 
-    def test_video_requires_frame_similarities(self, experimental_on):
+    def test_video_requires_frame_similarities(self, experimental_on: None) -> None:
         with TestClient(_app()) as client:
             r = client.post(
                 "/v1/multimodal/check",
@@ -191,7 +200,7 @@ class TestValidation:
 
 
 class TestTenantSafety:
-    def test_response_omits_raw_claim_and_media(self, experimental_on):
+    def test_response_omits_raw_claim_and_media(self, experimental_on: None) -> None:
         with TestClient(_app()) as client:
             r = client.post(
                 "/v1/multimodal/check",
@@ -208,7 +217,34 @@ class TestTenantSafety:
 
 
 class TestConfigDefaults:
-    def test_multimodal_disabled_by_default(self):
+    def test_multimodal_disabled_by_default(self) -> None:
         cfg = DirectorConfig()
         assert cfg.multimodal_enabled_modalities == ()
         assert cfg.multimodal_benchmarked_modalities == ()
+
+
+def test_multimodal_dependency_failure_returns_fixed_response(
+    experimental_on: None,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """An unavailable adapter dependency produces a fixed 500 response."""
+    from director_ai.core.multimodal_guard.adapter import MultimodalVerifierAdapter
+
+    def fail(*args: object, **kwargs: object) -> None:
+        """Simulate dependency failure while the actual HTTP route stays active."""
+        raise OSError("ordinary multimodal fixture failure")
+
+    with TestClient(_app()) as client:
+        monkeypatch.setattr(MultimodalVerifierAdapter, "check", fail)
+        response = client.post(
+            "/v1/multimodal/check",
+            json={
+                "modality": "audio",
+                "claim_text": "ordinary claim",
+                "media_ref": "audio:ordinary",
+                "transcript_text": "ordinary transcript",
+            },
+        )
+    assert response.status_code == 500
+    assert response.json() == {"detail": "Multimodal processing failed"}
+    assert "ordinary multimodal fixture failure" not in response.text

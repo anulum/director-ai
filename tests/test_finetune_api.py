@@ -15,13 +15,24 @@ performance documentation.
 from __future__ import annotations
 
 import json
-from unittest.mock import patch
+from pathlib import Path
+from typing import TypeVar
+from unittest.mock import MagicMock, patch
 
 import pytest
 
 pytest.importorskip("fastapi", reason="fastapi required for finetune API tests")
 
+from fastapi import APIRouter
+from fastapi.routing import APIRoute
+from fastapi.testclient import TestClient
+
 import director_ai.finetune_api as finetune_api_module
+from director_ai.core.training.jobs import (
+    TrainingJobSpec,
+    TrainingJobStatus,
+    TrainingJobSubmission,
+)
 from director_ai.finetune_api import (
     _MAX_CONCURRENT_JOBS,
     FinetuneJob,
@@ -33,8 +44,10 @@ from director_ai.finetune_api import (
     create_finetune_router,
 )
 
+_Store = TypeVar("_Store", _JobStore, _ManagedJobStore)
 
-def _closure_store(router, store_type):
+
+def _closure_store(router: APIRouter, store_type: type[_Store]) -> _Store:
     """Return a router-local store captured by endpoint closures."""
     for route in router.routes:
         endpoint = getattr(route, "endpoint", None)
@@ -52,38 +65,41 @@ def _closure_store(router, store_type):
 
 
 class TestJobStore:
-    def test_create_and_get(self):
+    def test_create_and_get(self) -> None:
         store = _JobStore()
+        assert store is not None
         job = store.create({"epochs": 3})
         assert job.state == "pending"
         assert job.job_id
         fetched = store.get(job.job_id)
         assert fetched is job
 
-    def test_get_nonexistent(self):
+    def test_get_nonexistent(self) -> None:
         store = _JobStore()
         assert store.get("does-not-exist") is None
 
-    def test_list_all(self):
+    def test_list_all(self) -> None:
         store = _JobStore()
         store.create({"epochs": 1})
         store.create({"epochs": 2})
         jobs = store.list_all()
         assert len(jobs) == 2
 
-    def test_delete(self):
+    def test_delete(self) -> None:
         store = _JobStore()
+        assert store is not None
         job = store.create({"epochs": 3})
         assert store.delete(job.job_id)
         assert store.get(job.job_id) is None
 
-    def test_delete_nonexistent(self):
+    def test_delete_nonexistent(self) -> None:
         store = _JobStore()
         assert not store.delete("nope")
 
-    def test_concurrent_job_limit(self):
+    def test_concurrent_job_limit(self) -> None:
         store = _JobStore()
         for _i in range(_MAX_CONCURRENT_JOBS):
+            assert store is not None
             job = store.create({"epochs": 1})
             job.state = "training"
         with pytest.raises(ValueError, match="Too many"):
@@ -91,7 +107,7 @@ class TestJobStore:
 
 
 class TestManagedJobStore:
-    def test_records_are_tenant_scoped_and_serializable(self):
+    def test_records_are_tenant_scoped_and_serializable(self) -> None:
         store = _ManagedJobStore()
         record = ManagedTrainingRecord(
             job_id="job-1",
@@ -118,7 +134,7 @@ class TestManagedJobStore:
         assert payload["tenant_id"] == "tenant-a"
         assert payload["console_uri"] == "https://console.example/job"
 
-    def test_update_state_respects_tenant_ownership(self):
+    def test_update_state_respects_tenant_ownership(self) -> None:
         store = _ManagedJobStore()
         record = ManagedTrainingRecord(
             job_id="job-1",
@@ -147,14 +163,14 @@ class TestManagedJobStore:
 
 
 class TestFinetuneJob:
-    def test_defaults(self):
+    def test_defaults(self) -> None:
         job = FinetuneJob(job_id="test-123")
         assert job.state == "pending"
         assert job.progress == 0.0
         assert job.activated is False
         assert job.error == ""
 
-    def test_state_transitions(self):
+    def test_state_transitions(self) -> None:
         job = FinetuneJob(job_id="test-456")
         job.state = "training"
         job.progress = 0.5
@@ -165,10 +181,10 @@ class TestFinetuneJob:
 
 
 class TestCreateRouter:
-    def test_router_creates(self, tmp_path):
+    def test_router_creates(self, tmp_path: Path) -> None:
         router = create_finetune_router(models_dir=tmp_path / "models")
         assert router is not None
-        routes = [r.path for r in router.routes]
+        routes = [r.path for r in router.routes if isinstance(r, APIRoute)]
         assert "/validate" in routes
         assert "/start" in routes
         assert "/{job_id}" in routes
@@ -177,13 +193,15 @@ class TestCreateRouter:
         assert "/{job_id}/rollback" in routes
         assert "/" in routes
 
-    def test_models_dir_created(self, tmp_path):
+    def test_models_dir_created(self, tmp_path: Path) -> None:
         models_dir = tmp_path / "new_models"
         create_finetune_router(models_dir=models_dir)
         assert models_dir.exists()
         assert (models_dir / "_uploads").exists()
 
-    def test_router_uses_default_models_dir(self, tmp_path, monkeypatch):
+    def test_router_uses_default_models_dir(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         default_dir = tmp_path / "default_models"
         monkeypatch.setattr(finetune_api_module, "_DEFAULT_MODELS_DIR", default_dir)
 
@@ -192,13 +210,15 @@ class TestCreateRouter:
         assert default_dir.exists()
         assert (default_dir / "_uploads").exists()
 
-    def test_router_reports_missing_fastapi(self, monkeypatch):
+    def test_router_reports_missing_fastapi(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         monkeypatch.setattr(finetune_api_module, "_FASTAPI_AVAILABLE", False)
 
         with pytest.raises(ImportError, match="director-ai\\[server\\]"):
             create_finetune_router()
 
-    def test_module_import_without_fastapi_marks_router_unavailable(self):
+    def test_module_import_without_fastapi_marks_router_unavailable(self) -> None:
         import importlib.util
         import sys
 
@@ -218,21 +238,26 @@ class TestCreateRouter:
 
     def test_router_warns_when_models_dir_cannot_be_created(
         self,
-        tmp_path,
-        monkeypatch,
-        caplog,
-    ):
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+        caplog: pytest.LogCaptureFixture,
+    ) -> None:
         target = (tmp_path / "readonly_models").resolve()
-        original_mkdir = finetune_api_module.Path.mkdir
+        original_mkdir = Path.mkdir
         calls = {"count": 0}
 
-        def guarded_mkdir(path, *args, **kwargs):
+        def guarded_mkdir(
+            path: Path,
+            mode: int = 0o777,
+            parents: bool = False,
+            exist_ok: bool = False,
+        ) -> None:
             if path == target and calls["count"] == 0:
                 calls["count"] += 1
                 raise PermissionError("read-only")
-            return original_mkdir(path, *args, **kwargs)
+            return original_mkdir(path, mode=mode, parents=parents, exist_ok=exist_ok)
 
-        monkeypatch.setattr(finetune_api_module.Path, "mkdir", guarded_mkdir)
+        monkeypatch.setattr(Path, "mkdir", guarded_mkdir)
 
         router = create_finetune_router(models_dir=target)
 
@@ -245,7 +270,7 @@ class TestRouterEndpoints:
     """Integration tests using FastAPI TestClient."""
 
     @pytest.fixture
-    def client(self, tmp_path):
+    def client(self, tmp_path: Path) -> TestClient:
         from fastapi import FastAPI
         from fastapi.testclient import TestClient
 
@@ -254,7 +279,7 @@ class TestRouterEndpoints:
         app.include_router(router, prefix="/v1/finetune")
         return TestClient(app)
 
-    def _make_jsonl_bytes(self, n_pos=300, n_neg=300):
+    def _make_jsonl_bytes(self, n_pos: int = 300, n_neg: int = 300) -> bytes:
         rows = []
         for i in range(n_pos):
             rows.append(
@@ -266,7 +291,7 @@ class TestRouterEndpoints:
             )
         return ("\n".join(json.dumps(r) for r in rows) + "\n").encode("utf-8")
 
-    def test_validate_valid_data(self, client):
+    def test_validate_valid_data(self, client: TestClient) -> None:
         data = self._make_jsonl_bytes()
         resp = client.post(
             "/v1/finetune/validate",
@@ -278,7 +303,7 @@ class TestRouterEndpoints:
         assert body["total_samples"] == 600
         assert body["estimated_cost_usd"] > 0
 
-    def test_validate_invalid_data(self, client):
+    def test_validate_invalid_data(self, client: TestClient) -> None:
         data = b'{"premise": "a"}\n{"hypothesis": "b"}\n'
         resp = client.post(
             "/v1/finetune/validate",
@@ -289,7 +314,7 @@ class TestRouterEndpoints:
         assert not body["is_valid"]
         assert len(body["errors"]) > 0
 
-    def test_start_rejects_bad_data(self, client):
+    def test_start_rejects_bad_data(self, client: TestClient) -> None:
         data = b"not json\n"
         resp = client.post(
             "/v1/finetune/start",
@@ -297,32 +322,34 @@ class TestRouterEndpoints:
         )
         assert resp.status_code == 422
 
-    def test_list_models_empty(self, client):
+    def test_list_models_empty(self, client: TestClient) -> None:
         resp = client.get("/v1/finetune/")
         assert resp.status_code == 200
         assert resp.json()["models"] == []
 
-    def test_get_nonexistent_job(self, client):
+    def test_get_nonexistent_job(self, client: TestClient) -> None:
         resp = client.get("/v1/finetune/nonexistent")
         assert resp.status_code == 404
 
-    def test_activate_nonexistent_job(self, client):
+    def test_activate_nonexistent_job(self, client: TestClient) -> None:
         resp = client.post("/v1/finetune/nonexistent/activate")
         assert resp.status_code == 404
 
-    def test_rollback_nonexistent_job(self, client):
+    def test_rollback_nonexistent_job(self, client: TestClient) -> None:
         resp = client.post("/v1/finetune/nonexistent/rollback")
         assert resp.status_code == 404
 
-    def test_delete_nonexistent_job(self, client):
+    def test_delete_nonexistent_job(self, client: TestClient) -> None:
         resp = client.delete("/v1/finetune/nonexistent")
         assert resp.status_code == 404
 
-    def test_result_nonexistent_job(self, client):
+    def test_result_nonexistent_job(self, client: TestClient) -> None:
         resp = client.get("/v1/finetune/nonexistent/result")
         assert resp.status_code == 404
 
-    def test_managed_jobs_reject_invalid_tenant_header(self, client):
+    def test_managed_jobs_reject_invalid_tenant_header(
+        self, client: TestClient
+    ) -> None:
         resp = client.get(
             "/v1/finetune/managed/jobs",
             headers={"X-Tenant-ID": "../bad"},
@@ -334,7 +361,7 @@ class TestManagedTrainingEndpoints:
     """Managed-training endpoint contracts with backend calls stubbed."""
 
     @pytest.fixture
-    def client_and_router(self, tmp_path):
+    def client_and_router(self, tmp_path: Path) -> tuple[TestClient, APIRouter]:
         from fastapi import FastAPI
         from fastapi.testclient import TestClient
 
@@ -343,7 +370,7 @@ class TestManagedTrainingEndpoints:
         app.include_router(router, prefix="/v1/finetune")
         return TestClient(app), router
 
-    def _submit_payload(self, **overrides):
+    def _submit_payload(self, **overrides: object) -> dict[str, object]:
         payload = {
             "backend": "portable",
             "dry_run": True,
@@ -360,14 +387,18 @@ class TestManagedTrainingEndpoints:
         return payload
 
     def test_submit_and_list_managed_training_jobs(
-        self, client_and_router, monkeypatch
-    ):
+        self,
+        client_and_router: tuple[TestClient, APIRouter],
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
         import director_ai.core.training.jobs as jobs_module
         from director_ai.core.training.jobs import TrainingJobSubmission
 
         client, _router = client_and_router
 
-        def fake_submit(spec, *, backend, dry_run):
+        def fake_submit(
+            spec: TrainingJobSpec, *, backend: str, dry_run: bool
+        ) -> TrainingJobSubmission:
             assert spec.display_name == "tenant-a-train"
             assert backend == "portable"
             assert dry_run is True
@@ -409,15 +440,17 @@ class TestManagedTrainingEndpoints:
 
     def test_submit_managed_training_suite_builds_internal_spec(
         self,
-        client_and_router,
-        monkeypatch,
-    ):
+        client_and_router: tuple[TestClient, APIRouter],
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
         import director_ai.core.training.jobs as jobs_module
         from director_ai.core.training.jobs import TrainingJobSubmission
 
         client, _router = client_and_router
 
-        def fake_submit(spec, *, backend, dry_run):
+        def fake_submit(
+            spec: TrainingJobSpec, *, backend: str, dry_run: bool
+        ) -> TrainingJobSubmission:
             assert spec.task_type == "suite"
             assert spec.caller == "internal"
             assert spec.display_name == "director-ai-ragtruth-calibration"
@@ -444,9 +477,9 @@ class TestManagedTrainingEndpoints:
 
     def test_submit_managed_training_maps_validation_errors(
         self,
-        client_and_router,
-        monkeypatch,
-    ):
+        client_and_router: tuple[TestClient, APIRouter],
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
         import director_ai.core.training.jobs as jobs_module
 
         client, _router = client_and_router
@@ -464,9 +497,12 @@ class TestManagedTrainingEndpoints:
         )
 
         assert resp.status_code == 422
-        assert "dataset_uri is required" in resp.text
+        assert resp.json() == {"detail": "Invalid managed training request"}
+        assert "dataset_uri" not in resp.text
 
-    def test_managed_status_dry_run_and_backend_conflict(self, client_and_router):
+    def test_managed_status_dry_run_and_backend_conflict(
+        self, client_and_router: tuple[TestClient, APIRouter]
+    ) -> None:
         client, router = client_and_router
         managed_store = _closure_store(router, _ManagedJobStore)
         managed_store.add(
@@ -507,9 +543,9 @@ class TestManagedTrainingEndpoints:
 
     def test_managed_status_updates_from_backend_and_maps_errors(
         self,
-        client_and_router,
-        monkeypatch,
-    ):
+        client_and_router: tuple[TestClient, APIRouter],
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
         import director_ai.core.training.jobs as jobs_module
         from director_ai.core.training.jobs import TrainingJobStatus
 
@@ -529,7 +565,7 @@ class TestManagedTrainingEndpoints:
         )
 
         class Backend:
-            def status(self, job_id):
+            def status(self, job_id: str) -> TrainingJobStatus:
                 return TrainingJobStatus(
                     backend="portable",
                     job_id=job_id,
@@ -538,7 +574,7 @@ class TestManagedTrainingEndpoints:
                     artifact_uri="gs://out/model",
                 )
 
-            def cancel(self, job_id):
+            def cancel(self, job_id: str) -> TrainingJobStatus:
                 raise AssertionError("not used")
 
         monkeypatch.setattr(
@@ -554,7 +590,9 @@ class TestManagedTrainingEndpoints:
         assert status.status_code == 200
         assert status.json()["state"] == "completed"
         assert status.json()["metrics"] == {"balanced_accuracy": 0.8}
-        assert managed_store.get("tenant-a", "live-1").state == "completed"
+        restored = managed_store.get("tenant-a", "live-1")
+        assert restored is not None
+        assert restored.state == "completed"
 
         monkeypatch.setattr(
             jobs_module,
@@ -569,10 +607,10 @@ class TestManagedTrainingEndpoints:
         assert failed.status_code == 422
 
         class BrokenStatusBackend:
-            def status(self, job_id):
+            def status(self, job_id: str) -> TrainingJobStatus:
                 raise RuntimeError("backend offline")
 
-            def cancel(self, job_id):
+            def cancel(self, job_id: str) -> TrainingJobStatus:
                 raise AssertionError("not used")
 
         monkeypatch.setattr(
@@ -589,9 +627,9 @@ class TestManagedTrainingEndpoints:
 
     def test_managed_cancel_dry_run_and_backend_paths(
         self,
-        client_and_router,
-        monkeypatch,
-    ):
+        client_and_router: tuple[TestClient, APIRouter],
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
         import director_ai.core.training.jobs as jobs_module
         from director_ai.core.training.jobs import TrainingJobStatus
 
@@ -639,10 +677,10 @@ class TestManagedTrainingEndpoints:
         )
 
         class Backend:
-            def status(self, job_id):
+            def status(self, job_id: str) -> TrainingJobStatus:
                 raise AssertionError("not used")
 
-            def cancel(self, job_id):
+            def cancel(self, job_id: str) -> TrainingJobStatus:
                 return TrainingJobStatus(
                     backend="portable",
                     job_id=job_id,
@@ -664,7 +702,9 @@ class TestManagedTrainingEndpoints:
         assert conflict.status_code == 409
         assert cancelled.status_code == 200
         assert cancelled.json()["state"] == "cancelled"
-        assert managed_store.get("tenant-a", "live-1").state == "cancelled"
+        restored = managed_store.get("tenant-a", "live-1")
+        assert restored is not None
+        assert restored.state == "cancelled"
 
         monkeypatch.setattr(
             jobs_module,
@@ -679,10 +719,10 @@ class TestManagedTrainingEndpoints:
         assert bad_backend.status_code == 422
 
         class BrokenCancelBackend:
-            def status(self, job_id):
+            def status(self, job_id: str) -> TrainingJobStatus:
                 raise AssertionError("not used")
 
-            def cancel(self, job_id):
+            def cancel(self, job_id: str) -> TrainingJobStatus:
                 raise RuntimeError("cancel offline")
 
         monkeypatch.setattr(
@@ -699,9 +739,9 @@ class TestManagedTrainingEndpoints:
 
     def test_managed_model_registry_and_benchmark_endpoint(
         self,
-        client_and_router,
-        monkeypatch,
-    ):
+        client_and_router: tuple[TestClient, APIRouter],
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
         import director_ai.core.training.finetune_benchmark as benchmark_module
         import director_ai.core.training.model_registry as registry_module
 
@@ -717,7 +757,7 @@ class TestManagedTrainingEndpoints:
         models = client.get("/v1/finetune/managed/models?include_experimental=true")
 
         class Report:
-            def to_dict(self):
+            def to_dict(self) -> dict[str, object]:
                 return {"winner": "model-a", "score": 0.91}
 
         monkeypatch.setattr(
@@ -748,12 +788,35 @@ class TestManagedTrainingEndpoints:
         assert benchmark.json() == {"winner": "model-a", "score": 0.91}
         assert invalid.status_code == 422
 
+    def test_managed_benchmark_dependency_failure_is_fixed(
+        self,
+        client_and_router: tuple[TestClient, APIRouter],
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """Unexpected benchmark dependencies produce a fixed upstream status."""
+        exception = OSError("ordinary benchmark fixture failure")
+        import director_ai.core.training.finetune_benchmark as benchmark_module
+
+        def fail(*args: object, **kwargs: object) -> None:
+            """Simulate an unavailable benchmark dependency at its boundary."""
+            raise exception
+
+        monkeypatch.setattr(benchmark_module, "benchmark_model_candidates", fail)
+        client, _router = client_and_router
+        response = client.post(
+            "/v1/finetune/managed/benchmark-models",
+            json={"model_artifacts": {"factcg-deberta-v3-large": "ordinary-model"}},
+        )
+        assert response.status_code == 502
+        assert response.json() == {"detail": "Model benchmark failed"}
+        assert str(exception) not in response.text
+
 
 class TestRouterSuccessPaths:
     """Test activate/rollback/delete on real (mocked-completed) jobs."""
 
     @pytest.fixture
-    def client_with_job(self, tmp_path):
+    def client_with_job(self, tmp_path: Path) -> TestClient:
         from fastapi import FastAPI
         from fastapi.testclient import TestClient
 
@@ -762,7 +825,7 @@ class TestRouterSuccessPaths:
         app.include_router(router, prefix="/v1/finetune")
         return TestClient(app)
 
-    def test_activate_completed_job(self, tmp_path):
+    def test_activate_completed_job(self, tmp_path: Path) -> None:
         from fastapi import FastAPI
         from fastapi.testclient import TestClient
 
@@ -789,6 +852,7 @@ class TestRouterSuccessPaths:
                         except ValueError:
                             pass
 
+        assert store is not None
         job = store.create({"epochs": 1})
         job.state = "completed"
         job.model_path = str(tmp_path / "models" / job.job_id)
@@ -803,7 +867,7 @@ class TestRouterSuccessPaths:
         assert "nli_model" in body["detail"]
         assert "restart" in body["detail"]
 
-    def test_rollback_activated_job(self, tmp_path):
+    def test_rollback_activated_job(self, tmp_path: Path) -> None:
         from fastapi import FastAPI
         from fastapi.testclient import TestClient
 
@@ -832,6 +896,7 @@ class TestRouterSuccessPaths:
                 if store:
                     break
 
+        assert store is not None
         job = store.create({"epochs": 1})
         job.state = "completed"
         job.activated = True
@@ -840,7 +905,7 @@ class TestRouterSuccessPaths:
         assert resp.status_code == 200
         assert resp.json()["activated"] is False
 
-    def test_delete_completed_job(self, tmp_path):
+    def test_delete_completed_job(self, tmp_path: Path) -> None:
         from fastapi import FastAPI
         from fastapi.testclient import TestClient
 
@@ -869,6 +934,7 @@ class TestRouterSuccessPaths:
                 if store:
                     break
 
+        assert store is not None
         job = store.create({"epochs": 1})
         job.state = "completed"
 
@@ -879,7 +945,7 @@ class TestRouterSuccessPaths:
         resp2 = client.get(f"/v1/finetune/{job.job_id}")
         assert resp2.status_code == 404
 
-    def test_delete_activated_blocked(self, tmp_path):
+    def test_delete_activated_blocked(self, tmp_path: Path) -> None:
         from fastapi import FastAPI
         from fastapi.testclient import TestClient
 
@@ -908,6 +974,7 @@ class TestRouterSuccessPaths:
                 if store:
                     break
 
+        assert store is not None
         job = store.create({"epochs": 1})
         job.state = "completed"
         job.activated = True
@@ -915,7 +982,7 @@ class TestRouterSuccessPaths:
         resp = client.delete(f"/v1/finetune/{job.job_id}")
         assert resp.status_code == 409
 
-    def test_activate_training_returns_409(self, tmp_path):
+    def test_activate_training_returns_409(self, tmp_path: Path) -> None:
         from fastapi import FastAPI
         from fastapi.testclient import TestClient
 
@@ -944,13 +1011,14 @@ class TestRouterSuccessPaths:
                 if store:
                     break
 
+        assert store is not None
         job = store.create({"epochs": 1})
         job.state = "training"
 
         resp = client.post(f"/v1/finetune/{job.job_id}/activate")
         assert resp.status_code == 409
 
-    def test_delete_cleans_model_directory(self, tmp_path):
+    def test_delete_cleans_model_directory(self, tmp_path: Path) -> None:
         from fastapi import FastAPI
         from fastapi.testclient import TestClient
 
@@ -984,6 +1052,7 @@ class TestRouterSuccessPaths:
         model_dir.mkdir()
         (model_dir / "config.json").write_text("{}", encoding="utf-8")
 
+        assert store is not None
         job = store.create({"epochs": 1})
         job.state = "completed"
         job.model_path = str(model_dir)
@@ -992,7 +1061,9 @@ class TestRouterSuccessPaths:
         assert resp.status_code == 200
         assert not model_dir.exists()
 
-    def test_delete_does_not_remove_model_path_outside_models_dir(self, tmp_path):
+    def test_delete_does_not_remove_model_path_outside_models_dir(
+        self, tmp_path: Path
+    ) -> None:
         from fastapi import FastAPI
         from fastapi.testclient import TestClient
 
@@ -1005,6 +1076,7 @@ class TestRouterSuccessPaths:
         outside_dir = tmp_path / "outside-model"
         outside_dir.mkdir()
         (outside_dir / "config.json").write_text("{}", encoding="utf-8")
+        assert store is not None
         job = store.create({"epochs": 1})
         job.state = "completed"
         job.model_path = str(outside_dir)
@@ -1015,7 +1087,7 @@ class TestRouterSuccessPaths:
         assert outside_dir.exists()
         assert store.get(job.job_id) is None
 
-    def test_result_completed_job(self, tmp_path):
+    def test_result_completed_job(self, tmp_path: Path) -> None:
         from fastapi import FastAPI
         from fastapi.testclient import TestClient
 
@@ -1044,6 +1116,7 @@ class TestRouterSuccessPaths:
                 if store:
                     break
 
+        assert store is not None
         job = store.create({"epochs": 1})
         job.state = "completed"
         job.metrics = {"eval_balanced_accuracy": 0.85}
@@ -1058,7 +1131,7 @@ class TestRouterSuccessPaths:
 
 
 class TestRouterIsolation:
-    def test_separate_routers_have_separate_stores(self, tmp_path):
+    def test_separate_routers_have_separate_stores(self, tmp_path: Path) -> None:
         from fastapi import FastAPI
         from fastapi.testclient import TestClient
 
@@ -1079,7 +1152,7 @@ class TestRouterStartEndpoint:
     """Test the /start endpoint with mocked training worker."""
 
     @pytest.fixture
-    def client(self, tmp_path):
+    def client(self, tmp_path: Path) -> TestClient:
         from fastapi import FastAPI
         from fastapi.testclient import TestClient
 
@@ -1088,7 +1161,7 @@ class TestRouterStartEndpoint:
         app.include_router(router, prefix="/v1/finetune")
         return TestClient(app)
 
-    def _make_jsonl_bytes(self, n_pos=300, n_neg=300):
+    def _make_jsonl_bytes(self, n_pos: int = 300, n_neg: int = 300) -> bytes:
         rows = []
         for i in range(n_pos):
             rows.append(
@@ -1101,7 +1174,7 @@ class TestRouterStartEndpoint:
         return ("\n".join(json.dumps(r) for r in rows) + "\n").encode("utf-8")
 
     @patch("director_ai.finetune_api._run_training_worker")
-    def test_start_valid_data(self, mock_worker, client):
+    def test_start_valid_data(self, mock_worker: MagicMock, client: TestClient) -> None:
         data = self._make_jsonl_bytes()
         resp = client.post(
             "/v1/finetune/start",
@@ -1114,7 +1187,9 @@ class TestRouterStartEndpoint:
         assert body["estimated_time_min"] > 0
         assert mock_worker.called
 
-    def test_validate_rejects_oversized_upload(self, client, monkeypatch):
+    def test_validate_rejects_oversized_upload(
+        self, client: TestClient, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         monkeypatch.setattr(finetune_api_module, "_MAX_UPLOAD_BYTES", 8)
 
         resp = client.post(
@@ -1127,10 +1202,10 @@ class TestRouterStartEndpoint:
     @patch("director_ai.finetune_api._run_training_worker")
     def test_start_rejects_unknown_base_model(
         self,
-        mock_worker,
-        client,
-        monkeypatch,
-    ):
+        mock_worker: MagicMock,
+        client: TestClient,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
         import director_ai.core.training.model_registry as registry_module
 
         monkeypatch.setattr(
@@ -1150,11 +1225,69 @@ class TestRouterStartEndpoint:
         )
 
         assert resp.status_code == 422
-        assert "unknown scorer_model" in resp.text
+        assert resp.json() == {"detail": "Invalid fine-tune model request"}
+        assert "unknown scorer_model" not in resp.text
         mock_worker.assert_not_called()
 
+    @pytest.mark.parametrize(
+        ("boundary", "exception", "status", "detail"),
+        [
+            (
+                "model",
+                OSError("ordinary registry fixture failure"),
+                500,
+                "Fine-tune model resolution failed",
+            ),
+            (
+                "store",
+                ValueError("ordinary job fixture failure"),
+                422,
+                "Invalid fine-tune job request",
+            ),
+            (
+                "store",
+                OSError("ordinary store dependency fixture failure"),
+                500,
+                "Fine-tune job creation failed",
+            ),
+        ],
+    )
+    def test_start_dependency_failure_cleans_upload(
+        self,
+        client: TestClient,
+        monkeypatch: pytest.MonkeyPatch,
+        tmp_path: Path,
+        boundary: str,
+        exception: Exception,
+        status: int,
+        detail: str,
+    ) -> None:
+        """Dependency failures keep fixed statuses and remove uploaded data."""
+        import director_ai.core.training.model_registry as registry_module
+
+        def fail(*args: object, **kwargs: object) -> None:
+            """Simulate a failure at the selected local training dependency."""
+            raise exception
+
+        if boundary == "model":
+            monkeypatch.setattr(registry_module, "resolve_finetune_model", fail)
+        else:
+            monkeypatch.setattr(_JobStore, "create", fail)
+        response = client.post(
+            "/v1/finetune/start",
+            files={
+                "file": ("train.jsonl", self._make_jsonl_bytes(), "application/jsonl")
+            },
+        )
+        assert response.status_code == status
+        assert response.json() == {"detail": detail}
+        assert str(exception) not in response.text
+        assert list((tmp_path / "models" / "_uploads").iterdir()) == []
+
     @patch("director_ai.finetune_api._run_training_worker")
-    def test_start_returns_409_on_result_while_training(self, mock_worker, client):
+    def test_start_returns_409_on_result_while_training(
+        self, mock_worker: MagicMock, client: TestClient
+    ) -> None:
         data = self._make_jsonl_bytes()
         resp = client.post(
             "/v1/finetune/start",
@@ -1165,7 +1298,7 @@ class TestRouterStartEndpoint:
         assert result_resp.status_code == 409
 
     @patch("director_ai.finetune_api._run_training_worker")
-    def test_start_get_status(self, mock_worker, client):
+    def test_start_get_status(self, mock_worker: MagicMock, client: TestClient) -> None:
         data = self._make_jsonl_bytes()
         resp = client.post(
             "/v1/finetune/start",
@@ -1177,7 +1310,9 @@ class TestRouterStartEndpoint:
         assert status.json()["job_id"] == job_id
 
     @patch("director_ai.finetune_api._run_training_worker")
-    def test_start_shows_in_list(self, mock_worker, client):
+    def test_start_shows_in_list(
+        self, mock_worker: MagicMock, client: TestClient
+    ) -> None:
         data = self._make_jsonl_bytes()
         client.post(
             "/v1/finetune/start",
@@ -1187,7 +1322,9 @@ class TestRouterStartEndpoint:
         assert len(listing.json()["models"]) == 1
 
     @patch("director_ai.finetune_api._run_training_worker")
-    def test_start_concurrent_limit_429(self, mock_worker, tmp_path):
+    def test_start_concurrent_limit_429(
+        self, mock_worker: MagicMock, tmp_path: Path
+    ) -> None:
         from fastapi import FastAPI
         from fastapi.testclient import TestClient
 
@@ -1216,6 +1353,7 @@ class TestRouterStartEndpoint:
                     break
 
         for _i in range(_MAX_CONCURRENT_JOBS):
+            assert store is not None
             job = store.create({"epochs": 1})
             job.state = "training"
             store.save(job)  # write-through, as the training worker does
@@ -1229,8 +1367,8 @@ class TestRouterStartEndpoint:
 
 
 class TestBenchmarkJsonlRobust:
-    def test_malformed_json_skipped(self, tmp_path):
-        from director_ai.core.finetune_benchmark import _load_benchmark_jsonl
+    def test_malformed_json_skipped(self, tmp_path: Path) -> None:
+        from director_ai.core.training.finetune_benchmark import _load_benchmark_jsonl
 
         f = tmp_path / "bench.jsonl"
         f.write_text(
@@ -1243,7 +1381,7 @@ class TestBenchmarkJsonlRobust:
         assert len(rows) == 2
 
 
-def _make_jsonl_file(path, n_pos=60, n_neg=60):
+def _make_jsonl_file(path: Path, n_pos: int = 60, n_neg: int = 60) -> None:
     rows = []
     for i in range(n_pos):
         rows.append({"premise": f"Fact {i}.", "hypothesis": f"Claim {i}.", "label": 1})
@@ -1261,8 +1399,8 @@ class TestTrainingWorkerDirect:
     """Test _run_training_worker synchronously with mocked finetune_nli."""
 
     @patch("director_ai.core.finetune.finetune_nli")
-    def test_worker_completes(self, mock_ft, tmp_path):
-        from director_ai.core.finetune import FinetuneResult
+    def test_worker_completes(self, mock_ft: MagicMock, tmp_path: Path) -> None:
+        from director_ai.core.training.finetune import FinetuneResult
 
         mock_ft.return_value = FinetuneResult(
             output_dir=str(tmp_path / "models" / "test-ok"),
@@ -1302,7 +1440,9 @@ class TestTrainingWorkerDirect:
         "director_ai.core.finetune.finetune_nli",
         side_effect=ValueError("No valid samples"),
     )
-    def test_worker_handles_training_error(self, mock_ft, tmp_path):
+    def test_worker_handles_training_error(
+        self, mock_ft: MagicMock, tmp_path: Path
+    ) -> None:
         data_path = tmp_path / "data.jsonl"
         _make_jsonl_file(data_path, 10, 10)
 
@@ -1321,8 +1461,8 @@ class TestTrainingWorkerDirect:
         assert not data_path.exists()
 
     @patch("director_ai.core.finetune.finetune_nli")
-    def test_worker_splits_data_90_10(self, mock_ft, tmp_path):
-        from director_ai.core.finetune import FinetuneResult
+    def test_worker_splits_data_90_10(self, mock_ft: MagicMock, tmp_path: Path) -> None:
+        from director_ai.core.training.finetune import FinetuneResult
 
         mock_ft.return_value = FinetuneResult(output_dir=str(tmp_path / "m" / "j1"))
 
@@ -1346,7 +1486,9 @@ class TestTrainingWorkerDirect:
         "director_ai.core.finetune.finetune_nli",
         side_effect=RuntimeError("GPU OOM"),
     )
-    def test_worker_cleans_up_on_exception(self, mock_ft, tmp_path):
+    def test_worker_cleans_up_on_exception(
+        self, mock_ft: MagicMock, tmp_path: Path
+    ) -> None:
         data_path = tmp_path / "data.jsonl"
         _make_jsonl_file(data_path)
 

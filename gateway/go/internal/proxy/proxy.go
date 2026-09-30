@@ -16,6 +16,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"net/url"
 	"strings"
@@ -30,7 +31,7 @@ type Client struct {
 	forwardAuth bool
 }
 
-// New builds a Client pointing at ``upstreamURL``. ``timeout`` is the
+// New builds a Client pointing at “upstreamURL“. “timeout“ is the
 // per-request total timeout; set to zero to disable.
 func New(upstreamURL string, timeout time.Duration) (*Client, error) {
 	u, err := url.Parse(upstreamURL)
@@ -50,7 +51,7 @@ func New(upstreamURL string, timeout time.Duration) (*Client, error) {
 }
 
 // ForwardAuthHeader toggles whether the client forwards the incoming
-// ``Authorization`` header upstream. Production deployments that
+// “Authorization“ header upstream. Production deployments that
 // replace the inbound key with a service account should set this to
 // false and supply their own header via Inject.
 func (c *Client) ForwardAuthHeader(on bool) { c.forwardAuth = on }
@@ -83,7 +84,8 @@ func (c *Client) Forward(w http.ResponseWriter, r *http.Request) {
 
 	resp, err := c.httpClient.Do(outReq)
 	if err != nil {
-		writeError(w, http.StatusBadGateway, "upstream unreachable: "+err.Error())
+		log.Printf("upstream request failed: %v", err)
+		writeError(w, http.StatusBadGateway, "upstream unreachable")
 		return
 	}
 	defer resp.Body.Close()

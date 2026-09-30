@@ -19,15 +19,37 @@ import io
 import logging
 from collections.abc import Callable as _Callable
 
+from ..exceptions import DomainRefusalError
+
 logger = logging.getLogger("DirectorAI.DocParser")
 
 
 def parse(content: bytes, filename: str) -> str:
-    """Parse file content to plain text based on filename extension."""
+    """Extract plain text using the filename's format parser.
+
+    Parameters
+    ----------
+    content : bytes
+        Complete uploaded document bytes.
+    filename : str
+        Filename whose extension selects the parser.
+
+    Returns
+    -------
+    str
+        Extracted plain text; unknown extensions use the text decoder.
+
+    Raises
+    ------
+    DomainRefusalError
+        Content or filename is invalid, or PDF/DOCX parsing refuses the document.
+    ImportError
+        The selected optional format parser is unavailable.
+    """
     if not isinstance(content, bytes):
-        raise ValueError("content must be bytes")
+        raise DomainRefusalError("content must be bytes")
     if not isinstance(filename, str) or not filename.strip():
-        raise ValueError("filename must be a non-empty string")
+        raise DomainRefusalError("filename must be a non-empty string")
 
     normalized_filename = filename.strip()
     ext = (
@@ -40,6 +62,25 @@ def parse(content: bytes, filename: str) -> str:
 
 
 def _parse_pdf(content: bytes) -> str:
+    """Extract text from PDF pages with the optional pypdf reader.
+
+    Parameters
+    ----------
+    content : bytes
+        Encoded PDF document.
+
+    Returns
+    -------
+    str
+        Non-empty page text separated by blank lines.
+
+    Raises
+    ------
+    DomainRefusalError
+        The PDF reader refuses the document while loading or extracting pages.
+    ImportError
+        pypdf is unavailable.
+    """
     try:
         from pypdf import PdfReader
     except ImportError as e:
@@ -49,26 +90,46 @@ def _parse_pdf(content: bytes) -> str:
 
     try:
         reader = PdfReader(io.BytesIO(content))
+        pages = []
+        for page in reader.pages:
+            text = page.extract_text()
+            if text:
+                pages.append(text)
+        return "\n\n".join(pages)
     except Exception as e:
         exc_type = type(e)
         if exc_type.__module__.startswith("pypdf") or exc_type.__name__.startswith(
             "Pdf"
         ):
-            raise ValueError("invalid PDF document") from e
+            raise DomainRefusalError("invalid PDF document") from e
         raise  # pragma: no cover - preserves unexpected non-pypdf failures.
-    pages = []
-    for page in reader.pages:
-        text = page.extract_text()
-        if text:
-            pages.append(text)
-    return "\n\n".join(pages)
 
 
 def _parse_docx(content: bytes) -> str:
+    """Extract non-empty DOCX paragraphs with python-docx.
+
+    Parameters
+    ----------
+    content : bytes
+        Encoded DOCX archive.
+
+    Returns
+    -------
+    str
+        Non-empty paragraph text separated by blank lines.
+
+    Raises
+    ------
+    DomainRefusalError
+        The archive or document fails the parser's input validation.
+    ImportError
+        python-docx is unavailable.
+    """
     import zipfile
 
     try:
         from docx import Document
+        from lxml.etree import XMLSyntaxError
     except ImportError as e:
         raise ImportError(
             "python-docx required for DOCX parsing. Install: pip install director-ai[ingestion]"
@@ -76,8 +137,8 @@ def _parse_docx(content: bytes) -> str:
 
     try:
         doc = Document(io.BytesIO(content))
-    except (ValueError, zipfile.BadZipFile) as e:
-        raise ValueError("invalid DOCX document") from e
+    except (ValueError, zipfile.BadZipFile, XMLSyntaxError) as e:
+        raise DomainRefusalError("invalid DOCX document") from e
     return "\n\n".join(p.text for p in doc.paragraphs if p.text.strip())
 
 

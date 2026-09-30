@@ -46,3 +46,14 @@ Use `delete()` to remove both registry metadata and vector-store chunks.
 ::: director_ai.core.ingestion.DeletedDocument
 
 ::: director_ai.core.ingestion.DocumentIngestionPipeline
+
+The HTTP upload route returns authored `invalid PDF document` and
+`invalid DOCX document` refusals as 422 responses. Other structural parser
+failures return the fixed 422 detail `Invalid document`; missing optional
+parsers return 503 with `Document parser unavailable`. Exception details stay
+in server logs.
+
+Uploads require a non-empty tenant identity for document registration. When
+tenant binding is disabled, an unbound upload returns 422 with
+`Document uploads require a tenant`; configured authorisation checks keep
+their existing status codes.

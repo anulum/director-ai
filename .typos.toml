@@ -19,6 +19,9 @@
 # fragments of commit SHAs quoted in docs as misspellings.
 extend-ignore-re = ["\\b[0-9a-f]{8,64}\\b"]
 
+[default.extend-identifiers]
+flate_encode = "flate_encode"
+
 [default.extend-words]
 # Domain / library vocabulary
 ACI = "ACI"

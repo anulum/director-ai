@@ -32,6 +32,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+from ..exceptions import DomainRefusalError
 from ..mandatory import mandatory_execution
 from ..model_revisions import resolve_model_revision
 from .finetune import TrainingRow
@@ -410,14 +411,34 @@ def benchmark_model_candidates(
     allow_experimental: bool = False,
     seed: int = 42,
 ) -> ModelBenchmarkReport:
-    """Benchmark already-trained model artifacts with identical inputs.
+    """Benchmark trained model artifacts with identical datasets and seed.
 
-    ``model_artifacts`` maps a registry alias or model id to the artifact path
-    produced by a fine-tune job. Unit tests can patch ``_evaluate_model``; live
-    runs use the same anti-regression benchmark gate as single-model activation.
+    Parameters
+    ----------
+    model_artifacts : Mapping
+        Registry aliases or model identifiers mapped to trained artifact paths.
+    general_path, eval_path : str, Path, or None
+        General and domain evaluation datasets, or the benchmark defaults.
+    batch_size : int or None
+        Evaluation batch size, or each model profile's recommended size.
+    allow_experimental : bool
+        Permit experimental model profiles during registry resolution.
+    seed : int
+        Seed reused for each candidate's evaluation.
+
+    Returns
+    -------
+    ModelBenchmarkReport
+        Candidate results and ranking. Failed candidates retain authored
+        refusals; native failures use a fixed rejection sentence.
+
+    Raises
+    ------
+    DomainRefusalError
+        No model artifacts were supplied.
     """
     if not model_artifacts:
-        raise ValueError("model_artifacts must contain at least one model")
+        raise DomainRefusalError("model_artifacts must contain at least one model")
 
     results: list[ModelBenchmarkResult] = []
     for requested_model, model_path in model_artifacts.items():
@@ -445,6 +466,7 @@ def benchmark_model_candidates(
                 ),
             )
         except Exception as exc:
+            logger.exception("Model benchmark failed")
             results.append(
                 ModelBenchmarkResult(
                     requested_model=requested_model,
@@ -458,7 +480,9 @@ def benchmark_model_candidates(
                     recommended_batch_size=batch_size or 0,
                     recommendation="reject",
                     elapsed_seconds=time.perf_counter() - started,
-                    error=str(exc),
+                    error=str(exc)
+                    if isinstance(exc, DomainRefusalError)
+                    else "Model benchmark failed",
                 ),
             )
 

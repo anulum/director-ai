@@ -43,6 +43,15 @@ class ValidationError(DirectorAIError, ValueError):
     """Raised for invalid inputs (prompts, parameters, configs)."""
 
 
+class DomainRefusalError(ValidationError):
+    """Carry an intentionally authored, caller-facing refusal message.
+
+    Raise this type only where Director-AI deliberately refuses an operation.
+    Its message may cross an API boundary; incidental library exceptions must
+    instead be logged and mapped to a fixed response sentence.
+    """
+
+
 class DependencyError(DirectorAIError):
     """Raised when an optional dependency is missing or broken."""
 

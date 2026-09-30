@@ -14,6 +14,8 @@ import re
 from dataclasses import dataclass
 from typing import Any
 
+from ..exceptions import DomainRefusalError
+
 DEFAULT_FINE_TUNE_MODEL_ALIAS = "factcg-deberta-v3-large"
 _CUSTOM_MODEL_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._/-]{1,200}$")
 
@@ -150,25 +152,42 @@ def resolve_finetune_model(
     Unknown model ids are allowed only when the caller explicitly opts into the
     experimental path. They still carry ``status=experimental`` so downstream
     benchmark gates can refuse default activation until measured.
+
+    Parameters
+    ----------
+    name_or_id : str
+        Stable registry alias or full model identifier.
+    allow_experimental : bool
+        Permit experimental profiles and valid custom model identifiers.
+
+    Returns
+    -------
+    TrainingModelProfile
+        Registry profile or an explicitly experimental custom profile.
+
+    Raises
+    ------
+    DomainRefusalError
+        The identifier is empty, unsupported, or requires experimental opt-in.
     """
     if not name_or_id:
-        raise ValueError("base_model is required")
+        raise DomainRefusalError("base_model is required")
 
     key = name_or_id.strip()
     profile = _BY_ALIAS.get(key) or _BY_MODEL_ID.get(key.lower())
     if profile is not None:
         if profile.is_experimental and not allow_experimental:
-            raise ValueError(
+            raise DomainRefusalError(
                 f"model {key!r} is experimental; pass allow_experimental_model",
             )
         return profile
 
     if not allow_experimental:
-        raise ValueError(
+        raise DomainRefusalError(
             f"model {key!r} is not in the stable fine-tune registry",
         )
     if not _CUSTOM_MODEL_RE.fullmatch(key):
-        raise ValueError(
+        raise DomainRefusalError(
             "experimental model ids may contain only model path characters"
         )
 

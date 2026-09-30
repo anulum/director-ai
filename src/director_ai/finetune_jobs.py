@@ -33,6 +33,8 @@ from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any
 
+from .core.exceptions import DomainRefusalError
+
 logger = logging.getLogger("DirectorAI.FinetuneJobs")
 
 _MAX_CONCURRENT_JOBS = 4
@@ -218,11 +220,27 @@ class _JobStore(_SqliteBackedStore):
         return sum(1 for j in self._jobs.values() if j.state in _ACTIVE_STATES)
 
     def create(self, config: dict[str, Any]) -> FinetuneJob:
-        """Create a job unless the concurrency cap is reached."""
+        """Create a local job while enforcing the active-job cap.
+
+        Parameters
+        ----------
+        config : dict
+            Training settings retained in the pending job record.
+
+        Returns
+        -------
+        FinetuneJob
+            Newly registered pending job.
+
+        Raises
+        ------
+        DomainRefusalError
+            The active local training concurrency cap has been reached.
+        """
         with self._lock:
             active = self._active_count()
             if active >= _MAX_CONCURRENT_JOBS:
-                raise ValueError(
+                raise DomainRefusalError(
                     f"Too many concurrent jobs ({active}/{_MAX_CONCURRENT_JOBS})",
                 )
             job = FinetuneJob(

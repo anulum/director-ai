@@ -16,9 +16,11 @@ training lane (upload, worker thread, activation) stays in the facade.
 
 from __future__ import annotations
 
+import logging
 from collections.abc import Callable
 from typing import Any
 
+from director_ai.core.exceptions import DomainRefusalError
 from director_ai.finetune_jobs import ManagedTrainingRecord, _ManagedJobStore
 
 from ._finetune_schemas import _FASTAPI_AVAILABLE
@@ -33,6 +35,8 @@ if _FASTAPI_AVAILABLE:
     )
 
 __all__ = ["_managed_record_to_dict", "register_managed_routes"]
+
+logger = logging.getLogger("DirectorAI.FinetuneAPI")
 
 
 def _managed_record_to_dict(record: ManagedTrainingRecord) -> dict[str, Any]:
@@ -62,7 +66,25 @@ def register_managed_routes(
     async def submit_managed_training(
         req: ManagedTrainingRequest, request: Request
     ) -> dict[str, Any]:
-        """Submit or dry-run a managed training job."""
+        """Submit or dry-run a managed training job.
+
+        Parameters
+        ----------
+        req : ManagedTrainingRequest
+            Training inputs, backend selection, and dry-run setting.
+        request : Request
+            HTTP request used to resolve the owning tenant.
+
+        Returns
+        -------
+        dict
+            Submission metadata or a dry-run plan, persisted for the owning tenant.
+
+        Raises
+        ------
+        HTTPException
+            422 for authored or malformed-input refusals; 502 for backend failure.
+        """
         from director_ai.core.training.jobs import (
             TrainingHardware,
             TrainingJobSpec,
@@ -70,50 +92,56 @@ def register_managed_routes(
             submit_training_job,
         )
 
-        hardware = TrainingHardware(
-            machine_type=req.machine_type,
-            accelerator_type=req.accelerator_type,
-            accelerator_count=req.accelerator_count,
-            boot_disk_gb=req.boot_disk_gb,
-        )
-        if req.suite:
-            spec = build_internal_suite_spec(
-                suite=req.suite,
-                dataset_uri=req.dataset_uri,
-                output_uri=req.output_uri,
-                project=req.project,
-                region=req.region,
-                container_image_uri=req.container_image_uri,
-                hardware=hardware,
-            )
-        else:
-            spec = TrainingJobSpec(
-                display_name=req.display_name,
-                caller="product",
-                dataset_uri=req.dataset_uri,
-                output_uri=req.output_uri,
-                eval_uri=req.eval_uri,
-                project=req.project,
-                region=req.region,
-                base_model=req.base_model,
-                allow_experimental_model=req.allow_experimental_model,
-                epochs=req.epochs,
-                batch_size=req.batch_size,
-                learning_rate=req.learning_rate,
-                timeout_minutes=req.timeout_minutes,
-                container_image_uri=req.container_image_uri,
-                service_account=req.service_account,
-                network=req.network,
-                hardware=hardware,
-            )
         try:
+            hardware = TrainingHardware(
+                machine_type=req.machine_type,
+                accelerator_type=req.accelerator_type,
+                accelerator_count=req.accelerator_count,
+                boot_disk_gb=req.boot_disk_gb,
+            )
+            if req.suite:
+                spec = build_internal_suite_spec(
+                    suite=req.suite,
+                    dataset_uri=req.dataset_uri,
+                    output_uri=req.output_uri,
+                    project=req.project,
+                    region=req.region,
+                    container_image_uri=req.container_image_uri,
+                    hardware=hardware,
+                )
+            else:
+                spec = TrainingJobSpec(
+                    display_name=req.display_name,
+                    caller="product",
+                    dataset_uri=req.dataset_uri,
+                    output_uri=req.output_uri,
+                    eval_uri=req.eval_uri,
+                    project=req.project,
+                    region=req.region,
+                    base_model=req.base_model,
+                    allow_experimental_model=req.allow_experimental_model,
+                    epochs=req.epochs,
+                    batch_size=req.batch_size,
+                    learning_rate=req.learning_rate,
+                    timeout_minutes=req.timeout_minutes,
+                    container_image_uri=req.container_image_uri,
+                    service_account=req.service_account,
+                    network=req.network,
+                    hardware=hardware,
+                )
             submission = submit_training_job(
                 spec,
                 backend=req.backend,
                 dry_run=req.dry_run,
             )
-        except ValueError as exc:
+        except DomainRefusalError as exc:
             raise HTTPException(422, str(exc)) from exc
+        except (ValueError, KeyError, TypeError, AttributeError) as exc:
+            logger.exception("Invalid managed training request")
+            raise HTTPException(422, "Invalid managed training request") from exc
+        except Exception as exc:
+            logger.exception("Training backend submission failed")
+            raise HTTPException(502, "Training backend submission failed") from exc
         tenant_id = tenant_from_request(request)
         managed_store.add(
             ManagedTrainingRecord(
@@ -155,7 +183,25 @@ def register_managed_routes(
         req: ManagedTrainingLookupRequest,
         request: Request,
     ) -> dict[str, Any]:
-        """Return backend status for a managed training job."""
+        """Return backend status for a managed training job.
+
+        Parameters
+        ----------
+        req : ManagedTrainingLookupRequest
+            Backend and previously submitted job identifier.
+        request : Request
+            HTTP request identifying the owning tenant.
+
+        Returns
+        -------
+        dict
+            The tenant's dry-run record or refreshed backend status.
+
+        Raises
+        ------
+        HTTPException
+            404 for absent ownership, 422 for invalid inputs, or 502 for backend failure.
+        """
         from director_ai.core.training.jobs import get_training_backend
 
         tenant_id = tenant_from_request(request)
@@ -175,10 +221,14 @@ def register_managed_routes(
             }
         try:
             status = get_training_backend(req.backend).status(req.job_id)
-        except ValueError as exc:
+        except DomainRefusalError as exc:
             raise HTTPException(422, str(exc)) from exc
+        except (ValueError, KeyError, TypeError, AttributeError) as exc:
+            logger.exception("Invalid training status request")
+            raise HTTPException(422, "Invalid training status request") from exc
         except Exception as exc:
-            raise HTTPException(502, f"Training backend status failed: {exc}") from exc
+            logger.exception("Training backend status failed")
+            raise HTTPException(502, "Training backend status failed") from exc
 
         managed_store.update_state(
             tenant_id,
@@ -200,7 +250,26 @@ def register_managed_routes(
         req: ManagedTrainingLookupRequest,
         request: Request,
     ) -> dict[str, Any]:
-        """Cancel a managed training job owned by the current tenant."""
+        """Cancel a managed training job owned by the current tenant.
+
+        Parameters
+        ----------
+        req : ManagedTrainingLookupRequest
+            Backend and previously submitted job identifier.
+        request : Request
+            HTTP request identifying the owning tenant.
+
+        Returns
+        -------
+        dict
+            Updated cancellation metadata.
+
+        Raises
+        ------
+        HTTPException
+            404 for absent ownership, 409 for a dry run, 422 for invalid inputs,
+            or 502 for backend failure.
+        """
         from director_ai.core.training.jobs import get_training_backend
 
         tenant_id = tenant_from_request(request)
@@ -215,10 +284,14 @@ def register_managed_routes(
             )
         try:
             status = get_training_backend(req.backend).cancel(req.job_id)
-        except ValueError as exc:
+        except DomainRefusalError as exc:
             raise HTTPException(422, str(exc)) from exc
+        except (ValueError, KeyError, TypeError, AttributeError) as exc:
+            logger.exception("Invalid training cancellation request")
+            raise HTTPException(422, "Invalid training cancellation request") from exc
         except Exception as exc:
-            raise HTTPException(502, f"Training backend cancel failed: {exc}") from exc
+            logger.exception("Training backend cancel failed")
+            raise HTTPException(502, "Training backend cancel failed") from exc
 
         managed_store.update_state(
             tenant_id,
@@ -254,7 +327,23 @@ def register_managed_routes(
     async def benchmark_managed_training_models(
         req: ManagedModelBenchmarkRequest,
     ) -> dict[str, Any]:
-        """Benchmark trained model artifacts before activation."""
+        """Benchmark trained model artifacts before activation.
+
+        Parameters
+        ----------
+        req : ManagedModelBenchmarkRequest
+            Candidate artifacts, datasets, batching, and experimental-model opt-in.
+
+        Returns
+        -------
+        dict
+            Benchmark report, including per-model rejections with fixed native errors.
+
+        Raises
+        ------
+        HTTPException
+            422 for invalid benchmark inputs or 502 for unexpected benchmark failure.
+        """
         from director_ai.core.training.finetune_benchmark import (
             benchmark_model_candidates,
         )
@@ -267,7 +356,13 @@ def register_managed_routes(
                 batch_size=req.batch_size,
                 allow_experimental=req.allow_experimental_model,
             )
-        except ValueError as exc:
+        except DomainRefusalError as exc:
             raise HTTPException(422, str(exc)) from exc
+        except (ValueError, KeyError, TypeError, AttributeError) as exc:
+            logger.exception("Invalid model benchmark request")
+            raise HTTPException(422, "Invalid model benchmark request") from exc
+        except Exception as exc:
+            logger.exception("Model benchmark failed")
+            raise HTTPException(502, "Model benchmark failed") from exc
         payload: dict[str, Any] = report.to_dict()
         return payload

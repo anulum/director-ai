@@ -14,9 +14,9 @@ import time
 
 import pytest
 
-from director_ai.core.batch import BatchProcessor, BatchResult
 from director_ai.core.exceptions import ValidationError
 from director_ai.core.metrics import metrics
+from director_ai.core.runtime.batch import BatchProcessor, BatchResult
 from director_ai.core.types import CoherenceScore, ReviewResult
 
 
@@ -91,7 +91,9 @@ class SlowAgent:
     def process(self, prompt: str, tenant_id: str = "") -> ReviewResult:
         del prompt, tenant_id
         time.sleep(0.05)
-        return ReviewResult(output="late", halted=False)
+        return ReviewResult(
+            output="late", halted=False, coherence=None, candidates_evaluated=0
+        )
 
 
 class SlowReviewer:
@@ -126,7 +128,11 @@ def test_process_batch_preserves_success_counts_and_ordered_results() -> None:
     assert result.total == 3
     assert result.succeeded == 3
     assert result.failed == 0
-    assert [item.output for item in result.results] == [
+    outputs: list[str] = []
+    for item in result.results:
+        assert isinstance(item, ReviewResult)
+        outputs.append(item.output)
+    assert outputs == [
         "processed:alpha",
         "processed:beta",
         "processed:gamma",
@@ -141,11 +147,15 @@ def test_process_batch_records_backend_exceptions_without_losing_successes() -> 
     assert result.total == 3
     assert result.succeeded == 2
     assert result.failed == 1
-    assert [item.output for item in result.results] == [
+    outputs: list[str] = []
+    for item in result.results:
+        assert isinstance(item, ReviewResult)
+        outputs.append(item.output)
+    assert outputs == [
         "processed:alpha",
         "processed:beta",
     ]
-    assert result.errors == [(1, "model exploded")]
+    assert result.errors == [(1, "Batch item failed")]
 
 
 def test_process_batch_can_skip_metrics_and_accept_missing_coherence() -> None:
@@ -160,6 +170,7 @@ def test_process_batch_can_skip_metrics_and_accept_missing_coherence() -> None:
     telemetry = metrics.get_metrics()
 
     assert result.succeeded == 1
+    assert isinstance(result.results[0], ReviewResult)
     assert result.results[0].coherence is None
     assert direct.output == "processed:beta"
     assert telemetry["counters"]["reviews_total"]["total"] == 1.0
@@ -180,8 +191,12 @@ def test_review_batch_records_approved_rejected_and_failed_items() -> None:
     assert result.total == 3
     assert result.succeeded == 2
     assert result.failed == 1
-    assert [approved for approved, _score in result.results] == [True, False]
-    assert result.errors == [(2, "bad response")]
+    approvals: list[bool] = []
+    for item in result.results:
+        assert isinstance(item, tuple)
+        approvals.append(item[0])
+    assert approvals == [True, False]
+    assert result.errors == [(2, "Batch item failed")]
 
 
 def test_process_batch_records_item_timeouts() -> None:
@@ -210,7 +225,9 @@ def test_review_batch_records_item_timeouts() -> None:
 
 def test_native_review_batch_none_result_records_failure() -> None:
     class NativeNoneReviewer:
-        def review_batch(self, items, tenant_id: str = ""):
+        def review_batch(
+            self, items: list[tuple[str, str]], tenant_id: str = ""
+        ) -> list[tuple[bool, CoherenceScore] | None]:
             del tenant_id
             return [
                 None,
@@ -225,7 +242,7 @@ def test_native_review_batch_none_result_records_failure() -> None:
                 ),
             ][: len(items)]
 
-        def review(self, prompt: str, response: str):
+        def review(self, prompt: str, response: str) -> tuple[bool, CoherenceScore]:
             raise AssertionError("native path should not fall back")
 
     processor = BatchProcessor(NativeNoneReviewer(), max_concurrency=1)
@@ -240,11 +257,13 @@ def test_native_review_batch_none_result_records_failure() -> None:
 
 def test_native_review_batch_invalid_result_falls_back_to_per_item() -> None:
     class InvalidNativeReviewer:
-        def review_batch(self, items, tenant_id: str = ""):
+        def review_batch(
+            self, items: list[tuple[str, str]], tenant_id: str = ""
+        ) -> list[tuple[bool, CoherenceScore]]:
             del items, tenant_id
             return []
 
-        def review(self, prompt: str, response: str):
+        def review(self, prompt: str, response: str) -> tuple[bool, CoherenceScore]:
             approved = prompt in response
             return approved, CoherenceScore(
                 score=0.9 if approved else 0.2,
@@ -259,7 +278,11 @@ def test_native_review_batch_invalid_result_falls_back_to_per_item() -> None:
 
     assert result.total == 2
     assert result.succeeded == 2
-    assert [approved for approved, _score in result.results] == [True, False]
+    approvals: list[bool] = []
+    for item in result.results:
+        assert isinstance(item, tuple)
+        approvals.append(item[0])
+    assert approvals == [True, False]
 
 
 def test_review_one_uses_nested_scorer_and_rejects_missing_reviewer() -> None:
@@ -341,7 +364,7 @@ def test_async_process_batch_records_errors_and_timeouts() -> None:
 
     assert failed.succeeded == 1
     assert failed.failed == 1
-    assert failed.errors == [(1, "model exploded")]
+    assert failed.errors == [(1, "Batch item failed")]
     assert timed_out.succeeded == 0
     assert timed_out.failed == 1
     assert timed_out.errors == [(0, "item timeout")]
@@ -349,11 +372,13 @@ def test_async_process_batch_records_errors_and_timeouts() -> None:
 
 def test_async_review_batch_falls_back_after_native_failure() -> None:
     class FailingNativeReviewer:
-        def review_batch(self, items, tenant_id: str = ""):
+        def review_batch(
+            self, items: list[tuple[str, str]], tenant_id: str = ""
+        ) -> list[tuple[bool, CoherenceScore]]:
             del items, tenant_id
             raise RuntimeError("coalesced scorer unavailable")
 
-        def review(self, prompt: str, response: str):
+        def review(self, prompt: str, response: str) -> tuple[bool, CoherenceScore]:
             approved = prompt in response
             return approved, CoherenceScore(
                 score=0.9 if approved else 0.2,
@@ -370,7 +395,11 @@ def test_async_review_batch_falls_back_after_native_failure() -> None:
 
     assert result.total == 2
     assert result.succeeded == 2
-    assert [approved for approved, _score in result.results] == [True, False]
+    approvals: list[bool] = []
+    for item in result.results:
+        assert isinstance(item, tuple)
+        approvals.append(item[0])
+    assert approvals == [True, False]
 
 
 def test_async_review_batch_falls_back_when_wrapper_call_fails(
@@ -378,7 +407,7 @@ def test_async_review_batch_falls_back_when_wrapper_call_fails(
 ) -> None:
     processor = BatchProcessor(NativeMetricsReviewer(), max_concurrency=1)
 
-    def broken_review_batch(*_args, **_kwargs):
+    def broken_review_batch(*_args: object, **_kwargs: object) -> None:
         raise RuntimeError("wrapper unavailable")
 
     monkeypatch.setattr(processor, "review_batch", broken_review_batch)
@@ -389,7 +418,11 @@ def test_async_review_batch_falls_back_when_wrapper_call_fails(
 
     assert result.total == 2
     assert result.succeeded == 2
-    assert [approved for approved, _score in result.results] == [True, False]
+    approvals: list[bool] = []
+    for item in result.results:
+        assert isinstance(item, tuple)
+        approvals.append(item[0])
+    assert approvals == [True, False]
 
 
 def test_async_review_batch_fallback_can_skip_metrics() -> None:
@@ -421,7 +454,7 @@ def test_async_review_batch_records_errors_and_timeouts() -> None:
 
     assert failed.succeeded == 1
     assert failed.failed == 1
-    assert failed.errors == [(1, "bad response")]
+    assert failed.errors == [(1, "Batch item failed")]
     assert timed_out.succeeded == 0
     assert timed_out.failed == 1
     assert timed_out.errors == [(0, "item timeout")]

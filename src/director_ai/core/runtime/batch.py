@@ -30,7 +30,7 @@ from concurrent.futures import TimeoutError as FutureTimeout
 from dataclasses import dataclass, field
 from typing import Any, cast
 
-from ..exceptions import ValidationError
+from ..exceptions import DomainRefusalError
 from ..metrics import metrics
 from ..types import CoherenceScore, ReviewResult
 
@@ -79,11 +79,27 @@ class BatchProcessor:
         max_concurrency: int = 4,
         item_timeout: float = 60.0,
     ) -> None:
+        """Configure a concurrent processor for one agent or scorer.
+
+        Parameters
+        ----------
+        backend : object
+            Agent or scorer exposing the processing or review operations.
+        max_concurrency : int
+            Maximum simultaneous operations; must be at least one.
+        item_timeout : float
+            Positive per-item timeout in seconds.
+
+        Raises
+        ------
+        DomainRefusalError
+            A concurrency or timeout bound is invalid.
+        """
         if max_concurrency < 1:
             msg = f"max_concurrency must be >= 1, got {max_concurrency}"
-            raise ValidationError(msg)
+            raise DomainRefusalError(msg)
         if item_timeout <= 0:
-            raise ValidationError(f"item_timeout must be > 0, got {item_timeout}")
+            raise DomainRefusalError(f"item_timeout must be > 0, got {item_timeout}")
         self._backend = backend
         self.max_concurrency = max_concurrency
         self.item_timeout = item_timeout
@@ -93,9 +109,28 @@ class BatchProcessor:
         override: int | None,
         default: int,
     ) -> int:
+        """Select and validate the effective concurrency bound.
+
+        Parameters
+        ----------
+        override : int or None
+            Per-call bound, or None to use the configured default.
+        default : int
+            Configured worker bound.
+
+        Returns
+        -------
+        int
+            Positive concurrency bound.
+
+        Raises
+        ------
+        DomainRefusalError
+            The selected concurrency bound is below one.
+        """
         resolved = default if override is None else override
         if resolved < 1:
-            raise ValidationError(f"max_concurrency must be >= 1, got {resolved}")
+            raise DomainRefusalError(f"max_concurrency must be >= 1, got {resolved}")
         return resolved
 
     def process_batch(
@@ -107,6 +142,21 @@ class BatchProcessor:
         """Process a batch of prompts with concurrent execution.
 
         Uses ``backend.process(prompt)`` if backend is CoherenceAgent.
+
+        Parameters
+        ----------
+        prompts : list of str
+            Prompts passed to the agent.
+        tenant_id : str
+            Tenant scope forwarded when supported by the backend.
+        record_metrics : bool
+            Record batch counters when True.
+
+        Returns
+        -------
+        BatchResult
+            Successful results, counts, duration, and indexed item failures. Authored
+            refusals retain their messages; native failures use a fixed sentence.
         """
         start = time.monotonic()
         if record_metrics:
@@ -133,9 +183,18 @@ class BatchProcessor:
                         idx,
                         self.item_timeout,
                     )
-                except (RuntimeError, ValueError, OSError) as e:
+                except DomainRefusalError as e:
                     result.record_failure(idx, str(e))
-                    logger.warning("Batch item %d failed: %s", idx, e)
+                except (
+                    RuntimeError,
+                    ValueError,
+                    OSError,
+                    KeyError,
+                    TypeError,
+                    AttributeError,
+                ):
+                    logger.exception("Batch item %d failed", idx)
+                    result.record_failure(idx, "Batch item failed")
 
         result.results = [r for r in ordered if r is not None]
         result.duration_seconds = time.monotonic() - start
@@ -152,6 +211,21 @@ class BatchProcessor:
         When the backend has a ``review_batch`` method (CoherenceScorer),
         delegates to it for coalesced NLI inference (2 GPU kernel calls
         total instead of 2*N). Falls back to per-item ThreadPoolExecutor.
+
+        Parameters
+        ----------
+        items : list of tuple
+            Prompt and response pairs passed to the reviewer.
+        tenant_id : str
+            Tenant scope forwarded when supported by the backend.
+        record_metrics : bool
+            Record batch counters when True.
+
+        Returns
+        -------
+        BatchResult
+            Successful results, counts, duration, and indexed item failures. Authored
+            refusals retain their messages; native failures use a fixed sentence.
         """
         start = time.monotonic()
         if record_metrics:
@@ -218,8 +292,18 @@ class BatchProcessor:
                     result.record_success()
                 except FutureTimeout:
                     result.record_failure(idx, "item timeout")
-                except (RuntimeError, ValueError, OSError) as e:
+                except DomainRefusalError as e:
                     result.record_failure(idx, str(e))
+                except (
+                    RuntimeError,
+                    ValueError,
+                    OSError,
+                    KeyError,
+                    TypeError,
+                    AttributeError,
+                ):
+                    logger.exception("Batch item %d failed", idx)
+                    result.record_failure(idx, "Batch item failed")
 
         result.results = [r for r in ordered if r is not None]
         result.duration_seconds = time.monotonic() - start
@@ -302,7 +386,30 @@ class BatchProcessor:
         tenant_id: str = "",
         record_metrics: bool = True,
     ) -> BatchResult:
-        """Async version of process_batch using asyncio concurrency."""
+        """Async version of process_batch using asyncio concurrency.
+
+        Parameters
+        ----------
+        prompts : list of str
+            Prompts passed to the agent.
+        max_concurrency : int or None
+            Positive per-call worker bound, or None to use the configured bound.
+        tenant_id : str
+            Tenant scope forwarded when supported by the backend.
+        record_metrics : bool
+            Record batch counters when True.
+
+        Returns
+        -------
+        BatchResult
+            Successful results, counts, duration, and indexed item failures. Authored
+            refusals retain their messages; native failures use a fixed sentence.
+
+        Raises
+        ------
+        DomainRefusalError
+            The effective concurrency bound is invalid.
+        """
         start = time.monotonic()
         if record_metrics:
             metrics.observe("batch_size", float(len(prompts)))
@@ -332,8 +439,18 @@ class BatchProcessor:
                     result.record_success()
                 except TimeoutError:
                     result.record_failure(idx, "item timeout")
-                except (RuntimeError, ValueError, OSError) as e:
+                except DomainRefusalError as e:
                     result.record_failure(idx, str(e))
+                except (
+                    RuntimeError,
+                    ValueError,
+                    OSError,
+                    KeyError,
+                    TypeError,
+                    AttributeError,
+                ):
+                    logger.exception("Batch item %d failed", idx)
+                    result.record_failure(idx, "Batch item failed")
 
         await asyncio.gather(*[_run(i, p) for i, p in enumerate(prompts)])
         result.results = [r for r in ordered if r is not None]
@@ -351,6 +468,28 @@ class BatchProcessor:
 
         Offloads coalesced scorer.review_batch() to the thread pool when
         available, falling back to per-item asyncio concurrency.
+
+        Parameters
+        ----------
+        items : list of tuple
+            Prompt and response pairs passed to the reviewer.
+        max_concurrency : int or None
+            Positive per-call worker bound, or None to use the configured bound.
+        tenant_id : str
+            Tenant scope forwarded when supported by the backend.
+        record_metrics : bool
+            Record batch counters when True.
+
+        Returns
+        -------
+        BatchResult
+            Successful results, counts, duration, and indexed item failures. Authored
+            refusals retain their messages; native failures use a fixed sentence.
+
+        Raises
+        ------
+        DomainRefusalError
+            The effective concurrency bound is invalid.
         """
         start = time.monotonic()
         loop = asyncio.get_running_loop()
@@ -413,8 +552,18 @@ class BatchProcessor:
                     result.record_success()
                 except TimeoutError:
                     result.record_failure(idx, "item timeout")
-                except (RuntimeError, ValueError, OSError) as e:
+                except DomainRefusalError as e:
                     result.record_failure(idx, str(e))
+                except (
+                    RuntimeError,
+                    ValueError,
+                    OSError,
+                    KeyError,
+                    TypeError,
+                    AttributeError,
+                ):
+                    logger.exception("Batch item %d failed", idx)
+                    result.record_failure(idx, "Batch item failed")
 
         await asyncio.gather(*[_run(i, p, r) for i, (p, r) in enumerate(items)])
         result.results = [r for r in ordered if r is not None]

@@ -12,6 +12,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"log"
 	"net/http"
 	"strconv"
 	"strings"
@@ -34,7 +35,7 @@ type Scorer interface {
 
 // Middleware runs ScoreClaim against the assistant response once the
 // upstream handler returns. The verdict is attached to the response
-// headers; requests with ``Accept: text/event-stream`` bypass scoring
+// headers; requests with “Accept: text/event-stream“ bypass scoring
 // because SSE output is not buffered here (streaming mode is a
 // future-phase concern).
 type Middleware struct {
@@ -50,12 +51,12 @@ type Middleware struct {
 // buffers non-streaming responses so it can read the assistant
 // message, calls ScoreClaim with it, and either:
 //
-//   - adds ``X-Coherence-Score`` and ``X-Coherence-Halted`` headers
+//   - adds “X-Coherence-Score“ and “X-Coherence-Halted“ headers
 //     and forwards the body unchanged (halted=false), or
 //   - rewrites the response as 422 JSON (halted=true, default),
 //     signalling a hallucination.
 //
-// A zero-value Middleware returns next unchanged. Use ``Enabled`` to
+// A zero-value Middleware returns next unchanged. Use “Enabled“ to
 // check that a scorer was supplied before wiring.
 func (m *Middleware) Handler(next http.Handler) http.Handler {
 	if !m.Enabled() {
@@ -99,7 +100,8 @@ func (m *Middleware) Handler(next http.Handler) http.Handler {
 			// Scoring is an optional augmentation. If it fails the
 			// gateway still forwards the response; clients relying
 			// on halt behaviour must observe ``X-Coherence-Error``.
-			w.Header().Set("X-Coherence-Error", truncate(err.Error(), 200))
+			log.Printf("scoring request failed: %v", err)
+			w.Header().Set("X-Coherence-Error", "scoring unavailable")
 			rec.flushTo(w)
 			return
 		}
@@ -226,11 +228,4 @@ func firstNonEmpty(values ...string) string {
 		}
 	}
 	return ""
-}
-
-func truncate(s string, n int) string {
-	if len(s) <= n {
-		return s
-	}
-	return s[:n]
 }

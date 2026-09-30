@@ -406,3 +406,27 @@ curl -X POST http://localhost:8080/v1/injection/detect \
 ## Full API
 
 ::: director_ai.server.create_app
+
+## Refusal and failure responses
+
+Managed/local training, document upload, tenant vector-backend selection, batch
+processing and multimodal checks preserve intentionally authored refusals.
+Incidental exception messages are logged on the server and replaced with fixed
+response sentences. Malformed input remains a 400 or 422 response; unexpected
+processing faults use a generic 5xx response. A missing optional document parser
+returns 503 with `Document parser unavailable`. Pydantic's deliberate 422 schema
+validation document retains its structured field/type information.
+
+| Boundary | Incidental response detail | Status |
+|---|---|---|
+| Document structure | `Invalid document` | 422 |
+| Tenant vector backend | `Invalid backend_type` | 400 |
+| Batch request | `Invalid batch request` | 422 |
+| Multimodal request | `Invalid multimodal request` | 400 |
+| Managed submission | `Training backend submission failed` | 502 |
+| Managed status | `Training backend status failed` | 502 |
+| Managed cancellation | `Training backend cancel failed` | 502 |
+
+A managed-model benchmark keeps its per-model reject result when evaluation
+fails; an incidental failure sets `error` to `Model benchmark failed`. Explicit
+model-selection refusals keep their authored text.

@@ -21,6 +21,7 @@ import logging
 import time
 from typing import Any
 
+from ..core.exceptions import DomainRefusalError
 from ..core.metrics import metrics
 from ..server_support import _record_sector_policy_findings
 
@@ -337,11 +338,25 @@ def create_scoring_router() -> APIRouter:
     async def multimodal_check(
         req: MultimodalDetectRequest, request: Request
     ) -> dict[str, Any]:
-        """Check a text claim against paired image / audio / video evidence.
+        """Check a claim against configured image, audio, or video evidence.
 
-        Opt-in and isolated: returns 404 unless the experimental hooks flag is
-        set and at least one modality is configured. The response is
-        tenant-safe - no raw media, transcript, or claim text is echoed back.
+        Parameters
+        ----------
+        req : MultimodalDetectRequest
+            Claim and paired modality evidence.
+        request : Request
+            HTTP request providing the adapter and risk-policy configuration.
+
+        Returns
+        -------
+        dict
+            Modality scores and guard decision without raw claim or media content.
+
+        Raises
+        ------
+        HTTPException
+            404 when the opt-in feature is disabled, 400 for malformed or authored
+            input refusals, or 500 for an unexpected adapter failure.
         """
         import asyncio
         import base64
@@ -396,8 +411,14 @@ def create_scoring_router() -> APIRouter:
                     policy_id=policy_id,
                 ),
             )
-        except ValueError as exc:
+        except DomainRefusalError as exc:
             raise HTTPException(400, str(exc)) from exc
+        except (ValueError, KeyError, TypeError, AttributeError) as exc:
+            logger.exception("Invalid multimodal request")
+            raise HTTPException(400, "Invalid multimodal request") from exc
+        except Exception as exc:
+            logger.exception("Multimodal processing failed")
+            raise HTTPException(500, "Multimodal processing failed") from exc
         payload: dict[str, Any] = result.to_dict()
         return payload
 

@@ -20,6 +20,7 @@ import re
 import uuid
 from typing import Any
 
+from .core.exceptions import DomainRefusalError
 from .core.kb_write_security import (
     KBWriteAccessError,
     canonical_kb_payload,
@@ -365,12 +366,33 @@ def create_knowledge_router() -> APIRouter:
 
     @router.post("/upload", status_code=201)
     async def upload_document(request: Request, file: UploadFile) -> dict[str, Any]:
-        """Upload a file, parse, chunk, embed, store."""
+        """Parse, chunk, and persist an uploaded document for its tenant.
+
+        Parameters
+        ----------
+        request : Request
+            HTTP request providing tenant context, authorisation, and stores.
+        file : UploadFile
+            Document bytes and filename used to select the format parser.
+
+        Returns
+        -------
+        dict
+            Document identifier, source, tenant, and stored chunk count.
+
+        Raises
+        ------
+        HTTPException
+            422 for invalid document inputs, 503 for an unavailable parser, or 500
+            for an unexpected parsing failure; access and size checks keep their statuses.
+        """
         # Early size check before reading body into memory
         _validate_content_length(request.headers.get("content-length"))
 
         tenant_id = _get_tenant(request)
         _require_write_access(request, tenant_id)
+        if not tenant_id:
+            raise HTTPException(422, "Document uploads require a tenant")
         registry = _get_registry(request)
         store = _get_store(request)
 
@@ -383,8 +405,17 @@ def create_knowledge_router() -> APIRouter:
 
         try:
             text = parse(content, filename)
-        except (ImportError, ValueError) as e:
+        except DomainRefusalError as e:
             raise HTTPException(422, str(e)) from e
+        except (ValueError, KeyError, TypeError, AttributeError) as e:
+            logger.exception("Invalid document")
+            raise HTTPException(422, "Invalid document") from e
+        except ImportError as e:
+            logger.exception("Document parser unavailable")
+            raise HTTPException(503, "Document parser unavailable") from e
+        except Exception as e:
+            logger.exception("Document parsing failed")
+            raise HTTPException(500, "Document parsing failed") from e
 
         if not text.strip():
             raise HTTPException(422, "Parsed file contains no text")
