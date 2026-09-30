@@ -65,3 +65,18 @@ policy and the lockfile in the same change.
 
 Supply-chain controls for heavy optional packages live in
 `requirements/heavy_optional_dependency_policy.toml`.
+
+## CI type-checking dependencies
+
+`requirements/ci-types.in` declares the stubs used by the CI type-check job,
+including lxml's DOCX parser exception types. Refresh its hashed installation
+file with the existing pins retained:
+
+```bash
+uv pip compile requirements/ci-types.in \
+  --constraints requirements/ci-types.txt --generate-hashes --no-header \
+  --output-file requirements/ci-types.txt
+```
+
+The type-check job installs this file with `--require-hashes`. The root dev
+extra also declares these stubs for local strict checks.

@@ -6,10 +6,10 @@
     "optional_extras": 62,
     "public_api_exports": 227,
     "public_documentation_pages": 206,
-    "python_model_classes": 1056,
+    "python_model_classes": 1057,
     "python_model_source_modules": 530,
     "rust_pyo3_model_wrappers": 83,
-    "test_files": 781
+    "test_files": 782
   },
   "documentation": {
     "public_pages": [
@@ -1523,6 +1523,10 @@
       {
         "name": "DomainExperience",
         "path": "src/director_ai/core/zk_attestation/statements.py"
+      },
+      {
+        "name": "DomainRefusalError",
+        "path": "src/director_ai/core/exceptions.py"
       },
       {
         "name": "DpllSolver",
@@ -5531,6 +5535,7 @@
       "tests/test_answer_bom.py",
       "tests/test_api_reference_cli_real_surface.py",
       "tests/test_api_reference_index.py",
+      "tests/test_api_refusals_real_surface.py",
       "tests/test_async_streaming.py",
       "tests/test_async_streaming_edge.py",
       "tests/test_audit.py",
