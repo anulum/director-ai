@@ -24,6 +24,7 @@
 # Usage:
 #   bash gateway/go/bench/ab_bench.sh [VUS] [DURATION]
 # Defaults: VUS=50, DURATION=30s.
+# Set DIRECTOR_BENCH_OUT_DIR to place results outside bench/out/.
 
 set -euo pipefail
 
@@ -32,7 +33,7 @@ DURATION=${2:-30s}
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/../../.." && pwd)"
-OUT_DIR="${SCRIPT_DIR}/out"
+OUT_DIR=${DIRECTOR_BENCH_OUT_DIR:-"${SCRIPT_DIR}/out"}
 mkdir -p "${OUT_DIR}"
 
 UPSTREAM_PORT=${UPSTREAM_PORT:-9901}
@@ -44,7 +45,9 @@ cleanup() {
   local signal=$?
   echo "cleaning up (exit=$signal)"
   for pid in "${UPSTREAM_PID:-}" "${GATEWAY_PID:-}" "${GRPC_PID:-}"; do
-    [[ -n "${pid}" ]] && kill "${pid}" 2>/dev/null || true
+    if [[ -n "${pid}" ]]; then
+      kill "${pid}" 2>/dev/null || true
+    fi
   done
   wait 2>/dev/null || true
 }
@@ -98,6 +101,7 @@ DIRECTOR_KEY="${API_KEY}" \
 DIRECTOR_VUS="${VUS}" \
 DIRECTOR_DURATION="${DURATION}" \
 k6 run --summary-export="${OUT_DIR}/summary_a.json" \
+  --summary-trend-stats='avg,min,med,max,p(90),p(95),p(99)' \
   "${SCRIPT_DIR}/passthrough.js"
 
 kill "${GATEWAY_PID}"; wait "${GATEWAY_PID}" 2>/dev/null || true
@@ -131,6 +135,7 @@ DIRECTOR_KEY="${API_KEY}" \
 DIRECTOR_VUS="${VUS}" \
 DIRECTOR_DURATION="${DURATION}" \
 k6 run --summary-export="${OUT_DIR}/summary_b.json" \
+  --summary-trend-stats='avg,min,med,max,p(90),p(95),p(99)' \
   "${SCRIPT_DIR}/passthrough.js"
 
 kill "${GATEWAY_PID}"; wait "${GATEWAY_PID}" 2>/dev/null || true
@@ -142,10 +147,10 @@ for f in summary_a summary_b; do
   echo "--- ${f} ---"
   if command -v jq >/dev/null 2>&1; then
     jq '{
-      reqs: .metrics.http_reqs.count // .metrics.http_reqs.values.count,
-      p95:  .metrics.http_req_duration.values["p(95)"],
-      p99:  .metrics.http_req_duration.values["p(99)"],
-      failed: .metrics.http_req_failed.values.fails
+      reqs: (.metrics.http_reqs.count // .metrics.http_reqs.values.count),
+      p95: (.metrics.http_req_duration["p(95)"] // .metrics.http_req_duration.values["p(95)"]),
+      p99: (.metrics.http_req_duration["p(99)"] // .metrics.http_req_duration.values["p(99)"]),
+      failed: (.metrics.http_req_failed.passes // .metrics.http_req_failed.values.passes)
     }' "${OUT_DIR}/${f}.json" || cat "${OUT_DIR}/${f}.json"
   else
     cat "${OUT_DIR}/${f}.json"

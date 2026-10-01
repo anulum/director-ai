@@ -183,6 +183,13 @@ with scoring off and once with the Python gRPC sidecar in place —
 and writes k6 summaries to `bench/out/`. No numbers are quoted
 until they come from a run on representative hardware.
 
+With `jq` installed, the summary prints request and failure counts plus p95
+and p99 latency in milliseconds. Both flat and nested k6 metric exports are
+accepted; the runner explicitly exports both percentiles. Set
+`DIRECTOR_BENCH_OUT_DIR` to choose a different output directory.
+The failure count uses the rate metric's `passes` counter: it counts requests
+for which `http_req_failed` is true.
+
 ```bash
 make ab-bench          # defaults: VUS=50 DURATION=30s
 ```
