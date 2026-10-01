@@ -1,3 +1,13 @@
+<!--
+SPDX-License-Identifier: Apache-2.0
+Commercial license available
+© Concepts 1996–2026 Miroslav Šotek. All rights reserved.
+© Code 2020–2026 Miroslav Šotek. All rights reserved.
+ORCID: 0009-0009-3560-0851
+Contact: www.anulum.li | protoscience@anulum.li
+Director-AI — ONNX export guide
+-->
+
 # ONNX Export & Custom Models
 
 ## Export FactCG to ONNX
@@ -35,11 +45,11 @@ scorer = NLIScorer(
 
 The ONNX backend selects execution providers automatically:
 
-| Provider | Env / Condition | Latency |
+| Provider | Env / Condition | Runtime requirement |
 |----------|----------------|---------|
-| TensorrtExecutionProvider | `DIRECTOR_ENABLE_TRT=1` + libnvinfer | Sub-10 ms target |
-| CUDAExecutionProvider | `onnxruntime-gpu` installed | 14.6 ms/pair (GTX 1060) |
-| CPUExecutionProvider | Fallback | 383 ms/pair |
+| TensorrtExecutionProvider | `DIRECTOR_ENABLE_TRT=1` + libnvinfer | Matching TensorRT libraries |
+| CUDAExecutionProvider | `onnxruntime-gpu` installed | Matching NVIDIA driver and CUDA libraries |
+| CPUExecutionProvider | Fallback | CPU ONNX Runtime |
 
 To pre-build the TensorRT engine cache for a local ONNX export, point the CLI at
 the ONNX directory explicitly:
@@ -97,11 +107,17 @@ in the `NLIScorer` ONNX path.
 
 ## Pinned dependencies
 
-For reproducible exports:
+Install the selected runtime from the repository lock, then add the export
+wheels resolved against the same runtime:
 
+```bash
+uv sync --locked --extra nli --extra onnx
+uv pip install --no-deps --require-hashes -r requirements/docker-gpu-export.txt
 ```
-onnxruntime-gpu==1.19.2
-optimum==1.23.1
-torch>=2.8.0
-transformers>=5.0.0rc3
-```
+
+`requirements/docker-gpu-export.in` declares the exporter packages;
+`requirements/docker-gpu-export.txt` records their native resolver output and
+hashes. It includes FlatBuffers, an ONNX Runtime dependency absent from the
+base NLI runtime. Shared packages keep compatible versions, including
+`protobuf<7`; no legacy `optimum` pin is needed by the direct PyTorch exporter.
+Measure latency on the selected model, provider, batch size and hardware.

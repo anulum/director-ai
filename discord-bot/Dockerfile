@@ -1,4 +1,4 @@
-FROM python:3.12-slim@sha256:ccc7089399c8bb65dd1fb3ed6d55efa538a3f5e7fca3f5988ac3b5b87e593bf0
+FROM python:3.12-slim@sha256:f77ac9e44ae96ef2c90b8053ea08c31f8be030f824196b0ae4db6d462c84e51f
 WORKDIR /app
 COPY pyproject.toml requirements.txt ./
 RUN pip install --no-cache-dir --require-hashes --no-deps -r requirements.txt && pip install --no-deps --no-cache-dir . && rm -rf /root/.cache

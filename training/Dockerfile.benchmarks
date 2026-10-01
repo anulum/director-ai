@@ -1,63 +1,36 @@
 # SPDX-License-Identifier: Apache-2.0
-# Director-AI — Benchmark container for Vertex AI custom jobs
-# Built remotely via Cloud Build, never locally.
-#
-# The image ships:
-#   * director-ai source (installed editable from the build context)
-#   * Rust accelerator (maturin develop against
-#     backfire-kernel/crates/backfire-ffi)
-#   * hash-pinned deps from training/requirements-distil.txt
-#   * google-cloud-storage for GCS result export
-#
-# Entrypoint runs ``python -m benchmarks.orchestrator`` with
-# ``--runner vertex`` so the captured environment records the
-# cloud execution context; results land under /workspace/output
-# and the wrapper script uploads them to gs://<bucket>/<prefix>/.
+# Commercial license available
+# © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
+# © Code 2020–2026 Miroslav Šotek. All rights reserved.
+# ORCID: 0009-0009-3560-0851
+# Contact: www.anulum.li | protoscience@anulum.li
+# Director-AI — Vertex benchmark container
 
-FROM pytorch/pytorch:2.6.0-cuda12.4-cudnn9-runtime@sha256:77f17f843507062875ce8be2a6f76aa6aa3df7f9ef1e31d9d7432f4b0f563dee
+FROM rust:1.98.1-slim@sha256:4cd829461bd5c4d511c32e269da9cb8929223b666519d8004e35fc8d1d771ab7 AS rust-toolchain
+FROM python:3.12-slim@sha256:f77ac9e44ae96ef2c90b8053ea08c31f8be030f824196b0ae4db6d462c84e51f
 
 WORKDIR /workspace
-
-# System deps for Rust build + git commit probe inside the
-# container (the orchestrator reads ``git rev-parse HEAD``).
 RUN apt-get update && apt-get install -y --no-install-recommends \
-      git \
-      curl \
-      build-essential \
-      pkg-config \
-      libssl-dev \
+      git build-essential pkg-config libssl-dev \
     && rm -rf /var/lib/apt/lists/*
+COPY --from=rust-toolchain /usr/local/cargo /usr/local/cargo
+COPY --from=rust-toolchain /usr/local/rustup /usr/local/rustup
+ENV RUSTUP_HOME=/usr/local/rustup \
+    CARGO_HOME=/usr/local/cargo \
+    PATH=/usr/local/cargo/bin:$PATH \
+    CARGO_BUILD_JOBS=2
 
-# Rust toolchain for the backfire-kernel build. Pinned to a
-# specific version so the container is reproducible across
-# rebuilds. 1.88.0 is the minimum floor: ``backfire-observers``
-# uses ``u32::is_multiple_of`` (stabilised in 1.87) and
-# ``backfire-ffi/safety_hooks.rs`` uses ``usize::is_multiple_of``.
-ENV RUSTUP_HOME=/opt/rustup \
-    CARGO_HOME=/opt/cargo \
-    PATH=/opt/cargo/bin:$PATH
-# nosemgrep: PinnedDependenciesID -- rustup script is TLS-fetched and toolchain is pinned below.
-RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \
-      | sh -s -- -y --default-toolchain 1.88.0 --profile minimal
-
-# Python deps - identical hash-pinned set used by the distillation
-# image, plus the CUDA 12.1 torch override required by the managed
-# GPU runtime and benchmark build/test tooling for the Rust wheel path.
+COPY requirements/docker-build.txt requirements/docker-build.txt
 COPY training/requirements-distil.txt training/requirements-distil.txt
-COPY training/requirements-cuda121-torch.txt training/requirements-cuda121-torch.txt
 COPY training/requirements-benchmark-tools.txt training/requirements-benchmark-tools.txt
-# nosemgrep: PinnedDependenciesID -- build tooling is version-pinned for this container layer.
 RUN pip install --no-cache-dir --require-hashes \
+      -r requirements/docker-build.txt \
       -r training/requirements-distil.txt \
-    && pip install --no-cache-dir --no-deps --force-reinstall --require-hashes \
-         -r training/requirements-cuda121-torch.txt \
-    && pip install --no-cache-dir --require-hashes \
-         -r training/requirements-benchmark-tools.txt \
-    && pip uninstall -y torchvision
+      -r training/requirements-benchmark-tools.txt \
+    && pip check
 
-# Copy source. Kept as late layers to maximise cache hits on the
-# pip layer when only source changes between image builds.
-COPY pyproject.toml ./
+COPY pyproject.toml setup.py README.md ./
+COPY packages/tier_build_hooks.py packages/paid_tier_manifest.json packages/
 COPY src/ src/
 COPY backfire-kernel/ backfire-kernel/
 COPY benchmarks/ benchmarks/
@@ -67,24 +40,17 @@ COPY formal/ formal/
 COPY tools/ tools/
 COPY schemas/ schemas/
 
-# Build the Rust accelerator in-place so the orchestrator's Rust
-# parity and geometry cases exercise the bundled kernel instead
-# of the pure-Python fallback.
 RUN cd backfire-kernel/crates/backfire-ffi \
-    && maturin build --release --out /tmp/wheels \
-    && pip install --no-cache-dir --force-reinstall /tmp/wheels/*.whl \
+    && maturin build --locked --release --out /tmp/wheels \
+    && pip install --no-cache-dir --no-deps /tmp/wheels/*.whl \
     && rm -rf /tmp/wheels
-
-# Install director-ai itself with --no-deps (dependencies already
-# satisfied above via the hash-pinned requirements file).
-RUN pip install --no-cache-dir --no-deps -e .
-
-# Orchestrator output directory — the wrapper script exports it
-# to GCS after the job returns.
-RUN mkdir -p /workspace/output
+RUN pip install --no-cache-dir --no-deps --no-build-isolation -e . \
+    && pip check \
+    && mkdir -p /workspace/output
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
+    PYTHONPATH=/workspace/src:/workspace \
     DIRECTOR_RUN_ENV=vertex \
     DIRECTOR_REQUIRE_CUDA=1
 

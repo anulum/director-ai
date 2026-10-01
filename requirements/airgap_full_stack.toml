@@ -15,7 +15,7 @@ model_root = "models/"
 onnx_dir = "models/factcg-onnx/"
 rust_wheel_dir = "wheelhouse/rust/"
 install_extras = ["server", "vector", "nli", "onnx", "ui"]
-optional_packages = ["backfire-kernel==0.1.0"]
+optional_packages = ["backfire-kernel==0.1.3"]
 
 [[models]]
 key = "nli"
@@ -47,6 +47,6 @@ required_files = [
 [checks]
 commands = [
     "UV_OFFLINE=1 uv sync --locked --offline --active --extra server --extra vector --extra nli --extra onnx --extra ui",
-    "uv pip install --offline --find-links wheelhouse/rust backfire-kernel==0.1.0",
+    "uv pip install --offline --no-index --no-sources --find-links wheelhouse/rust backfire-kernel==0.1.3",
     "director-ai doctor",
 ]

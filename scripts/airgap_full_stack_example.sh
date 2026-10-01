@@ -27,7 +27,7 @@ UV_OFFLINE=1 uv sync --locked --offline --active \
   --extra ui
 
 if [ -d "${RUST_WHEELHOUSE}" ]; then
-  uv pip install --offline --find-links "${RUST_WHEELHOUSE}" backfire-kernel==0.1.0
+  uv pip install --offline --no-index --no-sources --find-links "${RUST_WHEELHOUSE}" backfire-kernel==0.1.3
 fi
 
 export HF_HUB_OFFLINE=1

@@ -679,6 +679,15 @@ def _git_tracked_files(
     suffixes: tuple[str, ...],
 ) -> list[Path] | None:
     try:
+        git_root = subprocess.run(
+            ["git", "-C", str(repo), "rev-parse", "--show-toplevel"],
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=20,
+        )
+        if git_root.returncode != 0 or Path(git_root.stdout.strip()) != repo.resolve():
+            return None
         result = subprocess.run(
             ["git", "-C", str(repo), "ls-files", "--", _rel(root, repo)],
             check=False,

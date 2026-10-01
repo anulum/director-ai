@@ -32,8 +32,14 @@ python -m pip download --dest wheelhouse -r /tmp/director-airgap.txt
 Add optional Rust wheels:
 
 ```bash
-python -m pip download --dest wheelhouse/rust backfire-kernel
+uvx --from maturin==1.15.0 maturin build --release \
+  --manifest-path backfire-kernel/crates/backfire-ffi/Cargo.toml \
+  --out wheelhouse/rust
 ```
+
+Build the kernel from the same reviewed source as the application. Its local
+Bulletproofs dependency and MIT notice must accompany the wheel; an older
+registry wheel does not establish that source provenance.
 
 Export ONNX artefacts:
 
@@ -91,7 +97,7 @@ The script performs:
 
 ```bash
 UV_OFFLINE=1 uv sync --locked --offline --active --extra server --extra vector --extra nli --extra onnx --extra ui
-uv pip install --offline --find-links wheelhouse/rust backfire-kernel==0.1.0
+uv pip install --offline --no-index --no-sources --find-links wheelhouse/rust backfire-kernel==0.1.3
 director-ai doctor
 ```
 

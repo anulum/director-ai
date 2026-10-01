@@ -38,7 +38,7 @@ def _write_minimal_space(root: Path, push_script: str) -> None:
         """---
 title: Director-AI Guardrail
 sdk: gradio
-sdk_version: "6.7.0"
+sdk_version: "6.29.0"
 app_file: app.py
 license: apache-2.0
 ---
@@ -48,7 +48,7 @@ license: apache-2.0
         encoding="utf-8",
     )
     (demo / "requirements.txt").write_text(
-        "director-ai>=3.10.0,<4.0.0\ngradio>=6.7.0,<7.0\n",
+        "director-ai>=3.21.0,<4.0.0\ngradio>=6.29.0,<7.0\n",
         encoding="utf-8",
     )
     (demo / "hf_space_manifest.toml").write_text(

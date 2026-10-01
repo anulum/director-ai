@@ -36,11 +36,11 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v6
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.12"
 
-      - uses: dtolnay/rust-toolchain@4be7066ada62dd38de10e7b70166bc74ed198c30 # stable
+      - uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable
 
       - uses: goto-bus-stop/setup-zig@abea47f85e598557f500fa1fd2ab7464fcb39406 # v2.2.1
         if: matrix.target == 'aarch64' && runner.os == 'Linux'
@@ -53,7 +53,7 @@ jobs:
           manylinux: auto
           working-directory: backfire-kernel/crates/backfire-ffi
 
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: wheels-${{ matrix.os }}-${{ matrix.target }}
           path: backfire-kernel/crates/backfire-ffi/dist/
@@ -64,7 +64,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - uses: dtolnay/rust-toolchain@4be7066ada62dd38de10e7b70166bc74ed198c30 # stable
+      - uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable
         with:
           targets: wasm32-unknown-unknown
 
@@ -81,7 +81,7 @@ jobs:
           test -f backfire-kernel/crates/backfire-wasm/pkg/backfire_wasm.js
           ls -lh backfire-kernel/crates/backfire-wasm/pkg/
 
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: wasm-edge-runtime
           path: backfire-kernel/crates/backfire-wasm/pkg/
@@ -99,7 +99,7 @@ jobs:
           args: --out dist
           working-directory: backfire-kernel/crates/backfire-ffi
 
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: wheels-sdist
           path: backfire-kernel/crates/backfire-ffi/dist/
@@ -117,7 +117,7 @@ jobs:
     permissions:
       id-token: write
     steps:
-      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           pattern: wheels-*
           merge-multiple: true
@@ -126,7 +126,13 @@ jobs:
       - name: Check if version already published
         id: check
         run: |
-          VERSION=$(ls dist/*.tar.gz | head -1 | sed 's/.*-\(.*\)\.tar\.gz/\1/')
+          SDISTS=(dist/*.tar.gz)
+          if [[ ${#SDISTS[@]} -ne 1 || ! -f "${SDISTS[0]}" ]]; then
+            echo "Expected one source distribution"
+            exit 1
+          fi
+          VERSION="${SDISTS[0]%.tar.gz}"
+          VERSION="${VERSION##*-}"
           STATUS=$(curl -s -o /dev/null -w '%{http_code}' "https://pypi.org/pypi/backfire-kernel/${VERSION}/json")
           echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
           echo "exists=$( [ "$STATUS" = "200" ] && echo true || echo false )" >> "$GITHUB_OUTPUT"

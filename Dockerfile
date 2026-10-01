@@ -16,9 +16,9 @@
 
 # ── Stage 1: Builder ────────────────────────────────────────────────
 
-FROM rust:1.95.0-slim@sha256:e14e87345b4d5964ddcc3491d27ee046a0f23820f340c3c1e24da6880141f7c0 AS rust-toolchain
+FROM rust:1.98.1-slim@sha256:4cd829461bd5c4d511c32e269da9cb8929223b666519d8004e35fc8d1d771ab7 AS rust-toolchain
 
-FROM python:3.11-slim@sha256:d6e4d224f70f9e0172a06a3a2eba2f768eb146811a349278b38fff3a36463b47 AS builder
+FROM python:3.11-slim@sha256:e41613d42d4891e4930f79523f93f81bbc7632584ec65e36ab055f41a800b41e AS builder
 
 WORKDIR /build
 
@@ -64,7 +64,7 @@ RUN python -m pip install --no-cache-dir --require-hashes --no-deps --prefix=/in
 
 # ── Stage 2: Runtime ────────────────────────────────────────────────
 
-FROM python:3.11-slim@sha256:d6e4d224f70f9e0172a06a3a2eba2f768eb146811a349278b38fff3a36463b47
+FROM python:3.11-slim@sha256:e41613d42d4891e4930f79523f93f81bbc7632584ec65e36ab055f41a800b41e
 
 LABEL maintainer="Miroslav Sotek <protoscience@anulum.li>"
 LABEL description="Director-AI — Real-time LLM hallucination guardrail"

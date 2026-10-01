@@ -102,7 +102,9 @@ read-only.
 
 `requirements/onnx_wheel_targets.toml` is the tracked source for these targets.
 `requirements/docker-gpu-export.txt` pins the `onnx`, `onnxruntime`,
-`onnxscript`, `onnx_ir`, `ml_dtypes`, and `protobuf` build-time wheels.
+`onnxscript`, `onnx-ir`, `ml-dtypes`, `protobuf`, and `flatbuffers` build-time
+wheels. They are resolved against the runtime requirements so the export stage
+keeps compatible versions of shared packages.
 
 | Target id | Platform | Extra | Runtime package | Execution provider | Status |
 |-----------|----------|-------|-----------------|--------------------|--------|

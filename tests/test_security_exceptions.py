@@ -4,6 +4,7 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
+# Director-Class AI — Security exception and remediation guards
 """Tests for the governed security-exception register validator."""
 
 from __future__ import annotations
@@ -16,6 +17,8 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+import yaml
+from packaging.version import Version
 
 _ROOT = Path(__file__).resolve().parent.parent
 _SPEC = importlib.util.spec_from_file_location(
@@ -163,24 +166,19 @@ class TestDependabotTool:
         assert checker.validate(payload, _TODAY) == []
 
 
-class TestMcpWaiverInvariant:
-    """Locks the owner-ruled expiring waiver for the transitive mcp pin.
+class TestMcpRemediationInvariant:
+    """Reject resolved MCP waivers and regression below advisory fix floors.
 
-    Ruled 2026-07-17 (SC-NEUROCORE mcp-waiver precedent): the three HIGH
-    advisories against mcp==1.23.3 in the CI SAST lock are waived ONLY while
-    (a) mcp stays out of every runtime dependency surface, (b) mcp still
-    reaches the repository solely as semgrep's hard-pinned transitive dep in
-    requirements/ci-sast.txt, and (c) the expiry has not lapsed. Any of these
-    failing means the waiver premise broke — re-review it, do not patch the
-    test to stay green.
+    The 2026-07-17 owner ruling was closed when the native Semgrep lock
+    resolved MCP 1.29.0. Patched packages replace reachability exceptions;
+    generic register tests above retain malformed-entry and expiry checks.
     """
 
-    WAIVED = {
-        "GHSA-vj7q-gjh5-988w",  # CVE-2026-59950
-        "GHSA-jpw9-pfvf-9f58",  # CVE-2026-52869
-        "GHSA-hvrp-rf83-w775",  # CVE-2026-52870
+    RESOLVED = {
+        "GHSA-vj7q-gjh5-988w": Version("1.28.1"),
+        "GHSA-jpw9-pfvf-9f58": Version("1.27.2"),
+        "GHSA-hvrp-rf83-w775": Version("1.27.2"),
     }
-    EXPIRY = date(2026, 10, 17)
     REGISTER = _ROOT / "requirements" / "security-exceptions.toml"
     CI_SAST_LOCK = _ROOT / "requirements" / "ci-sast.txt"
     RUNTIME_LOCKS = (
@@ -189,36 +187,35 @@ class TestMcpWaiverInvariant:
     )
 
     def _entries(self) -> list[dict[str, Any]]:
+        """Read the actual governed exception register."""
         payload = tomllib.loads(self.REGISTER.read_text(encoding="utf-8"))
-        return [e for e in payload["exceptions"] if e["package"] == "mcp"]
+        return list(payload["exceptions"])
 
-    def test_register_carries_exactly_the_ruled_waivers(self) -> None:
-        entries = self._entries()
-        assert {e["id"] for e in entries} == self.WAIVED
-        for entry in entries:
-            assert entry["tool"] == "dependabot"
-            assert entry["scope"] == "dependabot-ci-sast-lock"
-            assert entry["opened"] == "2026-07-17"
-
-    def test_waiver_has_not_lapsed(self) -> None:
-        # Load-bearing lapse guard: after the expiry this test goes red and
-        # forces the re-review the ruling requires.
-        for entry in self._entries():
-            assert date.fromisoformat(str(entry["expires"])) == self.EXPIRY
-        assert date.today() <= self.EXPIRY, (
-            "mcp waiver expired on 2026-10-17 — re-review it (has semgrep "
-            "unpinned mcp yet?); do not extend the date without a new ruling"
+    def _mcp_version(self) -> Version:
+        """Read the unique resolved MCP version from the native SAST lock."""
+        pins = re.findall(
+            r"^mcp==([^ ;\\]+)",
+            self.CI_SAST_LOCK.read_text(encoding="utf-8"),
+            flags=re.MULTILINE,
         )
+        assert len(pins) == 1, "SAST must carry one auditable MCP pin"
+        return Version(pins[0])
 
-    def test_each_entry_states_the_reachability_invariant(self) -> None:
-        for entry in self._entries():
-            control = entry["compensating_control"]
-            assert "semgrep scan" in control
-            assert "MCP server" in control
-            assert "runtime" in control
-            assert "mcp==1.23.3" in entry["reason"]
+    def test_register_excludes_exactly_the_resolved_waivers(self) -> None:
+        """Resolved advisory IDs cannot remain scanner exceptions."""
+        assert not ({entry["id"] for entry in self._entries()} & self.RESOLVED.keys())
+
+    def test_no_mcp_waiver_expiry_is_extended(self) -> None:
+        """MCP remediation closes the waiver instead of renewing its expiry."""
+        assert not [entry for entry in self._entries() if entry["package"] == "mcp"]
+
+    def test_patched_pin_replaces_the_reachability_exception(self) -> None:
+        """Every waived advisory must be fixed by the resolved SAST version."""
+        for advisory, fixed in self.RESOLVED.items():
+            assert self._mcp_version() >= fixed, advisory
 
     def test_mcp_absent_from_runtime_dependency_surfaces(self) -> None:
+        """The scanner dependency does not become a direct runtime dependency."""
         pyproject = tomllib.loads(
             (_ROOT / "pyproject.toml").read_text(encoding="utf-8")
         )
@@ -235,9 +232,106 @@ class TestMcpWaiverInvariant:
             lines = lock.read_text(encoding="utf-8").splitlines()
             assert not any(line.startswith("mcp==") for line in lines), lock
 
-    def test_mcp_enters_only_as_semgreps_pinned_transitive(self) -> None:
-        # If this pin ever moves (upstream unpin or a resolvable bump), the
-        # waiver premise is gone — remove the entries instead of updating it.
-        lines = self.CI_SAST_LOCK.read_text(encoding="utf-8").splitlines()
-        assert any(line.startswith("mcp==1.23.3") for line in lines)
-        assert any(line.startswith("semgrep==") for line in lines)
+    def test_mcp_enters_as_semgreps_patched_transitive(self) -> None:
+        """The checked SAST pin remains wired to an installed Semgrep scanner."""
+        text = self.CI_SAST_LOCK.read_text(encoding="utf-8")
+        assert re.search(r"^semgrep==[^ ;\\]+", text, flags=re.MULTILINE)
+        assert self._mcp_version() >= max(self.RESOLVED.values())
+
+
+class TestPyjwtWaiverInvariant:
+    """Enforce the owner's narrowly scoped, expiring CI-only PyJWT waiver."""
+
+    WAIVED = {
+        "GHSA-w6j9-cwv2-h6wq",
+        "GHSA-9v7f-9g4p-ffgj",
+        "GHSA-hxm8-2xgr-2p9m",
+        "GHSA-ffc3-869f-jxw9",
+        "GHSA-9j54-fg26-wv3r",
+        "GHSA-42vr-xj54-vc7v",
+        "GHSA-jwrc-g2q2-pq5p",
+        "GHSA-r6x4-923q-g947",
+        "GHSA-p4g4-x82p-q773",
+        "GHSA-2gx3-rcp4-g85q",
+        "GHSA-8wjv-2p76-3863",
+        "GHSA-w2cx-738m-mc7w",
+    }
+    EXPIRY = date(2026, 10, 17)
+    REGISTER = _ROOT / "requirements" / "security-exceptions.toml"
+    CI_SAST_LOCK = _ROOT / "requirements" / "ci-sast.txt"
+
+    def _entries(self) -> list[dict[str, Any]]:
+        """Read only the PyJWT entries from the actual governed register."""
+        payload = tomllib.loads(self.REGISTER.read_text(encoding="utf-8"))
+        return [entry for entry in payload["exceptions"] if entry["package"] == "pyjwt"]
+
+    def test_register_carries_exactly_the_owner_approved_ids(self) -> None:
+        """No additional advisory can inherit this owner approval."""
+        entries = self._entries()
+        assert len(entries) == len(self.WAIVED)
+        assert {entry["id"] for entry in entries} == self.WAIVED
+
+    def test_each_exception_is_ci_only_and_owner_attributed(self) -> None:
+        """The exception cannot silently broaden to a runtime audit scope."""
+        for entry in self._entries():
+            assert entry["tool"] == "dependabot"
+            assert entry["scope"] == "dependabot-ci-sast-lock"
+            assert entry["owner"] == "protoscience@anulum.li"
+            assert entry["opened"] == "2026-09-30"
+            assert "semgrep scan" in entry["compensating_control"]
+            assert "MCP server" in entry["compensating_control"]
+
+    def test_waiver_has_not_lapsed(self) -> None:
+        """After the owner-approved date the waiver requires a new decision."""
+        for entry in self._entries():
+            assert date.fromisoformat(entry["expires"]) == self.EXPIRY
+        assert date.today() <= self.EXPIRY, (
+            "PyJWT CI waiver expired; remove or re-review"
+        )
+
+    def test_waived_pin_is_still_the_semgrep_transitive(self) -> None:
+        """A changed upstream dependency invalidates this exact-pin waiver."""
+        text = self.CI_SAST_LOCK.read_text(encoding="utf-8")
+        assert re.search(r"^pyjwt==2\.13\.0(?: |\\|$)", text, flags=re.MULTILINE)
+        assert re.search(r"^semgrep==1\.178\.0(?: |\\|$)", text, flags=re.MULTILINE)
+
+    def test_vulnerable_pin_is_absent_from_other_runtime_and_tool_profiles(
+        self,
+    ) -> None:
+        """Every other locked profile remains outside this version-specific waiver."""
+        profiles = [
+            _ROOT / "requirements.txt",
+            _ROOT / "discord-bot" / "requirements.txt",
+            *_ROOT.glob("requirements/*.txt"),
+            *_ROOT.glob("training/*.txt"),
+            *_ROOT.glob("training/*.lock"),
+            _ROOT / "tools/offline_license_ceremony/requirements-offline.txt",
+        ]
+        for profile in profiles:
+            if profile == self.CI_SAST_LOCK:
+                continue
+            pins = re.findall(
+                r"^pyjwt==([^ ;\\]+)",
+                profile.read_text(encoding="utf-8"),
+                flags=re.MULTILINE,
+            )
+            assert all(Version(pin) >= Version("2.15.0") for pin in pins), profile
+        locked = tomllib.loads((_ROOT / "uv.lock").read_text(encoding="utf-8"))
+        versions = [p["version"] for p in locked["package"] if p["name"] == "pyjwt"]
+        assert all(Version(version) >= Version("2.15.0") for version in versions)
+
+    def test_workflows_only_invoke_the_scanner_mode(self) -> None:
+        """Actual CI run steps cannot start the excluded Semgrep MCP server."""
+        scan_steps: list[str] = []
+        for path in (_ROOT / ".github/workflows").glob("*.yml"):
+            workflow = yaml.safe_load(path.read_text(encoding="utf-8"))
+            for job in workflow.get("jobs", {}).values():
+                for step in job.get("steps", []):
+                    command = step.get("run", "")
+                    if re.search(r"\bsemgrep\b", command):
+                        scan_steps.append(command)
+                        assert not re.search(r"\bsemgrep\s+(?:mcp|serve)\b", command), (
+                            path
+                        )
+        assert scan_steps
+        assert all(re.search(r"\bsemgrep\s+scan\b", command) for command in scan_steps)

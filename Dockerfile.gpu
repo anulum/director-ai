@@ -1,8 +1,10 @@
-# ─────────────────────────────────────────────────────────────────────
-# Director-Class AI — GPU Docker Image (ONNX CUDA)
-# © 1998-2026 Miroslav Sotek. All rights reserved.
-# License: Apache-2.0
-# ─────────────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: Apache-2.0
+# Commercial license available
+# © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
+# © Code 2020–2026 Miroslav Šotek. All rights reserved.
+# ORCID: 0009-0009-3560-0851
+# Contact: www.anulum.li | protoscience@anulum.li
+# Director-AI — GPU Docker image
 #
 # Build:
 #   docker build -f Dockerfile.gpu -t director-ai:gpu .
@@ -10,21 +12,23 @@
 # Run:
 #   docker run --gpus all -p 8080:8080 director-ai:gpu
 #
-# onnxruntime-gpu bundles CUDA/CuDNN; the host only needs the NVIDIA
-# driver (>=535) exposed via --gpus all.
+# The hash-pinned torch dependencies supply CUDA 13 and cuDNN 9 libraries.
+# Use a CUDA-13-supported GPU, an NVIDIA driver >=580, and the NVIDIA
+# Container Toolkit; qualify CUDA execution on the target before serving.
 # ─────────────────────────────────────────────────────────────────────
 
 # ── Stage 1: Install Python packages ──────────────────────────────────
 
-FROM rust:1.95.0-slim@sha256:e14e87345b4d5964ddcc3491d27ee046a0f23820f340c3c1e24da6880141f7c0 AS rust-toolchain
+FROM rust:1.98.1-slim@sha256:4cd829461bd5c4d511c32e269da9cb8929223b666519d8004e35fc8d1d771ab7 AS rust-toolchain
 
-FROM python:3.11-slim@sha256:d6e4d224f70f9e0172a06a3a2eba2f768eb146811a349278b38fff3a36463b47 AS builder
+FROM python:3.11-slim@sha256:e41613d42d4891e4930f79523f93f81bbc7632584ec65e36ab055f41a800b41e AS builder
 
 WORKDIR /build
 
 ENV CARGO_HOME=/usr/local/cargo \
     RUSTUP_HOME=/usr/local/rustup \
-    PATH="/usr/local/cargo/bin:${PATH}"
+    PATH="/usr/local/cargo/bin:${PATH}" \
+    CARGO_BUILD_JOBS=2
 
 COPY --from=rust-toolchain /usr/local/cargo /usr/local/cargo
 COPY --from=rust-toolchain /usr/local/rustup /usr/local/rustup
@@ -46,7 +50,7 @@ RUN python -m pip install --no-cache-dir --require-hashes --no-deps --prefix=/in
     && python -m pip install --no-cache-dir --require-hashes --no-deps --prefix=/install \
         -r requirements/docker-gpu.txt \
     && PYTHONPATH=/install/lib/python3.11/site-packages PATH="/install/bin:${PATH}" \
-        maturin build --release --manifest-path backfire-kernel/crates/backfire-ffi/Cargo.toml --out /tmp/backfire-wheel \
+        maturin build --locked --release --manifest-path backfire-kernel/crates/backfire-ffi/Cargo.toml --out /tmp/backfire-wheel \
     && PYTHONPATH=/install/lib/python3.11/site-packages \
         python -m installer --prefix=/install /tmp/backfire-wheel/backfire_kernel-*.whl \
     && PYTHONPATH=/install/lib/python3.11/site-packages PATH="/install/bin:${PATH}" \
@@ -60,7 +64,7 @@ RUN python -m pip install --no-cache-dir --require-hashes --no-deps --prefix=/in
 
 # ── Stage 2: Export ONNX model ────────────────────────────────────────
 
-FROM python:3.11-slim@sha256:d6e4d224f70f9e0172a06a3a2eba2f768eb146811a349278b38fff3a36463b47 AS model-builder
+FROM python:3.11-slim@sha256:e41613d42d4891e4930f79523f93f81bbc7632584ec65e36ab055f41a800b41e AS model-builder
 
 COPY --from=builder /install /usr/local
 COPY src/ /app/src/
@@ -82,7 +86,7 @@ export_onnx(output_dir='/models/onnx')"
 
 # ── Stage 3: Runtime ──────────────────────────────────────────────────
 
-FROM python:3.11-slim@sha256:d6e4d224f70f9e0172a06a3a2eba2f768eb146811a349278b38fff3a36463b47
+FROM python:3.11-slim@sha256:e41613d42d4891e4930f79523f93f81bbc7632584ec65e36ab055f41a800b41e
 
 LABEL maintainer="Miroslav Sotek <protoscience@anulum.li>"
 LABEL description="Director-AI GPU — ONNX CUDA hallucination guardrail"

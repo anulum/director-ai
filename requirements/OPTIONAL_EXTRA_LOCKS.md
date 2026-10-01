@@ -48,6 +48,22 @@ For lighter checks, sync only the extra under review:
 uv sync --locked --extra server
 ```
 
+The demo extra and both Space README files target Gradio 6.29.0. The
+checked-in `requirements/demo.txt` exports the demo dependency graph with
+hashes from the same root lock:
+
+```bash
+uv export --locked --extra demo --no-dev --no-emit-project \
+  --no-emit-package backfire-kernel --no-header \
+  --output-file requirements/demo.txt
+```
+
+Install it with `--require-hashes`, followed by the application and native
+kernel wheels. The live streaming demo also uses the paid UI overlay.
+`demo/requirements.txt` is the separate Space package's application/framework
+input; the manual Space publication guard checks its framework floor against
+the README metadata.
+
 For physical adapters, sync the pinned MuJoCo runtime separately and keep ROS 2
 or CARLA in their vendor-managed runtime:
 
@@ -80,3 +96,78 @@ uv pip compile requirements/ci-types.in \
 
 The type-check job installs this file with `--require-hashes`. The root dev
 extra also declares these stubs for local strict checks.
+
+## Build, fuzz and GPU profiles
+
+The build and fuzz files retain their checked-in native resolver inputs:
+
+```bash
+for profile in docker-build ci-build ci-fuzz; do
+  uv pip compile "requirements/${profile}.in" --upgrade \
+    --python-version 3.11 --universal --generate-hashes --no-header \
+    --output-file "requirements/${profile}.txt"
+done
+```
+
+Docker build tooling includes Maturin 1.15, the kernel's build backend, and
+`wheel`, required by the application backend when Docker builds without
+isolation. `requirements-dev.txt` delegates to `.[dev]` rather than repeating
+older tool floors beside `pyproject.toml`.
+
+Export the selected GPU image runtime from the canonical lock:
+
+```bash
+uv export --locked --extra nli --extra server --no-dev \
+  --no-emit-project --no-emit-package backfire-kernel \
+  --format requirements-txt --output-file requirements/docker-gpu.txt
+```
+
+Resolve the ONNX export stage against that runtime, retaining native hashes:
+
+```bash
+uv pip compile requirements/docker-gpu-export.in \
+  --constraints requirements/docker-gpu.txt --upgrade \
+  --python-version 3.11 --universal --generate-hashes --no-header \
+  --no-emit-package numpy --no-emit-package packaging \
+  --no-emit-package sympy --no-emit-package typing-extensions \
+  --output-file requirements/docker-gpu-export.txt
+```
+
+Those four omitted dependencies are already installed by the runtime stage.
+FlatBuffers remains in the export file because ONNX Runtime requires it.
+The export input preserves the shared `protobuf<7` contract; an independently
+upgraded protobuf 7.x pin would conflict with the selected gRPC tooling stack.
+
+## Cloud Run CPU profile
+
+`requirements/docker-saas.txt` is the CPython 3.12/Linux AMD64 installation
+profile for the Cloud Run image. It selects `[server,nli,onnx,embed]` from the
+root lock and replaces CUDA PyTorch with the official CPU wheel of the same
+upstream version. The wheel URL and SHA-256 are explicit in
+`requirements/docker-saas-cpu.in`; this profile is not portable to Windows,
+ARM or another Python minor version.
+
+```bash
+constraints=$(mktemp)
+trap 'rm -f "$constraints"' EXIT
+uv export --locked --no-dev --no-hashes --no-emit-project \
+  --no-emit-package backfire-kernel \
+  --extra server --extra nli --extra onnx --extra embed \
+  --output-file "$constraints"
+uv --no-config pip compile pyproject.toml \
+  --extra server --extra nli --extra onnx --extra embed \
+  --override requirements/docker-saas-cpu.in --constraint "$constraints" \
+  --no-emit-package backfire-kernel --no-sources --generate-hashes \
+  --python-version 3.12 --python-platform x86_64-unknown-linux-gnu \
+  --no-header --no-annotate --output-file requirements/docker-saas.txt
+```
+
+The image installs both application wheels with the checked-in build hooks,
+exports the pinned FactCG model without quantisation, and loads that artefact
+offline. See the [Cloud Run deployment guide](../docs-site/deployment/cloud-run.md).
+
+The Type Check CI job runs Python 3.11 to match the repository's configured
+MyPy language floor. Newer NumPy and Deprecated distributions can contain
+Python 3.12 type statements; run the floor check with the corresponding 3.11
+dependency selection. The Python 3.11–3.13 runtime test matrix still exercises
+the marker-selected packages for each supported interpreter.

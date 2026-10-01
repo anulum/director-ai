@@ -1,12 +1,9 @@
-# Pinned dev dependencies for Director-AI v3.14.0
-# Canonical source of truth: pyproject.toml [project.optional-dependencies.dev]
--r requirements.txt
-pytest>=7.0
-pytest-cov>=4.0
-pytest-asyncio>=0.21
-ruff>=0.5,<1
-mypy>=1.10
-bandit>=1.7
-pyyaml>=6.0
-build>=1.0
-twine>=5.0
+# SPDX-License-Identifier: Apache-2.0
+# Commercial license available
+# © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
+# © Code 2020–2026 Miroslav Šotek. All rights reserved.
+# ORCID: 0009-0009-3560-0851
+# Contact: www.anulum.li | protoscience@anulum.li
+# Director-Class AI — Development requirements
+
+-e .[dev]

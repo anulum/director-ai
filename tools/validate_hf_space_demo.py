@@ -26,7 +26,7 @@ PUSH_SCRIPT = Path("demo/push_to_hf.sh")
 REQUIRED_SPACE_FILES = ("app.py", "requirements.txt", "README.md")
 REQUIRED_METADATA = {
     "sdk": "gradio",
-    "sdk_version": "6.7.0",
+    "sdk_version": "6.29.0",
     "app_file": "app.py",
     "license": "apache-2.0",
 }
@@ -76,8 +76,8 @@ def _validate_requirements(root: Path) -> list[str]:
         return errors
     lines = {line.strip() for line in text.splitlines() if line.strip()}
     required = {
-        "director-ai>=3.10.0,<4.0.0",
-        "gradio>=6.7.0,<7.0",
+        "director-ai>=3.21.0,<4.0.0",
+        "gradio>=6.29.0,<7.0",
     }
     missing = sorted(required - lines)
     return [f"{REQUIREMENTS}: missing requirement {line}" for line in missing]

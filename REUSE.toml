@@ -194,3 +194,15 @@ SPDX-License-Identifier = "Apache-2.0"
 path = ".semgrepignore"
 SPDX-FileCopyrightText = "2020-2026 Miroslav Šotek"
 SPDX-License-Identifier = "Apache-2.0"
+
+[[annotations]]
+path = "backfire-kernel/vendor/bulletproofs/**"
+precedence = "override"
+SPDX-FileCopyrightText = ["2018 Chain, Inc.", "2026 Miroslav Šotek <protoscience@anulum.li> (local zeroization changes)"]
+SPDX-License-Identifier = "MIT"
+
+[[annotations]]
+path = "backfire-kernel/crates/backfire-ffi/LICENSES/MIT.txt"
+precedence = "override"
+SPDX-FileCopyrightText = "2018 Chain, Inc."
+SPDX-License-Identifier = "MIT"

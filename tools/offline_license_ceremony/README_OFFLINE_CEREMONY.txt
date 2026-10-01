@@ -34,3 +34,12 @@ separate custody path.
 
 The manifest detects accidental corruption. It is not a digital signature and
 does not replace custody of the bundle between preparation and execution.
+
+Dependency regeneration on the preparation workstation
+----------------------------------------------------
+uv pip compile tools/offline_license_ceremony/requirements-offline.in \
+  --universal --python-version 3.11 --generate-hashes --no-header --upgrade \
+  -o tools/offline_license_ceremony/requirements-offline.txt
+Retain the licence header on the generated lock. Prepare a new bundle with
+tools/prepare_offline_license_ceremony_bundle.py so the wheelhouse and manifest
+match that lock; existing ceremony media are not silently modified.

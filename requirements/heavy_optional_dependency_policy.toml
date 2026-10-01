@@ -75,7 +75,7 @@ risk = "web-ui"
 controls = ["upper-bound", "uv-lock", "runtime-isolation", "audit"]
 
 [[export_only]]
-name = "ml_dtypes"
+name = "ml-dtypes"
 requirements = "requirements/docker-gpu-export.txt"
 risk = "onnx-export-numeric-types"
 controls = ["hash-pin", "isolated-build-stage"]
@@ -87,7 +87,7 @@ risk = "model-graph-serialization"
 controls = ["hash-pin", "isolated-build-stage"]
 
 [[export_only]]
-name = "onnx_ir"
+name = "onnx-ir"
 requirements = "requirements/docker-gpu-export.txt"
 risk = "onnx-intermediate-representation"
 controls = ["hash-pin", "isolated-build-stage"]
@@ -108,6 +108,12 @@ controls = ["hash-pin", "isolated-build-stage"]
 name = "protobuf"
 requirements = "requirements/docker-gpu-export.txt"
 risk = "onnx-schema-serialization"
+controls = ["hash-pin", "isolated-build-stage"]
+
+[[export_only]]
+name = "flatbuffers"
+requirements = "requirements/docker-gpu-export.txt"
+risk = "onnx-runtime-serialization"
 controls = ["hash-pin", "isolated-build-stage"]
 
 [[external_runtime]]

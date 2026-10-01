@@ -90,17 +90,34 @@ that are safe to keep hash-pinned outside the default service image:
 
 | Package | File | Controls |
 |---------|------|----------|
-| `ml_dtypes` | `requirements/docker-gpu-export.txt` | hash-pin, isolated-build-stage |
+| `ml-dtypes` | `requirements/docker-gpu-export.txt` | hash-pin, isolated-build-stage |
 | `onnx` | `requirements/docker-gpu-export.txt` | hash-pin, isolated-build-stage |
-| `onnx_ir` | `requirements/docker-gpu-export.txt` | hash-pin, isolated-build-stage |
+| `onnx-ir` | `requirements/docker-gpu-export.txt` | hash-pin, isolated-build-stage |
 | `onnxruntime` | `requirements/docker-gpu-export.txt` | hash-pin, isolated-build-stage |
 | `onnxscript` | `requirements/docker-gpu-export.txt` | hash-pin, isolated-build-stage |
 | `protobuf` | `requirements/docker-gpu-export.txt` | hash-pin, isolated-build-stage |
+| `flatbuffers` | `requirements/docker-gpu-export.txt` | hash-pin, isolated-build-stage |
 
 Legacy exporter packages that force `transformers<5` are not installed. That
 keeps the model-loader stack on the audited `transformers>=5.0.0rc3,<6` line.
 `Dockerfile.gpu` installs the export wheels only in the model-builder stage,
 exports the ONNX directory, then copies the artefact into the runtime stage.
+
+The runtime requirements are exported from `uv.lock`. Export-tool resolution
+uses that runtime file as constraints, retains the shared `protobuf<7` range,
+and omits only dependencies already installed by the runtime stage. FlatBuffers
+remains in the export file because ONNX Runtime requires it and the runtime
+stage does not supply it. Regeneration commands are in
+`requirements/OPTIONAL_EXTRA_LOCKS.md`.
+
+## Native Proof Dependency
+
+The Rust kernel carries the published Bulletproofs 5.0.0 source with its MIT
+notice under `backfire-kernel/vendor/bulletproofs`. Its existing scalar cleanup
+uses non-optional `zeroize` instead of the unmaintained `clear_on_drop` package.
+The local source provenance and changes are documented in that directory's
+`UPSTREAM.md`. Kernel source distributions include this dependency, and wheels
+carry both the kernel's Apache-2.0 text and the original MIT notice.
 
 ## Deployment Guidance
 

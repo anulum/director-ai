@@ -1,52 +1,125 @@
 # SPDX-License-Identifier: Apache-2.0
-# Director-AI SaaS — Cloud Run deployment image
-#
-# Builds a slim container with FactCG ONNX model pre-baked.
-# Exposes the FastAPI server with API key + rate limiting middleware.
-#
-# Build:
-#   docker build -f deploy/cloud-run/Dockerfile.saas -t director-ai-saas .
-#
-# Run locally:
-#   docker run -p 8080:8080 -e DIRECTOR_API_KEYS=sk-test-123 director-ai-saas
-#
-# Deploy to Cloud Run:
-#   gcloud run deploy director-ai \
-#     --image gcr.io/PROJECT/director-ai-saas \
-#     --set-env-vars DIRECTOR_API_KEYS=sk-live-xxx \
-#     --min-instances 1 --max-instances 10 \
-#     --memory 2Gi --cpu 2 --port 8080
+# Commercial license available
+# © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
+# © Code 2020–2026 Miroslav Šotek. All rights reserved.
+# ORCID: 0009-0009-3560-0851
+# Contact: www.anulum.li | protoscience@anulum.li
+# Director-Class AI — Cloud Run CPU ONNX image
 
-FROM python:3.12-slim@sha256:804ddf3251a60bbf9c92e73b7566c40428d54d0e79d3428194edf40da6521286 AS base
+FROM rust:1.98.1-slim@sha256:4cd829461bd5c4d511c32e269da9cb8929223b666519d8004e35fc8d1d771ab7 AS rust-toolchain
+
+FROM python:3.12-slim@sha256:f77ac9e44ae96ef2c90b8053ea08c31f8be030f824196b0ae4db6d462c84e51f AS builder
+
+WORKDIR /build
+
+ENV CARGO_HOME=/usr/local/cargo \
+    RUSTUP_HOME=/usr/local/rustup \
+    PATH="/usr/local/cargo/bin:${PATH}"
+COPY --from=rust-toolchain /usr/local/cargo /usr/local/cargo
+COPY --from=rust-toolchain /usr/local/rustup /usr/local/rustup
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends build-essential=12.12 ca-certificates=20250419 \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY pyproject.toml setup.py README.md LICENSE NOTICE.md ./
+COPY src/ src/
+COPY packages/ packages/
+COPY requirements/ requirements/
+COPY backfire-kernel/ backfire-kernel/
+
+RUN python -m pip install --no-cache-dir --require-hashes --no-deps --prefix=/install -r requirements/docker-build.txt \
+    && python -m pip install --no-cache-dir --require-hashes --no-deps --prefix=/install -r requirements/docker-saas.txt
+
+ENV PYTHONPATH=/install/lib/python3.12/site-packages \
+    PATH="/install/bin:${PATH}" \
+    OMP_NUM_THREADS=2 \
+    HF_HOME=/tmp/huggingface
+
+RUN maturin build --release --manifest-path backfire-kernel/crates/backfire-ffi/Cargo.toml --out /tmp/backfire-wheel \
+    && python -m installer --prefix=/install /tmp/backfire-wheel/backfire_kernel-*.whl \
+    && python -m build --wheel --no-isolation --outdir /tmp/core-wheel . \
+    && python -m installer --prefix=/install /tmp/core-wheel/director_ai-*-py3-none-any.whl \
+    && python -m build --wheel --no-isolation --outdir /tmp/pro-wheel packages/director-ai-pro \
+    && python -m installer --prefix=/install /tmp/pro-wheel/director_ai_pro-*-py3-none-any.whl
+
+RUN python - <<'PY'
+import hashlib
+import json
+import shutil
+import urllib.request
+from pathlib import Path
+
+from director_ai.core.nli import export_onnx
+from huggingface_hub import hf_hub_download
+
+model = "yaxili96/FactCG-DeBERTa-v3-Large"
+revision = "0430e3509dbd28d2dff7a117c0eae25359ff3e80"
+weights_sha256 = "379a343d1ca25c9dfe24ae149f76cc958ea4f09c00dae88bd49bbbf58c749d5e"
+weights = hf_hub_download(model, "model.safetensors", revision=revision)
+with Path(weights).open("rb") as stream:
+    if hashlib.file_digest(stream, "sha256").hexdigest() != weights_sha256:
+        raise RuntimeError("FactCG source weights checksum mismatch")
+
+output = Path(export_onnx(output_dir="/models/onnx", revision=revision))
+card = hf_hub_download(model, "README.md", revision=revision)
+shutil.copyfile(card, output / "README.upstream.md")
+license_url = "https://raw.githubusercontent.com/yaxili96/FactCG/c6bfb23793321dd575ae6762f53c7eb92d39edc7/LICENSE"
+with urllib.request.urlopen(license_url, timeout=30) as response:
+    license_bytes = response.read()
+if hashlib.sha256(license_bytes).hexdigest() != "dae315139c14a7560efde932a56caea62817e6322a07378b1d09f308588b89ba":
+    raise RuntimeError("FactCG upstream licence checksum mismatch")
+(output / "LICENSE.upstream.txt").write_bytes(license_bytes)
+files = {}
+for path in sorted(output.iterdir()):
+    if path.is_file():
+        with path.open("rb") as stream:
+            files[path.name] = hashlib.file_digest(stream, "sha256").hexdigest()
+(output / "provenance.json").write_text(json.dumps({
+    "model": model,
+    "revision": revision,
+    "source_weights_sha256": weights_sha256,
+    "license_source": license_url,
+    "quantization": None,
+    "sha256": files,
+}, indent=2) + "\n")
+shutil.rmtree("/tmp/huggingface")
+PY
+
+FROM python:3.12-slim@sha256:f77ac9e44ae96ef2c90b8053ea08c31f8be030f824196b0ae4db6d462c84e51f
+
+LABEL org.opencontainers.image.source="https://github.com/anulum/director-ai"
+LABEL org.opencontainers.image.licenses="Apache-2.0 AND BUSL-1.1 AND MIT"
 
 WORKDIR /app
 
-# Install system deps
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    curl \
-    && rm -rf /var/lib/apt/lists/*
-
-# Install Director-AI with NLI + ONNX + server.
-# Dependencies resolved from pyproject.toml via pip's own resolver.
-# Hash verification is handled by pip + PyPI TLS (PEP 691).
-COPY pyproject.toml README.md LICENSE ./
-COPY src/ src/
-RUN pip install --no-cache-dir ".[nli,onnx,server,embed]"
-
-# Pre-download FactCG model so cold start is fast
-RUN python -c "from transformers import AutoTokenizer; AutoTokenizer.from_pretrained('yaxili96/FactCG-DeBERTa-v3-Large')"
-
-# Copy SaaS entrypoint
+COPY LICENSE NOTICE.md /app/
+COPY LICENSES/ /app/LICENSES/
+COPY --from=builder /install /usr/local
+COPY --from=builder /models/onnx /app/models/onnx
 COPY deploy/cloud-run/entrypoint.sh /app/entrypoint.sh
-RUN chmod +x /app/entrypoint.sh
 
-# Non-root user
-RUN useradd -r -s /bin/false director && chown -R director:director /app
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    HF_HOME=/tmp/huggingface \
+    HF_HUB_OFFLINE=1 \
+    TRANSFORMERS_OFFLINE=1 \
+    OMP_NUM_THREADS=2 \
+    DIRECTOR_USE_NLI=true \
+    DIRECTOR_SCORER_BACKEND=onnx \
+    DIRECTOR_ONNX_PATH=/app/models/onnx \
+    DIRECTOR_ONNX_ALLOWED_DIRS=/app/models/onnx \
+    DIRECTOR_NLI_DEVICE=cpu \
+    DIRECTOR_COHERENCE_REQUIRE_MODEL_BACKED_NLI=true \
+    DIRECTOR_METRICS_ENABLED=true \
+    DIRECTOR_FINETUNE_MODELS_DIR=/tmp/director-models
+
+RUN useradd --system --no-create-home --shell /bin/false director \
+    && chmod 755 /app/entrypoint.sh
 USER director
 
 EXPOSE 8080
 
-HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
-    CMD curl -f http://localhost:8080/health || exit 1
+HEALTHCHECK --interval=30s --timeout=5s --start-period=120s --retries=3 \
+    CMD python -c "import os, urllib.request; port=os.environ.get('DIRECTOR_PORT') or os.environ.get('PORT') or '8080'; urllib.request.urlopen('http://127.0.0.1:'+port+'/v1/health', timeout=4).close()" || exit 1
 
 ENTRYPOINT ["/app/entrypoint.sh"]

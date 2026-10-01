@@ -1,38 +1,30 @@
 # SPDX-License-Identifier: Apache-2.0
-# Director-AI — Distillation v5 cloud training container
-# For Vertex AI Custom Training Jobs
+# Commercial license available
+# © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
+# © Code 2020–2026 Miroslav Šotek. All rights reserved.
+# ORCID: 0009-0009-3560-0851
+# Contact: www.anulum.li | protoscience@anulum.li
+# Director-AI — Vertex distillation container
 
-# CUDA-12.4 base is pinned by digest for reproducible system libraries.
-# The hash-pinned Python lock below upgrades torch to the patched runtime
-# version used by managed training jobs.
-FROM pytorch/pytorch:2.6.0-cuda12.4-cudnn9-runtime@sha256:77f17f843507062875ce8be2a6f76aa6aa3df7f9ef1e31d9d7432f4b0f563dee
+FROM python:3.12-slim@sha256:f77ac9e44ae96ef2c90b8053ea08c31f8be030f824196b0ae4db6d462c84e51f
 
 WORKDIR /app
-
-# System deps
-RUN apt-get update && apt-get install -y --no-install-recommends git curl && \
-    rm -rf /var/lib/apt/lists/*
-
-# Python deps — pinned by SHA-256 hash via pip-compile output.
-# Regenerate with:
-#     pip-compile --generate-hashes --allow-unsafe \
-#         --output-file=training/requirements-distil.txt \
-#         training/requirements-distil.in
-# Keep torch, transformers, and sentencepiece at patched floors.
+RUN apt-get update && apt-get install -y --no-install-recommends git \
+    && rm -rf /var/lib/apt/lists/*
+COPY requirements/docker-build.txt requirements/docker-build.txt
 COPY training/requirements-distil.txt training/requirements-distil.txt
-RUN pip install --no-cache-dir --require-hashes -r training/requirements-distil.txt \
-    && pip uninstall -y torchvision
-
-# Copy project
-COPY pyproject.toml ./
+RUN pip install --no-cache-dir --require-hashes \
+      -r requirements/docker-build.txt -r training/requirements-distil.txt \
+    && pip check
+COPY pyproject.toml setup.py README.md ./
+COPY packages/tier_build_hooks.py packages/paid_tier_manifest.json packages/
 COPY src/ src/
+
 COPY benchmarks/ benchmarks/
 COPY training/distil_v5_cloud.py training/distil_v5_cloud.py
 COPY training/run_vertex.sh training/run_vertex.sh
-
-# Install director-ai from local source (deps already satisfied above)
-RUN pip install --no-cache-dir --no-deps -e .
-
-RUN chmod +x training/run_vertex.sh
-
+RUN pip install --no-cache-dir --no-deps --no-build-isolation -e . \
+    && pip check \
+    && chmod +x training/run_vertex.sh
+ENV PYTHONUNBUFFERED=1 PYTHONPATH=/app/src:/app
 ENTRYPOINT ["bash", "training/run_vertex.sh"]

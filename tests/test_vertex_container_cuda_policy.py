@@ -9,53 +9,63 @@
 from __future__ import annotations
 
 import json
+import re
 import subprocess
+import tomllib
 from pathlib import Path
+
+from packaging.requirements import Requirement
+from packaging.version import Version
 
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def test_vertex_benchmark_container_overrides_to_vertex_compatible_cuda() -> None:
-    text = (ROOT / "training" / "Dockerfile.benchmarks").read_text()
-    torch_lock = (ROOT / "training" / "requirements-cuda121-torch.txt").read_text()
-
-    assert "requirements-cuda121-torch.txt" in text
-    assert "torch-2.5.1%2Bcu121" in torch_lock
-    assert "download-r2.pytorch.org/whl/cu121" in torch_lock
-    assert "DIRECTOR_REQUIRE_CUDA=1" in text
-
-
-def test_vertex_lite_scorer_container_overrides_to_vertex_compatible_cuda() -> None:
-    text = (ROOT / "training" / "Dockerfile.lite_scorer_v2").read_text()
-    torch_lock = (ROOT / "training" / "requirements-cuda121-torch.txt").read_text()
-
-    assert "requirements-cuda121-torch.txt" in text
-    assert "torch-2.5.1%2Bcu121" in torch_lock
-    assert "download-r2.pytorch.org/whl/cu121" in torch_lock
-    assert "DIRECTOR_REQUIRE_CUDA=1" in text
+def test_vertex_benchmark_container_meets_project_nli_requirements() -> None:
+    """Training locks must satisfy the installed project's NLI constraints."""
+    project = tomllib.loads((ROOT / "pyproject.toml").read_text())
+    requirements = project["project"]["optional-dependencies"]["nli"]
+    for filename in ("requirements-distil.txt", "requirements-contradiction.txt"):
+        locked = {
+            match[0]: Version(match[1])
+            for match in re.findall(
+                r"^([a-zA-Z0-9_-]+)==([^ ;\\]+)",
+                (ROOT / "training" / filename).read_text(),
+                flags=re.MULTILINE,
+            )
+        }
+        for raw in requirements:
+            requirement = Requirement(raw)
+            assert locked[requirement.name] in requirement.specifier
 
 
-def test_vertex_cuda_override_uses_hash_pinned_requirement_files() -> None:
-    benchmark_text = (ROOT / "training" / "Dockerfile.benchmarks").read_text()
-    lite_text = (ROOT / "training" / "Dockerfile.lite_scorer_v2").read_text()
-    torch_lock = (ROOT / "training" / "requirements-cuda121-torch.txt").read_text()
-    benchmark_tools_lock = (
-        ROOT / "training" / "requirements-benchmark-tools.txt"
-    ).read_text()
+def test_vertex_lite_scorer_container_uses_digest_pinned_clean_base() -> None:
+    """All managed recipes resolve CUDA through the hashed Python closure."""
+    for name in ("benchmarks", "lite_scorer_v2", "distil", "contradiction"):
+        text = (ROOT / "training" / f"Dockerfile.{name}").read_text()
+        images = re.findall(r"^FROM (\S+)", text, flags=re.MULTILINE)
+        assert images
+        assert all(re.search(r"@sha256:[a-f0-9]{64}$", image) for image in images)
+        assert images[-1].startswith("python:3.12-slim@")
+        assert "--force-reinstall" not in text
+        assert "requirements-cuda121-torch.txt" not in text
+        if name in {"benchmarks", "lite_scorer_v2"}:
+            assert "DIRECTOR_REQUIRE_CUDA=1" in text
 
-    assert "requirements-cuda121-torch.txt" in benchmark_text
-    assert "requirements-cuda121-torch.txt" in lite_text
-    assert "requirements-benchmark-tools.txt" in benchmark_text
-    assert "torch-2.5.1%2Bcu121" in torch_lock
-    assert (
-        "sha256=c8ab8c92eab928a93c483f83ca8c63f13dafc10fc93ad90ed2dcb7c82ea50410"
-        in torch_lock
-    )
-    assert (
-        "sha256=222be02548c2e74a21a8fbc8e5b8d2eef9f9faee865d70385d2eb1b9aabcbc76"
-        in torch_lock
-    )
-    assert "--hash=sha256:" in benchmark_tools_lock
+
+def test_vertex_containers_install_hash_pinned_requirement_files() -> None:
+    """External installs must use hashed locks without bypassing resolution."""
+    for name in ("benchmarks", "lite_scorer_v2", "distil", "contradiction"):
+        text = (ROOT / "training" / f"Dockerfile.{name}").read_text()
+        commands = text.replace("\\\n", " ").splitlines()
+        for command in commands:
+            if command.startswith("RUN pip install") and "-r " in command:
+                assert "--require-hashes" in command
+                for path in re.findall(r"-r ([^ ]+)", command):
+                    assert "--hash=sha256:" in (ROOT / path).read_text()
+        assert "pip check" in text
+        if "-e ." in text:
+            assert "--no-deps --no-build-isolation -e ." in text
+            assert "requirements/docker-build.txt" in text
 
 
 def test_vertex_benchmark_entrypoint_fails_fast_without_cuda() -> None:

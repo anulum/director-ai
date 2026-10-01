@@ -23,14 +23,18 @@ graph LR
 Pre-built images are not yet published to a registry. Build from the included Dockerfiles:
 
 ```bash
-# CPU-only (heuristic scoring, ~200 MB)
+# CPU server with compiled Rust kernel; no pre-baked NLI model
 docker build -t director-ai .
 docker run -p 8080:8080 director-ai
 
-# GPU-enabled (ONNX CUDA, FactCG model baked in, ~5 GB)
+# GPU-enabled (ONNX CUDA, FactCG model baked in)
 docker build -f Dockerfile.gpu -t director-ai:gpu .
 docker run --gpus all -p 8080:8080 director-ai:gpu
 ```
+
+For a CPU image with the learned FactCG ONNX scorer baked in, use the
+[Cloud Run CPU recipe](cloud-run.md). It installs the hashed CPython 3.12
+CPU profile and honours runtime API credentials and the platform's `PORT`.
 
 ## Docker Compose
 
@@ -53,7 +57,10 @@ GPU, TensorRT, gateway, formal-verifier, and WASM paths are advanced runtimes;
 keep them opt-in unless the deployment requires them. See
 [Runtime Boundaries](../guide/runtime-boundaries.md).
 
-The GPU service requires the NVIDIA Container Toolkit:
+The GPU service requires the NVIDIA Container Toolkit, a Turing-or-newer GPU
+(compute capability 7.5+), and NVIDIA driver branch 580 or newer for the
+hashed CUDA 13 runtime. Pascal cards are outside this image profile.
+Validate CUDA execution on the deployment host before serving traffic:
 
 ```yaml
 # docker-compose.yml (gpu profile)

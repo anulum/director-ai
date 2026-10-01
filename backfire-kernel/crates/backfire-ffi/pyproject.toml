@@ -6,7 +6,7 @@
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI — pyproject
 [build-system]
-requires = ["maturin>=1.0,<2.0"]
+requires = ["maturin>=1.15,<2.0"]
 build-backend = "maturin"
 
 [project]
@@ -16,6 +16,7 @@ description = "Director-Class AI — Rust Backfire Kernel (50ms safety gate)"
 authors = [{name = "Miroslav Šotek", email = "protoscience@anulum.li"}]
 requires-python = ">=3.11"
 license = "Apache-2.0"
+license-files = ["LICENSES/*.txt"]
 classifiers = [
     "License :: OSI Approved :: Apache Software License",
     "Programming Language :: Rust",

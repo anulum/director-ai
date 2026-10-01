@@ -1,0 +1,11 @@
+# SPDX-License-Identifier: Apache-2.0
+# Commercial license available
+# © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
+# © Code 2020–2026 Miroslav Šotek. All rights reserved.
+# ORCID: 0009-0009-3560-0851
+# Contact: www.anulum.li | protoscience@anulum.li
+# Director-AI — Cloud Run CPU PyTorch requirement override
+
+# The Cloud Run image targets CPython 3.12 on Linux x86_64.
+# Same patched upstream release as uv.lock; CPU variant omits CUDA libraries.
+torch @ https://download.pytorch.org/whl/cpu/torch-2.14.1%2Bcpu-cp312-cp312-manylinux_2_28_x86_64.whl#sha256=5a6363570c753812540a05eb82380e329469cbe668643e88111414c12627711f

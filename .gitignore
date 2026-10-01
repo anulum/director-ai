@@ -255,6 +255,10 @@ ckpts/
 !/training/Dockerfile.distil
 !/training/Dockerfile.benchmarks
 !/training/Dockerfile.lite_scorer_v2
+!/training/Dockerfile.contradiction
+!/training/vertex_contradiction_entrypoint.py
+!/training/requirements-contradiction.in
+!/training/requirements-contradiction.txt
 !/training/cloudbuild.lite_scorer_v2.yaml
 !/training/launch_cloud.sh
 !/training/requirements-distil.in

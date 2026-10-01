@@ -344,21 +344,29 @@ historical versions.
 
 ## Troubleshooting
 
+The managed recipes install Torch 2.14.1 and its CUDA 13 wheel closure on a
+digest-pinned Python 3.12 base. They require Turing (compute capability 7.5)
+or newer and NVIDIA driver branch 580 or newer. The benchmark recipe copies
+Rust 1.98.1 from a digest-pinned toolchain image. LoRA uses the separate hashed
+`training/requirements-contradiction.txt` profile, including PEFT 0.21.2.
+Qualify the actual target image and driver before submitting a training job;
+a notebook package check does not replace managed-container qualification.
+
 | Symptom | Likely cause | Fix |
 |---|---|---|
-| Cloud Build fails at `maturin build` | Missing rustup toolchain | Rerun; the toolchain install is cached after first success. Reproduce locally only via `gcloud builds submit` — never `docker build` locally. |
+| Cloud Build fails at `maturin build` | Missing Rust build prerequisites | Confirm the digest-pinned Rust stage and the hashed build-tool profile. Reproduce locally only via `gcloud builds submit` — never `docker build` locally. |
 | Vertex job stays `PENDING` > 10 min | Capacity wait or Vertex CustomJob accelerator quota | Check `gcloud ai custom-jobs describe <job-id> --region=europe-west4`; Compute Engine quota alone is not enough. |
 | `unknown enum label "NVIDIA_T4"` | Vertex SDK expects Tesla names for older GPUs | Use current CLI; it normalises `NVIDIA_T4` to `NVIDIA_TESLA_T4`. |
 | `custom_model_training_nvidia_*_gpus` quota exceeded | Vertex CustomJob quota missing for that accelerator | Use T4/L4 or request Vertex CustomJob quota increase. |
-| Vertex benchmark or distillation image starts on CPU | Container CUDA wheel / driver mismatch or no GPU was attached | Rebuild from the CUDA 12.1 PyTorch override image and keep `DIRECTOR_REQUIRE_CUDA=1`; the entrypoint probes `torch.cuda.is_available()` and a one-element CUDA tensor before downloads or scoring. |
+| Vertex benchmark or distillation image starts on CPU | Container CUDA wheel / driver mismatch or no GPU was attached | Use the hashed Torch 2.14.1/CUDA 13 profile on a Turing-or-newer GPU with driver branch 580 or newer, and keep `DIRECTOR_REQUIRE_CUDA=1`; the entrypoint probes `torch.cuda.is_available()` and a one-element CUDA tensor before downloads or scoring. |
 | CUDA OOM early in fine-tuning | Batch size too high for model/GPU | Use `--batch-size 1` for large DeBERTa/RoBERTa smoke runs on T4. |
 | Lite Scorer v2 loss becomes `nan` | Non-finite teacher/student logits or mixed-precision teacher instability | Current distillation loads the teacher in float32 and aborts on non-finite tensors or loss; inspect the first failing batch before queueing a replacement run. |
 | Managed FactCG artefact scores far below the baseline | GCS artefact resolved to a local path and auto-template detection no longer saw `FactCG` in the model name | Use package metadata or `DIRECTOR_SCORER_TEMPLATE=factcg`; the campaign runner passes this automatically for stable model packages. |
 | Repeated `huggingface/tokenizers` fork warnings | Tokenizer parallelism was initialised before dataloader workers forked | Current runner sets `TOKENIZERS_PARALLELISM=false`; rebuild the image before expecting this in Vertex logs. |
-| Text model import fails with `operator torchvision::nms does not exist` | The PyTorch base image carried an incompatible inherited `torchvision` package, and Transformers imported optional vision helpers before loading text model classes | Rebuild from an image whose Dockerfile uninstalls inherited `torchvision` after the pinned dependency install; confirm the replacement benchmark is run on Vertex AI before promoting any model. |
+| Text model import fails with `operator torchvision::nms does not exist` | The PyTorch base image carried an incompatible inherited `torchvision` package, and Transformers imported optional vision helpers before loading text model classes | Use the clean digest-pinned Python base and hashed text-model profile, which do not install `torchvision`; confirm the replacement benchmark is run on Vertex AI before promoting any model. |
 | `DIRECTOR_BENCH_BASELINE` download fails | Incorrect GCS path or no read-access | Path is `gs://…` not a bare name; container SA needs `storage.objectViewer`. |
 | Orchestrator reports dataset size 0 | Accuracy cases not yet wired | Expected on the default suite; add `--only` with cases that accept datasets. |
-| Rust parity case says 0 tests collected | Wheel built against wrong Python | Cloud Build uses Python from the base image; confirm `pytorch/pytorch:2.6.0-cuda12.4-cudnn9-runtime` digest matches in `Dockerfile.benchmarks`. |
+| Rust parity case says 0 tests collected | Wheel built against wrong Python | Cloud Build uses Python from the base image; confirm the Python 3.12 base and Rust 1.98.1 stage digests match in `Dockerfile.benchmarks`. |
 
 ## Cost notes
 

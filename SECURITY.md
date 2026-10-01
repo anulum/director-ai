@@ -50,17 +50,42 @@ Security concerns for Director-AI:
 Upstream advisories against optional dependencies, with whether they apply to
 Director-AI's usage:
 
-- **chromadb — CVE-2026-45830/45831/45833
-  (GHSA-2wm9-hf6c-p5cr, GHSA-xph7-9rjv-w5fr, GHSA-36p7-vc44-83pf;
-  high/high/critical, unpatched).** These missing tenant-authorization,
+- **chromadb — CVE-2026-45829/45830/45831/45833
+  (GHSA-f4j7-r4q5-qw2c, GHSA-2wm9-hf6c-p5cr,
+  GHSA-xph7-9rjv-w5fr, GHSA-36p7-vc44-83pf; unpatched).** These pre-authentication code-injection, tenant-authorization,
   cross-tenant RBAC, and authenticated code-injection flaws affect the
-  **chromadb server** through 1.5.9; no fixed release exists as of 2026-08-30.
+  **chromadb server** through 1.5.9; no fixed release exists as of 2026-09-30.
   **Not applicable to Director-AI:** chromadb is an optional `[vector]` extra
   (not installed by `pip install director-ai`), and the ChromaDB backend uses
   only the embedded in-process client (`chromadb.PersistentClient` /
   `chromadb.Client`). Tests prohibit `HttpClient`, and the unused compose
   service that previously exposed port 8000 has been removed. We will repin to
   a patched chromadb release when one ships.
+
+### Closed CI scanner exceptions
+
+The three owner-ruled MCP exceptions from 2026-07-17 are closed. The native
+Semgrep 1.178.0 lock now selects MCP 1.29.0, above the 1.27.2 and 1.28.1
+fixed-version floors. Regression tests require the patched MCP SAST pin and prohibit
+reintroducing these resolved waivers.
+No MCP server transport is started by the CI scanner.
+
+### Expiring CI-only PyJWT exception
+
+On 2026-09-30 the owner accepted the 12 specific PyJWT advisories listed in
+`requirements/security-exceptions.toml`, solely for the CI SAST lock and only
+until **2026-10-17**. Semgrep 1.178.0 requires `PyJWT~=2.13.0`; the fixes require
+2.14.0 or 2.15.0, outside that range. Native resolution rejects that combination.
+The affected 2.13.0 pin occurs only in the SAST profile. The official Semgrep
+wheel uses JWT in its MCP server token verifier; CI invokes `semgrep scan` and
+does not start that server. This is a bounded reachability assessment, not a
+claim that the scanner package is advisory-free in other modes.
+
+The unchanged register validator rejects expiry, and regression tests bind the
+waiver to the exact advisory IDs, pin, scope and non-server command. Runtime
+profiles receive no exception. Remove these entries and regenerate the SAST
+lock when a compatible upstream release permits all fixes; do not override
+Semgrep metadata or renew the expiry without a new owner decision.
 
 ## Licensing
 
@@ -93,9 +118,10 @@ exists**, so they cannot be resolved by upgrade. Both are assessed as
 **not exploitable in Director-AI's execution path**; each is documented here
 and will be upgraded the moment a fixed version ships.
 
-### chromadb — CVE-2026-45830/45831/45833 (high/high/critical)
+### chromadb — CVE-2026-45829/45830/45831/45833
 
-The three current advisories are GHSA-2wm9-hf6c-p5cr (missing tenant
+The four current advisories are GHSA-f4j7-r4q5-qw2c (pre-authentication
+code injection), GHSA-2wm9-hf6c-p5cr (missing tenant
 authorization), GHSA-xph7-9rjv-w5fr (`SimpleRBACAuthorizationProvider`
 cross-tenant authorization), and GHSA-36p7-vc44-83pf (authenticated code
 injection through collection updates with `trust_remote_code`). All affect the
@@ -112,6 +138,11 @@ vector-store unit tests so future Chroma adapter changes cannot accidentally
 switch to the server client path. The dead `chromadb/chroma:latest` compose
 service and its host port publish were removed, eliminating the only shipped
 server exposure.
+
+The universal lock selects 1.1.1 because CrewAI requires `chromadb~=1.1.0`;
+the latest 1.5.9 also remains in the affected range. Universal advisory scans
+continue to report these findings; the embedded-only assessment is not a
+claim that the full optional dependency graph is advisory-free.
 
 Upgrading within the vulnerable no-fix range is not a remediation. The alerts
 are dismissed as not used only after the embedded-only tests pass; when an
