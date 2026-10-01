@@ -49,7 +49,13 @@ _Store = TypeVar("_Store", _JobStore, _ManagedJobStore)
 
 def _closure_store(router: APIRouter, store_type: type[_Store]) -> _Store:
     """Return a router-local store captured by endpoint closures."""
-    for route in router.routes:
+    routes = list(router.routes)
+    while routes:
+        route = routes.pop()
+        child = getattr(route, "original_router", None)
+        if isinstance(child, APIRouter):
+            routes.extend(child.routes)
+            continue
         endpoint = getattr(route, "endpoint", None)
         closure = getattr(endpoint, "__closure__", None)
         if not closure:
@@ -275,9 +281,12 @@ class TestRouterEndpoints:
         from fastapi.testclient import TestClient
 
         app = FastAPI()
-        router = create_finetune_router(models_dir=tmp_path / "models")
+        router = create_finetune_router(
+            models_dir=tmp_path / "models",
+            operator_api_keys=("operator-test-key",),
+        )
         app.include_router(router, prefix="/v1/finetune")
-        return TestClient(app)
+        return TestClient(app, headers={"X-API-Key": "operator-test-key"})
 
     def _make_jsonl_bytes(self, n_pos: int = 300, n_neg: int = 300) -> bytes:
         rows = []
@@ -366,9 +375,25 @@ class TestManagedTrainingEndpoints:
         from fastapi.testclient import TestClient
 
         app = FastAPI()
-        router = create_finetune_router(models_dir=tmp_path / "models")
+        router = create_finetune_router(
+            models_dir=tmp_path / "models",
+            operator_api_keys=("operator-test-key",),
+        )
         app.include_router(router, prefix="/v1/finetune")
-        return TestClient(app), router
+        store = _closure_store(router, _JobStore)
+        job = store.create({"base_model": "factcg-deberta-v3-large"})
+        job.state = "completed"
+        model = tmp_path / "models" / "candidate"
+        model.mkdir()
+        job.model_path = str(model)
+        store.save(job)
+        datasets = tmp_path / "models" / "_benchmark_datasets"
+        datasets.mkdir()
+        (datasets / ("b" * 32 + ".jsonl")).write_text(
+            '{"premise":"Evidence","hypothesis":"Claim","label":1}\n',
+            encoding="utf-8",
+        )
+        return TestClient(app, headers={"X-API-Key": "operator-test-key"}), router
 
     def _submit_payload(self, **overrides: object) -> dict[str, object]:
         payload = {
@@ -437,6 +462,33 @@ class TestManagedTrainingEndpoints:
         assert same_tenant.json()["count"] == 1
         assert same_tenant.json()["jobs"][0]["job_id"] == "portable-1"
         assert other_tenant.json()["count"] == 0
+
+    def test_invalid_tenant_refuses_before_backend_submission(
+        self,
+        client_and_router: tuple[TestClient, APIRouter],
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """Reject invalid ownership before submitting any training operation."""
+        import director_ai.core.training.jobs as jobs_module
+
+        invoked = False
+
+        def refuse_submission(
+            spec: TrainingJobSpec, *, backend: str, dry_run: bool
+        ) -> TrainingJobSubmission:
+            nonlocal invoked
+            invoked = True
+            raise AssertionError("Invalid tenant must not reach the backend")
+
+        monkeypatch.setattr(jobs_module, "submit_training_job", refuse_submission)
+        client, _router = client_and_router
+        response = client.post(
+            "/v1/finetune/managed/submit",
+            json=self._submit_payload(dry_run=False),
+            headers={"X-Tenant-ID": "../bad"},
+        )
+        assert response.status_code == 400
+        assert not invoked
 
     def test_submit_managed_training_suite_builds_internal_spec(
         self,
@@ -758,7 +810,7 @@ class TestManagedTrainingEndpoints:
 
         class Report:
             def to_dict(self) -> dict[str, object]:
-                return {"winner": "model-a", "score": 0.91}
+                return {"winner": "model-a", "score": 0.91, "results": []}
 
         monkeypatch.setattr(
             benchmark_module,
@@ -768,7 +820,12 @@ class TestManagedTrainingEndpoints:
         benchmark = client.post(
             "/v1/finetune/managed/benchmark-models",
             json={
-                "model_artifacts": {"model-a": "gs://models/a"},
+                "model_jobs": {
+                    "factcg-deberta-v3-large": _closure_store(_router, _JobStore)
+                    .list_all()[0]
+                    .job_id
+                },
+                "general_dataset_id": "b" * 32,
                 "batch_size": 4,
             },
         )
@@ -779,13 +836,19 @@ class TestManagedTrainingEndpoints:
         )
         invalid = client.post(
             "/v1/finetune/managed/benchmark-models",
-            json={"model_artifacts": {"bad": ""}},
+            json={"model_jobs": {"bad": ""}, "general_dataset_id": "b" * 32},
         )
 
         assert models.status_code == 200
         assert models.json()["models"] == [{"alias": "stable", "experimental": True}]
         assert benchmark.status_code == 200
-        assert benchmark.json() == {"winner": "model-a", "score": 0.91}
+        assert benchmark.json() == {
+            "winner": "model-a",
+            "score": 0.91,
+            "results": [],
+            "general_path": "b" * 32,
+            "eval_path": "",
+        }
         assert invalid.status_code == 422
 
     def test_managed_benchmark_dependency_failure_is_fixed(
@@ -805,7 +868,14 @@ class TestManagedTrainingEndpoints:
         client, _router = client_and_router
         response = client.post(
             "/v1/finetune/managed/benchmark-models",
-            json={"model_artifacts": {"factcg-deberta-v3-large": "ordinary-model"}},
+            json={
+                "model_jobs": {
+                    "factcg-deberta-v3-large": _closure_store(_router, _JobStore)
+                    .list_all()[0]
+                    .job_id
+                },
+                "general_dataset_id": "b" * 32,
+            },
         )
         assert response.status_code == 502
         assert response.json() == {"detail": "Model benchmark failed"}
@@ -1157,9 +1227,12 @@ class TestRouterStartEndpoint:
         from fastapi.testclient import TestClient
 
         app = FastAPI()
-        router = create_finetune_router(models_dir=tmp_path / "models")
+        router = create_finetune_router(
+            models_dir=tmp_path / "models",
+            operator_api_keys=("operator-test-key",),
+        )
         app.include_router(router, prefix="/v1/finetune")
-        return TestClient(app)
+        return TestClient(app, headers={"X-API-Key": "operator-test-key"})
 
     def _make_jsonl_bytes(self, n_pos: int = 300, n_neg: int = 300) -> bytes:
         rows = []

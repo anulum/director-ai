@@ -18,15 +18,18 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Callable
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from ._finetune_benchmark_access import BenchmarkArtifactAccess
 
 from director_ai.core.exceptions import DomainRefusalError
 from director_ai.finetune_jobs import ManagedTrainingRecord, _ManagedJobStore
 
-from ._finetune_schemas import _FASTAPI_AVAILABLE
+from ._finetune_schemas import _FASTAPI_AVAILABLE as _FASTAPI_AVAILABLE
 
 if _FASTAPI_AVAILABLE:
-    from fastapi import APIRouter, HTTPException, Request
+    from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile
 
     from ._finetune_schemas import (
         ManagedModelBenchmarkRequest,
@@ -59,8 +62,49 @@ def register_managed_routes(
     router: APIRouter,
     managed_store: _ManagedJobStore,
     tenant_from_request: Callable[[Request], str],
+    artifacts: BenchmarkArtifactAccess,
 ) -> None:
-    """Register the managed-training endpoints on the fine-tuning router."""
+    """Register operator-only managed routes with confined benchmark inputs.
+
+    Parameters
+    ----------
+    router : APIRouter
+        Parent fine-tuning router receiving the managed route family.
+    managed_store : _ManagedJobStore
+        Persistent tenant-bound managed training ledger.
+    tenant_from_request : Callable
+        Resolver enforcing the server's validated tenant binding.
+    artifacts : BenchmarkArtifactAccess
+        Operator guard and service-owned artifact resolver.
+    """
+    from ._finetune_benchmark_access import ManagedRoute
+
+    parent_router = router
+    router = APIRouter(
+        route_class=ManagedRoute,
+        dependencies=[Depends(artifacts.require_operator)],
+    )
+
+    @router.post("/managed/datasets")
+    async def upload_benchmark_dataset(file: UploadFile) -> dict[str, str | int]:
+        """Register labelled JSONL for later benchmarking by its opaque ID.
+
+        Parameters
+        ----------
+        file : UploadFile
+            UTF-8 JSONL with binary labels, bounded to 10 MiB.
+
+        Returns
+        -------
+        dict
+            Dataset ID and validated sample count.
+
+        Raises
+        ------
+        HTTPException
+            413 for oversized data or 422 for invalid or unconfined data.
+        """
+        return await artifacts.upload(file)
 
     @router.post("/managed/submit")
     async def submit_managed_training(
@@ -92,6 +136,7 @@ def register_managed_routes(
             submit_training_job,
         )
 
+        tenant_id = tenant_from_request(request)
         try:
             hardware = TrainingHardware(
                 machine_type=req.machine_type,
@@ -142,7 +187,6 @@ def register_managed_routes(
         except Exception as exc:
             logger.exception("Training backend submission failed")
             raise HTTPException(502, "Training backend submission failed") from exc
-        tenant_id = tenant_from_request(request)
         managed_store.add(
             ManagedTrainingRecord(
                 job_id=submission.job_id,
@@ -349,13 +393,30 @@ def register_managed_routes(
         )
 
         try:
+            if not req.model_jobs or len(req.model_jobs) > 8:
+                raise HTTPException(
+                    422, "Benchmark requires between one and eight local jobs"
+                )
+            models = {
+                alias: artifacts.model(alias, job_id)
+                for alias, job_id in req.model_jobs.items()
+            }
+            general = artifacts.dataset(req.general_dataset_id)
+            evaluation = (
+                artifacts.dataset(req.eval_dataset_id)
+                if req.eval_dataset_id is not None
+                else None
+            )
             report = benchmark_model_candidates(
-                req.model_artifacts,
-                general_path=req.general_path,
-                eval_path=req.eval_path,
+                models,
+                general_path=general,
+                eval_path=evaluation,
+                local_files_only=True,
                 batch_size=req.batch_size,
                 allow_experimental=req.allow_experimental_model,
             )
+        except HTTPException:
+            raise
         except DomainRefusalError as exc:
             raise HTTPException(422, str(exc)) from exc
         except (ValueError, KeyError, TypeError, AttributeError) as exc:
@@ -365,4 +426,10 @@ def register_managed_routes(
             logger.exception("Model benchmark failed")
             raise HTTPException(502, "Model benchmark failed") from exc
         payload: dict[str, Any] = report.to_dict()
+        payload["general_path"] = req.general_dataset_id
+        payload["eval_path"] = req.eval_dataset_id or ""
+        for entry in payload["results"]:
+            entry["model_path"] = req.model_jobs[entry["requested_model"]]
         return payload
+
+    parent_router.include_router(router)

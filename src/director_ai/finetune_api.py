@@ -107,7 +107,9 @@ async def _read_upload_with_limit(file: UploadFile) -> bytes:
 
 def _tenant_from_request(request: Request) -> str:
     """Return a validated tenant id from request headers."""
-    tenant_id = str(request.headers.get("X-Tenant-ID", ""))
+    tenant_id = str(
+        getattr(request.state, "tenant_id", request.headers.get("X-Tenant-ID", ""))
+    )
     if not tenant_id:
         return ""
     if not _SAFE_TENANT_RE.fullmatch(tenant_id):
@@ -119,12 +121,24 @@ def _tenant_from_request(request: Request) -> str:
     return tenant_id
 
 
-def create_finetune_router(models_dir: Path | None = None) -> APIRouter:
+def create_finetune_router(
+    models_dir: Path | None = None,
+    *,
+    operator_api_keys: tuple[str, ...] = (),
+) -> APIRouter:
     """Create the fine-tuning API router.
 
     Parameters
     ----------
-    models_dir : directory for storing fine-tuned models
+    models_dir : Path or None
+        Directory for storing fine-tuned models.
+    operator_api_keys : tuple of str
+        Existing API keys granted managed-training access. Empty disables it.
+
+    Returns
+    -------
+    APIRouter
+        Local training routes and explicitly guarded managed routes.
 
     """
     if not _FASTAPI_AVAILABLE:
@@ -296,7 +310,14 @@ def create_finetune_router(models_dir: Path | None = None) -> APIRouter:
             "total_samples": report.total_samples,
         }
 
-    register_managed_routes(router, managed_store, _tenant_from_request)
+    from ._finetune_benchmark_access import BenchmarkArtifactAccess
+
+    register_managed_routes(
+        router,
+        managed_store,
+        _tenant_from_request,
+        BenchmarkArtifactAccess(models_dir, store, operator_api_keys),
+    )
 
     @router.get("/{job_id}")
     async def get_job_status(job_id: str) -> dict[str, Any]:

@@ -20,7 +20,7 @@ from __future__ import annotations
 from typing import Any
 
 try:
-    from pydantic import BaseModel, Field
+    from pydantic import BaseModel, ConfigDict, Field
 
     _FASTAPI_AVAILABLE = True
 except ImportError:
@@ -116,8 +116,9 @@ if _FASTAPI_AVAILABLE:
     class ManagedModelBenchmarkRequest(BaseModel):
         """Managed-model benchmark request."""
 
-        model_artifacts: dict[str, str]
-        general_path: str | None = None
-        eval_path: str | None = None
+        model_config = ConfigDict(extra="forbid")
+        model_jobs: dict[str, str]
+        general_dataset_id: str
+        eval_dataset_id: str | None = None
         batch_size: int | None = Field(None, ge=1, le=128)
         allow_experimental_model: bool = False

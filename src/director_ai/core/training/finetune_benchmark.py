@@ -256,6 +256,9 @@ def _evaluate_model(
     model_path: str | Path,
     samples: list[TrainingRow],
     batch_size: int = 48,
+    *,
+    local_files_only: bool = False,
+    template: str | None = None,
 ) -> dict[str, float]:
     """Run a model on samples and return balanced_accuracy + f1."""
     from .finetune import _balanced_accuracy, _binary_f1_score
@@ -269,10 +272,15 @@ def _evaluate_model(
     except ImportError as exc:
         raise ImportError("pip install director-ai[finetune]") from exc
 
-    tokenizer = AutoTokenizer.from_pretrained(model_source, revision=model_revision)
+    tokenizer = AutoTokenizer.from_pretrained(
+        model_source,
+        revision=model_revision,
+        local_files_only=local_files_only,
+    )
     model = AutoModelForSequenceClassification.from_pretrained(
         model_source,
         revision=model_revision,
+        local_files_only=local_files_only,
     )
     model.eval()
 
@@ -281,7 +289,11 @@ def _evaluate_model(
     device = torch.device(select_torch_device())
     model.to(device)
 
-    is_factcg = "factcg" in str(model_path).lower()
+    is_factcg = (
+        template == "factcg"
+        if template is not None
+        else "factcg" in str(model_path).lower()
+    )
     if is_factcg:
         from director_ai.core.training.finetune import _FACTCG_TEMPLATE
 
@@ -327,17 +339,33 @@ def benchmark_finetuned_model(
     eval_path: str | Path | None = None,
     baseline_accuracy: float = _BASELINE_ACCURACY,
     batch_size: int = 48,
+    *,
+    local_files_only: bool = False,
+    template: str | None = None,
 ) -> RegressionReport:
     """Benchmark a fine-tuned model for regression.
 
     Parameters
     ----------
-    model_path : path to fine-tuned model directory
-    general_path : JSONL with general benchmark samples (shipped AggreFact subset).
-                   If None, looks for ``data/aggrefact_benchmark_1k.jsonl`` in package.
-    eval_path : optional JSONL with domain-specific eval samples
-    baseline_accuracy : baseline balanced accuracy to compare against
-    batch_size : inference batch size
+    model_path : str or Path
+        Fine-tuned model directory or trusted model-hub reference.
+    general_path : str, Path or None
+        General benchmark JSONL, or the packaged AggreFact subset when omitted.
+    eval_path : str, Path or None
+        JSONL containing domain evaluation samples.
+    baseline_accuracy : float
+        Balanced accuracy against which regression is measured.
+    batch_size : int
+        Number of samples evaluated in each inference batch.
+    local_files_only : bool
+        Refuse model-hub access; required for service-owned HTTP artefacts.
+    template : str or None
+        Registry input template, or filename inference for a standalone model.
+
+    Returns
+    -------
+    RegressionReport
+        Domain/general metrics and the corresponding regression recommendation.
 
     """
     report = RegressionReport(baseline_accuracy=baseline_accuracy)
@@ -347,7 +375,13 @@ def benchmark_finetuned_model(
         domain_samples = _load_benchmark_jsonl(eval_path)
         if domain_samples:
             logger.info("Evaluating domain data: %d samples", len(domain_samples))
-            domain_metrics = _evaluate_model(model_path, domain_samples, batch_size)
+            domain_metrics = _evaluate_model(
+                model_path,
+                domain_samples,
+                batch_size,
+                local_files_only=local_files_only,
+                template=template,
+            )
             report.domain_accuracy = domain_metrics["balanced_accuracy"]
             report.domain_f1 = domain_metrics["f1"]
             report.details["domain_samples"] = len(domain_samples)
@@ -366,7 +400,13 @@ def benchmark_finetuned_model(
                 "Evaluating general benchmark: %d samples",
                 len(general_samples),
             )
-            general_metrics = _evaluate_model(model_path, general_samples, batch_size)
+            general_metrics = _evaluate_model(
+                model_path,
+                general_samples,
+                batch_size,
+                local_files_only=local_files_only,
+                template=template,
+            )
             report.general_accuracy = general_metrics["balanced_accuracy"]
             report.general_f1 = general_metrics["f1"]
             report.details["general_samples"] = len(general_samples)
@@ -410,6 +450,7 @@ def benchmark_model_candidates(
     batch_size: int | None = None,
     allow_experimental: bool = False,
     seed: int = 42,
+    local_files_only: bool = False,
 ) -> ModelBenchmarkReport:
     """Benchmark trained model artifacts with identical datasets and seed.
 
@@ -425,6 +466,8 @@ def benchmark_model_candidates(
         Permit experimental model profiles during registry resolution.
     seed : int
         Seed reused for each candidate's evaluation.
+    local_files_only : bool
+        Prevent tokenizer and model loaders from accessing the model hub.
 
     Returns
     -------
@@ -455,6 +498,8 @@ def benchmark_model_candidates(
                 eval_path=eval_path,
                 baseline_accuracy=baseline,
                 batch_size=batch_size or profile.recommended_batch_size,
+                local_files_only=local_files_only,
+                template=profile.template,
             )
             results.append(
                 ModelBenchmarkResult.from_report(

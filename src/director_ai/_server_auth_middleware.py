@@ -117,7 +117,7 @@ def install_auth_middleware(app: FastAPI, cfg: DirectorConfig) -> None:
             # timing side-channels that leak key position.
             key_valid = False
             for k in _valid_api_keys:
-                if hmac.compare_digest(provided, k):
+                if hmac.compare_digest(provided.encode(), k.encode()):
                     key_valid = True
             if not key_valid:
                 logger.warning(

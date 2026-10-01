@@ -284,7 +284,10 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
             Path(cfg.finetune_models_dir) if cfg.finetune_models_dir else None
         )
         app.include_router(
-            create_finetune_router(models_dir=finetune_models_dir),
+            create_finetune_router(
+                models_dir=finetune_models_dir,
+                operator_api_keys=tuple(cfg.finetune_operator_api_keys),
+            ),
             prefix="/v1/finetune",
         )
         app.state.router_mounts["finetune"] = "mounted"

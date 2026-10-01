@@ -40,9 +40,14 @@ def client(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Iterator[TestClie
         sanitize_inputs=False,
         knowledge_write_require_tenant_binding=False,
         finetune_models_dir=str(tmp_path / "models"),
+        api_keys=["operator-test-key"],
+        finetune_operator_api_keys=["operator-test-key"],
         multimodal_enabled_modalities=("image", "audio", "video"),
     )
-    with TestClient(create_app(config), headers={"X-Tenant-ID": "acme"}) as http:
+    with TestClient(
+        create_app(config),
+        headers={"X-Tenant-ID": "acme", "X-API-Key": "operator-test-key"},
+    ) as http:
         yield http
 
 
@@ -168,13 +173,30 @@ def test_benchmark_malformed_dataset_maps_native_attribute_error(
     tmp_path: Path,
 ) -> None:
     """Actual malformed JSONL produces a fixed per-model failure sentence."""
-    dataset = tmp_path / "ordinary-malformed.jsonl"
+    job_id = "a" * 32
+    model = tmp_path / "models" / "candidate"
+    model.mkdir()
+    job = FinetuneJob(
+        job_id=job_id,
+        state="completed",
+        config={"base_model": "factcg-deberta-v3-large"},
+        model_path=str(model),
+    )
+    with sqlite3.connect(tmp_path / "models" / "finetune_jobs.sqlite3") as db:
+        db.execute(
+            "INSERT INTO finetune_jobs VALUES (?, ?, ?)",
+            (job_id, job.state, json.dumps(asdict(job))),
+        )
+    dataset_dir = tmp_path / "models" / "_benchmark_datasets"
+    dataset_dir.mkdir()
+    dataset_id = "b" * 32
+    dataset = dataset_dir / f"{dataset_id}.jsonl"
     dataset.write_text(json.dumps(["not a training row"]) + "\n", encoding="utf-8")
     response = client.post(
         "/v1/finetune/managed/benchmark-models",
         json={
-            "model_artifacts": {"factcg-deberta-v3-large": str(tmp_path / "model")},
-            "eval_path": str(dataset),
+            "model_jobs": {"factcg-deberta-v3-large": job_id},
+            "general_dataset_id": dataset_id,
         },
     )
     assert response.status_code == 200
@@ -185,11 +207,11 @@ def test_benchmark_malformed_dataset_maps_native_attribute_error(
     assert "get" not in result["error"]
     refusal = client.post(
         "/v1/finetune/managed/benchmark-models",
-        json={"model_artifacts": {}},
+        json={"model_jobs": {}, "general_dataset_id": dataset_id},
     )
     assert refusal.status_code == 422
     assert refusal.json() == {
-        "detail": "model_artifacts must contain at least one model"
+        "detail": "Benchmark requires between one and eight local jobs"
     }
 
 

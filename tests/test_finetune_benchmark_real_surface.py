@@ -79,6 +79,9 @@ def test_empty_domain_and_general_data_do_not_invoke_model(
         model_path: str | Path,
         samples: list[TrainingRow],
         batch_size: int = 48,
+        *,
+        local_files_only: bool = False,
+        template: str | None = None,
     ) -> dict[str, float]:
         """Fail if empty benchmark data reaches model inference."""
         raise AssertionError(
@@ -132,6 +135,9 @@ def test_default_package_benchmark_data_is_loaded_when_present(
         model_path: str | Path,
         samples: list[TrainingRow],
         batch_size: int = 48,
+        *,
+        local_files_only: bool = False,
+        template: str | None = None,
     ) -> dict[str, float]:
         """Record the real benchmark samples passed to model evaluation."""
         calls.append((str(model_path), len(samples), batch_size))

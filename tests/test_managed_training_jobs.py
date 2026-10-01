@@ -14,15 +14,21 @@ import builtins
 import json
 import sys
 import types
+from collections.abc import Sequence
+from dataclasses import replace
+from pathlib import Path
 from types import SimpleNamespace
+from typing import TypedDict, Unpack
 from unittest.mock import MagicMock, patch
 
 import pytest
+from fastapi.testclient import TestClient
 
 import director_ai._cli_train as cli_train
 import director_ai.core.training as training_api
 import director_ai.core.training.results as training_results
 from director_ai.cli import main
+from director_ai.core.training.finetune import FinetuneConfig
 from director_ai.core.training.jobs import (
     LocalTrainingBackend,
     PortableTrainingBackend,
@@ -55,19 +61,57 @@ from director_ai.core.training.vertex_runner import (
 from director_ai.core.training.vertex_runner import main as vertex_runner_main
 
 
-def _vertex_spec(**overrides) -> TrainingJobSpec:
-    values = {
-        "display_name": "tenant-training",
-        "caller": "product",
-        "dataset_uri": "gs://director-data/train.jsonl",
-        "output_uri": "gs://director-artifacts/jobs/job-1",
-        "eval_uri": "gs://director-data/eval.jsonl",
-        "project": "director-project",
-        "container_image_uri": "us-docker.pkg.dev/director/train:latest",
-        "hardware": TrainingHardware(),
-    }
-    values.update(overrides)
-    return TrainingJobSpec(**values)
+class _TrainingOptions(TypedDict, total=False):
+    """Typed keyword overrides for the actual managed training specification."""
+
+    display_name: str
+    task_type: str
+    caller: str
+    dataset_uri: str
+    output_uri: str
+    eval_uri: str | None
+    project: str | None
+    region: str
+    base_model: str
+    allow_experimental_model: bool
+    epochs: int
+    batch_size: int
+    learning_rate: float
+    timeout_minutes: int
+    container_image_uri: str
+    service_account: str | None
+    network: str | None
+    hardware: TrainingHardware
+    labels: dict[str, str]
+    env: dict[str, str]
+    args: list[str]
+
+
+class _SweepOptions(TypedDict, total=False):
+    """Typed inputs to the real training sweep validation surface."""
+
+    sweep_id: str
+    datasets: list[TrainingDatasetSplit]
+    base_models: list[str]
+    epochs: list[int]
+    batch_sizes: list[int]
+    output_prefix: str
+
+
+def _vertex_spec(**overrides: Unpack[_TrainingOptions]) -> TrainingJobSpec:
+    return replace(
+        TrainingJobSpec(
+            display_name="tenant-training",
+            caller="product",
+            dataset_uri="gs://director-data/train.jsonl",
+            output_uri="gs://director-artifacts/jobs/job-1",
+            eval_uri="gs://director-data/eval.jsonl",
+            project="director-project",
+            container_image_uri="us-docker.pkg.dev/director/train:latest",
+            hardware=TrainingHardware(),
+        ),
+        **overrides,
+    )
 
 
 class TestTrainingJobSpec:
@@ -86,7 +130,9 @@ class TestTrainingJobSpec:
             (TrainingHardware(boot_disk_gb=49), "boot_disk_gb must be at least 50"),
         ],
     )
-    def test_hardware_validation_errors_are_actionable(self, hardware, message):
+    def test_hardware_validation_errors_are_actionable(
+        self, hardware: TrainingHardware, message: str
+    ) -> None:
         with pytest.raises(ValueError, match=message):
             hardware.validate()
 
@@ -105,16 +151,18 @@ class TestTrainingJobSpec:
             ({"timeout_minutes": 24 * 60 + 1}, "timeout_minutes must be between"),
         ],
     )
-    def test_spec_validation_errors_are_actionable(self, overrides, message):
+    def test_spec_validation_errors_are_actionable(
+        self, overrides: _TrainingOptions, message: str
+    ) -> None:
         spec = _vertex_spec(**overrides)
         with pytest.raises(ValueError, match=message):
             spec.validate("vertex")
 
-    def test_spec_validation_rejects_unknown_backend(self):
+    def test_spec_validation_rejects_unknown_backend(self) -> None:
         with pytest.raises(ValueError, match="backend must be one of"):
             _vertex_spec().validate("kubernetes")
 
-    def test_portable_spec_rejects_default_placeholder_image(self):
+    def test_portable_spec_rejects_default_placeholder_image(self) -> None:
         # The portable backend ships to an external orchestrator, so the bare
         # python base image is not a runnable training container.
         spec = _vertex_spec(container_image_uri="python:3.12-slim")
@@ -123,22 +171,22 @@ class TestTrainingJobSpec:
         ):
             spec.validate("portable")
 
-    def test_vertex_spec_requires_cloud_uris(self):
+    def test_vertex_spec_requires_cloud_uris(self) -> None:
         spec = _vertex_spec(dataset_uri="/tmp/train.jsonl")
         with pytest.raises(ValueError, match="dataset_uri must be a gs:// URI"):
             spec.validate("vertex")
 
-    def test_vertex_spec_requires_project(self):
+    def test_vertex_spec_requires_project(self) -> None:
         spec = _vertex_spec(project=None)
         with pytest.raises(ValueError, match="project is required"):
             spec.validate("vertex")
 
-    def test_vertex_spec_rejects_placeholder_image(self):
+    def test_vertex_spec_rejects_placeholder_image(self) -> None:
         spec = _vertex_spec(container_image_uri="python:3.12-slim")
         with pytest.raises(ValueError, match="training image"):
             spec.validate("vertex")
 
-    def test_local_spec_accepts_paths(self, tmp_path):
+    def test_local_spec_accepts_paths(self, tmp_path: Path) -> None:
         spec = TrainingJobSpec(
             display_name="local",
             dataset_uri=str(tmp_path / "train.jsonl"),
@@ -146,18 +194,18 @@ class TestTrainingJobSpec:
         )
         spec.validate("local")
 
-    def test_env_redaction(self):
+    def test_env_redaction(self) -> None:
         spec = _vertex_spec(env={"API_TOKEN": "secret", "MODE": "test"})
         redacted = spec.to_redacted_dict()
         assert redacted["env"]["API_TOKEN"] == "<redacted>"
         assert redacted["env"]["MODE"] == "test"
 
-    def test_hashes_are_stable(self):
+    def test_hashes_are_stable(self) -> None:
         spec = _vertex_spec()
         assert spec.dataset_hash == _vertex_spec().dataset_hash
         assert spec.config_hash == _vertex_spec().config_hash
 
-    def test_dataset_fingerprint_hashes_local_content(self, tmp_path):
+    def test_dataset_fingerprint_hashes_local_content(self, tmp_path: Path) -> None:
         dataset = tmp_path / "train.jsonl"
         dataset.write_text('{"label": 1}\n', encoding="utf-8")
         spec = TrainingJobSpec(
@@ -171,13 +219,15 @@ class TestTrainingJobSpec:
         assert fingerprint.hash_source == "content"
         assert fingerprint.byte_size == len('{"label": 1}\n')
 
-    def test_dataset_fingerprint_labels_remote_uri_fallback(self):
+    def test_dataset_fingerprint_labels_remote_uri_fallback(self) -> None:
         fingerprint = _vertex_spec().dataset_fingerprint()
 
         assert fingerprint.hash_source == "uri-only"
         assert fingerprint.reason == "remote-uri-without-reader"
 
-    def test_dataset_fingerprint_labels_missing_local_path(self, tmp_path):
+    def test_dataset_fingerprint_labels_missing_local_path(
+        self, tmp_path: Path
+    ) -> None:
         spec = TrainingJobSpec(
             display_name="local",
             dataset_uri=str(tmp_path / "absent.jsonl"),
@@ -189,23 +239,23 @@ class TestTrainingJobSpec:
         assert fingerprint.hash_source == "uri-only"
         assert fingerprint.reason == "missing-local-path"
 
-    def test_default_model_resolves_to_registry_profile(self):
+    def test_default_model_resolves_to_registry_profile(self) -> None:
         spec = _vertex_spec()
         profile = spec.resolved_model_profile()
         assert profile.alias == "factcg-deberta-v3-large"
         assert profile.model_id == "yaxili96/FactCG-DeBERTa-v3-Large"
 
-    def test_experimental_model_requires_explicit_flag(self):
+    def test_experimental_model_requires_explicit_flag(self) -> None:
         spec = _vertex_spec(base_model="roberta-large-mnli")
         with pytest.raises(ValueError, match="experimental"):
             spec.validate("vertex")
 
-    def test_custom_model_requires_explicit_flag(self):
+    def test_custom_model_requires_explicit_flag(self) -> None:
         spec = _vertex_spec(base_model="org/custom-model")
         with pytest.raises(ValueError, match="stable fine-tune registry"):
             spec.validate("vertex")
 
-    def test_suite_spec_redaction_skips_model_resolution(self):
+    def test_suite_spec_redaction_skips_model_resolution(self) -> None:
         spec = TrainingJobSpec(
             display_name="suite",
             task_type="suite",
@@ -224,7 +274,7 @@ class TestTrainingJobSpec:
 
 
 class TestVertexRequest:
-    def test_builds_worker_pool_spec(self):
+    def test_builds_worker_pool_spec(self) -> None:
         request = build_vertex_custom_job_request(_vertex_spec())
         pool = request["job_spec"]["worker_pool_specs"][0]
         assert request["display_name"] == "tenant-training"
@@ -240,11 +290,11 @@ class TestVertexRequest:
         assert "--epochs" in pool["container_spec"]["args"]
         assert "yaxili96/FactCG-DeBERTa-v3-Large" in pool["container_spec"]["args"]
 
-    def test_timeout_converted_to_seconds(self):
+    def test_timeout_converted_to_seconds(self) -> None:
         request = build_vertex_custom_job_request(_vertex_spec(timeout_minutes=7))
         assert request["job_spec"]["scheduling"]["timeout"] == "420s"
 
-    def test_gpu_quota_alias_is_normalised_for_vertex_sdk(self):
+    def test_gpu_quota_alias_is_normalised_for_vertex_sdk(self) -> None:
         spec = _vertex_spec(
             hardware=TrainingHardware(
                 machine_type="n1-standard-8",
@@ -256,7 +306,7 @@ class TestVertexRequest:
         pool = request["job_spec"]["worker_pool_specs"][0]
         assert pool["machine_spec"]["accelerator_type"] == "NVIDIA_TESLA_T4"
 
-    def test_internal_suite_uses_same_vertex_request_shape(self):
+    def test_internal_suite_uses_same_vertex_request_shape(self) -> None:
         spec = build_internal_suite_spec(
             suite="test_finetune_gpu",
             dataset_uri="gs://director-data/internal.jsonl",
@@ -272,7 +322,7 @@ class TestVertexRequest:
         assert container["args"][:2] == ["-m", "pytest"]
         assert request["labels"]["suite"] == "test-finetune-gpu"
 
-    def test_experimental_model_request_when_allowed(self):
+    def test_experimental_model_request_when_allowed(self) -> None:
         spec = _vertex_spec(
             base_model="roberta-large-mnli",
             allow_experimental_model=True,
@@ -282,7 +332,7 @@ class TestVertexRequest:
         assert "roberta-large-mnli" in args
         assert request["labels"]["director-ai-model"] == "roberta-large-mnli"
 
-    def test_cpu_only_worker_pool_omits_accelerator_fields(self):
+    def test_cpu_only_worker_pool_omits_accelerator_fields(self) -> None:
         spec = _vertex_spec(
             hardware=TrainingHardware(
                 machine_type="n1-standard-4",
@@ -303,14 +353,14 @@ class TestVertexRequest:
 
 
 class TestBackends:
-    def test_get_backend(self):
+    def test_get_backend(self) -> None:
         assert isinstance(get_training_backend("local"), LocalTrainingBackend)
         assert isinstance(get_training_backend("portable"), PortableTrainingBackend)
         assert isinstance(get_training_backend("vertex"), VertexTrainingBackend)
         with pytest.raises(ValueError):
             get_training_backend("missing")
 
-    def test_portable_dry_run_emits_provider_neutral_container_contract(self):
+    def test_portable_dry_run_emits_provider_neutral_container_contract(self) -> None:
         spec = _vertex_spec(
             dataset_uri="s3://director-data/train.jsonl",
             eval_uri="azure://director-data/eval.jsonl",
@@ -338,7 +388,7 @@ class TestBackends:
             "file:///mnt/provider/director-ai/job-1"
         )
 
-    def test_portable_provenance_carries_labelled_dataset_fingerprint(self):
+    def test_portable_provenance_carries_labelled_dataset_fingerprint(self) -> None:
         spec = _vertex_spec(project=None)
 
         request = build_portable_container_job_request(spec)
@@ -350,20 +400,20 @@ class TestBackends:
         assert fingerprint["reason"] == "remote-uri-without-reader"
         assert fingerprint["uri"] == spec.dataset_uri
 
-    def test_portable_command_omits_eval_argument_without_eval_uri(self):
+    def test_portable_command_omits_eval_argument_without_eval_uri(self) -> None:
         # A spec with no eval set must not emit a dangling --eval-uri flag in the
         # provider-neutral command.
         spec = _vertex_spec(eval_uri=None, project=None)
         result = submit_training_job(spec, backend="portable", dry_run=True)
         assert "--eval-uri" not in result.request["container"]["args"]
 
-    def test_portable_execute_is_external_orchestrator_only(self):
+    def test_portable_execute_is_external_orchestrator_only(self) -> None:
         with pytest.raises(RuntimeError, match="external orchestrator"):
             submit_training_job(
                 _vertex_spec(project=None), backend="portable", dry_run=False
             )
 
-    def test_portable_request_redacts_secret_env(self):
+    def test_portable_request_redacts_secret_env(self) -> None:
         spec = _vertex_spec(
             project=None,
             env={"API_TOKEN": "secret-token", "MODE": "train"},
@@ -374,33 +424,33 @@ class TestBackends:
         assert request["container"]["env"]["API_TOKEN"] == "<redacted>"
         assert request["container"]["env"]["MODE"] == "train"
 
-    def test_portable_backend_exports_from_training_package(self):
+    def test_portable_backend_exports_from_training_package(self) -> None:
         assert training_api.PortableTrainingBackend is PortableTrainingBackend
         assert (
             training_api.build_portable_container_job_request
             is build_portable_container_job_request
         )
 
-    def test_vertex_dry_run_does_not_import_cloud_sdk(self):
+    def test_vertex_dry_run_does_not_import_cloud_sdk(self) -> None:
         with patch("importlib.import_module") as mock_import:
             result = submit_training_job(_vertex_spec(), backend="vertex", dry_run=True)
         mock_import.assert_not_called()
         assert result.state == "dry_run"
         assert result.job_id.startswith("projects/director-project/")
 
-    def test_vertex_execute_uses_current_sdk_submit_signature(self):
+    def test_vertex_execute_uses_current_sdk_submit_signature(self) -> None:
         class FakeJob:
             resource_name = "projects/director-project/locations/us/customJobs/123"
             gca_resource = "console-resource"
 
-            def __init__(self, **kwargs):
+            def __init__(self, **kwargs: object) -> None:
                 self.kwargs = kwargs
                 submitted_jobs.append(self)
 
-            def submit(self, **kwargs):
+            def submit(self, **kwargs: object) -> None:
                 self.submit_kwargs = kwargs
 
-        submitted_jobs = []
+        submitted_jobs: list[FakeJob] = []
         fake_module = SimpleNamespace(
             init=lambda **kwargs: None,
             CustomJob=FakeJob,
@@ -419,7 +469,7 @@ class TestBackends:
         assert submitted_jobs[0].submit_kwargs["timeout"] == 420
         assert "sync" not in submitted_jobs[0].submit_kwargs
 
-    def test_vertex_submit_missing_sdk_raises_actionable_hint(self):
+    def test_vertex_submit_missing_sdk_raises_actionable_hint(self) -> None:
         with (
             patch("importlib.import_module", side_effect=ImportError("boom")),
             pytest.raises(ImportError, match="google-cloud-aiplatform") as excinfo,
@@ -428,7 +478,7 @@ class TestBackends:
         assert "pip install google-cloud-aiplatform" in str(excinfo.value)
         assert isinstance(excinfo.value.__cause__, ImportError)
 
-    def test_vertex_status_and_cancel_missing_sdk_raise_actionable_hint(self):
+    def test_vertex_status_and_cancel_missing_sdk_raise_actionable_hint(self) -> None:
         backend = VertexTrainingBackend()
         job_id = "projects/p/locations/us/customJobs/9"
         with patch("importlib.import_module", side_effect=ImportError("boom")):
@@ -437,7 +487,9 @@ class TestBackends:
             with pytest.raises(ImportError, match="google-cloud-aiplatform"):
                 backend.cancel(job_id)
 
-    def test_cli_submit_reports_submission_failure(self, capsys):
+    def test_cli_submit_reports_submission_failure(
+        self, capsys: pytest.CaptureFixture[str]
+    ) -> None:
         with (
             patch(
                 "director_ai.core.training.jobs.submit_training_job",
@@ -464,7 +516,7 @@ class TestBackends:
         assert excinfo.value.code == 1
         assert "training job submission failed" in capsys.readouterr().out
 
-    def test_local_dry_run_returns_command(self, tmp_path):
+    def test_local_dry_run_returns_command(self, tmp_path: Path) -> None:
         spec = TrainingJobSpec(
             display_name="local",
             dataset_uri=str(tmp_path / "train.jsonl"),
@@ -475,7 +527,9 @@ class TestBackends:
         assert result.request["command"][:2] == ["director-ai", "finetune"]
         assert "--epochs" in result.request["command"]
 
-    def test_local_request_carries_content_dataset_fingerprint(self, tmp_path):
+    def test_local_request_carries_content_dataset_fingerprint(
+        self, tmp_path: Path
+    ) -> None:
         dataset = tmp_path / "train.jsonl"
         dataset.write_text('{"label": 1}\n', encoding="utf-8")
         spec = TrainingJobSpec(
@@ -491,7 +545,7 @@ class TestBackends:
         assert fingerprint["file_count"] == 1
         assert result.request["dataset_hash"] == spec.dataset_hash
 
-    def test_local_execute_runs_finetune_api(self, tmp_path):
+    def test_local_execute_runs_finetune_api(self, tmp_path: Path) -> None:
         spec = TrainingJobSpec(
             display_name="local",
             dataset_uri=str(tmp_path / "train.jsonl"),
@@ -502,7 +556,7 @@ class TestBackends:
         mock_finetune.assert_called_once()
         assert result.state == "completed"
 
-    def test_local_status_and_cancel_are_explicitly_synchronous(self):
+    def test_local_status_and_cancel_are_explicitly_synchronous(self) -> None:
         backend = LocalTrainingBackend()
 
         status = backend.status("local-123")
@@ -518,7 +572,7 @@ class TestBackends:
         assert cancelled.state == "unsupported"
         assert "synchronously" in cancelled.error
 
-    def test_portable_status_and_cancel_defer_to_external_orchestrator(self):
+    def test_portable_status_and_cancel_defer_to_external_orchestrator(self) -> None:
         backend = PortableTrainingBackend()
 
         status = backend.status("ext-1")
@@ -528,7 +582,9 @@ class TestBackends:
         assert "external orchestrator" in status.error
         assert cancelled.state == "unsupported"
 
-    def test_local_dry_run_includes_eval_argument_and_shell_display(self, tmp_path):
+    def test_local_dry_run_includes_eval_argument_and_shell_display(
+        self, tmp_path: Path
+    ) -> None:
         spec = TrainingJobSpec(
             display_name="local",
             dataset_uri=str(tmp_path / "train.jsonl"),
@@ -543,7 +599,7 @@ class TestBackends:
             "director-ai finetune 'path with spaces'"
         )
 
-    def test_local_suite_execute_runs_pytest_args_and_reports_failure(self):
+    def test_local_suite_execute_runs_pytest_args_and_reports_failure(self) -> None:
         spec = build_internal_suite_spec(
             suite="test_smoke",
             dataset_uri="/tmp/input",
@@ -564,7 +620,7 @@ class TestBackends:
         ):
             submit_training_job(spec, backend="local", dry_run=False)
 
-    def test_local_suite_execute_accepts_plain_args(self):
+    def test_local_suite_execute_accepts_plain_args(self) -> None:
         spec = TrainingJobSpec(
             display_name="suite",
             task_type="suite",
@@ -579,19 +635,19 @@ class TestBackends:
 
         mock_pytest.assert_called_once_with(["tests/test_smoke.py", "-q"])
 
-    def test_vertex_status_and_cancel_use_sdk_job_lookup(self):
+    def test_vertex_status_and_cancel_use_sdk_job_lookup(self) -> None:
         class FakeJob:
             state = "JOB_STATE_RUNNING"
 
-            def __init__(self):
+            def __init__(self) -> None:
                 self.cancelled = False
 
-            def cancel(self):
+            def cancel(self) -> None:
                 self.cancelled = True
                 cancelled_jobs.append(self)
 
         fake_job = FakeJob()
-        cancelled_jobs = []
+        cancelled_jobs: list[FakeJob] = []
         fake_module = SimpleNamespace(
             CustomJob=SimpleNamespace(get=MagicMock(return_value=fake_job))
         )
@@ -609,7 +665,7 @@ class TestBackends:
         assert cancelled_jobs == [fake_job]
         assert fake_module.CustomJob.get.call_count == 2
 
-    def test_vertex_status_defaults_unknown_when_state_missing(self):
+    def test_vertex_status_defaults_unknown_when_state_missing(self) -> None:
         fake_module = SimpleNamespace(
             CustomJob=SimpleNamespace(get=MagicMock(return_value=SimpleNamespace()))
         )
@@ -619,7 +675,7 @@ class TestBackends:
 
         assert status.state == "unknown"
 
-    def test_internal_suite_requires_name(self):
+    def test_internal_suite_requires_name(self) -> None:
         with pytest.raises(ValueError, match="suite is required"):
             build_internal_suite_spec(
                 suite="",
@@ -627,7 +683,9 @@ class TestBackends:
                 output_uri="/tmp/out",
             )
 
-    def test_local_finetune_execution_passes_eval_and_config(self, tmp_path):
+    def test_local_finetune_execution_passes_eval_and_config(
+        self, tmp_path: Path
+    ) -> None:
         spec = TrainingJobSpec(
             display_name="local",
             dataset_uri=str(tmp_path / "train.jsonl"),
@@ -650,15 +708,17 @@ class TestBackends:
 
 
 class TestVertexRunner:
-    def test_rejects_malformed_gcs_uri(self):
+    def test_rejects_malformed_gcs_uri(self) -> None:
         with pytest.raises(ValueError, match="invalid GCS URI"):
             _split_gcs_uri("gs://bucket")
 
-    def test_rejects_non_gcs_uri_in_gcs_splitter(self):
+    def test_rejects_non_gcs_uri_in_gcs_splitter(self) -> None:
         with pytest.raises(ValueError, match="invalid GCS URI"):
             _split_gcs_uri("https://storage.local/bucket/object")
 
-    def test_materialise_gcs_downloads_to_destination(self, tmp_path, monkeypatch):
+    def test_materialise_gcs_downloads_to_destination(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         calls = []
 
         class _Blob:
@@ -692,7 +752,9 @@ class TestVertexRunner:
         ]
         assert destination.parent.exists()
 
-    def test_publish_file_uploads_gcs_object(self, tmp_path, monkeypatch):
+    def test_publish_file_uploads_gcs_object(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         calls = []
         source = tmp_path / "training_result.json"
         source.write_text('{"ok": true}', encoding="utf-8")
@@ -728,7 +790,9 @@ class TestVertexRunner:
             )
         ]
 
-    def test_publish_dir_uploads_only_files_to_gcs_prefix(self, tmp_path, monkeypatch):
+    def test_publish_dir_uploads_only_files_to_gcs_prefix(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         calls = []
         model_dir = tmp_path / "model"
         (model_dir / "nested").mkdir(parents=True)
@@ -758,7 +822,9 @@ class TestVertexRunner:
             ("job/model/nested/weights.bin", str(model_dir / "nested" / "weights.bin")),
         ]
 
-    def test_publish_dir_replaces_existing_local_destination(self, tmp_path):
+    def test_publish_dir_replaces_existing_local_destination(
+        self, tmp_path: Path
+    ) -> None:
         model_dir = tmp_path / "model"
         model_dir.mkdir()
         (model_dir / "config.json").write_text("new", encoding="utf-8")
@@ -771,26 +837,36 @@ class TestVertexRunner:
         assert not (destination / "stale.txt").exists()
         assert (destination / "config.json").read_text(encoding="utf-8") == "new"
 
-    def test_storage_client_uses_google_storage_client(self, monkeypatch):
+    def test_storage_client_uses_google_storage_client(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         class _Client:
             pass
 
         storage_module = types.ModuleType("google.cloud.storage")
-        storage_module.Client = _Client
+        storage_module.__dict__["Client"] = _Client
         cloud_module = types.ModuleType("google.cloud")
-        cloud_module.storage = storage_module
+        cloud_module.__dict__["storage"] = storage_module
         google_module = types.ModuleType("google")
-        google_module.cloud = cloud_module
+        google_module.__dict__["cloud"] = cloud_module
         monkeypatch.setitem(sys.modules, "google", google_module)
         monkeypatch.setitem(sys.modules, "google.cloud", cloud_module)
         monkeypatch.setitem(sys.modules, "google.cloud.storage", storage_module)
 
         assert isinstance(_storage_client(), _Client)
 
-    def test_storage_client_import_error_mentions_required_package(self, monkeypatch):
+    def test_storage_client_import_error_mentions_required_package(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         real_import = builtins.__import__
 
-        def guarded_import(name, globals=None, locals=None, fromlist=(), level=0):
+        def guarded_import(
+            name: str,
+            globals: dict[str, object] | None = None,
+            locals: dict[str, object] | None = None,
+            fromlist: Sequence[str] = (),
+            level: int = 0,
+        ) -> types.ModuleType:
             if name == "google.cloud.storage":
                 raise ImportError("missing storage client")
             return real_import(name, globals, locals, fromlist, level)
@@ -800,7 +876,7 @@ class TestVertexRunner:
         with pytest.raises(ImportError, match="google-cloud-storage"):
             _storage_client()
 
-    def test_local_smoke_runner_publishes_result(self, tmp_path):
+    def test_local_smoke_runner_publishes_result(self, tmp_path: Path) -> None:
         train = tmp_path / "train.jsonl"
         train.write_text(
             '{"premise":"p","hypothesis":"h","label":1}\n',
@@ -808,7 +884,9 @@ class TestVertexRunner:
         )
         output = tmp_path / "published"
 
-        def fake_finetune(train_path, *, eval_path, config):
+        def fake_finetune(
+            train_path: Path, *, eval_path: Path | None, config: FinetuneConfig
+        ) -> SimpleNamespace:
             assert train_path == train
             assert eval_path is None
             model_dir = tmp_path / "work" / "model"
@@ -841,7 +919,7 @@ class TestVertexRunner:
 
 
 class TestManagedTrainingSweeps:
-    def test_dataset_split_validation_and_serialisation(self):
+    def test_dataset_split_validation_and_serialisation(self) -> None:
         split = TrainingDatasetSplit(
             name="legal-smoke",
             train_uri="gs://director-data/legal-train.jsonl",
@@ -860,7 +938,7 @@ class TestManagedTrainingSweeps:
         with pytest.raises(ValueError, match="dataset split train_uri"):
             TrainingDatasetSplit(name="legal", train_uri="").validate()
 
-    def test_builds_cross_product_with_output_paths(self):
+    def test_builds_cross_product_with_output_paths(self) -> None:
         plan = build_training_sweep_plan(
             sweep_id="sweep-1",
             datasets=[
@@ -887,7 +965,7 @@ class TestManagedTrainingSweeps:
         )
         assert plan.scenarios[-1].labels["model"] == "roberta-large-mnli"
 
-    def test_sweep_plan_defaults_to_registry_batch_size_and_learning_rate(self):
+    def test_sweep_plan_defaults_to_registry_batch_size_and_learning_rate(self) -> None:
         plan = build_training_sweep_plan(
             sweep_id="sweep-defaults",
             datasets=[
@@ -909,7 +987,7 @@ class TestManagedTrainingSweeps:
         assert payload["scenario_count"] == 1
         assert payload["scenarios"][0]["dataset"]["name"] == "QA Smoke"
 
-    def test_sweep_plan_converts_to_vertex_specs(self):
+    def test_sweep_plan_converts_to_vertex_specs(self) -> None:
         plan = build_training_sweep_plan(
             sweep_id="sweep-1",
             datasets=[
@@ -940,7 +1018,7 @@ class TestManagedTrainingSweeps:
         assert specs[0].labels["sweep"] == "sweep-1"
         assert specs[0].eval_uri == "gs://director-data/eval.jsonl"
 
-    def test_sweep_spec_conversion_carries_security_and_network_controls(self):
+    def test_sweep_spec_conversion_carries_security_and_network_controls(self) -> None:
         plan = build_training_sweep_plan(
             sweep_id="sweep-secure",
             datasets=[TrainingDatasetSplit(name="secure", train_uri="gs://data/train")],
@@ -982,10 +1060,10 @@ class TestManagedTrainingSweeps:
     )
     def test_sweep_plan_rejects_incomplete_or_unsafe_matrices(
         self,
-        overrides,
-        message,
-    ):
-        values = {
+        overrides: _SweepOptions,
+        message: str,
+    ) -> None:
+        values: _SweepOptions = {
             "sweep_id": "sweep-invalid",
             "datasets": [
                 TrainingDatasetSplit(name="smoke", train_uri="gs://data/train")
@@ -1000,7 +1078,7 @@ class TestManagedTrainingSweeps:
         with pytest.raises(ValueError, match=message):
             build_training_sweep_plan(**values)
 
-    def test_scenario_id_slugging_is_stable_for_storage_paths_and_labels(self):
+    def test_scenario_id_slugging_is_stable_for_storage_paths_and_labels(self) -> None:
         assert _slug("___") == "unnamed"
         assert _slug("A_Long Dataset/Name With Symbols!" * 3) == (
             "a-long-dataset-name-with-symbols-a-long-dataset-"
@@ -1017,26 +1095,34 @@ class TestManagedTrainingSweeps:
 
 
 class TestManagedTrainingCLI:
-    def test_train_help_mentions_submit(self, capsys):
+    def test_train_help_mentions_submit(
+        self, capsys: pytest.CaptureFixture[str]
+    ) -> None:
         main(["train"])
         captured = capsys.readouterr()
         assert "submit" in captured.out
         assert "models" in captured.out
 
-    def test_cli_models_lists_stable_registry(self, capsys):
+    def test_cli_models_lists_stable_registry(
+        self, capsys: pytest.CaptureFixture[str]
+    ) -> None:
         main(["train", "models"])
         captured = capsys.readouterr()
         body = json.loads(captured.out)
         assert body["models"][0]["alias"] == "factcg-deberta-v3-large"
         assert all(model["status"] == "stable" for model in body["models"])
 
-    def test_cli_models_can_include_experimental(self, capsys):
+    def test_cli_models_can_include_experimental(
+        self, capsys: pytest.CaptureFixture[str]
+    ) -> None:
         main(["train", "models", "--include-experimental"])
         captured = capsys.readouterr()
         body = json.loads(captured.out)
         assert any(model["status"] == "experimental" for model in body["models"])
 
-    def test_cli_vertex_dry_run_outputs_json(self, capsys):
+    def test_cli_vertex_dry_run_outputs_json(
+        self, capsys: pytest.CaptureFixture[str]
+    ) -> None:
         main(
             [
                 "train",
@@ -1059,7 +1145,9 @@ class TestManagedTrainingCLI:
         assert body["dry_run"] is True
         assert body["request"]["job_spec"]["worker_pool_specs"]
 
-    def test_cli_portable_dry_run_outputs_container_contract(self, capsys):
+    def test_cli_portable_dry_run_outputs_container_contract(
+        self, capsys: pytest.CaptureFixture[str]
+    ) -> None:
         main(
             [
                 "train",
@@ -1082,12 +1170,16 @@ class TestManagedTrainingCLI:
         assert body["request"]["schema"] == "director-ai.portable-training-job.v1"
         assert body["request"]["inputs"]["dataset_uri"].startswith("s3://")
 
-    def test_train_help_mentions_portable_backend(self, capsys):
+    def test_train_help_mentions_portable_backend(
+        self, capsys: pytest.CaptureFixture[str]
+    ) -> None:
         main(["train"])
 
         assert "--backend local|portable|vertex" in capsys.readouterr().out
 
-    def test_cli_submit_rejects_experimental_without_flag(self, capsys, tmp_path):
+    def test_cli_submit_rejects_experimental_without_flag(
+        self, capsys: pytest.CaptureFixture[str], tmp_path: Path
+    ) -> None:
         with pytest.raises(SystemExit) as excinfo:
             main(
                 [
@@ -1107,7 +1199,9 @@ class TestManagedTrainingCLI:
         assert "experimental" in capsys.readouterr().out
 
     @patch("director_ai.core.training.finetune_benchmark._evaluate_model")
-    def test_cli_benchmark_models_outputs_report(self, mock_eval, capsys, tmp_path):
+    def test_cli_benchmark_models_outputs_report(
+        self, mock_eval: MagicMock, capsys: pytest.CaptureFixture[str], tmp_path: Path
+    ) -> None:
         general = tmp_path / "general.jsonl"
         general.write_text(
             json.dumps({"premise": "a", "hypothesis": "b", "label": 1}) + "\n",
@@ -1128,7 +1222,9 @@ class TestManagedTrainingCLI:
         body = json.loads(captured.out)
         assert body["best_model_alias"] == "factcg-deberta-v3-large"
 
-    def test_cli_local_suite_dry_run_prints_command(self, capsys, tmp_path):
+    def test_cli_local_suite_dry_run_prints_command(
+        self, capsys: pytest.CaptureFixture[str], tmp_path: Path
+    ) -> None:
         main(
             [
                 "train",
@@ -1147,7 +1243,9 @@ class TestManagedTrainingCLI:
         assert "pytest" in captured.out
         assert "Command:" in captured.out
 
-    def test_cli_sweep_dry_run_outputs_all_scenarios(self, capsys):
+    def test_cli_sweep_dry_run_outputs_all_scenarios(
+        self, capsys: pytest.CaptureFixture[str]
+    ) -> None:
         main(
             [
                 "train",
@@ -1183,7 +1281,9 @@ class TestManagedTrainingCLI:
         ]["args"]
         assert "director_ai.core.training.vertex_runner" in args
 
-    def test_cli_sweep_limit_blocks_accidental_large_batch(self, capsys):
+    def test_cli_sweep_limit_blocks_accidental_large_batch(
+        self, capsys: pytest.CaptureFixture[str]
+    ) -> None:
         with pytest.raises(SystemExit) as excinfo:
             main(
                 [
@@ -1213,7 +1313,9 @@ class TestManagedTrainingCLI:
         assert excinfo.value.code == 1
         assert "above --limit" in capsys.readouterr().out
 
-    def test_cli_sweep_rejects_experimental_without_flag(self, capsys):
+    def test_cli_sweep_rejects_experimental_without_flag(
+        self, capsys: pytest.CaptureFixture[str]
+    ) -> None:
         with pytest.raises(SystemExit) as excinfo:
             main(
                 [
@@ -1239,7 +1341,9 @@ class TestManagedTrainingCLI:
         assert excinfo.value.code == 1
         assert "experimental" in capsys.readouterr().out
 
-    def test_cli_harvest_prints_report(self, tmp_path, capsys):
+    def test_cli_harvest_prints_report(
+        self, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+    ) -> None:
         scenario = tmp_path / "sweep" / "scenario-a"
         scenario.mkdir(parents=True)
         (scenario / "training_result.json").write_text(
@@ -1254,7 +1358,9 @@ class TestManagedTrainingCLI:
         assert data["best"]["scenario"] == "scenario-a"
         assert data["best"]["best_balanced_accuracy"] == 0.82
 
-    def test_unknown_train_subcommand_exits_with_help(self, capsys):
+    def test_unknown_train_subcommand_exits_with_help(
+        self, capsys: pytest.CaptureFixture[str]
+    ) -> None:
         with pytest.raises(SystemExit) as excinfo:
             main(["train", "teleport"])
 
@@ -1263,7 +1369,9 @@ class TestManagedTrainingCLI:
         assert "Unknown train subcommand: teleport" in out
         assert "benchmark-models" in out
 
-    def test_submit_parser_flags_aliases_and_required_errors(self, capsys):
+    def test_submit_parser_flags_aliases_and_required_errors(
+        self, capsys: pytest.CaptureFixture[str]
+    ) -> None:
         opts = cli_train._parse_submit_args(
             [
                 "--train-uri",
@@ -1296,7 +1404,9 @@ class TestManagedTrainingCLI:
         assert excinfo.value.code == 1
         assert "Unknown or incomplete option: --dataset-uri" in capsys.readouterr().out
 
-    def test_sweep_parser_covers_flags_defaults_and_validation_errors(self, capsys):
+    def test_sweep_parser_covers_flags_defaults_and_validation_errors(
+        self, capsys: pytest.CaptureFixture[str]
+    ) -> None:
         opts = cli_train._parse_sweep_args(
             [
                 "--execute",
@@ -1380,14 +1490,18 @@ class TestManagedTrainingCLI:
         assert "Unknown train sweep option: --unknown" in capsys.readouterr().out
 
     @pytest.mark.parametrize("value", ["missing-equals", "=gs://train", "name="])
-    def test_split_named_uri_rejects_malformed_values(self, value, capsys):
+    def test_split_named_uri_rejects_malformed_values(
+        self, value: str, capsys: pytest.CaptureFixture[str]
+    ) -> None:
         with pytest.raises(SystemExit) as excinfo:
             cli_train._split_named_uri("--train-set", value)
 
         assert excinfo.value.code == 1
         assert "--train-set must use name=uri" in capsys.readouterr().out
 
-    def test_models_benchmark_and_harvest_parsers_reject_bad_inputs(self, capsys):
+    def test_models_benchmark_and_harvest_parsers_reject_bad_inputs(
+        self, capsys: pytest.CaptureFixture[str]
+    ) -> None:
         with pytest.raises(SystemExit):
             cli_train._cmd_train_models(["--json"])
         assert "Unknown train models option: --json" in capsys.readouterr().out
@@ -1427,7 +1541,9 @@ class TestManagedTrainingCLI:
             cli_train._parse_benchmark_models_args([])
         assert "at least one --model" in capsys.readouterr().out
 
-    def test_benchmark_parser_accepts_optional_paths_batch_and_experimental_flag(self):
+    def test_benchmark_parser_accepts_optional_paths_batch_and_experimental_flag(
+        self,
+    ) -> None:
         opts = cli_train._parse_benchmark_models_args(
             [
                 "--allow-experimental-model",
@@ -1450,10 +1566,14 @@ class TestManagedTrainingCLI:
             "allow_experimental_model": True,
         }
 
-    def test_cli_sweep_submission_failure_names_failed_spec(self, monkeypatch, capsys):
+    def test_cli_sweep_submission_failure_names_failed_spec(
+        self, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+    ) -> None:
         import director_ai.core.training.jobs as jobs_mod
 
-        def fail_submission(spec, *, backend, dry_run):
+        def fail_submission(
+            spec: TrainingJobSpec, *, backend: str, dry_run: bool
+        ) -> None:
             assert backend == "vertex"
             assert dry_run is True
             raise RuntimeError(f"quota denied for {spec.display_name}")
@@ -1485,7 +1605,9 @@ class TestManagedTrainingCLI:
         assert "sweep job submission failed" in out
         assert "director-ai-managed-sweep" in out
 
-    def test_cli_harvest_failure_is_reported(self, monkeypatch, capsys):
+    def test_cli_harvest_failure_is_reported(
+        self, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+    ) -> None:
         monkeypatch.setattr(
             training_results,
             "harvest_training_results",
@@ -1498,7 +1620,9 @@ class TestManagedTrainingCLI:
         assert excinfo.value.code == 1
         assert "training result harvest failed" in capsys.readouterr().out
 
-    def test_cli_type_guards_reject_non_string_values(self, capsys):
+    def test_cli_type_guards_reject_non_string_values(
+        self, capsys: pytest.CaptureFixture[str]
+    ) -> None:
         with pytest.raises(SystemExit):
             cli_train._as_str({"project": 7}, "project")
         assert "project must be a string" in capsys.readouterr().out
@@ -1509,7 +1633,9 @@ class TestManagedTrainingCLI:
 
 
 class TestManagedTrainingResults:
-    def test_harvest_local_results_sorted_by_balanced_accuracy(self, tmp_path):
+    def test_harvest_local_results_sorted_by_balanced_accuracy(
+        self, tmp_path: Path
+    ) -> None:
         sweep = tmp_path / "sweep"
         first = sweep / "natural100" / "model-a"
         second = sweep / "natural500" / "model-b"
@@ -1548,7 +1674,9 @@ class TestManagedTrainingResults:
         assert report.results[0].best_balanced_accuracy == 0.73
         assert report.results[1].artifact_uri == str(first)
 
-    def test_harvest_empty_local_prefix_returns_empty_report(self, tmp_path):
+    def test_harvest_empty_local_prefix_returns_empty_report(
+        self, tmp_path: Path
+    ) -> None:
         empty_sweep = tmp_path / "empty-sweep"
         empty_sweep.mkdir()
 
@@ -1561,7 +1689,9 @@ class TestManagedTrainingResults:
             "results": [],
         }
 
-    def test_harvest_local_rejects_missing_prefix_and_file_prefix(self, tmp_path):
+    def test_harvest_local_rejects_missing_prefix_and_file_prefix(
+        self, tmp_path: Path
+    ) -> None:
         with pytest.raises(FileNotFoundError, match="training result prefix"):
             harvest_training_results(str(tmp_path / "missing"))
 
@@ -1570,7 +1700,9 @@ class TestManagedTrainingResults:
         with pytest.raises(ValueError, match="must be a directory"):
             harvest_training_results(str(file_prefix))
 
-    def test_harvest_local_rejects_invalid_and_non_object_result_json(self, tmp_path):
+    def test_harvest_local_rejects_invalid_and_non_object_result_json(
+        self, tmp_path: Path
+    ) -> None:
         invalid = tmp_path / "invalid" / "scenario"
         invalid.mkdir(parents=True)
         (invalid / "training_result.json").write_text("{not-json", encoding="utf-8")
@@ -1583,7 +1715,9 @@ class TestManagedTrainingResults:
         with pytest.raises(ValueError, match="must be an object"):
             harvest_training_results(str(tmp_path / "non-object"))
 
-    def test_root_level_local_result_uses_parent_name_as_scenario(self, tmp_path):
+    def test_root_level_local_result_uses_parent_name_as_scenario(
+        self, tmp_path: Path
+    ) -> None:
         sweep = tmp_path / "sweep"
         sweep.mkdir()
         (sweep / "training_result.json").write_text(
@@ -1609,25 +1743,27 @@ class TestManagedTrainingResults:
         assert report.best.raw["best_balanced_accuracy"] == "0.65"
         assert report.best.to_dict()["eval_metrics"] == {"balanced_accuracy": 0.65}
 
-    def test_harvest_gcs_results_filters_blobs_and_sorts_records(self, monkeypatch):
+    def test_harvest_gcs_results_filters_blobs_and_sorts_records(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         class FakeBlob:
-            def __init__(self, name, payload):
+            def __init__(self, name: str, payload: dict[str, float | bool]) -> None:
                 self.name = name
                 self._payload = payload
 
-            def download_as_text(self):
+            def download_as_text(self) -> str:
                 return json.dumps(self._payload)
 
         class FakeClient:
-            def __init__(self):
+            def __init__(self) -> None:
                 self.bucket_names: list[str] = []
                 self.list_prefixes: list[str] = []
 
-            def bucket(self, name):
+            def bucket(self, name: str) -> str:
                 self.bucket_names.append(name)
                 return f"bucket:{name}"
 
-            def list_blobs(self, bucket, *, prefix):
+            def list_blobs(self, bucket: str, *, prefix: str) -> list[FakeBlob]:
                 self.list_prefixes.append(prefix)
                 assert bucket == "bucket:director-artifacts"
                 return [
@@ -1658,7 +1794,7 @@ class TestManagedTrainingResults:
         )
         assert report.best.artifact_uri == "gs://director-artifacts/runs/sweep-b"
 
-    def test_gcs_uri_helpers_validate_scheme_and_scenario_fallback(self):
+    def test_gcs_uri_helpers_validate_scheme_and_scenario_fallback(self) -> None:
         assert training_results._is_gcs_uri("gs://bucket/path")
         assert not training_results._is_gcs_uri("/tmp/path")
         assert training_results._split_gcs_uri("gs://bucket/path/to/results") == (
@@ -1675,19 +1811,21 @@ class TestManagedTrainingResults:
             == "scenario-alone"
         )
 
-    def test_storage_client_imports_google_storage_client(self, monkeypatch):
+    def test_storage_client_imports_google_storage_client(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         calls: list[str] = []
 
         class FakeClient:
-            def __init__(self):
+            def __init__(self) -> None:
                 calls.append("constructed")
 
         storage_module = types.ModuleType("google.cloud.storage")
-        storage_module.Client = FakeClient
+        storage_module.__dict__["Client"] = FakeClient
         cloud_module = types.ModuleType("google.cloud")
-        cloud_module.storage = storage_module
+        cloud_module.__dict__["storage"] = storage_module
         google_module = types.ModuleType("google")
-        google_module.cloud = cloud_module
+        google_module.__dict__["cloud"] = cloud_module
         monkeypatch.setitem(sys.modules, "google", google_module)
         monkeypatch.setitem(sys.modules, "google.cloud", cloud_module)
         monkeypatch.setitem(sys.modules, "google.cloud.storage", storage_module)
@@ -1700,7 +1838,7 @@ class TestManagedTrainingResults:
 
 class TestManagedTrainingAPI:
     @pytest.fixture
-    def client(self, tmp_path):
+    def client(self, tmp_path: Path) -> TestClient:
         pytest.importorskip("fastapi")
         from fastapi import FastAPI
         from fastapi.testclient import TestClient
@@ -1709,12 +1847,14 @@ class TestManagedTrainingAPI:
 
         app = FastAPI()
         app.include_router(
-            create_finetune_router(models_dir=tmp_path / "models"),
+            create_finetune_router(
+                models_dir=tmp_path / "models", operator_api_keys=("operator-test-key",)
+            ),
             prefix="/v1/finetune",
         )
-        return TestClient(app)
+        return TestClient(app, headers={"X-API-Key": "operator-test-key"})
 
-    def test_managed_submit_vertex_dry_run(self, client):
+    def test_managed_submit_vertex_dry_run(self, client: TestClient) -> None:
         response = client.post(
             "/v1/finetune/managed/submit",
             headers={"X-Tenant-ID": "tenant-a"},
@@ -1737,7 +1877,9 @@ class TestManagedTrainingAPI:
         ]
         assert "yaxili96/FactCG-DeBERTa-v3-Large" in args
 
-    def test_managed_submit_rejects_invalid_vertex_spec(self, client):
+    def test_managed_submit_rejects_invalid_vertex_spec(
+        self, client: TestClient
+    ) -> None:
         response = client.post(
             "/v1/finetune/managed/submit",
             json={
@@ -1750,13 +1892,13 @@ class TestManagedTrainingAPI:
         )
         assert response.status_code == 422
 
-    def test_managed_models_endpoint(self, client):
+    def test_managed_models_endpoint(self, client: TestClient) -> None:
         response = client.get("/v1/finetune/managed/models")
         assert response.status_code == 200
         body = response.json()
         assert body["models"][0]["alias"] == "factcg-deberta-v3-large"
 
-    def test_managed_jobs_are_listed_by_tenant(self, client):
+    def test_managed_jobs_are_listed_by_tenant(self, client: TestClient) -> None:
         submit = client.post(
             "/v1/finetune/managed/submit",
             headers={"X-Tenant-ID": "tenant-a"},
@@ -1786,7 +1928,9 @@ class TestManagedTrainingAPI:
         assert other.status_code == 200
         assert other.json()["count"] == 0
 
-    def test_managed_status_returns_dry_run_record_without_backend_call(self, client):
+    def test_managed_status_returns_dry_run_record_without_backend_call(
+        self, client: TestClient
+    ) -> None:
         submit = client.post(
             "/v1/finetune/managed/submit",
             headers={"X-Tenant-ID": "tenant-a"},
@@ -1813,7 +1957,9 @@ class TestManagedTrainingAPI:
         assert status.status_code == 200
         assert status.json()["state"] == "dry_run"
 
-    def test_managed_status_rejects_cross_tenant_lookup(self, client):
+    def test_managed_status_rejects_cross_tenant_lookup(
+        self, client: TestClient
+    ) -> None:
         submit = client.post(
             "/v1/finetune/managed/submit",
             headers={"X-Tenant-ID": "tenant-a"},
@@ -1835,7 +1981,7 @@ class TestManagedTrainingAPI:
 
         assert status.status_code == 404
 
-    def test_managed_cancel_rejects_dry_run(self, client):
+    def test_managed_cancel_rejects_dry_run(self, client: TestClient) -> None:
         submit = client.post(
             "/v1/finetune/managed/submit",
             headers={"X-Tenant-ID": "tenant-a"},
@@ -1857,7 +2003,9 @@ class TestManagedTrainingAPI:
 
         assert cancel.status_code == 409
 
-    def test_managed_status_and_cancel_call_backend_for_live_job(self, client):
+    def test_managed_status_and_cancel_call_backend_for_live_job(
+        self, client: TestClient
+    ) -> None:
         submitted = TrainingJobSubmission(
             backend="vertex",
             job_id="projects/p/locations/r/customJobs/123",
@@ -1920,20 +2068,34 @@ class TestManagedTrainingAPI:
         fake_backend.cancel.assert_called_once_with(submitted.job_id)
 
     @patch("director_ai.core.training.finetune_benchmark._evaluate_model")
-    def test_managed_benchmark_models_endpoint(self, mock_eval, client, tmp_path):
+    def test_managed_benchmark_models_endpoint(
+        self, mock_eval: MagicMock, client: TestClient, tmp_path: Path
+    ) -> None:
         general = tmp_path / "general.jsonl"
         general.write_text(
             json.dumps({"premise": "a", "hypothesis": "b", "label": 1}) + "\n",
             encoding="utf-8",
         )
+        from director_ai.finetune_jobs import _JobStore
+
+        store = _JobStore(tmp_path / "models" / "finetune_jobs.sqlite3")
+        job = store.create({"base_model": "factcg-deberta-v3-large"})
+        job.state = "completed"
+        model = tmp_path / "models" / "candidate"
+        model.mkdir()
+        job.model_path = str(model)
+        store.save(job)
+        uploaded = client.post(
+            "/v1/finetune/managed/datasets",
+            files={"file": ("general.jsonl", general.read_bytes())},
+        )
+        assert uploaded.status_code == 200
         mock_eval.return_value = {"balanced_accuracy": 0.80, "f1": 0.78}
         response = client.post(
             "/v1/finetune/managed/benchmark-models",
             json={
-                "model_artifacts": {
-                    "factcg-deberta-v3-large": str(tmp_path / "model"),
-                },
-                "general_path": str(general),
+                "model_jobs": {"factcg-deberta-v3-large": job.job_id},
+                "general_dataset_id": uploaded.json()["dataset_id"],
             },
         )
         assert response.status_code == 200

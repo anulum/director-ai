@@ -274,6 +274,7 @@ class DirectorConfig:
     # Directory for fine-tuned model artefacts and the persistent job store
     # mounted at /v1/finetune (empty = the router default ./director-models).
     finetune_models_dir: str = ""
+    finetune_operator_api_keys: list[str] = field(default_factory=list)
     cors_origins: str = ""
     # Lifetime of a single-use browser WebSocket handshake ticket (seconds).
     ws_ticket_ttl_seconds: float = 30.0
@@ -537,7 +538,7 @@ class DirectorConfig:
             if field_name in field_map:
                 fld = field_map[field_name]
                 try:
-                    if fld.name == "api_keys":
+                    if fld.name in ("api_keys", "finetune_operator_api_keys"):
                         # ``api_keys`` accepts both a JSON array and a comma
                         # list; the generic list coercion would split a JSON
                         # array on commas and embed brackets/quotes into the
@@ -744,6 +745,7 @@ class DirectorConfig:
             "llm_api_key",
             "embedding_api_key",
             "api_keys",
+            "finetune_operator_api_keys",
             "api_key_tenant_map",
             "knowledge_write_hmac_keys",
             "audit_postgres_url",

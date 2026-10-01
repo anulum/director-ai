@@ -13,18 +13,20 @@ from __future__ import annotations
 import importlib.util
 import sys
 import types
+from pathlib import Path
 from unittest.mock import patch
 
 import pytest
 
 import director_ai._finetune_managed as managed_module
 import director_ai.finetune_api as finetune_api_module
-from director_ai.finetune_jobs import ManagedTrainingRecord
+from director_ai._finetune_benchmark_access import BenchmarkArtifactAccess
+from director_ai.finetune_jobs import ManagedTrainingRecord, _JobStore, _ManagedJobStore
 
 
-def test_module_import_without_fastapi_skips_route_models():
+def test_module_import_without_fastapi_skips_route_models() -> None:
     fake_schemas = types.ModuleType("director_ai._finetune_schemas")
-    fake_schemas._FASTAPI_AVAILABLE = False
+    fake_schemas.__dict__["_FASTAPI_AVAILABLE"] = False
 
     spec = importlib.util.spec_from_file_location(
         "director_ai._finetune_managed_no_fastapi",
@@ -56,10 +58,11 @@ _MANAGED_PATHS = {
     "/managed/cancel",
     "/managed/models",
     "/managed/benchmark-models",
+    "/managed/datasets",
 }
 
 
-def test_facade_reexports_managed_helpers():
+def test_facade_reexports_managed_helpers() -> None:
     assert (
         finetune_api_module._managed_record_to_dict
         is managed_module._managed_record_to_dict
@@ -70,19 +73,24 @@ def test_facade_reexports_managed_helpers():
     )
 
 
-def test_register_managed_routes_registers_the_full_lane():
-    from fastapi import APIRouter
+def test_register_managed_routes_registers_the_full_lane(tmp_path: Path) -> None:
+    from fastapi import APIRouter, FastAPI
 
     router = APIRouter()
     managed_module.register_managed_routes(
         router,
-        managed_store=object(),  # endpoints resolve the store lazily per request
+        managed_store=_ManagedJobStore(),
         tenant_from_request=lambda request: "",
+        artifacts=BenchmarkArtifactAccess(
+            tmp_path, _JobStore(), ("operator-test-key",)
+        ),
     )
-    assert {route.path for route in router.routes} == _MANAGED_PATHS
+    app = FastAPI()
+    app.include_router(router)
+    assert set(app.openapi()["paths"]) == _MANAGED_PATHS
 
 
-def test_managed_record_round_trips_every_field():
+def test_managed_record_round_trips_every_field() -> None:
     record = ManagedTrainingRecord(
         job_id="mj-1",
         backend="vertex",

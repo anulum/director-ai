@@ -252,12 +252,12 @@ inventory below is reference for the deeper surface, navigable under
 |---|---:|
 | Package version | 3.21.0 |
 | Public API exports | 227 |
-| Python capability source modules | 530 |
-| Python capability classes | 1057 |
+| Python capability source modules | 531 |
+| Python capability classes | 1059 |
 | API documentation pages | 90 |
 | Rust PyO3 bindings | 83 |
 | Optional extras | 62 |
-| Python test files | 782 |
+| Python test files | 783 |
 | Public documentation pages | 206 |
 | GitHub Actions workflows | 15 |
 
@@ -422,9 +422,12 @@ response = client.chat.completions.create(
 ```python
 from director_ai import score
 
-cs = score("What is the refund policy?", response_text,
-           facts={"refund": "Refunds within 30 days only"},
-           threshold=0.3)
+cs = score(
+    "What is the refund policy?",
+    response_text,
+    facts={"refund": "Refunds within 30 days only"},
+    threshold=0.3,
+)
 print(f"Coherence: {cs.score:.3f}  Approved: {cs.approved}")
 ```
 
@@ -442,7 +445,8 @@ Set `OPENAI_BASE_URL=http://localhost:8080/v1` in your app. Every response gets 
 ```python
 from director_ai.integrations.fastapi_guard import DirectorGuard
 
-app.add_middleware(DirectorGuard,
+app.add_middleware(
+    DirectorGuard,
     facts={"policy": "Refunds within 30 days only"},
     on_fail="reject",
 )

@@ -73,7 +73,8 @@ Production-ready FastAPI server exposing Director-AI scoring over HTTP.
 | `POST` | `/v1/finetune/managed/status` | Refresh managed training backend status |
 | `POST` | `/v1/finetune/managed/cancel` | Cancel a live managed training job |
 | `GET` | `/v1/finetune/managed/models` | List selectable managed training base models |
-| `POST` | `/v1/finetune/managed/benchmark-models` | Anti-regression benchmark for trained artefacts |
+| `POST` | `/v1/finetune/managed/datasets` | Upload a labelled benchmark dataset |
+| `POST` | `/v1/finetune/managed/benchmark-models` | Anti-regression benchmark for completed local job artefacts |
 | `POST` | `/v1/verify/numeric` | Numeric consistency verification |
 | `POST` | `/v1/verify/reasoning` | Reasoning chain logic verification |
 | `POST` | `/v1/temporal-freshness` | Temporal freshness / staleness scoring |
@@ -352,9 +353,58 @@ output URI, image, command, resources, labels, provenance, and redacted
 environment variables. DIRECTOR-AI does not claim lifecycle control for those
 jobs; status and cancellation remain owned by the external orchestrator.
 
-Experimental model choices require `allow_experimental_model: true`. Promotion
-still requires `/v1/finetune/managed/benchmark-models`; submitted or harvested
-training metrics alone are not an activation gate.
+Experimental model choices require `allow_experimental_model: true`. Submitted
+or harvested training metrics alone are not an activation gate. The HTTP
+benchmark accepts only completed local job artefacts; evaluate remote managed
+artefacts through the trusted operator-side Python/CLI benchmark after download.
+
+### Managed training permissions and benchmark inputs
+
+Every `/v1/finetune/managed/*` route requires an existing API key also listed in
+`finetune_operator_api_keys` (`DIRECTOR_FINETUNE_OPERATOR_API_KEYS` accepts a JSON
+array or comma-separated keys). Keep the same key in `api_keys` or the
+`api_key_tenant_map`, so the server's normal authentication still applies.
+An empty operator list disables managed routes, even in development or when
+`create_finetune_router()` is mounted separately. Standalone callers supply
+`operator_api_keys=(...)` to the factory. When a tenant map is configured, the operator key must
+have an entry in it.
+Tenant-bound operator keys remain subject to the server's tenant binding.
+
+Upload evaluation data with `POST /v1/finetune/managed/datasets` and multipart
+field `file`. Each nonblank JSONL line must contain nonempty string `premise`
+and `hypothesis` fields and an integer `label` (0 or 1). Uploads are limited
+to 10 MiB. The response supplies an opaque `dataset_id` and sample count.
+Datasets persist under the operator-controlled model root across restarts;
+operators manage retention in that root.
+
+`POST /v1/finetune/managed/benchmark-models` accepts:
+
+```json
+{
+  "model_jobs": {"factcg-deberta-v3-large": "<completed-local-job-id>"},
+  "general_dataset_id": "<uploaded-dataset-id>",
+  "eval_dataset_id": "<optional-uploaded-domain-dataset-id>",
+  "batch_size": 16
+}
+```
+
+Omit `eval_dataset_id` when no domain dataset is needed. Supply between one and
+eight model entries; each registry alias must match the completed local job's
+base model. The server resolves artefacts under `finetune_models_dir` and loads
+tokenizers and models with `local_files_only=True`. The registry alias selects
+the model's input template even when its artefact directory has an opaque
+name. Remote managed output URIs
+are not local job artefacts. The report's `model_path`, `general_path` and
+`eval_path` contain resource IDs rather than filesystem paths.
+
+The former `model_artifacts`, `general_path` and `eval_path` request fields are
+refused with a fixed HTTP 422; path strings and Hub model names are not accepted
+as resource IDs. Unknown dataset IDs return 404. Ordinary API keys receive 403
+on managed routes. Malformed managed requests use a fixed 422 message, and
+unexpected faults use fixed failure messages with details retained server-side.
+The trusted local Python/CLI benchmark retains its filesystem-path interface.
+Python callers can set `local_files_only=True` to prevent remote model loading.
+
 
 ## Injection Detection
 

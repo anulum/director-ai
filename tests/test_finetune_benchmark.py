@@ -12,11 +12,16 @@ from __future__ import annotations
 import json
 import sys
 import types
-from unittest.mock import patch
+from collections.abc import Callable
+from pathlib import Path
+from types import TracebackType
+from typing import Literal, Self
+from unittest.mock import MagicMock, patch
 
 import pytest
 
-from director_ai.core.finetune_benchmark import (
+from director_ai.core.training.finetune import TrainingRow
+from director_ai.core.training.finetune_benchmark import (
     _BASELINE_ACCURACY,
     _DEPLOY_THRESHOLD_PP,
     _REJECT_THRESHOLD_PP,
@@ -30,7 +35,7 @@ from director_ai.core.finetune_benchmark import (
 )
 
 
-def _make_benchmark_file(tmp_path, name, n=100):
+def _make_benchmark_file(tmp_path: Path, name: str, n: int = 100) -> Path:
     rows = []
     for i in range(n):
         rows.append(
@@ -49,13 +54,13 @@ def _make_benchmark_file(tmp_path, name, n=100):
 
 
 class TestRegressionReport:
-    def test_defaults(self):
+    def test_defaults(self) -> None:
         r = RegressionReport()
         assert r.recommendation == "deploy"
         assert r.regression_acceptable
         assert r.baseline_accuracy == _BASELINE_ACCURACY
 
-    def test_summary_format(self):
+    def test_summary_format(self) -> None:
         r = RegressionReport(
             domain_accuracy=0.85,
             general_accuracy=0.74,
@@ -69,13 +74,13 @@ class TestRegressionReport:
 
 
 class TestLoadBenchmarkJsonl:
-    def test_loads_standard_fields(self, tmp_path):
+    def test_loads_standard_fields(self, tmp_path: Path) -> None:
         f = _make_benchmark_file(tmp_path, "bench.jsonl", 50)
         rows = _load_benchmark_jsonl(f)
         assert len(rows) == 50
         assert all(k in rows[0] for k in ("premise", "hypothesis", "label"))
 
-    def test_skips_blank_lines(self, tmp_path):
+    def test_skips_blank_lines(self, tmp_path: Path) -> None:
         f = tmp_path / "padded.jsonl"
         f.write_text(
             json.dumps({"premise": "S.", "hypothesis": "C.", "label": 1})
@@ -87,7 +92,7 @@ class TestLoadBenchmarkJsonl:
         rows = _load_benchmark_jsonl(f)
         assert len(rows) == 2
 
-    def test_loads_alternative_fields(self, tmp_path):
+    def test_loads_alternative_fields(self, tmp_path: Path) -> None:
         f = tmp_path / "alt.jsonl"
         f.write_text(
             json.dumps({"doc": "Source.", "claim": "Derived.", "label": 1}) + "\n",
@@ -97,11 +102,13 @@ class TestLoadBenchmarkJsonl:
         assert len(rows) == 1
         assert rows[0]["premise"] == "Source."
 
-    def test_rejects_directory_paths(self, tmp_path):
+    def test_rejects_directory_paths(self, tmp_path: Path) -> None:
         with pytest.raises(FileNotFoundError, match="not a file"):
             _load_benchmark_jsonl(tmp_path)
 
-    def test_skips_invalid_json_and_accepts_response_field(self, tmp_path):
+    def test_skips_invalid_json_and_accepts_response_field(
+        self, tmp_path: Path
+    ) -> None:
         f = tmp_path / "mixed.jsonl"
         f.write_text(
             "{not-json}\n"
@@ -114,7 +121,7 @@ class TestLoadBenchmarkJsonl:
 
         assert rows == [{"premise": "Grounding.", "hypothesis": "Claim.", "label": 1}]
 
-    def test_skips_incomplete(self, tmp_path):
+    def test_skips_incomplete(self, tmp_path: Path) -> None:
         f = tmp_path / "partial.jsonl"
         f.write_text(
             json.dumps({"premise": "a", "hypothesis": "b", "label": 1})
@@ -128,50 +135,55 @@ class TestLoadBenchmarkJsonl:
 
 
 class _FakeTensor:
-    def __init__(self, value):
+    def __init__(self, value: list[str]) -> None:
         self.value = value
 
-    def to(self, device):
+    def to(self, device: str) -> Self:
         self.device = device
         return self
 
 
 class _FakePredictions:
-    def __init__(self, values):
+    def __init__(self, values: list[int]) -> None:
         self._values = values
 
-    def cpu(self):
+    def cpu(self) -> Self:
         return self
 
-    def numpy(self):
+    def numpy(self) -> Self:
         return self
 
-    def flatten(self):
+    def flatten(self) -> list[int]:
         return self._values
 
 
 class _FakeNoGrad:
-    def __enter__(self):
+    def __enter__(self) -> None:
         return None
 
-    def __exit__(self, exc_type, exc, tb):
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc: BaseException | None,
+        tb: TracebackType | None,
+    ) -> Literal[False]:
         return False
 
 
 class _FakeTorch(types.SimpleNamespace):
-    def __init__(self, predictions):
+    def __init__(self, predictions: list[list[int]]) -> None:
         super().__init__()
         self.predictions = list(predictions)
-        self.devices = []
+        self.devices: list[str] = []
 
-    def device(self, name):
+    def device(self, name: str) -> str:
         self.devices.append(name)
         return name
 
-    def no_grad(self):
+    def no_grad(self) -> _FakeNoGrad:
         return _FakeNoGrad()
 
-    def argmax(self, logits, dim=-1):
+    def argmax(self, logits: object, dim: int = -1) -> _FakePredictions:
         return _FakePredictions(self.predictions.pop(0))
 
 
@@ -181,11 +193,18 @@ class _FakeTokenizer:
     revisions: list[str | None] = []
 
     @classmethod
-    def from_pretrained(cls, model_source, revision=None):
+    def from_pretrained(
+        cls,
+        model_source: str,
+        revision: str | None = None,
+        local_files_only: bool = False,
+    ) -> Self:
         cls.revisions.append(revision)
         return cls()
 
-    def __call__(self, batch_texts, **kwargs):
+    def __call__(
+        self, batch_texts: list[str], **kwargs: object
+    ) -> dict[str, _FakeTensor]:
         self.calls.append(list(batch_texts))
         assert kwargs["truncation"] is True
         assert kwargs["padding"] is True
@@ -199,23 +218,30 @@ class _FakeModel:
     moved_to: list[str] = []
 
     @classmethod
-    def from_pretrained(cls, model_source, revision=None):
+    def from_pretrained(
+        cls,
+        model_source: str,
+        revision: str | None = None,
+        local_files_only: bool = False,
+    ) -> Self:
         cls.revisions.append(revision)
         return cls()
 
-    def eval(self):
+    def eval(self) -> None:
         self.evaluated = True
 
-    def to(self, device):
+    def to(self, device: str) -> Self:
         self.moved_to.append(str(device))
         return self
 
-    def __call__(self, **encodings):
+    def __call__(self, **encodings: _FakeTensor) -> types.SimpleNamespace:
         assert "input_ids" in encodings
         return types.SimpleNamespace(logits=object())
 
 
-def _install_fake_inference_modules(monkeypatch, *, predictions):
+def _install_fake_inference_modules(
+    monkeypatch: pytest.MonkeyPatch, *, predictions: list[list[int]]
+) -> list[bool]:
     _FakeTokenizer.calls = []
     _FakeTokenizer.revisions = []
     _FakeModel.revisions = []
@@ -231,7 +257,7 @@ def _install_fake_inference_modules(monkeypatch, *, predictions):
         ),
     )
     monkeypatch.setattr(
-        "director_ai.core.finetune_benchmark.resolve_model_revision",
+        "director_ai.core.training.finetune_benchmark.resolve_model_revision",
         lambda _model_source: "test-revision",
     )
     monkeypatch.setattr(
@@ -248,13 +274,13 @@ def _install_fake_inference_modules(monkeypatch, *, predictions):
 
 class TestEvaluateModel:
     def test_evaluate_model_batches_plain_nli_inputs_and_releases_device(
-        self, monkeypatch
-    ):
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         released = _install_fake_inference_modules(
             monkeypatch,
             predictions=[[0, 1], [1]],
         )
-        samples = [
+        samples: list[TrainingRow] = [
             {"premise": "A", "hypothesis": "A", "label": 0},
             {"premise": "B", "hypothesis": "B", "label": 1},
             {"premise": "C", "hypothesis": "C", "label": 1},
@@ -269,13 +295,16 @@ class TestEvaluateModel:
         assert _FakeModel.moved_to == ["cpu", "cpu"]
         assert released == [True]
 
-    def test_evaluate_model_uses_factcg_template(self, monkeypatch):
+    def test_evaluate_model_uses_factcg_template(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         released = _install_fake_inference_modules(monkeypatch, predictions=[[1]])
 
         metrics = _evaluate_model(
-            "factcg-model",
+            "opaque-job-artifact",
             [{"premise": "Source.", "hypothesis": "Claim.", "label": 1}],
             batch_size=4,
+            template="factcg",
         )
 
         assert metrics["balanced_accuracy"] == 1.0
@@ -284,7 +313,9 @@ class TestEvaluateModel:
         assert "OPTIONS:" in _FakeTokenizer.calls[0][0]
         assert released == [True]
 
-    def test_evaluate_model_reports_missing_finetune_extras(self, monkeypatch):
+    def test_evaluate_model_reports_missing_finetune_extras(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         monkeypatch.setitem(sys.modules, "torch", None)
 
         with pytest.raises(ImportError, match=r"director-ai\[finetune\]"):
@@ -297,11 +328,13 @@ class TestEvaluateModel:
 class TestBenchmarkDecisionLogic:
     """Test the regression decision logic by mocking _evaluate_model."""
 
-    def _mock_eval(self, bal_acc, f1=0.8):
+    def _mock_eval(
+        self, bal_acc: float, f1: float = 0.8
+    ) -> Callable[..., dict[str, float]]:
         return lambda *a, **kw: {"balanced_accuracy": bal_acc, "f1": f1}
 
-    @patch("director_ai.core.finetune_benchmark._evaluate_model")
-    def test_deploy_no_regression(self, mock_eval, tmp_path):
+    @patch("director_ai.core.training.finetune_benchmark._evaluate_model")
+    def test_deploy_no_regression(self, mock_eval: MagicMock, tmp_path: Path) -> None:
         mock_eval.side_effect = self._mock_eval(0.76)
         general = _make_benchmark_file(tmp_path, "general.jsonl")
         report = benchmark_finetuned_model(
@@ -312,8 +345,10 @@ class TestBenchmarkDecisionLogic:
         assert report.recommendation == "deploy"
         assert report.regression_acceptable
 
-    @patch("director_ai.core.finetune_benchmark._evaluate_model")
-    def test_deploy_domain_only_moderate_regression(self, mock_eval, tmp_path):
+    @patch("director_ai.core.training.finetune_benchmark._evaluate_model")
+    def test_deploy_domain_only_moderate_regression(
+        self, mock_eval: MagicMock, tmp_path: Path
+    ) -> None:
         mock_eval.side_effect = self._mock_eval(0.71)
         general = _make_benchmark_file(tmp_path, "general.jsonl")
         report = benchmark_finetuned_model(
@@ -324,8 +359,10 @@ class TestBenchmarkDecisionLogic:
         assert report.recommendation == "deploy_domain_only"
         assert not report.regression_acceptable
 
-    @patch("director_ai.core.finetune_benchmark._evaluate_model")
-    def test_reject_catastrophic_regression(self, mock_eval, tmp_path):
+    @patch("director_ai.core.training.finetune_benchmark._evaluate_model")
+    def test_reject_catastrophic_regression(
+        self, mock_eval: MagicMock, tmp_path: Path
+    ) -> None:
         mock_eval.side_effect = self._mock_eval(0.60)
         general = _make_benchmark_file(tmp_path, "general.jsonl")
         report = benchmark_finetuned_model(
@@ -336,8 +373,8 @@ class TestBenchmarkDecisionLogic:
         assert report.recommendation == "reject"
         assert not report.regression_acceptable
 
-    @patch("director_ai.core.finetune_benchmark._evaluate_model")
-    def test_domain_eval_metrics(self, mock_eval, tmp_path):
+    @patch("director_ai.core.training.finetune_benchmark._evaluate_model")
+    def test_domain_eval_metrics(self, mock_eval: MagicMock, tmp_path: Path) -> None:
         mock_eval.side_effect = self._mock_eval(0.88, f1=0.85)
         domain = _make_benchmark_file(tmp_path, "domain.jsonl")
         report = benchmark_finetuned_model(
@@ -348,7 +385,7 @@ class TestBenchmarkDecisionLogic:
         assert report.domain_accuracy == 0.88
         assert report.domain_f1 == 0.85
 
-    def test_no_general_data_defaults_domain_only(self, tmp_path):
+    def test_no_general_data_defaults_domain_only(self, tmp_path: Path) -> None:
         report = benchmark_finetuned_model(
             "/fake/model",
             general_path=None,
@@ -357,8 +394,10 @@ class TestBenchmarkDecisionLogic:
         assert report.recommendation == "deploy_domain_only"
         assert report.details.get("reason") == "no general benchmark available"
 
-    @patch("director_ai.core.finetune_benchmark._evaluate_model")
-    def test_regression_pp_calculation(self, mock_eval, tmp_path):
+    @patch("director_ai.core.training.finetune_benchmark._evaluate_model")
+    def test_regression_pp_calculation(
+        self, mock_eval: MagicMock, tmp_path: Path
+    ) -> None:
         mock_eval.side_effect = self._mock_eval(0.72)
         general = _make_benchmark_file(tmp_path, "general.jsonl")
         report = benchmark_finetuned_model(
@@ -369,8 +408,8 @@ class TestBenchmarkDecisionLogic:
         expected_pp = (0.72 - 0.758) * 100  # -3.8pp
         assert abs(report.regression_pp - expected_pp) < 0.1
 
-    @patch("director_ai.core.finetune_benchmark._evaluate_model")
-    def test_improvement_is_deploy(self, mock_eval, tmp_path):
+    @patch("director_ai.core.training.finetune_benchmark._evaluate_model")
+    def test_improvement_is_deploy(self, mock_eval: MagicMock, tmp_path: Path) -> None:
         mock_eval.side_effect = self._mock_eval(0.80)
         general = _make_benchmark_file(tmp_path, "general.jsonl")
         report = benchmark_finetuned_model(
@@ -381,11 +420,13 @@ class TestBenchmarkDecisionLogic:
         assert report.recommendation == "deploy"
         assert report.regression_pp > 0
 
-    @patch("director_ai.core.finetune_benchmark._evaluate_model")
-    def test_both_domain_and_general(self, mock_eval, tmp_path):
+    @patch("director_ai.core.training.finetune_benchmark._evaluate_model")
+    def test_both_domain_and_general(
+        self, mock_eval: MagicMock, tmp_path: Path
+    ) -> None:
         call_count = [0]
 
-        def side_effect(*a, **kw):
+        def side_effect(*a: object, **kw: object) -> dict[str, float]:
             call_count[0] += 1
             if call_count[0] == 1:
                 return {"balanced_accuracy": 0.92, "f1": 0.90}
@@ -406,19 +447,21 @@ class TestBenchmarkDecisionLogic:
 
 
 class TestThresholdConstants:
-    def test_deploy_threshold(self):
+    def test_deploy_threshold(self) -> None:
         assert _DEPLOY_THRESHOLD_PP == 3.0
 
-    def test_reject_threshold(self):
+    def test_reject_threshold(self) -> None:
         assert _REJECT_THRESHOLD_PP == 8.0
 
-    def test_baseline(self):
+    def test_baseline(self) -> None:
         assert pytest.approx(0.758, abs=0.001) == _BASELINE_ACCURACY
 
 
 class TestModelBenchmarkSweep:
-    @patch("director_ai.core.finetune_benchmark._evaluate_model")
-    def test_sweep_selects_best_non_rejected_model(self, mock_eval, tmp_path):
+    @patch("director_ai.core.training.finetune_benchmark._evaluate_model")
+    def test_sweep_selects_best_non_rejected_model(
+        self, mock_eval: MagicMock, tmp_path: Path
+    ) -> None:
         general = _make_benchmark_file(tmp_path, "general.jsonl")
         mock_eval.side_effect = [
             {"balanced_accuracy": 0.74, "f1": 0.72},
@@ -439,8 +482,10 @@ class TestModelBenchmarkSweep:
             isinstance(result, ModelBenchmarkResult) for result in report.results
         )
 
-    @patch("director_ai.core.finetune_benchmark._evaluate_model")
-    def test_sweep_records_rejected_candidates(self, mock_eval, tmp_path):
+    @patch("director_ai.core.training.finetune_benchmark._evaluate_model")
+    def test_sweep_records_rejected_candidates(
+        self, mock_eval: MagicMock, tmp_path: Path
+    ) -> None:
         general = _make_benchmark_file(tmp_path, "general.jsonl")
         mock_eval.return_value = {"balanced_accuracy": 0.60, "f1": 0.50}
         report = benchmark_model_candidates(
@@ -450,18 +495,20 @@ class TestModelBenchmarkSweep:
         assert report.best_model_alias == ""
         assert report.results[0].recommendation == "reject"
 
-    def test_sweep_rejects_unknown_without_experimental_flag(self, tmp_path):
+    def test_sweep_rejects_unknown_without_experimental_flag(
+        self, tmp_path: Path
+    ) -> None:
         report = benchmark_model_candidates(
             {"org/custom-model": tmp_path / "custom-model"},
         )
         assert report.results[0].recommendation == "reject"
         assert "stable fine-tune registry" in report.results[0].error
 
-    def test_sweep_requires_models(self):
+    def test_sweep_requires_models(self) -> None:
         with pytest.raises(ValueError, match="at least one model"):
             benchmark_model_candidates({})
 
-    def test_report_without_deployable_candidates_has_no_winner(self):
+    def test_report_without_deployable_candidates_has_no_winner(self) -> None:
         report = ModelBenchmarkReport(
             results=[
                 ModelBenchmarkResult(
@@ -482,7 +529,7 @@ class TestModelBenchmarkSweep:
         assert report.best_model_alias == ""
         assert report.best_model_id == ""
 
-    def test_report_summary_includes_result_rows_and_errors(self):
+    def test_report_summary_includes_result_rows_and_errors(self) -> None:
         report = ModelBenchmarkReport(
             results=[
                 ModelBenchmarkResult(
@@ -525,7 +572,7 @@ class TestModelBenchmarkSweep:
             "- broken: general=0.0%, domain=0.0%, rec=reject error=load failed" in text
         )
 
-    def test_model_result_uses_requested_alias_for_custom_profiles(self):
+    def test_model_result_uses_requested_alias_for_custom_profiles(self) -> None:
         from director_ai.core.training.model_registry import TrainingModelProfile
 
         result = ModelBenchmarkResult.from_report(
@@ -559,7 +606,7 @@ class TestModelBenchmarkSweep:
 
 
 class TestExports:
-    def test_importable_from_core(self):
+    def test_importable_from_core(self) -> None:
         from director_ai.core import (
             ModelBenchmarkReport,
             RegressionReport,
@@ -576,8 +623,10 @@ class TestExports:
 class TestBenchmarkBoundaryDecisions:
     """Fine-tune benchmark gates preserve deployment threshold boundaries."""
 
-    @patch("director_ai.core.finetune_benchmark._evaluate_model")
-    def test_deploy_threshold_boundary(self, mock_eval, tmp_path):
+    @patch("director_ai.core.training.finetune_benchmark._evaluate_model")
+    def test_deploy_threshold_boundary(
+        self, mock_eval: MagicMock, tmp_path: Path
+    ) -> None:
         general = _make_benchmark_file(tmp_path, "general-boundary.jsonl")
 
         mock_eval.return_value = {"balanced_accuracy": 0.729, "f1": 0.75}
@@ -597,8 +646,10 @@ class TestBenchmarkBoundaryDecisions:
         assert deploy.recommendation == "deploy"
         assert domain_only.recommendation == "deploy_domain_only"
 
-    @patch("director_ai.core.finetune_benchmark._evaluate_model")
-    def test_reject_threshold_boundary(self, mock_eval, tmp_path):
+    @patch("director_ai.core.training.finetune_benchmark._evaluate_model")
+    def test_reject_threshold_boundary(
+        self, mock_eval: MagicMock, tmp_path: Path
+    ) -> None:
         general = _make_benchmark_file(tmp_path, "general-reject-boundary.jsonl")
 
         mock_eval.return_value = {"balanced_accuracy": 0.758 - 0.08, "f1": 0.75}
@@ -619,7 +670,9 @@ class TestBenchmarkBoundaryDecisions:
         assert reject.recommendation == "reject"
         assert reject.regression_acceptable is False
 
-    def test_candidate_sweep_records_model_errors_without_aborting(self, tmp_path):
+    def test_candidate_sweep_records_model_errors_without_aborting(
+        self, tmp_path: Path
+    ) -> None:
         report = benchmark_model_candidates(
             {"org/custom-model": tmp_path / "custom-model"},
             allow_experimental=False,

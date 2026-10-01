@@ -28,9 +28,9 @@ from director_ai import CoherenceAgent
 
 agent = CoherenceAgent(llm_api_url="http://localhost:11434/api/generate")
 result = agent.process("Explain photosynthesis.")
-print(result.output)       # verified response
-print(result.halted)       # True if safety kernel intervened
-print(result.coherence)    # CoherenceScore
+print(result.output)  # verified response
+print(result.halted)  # True if safety kernel intervened
+print(result.coherence)  # CoherenceScore
 ```
 
 | Method | Returns | Description |
@@ -319,6 +319,7 @@ invoked when the stream is interrupted.
 def my_handler(session):
     print(f"Halted: {session.halt_reason}, partial: {session.output!r}")
 
+
 kernel = StreamingKernel(hard_limit=0.3, on_halt=my_handler)
 ```
 
@@ -411,8 +412,8 @@ print(result.approved, result.score)
 from director_ai.integrations.langchain import DirectorAIGuard
 
 guard = DirectorAIGuard(threshold=0.3)
-guard.check(prompt, response)         # raises HallucinationError if blocked
-result = guard.invoke({"query": ...}) # Runnable interface
+guard.check(prompt, response)  # raises HallucinationError if blocked
+result = guard.invoke({"query": ...})  # Runnable interface
 ```
 
 Requires `pip install director-ai[langchain]`.
@@ -503,13 +504,62 @@ Fine-tuning routes are mounted from `create_finetune_router()` when enabled:
 | POST | `/managed/status` | Query managed job status |
 | POST | `/managed/cancel` | Cancel a managed job |
 | GET | `/managed/models` | List managed model choices |
-| POST | `/managed/benchmark-models` | Benchmark managed model candidates |
+| POST | `/managed/datasets` | Upload a labelled benchmark dataset |
+| POST | `/managed/benchmark-models` | Benchmark completed local job artefacts |
 | GET | `/{job_id}` | Read one fine-tune job |
 | GET | `/{job_id}/result` | Read one fine-tune result |
 | POST | `/{job_id}/activate` | Activate a trained model |
 | POST | `/{job_id}/rollback` | Roll back a trained model |
 | GET | `/` | List fine-tuned models |
 | DELETE | `/{job_id}` | Delete a fine-tune job |
+
+
+### Managed training permissions and benchmark inputs
+
+Every `/v1/finetune/managed/*` route requires an existing API key also listed in
+`finetune_operator_api_keys` (`DIRECTOR_FINETUNE_OPERATOR_API_KEYS` accepts a JSON
+array or comma-separated keys). Keep the same key in `api_keys` or the
+`api_key_tenant_map`, so the server's normal authentication still applies.
+An empty operator list disables managed routes, even in development or when
+`create_finetune_router()` is mounted separately. Standalone callers supply
+`operator_api_keys=(...)` to the factory. When a tenant map is configured, the operator key must
+have an entry in it.
+Tenant-bound operator keys remain subject to the server's tenant binding.
+
+Upload evaluation data with `POST /v1/finetune/managed/datasets` and multipart
+field `file`. Each nonblank JSONL line must contain nonempty string `premise`
+and `hypothesis` fields and an integer `label` (0 or 1). Uploads are limited
+to 10 MiB. The response supplies an opaque `dataset_id` and sample count.
+Datasets persist under the operator-controlled model root across restarts;
+operators manage retention in that root.
+
+`POST /v1/finetune/managed/benchmark-models` accepts:
+
+```json
+{
+  "model_jobs": {"factcg-deberta-v3-large": "<completed-local-job-id>"},
+  "general_dataset_id": "<uploaded-dataset-id>",
+  "eval_dataset_id": "<optional-uploaded-domain-dataset-id>",
+  "batch_size": 16
+}
+```
+
+Omit `eval_dataset_id` when no domain dataset is needed. Supply between one and
+eight model entries; each registry alias must match the completed local job's
+base model. The server resolves artefacts under `finetune_models_dir` and loads
+tokenizers and models with `local_files_only=True`. The registry alias selects
+the model's input template even when its artefact directory has an opaque
+name. Remote managed output URIs
+are not local job artefacts. The report's `model_path`, `general_path` and
+`eval_path` contain resource IDs rather than filesystem paths.
+
+The former `model_artifacts`, `general_path` and `eval_path` request fields are
+refused with a fixed HTTP 422; path strings and Hub model names are not accepted
+as resource IDs. Unknown dataset IDs return 404. Ordinary API keys receive 403
+on managed routes. Malformed managed requests use a fixed 422 message, and
+unexpected faults use fixed failure messages with details retained server-side.
+The trusted local Python/CLI benchmark retains its filesystem-path interface.
+Python callers can set `local_files_only=True` to prevent remote model loading.
 
 `POST /validate`, `POST /start`, and `director-ai validate-data` apply the
 customer-readiness gate for minimum sample counts, class balance, duplicates,
@@ -600,6 +650,7 @@ field matching. Examples:
 | `DIRECTOR_SERVER_HOST` | `server_host` |
 | `DIRECTOR_SERVER_PORT` | `server_port` |
 | `DIRECTOR_API_KEYS` | `api_keys` |
+| `DIRECTOR_FINETUNE_OPERATOR_API_KEYS` | `finetune_operator_api_keys` |
 | `DIRECTOR_API_KEY_TENANT_MAP` | `api_key_tenant_map` |
 | `DIRECTOR_KNOWLEDGE_WRITE_HMAC_KEYS` | `knowledge_write_hmac_keys` |
 | `DIRECTOR_SCORER_MODEL` | `scorer_model` |
