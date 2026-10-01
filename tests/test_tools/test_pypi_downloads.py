@@ -9,9 +9,12 @@
 
 from __future__ import annotations
 
+import http.client
 import importlib.util
 import json
 import re
+import threading
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
 
@@ -585,6 +588,75 @@ def test_transient_failures_retry_then_soft_skip(
     assert downloads.read_csv(csv_path) == {
         "2026-07-16": {"without_mirrors": 7, "with_mirrors": 9}
     }
+
+
+@pytest.mark.parametrize("recovers", [True, False])
+def test_http_500_through_snapshot_cli_preserves_and_backfills_history(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+    recovers: bool,
+) -> None:
+    """Real HTTP failures must retry, preserve existing CSV and backfill on recovery."""
+    requests: list[str] = []
+
+    class Handler(BaseHTTPRequestHandler):
+        def do_GET(self) -> None:
+            requests.append(self.path)
+            recovered = recovers and len(requests) > 1
+            body = _payload_bytes(_SAMPLE) if recovered else b"upstream unavailable"
+            self.send_response(200 if recovered else 500)
+            self.send_header(
+                "Content-Type", "application/json" if recovered else "text/plain"
+            )
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+
+        def log_message(self, format: str, *args: object) -> None:
+            pass
+
+    server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    waits: list[float] = []
+    csv_path = tmp_path / "downloads/director-ai.csv"
+    downloads.write_csv(
+        csv_path, {"2026-07-16": {"without_mirrors": 7, "with_mirrors": 9}}
+    )
+    original = csv_path.read_bytes()
+
+    def local_connection(host: str, *, timeout: int) -> http.client.HTTPConnection:
+        assert host == downloads.PYPISTATS_HOST
+        return http.client.HTTPConnection(
+            "127.0.0.1", server.server_port, timeout=timeout
+        )
+
+    monkeypatch.setattr(downloads.http.client, "HTTPSConnection", local_connection)
+    try:
+        assert (
+            downloads.main(
+                ["--package", "director-ai", "--csv", str(csv_path)], sleep=waits.append
+            )
+            == 0
+        )
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=5)
+    assert not thread.is_alive()
+    assert requests == ["/api/packages/director-ai/overall"] * (2 if recovers else 4)
+    assert waits == ([15.0] if recovers else list(downloads.RETRY_DELAYS))
+    if recovers:
+        assert set(downloads.read_csv(csv_path)) == {
+            "2026-07-16",
+            "2026-07-17",
+            "2026-07-18",
+        }
+        assert "snapshot skipped" not in capsys.readouterr().err
+    else:
+        assert csv_path.read_bytes() == original
+        assert "snapshot skipped" in capsys.readouterr().err
 
 
 def test_workflow_has_one_push_only_bounded_writer_and_pinned_actions() -> None:
