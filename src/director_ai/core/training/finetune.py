@@ -32,6 +32,7 @@ Requires ``pip install director-ai[finetune]`` (adds transformers, accelerate).
 
 from __future__ import annotations
 
+import inspect
 import json
 import logging
 import random
@@ -480,13 +481,20 @@ def finetune_nli(
     # save_strategy must match eval_strategy when load_best_model_at_end=True
     save_strat = "steps" if eval_dataset else config.save_strategy
 
+    # Current Transformers accepts fractional warmup_steps; older constructors use warmup_ratio.
+    warmup_key = (
+        "warmup_ratio"
+        if "warmup_ratio" in inspect.signature(TrainingArguments).parameters
+        else "warmup_steps"
+    )
+    warmup_options: dict[str, Any] = {warmup_key: config.warmup_ratio}
     training_args = TrainingArguments(
         output_dir=config.output_dir,
         num_train_epochs=config.epochs,
         per_device_train_batch_size=config.batch_size,
         per_device_eval_batch_size=config.batch_size * 2,
         learning_rate=config.learning_rate,
-        warmup_ratio=config.warmup_ratio,
+        **warmup_options,
         weight_decay=config.weight_decay,
         fp16=config.fp16,
         seed=config.seed,

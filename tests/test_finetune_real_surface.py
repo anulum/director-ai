@@ -1,6 +1,10 @@
 # SPDX-License-Identifier: Apache-2.0
 # Commercial license available
-# Copyright 2020-2026 Miroslav Sotek
+# © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
+# © Code 2020–2026 Miroslav Šotek. All rights reserved.
+# ORCID: 0009-0009-3560-0851
+# Contact: www.anulum.li | protoscience@anulum.li
+# Director-AI — Fine-tune API real-surface tests
 """Real-surface coverage for fine-tuning data validation wiring."""
 
 from __future__ import annotations
@@ -85,3 +89,70 @@ def test_finetune_nli_truncates_large_label_error_reports(tmp_path: Path) -> Non
 
     with pytest.raises(ValueError, match="truncated, too many label errors"):
         finetune_nli(train_path)
+
+
+def test_finetune_trains_local_cpu_checkpoint(tmp_path: Path) -> None:
+    """Train and reload a real local checkpoint with the locked Transformers API."""
+    import math
+
+    import torch
+    from transformers import BertConfig, BertForSequenceClassification, BertTokenizer
+
+    from director_ai.core.training.finetune import FinetuneConfig
+
+    previous_threads = torch.get_num_threads()
+    previous_rng = torch.get_rng_state()
+    torch.set_num_threads(1)
+    try:
+        model_dir = tmp_path / "base-model"
+        model_dir.mkdir()
+        words = ["[PAD]", "[UNK]", "[CLS]", "[SEP]", "[MASK]", "evidence", "approval"]
+        tokenizer = BertTokenizer(
+            vocab={word: index for index, word in enumerate(words)}
+        )
+        tokenizer.save_pretrained(model_dir)
+        configuration = BertConfig(
+            vocab_size=len(words),
+            hidden_size=8,
+            num_hidden_layers=1,
+            num_attention_heads=2,
+            intermediate_size=16,
+        )
+        configuration.num_labels = 2
+        model = BertForSequenceClassification.from_pretrained(
+            None, config=configuration, state_dict={}
+        )
+        model.save_pretrained(model_dir)
+        train_path = _write_jsonl(
+            tmp_path / "train.jsonl",
+            [
+                {"premise": "evidence", "hypothesis": "approval", "label": label}
+                for label in (0, 1, 0, 1)
+            ],
+        )
+        output = tmp_path / "trained-model"
+        result = finetune_nli(
+            train_path,
+            config=FinetuneConfig(
+                base_model=str(model_dir),
+                output_dir=str(output),
+                epochs=1,
+                batch_size=1,
+                max_length=8,
+                fp16=False,
+                warmup_ratio=0.25,
+            ),
+        )
+        assert result.train_samples == 4
+        assert result.epochs_completed == 1
+        assert math.isfinite(result.final_loss)
+        reloaded = BertForSequenceClassification.from_pretrained(output)
+        assert not torch.equal(model.classifier.weight, reloaded.classifier.weight)
+        encoded = tokenizer("evidence", "approval", return_tensors="pt")
+        with torch.no_grad():
+            logits = reloaded(**encoded).logits
+        assert logits.shape == (1, 2)
+        assert torch.isfinite(logits).all()
+    finally:
+        torch.set_rng_state(previous_rng)
+        torch.set_num_threads(previous_threads)
