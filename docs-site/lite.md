@@ -16,8 +16,8 @@ result = guard(
     facts={"capital": "Paris is the capital of France."},
     prompt="What is the capital of France?",
 )
-print(result.output)       # surviving text (halted tokens removed)
-print(result.halted)       # True if the stream was stopped
+print(result.output)  # surviving text (halted tokens removed)
+print(result.halted)  # True if the stream was stopped
 print(result.halt_reason)  # why it was stopped
 ```
 

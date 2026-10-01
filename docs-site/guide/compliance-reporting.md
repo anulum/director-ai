@@ -23,19 +23,21 @@ import time
 # 1. Log every scored LLM interaction
 log = AuditLog("production_audit.db")
 
-log.log(AuditEntry(
-    prompt="What is our refund policy?",
-    response="We offer a 30-day refund policy on all products.",
-    model="gpt-4o",
-    provider="openai",
-    score=0.85,
-    approved=True,
-    verdict_confidence=0.92,
-    task_type="qa",
-    domain="customer_support",
-    latency_ms=18.5,
-    timestamp=time.time(),
-))
+log.log(
+    AuditEntry(
+        prompt="What is our refund policy?",
+        response="We offer a 30-day refund policy on all products.",
+        model="gpt-4o",
+        provider="openai",
+        score=0.85,
+        approved=True,
+        verdict_confidence=0.92,
+        task_type="qa",
+        domain="customer_support",
+        latency_ms=18.5,
+        timestamp=time.time(),
+    )
+)
 
 # 2. Generate Article 15 report
 reporter = ComplianceReporter(log)
@@ -153,7 +155,7 @@ report: GovernanceControlsReport = compute_governance_controls(
     audit_log=AuditLog("director_audit.db"),
     evidence_root=".",
 )
-print(report.to_markdown())        # or report.to_dict() for JSON
+print(report.to_markdown())  # or report.to_dict() for JSON
 ```
 
 Server: `GET /v1/compliance/governance-controls` (add `?fmt=md` for
@@ -440,6 +442,7 @@ class AuditEntry:
     timestamp: float
     tenant_id: str = ""
     human_override: bool | None = None
+
 
 @dataclass
 class Article15Report:

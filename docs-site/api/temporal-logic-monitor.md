@@ -45,8 +45,8 @@ monitor.observe(StepObservation(evidence_retrieved=True))
 
 # When the trajectory ends, resolve any pending obligations.
 report = monitor.finalize()
-print(report["verdict"])      # "satisfied" | "violated" | "inconclusive"
-print(report["violations"])   # e.g. ["tool_calls_are_verified"]
+print(report["verdict"])  # "satisfied" | "violated" | "inconclusive"
+print(report["violations"])  # e.g. ["tool_calls_are_verified"]
 ```
 
 ## Verdicts

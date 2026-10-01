@@ -29,8 +29,13 @@ Dependency boundary:
 
 ```python
 from director_ai.core.cyber_physical import (
-    AABB, GroundingHook, JointChain, PhysicalAction,
-    SimpleKinematicModel, Vec3, WorkspaceConstraint,
+    AABB,
+    GroundingHook,
+    JointChain,
+    PhysicalAction,
+    SimpleKinematicModel,
+    Vec3,
+    WorkspaceConstraint,
 )
 
 chain = JointChain(base=Vec3(0, 0, 0), link_lengths=(1.0, 1.0))

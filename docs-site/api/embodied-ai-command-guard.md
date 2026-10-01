@@ -17,7 +17,11 @@ the violated constraint and the offending step.
 from director_ai import ProductionGuard
 from director_ai.core.config import DirectorConfig
 from director_ai.core.cyber_physical import (
-    PhysicalAction, Vec3, AABB, WorkspaceConstraint, VelocityConstraint,
+    PhysicalAction,
+    Vec3,
+    AABB,
+    WorkspaceConstraint,
+    VelocityConstraint,
 )
 
 env = WorkspaceConstraint(
@@ -27,17 +31,19 @@ speed = VelocityConstraint(name="vmax", max_velocity=1.0)
 
 guard = ProductionGuard(DirectorConfig()).robot_command_guard(
     [env, speed],
-    high_risk_enabled=True,        # block unsafe plans (vs warn-only default)
-    max_step_displacement=0.5,     # reject teleport-like jumps
-    max_path_length=5.0,           # bound the total trajectory
+    high_risk_enabled=True,  # block unsafe plans (vs warn-only default)
+    max_step_displacement=0.5,  # reject teleport-like jumps
+    max_path_length=5.0,  # bound the total trajectory
 )
 
 plan = [
     PhysicalAction(actuator_id="arm", target_position=Vec3(0.1, 0.1, 0.1)),
-    PhysicalAction(actuator_id="arm", target_position=Vec3(5, 5, 5), velocity_magnitude=9.0),
+    PhysicalAction(
+        actuator_id="arm", target_position=Vec3(5, 5, 5), velocity_magnitude=9.0
+    ),
 ]
 verdict = guard.verify_plan(plan)
-print(verdict.blocked)            # True — step 1 leaves the cell and is too fast
+print(verdict.blocked)  # True — step 1 leaves the cell and is too fast
 for v in verdict.violations:
     print(v.step_index, v.constraint, v.reason)
 ```

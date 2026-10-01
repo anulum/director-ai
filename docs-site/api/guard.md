@@ -85,8 +85,8 @@ result = score(
     facts={"capital": "Paris is the capital of France."},
 )
 
-print(f"Score: {result.score:.3f}")      # ~0.35
-print(f"Approved: {result.approved}")    # False
+print(f"Score: {result.score:.3f}")  # ~0.35
+print(f"Approved: {result.approved}")  # False
 print(f"H_logical: {result.h_logical:.3f}")
 print(f"H_factual: {result.h_factual:.3f}")
 ```

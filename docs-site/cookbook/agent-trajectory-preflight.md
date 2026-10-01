@@ -93,6 +93,7 @@ halt-rate threshold, latency, and failed trajectory references.
 def log_trajectory(t):
     print(f"seed={t.seed} coh={t.final_coherence:.3f} {t.text!r}")
 
+
 verdict = simulator.preflight(
     "Summarise ANULUM's 2025 performance.",
     on_trajectory=log_trajectory,
@@ -129,13 +130,13 @@ halt.
 ```python
 verdict = simulator.preflight(prompt)
 
-verdict.halt_rate        # fraction of draws that failed
-verdict.mean_coherence   # arithmetic mean across draws
-verdict.std_coherence    # stdev (zero with one draw)
-verdict.ci_low           # 2.5% empirical quantile
-verdict.ci_high          # 97.5% empirical quantile
-verdict.min_coherence    # lowest draw
-verdict.max_coherence    # highest draw
+verdict.halt_rate  # fraction of draws that failed
+verdict.mean_coherence  # arithmetic mean across draws
+verdict.std_coherence  # stdev (zero with one draw)
+verdict.ci_low  # 2.5% empirical quantile
+verdict.ci_high  # 97.5% empirical quantile
+verdict.min_coherence  # lowest draw
+verdict.max_coherence  # highest draw
 ```
 
 The CI is a plain empirical band, not a conformal prediction —

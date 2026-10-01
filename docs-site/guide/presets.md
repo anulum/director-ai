@@ -219,6 +219,7 @@ INTERNAL_PROFILES = {
     },
 }
 
+
 def load_profile(name: str) -> DirectorConfig:
     if name in INTERNAL_PROFILES:
         return DirectorConfig(**INTERNAL_PROFILES[name], profile=name)

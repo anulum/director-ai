@@ -19,14 +19,16 @@ checker = DirectorAIChecker(
 pipeline = Pipeline()
 pipeline.add_component("checker", checker)
 
-result = pipeline.run({
-    "checker": {
-        "query": "What is the capital?",
-        "replies": ["Paris is the capital.", "Berlin is the capital."],
+result = pipeline.run(
+    {
+        "checker": {
+            "query": "What is the capital?",
+            "replies": ["Paris is the capital.", "Berlin is the capital."],
+        }
     }
-})
+)
 
-print(result["checker"]["replies"])   # Only approved replies
-print(result["checker"]["scores"])    # Score details for all
+print(result["checker"]["replies"])  # Only approved replies
+print(result["checker"]["scores"])  # Score details for all
 print(result["checker"]["approved"])  # [True, False]
 ```

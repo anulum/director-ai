@@ -39,6 +39,7 @@ director-ai wizard --cli --output config.yaml
 
     ```python
     from director_ai.core.config import DirectorConfig
+
     config = DirectorConfig.from_env()
     ```
 

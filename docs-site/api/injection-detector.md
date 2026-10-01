@@ -36,7 +36,7 @@ result = detector.detect(
     system_prompt="You are a geography expert.",
 )
 print(result.injection_detected)  # False
-print(result.injection_risk)      # low
+print(result.injection_risk)  # low
 ```
 
 ### With NLI Model
@@ -79,10 +79,12 @@ print(cs.injection_risk)  # float or None
 from director_ai.guard import ProductionGuard
 from director_ai.core.config import DirectorConfig
 
-guard = ProductionGuard(config=DirectorConfig(
-    injection_threshold=0.7,
-    injection_drift_threshold=0.6,
-))
+guard = ProductionGuard(
+    config=DirectorConfig(
+        injection_threshold=0.7,
+        injection_drift_threshold=0.6,
+    )
+)
 
 result = guard.check_injection(
     intent="",

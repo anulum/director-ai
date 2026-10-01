@@ -33,7 +33,7 @@ fact = guard.plant_canary("acme")
 # Later, scan a model answer (and optionally the retrieved evidence)
 signals = guard.scan_canaries(model_answer, "acme", evidence=retrieved_chunks)
 for signal in signals:
-    alert(signal.signal, signal.canary_id)   # "leakage" or "citation"
+    alert(signal.signal, signal.canary_id)  # "leakage" or "citation"
 ```
 
 Canaries are strictly tenant-scoped: a scan for one tenant never matches another
@@ -45,12 +45,12 @@ tenant's tokens, so a leak is attributable to the tenant whose data escaped.
 from director_ai.core.canary import CanaryRegistry, CanaryDetector
 
 registry = CanaryRegistry()
-fact = registry.mint("acme")            # mint a canary for a tenant
+fact = registry.mint("acme")  # mint a canary for a tenant
 # Plant fact.text in the vector store with fact.metadata() so citation
 # detection can recognise the chunk.
 
 detector = CanaryDetector(registry, alert=page_on_call)
-detector.scan_answer(answer, "acme")    # leakage signals
+detector.scan_answer(answer, "acme")  # leakage signals
 detector.scan_evidence(chunks, "acme")  # citation signals
 ```
 

@@ -20,11 +20,14 @@ The subpackage ships three composable pieces:
 
 ```python
 from director_ai.core.containment import (
-    BreakoutDetector, ContainmentAttestor, ContainmentGuard,
+    BreakoutDetector,
+    ContainmentAttestor,
+    ContainmentGuard,
 )
 
-attestor = ContainmentAttestor(key=secrets_vault.get("host_hmac_key"),
-                               issuer="host://edge-11")
+attestor = ContainmentAttestor(
+    key=secrets_vault.get("host_hmac_key"), issuer="host://edge-11"
+)
 guard = ContainmentGuard(attestor=attestor, detector=BreakoutDetector())
 
 # At session open — host signs the anchor for this run.

@@ -28,10 +28,10 @@ checked together:
 ```python
 from director_ai.core import verify_arithmetic, verify_reasoning_chain
 
-verify_arithmetic("Step 2: 3 + 4 = 8.").errors          # -> [3 + 4 = 8]
+verify_arithmetic("Step 2: 3 + 4 = 8.").errors  # -> [3 + 4 = 8]
 result = verify_reasoning_chain("Step 1: ... Step 2: 3 + 4 = 8. ...")
-result.math_errors      # arithmetic mistakes
-result.chain_valid      # False — a wrong sum is a chain issue
+result.math_errors  # arithmetic mistakes
+result.chain_valid  # False — a wrong sum is a chain issue
 ```
 
 Disable the arithmetic pass with `verify_reasoning_chain(text, check_math=False)`.

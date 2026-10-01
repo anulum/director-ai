@@ -43,7 +43,7 @@ result = pipeline.ingest_text(
 )
 
 provenance = ledger.provenance_of(result.chunk_ids[0])
-assert provenance.verified            # inclusion proof folds to the event root
+assert provenance.verified  # inclusion proof folds to the event root
 assert provenance.source == "refunds.md"
 assert ledger.verify() == (True, None)  # chain intact
 ```
@@ -136,7 +136,9 @@ from director_ai.core.provenance import (
 
 credibility = SourceCredibility()
 loop = CredibilityFeedbackLoop(credibility=credibility)
-verifier = ProvenanceVerifier(chain=ProvenanceChain(secret=secret), credibility=credibility)
+verifier = ProvenanceVerifier(
+    chain=ProvenanceChain(secret=secret), credibility=credibility
+)
 
 # A human rejects a response citing "blog-x"; its credibility drops, and the
 # verifier's trust score for the next "blog-x" citation drops with it.

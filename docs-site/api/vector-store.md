@@ -8,11 +8,13 @@ Semantic vector store for RAG-based factual grounding. Ingest documents, then pa
 from director_ai.core.retrieval.vector_store import VectorGroundTruthStore
 
 store = VectorGroundTruthStore()
-store.ingest([
-    "Refunds are available within 30 days of purchase.",
-    "Standard shipping takes 5-7 business days.",
-    "Pro plan costs $49/month.",
-])
+store.ingest(
+    [
+        "Refunds are available within 30 days of purchase.",
+        "Standard shipping takes 5-7 business days.",
+        "Pro plan costs $49/month.",
+    ]
+)
 
 # Use with scorer
 from director_ai import CoherenceScorer
@@ -200,9 +202,9 @@ Abstract protocol for vector storage backends. Implement `add()` and `query()` t
 ```python
 from director_ai.core.retrieval.vector_store import VectorBackend
 
+
 class MyBackend(VectorBackend):
-    def add(self, texts: list[str], ids: list[str] | None = None) -> None:
-        ...
+    def add(self, texts: list[str], ids: list[str] | None = None) -> None: ...
 
     def query(self, text: str, top_k: int = 3) -> list[tuple[str, float]]:
         # Returns list of (text, distance) pairs
@@ -251,7 +253,10 @@ store = VectorGroundTruthStore(backend=backend)
 Register custom backends for use with `DirectorConfig.vector_backend`:
 
 ```python
-from director_ai.core.retrieval.vector_store import register_vector_backend, get_vector_backend
+from director_ai.core.retrieval.vector_store import (
+    register_vector_backend,
+    get_vector_backend,
+)
 
 register_vector_backend("qdrant", MyQdrantBackend)
 BackendClass = get_vector_backend("qdrant")  # returns the class, not an instance

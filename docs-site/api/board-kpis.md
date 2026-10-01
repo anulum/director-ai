@@ -56,11 +56,15 @@ its target, `watch` once it enters the shoulder below the target
 
 ```python
 from director_ai.core.observability import (
-    KpiTargets, kpi_statuses, overall_status, render_markdown, render_text,
+    KpiTargets,
+    kpi_statuses,
+    overall_status,
+    render_markdown,
+    render_text,
 )
 
 targets = KpiTargets(max_false_positive_rate=0.10, min_halt_precision=0.80)
-print(overall_status(report, targets))   # worst per-metric status
+print(overall_status(report, targets))  # worst per-metric status
 print(render_text(report, targets=targets))
 print(render_markdown(report, targets=targets))
 ```

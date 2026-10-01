@@ -37,7 +37,7 @@ from director_ai.core.scoring.contradiction import ContradictionScorer
 guard = ProductionGuard()
 monitor = guard.new_swarm_monitor(nli=ContradictionScorer.from_pretrained())
 
-for agent_id, output in run_swarm():           # your orchestrator loop
+for agent_id, output in run_swarm():  # your orchestrator loop
     update = monitor.observe(agent_id, output)
     if update.halted:
         c = update.contradictions[0]

@@ -152,16 +152,16 @@ approved, cs = scorer.review(
     "What is the capital of France?",
     "The capital of France is Paris.",
 )
-print(f"Approved: {approved}")        # True
-print(f"Score: {cs.score:.3f}")       # ~0.44
+print(f"Approved: {approved}")  # True
+print(f"Score: {cs.score:.3f}")  # ~0.44
 
 # Hallucinated answer — rejected
 approved, cs = scorer.review(
     "What is the capital of France?",
     "The capital of France is Berlin.",
 )
-print(f"Approved: {approved}")        # False
-print(f"Score: {cs.score:.3f}")       # ~0.02
+print(f"Approved: {approved}")  # False
+print(f"Score: {cs.score:.3f}")  # ~0.02
 ```
 
 ## Guard an SDK Client
@@ -278,8 +278,10 @@ from director_ai import StreamingKernel
 
 kernel = StreamingKernel(hard_limit=0.4, window_size=8)
 
+
 def score_fn(accumulated_text):
     return 0.85  # your coherence scoring logic on text so far
+
 
 session = kernel.stream_tokens(token_generator, score_fn)
 if session.halted:
@@ -324,9 +326,11 @@ from director_ai import CoherenceAgent
 
 agent = CoherenceAgent(use_nli=True)
 
+
 async def main():
     result = await agent.aprocess("What is the capital of France?")
     print(result)
+
 
 asyncio.run(main())
 ```

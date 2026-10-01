@@ -160,7 +160,9 @@ from director_ai.voice import voice_pipeline, ElevenLabsAdapter
 
 tts = ElevenLabsAdapter(voice_id="JBFqnCBsd6RMkjVDRZzb")
 
-async for audio_chunk in voice_pipeline(llm_token_stream, tts, facts=my_facts, prompt=question):
+async for audio_chunk in voice_pipeline(
+    llm_token_stream, tts, facts=my_facts, prompt=question
+):
     await websocket.send_bytes(audio_chunk)
 ```
 
@@ -230,6 +232,7 @@ Write your own adapter for any TTS engine by subclassing `TTSAdapter`.
 async def on_halt(vtoken):
     log.warning(f"Halt: {vtoken.halt_reason} at coherence {vtoken.coherence:.3f}")
     await notify_supervisor(vtoken)
+
 
 async for audio in voice_pipeline(tokens, tts, facts=facts, on_halt=on_halt):
     play(audio)

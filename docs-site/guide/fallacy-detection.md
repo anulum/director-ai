@@ -30,10 +30,10 @@ detects it by step overlap.
 ```python
 from director_ai.core import detect_fallacies, verify_reasoning_chain
 
-detect_fallacies("Everyone knows this is best.").types     # -> ["bandwagon"]
+detect_fallacies("Everyone knows this is best.").types  # -> ["bandwagon"]
 
 result = verify_reasoning_chain("Step 1: … Step 2: everyone knows it works. …")
-result.fallacies        # heuristic markers (FallacyMatch list)
+result.fallacies  # heuristic markers (FallacyMatch list)
 ```
 
 Fallacies are reported on `result.fallacies` but, being lower-precision than the

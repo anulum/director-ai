@@ -155,7 +155,9 @@ from director_ai.enterprise import Policy
 
 policy = Policy(
     forbidden=[r"(buy|sell|short)\s+(stock|shares)"],
-    patterns=[{"name": "ssn", "regex": r"\b(SSN|social security)\b", "action": "block"}],
+    patterns=[
+        {"name": "ssn", "regex": r"\b(SSN|social security)\b", "action": "block"}
+    ],
     max_length=4000,
 )
 

@@ -22,9 +22,9 @@ artefacts are not (WCH-6):
   ```python
   from transformers import AutoTokenizer
 
-  AutoTokenizer.from_pretrained(
-      "yaxili96/FactCG-DeBERTa-v3-Large"
-  ).save_pretrained("benchmarks/models/factcg-cb")
+  AutoTokenizer.from_pretrained("yaxili96/FactCG-DeBERTa-v3-Large").save_pretrained(
+      "benchmarks/models/factcg-cb"
+  )
   ```
 
 Nothing in `src/` or `tests/` reads this directory; it exists for the

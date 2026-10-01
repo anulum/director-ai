@@ -49,9 +49,9 @@ from director_ai.server import create_app
 
 cfg = DirectorConfig(
     sanitize_inputs=True,
-    prompt_guard_model_enabled=True,        # turn on the model stage
+    prompt_guard_model_enabled=True,  # turn on the model stage
     prompt_guard_model_id="protectai/deberta-v3-base-prompt-injection-v2",
-    prompt_guard_threshold=0.5,             # injection probability to block at
+    prompt_guard_threshold=0.5,  # injection probability to block at
 )
 app = create_app(cfg)
 ```

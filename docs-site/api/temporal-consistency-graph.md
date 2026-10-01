@@ -34,15 +34,27 @@ from director_ai.core.temporal_consistency import TemporalClaim
 guard = ProductionGuard(DirectorConfig())
 graph = guard.temporal_consistency  # persists across sessions on this guard
 
-graph.record(TemporalClaim(
-    subject="patient:123", predicate="has_condition", value="diabetes",
-    polarity=True, timestamp=monday_ts, session_id="mon",
-))
+graph.record(
+    TemporalClaim(
+        subject="patient:123",
+        predicate="has_condition",
+        value="diabetes",
+        polarity=True,
+        timestamp=monday_ts,
+        session_id="mon",
+    )
+)
 
-contradictions = graph.record(TemporalClaim(
-    subject="patient:123", predicate="has_condition", value="diabetes",
-    polarity=False, timestamp=tuesday_ts, session_id="tue",
-))
+contradictions = graph.record(
+    TemporalClaim(
+        subject="patient:123",
+        predicate="has_condition",
+        value="diabetes",
+        polarity=False,
+        timestamp=tuesday_ts,
+        session_id="tue",
+    )
+)
 
 assert contradictions[0].kind == "polarity"
 assert contradictions[0].earlier.session_id == "mon"
@@ -63,16 +75,18 @@ from director_ai.core.temporal_consistency import TemporalConsistencyGraph
 
 graph = TemporalConsistencyGraph(functional_predicates={"diagnosis"})
 graph.record(TemporalClaim("patient:1", "diagnosis", value="diabetes", timestamp=1.0))
-flip = graph.record(TemporalClaim("patient:1", "diagnosis", value="healthy", timestamp=2.0))
+flip = graph.record(
+    TemporalClaim("patient:1", "diagnosis", value="healthy", timestamp=2.0)
+)
 assert flip[0].kind == "functional_value"
 ```
 
 ## Querying and audit
 
 ```python
-graph.history("patient:123", "has_condition")     # claims oldest-first
-graph.contradictions(tenant_id="acme")            # contradictions for a tenant
-graph.report(tenant_id="acme")                     # tenant-safe summary dict
+graph.history("patient:123", "has_condition")  # claims oldest-first
+graph.contradictions(tenant_id="acme")  # contradictions for a tenant
+graph.report(tenant_id="acme")  # tenant-safe summary dict
 ```
 
 `report()` returns `{tenant_id, subjects, claim_count, contradiction_count,

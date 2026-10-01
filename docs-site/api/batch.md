@@ -11,11 +11,13 @@ from director_ai.core.batch import BatchProcessor
 agent = CoherenceAgent(use_nli=True)
 processor = BatchProcessor(agent, max_concurrency=8)
 
-result = processor.process_batch([
-    "What is the capital of France?",
-    "What is the speed of light?",
-    "When was Python released?",
-])
+result = processor.process_batch(
+    [
+        "What is the capital of France?",
+        "What is the speed of light?",
+        "When was Python released?",
+    ]
+)
 
 print(f"Succeeded: {result.succeeded}/{result.total}")
 print(f"Duration: {result.duration_seconds:.1f}s")

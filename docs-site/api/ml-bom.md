@@ -16,16 +16,22 @@ from director_ai.core.ml_bom import ComponentType
 bom = ProductionGuard(DirectorConfig()).ml_bom
 
 # Pin each component to the digest of its known-good bytes.
-bom.add_artifact("factcg-onnx", "1.0", ComponentType.MODEL, model_bytes,
-                 supplier="anulum", source="hf://anulum/factcg")
+bom.add_artifact(
+    "factcg-onnx",
+    "1.0",
+    ComponentType.MODEL,
+    model_bytes,
+    supplier="anulum",
+    source="hf://anulum/factcg",
+)
 bom.add_artifact("aggrefact", "2024", ComponentType.DATASET, dataset_bytes)
 
-print(bom.bom_digest)        # 64-hex fingerprint of the whole inventory
+print(bom.bom_digest)  # 64-hex fingerprint of the whole inventory
 
 # Later, re-verify what is actually deployed.
 report = bom.verify({"factcg-onnx": deployed_model_bytes})
-print(report.ok)             # False if any supplied artefact was substituted
-print(report.to_dict())      # {"ok", "intact", "tampered", "unverified"}
+print(report.ok)  # False if any supplied artefact was substituted
+print(report.to_dict())  # {"ok", "intact", "tampered", "unverified"}
 ```
 
 ## Components

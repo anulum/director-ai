@@ -32,15 +32,15 @@ from director_ai.core.execution_rings import AuthorizationEvidence
 gate = ProductionGuard(DirectorConfig()).execution_rings()  # 24h cooling default
 
 # A read needs nothing.
-gate.authorize("list invoices").allowed                    # True
+gate.authorize("list invoices").allowed  # True
 
 # A delete needs an approval AND a cooling period to elapse.
 pending = gate.authorize(
     "delete the customer record",
     AuthorizationEvidence(operator_approval=True, cooling_elapsed_seconds=60),
 )
-print(pending.allowed)       # False
-print(pending.to_dict()["missing"])   # ['cooling_period']
+print(pending.allowed)  # False
+print(pending.to_dict()["missing"])  # ['cooling_period']
 ```
 
 `evaluate(ring, evidence)` and `authorize(operation, evidence)` return a

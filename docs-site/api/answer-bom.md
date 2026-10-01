@@ -67,7 +67,7 @@ bom = guard.answer_bom(
 for claim in bom.unsupported_claims:
     print(claim.claim, claim.verdict, claim.support)
 
-audit_log.write(bom.to_json())          # round-trips via AnswerBOM.from_dict
+audit_log.write(bom.to_json())  # round-trips via AnswerBOM.from_dict
 ```
 
 `build_answer_bom(score, ...)` is the underlying free function for callers that

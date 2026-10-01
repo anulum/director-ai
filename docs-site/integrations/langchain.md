@@ -33,13 +33,15 @@ guard = DirectorAIGuard(
 )
 
 # As a chain step
-result = guard.invoke({
-    "query": "What is the capital of France?",
-    "response": "The capital of France is Berlin.",
-})
+result = guard.invoke(
+    {
+        "query": "What is the capital of France?",
+        "response": "The capital of France is Berlin.",
+    }
+)
 
 print(result["approved"])  # False
-print(result["score"])     # ~0.35
+print(result["score"])  # ~0.35
 ```
 
 ## In a Chain

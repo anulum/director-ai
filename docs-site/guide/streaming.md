@@ -115,6 +115,7 @@ def handle_halt(session):
     print(f"Halted at token {session.halt_index}")
     # Log, alert, switch to fallback
 
+
 kernel = StreamingKernel(on_halt=handle_halt)
 ```
 
@@ -440,8 +441,8 @@ the `nli` extra and deployment-owned latency sizing:
 ```python
 DirectorConfig(
     streaming_contradiction_halt=True,
-    streaming_contradiction_threshold=0.2,   # P(contradiction) to halt
-    streaming_contradiction_device=-1,        # CUDA index, -1 = CPU
+    streaming_contradiction_threshold=0.2,  # P(contradiction) to halt
+    streaming_contradiction_device=-1,  # CUDA index, -1 = CPU
 )
 ```
 

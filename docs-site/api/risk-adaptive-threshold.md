@@ -27,7 +27,7 @@ lowers the bar.
 ```python
 from director_ai.core.risk_threshold import RiskAdaptiveThreshold, RiskFactors
 
-adapter = RiskAdaptiveThreshold()   # default policy, base 0.6
+adapter = RiskAdaptiveThreshold()  # default policy, base 0.6
 
 decision = adapter.evaluate(
     RiskFactors(
@@ -41,9 +41,9 @@ decision = adapter.evaluate(
     )
 )
 
-print(decision.threshold)        # clamped, e.g. 0.95
-print(decision.contributions)    # {"user_role": 0.1, "domain": 0.1, ...}
-print(decision.total_delta)      # sum before clamping
+print(decision.threshold)  # clamped, e.g. 0.95
+print(decision.contributions)  # {"user_role": 0.1, "domain": 0.1, ...}
+print(decision.total_delta)  # sum before clamping
 ```
 
 The result is clamped to the policy's `[min_threshold, max_threshold]`. Every

@@ -14,7 +14,7 @@ from director_ai.integrations.rails_config import (
 
 result: RailsLoadResult = load_rails_config("./nemo_config_dir")
 violations = result.policy.check(candidate_answer)
-print(result.to_dict())   # audit: what mapped, what did not
+print(result.to_dict())  # audit: what mapped, what did not
 ```
 
 Accepted inputs: a NeMo config **directory** (`config.yml` + `*.co`), a

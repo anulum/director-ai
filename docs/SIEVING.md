@@ -67,9 +67,12 @@ from sieving import SievingCollator, SievingTrainer
 
 collator = SievingCollator(tokenizer, noise_ratio=0.10)
 trainer = SievingTrainer(
-    model=model, args=training_args,
-    train_dataset=train_ds, eval_dataset=val_ds,
-    data_collator=collator, compute_metrics=compute_metrics,
+    model=model,
+    args=training_args,
+    train_dataset=train_ds,
+    eval_dataset=val_ds,
+    data_collator=collator,
+    compute_metrics=compute_metrics,
 )
 trainer.train()
 ```

@@ -36,15 +36,18 @@ class docstring says so:
 
 ```python
 from director_ai.core.zk_attestation import (
-    CommitmentBackend, MinimumCoherence, NoBreakoutEvents,
-    PassportIssuer, PassportVerifier,
+    CommitmentBackend,
+    MinimumCoherence,
+    NoBreakoutEvents,
+    PassportIssuer,
+    PassportVerifier,
 )
 
 # Source org — issue a passport.
 issuer = PassportIssuer(key=SOURCE_HMAC_KEY, issuing_org="org://source")
 passport = issuer.issue(
     agent_id="agent-001",
-    samples=history_samples,                  # list of dicts
+    samples=history_samples,  # list of dicts
     statements=[
         MinimumCoherence(name="coherence", threshold=0.9, samples_min=10_000),
         NoBreakoutEvents(name="no_break", samples_min=10_000),
@@ -53,7 +56,7 @@ passport = issuer.issue(
 
 # Receiving org — verify.
 verifier = PassportVerifier(
-    issuer_keys={"org://source": SOURCE_HMAC_KEY},   # PKI / out-of-band
+    issuer_keys={"org://source": SOURCE_HMAC_KEY},  # PKI / out-of-band
     backends={"commitment": CommitmentBackend(key=SOURCE_HMAC_KEY)},
 )
 verdict = verifier.verify(passport)
@@ -177,12 +180,13 @@ over SHA-256).
 
 ```python
 from director_ai.core.zk_attestation import (
-    SchnorrAttestationBackend, MinimumCoherence,
+    SchnorrAttestationBackend,
+    MinimumCoherence,
 )
 
 backend = SchnorrAttestationBackend()
 statement = MinimumCoherence(name="coherence", threshold=0.8, samples_min=8)
-proof = backend.prove(statement, samples)        # private samples in, ZK proof out
+proof = backend.prove(statement, samples)  # private samples in, ZK proof out
 accepted, reason = backend.verify(statement, proof)
 ```
 
@@ -220,13 +224,14 @@ a prover cannot prove the bound against fabricated values.
 
 ```python
 from director_ai.core.zk_attestation import (
-    BulletproofRangeBackend, MinimumCoherence,
+    BulletproofRangeBackend,
+    MinimumCoherence,
 )
 
-backend = BulletproofRangeBackend()                       # 32-bit range default
+backend = BulletproofRangeBackend()  # 32-bit range default
 statement = MinimumCoherence(name="coherence", threshold=0.8, samples_min=8)
-proof = backend.prove(statement, samples)                 # raises if the bar is not met
-accepted, reason = backend.verify(statement, proof)       # neither values nor aggregate leak
+proof = backend.prove(statement, samples)  # raises if the bar is not met
+accepted, reason = backend.verify(statement, proof)  # neither values nor aggregate leak
 ```
 
 - **hidden:** every sample value *and* the aggregate;

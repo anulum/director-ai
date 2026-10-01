@@ -77,6 +77,7 @@ def handle_halt(session):
     print(f"Halted at token {session.halt_index}")
     send_alert(session.halt_reason)
 
+
 kernel = StreamingKernel(on_halt=handle_halt, hard_limit=0.4)
 ```
 

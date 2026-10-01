@@ -45,13 +45,13 @@ for score, grounded in recent_reviewed_decisions:
 
 update = controller.propose()
 if update.action == "accept":
-    apply_threshold(controller.threshold)   # the host applies it
+    apply_threshold(controller.threshold)  # the host applies it
 print(update.action, controller.threshold)  # e.g. "accept" 0.62
 
 # Later, on fresh reviewed data, guard against regression:
 rollback = controller.evaluate_regression(newer_outcomes)
 if rollback.action == "rollback":
-    apply_threshold(controller.threshold)   # restored to the prior policy
+    apply_threshold(controller.threshold)  # restored to the prior policy
 ```
 
 The controller never mutates the guard's configured threshold; the host applies
@@ -84,11 +84,11 @@ from director_ai.core.self_healing import SelfHealingThresholdController, Tuning
 controller = SelfHealingThresholdController(
     initial_threshold=0.6,
     config=TuningConfig(
-        holdout_fraction=0.34,          # fraction held out for validation
-        false_halt_weight=1.0,          # penalty for halting a grounded answer
+        holdout_fraction=0.34,  # fraction held out for validation
+        false_halt_weight=1.0,  # penalty for halting a grounded answer
         missed_hallucination_weight=3.0,  # penalty for approving a hallucination
-        min_samples=20,                 # minimum window before proposing
-        regression_tolerance=0.0,       # rollback if worse than predecessor by more
+        min_samples=20,  # minimum window before proposing
+        regression_tolerance=0.0,  # rollback if worse than predecessor by more
     ),
 )
 ```

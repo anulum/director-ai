@@ -255,7 +255,13 @@ from director_ai import verify_json, verify_tool_call, verify_code
 from director_ai import FeedbackStore, OnlineCalibrator, CalibrationReport
 
 # v3.10.0: EU AI Act compliance
-from director_ai import AuditLog, AuditEntry, ComplianceReporter, Article15Report, Article15TemplateContext
+from director_ai import (
+    AuditLog,
+    AuditEntry,
+    ComplianceReporter,
+    Article15Report,
+    Article15TemplateContext,
+)
 
 # Commercial readiness
 from director_ai import build_soc2_iso_readiness_report
@@ -266,7 +272,10 @@ from director_ai import compute_meta_confidence, ContradictionTracker
 # Direct module imports (for type hints and advanced use)
 from director_ai.core.config import DirectorConfig
 from director_ai.core.types import CoherenceScore, ReviewResult
-from director_ai.core.retrieval.vector_store import VectorGroundTruthStore, ChromaBackend
+from director_ai.core.retrieval.vector_store import (
+    VectorGroundTruthStore,
+    ChromaBackend,
+)
 from director_ai.core.runtime.batch import BatchProcessor
 
 # Enterprise (lazy-loaded)

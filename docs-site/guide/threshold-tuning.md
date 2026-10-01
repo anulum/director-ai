@@ -212,7 +212,10 @@ learner = AdaptiveThresholdLearner(
     max_false_negative_rate=0.05,
 )
 learner.observe_batch(
-    [ThresholdFeedback(score=row.score, human_approved=row.human_approved) for row in rows]
+    [
+        ThresholdFeedback(score=row.score, human_approved=row.human_approved)
+        for row in rows
+    ]
 )
 recommendation = learner.recommend()
 ```

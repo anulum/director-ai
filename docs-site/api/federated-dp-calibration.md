@@ -19,7 +19,9 @@ from director_ai.core.config import DirectorConfig
 
 # A round seeded at the guard's coherence threshold.
 rnd = ProductionGuard(DirectorConfig()).federated_calibration(
-    clip_norm=0.05, noise_multiplier=1.0, min_cohort=5,
+    clip_norm=0.05,
+    noise_multiplier=1.0,
+    min_cohort=5,
 )
 
 # Each tenant submits its clipped local update (computed on local data only).
@@ -27,9 +29,9 @@ rnd.submit_update(tenant_id="bank-a", update=+0.03)
 rnd.submit_update(tenant_id="bank-b", update=+0.02)
 # ... at least min_cohort tenants ...
 
-result = rnd.aggregate()          # raises CohortTooSmallError below the gate
+result = rnd.aggregate()  # raises CohortTooSmallError below the gate
 print(result.previous_value, result.new_value, result.cohort_size)
-print(rnd.value)                  # the new shared parameter
+print(rnd.value)  # the new shared parameter
 ```
 
 `aggregate()` clips each tenant's update to `±clip_norm`, averages the cohort,
@@ -61,7 +63,7 @@ rnd = FederatedCalibrationRound(
     min_cohort=5,
     learning_rate=1.0,
     value_bounds=(0.0, 1.0),
-    seed=None,          # system entropy in production; set for reproducible tests
+    seed=None,  # system entropy in production; set for reproducible tests
 )
 ```
 

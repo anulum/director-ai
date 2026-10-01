@@ -20,11 +20,11 @@ integrity = ProductionGuard(DirectorConfig()).output_integrity()
 
 # Sign an output for non-repudiation.
 signed = integrity.sign("The diagnosis is X.", {"tenant": "t1", "model": "factcg"})
-integrity.verify(signed)          # True (the public key travels inside `signed`)
+integrity.verify(signed)  # True (the public key travels inside `signed`)
 
 # Record its digest in the tamper-evident ledger (no raw output retained).
 integrity.record("The diagnosis is X.", {"tenant": "t1"})
-integrity.verify_ledger()         # True — chain intact
+integrity.verify_ledger()  # True — chain intact
 ```
 
 ## Signing (non-repudiation)
@@ -38,7 +38,7 @@ from director_ai.core.output_integrity import OutputSigner, verify_signed_output
 
 signer = OutputSigner(seed=my_32_byte_seed)
 signed = signer.sign("answer", {"request_id": "r-1"})
-verify_signed_output(signed)      # anyone with `signed` can verify
+verify_signed_output(signed)  # anyone with `signed` can verify
 ```
 
 Verification fails if the output, the metadata, the signature, the algorithm, or
@@ -59,8 +59,8 @@ from director_ai.core.output_integrity import TamperEvidentLedger
 ledger = TamperEvidentLedger()
 ledger.append({"output_id": "o-1", "digest": "..."})
 ledger.append({"output_id": "o-2", "digest": "..."})
-ledger.verify()                                  # True
-TamperEvidentLedger.verify_entries(exported)     # verify an exported copy
+ledger.verify()  # True
+TamperEvidentLedger.verify_entries(exported)  # verify an exported copy
 ```
 
 Only digests are stored, never raw payloads, so the ledger can be exported for an

@@ -6,19 +6,29 @@
 from director_ai.core import CoherenceScorer, GroundTruthStore
 
 store = GroundTruthStore()  # empty — populate with your KB
-store.add("statute of limitations", "The statute of limitations for personal injury in California is 2 years.")
-store.add("contract elements", "A contract requires offer, acceptance, consideration, and mutual assent.")
+store.add(
+    "statute of limitations",
+    "The statute of limitations for personal injury in California is 2 years.",
+)
+store.add(
+    "contract elements",
+    "A contract requires offer, acceptance, consideration, and mutual assent.",
+)
 
 scorer = CoherenceScorer(threshold=0.30, ground_truth_store=store)
 
 # Correct → approved
-approved, score = scorer.review("California injury statute of limitations?",
-    "The statute of limitations for personal injury in California is 2 years.")
+approved, score = scorer.review(
+    "California injury statute of limitations?",
+    "The statute of limitations for personal injury in California is 2 years.",
+)
 print(f"Correct: approved={approved}, score={score.score:.2f}")
 
 # Wrong → rejected
-approved, score = scorer.review("California injury statute of limitations?",
-    "There is no statute of limitations for personal injury in California.")
+approved, score = scorer.review(
+    "California injury statute of limitations?",
+    "There is no statute of limitations for personal injury in California.",
+)
 print(f"Wrong:   approved={approved}, score={score.score:.2f}")
 ```
 
@@ -28,14 +38,16 @@ print(f"Wrong:   approved={approved}, score={score.score:.2f}")
 from director_ai import CoherenceScorer, VectorGroundTruthStore
 
 store = VectorGroundTruthStore()
-store.ingest([
-    "The statute of limitations for personal injury in California is 2 years.",
-    "Attorney-client privilege protects communications made for legal advice.",
-    "A contract requires offer, acceptance, consideration, and mutual assent.",
-])
+store.ingest(
+    [
+        "The statute of limitations for personal injury in California is 2 years.",
+        "Attorney-client privilege protects communications made for legal advice.",
+        "A contract requires offer, acceptance, consideration, and mutual assent.",
+    ]
+)
 
 scorer = CoherenceScorer(
-    threshold=0.30,    # CoherenceScorer scores cluster 0.25–0.55; tune on your data
+    threshold=0.30,  # CoherenceScorer scores cluster 0.25–0.55; tune on your data
     soft_limit=0.35,
     use_nli=True,
     ground_truth_store=store,

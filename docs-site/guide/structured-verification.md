@@ -58,9 +58,11 @@ assert result.schema_valid is False
 # Optional Pydantic model validation
 from pydantic import BaseModel
 
+
 class Payload(BaseModel):
     status: str
     quantity: int
+
 
 result = verify_json(
     '{"status": "approved", "quantity": "two"}',
@@ -70,6 +72,7 @@ assert result.schema_valid is False
 
 # Value grounding against a knowledge base
 from director_ai import CoherenceScorer
+
 scorer = CoherenceScorer(use_nli=True)
 
 result = verify_json(

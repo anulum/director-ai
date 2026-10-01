@@ -34,7 +34,7 @@ attributor = MechanisticAttributor(risk_threshold=0.5, top_k=5)
 
 # From per-layer arrays a real integration has already reduced:
 layers = MechanisticAttributor.layer_signals_from_arrays(
-    ffn_knowledge=per_layer_mlp_magnitude,        # [0, 1] per layer
+    ffn_knowledge=per_layer_mlp_magnitude,  # [0, 1] per layer
     external_attention=per_layer_context_attention,  # [0, 1] per layer
 )
 heads = MechanisticAttributor.head_signals_from_matrix(per_layer_per_head_copying)

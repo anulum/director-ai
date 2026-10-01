@@ -40,12 +40,14 @@ coherence score and the sector policy to pass.
 from director_ai.guard import ProductionGuard
 
 guard = ProductionGuard.from_profile("finance")
-guard.load_facts({
-    "deposit_coverage": (
-        "FDIC insurance covers up to $250,000 per depositor, per insured "
-        "bank, for each ownership category."
-    )
-})
+guard.load_facts(
+    {
+        "deposit_coverage": (
+            "FDIC insurance covers up to $250,000 per depositor, per insured "
+            "bank, for each ownership category."
+        )
+    }
+)
 
 result = guard.check(
     "What is the standard FDIC deposit coverage limit?",
@@ -81,8 +83,8 @@ Enable online calibration to get confidence intervals and adaptive thresholds:
 guard.enable_calibration(alpha=0.1)  # 90% confidence intervals
 
 result = guard.check("What is the max dose?", "Max 400mg per dose.")
-print(result.confidence_interval)      # (0.72, 0.89)
-print(result.calibrated_threshold)     # adjusted from feedback
+print(result.confidence_interval)  # (0.72, 0.89)
+print(result.calibrated_threshold)  # adjusted from feedback
 
 # Record human correction
 guard.record_feedback(result, correct_label=True)
@@ -123,7 +125,9 @@ manifest = {
     }
 }
 tool_result = guard.verify_tool(
-    "get_dosage", {"drug": "ibuprofen"}, '{"max_dose": "400mg"}',
+    "get_dosage",
+    {"drug": "ibuprofen"},
+    '{"max_dose": "400mg"}',
     manifest=manifest,
 )
 print(tool_result.approved, tool_result.issues)
@@ -141,7 +145,7 @@ result = guard.check_injection(
     system_prompt="You are a customer service agent.",
 )
 print(result.injection_detected)  # True
-print(result.injection_risk)      # 0.85
+print(result.injection_risk)  # 0.85
 for claim in result.claims:
     print(f"  [{claim.verdict}] {claim.claim}")
 ```
@@ -149,10 +153,12 @@ for claim in result.claims:
 Config thresholds propagate from `DirectorConfig`:
 
 ```python
-guard = ProductionGuard(config=DirectorConfig(
-    injection_threshold=0.8,
-    injection_drift_threshold=0.5,
-))
+guard = ProductionGuard(
+    config=DirectorConfig(
+        injection_threshold=0.8,
+        injection_drift_threshold=0.5,
+    )
+)
 ```
 
 ## API Reference

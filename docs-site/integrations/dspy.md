@@ -12,6 +12,7 @@ Use `director_assert()` inside a `dspy.Module.forward()` to enforce factual grou
 import dspy
 from director_ai.integrations.dspy import director_assert
 
+
 class FactCheckedQA(dspy.Module):
     def forward(self, question):
         answer = self.generate(question=question)

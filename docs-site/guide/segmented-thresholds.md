@@ -34,7 +34,7 @@ learner.observe(score=0.91, human_approved=True, segment="clinical")
 learner.observe(score=0.44, human_approved=True, segment="chat")
 
 rec = learner.recommend(segment="clinical")
-rec.source                          # "segment" once promoted, else "global"
+rec.source  # "segment" once promoted, else "global"
 rec.recommendation.recommended_threshold
 rec.recommendation.to_profile_overlay(profile="clinical-adaptive")
 ```

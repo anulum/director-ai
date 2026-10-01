@@ -28,9 +28,10 @@ sites) the pattern is:
 ```python
 try:
     from backfire_kernel import rust_sum_f64
+
     _RUST_X = True
 except ImportError:
-    _RUST_X = True              # <-- flag is True in BOTH branches
+    _RUST_X = True  # <-- flag is True in BOTH branches
 
     def rust_sum_f64(_values):  # stub that only raises
         raise RuntimeError("backfire_kernel rust_sum_f64 is unavailable")

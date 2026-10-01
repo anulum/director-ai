@@ -27,13 +27,15 @@ store.add("wire transfer", "Wire transfers take 1-3 business days.")
 scorer = CoherenceScorer(threshold=0.30, ground_truth_store=store)
 
 # Correct → approved
-approved, score = scorer.review("What is the savings APY?",
-    "The current savings account APY is 4.25%.")
+approved, score = scorer.review(
+    "What is the savings APY?", "The current savings account APY is 4.25%."
+)
 print(f"Correct: approved={approved}, score={score.score:.2f}")
 
 # Wrong → rejected
-approved, score = scorer.review("What is the FDIC limit?",
-    "FDIC covers up to $500,000 per depositor.")
+approved, score = scorer.review(
+    "What is the FDIC limit?", "FDIC covers up to $500,000 per depositor."
+)
 print(f"Wrong:   approved={approved}, score={score.score:.2f}")
 ```
 
@@ -47,8 +49,8 @@ scorer = CoherenceScorer(
     soft_limit=0.35,
     use_nli=True,
     ground_truth_store=store,
-    cache_size=4096,   # High cache for repeated product queries
-    cache_ttl=3600,    # 1-hour cache for stable financial facts
+    cache_size=4096,  # High cache for repeated product queries
+    cache_ttl=3600,  # 1-hour cache for stable financial facts
 )
 ```
 
@@ -56,13 +58,15 @@ scorer = CoherenceScorer(
 
 ```python
 store = VectorGroundTruthStore()
-store.ingest([
-    "Our savings account APY is 4.25% as of February 2026.",
-    "Wire transfers take 1-3 business days.",
-    "FDIC insurance covers up to $250,000 per depositor, per insured bank, "
-    "for each ownership category.",
-    "Minimum balance for premium checking is $5,000.",
-])
+store.ingest(
+    [
+        "Our savings account APY is 4.25% as of February 2026.",
+        "Wire transfers take 1-3 business days.",
+        "FDIC insurance covers up to $250,000 per depositor, per insured bank, "
+        "for each ownership category.",
+        "Minimum balance for premium checking is $5,000.",
+    ]
+)
 ```
 
 ## Compliance Pattern
@@ -76,7 +80,13 @@ audit = AuditLogger(path="/var/log/director-ai/finance")
 
 # Policy: block responses mentioning specific stock recommendations
 policy = Policy(
-    patterns=[{"name": "no_stock_advice", "regex": r"(buy|sell|short)\s+(stock|shares)", "action": "block"}],
+    patterns=[
+        {
+            "name": "no_stock_advice",
+            "regex": r"(buy|sell|short)\s+(stock|shares)",
+            "action": "block",
+        }
+    ],
     forbidden=["stock recommendation", "investment advice"],
 )
 ```

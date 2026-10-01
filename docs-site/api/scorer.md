@@ -28,8 +28,8 @@ approved, score = scorer.review(
     "The capital of France is Berlin.",
 )
 
-print(f"Approved: {approved}")        # False
-print(f"Score: {score.score:.3f}")    # ~0.35
+print(f"Approved: {approved}")  # False
+print(f"Score: {score.score:.3f}")  # ~0.35
 print(f"Evidence: {score.evidence}")  # Retrieved context + NLI details
 ```
 

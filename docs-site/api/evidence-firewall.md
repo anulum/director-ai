@@ -55,9 +55,9 @@ firewall = EvidenceFirewall(FirewallPolicy(max_age_seconds=90 * 86_400))
 
 report = firewall.screen(results, FirewallContext(tenant_id="acme", now_unix=now))
 
-for chunk in report.admitted:        # safe to hand to the model
+for chunk in report.admitted:  # safe to hand to the model
     ...
-for verdict in report.quarantined:   # held back, with reasons
+for verdict in report.quarantined:  # held back, with reasons
     print(verdict.chunk.chunk_id, verdict.failed_reasons)
 ```
 
@@ -101,7 +101,7 @@ config = DirectorConfig(
     evidence_firewall_enforce_sensitivity=True,
     evidence_firewall_allowed_sensitivity=("public", "internal"),
 )
-store = config.build_store()         # firewall attached
+store = config.build_store()  # firewall attached
 ```
 
 ## Report shape

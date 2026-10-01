@@ -23,8 +23,8 @@ app = create_proxy_app(
     threshold=0.6,
     facts_path="kb.txt",
     upstream_url="https://api.openai.com",
-    on_fail="reject",          # or "warn"
-    moderations="local",       # or "upstream"
+    on_fail="reject",  # or "warn"
+    moderations="local",  # or "upstream"
 )
 ```
 

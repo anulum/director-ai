@@ -156,6 +156,7 @@ The `score()` function also supports injection detection:
 
 ```python
 from director_ai import score
+
 cs = score(prompt, response, injection_detection=True)
 print(cs.injection_risk)  # 0.0–1.0 or None
 ```

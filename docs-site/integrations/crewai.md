@@ -57,5 +57,5 @@ result = guard_tool.check(
     "The company was founded in 2020.",
 )
 print(result["approved"])  # True
-print(result["score"])     # ~0.85
+print(result["score"])  # ~0.85
 ```

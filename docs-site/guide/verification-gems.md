@@ -11,11 +11,8 @@ Catches arithmetic errors, impossible dates, and probabilities outside [0, 100%]
 ```python
 from director_ai import verify_numeric
 
-result = verify_numeric(
-    "Revenue grew 50% from $100 to $120. "
-    "Founded in 2035."
-)
-print(result.valid)        # False
+result = verify_numeric("Revenue grew 50% from $100 to $120. Founded in 2035.")
+print(result.valid)  # False
 print(result.error_count)  # 1 (50% of 100 = 50, not 20)
 for issue in result.issues:
     print(f"  {issue.issue_type}: {issue.description}")
@@ -61,7 +58,7 @@ result = verify_reasoning_chain(
     "Step 2: Penguins are birds. "
     "Step 3: Therefore, the economy is growing."
 )
-print(result.chain_valid)   # False
+print(result.chain_valid)  # False
 print(result.issues_found)  # 1
 for v in result.verdicts:
     print(f"  Step {v.step_index}: {v.verdict} ({v.confidence:.2f})")
@@ -86,7 +83,7 @@ records, and "current" references.
 from director_ai import score_temporal_freshness
 
 result = score_temporal_freshness("The CEO of Apple is Tim Cook.")
-print(result.has_temporal_claims)     # True
+print(result.has_temporal_claims)  # True
 print(result.overall_staleness_risk)  # 0.8 (positions change)
 for claim in result.claims:
     print(f"  {claim.claim_type}: {claim.text} (risk: {claim.staleness_risk:.2f})")
@@ -111,7 +108,7 @@ result = score_temporal_freshness(
     domain="medical",
 )
 
-print(result.external_status_risk)    # 1.0
+print(result.external_status_risk)  # 1.0
 print(result.overall_staleness_risk)  # 1.0
 ```
 
@@ -150,13 +147,15 @@ Jaccard word overlap (pluggable NLI scorer).
 from director_ai import ConsensusScorer, ModelResponse
 
 scorer = ConsensusScorer(models=["gpt-4o", "claude", "gemini"])
-result = scorer.score_responses([
-    ModelResponse(model="gpt-4o", response="Paris is the capital of France"),
-    ModelResponse(model="claude", response="Paris is the capital of France"),
-    ModelResponse(model="gemini", response="The capital of France is Paris"),
-])
+result = scorer.score_responses(
+    [
+        ModelResponse(model="gpt-4o", response="Paris is the capital of France"),
+        ModelResponse(model="claude", response="Paris is the capital of France"),
+        ModelResponse(model="gemini", response="The capital of France is Paris"),
+    ]
+)
 print(result.agreement_score)  # 0.0-1.0
-print(result.has_consensus)    # True if agreement > 0.7
+print(result.has_consensus)  # True if agreement > 0.7
 ```
 
 For critical domains, use `CrossVerifierConsensus.decide_critical()` with a
@@ -244,7 +243,9 @@ detector.record_output("Machine learning enables systems to learn from data.", 1
 
 alert = detector.check_input("Machine learning enables systems to learn from data.")
 if alert:
-    print(f"Loop detected: similarity={alert.similarity:.2f}, severity={alert.severity}")
+    print(
+        f"Loop detected: similarity={alert.similarity:.2f}, severity={alert.severity}"
+    )
 ```
 
 ### REST API
@@ -263,9 +264,11 @@ Unicode homoglyphs, base64/rot13 encoding, role-play injection.
 ```python
 from director_ai import AdversarialTester
 
+
 def my_guardrail(prompt, response):
     # your review function returning (approved, score)
     return True, 0.9
+
 
 tester = AdversarialTester(review_fn=my_guardrail)
 report = tester.run()

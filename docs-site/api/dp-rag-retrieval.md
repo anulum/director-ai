@@ -14,19 +14,23 @@ from director_ai import ProductionGuard
 from director_ai.core.config import DirectorConfig
 from director_ai.core.dp_rag import ScoredItem, DPBudgetExceededError
 
-dp = ProductionGuard(DirectorConfig()).dp_retrieval   # per-tenant budget, cap 10.0
+dp = ProductionGuard(DirectorConfig()).dp_retrieval  # per-tenant budget, cap 10.0
 
-candidates = [ScoredItem("doc-1", 0.91), ScoredItem("doc-2", 0.55), ScoredItem("doc-3", 0.12)]
+candidates = [
+    ScoredItem("doc-1", 0.91),
+    ScoredItem("doc-2", 0.55),
+    ScoredItem("doc-3", 0.12),
+]
 
 ranking = dp.rank(candidates, tenant_id="acme", epsilon=0.5)
-for item in ranking.items:        # ordered by the DP-noised score
+for item in ranking.items:  # ordered by the DP-noised score
     print(item.item_id, item.score)
 print(ranking.epsilon_spent, ranking.epsilon_remaining)
 
 try:
     dp.rank(candidates, tenant_id="acme", epsilon=100.0)
 except DPBudgetExceededError:
-    pass   # refused — would exceed the tenant's remaining budget
+    pass  # refused — would exceed the tenant's remaining budget
 ```
 
 `rank()` returns a `PrivateRanking` with the noised, re-ordered items and the

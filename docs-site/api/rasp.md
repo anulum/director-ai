@@ -22,11 +22,11 @@ rasp = ProductionGuard(DirectorConfig()).rasp
 
 # Feed per-request behavioural metrics as they happen.
 for rate in normal_request_rates:
-    rasp.observe("request_rate", rate)        # builds the baseline
+    rasp.observe("request_rate", rate)  # builds the baseline
 
 verdict = rasp.observe("request_rate", 5000)  # a sudden flood
-print(verdict.severity)          # "alert"
-print(verdict.to_dict())         # metric, value, robust_z, severity, anomalous, cold_start
+print(verdict.severity)  # "alert"
+print(verdict.to_dict())  # metric, value, robust_z, severity, anomalous, cold_start
 
 if rasp.under_attack(min_anomalies=3):
     ...  # shed load / escalate

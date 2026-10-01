@@ -71,9 +71,9 @@ metrics.record(agent="researcher", verdict=verdict)
 metrics.record(agent="writer", verdict=next_verdict)
 
 report = metrics.snapshot()
-print(report.per_agent["researcher"].halt_rate)      # 0.42
-print(report.handoff_failure_rate)                    # 0.33
-print(report.cascade_halts)                           # 1
+print(report.per_agent["researcher"].halt_rate)  # 0.42
+print(report.handoff_failure_rate)  # 0.33
+print(report.cascade_halts)  # 1
 ```
 
 A rising `halt_rate` for one agent while others stay flat is a sign

@@ -57,11 +57,13 @@ cfg = DirectorConfig(
 store = cfg.build_store()
 
 # Ingest documents (splits into chunks, embeds, indexes)
-store.ingest([
-    "Water boils at 100°C at standard atmospheric pressure.",
-    "The speed of light in vacuum is 299,792 km/s.",
-    "DNA has four nucleotide bases: adenine, thymine, guanine, cytosine.",
-])
+store.ingest(
+    [
+        "Water boils at 100°C at standard atmospheric pressure.",
+        "The speed of light in vacuum is 299,792 km/s.",
+        "DNA has four nucleotide bases: adenine, thymine, guanine, cytosine.",
+    ]
+)
 
 # Or add individual facts
 store.add_fact("gravity", "Earth's gravitational acceleration is 9.81 m/s².")

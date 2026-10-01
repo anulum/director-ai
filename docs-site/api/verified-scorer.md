@@ -52,10 +52,10 @@ result = vs.verify(
     source="Pricing: $49/month. Refunds within 30 days only.",
 )
 
-print(result.approved)            # False
-print(result.confidence)          # "high"
+print(result.approved)  # False
+print(result.confidence)  # "high"
 print(result.contradicted_count)  # 2
-print(result.coverage)            # 0.0
+print(result.coverage)  # 0.0
 
 for claim in result.claims:
     print(f"  [{claim.verdict}] {claim.claim}")

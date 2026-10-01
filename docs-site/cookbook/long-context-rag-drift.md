@@ -33,7 +33,7 @@ scorer = CoherenceScorer(
     threshold=0.6,
     ground_truth_store=store,
     use_nli=True,
-    chunked_nli=True,           # score each sentence, then aggregate
+    chunked_nli=True,  # score each sentence, then aggregate
     chunked_aggregation="trimmed_mean",
 )
 
@@ -43,14 +43,13 @@ response = (
     "Director-AI v3.15 shipped in June 2026 with six new RAG "
     "backends. "
     "Market analysts project CHF 11M in FY2026 revenue. "  # drift
-    "The headcount will double by Q3 next year."           # drift
+    "The headcount will double by Q3 next year."  # drift
 )
 approved, score = scorer.review(
     prompt="Summarise ANULUM's 2025 performance and outlook.",
     action=response,
 )
-print(f"approved={approved} score={score.score:.3f} "
-      f"n_chunks={len(score.per_chunk)}")
+print(f"approved={approved} score={score.score:.3f} n_chunks={len(score.per_chunk)}")
 for i, chunk_score in enumerate(score.per_chunk):
     print(f"  sentence {i}: {chunk_score:.3f}")
 ```

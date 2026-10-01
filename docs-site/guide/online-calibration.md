@@ -27,8 +27,8 @@ store = FeedbackStore("my_deployment.db")
 store.report(
     prompt="What is our refund policy?",
     response="We offer 60-day refunds on all products.",
-    guardrail_approved=True,   # guardrail said: approved
-    human_approved=False,      # human says: wrong (it's 30-day)
+    guardrail_approved=True,  # guardrail said: approved
+    human_approved=False,  # human says: wrong (it's 30-day)
     guardrail_score=0.62,
     domain="customer_support",
 )
@@ -101,6 +101,7 @@ training_data = store.export_training_data()
 # [{"prompt": "...", "response": "...", "label": 0, "domain": "medical"}, ...]
 
 import json
+
 with open("finetune_data.jsonl", "w") as f:
     for item in training_data:
         f.write(json.dumps(item) + "\n")

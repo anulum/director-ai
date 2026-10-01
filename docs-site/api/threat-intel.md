@@ -17,13 +17,13 @@ from director_ai.core.config import DirectorConfig
 from director_ai.core.threat_intel import from_stix_bundle
 
 ti = ProductionGuard(DirectorConfig()).threat_intel
-ti.add_many(from_stix_bundle(my_stix_bundle))   # import a feed
+ti.add_many(from_stix_bundle(my_stix_bundle))  # import a feed
 
 matches = ti.match(prompt_or_response)
 if matches:
-    top = matches[0]                            # highest severity first
-    print(top.attribution, top.severity)        # "APT29", "high"
-print(ti.attributions(text))                    # ('APT28', 'APT29')
+    top = matches[0]  # highest severity first
+    print(top.attribution, top.severity)  # "APT29", "high"
+print(ti.attributions(text))  # ('APT28', 'APT29')
 ```
 
 ## Indicators

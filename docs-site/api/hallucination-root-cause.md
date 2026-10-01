@@ -26,8 +26,8 @@ guard = ProductionGuard(DirectorConfig())
 # `report` is a MechanisticAttributionReport from the ReDeEP attributor.
 diagnosis = guard.root_cause_analyzer.diagnose(report)
 
-print(diagnosis.dominant_cause)        # e.g. "parametric_knowledge_override"
-print(diagnosis.implicated_layers)     # e.g. (18, 19, 20)
+print(diagnosis.dominant_cause)  # e.g. "parametric_knowledge_override"
+print(diagnosis.implicated_layers)  # e.g. (18, 19, 20)
 for rec in diagnosis.recommendations:
     print(rec.cause, "→", rec.action, rec.targets)
 ```
@@ -50,9 +50,9 @@ recommendations, so it is safe to log and to attach to audit records.
 from director_ai.core.interpretability import HallucinationRootCauseAnalyzer
 
 analyzer = HallucinationRootCauseAnalyzer(
-    parametric_knowledge_threshold=0.5,   # FFN knowledge at/above → strong recall
-    low_attention_threshold=0.3,          # external attention at/below → ignoring evidence
-    low_copying_threshold=0.3,            # copying score at/below → weak copying head
+    parametric_knowledge_threshold=0.5,  # FFN knowledge at/above → strong recall
+    low_attention_threshold=0.3,  # external attention at/below → ignoring evidence
+    low_copying_threshold=0.3,  # copying score at/below → weak copying head
 )
 ```
 

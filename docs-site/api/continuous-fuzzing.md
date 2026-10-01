@@ -15,14 +15,16 @@ from director_ai.core.config import DirectorConfig
 
 fuzzer = ProductionGuard(DirectorConfig()).continuous_fuzzer(seed=0)
 
+
 # predicate: True means "the guard flags this as an attack".
 def guard_flags(text: str) -> bool:
     return my_injection_detector.is_attack(text)
 
-report = fuzzer.run(guard_flags, rounds_per_seed=50)   # default attack corpus
-print(report.ok)                 # False if any mutation bypassed the guard
+
+report = fuzzer.run(guard_flags, rounds_per_seed=50)  # default attack corpus
+print(report.ok)  # False if any mutation bypassed the guard
 for bypass in report.bypasses:
-    print(bypass.operator, "→", bypass.mutation)        # replayable obfuscation
+    print(bypass.operator, "→", bypass.mutation)  # replayable obfuscation
 ```
 
 ## Mutation operators

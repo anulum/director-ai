@@ -26,23 +26,26 @@ from any particular scorer, store, or model.
 ```python
 from director_ai.core.streaming_repair import StreamingRepairer
 
-def score(clause: str) -> float:
-    ...   # support in [0, 1] for one clause
+
+def score(clause: str) -> float: ...  # support in [0, 1] for one clause
+
 
 def retrieve(clause: str):
     return [{"id": "vector:ceo", "text": "The CEO is Jane Doe."}]
 
+
 def rewrite(clause: str, evidence: list[str]) -> str:
     return "The CEO is Jane Doe."
+
 
 repairer = StreamingRepairer(
     score, threshold=0.6, retrieve_fn=retrieve, rewrite_fn=rewrite
 )
 result = repairer.repair("The CEO is a robot. Contact support.", tenant_id="acme")
 
-print(result.repaired)        # True
-print(result.repaired_text)   # "The CEO is Jane Doe. Contact support."
-for event in result.events:   # one tenant-safe warn event per fix
+print(result.repaired)  # True
+print(result.repaired_text)  # "The CEO is Jane Doe. Contact support."
+for event in result.events:  # one tenant-safe warn event per fix
     ...
 ```
 
@@ -66,7 +69,7 @@ result = guard.repair_stream(
     "What is the refund window?",
     "Refunds close after 30 days. Late refunds get a bonus.",
     tenant_id="acme",
-    rewrite_fn=my_llm_rewrite,   # optional; redacts when omitted
+    rewrite_fn=my_llm_rewrite,  # optional; redacts when omitted
 )
 ```
 

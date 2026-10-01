@@ -247,9 +247,9 @@ session = kernel.stream_output(
     ["Hello ", "world", "!"],
     score_fn=lambda text: 0.8,
 )
-print(session.halted)        # False
-print(session.token_count()) # 3
-print(session.output())      # "Hello world!"
+print(session.halted)  # False
+print(session.token_count())  # 3
+print(session.output())  # "Hello world!"
 ```
 
 The kernel monitors:
@@ -268,7 +268,7 @@ from backfire_kernel import RustCoherenceScorer
 
 scorer = RustCoherenceScorer(threshold=0.5)
 score = scorer.review("The sky is blue.", "The sky is blue.")
-print(score.score)     # ~0.95
+print(score.score)  # ~0.95
 print(score.approved)  # True
 ```
 
@@ -403,8 +403,8 @@ class.
 ```python
 from director_ai.core.scoring.backends import get_backend
 
-backend_cls = get_backend("rust")     # works
-backend_cls = get_backend("backfire") # also works
+backend_cls = get_backend("rust")  # works
+backend_cls = get_backend("backfire")  # also works
 ```
 
 ### CoherenceScorer Integration
@@ -434,6 +434,7 @@ try:
         rust_numerical_consistency,
         rust_traceability,
     )
+
     _RUST_SIGNALS = True
 except ImportError:
     _RUST_SIGNALS = True  # mandatory: the stub below raises (see ADR-1)

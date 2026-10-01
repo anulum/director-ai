@@ -19,12 +19,13 @@ store.add("revenue_2025", "ANULUM reported CHF 4.2M in FY2025.")
 scorer = CoherenceScorer(threshold=0.6, ground_truth_store=store)
 
 kernel = StreamingKernel(
-    hard_limit=0.4,         # any token below this halts immediately
-    window_size=4,           # sliding window over recent coherence
-    window_threshold=0.5,    # halt when window average dips
-    trend_window=4,           # consider the last N tokens for trend
-    trend_threshold=0.25,    # halt when coherence drops more than this
+    hard_limit=0.4,  # any token below this halts immediately
+    window_size=4,  # sliding window over recent coherence
+    window_threshold=0.5,  # halt when window average dips
+    trend_window=4,  # consider the last N tokens for trend
+    trend_threshold=0.25,  # halt when coherence drops more than this
 )
+
 
 def coherence(accumulated: str) -> float:
     _, score = scorer.review(
@@ -33,11 +34,25 @@ def coherence(accumulated: str) -> float:
     )
     return score.score
 
+
 tokens = [
-    "ANULUM", " reported", " CHF", " 4.2M",
-    " in", " 2025.", " It", " is", " expected",
-    " to", " double", " next", " year",  # drift starts
-    " and", " reach", " CHF", " 20M",    # fabricated projection
+    "ANULUM",
+    " reported",
+    " CHF",
+    " 4.2M",
+    " in",
+    " 2025.",
+    " It",
+    " is",
+    " expected",
+    " to",
+    " double",
+    " next",
+    " year",  # drift starts
+    " and",
+    " reach",
+    " CHF",
+    " 20M",  # fabricated projection
     ".",
 ]
 session = kernel.stream_tokens(iter(tokens), coherence_callback=coherence)

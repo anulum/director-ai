@@ -19,10 +19,13 @@ from langgraph.graph import END, START, StateGraph
 
 graph = StateGraph(dict)
 graph.add_node("generate", llm_node)
-graph.add_node("guardrail", director_ai_node(
-    facts={"refund": "within 30 days"},
-    on_fail="flag",  # "raise" | "flag" | "rewrite"
-))
+graph.add_node(
+    "guardrail",
+    director_ai_node(
+        facts={"refund": "within 30 days"},
+        on_fail="flag",  # "raise" | "flag" | "rewrite"
+    ),
+)
 graph.add_node("retry", retry_node)
 graph.add_node("output", output_node)
 

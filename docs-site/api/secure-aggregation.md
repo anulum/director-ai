@@ -25,7 +25,7 @@ from director_ai.core.federated_privacy.secret_sharing import split
 agg = ProductionGuard(DirectorConfig()).secure_aggregator(party_count=3)
 for value in (10, 20, 12):
     agg.submit(split(value, party_count=3))
-print(agg.reconstruct())          # 42 — the sum, never any single value
+print(agg.reconstruct())  # 42 — the sum, never any single value
 ```
 
 Additive sharing is `n`-of-`n`: every party must contribute, and one dropout loses
@@ -40,16 +40,18 @@ privacy.
 
 ```python
 from director_ai.core.federated_privacy import (
-    shamir_split, shamir_reconstruct, shamir_sum_shares,
+    shamir_split,
+    shamir_reconstruct,
+    shamir_sum_shares,
 )
 
-shares = shamir_split(secret, party_count=5, threshold=3)   # 3-of-5
-secret_back = shamir_reconstruct(shares[:3])                 # any 3 suffice
+shares = shamir_split(secret, party_count=5, threshold=3)  # 3-of-5
+secret_back = shamir_reconstruct(shares[:3])  # any 3 suffice
 
 # Secure summation across parties (additively homomorphic), dropout-tolerant:
 groups = [shamir_split(v, party_count=5, threshold=3) for v in private_values]
 total_shares = shamir_sum_shares(groups)
-total = shamir_reconstruct(total_shares[:3])                 # = sum(private_values)
+total = shamir_reconstruct(total_shares[:3])  # = sum(private_values)
 ```
 
 The field modulus is the Mersenne prime `2**127 - 1`, so the Lagrange

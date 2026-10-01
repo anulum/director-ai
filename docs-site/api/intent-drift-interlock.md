@@ -59,10 +59,10 @@ model.
 from director_ai.core.runtime.intent_drift import IntentDriftInterlock
 
 session.intent_drift = IntentDriftInterlock(
-    half_life_turns=4.0,     # EMA decay horizon
-    window=8,                # slope estimate window (bounds memory)
-    trigger_threshold=0.6,   # drift_risk at/above which it trips
-    min_turns=3,             # turns required before it can trip
+    half_life_turns=4.0,  # EMA decay horizon
+    window=8,  # slope estimate window (bounds memory)
+    trigger_threshold=0.6,  # drift_risk at/above which it trips
+    min_turns=3,  # turns required before it can trip
 )
 ```
 

@@ -66,7 +66,7 @@ from director_ai.core.config import DirectorConfig
 
 config = DirectorConfig(
     reasoning_enabled=True,
-    reasoning_provider="local",          # or "openai" / "anthropic"
+    reasoning_provider="local",  # or "openai" / "anthropic"
     reasoning_model="Qwen/Qwen2.5-7B-Instruct",
     reasoning_escalation_margin=0.15,
 )

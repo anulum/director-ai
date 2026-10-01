@@ -54,7 +54,7 @@ attrs = guard_decision_attributes(
     decision="halt", approved=False, score=0.4, threshold=0.6, model="gpt-4o"
 )
 with record_guard_decision(attrs) as span:
-    ...   # span carries the attributes; a no-op sink when the SDK is absent
+    ...  # span carries the attributes; a no-op sink when the SDK is absent
 ```
 
 ## Ingesting downstream

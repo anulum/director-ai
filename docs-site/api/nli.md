@@ -9,7 +9,9 @@ from director_ai.core.nli import NLIScorer, nli_available
 
 if nli_available():
     nli = NLIScorer()
-    divergence = nli.score("Paris is the capital of France.", "Berlin is the capital of France.")
+    divergence = nli.score(
+        "Paris is the capital of France.", "Berlin is the capital of France."
+    )
     print(f"Divergence: {divergence:.3f}")  # ~0.85 (high contradiction)
 ```
 

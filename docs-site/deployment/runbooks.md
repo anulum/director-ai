@@ -240,6 +240,7 @@ Step 1 — Check model + data fit in VRAM
 
 ```python
 import director_ai
+
 print(director_ai.__version__)
 
 scorer = CoherenceScorer()

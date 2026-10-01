@@ -29,9 +29,9 @@ result = trace_citations(
     "Transformers came in 2017 [1]. They scale well.\n\n"
     "References:\n[1] https://arxiv.org/abs/1706.03762\n"
 )
-result.coverage                       # 0.5
-[c.index for c in result.uncited]     # [1]  ("They scale well.")
-result.claims[0].citations[0].identifier   # "1706.03762"
+result.coverage  # 0.5
+[c.index for c in result.uncited]  # [1]  ("They scale well.")
+result.claims[0].citations[0].identifier  # "1706.03762"
 ```
 
 It is wired into the reasoning-chain verifier (opt-in, since most chains carry no

@@ -11,10 +11,13 @@ from semantic_kernel import Kernel
 from director_ai.integrations.semantic_kernel import DirectorAIFilter
 
 kernel = Kernel()
-kernel.add_filter("function_invocation", DirectorAIFilter(
-    facts={"pricing": "Team plan costs $19/user/month."},
-    threshold=0.5,
-))
+kernel.add_filter(
+    "function_invocation",
+    DirectorAIFilter(
+        facts={"pricing": "Team plan costs $19/user/month."},
+        threshold=0.5,
+    ),
+)
 ```
 
 ## How It Works

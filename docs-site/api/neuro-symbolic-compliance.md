@@ -27,24 +27,36 @@ cross-checked without a solver; only `check`/`is_consistent`/`equivalent_to`/
 
 ```python
 from director_ai.core.neuro_symbolic import (
-    CompliancePolicy, Constraint, NeuroSymbolicComplianceEngine,
-    var, lit, le, gt, implies, REAL, BOOL,
+    CompliancePolicy,
+    Constraint,
+    NeuroSymbolicComplianceEngine,
+    var,
+    lit,
+    le,
+    gt,
+    implies,
+    REAL,
+    BOOL,
 )
 
 amount = var("amount", REAL)
 approved = var("manager_approved", BOOL)
 
-policy = CompliancePolicy([
-    Constraint("amount_limit", le(amount, lit(10000))),
-    Constraint("approval_required", implies(gt(amount, lit(5000)), approved)),
-])
+policy = CompliancePolicy(
+    [
+        Constraint("amount_limit", le(amount, lit(10000))),
+        Constraint("approval_required", implies(gt(amount, lit(5000)), approved)),
+    ]
+)
 
 engine = NeuroSymbolicComplianceEngine(policy)
 
 verdict = engine.check({"amount": 15000, "manager_approved": False})
-print(verdict.compliant)                       # False
-print([v.name for v in verdict.violations])    # ['amount_limit', 'approval_required']
-print(verdict.violations[0].counterexample)    # {'amount': 15000.0, 'manager_approved': False}
+print(verdict.compliant)  # False
+print([v.name for v in verdict.violations])  # ['amount_limit', 'approval_required']
+print(
+    verdict.violations[0].counterexample
+)  # {'amount': 15000.0, 'manager_approved': False}
 ```
 
 `check()` returns a `ComplianceVerdict` with `compliant`, the list of
@@ -62,15 +74,15 @@ Typed variables (`bool`, `int`, `real`) with comparisons (`eq`, `ne`, `lt`, `le`
 from director_ai.core.neuro_symbolic import var, lit, le, mul, INT, Constraint
 
 quantity = var("quantity", INT)
-Constraint("cap", le(mul(lit(2), quantity), lit(20)))   # 2 * quantity <= 20
+Constraint("cap", le(mul(lit(2), quantity), lit(20)))  # 2 * quantity <= 20
 ```
 
 ## Consistency and equivalence
 
 ```python
-engine.is_consistent()              # False if the policy is self-contradictory
+engine.is_consistent()  # False if the policy is self-contradictory
 engine.equivalent_to(other_policy)  # True if two formalisations are logically equal
-print(engine.to_smt_lib())          # SMT-LIB text — an auditable artefact
+print(engine.to_smt_lib())  # SMT-LIB text — an auditable artefact
 ```
 
 `equivalent_to` is the cross-check for the two-stage flow: formalise the same

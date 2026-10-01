@@ -106,17 +106,21 @@ from director_ai.core.config import DirectorConfig
 from director_ai.guard import ProductionGuard
 from director_ai.core.multimodal_guard import MultimodalCheckRequest
 
-guard = ProductionGuard(config=DirectorConfig(
-    multimodal_enabled_modalities=("image",),
-    multimodal_benchmarked_modalities=("image",),
-))
-result = guard.check_multimodal(MultimodalCheckRequest(
-    modality="image",
-    claim_text="a tabby cat on a sofa",
-    media_ref="img://catalogue/1",
-    image_bytes=image_payload,
-))
-print(result.guard_decision.decision)   # allow / warn / halt
+guard = ProductionGuard(
+    config=DirectorConfig(
+        multimodal_enabled_modalities=("image",),
+        multimodal_benchmarked_modalities=("image",),
+    )
+)
+result = guard.check_multimodal(
+    MultimodalCheckRequest(
+        modality="image",
+        claim_text="a tabby cat on a sofa",
+        media_ref="img://catalogue/1",
+        image_bytes=image_payload,
+    )
+)
+print(result.guard_decision.decision)  # allow / warn / halt
 ```
 
 `guard.multimodal_adapter` is built lazily from the `multimodal_*` config (the

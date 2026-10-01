@@ -110,9 +110,13 @@ if session.halted:
 
 ```python
 from director_ai import (
-    guard, get_score,
-    DirectorAIError, HallucinationError, DependencyError,
+    guard,
+    get_score,
+    DirectorAIError,
+    HallucinationError,
+    DependencyError,
 )
+
 
 def guarded_llm_call(client, messages, facts):
     try:
@@ -122,7 +126,9 @@ def guarded_llm_call(client, messages, facts):
             messages=messages,
         )
     except HallucinationError as e:
-        logger.warning("Hallucination blocked (%.3f): %s", e.score.score, e.response[:100])
+        logger.warning(
+            "Hallucination blocked (%.3f): %s", e.score.score, e.response[:100]
+        )
         return fallback_response(e.query, facts)
     except DependencyError:
         logger.error("NLI model unavailable — serving unguarded")
@@ -163,5 +169,6 @@ logging.getLogger("DirectorAI").setLevel(logging.DEBUG)
 
 # Or use structured JSON logging
 from director_ai.core.config import DirectorConfig
+
 config = DirectorConfig(log_json=True)
 ```

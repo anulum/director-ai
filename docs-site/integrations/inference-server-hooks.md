@@ -47,7 +47,7 @@ scorer = CoherenceScorer(threshold=0.3, ground_truth_store=store, use_nli=False)
 hook = build_inference_server_hook(
     "vllm",
     score_fn=lambda text: scorer.review("capital of France", text)[1].score,
-    hard_limit=0.4,          # below this, the candidate token is rejected
+    hard_limit=0.4,  # below this, the candidate token is rejected
 )
 
 request = InferenceHookRequest(
@@ -111,7 +111,9 @@ next step. Between claim boundaries it passes the logits through untouched.
 
 ```python
 from director_ai.integrations.inference_server_hooks import build_inference_server_hook
-from director_ai.integrations.inference_logits_adapters import build_vllm_logits_processor
+from director_ai.integrations.inference_logits_adapters import (
+    build_vllm_logits_processor,
+)
 
 hook = build_inference_server_hook("vllm", score_fn=my_coherence_score, hard_limit=0.4)
 processor = build_vllm_logits_processor(

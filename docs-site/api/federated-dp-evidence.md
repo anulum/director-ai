@@ -43,7 +43,9 @@ from director_ai.core.federated_dp import FederatedCalibrationRound, FederatedDP
 round_ = FederatedCalibrationRound(0.6, clip_norm=0.1, noise_multiplier=1.0)
 evidence = FederatedDPEvidence(round_)
 
-packet = evidence.evidence_packet(delta=1e-5, num_malicious=2, cohort_size=10, rounds=10)
+packet = evidence.evidence_packet(
+    delta=1e-5, num_malicious=2, cohort_size=10, rounds=10
+)
 print(packet.epsilon, packet.poisoning.total_shift)
 
 sim = evidence.simulate_poisoning(

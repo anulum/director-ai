@@ -43,7 +43,7 @@ result = guard.detect_spans(
     context="The restaurant serves Chinese and Szechuan dishes.",
     response="It serves Szechuan dishes. The head chef won three Michelin stars in 2019.",
 )
-result.hallucinated          # True
+result.hallucinated  # True
 [s.text for s in result.spans]
 # -> [' chef won', ' Michelin', ' in 2019']   # the fabricated detail, unsupported by the context
 ```
@@ -59,7 +59,7 @@ from director_ai.core.scoring.span_detector import HallucinationSpanDetector
 
 detector = HallucinationSpanDetector.from_pretrained()
 detection = detector.detect(context, response)
-detection.coverage           # fraction of response tokens flagged
+detection.coverage  # fraction of response tokens flagged
 ```
 
 ## Configuration

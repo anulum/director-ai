@@ -76,6 +76,7 @@ def score_fn(sample, variant):
     approved, score = scorer.review(sample.prompt, sample.response)
     return score.score
 
+
 report = evaluate_policy_variants(samples, variants=variants, score_fn=score_fn)
 ```
 

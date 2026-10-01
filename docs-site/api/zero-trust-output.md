@@ -17,10 +17,10 @@ guard = ProductionGuard(DirectorConfig()).output_trust
 
 # Encode the same model output for two different destinations.
 html = guard.encode("<script>alert(1)</script>", OutputSink.HTML_TEXT)
-print(html.encoded)   # &lt;script&gt;alert(1)&lt;/script&gt;
+print(html.encoded)  # &lt;script&gt;alert(1)&lt;/script&gt;
 
 arg = guard.encode("file; rm -rf /", OutputSink.SHELL_ARGUMENT)
-print(arg.encoded)    # 'file; rm -rf /'  (a single, inert shell argument)
+print(arg.encoded)  # 'file; rm -rf /'  (a single, inert shell argument)
 ```
 
 `encode()` returns an `EncodedOutput`:
@@ -61,8 +61,8 @@ handed to `exec`/`eval` or an unsandboxed deserialiser:
 
 ```python
 risk = guard.assess("__import__('os').system('rm -rf /')")
-print(risk.safe_to_execute)   # False
-print(risk.constructs)        # ('dynamic_import', 'shell_pipe_redirect')
+print(risk.safe_to_execute)  # False
+print(risk.constructs)  # ('dynamic_import', 'shell_pipe_redirect')
 ```
 
 `safe_to_execute` is `True` only when no dangerous category matches. Flagged

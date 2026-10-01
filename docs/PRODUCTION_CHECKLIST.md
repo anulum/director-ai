@@ -62,8 +62,12 @@ client = guard(
 ```python
 from director_ai import score
 
-result = score("What is the refund policy?", response_text,
-               facts={"refund": "30 days"}, threshold=0.3)
+result = score(
+    "What is the refund policy?",
+    response_text,
+    facts={"refund": "30 days"},
+    threshold=0.3,
+)
 ```
 
 ### Option C: FastAPI Middleware (3 lines)
