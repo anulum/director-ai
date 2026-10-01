@@ -91,12 +91,23 @@ def test_finetune_nli_truncates_large_label_error_reports(tmp_path: Path) -> Non
         finetune_nli(train_path)
 
 
-def test_finetune_trains_local_cpu_checkpoint(tmp_path: Path) -> None:
+@pytest.mark.parametrize(
+    "warmup_ratio,expected_steps",
+    [(0.0, 0), (0.25, 1), (1.0, 4), (-0.1, None), (1.1, None), (float("nan"), None)],
+)
+def test_finetune_trains_local_cpu_checkpoint(
+    tmp_path: Path, warmup_ratio: float, expected_steps: int | None
+) -> None:
     """Train and reload a real local checkpoint with the locked Transformers API."""
     import math
 
     import torch
-    from transformers import BertConfig, BertForSequenceClassification, BertTokenizer
+    from transformers import (
+        BertConfig,
+        BertForSequenceClassification,
+        BertTokenizer,
+        TrainingArguments,
+    )
 
     from director_ai.core.training.finetune import FinetuneConfig
 
@@ -131,21 +142,27 @@ def test_finetune_trains_local_cpu_checkpoint(tmp_path: Path) -> None:
             ],
         )
         output = tmp_path / "trained-model"
-        result = finetune_nli(
-            train_path,
-            config=FinetuneConfig(
-                base_model=str(model_dir),
-                output_dir=str(output),
-                epochs=1,
-                batch_size=1,
-                max_length=8,
-                fp16=False,
-                warmup_ratio=0.25,
-            ),
+        config = FinetuneConfig(
+            base_model=str(model_dir),
+            output_dir=str(output),
+            epochs=1,
+            batch_size=1,
+            max_length=8,
+            fp16=False,
+            warmup_ratio=warmup_ratio,
         )
+        if expected_steps is None:
+            with pytest.raises(ValueError, match="warmup_ratio"):
+                finetune_nli(train_path, config=config)
+            return
+        result = finetune_nli(train_path, config=config)
         assert result.train_samples == 4
         assert result.epochs_completed == 1
         assert math.isfinite(result.final_loss)
+        # This file was written by the real Trainer in this isolated fixture.
+        saved_args = torch.load(output / "training_args.bin", weights_only=False)
+        assert isinstance(saved_args, TrainingArguments)
+        assert saved_args.get_warmup_steps(4) == expected_steps
         reloaded = BertForSequenceClassification.from_pretrained(output)
         assert not torch.equal(model.classifier.weight, reloaded.classifier.weight)
         encoded = tokenizer("evidence", "approval", return_tensors="pt")

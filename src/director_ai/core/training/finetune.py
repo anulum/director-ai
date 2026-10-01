@@ -35,6 +35,7 @@ from __future__ import annotations
 import inspect
 import json
 import logging
+import math
 import random
 from collections import Counter
 from dataclasses import dataclass, field
@@ -397,7 +398,7 @@ def finetune_nli(
     ------
     ValueError
         If the loaded training or evaluation rows cannot train a binary NLI
-        classification head.
+        classification head, or the warmup ratio is outside [0, 1].
 
     """
     if config is None:
@@ -481,13 +482,21 @@ def finetune_nli(
     # save_strategy must match eval_strategy when load_best_model_at_end=True
     save_strat = "steps" if eval_dataset else config.save_strategy
 
+    if not 0.0 <= config.warmup_ratio <= 1.0:
+        raise ValueError("warmup_ratio must be between 0 and 1")
+
     # Current Transformers accepts fractional warmup_steps; older constructors use warmup_ratio.
     warmup_key = (
         "warmup_ratio"
         if "warmup_ratio" in inspect.signature(TrainingArguments).parameters
         else "warmup_steps"
     )
-    warmup_options: dict[str, Any] = {warmup_key: config.warmup_ratio}
+    warmup_fraction = config.warmup_ratio
+    if warmup_fraction == 1.0:
+        # APIs that convert ratios to steps read 1.0 as one step; the adjacent fraction rounds up
+        # to every training step, preserving the full-warmup ratio.
+        warmup_fraction = math.nextafter(1.0, 0.0)
+    warmup_options: dict[str, Any] = {warmup_key: warmup_fraction}
     training_args = TrainingArguments(
         output_dir=config.output_dir,
         num_train_epochs=config.epochs,
