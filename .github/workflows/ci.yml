@@ -171,6 +171,7 @@ jobs:
       - name: Install dependencies
         run: |
           pip install --require-hashes --no-deps -r requirements/ci-dev.txt
+          pip install --require-hashes --no-deps -r requirements/ci-inference.txt
           maturin build --release --manifest-path backfire-kernel/crates/backfire-ffi/Cargo.toml --out dist/backfire-kernel
           python -m pip install --force-reinstall --no-deps --no-index dist/backfire-kernel/backfire_kernel-*.whl
           pip install --no-deps -e .

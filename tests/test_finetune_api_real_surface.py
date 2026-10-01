@@ -1,10 +1,10 @@
 # SPDX-License-Identifier: Apache-2.0
 # Commercial license available
-# (c) Concepts 1996-2026 Miroslav Sotek. All rights reserved.
-# (c) Code 2020-2026 Miroslav Sotek. All rights reserved.
+# © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
+# © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI - Fine-tune API real-surface tests
+# Director-AI — Fine-tune API real-surface tests
 """Real ASGI coverage for the public fine-tuning API router."""
 
 from __future__ import annotations
@@ -28,7 +28,9 @@ def _finetune_app(models_dir: Path) -> FastAPI:
     """Return a FastAPI app with the public fine-tune router mounted."""
     app = FastAPI()
     app.include_router(
-        create_finetune_router(models_dir=models_dir),
+        create_finetune_router(
+            models_dir=models_dir, operator_api_keys=("operator-test-key",)
+        ),
         prefix="/v1/finetune",
     )
     return app
@@ -135,7 +137,10 @@ async def test_managed_dry_run_lifecycle_uses_real_router_state(
     """Managed dry-run submission, listing, and status should round-trip over HTTP."""
     app = _finetune_app(tmp_path / "models")
     transport = ASGITransport(app=app)
-    tenant_headers = {"X-Tenant-ID": "tenant.alpha"}
+    tenant_headers = {
+        "X-API-Key": "operator-test-key",
+        "X-Tenant-ID": "tenant.alpha",
+    }
 
     async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
         submit_response = await client.post(
@@ -143,6 +148,7 @@ async def test_managed_dry_run_lifecycle_uses_real_router_state(
             json=_managed_training_request(),
             headers=tenant_headers,
         )
+        assert submit_response.status_code == 200, submit_response.text
         submit_payload = cast(dict[str, object], submit_response.json())
         job_id = cast(str, submit_payload["job_id"])
 
@@ -158,7 +164,7 @@ async def test_managed_dry_run_lifecycle_uses_real_router_state(
         other_tenant_response = await client.post(
             "/v1/finetune/managed/status",
             json={"backend": "portable", "job_id": job_id},
-            headers={"X-Tenant-ID": "tenant.beta"},
+            headers={"X-API-Key": "operator-test-key", "X-Tenant-ID": "tenant.beta"},
         )
 
     assert submit_response.status_code == 200, submit_response.text
@@ -201,6 +207,7 @@ async def test_managed_models_endpoint_exposes_real_registry(
         response = await client.get(
             "/v1/finetune/managed/models",
             params={"include_experimental": "false"},
+            headers={"X-API-Key": "operator-test-key"},
         )
 
     assert response.status_code == 200, response.text

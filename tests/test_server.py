@@ -8,6 +8,7 @@
 """Multi-angle tests for FastAPI server pipeline."""
 
 import sys
+from pathlib import Path
 from types import ModuleType, SimpleNamespace
 from unittest.mock import patch
 
@@ -394,27 +395,34 @@ class TestServerOperationalReadiness:
         ):
             create_app(config)
 
-    def test_finetune_models_dir_knob_reaches_the_router(self, tmp_path, monkeypatch):
-        from pathlib import Path
-
-        from fastapi import APIRouter
-
-        captured = {}
-
-        def recording_factory(models_dir=None):
-            captured["models_dir"] = models_dir
-            return APIRouter(tags=["finetune"])
-
-        monkeypatch.setattr(
-            "director_ai.finetune_api.create_finetune_router",
-            recording_factory,
-        )
-        knob_dir = tmp_path / "knob-models"
-        create_app(DirectorConfig(use_nli=False, finetune_models_dir=str(knob_dir)))
-        assert captured["models_dir"] == Path(str(knob_dir))
-
-        create_app(DirectorConfig(use_nli=False))
-        assert captured["models_dir"] is None
+    def test_finetune_models_dir_knob_reaches_the_router(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Persist public dataset uploads under configured and default model roots."""
+        monkeypatch.chdir(tmp_path)
+        data = b'{"premise":"evidence","hypothesis":"approval","label":1}\n'
+        roots = (tmp_path / "knob-models", tmp_path / "director-models")
+        for configured, expected in zip((str(roots[0]), ""), roots, strict=True):
+            app = create_app(
+                DirectorConfig(
+                    use_nli=False,
+                    finetune_models_dir=configured,
+                    api_keys=["operator-test-key"],
+                    finetune_operator_api_keys=["operator-test-key"],
+                )
+            )
+            with TestClient(app) as client:
+                response = client.post(
+                    "/v1/finetune/managed/datasets",
+                    headers={"X-API-Key": "operator-test-key"},
+                    files={"file": ("evaluation.jsonl", data)},
+                )
+            assert response.status_code == 200, response.text
+            dataset_id = response.json()["dataset_id"]
+            assert (
+                expected / "_benchmark_datasets" / f"{dataset_id}.jsonl"
+            ).read_bytes() == data
+            assert str(tmp_path) not in response.text
 
     def test_ready_endpoint_is_available_without_nli(self):
         app = create_app(DirectorConfig(use_nli=False))
