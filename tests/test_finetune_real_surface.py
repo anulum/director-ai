@@ -100,6 +100,7 @@ def test_finetune_trains_local_cpu_checkpoint(
 ) -> None:
     """Train and reload a real local checkpoint with the locked Transformers API."""
     import math
+    from concurrent.futures import ThreadPoolExecutor
 
     import torch
     from transformers import (
@@ -155,7 +156,10 @@ def test_finetune_trains_local_cpu_checkpoint(
             with pytest.raises(ValueError, match="warmup_ratio"):
                 finetune_nli(train_path, config=config)
             return
-        result = finetune_nli(train_path, config=config)
+        with ThreadPoolExecutor(max_workers=1) as executor:
+            result = executor.submit(finetune_nli, train_path, config=config).result(
+                timeout=30
+            )
         assert result.train_samples == 4
         assert result.epochs_completed == 1
         assert math.isfinite(result.final_loss)
