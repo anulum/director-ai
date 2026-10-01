@@ -33,12 +33,12 @@
     "@types/react": "19.0.2",
     "@types/react-dom": "19.0.2",
     "@vitejs/plugin-react": "4.3.4",
-    "@vitest/coverage-v8": "2.1.8",
+    "@vitest/coverage-v8": "5.0.3",
     "eslint": "9.17.0",
     "jsdom": "25.0.1",
     "typescript": "5.8.2",
     "vite": "8.0.16",
-    "vitest": "3.2.6"
+    "vitest": "5.0.3"
   },
   "comment": "@anulum/ui + @anulum/portal-kit are peer deps published by the SCPN-STUDIO keeper; until then a local Instrument-Deck token mirror (src/tokens) + local honesty bridge (src/contract/honesty.ts) stand in. Pinned versions are placeholders to be reconciled against the workspace lock at integration."
 }
