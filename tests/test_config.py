@@ -18,17 +18,24 @@ import os
 import sys
 import tempfile
 import types
+from collections.abc import Callable
 from pathlib import Path
+from typing import Any
 
 import pytest
 
+import director_ai.core.config as config_module
+import director_ai.core.vector_store as vector_store_compat
+from director_ai.compliance.cost_analyser import CostAnalyser
 from director_ai.core.config import DirectorConfig
+from director_ai.core.retrieval.knowledge import GroundTruthStore
+from director_ai.core.retrieval.vector_store import VectorGroundTruthStore
 
 
 class TestDirectorConfig:
     """Tests for DirectorConfig dataclass."""
 
-    def test_default_values(self):
+    def test_default_values(self) -> None:
         cfg = DirectorConfig()
         assert cfg.coherence_threshold == 0.6
         assert cfg.hard_limit == 0.5
@@ -40,35 +47,35 @@ class TestDirectorConfig:
         assert cfg.metrics_enabled is True
         assert cfg.profile == "default"
 
-    def test_custom_values(self):
+    def test_custom_values(self) -> None:
         cfg = DirectorConfig(coherence_threshold=0.8, use_nli=True, server_port=9090)
         assert cfg.coherence_threshold == 0.8
         assert cfg.use_nli is True
         assert cfg.server_port == 9090
 
-    def test_to_dict(self):
+    def test_to_dict(self) -> None:
         cfg = DirectorConfig()
         d = cfg.to_dict()
         assert isinstance(d, dict)
         assert d["coherence_threshold"] == 0.6
         assert d["profile"] == "default"
 
-    def test_server_host_defaults_to_loopback(self):
+    def test_server_host_defaults_to_loopback(self) -> None:
         # Secure default: a direct embedder that binds this value is not exposed
         # on all interfaces unless it opts in.
         assert DirectorConfig().server_host == "127.0.0.1"
 
-    def test_to_dict_redacts_api_key(self):
+    def test_to_dict_redacts_api_key(self) -> None:
         cfg = DirectorConfig(llm_api_key="sk-secret-123")
         d = cfg.to_dict()
         assert d["llm_api_key"] == "***"
 
-    def test_to_dict_empty_key_not_redacted(self):
+    def test_to_dict_empty_key_not_redacted(self) -> None:
         cfg = DirectorConfig(llm_api_key="")
         d = cfg.to_dict()
         assert d["llm_api_key"] == ""
 
-    def test_to_dict_redacts_license_secrets(self):
+    def test_to_dict_redacts_license_secrets(self) -> None:
         cfg = DirectorConfig(
             license_key="LIC-SECRET-XYZ",
             license_file="/etc/director/license.key",
@@ -77,7 +84,7 @@ class TestDirectorConfig:
         assert d["license_key"] == "***"
         assert d["license_file"] == "***"
 
-    def test_to_dict_empty_license_fields_not_redacted(self):
+    def test_to_dict_empty_license_fields_not_redacted(self) -> None:
         cfg = DirectorConfig(license_key="", license_file="")
         d = cfg.to_dict()
         assert d["license_key"] == ""
@@ -85,18 +92,25 @@ class TestDirectorConfig:
 
 
 class TestApiKeysEnvParsing:
-    def test_comma_separated(self):
-        from director_ai.core.config import _parse_api_keys_env
+    def test_comma_separated(self) -> None:
+        from director_ai.core.config_env import (
+            parse_api_keys_env as _parse_api_keys_env,
+        )
 
+        assert vars(config_module)["_parse_api_keys_env"] is _parse_api_keys_env
         assert _parse_api_keys_env("sk-a,sk-b") == ["sk-a", "sk-b"]
 
-    def test_json_array(self):
-        from director_ai.core.config import _parse_api_keys_env
+    def test_json_array(self) -> None:
+        from director_ai.core.config_env import (
+            parse_api_keys_env as _parse_api_keys_env,
+        )
 
         assert _parse_api_keys_env('["sk-a","sk-b"]') == ["sk-a", "sk-b"]
 
-    def test_json_array_does_not_embed_brackets(self):
-        from director_ai.core.config import _parse_api_keys_env
+    def test_json_array_does_not_embed_brackets(self) -> None:
+        from director_ai.core.config_env import (
+            parse_api_keys_env as _parse_api_keys_env,
+        )
 
         # The footgun: a JSON array must not produce a literal key that still
         # carries brackets and quotes.
@@ -104,60 +118,72 @@ class TestApiKeysEnvParsing:
         assert keys == ["sk-prod-xxx"]
         assert "[" not in keys[0] and '"' not in keys[0]
 
-    def test_whitespace_and_blanks_dropped(self):
-        from director_ai.core.config import _parse_api_keys_env
+    def test_whitespace_and_blanks_dropped(self) -> None:
+        from director_ai.core.config_env import (
+            parse_api_keys_env as _parse_api_keys_env,
+        )
 
         assert _parse_api_keys_env(" sk-a , , sk-b ") == ["sk-a", "sk-b"]
         assert _parse_api_keys_env('[" sk-a ", "", "sk-b"]') == ["sk-a", "sk-b"]
 
-    def test_empty_returns_empty_list(self):
-        from director_ai.core.config import _parse_api_keys_env
+    def test_empty_returns_empty_list(self) -> None:
+        from director_ai.core.config_env import (
+            parse_api_keys_env as _parse_api_keys_env,
+        )
 
         assert _parse_api_keys_env("") == []
         assert _parse_api_keys_env("   ") == []
 
-    def test_malformed_json_falls_back_to_comma(self):
-        from director_ai.core.config import _parse_api_keys_env
+    def test_malformed_json_falls_back_to_comma(self) -> None:
+        from director_ai.core.config_env import (
+            parse_api_keys_env as _parse_api_keys_env,
+        )
 
         # A bracketed-but-invalid value degrades to comma splitting rather than
         # silently dropping the keys.
         assert _parse_api_keys_env("[sk-a,sk-b") == ["[sk-a", "sk-b"]
 
-    def test_json_non_list_falls_back_to_comma(self):
-        from director_ai.core.config import _parse_api_keys_env
+    def test_json_non_list_falls_back_to_comma(self) -> None:
+        from director_ai.core.config_env import (
+            parse_api_keys_env as _parse_api_keys_env,
+        )
 
         # A JSON object is not a key list; fall back to comma semantics.
         assert _parse_api_keys_env('{"k":"v"}') == ['{"k":"v"}']
 
-    def test_production_mode_rejects_mock_llm_provider(self):
+    def test_production_mode_rejects_mock_llm_provider(self) -> None:
         with pytest.raises(ValueError, match="production_mode requires a real LLM"):
-            DirectorConfig(production_mode=True, api_keys={"tenant-api-key"})
+            DirectorConfig(
+                **dict[str, Any](production_mode=True, api_keys={"tenant-api-key"})
+            )
 
 
 class TestProfileLoading:
     """Tests for from_profile()."""
 
-    def test_fast_profile(self):
+    def test_fast_profile(self) -> None:
         cfg = DirectorConfig.from_profile("fast")
         assert cfg.profile == "fast"
         assert cfg.use_nli is False
         assert cfg.max_candidates == 1
         assert cfg.metrics_enabled is False
 
-    def test_thorough_profile(self):
+    def test_thorough_profile(self) -> None:
         cfg = DirectorConfig.from_profile("thorough")
         assert cfg.profile == "thorough"
         assert cfg.use_nli is True
         assert cfg.max_candidates == 3
 
-    def test_research_profile(self):
+    def test_research_profile(self) -> None:
         cfg = DirectorConfig.from_profile("research")
         assert cfg.profile == "research"
         assert cfg.use_nli is True
         assert cfg.max_candidates == 5
         assert cfg.coherence_threshold == 0.7
 
-    def test_production_profile_requires_api_keys_from_env(self, monkeypatch):
+    def test_production_profile_requires_api_keys_from_env(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         # No hard-coded key: without env-injected secrets, production fails closed.
         monkeypatch.delenv("DIRECTOR_API_KEYS", raising=False)
         monkeypatch.delenv("DIRECTOR_API_KEY_TENANT_MAP", raising=False)
@@ -166,7 +192,9 @@ class TestProfileLoading:
         ):
             DirectorConfig.from_profile("production")
 
-    def test_production_profile_loads_with_env_tenant_map(self, monkeypatch):
+    def test_production_profile_loads_with_env_tenant_map(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         monkeypatch.delenv("DIRECTOR_API_KEYS", raising=False)
         monkeypatch.setenv(
             "DIRECTOR_API_KEY_TENANT_MAP", '{"real-prod-key":"tenant-default"}'
@@ -179,7 +207,9 @@ class TestProfileLoading:
         assert "real-prod-key" in cfg.api_key_tenant_map
         assert "director-production-local-validation-key" not in cfg.api_key_tenant_map
 
-    def test_production_profile_is_fail_closed_and_observable(self, monkeypatch):
+    def test_production_profile_is_fail_closed_and_observable(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         monkeypatch.setenv(
             "DIRECTOR_API_KEY_TENANT_MAP", '{"real-prod-key":"tenant-default"}'
         )
@@ -209,7 +239,7 @@ class TestProfileLoading:
         assert cfg.log_json is True
         assert cfg.otel_enabled is True
 
-    def test_unknown_profile_raises(self):
+    def test_unknown_profile_raises(self) -> None:
         with pytest.raises(ValueError, match="Unknown profile"):
             DirectorConfig.from_profile("nonexistent")
 
@@ -217,7 +247,7 @@ class TestProfileLoading:
         "name",
         ["medical", "finance", "legal", "summarization", "research"],
     )
-    def test_high_stakes_profiles_use_hybrid(self, name):
+    def test_high_stakes_profiles_use_hybrid(self, name: str) -> None:
         cfg = DirectorConfig.from_profile(name)
         assert cfg.scorer_backend == "hybrid"
         assert cfg.llm_judge_enabled is True
@@ -233,7 +263,17 @@ class TestProfileLoading:
             ("summarization", 0.15, 0.08, 0.25, True, False, 0.0, 1.0),
         ],
     )
-    def test_domain_profile(self, name, threshold, hard, soft, nli, reranker, wl, wf):
+    def test_domain_profile(
+        self,
+        name: str,
+        threshold: float,
+        hard: float,
+        soft: float,
+        nli: bool,
+        reranker: bool,
+        wl: float,
+        wf: float,
+    ) -> None:
         cfg = DirectorConfig.from_profile(name)
         assert cfg.profile == name
         assert cfg.coherence_threshold == pytest.approx(threshold)
@@ -244,7 +284,7 @@ class TestProfileLoading:
         assert cfg.w_logic == pytest.approx(wl)
         assert cfg.w_fact == pytest.approx(wf)
 
-    def test_profile_metadata_contains_operational_fields(self):
+    def test_profile_metadata_contains_operational_fields(self) -> None:
         meta = DirectorConfig.profile_metadata("medical")
 
         assert meta.name == "medical"
@@ -256,7 +296,7 @@ class TestProfileLoading:
         assert meta.min_calibration_samples >= 20
         assert "director-ai tune" in meta.calibration_command
 
-    def test_regulated_profile_metadata_matches_validation_artifacts(self):
+    def test_regulated_profile_metadata_matches_validation_artifacts(self) -> None:
         root = Path(__file__).resolve().parents[1]
         medical = json.loads(
             (root / "benchmarks/results/medical_eval.json").read_text(encoding="utf-8")
@@ -275,7 +315,9 @@ class TestProfileLoading:
         assert legal["fpr"] == pytest.approx(1.0)
         assert "FPR=1.0" in DirectorConfig.profile_metadata("legal").validation_status
 
-    def test_public_docs_do_not_claim_stock_regulated_profiles_are_measured(self):
+    def test_public_docs_do_not_claim_stock_regulated_profiles_are_measured(
+        self,
+    ) -> None:
         root = Path(__file__).resolve().parents[1]
         docs = "\n".join(
             [
@@ -302,18 +344,22 @@ class TestProfileLoading:
         assert "calibration required" in docs
         assert "100.0% FPR" in docs
 
-    def test_profile_metadata_serializes_dependencies_as_list(self):
+    def test_profile_metadata_serializes_dependencies_as_list(self) -> None:
         data = DirectorConfig.profile_metadata("summarization").to_dict()
 
         assert data["name"] == "summarization"
         assert data["required_dependencies"] == ["nli"]
         assert data["validation_status"]
         assert data["calibration_required"] is True
+        assert isinstance(data["min_calibration_samples"], int)
         assert data["min_calibration_samples"] >= 20
+        assert isinstance(data["calibration_command"], str)
         assert "director-ai tune" in data["calibration_command"]
 
     @pytest.mark.parametrize("name", ["medical", "finance", "legal", "summarization"])
-    def test_regulated_and_summarization_profiles_enable_verified_scorer(self, name):
+    def test_regulated_and_summarization_profiles_enable_verified_scorer(
+        self, name: str
+    ) -> None:
         cfg = DirectorConfig.from_profile(name)
         scorer = cfg.build_scorer()
 
@@ -323,7 +369,7 @@ class TestProfileLoading:
         assert scorer._verified_scorer_evidence_top_k == 3
         assert scorer._verified_scorer_min_coverage == pytest.approx(0.5)
 
-    def test_verified_scorer_config_validates_bounds(self):
+    def test_verified_scorer_config_validates_bounds(self) -> None:
         with pytest.raises(ValueError, match="verified_scorer_low_confidence_margin"):
             DirectorConfig(verified_scorer_low_confidence_margin=1.5)
         with pytest.raises(ValueError, match="verified_scorer_min_coverage"):
@@ -331,7 +377,7 @@ class TestProfileLoading:
         with pytest.raises(ValueError, match="verified_scorer_evidence_top_k"):
             DirectorConfig(verified_scorer_evidence_top_k=0)
 
-    def test_span_detector_config_validates_bounds(self):
+    def test_span_detector_config_validates_bounds(self) -> None:
         with pytest.raises(ValueError, match="span_token_threshold"):
             DirectorConfig(span_token_threshold=1.5)
         with pytest.raises(ValueError, match="span_min_tokens"):
@@ -339,7 +385,7 @@ class TestProfileLoading:
         with pytest.raises(ValueError, match="span_max_length"):
             DirectorConfig(span_max_length=0)
 
-    def test_list_profile_metadata_matches_builtin_profiles(self):
+    def test_list_profile_metadata_matches_builtin_profiles(self) -> None:
         names = {meta.name for meta in DirectorConfig.list_profile_metadata()}
 
         for name in (
@@ -359,46 +405,46 @@ class TestProfileLoading:
         ):
             assert name in names
 
-    def test_unknown_profile_metadata_raises(self):
+    def test_unknown_profile_metadata_raises(self) -> None:
         with pytest.raises(ValueError, match="Unknown profile"):
             DirectorConfig.profile_metadata("nonexistent")
 
 
 class TestSummarizationAggregation:
-    def test_summarization_profile_uses_min_inner_trimmed_mean_outer(self):
+    def test_summarization_profile_uses_min_inner_trimmed_mean_outer(self) -> None:
         cfg = DirectorConfig.from_profile("summarization")
         assert cfg.nli_fact_inner_agg == "min"
         assert cfg.nli_fact_outer_agg == "trimmed_mean"
 
-    def test_summarization_profile_logic_agg(self):
+    def test_summarization_profile_logic_agg(self) -> None:
         cfg = DirectorConfig.from_profile("summarization")
         assert cfg.nli_logic_inner_agg == "min"
         assert cfg.nli_logic_outer_agg == "mean"
 
-    def test_summarization_profile_premise_ratio(self):
+    def test_summarization_profile_premise_ratio(self) -> None:
         cfg = DirectorConfig.from_profile("summarization")
         assert cfg.nli_premise_ratio == 0.85
 
-    def test_summarization_profile_thresholds(self):
+    def test_summarization_profile_thresholds(self) -> None:
         cfg = DirectorConfig.from_profile("summarization")
         assert cfg.coherence_threshold == 0.15
         assert cfg.hard_limit == 0.08
         assert cfg.soft_limit == 0.25
 
-    def test_summarization_profile_w_logic_zero(self):
+    def test_summarization_profile_w_logic_zero(self) -> None:
         cfg = DirectorConfig.from_profile("summarization")
         assert cfg.w_logic == 0.0
         assert cfg.w_fact == 1.0
 
-    def test_summarization_profile_retrieval_top_k(self):
+    def test_summarization_profile_retrieval_top_k(self) -> None:
         cfg = DirectorConfig.from_profile("summarization")
         assert cfg.nli_fact_retrieval_top_k == 8
 
-    def test_summarization_profile_prompt_as_premise(self):
+    def test_summarization_profile_prompt_as_premise(self) -> None:
         cfg = DirectorConfig.from_profile("summarization")
         assert cfg.nli_use_prompt_as_premise is True
 
-    def test_default_profile_uses_max_max(self):
+    def test_default_profile_uses_max_max(self) -> None:
         cfg = DirectorConfig()
         assert cfg.nli_fact_inner_agg == "max"
         assert cfg.nli_fact_outer_agg == "max"
@@ -411,7 +457,7 @@ class TestSummarizationAggregation:
 class TestEnvLoading:
     """Tests for from_env()."""
 
-    def test_env_override(self, monkeypatch):
+    def test_env_override(self, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.setenv("DIRECTOR_COHERENCE_THRESHOLD", "0.8")
         monkeypatch.setenv("DIRECTOR_USE_NLI", "true")
         monkeypatch.setenv("DIRECTOR_SERVER_PORT", "9999")
@@ -422,17 +468,17 @@ class TestEnvLoading:
         assert cfg.server_port == 9999
         assert cfg.finetune_models_dir == "/srv/director-models"
 
-    def test_env_ignores_unknown(self, monkeypatch):
+    def test_env_ignores_unknown(self, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.setenv("DIRECTOR_TOTALLY_UNKNOWN", "value")
         cfg = DirectorConfig.from_env()
         assert cfg.coherence_threshold == 0.6  # default unchanged
 
-    def test_custom_prefix(self, monkeypatch):
+    def test_custom_prefix(self, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.setenv("DAI_COHERENCE_THRESHOLD", "0.9")
         cfg = DirectorConfig.from_env(prefix="DAI_")
         assert cfg.coherence_threshold == 0.9
 
-    def test_feedback_db_path_from_env(self, monkeypatch):
+    def test_feedback_db_path_from_env(self, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.setenv("DIRECTOR_FEEDBACK_DB_PATH", "/tmp/director-feedback.db")
         cfg = DirectorConfig.from_env()
         assert cfg.feedback_db_path == "/tmp/director-feedback.db"
@@ -441,7 +487,7 @@ class TestEnvLoading:
 class TestYamlLoading:
     """Tests for from_yaml()."""
 
-    def test_load_json_file(self):
+    def test_load_json_file(self) -> None:
         data = {"coherence_threshold": 0.75, "use_nli": True, "profile": "custom"}
         with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
             json.dump(data, f)
@@ -455,7 +501,7 @@ class TestYamlLoading:
         finally:
             os.unlink(path)
 
-    def test_load_ignores_unknown_keys(self):
+    def test_load_ignores_unknown_keys(self) -> None:
         data = {"coherence_threshold": 0.5, "not_a_real_field": "ignored"}
         with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
             json.dump(data, f)
@@ -467,7 +513,7 @@ class TestYamlLoading:
         finally:
             os.unlink(path)
 
-    def test_load_non_dict_returns_default(self):
+    def test_load_non_dict_returns_default(self) -> None:
         with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
             f.write('"just a string"')
             path = f.name
@@ -478,7 +524,7 @@ class TestYamlLoading:
         finally:
             os.unlink(path)
 
-    def test_load_file_not_found(self):
+    def test_load_file_not_found(self) -> None:
         with pytest.raises(FileNotFoundError):
             DirectorConfig.from_yaml("/nonexistent/path.json")
 
@@ -486,29 +532,34 @@ class TestYamlLoading:
 class TestBuildStore:
     """Tests for DirectorConfig.build_store()."""
 
-    def test_build_store_returns_vector_store(self):
-        from director_ai.core.vector_store import VectorGroundTruthStore
+    def test_build_store_returns_vector_store(self) -> None:
+        from director_ai.core.retrieval.vector_store import VectorGroundTruthStore
 
         cfg = DirectorConfig()
         store = cfg.build_store()
         assert isinstance(store, VectorGroundTruthStore)
+        assert (
+            vars(vector_store_compat)["VectorGroundTruthStore"]
+            is VectorGroundTruthStore
+        )
 
-    def test_build_store_memory_backend_default(self):
-        from director_ai.core.vector_store import InMemoryBackend
+    def test_build_store_memory_backend_default(self) -> None:
+        from director_ai.core.retrieval.vector_store import InMemoryBackend
 
         cfg = DirectorConfig(
             vector_backend="memory", hybrid_retrieval=False, reranker_enabled=False
         )
         store = cfg.build_store()
+        assert isinstance(store, VectorGroundTruthStore)
         assert isinstance(store.backend, InMemoryBackend)
 
-    def test_build_scorer_receives_store(self):
+    def test_build_scorer_receives_store(self) -> None:
         cfg = DirectorConfig()
         scorer = cfg.build_scorer()
         assert scorer.ground_truth_store is not None
 
-    def test_build_scorer_custom_store_override(self):
-        from director_ai.core.vector_store import VectorGroundTruthStore
+    def test_build_scorer_custom_store_override(self) -> None:
+        from director_ai.core.retrieval.vector_store import VectorGroundTruthStore
 
         cfg = DirectorConfig()
         custom_store = VectorGroundTruthStore()
@@ -554,7 +605,9 @@ class TestBuildStore:
             revision=cfg.reranker_model_revision,
         )
 
-    def test_grounded_recipe_wraps_hybrid_before_reranker(self, monkeypatch):
+    def test_grounded_recipe_wraps_hybrid_before_reranker(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         from unittest.mock import MagicMock
 
         mock_module = MagicMock()
@@ -565,7 +618,10 @@ class TestBuildStore:
             mock_module,
         )
 
-        from director_ai.core.vector_store import HybridBackend, RerankedBackend
+        from director_ai.core.retrieval.vector_store import (
+            HybridBackend,
+            RerankedBackend,
+        )
 
         cfg = DirectorConfig(
             mode="grounded",
@@ -576,14 +632,15 @@ class TestBuildStore:
             reranker_top_k_multiplier=5,
         )
         store = cfg.build_store()
+        assert isinstance(store, VectorGroundTruthStore)
 
         assert isinstance(store.backend, RerankedBackend)
         assert store.backend._multiplier == 5
         assert isinstance(store.backend._base, HybridBackend)
         assert store.backend._base._rrf_k == 47
 
-    def test_build_store_passes_fusion_method_and_weights(self):
-        from director_ai.core.vector_store import HybridBackend
+    def test_build_store_passes_fusion_method_and_weights(self) -> None:
+        from director_ai.core.retrieval.vector_store import HybridBackend
 
         cfg = DirectorConfig(
             mode="grounded",
@@ -596,27 +653,30 @@ class TestBuildStore:
         )
 
         store = cfg.build_store()
+        assert isinstance(store, VectorGroundTruthStore)
 
         assert isinstance(store.backend, HybridBackend)
         assert store.backend._fusion == "convex"
         assert store.backend._sparse_w == 0.3
         assert store.backend._dense_w == 0.7
 
-    def test_retrieval_recipe_metadata_exposes_grounded_contract(self):
+    def test_retrieval_recipe_metadata_exposes_grounded_contract(self) -> None:
         cfg = DirectorConfig(mode="grounded")
 
         recipe = cfg.retrieval_recipe()
+        hybrid = recipe["hybrid"]
+        assert isinstance(hybrid, dict)
 
         assert recipe["name"] == "grounded-hybrid-rerank-v1"
         assert recipe["mode"] == "grounded"
         assert recipe["embedding_model"] == cfg.embedding_model
-        assert recipe["hybrid"]["enabled"] is True
-        assert recipe["hybrid"]["fusion"] == "reciprocal_rank_fusion"
-        assert recipe["hybrid"]["rrf_k"] == 60
-        assert recipe["hybrid"]["sparse_weight"] == 1.0
-        assert recipe["hybrid"]["dense_weight"] == 1.0
+        assert hybrid["enabled"] is True
+        assert hybrid["fusion"] == "reciprocal_rank_fusion"
+        assert hybrid["rrf_k"] == 60
+        assert hybrid["sparse_weight"] == 1.0
+        assert hybrid["dense_weight"] == 1.0
 
-    def test_retrieval_recipe_surfaces_non_default_fusion_method(self):
+    def test_retrieval_recipe_surfaces_non_default_fusion_method(self) -> None:
         cfg = DirectorConfig(
             mode="grounded",
             hybrid_fusion_method="combmnz",
@@ -625,18 +685,24 @@ class TestBuildStore:
         )
 
         recipe = cfg.retrieval_recipe()
+        hybrid = recipe["hybrid"]
+        reranker = recipe["reranker"]
+        abstention = recipe["abstention"]
+        assert isinstance(hybrid, dict)
+        assert isinstance(reranker, dict)
+        assert isinstance(abstention, dict)
 
-        assert recipe["hybrid"]["fusion"] == "combmnz"
-        assert recipe["hybrid"]["sparse_weight"] == 0.4
-        assert recipe["hybrid"]["dense_weight"] == 0.6
-        assert recipe["reranker"]["enabled"] is True
-        assert recipe["reranker"]["top_k_multiplier"] == 3
-        assert recipe["abstention"]["threshold"] == pytest.approx(0.3)
+        assert hybrid["fusion"] == "combmnz"
+        assert hybrid["sparse_weight"] == 0.4
+        assert hybrid["dense_weight"] == 0.6
+        assert reranker["enabled"] is True
+        assert reranker["top_k_multiplier"] == 3
+        assert abstention["threshold"] == pytest.approx(0.3)
         assert "embedding_api_key" not in recipe
 
     def test_build_store_skips_unavailable_reranker_outside_production(
-        self, monkeypatch
-    ):
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         from unittest.mock import MagicMock
 
         mock_module = MagicMock()
@@ -649,9 +715,12 @@ class TestBuildStore:
 
         cfg = DirectorConfig(reranker_enabled=True, production_mode=False)
         store = cfg.build_store()
+        assert isinstance(store, VectorGroundTruthStore)
         assert store.backend.__class__.__name__ != "RerankedBackend"
 
-    def test_build_store_fails_unavailable_reranker_in_production(self, monkeypatch):
+    def test_build_store_fails_unavailable_reranker_in_production(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         from unittest.mock import MagicMock
 
         mock_module = MagicMock()
@@ -663,23 +732,27 @@ class TestBuildStore:
         )
 
         cfg = DirectorConfig(
-            reranker_enabled=True,
-            production_mode=True,
-            api_keys=("test-key",),
-            llm_api_url="https://llm.internal.example/v1",
-            knowledge_write_hmac_keys='{"kid-1":"signing-secret-at-least-32-chars-xx"}',
+            **dict[str, Any](
+                reranker_enabled=True,
+                production_mode=True,
+                api_keys=("test-key",),
+                llm_api_url="https://llm.internal.example/v1",
+                knowledge_write_hmac_keys='{"kid-1":"signing-secret-at-least-32-chars-xx"}',
+            )
         )
         with pytest.raises(RuntimeError, match="reranker model could not load"):
             cfg.build_store()
 
-    def test_build_store_sentence_transformer_backend(self, monkeypatch):
+    def test_build_store_sentence_transformer_backend(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         from unittest.mock import MagicMock
 
         mock_st = MagicMock()
         mock_st.SentenceTransformer = MagicMock()
         monkeypatch.setitem(__import__("sys").modules, "sentence_transformers", mock_st)
 
-        from director_ai.core.vector_store import SentenceTransformerBackend
+        from director_ai.core.retrieval.vector_store import SentenceTransformerBackend
 
         cfg = DirectorConfig(
             vector_backend="sentence-transformer",
@@ -687,10 +760,11 @@ class TestBuildStore:
             reranker_enabled=False,
         )
         store = cfg.build_store()
+        assert isinstance(store, VectorGroundTruthStore)
         assert isinstance(store.backend, SentenceTransformerBackend)
 
-    def test_build_store_registry_fallback(self):
-        from director_ai.core.vector_store import InMemoryBackend
+    def test_build_store_registry_fallback(self) -> None:
+        from director_ai.core.retrieval.vector_store import InMemoryBackend
 
         cfg = DirectorConfig(
             vector_backend="__nonexistent_backend__",
@@ -698,30 +772,31 @@ class TestBuildStore:
             reranker_enabled=False,
         )
         store = cfg.build_store()
+        assert isinstance(store, VectorGroundTruthStore)
         assert isinstance(store.backend, InMemoryBackend)
 
-    def test_hybrid_rrf_k_must_be_positive_integer(self):
+    def test_hybrid_rrf_k_must_be_positive_integer(self) -> None:
         with pytest.raises(ValueError, match="hybrid_rrf_k"):
             DirectorConfig(hybrid_rrf_k=0)
 
-    def test_hybrid_rrf_k_must_not_be_bool(self):
+    def test_hybrid_rrf_k_must_not_be_bool(self) -> None:
         with pytest.raises(ValueError, match="hybrid_rrf_k must be an integer"):
             DirectorConfig(hybrid_rrf_k=True)
 
-    def test_llm_judge_rubric_must_be_boolean(self):
+    def test_llm_judge_rubric_must_be_boolean(self) -> None:
         with pytest.raises(ValueError, match="llm_judge_rubric must be a boolean"):
-            DirectorConfig(llm_judge_rubric="yes")
+            DirectorConfig(**dict[str, Any](llm_judge_rubric="yes"))
 
-    def test_llm_judge_ensemble_must_be_integer(self):
+    def test_llm_judge_ensemble_must_be_integer(self) -> None:
         with pytest.raises(ValueError, match="llm_judge_ensemble must be an integer"):
             DirectorConfig(llm_judge_ensemble=True)
 
     @pytest.mark.parametrize("value", [0, 6])
-    def test_llm_judge_ensemble_range(self, value):
+    def test_llm_judge_ensemble_range(self, value: int) -> None:
         with pytest.raises(ValueError, match="between 1 and 5"):
             DirectorConfig(llm_judge_ensemble=value)
 
-    def test_build_scorer_passes_rubric_and_ensemble(self):
+    def test_build_scorer_passes_rubric_and_ensemble(self) -> None:
         cfg = DirectorConfig(
             llm_judge_rubric=True,
             llm_judge_ensemble=3,
@@ -732,7 +807,7 @@ class TestBuildStore:
         assert scorer._judge._rubric is True
         assert scorer._judge._ensemble_n == 3
 
-    def test_claim_decomposition_provider_rejects_unknown(self):
+    def test_claim_decomposition_provider_rejects_unknown(self) -> None:
         with pytest.raises(
             ValueError, match="claim_decomposition_provider must be one of"
         ):
@@ -741,17 +816,17 @@ class TestBuildStore:
                 claim_decomposition_model="m",
             )
 
-    def test_claim_decomposition_provider_requires_model(self):
+    def test_claim_decomposition_provider_requires_model(self) -> None:
         with pytest.raises(ValueError, match="claim_decomposition_model must be set"):
             DirectorConfig(claim_decomposition_provider="openai")
 
-    def test_claim_decomposition_defaults_stay_off(self):
+    def test_claim_decomposition_defaults_stay_off(self) -> None:
         cfg = DirectorConfig()
 
         assert cfg.claim_decomposition_provider == ""
         assert cfg.claim_decomposition_model == ""
 
-    def test_build_scorer_passes_claim_decomposition(self):
+    def test_build_scorer_passes_claim_decomposition(self) -> None:
         cfg = DirectorConfig(
             use_nli=False,
             scorer_backend="lite",
@@ -762,17 +837,18 @@ class TestBuildStore:
         with pytest.warns(UserWarning, match="third-party"):
             scorer = cfg.build_scorer()
 
+        assert scorer._nli is not None
         decomposer = scorer._nli._claim_decomposer
         assert decomposer is not None
         assert decomposer.provider == "openai"
         assert decomposer.model == "gpt-4o-mini"
 
-    def test_hybrid_fusion_method_is_canonicalised(self):
+    def test_hybrid_fusion_method_is_canonicalised(self) -> None:
         cfg = DirectorConfig(hybrid_fusion_method="  ZScore ")
 
         assert cfg.hybrid_fusion_method == "zscore"
 
-    def test_hybrid_fusion_method_rejects_unknown(self):
+    def test_hybrid_fusion_method_rejects_unknown(self) -> None:
         with pytest.raises(ValueError, match="fusion_method must be one of"):
             DirectorConfig(hybrid_fusion_method="borda")
 
@@ -780,19 +856,19 @@ class TestBuildStore:
         "field",
         ["hybrid_sparse_weight", "hybrid_dense_weight"],
     )
-    def test_hybrid_fusion_weight_must_be_non_negative(self, field):
+    def test_hybrid_fusion_weight_must_be_non_negative(self, field: str) -> None:
         with pytest.raises(ValueError, match=f"{field} must be non-negative"):
-            DirectorConfig(**{field: -0.5})
+            DirectorConfig(**dict[str, Any]({field: -0.5}))
 
     @pytest.mark.parametrize(
         "field",
         ["hybrid_sparse_weight", "hybrid_dense_weight"],
     )
-    def test_hybrid_fusion_weight_must_be_numeric(self, field):
+    def test_hybrid_fusion_weight_must_be_numeric(self, field: str) -> None:
         with pytest.raises(ValueError, match=f"{field} must be numeric"):
-            DirectorConfig(**{field: True})
+            DirectorConfig(**dict[str, Any]({field: True}))
 
-    def test_hybrid_fusion_weights_must_not_both_be_zero(self):
+    def test_hybrid_fusion_weights_must_not_both_be_zero(self) -> None:
         with pytest.raises(ValueError, match="at least one hybrid fusion weight"):
             DirectorConfig(hybrid_sparse_weight=0.0, hybrid_dense_weight=0.0)
 
@@ -800,71 +876,71 @@ class TestBuildStore:
 class TestValidationBoundaries:
     """Negative tests for __post_init__ validation constraints."""
 
-    def test_coherence_threshold_below_zero(self):
+    def test_coherence_threshold_below_zero(self) -> None:
         with pytest.raises(ValueError, match="coherence_threshold"):
             DirectorConfig(coherence_threshold=-0.1)
 
-    def test_coherence_threshold_above_one(self):
+    def test_coherence_threshold_above_one(self) -> None:
         with pytest.raises(ValueError, match="coherence_threshold"):
             DirectorConfig(coherence_threshold=1.1)
 
-    def test_hard_limit_below_zero(self):
+    def test_hard_limit_below_zero(self) -> None:
         with pytest.raises(ValueError, match="hard_limit"):
             DirectorConfig(hard_limit=-0.01)
 
-    def test_hard_limit_above_one(self):
+    def test_hard_limit_above_one(self) -> None:
         with pytest.raises(ValueError, match="hard_limit"):
             DirectorConfig(hard_limit=1.5)
 
-    def test_soft_limit_below_zero(self):
+    def test_soft_limit_below_zero(self) -> None:
         with pytest.raises(ValueError, match="soft_limit"):
             DirectorConfig(soft_limit=-0.1)
 
-    def test_soft_limit_above_one(self):
+    def test_soft_limit_above_one(self) -> None:
         with pytest.raises(ValueError, match="soft_limit"):
             DirectorConfig(soft_limit=2.0)
 
-    def test_soft_limit_below_hard_limit(self):
+    def test_soft_limit_below_hard_limit(self) -> None:
         with pytest.raises(ValueError, match="soft_limit.*hard_limit"):
             DirectorConfig(hard_limit=0.7, soft_limit=0.3)
 
-    def test_max_candidates_zero(self):
+    def test_max_candidates_zero(self) -> None:
         with pytest.raises(ValueError, match="max_candidates"):
             DirectorConfig(max_candidates=0)
 
-    def test_history_window_zero(self):
+    def test_history_window_zero(self) -> None:
         with pytest.raises(ValueError, match="history_window"):
             DirectorConfig(history_window=0)
 
-    def test_temperature_above_two(self):
+    def test_temperature_above_two(self) -> None:
         with pytest.raises(ValueError, match="llm_temperature"):
             DirectorConfig(llm_temperature=2.5)
 
-    def test_temperature_below_zero(self):
+    def test_temperature_below_zero(self) -> None:
         with pytest.raises(ValueError, match="llm_temperature"):
             DirectorConfig(llm_temperature=-0.1)
 
-    def test_max_tokens_zero(self):
+    def test_max_tokens_zero(self) -> None:
         with pytest.raises(ValueError, match="llm_max_tokens"):
             DirectorConfig(llm_max_tokens=0)
 
-    def test_batch_concurrency_zero(self):
+    def test_batch_concurrency_zero(self) -> None:
         with pytest.raises(ValueError, match="batch_max_concurrency"):
             DirectorConfig(batch_max_concurrency=0)
 
-    def test_server_port_zero(self):
+    def test_server_port_zero(self) -> None:
         with pytest.raises(ValueError, match="server_port"):
             DirectorConfig(server_port=0)
 
-    def test_server_port_above_65535(self):
+    def test_server_port_above_65535(self) -> None:
         with pytest.raises(ValueError, match="server_port"):
             DirectorConfig(server_port=70000)
 
-    def test_server_workers_zero(self):
+    def test_server_workers_zero(self) -> None:
         with pytest.raises(ValueError, match="server_workers"):
             DirectorConfig(server_workers=0)
 
-    def test_valid_boundary_values_pass(self):
+    def test_valid_boundary_values_pass(self) -> None:
         cfg = DirectorConfig(
             coherence_threshold=0.0,
             hard_limit=0.0,
@@ -875,7 +951,7 @@ class TestValidationBoundaries:
         assert cfg.coherence_threshold == 0.0
         assert cfg.server_port == 1
 
-    def test_valid_upper_boundary_values_pass(self):
+    def test_valid_upper_boundary_values_pass(self) -> None:
         cfg = DirectorConfig(
             coherence_threshold=1.0,
             hard_limit=1.0,
@@ -889,17 +965,17 @@ class TestValidationBoundaries:
 class TestEnvCoercionErrors:
     """Error paths in from_env() type coercion."""
 
-    def test_invalid_bool_raises(self, monkeypatch):
+    def test_invalid_bool_raises(self, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.setenv("DIRECTOR_USE_NLI", "maybe")
         with pytest.raises(ValueError, match="invalid bool"):
             DirectorConfig.from_env()
 
-    def test_invalid_int_raises(self, monkeypatch):
+    def test_invalid_int_raises(self, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.setenv("DIRECTOR_SERVER_PORT", "not_a_number")
         with pytest.raises(ValueError, match="Invalid value"):
             DirectorConfig.from_env()
 
-    def test_invalid_float_raises(self, monkeypatch):
+    def test_invalid_float_raises(self, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.setenv("DIRECTOR_COHERENCE_THRESHOLD", "xyz")
         with pytest.raises(ValueError, match="Invalid value"):
             DirectorConfig.from_env()
@@ -908,54 +984,54 @@ class TestEnvCoercionErrors:
 class TestNewV25Fields:
     """Tests for v2.5.0 config fields: stats, source, gRPC."""
 
-    def test_default_stats_backend(self):
+    def test_default_stats_backend(self) -> None:
         cfg = DirectorConfig()
         assert cfg.stats_backend == "prometheus"
         assert cfg.stats_db_path == "~/.director-ai/stats.db"
 
-    def test_sqlite_stats_backend(self):
+    def test_sqlite_stats_backend(self) -> None:
         cfg = DirectorConfig(stats_backend="sqlite")
         assert cfg.stats_backend == "sqlite"
 
-    def test_invalid_stats_backend(self):
+    def test_invalid_stats_backend(self) -> None:
         with pytest.raises(ValueError, match="stats_backend"):
             DirectorConfig(stats_backend="redis")
 
-    def test_default_source_fields(self):
+    def test_default_source_fields(self) -> None:
         cfg = DirectorConfig()
         assert cfg.source_endpoint_enabled is True
         assert cfg.source_repository_url.startswith("https://github.com/")
 
-    def test_grpc_defaults(self):
+    def test_grpc_defaults(self) -> None:
         cfg = DirectorConfig()
         assert cfg.grpc_max_message_mb == 4
         assert cfg.grpc_deadline_seconds == 30.0
 
-    def test_grpc_max_message_mb_below_one(self):
+    def test_grpc_max_message_mb_below_one(self) -> None:
         with pytest.raises(ValueError, match="grpc_max_message_mb"):
             DirectorConfig(grpc_max_message_mb=0)
 
-    def test_grpc_deadline_zero(self):
+    def test_grpc_deadline_zero(self) -> None:
         with pytest.raises(ValueError, match="grpc_deadline_seconds"):
             DirectorConfig(grpc_deadline_seconds=0)
 
-    def test_grpc_deadline_negative(self):
+    def test_grpc_deadline_negative(self) -> None:
         with pytest.raises(ValueError, match="grpc_deadline_seconds"):
             DirectorConfig(grpc_deadline_seconds=-1.0)
 
-    def test_env_override_stats_backend(self, monkeypatch):
+    def test_env_override_stats_backend(self, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.setenv("DIRECTOR_STATS_BACKEND", "sqlite")
         cfg = DirectorConfig.from_env()
         assert cfg.stats_backend == "sqlite"
 
-    def test_env_override_grpc(self, monkeypatch):
+    def test_env_override_grpc(self, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.setenv("DIRECTOR_GRPC_MAX_MESSAGE_MB", "8")
         monkeypatch.setenv("DIRECTOR_GRPC_DEADLINE_SECONDS", "60.0")
         cfg = DirectorConfig.from_env()
         assert cfg.grpc_max_message_mb == 8
         assert cfg.grpc_deadline_seconds == 60.0
 
-    def test_to_dict_includes_new_fields(self):
+    def test_to_dict_includes_new_fields(self) -> None:
         cfg = DirectorConfig()
         d = cfg.to_dict()
         assert "stats_backend" in d
@@ -963,16 +1039,16 @@ class TestNewV25Fields:
         assert "source_endpoint_enabled" in d
         assert "onnx_path" in d
 
-    def test_onnx_path_default_empty(self):
+    def test_onnx_path_default_empty(self) -> None:
         cfg = DirectorConfig()
         assert cfg.onnx_path == ""
 
-    def test_onnx_path_from_env(self, monkeypatch):
+    def test_onnx_path_from_env(self, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.setenv("DIRECTOR_ONNX_PATH", "/models/onnx")
         cfg = DirectorConfig.from_env()
         assert cfg.onnx_path == "/models/onnx"
 
-    def test_build_scorer_passes_onnx_path(self):
+    def test_build_scorer_passes_onnx_path(self) -> None:
         cfg = DirectorConfig(
             scorer_backend="onnx",
             use_nli=True,
@@ -986,16 +1062,16 @@ class TestNewV25Fields:
 class TestWeightValidation:
     """Tests for w_logic + w_fact constraint."""
 
-    def test_weights_must_sum_to_one(self):
+    def test_weights_must_sum_to_one(self) -> None:
         with pytest.raises(ValueError, match="w_logic.*w_fact.*1.0"):
             DirectorConfig(w_logic=0.3, w_fact=0.3)
 
-    def test_zero_weights_skip_validation(self):
+    def test_zero_weights_skip_validation(self) -> None:
         cfg = DirectorConfig(w_logic=0.0, w_fact=0.0)
         assert cfg.w_logic == 0.0
         assert cfg.w_fact == 0.0
 
-    def test_valid_weights_pass(self):
+    def test_valid_weights_pass(self) -> None:
         cfg = DirectorConfig(w_logic=0.7, w_fact=0.3)
         assert cfg.w_logic == pytest.approx(0.7)
         assert cfg.w_fact == pytest.approx(0.3)
@@ -1004,7 +1080,7 @@ class TestWeightValidation:
 class TestClaimSupportConfigWiring:
     """DirectorConfig claim-support settings must reach the scorer boundary."""
 
-    def test_claim_support_settings_are_wired_into_scorer(self):
+    def test_claim_support_settings_are_wired_into_scorer(self) -> None:
         cfg = DirectorConfig(
             nli_claim_coverage_enabled=False,
             nli_claim_support_threshold=0.7,
@@ -1017,7 +1093,7 @@ class TestClaimSupportConfigWiring:
         assert scorer._claim_support_threshold == 0.7
         assert scorer._claim_coverage_alpha == 0.25
 
-    def test_summarization_premise_budget_defaults_to_whole_document(self):
+    def test_summarization_premise_budget_defaults_to_whole_document(self) -> None:
         # WCS-1 D2 (BENCHMARK_REPORT §16): 0 = whole document; the pre-WCS-1
         # 3000-char truncation stays available as an explicit rollback.
         assert DirectorConfig().nli_summarization_premise_chars == 0
@@ -1026,12 +1102,14 @@ class TestClaimSupportConfigWiring:
         scorer = cfg.build_scorer()
         assert scorer._summarization_premise_chars == 3000
 
-    def test_summarization_premise_budget_reads_from_env(self, monkeypatch):
+    def test_summarization_premise_budget_reads_from_env(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         monkeypatch.setenv("DIRECTOR_NLI_SUMMARIZATION_PREMISE_CHARS", "3000")
         cfg = DirectorConfig.from_env()
         assert cfg.nli_summarization_premise_chars == 3000
 
-    def test_operating_point_defaults_and_scorer_wiring(self):
+    def test_operating_point_defaults_and_scorer_wiring(self) -> None:
         # WCS-2a (BENCHMARK_REPORT §16): dialogue defaults to the raw
         # weakest-link support gate; summarisation keeps the blend with
         # weakest_link available as an explicit choice.
@@ -1052,7 +1130,9 @@ class TestClaimSupportConfigWiring:
         assert wired._summarization_aggregation == "weakest_link"
         assert wired._summarization_support_threshold == 0.05
 
-    def test_operating_point_fields_read_from_env(self, monkeypatch):
+    def test_operating_point_fields_read_from_env(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         monkeypatch.setenv("DIRECTOR_NLI_DIALOGUE_SCORING", "baseline_squeeze")
         monkeypatch.setenv("DIRECTOR_NLI_DIALOGUE_SUPPORT_THRESHOLD", "0.015")
         monkeypatch.setenv("DIRECTOR_NLI_SUMMARIZATION_AGGREGATION", "weakest_link")
@@ -1063,14 +1143,16 @@ class TestClaimSupportConfigWiring:
         assert cfg.nli_summarization_aggregation == "weakest_link"
         assert cfg.nli_summarization_support_threshold == pytest.approx(0.08)
 
-    def test_grpc_reflection_is_an_explicit_opt_in(self, monkeypatch):
+    def test_grpc_reflection_is_an_explicit_opt_in(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         # KIMI-D: reflection exposes the full service schema, default off.
         assert DirectorConfig().grpc_reflection_enabled is False
         monkeypatch.setenv("DIRECTOR_GRPC_REFLECTION_ENABLED", "true")
         assert DirectorConfig.from_env().grpc_reflection_enabled is True
 
     @pytest.mark.parametrize("profile", ["medical", "finance", "legal"])
-    def test_regulated_profiles_redact_pii_by_default(self, profile):
+    def test_regulated_profiles_redact_pii_by_default(self, profile: str) -> None:
         # KIMI-C: regulated-domain profiles carry privacy_mode.
         assert DirectorConfig.from_profile(profile).privacy_mode is True
 
@@ -1095,7 +1177,9 @@ class TestClaimSupportConfigWiring:
             ),
         ],
     )
-    def test_operating_point_fields_are_validated(self, kwargs, match):
+    def test_operating_point_fields_are_validated(
+        self, kwargs: dict[str, Any], match: str
+    ) -> None:
         with pytest.raises(ValueError, match=match):
             DirectorConfig(**kwargs)
 
@@ -1206,23 +1290,25 @@ class TestConfigCoverageGaps:
             ({"remanentia_timeout_s": 0}, "remanentia_timeout_s"),
         ],
     )
-    def test_validation_edges(self, kwargs, match):
+    def test_validation_edges(self, kwargs: dict[str, Any], match: str) -> None:
         with pytest.raises(ValueError, match=match):
             DirectorConfig(**kwargs)
 
-    def test_grounded_mode_sets_retrieval_abstention_default(self):
+    def test_grounded_mode_sets_retrieval_abstention_default(self) -> None:
         cfg = DirectorConfig(mode="grounded", retrieval_abstention_threshold=0.0)
 
         assert cfg.use_nli is True
         assert cfg.retrieval_abstention_threshold == pytest.approx(0.3)
 
-    def test_hardened_mode_enforces_fail_closed_settings(self):
+    def test_hardened_mode_enforces_fail_closed_settings(self) -> None:
         cfg = DirectorConfig(
-            hardened=True,
-            api_keys={"tenant-key"},
-            llm_api_url="https://llm.internal/v1",
-            llm_provider="openai",
-            knowledge_write_hmac_keys='{"kid-1":"signing-secret-at-least-32-chars-xx"}',
+            **dict[str, Any](
+                hardened=True,
+                api_keys={"tenant-key"},
+                llm_api_url="https://llm.internal/v1",
+                llm_provider="openai",
+                knowledge_write_hmac_keys='{"kid-1":"signing-secret-at-least-32-chars-xx"}',
+            )
         )
 
         assert cfg.production_mode is True
@@ -1234,16 +1320,18 @@ class TestConfigCoverageGaps:
         assert cfg.injection_fail_closed_on_error is True
         assert cfg.strict_mode is True
 
-    def test_build_store_general_mode_returns_ground_truth_store(self):
+    def test_build_store_general_mode_returns_ground_truth_store(self) -> None:
         from director_ai.core.retrieval.knowledge import GroundTruthStore
 
         store = DirectorConfig(mode="general").build_store()
 
         assert isinstance(store, GroundTruthStore)
 
-    def test_build_store_remanentia_skips_local_decorators(self, monkeypatch):
+    def test_build_store_remanentia_skips_local_decorators(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         class FakeRemanentiaBackend:
-            def __init__(self, **kwargs):
+            def __init__(self, **kwargs: Any) -> None:
                 self.kwargs = kwargs
 
         import director_ai.core.retrieval.vector_store as vector_store_module
@@ -1267,9 +1355,10 @@ class TestConfigCoverageGaps:
             multi_vector_enabled=True,
         )
         store = cfg.build_store()
+        assert isinstance(store, VectorGroundTruthStore)
 
         backend_chain = []
-        backend = store.backend
+        backend: object | None = store.backend
         while backend is not None:
             backend_chain.append(backend)
             backend = getattr(backend, "_base", None)
@@ -1284,7 +1373,9 @@ class TestConfigCoverageGaps:
         )
         assert remanentia.kwargs["base_url"] == "https://remanentia.internal"
 
-    def test_resolve_scorer_backend_auto_paths(self, monkeypatch):
+    def test_resolve_scorer_backend_auto_paths(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         import importlib.util
 
         cfg = DirectorConfig(scorer_backend="auto", onnx_path="/tmp/model.onnx")
@@ -1304,39 +1395,45 @@ class TestConfigCoverageGaps:
         )
         assert cfg._resolve_scorer_backend() == "lite"
 
-    def test_build_scorer_wires_optional_runtime_features(self, monkeypatch):
+    def test_build_scorer_wires_optional_runtime_features(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         import director_ai.core.scoring.scorer as scorer_module
 
-        captured = {}
+        captured: dict[str, Any] = {}
 
         class FakeNLI:
-            def __init__(self):
-                self.loaded = []
+            def __init__(self) -> None:
+                self.loaded: list[str] = []
 
-            def _load_lora_adapter(self, path):
+            def _load_lora_adapter(self, path: str) -> None:
                 self.loaded.append(path)
 
         class FakeJudge:
-            pass
+            _cost_callback: Callable[[str, int, int], None]
 
         class FakeScorer:
-            def __init__(self, **kwargs):
+            _meta_classifier_path: str
+            _dry_run: bool
+            _cost_analyser: CostAnalyser
+
+            def __init__(self, **kwargs: Any) -> None:
                 captured["kwargs"] = kwargs
                 self._nli = FakeNLI()
                 self._judge = FakeJudge()
                 self._adaptive_threshold_enabled = False
                 self._adaptive_threshold_fail_closed = False
 
-            def enable_injection_detection(self, **kwargs):
+            def enable_injection_detection(self, **kwargs: Any) -> None:
                 captured["injection"] = kwargs
 
-            def enable_adaptive_retrieval(self, **kwargs):
+            def enable_adaptive_retrieval(self, **kwargs: Any) -> None:
                 captured["adaptive_retrieval"] = kwargs
 
-            def _get_meta_classifier(self):
+            def _get_meta_classifier(self) -> object | None:
                 return object()
 
-            def _has_model_backed_nli(self):
+            def _has_model_backed_nli(self) -> bool:
                 return True
 
         monkeypatch.setattr(scorer_module, "CoherenceScorer", FakeScorer)
@@ -1357,7 +1454,8 @@ class TestConfigCoverageGaps:
             cost_tracking_enabled=True,
         )
 
-        scorer = cfg.build_scorer(store=object())
+        scorer = cfg.build_scorer(store=GroundTruthStore())
+        assert isinstance(scorer, FakeScorer)
 
         assert captured["kwargs"]["llm_judge_model"] == "local-judge"
         assert captured["kwargs"]["onnx_path"] == "/tmp/model.onnx"
@@ -1372,100 +1470,111 @@ class TestConfigCoverageGaps:
         assert scorer._cost_analyser is not None
         assert scorer._judge._cost_callback is not None
 
-    def test_build_scorer_passes_strict_mode(self, monkeypatch):
+    def test_build_scorer_passes_strict_mode(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         # Regression: hardened mode set a non-field ``strict_mode`` attribute
         # that build_scorer never forwarded, so the scorer's fail-closed
         # divergence path stayed disabled under hardened.
         import director_ai.core.scoring.scorer as scorer_module
 
-        captured = {}
+        captured: dict[str, Any] = {}
 
         class FakeScorer:
-            def __init__(self, **kwargs):
+            def __init__(self, **kwargs: Any) -> None:
                 captured["kwargs"] = kwargs
                 self._nli = None
                 self._judge = None
                 self._adaptive_threshold_enabled = False
                 self._adaptive_threshold_fail_closed = False
 
-            def _has_model_backed_nli(self):
+            def _has_model_backed_nli(self) -> bool:
                 return True
 
         monkeypatch.setattr(scorer_module, "CoherenceScorer", FakeScorer)
 
-        DirectorConfig(strict_mode=True).build_scorer(store=object())
+        DirectorConfig(strict_mode=True).build_scorer(store=GroundTruthStore())
         assert captured["kwargs"]["strict_mode"] is True
 
-        DirectorConfig().build_scorer(store=object())
+        DirectorConfig().build_scorer(store=GroundTruthStore())
         assert captured["kwargs"]["strict_mode"] is False
 
-    def test_hardened_mode_strict_mode_reaches_scorer(self, monkeypatch):
+    def test_hardened_mode_strict_mode_reaches_scorer(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         import director_ai.core.scoring.scorer as scorer_module
 
-        captured = {}
+        captured: dict[str, Any] = {}
 
         class FakeScorer:
-            def __init__(self, **kwargs):
+            def __init__(self, **kwargs: Any) -> None:
                 captured["kwargs"] = kwargs
                 self._nli = None
                 self._judge = None
                 self._adaptive_threshold_enabled = False
                 self._adaptive_threshold_fail_closed = False
 
-            def enable_injection_detection(self, **kwargs):
+            def enable_injection_detection(self, **kwargs: Any) -> None:
                 pass
 
-            def _get_meta_classifier(self):
+            def _get_meta_classifier(self) -> object | None:
                 return object()
 
-            def _has_model_backed_nli(self):
+            def _has_model_backed_nli(self) -> bool:
                 return True
 
         monkeypatch.setattr(scorer_module, "CoherenceScorer", FakeScorer)
 
         cfg = DirectorConfig(
-            hardened=True,
-            api_keys={"tenant-key"},
-            llm_api_url="https://llm.internal/v1",
-            llm_provider="openai",
-            knowledge_write_hmac_keys='{"kid-1":"signing-secret-at-least-32-chars-xx"}',
+            **dict[str, Any](
+                hardened=True,
+                api_keys={"tenant-key"},
+                llm_api_url="https://llm.internal/v1",
+                llm_provider="openai",
+                knowledge_write_hmac_keys='{"kid-1":"signing-secret-at-least-32-chars-xx"}',
+            )
         )
         assert cfg.strict_mode is True
-        cfg.build_scorer(store=object())
+        cfg.build_scorer(store=GroundTruthStore())
         assert captured["kwargs"]["strict_mode"] is True
 
-    def test_build_scorer_redis_cache_import_failure_is_nonfatal(self, monkeypatch):
+    def test_build_scorer_redis_cache_import_failure_is_nonfatal(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         import director_ai.core.scoring.scorer as scorer_module
 
         class FakeScorer:
-            def __init__(self, **kwargs):
+            def __init__(self, **kwargs: Any) -> None:
                 self.kwargs = kwargs
                 self._nli = None
                 self._judge = object()
                 self._adaptive_threshold_enabled = False
                 self._adaptive_threshold_fail_closed = False
 
-            def _has_model_backed_nli(self):
+            def _has_model_backed_nli(self) -> bool:
                 return True
 
         monkeypatch.setattr(scorer_module, "CoherenceScorer", FakeScorer)
         monkeypatch.setitem(sys.modules, "director_ai.enterprise.redis", None)
 
         cfg = DirectorConfig(redis_url="redis://cache.internal/0")
-        scorer = cfg.build_scorer(store=object())
+        scorer = cfg.build_scorer(store=GroundTruthStore())
+        assert isinstance(scorer, FakeScorer)
 
         assert "cache" not in scorer.kwargs
         assert "cache_size" not in scorer.kwargs
 
-    def test_build_store_uses_enterprise_redis_when_available(self, monkeypatch):
+    def test_build_store_uses_enterprise_redis_when_available(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         class FakeRedisGroundTruthStore:
-            def __init__(self, *, redis_url, prefix):
+            def __init__(self, *, redis_url: str, prefix: str) -> None:
                 self.redis_url = redis_url
                 self.prefix = prefix
 
         redis_module = types.ModuleType("director_ai.enterprise.redis")
-        redis_module.RedisGroundTruthStore = FakeRedisGroundTruthStore
-        redis_module.RedisScoreCache = object
+        vars(redis_module)["RedisGroundTruthStore"] = FakeRedisGroundTruthStore
+        vars(redis_module)["RedisScoreCache"] = object
         monkeypatch.setitem(
             sys.modules,
             "director_ai.enterprise",
@@ -1486,29 +1595,33 @@ class TestConfigCoverageGaps:
         assert store.redis_url == "redis://cache.internal/0"
         assert store.prefix == "dai:facts:"
 
-    def test_build_scorer_uses_enterprise_redis_cache_when_available(self, monkeypatch):
+    def test_build_scorer_uses_enterprise_redis_cache_when_available(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         import director_ai.core.scoring.scorer as scorer_module
 
         class FakeRedisScoreCache:
-            def __init__(self, *, redis_url, prefix, ttl_seconds):
+            def __init__(
+                self, *, redis_url: str, prefix: str, ttl_seconds: int
+            ) -> None:
                 self.redis_url = redis_url
                 self.prefix = prefix
                 self.ttl_seconds = ttl_seconds
 
         class FakeScorer:
-            def __init__(self, **kwargs):
+            def __init__(self, **kwargs: Any) -> None:
                 self.kwargs = kwargs
                 self._nli = None
                 self._judge = object()
                 self._adaptive_threshold_enabled = False
                 self._adaptive_threshold_fail_closed = False
 
-            def _has_model_backed_nli(self):
+            def _has_model_backed_nli(self) -> bool:
                 return True
 
         redis_module = types.ModuleType("director_ai.enterprise.redis")
-        redis_module.RedisGroundTruthStore = object
-        redis_module.RedisScoreCache = FakeRedisScoreCache
+        vars(redis_module)["RedisGroundTruthStore"] = object
+        vars(redis_module)["RedisScoreCache"] = FakeRedisScoreCache
         monkeypatch.setitem(
             sys.modules,
             "director_ai.enterprise",
@@ -1522,7 +1635,8 @@ class TestConfigCoverageGaps:
             redis_prefix="dai:",
             cache_ttl=123,
         )
-        scorer = cfg.build_scorer(store=object())
+        scorer = cfg.build_scorer(store=GroundTruthStore())
+        assert isinstance(scorer, FakeScorer)
 
         cache = scorer.kwargs["cache"]
         assert isinstance(cache, FakeRedisScoreCache)
@@ -1530,7 +1644,7 @@ class TestConfigCoverageGaps:
         assert cache.prefix == "dai:cache:"
         assert cache.ttl_seconds == 123
 
-    def test_build_store_hyde_template_wraps_backend(self):
+    def test_build_store_hyde_template_wraps_backend(self) -> None:
         cfg = DirectorConfig(
             mode="grounded",
             hybrid_retrieval=False,
@@ -1540,23 +1654,29 @@ class TestConfigCoverageGaps:
         )
 
         store = cfg.build_store()
+        assert isinstance(store, VectorGroundTruthStore)
 
+        from director_ai.core.retrieval.hyde import HyDEBackend
+
+        assert isinstance(store.backend, HyDEBackend)
         assert store.backend.__class__.__name__ == "HyDEBackend"
         assert store.backend._template == "Write a hypothetical answer: {query}"
 
-    def test_production_tenant_routing_requires_binding_map(self):
+    def test_production_tenant_routing_requires_binding_map(self) -> None:
         with pytest.raises(ValueError, match="api_key_tenant_map"):
             DirectorConfig(
-                production_mode=True,
-                tenant_routing=True,
-                api_keys={"tenant-key"},
-                llm_api_url="https://llm.internal/v1",
-                knowledge_write_hmac_keys=(
-                    '{"kid-1":"signing-secret-at-least-32-chars-xx"}'
-                ),
+                **dict[str, Any](
+                    production_mode=True,
+                    tenant_routing=True,
+                    api_keys={"tenant-key"},
+                    llm_api_url="https://llm.internal/v1",
+                    knowledge_write_hmac_keys='{"kid-1":"signing-secret-at-least-32-chars-xx"}',
+                )
             )
 
-    def test_production_wildcard_host_warns(self, caplog):
+    def test_production_wildcard_host_warns(
+        self, caplog: pytest.LogCaptureFixture
+    ) -> None:
         with caplog.at_level(logging.WARNING, logger="DirectorAI.Config"):
             cfg = DirectorConfig(
                 production_mode=True,
@@ -1572,12 +1692,16 @@ class TestConfigCoverageGaps:
         assert cfg.server_host == "0.0.0.0"
         assert "binding to 0.0.0.0" in caplog.text
 
-    def test_model_revision_health_uses_local_judge_model(self, monkeypatch):
+    def test_model_revision_health_uses_local_judge_model(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         import director_ai.core.model_revisions as model_revisions_module
 
-        captured = {}
+        captured: dict[str, Any] = {}
 
-        def fake_model_revision_health(models):
+        def fake_model_revision_health(
+            models: dict[str, tuple[str, str | None]],
+        ) -> dict[str, bool]:
             captured["models"] = models
             return {"ok": True}
 
@@ -1597,16 +1721,17 @@ class TestConfigCoverageGaps:
         assert health == {"ok": True}
         assert captured["models"]["local_judge"] == ("local-judge", None)
 
-    def test_coerce_numeric_lists(self):
-        from director_ai.core.config import _coerce
+    def test_coerce_numeric_lists(self) -> None:
+        from director_ai.core.config_env import coerce_env_value as _coerce
 
+        assert vars(config_module)["_coerce"] is _coerce
         assert _coerce("1, 2,3", "list[int]") == [1, 2, 3]
         assert _coerce("0.1,0.2", "list[float]") == [0.1, 0.2]
 
-    def test_coerce_string_list_splits_and_strips(self):
+    def test_coerce_string_list_splits_and_strips(self) -> None:
         # The plain ``list[str]`` branch splits on commas and drops blank
         # entries without per-element numeric conversion.
-        from director_ai.core.config import _coerce
+        from director_ai.core.config_env import coerce_env_value as _coerce
 
         assert _coerce("alpha, beta ,, gamma", "list[str]") == [
             "alpha",
@@ -1615,8 +1740,8 @@ class TestConfigCoverageGaps:
         ]
         assert _coerce("solo", "list") == ["solo"]
 
-    def test_coerce_tuple_fields(self):
-        from director_ai.core.config import _coerce
+    def test_coerce_tuple_fields(self) -> None:
+        from director_ai.core.config_env import coerce_env_value as _coerce
 
         # ``tuple[str, ...]`` must split on commas like a list — otherwise the
         # raw string survives and ``frozenset(value)`` becomes a per-character
@@ -1628,7 +1753,9 @@ class TestConfigCoverageGaps:
         assert _coerce("1,2", "tuple[int, ...]") == (1, 2)
         assert _coerce("0.5,0.25", "tuple[float, ...]") == (0.5, 0.25)
 
-    def test_from_env_api_keys_accepts_json_array(self, monkeypatch):
+    def test_from_env_api_keys_accepts_json_array(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         # Regression: from_env routed api_keys through the generic list
         # coercion, which split a JSON array on commas and embedded
         # brackets/quotes into the literal keys (auth never matched).
@@ -1639,7 +1766,9 @@ class TestConfigCoverageGaps:
         monkeypatch.setenv("DIRECTOR_API_KEYS", "sk-a,sk-b")
         assert DirectorConfig.from_env().api_keys == ["sk-a", "sk-b"]
 
-    def test_from_env_tuple_field_is_split(self, monkeypatch):
+    def test_from_env_tuple_field_is_split(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         # Regression: tuple[str, ...] fields fell through _coerce unchanged and
         # stayed a raw string, breaking frozenset-based allowlist checks.
         from director_ai.core.config import DirectorConfig
@@ -1674,15 +1803,15 @@ class TestConfigCoverageGaps:
     )
     def test_build_scorer_propagates_fail_closed_startup_errors(
         self,
-        monkeypatch,
-        method_name,
-        kwargs,
-        match,
-    ):
+        monkeypatch: pytest.MonkeyPatch,
+        method_name: str,
+        kwargs: dict[str, Any],
+        match: str,
+    ) -> None:
         import director_ai.core.scoring.scorer as scorer_module
 
         class FakeScorer:
-            def __init__(self, **init_kwargs):
+            def __init__(self, **init_kwargs: Any) -> None:
                 del init_kwargs
                 self._nli = None
                 self._judge = object()
@@ -1695,17 +1824,17 @@ class TestConfigCoverageGaps:
                     False,
                 )
 
-            def enable_injection_detection(self, **init_kwargs):
+            def enable_injection_detection(self, **init_kwargs: Any) -> None:
                 del init_kwargs
                 if method_name == "enable_injection_detection":
                     raise RuntimeError("detector init failed")
 
-            def _get_meta_classifier(self):
+            def _get_meta_classifier(self) -> object | None:
                 if method_name == "_get_meta_classifier":
                     raise RuntimeError("classifier init failed")
                 return object()
 
-            def _has_model_backed_nli(self):
+            def _has_model_backed_nli(self) -> bool:
                 return True
 
         monkeypatch.setattr(scorer_module, "CoherenceScorer", FakeScorer)
@@ -1713,7 +1842,7 @@ class TestConfigCoverageGaps:
         cfg = DirectorConfig(**kwargs)
 
         with pytest.raises(RuntimeError, match=match):
-            cfg.build_scorer(store=object())
+            cfg.build_scorer(store=GroundTruthStore())
 
     @pytest.mark.parametrize(
         "kwargs,match",
@@ -1740,14 +1869,14 @@ class TestConfigCoverageGaps:
     )
     def test_build_scorer_fail_closed_unavailable_components(
         self,
-        monkeypatch,
-        kwargs,
-        match,
-    ):
+        monkeypatch: pytest.MonkeyPatch,
+        kwargs: dict[str, Any],
+        match: str,
+    ) -> None:
         import director_ai.core.scoring.scorer as scorer_module
 
         class FakeScorer:
-            def __init__(self, **init_kwargs):
+            def __init__(self, **init_kwargs: Any) -> None:
                 del init_kwargs
                 self._nli = None
                 self._judge = object()
@@ -1760,13 +1889,13 @@ class TestConfigCoverageGaps:
                     False,
                 )
 
-            def enable_injection_detection(self, **init_kwargs):
+            def enable_injection_detection(self, **init_kwargs: Any) -> None:
                 del init_kwargs
 
-            def _get_meta_classifier(self):
+            def _get_meta_classifier(self) -> object | None:
                 return None
 
-            def _has_model_backed_nli(self):
+            def _has_model_backed_nli(self) -> bool:
                 return False
 
         monkeypatch.setattr(scorer_module, "CoherenceScorer", FakeScorer)
@@ -1774,11 +1903,11 @@ class TestConfigCoverageGaps:
         cfg = DirectorConfig(**kwargs)
 
         with pytest.raises(RuntimeError, match=match):
-            cfg.build_scorer(store=object())
+            cfg.build_scorer(store=GroundTruthStore())
 
     def test_build_scorer_warns_when_nli_backend_lacks_lora_support(
-        self, monkeypatch, caplog
-    ):
+        self, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+    ) -> None:
         """A LoRA adapter set on a backend without LoRA support warns, not crashes.
 
         When ``lora_adapter_path`` is configured but the active NLI backend does
@@ -1791,21 +1920,21 @@ class TestConfigCoverageGaps:
             """An NLI backend deliberately missing ``_load_lora_adapter``."""
 
         class FakeScorer:
-            def __init__(self, **init_kwargs):
+            def __init__(self, **init_kwargs: Any) -> None:
                 del init_kwargs
                 self._nli = _NliWithoutLora()
                 self._judge = object()
                 self._adaptive_threshold_enabled = False
                 self._adaptive_threshold_fail_closed = False
 
-            def _has_model_backed_nli(self):
+            def _has_model_backed_nli(self) -> bool:
                 return True
 
         monkeypatch.setattr(scorer_module, "CoherenceScorer", FakeScorer)
 
         cfg = DirectorConfig(lora_adapter_path="/tmp/nonexistent-adapter")
         with caplog.at_level(logging.WARNING, logger="DirectorAI.Config"):
-            scorer = cfg.build_scorer(store=object())
+            scorer = cfg.build_scorer(store=GroundTruthStore())
 
         assert isinstance(scorer._nli, _NliWithoutLora)
         assert "LoRA adapter not supported" in caplog.text
@@ -1815,7 +1944,7 @@ class TestConfigCoverageGaps:
 class TestValidationBranchCoverage:
     """Exercise the normalisation/validation branches in config_validation."""
 
-    def test_scorer_model_alias_resolves_nli_fields(self):
+    def test_scorer_model_alias_resolves_nli_fields(self) -> None:
         # A registry alias rewrites the NLI model identity through
         # resolve_scorer_model_choice during __post_init__.
         from director_ai.core.scoring.model_choices import (
@@ -1829,7 +1958,7 @@ class TestValidationBranchCoverage:
         assert cfg.nli_model_revision == choice.revision
         assert cfg.nli_max_length == choice.max_length
 
-    def test_grounded_mode_leaves_preset_retrieval_untouched(self):
+    def test_grounded_mode_leaves_preset_retrieval_untouched(self) -> None:
         # mode 'auto' with every retrieval signal already off and a positive
         # abstention threshold skips both normalisation branches: use_nli stays
         # False and the preset threshold is preserved.
@@ -1843,7 +1972,7 @@ class TestValidationBranchCoverage:
         assert cfg.use_nli is False
         assert cfg.retrieval_abstention_threshold == 0.5
 
-    def test_http_faiss_with_base_url_and_model_validates(self):
+    def test_http_faiss_with_base_url_and_model_validates(self) -> None:
         # vector_backend 'http-faiss' passes validation once both the base URL
         # and the embedding model are set.
         cfg = DirectorConfig(
@@ -1858,22 +1987,22 @@ class TestValidationBranchCoverage:
 class TestBuildBackendBranches:
     """Cover the optional-backend dispatch branches in config_builders."""
 
-    def test_build_store_chroma_backend(self, monkeypatch):
+    def test_build_store_chroma_backend(self, monkeypatch: pytest.MonkeyPatch) -> None:
         import director_ai.core.retrieval.vector_store as vs
 
-        captured = {}
+        captured: dict[str, Any] = {}
 
         class FakeChroma:
-            def __init__(self, **kwargs):
+            def __init__(self, **kwargs: Any) -> None:
                 captured["kwargs"] = kwargs
 
-            def add(self, *_a, **_k):
+            def add(self, *_a: Any, **_k: Any) -> None:
                 pass
 
-            def query(self, *_a, **_k):
+            def query(self, *_a: Any, **_k: Any) -> list[tuple[str, float]]:
                 return []
 
-            def count(self):
+            def count(self) -> int:
                 return 0
 
         monkeypatch.setattr(vs, "ChromaBackend", FakeChroma)
@@ -1885,28 +2014,31 @@ class TestBuildBackendBranches:
             reranker_enabled=False,
         )
         store = cfg.build_store()
+        assert isinstance(store, VectorGroundTruthStore)
         assert isinstance(store.backend, FakeChroma)
         assert captured["kwargs"]["collection_name"] == "c1"
         assert captured["kwargs"]["persist_directory"] == "/tmp/chroma"
 
-    def test_build_store_http_faiss_backend(self, monkeypatch):
+    def test_build_store_http_faiss_backend(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         import director_ai.core.retrieval.vector_store as vs
 
         class FakeEmbed:
-            def __init__(self, **kwargs):
+            def __init__(self, **kwargs: Any) -> None:
                 self.kwargs = kwargs
 
         class FakeFaiss:
-            def __init__(self, **kwargs):
+            def __init__(self, **kwargs: Any) -> None:
                 self.kwargs = kwargs
 
-            def add(self, *_a, **_k):
+            def add(self, *_a: Any, **_k: Any) -> None:
                 pass
 
-            def query(self, *_a, **_k):
+            def query(self, *_a: Any, **_k: Any) -> list[tuple[str, float]]:
                 return []
 
-            def count(self):
+            def count(self) -> int:
                 return 0
 
         monkeypatch.setattr(vs, "HttpEmbeddingFunction", FakeEmbed)
@@ -1920,24 +2052,27 @@ class TestBuildBackendBranches:
             reranker_enabled=False,
         )
         store = cfg.build_store()
+        assert isinstance(store, VectorGroundTruthStore)
         assert isinstance(store.backend, FakeFaiss)
         assert store.backend.kwargs["vector_size"] == 256
 
-    def test_build_scorer_model_fallback_resolves(self, monkeypatch):
+    def test_build_scorer_model_fallback_resolves(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         import director_ai.core.model_registry as registry_mod
         import director_ai.core.scoring.scorer as scorer_module
 
-        captured = {}
+        captured: dict[str, Any] = {}
 
         class FakeScorer:
-            def __init__(self, **kwargs):
+            def __init__(self, **kwargs: Any) -> None:
                 captured["kwargs"] = kwargs
                 self._nli = None
                 self._judge = None
                 self._adaptive_threshold_enabled = False
                 self._adaptive_threshold_fail_closed = False
 
-            def _has_model_backed_nli(self):
+            def _has_model_backed_nli(self) -> bool:
                 return True
 
         class FakeResolved:
@@ -1945,31 +2080,33 @@ class TestBuildBackendBranches:
             revision = "abc123"
 
         class FakeRegistry:
-            def resolve(self, *_args, **_kwargs):
+            def resolve(self, *_args: Any, **_kwargs: Any) -> FakeResolved:
                 return FakeResolved()
 
         monkeypatch.setattr(scorer_module, "CoherenceScorer", FakeScorer)
         monkeypatch.setattr(registry_mod, "FallbackModelRegistry", FakeRegistry)
-        DirectorConfig(model_fallback_enabled=True).build_scorer(store=object())
+        DirectorConfig(model_fallback_enabled=True).build_scorer(
+            store=GroundTruthStore()
+        )
         assert captured["kwargs"]["nli_model"] == "fallback/model"
         assert captured["kwargs"]["nli_revision"] == "abc123"
 
     def test_build_scorer_injection_init_failure_requires_model_backed(
-        self, monkeypatch
-    ):
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         import director_ai.core.scoring.scorer as scorer_module
 
         class FakeScorer:
-            def __init__(self, **kwargs):
+            def __init__(self, **kwargs: Any) -> None:
                 self._nli = None
                 self._judge = None
                 self._adaptive_threshold_enabled = False
                 self._adaptive_threshold_fail_closed = False
 
-            def enable_injection_detection(self, **_kwargs):
+            def enable_injection_detection(self, **_kwargs: Any) -> None:
                 raise RuntimeError("injection detector init failed")
 
-            def _has_model_backed_nli(self):
+            def _has_model_backed_nli(self) -> bool:
                 return True
 
         monkeypatch.setattr(scorer_module, "CoherenceScorer", FakeScorer)
@@ -1978,57 +2115,64 @@ class TestBuildBackendBranches:
             injection_require_model_backed_nli=True,
         )
         with pytest.raises(RuntimeError, match="injection detector init failed"):
-            cfg.build_scorer(store=object())
+            cfg.build_scorer(store=GroundTruthStore())
 
     def test_build_scorer_injection_init_failure_without_model_backed(
-        self, monkeypatch
-    ):
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         # Same failure path, but require_model_backed_nli=False: the handler
         # skips the model-backed metric and still re-raises.
         import director_ai.core.scoring.scorer as scorer_module
 
         class FakeScorer:
-            def __init__(self, **kwargs):
+            def __init__(self, **kwargs: Any) -> None:
                 self._nli = None
                 self._judge = None
                 self._adaptive_threshold_enabled = False
                 self._adaptive_threshold_fail_closed = False
 
-            def enable_injection_detection(self, **_kwargs):
+            def enable_injection_detection(self, **_kwargs: Any) -> None:
                 raise RuntimeError("injection detector init failed")
 
-            def _has_model_backed_nli(self):
+            def _has_model_backed_nli(self) -> bool:
                 return True
 
         monkeypatch.setattr(scorer_module, "CoherenceScorer", FakeScorer)
         cfg = DirectorConfig(injection_detection_enabled=True)
         with pytest.raises(RuntimeError, match="injection detector init failed"):
-            cfg.build_scorer(store=object())
+            cfg.build_scorer(store=GroundTruthStore())
 
-    def test_build_scorer_cost_callback_records(self, monkeypatch):
+    def test_build_scorer_cost_callback_records(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         import director_ai.core.scoring.scorer as scorer_module
 
         class FakeJudge:
-            pass
+            _cost_callback: Callable[[str, int, int], None]
 
         class FakeScorer:
-            def __init__(self, **kwargs):
+            _cost_analyser: CostAnalyser
+
+            def __init__(self, **kwargs: Any) -> None:
                 self._nli = None
                 self._judge = FakeJudge()
                 self._adaptive_threshold_enabled = False
                 self._adaptive_threshold_fail_closed = False
 
-            def _has_model_backed_nli(self):
+            def _has_model_backed_nli(self) -> bool:
                 return True
 
         monkeypatch.setattr(scorer_module, "CoherenceScorer", FakeScorer)
-        scorer = DirectorConfig(cost_tracking_enabled=True).build_scorer(store=object())
+        scorer = DirectorConfig(cost_tracking_enabled=True).build_scorer(
+            store=GroundTruthStore()
+        )
+        assert isinstance(scorer, FakeScorer)
         # Invoke the wired callback so the recording body runs.
         scorer._judge._cost_callback("gpt-x", 12, 34)
         assert "gpt-x" in scorer._cost_analyser._records
 
 
-def test_profile_metadata_registry_contract():
+def test_profile_metadata_registry_contract() -> None:
     from director_ai.core.config_profiles import PROFILE_METADATA, ProfileMetadata
 
     assert PROFILE_METADATA
