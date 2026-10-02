@@ -20,17 +20,18 @@ from unittest.mock import MagicMock, patch
 
 import numpy as np
 import pytest
+from numpy.typing import NDArray
 
 from director_ai.core.scoring.embed_scorer import DEFAULT_EMBED_MODEL, EmbedBackend
 
 # ── Mock helpers ────────────────────────────────────────────────────────
 
 
-def _mock_st(similarity: float = 0.8):
+def _mock_st(similarity: float = 0.8) -> MagicMock:
     """Create a mock SentenceTransformer returning controlled embeddings."""
     mock_model = MagicMock()
 
-    def encode_fn(texts, **kwargs):
+    def encode_fn(texts: list[str], **kwargs: object) -> NDArray[np.float32]:
         # Return normalised vectors with controlled cosine similarity
         n = len(texts)
         vecs = np.zeros((n, 10), dtype=np.float32)
@@ -55,20 +56,20 @@ def _mock_st(similarity: float = 0.8):
 
 
 class TestConstruction:
-    def test_default_model_name(self):
+    def test_default_model_name(self) -> None:
         b = EmbedBackend()
         assert b._model_name == DEFAULT_EMBED_MODEL
 
-    def test_custom_model(self):
+    def test_custom_model(self) -> None:
         b = EmbedBackend(model_name="custom/model")
         assert b._model_name == "custom/model"
 
-    def test_lazy_no_import_at_init(self):
+    def test_lazy_no_import_at_init(self) -> None:
         """Model is NOT loaded at __init__ time."""
         b = EmbedBackend()
         assert b._model is None
 
-    def test_missing_sentence_transformers_raises(self):
+    def test_missing_sentence_transformers_raises(self) -> None:
         b = EmbedBackend()
         with (
             patch.dict("sys.modules", {"sentence_transformers": None}),
@@ -76,12 +77,16 @@ class TestConstruction:
         ):
             b._ensure_model()
 
-    def test_ensure_model_loads_sentence_transformer_once(self, monkeypatch):
-        calls = []
+    def test_ensure_model_loads_sentence_transformer_once(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        calls: list[dict[str, str | None]] = []
         fake_module = ModuleType("sentence_transformers")
 
         class FakeSentenceTransformer:
-            def __init__(self, model_name, *, device, cache_folder):
+            def __init__(
+                self, model_name: str, *, device: str, cache_folder: str | None
+            ) -> None:
                 calls.append(
                     {
                         "model_name": model_name,
@@ -90,7 +95,9 @@ class TestConstruction:
                     },
                 )
 
-        fake_module.SentenceTransformer = FakeSentenceTransformer
+        monkeypatch.setattr(
+            fake_module, "SentenceTransformer", FakeSentenceTransformer, raising=False
+        )
         monkeypatch.setitem(sys.modules, "sentence_transformers", fake_module)
         b = EmbedBackend(
             model_name="local/embed",
@@ -116,44 +123,46 @@ class TestConstruction:
 
 
 class TestScoring:
-    def _backend(self, similarity=0.8):
+    def _backend(self, similarity: float = 0.8) -> EmbedBackend:
         b = EmbedBackend()
         b._model = _mock_st(similarity)
         return b
 
-    def test_score_returns_float(self):
+    def test_score_returns_float(self) -> None:
         b = self._backend()
         s = b.score("premise", "hypothesis")
         assert isinstance(s, float)
 
-    def test_score_range(self):
+    def test_score_range(self) -> None:
         b = self._backend(0.5)
         s = b.score("a", "b")
         assert 0.0 <= s <= 1.0
 
-    def test_high_similarity(self):
+    def test_high_similarity(self) -> None:
         b = self._backend(0.95)
         s = b.score("Water boils at 100.", "Water boils at 100.")
         assert s > 0.9
 
-    def test_low_similarity(self):
+    def test_low_similarity(self) -> None:
         b = self._backend(0.1)
         s = b.score("alpha", "omega")
         assert s < 0.3
 
-    def test_identical_texts_high(self):
+    def test_identical_texts_high(self) -> None:
         b = self._backend(1.0)
         s = b.score("same", "same")
         assert s > 0.99
 
-    def test_score_raises_when_loader_does_not_set_model(self, monkeypatch):
+    def test_score_raises_when_loader_does_not_set_model(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         b = EmbedBackend()
         monkeypatch.setattr(b, "_ensure_model", lambda: None)
 
         with pytest.raises(RuntimeError, match="Embedding model not loaded"):
             b.score("premise", "hypothesis")
 
-    def test_score_clamps_negative_and_above_one_similarity(self):
+    def test_score_clamps_negative_and_above_one_similarity(self) -> None:
         negative = self._backend(-0.5)
         assert negative.score("premise", "hypothesis") == pytest.approx(0.0)
 
@@ -177,32 +186,34 @@ class TestScoring:
 
 
 class TestBatchScoring:
-    def test_empty_batch(self):
+    def test_empty_batch(self) -> None:
         b = EmbedBackend()
         b._model = _mock_st()
         assert b.score_batch([]) == []
 
-    def test_batch_length(self):
+    def test_batch_length(self) -> None:
         b = EmbedBackend()
         b._model = _mock_st(0.7)
         scores = b.score_batch([("a", "b"), ("c", "d"), ("e", "f")])
         assert len(scores) == 3
 
-    def test_batch_scores_in_range(self):
+    def test_batch_scores_in_range(self) -> None:
         b = EmbedBackend()
         b._model = _mock_st(0.6)
         scores = b.score_batch([("a", "b")] * 5)
         for s in scores:
             assert 0.0 <= s <= 1.0
 
-    def test_batch_raises_when_loader_does_not_set_model(self, monkeypatch):
+    def test_batch_raises_when_loader_does_not_set_model(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         b = EmbedBackend()
         monkeypatch.setattr(b, "_ensure_model", lambda: None)
 
         with pytest.raises(RuntimeError, match="Embedding model not loaded"):
             b.score_batch([("premise", "hypothesis")])
 
-    def test_batch_clamps_each_pair_independently(self):
+    def test_batch_clamps_each_pair_independently(self) -> None:
         b = EmbedBackend()
         b._model = MagicMock()
         b._model.encode.side_effect = [
@@ -224,25 +235,37 @@ class TestBatchScoring:
 
 
 class TestRegistry:
+    """Installed backend discovery and lazy dependency boundaries."""
+
     def test_embed_backend_registered(self) -> None:
-        """Expose the optional backend exactly when its dependency is installed."""
-        import importlib.util
+        """Discover the installed embedding entry point without loading its model."""
+        from director_ai.core.scoring.backends import EmbedBackendWrapper, list_backends
 
-        from director_ai.core.scoring.backends import list_backends
-
-        backends = list_backends()
-        assert ("embed" in backends) == (
-            importlib.util.find_spec("sentence_transformers") is not None
-        )
+        assert list_backends()["embed"] is EmbedBackendWrapper
 
     def test_embed_backend_wraps_correctly(self) -> None:
-        """Resolve the real wrapper or refuse an unavailable optional backend."""
-        import importlib.util
-
+        """Construct the discovered wrapper lazily and accept an empty batch."""
         from director_ai.core.scoring.backends import EmbedBackendWrapper, get_backend
 
-        if importlib.util.find_spec("sentence_transformers") is None:
-            with pytest.raises(KeyError, match="Unknown backend 'embed'"):
-                get_backend("embed")
-        else:
-            assert get_backend("embed") is EmbedBackendWrapper
+        backend_class = get_backend("embed")
+        assert backend_class is EmbedBackendWrapper
+        backend = backend_class()
+        assert isinstance(backend, EmbedBackendWrapper)
+        assert backend.score_batch([]) == []
+
+    @pytest.mark.parametrize("batch", [False, True])
+    def test_registered_embed_refuses_scoring_without_dependency(
+        self, batch: bool
+    ) -> None:
+        """Refuse scalar and batch scores when the optional import is unavailable."""
+        from director_ai.core.scoring.backends import get_backend
+
+        backend = get_backend("embed")()
+        with (
+            patch.dict("sys.modules", {"sentence_transformers": None}),
+            pytest.raises(ImportError, match="requires sentence-transformers"),
+        ):
+            if batch:
+                backend.score_batch([("premise", "hypothesis")])
+            else:
+                backend.score("premise", "hypothesis")
