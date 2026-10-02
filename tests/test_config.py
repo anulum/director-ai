@@ -515,7 +515,19 @@ class TestBuildStore:
         scorer = cfg.build_scorer(store=custom_store)
         assert scorer.ground_truth_store is custom_store
 
-    def test_build_store_reranker_wraps_backend(self, monkeypatch):
+    def test_build_store_reranker_wraps_backend(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """Build the configured backend with an explicit CPU reranker preference.
+
+        Parameters
+        ----------
+        monkeypatch : pytest.MonkeyPatch
+            Isolated dependency substitute and documented CPU preference,
+            restored after this test.
+        """
+        monkeypatch.setenv("DIRECTOR_FORCE_CPU", "1")
         from unittest.mock import MagicMock
 
         mock_ce = MagicMock()
@@ -527,10 +539,14 @@ class TestBuildStore:
             mock_module,
         )
 
-        from director_ai.core.vector_store import RerankedBackend
+        from director_ai.core.retrieval.vector_store import (
+            RerankedBackend,
+            VectorGroundTruthStore,
+        )
 
         cfg = DirectorConfig(reranker_enabled=True)
         store = cfg.build_store()
+        assert isinstance(store, VectorGroundTruthStore)
         assert isinstance(store.backend, RerankedBackend)
         mock_module.CrossEncoder.assert_called_once_with(
             cfg.reranker_model,

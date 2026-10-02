@@ -5,6 +5,16 @@ All notable changes to Director-AI will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+
+### Fixed
+
+- Distribute complete CPU tests across eight native pytest partitions per
+  Python version, preserving all 1,200 original HaluEval reviews and the
+  combined 97% coverage floor. Refuse incomplete native model/test evidence.
+- Split CI into reusable owners with a versioned ownership and graph guard in
+  hosted CI and normal local preflight; preserve required check names.
+
 ## [Unreleased]
 
 ### Fixed

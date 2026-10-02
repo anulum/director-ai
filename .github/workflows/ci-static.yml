@@ -1,0 +1,145 @@
+# SPDX-License-Identifier: Apache-2.0
+# Commercial license available
+# © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
+# © Code 2020–2026 Miroslav Šotek. All rights reserved.
+# ORCID: 0009-0009-3560-0851
+# Contact: www.anulum.li | protoscience@anulum.li
+# Director-AI — continuous integration
+name: CI static
+
+on:
+  workflow_call:
+    outputs:
+      lint:
+        value: ${{ jobs.static-results.outputs.lint }}
+      typecheck:
+        value: ${{ jobs.static-results.outputs.typecheck }}
+      reuse:
+        value: ${{ jobs.static-results.outputs.reuse }}
+
+permissions:
+  contents: read
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+  CARGO_HTTP_MULTIPLEXING: "false"
+  CARGO_HTTP_TIMEOUT: "60"
+  CARGO_NET_RETRY: "10"
+
+jobs:
+  lint:
+    name: Lint & Format
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+
+      - name: Install linters
+        run: pip install --require-hashes -r requirements/ci-lint.txt
+
+      - name: Version consistency
+        run: python -c "from tools.preflight import check_version_sync; raise SystemExit(0 if check_version_sync() else 1)"
+
+      - name: Capability manifest drift
+        run: python tools/capability_manifest.py --check
+
+      - name: Studio federation manifest drift
+        run: PYTHONPATH=src python tools/emit_studio_manifest.py --check
+
+      - name: Test surface policy
+        run: python tools/check_test_surface_policy.py --root .
+
+      - name: Capability matrix ratchet
+        run: python tools/capability_matrix.py --check
+
+      - name: Mojibake guard (source tree)
+        run: python tools/check_mojibake.py --root .
+
+      - name: Check formatting (ruff)
+        run: ruff format --check src/ tests/ examples/
+
+      - name: Lint (ruff)
+        run: ruff check src/ tests/ examples/
+
+      - name: Docstring ratchet (source tree)
+        run: ruff check src/director_ai --select D
+
+      - name: REUSE compliance (SPDX licensing)
+        uses: fsfe/reuse-action@676e2d560c9a403aa252096d99fcab3e1132b0f5 # v6.0.0
+
+  typecheck:
+    name: Type Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          # Match the declared MyPy Python language floor.
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          pip install --require-hashes --no-deps -r requirements/ci-dev.txt
+          maturin build --release --manifest-path backfire-kernel/crates/backfire-ffi/Cargo.toml --out dist/backfire-kernel
+          python -m pip install --force-reinstall --no-deps --no-index dist/backfire-kernel/backfire_kernel-*.whl
+          pip install --no-deps -e .
+
+      - name: Install type stubs
+        run: pip install --require-hashes -r requirements/ci-types.txt
+
+      - name: Run mypy
+        run: mypy src/director_ai/
+
+
+      - name: Install workflow syntax validator
+        uses: taiki-e/install-action@83ac0ad63c0167e6f06796fab0fce28db1bf3db0 # v2.87.22
+        with:
+          tool: actionlint@1.7.12
+
+      - name: Workflow ownership and complete-test contracts
+        run: |
+          python -m tools.audit_ci_workflow_modularity
+          actionlint .github/workflows/ci*.yml
+          mypy --strict tools/ci_workflow_inventory.py tools/audit_ci_workflow_modularity.py tools/check_ci_gate.py tools/pytest_partition.py tools/aggregate_test_partitions.py benchmarks/halueval_eval.py
+          pytest tests/test_tools/test_ci_workflow_inventory.py tests/test_tools/test_audit_ci_workflow_modularity.py tests/test_tools/test_check_ci_gate.py tests/test_tools/test_pytest_partition.py tests/test_tools/test_aggregate_test_partitions.py tests/test_halueval_eval.py -q
+  reuse:
+    name: REUSE Compliance (SPDX)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      # Every tracked file must carry SPDX copyright + licence metadata, via an
+      # inline header or a REUSE.toml annotation. Fails the build on any uncovered
+      # file so the open-core (Apache-2.0) / media (CC-BY-4.0) / paid-tier
+      # (BUSL-1.1) licence boundary stays machine-checkable (WCG-3).
+      - name: REUSE lint
+        uses: fsfe/reuse-action@676e2d560c9a403aa252096d99fcab3e1132b0f5 # v6.0.0
+        with:
+          args: lint
+
+  static-results:
+    name: Static job results
+    runs-on: ubuntu-latest
+    if: always()
+    needs: [lint, typecheck, reuse]
+    outputs:
+      lint: ${{ steps.results.outputs.lint }}
+      typecheck: ${{ steps.results.outputs.typecheck }}
+      reuse: ${{ steps.results.outputs.reuse }}
+    steps:
+      - name: Record native job conclusions
+        id: results
+        env:
+          RESULT_LINT: ${{ needs.lint.result }}
+          RESULT_TYPECHECK: ${{ needs.typecheck.result }}
+          RESULT_REUSE: ${{ needs.reuse.result }}
+        run: |
+          {
+            echo "lint=$RESULT_LINT"
+            echo "typecheck=$RESULT_TYPECHECK"
+            echo "reuse=$RESULT_REUSE"
+          } >> "$GITHUB_OUTPUT"

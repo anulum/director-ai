@@ -1,0 +1,54 @@
+# SPDX-License-Identifier: Apache-2.0
+# Commercial license available
+# © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
+# © Code 2020–2026 Miroslav Šotek. All rights reserved.
+# ORCID: 0009-0009-3560-0851
+# Contact: www.anulum.li | protoscience@anulum.li
+# Director-AI — continuous integration
+name: CI sbom
+
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+  CARGO_HTTP_MULTIPLEXING: "false"
+  CARGO_HTTP_TIMEOUT: "60"
+  CARGO_NET_RETRY: "10"
+
+jobs:
+  sbom:
+    name: SBOM Generation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          pip install --require-hashes --no-deps -r requirements/ci-dev.txt
+          pip install --no-deps -e .
+          pip install --require-hashes -r requirements/ci-sbom.txt
+
+      - name: Generate SBOM (installed environment, resolved versions)
+        run: cyclonedx-py environment -o sbom.json --of json
+
+      - name: Generate SBOM (hashed dependency lock)
+        # Pinned + hashed supply-chain inventory (WCG-1): every component is an
+        # exact ==version from the pip-compile --generate-hashes lock and its
+        # requirement line (including all --hash values) is captured verbatim.
+        run: cyclonedx-py requirements requirements/ci-dev.txt -o sbom-lock.json --of json
+
+      - name: Upload SBOM artifacts
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: sbom
+          path: |
+            sbom.json
+            sbom-lock.json

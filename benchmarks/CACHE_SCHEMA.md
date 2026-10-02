@@ -165,3 +165,21 @@ mean supported/unsupported factual divergence, mean scoring latency, and
 `per_case` rows. Keep these scoring metrics separate from raw retrieval
 rank metrics; they measure how retrieval quality propagates into the
 guardrail decision path.
+
+## Complete HaluEval review evidence
+
+The direct runner keeps the existing aggregate metrics and adds
+`evaluations`: one record per executed review with `task`, `sample_index`,
+`is_hallucinated`, `input_sha256` and the public review `score`.
+The input digest is SHA-256 of UTF-8 JSON `[context, response, label]` with
+`ensure_ascii=False` and standard separators; it contains no raw text.
+`--sample-offset` selects a contiguous range independently in each task.
+`--require-complete` refuses missing rows, missing responses and unavailable
+model-backed scoring. The default model, scorer and global 0.5 reporting
+threshold remain the same; task-routed deployment metrics are a separate surface.
+
+Each CI `partition.json` records the exact SHA, Python version, collection
+roots, complete and selected case IDs, exit code, and native setup/call/teardown
+outcomes. Full HaluEval call properties contain the actual dataset SHA-256 and
+all review identities. `complete-tests.json` records the verified case/review
+counts and SHA-256 of every original worker report.

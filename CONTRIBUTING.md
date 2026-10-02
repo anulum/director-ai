@@ -164,3 +164,32 @@ BUSL-1.1. Contributions target the **Apache-2.0 core** and are accepted under
 Apache-2.0. By contributing, you agree to license your contribution under the
 same terms as the file it touches. See [licensing](docs-site/licensing.md) for
 the full model.
+
+## Complete CPU CI partitions
+
+The CI coordinator calls the responsibility workflows declared by
+`tools/ci_workflow_policy.toml`. Each Python version collects the complete
+`tests/` inventory in eight workers. Each test belongs to exactly one worker.
+The full HaluEval benchmark preserves the first 200 rows of QA, summarization
+and dialogue and both original responses: 1,200 model-backed reviews per
+Python version. Every worker evaluates a contiguous 25-row range per task.
+The existing 25-row QA smoke test remains in the suite.
+
+The aggregate requires matching source SHA and Python lane, the same complete
+collection, disjoint selected cases, native outcomes for every selected case,
+and all original model-review identities from `benchmarks/halueval_ci_inputs.tsv`.
+Missing models or data, substituted inputs, duplicate reviews and skipped
+required model cases fail the aggregate. All eight coverage databases are
+combined before the unchanged 97% gate. Downstream SBOM, fuzz, regression
+benchmarks and push-only Docker validation wait for the complete Python run.
+
+`Test (Python 3.11)` and `Lint & Format` remain the branch-protection names
+through one aggregate job definition. Both require every applicable category.
+Only declared PR skips for push-only Docker and main-only notification are
+permitted. The notification retains the original individual job conclusions.
+
+Run `python -m tools.audit_ci_workflow_modularity` and
+`actionlint .github/workflows/ci*.yml` after workflow changes; both are part of
+normal local preflight and hosted type checking. Install actionlint 1.7.12
+before local preflight. Update versioned job hashes with intentional changes;
+the guard refuses undeclared executable-body drift.

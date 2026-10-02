@@ -1,0 +1,74 @@
+# SPDX-License-Identifier: Apache-2.0
+# Commercial license available
+# © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
+# © Code 2020–2026 Miroslav Šotek. All rights reserved.
+# ORCID: 0009-0009-3560-0851
+# Contact: www.anulum.li | protoscience@anulum.li
+# Director-AI — continuous integration
+name: CI rust
+
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+  CARGO_HTTP_MULTIPLEXING: "false"
+  CARGO_HTTP_TIMEOUT: "60"
+  CARGO_NET_RETRY: "10"
+
+jobs:
+  rust:
+    name: Rust (backfire-kernel)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backfire-kernel
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable
+        with:
+          components: clippy, rustfmt
+
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+        with:
+          workspaces: backfire-kernel
+
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+
+      - name: Clippy
+        run: cargo clippy --workspace --all-targets -- -D warnings
+
+      - name: Build
+        run: cargo build --workspace
+
+      # backfire-ffi's default extension-module feature leaves the
+      # interpreter symbols to the host Python process, so its unit-test
+      # binary must link libpython instead: test it separately with
+      # --no-default-features against the system python3-dev.
+      - name: Install libpython for ffi unit tests
+        run: sudo apt-get update && sudo apt-get install -y python3-dev
+
+      - name: Test
+        run: |
+          cargo test --workspace --exclude backfire-ffi
+          cargo test -p backfire-ffi --no-default-features
+
+      # Supply-chain gate (WCG-2): fail on known RustSec vulnerabilities, on any
+      # dependency licence outside the permissive allow-list, and on unknown
+      # registries/git sources. Policy lives in backfire-kernel/deny.toml. Yanked
+      # crates are surfaced as warnings, not failures (see deny.toml rationale).
+      - name: Install supply-chain tools
+        uses: taiki-e/install-action@83ac0ad63c0167e6f06796fab0fce28db1bf3db0 # v2.87.22
+        with:
+          tool: cargo-audit,cargo-deny
+
+      - name: Audit advisories (RustSec)
+        run: cargo audit
+
+      - name: Deny check (advisories, licences, bans, sources)
+        run: cargo deny check

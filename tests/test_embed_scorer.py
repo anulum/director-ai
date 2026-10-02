@@ -4,6 +4,7 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
+# Director-Class AI — Embedding Scorer Tests
 """Tests for ``director_ai.core.scoring.embed_scorer``.
 
 Covers construction, lazy loading, scoring, batch scoring, edge cases,
@@ -223,16 +224,25 @@ class TestBatchScoring:
 
 
 class TestRegistry:
-    def test_embed_backend_registered(self):
-        """embed backend should be registered if sentence-transformers is installed."""
+    def test_embed_backend_registered(self) -> None:
+        """Expose the optional backend exactly when its dependency is installed."""
+        import importlib.util
+
         from director_ai.core.scoring.backends import list_backends
 
         backends = list_backends()
-        # sentence-transformers is installed in our venv
-        assert "embed" in backends
+        assert ("embed" in backends) == (
+            importlib.util.find_spec("sentence_transformers") is not None
+        )
 
-    def test_embed_backend_wraps_correctly(self):
-        from director_ai.core.scoring.backends import get_backend
+    def test_embed_backend_wraps_correctly(self) -> None:
+        """Resolve the real wrapper or refuse an unavailable optional backend."""
+        import importlib.util
 
-        cls = get_backend("embed")
-        assert cls is not None
+        from director_ai.core.scoring.backends import EmbedBackendWrapper, get_backend
+
+        if importlib.util.find_spec("sentence_transformers") is None:
+            with pytest.raises(KeyError, match="Unknown backend 'embed'"):
+                get_backend("embed")
+        else:
+            assert get_backend("embed") is EmbedBackendWrapper

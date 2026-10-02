@@ -1,0 +1,198 @@
+# SPDX-License-Identifier: Apache-2.0
+# Commercial license available
+# © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
+# © Code 2020–2026 Miroslav Šotek. All rights reserved.
+# ORCID: 0009-0009-3560-0851
+# Contact: www.anulum.li | protoscience@anulum.li
+# Director-AI — continuous integration
+schema_version = 1
+coordinator_sha256 = "9bcbbbbae91ca2ca72d0998574dea1c8544a3c6b9ea088d5eb7699cd456a7895"
+job_order = ["lint", "director-lite", "paid-tiers", "typecheck", "test-partitions", "test", "floor", "test-extras", "security", "sbom", "fuzz", "sast", "benchmark", "docker-smoke", "rust", "lean", "reuse", "discord-notify", "static-results", "security-results"]
+required_checks = ["Test (Python 3.11)", "Lint & Format"]
+
+[limits]
+coordinator_lines = 250
+coordinator_bytes = 20000
+reusable_count = 20
+reusable_lines = 1000
+reusable_bytes = 100000
+
+[tests]
+partitions = 8
+rows_per_task = 200
+input_manifest_sha256 = "3e3481a311cea1a54ec412c9f165fee20fda9a874556eb7924704f530d1d990d"
+
+[tests.dataset_sha256]
+qa = "1b7118e6dcc3881e5fc87b77b48d9334f0a24d51073ea9dc05baf5a74814580f"
+summarization = "cd76d30208ac70446426a7f124c00c62c5e257077e46455f3e928cf888ae48cf"
+dialogue = "dcade191fe15536a0e833d642f3566fe1352b0cf8df3b984d62ad5f312725ced"
+
+[dependencies]
+"lint" = []
+"director-lite" = []
+"paid-tiers" = []
+"typecheck" = []
+"test-partitions" = []
+"test" = ["test-partitions"]
+"floor" = []
+"test-extras" = []
+"security" = []
+"sbom" = ["test"]
+"fuzz" = ["test"]
+"sast" = []
+"benchmark" = ["test"]
+"docker-smoke" = ["test"]
+"rust" = []
+"lean" = []
+"reuse" = []
+"discord-notify" = ["lint", "typecheck", "test", "test-extras", "security", "fuzz", "sast", "benchmark", "rust", "lean"]
+"static-results" = ["lint", "typecheck", "reuse"]
+"security-results" = ["security", "sast"]
+
+[job_sha256]
+"lint" = "8c51ca467b5530ef1f268de09915667949f19a710cca324ae596336fe3811dff"
+"director-lite" = "e3c9726d700e61b978085de8bac940da4dc4da8c40d1247faef35454bff5ac33"
+"paid-tiers" = "f7de2d0043a7b4e027dbd428db80917815d00aedcf2b6522c09b4dcfea226f3a"
+"typecheck" = "21b380ffa55a455a2e5eebdf3c25e7ce0c5faa272c813f7cf67cbf89739d1c88"
+"test-partitions" = "f95cba98f9b3ca3359b5388b15c6a43e3bc37ad55af2e3d0914a615f331dd89e"
+"test" = "58b4ced71ba4fb0faf22c1fb896a2c27fcd2b6048d21af2e856f7d5d7053cc4b"
+"floor" = "5b25e7e81c75fd73b969add188cfa98201a24ffe4cc37f4859618f9a507aa478"
+"test-extras" = "b4f7fa8be12e1ec4048c9cb7d3acd3cedf8a7f7235927ca4249e67997e9968d7"
+"security" = "2c5bcf2f5cb0948ff3c7a6590b2322ff4b01dc9ac3fb32eaf9ee74654d62e4c3"
+"sbom" = "9afd86c10c30f3b324ad8b90549940ac024049610916595baf1335f156d4139f"
+"fuzz" = "ffd7d50e90ebd1745ad2adbecb7832c23c4ba41123dfe35a289d5680f3e237f8"
+"sast" = "e3cb5d7c77a1d433520f503d6743c478e0194b149e5ac714c7a8eda2a7e7bbde"
+"benchmark" = "329c151fe258c7241ecc8d055124905f9428c1c10ace396e1f586a9b52186e52"
+"docker-smoke" = "e344649dafc499a19688c588622fef2da73afaa77522f0b9db96a81e6caa2106"
+"rust" = "0e2f80df67f1dd0361a457fab8a8ce8c9a148b103c3b819f233a9a54a52bf552"
+"lean" = "41c9eb22cb65f6f885f06f80c27ff431af1a10816feb7405643975ff7f5aa44f"
+"reuse" = "dbd07ad97093690280f07826393283a8d7ca74c1336c3e056b27e759a3d9ed5b"
+"discord-notify" = "2340da06410abee53f51b56b96e71afcb2d96b82a51469e88575339583426ae3"
+"static-results" = "e75955eae9847acbd1cfb3cbee147f94be7b433a0f8ca46259b270e89d4902b7"
+"security-results" = "2b7361c429811e71ca569067d803159711c9629c68dae21aae5f98e7750e6f0f"
+
+[[categories]]
+id = "static"
+workflow = ".github/workflows/ci-static.yml"
+jobs = ["lint", "typecheck", "reuse", "static-results"]
+caller_needs = []
+secrets = []
+skip_events = []
+condition = ""
+
+[[categories]]
+id = "lite"
+workflow = ".github/workflows/ci-lite.yml"
+jobs = ["director-lite"]
+caller_needs = []
+secrets = []
+skip_events = []
+condition = ""
+
+[[categories]]
+id = "packages"
+workflow = ".github/workflows/ci-packages.yml"
+jobs = ["paid-tiers"]
+caller_needs = []
+secrets = []
+skip_events = []
+condition = ""
+
+[[categories]]
+id = "python"
+workflow = ".github/workflows/ci-python.yml"
+jobs = ["test-partitions", "test"]
+caller_needs = []
+secrets = ["CODECOV_TOKEN"]
+skip_events = []
+condition = ""
+
+[[categories]]
+id = "floor"
+workflow = ".github/workflows/ci-floor.yml"
+jobs = ["floor"]
+caller_needs = []
+secrets = []
+skip_events = []
+condition = ""
+
+[[categories]]
+id = "extras"
+workflow = ".github/workflows/ci-extras.yml"
+jobs = ["test-extras"]
+caller_needs = []
+secrets = []
+skip_events = []
+condition = ""
+
+[[categories]]
+id = "security"
+workflow = ".github/workflows/ci-security.yml"
+jobs = ["security", "sast", "security-results"]
+caller_needs = []
+secrets = []
+skip_events = []
+condition = ""
+
+[[categories]]
+id = "sbom"
+workflow = ".github/workflows/ci-sbom.yml"
+jobs = ["sbom"]
+caller_needs = ["python"]
+secrets = []
+skip_events = []
+condition = ""
+
+[[categories]]
+id = "fuzz"
+workflow = ".github/workflows/ci-fuzz.yml"
+jobs = ["fuzz"]
+caller_needs = ["python"]
+secrets = []
+skip_events = []
+condition = ""
+
+[[categories]]
+id = "benchmark"
+workflow = ".github/workflows/ci-benchmark.yml"
+jobs = ["benchmark"]
+caller_needs = ["python"]
+secrets = []
+skip_events = []
+condition = ""
+
+[[categories]]
+id = "runtime"
+workflow = ".github/workflows/ci-runtime.yml"
+jobs = ["docker-smoke"]
+caller_needs = ["python"]
+secrets = []
+skip_events = ["pull_request"]
+condition = "github.ref == 'refs/heads/main' && github.event_name == 'push'"
+
+[[categories]]
+id = "rust"
+workflow = ".github/workflows/ci-rust.yml"
+jobs = ["rust"]
+caller_needs = []
+secrets = []
+skip_events = []
+condition = ""
+
+[[categories]]
+id = "lean"
+workflow = ".github/workflows/ci-lean.yml"
+jobs = ["lean"]
+caller_needs = []
+secrets = []
+skip_events = []
+condition = ""
+
+[[categories]]
+id = "notify"
+workflow = ".github/workflows/ci-notify.yml"
+jobs = ["discord-notify"]
+caller_needs = ["static", "python", "extras", "security", "fuzz", "benchmark", "rust", "lean"]
+secrets = ["DISCORD_WEBHOOK_URL"]
+skip_events = ["pull_request"]
+condition = "always() && github.ref == 'refs/heads/main'"

@@ -1,7 +1,7 @@
 {
   "SPDX-License-Identifier": "Apache-2.0 AND BUSL-1.1",
   "counts": {
-    "github_workflows": 15,
+    "github_workflows": 29,
     "model_documentation_pages": 90,
     "optional_extras": 62,
     "public_api_exports": 227,
@@ -9,7 +9,7 @@
     "python_model_classes": 1059,
     "python_model_source_modules": 531,
     "rust_pyo3_model_wrappers": 83,
-    "test_files": 783
+    "test_files": 789
   },
   "documentation": {
     "public_pages": [
@@ -5498,6 +5498,20 @@
   "project_label": "Director-AI",
   "quality_gates": {
     "github_workflows": [
+      ".github/workflows/ci-benchmark.yml",
+      ".github/workflows/ci-extras.yml",
+      ".github/workflows/ci-floor.yml",
+      ".github/workflows/ci-fuzz.yml",
+      ".github/workflows/ci-lean.yml",
+      ".github/workflows/ci-lite.yml",
+      ".github/workflows/ci-notify.yml",
+      ".github/workflows/ci-packages.yml",
+      ".github/workflows/ci-python.yml",
+      ".github/workflows/ci-runtime.yml",
+      ".github/workflows/ci-rust.yml",
+      ".github/workflows/ci-sbom.yml",
+      ".github/workflows/ci-security.yml",
+      ".github/workflows/ci-static.yml",
       ".github/workflows/ci.yml",
       ".github/workflows/codeql.yml",
       ".github/workflows/docker.yml",
@@ -5831,6 +5845,7 @@
       "tests/test_halluhard_eval.py",
       "tests/test_halt_evidence.py",
       "tests/test_halueval_benchmark.py",
+      "tests/test_halueval_eval.py",
       "tests/test_handoff_scorer.py",
       "tests/test_handoff_scorer_real_surface.py",
       "tests/test_hardened_auto.py",
@@ -6244,10 +6259,15 @@
       "tests/test_timestamp_anchor.py",
       "tests/test_timestamp_anchor_revocation.py",
       "tests/test_tool_call_verifier.py",
+      "tests/test_tools/test_aggregate_test_partitions.py",
+      "tests/test_tools/test_audit_ci_workflow_modularity.py",
       "tests/test_tools/test_capability_manifest.py",
+      "tests/test_tools/test_check_ci_gate.py",
+      "tests/test_tools/test_ci_workflow_inventory.py",
       "tests/test_tools/test_emit_studio_manifest.py",
       "tests/test_tools/test_emit_studio_manifest_real_surface.py",
       "tests/test_tools/test_pypi_downloads.py",
+      "tests/test_tools/test_pytest_partition.py",
       "tests/test_trace_safe.py",
       "tests/test_train_distillation_reproducibility.py",
       "tests/test_train_distillation_reproducibility_real_surface.py",

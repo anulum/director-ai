@@ -1,8 +1,14 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: Apache-2.0
+# Commercial license available
+# © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
+# © Code 2020–2026 Miroslav Šotek. All rights reserved.
+# ORCID: 0009-0009-3560-0851
+# Contact: www.anulum.li | protoscience@anulum.li
+# Director-AI — local preflight
 """Pre-push preflight gate — mirrors CI checks locally.
 
-Gates (must match ci.yml):
+Gates (must match the distributed CI ownership inventory):
   1. ruff-format        — src/ tests/ examples/
   2. ruff-check         — src/ tests/ examples/
   3. mojibake           — src/ tools/ tests/
@@ -34,6 +40,20 @@ GateCommand = list[str]
 Gate = tuple[str, GateCommand | None]
 
 GATES: list[Gate] = [
+    (
+        "ci-workflow-ownership",
+        [sys.executable, "-m", "tools.audit_ci_workflow_modularity"],
+    ),
+    (
+        "actionlint",
+        [
+            "actionlint",
+            *[
+                str(path)
+                for path in sorted(pathlib.Path(".github/workflows").glob("ci*.yml"))
+            ],
+        ],
+    ),
     (
         "ruff-format",
         [

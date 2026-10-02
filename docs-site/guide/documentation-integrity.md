@@ -80,7 +80,7 @@ PY
 - Deployment and benchmark pages must say when an artefact is a fixture,
   replication packet, or unofficial smoke result.
 - The CI docstring ratchet currently blocks pydocstyle `D` regressions for the
-  strict-typed modules listed in `.github/workflows/ci.yml`: `core/__init__.py`,
+  strict-typed modules resolved through `tools/ci_workflow_policy.toml`: `core/__init__.py`,
   `core/_device.py`, `core/_heuristics.py`, `core/attribution`, `core/backends.py`,
   `core/calibration`, `core/canary`, `core/config.py`,
   `core/scoring/scorer.py`, `core/containment`, `core/consensus`, `core/edge`,

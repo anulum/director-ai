@@ -1,7 +1,10 @@
 # SPDX-License-Identifier: Apache-2.0
 # Commercial license available
-# Copyright 2020-2026 Miroslav Sotek
-# Director-Class AI -- pre-commit exposure guard tests
+# © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
+# © Code 2020–2026 Miroslav Šotek. All rights reserved.
+# ORCID: 0009-0009-3560-0851
+# Contact: www.anulum.li | protoscience@anulum.li
+# Director-AI — executable repository contract
 
 from __future__ import annotations
 
@@ -10,12 +13,13 @@ import subprocess
 import tomllib
 from pathlib import Path
 
+from tools.ci_workflow_inventory import ci_workflow_paths, read_ci_workflow_source
+
 ROOT = Path(__file__).resolve().parents[1]
 HOOK = ROOT / ".githooks" / "pre-commit"
 BOUNDARY_VERIFIER = ROOT / "tools" / "verify_public_sector_boundary.py"
 PRE_COMMIT_CONFIG = ROOT / ".pre-commit-config.yaml"
 PYPROJECT = ROOT / "pyproject.toml"
-CI_WORKFLOW = ROOT / ".github" / "workflows" / "ci.yml"
 CI_DEV_LOCK = ROOT / "requirements" / "ci-dev.txt"
 LOCAL_ONLY_GUARD_PATHS = (
     "CLAUDE.md",
@@ -243,7 +247,7 @@ def test_repository_has_no_coverage_bucket_test_files() -> None:
 
 def test_active_public_paths_do_not_reference_coverage_bucket_tests() -> None:
     active_paths = [
-        ROOT / ".github" / "workflows" / "ci.yml",
+        *ci_workflow_paths(ROOT),
         ROOT / "pyproject.toml",
         ROOT / "tests" / "conftest.py",
     ]
@@ -282,7 +286,7 @@ def test_main_coverage_omits_formal_only_neuro_symbolic_package() -> None:
 
 def test_formal_extra_ci_covers_neuro_symbolic_compliance_engine() -> None:
     """Ensure the formal extras matrix owns neuro-symbolic compliance coverage."""
-    workflow = CI_WORKFLOW.read_text(encoding="utf-8")
+    workflow = read_ci_workflow_source(ROOT)
 
     formal_case = workflow.split("*,formal,*)", maxsplit=1)[1].split(";;", maxsplit=1)[
         0

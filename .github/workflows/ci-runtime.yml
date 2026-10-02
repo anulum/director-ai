@@ -1,0 +1,62 @@
+# SPDX-License-Identifier: Apache-2.0
+# Commercial license available
+# © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
+# © Code 2020–2026 Miroslav Šotek. All rights reserved.
+# ORCID: 0009-0009-3560-0851
+# Contact: www.anulum.li | protoscience@anulum.li
+# Director-AI — continuous integration
+name: CI runtime
+
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+  CARGO_HTTP_MULTIPLEXING: "false"
+  CARGO_HTTP_TIMEOUT: "60"
+  CARGO_NET_RETRY: "10"
+
+jobs:
+  docker-smoke:
+    name: Docker Smoke Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Build image
+        run: docker build -t director-ai:smoke .
+
+      - name: Start container
+        run: |
+          docker run -d --name dai-smoke -p 8080:8080 \
+            -e DIRECTOR_LLM_PROVIDER=mock \
+            director-ai:smoke
+
+      - name: Wait for health
+        run: |
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:8080/v1/health; then
+              echo "Health check passed on attempt ${i}"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "Health check timed out"
+          docker logs dai-smoke
+          exit 1
+
+      - name: Verify endpoints
+        run: |
+          curl -sf http://localhost:8080/v1/health
+          curl -sf http://localhost:8080/v1/source
+          curl -sf http://localhost:8080/v1/metrics/prometheus
+
+      - name: Stop container
+        if: always()
+        run: docker rm -f dai-smoke || true
+
+      - name: Validate GPU Docker builder stage
+        run: docker build -f Dockerfile.gpu --target builder -t director-ai:gpu-builder-smoke .

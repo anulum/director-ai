@@ -1,0 +1,311 @@
+# SPDX-License-Identifier: Apache-2.0
+# Commercial license available
+# © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
+# © Code 2020–2026 Miroslav Šotek. All rights reserved.
+# ORCID: 0009-0009-3560-0851
+# Contact: www.anulum.li | protoscience@anulum.li
+# Director-AI — continuous integration
+name: CI extras
+
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+  CARGO_HTTP_MULTIPLEXING: "false"
+  CARGO_HTTP_TIMEOUT: "60"
+  CARGO_NET_RETRY: "10"
+
+jobs:
+  test-extras:
+    name: Test extras (${{ matrix.extras }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        extras:
+          - "dev,server"
+          - "dev,grpc"
+          - "dev,faiss"
+          - "dev,rust"
+          - "dev,formal"
+          - "dev,finetune,train,managed-training"
+          - "dev,openai,anthropic"
+          - "dev,langchain"
+          - "dev,llamaindex"
+          - "dev,voice"
+          - "dev,reports"
+          - "dev,honesty"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+        with:
+          enable-cache: false
+
+      - name: Install WeasyPrint system libraries
+        if: contains(matrix.extras, 'reports')
+        # WeasyPrint renders text via Pango; these are its only native deps on
+        # Debian/Ubuntu (it no longer needs cairo since v53).
+        run: sudo apt-get update && sudo apt-get install -y libpango-1.0-0 libpangoft2-1.0-0
+
+      - name: Install with extras
+        run: |
+          IFS=, read -ra EXTRA_NAMES <<< "${{ matrix.extras }}"
+          UV_EXTRAS=()
+          for extra in "${EXTRA_NAMES[@]}"; do
+            UV_EXTRAS+=(--extra "$extra")
+          done
+          uv sync --locked "${UV_EXTRAS[@]}"
+          uv run maturin develop --release --manifest-path backfire-kernel/crates/backfire-ffi/Cargo.toml
+
+      - name: Import smoke test
+        run: uv run python -c "import director_ai; assert director_ai.__version__"
+
+      - name: Extras-specific import check
+        env:
+          EXTRAS: ${{ matrix.extras }}
+        run: |
+          uv run python - <<'PY'
+          import importlib
+          import os
+
+          extras = set(os.environ["EXTRAS"].split(","))
+
+          if "server" in extras:
+              from director_ai.server import create_app
+
+              assert create_app
+              print("server OK")
+          if "grpc" in extras:
+              from director_ai.grpc_server import create_grpc_server
+
+              assert create_grpc_server
+              print("grpc OK")
+          if "faiss" in extras:
+              import faiss
+              from director_ai.core.retrieval.vector_store import FAISSBackend
+
+              assert faiss
+              assert FAISSBackend
+              print("faiss OK")
+          if "rust" in extras:
+              import backfire_kernel
+              from director_ai.core.scoring.backends import RustBackend
+
+              assert backfire_kernel
+              RustBackend()
+              print("rust OK")
+          if "formal" in extras:
+              import z3
+              from director_ai.core.formal_verification import (
+                  ReasoningStep,
+                  ReasoningVerifier,
+                  Variable,
+                  Z3Backend,
+              )
+
+              assert z3
+              ReasoningVerifier(backend=Z3Backend.from_z3()).verify(
+                  [ReasoningStep("p", Variable("p"))]
+              )
+              print("formal OK")
+          if "finetune" in extras:
+              import accelerate
+              import datasets
+              import sklearn
+              import torch
+              import transformers
+              from director_ai.core.training.finetune import FinetuneConfig
+
+              assert accelerate and datasets and sklearn and torch and transformers
+              assert FinetuneConfig
+              print("finetune OK")
+          if "train" in extras:
+              import accelerate
+              import datasets
+              import peft
+              import transformers
+              from director_ai.core.training.finetune_benchmark import (
+                  benchmark_finetuned_model,
+              )
+
+              assert accelerate and datasets and peft and transformers
+              assert benchmark_finetuned_model
+              print("train OK")
+          if "managed-training" in extras:
+              importlib.import_module("google.cloud.aiplatform")
+              importlib.import_module("google.cloud.storage")
+              from director_ai.core.training.jobs import TrainingJobSpec
+
+              assert TrainingJobSpec
+              print("managed-training OK")
+          if "openai" in extras:
+              import openai
+
+              assert openai
+              print("openai OK")
+          if "anthropic" in extras:
+              import anthropic
+
+              assert anthropic
+              print("anthropic OK")
+          if "langchain" in extras:
+              import langchain_core
+
+              assert langchain_core
+              print("langchain OK")
+          if "llamaindex" in extras:
+              # The integration adapter stays importable without the optional
+              # upstream stack. The llama-index-core package is deliberately not
+              # installed while its dependency chain pulls an unpatched nltk
+              # advisory; see pyproject.toml next to the empty extra.
+              from director_ai.integrations.llamaindex import DirectorAIPostprocessor
+
+              assert DirectorAIPostprocessor
+              print("llamaindex adapter OK")
+          if "voice" in extras:
+              from director_ai.voice import AsyncVoiceGuard, TTSAdapter
+
+              assert AsyncVoiceGuard and TTSAdapter
+              print("voice OK")
+          if "reports" in extras:
+              from director_ai.compliance.report_templates import (
+                  html_to_pdf,
+                  render_compliance_pdf,
+              )
+
+              assert render_compliance_pdf
+              assert html_to_pdf("<h1>ci</h1>").startswith(b"%PDF")
+              print("reports OK")
+          PY
+
+      - name: Run tests with coverage
+        run: |
+          TEST_TARGETS=()
+          case ",${{ matrix.extras }}," in
+            *,server,*)
+              TEST_TARGETS+=(
+                tests/test_server.py
+                tests/test_server_audit.py
+                tests/test_server_auth.py
+                tests/test_server_compliance.py
+                tests/test_server_feedback.py
+                tests/test_server_tenant.py
+                tests/test_server_ws_mux.py
+                tests/test_inference_server_hooks.py
+              )
+              ;;
+          esac
+          case ",${{ matrix.extras }}," in
+            *,grpc,*)
+              TEST_TARGETS+=(
+                tests/test_grpc_server.py
+                tests/test_grpc_scoring.py
+              )
+              ;;
+          esac
+          case ",${{ matrix.extras }}," in
+            *,faiss,*)
+              TEST_TARGETS+=(
+                tests/test_vector_store.py
+                tests/test_vector_store_backends.py
+                tests/test_vector_store_reranker.py
+              )
+              ;;
+          esac
+          case ",${{ matrix.extras }}," in
+            *,rust,*)
+              TEST_TARGETS+=(tests/test_ffi_bindings.py)
+              ;;
+          esac
+          case ",${{ matrix.extras }}," in
+            *,formal,*)
+              TEST_TARGETS+=(
+                tests/test_formal_verification.py
+                tests/test_conformal.py
+                tests/test_neuro_symbolic.py
+                tests/test_neuro_symbolic_verifier.py
+              )
+              ;;
+          esac
+          case ",${{ matrix.extras }}," in
+            *,finetune,*|*,train,*|*,managed-training,*)
+              TEST_TARGETS+=(
+                tests/test_finetune.py
+                tests/test_finetune_api.py
+                tests/test_finetune_benchmark.py
+                tests/test_finetune_validator.py
+                tests/test_managed_training_jobs.py
+                tests/test_training_model_registry.py
+              )
+              ;;
+          esac
+          case ",${{ matrix.extras }}," in
+            *,openai,*|*,anthropic,*)
+              TEST_TARGETS+=(
+                tests/test_agent_providers.py
+                tests/test_providers.py
+                tests/test_openai_swarm.py
+              )
+              ;;
+          esac
+          case ",${{ matrix.extras }}," in
+            *,langchain,*)
+              TEST_TARGETS+=(
+                tests/test_langchain_callback.py
+                tests/test_langchain_real_sdk.py
+              )
+              ;;
+          esac
+          case ",${{ matrix.extras }}," in
+            *,llamaindex,*)
+              TEST_TARGETS+=(tests/test_llamaindex.py tests/test_llamaindex_real_sdk.py)
+              ;;
+          esac
+          case ",${{ matrix.extras }}," in
+            *,voice,*)
+              TEST_TARGETS+=(
+                tests/test_voice_adapters.py
+                tests/test_voice_adapters_real_surface.py
+                tests/test_voice_adapters_sdk.py
+                tests/test_voice_async_guard.py
+                tests/test_voice_guard.py
+                tests/test_voice_pipeline.py
+              )
+              ;;
+          esac
+          case ",${{ matrix.extras }}," in
+            *,reports,*)
+              TEST_TARGETS+=(tests/test_report_templates.py)
+              ;;
+          esac
+          case ",${{ matrix.extras }}," in
+            *,honesty,*)
+              TEST_TARGETS+=(tests/test_honesty_redteam.py)
+              ;;
+          esac
+          if [ "${#TEST_TARGETS[@]}" -eq 0 ]; then
+            echo "::error::No extras-specific tests configured for ${{ matrix.extras }}"
+            exit 1
+          fi
+          uv run pytest "${TEST_TARGETS[@]}" -v --tb=short \
+            --cov=director_ai \
+            --cov-report=term-missing \
+            --cov-report=xml \
+            --cov-config=.coveragerc-extras \
+            --cov-fail-under=0
+
+      - name: Upload extras coverage artifact
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: coverage-extras-${{ matrix.extras }}
+          path: coverage.xml

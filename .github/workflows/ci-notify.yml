@@ -1,0 +1,104 @@
+# SPDX-License-Identifier: Apache-2.0
+# Commercial license available
+# © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
+# © Code 2020–2026 Miroslav Šotek. All rights reserved.
+# ORCID: 0009-0009-3560-0851
+# Contact: www.anulum.li | protoscience@anulum.li
+# Director-AI — continuous integration
+name: CI notify
+
+on:
+  workflow_call:
+    inputs:
+      results:
+        required: true
+        type: string
+    secrets:
+      DISCORD_WEBHOOK_URL:
+        required: false
+
+permissions:
+  contents: read
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+  CARGO_HTTP_MULTIPLEXING: "false"
+  CARGO_HTTP_TIMEOUT: "60"
+  CARGO_NET_RETRY: "10"
+
+jobs:
+  discord-notify:
+    name: Discord CI Notification
+    runs-on: ubuntu-latest
+    steps:
+      - name: Resolve overall result
+        id: result
+        run: |
+          RESULTS="${{ fromJSON(inputs.results).lint }} ${{ fromJSON(inputs.results).typecheck }} ${{ fromJSON(inputs.results).test }} ${{ fromJSON(inputs.results).test-extras }} ${{ fromJSON(inputs.results).security }} ${{ fromJSON(inputs.results).fuzz }} ${{ fromJSON(inputs.results).sast }} ${{ fromJSON(inputs.results).benchmark }} ${{ fromJSON(inputs.results).rust }} ${{ fromJSON(inputs.results).lean }}"
+          if echo "$RESULTS" | grep -qE "failure|cancelled"; then
+            echo "passed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "passed=true" >> "$GITHUB_OUTPUT"
+          fi
+        env:
+          LINT: ${{ fromJSON(inputs.results).lint }}
+          TYPECHECK: ${{ fromJSON(inputs.results).typecheck }}
+          TEST: ${{ fromJSON(inputs.results).test }}
+          TEST_EXTRAS: ${{ fromJSON(inputs.results).test-extras }}
+          SECURITY: ${{ fromJSON(inputs.results).security }}
+          FUZZ: ${{ fromJSON(inputs.results).fuzz }}
+          SAST: ${{ fromJSON(inputs.results).sast }}
+          BENCHMARK: ${{ fromJSON(inputs.results).benchmark }}
+          RUST: ${{ fromJSON(inputs.results).rust }}
+          LEAN: ${{ fromJSON(inputs.results).lean }}
+
+      - name: Build job summary
+        id: summary
+        run: |
+          icon() { case "$1" in success) echo "✅";; failure) echo "❌";; cancelled) echo "⏹️";; skipped) echo "⏭️";; *) echo "❓";; esac; }
+          S="$(icon "$LINT") lint  $(icon "$TYPECHECK") typecheck  $(icon "$TEST") test  $(icon "$TEST_EXTRAS") extras  $(icon "$SECURITY") security  $(icon "$FUZZ") fuzz  $(icon "$SAST") sast  $(icon "$BENCHMARK") bench  $(icon "$RUST") rust  $(icon "$LEAN") lean"
+          echo "jobs=$S" >> "$GITHUB_OUTPUT"
+        env:
+          LINT: ${{ fromJSON(inputs.results).lint }}
+          TYPECHECK: ${{ fromJSON(inputs.results).typecheck }}
+          TEST: ${{ fromJSON(inputs.results).test }}
+          TEST_EXTRAS: ${{ fromJSON(inputs.results).test-extras }}
+          SECURITY: ${{ fromJSON(inputs.results).security }}
+          FUZZ: ${{ fromJSON(inputs.results).fuzz }}
+          SAST: ${{ fromJSON(inputs.results).sast }}
+          BENCHMARK: ${{ fromJSON(inputs.results).benchmark }}
+          RUST: ${{ fromJSON(inputs.results).rust }}
+          LEAN: ${{ fromJSON(inputs.results).lean }}
+
+      - name: Post to Discord
+        if: env.DISCORD_WEBHOOK_URL != ''
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        run: |
+          if [ "${{ steps.result.outputs.passed }}" = "true" ]; then
+            COLOR=3066993  # green
+            STATUS="passed"
+          else
+            COLOR=15158332  # red
+            STATUS="FAILED"
+          fi
+          SHA="${GITHUB_SHA:0:7}"
+          RUN_URL="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          BRANCH="${GITHUB_REF_NAME}"
+          TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+          JOBS="${{ steps.summary.outputs.jobs }}"
+          curl -sf -H "Content-Type: application/json" -d "{
+            \"embeds\": [{
+              \"title\": \"CI ${STATUS}\",
+              \"color\": ${COLOR},
+              \"url\": \"${RUN_URL}\",
+              \"fields\": [
+                {\"name\": \"Branch\", \"value\": \"\`${BRANCH}\`\", \"inline\": true},
+                {\"name\": \"Commit\", \"value\": \"[\`${SHA}\`](${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/commit/${GITHUB_SHA})\", \"inline\": true},
+                {\"name\": \"Run\", \"value\": \"[View](${RUN_URL})\", \"inline\": true},
+                {\"name\": \"Jobs\", \"value\": \"${JOBS}\", \"inline\": false}
+              ],
+              \"footer\": {\"text\": \"${GITHUB_REPOSITORY}\", \"icon_url\": \"https://github.com/anulum.png\"},
+              \"timestamp\": \"${TIMESTAMP}\"
+            }]
+          }" "$DISCORD_WEBHOOK_URL"

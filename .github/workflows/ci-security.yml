@@ -1,0 +1,124 @@
+# SPDX-License-Identifier: Apache-2.0
+# Commercial license available
+# © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
+# © Code 2020–2026 Miroslav Šotek. All rights reserved.
+# ORCID: 0009-0009-3560-0851
+# Contact: www.anulum.li | protoscience@anulum.li
+# Director-AI — continuous integration
+name: CI security
+
+on:
+  workflow_call:
+    outputs:
+      security:
+        value: ${{ jobs.security-results.outputs.security }}
+      sast:
+        value: ${{ jobs.security-results.outputs.sast }}
+
+permissions:
+  contents: read
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+  CARGO_HTTP_MULTIPLEXING: "false"
+  CARGO_HTTP_TIMEOUT: "60"
+  CARGO_NET_RETRY: "10"
+
+jobs:
+  security:
+    name: Security Audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+
+      - name: Validate security exception register
+        # Enforcing: a malformed or EXPIRED accepted-finding entry fails the
+        # build, so tolerated advisories cannot become silent permanent debt.
+        run: python -m tools.check_security_exceptions
+
+      - name: Install pip-audit
+        run: pip install --require-hashes -r requirements/ci-audit.txt
+
+      - name: Audit dependencies
+        # Fail closed: audit the core requirements and the production server
+        # dependency closure. Both were clean at flip time (2026-06-07); any new
+        # advisory now blocks the build. Accepted findings must be added to the
+        # governed exception register (validated above) and passed via
+        # --ignore-vuln; there are none currently.
+        run: |
+          pip-audit --strict --desc on -r requirements.txt
+          pip-audit --strict --desc on -r requirements/docker-server.txt
+
+      - name: Export vulnerability disclosure reports (CycloneDX VDR)
+        # Machine-readable exploitability statements (WCG-1): a CycloneDX BOM
+        # with the vulnerabilities[] analysis for each audited dependency set —
+        # the VEX-equivalent record; the governed exception register above is
+        # the not-affected justification trail.
+        run: |
+          pip-audit --format cyclonedx-json -o vdr-core.json -r requirements.txt
+          pip-audit --format cyclonedx-json -o vdr-docker-server.json -r requirements/docker-server.txt
+
+      - name: Upload VDR artifacts
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: vdr
+          path: vdr-*.json
+          if-no-files-found: ignore
+
+  sast:
+    name: SAST (Bandit + Semgrep)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+
+      - name: Install SAST tools
+        run: pip install --require-hashes -r requirements/ci-sast.txt
+
+      - name: Run Bandit
+        run: bandit -r src/director_ai/ -c pyproject.toml
+
+      - name: Run Semgrep
+        # Enforcing (--error): scoped to the shipped library `src/director_ai/`
+        # (matching the Bandit scope above). That tree is Semgrep-clean under
+        # p/python + p/security-audit (verified: 0 findings), with any false
+        # positives suppressed inline via justified `# nosemgrep` comments; a new
+        # real blocking finding there fails the build. Dev/CI tooling, training
+        # launchers, benchmark harnesses, generated protobuf, and tests are
+        # excluded (accepted dev-script patterns, not shipped risk). Uses the
+        # maintained Semgrep CLI from the hash-pinned SAST lock; the legacy
+        # returntocorp/semgrep-action is deprecated and was failing on infra,
+        # not on a code finding. The rulesets are registry-live, so a future
+        # ruleset update can surface a new
+        # finding in src/ — triage it (fix or justified nosemgrep), do not silence.
+        run: |
+          semgrep scan --config p/python --config p/security-audit \
+            --error --metrics off --timeout 30 src/director_ai/
+        env:
+          SEMGREP_SEND_METRICS: "off"
+
+  security-results:
+    name: Security job results
+    runs-on: ubuntu-latest
+    if: always()
+    needs: [security, sast]
+    outputs:
+      security: ${{ steps.results.outputs.security }}
+      sast: ${{ steps.results.outputs.sast }}
+    steps:
+      - name: Record native job conclusions
+        id: results
+        env:
+          RESULT_SECURITY: ${{ needs.security.result }}
+          RESULT_SAST: ${{ needs.sast.result }}
+        run: |
+          echo "security=$RESULT_SECURITY" >> "$GITHUB_OUTPUT"
+          echo "sast=$RESULT_SAST" >> "$GITHUB_OUTPUT"

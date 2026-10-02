@@ -562,6 +562,8 @@ partial_branches = [
 ]
 
 [tool.mypy]
+explicit_package_bases = true
+mypy_path = "src"
 python_version = "3.11"
 strict = true
 warn_unused_configs = true
@@ -1040,3 +1042,8 @@ constraint-dependencies = ["grpcio-status>=1.81.0", "protobuf>=6.31.1"]
 # used surface (repair_json/loads) is unchanged across the bump, verified by a
 # crewai import smoke. Drop this override once crewai relaxes its pin.
 override-dependencies = ["json-repair>=0.60.1"]
+
+# Complete CI review evidence is enforcing rather than legacy benchmark code.
+[[tool.mypy.overrides]]
+module = "benchmarks.halueval_eval"
+ignore_errors = false

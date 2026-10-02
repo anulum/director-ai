@@ -537,3 +537,15 @@ All scripts in `benchmarks/`. Run each with `python -m benchmarks.<name>`.
 - [Vectara HHEM-2.1](https://huggingface.co/vectara/hallucination_evaluation_model)
 - [SelfCheckGPT (arXiv 2303.08896)](https://arxiv.org/abs/2303.08896)
 - [NVIDIA NeMo Guardrails](https://docs.nvidia.com/nemo/guardrails/latest/)
+
+## Reproducing complete HaluEval test ranges
+
+Run `python -m benchmarks.halueval_eval 25 --sample-offset 0 --require-complete`.
+Repeat offsets 0, 25, 50, 75, 100, 125, 150 and 175 to cover the first 200
+original rows of every task and both responses (1,200 reviews). CI validates
+the original input digests and combines coverage across these ranges; see
+`benchmarks/CACHE_SCHEMA.md` for native evidence fields. The normal
+`pytest tests/` entry point still executes every range. Local inference uses
+automatic device selection, including CUDA or ROCm when the installed PyTorch
+build supports the visible GPU. Standard GitHub CPU runners execute the same
+model and scoring defaults.
