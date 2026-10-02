@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- The CI scanner profile uses Semgrep 1.179.0 with patched PyJWT 2.15.1,
+  closing the temporary dependency exceptions without overriding upstream
+  package metadata.
+- The enterprise extra requires PyJWT 2.15 or later, preventing pip from
+  accepting versions below the advisory fix floor.
+
 ## [3.21.0] - 2026-07-29
 
 ### Added

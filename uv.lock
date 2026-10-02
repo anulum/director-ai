@@ -1,3 +1,11 @@
+# SPDX-License-Identifier: Apache-2.0
+# Commercial license available
+# © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
+# © Code 2020–2026 Miroslav Šotek. All rights reserved.
+# ORCID: 0009-0009-3560-0851
+# Contact: www.anulum.li | protoscience@anulum.li
+# Director-AI — Optional dependency lock
+
 version = 1
 revision = 3
 requires-python = ">=3.11"
@@ -2312,7 +2320,7 @@ requires-dist = [
     { name = "psycopg2-binary", marker = "extra == 'enterprise'", specifier = ">=2.9,<3" },
     { name = "pydantic", marker = "extra == 'dev'", specifier = ">=2.0,<3" },
     { name = "pydantic", marker = "extra == 'server'", specifier = ">=2.0,<3" },
-    { name = "pyjwt", marker = "extra == 'enterprise'", specifier = ">=2.8,<3" },
+    { name = "pyjwt", marker = "extra == 'enterprise'", specifier = ">=2.15.0,<3" },
     { name = "pypdf", marker = "extra == 'dev'", specifier = ">=6.15.0" },
     { name = "pypdf", marker = "extra == 'ingestion'", specifier = ">=6.15.0" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=7.0" },

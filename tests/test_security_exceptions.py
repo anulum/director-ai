@@ -18,6 +18,7 @@ from typing import Any
 
 import pytest
 import yaml
+from packaging.requirements import Requirement
 from packaging.version import Version
 
 _ROOT = Path(__file__).resolve().parent.parent
@@ -239,10 +240,10 @@ class TestMcpRemediationInvariant:
         assert self._mcp_version() >= max(self.RESOLVED.values())
 
 
-class TestPyjwtWaiverInvariant:
-    """Enforce the owner's narrowly scoped, expiring CI-only PyJWT waiver."""
+class TestPyjwtRemediationInvariant:
+    """Require patched PyJWT profiles and closure of the CI-only waiver."""
 
-    WAIVED = {
+    RESOLVED = {
         "GHSA-w6j9-cwv2-h6wq",
         "GHSA-9v7f-9g4p-ffgj",
         "GHSA-hxm8-2xgr-2p9m",
@@ -255,50 +256,46 @@ class TestPyjwtWaiverInvariant:
         "GHSA-2gx3-rcp4-g85q",
         "GHSA-8wjv-2p76-3863",
         "GHSA-w2cx-738m-mc7w",
+        "GHSA-gvp8-978c-rx2q",
     }
-    EXPIRY = date(2026, 10, 17)
+    FIXED_FLOOR = Version("2.15.0")
     REGISTER = _ROOT / "requirements" / "security-exceptions.toml"
     CI_SAST_LOCK = _ROOT / "requirements" / "ci-sast.txt"
 
     def _entries(self) -> list[dict[str, Any]]:
-        """Read only the PyJWT entries from the actual governed register."""
+        """Read every entry from the actual governed exception register."""
         payload = tomllib.loads(self.REGISTER.read_text(encoding="utf-8"))
-        return [entry for entry in payload["exceptions"] if entry["package"] == "pyjwt"]
+        return list(payload["exceptions"])
 
-    def test_register_carries_exactly_the_owner_approved_ids(self) -> None:
-        """No additional advisory can inherit this owner approval."""
-        entries = self._entries()
-        assert len(entries) == len(self.WAIVED)
-        assert {entry["id"] for entry in entries} == self.WAIVED
+    def test_register_excludes_the_resolved_advisories(self) -> None:
+        """None of the thirteen resolved findings may remain an exception."""
+        assert not ({entry["id"] for entry in self._entries()} & self.RESOLVED)
 
-    def test_each_exception_is_ci_only_and_owner_attributed(self) -> None:
-        """The exception cannot silently broaden to a runtime audit scope."""
-        for entry in self._entries():
-            assert entry["tool"] == "dependabot"
-            assert entry["scope"] == "dependabot-ci-sast-lock"
-            assert entry["owner"] == "protoscience@anulum.li"
-            assert entry["opened"] == "2026-09-30"
-            assert "semgrep scan" in entry["compensating_control"]
-            assert "MCP server" in entry["compensating_control"]
+    def test_no_pyjwt_exception_remains(self) -> None:
+        """The fixed upstream graph closes rather than broadens the waiver."""
+        assert not [
+            entry for entry in self._entries() if entry["package"].lower() == "pyjwt"
+        ]
 
-    def test_waiver_has_not_lapsed(self) -> None:
-        """After the owner-approved date the waiver requires a new decision."""
-        for entry in self._entries():
-            assert date.fromisoformat(entry["expires"]) == self.EXPIRY
-        assert date.today() <= self.EXPIRY, (
-            "PyJWT CI waiver expired; remove or re-review"
-        )
+    def test_remediated_register_validates_after_the_previous_expiry(self) -> None:
+        """The real CLI accepts the fixed register after the old waiver ends."""
+        assert checker.main(["--today", "2026-10-18"]) == 0
 
-    def test_waived_pin_is_still_the_semgrep_transitive(self) -> None:
-        """A changed upstream dependency invalidates this exact-pin waiver."""
+    def test_scanner_lock_resolves_compatible_patched_transitives(self) -> None:
+        """The native scanner lock cannot regress to the vulnerable graph."""
         text = self.CI_SAST_LOCK.read_text(encoding="utf-8")
-        assert re.search(r"^pyjwt==2\.13\.0(?: |\\|$)", text, flags=re.MULTILINE)
-        assert re.search(r"^semgrep==1\.178\.0(?: |\\|$)", text, flags=re.MULTILINE)
+        for package, floor in (
+            ("pyjwt", self.FIXED_FLOOR),
+            ("semgrep", Version("1.179.0")),
+        ):
+            pins = re.findall(rf"^{package}==([^ ;\\]+)", text, flags=re.MULTILINE)
+            assert len(pins) == 1, f"SAST must carry one auditable {package} pin"
+            assert Version(pins[0]) >= floor
 
     def test_vulnerable_pin_is_absent_from_other_runtime_and_tool_profiles(
         self,
     ) -> None:
-        """Every other locked profile remains outside this version-specific waiver."""
+        """Every locked profile containing PyJWT meets the remediation floor."""
         profiles = [
             _ROOT / "requirements.txt",
             _ROOT / "discord-bot" / "requirements.txt",
@@ -308,17 +305,33 @@ class TestPyjwtWaiverInvariant:
             _ROOT / "tools/offline_license_ceremony/requirements-offline.txt",
         ]
         for profile in profiles:
-            if profile == self.CI_SAST_LOCK:
-                continue
             pins = re.findall(
                 r"^pyjwt==([^ ;\\]+)",
                 profile.read_text(encoding="utf-8"),
                 flags=re.MULTILINE,
             )
-            assert all(Version(pin) >= Version("2.15.0") for pin in pins), profile
+            assert all(Version(pin) >= self.FIXED_FLOOR for pin in pins), profile
+        pyproject = tomllib.loads(
+            (_ROOT / "pyproject.toml").read_text(encoding="utf-8")
+        )
+        declared = [
+            Requirement(dependency)
+            for dependency in pyproject["project"]["optional-dependencies"][
+                "enterprise"
+            ]
+            if Requirement(dependency).name.lower() == "pyjwt"
+        ]
+        assert len(declared) == 1, (
+            "Enterprise must declare one auditable PyJWT requirement"
+        )
+        assert any(
+            bound.operator in {">=", "==", "~="}
+            and Version(bound.version) >= self.FIXED_FLOOR
+            for bound in declared[0].specifier
+        ), "Enterprise installs must exclude versions below the advisory fix floor"
         locked = tomllib.loads((_ROOT / "uv.lock").read_text(encoding="utf-8"))
         versions = [p["version"] for p in locked["package"] if p["name"] == "pyjwt"]
-        assert all(Version(version) >= Version("2.15.0") for version in versions)
+        assert all(Version(version) >= self.FIXED_FLOOR for version in versions)
 
     def test_workflows_only_invoke_the_scanner_mode(self) -> None:
         """Actual CI run steps cannot start the excluded Semgrep MCP server."""

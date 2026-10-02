@@ -30,142 +30,15 @@
 schema_version = "director.security_exceptions.v1"
 
 # The owner-ruled 2026-07-17 MCP exceptions were closed on 2026-09-30.
-# Semgrep 1.178.0 now resolves mcp 1.29.0, above all three fixed-version
+# Semgrep 1.179.0 resolves mcp 1.29.0, above all three fixed-version
 # floors (1.27.2 / 1.28.1). The historical ruling remains in Git history.
 # tests/test_security_exceptions.py rejects reintroduced waivers or a
 # vulnerable SAST pin; the generic validator still rejects expired entries.
 
-# Owner approved on 2026-09-30: only the 12 PyJWT findings below, only the
-# CI SAST lock, expiring on 2026-10-17. No runtime waiver or metadata override.
+# The twelve owner-approved PyJWT CI-SAST exceptions were closed on
+# 2026-10-02. Semgrep 1.179.0 permits PyJWT >=2.15.0,<3 and the native lock
+# resolves patched PyJWT 2.15.1. The historical approval remains in Git history.
+# tests/test_security_exceptions.py rejects reintroduced PyJWT waivers and
+# vulnerable pins across all runtime and tool profiles.
 
-[[exceptions]]
-id = "GHSA-2gx3-rcp4-g85q"
-tool = "dependabot"
-package = "pyjwt"
-reason = "Semgrep 1.178.0, the latest published release, requires PyJWT>=2.13.0,<2.14.dev0; all fixes require 2.14.0 or 2.15.0. Native resolution rejects Semgrep plus PyJWT>=2.15.0; do not override upstream package metadata."
-compensating_control = "Affected PyJWT 2.13.0 appears only in requirements/ci-sast.txt. The official Semgrep wheel calls JWT only from its MCP server token verifier; this repository invokes semgrep scan and never starts that MCP server. The actual Python 3.12 CI scan returned zero findings; source inspection confines Python JWT references to the unused MCP token verifier. The attempted Python call trace did not survive entry-point process replacement and is not negative reachability evidence. Root runtime and other profiles use patched versions when present. Recheck reachability, lock version and advisory floors before any change; remove the exception after a compatible upstream release."
-owner = "protoscience@anulum.li"
-opened = "2026-09-30"
-expires = "2026-10-17"
-scope = "dependabot-ci-sast-lock"
-
-[[exceptions]]
-id = "GHSA-42vr-xj54-vc7v"
-tool = "dependabot"
-package = "pyjwt"
-reason = "Semgrep 1.178.0, the latest published release, requires PyJWT>=2.13.0,<2.14.dev0; all fixes require 2.14.0 or 2.15.0. Native resolution rejects Semgrep plus PyJWT>=2.15.0; do not override upstream package metadata."
-compensating_control = "Affected PyJWT 2.13.0 appears only in requirements/ci-sast.txt. The official Semgrep wheel calls JWT only from its MCP server token verifier; this repository invokes semgrep scan and never starts that MCP server. The actual Python 3.12 CI scan returned zero findings; source inspection confines Python JWT references to the unused MCP token verifier. The attempted Python call trace did not survive entry-point process replacement and is not negative reachability evidence. Root runtime and other profiles use patched versions when present. Recheck reachability, lock version and advisory floors before any change; remove the exception after a compatible upstream release."
-owner = "protoscience@anulum.li"
-opened = "2026-09-30"
-expires = "2026-10-17"
-scope = "dependabot-ci-sast-lock"
-
-[[exceptions]]
-id = "GHSA-8wjv-2p76-3863"
-tool = "dependabot"
-package = "pyjwt"
-reason = "Semgrep 1.178.0, the latest published release, requires PyJWT>=2.13.0,<2.14.dev0; all fixes require 2.14.0 or 2.15.0. Native resolution rejects Semgrep plus PyJWT>=2.15.0; do not override upstream package metadata."
-compensating_control = "Affected PyJWT 2.13.0 appears only in requirements/ci-sast.txt. The official Semgrep wheel calls JWT only from its MCP server token verifier; this repository invokes semgrep scan and never starts that MCP server. The actual Python 3.12 CI scan returned zero findings; source inspection confines Python JWT references to the unused MCP token verifier. The attempted Python call trace did not survive entry-point process replacement and is not negative reachability evidence. Root runtime and other profiles use patched versions when present. Recheck reachability, lock version and advisory floors before any change; remove the exception after a compatible upstream release."
-owner = "protoscience@anulum.li"
-opened = "2026-09-30"
-expires = "2026-10-17"
-scope = "dependabot-ci-sast-lock"
-
-[[exceptions]]
-id = "GHSA-9j54-fg26-wv3r"
-tool = "dependabot"
-package = "pyjwt"
-reason = "Semgrep 1.178.0, the latest published release, requires PyJWT>=2.13.0,<2.14.dev0; all fixes require 2.14.0 or 2.15.0. Native resolution rejects Semgrep plus PyJWT>=2.15.0; do not override upstream package metadata."
-compensating_control = "Affected PyJWT 2.13.0 appears only in requirements/ci-sast.txt. The official Semgrep wheel calls JWT only from its MCP server token verifier; this repository invokes semgrep scan and never starts that MCP server. The actual Python 3.12 CI scan returned zero findings; source inspection confines Python JWT references to the unused MCP token verifier. The attempted Python call trace did not survive entry-point process replacement and is not negative reachability evidence. Root runtime and other profiles use patched versions when present. Recheck reachability, lock version and advisory floors before any change; remove the exception after a compatible upstream release."
-owner = "protoscience@anulum.li"
-opened = "2026-09-30"
-expires = "2026-10-17"
-scope = "dependabot-ci-sast-lock"
-
-[[exceptions]]
-id = "GHSA-9v7f-9g4p-ffgj"
-tool = "dependabot"
-package = "pyjwt"
-reason = "Semgrep 1.178.0, the latest published release, requires PyJWT>=2.13.0,<2.14.dev0; all fixes require 2.14.0 or 2.15.0. Native resolution rejects Semgrep plus PyJWT>=2.15.0; do not override upstream package metadata."
-compensating_control = "Affected PyJWT 2.13.0 appears only in requirements/ci-sast.txt. The official Semgrep wheel calls JWT only from its MCP server token verifier; this repository invokes semgrep scan and never starts that MCP server. The actual Python 3.12 CI scan returned zero findings; source inspection confines Python JWT references to the unused MCP token verifier. The attempted Python call trace did not survive entry-point process replacement and is not negative reachability evidence. Root runtime and other profiles use patched versions when present. Recheck reachability, lock version and advisory floors before any change; remove the exception after a compatible upstream release."
-owner = "protoscience@anulum.li"
-opened = "2026-09-30"
-expires = "2026-10-17"
-scope = "dependabot-ci-sast-lock"
-
-[[exceptions]]
-id = "GHSA-ffc3-869f-jxw9"
-tool = "dependabot"
-package = "pyjwt"
-reason = "Semgrep 1.178.0, the latest published release, requires PyJWT>=2.13.0,<2.14.dev0; all fixes require 2.14.0 or 2.15.0. Native resolution rejects Semgrep plus PyJWT>=2.15.0; do not override upstream package metadata."
-compensating_control = "Affected PyJWT 2.13.0 appears only in requirements/ci-sast.txt. The official Semgrep wheel calls JWT only from its MCP server token verifier; this repository invokes semgrep scan and never starts that MCP server. The actual Python 3.12 CI scan returned zero findings; source inspection confines Python JWT references to the unused MCP token verifier. The attempted Python call trace did not survive entry-point process replacement and is not negative reachability evidence. Root runtime and other profiles use patched versions when present. Recheck reachability, lock version and advisory floors before any change; remove the exception after a compatible upstream release."
-owner = "protoscience@anulum.li"
-opened = "2026-09-30"
-expires = "2026-10-17"
-scope = "dependabot-ci-sast-lock"
-
-[[exceptions]]
-id = "GHSA-hxm8-2xgr-2p9m"
-tool = "dependabot"
-package = "pyjwt"
-reason = "Semgrep 1.178.0, the latest published release, requires PyJWT>=2.13.0,<2.14.dev0; all fixes require 2.14.0 or 2.15.0. Native resolution rejects Semgrep plus PyJWT>=2.15.0; do not override upstream package metadata."
-compensating_control = "Affected PyJWT 2.13.0 appears only in requirements/ci-sast.txt. The official Semgrep wheel calls JWT only from its MCP server token verifier; this repository invokes semgrep scan and never starts that MCP server. The actual Python 3.12 CI scan returned zero findings; source inspection confines Python JWT references to the unused MCP token verifier. The attempted Python call trace did not survive entry-point process replacement and is not negative reachability evidence. Root runtime and other profiles use patched versions when present. Recheck reachability, lock version and advisory floors before any change; remove the exception after a compatible upstream release."
-owner = "protoscience@anulum.li"
-opened = "2026-09-30"
-expires = "2026-10-17"
-scope = "dependabot-ci-sast-lock"
-
-[[exceptions]]
-id = "GHSA-jwrc-g2q2-pq5p"
-tool = "dependabot"
-package = "pyjwt"
-reason = "Semgrep 1.178.0, the latest published release, requires PyJWT>=2.13.0,<2.14.dev0; all fixes require 2.14.0 or 2.15.0. Native resolution rejects Semgrep plus PyJWT>=2.15.0; do not override upstream package metadata."
-compensating_control = "Affected PyJWT 2.13.0 appears only in requirements/ci-sast.txt. The official Semgrep wheel calls JWT only from its MCP server token verifier; this repository invokes semgrep scan and never starts that MCP server. The actual Python 3.12 CI scan returned zero findings; source inspection confines Python JWT references to the unused MCP token verifier. The attempted Python call trace did not survive entry-point process replacement and is not negative reachability evidence. Root runtime and other profiles use patched versions when present. Recheck reachability, lock version and advisory floors before any change; remove the exception after a compatible upstream release."
-owner = "protoscience@anulum.li"
-opened = "2026-09-30"
-expires = "2026-10-17"
-scope = "dependabot-ci-sast-lock"
-
-[[exceptions]]
-id = "GHSA-p4g4-x82p-q773"
-tool = "dependabot"
-package = "pyjwt"
-reason = "Semgrep 1.178.0, the latest published release, requires PyJWT>=2.13.0,<2.14.dev0; all fixes require 2.14.0 or 2.15.0. Native resolution rejects Semgrep plus PyJWT>=2.15.0; do not override upstream package metadata."
-compensating_control = "Affected PyJWT 2.13.0 appears only in requirements/ci-sast.txt. The official Semgrep wheel calls JWT only from its MCP server token verifier; this repository invokes semgrep scan and never starts that MCP server. The actual Python 3.12 CI scan returned zero findings; source inspection confines Python JWT references to the unused MCP token verifier. The attempted Python call trace did not survive entry-point process replacement and is not negative reachability evidence. Root runtime and other profiles use patched versions when present. Recheck reachability, lock version and advisory floors before any change; remove the exception after a compatible upstream release."
-owner = "protoscience@anulum.li"
-opened = "2026-09-30"
-expires = "2026-10-17"
-scope = "dependabot-ci-sast-lock"
-
-[[exceptions]]
-id = "GHSA-r6x4-923q-g947"
-tool = "dependabot"
-package = "pyjwt"
-reason = "Semgrep 1.178.0, the latest published release, requires PyJWT>=2.13.0,<2.14.dev0; all fixes require 2.14.0 or 2.15.0. Native resolution rejects Semgrep plus PyJWT>=2.15.0; do not override upstream package metadata."
-compensating_control = "Affected PyJWT 2.13.0 appears only in requirements/ci-sast.txt. The official Semgrep wheel calls JWT only from its MCP server token verifier; this repository invokes semgrep scan and never starts that MCP server. The actual Python 3.12 CI scan returned zero findings; source inspection confines Python JWT references to the unused MCP token verifier. The attempted Python call trace did not survive entry-point process replacement and is not negative reachability evidence. Root runtime and other profiles use patched versions when present. Recheck reachability, lock version and advisory floors before any change; remove the exception after a compatible upstream release."
-owner = "protoscience@anulum.li"
-opened = "2026-09-30"
-expires = "2026-10-17"
-scope = "dependabot-ci-sast-lock"
-
-[[exceptions]]
-id = "GHSA-w2cx-738m-mc7w"
-tool = "dependabot"
-package = "pyjwt"
-reason = "Semgrep 1.178.0, the latest published release, requires PyJWT>=2.13.0,<2.14.dev0; all fixes require 2.14.0 or 2.15.0. Native resolution rejects Semgrep plus PyJWT>=2.15.0; do not override upstream package metadata."
-compensating_control = "Affected PyJWT 2.13.0 appears only in requirements/ci-sast.txt. The official Semgrep wheel calls JWT only from its MCP server token verifier; this repository invokes semgrep scan and never starts that MCP server. The actual Python 3.12 CI scan returned zero findings; source inspection confines Python JWT references to the unused MCP token verifier. The attempted Python call trace did not survive entry-point process replacement and is not negative reachability evidence. Root runtime and other profiles use patched versions when present. Recheck reachability, lock version and advisory floors before any change; remove the exception after a compatible upstream release."
-owner = "protoscience@anulum.li"
-opened = "2026-09-30"
-expires = "2026-10-17"
-scope = "dependabot-ci-sast-lock"
-
-[[exceptions]]
-id = "GHSA-w6j9-cwv2-h6wq"
-tool = "dependabot"
-package = "pyjwt"
-reason = "Semgrep 1.178.0, the latest published release, requires PyJWT>=2.13.0,<2.14.dev0; all fixes require 2.14.0 or 2.15.0. Native resolution rejects Semgrep plus PyJWT>=2.15.0; do not override upstream package metadata."
-compensating_control = "Affected PyJWT 2.13.0 appears only in requirements/ci-sast.txt. The official Semgrep wheel calls JWT only from its MCP server token verifier; this repository invokes semgrep scan and never starts that MCP server. The actual Python 3.12 CI scan returned zero findings; source inspection confines Python JWT references to the unused MCP token verifier. The attempted Python call trace did not survive entry-point process replacement and is not negative reachability evidence. Root runtime and other profiles use patched versions when present. Recheck reachability, lock version and advisory floors before any change; remove the exception after a compatible upstream release."
-owner = "protoscience@anulum.li"
-opened = "2026-09-30"
-expires = "2026-10-17"
-scope = "dependabot-ci-sast-lock"
+exceptions = []
