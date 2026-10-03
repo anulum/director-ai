@@ -9,17 +9,25 @@
 
 from __future__ import annotations
 
+from tools.ci_workflow_inventory import object_mapping
 
-def test_heuristic_coherence_benchmark_schema():
+
+def test_heuristic_coherence_benchmark_schema() -> None:
+    """Pin the emitted no-model route labels and throughput counters."""
     from benchmarks.heuristic_coherence_pipeline import run
 
     result = run(repeats=3)
 
     assert result["benchmark"] == "heuristic_coherence_pipeline"
     assert result["evidence_grade"] == "non_isolated_local_regression"
-    assert result["routes"]["cases"] == 4
-    assert result["throughput"]["reviews"] == 12
-    assert result["throughput"]["reviews_per_sec"] > 0
-    assert result["route_outputs"]["dialogue"]["route"] == "parallel_components"
-    assert result["route_outputs"]["prompt_premise"]["route"] == "factual_only"
-    assert result["route_outputs"]["factual_only"]["h_logical"] == 0.0
+    routes = object_mapping(result["routes"])
+    throughput = object_mapping(result["throughput"])
+    outputs = object_mapping(result["route_outputs"])
+    assert routes["cases"] == 4
+    assert throughput["reviews"] == 12
+    rate = throughput["reviews_per_sec"]
+    assert isinstance(rate, (int, float))
+    assert rate > 0
+    assert object_mapping(outputs["dialogue"])["route"] == "parallel_components"
+    assert object_mapping(outputs["prompt_premise"])["route"] == "factual_only"
+    assert object_mapping(outputs["factual_only"])["h_logical"] == 0.0

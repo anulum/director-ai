@@ -1,10 +1,12 @@
 # SPDX-License-Identifier: Apache-2.0
 # Commercial license available
-# © Concepts 1996-2026 Miroslav Sotek. All rights reserved.
-# © Code 2020-2026 Miroslav Sotek. All rights reserved.
+# © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
+# © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI - Customer Model Factory compliance gate tests
+
+"""Exercise the factory artifact/docstring verifier on real and incomplete trees."""
 
 from __future__ import annotations
 
@@ -19,7 +21,8 @@ from tools.verify_customer_model_factory_compliance import (
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def test_compliance_gate_covers_every_customer_model_factory_phase_artifact():
+def test_compliance_gate_covers_every_customer_model_factory_phase_artifact() -> None:
+    """Check all ten factory control entries against the canonical repository."""
     result = evaluate_compliance(ROOT)
 
     assert result.findings == ()
@@ -38,7 +41,14 @@ def test_compliance_gate_covers_every_customer_model_factory_phase_artifact():
     assert result.checked_controls == len(CONTROL_MATRIX)
 
 
-def test_compliance_gate_reports_missing_test_schema_and_docs(tmp_path: Path):
+def test_compliance_gate_reports_missing_test_schema_and_docs(tmp_path: Path) -> None:
+    """Report deleted test/schema files and absent API documentation.
+
+    Parameters
+    ----------
+    tmp_path : Path
+        Isolated copied control tree in which required artifacts are removed.
+    """
     for relative_path in (
         "src/director_ai/core/customer_model_factory/dataset_contract.py",
         "src/director_ai/core/customer_model_factory/__init__.py",
@@ -69,7 +79,14 @@ def test_compliance_gate_reports_missing_test_schema_and_docs(tmp_path: Path):
     assert "dataset_contract:missing_api_doc" in result.findings
 
 
-def test_compliance_gate_rejects_undocumented_public_symbols(tmp_path: Path):
+def test_compliance_gate_rejects_undocumented_public_symbols(tmp_path: Path) -> None:
+    """Find a public function missing its docstring in a negative AST fixture.
+
+    Parameters
+    ----------
+    tmp_path : Path
+        Isolated tree containing the deliberately undocumented test input.
+    """
     module_path = (
         tmp_path / "src/director_ai/core/customer_model_factory/dataset_contract.py"
     )

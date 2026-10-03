@@ -8,8 +8,8 @@
 
 """Validate repository compatibility with GitHub App stateless tokens.
 
-The validator enforces that tracked source/workflow/docs text does not
-contain brittle assumptions such as fixed 40-character installation
+The validator checks source/workflow/docs text in the maintained scan
+directories. It reports brittle assumptions such as fixed 40-character installation
 tokens or narrow ``ghs_`` regexes incompatible with JWT-format tokens.
 """
 
@@ -73,6 +73,14 @@ FAIL_PATTERNS: tuple[tuple[re.Pattern[str], str], ...] = (
 
 
 def _iter_files() -> list[Path]:
+    """List supported text files under the maintained scan directories.
+
+    Returns
+    -------
+    list[pathlib.Path]
+        Existing files with a supported suffix, excluding the validator and its
+        dedicated test module.
+    """
     files: list[Path] = []
     for rel_dir in SCAN_DIRS:
         root = ROOT / rel_dir
@@ -91,6 +99,13 @@ def _iter_files() -> list[Path]:
 
 
 def validate() -> list[str]:
+    """Report fixed-length installation-token assumptions in repository text.
+
+    Returns
+    -------
+    list[str]
+        Relative path, line number and reason for each matching assumption.
+    """
     violations: list[str] = []
     for path in _iter_files():
         text = path.read_text(encoding="utf-8", errors="ignore")
@@ -103,6 +118,13 @@ def validate() -> list[str]:
 
 
 def main() -> int:
+    """Print token-compatibility findings and return the command status.
+
+    Returns
+    -------
+    int
+        One when findings exist, or zero when the maintained scan is clear.
+    """
     violations = validate()
     if violations:
         print("GitHub App token compatibility check failed:")

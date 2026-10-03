@@ -1,10 +1,12 @@
 # SPDX-License-Identifier: Apache-2.0
 # Commercial license available
-# © Concepts 1996-2026 Miroslav Sotek. All rights reserved.
-# © Code 2020-2026 Miroslav Sotek. All rights reserved.
+# © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
+# © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI - Customer Model Factory monitoring tests
+
+"""Exercise customer monitoring bindings and recommendations using synthetic metrics."""
 
 from __future__ import annotations
 
@@ -26,7 +28,19 @@ ROOT = Path(__file__).resolve().parents[1]
 def _runtime_package(
     *,
     audit_log_uri: str = "gs://customer-artifacts/customer-alpha/audit/decision-log.jsonl",
-):
+) -> CustomerRuntimePackage:
+    """Build a runtime fixture carrying the chosen decision-log evidence URI.
+
+    Parameters
+    ----------
+    audit_log_uri : str
+        Decision-log URI carried by the runtime fixture.
+
+    Returns
+    -------
+    CustomerRuntimePackage
+        Runtime configuration fixture.
+    """
     return CustomerRuntimePackage(
         schema_version="1.0.0",
         runtime_id="runtime-customer-alpha-20260518",
@@ -64,6 +78,18 @@ def _runtime_package(
 
 
 def _metrics(**overrides: object) -> MonitoringMetrics:
+    """Round-trip synthetic metrics with caller-specified breach overrides.
+
+    Parameters
+    ----------
+    overrides : object
+        Explicit field values substituted into the synthetic fixture.
+
+    Returns
+    -------
+    MonitoringMetrics
+        Metrics record with requested substitutions.
+    """
     metrics = MonitoringMetrics(
         total_decisions=1200,
         input_drift_score=0.04,
@@ -81,6 +107,13 @@ def _metrics(**overrides: object) -> MonitoringMetrics:
 
 
 def _thresholds() -> MonitoringThresholds:
+    """Build the original drift, incident, latency and cost review thresholds.
+
+    Returns
+    -------
+    MonitoringThresholds
+        Review threshold fixture.
+    """
     return MonitoringThresholds(
         max_input_drift_score=0.20,
         max_source_corpus_drift_score=0.15,
@@ -92,7 +125,10 @@ def _thresholds() -> MonitoringThresholds:
     )
 
 
-def test_monitoring_manifest_reports_within_control_when_evidence_and_metrics_are_ready():
+def test_monitoring_manifest_reports_within_control_when_evidence_and_metrics_are_ready() -> (
+    None
+):
+    """Report within-control state when fixture bindings and metrics are complete."""
     manifest = build_monitoring_manifest(
         monitoring_id="monitor-customer-alpha-20260518",
         runtime_package=_runtime_package(),
@@ -113,7 +149,8 @@ def test_monitoring_manifest_reports_within_control_when_evidence_and_metrics_ar
     assert len(manifest.monitoring_hash) == 64
 
 
-def test_monitoring_manifest_recommends_retraining_on_threshold_breaches():
+def test_monitoring_manifest_recommends_retraining_on_threshold_breaches() -> None:
+    """Recommend review for drift, false-negative incidents and excess latency."""
     manifest = build_monitoring_manifest(
         monitoring_id="monitor-customer-alpha-incident",
         runtime_package=_runtime_package(),
@@ -139,7 +176,10 @@ def test_monitoring_manifest_recommends_retraining_on_threshold_breaches():
     }
 
 
-def test_monitoring_manifest_recommends_retraining_on_all_operational_breaches():
+def test_monitoring_manifest_recommends_retraining_on_all_operational_breaches() -> (
+    None
+):
+    """Report corpus drift, abstention, escalation and cost threshold breaches."""
     manifest = build_monitoring_manifest(
         monitoring_id="monitor-customer-alpha-all-breaches",
         runtime_package=_runtime_package(),
@@ -166,7 +206,10 @@ def test_monitoring_manifest_recommends_retraining_on_all_operational_breaches()
     }
 
 
-def test_monitoring_manifest_blocks_health_claim_without_decision_log_evidence():
+def test_monitoring_manifest_blocks_health_claim_without_decision_log_evidence() -> (
+    None
+):
+    """Block a health claim when the decision-log URI is absent."""
     manifest = build_monitoring_manifest(
         monitoring_id="monitor-customer-alpha-no-log",
         runtime_package=_runtime_package(audit_log_uri=""),
@@ -185,7 +228,8 @@ def test_monitoring_manifest_blocks_health_claim_without_decision_log_evidence()
     )
 
 
-def test_monitoring_manifest_blocks_missing_identity_and_queue_evidence():
+def test_monitoring_manifest_blocks_missing_identity_and_queue_evidence() -> None:
+    """Report missing monitoring identity, observation dates and queue references."""
     runtime = _runtime_package()
     runtime = CustomerRuntimePackage(
         **{
@@ -218,7 +262,8 @@ def test_monitoring_manifest_blocks_missing_identity_and_queue_evidence():
     }
 
 
-def test_monitoring_manifest_blocks_tenant_boundary_mismatch():
+def test_monitoring_manifest_blocks_tenant_boundary_mismatch() -> None:
+    """Reject disagreement between runtime and nested-config tenant identifiers."""
     runtime = _runtime_package()
     runtime.runtime_config["tenant_id"] = "wrong-tenant"
 
@@ -239,7 +284,8 @@ def test_monitoring_manifest_blocks_tenant_boundary_mismatch():
     )
 
 
-def test_monitoring_manifest_blocks_all_runtime_boundary_mismatches():
+def test_monitoring_manifest_blocks_all_runtime_boundary_mismatches() -> None:
+    """Reject customer, workspace and deployment nested-config mismatches."""
     runtime = _runtime_package()
     runtime.runtime_config.update(
         {
@@ -268,7 +314,14 @@ def test_monitoring_manifest_blocks_all_runtime_boundary_mismatches():
     }
 
 
-def test_monitoring_manifest_serialises_and_round_trips(tmp_path: Path):
+def test_monitoring_manifest_serialises_and_round_trips(tmp_path: Path) -> None:
+    """Write the monitoring record with unchanged fields and monitoring hash.
+
+    Parameters
+    ----------
+    tmp_path : Path
+        Isolated directory for generated test artifacts.
+    """
     manifest = build_monitoring_manifest(
         monitoring_id="monitor-customer-alpha-20260518",
         runtime_package=_runtime_package(),
@@ -287,7 +340,8 @@ def test_monitoring_manifest_serialises_and_round_trips(tmp_path: Path):
     assert payload["monitoring_hash"] == manifest.monitoring_hash
 
 
-def test_monitoring_schema_is_machine_readable():
+def test_monitoring_schema_is_machine_readable() -> None:
+    """Pin the monitoring schema dialect, title and required record fields."""
     schema_path = ROOT / "schemas" / "customer-model-factory-monitoring.schema.json"
     schema = json.loads(schema_path.read_text(encoding="utf-8"))
 

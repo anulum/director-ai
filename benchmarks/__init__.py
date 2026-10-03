@@ -4,8 +4,17 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI — __init__
-# Director-Class AI — Public Benchmarks
+# Director-AI — Benchmark Package
+
+"""Expose evaluator modules and the batch runner for module-based invocation.
+
+Importing this package loads no model or dataset. Run an individual evaluator
+with ``python -m benchmarks.<module>`` or use ``benchmarks.run_all`` for the
+batch entry point. Evaluation split and provenance must be established by the
+individual runner and its recorded inputs before interpreting the results.
+"""
+
+# Director-AI — Public Benchmarks
 #
 # Held-out eval suite:
 #   python -m benchmarks.mnli_eval [N]           -- NLI regression

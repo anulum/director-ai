@@ -1,10 +1,12 @@
 # SPDX-License-Identifier: Apache-2.0
 # Commercial license available
-# © Concepts 1996-2026 Miroslav Sotek. All rights reserved.
-# © Code 2020-2026 Miroslav Sotek. All rights reserved.
+# © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
+# © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI - Customer Model Factory sector extension tests
+
+"""Exercise generic sector controls and their dataset-validation integration."""
 
 from __future__ import annotations
 
@@ -26,6 +28,13 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def _workspace() -> CustomerWorkspace:
+    """Build the customer/tenant workspace shared by sector-validation cases.
+
+    Returns
+    -------
+    CustomerWorkspace
+        Customer/tenant workspace fixture.
+    """
     return CustomerWorkspace(
         customer_id="customer-alpha",
         workspace_id="customer-alpha-prod",
@@ -37,6 +46,18 @@ def _workspace() -> CustomerWorkspace:
 
 
 def _metadata(**overrides: object) -> dict[str, object]:
+    """Build sector metadata with caller-specified negative or positive controls.
+
+    Parameters
+    ----------
+    overrides : object
+        Explicit field values substituted into the synthetic fixture.
+
+    Returns
+    -------
+    dict[str, object]
+        Metadata dictionary with requested substitutions.
+    """
     metadata: dict[str, object] = {
         "sector_class": "regulated_knowledge",
         "knowledge_class": "customer_policy",
@@ -52,6 +73,22 @@ def _metadata(**overrides: object) -> dict[str, object]:
 
 
 def _row(trace_id: str, split: str, metadata: dict[str, object]) -> dict[str, object]:
+    """Build a trace row carrying the given split and sector metadata.
+
+    Parameters
+    ----------
+    trace_id : str
+        Unique identifier for the synthetic trace.
+    split : str
+        Dataset split assigned to the synthetic trace.
+    metadata : dict[str, object]
+        Sector controls and evidence references attached to the trace.
+
+    Returns
+    -------
+    dict[str, object]
+        Synthetic trace data.
+    """
     return {
         "trace_id": trace_id,
         "customer_id": "customer-alpha",
@@ -74,7 +111,8 @@ def _row(trace_id: str, split: str, metadata: dict[str, object]) -> dict[str, ob
     }
 
 
-def test_public_customer_model_factory_exports_generic_sector_extension_only():
+def test_public_customer_model_factory_exports_generic_sector_extension_only() -> None:
+    """Expose generic sector contracts without public bank-specific symbols."""
     assert hasattr(cmf, "SectorEvidenceMapping")
     assert hasattr(cmf, "build_sector_evidence_mapping")
     assert hasattr(cmf, "validate_sector_trace_metadata")
@@ -82,7 +120,8 @@ def test_public_customer_model_factory_exports_generic_sector_extension_only():
     assert all("bank" not in symbol.casefold() for symbol in cmf.__all__)
 
 
-def test_sector_metadata_validation_is_generic_and_evidence_oriented():
+def test_sector_metadata_validation_is_generic_and_evidence_oriented() -> None:
+    """Require citation references and escalation for their enabled controls."""
     findings = validate_sector_trace_metadata(
         _metadata(evidence_refs=[]),
         trace_id="trace-001",
@@ -95,7 +134,10 @@ def test_sector_metadata_validation_is_generic_and_evidence_oriented():
     }
 
 
-def test_sector_metadata_accepts_complete_citation_numeric_and_escalation_controls():
+def test_sector_metadata_accepts_complete_citation_numeric_and_escalation_controls() -> (
+    None
+):
+    """Accept supplied citation and numeric references with an escalation label."""
     findings = validate_sector_trace_metadata(
         _metadata(
             requires_numeric_evidence=True,
@@ -108,7 +150,10 @@ def test_sector_metadata_accepts_complete_citation_numeric_and_escalation_contro
     assert findings == ()
 
 
-def test_sector_metadata_allows_non_escalation_rows_without_escalation_control():
+def test_sector_metadata_allows_non_escalation_rows_without_escalation_control() -> (
+    None
+):
+    """Accept approval metadata when the escalation control is disabled."""
     findings = validate_sector_trace_metadata(
         _metadata(requires_escalation=False),
         trace_id="trace-001",
@@ -118,13 +163,15 @@ def test_sector_metadata_allows_non_escalation_rows_without_escalation_control()
     assert findings == ()
 
 
-def test_sector_string_helper_normalises_non_string_values():
+def test_sector_string_helper_normalises_non_string_values() -> None:
+    """Strip strings while normalizing non-string metadata values to empty text."""
     assert _string("  regulated  ") == "regulated"
     assert _string(None) == ""
     assert _string(123) == ""
 
 
-def test_sector_metadata_reports_each_missing_required_field():
+def test_sector_metadata_reports_each_missing_required_field() -> None:
+    """Report every blank or absent required sector metadata field."""
     findings = validate_sector_trace_metadata(
         _metadata(
             sector_class=" ",
@@ -148,7 +195,8 @@ def test_sector_metadata_reports_each_missing_required_field():
     }
 
 
-def test_sector_extension_findings_are_wired_into_dataset_validation():
+def test_sector_extension_findings_are_wired_into_dataset_validation() -> None:
+    """Propagate missing numeric evidence into public dataset-validation findings."""
     rows = [
         _row("trace-001", "train", _metadata()),
         _row(
@@ -173,7 +221,8 @@ def test_sector_extension_findings_are_wired_into_dataset_validation():
     )
 
 
-def test_sector_evidence_mapping_is_machine_readable():
+def test_sector_evidence_mapping_is_machine_readable() -> None:
+    """Serialize framework and control mappings with a deterministic hash."""
     mapping = build_sector_evidence_mapping(
         sector_id="regulated-sector",
         jurisdiction="customer-controlled",
@@ -191,7 +240,8 @@ def test_sector_evidence_mapping_is_machine_readable():
     assert len(payload["mapping_hash"]) == 64
 
 
-def test_sector_evidence_mapping_round_trips_json_safe_payload():
+def test_sector_evidence_mapping_round_trips_json_safe_payload() -> None:
+    """Sort/deduplicate frameworks and retain custom controls through a round-trip."""
     mapping = build_sector_evidence_mapping(
         sector_id="regulated-sector",
         jurisdiction="customer-controlled",
@@ -208,7 +258,8 @@ def test_sector_evidence_mapping_round_trips_json_safe_payload():
     assert rebuilt == mapping
 
 
-def test_sector_metadata_schema_replaces_public_vertical_schema():
+def test_sector_metadata_schema_replaces_public_vertical_schema() -> None:
+    """Pin the generic sector schema dialect, title and required fields."""
     schema_path = (
         ROOT / "schemas" / "customer-model-factory-sector-metadata.schema.json"
     )

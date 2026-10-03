@@ -4,6 +4,7 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
+# Director-AI — retrieval benchmark reporting tests
 """Regression tests for retrieval benchmark quality reporting."""
 
 import sys
@@ -15,7 +16,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from benchmarks import retrieval_bench
 
 
-def test_scoring_probe_summary_reports_downstream_quality():
+def test_scoring_probe_summary_reports_downstream_quality() -> None:
+    """Aggregate fixed probe records into the expected downstream metrics."""
     results = [
         retrieval_bench.ScoringProbeResult(
             query="q1",
@@ -54,7 +56,10 @@ def test_scoring_probe_summary_reports_downstream_quality():
     assert summary["latency_ms_avg"] == pytest.approx(2.0)
 
 
-def test_retrieval_benchmark_output_includes_downstream_scoring(tmp_path, monkeypatch):
+def test_retrieval_benchmark_output_includes_downstream_scoring(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Run in-memory retrieval and persist its actual downstream probe report."""
     monkeypatch.setattr(retrieval_bench, "RESULTS_DIR", tmp_path)
 
     output = retrieval_bench.run_benchmark("inmemory")

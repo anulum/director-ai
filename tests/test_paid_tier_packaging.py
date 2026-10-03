@@ -30,6 +30,18 @@ MANIFEST = json.loads(
 
 
 def _find_config(pyproject: Path) -> dict[str, list[str]]:
+    """Read the existing setuptools package-discovery table from a project file.
+
+    Parameters
+    ----------
+    pyproject : Path
+        TOML project file for the free, pro or full distribution.
+
+    Returns
+    -------
+    dict[str, list[str]]
+        Existing find table whose include and exclude lists define package scope.
+    """
     data = tomllib.loads(pyproject.read_text(encoding="utf-8"))
     config: dict[str, list[str]] = data["tool"]["setuptools"]["packages"]["find"]
     return config
@@ -47,22 +59,26 @@ PAID_MODULES = list(MANIFEST["paid_modules"])
 
 
 def test_every_paid_module_exists_in_the_source_tree() -> None:
+    """Require every manifest-listed paid module to exist in the source checkout."""
     missing = [m for m in PAID_MODULES if not (SRC / m).is_file()]
     assert not missing, f"manifest lists absent modules: {missing}"
 
 
 def test_paid_modules_are_not_inside_excluded_packages() -> None:
+    """Avoid redundant single-module entries already covered by package exclusions."""
     prefixes = [g.rstrip("*").replace(".", "/") + "/" for g in ROOT_EXCLUDE]
     redundant = [m for m in PAID_MODULES if any(m.startswith(p) for p in prefixes)]
     assert not redundant, f"modules already covered by a package exclude: {redundant}"
 
 
 def test_paid_modules_never_name_a_parent_init() -> None:
+    """Keep package initialisers whole instead of splitting them across tiers."""
     inits = [m for m in PAID_MODULES if m.endswith("__init__.py")]
     assert not inits, f"manifest must not slice package __init__ files: {inits}"
 
 
 def test_full_wheel_includes_exactly_the_excluded_packages() -> None:
+    """Match full-package declarations to all free-package exclusions."""
     assert FULL_INCLUDE == ROOT_EXCLUDE, (
         "full include must mirror the root exclude;"
         f" only-in-full={sorted(FULL_INCLUDE - ROOT_EXCLUDE)}"
@@ -71,6 +87,7 @@ def test_full_wheel_includes_exactly_the_excluded_packages() -> None:
 
 
 def test_pro_wheel_is_full_minus_labs() -> None:
+    """Match the pro include declaration to full packages minus the labs set."""
     assert LABS <= FULL_INCLUDE, sorted(LABS - FULL_INCLUDE)
     assert PRO_INCLUDE == FULL_INCLUDE - LABS, (
         "pro include must be the full include minus the labs set;"
@@ -79,6 +96,7 @@ def test_pro_wheel_is_full_minus_labs() -> None:
 
 
 def test_every_excluded_package_exists_in_the_source_tree() -> None:
+    """Require each excluded package glob to resolve to a real source directory."""
     missing = [
         g for g in ROOT_EXCLUDE if not (SRC / g.rstrip("*").replace(".", "/")).is_dir()
     ]
@@ -86,6 +104,7 @@ def test_every_excluded_package_exists_in_the_source_tree() -> None:
 
 
 def test_sdist_manifest_mirrors_the_wheel_boundary() -> None:
+    """Match sdist prune and exclude declarations to the package manifest."""
     text = (ROOT / "MANIFEST.in").read_text(encoding="utf-8")
     pruned = set(re.findall(r"^prune (\S+)$", text, re.M))
     expected_prunes = {"src/" + g.rstrip("*").replace(".", "/") for g in ROOT_EXCLUDE}
@@ -106,6 +125,7 @@ def test_sdist_manifest_mirrors_the_wheel_boundary() -> None:
 
 
 def test_free_package_data_does_not_leak_proto_stubs() -> None:
+    """Keep paid protocol and typing-stub patterns out of free package data."""
     data = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
     package_data = data["tool"]["setuptools"]["package-data"]["director_ai"]
     leaks = [g for g in package_data if "proto" in g or g.endswith(".pyi")]
@@ -176,6 +196,7 @@ def test_paid_single_modules_are_filtered_from_the_free_wheel_by_exact_path() ->
 
 
 def test_build_hooks_agree_with_the_manifest() -> None:
+    """Compare the loaded native build hooks with the exact paid-module manifest."""
     import importlib.util
 
     spec = importlib.util.spec_from_file_location(

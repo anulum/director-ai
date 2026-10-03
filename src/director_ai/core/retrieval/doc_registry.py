@@ -40,18 +40,36 @@ def _require_non_empty_string(value: str, field_name: str) -> str:
     return value.strip()
 
 
-def _require_chunk_ids(chunk_ids: Sequence[str]) -> list[str]:
-    """Return validated non-empty chunk identifiers."""
+def _require_chunk_ids(chunk_ids: object) -> list[str]:
+    """Validate an untrusted collection and return stripped chunk identifiers.
+
+    Parameters
+    ----------
+    chunk_ids : object
+        Candidate sequence; whole strings, bytes and nonsequences are rejected.
+
+    Returns
+    -------
+    list[str]
+        A nonempty list whose members are validated, stripped strings.
+
+    Raises
+    ------
+    ValueError
+        The collection is empty, not a supported sequence, or contains a
+        nonstring or blank identifier.
+    """
     if isinstance(chunk_ids, str | bytes) or not isinstance(chunk_ids, Sequence):
         raise ValueError("chunk_ids must be a non-empty sequence of strings")
     normalized = list(chunk_ids)
     if not normalized:
         raise ValueError("chunk_ids must be a non-empty sequence of strings")
-    if any(
-        not isinstance(chunk_id, str) or not chunk_id.strip() for chunk_id in normalized
-    ):
-        raise ValueError("chunk_ids must be a non-empty sequence of strings")
-    return [chunk_id.strip() for chunk_id in normalized]
+    validated: list[str] = []
+    for chunk_id in normalized:
+        if not isinstance(chunk_id, str) or not chunk_id.strip():
+            raise ValueError("chunk_ids must be a non-empty sequence of strings")
+        validated.append(chunk_id)
+    return [chunk_id.strip() for chunk_id in validated]
 
 
 def _snapshot(record: DocRecord) -> DocRecord:
@@ -80,11 +98,40 @@ class DocRegistry:
         doc_id: str,
         source: str,
         tenant_id: str,
-        chunk_ids: list[str],
+        chunk_ids: object,
         *,
         content_hash: str = "",
     ) -> DocRecord:
-        """Register a new document and return a detached record snapshot."""
+        """Register a document under an unused identifier and return a snapshot.
+
+        Parameters
+        ----------
+        doc_id : str
+            Nonblank identifier, stripped and unique across this registry.
+        source : str
+            Nonblank source label stored after stripping surrounding whitespace.
+        tenant_id : str
+            Nonblank tenant label retained for matching reads.
+        chunk_ids : object
+            Untrusted nonempty sequence validated as nonblank string identifiers.
+        content_hash : str, optional
+            Digest label, stripped without validating its algorithm.
+
+        Returns
+        -------
+        DocRecord
+            Detached snapshot with creation/update timestamps and copied chunks.
+
+        Raises
+        ------
+        ValueError
+            Required fields or chunk identifiers are invalid, or the identifier
+            already exists.
+
+        Notes
+        -----
+        Registration does not authenticate callers or check tenant access policy.
+        """
         doc_id = _require_non_empty_string(doc_id, "doc_id")
         source = _require_non_empty_string(source, "source")
         tenant_id = _require_non_empty_string(tenant_id, "tenant_id")
@@ -115,12 +162,40 @@ class DocRegistry:
     def update(
         self,
         doc_id: str,
-        chunk_ids: list[str],
+        chunk_ids: object,
         source: str | None = None,
         *,
         content_hash: str | None = None,
     ) -> DocRecord:
-        """Update document chunk metadata and return a detached snapshot."""
+        """Replace a document's chunks and supplied optional metadata.
+
+        Parameters
+        ----------
+        doc_id : str
+            Existing nonblank document identifier.
+        chunk_ids : object
+            Untrusted nonempty sequence validated as nonblank string identifiers.
+        source : str or None, optional
+            Replacement source; None retains the current source.
+        content_hash : str or None, optional
+            Replacement stripped hash label; None retains the current label.
+
+        Returns
+        -------
+        DocRecord
+            Detached snapshot with updated chunks and update timestamp.
+
+        Raises
+        ------
+        ValueError
+            The identifier, supplied source or chunk collection is invalid.
+        KeyError
+            The document identifier is not registered.
+
+        Notes
+        -----
+        This method does not check a tenant or authenticate the caller.
+        """
         doc_id = _require_non_empty_string(doc_id, "doc_id")
         normalized_chunk_ids = _require_chunk_ids(chunk_ids)
         if source is not None:

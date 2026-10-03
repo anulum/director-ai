@@ -1,10 +1,12 @@
 # SPDX-License-Identifier: Apache-2.0
 # Commercial license available
-# © Concepts 1996-2026 Miroslav Sotek. All rights reserved.
-# © Code 2020-2026 Miroslav Sotek. All rights reserved.
+# © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
+# © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI - per-model benchmark package tests
+
+"""Validate model evidence plans without running external benchmark stages."""
 
 from __future__ import annotations
 
@@ -22,7 +24,8 @@ from director_ai.core.scoring.model_choices import list_scorer_model_choices
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def test_model_package_manifest_is_valid():
+def test_model_package_manifest_is_valid() -> None:
+    """Validate the committed manifest while keeping external-suite work pending."""
     manifest = load_package_manifest(PACKAGE_MANIFEST_PATH)
     findings = validate_package_manifest(manifest, root=ROOT)
 
@@ -31,7 +34,8 @@ def test_model_package_manifest_is_valid():
     assert manifest.default_status == "pending_external_suite"
 
 
-def test_stable_runtime_models_have_required_benchmark_packages():
+def test_stable_runtime_models_have_required_benchmark_packages() -> None:
+    """Require every stable scorer to declare each benchmark evidence stage."""
     manifest = load_package_manifest(PACKAGE_MANIFEST_PATH)
     packages = {package.model_alias: package for package in manifest.packages}
     stable_aliases = {choice.alias for choice in list_scorer_model_choices()}
@@ -57,7 +61,8 @@ def test_stable_runtime_models_have_required_benchmark_packages():
         assert {item.stage_id for item in package.evidence} == required_stage_ids
 
 
-def test_next_model_package_work_returns_first_missing_evidence_item():
+def test_next_model_package_work_returns_first_missing_evidence_item() -> None:
+    """Select the first missing manifest stage without executing its command."""
     manifest = load_package_manifest(PACKAGE_MANIFEST_PATH)
 
     work = next_model_package_work(manifest, completed_evidence_ids=set())
@@ -69,7 +74,8 @@ def test_next_model_package_work_returns_first_missing_evidence_item():
     assert "DIRECTOR_SCORER_MODEL=balanced-default" in work.command
 
 
-def test_package_manifest_serialises_without_token_placeholders():
+def test_package_manifest_serialises_without_token_placeholders() -> None:
+    """Serialize the plan without embedded token placeholders or secret text."""
     manifest = load_package_manifest(PACKAGE_MANIFEST_PATH)
     payload = package_manifest_to_dict(manifest)
     encoded = repr(payload)
@@ -79,7 +85,8 @@ def test_package_manifest_serialises_without_token_placeholders():
     assert "secret" not in encoded.lower()
 
 
-def test_readme_advertises_selectable_scorer_models_without_overclaiming():
+def test_readme_advertises_selectable_scorer_models_without_overclaiming() -> None:
+    """Keep README model selectors and conditional evidence claims documented."""
     readme = (ROOT / "README.md").read_text(encoding="utf-8")
 
     assert "Selectable scorer models" in readme

@@ -6,12 +6,15 @@
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI — gRPC API documentation contract tests
 
+"""Check documented gRPC names against both shipped service definitions."""
+
 from __future__ import annotations
 
 from pathlib import Path
 
 
 def test_grpc_api_docs_match_shipped_service_names() -> None:
+    """Match documented RPC identifiers to both real protocol definitions."""
     docs = Path("docs-site/api/grpc.md").read_text(encoding="utf-8")
     legacy_proto = Path("proto/director.proto").read_text(encoding="utf-8")
     scoring_proto = Path("schemas/proto/director/v1/director.proto").read_text(

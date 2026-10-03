@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: BUSL-1.1
 # Commercial license available
-# © Concepts 1996-2026 Miroslav Sotek. All rights reserved.
-# © Code 2020-2026 Miroslav Sotek. All rights reserved.
+# © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
+# © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI - Release-gate evidence module contracts
@@ -40,19 +40,25 @@ _EVIDENCE_CLASS_NAMES = (
 
 
 class TestModulePlacement:
-    def test_module_exports_exactly_the_ten_evidence_classes(self):
+    """Pin evidence-class ownership and facade/package export identity."""
+
+    def test_module_exports_exactly_the_ten_evidence_classes(self) -> None:
+        """Export exactly the ten supported evidence record classes."""
         assert gate_evidence_module.__all__ == list(_EVIDENCE_CLASS_NAMES)
 
-    def test_classes_are_defined_in_the_evidence_module(self):
+    def test_classes_are_defined_in_the_evidence_module(self) -> None:
+        """Keep record definitions in their dedicated evidence module."""
         for name in _EVIDENCE_CLASS_NAMES:
             cls = getattr(gate_evidence_module, name)
             assert cls.__module__ == gate_evidence_module.__name__
 
-    def test_release_gate_re_exports_the_same_objects(self):
+    def test_release_gate_re_exports_the_same_objects(self) -> None:
+        """Re-export the original evidence classes through the release gate."""
         for name in _EVIDENCE_CLASS_NAMES:
             assert getattr(release_gate, name) is getattr(gate_evidence_module, name)
 
-    def test_package_surface_still_serves_the_evidence_classes(self):
+    def test_package_surface_still_serves_the_evidence_classes(self) -> None:
+        """Expose the same evidence classes at the public factory package surface."""
         from director_ai.core import customer_model_factory as package
 
         for name in _EVIDENCE_CLASS_NAMES:
@@ -60,13 +66,19 @@ class TestModulePlacement:
 
 
 class TestRecordContracts:
-    def test_records_are_frozen_dataclasses(self):
+    """Check frozen record definitions and dictionary round-trip field shape."""
+
+    def test_records_are_frozen_dataclasses(self) -> None:
+        """Retain frozen dataclass definitions for every evidence domain."""
         for name in _EVIDENCE_CLASS_NAMES:
             cls = getattr(gate_evidence_module, name)
             assert dataclasses.is_dataclass(cls)
-            assert cls.__dataclass_params__.frozen
+            assert isinstance(cls, type)
+            params: object = getattr(cls, "__dataclass_params__", None)
+            assert getattr(params, "frozen", None) is True
 
-    def test_round_trip_preserves_every_field(self):
+    def test_round_trip_preserves_every_field(self) -> None:
+        """Round-trip a populated fixture without dropping or changing fields."""
         evidence = gate_evidence_module.DeploymentHardeningEvidence(
             ready=True,
             environment="staging",
@@ -83,7 +95,8 @@ class TestRecordContracts:
         assert rebuilt == evidence
         assert set(payload) == {field.name for field in dataclasses.fields(evidence)}
 
-    def test_from_dict_requires_every_field(self):
+    def test_from_dict_requires_every_field(self) -> None:
+        """Refuse reconstruction when required dictionary fields are absent."""
         with pytest.raises(KeyError):
             gate_evidence_module.ObservabilityOperationsEvidence.from_dict(
                 {"ready": True}

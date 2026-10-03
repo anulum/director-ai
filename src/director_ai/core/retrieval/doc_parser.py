@@ -24,13 +24,13 @@ from ..exceptions import DomainRefusalError
 logger = logging.getLogger("DirectorAI.DocParser")
 
 
-def parse(content: bytes, filename: str) -> str:
+def parse(content: object, filename: str) -> str:
     """Extract plain text using the filename's format parser.
 
     Parameters
     ----------
-    content : bytes
-        Complete uploaded document bytes.
+    content : object
+        Uploaded value, validated as complete document bytes before dispatch.
     filename : str
         Filename whose extension selects the parser.
 

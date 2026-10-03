@@ -6,6 +6,8 @@
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI — optional extra lock policy tests
 
+"""Check declared optional roots against the local policy and canonical uv lock."""
+
 from __future__ import annotations
 
 import re
@@ -34,19 +36,56 @@ EXPECTED_EXTRAS = {
 
 
 def _load_toml(path: Path) -> dict[str, Any]:
+    """Read the existing TOML policy, package declaration or dependency lock.
+
+    Parameters
+    ----------
+    path : Path
+        Repository file read with the original platform-default encoding.
+
+    Returns
+    -------
+    dict[str, Any]
+        Parsed TOML table; this legacy fixture loader retains its original type.
+    """
     return tomllib.loads(path.read_text())
 
 
 def _dependency_name(requirement: str) -> str:
+    """Normalise the leading package name from an optional requirement.
+
+    Parameters
+    ----------
+    requirement : str
+        Requirement text whose version and extras delimiters are stripped.
+
+    Returns
+    -------
+    str
+        Lowercase package name with underscores replaced by hyphens.
+    """
     name = re.split(r"[<>=!~;\[\] ]", requirement, maxsplit=1)[0]
     return name.lower().replace("_", "-")
 
 
 def _has_upper_bound(requirement: str) -> bool:
+    """Check the policy's existing exact-pin or upper-bound spelling rule.
+
+    Parameters
+    ----------
+    requirement : str
+        Declared optional dependency requirement.
+
+    Returns
+    -------
+    bool
+        Whether the text contains an exact pin or less-than bound.
+    """
     return "==" in requirement or "<" in requirement
 
 
 def test_policy_covers_target_optional_extras() -> None:
+    """Match both policy lists to the existing set of governed extras."""
     policy = _load_toml(POLICY_PATH)
 
     assert set(policy["policy"]["checked_extras"]) == EXPECTED_EXTRAS
@@ -54,6 +93,7 @@ def test_policy_covers_target_optional_extras() -> None:
 
 
 def test_optional_extra_roots_are_capped_and_locked() -> None:
+    """Require governed root packages to be declared, capped and in uv.lock."""
     pyproject = _load_toml(PYPROJECT_PATH)
     lock = _load_toml(LOCK_PATH)
     policy = _load_toml(POLICY_PATH)
@@ -71,6 +111,7 @@ def test_optional_extra_roots_are_capped_and_locked() -> None:
 
 
 def test_lock_policy_is_documented() -> None:
+    """Keep the canonical lock and locked-sync commands in the public guide."""
     text = DOC_PATH.read_text()
 
     assert "uv.lock" in text

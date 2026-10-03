@@ -14,6 +14,7 @@ from benchmarks.inference_hook_overhead import _percentiles, run_benchmark
 
 
 def test_percentiles_basic() -> None:
+    """Check the original fixed sample count, median, mean and percentile."""
     s = _percentiles([5.0, 1.0, 3.0, 2.0, 4.0])
     assert s["n"] == 5
     assert s["p50_us"] == 3.0
@@ -22,6 +23,7 @@ def test_percentiles_basic() -> None:
 
 
 def test_run_benchmark_smoke() -> None:
+    """Exercise the local no-model logits-hook report with smoke sampling."""
     result = run_benchmark(repeats=3)
     assert result["benchmark"] == "inference_hook_overhead"
     assert result["pass_through_per_token"]["n"] == 3

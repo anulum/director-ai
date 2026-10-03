@@ -16,17 +16,16 @@ ROOT = Path(__file__).resolve().parents[1]
 
 def _read_doc(path: str) -> str:
     """Read a public documentation page from the repository root."""
-
     return (ROOT / path).read_text(encoding="utf-8")
 
 
 def _normalise_whitespace(text: str) -> str:
     """Collapse Markdown wrapping for phrase-level documentation assertions."""
-
     return " ".join(text.split())
 
 
 def test_streaming_guide_documents_contradiction_replacement() -> None:
+    """Retain the documented contradiction-halt replacement and recorded evidence figures."""
     doc = _normalise_whitespace(_read_doc("docs-site/guide/streaming.md"))
 
     assert "Contradiction halt replaces the old coherence callback" in doc
@@ -37,6 +36,7 @@ def test_streaming_guide_documents_contradiction_replacement() -> None:
 
 
 def test_market_docs_keep_unsupported_vs_contradiction_boundary() -> None:
+    """Keep public claims explicit about contradiction and absence-of-evidence limits."""
     market = _normalise_whitespace(
         _read_doc("docs-site/guide/market-value-and-positioning.md")
     )

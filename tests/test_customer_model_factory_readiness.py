@@ -1,10 +1,12 @@
 # SPDX-License-Identifier: Apache-2.0
 # Commercial license available
-# © Concepts 1996-2026 Miroslav Sotek. All rights reserved.
-# © Code 2020-2026 Miroslav Sotek. All rights reserved.
+# © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
+# © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI - Customer Model Factory readiness tests
+
+"""Check evidence file presence and readiness-report formatting."""
 
 from __future__ import annotations
 
@@ -16,7 +18,8 @@ from tools.verify_customer_model_factory_readiness import (
 )
 
 
-def test_readiness_fails_when_enterprise_evidence_is_missing(tmp_path: Path):
+def test_readiness_fails_when_enterprise_evidence_is_missing(tmp_path: Path) -> None:
+    """Report every missing evidence file and its blocking trust-debt ID."""
     result = evaluate_readiness(tmp_path)
 
     assert result.ready is False
@@ -24,7 +27,10 @@ def test_readiness_fails_when_enterprise_evidence_is_missing(tmp_path: Path):
     assert result.blocking_debt_ids == ("TRUST-DEBT-0002", "TRUST-DEBT-0003")
 
 
-def test_readiness_passes_when_required_enterprise_evidence_exists(tmp_path: Path):
+def test_readiness_passes_when_required_enterprise_evidence_exists(
+    tmp_path: Path,
+) -> None:
+    """Check the file-presence gate with the declared paths populated."""
     for item in REQUIRED_EVIDENCE:
         path = tmp_path / item.path
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -39,7 +45,8 @@ def test_readiness_passes_when_required_enterprise_evidence_exists(tmp_path: Pat
     assert result.blocking_debt_ids == ()
 
 
-def test_readiness_report_lists_control_ids_and_paths(tmp_path: Path):
+def test_readiness_report_lists_control_ids_and_paths(tmp_path: Path) -> None:
+    """Render present and missing control paths with an unready summary."""
     first = REQUIRED_EVIDENCE[0]
     path = tmp_path / first.path
     path.parent.mkdir(parents=True, exist_ok=True)

@@ -6,6 +6,8 @@
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI — conformal routing evidence tests
 
+"""Exercise existing conformal coverage, routing evidence and benchmark CLI outputs."""
+
 from __future__ import annotations
 
 import json
@@ -18,7 +20,6 @@ from benchmarks import conformal_routing_evidence as evidence
 
 def test_coverage_probe_meets_target_with_reliable_intervals() -> None:
     """Verify conformal calibration reaches the requested coverage target."""
-
     packet = evidence.run_coverage_probe(
         coverage=0.95,
         calibration_samples=40,
@@ -35,7 +36,6 @@ def test_coverage_probe_meets_target_with_reliable_intervals() -> None:
 
 def test_coverage_probe_validates_sample_counts() -> None:
     """Verify conformal coverage evidence rejects undersized samples."""
-
     for kwargs in (
         {"calibration_samples": 1, "validation_samples": 20},
         {"calibration_samples": 40, "validation_samples": 1},
@@ -50,7 +50,6 @@ def test_coverage_probe_validates_sample_counts() -> None:
 
 def test_routing_probe_reports_all_expected_operational_paths() -> None:
     """Verify conformal routing emits every production routing action."""
-
     packet = evidence.run_routing_probe(
         coverage=0.95,
         calibration_samples=40,
@@ -78,7 +77,6 @@ def test_conformal_routing_evidence_payload_has_acceptance_summary(
     monkeypatch: MonkeyPatch,
 ) -> None:
     """Verify the R10 packet records acceptance checks and release limits."""
-
     monkeypatch.setattr(evidence, "resolve_git_sha", lambda: "abc123")
 
     packet = evidence.run_conformal_routing_evidence(
@@ -111,7 +109,6 @@ def test_main_writes_requested_output_path(
     monkeypatch: MonkeyPatch,
 ) -> None:
     """Verify the R10 CLI writes the requested evidence artifact."""
-
     monkeypatch.setattr(evidence, "resolve_git_sha", lambda: "abc123")
     output = tmp_path / "conformal-routing.json"
 
@@ -135,10 +132,10 @@ def test_main_writes_requested_output_path(
 
 def test_main_uses_default_results_path(monkeypatch: MonkeyPatch) -> None:
     """Verify the R10 CLI saves to the default benchmark results path."""
-
     saved: list[str] = []
 
     def save_results(payload: object, filename: str) -> None:
+        """Capture the benchmark result filename supplied by the CLI."""
         saved.append(filename)
 
     monkeypatch.setattr(evidence, "save_results", save_results)

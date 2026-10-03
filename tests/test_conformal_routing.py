@@ -4,6 +4,7 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
+# DIRECTOR-AI — conformal routing contracts
 """Dedicated tests for conformal uncertainty routing."""
 
 from __future__ import annotations
@@ -27,6 +28,24 @@ def _interval(
     reliable: bool = True,
     calibration_size: int = 40,
 ) -> PredictionInterval:
+    """Construct the bounded prediction interval used by routing decisions.
+
+    Parameters
+    ----------
+    lower : float
+        Lower hallucination-risk bound.
+    upper : float
+        Upper hallucination-risk bound.
+    reliable : bool
+        Whether the interval is marked calibrated.
+    calibration_size : int
+        Number of calibration examples carried by the interval.
+
+    Returns
+    -------
+    PredictionInterval
+        Interval with midpoint estimate and the requested reliability evidence.
+    """
     return PredictionInterval(
         point_estimate=(lower + upper) / 2.0,
         lower=lower,
@@ -38,7 +57,10 @@ def _interval(
 
 
 class TestConformalRoutingPolicy:
+    """Check threshold validation and all public interval-routing actions."""
+
     def test_invalid_threshold_order_is_rejected(self) -> None:
+        """Reject an escalation threshold below the allowance threshold."""
         with pytest.raises(ValueError, match="allow_max_risk"):
             ConformalRoutingPolicy(
                 allow_max_risk=0.2,
@@ -47,10 +69,12 @@ class TestConformalRoutingPolicy:
             )
 
     def test_min_samples_must_be_positive(self) -> None:
+        """Reject a routing policy without a positive minimum sample count."""
         with pytest.raises(ValueError, match="min_samples"):
             ConformalRoutingPolicy(min_samples=0)
 
     def test_unreliable_interval_routes_to_human_review(self) -> None:
+        """Route an uncalibrated interval to human review with explicit evidence."""
         decision = ConformalRoutingPolicy().decide(
             _interval(lower=0.0, upper=0.01, reliable=False, calibration_size=0)
         )
@@ -60,6 +84,7 @@ class TestConformalRoutingPolicy:
         assert decision.route_to == "human_review"
 
     def test_policy_min_samples_overrides_interval_reliability(self) -> None:
+        """Require the policy sample count even when an interval claims reliability."""
         decision = ConformalRoutingPolicy(min_samples=50).decide(
             _interval(lower=0.0, upper=0.01, reliable=True, calibration_size=30)
         )
@@ -68,6 +93,7 @@ class TestConformalRoutingPolicy:
         assert decision.reason == "unreliable_calibration"
 
     def test_low_upper_bound_allows_current_path(self) -> None:
+        """Allow the current route when the upper risk bound stays below its limit."""
         decision = ConformalRoutingPolicy(allow_max_risk=0.05).decide(
             _interval(lower=0.0, upper=0.04)
         )
@@ -77,6 +103,7 @@ class TestConformalRoutingPolicy:
         assert decision.route_to == "current_path"
 
     def test_high_lower_bound_rejects(self) -> None:
+        """Reject an interval whose lower risk bound already exceeds the threshold."""
         decision = ConformalRoutingPolicy(reject_min_risk=0.7).decide(
             _interval(lower=0.72, upper=0.94)
         )
@@ -86,6 +113,7 @@ class TestConformalRoutingPolicy:
         assert decision.route_to == "reject"
 
     def test_high_upper_bound_escalates_to_stronger_model(self) -> None:
+        """Escalate when the upper risk bound reaches the configured stronger route."""
         decision = ConformalRoutingPolicy(escalate_min_risk=0.2).decide(
             _interval(lower=0.06, upper=0.21)
         )
@@ -95,6 +123,7 @@ class TestConformalRoutingPolicy:
         assert decision.route_to == "stronger_model"
 
     def test_ambiguous_mid_interval_routes_to_human_review(self) -> None:
+        """Request human review for a reliable interval between routing thresholds."""
         decision = ConformalRoutingPolicy(
             allow_max_risk=0.05,
             escalate_min_risk=0.2,
@@ -104,6 +133,7 @@ class TestConformalRoutingPolicy:
         assert decision.reason == "ambiguous_calibrated_interval"
 
     def test_decision_carries_interval_evidence(self) -> None:
+        """Preserve the original interval object, bounds and calibration count."""
         interval = _interval(lower=0.03, upper=0.2, calibration_size=64)
         decision = ConformalRoutingPolicy().decide(interval)
 
@@ -115,7 +145,10 @@ class TestConformalRoutingPolicy:
 
 
 class TestConformalPredictorRouting:
+    """Check routing through calibrated predictor entry points."""
+
     def test_predict_interval_returns_production_guard_tuple(self) -> None:
+        """Expose ordered unit-interval bounds through the public predictor tuple."""
         predictor = ConformalPredictor(coverage=0.9, min_samples=2)
         predictor.calibrate([0.95, 0.9], [False, False])
 
@@ -124,6 +157,7 @@ class TestConformalPredictorRouting:
         assert 0.0 <= lower <= upper <= 1.0
 
     def test_add_observation_updates_calibration_window(self) -> None:
+        """Make appended correct observations available to interval reliability."""
         predictor = ConformalPredictor(coverage=0.9, min_samples=2)
         predictor.add_observation(0.95, correct_label=True)
         predictor.add_observation(0.9, correct_label=True)
@@ -135,6 +169,7 @@ class TestConformalPredictorRouting:
         assert interval.upper < 0.2
 
     def test_predictor_route_uses_supplied_policy(self) -> None:
+        """Apply the supplied routing policy and preserve requested coverage."""
         predictor = ConformalPredictor(coverage=0.8, min_samples=3)
         predictor.calibrate([0.99, 0.98, 0.97], [False, False, False])
         policy = ConformalRoutingPolicy(allow_max_risk=0.05, min_samples=3)
@@ -146,6 +181,7 @@ class TestConformalPredictorRouting:
         assert decision.is_reliable
 
     def test_predictor_route_defaults_to_predictor_min_samples(self) -> None:
+        """Use the predictor sample threshold when no routing policy is supplied."""
         predictor = ConformalPredictor(coverage=0.8, min_samples=3)
         predictor.calibrate([0.4, 0.35, 0.3], [True, True, True])
 
@@ -156,9 +192,13 @@ class TestConformalPredictorRouting:
 
 
 class TestConformalRoutingExports:
+    """Check the top-level and core public routing exports."""
+
     def test_top_level_exports_include_routing_policy(self) -> None:
+        """Resolve top-level routing policy and decision exports to their implementations."""
         assert director_ai.ConformalRoutingPolicy is ConformalRoutingPolicy
         assert director_ai.ConformalRoutingDecision is ConformalRoutingDecision
 
     def test_core_exports_include_routing_policy(self) -> None:
+        """Resolve the core routing policy export to the public implementation."""
         assert CoreConformalRoutingPolicy is ConformalRoutingPolicy

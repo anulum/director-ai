@@ -1,10 +1,12 @@
 # SPDX-License-Identifier: Apache-2.0
 # Commercial license available
-# © Concepts 1996-2026 Miroslav Sotek. All rights reserved.
-# © Code 2020-2026 Miroslav Sotek. All rights reserved.
+# © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
+# © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI - Customer Model Factory training manifest tests
+
+"""Exercise training-plan validation and serialization without submitting training."""
 
 from __future__ import annotations
 
@@ -12,6 +14,7 @@ import json
 from pathlib import Path
 
 from director_ai.core.customer_model_factory.dataset_contract import (
+    CustomerDatasetValidationReport,
     CustomerWorkspace,
     validate_customer_trace_dataset,
 )
@@ -25,6 +28,13 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def _workspace() -> CustomerWorkspace:
+    """Build the shared isolated customer/tenant workspace for training plans.
+
+    Returns
+    -------
+    CustomerWorkspace
+        Customer/tenant workspace fixture.
+    """
     return CustomerWorkspace(
         customer_id="customer-alpha",
         workspace_id="customer-alpha-prod",
@@ -35,7 +45,21 @@ def _workspace() -> CustomerWorkspace:
     )
 
 
-def _row(trace_id: str, split: str) -> dict:
+def _row(trace_id: str, split: str) -> dict[str, object]:
+    """Build one labeled synthetic trace with the requested identifier and split.
+
+    Parameters
+    ----------
+    trace_id : str
+        Unique identifier for the synthetic trace.
+    split : str
+        Dataset split assigned to the synthetic trace.
+
+    Returns
+    -------
+    dict[str, object]
+        Synthetic trace data.
+    """
     return {
         "trace_id": trace_id,
         "customer_id": "customer-alpha",
@@ -67,7 +91,14 @@ def _row(trace_id: str, split: str) -> dict:
     }
 
 
-def _ready_report():
+def _ready_report() -> CustomerDatasetValidationReport:
+    """Validate distinct train/eval/test traces into a ready dataset report.
+
+    Returns
+    -------
+    CustomerDatasetValidationReport
+        Dataset report produced by the public validator.
+    """
     return validate_customer_trace_dataset(
         [
             _row("trace-001", "train"),
@@ -79,7 +110,10 @@ def _ready_report():
     )
 
 
-def test_training_manifest_is_ready_for_valid_dataset_and_immutable_base_model():
+def test_training_manifest_is_ready_for_valid_dataset_and_immutable_base_model() -> (
+    None
+):
+    """Build a Vertex plan bound to valid data and an immutable model revision."""
     report = _ready_report()
 
     manifest = build_training_manifest(
@@ -102,7 +136,8 @@ def test_training_manifest_is_ready_for_valid_dataset_and_immutable_base_model()
     assert len(manifest.manifest_hash) == 64
 
 
-def test_training_manifest_blocks_invalid_dataset_report():
+def test_training_manifest_blocks_invalid_dataset_report() -> None:
+    """Refuse a training plan whose dataset lacks required splits."""
     invalid_report = validate_customer_trace_dataset(
         [_row("trace-001", "train")],
         _workspace(),
@@ -124,7 +159,8 @@ def test_training_manifest_blocks_invalid_dataset_report():
     assert any(finding["code"] == "dataset_not_ready" for finding in manifest.findings)
 
 
-def test_training_manifest_requires_base_model_revision_or_managed_artifact():
+def test_training_manifest_requires_base_model_revision_or_managed_artifact() -> None:
+    """Refuse an unpinned external model identifier."""
     manifest = build_training_manifest(
         package_id="cmf-customer-alpha-unpinned",
         dataset_report=_ready_report(),
@@ -142,7 +178,8 @@ def test_training_manifest_requires_base_model_revision_or_managed_artifact():
     )
 
 
-def test_training_manifest_requires_lane_compatible_output_uri():
+def test_training_manifest_requires_lane_compatible_output_uri() -> None:
+    """Reject a local output URI for a managed execution lane."""
     manifest = build_training_manifest(
         package_id="cmf-customer-alpha-bad-output",
         dataset_report=_ready_report(),
@@ -160,7 +197,8 @@ def test_training_manifest_requires_lane_compatible_output_uri():
     )
 
 
-def test_training_manifest_reports_missing_package_base_hparams_and_objective():
+def test_training_manifest_reports_missing_package_base_hparams_and_objective() -> None:
+    """Report missing identifiers/settings and an unsupported objective profile."""
     manifest = build_training_manifest(
         package_id=" ",
         dataset_report=_ready_report(),
@@ -183,7 +221,8 @@ def test_training_manifest_reports_missing_package_base_hparams_and_objective():
     }
 
 
-def test_training_manifest_accepts_s3_output_for_customer_cloud_lane():
+def test_training_manifest_accepts_s3_output_for_customer_cloud_lane() -> None:
+    """Accept an S3 output URI in the customer-cloud planning lane."""
     manifest = build_training_manifest(
         package_id="cmf-customer-alpha-s3",
         dataset_report=_ready_report(),
@@ -199,7 +238,14 @@ def test_training_manifest_accepts_s3_output_for_customer_cloud_lane():
     assert manifest.requires_private_execution is True
 
 
-def test_training_manifest_serialises_and_writes_stable_json(tmp_path: Path):
+def test_training_manifest_serialises_and_writes_stable_json(tmp_path: Path) -> None:
+    """Write a stable customer-cloud plan preserving the managed artifact URI.
+
+    Parameters
+    ----------
+    tmp_path : Path
+        Isolated directory for generated test artifacts.
+    """
     manifest = build_training_manifest(
         package_id="cmf-customer-alpha-20260518",
         dataset_report=_ready_report(),
@@ -223,7 +269,8 @@ def test_training_manifest_serialises_and_writes_stable_json(tmp_path: Path):
     )
 
 
-def test_training_manifest_dataclass_can_roundtrip_from_dict():
+def test_training_manifest_dataclass_can_roundtrip_from_dict() -> None:
+    """Round-trip the on-prem training plan through public serialization."""
     manifest = build_training_manifest(
         package_id="cmf-customer-alpha-20260518",
         dataset_report=_ready_report(),
@@ -240,7 +287,8 @@ def test_training_manifest_dataclass_can_roundtrip_from_dict():
     assert restored == manifest
 
 
-def test_training_manifest_schema_is_machine_readable():
+def test_training_manifest_schema_is_machine_readable() -> None:
+    """Pin the training schema required fields and execution-lane enum."""
     schema_path = (
         ROOT / "schemas" / "customer-model-factory-training-manifest.schema.json"
     )
@@ -268,7 +316,8 @@ def test_training_manifest_schema_is_machine_readable():
     ]
 
 
-def test_training_manifest_local_lane_accepts_file_uri():
+def test_training_manifest_local_lane_accepts_file_uri() -> None:
+    """Accept a file output URI for a local-pilot training plan."""
     report = _ready_report()
     manifest = build_training_manifest(
         package_id="cmf-local-pilot",

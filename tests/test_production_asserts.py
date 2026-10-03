@@ -6,6 +6,8 @@
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI — Production assert hardening tests
 
+"""Check the absence of runtime assertions in the audited production modules."""
+
 from __future__ import annotations
 
 import ast
@@ -25,6 +27,7 @@ AUDITED_PRODUCTION_FILES = (
 
 
 def test_audited_production_files_do_not_use_runtime_asserts() -> None:
+    """Reject runtime assertions in the seven audited production source modules."""
     offenders: list[str] = []
     for relative_path in AUDITED_PRODUCTION_FILES:
         path = PROJECT_ROOT / relative_path

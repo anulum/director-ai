@@ -1,10 +1,16 @@
 # SPDX-License-Identifier: Apache-2.0
 # Commercial licence available
-# Concepts 1996-2026 Miroslav Sotek. All rights reserved.
-# Code 2020-2026 Miroslav Sotek. All rights reserved.
+# © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
+# © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI — Vertex container CUDA policy tests
+
+"""Check CUDA container declarations and exercise campaign scripts in dry-run mode.
+
+These tests inspect real repository inputs and generate local job metadata.
+They do not build containers, submit cloud jobs or run GPU model inference.
+"""
 
 from __future__ import annotations
 
@@ -69,6 +75,7 @@ def test_vertex_containers_install_hash_pinned_requirement_files() -> None:
 
 
 def test_vertex_benchmark_entrypoint_fails_fast_without_cuda() -> None:
+    """Keep the container entrypoint's explicit CUDA availability check."""
     text = (ROOT / "benchmarks" / "run_in_container.sh").read_text()
 
     assert "DIRECTOR_REQUIRE_CUDA" in text
@@ -77,6 +84,7 @@ def test_vertex_benchmark_entrypoint_fails_fast_without_cuda() -> None:
 
 
 def test_vertex_entrypoint_supports_model_package_campaign() -> None:
+    """Retain campaign selection, storage checks and upload-control wiring."""
     text = (ROOT / "benchmarks" / "run_in_container.sh").read_text()
 
     assert "DIRECTOR_MODEL_PACKAGE_CAMPAIGN" in text
@@ -87,6 +95,7 @@ def test_vertex_entrypoint_supports_model_package_campaign() -> None:
 
 
 def test_vertex_entrypoint_does_not_upload_package_campaign_twice() -> None:
+    """Keep the already-uploaded marker checked by the container entrypoint."""
     text = (ROOT / "benchmarks" / "run_in_container.sh").read_text()
 
     assert "DIRECTOR_OUTPUT_ALREADY_UPLOADED=1" in text
@@ -94,6 +103,7 @@ def test_vertex_entrypoint_does_not_upload_package_campaign_twice() -> None:
 
 
 def test_model_package_campaign_submitter_uses_large_disk_and_provenance() -> None:
+    """Verify declared disk minima and Git provenance in the submitter source."""
     text = (ROOT / "benchmarks" / "run_vertex_model_package_campaign.sh").read_text()
 
     assert "--dry-run" in text
@@ -111,6 +121,7 @@ def test_model_package_campaign_submitter_uses_large_disk_and_provenance() -> No
 def test_model_package_campaign_submitter_dry_run_writes_vertex_config(
     tmp_path: Path,
 ) -> None:
+    """Run the submitter locally and inspect its generated job configuration."""
     config_path = tmp_path / "custom-job.json"
 
     completed = subprocess.run(
@@ -147,6 +158,7 @@ def test_model_package_campaign_submitter_dry_run_writes_vertex_config(
 
 
 def test_local_model_package_campaign_runner_is_no_upload_by_default() -> None:
+    """Retain the local runner's explicit default and optional upload switches."""
     text = (ROOT / "benchmarks" / "run_model_package_campaign.sh").read_text()
 
     assert "benchmarks.model_package_campaign" in text
@@ -159,6 +171,7 @@ def test_local_model_package_campaign_runner_is_no_upload_by_default() -> None:
 
 
 def test_local_model_package_campaign_dry_run_prints_command(tmp_path: Path) -> None:
+    """Exercise the local dry-run command without launching model evaluation."""
     completed = subprocess.run(
         [
             "bash",
@@ -186,6 +199,7 @@ def test_local_model_package_campaign_dry_run_prints_command(tmp_path: Path) -> 
 def test_local_model_package_campaign_dry_run_accepts_upload_uri(
     tmp_path: Path,
 ) -> None:
+    """Expose an explicit upload destination in dry-run output without uploading."""
     upload_root = tmp_path / "uploaded"
     completed = subprocess.run(
         [

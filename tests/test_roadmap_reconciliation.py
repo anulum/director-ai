@@ -13,10 +13,23 @@ from pathlib import Path
 
 
 def _read(path: str) -> str:
+    """Read a UTF-8 repository file using the supplied relative path.
+
+    Parameters
+    ----------
+    path : str
+        Repository-relative file path under the current test checkout.
+
+    Returns
+    -------
+    str
+        Complete decoded file text.
+    """
     return Path(path).read_text(encoding="utf-8")
 
 
 def test_self_improving_guard_loop_roadmap_has_public_api_docs() -> None:
+    """Keep the completed human-reviewed guard design linked to its public API limits."""
     roadmap = _read("ROADMAP.md")
     api_doc = _read("docs-site/api/self-improving-guard-loop.md")
     mkdocs = _read("mkdocs.yml")
@@ -29,6 +42,7 @@ def test_self_improving_guard_loop_roadmap_has_public_api_docs() -> None:
 
 
 def test_roadmap_status_lists_only_current_open_actionable_items() -> None:
+    """Keep public operational items distinct from the internal forward-planning queue."""
     roadmap = _read("ROADMAP.md")
     status = _read("docs/ROADMAP_STATUS.md")
 
@@ -51,6 +65,7 @@ def test_roadmap_status_lists_only_current_open_actionable_items() -> None:
 
 
 def test_public_roadmap_has_single_unchecked_item_after_reconciliation() -> None:
+    """Retain the external streaming and tenant-isolation security review as open."""
     roadmap = _read("ROADMAP.md")
     unchecked = [line for line in roadmap.splitlines() if line.startswith("- [ ] ")]
 

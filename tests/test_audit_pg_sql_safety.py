@@ -32,17 +32,20 @@ from director_ai.enterprise.audit_pg import (
         "a" * 64,
     ],
 )
-def test_rejects_injection_shaped_table_identifiers_before_sql(identifier):
+def test_rejects_injection_shaped_table_identifiers_before_sql(identifier: str) -> None:
+    """Reject injection-shaped table names before connecting or issuing SQL."""
     with pytest.raises(ValueError, match="Invalid table_name"):
         PostgresAuditSink("sqlite:///:memory:", table_name=identifier)
 
 
-def test_quote_identifier_validates_before_quoting():
+def test_quote_identifier_validates_before_quoting() -> None:
+    """Reject invalid SQL identifiers before adding identifier quotes."""
     with pytest.raises(ValueError, match="Invalid identifier"):
         _quote_identifier("audit_logs; DROP TABLE audit_logs")
 
 
-def test_accepts_and_quotes_structural_identifier():
+def test_accepts_and_quotes_structural_identifier() -> None:
+    """Preserve an allowed structural name through validation and quoting."""
     assert _validate_identifier("_tenant_audit_2026", "table_name") == (
         "_tenant_audit_2026"
     )

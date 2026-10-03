@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: BUSL-1.1
 # Commercial license available
-# © Concepts 1996-2026 Miroslav Sotek. All rights reserved.
-# © Code 2020-2026 Miroslav Sotek. All rights reserved.
+# © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
+# © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI - Release-gate blocker policy module contracts
@@ -38,25 +38,33 @@ _COLLECTOR_NAMES = (
 
 
 class TestModulePlacement:
-    def test_collectors_are_defined_in_the_blockers_module(self):
+    """Pin collector ownership, export names and release-gate facade identity."""
+
+    def test_collectors_are_defined_in_the_blockers_module(self) -> None:
+        """Keep every collector defined in the dedicated blocker-policy module."""
         for name in _COLLECTOR_NAMES:
             func = getattr(gate_blockers_module, name)
             assert func.__module__ == gate_blockers_module.__name__
 
-    def test_module_exports_collectors_and_helpers(self):
+    def test_module_exports_collectors_and_helpers(self) -> None:
+        """Retain the complete collector and helper export set."""
         assert set(gate_blockers_module.__all__) == {
             *_COLLECTOR_NAMES,
             "_blocker",
             "_is_sha256",
         }
 
-    def test_release_gate_serves_the_same_collector_objects(self):
+    def test_release_gate_serves_the_same_collector_objects(self) -> None:
+        """Expose the original collectors through the release-gate facade."""
         for name in _COLLECTOR_NAMES:
             assert getattr(release_gate, name) is getattr(gate_blockers_module, name)
 
 
 class TestBlockerContracts:
-    def test_blocker_record_shape_and_blank_extra_dropped(self):
+    """Check blocker serialization, digest syntax and environment policy."""
+
+    def test_blocker_record_shape_and_blank_extra_dropped(self) -> None:
+        """Omit blank supplemental fields and retain nonempty debt identifiers."""
         record = gate_blockers_module._blocker("code_x", "message x", debt_ids="")
         assert record == {
             "code": "code_x",
@@ -68,12 +76,14 @@ class TestBlockerContracts:
         )
         assert with_extra["debt_ids"] == "a,b"
 
-    def test_sha256_guard_accepts_only_lowercase_hex_digests(self):
+    def test_sha256_guard_accepts_only_lowercase_hex_digests(self) -> None:
+        """Accept a lowercase digest and refuse uppercase or truncated input."""
         assert gate_blockers_module._is_sha256("a" * 64)
         assert not gate_blockers_module._is_sha256("A" * 64)
         assert not gate_blockers_module._is_sha256("a" * 63)
 
-    def test_environment_policy_flags_non_staging_production(self):
+    def test_environment_policy_flags_non_staging_production(self) -> None:
+        """Reject a laptop environment despite otherwise populated fixture fields."""
         evidence = release_gate.DeploymentHardeningEvidence(
             ready=True,
             environment="laptop",

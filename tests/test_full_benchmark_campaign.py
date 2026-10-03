@@ -6,12 +6,17 @@
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI — full benchmark campaign tests
 
+"""Check campaign report rendering and an injected strict failure."""
+
 from __future__ import annotations
+
+import pytest
 
 from benchmarks import full_benchmark_campaign as campaign
 
 
 def test_render_markdown_has_table_and_summary() -> None:
+    """Render a fixed campaign record with its case row and passing summary."""
     payload = {
         "generated_utc": "2026-05-22T00:00:00+00:00",
         "git_commit": "abc",
@@ -34,7 +39,8 @@ def test_render_markdown_has_table_and_summary() -> None:
     assert "Passed: **1/1**" in md
 
 
-def test_run_campaign_strict_exit(monkeypatch) -> None:
+def test_run_campaign_strict_exit(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Return a failing strict status for an injected failed campaign case."""
     fake = campaign.CaseResult(
         name="x",
         category="y",

@@ -1,10 +1,12 @@
 # SPDX-License-Identifier: Apache-2.0
 # Commercial license available
-# © Concepts 1996-2026 Miroslav Sotek. All rights reserved.
-# © Code 2020-2026 Miroslav Sotek. All rights reserved.
+# © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
+# © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI - Customer Model Factory end-to-end fixture tests
+
+"""Exercise deterministic synthetic artifact assembly and docs-freeze exit codes."""
 
 from __future__ import annotations
 
@@ -43,7 +45,14 @@ EXPECTED_MANIFESTS = {
 }
 
 
-def test_e2e_fixture_generator_writes_all_release_artifacts(tmp_path: Path):
+def test_e2e_fixture_generator_writes_all_release_artifacts(tmp_path: Path) -> None:
+    """Generate all 22 synthetic manifests and retain their release hash bindings.
+
+    Parameters
+    ----------
+    tmp_path : Path
+        Isolated directory for generated test artifacts.
+    """
     output_dir = tmp_path / "fixture"
 
     exit_code = fixture_main(["--output-dir", str(output_dir)])
@@ -83,7 +92,14 @@ def test_e2e_fixture_generator_writes_all_release_artifacts(tmp_path: Path):
     assert release_gate["tenant_id"] == "customer-alpha-tenant"
 
 
-def test_e2e_fixture_generator_is_deterministic(tmp_path: Path):
+def test_e2e_fixture_generator_is_deterministic(tmp_path: Path) -> None:
+    """Generate two isolated fixture trees with byte-identical manifests.
+
+    Parameters
+    ----------
+    tmp_path : Path
+        Isolated directory for generated test artifacts.
+    """
     first_dir = tmp_path / "first"
     second_dir = tmp_path / "second"
 
@@ -96,13 +112,21 @@ def test_e2e_fixture_generator_is_deterministic(tmp_path: Path):
         ).read_text(encoding="utf-8")
 
 
-def test_docs_freeze_verifier_accepts_current_customer_model_factory_surface():
+def test_docs_freeze_verifier_accepts_current_customer_model_factory_surface() -> None:
+    """Accept the canonical documented factory surface through the verifier CLI."""
     exit_code = freeze_main(["--root", str(ROOT)])
 
     assert exit_code == 0
 
 
-def test_docs_freeze_verifier_reports_missing_required_surface(tmp_path: Path):
+def test_docs_freeze_verifier_reports_missing_required_surface(tmp_path: Path) -> None:
+    """Return a failing verifier exit for an incomplete public artifact tree.
+
+    Parameters
+    ----------
+    tmp_path : Path
+        Isolated directory for generated test artifacts.
+    """
     root = tmp_path / "repo"
     root.mkdir()
     (root / "README.md").write_text("Customer Model Factory\n", encoding="utf-8")

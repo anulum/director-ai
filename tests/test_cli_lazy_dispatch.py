@@ -6,12 +6,21 @@
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI — CLI lazy pro-tier dispatch tests (ladder P2)
 
+"""Retain the existing lazy CLI dispatch controls and real handler resolution.
+
+The missing-import case uses its original monkeypatch; these guards do not
+qualify a complete paid-command workflow or external service integration.
+"""
+
 from __future__ import annotations
+
+from typing import NoReturn
 
 import pytest
 
 
 def test_lazy_handler_resolves_and_runs_paid_subcommand() -> None:
+    """Resolve the real validation handler and retain its empty-argument usage exit."""
     import director_ai.cli as cli
 
     handler = cli._lazy_handler("._cli_bench", "_cmd_validate_data")
@@ -23,9 +32,24 @@ def test_lazy_handler_resolves_and_runs_paid_subcommand() -> None:
 def test_lazy_handler_missing_module_exits_with_tier_message(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """Retain the legacy missing-module control and its advanced-tier message."""
     import director_ai.cli as cli
 
-    def _boom(name: str, package: str | None = None) -> None:
+    def _boom(name: str, package: str | None = None) -> NoReturn:
+        """Raise the missing-module error used by the existing import-boundary control.
+
+        Parameters
+        ----------
+        name : str
+            Requested import name included in the raised error.
+        package : str or None, optional
+            Relative-import context accepted to preserve the import-call signature.
+
+        Raises
+        ------
+        ModuleNotFoundError
+            Always, to exercise the documented missing-tier diagnostic.
+        """
         raise ModuleNotFoundError(name)
 
     monkeypatch.setattr(cli, "import_module", _boom)
@@ -35,12 +59,14 @@ def test_lazy_handler_missing_module_exits_with_tier_message(
 
 
 def test_module_getattr_resolves_ingest_limit_lazily() -> None:
+    """Resolve the real CLI's existing positive ingestion-size limit."""
     import director_ai.cli as cli
 
     assert cli._INGEST_MAX_FILE_SIZE > 0
 
 
 def test_module_getattr_unknown_name_raises_attribute_error() -> None:
+    """Reject an unknown dynamic CLI attribute through Python attribute lookup."""
     import director_ai.cli as cli
 
     with pytest.raises(AttributeError, match="has no attribute 'NoSuchThing'"):

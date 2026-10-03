@@ -6,6 +6,8 @@
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-AI — executable repository contract
 
+"""Check declared solver extras and the executable optional-dependency CI matrix."""
+
 from __future__ import annotations
 
 import tomllib
@@ -41,6 +43,7 @@ def _ci_extras_matrix() -> set[str]:
 
 
 def test_optional_dependencies_expose_formal_solver_extra() -> None:
+    """Declare the formal solver extra with its actual Z3 dependency."""
     extras = _extras()
 
     assert "formal" in extras
@@ -48,6 +51,7 @@ def test_optional_dependencies_expose_formal_solver_extra() -> None:
 
 
 def test_ci_extras_matrix_covers_heavy_optional_science_lanes() -> None:
+    """Include each maintained heavy optional-dependency lane in the real CI matrix."""
     matrix = _ci_extras_matrix()
 
     required = {

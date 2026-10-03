@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 # Commercial license available
-# © Concepts 1996-2026 Miroslav Sotek. All rights reserved.
-# © Code 2020-2026 Miroslav Sotek. All rights reserved.
+# © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
+# © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI - Customer Model Factory end-to-end fixture generator
@@ -64,8 +64,18 @@ GENERATED_AT = "2026-05-18T18:45:00Z"
 
 
 def main(argv: list[str] | None = None) -> int:
-    """Run the deterministic fixture generator."""
+    """Write deterministic synthetic manifests to the requested local directory.
 
+    Parameters
+    ----------
+    argv : list[str] or None
+        CLI arguments; None reads the process argument vector.
+
+    Returns
+    -------
+    int
+        Zero after writing all generated manifest files.
+    """
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output-dir", type=Path, required=True)
     args = parser.parse_args(argv)
@@ -80,7 +90,18 @@ def main(argv: list[str] | None = None) -> int:
     return 0
 
 
-def _build_manifests() -> dict[str, dict]:
+def _build_manifests() -> dict[str, dict[str, object]]:
+    """Compose the 22 local factory fixtures with consistent artifact bindings.
+
+    All benchmark metrics, observation windows, evidence URIs and sign-off flags
+    are synthetic fixture values; the result does not establish an actual model
+    benchmark, deployment or operator admission.
+
+    Returns
+    -------
+    dict[str, dict[str, object]]
+        Filenames mapped to the corresponding JSON-serializable fixture records.
+    """
     workspace = CustomerWorkspace(
         customer_id="customer-alpha",
         workspace_id="customer-alpha-prod",
@@ -395,6 +416,20 @@ def _build_manifests() -> dict[str, dict]:
 
 
 def _row(trace_id: str, split: str) -> dict[str, object]:
+    """Build one synthetic labeled trace for the deterministic fixture dataset.
+
+    Parameters
+    ----------
+    trace_id : str
+        Unique identifier assigned to the trace.
+    split : str
+        Training, evaluation or test split assigned to the trace.
+
+    Returns
+    -------
+    dict[str, object]
+        Trace data with customer/tenant bindings and sector evidence controls.
+    """
     return {
         "trace_id": trace_id,
         "customer_id": "customer-alpha",

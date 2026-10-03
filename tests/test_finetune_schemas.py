@@ -20,7 +20,8 @@ import director_ai._finetune_schemas as schemas_module
 import director_ai.finetune_api as finetune_api_module
 
 
-def test_module_import_without_pydantic_defines_no_models():
+def test_module_import_without_pydantic_defines_no_models() -> None:
+    """Import a separate schema module without Pydantic and expose no models."""
     spec = importlib.util.spec_from_file_location(
         "director_ai._finetune_schemas_no_pydantic",
         schemas_module.__file__,
@@ -41,12 +42,14 @@ pytestmark = pytest.mark.skipif(
 )
 
 
-def test_facade_reexports_schema_classes():
+def test_facade_reexports_schema_classes() -> None:
+    """Keep the fine-tuning facade bound to the original schema classes."""
     for name in ("ValidateRequest", "StartRequest", "JobStatus", "ModelInfo"):
         assert getattr(finetune_api_module, name) is getattr(schemas_module, name)
 
 
-def test_validate_request_defaults_and_bounds():
+def test_validate_request_defaults_and_bounds() -> None:
+    """Retain upload-validation defaults and reject out-of-range batch settings."""
     req = schemas_module.ValidateRequest()
     assert (req.epochs, req.batch_size) == (3, 16)
     with pytest.raises(ValueError):
@@ -55,7 +58,8 @@ def test_validate_request_defaults_and_bounds():
         schemas_module.ValidateRequest(batch_size=129)
 
 
-def test_start_request_defaults_pin_the_local_training_contract():
+def test_start_request_defaults_pin_the_local_training_contract() -> None:
+    """Pin local training defaults and reject excessive general-data mixing."""
     req = schemas_module.StartRequest()
     assert req.base_model == "factcg-deberta-v3-large"
     assert req.allow_experimental_model is False
@@ -66,23 +70,39 @@ def test_start_request_defaults_pin_the_local_training_contract():
         schemas_module.StartRequest(general_data_ratio=0.6)
 
 
-def test_managed_lookup_request_requires_job_id():
+def test_managed_lookup_request_requires_job_id() -> None:
+    """Require a nonempty managed job identifier and preserve backend defaults."""
     with pytest.raises(ValueError):
         schemas_module.ManagedTrainingLookupRequest(job_id="")
     req = schemas_module.ManagedTrainingLookupRequest(job_id="job-1")
     assert (req.backend, req.job_id) == ("vertex", "job-1")
 
 
-def test_managed_training_request_bounds():
+def test_managed_training_request_bounds() -> None:
+    """Validate managed request defaults and limits without submitting a job."""
     kwargs = {
         "dataset_uri": "gs://bucket/data.jsonl",
         "output_uri": "gs://bucket/out",
         "container_image_uri": "gcr.io/x/y:z",
     }
-    req = schemas_module.ManagedTrainingRequest(**kwargs)
+    req = schemas_module.ManagedTrainingRequest(
+        dataset_uri=kwargs["dataset_uri"],
+        output_uri=kwargs["output_uri"],
+        container_image_uri=kwargs["container_image_uri"],
+    )
     assert req.dry_run is True
     assert req.region == "us-central1"
     with pytest.raises(ValueError):
-        schemas_module.ManagedTrainingRequest(**kwargs, accelerator_count=9)
+        schemas_module.ManagedTrainingRequest(
+            dataset_uri=kwargs["dataset_uri"],
+            output_uri=kwargs["output_uri"],
+            container_image_uri=kwargs["container_image_uri"],
+            accelerator_count=9,
+        )
     with pytest.raises(ValueError):
-        schemas_module.ManagedTrainingRequest(**kwargs, timeout_minutes=0)
+        schemas_module.ManagedTrainingRequest(
+            dataset_uri=kwargs["dataset_uri"],
+            output_uri=kwargs["output_uri"],
+            container_image_uri=kwargs["container_image_uri"],
+            timeout_minutes=0,
+        )

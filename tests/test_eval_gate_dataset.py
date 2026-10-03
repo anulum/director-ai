@@ -29,12 +29,20 @@ _DATASET = Path(__file__).resolve().parents[1] / "benchmarks" / "eval_gate_cases
 
 
 @pytest.fixture(autouse=True)
-def _offline(monkeypatch):
+def _offline(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Keep model-library downloads disabled throughout each eval-gate test.
+
+    Parameters
+    ----------
+    monkeypatch : pytest.MonkeyPatch
+        Fixture that restores the two offline environment flags after the test.
+    """
     monkeypatch.setenv("HF_HUB_OFFLINE", "1")
     monkeypatch.setenv("TRANSFORMERS_OFFLINE", "1")
 
 
-def test_dataset_loads_and_is_balanced():
+def test_dataset_loads_and_is_balanced() -> None:
+    """Load the committed cases and require both expected classes in balance."""
     cases = load_cases(_DATASET)
     assert len(cases) >= 8
     approve = [c for c in cases if c.expected == "approve"]
@@ -43,7 +51,8 @@ def test_dataset_loads_and_is_balanced():
     assert abs(len(approve) - len(reject)) <= 1  # roughly balanced
 
 
-def test_rules_profile_gate_passes_workflow_thresholds():
+def test_rules_profile_gate_passes_workflow_thresholds() -> None:
+    """Exercise the public rules scorer and gate with the workflow thresholds."""
     cases = load_cases(_DATASET)
     scorer = DirectorConfig.from_profile("rules").build_scorer()
     report = run_eval_gate(

@@ -4,7 +4,7 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI — Probability Calibration
+# Director-AI — Probability Calibration
 
 """Post-hoc probability calibration for the coherence score.
 
@@ -34,16 +34,35 @@ re-loaded without re-fitting.
 from __future__ import annotations
 
 import math
-from collections.abc import Sequence
 from dataclasses import dataclass
 
 import numpy as np
+from numpy.typing import ArrayLike, NDArray
 
 
 def _as_prob_label_arrays(
-    probabilities: Sequence[float], labels: Sequence[int | bool]
-) -> tuple[np.ndarray, np.ndarray]:
-    """Validate and coerce inputs to aligned float/binary arrays."""
+    probabilities: ArrayLike, labels: ArrayLike
+) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
+    """Coerce and validate aligned one-dimensional probability and binary-label arrays.
+
+    Parameters
+    ----------
+    probabilities : array_like
+        Finite probabilities in the closed unit interval.
+    labels : array_like
+        Binary outcomes zero and one, or their Boolean equivalents.
+
+    Returns
+    -------
+    tuple of ndarray of float64
+        Aligned probability and label arrays after validation.
+
+    Raises
+    ------
+    ValueError
+        If inputs differ in shape, are empty or not one-dimensional, contain
+        invalid probabilities, or contain nonbinary labels.
+    """
     probs = np.asarray(probabilities, dtype=np.float64)
     ys = np.asarray(labels, dtype=np.float64)
     if probs.shape != ys.shape:
@@ -61,11 +80,18 @@ def _as_prob_label_arrays(
     return probs, ys
 
 
-def _sigmoid(z: np.ndarray) -> np.ndarray:
-    """Numerically stable ``1 / (1 + exp(z))`` (evaluates ``exp`` on one side).
+def _sigmoid(z: NDArray[np.float64]) -> NDArray[np.float64]:
+    """Evaluate the inverse logistic function without positive exponential arguments.
 
-    The naive form overflows for large positive *z*; splitting on the sign
-    keeps every ``exp`` argument non-positive so no overflow or NaN can enter.
+    Parameters
+    ----------
+    z : ndarray of float64
+        Signed logits for the map one divided by one plus exp(z).
+
+    Returns
+    -------
+    ndarray of float64
+        Probabilities computed with a numerically stable branch for each sign.
     """
     out = np.empty_like(z, dtype=np.float64)
     pos = z >= 0.0
@@ -77,16 +103,32 @@ def _sigmoid(z: np.ndarray) -> np.ndarray:
 
 
 def reliability_bins(
-    probabilities: Sequence[float],
-    labels: Sequence[int | bool],
+    probabilities: ArrayLike,
+    labels: ArrayLike,
     *,
     n_bins: int = 10,
 ) -> list[tuple[float, float, int]]:
-    """Return ``(mean_confidence, empirical_accuracy, count)`` per occupied bin.
+    """Return mean confidence, empirical accuracy and count for each occupied bin.
 
-    Probabilities are grouped into *n_bins* equal-width bins over ``[0, 1]``;
-    the top bin is closed on the right so ``p == 1.0`` lands in the last bin.
-    Empty bins are omitted.
+    Parameters
+    ----------
+    probabilities : array_like
+        Finite one-dimensional probabilities in the closed unit interval.
+    labels : array_like
+        Aligned binary outcomes zero and one, or Boolean equivalents.
+    n_bins : int, optional
+        Positive number of equal-width bins over the unit interval.
+
+    Returns
+    -------
+    list of tuple
+        Mean confidence, empirical accuracy and sample count for each occupied
+        bin. Empty bins are omitted and probability one belongs to the last bin.
+
+    Raises
+    ------
+    ValueError
+        If n_bins is below one or the probability and label inputs are invalid.
     """
     if n_bins < 1:
         raise ValueError("n_bins must be >= 1")
@@ -105,17 +147,32 @@ def reliability_bins(
 
 
 def expected_calibration_error(
-    probabilities: Sequence[float],
-    labels: Sequence[int | bool],
+    probabilities: ArrayLike,
+    labels: ArrayLike,
     *,
     n_bins: int = 10,
 ) -> float:
-    """Return the sample-weighted mean confidence-accuracy gap over bins.
+    """Return the sample-weighted confidence-accuracy gap over reliability bins.
 
-    The Expected Calibration Error is
-    ``sum_b (n_b / N) * |accuracy_b - confidence_b|``. Zero means every bin's
-    predicted confidence matches its observed accuracy; the score lies in
-    ``[0, 1]`` and is lower-is-better.
+    Parameters
+    ----------
+    probabilities : array_like
+        Finite one-dimensional probabilities in the closed unit interval.
+    labels : array_like
+        Aligned binary outcomes zero and one, or Boolean equivalents.
+    n_bins : int, optional
+        Positive number of equal-width reliability bins.
+
+    Returns
+    -------
+    float
+        Sum of each bin's absolute confidence-accuracy gap weighted by its
+        fraction of the samples. Zero denotes agreement in every occupied bin.
+
+    Raises
+    ------
+    ValueError
+        If the inputs or the requested bin count are invalid.
     """
     probs, _ys = _as_prob_label_arrays(probabilities, labels)
     total = probs.size
@@ -127,8 +184,26 @@ def expected_calibration_error(
     return ece
 
 
-def brier_score(probabilities: Sequence[float], labels: Sequence[int | bool]) -> float:
-    """Mean squared error between probability and outcome (lower is better)."""
+def brier_score(probabilities: ArrayLike, labels: ArrayLike) -> float:
+    """Return mean squared error between predicted probabilities and binary outcomes.
+
+    Parameters
+    ----------
+    probabilities : array_like
+        Finite one-dimensional probabilities in the closed unit interval.
+    labels : array_like
+        Aligned binary outcomes zero and one, or Boolean equivalents.
+
+    Returns
+    -------
+    float
+        Mean squared probability error; lower values indicate smaller error.
+
+    Raises
+    ------
+    ValueError
+        If probability and label inputs fail the common validation guards.
+    """
     probs, ys = _as_prob_label_arrays(probabilities, labels)
     return float(np.mean((probs - ys) ** 2))
 
@@ -146,14 +221,26 @@ class IsotonicCalibrator:
     y_values: tuple[float, ...]
 
     @classmethod
-    def fit(
-        cls, scores: Sequence[float], labels: Sequence[int | bool]
-    ) -> IsotonicCalibrator:
-        """Fit a monotone map from *scores* to the binary *labels* by PAV.
+    def fit(cls, scores: ArrayLike, labels: ArrayLike) -> IsotonicCalibrator:
+        """Fit a monotone map by pooling adjacent violations in score-sorted labels.
 
-        Points are sorted by score; ties are averaged; the pool-adjacent-
-        violators algorithm produces the least-squares monotone fit, which is
-        then thinned to the distinct breakpoints.
+        Parameters
+        ----------
+        scores : array_like
+            Finite one-dimensional coherence scores in the unit interval.
+        labels : array_like
+            Aligned binary outcomes zero and one, or Boolean equivalents.
+
+        Returns
+        -------
+        IsotonicCalibrator
+            Frozen fitted knots. Equal scores are averaged before pooling,
+            and fitted levels are expanded back over the distinct scores.
+
+        Raises
+        ------
+        ValueError
+            If score and label inputs fail the common validation guards.
         """
         xs, ys = _as_prob_label_arrays(scores, labels)
         order = np.argsort(xs, kind="mergesort")
@@ -175,8 +262,27 @@ class IsotonicCalibrator:
             y_values=tuple(float(v) for v in fitted),
         )
 
-    def transform(self, scores: Sequence[float]) -> list[float]:
-        """Map raw *scores* to calibrated probabilities by linear interpolation."""
+    def transform(self, scores: ArrayLike) -> list[float]:
+        """Interpolate fitted probabilities and clamp outside the stored knot range.
+
+        Parameters
+        ----------
+        scores : array_like
+            Finite one-dimensional raw scores at which to evaluate the fitted knots.
+
+        Returns
+        -------
+        list of float
+            Interpolated probabilities in the input order.
+
+        Raises
+        ------
+        ValueError
+            If scores cannot be converted to float64 or contain a nonfinite value.
+        TypeError
+            If scalar input is not iterable or an input or output element cannot
+            be converted to a scalar float.
+        """
         xs = np.asarray(scores, dtype=np.float64)
         if not np.all(np.isfinite(xs)):
             raise ValueError("scores must be finite")
@@ -186,8 +292,23 @@ class IsotonicCalibrator:
         return [float(v) for v in calibrated]
 
 
-def _pool_adjacent_violators(values: np.ndarray, weights: np.ndarray) -> np.ndarray:
-    """Least-squares isotonic (non-decreasing) fit via pool-adjacent-violators."""
+def _pool_adjacent_violators(
+    values: NDArray[np.float64], weights: NDArray[np.float64]
+) -> NDArray[np.float64]:
+    """Pool weighted adjacent violations into nondecreasing fitted levels.
+
+    Parameters
+    ----------
+    values : ndarray of float64
+        Score-ordered empirical label means.
+    weights : ndarray of float64
+        Sample counts associated with each empirical mean.
+
+    Returns
+    -------
+    ndarray of float64
+        Weighted pooled levels expanded to the original number of means.
+    """
     level_values = list(values.astype(np.float64))
     level_weights = list(weights.astype(np.float64))
     level_sizes = [1] * len(level_values)
@@ -236,19 +357,38 @@ class PlattCalibrator:
     @classmethod
     def fit(
         cls,
-        scores: Sequence[float],
-        labels: Sequence[int | bool],
+        scores: ArrayLike,
+        labels: ArrayLike,
         *,
         max_iter: int = 100,
         min_step: float = 1e-10,
         sigma: float = 1e-12,
     ) -> PlattCalibrator:
-        """Fit the sigmoid parameters to *scores* and binary *labels*.
+        """Fit sigmoid parameters using regularized targets and Newton line search.
 
-        Follows Lin, Lin & Weng (2007) Algorithm 3: regularised targets, the
-        negative-log-likelihood objective, a Newton direction with Hessian
-        stabilisation *sigma*, and a backtracking line search so the fit stays
-        finite even on (near-)separable data instead of diverging.
+        Parameters
+        ----------
+        scores : array_like
+            Finite one-dimensional coherence scores in the unit interval.
+        labels : array_like
+            Aligned binary outcomes zero and one, or Boolean equivalents.
+        max_iter : int, optional
+            Maximum number of Newton updates.
+        min_step : float, optional
+            Smallest backtracking step attempted before accepting convergence.
+        sigma : float, optional
+            Positive Hessian diagonal stabilization term.
+
+        Returns
+        -------
+        PlattCalibrator
+            Frozen slope and intercept fitted with smoothed binary targets.
+            Backtracking uses the negative log likelihood to retain finite fits.
+
+        Raises
+        ------
+        ValueError
+            If score and label inputs fail the common validation guards.
         """
         xs, ys = _as_prob_label_arrays(scores, labels)
         prior1 = float(ys.sum())
@@ -261,6 +401,18 @@ class PlattCalibrator:
         b = math.log((prior0 + 1.0) / (prior1 + 1.0))
 
         def nll(a_: float, b_: float) -> float:
+            """Evaluate stable negative log likelihood under the smoothed binary targets.
+
+            Parameters
+            ----------
+            a_, b_ : float
+                Proposed sigmoid slope and intercept.
+
+            Returns
+            -------
+            float
+                Summed negative log likelihood for the proposed parameters.
+            """
             fapb = a_ * xs + b_
             # log(1 + exp(fApB)) computed stably on both signs of fApB.
             log1p_exp = np.where(
@@ -302,8 +454,27 @@ class PlattCalibrator:
                 break
         return cls(a=float(a), b=float(b))
 
-    def transform(self, scores: Sequence[float]) -> list[float]:
-        """Map raw *scores* to calibrated probabilities through the sigmoid."""
+    def transform(self, scores: ArrayLike) -> list[float]:
+        """Map finite scores to probabilities through the fitted stable sigmoid.
+
+        Parameters
+        ----------
+        scores : array_like
+            Finite one-dimensional raw scores at which to evaluate the sigmoid.
+
+        Returns
+        -------
+        list of float
+            Fitted probabilities in the input order.
+
+        Raises
+        ------
+        ValueError
+            If scores cannot be converted to float64 or contain a nonfinite value.
+        TypeError
+            If scalar input is not iterable or an input or output element cannot
+            be converted to a scalar float.
+        """
         xs = np.asarray(scores, dtype=np.float64)
         if not np.all(np.isfinite(xs)):
             raise ValueError("scores must be finite")

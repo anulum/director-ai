@@ -13,6 +13,7 @@ from pathlib import Path
 
 
 def test_experimental_hooks_document_isolation_and_human_review() -> None:
+    """Require declared experimental hooks and deployment-review boundaries."""
     guide = Path("docs-site/deployment/production.md").read_text(encoding="utf-8")
     required_terms = (
         "meta_guard",

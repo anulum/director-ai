@@ -1,10 +1,12 @@
 # SPDX-License-Identifier: Apache-2.0
 # Commercial license available
-# © Concepts 1996-2026 Miroslav Sotek. All rights reserved.
-# © Code 2020-2026 Miroslav Sotek. All rights reserved.
+# © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
+# © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI - Customer Model Factory risk register tests
+
+"""Exercise dated risk checks, artifact binding and risk-record serialization."""
 
 from __future__ import annotations
 
@@ -28,6 +30,13 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def _evidence_pack() -> CustomerEvidencePackManifest:
+    """Build the populated evidence-pack fixture used by risk checks.
+
+    Returns
+    -------
+    CustomerEvidencePackManifest
+        Evidence-pack fixture.
+    """
     return CustomerEvidencePackManifest(
         schema_version="1.0.0",
         package_id="evidence-customer-alpha-20260518",
@@ -49,6 +58,13 @@ def _evidence_pack() -> CustomerEvidencePackManifest:
 
 
 def _monitoring_manifest() -> CustomerMonitoringManifest:
+    """Build linked monitoring evidence with within-control synthetic metrics.
+
+    Returns
+    -------
+    CustomerMonitoringManifest
+        Monitoring fixture bound to the evidence hash.
+    """
     return CustomerMonitoringManifest(
         schema_version="1.0.0",
         monitoring_id="monitor-customer-alpha-20260518",
@@ -93,26 +109,67 @@ def _monitoring_manifest() -> CustomerMonitoringManifest:
     )
 
 
-def _risk(**overrides: object) -> CustomerRiskException:
-    payload = {
-        "risk_id": "risk-customer-alpha-001",
-        "status": "accepted",
-        "severity": "medium",
-        "owner": "customer-alpha-risk-owner",
-        "accepted_at": "2026-05-18",
-        "expires_at": "2026-06-18",
-        "compensating_controls": ("manual review of escalated cases",),
-        "linked_artifact_hashes": {
-            "evidence_hash": "a" * 64,
-            "monitoring_hash": "d" * 64,
-        },
-        "rationale": "Temporary acceptance during customer pilot.",
-    }
-    payload.update(overrides)
-    return CustomerRiskException(**payload)
+def _risk(
+    *,
+    risk_id: str = "risk-customer-alpha-001",
+    status: str = "accepted",
+    severity: str = "medium",
+    owner: str = "customer-alpha-risk-owner",
+    accepted_at: str = "2026-05-18",
+    expires_at: str = "2026-06-18",
+    compensating_controls: tuple[str, ...] = ("manual review of escalated cases",),
+    linked_artifact_hashes: dict[str, str] | None = None,
+    rationale: str = "Temporary acceptance during customer pilot.",
+) -> CustomerRiskException:
+    """Build a dated synthetic risk fixture with typed field overrides.
+
+    Parameters
+    ----------
+    risk_id : str
+        Identifier carried by the fixture.
+    status : str
+        Risk status, including deliberately unsupported negative-case values.
+    severity : str
+        Severity label carried by the fixture.
+    owner : str
+        Owner label, or blank for the missing-owner case.
+    accepted_at : str
+        Simulated acceptance date.
+    expires_at : str
+        Simulated expiry date, or blank for the missing-expiry case.
+    compensating_controls : tuple[str, ...]
+        Control descriptions, or an empty tuple for the negative case.
+    linked_artifact_hashes : dict[str, str] or None
+        Supplied artifact links; None uses the original linked-fixture hashes.
+    rationale : str
+        Explanation carried by the fixture.
+
+    Returns
+    -------
+    CustomerRiskException
+        Risk record constructed with the specified values.
+    """
+    return CustomerRiskException(
+        risk_id=risk_id,
+        status=status,
+        severity=severity,
+        owner=owner,
+        accepted_at=accepted_at,
+        expires_at=expires_at,
+        compensating_controls=compensating_controls,
+        linked_artifact_hashes=(
+            {"evidence_hash": "a" * 64, "monitoring_hash": "d" * 64}
+            if linked_artifact_hashes is None
+            else linked_artifact_hashes
+        ),
+        rationale=rationale,
+    )
 
 
-def test_risk_register_ready_when_accepted_risks_have_owner_expiry_and_controls():
+def test_risk_register_ready_when_accepted_risks_have_owner_expiry_and_controls() -> (
+    None
+):
+    """Accept a dated risk with an owner, controls and matching artifact hashes."""
     register = build_risk_register(
         register_id="risk_register_customer_alpha-20260518",
         evidence_pack=_evidence_pack(),
@@ -128,7 +185,8 @@ def test_risk_register_ready_when_accepted_risks_have_owner_expiry_and_controls(
     assert len(register.register_hash) == 64
 
 
-def test_risk_register_blocks_expired_accepted_risks():
+def test_risk_register_blocks_expired_accepted_risks() -> None:
+    """Block an accepted risk whose expiry precedes the supplied generation date."""
     register = build_risk_register(
         register_id="risk_register_customer_alpha-expired",
         evidence_pack=_evidence_pack(),
@@ -143,7 +201,8 @@ def test_risk_register_blocks_expired_accepted_risks():
     )
 
 
-def test_risk_register_blocks_missing_owner_or_controls():
+def test_risk_register_blocks_missing_owner_or_controls() -> None:
+    """Report missing owner and compensating controls for an accepted risk."""
     register = build_risk_register(
         register_id="risk_register_customer_alpha-incomplete",
         evidence_pack=_evidence_pack(),
@@ -159,7 +218,8 @@ def test_risk_register_blocks_missing_owner_or_controls():
     }
 
 
-def test_risk_register_blocks_unlinked_or_mismatched_artifact_hashes():
+def test_risk_register_blocks_unlinked_or_mismatched_artifact_hashes() -> None:
+    """Reject risk links that disagree with evidence and monitoring hashes."""
     register = build_risk_register(
         register_id="risk_register_customer_alpha-unlinked",
         evidence_pack=_evidence_pack(),
@@ -175,7 +235,10 @@ def test_risk_register_blocks_unlinked_or_mismatched_artifact_hashes():
     }
 
 
-def test_risk_register_blocks_missing_identity_not_ready_and_boundary_mismatches():
+def test_risk_register_blocks_missing_identity_not_ready_and_boundary_mismatches() -> (
+    None
+):
+    """Report incomplete register identity and all cross-artifact boundary failures."""
     evidence_pack = CustomerEvidencePackManifest(
         **{
             **_evidence_pack().to_dict(),
@@ -218,7 +281,8 @@ def test_risk_register_blocks_missing_identity_not_ready_and_boundary_mismatches
     }
 
 
-def test_risk_register_rejects_unknown_status_and_missing_expiry():
+def test_risk_register_rejects_unknown_status_and_missing_expiry() -> None:
+    """Reject unknown risk status and missing accepted-risk expiry."""
     rejected = _risk(
         status="rejected", owner="", expires_at="", compensating_controls=()
     )
@@ -243,7 +307,8 @@ def test_risk_register_rejects_unknown_status_and_missing_expiry():
     }
 
 
-def test_risk_exception_round_trips_from_dict():
+def test_risk_exception_round_trips_from_dict() -> None:
+    """Preserve an exception record through its public dictionary serialization."""
     risk = _risk()
 
     restored = CustomerRiskException.from_dict(risk.to_dict())
@@ -251,7 +316,14 @@ def test_risk_exception_round_trips_from_dict():
     assert restored == risk
 
 
-def test_risk_register_serialises_and_round_trips(tmp_path: Path):
+def test_risk_register_serialises_and_round_trips(tmp_path: Path) -> None:
+    """Write a risk register with its original fields and computed register hash.
+
+    Parameters
+    ----------
+    tmp_path : Path
+        Isolated directory for generated test artifacts.
+    """
     register = build_risk_register(
         register_id="risk_register_customer_alpha-20260518",
         evidence_pack=_evidence_pack(),
@@ -267,7 +339,8 @@ def test_risk_register_serialises_and_round_trips(tmp_path: Path):
     assert payload["register_hash"] == register.register_hash
 
 
-def test_risk_register_schema_is_machine_readable():
+def test_risk_register_schema_is_machine_readable() -> None:
+    """Pin the risk schema dialect, title and required artifact fields."""
     schema_path = ROOT / "schemas" / "customer-model-factory-risk-register.schema.json"
     schema = json.loads(schema_path.read_text(encoding="utf-8"))
 

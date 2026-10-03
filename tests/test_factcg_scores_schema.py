@@ -1,6 +1,11 @@
 # SPDX-License-Identifier: Apache-2.0
 # Commercial license available
-# Copyright 2020-2026 Miroslav Sotek
+# © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
+# © Code 2020–2026 Miroslav Šotek. All rights reserved.
+# ORCID: 0009-0009-3560-0851
+# Contact: www.anulum.li | protoscience@anulum.li
+# Director-Class AI — Cached benchmark score contracts
+
 """Contract tests for ``benchmarks/scores/`` AggreFact dumps + ``SCHEMA.md``.
 
 The score files are named ``factcg-<training-corpus>.json``, which invites
@@ -39,10 +44,18 @@ AGGREFACT_SUBSETS = frozenset(
 
 
 def _score_files() -> list[Path]:
+    """List committed score dumps in deterministic filename order.
+
+    Returns
+    -------
+    list[Path]
+        JSON dump paths from the canonical benchmark score directory.
+    """
     return sorted(_SCORES_DIR.glob("*.json"))
 
 
 def test_scores_directory_is_populated() -> None:
+    """Require committed score dumps, including the FEVER-trained variant."""
     files = _score_files()
     assert files, "no benchmarks/scores/*.json dumps found"
     # the file the reviewer misread must be present and therefore covered below
@@ -51,6 +64,13 @@ def test_scores_directory_is_populated() -> None:
 
 @pytest.mark.parametrize("path", _score_files(), ids=lambda p: p.name)
 def test_score_dump_has_canonical_aggrefact_schema(path: Path) -> None:
+    """Check all eleven evaluation subsets and every stored label/score pair.
+
+    Parameters
+    ----------
+    path : Path
+        Committed score dump selected by the original filename parametrization.
+    """
     data = json.loads(path.read_text(encoding="utf-8"))
     assert isinstance(data, dict), f"{path.name} is not a JSON object"
     assert set(data) == set(AGGREFACT_SUBSETS), (
@@ -75,13 +95,14 @@ def test_score_dump_has_canonical_aggrefact_schema(path: Path) -> None:
 
 
 def test_fever_dump_is_aggrefact_not_fever() -> None:
-    """The exact reviewer misread: factcg-fever.json is AggreFact, carries no FEVER key."""
+    """Keep the FEVER-trained dump keyed by AggreFact evaluation subsets."""
     data = json.loads((_SCORES_DIR / "factcg-fever.json").read_text(encoding="utf-8"))
     assert set(data) == set(AGGREFACT_SUBSETS)
     assert not any("fever" in key.lower() for key in data), "unexpected FEVER-named key"
 
 
 def test_schema_doc_documents_every_subset_and_the_naming_trap() -> None:
+    """Document every subset and distinguish training-corpus filename suffixes."""
     assert _SCHEMA_DOC.is_file(), "benchmarks/scores/SCHEMA.md is missing"
     text = _SCHEMA_DOC.read_text(encoding="utf-8")
     for subset in AGGREFACT_SUBSETS:

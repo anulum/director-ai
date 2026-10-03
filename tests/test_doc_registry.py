@@ -13,6 +13,7 @@ from director_ai.core.retrieval.doc_registry import DocRegistry
 
 
 def test_update_unknown_document_fails_explicitly() -> None:
+    """Raise KeyError when updating the supplied unregistered document identifier."""
     registry = DocRegistry()
 
     with pytest.raises(KeyError):
@@ -20,6 +21,7 @@ def test_update_unknown_document_fails_explicitly() -> None:
 
 
 def test_wrong_tenant_cannot_read_registered_document() -> None:
+    """Return no record when the requested tenant differs from the registered owner."""
     registry = DocRegistry()
     registry.register("doc-1", "source.pdf", "tenant-a", ["chunk-0"])
 
@@ -27,6 +29,7 @@ def test_wrong_tenant_cannot_read_registered_document() -> None:
 
 
 def test_registered_record_preserves_source_tenant_and_chunk_count() -> None:
+    """Retain the supplied source, tenant, chunks and nondecreasing record timestamps."""
     registry = DocRegistry()
 
     record = registry.register("doc-1", "source.pdf", "tenant-a", ["c0", "c1"])
@@ -41,8 +44,9 @@ def test_registered_record_preserves_source_tenant_and_chunk_count() -> None:
 
 @pytest.mark.parametrize("chunk_ids", ["chunk-0", b"chunk-0", ["chunk-0", " "]])
 def test_chunk_id_validation_rejects_string_bytes_and_blank_members(
-    chunk_ids,
+    chunk_ids: str | bytes | list[str],
 ) -> None:
+    """Reject each original malformed chunk collection and match the public error."""
     registry = DocRegistry()
 
     with pytest.raises(ValueError, match="chunk_ids"):
@@ -50,12 +54,14 @@ def test_chunk_id_validation_rejects_string_bytes_and_blank_members(
 
 
 def test_delete_missing_document_returns_none() -> None:
+    """Return no record when deleting the supplied missing document identifier."""
     registry = DocRegistry()
 
     assert registry.delete("missing-doc") is None
 
 
 def test_update_without_optional_source_or_hash_keeps_existing_metadata() -> None:
+    """Replace the chunks while retaining the registered source and content hash."""
     registry = DocRegistry()
     registry.register(
         "doc-1",
@@ -73,6 +79,7 @@ def test_update_without_optional_source_or_hash_keeps_existing_metadata() -> Non
 
 
 def test_update_can_replace_content_hash_without_source_change() -> None:
+    """Strip the replacement hash while retaining the original source."""
     registry = DocRegistry()
     registry.register("doc-1", "source.pdf", "tenant-a", ["chunk-0"])
 

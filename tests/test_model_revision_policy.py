@@ -4,13 +4,19 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
+# Director-AI — immutable model revision policy tests
+
+"""Exercise immutable revision resolution and public health reports without downloads."""
 
 from __future__ import annotations
+
+from pathlib import Path
 
 import pytest
 
 
 def test_known_remote_model_resolves_pinned_revision() -> None:
+    """Resolve the known DistilBERT model to its existing immutable registry pin."""
     from director_ai.core.model_revisions import resolve_model_revision
 
     assert (
@@ -20,6 +26,7 @@ def test_known_remote_model_resolves_pinned_revision() -> None:
 
 
 def test_training_baseline_resolves_pinned_revision() -> None:
+    """Resolve the training baseline to the recorded DeBERTa revision."""
     from director_ai.core.model_revisions import resolve_model_revision
 
     assert (
@@ -29,6 +36,7 @@ def test_training_baseline_resolves_pinned_revision() -> None:
 
 
 def test_prompt_guard_model_resolves_pinned_revision() -> None:
+    """Bind the configured prompt-guard model to its existing immutable revision."""
     from director_ai.core.config import DirectorConfig
     from director_ai.core.model_revisions import resolve_model_revision
 
@@ -41,6 +49,7 @@ def test_prompt_guard_model_resolves_pinned_revision() -> None:
 
 
 def test_explicit_revision_overrides_registry_pin() -> None:
+    """Preserve caller-supplied revisions ahead of registry defaults."""
     from director_ai.core.model_revisions import resolve_model_revision
 
     assert (
@@ -52,7 +61,8 @@ def test_explicit_revision_overrides_registry_pin() -> None:
     )
 
 
-def test_local_existing_path_does_not_require_revision(tmp_path) -> None:
+def test_local_existing_path_does_not_require_revision(tmp_path: Path) -> None:
+    """Recognise an existing local model directory without a remote revision."""
     from director_ai.core.model_revisions import resolve_model_revision
 
     model_dir = tmp_path / "exported-model"
@@ -62,12 +72,14 @@ def test_local_existing_path_does_not_require_revision(tmp_path) -> None:
 
 
 def test_blank_model_name_is_not_a_remote_reference() -> None:
+    """Leave a whitespace-only model identifier without a remote pin."""
     from director_ai.core.model_revisions import resolve_model_revision
 
     assert resolve_model_revision(" ") is None
 
 
 def test_unpinned_remote_model_requires_explicit_revision() -> None:
+    """Reject an unknown remote model when no immutable revision is supplied."""
     from director_ai.core.model_revisions import resolve_model_revision
 
     with pytest.raises(ValueError, match="requires an explicit immutable revision"):
@@ -75,6 +87,7 @@ def test_unpinned_remote_model_requires_explicit_revision() -> None:
 
 
 def test_model_revision_health_reports_unpinned_remote_failure() -> None:
+    """Report an unpinned remote failure alongside an independently pinned model."""
     from director_ai.core.model_revisions import model_revision_health
 
     report = model_revision_health(
@@ -90,7 +103,8 @@ def test_model_revision_health_reports_unpinned_remote_failure() -> None:
     assert report["checks"]["embedding"]["status"] == "pinned"
 
 
-def test_model_revision_health_preserves_local_model_paths(tmp_path) -> None:
+def test_model_revision_health_preserves_local_model_paths(tmp_path: Path) -> None:
+    """Classify an existing local model path in the public health report."""
     from director_ai.core.model_revisions import model_revision_health
 
     model_dir = tmp_path / "local-model"
@@ -103,13 +117,16 @@ def test_model_revision_health_preserves_local_model_paths(tmp_path) -> None:
 
 
 def test_config_health_reports_contradiction_model_when_enabled() -> None:
+    """Report the contradiction model only when its configured guard is enabled."""
     from director_ai.core.config import DirectorConfig
 
     enabled = DirectorConfig(streaming_contradiction_halt=True)
     checks = enabled.model_revision_health()["checks"]
+    assert isinstance(checks, dict)
     assert checks["contradiction"]["status"] == "pinned"
     assert checks["contradiction"]["revision"]
 
     disabled = DirectorConfig(streaming_contradiction_halt=False)
     off_checks = disabled.model_revision_health()["checks"]
+    assert isinstance(off_checks, dict)
     assert off_checks["contradiction"]["status"] == "skipped"

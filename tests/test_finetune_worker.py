@@ -15,23 +15,30 @@ file pins the module boundary introduced by the WCB-7 decomposition.
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import director_ai._finetune_worker as worker_module
 import director_ai.finetune_api as finetune_api_module
 from director_ai.finetune_jobs import FinetuneJob, _JobStore
 
 
-def test_facade_reexports_the_worker():
+def test_facade_reexports_the_worker() -> None:
+    """Require the historical API facade to expose the actual worker function."""
     assert (
         finetune_api_module._run_training_worker is worker_module._run_training_worker
     )
 
 
-def test_worker_failure_before_split_cleans_only_the_upload(tmp_path):
-    """A pre-split failure leaves train/eval paths as ``None`` in cleanup.
+def test_worker_failure_before_split_cleans_only_the_upload(tmp_path: Path) -> None:
+    """Remove the upload when model resolution fails before splitting.
 
-    Resolving an unknown base model raises before the dataset is split, so
-    the ``finally`` loop must skip the two unassigned paths (their
-    ``is not None`` guard goes false) while still deleting the upload.
+    The unknown model is refused before train/eval paths are assigned. The
+    worker's actual failure path preserves the error and removes the upload.
+
+    Parameters
+    ----------
+    tmp_path : Path
+        Isolated fixture directory containing the upload and model directory.
     """
     data_path = tmp_path / "upload.jsonl"
     data_path.write_text('{"premise": "p", "hypothesis": "h", "label": 0}\n')
@@ -50,9 +57,11 @@ def test_worker_failure_before_split_cleans_only_the_upload(tmp_path):
     assert not data_path.exists()
 
 
-def test_worker_module_owns_only_the_worker():
+def test_worker_module_owns_only_the_worker() -> None:
+    """Keep the decomposed worker's declared export limited to its worker."""
     assert worker_module.__all__ == ["_run_training_worker"]
 
 
-def test_worker_logs_to_the_finetune_api_logger():
+def test_worker_logs_to_the_finetune_api_logger() -> None:
+    """Retain the historical API logger name for worker diagnostics."""
     assert worker_module.logger.name == "DirectorAI.FinetuneAPI"

@@ -33,6 +33,7 @@ _TODAY = date(2026, 6, 7)
 
 
 def _entry(**overrides: str) -> dict[str, str]:
+    """Build a complete register entry and apply the supplied string overrides."""
     base = {
         "id": "GHSA-aaaa-bbbb-cccc",
         "tool": "pip-audit",
@@ -49,7 +50,10 @@ def _entry(**overrides: str) -> dict[str, str]:
 
 
 class TestValidate:
+    """Check register structure, required fields, recognised tools and expiry refusal."""
+
     def test_empty_register_valid(self) -> None:
+        """Accept a correctly versioned register with no active exceptions."""
         payload = {
             "schema_version": "director.security_exceptions.v1",
             "exceptions": [],
@@ -57,6 +61,7 @@ class TestValidate:
         assert checker.validate(payload, _TODAY) == []
 
     def test_valid_full_entry(self) -> None:
+        """Accept a complete attributed exception whose expiry is still current."""
         payload = {
             "schema_version": "director.security_exceptions.v1",
             "exceptions": [_entry()],
@@ -64,11 +69,13 @@ class TestValidate:
         assert checker.validate(payload, _TODAY) == []
 
     def test_wrong_schema_version(self) -> None:
+        """Report an unsupported security-exception schema version."""
         payload = {"schema_version": "bad", "exceptions": []}
         problems = checker.validate(payload, _TODAY)
         assert any("schema_version" in p for p in problems)
 
     def test_missing_required_field(self) -> None:
+        """Report a blank required owner field."""
         payload = {
             "schema_version": "director.security_exceptions.v1",
             "exceptions": [_entry(owner="")],
@@ -77,6 +84,7 @@ class TestValidate:
         assert any("missing required field 'owner'" in p for p in problems)
 
     def test_expired_entry_rejected(self) -> None:
+        """Reject an exception whose expiry precedes the explicit validation date."""
         payload = {
             "schema_version": "director.security_exceptions.v1",
             "exceptions": [_entry(expires="2026-01-01")],
@@ -85,6 +93,7 @@ class TestValidate:
         assert any("expired" in p for p in problems)
 
     def test_bad_tool_rejected(self) -> None:
+        """Reject a scanner outside the maintained allowlist."""
         payload = {
             "schema_version": "director.security_exceptions.v1",
             "exceptions": [_entry(tool="nessus")],
@@ -93,6 +102,7 @@ class TestValidate:
         assert any("not in" in p for p in problems)
 
     def test_bad_expiry_date(self) -> None:
+        """Report a non-ISO expiry string."""
         payload = {
             "schema_version": "director.security_exceptions.v1",
             "exceptions": [_entry(expires="not-a-date")],
@@ -101,6 +111,7 @@ class TestValidate:
         assert any("not an ISO date" in p for p in problems)
 
     def test_non_list_exceptions(self) -> None:
+        """Reject a register whose exceptions field is not an array."""
         payload = {
             "schema_version": "director.security_exceptions.v1",
             "exceptions": {"nope": True},
@@ -109,6 +120,7 @@ class TestValidate:
         assert any("must be an array" in p for p in problems)
 
     def test_entry_not_a_table(self) -> None:
+        """Reject a non-table entry in the exceptions array."""
         payload = {
             "schema_version": "director.security_exceptions.v1",
             "exceptions": ["just-a-string"],
@@ -118,15 +130,20 @@ class TestValidate:
 
 
 class TestCommittedRegister:
+    """Check the actual register and the validator file/date command boundaries."""
+
     def test_committed_register_is_valid(self) -> None:
+        """Validate the actual governed register through its command entry point."""
         rc = checker.main([])
         assert rc == 0
 
     def test_missing_file_exits_nonzero(self, tmp_path: Path) -> None:
+        """Refuse a requested register file that does not exist."""
         rc = checker.main(["--path", str(tmp_path / "absent.toml")])
         assert rc == 1
 
     def test_expired_via_cli_today(self, tmp_path: Path) -> None:
+        """Refuse a real TOML exception using the explicit command validation date."""
         reg = tmp_path / "sec.toml"
         reg.write_text(
             'schema_version = "director.security_exceptions.v1"\n'
@@ -145,11 +162,13 @@ class TestCommittedRegister:
 
 def test_module_runs_as_main() -> None:
     # Smoke: the committed register validates through the real entrypoint.
+    """Exercise the command function against the actual governed register."""
     assert checker.main([]) == 0
 
 
 @pytest.mark.parametrize("missing", checker._REQUIRED_FIELDS)
 def test_each_required_field_enforced(missing: str) -> None:
+    """Report every blank required metadata field in a complete register entry."""
     payload = {
         "schema_version": "director.security_exceptions.v1",
         "exceptions": [_entry(**{missing: ""})],
@@ -159,7 +178,10 @@ def test_each_required_field_enforced(missing: str) -> None:
 
 
 class TestDependabotTool:
+    """Check that Dependabot remains a recognised scanner source."""
+
     def test_dependabot_tool_accepted(self) -> None:
+        """Accept a complete current exception attributed to Dependabot."""
         payload = {
             "schema_version": "director.security_exceptions.v1",
             "exceptions": [_entry(tool="dependabot")],
@@ -348,3 +370,59 @@ class TestPyjwtRemediationInvariant:
                         )
         assert scan_steps
         assert all(re.search(r"\bsemgrep\s+scan\b", command) for command in scan_steps)
+
+
+@pytest.mark.parametrize("expires", [False, 0, 0.0, None, [], {}, ""])
+def test_false_valued_expiry_is_rejected(expires: object) -> None:
+    """Reject every false-valued expiry through the public register validator."""
+    entry: dict[str, object] = dict(_entry())
+    entry["expires"] = expires
+    payload: dict[str, object] = {
+        "schema_version": "director.security_exceptions.v1",
+        "exceptions": [entry],
+    }
+
+    assert any(
+        "not an ISO date" in problem for problem in checker.validate(payload, _TODAY)
+    )
+
+
+@pytest.mark.parametrize(
+    "expires",
+    ["2026-06-07", date(2026, 6, 7), "2026-12-31", date(2026, 12, 31)],
+)
+def test_string_and_native_date_expiry_remain_valid(expires: str | date) -> None:
+    """Preserve ISO strings, native TOML dates and inclusive expiry-day validity."""
+    entry: dict[str, object] = dict(_entry())
+    entry["expires"] = expires
+    payload: dict[str, object] = {
+        "schema_version": "director.security_exceptions.v1",
+        "exceptions": [entry],
+    }
+
+    assert checker.validate(payload, _TODAY) == []
+
+
+@pytest.mark.parametrize("raw_expiry", ["0", "false"])
+def test_cli_rejects_false_valued_toml_expiry(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], raw_expiry: str
+) -> None:
+    """Reject real integer-zero and Boolean-false TOML expiries through the CLI."""
+    register = tmp_path / "false-expiry.toml"
+    register.write_text(
+        'schema_version = "director.security_exceptions.v1"\n'
+        "[[exceptions]]\n"
+        'id = "GHSA-aaaa-bbbb-cccc"\n'
+        'tool = "pip-audit"\n'
+        'package = "probe"\n'
+        'reason = "controlled validator regression"\n'
+        'compensating_control = "no production exception requested"\n'
+        'owner = "protoscience@anulum.li"\n'
+        'opened = "2026-10-03"\n'
+        'scope = "ci-dependency-audit"\n'
+        f"expires = {raw_expiry}\n",
+        encoding="utf-8",
+    )
+
+    assert checker.main(["--path", str(register), "--today", "2026-10-03"]) == 1
+    assert "not an ISO date" in capsys.readouterr().err

@@ -1,10 +1,12 @@
 # SPDX-License-Identifier: Apache-2.0
 # Commercial license available
-# © Concepts 1996-2026 Miroslav Sotek. All rights reserved.
-# © Code 2020-2026 Miroslav Sotek. All rights reserved.
+# © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
+# © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI - Customer Model Factory customer examples tests
+
+"""Exercise local runtime and REST request construction without sending requests."""
 
 from __future__ import annotations
 
@@ -21,6 +23,18 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def _load_example(path: Path) -> ModuleType:
+    """Execute a local example module from its canonical source path.
+
+    Parameters
+    ----------
+    path : Path
+        Canonical example module source to load.
+
+    Returns
+    -------
+    ModuleType
+        Executed example module.
+    """
     spec = importlib.util.spec_from_file_location(path.stem, path)
     assert spec is not None
     assert spec.loader is not None
@@ -30,6 +44,18 @@ def _load_example(path: Path) -> ModuleType:
 
 
 def _runtime_package(tmp_path: Path) -> Path:
+    """Write an isolated runtime-package fixture with customer-controlled settings.
+
+    Parameters
+    ----------
+    tmp_path : Path
+        Isolated directory for generated test artifacts.
+
+    Returns
+    -------
+    Path
+        Written package path.
+    """
     package = CustomerRuntimePackage(
         schema_version="1.0.0",
         runtime_id="runtime-customer-alpha-20260518",
@@ -67,7 +93,14 @@ def _runtime_package(tmp_path: Path) -> Path:
     return package.write_json(tmp_path / "runtime_package.json")
 
 
-def test_python_runtime_example_builds_local_score_request(tmp_path: Path):
+def test_python_runtime_example_builds_local_score_request(tmp_path: Path) -> None:
+    """Build the local example request with its original tenant and thresholds.
+
+    Parameters
+    ----------
+    tmp_path : Path
+        Isolated directory for generated test artifacts.
+    """
     example = _load_example(ROOT / "examples" / "customer_model_factory_runtime.py")
     package_path = _runtime_package(tmp_path)
 
@@ -91,7 +124,14 @@ def test_python_runtime_example_builds_local_score_request(tmp_path: Path):
     assert request["source_refs"] == ["policy://customer-alpha/mortgage-rates"]
 
 
-def test_rest_payload_example_builds_customer_scoring_payload(tmp_path: Path):
+def test_rest_payload_example_builds_customer_scoring_payload(tmp_path: Path) -> None:
+    """Build REST headers and scoring JSON without sending a network request.
+
+    Parameters
+    ----------
+    tmp_path : Path
+        Isolated directory for generated test artifacts.
+    """
     example = _load_example(
         ROOT / "examples" / "customer_model_factory_rest_payload.py"
     )
@@ -114,7 +154,8 @@ def test_rest_payload_example_builds_customer_scoring_payload(tmp_path: Path):
     assert payload["json"]["source_refs"] == ["policy://customer-alpha/fees"]
 
 
-def test_customer_examples_do_not_import_network_clients():
+def test_customer_examples_do_not_import_network_clients() -> None:
+    """Keep both example sources free of the listed network-client imports."""
     blocked_import_tokens = {"requests", "httpx", "urllib", "socket", "aiohttp"}
     for path in (
         ROOT / "examples" / "customer_model_factory_runtime.py",
@@ -125,7 +166,8 @@ def test_customer_examples_do_not_import_network_clients():
         assert not any(f"from {token}" in source for token in blocked_import_tokens)
 
 
-def test_readme_advertises_only_implemented_customer_model_factory_surface():
+def test_readme_advertises_only_implemented_customer_model_factory_surface() -> None:
+    """Pin documented examples, claim boundaries and runtime schema title."""
     readme = (ROOT / "README.md").read_text(encoding="utf-8")
 
     assert "Customer Model Factory" in readme

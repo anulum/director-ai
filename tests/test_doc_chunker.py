@@ -11,6 +11,7 @@ from director_ai.core.retrieval.doc_chunker import ChunkConfig, split
 
 
 def test_long_token_is_split_without_exceeding_configured_window() -> None:
+    """Bound every fragment of the long unbroken token by the size-plus-overlap limit."""
     chunks = split("A" * 500, ChunkConfig(chunk_size=100, overlap=10))
 
     assert len(chunks) >= 5
@@ -18,10 +19,12 @@ def test_long_token_is_split_without_exceeding_configured_window() -> None:
 
 
 def test_empty_document_produces_no_chunks() -> None:
+    """Return no fragments for an empty document."""
     assert split("") == []
 
 
 def test_short_document_is_not_fragmented() -> None:
+    """Retain a short document as one exact chunk."""
     text = "Fits in one chunk."
 
     assert split(text, ChunkConfig(chunk_size=1000)) == [text]

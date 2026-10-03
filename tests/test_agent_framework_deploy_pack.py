@@ -23,7 +23,6 @@ DEPLOY_DIR = ROOT / "deploy" / "agent-frameworks"
 
 def test_agent_framework_smokes_are_json_serializable() -> None:
     """The executable examples return stable, JSON-safe contracts."""
-
     packet = run_all_smokes()
 
     json.dumps(packet, sort_keys=True)
@@ -37,7 +36,6 @@ def test_agent_framework_smokes_are_json_serializable() -> None:
 
 def test_cloud_run_template_wires_runtime_secrets_and_limits() -> None:
     """The Cloud Run template exposes the server without committing secrets."""
-
     service = yaml.safe_load((DEPLOY_DIR / "cloud-run-service.yaml").read_text())
     container = service["spec"]["template"]["spec"]["containers"][0]
     env = {item["name"]: item for item in container["env"]}
@@ -56,7 +54,6 @@ def test_cloud_run_template_wires_runtime_secrets_and_limits() -> None:
 
 def test_vercel_template_targets_remote_director_service() -> None:
     """The Vercel template delegates review to Cloud Run via environment keys."""
-
     template = json.loads((DEPLOY_DIR / "vercel.json").read_text())
 
     assert template["env"]["DIRECTOR_AI_ENDPOINT"] == "@director_ai_endpoint"
@@ -69,7 +66,6 @@ def test_vercel_template_targets_remote_director_service() -> None:
 
 def test_integration_docs_link_the_deploy_pack() -> None:
     """The public integration docs point users to the shared deploy pack."""
-
     docs = [
         ROOT / "docs-site" / "integrations" / "agent-framework-deploy.md",
         ROOT / "docs-site" / "integrations" / "langgraph.md",

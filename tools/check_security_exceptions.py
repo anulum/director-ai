@@ -1,14 +1,15 @@
 # SPDX-License-Identifier: Apache-2.0
 # Commercial license available
-# © Concepts 1996-2026 Miroslav Sotek. All rights reserved.
-# © Code 2020-2026 Miroslav Sotek. All rights reserved.
+# © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
+# © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI - security-exception register validator
+# DIRECTOR-AI — governed security exception register validation
 """Validate the governed security-scan exception register.
 
 Each accepted scan finding must carry an owner, a reason, a compensating
-control, and a future expiry. This validator fails (exit 1) on a malformed or
+control, and an expiry no earlier than the validation date. The CLI fails
+(exit 1) on a malformed or
 expired entry, so a tolerated finding can never silently become permanent
 security debt. It is stdlib-only (tomllib) so it runs in the lint job without
 extra dependencies.
@@ -45,7 +46,22 @@ _DEFAULT_PATH = (
 
 
 def validate(payload: dict[str, object], today: date) -> list[str]:
-    """Return a list of problems with the register; empty means valid."""
+    """Return structural, required-field and expiry problems in the register.
+
+    Parameters
+    ----------
+    payload : dict[str, object]
+        Decoded register with its schema version and exception tables.
+    today : datetime.date
+        Validation date; an exception remains valid through its expiry date.
+
+    Returns
+    -------
+    list[str]
+        Problems with the declared schema, entry fields, tool or expiry; empty
+        when the implemented checks pass. Every expiry is parsed, including
+        missing and false-valued inputs.
+    """
     problems: list[str] = []
     if payload.get("schema_version") != _SCHEMA_VERSION:
         problems.append(
@@ -68,21 +84,33 @@ def validate(payload: dict[str, object], today: date) -> list[str]:
         if tool is not None and tool not in _ALLOWED_TOOLS:
             problems.append(f"{where}: tool {tool!r} not in {sorted(_ALLOWED_TOOLS)}")
         expires = entry.get("expires")
-        if expires:
-            try:
-                expiry = date.fromisoformat(str(expires))
-            except ValueError:
-                problems.append(f"{where}: expires {expires!r} is not an ISO date")
-            else:
-                if expiry < today:
-                    problems.append(
-                        f"{where}: exception {entry.get('id')!r} expired on "
-                        f"{expiry.isoformat()} — re-review or remediate"
-                    )
+        try:
+            expiry = date.fromisoformat(str(expires))
+        except ValueError:
+            problems.append(f"{where}: expires {expires!r} is not an ISO date")
+        else:
+            if expiry < today:
+                problems.append(
+                    f"{where}: exception {entry.get('id')!r} expired on "
+                    f"{expiry.isoformat()} — re-review or remediate"
+                )
     return problems
 
 
 def main(argv: list[str]) -> int:
+    """Read the requested register and print its validation result.
+
+    Parameters
+    ----------
+    argv : list[str]
+        Command arguments; recognised path and ISO validation-date overrides
+        follow the --path and --today options.
+
+    Returns
+    -------
+    int
+        Zero for a valid register, or one for a missing file or reported problem.
+    """
     path = _DEFAULT_PATH
     today = date.today()
     i = 0

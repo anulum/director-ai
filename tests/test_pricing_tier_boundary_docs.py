@@ -15,12 +15,23 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def _doc(path: str) -> str:
-    """Read a repository document and collapse Markdown line wrapping."""
+    """Read repository text and collapse whitespace introduced by line wrapping.
 
+    Parameters
+    ----------
+    path : str
+        UTF-8 document path relative to the checkout root.
+
+    Returns
+    -------
+    str
+        Document text with whitespace runs collapsed to single spaces.
+    """
     return " ".join((ROOT / path).read_text(encoding="utf-8").split())
 
 
 def test_readme_declares_three_tier_product_ladder() -> None:
+    """Keep all three published products and their package boundaries explicit."""
     doc = _doc("README.md")
 
     assert "Director-Lite" in doc
@@ -31,6 +42,7 @@ def test_readme_declares_three_tier_product_ladder() -> None:
 
 
 def test_pricing_page_matches_canonical_annual_plans_and_package_boundary() -> None:
+    """Compare the local pricing page with the existing annual-plan contract."""
     doc = _doc("docs-site/pricing.md")
 
     assert "Director-Lite" in doc
@@ -51,6 +63,7 @@ def test_pricing_page_matches_canonical_annual_plans_and_package_boundary() -> N
 
 
 def test_lite_package_readme_points_to_upgrade_path() -> None:
+    """Retain the Lite package's documented upgrade links and full extra."""
     doc = _doc("packages/director-ai-lite/README.md")
 
     assert "Director-Lite" in doc
@@ -61,6 +74,7 @@ def test_lite_package_readme_points_to_upgrade_path() -> None:
 
 
 def test_readme_leads_with_evidence_and_buried_differentiators() -> None:
+    """Keep public evidence surfaces visible without unrelated payment copy."""
     doc = _doc("README.md")
 
     assert "Evidence-first deployment surfaces" in doc
@@ -75,6 +89,7 @@ def test_readme_leads_with_evidence_and_buried_differentiators() -> None:
 
 
 def test_public_architecture_collapses_internal_decision_maps() -> None:
+    """Publish runtime and ownership boundaries while keeping planning internal."""
     doc = _doc("ARCHITECTURE.md")
 
     assert "Public Runtime Boundary" in doc
@@ -86,7 +101,6 @@ def test_public_architecture_collapses_internal_decision_maps() -> None:
 
 def test_public_docs_explain_market_applications_and_onboarding_spine() -> None:
     """Keep the public docs understandable for buyers and first-time builders."""
-
     map_doc = _doc("docs-site/guide/applications-and-market-map.md")
     readme = _doc("README.md")
     landing = _doc("docs-site/index.md")
@@ -121,7 +135,6 @@ def test_public_docs_explain_market_applications_and_onboarding_spine() -> None:
 
 def test_priority_notebooks_carry_product_context() -> None:
     """Notebook first cells must state the application and market context."""
-
     quickstart = _doc("notebooks/quickstart.ipynb")
     production = _doc("notebooks/09_production_guardrails.ipynb")
     enterprise = _doc("notebooks/14_enterprise_multi_tenant.ipynb")

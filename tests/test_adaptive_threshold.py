@@ -4,7 +4,9 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI — Adaptive Threshold Tests
+# Director-AI — Adaptive Threshold Tests
+
+"""Check threshold learning, safety constraints and native posterior dispatch."""
 
 import pytest
 
@@ -17,6 +19,13 @@ from director_ai.core import (
 
 
 def _feedback() -> list[ThresholdFeedback]:
+    """Return four approved and four rejected scores spanning the candidate arms.
+
+    Returns
+    -------
+    list of ThresholdFeedback
+        Equally weighted labels separated by the 0.5 candidate threshold.
+    """
     return [
         ThresholdFeedback(score=0.92, human_approved=True),
         ThresholdFeedback(score=0.83, human_approved=True),
@@ -29,7 +38,8 @@ def _feedback() -> list[ThresholdFeedback]:
     ]
 
 
-def test_updates_all_threshold_arms_from_labelled_feedback():
+def test_updates_all_threshold_arms_from_labelled_feedback() -> None:
+    """Update every candidate arm and identify the threshold matching all eight labels."""
     learner = AdaptiveThresholdLearner(
         candidate_thresholds=[0.3, 0.5, 0.7],
         current_threshold=0.5,
@@ -46,12 +56,14 @@ def test_updates_all_threshold_arms_from_labelled_feedback():
     assert learner.arm(0.7).false_negatives == 1
 
 
-def test_threshold_feedback_rejects_invalid_weight():
+def test_threshold_feedback_rejects_invalid_weight() -> None:
+    """Reject zero-weight feedback before it can influence threshold learning."""
     with pytest.raises(ValueError, match="weight"):
         ThresholdFeedback(score=0.5, human_approved=True, weight=0.0)
 
 
-def test_adaptive_arm_rejects_invalid_priors_and_reports_empty_metrics():
+def test_adaptive_arm_rejects_invalid_priors_and_reports_empty_metrics() -> None:
+    """Reject an invalid Beta prior and expose zero rates before any observations."""
     with pytest.raises(ValueError, match="Beta priors"):
         AdaptiveThresholdArm(threshold=0.5, alpha_prior=0.0)
 
@@ -62,7 +74,8 @@ def test_adaptive_arm_rejects_invalid_priors_and_reports_empty_metrics():
     assert arm.false_negative_rate == 0.0
 
 
-def test_adaptive_arm_observe_records_all_confusion_outcomes():
+def test_adaptive_arm_observe_records_all_confusion_outcomes() -> None:
+    """Count all four approval outcomes and derive both error rates from them."""
     arm = AdaptiveThresholdArm(threshold=0.5)
 
     arm.observe(ThresholdFeedback(score=0.9, human_approved=True))
@@ -79,7 +92,8 @@ def test_adaptive_arm_observe_records_all_confusion_outcomes():
     assert arm.false_negative_rate == pytest.approx(0.5)
 
 
-def test_recommendation_requires_human_approval_and_has_rollback_overlay():
+def test_recommendation_requires_human_approval_and_has_rollback_overlay() -> None:
+    """Retain human approval and the previous threshold in a proposed profile overlay."""
     learner = AdaptiveThresholdLearner(
         candidate_thresholds=[0.3, 0.5, 0.7],
         current_threshold=0.3,
@@ -98,11 +112,14 @@ def test_recommendation_requires_human_approval_and_has_rollback_overlay():
     assert recommendation.expected_lift > 0.05
     overlay = recommendation.to_profile_overlay(profile="adaptive-medical")
     assert overlay["coherence_threshold"] == 0.5
-    assert overlay["extra"]["adaptive_requires_human_approval"] == "true"
-    assert overlay["extra"]["adaptive_rollback_threshold"] == "0.3000"
+    extra = overlay["extra"]
+    assert isinstance(extra, dict)
+    assert extra["adaptive_requires_human_approval"] == "true"
+    assert extra["adaptive_rollback_threshold"] == "0.3000"
 
 
-def test_returns_noop_when_data_is_insufficient():
+def test_returns_noop_when_data_is_insufficient() -> None:
+    """Withhold a threshold recommendation until the minimum feedback count is met."""
     learner = AdaptiveThresholdLearner(
         candidate_thresholds=[0.4, 0.6],
         current_threshold=0.4,
@@ -118,7 +135,8 @@ def test_returns_noop_when_data_is_insufficient():
     assert recommendation.requires_human_approval is True
 
 
-def test_no_candidate_satisfies_safety_constraints():
+def test_no_candidate_satisfies_safety_constraints() -> None:
+    """Withhold a recommendation when every candidate violates an error-rate limit."""
     learner = AdaptiveThresholdLearner(
         candidate_thresholds=[0.4, 0.8],
         current_threshold=0.4,
@@ -142,7 +160,8 @@ def test_no_candidate_satisfies_safety_constraints():
     assert recommendation.reason == "no_candidate_satisfies_safety_constraints"
 
 
-def test_safety_constraints_block_high_false_negative_threshold():
+def test_safety_constraints_block_high_false_negative_threshold() -> None:
+    """Keep the lower threshold when a higher arm rejects approved feedback."""
     learner = AdaptiveThresholdLearner(
         candidate_thresholds=[0.4, 0.8],
         current_threshold=0.4,
@@ -161,7 +180,8 @@ def test_safety_constraints_block_high_false_negative_threshold():
     assert learner.arm(0.8).false_negative_rate > 0.0
 
 
-def test_rejects_invalid_candidates_and_feedback():
+def test_rejects_invalid_candidates_and_feedback() -> None:
+    """Reject malformed learner configuration, nonfinite scores and unknown arms."""
     with pytest.raises(ValueError, match="candidate thresholds"):
         AdaptiveThresholdLearner(candidate_thresholds=[], current_threshold=0.5)
     with pytest.raises(ValueError, match="unique"):
@@ -184,7 +204,8 @@ def test_rejects_invalid_candidates_and_feedback():
         learner.arm(0.6)
 
 
-def test_report_and_recommendation_serialise_stable_shapes():
+def test_report_and_recommendation_serialise_stable_shapes() -> None:
+    """Expose the current threshold, candidate arms and approval metadata in exports."""
     learner = AdaptiveThresholdLearner(
         candidate_thresholds=[0.4, 0.6],
         current_threshold=0.5,
@@ -200,14 +221,41 @@ def test_report_and_recommendation_serialise_stable_shapes():
     assert report_payload["current_threshold"] == 0.5
     assert len(report_payload["arms"]) == 2
     assert overlay["profile"] == "adaptive"
-    assert overlay["extra"]["adaptive_expected_lift"]
+    extra = overlay["extra"]
+    assert isinstance(extra, dict)
+    assert extra["adaptive_expected_lift"]
 
 
-def test_rust_posterior_kernel_is_used_when_available(monkeypatch):
+def test_rust_posterior_kernel_is_used_when_available(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Dispatch posterior estimation through the enabled native binding.
+
+    Parameters
+    ----------
+    monkeypatch : pytest.MonkeyPatch
+        Replace the binding with a call counter while retaining the arm property.
+    """
     monkeypatch.setattr(adaptive_mod, "_RUST_ADAPTIVE", True)
     calls = {"count": 0}
 
-    def _posterior(alpha_prior, beta_prior, successes, pulls):
+    def _posterior(
+        alpha_prior: float, beta_prior: float, successes: int, pulls: int
+    ) -> float:
+        """Record native dispatch and compute the posterior mean for the supplied counts.
+
+        Parameters
+        ----------
+        alpha_prior, beta_prior : float
+            Positive Beta prior parameters passed by the threshold arm.
+        successes, pulls : int
+            Successful decisions and total observations recorded for the arm.
+
+        Returns
+        -------
+        float
+            Mean of the Beta posterior after applying the observations.
+        """
         calls["count"] += 1
         return (alpha_prior + successes) / (alpha_prior + beta_prior + pulls)
 
@@ -226,7 +274,16 @@ def test_rust_posterior_kernel_is_used_when_available(monkeypatch):
     assert calls["count"] >= 1
 
 
-def test_rust_posterior_type_error_is_mandatory_failure(monkeypatch):
+def test_rust_posterior_type_error_is_mandatory_failure(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Propagate a native signature error rather than returning a fallback posterior.
+
+    Parameters
+    ----------
+    monkeypatch : pytest.MonkeyPatch
+        Enable native dispatch and replace its binding with a signature failure.
+    """
     monkeypatch.setattr(adaptive_mod, "_RUST_ADAPTIVE", True)
     monkeypatch.setattr(
         adaptive_mod,
@@ -242,9 +299,16 @@ def test_rust_posterior_type_error_is_mandatory_failure(monkeypatch):
         _ = learner.arm(0.4).posterior_mean
 
 
-def test_posterior_mean_python_fallback(monkeypatch):
+def test_posterior_mean_python_fallback(monkeypatch: pytest.MonkeyPatch) -> None:
     # With the Rust kernel disabled, posterior_mean uses the pure-Python
     # Beta mean alpha / (alpha + beta).
+    """Use the Beta posterior ratio when native posterior dispatch is disabled.
+
+    Parameters
+    ----------
+    monkeypatch : pytest.MonkeyPatch
+        Disable the native binding for the public posterior-mean property.
+    """
     monkeypatch.setattr(adaptive_mod, "_RUST_ADAPTIVE", False)
     arm = AdaptiveThresholdArm(threshold=0.5)
     arm.observe(ThresholdFeedback(score=0.9, human_approved=True))
@@ -252,7 +316,8 @@ def test_posterior_mean_python_fallback(monkeypatch):
     assert arm.posterior_mean == pytest.approx(arm.alpha / (arm.alpha + arm.beta))
 
 
-def test_observe_returns_the_adaptive_threshold_report_contract():
+def test_observe_returns_the_adaptive_threshold_report_contract() -> None:
+    """Return the public report type with the single observation and active threshold."""
     from director_ai.core.calibration.adaptive_threshold import (
         AdaptiveThresholdReport,
     )
