@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: Apache-2.0
-# Commercial licence available
-# Concepts 1996-2026 Miroslav Sotek. All rights reserved.
-# Code 2020-2026 Miroslav Sotek. All rights reserved.
+# Commercial license available
+# © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
+# © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI - Hugging Face Space demo package validator
+# Director-AI — Hugging Face Space demo package validator
 """Validate the Hugging Face Space demo package before manual publication."""
 
 from __future__ import annotations
@@ -26,7 +26,7 @@ PUSH_SCRIPT = Path("demo/push_to_hf.sh")
 REQUIRED_SPACE_FILES = ("app.py", "requirements.txt", "README.md")
 REQUIRED_METADATA = {
     "sdk": "gradio",
-    "sdk_version": "6.29.0",
+    "sdk_version": "6.29.1",
     "app_file": "app.py",
     "license": "apache-2.0",
 }
@@ -77,7 +77,7 @@ def _validate_requirements(root: Path) -> list[str]:
     lines = {line.strip() for line in text.splitlines() if line.strip()}
     required = {
         "director-ai>=3.21.0,<4.0.0",
-        "gradio>=6.29.0,<7.0",
+        "gradio>=6.29.1,<7.0",
     }
     missing = sorted(required - lines)
     return [f"{REQUIREMENTS}: missing requirement {line}" for line in missing]

@@ -193,7 +193,7 @@ haystack = [
     "haystack-ai>=2.0",
 ]
 crewai = [
-    "crewai>=0.50",
+    "crewai>=1.15.23,<2",
     "litellm>=1.83.7",
 ]
 # The adapter is dependency-light and imports Guardrails AI only when used.
@@ -217,17 +217,17 @@ langfuse = [
     "langfuse>=2.0",
 ]
 presidio = [
-    "presidio-analyzer>=2.2",
+    "presidio-analyzer>=2.2.364",
 ]
 toxicity = [
     "detoxify>=0.5",
 ]
 moderation = [
-    "presidio-analyzer>=2.2",
+    "presidio-analyzer>=2.2.364",
     "detoxify>=0.5",
 ]
 demo = [
-    "gradio>=6.29.0,<7.0",
+    "gradio>=6.29.1,<7.0",
 ]
 ingestion = [
     "pypdf>=6.15.0",
@@ -269,7 +269,7 @@ enterprise = [
     "psycopg2-binary>=2.9,<3",
 ]
 ui = [
-    "gradio>=6.29.0,<7.0",
+    "gradio>=6.29.1,<7.0",
 ]
 reports = [
     "weasyprint>=60",
@@ -307,7 +307,7 @@ dev = [
     "pytest-cov>=4.0",
     "pytest-asyncio>=0.21",
     "pre-commit>=4.6.2,<5",
-    "ruff>=0.16.9,<1",
+    "ruff>=0.16.10,<1",
     "mypy>=1.20.2,<2",
     "maturin>=1.15.0,<2",
     "types-requests>=2.31",
@@ -330,7 +330,7 @@ dev = [
     "python-docx>=1.0",
     "beautifulsoup4>=4.12",
     "opentelemetry-sdk>=1.20",
-    "gradio>=6.29.0,<7.0",
+    "gradio>=6.29.1,<7.0",
     "audioop-lts>=0.2.2; python_version >= '3.13'",
 ]
 
@@ -1035,14 +1035,6 @@ ignore_missing_imports = true
 # whose grpc extra otherwise drags grpcio-status down to 1.71.2 (protobuf<6) on
 # Python <3.14, splitting the universal lock and breaking the stubs.
 constraint-dependencies = ["grpcio-status>=1.81.0", "protobuf>=6.31.1"]
-# Force json-repair past crewai 1.6.1's hard pin (json-repair==0.25.2) onto the
-# patched line: GHSA-xf7x-x43h-rpqh (HIGH — a circular JSON Schema $ref causes
-# unbounded CPU DoS) is fixed in 0.60.1. json-repair reaches us only transitively
-# through the optional crewai extra and our own code never calls it; crewai's
-# used surface (repair_json/loads) is unchanged across the bump, verified by a
-# crewai import smoke. Drop this override once crewai relaxes its pin.
-override-dependencies = ["json-repair>=0.60.1"]
-
 # Complete CI review evidence is enforcing rather than legacy benchmark code.
 [[tool.mypy.overrides]]
 module = "benchmarks.halueval_eval"

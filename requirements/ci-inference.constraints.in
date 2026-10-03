@@ -8,3 +8,15 @@
 
 # Datasets 5.0.1 declares fsspec<=2026.6.0. Keep CPU training and dev profiles coherent.
 fsspec==2026.6.0
+
+# Datasets 5.0.1 requires huggingface-hub<2.0; dev and inference install together.
+huggingface-hub<2.0
+
+# Presidio Analyzer 2.2.364 requires numpy<2.5; match the root optional-extra graph.
+numpy<2.5
+
+# Instructor currently requires Rich<15; dev and optional agent integrations share it.
+rich<15
+
+# CrewAI 1.15.23 requires Pydantic<2.13 in the same optional integration environment.
+pydantic<2.13

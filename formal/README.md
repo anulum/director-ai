@@ -12,7 +12,7 @@ refactor has to justify why the Python behaviour still matches.
 formal/
 ├── HaltMonitor/                      # Lake project
 │   ├── lakefile.toml
-│   ├── lean-toolchain                # pins Lean 4.29.1
+│   ├── lean-toolchain                # pins Lean 4.34.1
 │   ├── HaltMonitor.lean              # entry — imports Core + Properties
 │   └── HaltMonitor/
 │       ├── Core.lean                 # model of the halt loop
@@ -72,8 +72,11 @@ cd formal/HaltMonitor
 lake build       # compiles and checks every proof
 ```
 
-No network access required after the Lean toolchain is installed
-via `elan`. Typical check time is under ten seconds on the mining
+Lean 4.34.1 is required. Local developers can install it with `elan`;
+CI downloads the official release archive and verifies its pinned size and
+SHA-256 before extracting or executing it. Both proof and documentation
+jobs use `tools/install_lean.sh`. No GitHub or Mathlib cache is restored.
+The proof package needs no network access after toolchain installation. Typical check time is under ten seconds on the mining
 rig. A failure means a proof broke, not a flaky run — the
 theorems are machine-checked with no nondeterminism.
 

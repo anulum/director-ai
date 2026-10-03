@@ -1,6 +1,10 @@
 # SPDX-License-Identifier: Apache-2.0
-# © 1998–2026 Miroslav Šotek. All rights reserved.
+# Commercial license available
+# © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
+# © Code 2020–2026 Miroslav Šotek. All rights reserved.
+# ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
+# Director-AI — native API documentation workflow
 name: Deploy Docs
 
 on:
@@ -21,6 +25,7 @@ on:
       - "schemas/proto/**"
       - "src/director_ai/**"
       - "tools/build_go_docs.py"
+      - "tools/install_lean.sh"
       - "tools/julia_tuner/**"
   push:
     branches: [main]
@@ -39,6 +44,7 @@ on:
       - "schemas/proto/**"
       - "src/director_ai/**"
       - "tools/build_go_docs.py"
+      - "tools/install_lean.sh"
       - "tools/julia_tuner/**"
 
 permissions: read-all
@@ -153,14 +159,8 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - name: Install Lean toolchain and dependencies
-        uses: leanprover/lean-action@50fcf42d2e460296f1a34b402e990d1b24f8b596 # v1.6.0
-        with:
-          lake-package-directory: formal/HaltMonitor/docbuild
-          build: false
-          test: false
-          lint: false
-          use-mathlib-cache: false
+      - name: Install verified Lean toolchain
+        run: bash tools/install_lean.sh
 
       - name: Build doc-gen4 reference
         run: make docs-lean

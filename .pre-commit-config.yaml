@@ -4,7 +4,7 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI — Pre-commit Configuration
+# Director-AI — Pre-commit Configuration
 repos:
   - repo: local
     hooks:
@@ -24,7 +24,7 @@ repos:
         language: system
         pass_filenames: false
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.16.9
+    rev: v0.16.10
     hooks:
       - id: ruff
         args: [--fix]

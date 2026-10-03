@@ -5,7 +5,7 @@ Commercial license available
 © Code 2020–2026 Miroslav Šotek. All rights reserved.
 ORCID: 0009-0009-3560-0851
 Contact: www.anulum.li | protoscience@anulum.li
-Director-Class AI — optional extra lock notes
+Director-AI — optional extra lock notes
 -->
 
 # Optional Extra Locks
@@ -48,7 +48,7 @@ For lighter checks, sync only the extra under review:
 uv sync --locked --extra server
 ```
 
-The demo extra and both Space README files target Gradio 6.29.0. The
+The demo extra and both Space README files target Gradio 6.29.1. The
 checked-in `requirements/demo.txt` exports the demo dependency graph with
 hashes from the same root lock:
 
@@ -81,6 +81,32 @@ policy and the lockfile in the same change.
 
 Supply-chain controls for heavy optional packages live in
 `requirements/heavy_optional_dependency_policy.toml`.
+
+## Shared CI and optional-runtime constraints
+
+Use uv 0.11.33 to regenerate the profiles. CrewAI CLI 1.15.23 requires
+`uv~=0.11.6`, so the shared application environment retains the newest
+compatible 0.11 release. The dev and CPU inference profiles
+are installed together, so their shared packages must resolve compatibly.
+`ci-inference.constraints.in` retains Datasets 5.0.1's `fsspec<=2026.6.0`
+and `huggingface-hub<2.0` requirements. It also keeps NumPy below 2.5 to
+match Presidio Analyzer 2.2.364 in the root optional-extra graph. Both
+Presidio extras require that release or newer, preventing a resolver from
+selecting an older analyzer to accommodate a newer NumPy. The shared profile
+also retains Instructor's `rich<15` bound and CrewAI's `pydantic<2.13`
+bound. CrewAI now requires 1.15.23 or later: that upstream release accepts
+patched JSON Repair, so the old resolver override
+is removed and the upstream dependency contract applies unchanged.
+
+Native hash-locked installation with uv uses the generated profile directly:
+
+```bash
+uv --no-config pip install --require-hashes -r requirements/ci-dev.txt
+```
+
+The generated profiles already contain the resolved project constraints.
+Reapplying the root's unpinned resolver constraints in hash-required installation
+mode is invalid. CI uses pip with those same hash-locked profiles.
 
 ## CI type-checking dependencies
 

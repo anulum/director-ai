@@ -1,10 +1,10 @@
 # SPDX-License-Identifier: Apache-2.0
-# Commercial licence available
-# Concepts 1996-2026 Miroslav Sotek. All rights reserved.
-# Code 2020-2026 Miroslav Sotek. All rights reserved.
+# Commercial license available
+# © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
+# © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI - Hugging Face Space real-surface tests
+# Director-AI — Hugging Face Space real-surface tests
 """Real subprocess coverage for the Hugging Face Space package validator."""
 
 from __future__ import annotations
@@ -38,7 +38,7 @@ def _write_minimal_space(root: Path, push_script: str) -> None:
         """---
 title: Director-AI Guardrail
 sdk: gradio
-sdk_version: "6.29.0"
+sdk_version: "6.29.1"
 app_file: app.py
 license: apache-2.0
 ---
@@ -48,7 +48,7 @@ license: apache-2.0
         encoding="utf-8",
     )
     (demo / "requirements.txt").write_text(
-        "director-ai>=3.21.0,<4.0.0\ngradio>=6.29.0,<7.0\n",
+        "director-ai>=3.21.0,<4.0.0\ngradio>=6.29.1,<7.0\n",
         encoding="utf-8",
     )
     (demo / "hf_space_manifest.toml").write_text(

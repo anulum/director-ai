@@ -38,15 +38,9 @@ jobs:
             exit 1
           fi
 
-      # Machine-checks the formally verified halt-monitor kernel. The proofs are
-      # core Lean 4 (no Mathlib — lake-manifest packages are empty), so the
-      # toolchain is read from formal/HaltMonitor/lean-toolchain and no cache is
-      # needed. A type error or failed proof fails the build.
+      - name: Install verified Lean toolchain
+        run: bash tools/install_lean.sh
+
       - name: Build and check Lean proofs
-        uses: leanprover/lean-action@50fcf42d2e460296f1a34b402e990d1b24f8b596 # v1.6.0
-        with:
-          lake-package-directory: formal/HaltMonitor
-          build: true
-          test: false
-          lint: false
-          use-mathlib-cache: false
+        working-directory: formal/HaltMonitor
+        run: lake build

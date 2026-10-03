@@ -4,7 +4,7 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI — Lean doc-gen4 documentation project
+# Director-AI — Lean doc-gen4 documentation project
 name = "docbuild"
 version = "0.1.0"
 reservoir = false
@@ -17,4 +17,4 @@ path = "../"
 [[require]]
 scope = "leanprover"
 name = "doc-gen4"
-rev = "v4.29.1"
+rev = "953c8992d174b4e56955e01e101d46668c68f2bb"

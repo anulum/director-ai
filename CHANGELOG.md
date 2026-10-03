@@ -1,3 +1,11 @@
+<!-- SPDX-License-Identifier: Apache-2.0 -->
+<!-- Commercial license available -->
+<!-- © Concepts 1996–2026 Miroslav Šotek. All rights reserved. -->
+<!-- © Code 2020–2026 Miroslav Šotek. All rights reserved. -->
+<!-- ORCID: 0009-0009-3560-0851 -->
+<!-- Contact: www.anulum.li | protoscience@anulum.li -->
+<!-- DIRECTOR-AI — release history -->
+
 # Changelog
 
 All notable changes to Director-AI will be documented in this file.
@@ -5,19 +13,22 @@ All notable changes to Director-AI will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## Unreleased
+## [Unreleased]
 
 ### Fixed
 
+- Align Ruff 0.16.10 and Gradio 6.29.1 across hooks, demo metadata and
+  dependency profiles. Preserve compatible Datasets/Hub and Presidio/NumPy
+  combinations while refreshing the complete optional dependency graph.
+- Verify the official Lean 4.34.1 archive before installation and bind the
+  native API documentation graph to complete upstream commits.
+- Pin the OpenSSF analysis image by digest and retain SARIF upload; the
+  workflow badge reports CI status instead of an external index score.
 - Distribute complete CPU tests across eight native pytest partitions per
   Python version, preserving all 1,200 original HaluEval reviews and the
   combined 97% coverage floor. Refuse incomplete native model/test evidence.
 - Split CI into reusable owners with a versioned ownership and graph guard in
   hosted CI and normal local preflight; preserve required check names.
-
-## [Unreleased]
-
-### Fixed
 
 - The CI scanner profile uses Semgrep 1.179.0 with patched PyJWT 2.15.1,
   closing the temporary dependency exceptions without overriding upstream

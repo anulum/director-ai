@@ -1,10 +1,10 @@
 # SPDX-License-Identifier: Apache-2.0
-# Commercial licence available
-# Concepts 1996-2026 Miroslav Sotek. All rights reserved.
-# Code 2020-2026 Miroslav Sotek. All rights reserved.
+# Commercial license available
+# © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
+# © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI - Hugging Face Space package validation tests
+# Director-AI — Hugging Face Space package tests
 """Unit guard for Hugging Face Space package validation rules."""
 
 from __future__ import annotations
@@ -26,7 +26,7 @@ def _write_minimal_space(root: Path, push_script: str) -> None:
         """---
 title: Director-AI Guardrail
 sdk: gradio
-sdk_version: "6.29.0"
+sdk_version: "6.29.1"
 app_file: app.py
 license: apache-2.0
 ---
@@ -36,7 +36,7 @@ license: apache-2.0
         encoding="utf-8",
     )
     (demo / "requirements.txt").write_text(
-        "director-ai>=3.21.0,<4.0.0\ngradio>=6.29.0,<7.0\n",
+        "director-ai>=3.21.0,<4.0.0\ngradio>=6.29.1,<7.0\n",
         encoding="utf-8",
     )
     (demo / "hf_space_manifest.toml").write_text(
@@ -166,7 +166,7 @@ license: mit
     errors = validate_hf_space_demo(tmp_path)
 
     assert "demo/README_HF.md: sdk must be gradio" in errors
-    assert "demo/README_HF.md: sdk_version must be 6.29.0" in errors
+    assert "demo/README_HF.md: sdk_version must be 6.29.1" in errors
     assert "demo/README_HF.md: app_file must be app.py" in errors
     assert "demo/README_HF.md: license must be apache-2.0" in errors
     assert "demo/README_HF.md: title must be set" in errors
@@ -181,7 +181,7 @@ def test_hf_space_demo_rejects_requirement_drift(tmp_path: Path) -> None:
     )
 
     assert validate_hf_space_demo(tmp_path) == [
-        "demo/requirements.txt: missing requirement gradio>=6.29.0,<7.0"
+        "demo/requirements.txt: missing requirement gradio>=6.29.1,<7.0"
     ]
 
 

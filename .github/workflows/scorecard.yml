@@ -1,6 +1,10 @@
 # SPDX-License-Identifier: Apache-2.0
-# © 1998–2026 Miroslav Šotek. All rights reserved.
+# Commercial license available
+# © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
+# © Code 2020–2026 Miroslav Šotek. All rights reserved.
+# ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
+# DIRECTOR-AI — OpenSSF analysis
 name: OpenSSF Scorecard
 
 on:
@@ -19,18 +23,23 @@ jobs:
   analysis:
     runs-on: ubuntu-latest
     permissions:
+      contents: read
+      actions: read
       security-events: write
-      id-token: write
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
-      - uses: ossf/scorecard-action@2d1146689b8cda280b9bc96326124645441f03bc # v2.4.4
-        with:
-          results_file: results.sarif
-          results_format: sarif
-          publish_results: true
+      - name: Analyse with immutable OpenSSF image
+        uses: docker://ghcr.io/ossf/scorecard-action@sha256:ae5104dd3cc28466ebeb11144354be4cac4b7ff829654f9fab89021d71c46670
+        env:
+          INPUT_RESULTS_FILE: results.sarif
+          INPUT_RESULTS_FORMAT: sarif
+          INPUT_FILE_MODE: archive
+          INPUT_REPO_TOKEN: ${{ github.token }}
+          INPUT_INTERNAL_DEFAULT_TOKEN: ${{ github.token }}
+          INPUT_PUBLISH_RESULTS: "false"
 
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
