@@ -1,18 +1,23 @@
-# Director-Class AI — Code Ownership
-# © 1998-2026 Miroslav Sotek. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+# Commercial license available
+# © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
+# © Code 2020–2026 Miroslav Šotek. All rights reserved.
+# ORCID: 0009-0009-3560-0851
+# Contact: www.anulum.li | protoscience@anulum.li
+# Director-AI — Code ownership
 
-# Default: all files require maintainer review
-* @anulum/maintainers
+# Default: route file reviews to the repository owner
+* @anulum
 
 # Core scoring engine
-src/director_ai/core/ @anulum/maintainers
+src/director_ai/core/ @anulum
 
 # Security-sensitive: server, auth, gRPC
-src/director_ai/server.py @anulum/maintainers
-src/director_ai/grpc_server.py @anulum/maintainers
+src/director_ai/server.py @anulum
+src/director_ai/grpc_server.py @anulum
 
 # CI/CD and release
-.github/ @anulum/maintainers
+.github/ @anulum
 
 # Documentation
-docs-site/ @anulum/maintainers
+docs-site/ @anulum

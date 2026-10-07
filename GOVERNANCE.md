@@ -1,3 +1,12 @@
+<!--
+SPDX-License-Identifier: Apache-2.0
+Commercial license available
+© Concepts 1996–2026 Miroslav Šotek. All rights reserved.
+© Code 2020–2026 Miroslav Šotek. All rights reserved.
+ORCID: 0009-0009-3560-0851
+Contact: www.anulum.li | protoscience@anulum.li
+Director-AI — Governance
+-->
 # Governance
 
 ## Project Lead
@@ -21,10 +30,11 @@ Releases follow [Semantic Versioning](https://semver.org/). Patch releases
 ship as needed for bug fixes. Minor releases target monthly cadence.
 Major releases are planned with deprecation notices.
 
-## Maintainer Team
+## Repository Ownership
 
-The `@anulum/maintainers` GitHub team has write access and is responsible
-for code review, CI health, and release management.
+The repository belongs to [@anulum](https://github.com/anulum). Miroslav Šotek
+is responsible for code review, CI health, and release management. The
+[CODEOWNERS file](.github/CODEOWNERS) routes file reviews to that account.
 
 ## Code of Conduct
 
