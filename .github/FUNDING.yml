@@ -1,7 +1,14 @@
 # SPDX-License-Identifier: Apache-2.0
+# Commercial license available
+# © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
+# © Code 2020–2026 Miroslav Šotek. All rights reserved.
+# ORCID: 0009-0009-3560-0851
+# Contact: www.anulum.li | protoscience@anulum.li
+# Director-AI — Funding configuration
 github: anulum
 buy_me_a_coffee: anulum
 custom:
-  - "https://www.anulum.li/licensing"
+  - "https://buy.stripe.com/4gM00kbiMdjAberaYz5J601"
   - "https://www.paypal.com/donate?hosted_button_id=4X5F6DNT934HY"
   - "https://go.twint.ch/1/e/tw?tw=acq.lJTAypb8SL2s8vPg7fL0ubi2C220ajOH0BEQn1aKfEJIiIakLpt8jlEv8XdQ9tCp."
+  - "https://anulum.li/contact.html"

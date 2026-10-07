@@ -670,6 +670,8 @@ Commercial licences for the advanced tier:
   for high-impact agent operations, sold through a scoped commercial order.
 - **Sponsor the public core:** [GitHub Sponsors](https://github.com/sponsors/anulum).
 
+[![Support via GitHub Sponsors](https://img.shields.io/badge/GitHub-Sponsors-ea4aaa?logo=githubsponsors&logoColor=white)](https://github.com/sponsors/anulum)
+
 ## Community
 
 - **Chat** — [Discord](https://discord.gg/38HsXDYqy).
