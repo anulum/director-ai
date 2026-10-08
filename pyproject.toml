@@ -358,7 +358,7 @@ Repository = "https://github.com/anulum/director-ai"
 Issues = "https://github.com/anulum/director-ai/issues"
 Changelog = "https://github.com/anulum/director-ai/blob/main/CHANGELOG.md"
 Documentation = "https://anulum.github.io/director-ai"
-Discussions = "https://discord.gg/JvMdKv49"
+Discussions = "https://github.com/anulum/director-ai/discussions"
 
 [tool.setuptools]
 # Do not sweep every git-tracked file into the wheel as package data — that would

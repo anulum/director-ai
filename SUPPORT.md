@@ -1,3 +1,12 @@
+<!--
+SPDX-License-Identifier: Apache-2.0
+Commercial license available
+© Concepts 1996–2026 Miroslav Šotek. All rights reserved.
+© Code 2020–2026 Miroslav Šotek. All rights reserved.
+ORCID: 0009-0009-3560-0851
+Contact: www.anulum.li | protoscience@anulum.li
+Director-AI — Support
+-->
 # Support
 
 ## Getting Help
@@ -5,7 +14,7 @@
 - **Documentation**: [anulum.github.io/director-ai](https://anulum.github.io/director-ai/)
 - **Bug Reports**: [GitHub Issues](https://github.com/anulum/director-ai/issues/new?template=bug_report.yml)
 - **Feature Requests**: [GitHub Issues](https://github.com/anulum/director-ai/issues/new?template=feature_request.yml)
-- **Discussions**: [Discord](https://discord.gg/JvMdKv49)
+- **Discussions**: [GitHub Discussions](https://github.com/anulum/director-ai/discussions)
 
 ## Security
 

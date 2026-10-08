@@ -4,12 +4,12 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI — Issue Template Configuration
+# Director-AI — Issue Template Configuration
 blank_issues_enabled: true
 contact_links:
   - name: Documentation
     url: https://anulum.github.io/director-ai
     about: Check the docs before filing an issue
-  - name: Discord
-    url: https://discord.gg/director-ai
+  - name: GitHub Discussions
+    url: https://github.com/anulum/director-ai/discussions
     about: Ask questions in the community
