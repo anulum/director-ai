@@ -4,7 +4,7 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI — typos configuration
+# Director-AI — spelling configuration
 #
 # CANONICAL and ONLY typos config for this repository (WCH-4). The
 # pre-commit hook passes ``--config .typos.toml`` explicitly and the CI

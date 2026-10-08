@@ -1,5 +1,10 @@
 # SPDX-License-Identifier: Apache-2.0
-# Director-Class AI - per-model benchmark package plan
+# Commercial license available
+# © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
+# © Code 2020–2026 Miroslav Šotek. All rights reserved.
+# ORCID: 0009-0009-3560-0851
+# Contact: www.anulum.li | protoscience@anulum.li
+# Director-AI — per-model benchmark package plan
 
 schema_version = "1.0.0"
 package_id = "director-ai-model-benchmark-packages-2026-05"
