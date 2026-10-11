@@ -9,7 +9,7 @@
     "python_model_classes": 1059,
     "python_model_source_modules": 531,
     "rust_pyo3_model_wrappers": 83,
-    "test_files": 789
+    "test_files": 790
   },
   "documentation": {
     "public_pages": [
@@ -6119,6 +6119,7 @@
       "tests/test_release_gate_evidence.py",
       "tests/test_report_generator.py",
       "tests/test_report_templates.py",
+      "tests/test_repository_restore_ownership.py",
       "tests/test_request_processor.py",
       "tests/test_reranker.py",
       "tests/test_retrieval_benchmark_quality.py",
