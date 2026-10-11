@@ -4,6 +4,7 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
+# Director-AI — Licence validation
 """License validation for commercial Director-AI deployments.
 
 License keys follow the format: DAI-{TIER}-{UUID}
@@ -260,15 +261,45 @@ def validate_key(key: str) -> LicenseInfo:
 
 
 def validate_file(path: str | Path) -> LicenseInfo:
-    """Validate a signed license file (JSON)."""
-    p = Path(path).expanduser()
-    if not p.exists():
-        return LicenseInfo(message=f"License file not found: {p}")
+    """Read and validate a signed JSON licence object.
 
+    Parameters
+    ----------
+    path : str or Path
+        Location of the UTF-8 JSON licence file.
+
+    Returns
+    -------
+    LicenseInfo
+        Validation result, including an invalid result for unreadable files
+        and malformed JSON roots or field types.
+    """
     try:
-        data = json.loads(p.read_text(encoding="utf-8"))
-    except (json.JSONDecodeError, OSError) as exc:
-        return LicenseInfo(message=f"Cannot read license file: {exc}")
+        p = Path(path).expanduser()
+        try:
+            data = json.loads(p.read_text(encoding="utf-8"))
+        except FileNotFoundError:
+            return LicenseInfo(message=f"License file not found: {p}")
+    except (ValueError, OSError, RuntimeError):
+        return LicenseInfo(message="Cannot read license file")
+
+    if not isinstance(data, dict):
+        return LicenseInfo(message="License file must contain a JSON object")
+
+    for field in (
+        "key",
+        "tier",
+        "licensee",
+        "email",
+        "issued",
+        "expires",
+        "signature",
+        "ed25519_signature",
+    ):
+        if field in data and not isinstance(data[field], str):
+            return LicenseInfo(message=f"Invalid type for license field: {field}")
+    if "deployments" in data and type(data["deployments"]) is not int:
+        return LicenseInfo(message="Invalid type for license field: deployments")
 
     # Prefer the asymmetric Ed25519 signature (forgery-resistant: the private key
     # never ships). The legacy symmetric HMAC signature is rejected by default —
@@ -300,7 +331,7 @@ def validate_file(path: str | Path) -> LicenseInfo:
         expected_sig = hmac.new(
             secret, json.dumps(payload, sort_keys=True).encode(), hashlib.sha256
         ).hexdigest()
-        if not hmac.compare_digest(sig, expected_sig):
+        if not sig.isascii() or not hmac.compare_digest(sig, expected_sig):
             return LicenseInfo(message="Invalid license signature")
 
     tier = data.get("tier", "").lower()
