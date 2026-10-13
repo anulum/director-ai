@@ -1,3 +1,11 @@
+<!-- SPDX-License-Identifier: Apache-2.0 -->
+<!-- Commercial license available -->
+<!-- © Concepts 1996–2026 Miroslav Šotek. All rights reserved. -->
+<!-- © Code 2020–2026 Miroslav Šotek. All rights reserved. -->
+<!-- ORCID: 0009-0009-3560-0851 -->
+<!-- Contact: www.anulum.li | protoscience@anulum.li -->
+<!-- Director-AI — Command-line reference -->
+
 # CLI Reference
 
 Director-AI ships a command-line interface for scoring, serving, benchmarking, and project scaffolding.
@@ -30,6 +38,21 @@ director-ai process "What is the refund policy?"
 # Batch score from JSONL
 director-ai batch input.jsonl --output results.jsonl
 ```
+
+### Source-bound memory feedback
+
+Install the matching `director-ai-pro` package and provision the private
+operator profile before submitting or replaying event feedback.
+
+```bash
+director-ai event-feedback --help
+director-ai event-feedback replay --profile /operator/private/profile.json
+```
+
+The command reports event-feedback durability. Its receipt does not authorise
+an action or confirm retention of a complete workflow result. See
+[source-bound REMANENTIA feedback](../integrations/remanentia.md) for evaluation,
+original-response import, receipt reconciliation and custody requirements.
 
 ### Ingestion
 
@@ -225,11 +248,9 @@ director-ai version
 # director-ai 3.21.0
 ```
 
-## Global Options
+## Command Options
 
-| Flag | Description |
-|------|-------------|
-| `--config PATH` | YAML config file |
-| `--profile NAME` | Named profile (fast, thorough, medical, etc.) |
-| `--verbose` | Enable debug logging |
-| `--json` | JSON output format |
+Options are parsed by the selected command. Use
+`director-ai <command> --help` for its accepted flags. `config --profile NAME`
+selects a built-in profile; `event-feedback --profile PATH` reads a private
+operator JSON profile.

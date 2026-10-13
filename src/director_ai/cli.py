@@ -580,6 +580,10 @@ def _command_specs() -> dict[str, _CommandSpec]:
             _cmd_check_step,
             "check-step <goal> <action> [args]  Validate an agentic loop step",
         ),
+        "event-feedback": _CommandSpec(
+            _lazy_handler(".agentic.event_feedback.cli", "main"),
+            "event-feedback <action>  Evaluate or replay source-bound memory feedback",
+        ),
         "consensus": _CommandSpec(
             _cmd_consensus,
             "consensus <model:response>...  Compare cross-model agreement",

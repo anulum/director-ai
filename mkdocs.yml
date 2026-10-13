@@ -184,6 +184,7 @@ nav:
       - Troubleshooting: guide/troubleshooting.md
       - Migration (v2→v3): guide/migration-v2-v3.md
   - Integrations:
+      - REMANENTIA Event Feedback: integrations/remanentia.md
       - Agent Framework Deploy Pack: integrations/agent-framework-deploy.md
       - Inference-Server Hooks (vLLM/TGI/llama.cpp): integrations/inference-server-hooks.md
       - LLM SDK Guard: integrations/sdk-guard.md
