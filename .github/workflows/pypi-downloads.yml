@@ -100,7 +100,7 @@ jobs:
           echo "changed=true" >> "$GITHUB_OUTPUT"
       - name: Upload the exact download series
         if: steps.prepare.outputs.snapshot_available == 'true'
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: pypi-downloads-director-ai
           path: ${{ runner.temp }}/director-ai-metrics/downloads/director-ai.csv
