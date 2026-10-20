@@ -38,7 +38,10 @@ if TYPE_CHECKING:
     from director_ai.core.federated_privacy import SecureAggregator
     from director_ai.core.scoring.consensus import ByzantineFaultTolerantConsensus
     from director_ai.core.scoring.contradiction import ContradictionScorer
-    from director_ai.core.swarm_coherence import SwarmCoherenceMonitor
+    from director_ai.core.swarm_coherence import (
+        ContradictionEngine,
+        SwarmCoherenceMonitor,
+    )
 
 __all__ = ["DistributedTrustMixin"]
 
@@ -93,7 +96,7 @@ class DistributedTrustMixin:
     def new_swarm_monitor(
         self,
         *,
-        nli: ContradictionScorer | None = None,
+        nli: ContradictionEngine | None = None,
         contradiction_threshold: float | None = None,
     ) -> SwarmCoherenceMonitor:
         """Create a stateful cross-agent cascade-coherence monitor.
@@ -104,7 +107,8 @@ class DistributedTrustMixin:
         text)`` in turn and it checks the new claims against every earlier agent's
         established claims, halting the cascade (``update.halted``) on the first
         cross-agent contradiction so downstream agents never consume a poisoned
-        context. Pass an NLI scorer as *nli* for contradiction detection (a fresh
+        context. Pass an NLI scorer implementing ``ContradictionEngine`` as *nli*
+        for contradiction detection (a fresh
         monitor per cascade keeps each conversation's state isolated).
         """
         from director_ai.core.swarm_coherence import SwarmCoherenceMonitor
