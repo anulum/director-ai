@@ -1,12 +1,47 @@
+<!-- SPDX-License-Identifier: Apache-2.0 -->
+<!-- Commercial license available -->
+<!-- © Concepts 1996–2026 Miroslav Šotek. All rights reserved. -->
+<!-- © Code 2020–2026 Miroslav Šotek. All rights reserved. -->
+<!-- ORCID: 0009-0009-3560-0851 -->
+<!-- Contact: www.anulum.li | protoscience@anulum.li -->
+<!-- Director-AI — Product roadmap -->
+
 # Roadmap
 
-Last updated: 2026-06-02
+Source status checked: 2026-10-20
 
-Current open-item reconciliation lives in `docs/ROADMAP_STATUS.md`. Treat
-unchecked boxes in older internal notes as archival until they are reconciled
-there or promoted into this roadmap with a concrete acceptance gate.
+The [status index](docs/ROADMAP_STATUS.md) distinguishes implemented source
+from deployment, benchmark and independent security qualification. Product
+status here does not establish that an installed or published package contains
+every change in this checkout.
 
-## Shipped Today - 2026-04-29
+## Current implementation and qualification
+
+The advanced tier includes the source-bound event-feedback SDK and lazy CLI
+dispatch. The client checks the served recall event and original source under
+current rights, preserves original reviews and signed requests, and reconciles
+durable feedback acknowledgements. It requires the matching advanced package
+and an operator-provisioned registration. See the
+[integration contract](docs-site/integrations/remanentia.md) and
+[CLI reference](docs-site/api/cli.md).
+
+An event-feedback acknowledgement records feedback about a recall event.
+Qualification of a complete autonomous workflow still requires authorised
+execution, approval consumption, independent verification and durable retention
+of its complete result. The feedback receipt alone does not establish these
+properties.
+
+External security testing, benchmark claims and environment-specific live
+deployments retain the evidence gates in the status index.
+
+## Historical implementation and planning records
+
+The dated sections below preserve earlier release records and planning
+decisions. Their original version targets and checkbox states are historical;
+they do not independently select current work or establish current deployment
+readiness.
+
+## Implementation record - 2026-04-29
 
 - Quickstart and onboarding work is marked complete for the default Docker
   Compose path, Python-only support path, `director-ai doctor`, starter
@@ -281,7 +316,7 @@ there or promoted into this roadmap with a concrete acceptance gate.
 - Stripe Checkout page + HMAC-SHA256 license key generation
 - B608 ChromaDB parameterised filters (low priority, no user input reaches these)
 
-## v3.15.0
+## v3.15.0 historical planning record
 
 ### Product Simplification and Onboarding (Planned)
 - [x] Make `director-ai quickstart` scaffold a default Docker Compose path with:
