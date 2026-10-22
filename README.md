@@ -44,8 +44,8 @@ Director-AI — Repository overview
 |---|---|---|---|
 | **Director-Lite** | `pip install director-ai-lite` | Apache-2.0 · free | Three-line guard facade, model-free heuristic default, facts/RAG handoff, optional NLI upgrade |
 | **Director-AI** | `pip install director-ai` | Apache-2.0 · free | Full open-core runtime: `guard()`, 5-tier scoring, RAG grounding and evidence packets, REST/gRPC server and proxy, SDK and framework integrations, CLI verification, opt-in streaming contradiction halt |
-| **Director-AI Pro** | Private index (`pypi.remanentia.com`) | BUSL-1.1 · CHF or USD 490/yr | Advanced production entitlement: verified scorer, sharded NLI, cross-model consensus, forecasting, calibration, training tools, enterprise packages, priority support |
-| **Director-AI Full** | Private index (`pypi.remanentia.com`) | BUSL-1.1 · CHF or USD 980/yr | Everything in Pro plus the Labs/Research module set and direct engineering support |
+| **Director-AI Pro** | Private index (`pypi.remanentia.com`) | LicenseRef-BUSL-1.1-ANULUM-TDM · CHF or USD 490/yr | Advanced production entitlement: verified scorer, sharded NLI, cross-model consensus, forecasting, calibration, training tools, enterprise packages, priority support |
+| **Director-AI Full** | Private index (`pypi.remanentia.com`) | LicenseRef-BUSL-1.1-ANULUM-TDM · CHF or USD 980/yr | Everything in Pro plus the Labs/Research module set and direct engineering support |
 | **Director-Class AI** | Commercial engagement | Scoped order form | Action-control and evidence boundary for agent fleets; requested via [protoscience@anulum.li](mailto:protoscience@anulum.li) |
 
 An annual subscription covers private-index access and every release of the
@@ -105,7 +105,7 @@ and deterministic; install the `[nli]` extra for model-backed production scoring
 
 Director-AI began as an internal research tool at [ANULUM Institute](https://www.anulum.li), built as part of the [God of the Math Collection](https://www.anulum.li) (GOTM) — a multi-project scientific computing ecosystem spanning neuroscience, plasma physics, stochastic computing, and AI safety.
 
-It was built to solve a specific, high-consequence need: **response-level hallucination detection for LLM outputs used in scientific pipelines**, where a single fabricated number or citation can invalidate downstream analysis. It is now an open-core product any team can adopt for the same class of factual-risk control. The core is open source under Apache-2.0; the advanced and labs capabilities are source-available under BUSL-1.1.
+It was built to solve a specific, high-consequence need: **response-level hallucination detection for LLM outputs used in scientific pipelines**, where a single fabricated number or citation can invalidate downstream analysis. It is now an open-core product any team can adopt for the same class of factual-risk control. The core is open source under Apache-2.0; the advanced and labs capabilities are source-available under LicenseRef-BUSL-1.1-ANULUM-TDM.
 
 **Team:** ANULUM maintains a research team (intentionally undisclosed). GitHub automation and repository maintenance are handled by the owner. Contributions to the Apache-2.0 core are welcome under the Apache-2.0 terms.
 
@@ -252,13 +252,13 @@ inventory below is reference for the deeper surface, navigable under
 |---|---:|
 | Package version | 3.21.0 |
 | Public API exports | 227 |
-| Python capability source modules | 531 |
-| Python capability classes | 1059 |
+| Python capability source modules | 540 |
+| Python capability classes | 1070 |
 | API documentation pages | 90 |
 | Rust PyO3 bindings | 83 |
 | Optional extras | 62 |
-| Python test files | 791 |
-| Public documentation pages | 207 |
+| Python test files | 801 |
+| Public documentation pages | 208 |
 | GitHub Actions workflows | 29 |
 
 Evidence boundary: this snapshot is a static inventory. Performance, coverage, hardware, and scientific-fidelity claims require their own committed evidence artefacts.
@@ -628,7 +628,7 @@ Kubernetes: [Helm chart](deploy/helm/director-ai/) with GPU toggle, HPA, Sigstor
   year      = {2026},
   url       = {https://github.com/anulum/director-ai},
   version   = {3.21.0},
-  license   = {Apache-2.0 AND BUSL-1.1}
+  license   = {Apache-2.0 AND LicenseRef-BUSL-1.1-ANULUM-TDM}
 }
 ```
 
@@ -642,11 +642,15 @@ verify.
    5-tier scoring (rules → embeddings → NLI), SDK guard, FastAPI middleware,
    REST server, injection detection, streaming halt, and the agent/MCP preflight
    guard. Free for any use, including production and closed-source.
-2. **Advanced & Labs — [BUSL-1.1](LICENSES/BUSL-1.1.txt).** The advanced
+2. **Advanced & Labs — [LicenseRef-BUSL-1.1-ANULUM-TDM](LICENSES/LicenseRef-BUSL-1.1-ANULUM-TDM.txt).** The advanced
    capabilities under `core/<advanced>/`, `enterprise/`, `voice/`, `ui/`,
    `experimental/`, `compliance/`, and `agentic/`. Source-available: free for
-   non-production and evaluation use; production and hosted/SaaS use require a
-   commercial licence. Each file converts to Apache-2.0 on its change date.
+   non-production use under its modified terms; production and hosted/SaaS use
+   require a commercial licence. The added Use Limitation requires prior written
+   permission for text and data mining and machine-learning uses, including model
+   evaluation. It does not restrict running the software for its documented
+   purpose and survives the Change Date unless withdrawn in writing. Original
+   conversion parameters remain unchanged pending a later relicensing decision.
 
 Build deployments on the **supported-for-production shortlist** (guard SDK,
 CoherenceScorer, knowledge store, server/proxy, injection firewall,

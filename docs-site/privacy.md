@@ -1,4 +1,14 @@
+<!-- SPDX-License-Identifier: CC-BY-4.0 -->
+<!-- Commercial license available -->
+<!-- © Concepts 1996–2026 Miroslav Šotek. All rights reserved. -->
+<!-- © Code 2020–2026 Miroslav Šotek. All rights reserved. -->
+<!-- ORCID: 0009-0009-3560-0851 -->
+<!-- Contact: www.anulum.li | protoscience@anulum.li -->
+<!-- DIRECTOR-AI — docs-site/privacy.md -->
+
 # Privacy Policy
+
+Advanced/Labs uses are subject to the [permanent Use Limitation](licensing.md); text and data mining and machine-learning uses require prior written permission.
 
 **ANULUM Research** — Miroslav Sotek, Marbach SG, Switzerland
 **Effective date:** 28 March 2026
@@ -99,7 +109,7 @@ We protect data through:
 - Encrypted email (TLS in transit)
 - SSH key authentication for all infrastructure
 - No plaintext credential storage
-- Apache-2.0 / BUSL-1.1 source-available code subject to public audit
+- Apache-2.0 / LicenseRef-BUSL-1.1-ANULUM-TDM source-available code subject to public audit
 
 ## 9. Children
 

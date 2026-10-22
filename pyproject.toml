@@ -17,7 +17,8 @@ description = "Response-level LLM hallucination guardrail — NLI + RAG fact-che
 authors = [
     {name = "Miroslav Šotek", email = "protoscience@anulum.li"}
 ]
-license = "Apache-2.0 AND BUSL-1.1"
+license = "Apache-2.0 AND LicenseRef-BUSL-1.1-ANULUM-TDM"
+license-files = ["LICENSE", "LICENSES/*.txt", "NOTICE.md"]
 readme = "README.md"
 requires-python = ">=3.11"
 keywords = [
@@ -370,7 +371,7 @@ include-package-data = false
 [tool.setuptools.packages.find]
 where = ["src"]
 # Open-core release: the public PyPI wheel ships only the Apache-2.0 core. The
-# BUSL-1.1 advanced & labs packages below stay source-available in the repo but
+# LicenseRef-BUSL-1.1-ANULUM-TDM advanced & labs packages below stay source-available in the repo but
 # are excluded from the published wheel. The core imports standalone without them
 # (verified via scripts/check_free_wheel.py in CI); advanced features raise a
 # friendly "advanced tier required" error when invoked in a core-only install.

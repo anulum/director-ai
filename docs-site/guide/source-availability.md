@@ -1,7 +1,17 @@
+<!-- SPDX-License-Identifier: CC-BY-4.0 -->
+<!-- Commercial license available -->
+<!-- © Concepts 1996–2026 Miroslav Šotek. All rights reserved. -->
+<!-- © Code 2020–2026 Miroslav Šotek. All rights reserved. -->
+<!-- ORCID: 0009-0009-3560-0851 -->
+<!-- Contact: www.anulum.li | protoscience@anulum.li -->
+<!-- DIRECTOR-AI — docs-site/guide/source-availability.md -->
+
 # Source Availability
 
+Advanced/Labs uses are subject to the [permanent Use Limitation](../licensing.md); text and data mining and machine-learning uses require prior written permission.
+
 Director-AI is open core: the **core** is Apache-2.0 and the **Advanced & Labs**
-tier is BUSL-1.1 (source-available). For transparency, the server exposes a
+tier is LicenseRef-BUSL-1.1-ANULUM-TDM (source-available). For transparency, the server exposes a
 `/v1/source` endpoint so anyone interacting with a deployment can find the
 corresponding source.
 
@@ -15,7 +25,7 @@ curl https://your-server:8080/v1/source
 
 ```json
 {
-  "license": "Apache-2.0 AND BUSL-1.1",
+  "license": "Apache-2.0 AND LicenseRef-BUSL-1.1-ANULUM-TDM",
   "version": "3.21.0",
   "repository_url": "https://github.com/anulum/director-ai",
   "instructions": "git clone https://github.com/anulum/director-ai"
@@ -43,7 +53,7 @@ export DIRECTOR_SOURCE_ENDPOINT_ENABLED=false
 
 ## The Tier Boundary in Practice
 
-Since 3.18.1 the public PyPI wheel is **core-only**: the BUSL-1.1 advanced
+Since 3.18.1 the public PyPI wheel is **core-only**: the LicenseRef-BUSL-1.1-ANULUM-TDM advanced
 packages and the paid single modules (server, verified scorer, calibration,
 training, …) are not in the artefact. Every public name stays importable —
 using one in a core-only install raises a clear
@@ -70,6 +80,6 @@ index access and all releases of the tier while active. Checkout and plans:
 2. **Modified deployments**: point `DIRECTOR_SOURCE_REPOSITORY_URL` at your fork
    so users can find your changes.
 3. **Advanced tier in production**: the Apache-2.0 core is free for production;
-   running the BUSL-1.1 advanced tier in production or as a hosted service needs
+   running the LicenseRef-BUSL-1.1-ANULUM-TDM advanced tier in production or as a hosted service needs
    an active commercial subscription or licence — see the pricing page or
    contact `director.class.ai@anulum.li`.

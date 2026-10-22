@@ -4,7 +4,7 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI — health, readiness, source, metrics, and config routes
+# Director-AI — health, readiness, source, metrics, and config routes
 
 """Diagnostic routes: liveness, health, readiness, source, metrics, config.
 
@@ -114,7 +114,7 @@ def create_health_router() -> APIRouter:
     async def source(request: Request) -> dict[str, Any]:
         """Return source-availability metadata for the running deployment.
 
-        Open core: the Apache-2.0 core and the source-available BUSL-1.1 advanced
+        Open core: the Apache-2.0 core and the source-available LicenseRef-BUSL-1.1-ANULUM-TDM advanced
         tier are both published upstream. This endpoint is a transparency
         convenience, not a licence obligation.
         """
@@ -135,7 +135,7 @@ def create_health_router() -> APIRouter:
             raise HTTPException(404, "Source endpoint disabled")
 
         return {
-            "license": "Apache-2.0 AND BUSL-1.1",
+            "license": "Apache-2.0 AND LicenseRef-BUSL-1.1-ANULUM-TDM",
             "version": director_ai.__version__,
             "repository_url": cfg.source_repository_url,
             "instructions": f"git clone {cfg.source_repository_url}",

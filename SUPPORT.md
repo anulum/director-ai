@@ -9,6 +9,8 @@ Director-AI — Support
 -->
 # Support
 
+Advanced/Labs uses are subject to the [permanent Use Limitation](docs-site/licensing.md); text and data mining and machine-learning uses require prior written permission.
+
 ## Getting Help
 
 - **Documentation**: [anulum.github.io/director-ai](https://anulum.github.io/director-ai/)
@@ -24,7 +26,7 @@ Do not open public issues for security matters. See [SECURITY.md](SECURITY.md).
 
 ## Commercial Licensing
 
-Director-AI is open core: Apache-2.0 core, BUSL-1.1 advanced & labs tier.
+Director-AI is open core: Apache-2.0 core, LicenseRef-BUSL-1.1-ANULUM-TDM advanced & labs tier.
 Contact [protoscience@anulum.li](mailto:protoscience@anulum.li) for a commercial
 licence to run the advanced tier in production.
 See [NOTICE.md](NOTICE.md) for boundary clarifications.

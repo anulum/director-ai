@@ -1,10 +1,10 @@
-# SPDX-License-Identifier: BUSL-1.1
+# SPDX-License-Identifier: LicenseRef-BUSL-1.1-ANULUM-TDM
 # Commercial license available
 # © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI — CLIP discrimination benchmark tests
+# Director-AI — CLIP discrimination benchmark tests
 
 """Offline tests for the multimodal discrimination benchmark.
 
@@ -23,24 +23,24 @@ from benchmarks.multimodal_clip_discrimination import (
 )
 
 
-def test_separation_empty():
+def test_separation_empty() -> None:
     assert separation([], [0.1]) == {"n_matched": 0, "n_mismatched": 1}
 
 
-def test_separation_perfect():
+def test_separation_perfect() -> None:
     s = separation([0.9, 0.8], [0.2, 0.1])
     assert s["gap"] > 0
     assert s["pairwise_auc"] == 1.0
 
 
-def test_separation_no_signal():
+def test_separation_no_signal() -> None:
     # Identical distributions -> all ties -> AUC 0.5, zero gap.
     s = separation([0.5, 0.5], [0.5, 0.5])
     assert s["pairwise_auc"] == 0.5
     assert s["gap"] == 0.0
 
 
-def test_run_benchmark_hashbag_runs_clip_degrades_without_dep():
+def test_run_benchmark_hashbag_runs_clip_degrades_without_dep() -> None:
     result = run_benchmark()
     assert result["benchmark"] == "multimodal_clip_discrimination"
     # Hash-bag baseline is dependency-free and always produces a metric.

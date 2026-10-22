@@ -43,7 +43,7 @@ COPY packages/ packages/
 COPY requirements/ requirements/
 COPY backfire-kernel/ backfire-kernel/
 
-# Free core wheel + BUSL-1.1 director-ai-pro overlay (server surface) —
+# Free core wheel + LicenseRef-BUSL-1.1-ANULUM-TDM director-ai-pro overlay (server surface) —
 # same two-wheel composition as the CPU image since the D1 re-slice.
 RUN python -m pip install --no-cache-dir --require-hashes --no-deps --prefix=/install \
         -r requirements/docker-build.txt \
@@ -91,7 +91,7 @@ FROM python:3.11-slim@sha256:e41613d42d4891e4930f79523f93f81bbc7632584ec65e36ab0
 LABEL maintainer="Miroslav Sotek <protoscience@anulum.li>"
 LABEL description="Director-AI GPU — ONNX CUDA hallucination guardrail"
 LABEL org.opencontainers.image.source="https://github.com/anulum/director-ai"
-LABEL org.opencontainers.image.license="Apache-2.0 AND BUSL-1.1"
+LABEL org.opencontainers.image.license="Apache-2.0 AND LicenseRef-BUSL-1.1-ANULUM-TDM"
 
 WORKDIR /app
 

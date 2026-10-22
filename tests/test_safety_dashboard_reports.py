@@ -1,10 +1,10 @@
-# SPDX-License-Identifier: BUSL-1.1
-# Commercial licence available
-# Concepts 1996-2026 Miroslav Sotek. All rights reserved.
-# Code 2020-2026 Miroslav Sotek. All rights reserved.
+# SPDX-License-Identifier: LicenseRef-BUSL-1.1-ANULUM-TDM
+# Commercial license available
+# © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
+# © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI - Safety dashboard report-model contracts
+# DIRECTOR-AI — tests/test_safety_dashboard_reports.py
 
 """Contract tests for the safety-dashboard report models module.
 
@@ -40,18 +40,18 @@ _COLUMN_NAMES = (
 
 
 class TestModulePlacement:
-    def test_models_are_defined_in_the_reports_module(self):
+    def test_models_are_defined_in_the_reports_module(self) -> None:
         for name in _MODEL_NAMES:
             cls = getattr(dashboard_reports_module, name)
             assert cls.__module__ == dashboard_reports_module.__name__
 
-    def test_facade_re_exports_models_and_columns_unchanged(self):
+    def test_facade_re_exports_models_and_columns_unchanged(self) -> None:
         for name in (*_MODEL_NAMES, *_COLUMN_NAMES):
             assert getattr(safety_dashboard, name) is getattr(
                 dashboard_reports_module, name
             )
 
-    def test_module_all_covers_models_columns_and_status_aliases(self):
+    def test_module_all_covers_models_columns_and_status_aliases(self) -> None:
         assert set(dashboard_reports_module.__all__) == {
             *_MODEL_NAMES,
             *_COLUMN_NAMES,
@@ -59,7 +59,7 @@ class TestModulePlacement:
             "ComplianceExportStatus",
         }
 
-    def test_ui_package_surface_is_unchanged(self):
+    def test_ui_package_surface_is_unchanged(self) -> None:
         from director_ai import ui
 
         assert ui.TrustControl is dashboard_reports_module.TrustControl
@@ -70,7 +70,7 @@ class TestModulePlacement:
 
 
 class TestValidationContracts:
-    def test_trust_control_normalises_and_validates_status(self):
+    def test_trust_control_normalises_and_validates_status(self) -> None:
         control = dashboard_reports_module.TrustControl(
             control=" halt-drill ",
             status=" PASSED ",
@@ -82,13 +82,13 @@ class TestValidationContracts:
                 control="x", status="green", evidence_ref="runs/1"
             )
 
-    def test_compliance_export_requires_core_fields(self):
+    def test_compliance_export_requires_core_fields(self) -> None:
         with pytest.raises(ValueError, match="standard is required"):
             dashboard_reports_module.ComplianceExportRef(
                 standard=" ", name="SOC2", status="available", evidence_ref="runs/2"
             )
 
-    def test_reports_serialise_tenant_safe_payloads(self):
+    def test_reports_serialise_tenant_safe_payloads(self) -> None:
         report = dashboard_reports_module.TrustConsoleReport(
             title="t",
             generated_at="now",

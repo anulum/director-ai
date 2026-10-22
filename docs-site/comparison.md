@@ -1,4 +1,14 @@
+<!-- SPDX-License-Identifier: CC-BY-4.0 -->
+<!-- Commercial license available -->
+<!-- © Concepts 1996–2026 Miroslav Šotek. All rights reserved. -->
+<!-- © Code 2020–2026 Miroslav Šotek. All rights reserved. -->
+<!-- ORCID: 0009-0009-3560-0851 -->
+<!-- Contact: www.anulum.li | protoscience@anulum.li -->
+<!-- DIRECTOR-AI — docs-site/comparison.md -->
+
 # How Director-AI compares
+
+Advanced/Labs uses are subject to the [permanent Use Limitation](licensing.md); text and data mining and machine-learning uses require prior written permission.
 
 Director-AI is unusual: it is a **response-level runtime guardrail** *and* a
 **CI eval gate** in one tool, with its hallucination accuracy benchmarked on
@@ -20,9 +30,9 @@ claim.
 ## What's free vs commercial
 
 Director-AI is **open core**. The table below is what ships in the free
-Apache-2.0 package vs the commercial BUSL-1.1 advanced tier.
+Apache-2.0 package vs the commercial LicenseRef-BUSL-1.1-ANULUM-TDM advanced tier.
 
-| Capability | Free (Apache-2.0 core) | Advanced (BUSL-1.1) |
+| Capability | Free (Apache-2.0 core) | Advanced (LicenseRef-BUSL-1.1-ANULUM-TDM) |
 |---|:---:|:---:|
 | Streaming contradiction halt (opt-in) | ✅ | |
 | 5-tier scoring (rules → embeddings → NLI) | ✅ | |
@@ -59,7 +69,7 @@ commercial licence. See [Pricing](pricing.md) and [Licensing](licensing.md).
 | Multi-tenant (OSS tier) | ✅ | partial | partial | — | — | partial |
 | Swarm / multi-agent guarding | ✅ | partial | — | — | — | — |
 | Cloud SaaS | roadmap | ✅ | ✅ | ✅ | n/a | ✅ |
-| Licence | Apache-2.0 + BUSL-1.1 | proprietary | proprietary | Apache-2.0 | open weights | proprietary |
+| Licence | Apache-2.0 + LicenseRef-BUSL-1.1-ANULUM-TDM | proprietary | proprietary | Apache-2.0 | open weights | proprietary |
 
 !!! warning "Honest scope of these rows"
     - **Multimodal (🧪):** the default image backend is a non-semantic byte

@@ -1,15 +1,15 @@
 {
-  "SPDX-License-Identifier": "Apache-2.0 AND BUSL-1.1",
+  "SPDX-License-Identifier": "Apache-2.0 AND LicenseRef-BUSL-1.1-ANULUM-TDM",
   "counts": {
     "github_workflows": 29,
     "model_documentation_pages": 90,
     "optional_extras": 62,
     "public_api_exports": 227,
-    "public_documentation_pages": 207,
-    "python_model_classes": 1059,
-    "python_model_source_modules": 531,
+    "public_documentation_pages": 208,
+    "python_model_classes": 1070,
+    "python_model_source_modules": 540,
     "rust_pyo3_model_wrappers": 83,
-    "test_files": 791
+    "test_files": 801
   },
   "documentation": {
     "public_pages": [
@@ -209,6 +209,7 @@
       "docs-site/integrations/langgraph.md",
       "docs-site/integrations/llamaindex.md",
       "docs-site/integrations/nemo-rails.md",
+      "docs-site/integrations/remanentia.md",
       "docs-site/integrations/sdk-guard.md",
       "docs-site/integrations/semantic-kernel.md",
       "docs-site/integrations/vercel-ai.md",
@@ -1646,6 +1647,10 @@
         "path": "src/director_ai/ci_gate.py"
       },
       {
+        "name": "EventFeedbackSession",
+        "path": "src/director_ai/agentic/event_feedback/session.py"
+      },
+      {
         "name": "Eventually",
         "path": "src/director_ai/core/temporal_logic/formula.py"
       },
@@ -1664,6 +1669,10 @@
       {
         "name": "EvidenceKitSection",
         "path": "src/director_ai/cli_verify/evidence_kit.py"
+      },
+      {
+        "name": "EvidenceRoot",
+        "path": "src/director_ai/agentic/event_feedback/custody.py"
       },
       {
         "name": "EvolutionCycle",
@@ -1794,6 +1803,10 @@
         "path": "src/director_ai/core/self_evolving/feedback.py"
       },
       {
+        "name": "FeedbackInvalidError",
+        "path": "src/director_ai/agentic/event_feedback/codec.py"
+      },
+      {
         "name": "FeedbackLoopAlert",
         "path": "src/director_ai/compliance/feedback_loop_detector.py"
       },
@@ -1810,6 +1823,10 @@
         "path": "src/director_ai/_server_models.py"
       },
       {
+        "name": "FeedbackOutcome",
+        "path": "src/director_ai/agentic/event_feedback/memory.py"
+      },
+      {
         "name": "FeedbackRequest",
         "path": "src/director_ai/_server_models.py"
       },
@@ -1824,6 +1841,10 @@
       {
         "name": "FeedbackStore",
         "path": "src/director_ai/core/self_evolving/feedback.py"
+      },
+      {
+        "name": "FeedbackWriteUnknownError",
+        "path": "src/director_ai/agentic/event_feedback/codec.py"
       },
       {
         "name": "FetchedSource",
@@ -2206,8 +2227,20 @@
         "path": "src/director_ai/core/retrieval/vector_store/http_embedding.py"
       },
       {
+        "name": "HttpEndpoint",
+        "path": "src/director_ai/agentic/event_feedback/transport.py"
+      },
+      {
         "name": "HttpGetter",
         "path": "src/director_ai/core/citation_grounding/fetch.py"
+      },
+      {
+        "name": "HttpResponseInvalidError",
+        "path": "src/director_ai/agentic/event_feedback/transport.py"
+      },
+      {
+        "name": "HttpResult",
+        "path": "src/director_ai/agentic/event_feedback/transport.py"
       },
       {
         "name": "HuggingFaceProvider",
@@ -2954,6 +2987,10 @@
         "path": "src/director_ai/core/temporal_logic/formula.py"
       },
       {
+        "name": "Originals",
+        "path": "src/director_ai/agentic/event_feedback/originals.py"
+      },
+      {
         "name": "OutputExecutionRisk",
         "path": "src/director_ai/core/output_trust/guard.py"
       },
@@ -3092,6 +3129,10 @@
       {
         "name": "PineconeBackend",
         "path": "src/director_ai/core/retrieval/vector_store/vendors.py"
+      },
+      {
+        "name": "PinnedDirectory",
+        "path": "src/director_ai/agentic/event_feedback/custody.py"
       },
       {
         "name": "PipelineRanking",
@@ -3504,6 +3545,10 @@
       {
         "name": "ReviewResult",
         "path": "src/director_ai/core/types.py"
+      },
+      {
+        "name": "ReviewSubmission",
+        "path": "src/director_ai/agentic/event_feedback/producer.py"
       },
       {
         "name": "ReviewedFeedbackManifest",
@@ -4601,6 +4646,15 @@
       "src/director_ai/_server_lifecycle.py",
       "src/director_ai/_server_models.py",
       "src/director_ai/agentic/agent_profile.py",
+      "src/director_ai/agentic/event_feedback/cli.py",
+      "src/director_ai/agentic/event_feedback/codec.py",
+      "src/director_ai/agentic/event_feedback/contract.py",
+      "src/director_ai/agentic/event_feedback/custody.py",
+      "src/director_ai/agentic/event_feedback/memory.py",
+      "src/director_ai/agentic/event_feedback/originals.py",
+      "src/director_ai/agentic/event_feedback/producer.py",
+      "src/director_ai/agentic/event_feedback/session.py",
+      "src/director_ai/agentic/event_feedback/transport.py",
       "src/director_ai/agentic/handoff_scorer.py",
       "src/director_ai/agentic/loop_monitor.py",
       "src/director_ai/agentic/swarm_guardian.py",
@@ -5489,7 +5543,7 @@
     ]
   },
   "project": {
-    "license": "Apache-2.0 AND BUSL-1.1",
+    "license": "Apache-2.0 AND LicenseRef-BUSL-1.1-ANULUM-TDM",
     "name": "director-ai",
     "readme": "README.md",
     "requires_python": ">=3.11",
@@ -5745,6 +5799,16 @@
       "tests/test_enterprise_modules.py",
       "tests/test_eval_gate_dataset.py",
       "tests/test_eval_trace.py",
+      "tests/test_event_feedback/__init__.py",
+      "tests/test_event_feedback/conftest.py",
+      "tests/test_event_feedback/test_codec.py",
+      "tests/test_event_feedback/test_contract.py",
+      "tests/test_event_feedback/test_custody.py",
+      "tests/test_event_feedback/test_memory.py",
+      "tests/test_event_feedback/test_originals.py",
+      "tests/test_event_feedback/test_producer.py",
+      "tests/test_event_feedback/test_session.py",
+      "tests/test_event_feedback/test_transport.py",
       "tests/test_evidence.py",
       "tests/test_evidence_firewall.py",
       "tests/test_evidence_kit.py",

@@ -4,7 +4,7 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI — Server Lifecycle (startup state, hot-swap, shutdown)
+# Director-AI — Server Lifecycle (startup state, hot-swap, shutdown)
 
 """Server lifecycle: startup state assembly, scorer hot-swap, shutdown.
 
@@ -151,7 +151,9 @@ async def server_lifespan(app: FastAPI) -> AsyncIterator[None]:
     elif lic.is_trial:
         logger.info("Director-AI — Trial license (expires %s)", lic.expires)
     else:
-        logger.info("Director-AI — open core: Apache-2.0 + BUSL-1.1")
+        logger.info(
+            "Director-AI — open core: Apache-2.0 + LicenseRef-BUSL-1.1-ANULUM-TDM"
+        )
 
     logger.info("Starting Director-AI server")
 

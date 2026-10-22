@@ -41,8 +41,8 @@ COPY backfire-kernel/ backfire-kernel/
 
 # The production server image composes TWO wheels since the D1 re-slice
 # (2026-07-16): the Apache-2.0 free core wheel (sliced by the setup.py
-# build hook) plus the BUSL-1.1 director-ai-pro overlay that carries the
-# server surface. The image label already declares Apache-2.0 AND BUSL-1.1;
+# build hook) plus the LicenseRef-BUSL-1.1-ANULUM-TDM director-ai-pro overlay that carries the
+# server surface. The image label already declares Apache-2.0 AND LicenseRef-BUSL-1.1-ANULUM-TDM;
 # production use of the pro modules stays licence-gated by BUSL.
 ARG EXTRAS="server"
 ARG REQUIREMENTS="requirements/docker-server.txt"
@@ -69,7 +69,7 @@ FROM python:3.11-slim@sha256:e41613d42d4891e4930f79523f93f81bbc7632584ec65e36ab0
 LABEL maintainer="Miroslav Sotek <protoscience@anulum.li>"
 LABEL description="Director-AI — Real-time LLM hallucination guardrail"
 LABEL org.opencontainers.image.source="https://github.com/anulum/director-ai"
-LABEL org.opencontainers.image.license="Apache-2.0 AND BUSL-1.1"
+LABEL org.opencontainers.image.license="Apache-2.0 AND LicenseRef-BUSL-1.1-ANULUM-TDM"
 
 WORKDIR /app
 

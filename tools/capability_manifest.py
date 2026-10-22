@@ -22,16 +22,11 @@ import json
 import re
 import subprocess
 import sys
+import tomllib
 from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
-
-try:  # pragma: no cover - exercised by Python-version matrix in CI.
-    import tomllib
-except ModuleNotFoundError:  # pragma: no cover
-    import tomli as tomllib  # type: ignore[no-redef]
-
 
 CAPABILITY_MANIFEST_SCHEMA_VERSION = "capability-manifest.v1"
 DEFAULT_JSON_OUTPUT = Path("docs/_generated/capability_manifest.json")
@@ -220,7 +215,7 @@ def build_capability_manifest(
 
     return {
         # REUSE-IgnoreStart
-        "SPDX-License-Identifier": "Apache-2.0 AND BUSL-1.1",
+        "SPDX-License-Identifier": "Apache-2.0 AND LicenseRef-BUSL-1.1-ANULUM-TDM",
         # REUSE-IgnoreEnd
         "schema_version": config.schema_version,
         "project_label": config.project_label,

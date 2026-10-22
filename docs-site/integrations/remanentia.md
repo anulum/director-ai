@@ -1,4 +1,4 @@
-<!-- SPDX-License-Identifier: BUSL-1.1 -->
+<!-- SPDX-License-Identifier: LicenseRef-BUSL-1.1-ANULUM-TDM -->
 <!-- Commercial license available -->
 <!-- © Concepts 1996–2026 Miroslav Šotek. All rights reserved. -->
 <!-- © Code 2020–2026 Miroslav Šotek. All rights reserved. -->
@@ -7,6 +7,8 @@
 <!-- Director-AI — Source-bound event feedback integration -->
 
 # Source-bound REMANENTIA feedback
+
+Advanced/Labs uses are subject to the [permanent Use Limitation](../licensing.md); text and data mining and machine-learning uses require prior written permission.
 
 The advanced tier exposes an event-feedback SDK and command for an operator-registered source-grounded review procedure. It evaluates an answer from an actual served recall event, retains the complete original review and signed request, and checks the complete durable event-feedback acknowledgement. This acknowledgement records feedback about that event. It does not authorise an action, accept a workflow result, or prove that an entire result has been retained in memory.
 

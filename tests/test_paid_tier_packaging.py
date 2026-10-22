@@ -4,7 +4,7 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI — paid-tier packaging parity tests (ladder P3)
+# Director-AI — paid-tier packaging parity tests (ladder P3)
 """Parity tests for the D1/D2 tier re-slice (decisions of 2026-07-16).
 
 The free/paid wheel boundary is declared in four places that must agree:
@@ -133,7 +133,7 @@ def test_free_package_data_does_not_leak_proto_stubs() -> None:
 
 
 def test_no_busl_headered_file_escapes_the_paid_boundary() -> None:
-    """Every BUSL-1.1 file under ``src/`` must be paid-tier only.
+    """Every LicenseRef-BUSL-1.1-ANULUM-TDM file under ``src/`` must be paid-tier only.
 
     A BUSL-headered module that is neither inside an excluded package nor a
     paid single module would ship in the Apache-2.0 free wheel — the exact
@@ -150,7 +150,7 @@ def test_no_busl_headered_file_escapes_the_paid_boundary() -> None:
         if "__pycache__" in py.parts:
             continue
         first_line = py.read_text(encoding="utf-8", errors="replace").partition("\n")[0]
-        if first_line.endswith("BUSL-1.1"):
+        if first_line.endswith("LicenseRef-BUSL-1.1-ANULUM-TDM"):
             resolved = py.resolve()
             in_pkg = any(d in resolved.parents for d in excluded_pkg_dirs)
             if not in_pkg and resolved not in paid_module_files:

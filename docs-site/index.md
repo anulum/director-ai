@@ -10,6 +10,8 @@ Director-AI — Documentation landing page
 
 # Director-AI
 
+Advanced/Labs uses are subject to the [permanent Use Limitation](licensing.md); text and data mining and machine-learning uses require prior written permission.
+
 **Response-level LLM hallucination guardrail** — NLI + RAG fact-checking with audit evidence.
 
 <span class="version-badge">v3.21.0 — offline revocation evidence, polyglot API docs, bounded download metrics, and release hardening</span>
@@ -26,7 +28,7 @@ Director-AI — Documentation landing page
 ![mypy](https://img.shields.io/badge/types-mypy-blue.svg)
 ![Sigstore](https://img.shields.io/badge/signing-Sigstore-purple.svg)
 [![Core License](https://img.shields.io/badge/core-Apache--2.0-green)](https://github.com/anulum/director-ai/blob/main/LICENSES/Apache-2.0.txt)
-[![Advanced License](https://img.shields.io/badge/advanced-BUSL--1.1-blue)](https://github.com/anulum/director-ai/blob/main/LICENSES/BUSL-1.1.txt)
+[![Advanced License](https://img.shields.io/badge/advanced-LicenseRef--BUSL--1.1--ANULUM--TDM-blue)](https://github.com/anulum/director-ai/blob/main/LICENSES/LicenseRef-BUSL-1.1-ANULUM-TDM.txt)
 [![OpenSSF Best Practices](https://www.bestpractices.dev/projects/12102/badge)](https://www.bestpractices.dev/projects/12102)
 [![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/anulum/director-ai/badge)](https://securityscorecards.dev/viewer/?uri=github.com/anulum/director-ai)
 [![DOI](https://zenodo.org/badge/doi/10.5281/zenodo.18822167.svg)](https://doi.org/10.5281/zenodo.18822167)
@@ -205,7 +207,7 @@ See [CONTRIBUTING.md](https://github.com/anulum/director-ai/blob/main/CONTRIBUTI
 ## License
 
 Open core: the **Apache-2.0** core is free for any use, including production; the
-**BUSL-1.1** advanced & labs tier is source-available and free for non-production.
+**LicenseRef-BUSL-1.1-ANULUM-TDM** advanced & labs tier is source-available and free for non-production.
 [Commercial licensing](licensing.md) for the advanced tier is available at
 [anulum.li](https://www.anulum.li).
 

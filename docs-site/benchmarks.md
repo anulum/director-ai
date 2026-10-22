@@ -1,4 +1,14 @@
+<!-- SPDX-License-Identifier: CC-BY-4.0 -->
+<!-- Commercial license available -->
+<!-- © Concepts 1996–2026 Miroslav Šotek. All rights reserved. -->
+<!-- © Code 2020–2026 Miroslav Šotek. All rights reserved. -->
+<!-- ORCID: 0009-0009-3560-0851 -->
+<!-- Contact: www.anulum.li | protoscience@anulum.li -->
+<!-- DIRECTOR-AI — docs-site/benchmarks.md -->
+
 # Benchmarks
+
+Advanced/Labs uses are subject to the [permanent Use Limitation](licensing.md); text and data mining and machine-learning uses require prior written permission.
 
 Reproducible, measured results across accuracy, latency, false-positive rate, and end-to-end guardrail performance. All numbers from our test suite unless marked "(est.)".
 
@@ -23,7 +33,7 @@ Metric: macro-averaged balanced accuracy (standard for [LLM-AggreFact](https://l
 | 3 | FactCG-DeBERTa-L (paper) | 77.2% | 0.4B | No | — | MIT |
 | 4 | Granite Guardian 3.3 (IBM) | 76.5% | 8B | No | — | Apache 2.0 |
 | 5 | GPT-4o | 75.9% | ~200B | No | API | Proprietary |
-| **6** | **Director-AI (FactCG)** | **75.6%** | **0.4B** | **Yes** | **0.5 ms** (L40S FP16, batch 32) | **Apache-2.0 / BUSL-1.1** |
+| **6** | **Director-AI (FactCG)** | **75.6%** | **0.4B** | **Yes** | **0.5 ms** (L40S FP16, batch 32) | **Apache-2.0 / LicenseRef-BUSL-1.1-ANULUM-TDM** |
 | 7 | MiniCheck-Flan-T5-L | 75.0% | 0.8B | No | ~120 ms | MIT |
 | 8 | MiniCheck-DeBERTa-L | 74.1% | 0.4B | No | ~120 ms | MIT |
 | 9 | Paladin-mini (Microsoft) | 73.1% | 3.8B | No | — | Phi-4 license |
@@ -402,7 +412,7 @@ Unlike the NLI benchmarks, this is a standalone tool (it generates fresh transcr
 | **AggreFact BA** | 75.6% (0.4B) | N/A | N/A | N/A | N/A |
 | **E2E catch rate** | 46.7% NLI-only; 90.7% hybrid with 64.0% FPR | N/A | N/A | N/A | N/A |
 | **Integrations** | LC/LI/LG/HS/CrewAI | LangChain | Python | LC/LI | Python |
-| **License** | Apache-2.0 / BUSL-1.1 | Apache 2.0 | Apache 2.0 | Apache 2.0 | MIT |
+| **License** | Apache-2.0 / LicenseRef-BUSL-1.1-ANULUM-TDM | Apache 2.0 | Apache 2.0 | Apache 2.0 | MIT |
 
 Local competitor-latency evidence is committed at
 `benchmarks/results/competitor_guard_latency.json`. The 2026-06-18 run used

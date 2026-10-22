@@ -1,10 +1,10 @@
-# SPDX-License-Identifier: BUSL-1.1
+# SPDX-License-Identifier: LicenseRef-BUSL-1.1-ANULUM-TDM
 # Commercial license available
 # © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI — Neuro-Symbolic Compliance Engine (SMT/Z3)
+# Director-AI — Neuro-Symbolic Compliance Engine (SMT/Z3)
 """Check LLM outputs against a formalised policy with an SMT solver.
 
 Two-stage neuro-symbolic compliance: a policy is formalised into typed SMT

@@ -1,10 +1,10 @@
-# SPDX-License-Identifier: BUSL-1.1
+# SPDX-License-Identifier: LicenseRef-BUSL-1.1-ANULUM-TDM
 # Commercial license available
 # © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI — director-ai-full build shim (paid single-module layering)
+# Director-AI — director-ai-full build shim (paid single-module layering)
 """Full-wheel build shim: layer paid single modules into the full wheel.
 
 All static metadata stays in ``pyproject.toml``; this file exists solely to

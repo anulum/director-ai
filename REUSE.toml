@@ -14,7 +14,7 @@ path = ["src/**", "tests/**", "benchmarks/**", "tools/**"]
 SPDX-FileCopyrightText = "1998-2026 Miroslav Šotek <protoscience@anulum.li>"
 SPDX-License-Identifier = "Apache-2.0"
 
-# --- Advanced & Labs source (BUSL-1.1, source-available; ships only in the
+# --- Advanced & Labs source (LicenseRef-BUSL-1.1-ANULUM-TDM, source-available; ships only in the
 #     director-ai-pro / director-ai-full wheels — NOT the Apache free wheel) ---
 
 [[annotations]]
@@ -131,7 +131,7 @@ path = [
     "src/director_ai/server_support.py",
 ]
 SPDX-FileCopyrightText = "1998-2026 Miroslav Šotek <protoscience@anulum.li>"
-SPDX-License-Identifier = "BUSL-1.1"
+SPDX-License-Identifier = "LicenseRef-BUSL-1.1-ANULUM-TDM"
 
 [[annotations]]
 path = ["backfire-kernel/**", "demo/**", "discord-bot/**", "examples/**", "training/**", "proto/**", "scripts/**", "studio-web/**"]

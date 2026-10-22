@@ -1,4 +1,14 @@
+<!-- SPDX-License-Identifier: Apache-2.0 -->
+<!-- Commercial license available -->
+<!-- © Concepts 1996–2026 Miroslav Šotek. All rights reserved. -->
+<!-- © Code 2020–2026 Miroslav Šotek. All rights reserved. -->
+<!-- ORCID: 0009-0009-3560-0851 -->
+<!-- Contact: www.anulum.li | protoscience@anulum.li -->
+<!-- DIRECTOR-AI — SECURITY.md -->
+
 # Security Policy
+
+Advanced/Labs uses are subject to the [permanent Use Limitation](docs-site/licensing.md); text and data mining and machine-learning uses require prior written permission.
 
 ## Supported Versions
 
@@ -94,8 +104,12 @@ Director-AI is open core:
 1. **Core — Apache-2.0**: the guardrail engine and supporting surfaces are
    permissively licensed and free for any use, including production and
    closed-source products, with no source-disclosure obligation.
-2. **Advanced & Labs — BUSL-1.1**: source-available; free for non-production and
-   evaluation, with each file converting to Apache-2.0 on its change date.
+2. **Advanced & Labs — LicenseRef-BUSL-1.1-ANULUM-TDM**: source-available under
+   the published licence, including its non-production Additional Use Grant and
+   permanent Use Limitation. Text and data mining and machine-learning uses need
+   prior written permission; running the software for its documented purpose is
+   excepted. Original Change Date and Change License parameters remain unchanged,
+   and the Use Limitation survives the Change Date unless withdrawn in writing.
    Production or hosted use of the advanced tier needs a commercial license —
    contact protoscience@anulum.li.
 3. **Dependency compatibility**: all runtime dependencies are permissively

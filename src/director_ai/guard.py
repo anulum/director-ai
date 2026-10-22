@@ -4,7 +4,7 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI — Production Guard (Batteries-Included)
+# Director-AI — Production Guard (Batteries-Included)
 """High-level production guard combining calibrated scoring, feedback, and tool verification.
 
 Bundles three capabilities that individually exist in the codebase into
@@ -66,7 +66,7 @@ from director_ai.core.scoring.verified_scorer import VerifiedScorer
 from director_ai.core.types import CoherenceScore
 
 if TYPE_CHECKING:
-    # Advanced-tier (BUSL-1.1) types used only in annotations — runtime imports
+    # Advanced-tier (LicenseRef-BUSL-1.1-ANULUM-TDM) types used only in annotations — runtime imports
     # are lazy inside the methods that need them, so the Apache core wheel does
     # not require these modules to be installed.
     from director_ai.core.financial_services import BankingPolicyReport

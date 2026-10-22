@@ -1,10 +1,10 @@
-# SPDX-License-Identifier: BUSL-1.1
+# SPDX-License-Identifier: LicenseRef-BUSL-1.1-ANULUM-TDM
 # Commercial license available
 # © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI — live temporal-refresh tests
+# Director-AI — live temporal-refresh tests
 
 """Parser, provider, verdict-engine, polyglot-parity and guard-wiring coverage
 for the live web-search temporal-claim refresher. No network is touched."""
@@ -12,6 +12,7 @@ for the live web-search temporal-claim refresher. No network is touched."""
 from __future__ import annotations
 
 from collections.abc import Mapping
+from typing import TypedDict
 
 import pytest
 
@@ -46,16 +47,28 @@ _DDG_HTML = b"""
 """
 
 
+class _RefresherOptions(TypedDict, total=False):
+    """Precisely typed native constructor fields varied by validation cases."""
+
+    staleness_threshold: float
+    support_threshold: float
+    max_results: int
+
+
 class _StubGetter:
     """An :class:`HttpGetter` returning a canned response, or raising."""
 
-    def __init__(self, *, status=200, body=_DDG_HTML, raise_exc=False):
+    def __init__(
+        self, *, status: int = 200, body: bytes = _DDG_HTML, raise_exc: bool = False
+    ) -> None:
         self._status = status
         self._body = body
         self._raise = raise_exc
         self.last_url = ""
 
-    def get(self, url, *, headers: Mapping[str, str] | None = None):
+    def get(
+        self, url: str, *, headers: Mapping[str, str] | None = None
+    ) -> tuple[int, bytes, str]:
         self.last_url = url
         if self._raise:
             raise RuntimeError("network down")
@@ -63,26 +76,28 @@ class _StubGetter:
 
 
 class _StubProvider:
-    def __init__(self, hits):
+    def __init__(self, hits: list[SearchHit]) -> None:
         self._hits = hits
 
-    def search(self, query, *, max_results):
+    def search(self, query: str, *, max_results: int) -> list[SearchHit]:
         return list(self._hits[:max_results])
 
 
 class _StubNLI:
-    def __init__(self, contradiction):
+    def __init__(self, contradiction: float) -> None:
         self._c = contradiction
 
-    def contradiction(self, premise, hypothesis):
+    def contradiction(self, premise: str, hypothesis: str) -> float:
         return self._c
 
     @property
-    def threshold(self):
+    def threshold(self) -> float:
         return 0.2
 
 
-def _position_claim(text="The CEO of Twitter is", risk=0.8):
+def _position_claim(
+    text: str = "The CEO of Twitter is", risk: float = 0.8
+) -> FreshnessClaim:
     return FreshnessClaim(
         text=text, claim_type="position", staleness_risk=risk, reason="r"
     )
@@ -93,25 +108,25 @@ def _position_claim(text="The CEO of Twitter is", risk=0.8):
 # --------------------------------------------------------------------------- #
 
 
-def test_lexical_overlap_values():
+def test_lexical_overlap_values() -> None:
     # _lexical_overlap delegates to the shared text_overlap helper; dispatch and
     # Python/Rust parity are covered by test_text_overlap.
     assert tr._lexical_overlap("a b c", "b c d") == pytest.approx(0.5)
     assert tr._lexical_overlap("", "x") == 0.0
 
 
-def test_content_and_numeric_tokens():
+def test_content_and_numeric_tokens() -> None:
     assert tr._content_tokens("The CEO of Twitter!") == {"ceo", "twitter"}
     assert tr._numeric_tokens("population is 67 million in 2026") == {"67", "2026"}
 
 
-def test_coverage_containment_and_empty():
+def test_coverage_containment_and_empty() -> None:
     assert tr._coverage(set(), "anything") == 0.0
     assert tr._coverage({"sam", "altman"}, "Sam Altman is CEO") == pytest.approx(1.0)
     assert tr._coverage({"jack", "dorsey"}, "Linda Yaccarino is CEO") == 0.0
 
 
-def test_strip_markup():
+def test_strip_markup() -> None:
     assert tr._strip_markup("a <b>bold</b>  &amp; clean") == "a bold & clean"
 
 
@@ -120,26 +135,26 @@ def test_strip_markup():
 # --------------------------------------------------------------------------- #
 
 
-def test_resolve_ddg_redirect_href():
+def test_resolve_ddg_redirect_href() -> None:
     href = (
         "//duckduckgo.com/l/?uddg=https%3A%2F%2Fen.wikipedia.org%2Fwiki%2FX&amp;rut=z"
     )
     assert tr._resolve_ddg_href(href) == "https://en.wikipedia.org/wiki/X"
 
 
-def test_resolve_bare_and_plain_hrefs():
+def test_resolve_bare_and_plain_hrefs() -> None:
     assert tr._resolve_ddg_href("//example.com/page") == "https://example.com/page"
     assert tr._resolve_ddg_href("https://example.com/x") == "https://example.com/x"
 
 
-def test_resolve_ddg_redirect_without_uddg_param():
+def test_resolve_ddg_redirect_without_uddg_param() -> None:
     assert (
         tr._resolve_ddg_href("//duckduckgo.com/l/?rut=z")
         == "https://duckduckgo.com/l/?rut=z"
     )
 
 
-def test_lookalike_host_is_not_treated_as_duckduckgo():
+def test_lookalike_host_is_not_treated_as_duckduckgo() -> None:
     # A host that merely contains 'duckduckgo.com' as a substring must not be
     # unwrapped as a DuckDuckGo redirect (incomplete-url-substring-sanitization).
     href = "//duckduckgo.com.evil.test/l/?uddg=https%3A%2F%2Fattacker.test%2Fx"
@@ -150,12 +165,12 @@ def test_lookalike_host_is_not_treated_as_duckduckgo():
     )
 
 
-def test_genuine_ddg_subdomain_still_resolves():
+def test_genuine_ddg_subdomain_still_resolves() -> None:
     href = "//html.duckduckgo.com/l/?uddg=https%3A%2F%2Fen.wikipedia.org%2Fwiki%2FY"
     assert tr._resolve_ddg_href(href) == "https://en.wikipedia.org/wiki/Y"
 
 
-def test_ddg_hits_parsing_and_cap():
+def test_ddg_hits_parsing_and_cap() -> None:
     hits = tr._ddg_hits(_DDG_HTML, max_results=5)
     assert len(hits) == 2
     assert hits[0].title == "Sam Altman - Wikipedia"
@@ -165,7 +180,7 @@ def test_ddg_hits_parsing_and_cap():
     assert len(tr._ddg_hits(_DDG_HTML, max_results=1)) == 1
 
 
-def test_ddg_hits_fewer_snippets_than_titles():
+def test_ddg_hits_fewer_snippets_than_titles() -> None:
     html = b'<a class="result__a" href="//x">Title only</a>'
     hits = tr._ddg_hits(html, max_results=3)
     assert hits[0].title == "Title only" and hits[0].snippet == ""
@@ -176,7 +191,7 @@ def test_ddg_hits_fewer_snippets_than_titles():
 # --------------------------------------------------------------------------- #
 
 
-def test_provider_parses_results_and_builds_query_url():
+def test_provider_parses_results_and_builds_query_url() -> None:
     getter = _StubGetter()
     provider = DuckDuckGoSearchProvider(http=getter)
     hits = provider.search("CEO of OpenAI", max_results=2)
@@ -184,7 +199,7 @@ def test_provider_parses_results_and_builds_query_url():
     assert "q=CEO+of+OpenAI" in getter.last_url
 
 
-def test_provider_non_200_and_empty_body_and_error_return_empty():
+def test_provider_non_200_and_empty_body_and_error_return_empty() -> None:
     assert (
         DuckDuckGoSearchProvider(http=_StubGetter(status=503)).search(
             "q", max_results=3
@@ -216,12 +231,12 @@ def test_provider_non_200_and_empty_body_and_error_return_empty():
         {"max_results": 0},
     ],
 )
-def test_refresher_rejects_bad_config(kwargs):
+def test_refresher_rejects_bad_config(kwargs: _RefresherOptions) -> None:
     with pytest.raises(ValueError):
         TemporalRefresher(**kwargs)
 
 
-def test_claim_context_widens_with_source_text():
+def test_claim_context_widens_with_source_text() -> None:
     claim = _position_claim()
     assert TemporalRefresher._claim_context(claim, "") == "The CEO of Twitter is"
     assert (
@@ -234,7 +249,7 @@ def test_claim_context_widens_with_source_text():
     assert ctx == "The CEO of Twitter is Jack Dorsey."
 
 
-def test_subject_and_value_position_and_statistic():
+def test_subject_and_value_position_and_statistic() -> None:
     refresher = TemporalRefresher(provider=_StubProvider([]))
     q_pos, v_pos = refresher._subject_and_value(
         _position_claim(), "The CEO of Twitter is Jack Dorsey."
@@ -251,7 +266,7 @@ def test_subject_and_value_position_and_statistic():
     assert "population" in q_stat and "67" in v_stat
 
 
-def test_subject_query_falls_back_when_all_noise():
+def test_subject_query_falls_back_when_all_noise() -> None:
     # A claim whose content is entirely stop words still yields a non-empty query.
     refresher = TemporalRefresher(provider=_StubProvider([]))
     noise = FreshnessClaim(
@@ -266,24 +281,24 @@ def test_subject_query_falls_back_when_all_noise():
 # --------------------------------------------------------------------------- #
 
 
-def _hits_yaccarino():
+def _hits_yaccarino() -> list[SearchHit]:
     return [
         SearchHit("Linda Yaccarino - Wikipedia", "Linda Yaccarino is CEO of X", "u", 0)
     ]
 
 
-def _hits_altman():
+def _hits_altman() -> list[SearchHit]:
     return [SearchHit("Sam Altman - Wikipedia", "Sam Altman is CEO of OpenAI", "u", 0)]
 
 
-def test_verdict_no_hits_is_no_fresh_evidence():
+def test_verdict_no_hits_is_no_fresh_evidence() -> None:
     refresher = TemporalRefresher(provider=_StubProvider([]))
     report = refresher.refresh(FreshnessResult(claims=[_position_claim()]))
     assert report.refreshes[0].verdict == "no_fresh_evidence"
     assert report.refreshes[0].verdict_source == "none"
 
 
-def test_verdict_nli_contradicted_and_supported():
+def test_verdict_nli_contradicted_and_supported() -> None:
     src = "The CEO of Twitter is Jack Dorsey."
     fr = FreshnessResult(claims=[_position_claim()])
 
@@ -299,7 +314,7 @@ def test_verdict_nli_contradicted_and_supported():
     assert r_low.verdict == "supported" and r_low.verdict_source == "nli"
 
 
-def test_verdict_lexical_drift_and_supported():
+def test_verdict_lexical_drift_and_supported() -> None:
     fr = FreshnessResult(claims=[_position_claim()])
     drift = TemporalRefresher(provider=_StubProvider(_hits_yaccarino()))
     r_drift = drift.refresh(
@@ -315,7 +330,7 @@ def test_verdict_lexical_drift_and_supported():
     assert r_ok.verdict == "supported" and r_ok.coverage == pytest.approx(1.0)
 
 
-def test_verdict_review_when_no_value_and_no_nli():
+def test_verdict_review_when_no_value_and_no_nli() -> None:
     # No source_text -> no asserted value extractable for a position claim.
     refresher = TemporalRefresher(provider=_StubProvider(_hits_altman()))
     r = refresher.refresh(FreshnessResult(claims=[_position_claim()])).refreshes[0]
@@ -328,7 +343,7 @@ def test_verdict_review_when_no_value_and_no_nli():
 # --------------------------------------------------------------------------- #
 
 
-def test_refresh_skips_claims_below_staleness_threshold():
+def test_refresh_skips_claims_below_staleness_threshold() -> None:
     fresh = FreshnessClaim(
         text="x is", claim_type="position", staleness_risk=0.1, reason="r"
     )
@@ -337,20 +352,20 @@ def test_refresh_skips_claims_below_staleness_threshold():
     assert report.checked == 0 and report.skipped == 1 and report.refreshes == []
 
 
-def test_refresh_response_scores_then_refreshes():
+def test_refresh_response_scores_then_refreshes() -> None:
     refresher = TemporalRefresher(provider=_StubProvider(_hits_yaccarino()))
     report = refresher.refresh_response("The CEO of Twitter is Jack Dorsey.")
     assert report.checked >= 1
     assert all(isinstance(r, ClaimRefresh) for r in report.refreshes)
 
 
-def test_refresh_claims_bypasses_scoring():
+def test_refresh_claims_bypasses_scoring() -> None:
     refresher = TemporalRefresher(provider=_StubProvider(_hits_altman()))
     report = refresher.refresh_claims([_position_claim()])
     assert isinstance(report, RefreshReport) and report.checked == 1
 
 
-def test_report_buckets():
+def test_report_buckets() -> None:
     report = RefreshReport(
         refreshes=[
             ClaimRefresh(_position_claim(), "q", "supported", "nli", 1.0, 0.2, 0.0, ()),
@@ -372,7 +387,9 @@ def test_report_buckets():
 # --------------------------------------------------------------------------- #
 
 
-def test_guard_temporal_refresher_persists_and_refreshes(monkeypatch):
+def test_guard_temporal_refresher_persists_and_refreshes(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     guard = ProductionGuard()
     # Swap the lazily-built refresher's provider for a stub (no network).
     refresher = guard.temporal_refresher

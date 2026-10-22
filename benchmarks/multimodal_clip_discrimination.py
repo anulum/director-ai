@@ -1,10 +1,10 @@
-# SPDX-License-Identifier: BUSL-1.1
+# SPDX-License-Identifier: LicenseRef-BUSL-1.1-ANULUM-TDM
 # Commercial license available
 # © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI — CLIP vs hash-bag multimodal discrimination benchmark
+# Director-AI — CLIP vs hash-bag multimodal discrimination benchmark
 
 """Image-grounding discrimination: real CLIP backend vs the FNV hash-bag baseline.
 
@@ -28,7 +28,37 @@ Run::
 from __future__ import annotations
 
 import json
+from collections.abc import Callable
 from pathlib import Path
+from typing import TypedDict
+
+
+class StageResult(TypedDict, total=False):
+    """Partial score metrics, with backend availability added by stage wrappers.
+
+    Empty score groups carry only counts; unavailable optional backends carry
+    only availability and a reason. This preserves the existing sparse JSON API.
+    """
+
+    n_matched: int
+    n_mismatched: int
+    mean_matched: float
+    mean_mismatched: float
+    gap: float
+    pairwise_auc: float
+    available: bool
+    reason: str
+
+
+class BenchmarkResult(TypedDict):
+    """Complete serialisable image-grounding comparison output."""
+
+    benchmark: str
+    colours: list[str]
+    clip: StageResult
+    hashbag_baseline: StageResult
+    note: str
+
 
 RESULTS_DIR = Path(__file__).parent / "results"
 _COLOURS = {
@@ -39,7 +69,7 @@ _COLOURS = {
 }
 
 
-def separation(matched: list[float], mismatched: list[float]) -> dict:
+def separation(matched: list[float], mismatched: list[float]) -> StageResult:
     """Mean matched / mismatched similarity, their gap, and pairwise AUC."""
     if not matched or not mismatched:
         return {"n_matched": len(matched), "n_mismatched": len(mismatched)}
@@ -60,6 +90,7 @@ def separation(matched: list[float], mismatched: list[float]) -> dict:
 
 
 def _png_bytes(colour: tuple[int, int, int]) -> bytes:
+    """Encode the fixed solid-colour input as a real PNG image."""
     import io
 
     from PIL import Image
@@ -69,7 +100,10 @@ def _png_bytes(colour: tuple[int, int, int]) -> bytes:
     return buf.getvalue()
 
 
-def _score_backend(verify, encode) -> dict:
+def _score_backend(
+    verify: Callable[[tuple[float, ...], str], float],
+    encode: Callable[[bytes], tuple[float, ...]],
+) -> StageResult:
     """Collect matched/mismatched image-vs-caption scores for a backend."""
     matched: list[float] = []
     mismatched: list[float] = []
@@ -81,7 +115,8 @@ def _score_backend(verify, encode) -> dict:
     return separation(matched, mismatched)
 
 
-def _run_clip() -> dict:
+def _run_clip() -> StageResult:
+    """Score the real optional CLIP backend, or report missing dependencies."""
     try:
         import open_clip  # noqa: F401
         from PIL import Image  # noqa: F401
@@ -104,7 +139,8 @@ def _run_clip() -> dict:
     return result
 
 
-def _run_hashbag() -> dict:
+def _run_hashbag() -> StageResult:
+    """Score the actual hash-bag baseline over all colour-caption pairs."""
     from director_ai.core.multimodal_guard.encoders import HashBagImageEncoder
     from director_ai.core.multimodal_guard.verifier import HashBagCrossModalVerifier
 
@@ -116,11 +152,14 @@ def _run_hashbag() -> dict:
     try:
         from PIL import Image  # noqa: F401
 
-        byte_source = _png_bytes
+        byte_source: Callable[[tuple[int, int, int]], bytes] = _png_bytes
     except ImportError:
 
-        def byte_source(rgb: tuple[int, int, int]) -> bytes:
+        def synthetic_bytes(rgb: tuple[int, int, int]) -> bytes:
+            """Provide the documented dependency-free deterministic byte input."""
             return bytes(rgb) * 512
+
+        byte_source = synthetic_bytes
 
     matched: list[float] = []
     mismatched: list[float] = []
@@ -132,7 +171,8 @@ def _run_hashbag() -> dict:
     return {"available": True, **separation(matched, mismatched)}
 
 
-def run_benchmark() -> dict:
+def run_benchmark() -> BenchmarkResult:
+    """Compare both native backends over the same fixed colour-caption set."""
     return {
         "benchmark": "multimodal_clip_discrimination",
         "colours": sorted(_COLOURS),
@@ -147,14 +187,17 @@ def run_benchmark() -> dict:
 
 
 def main() -> None:
+    """Write and display the complete benchmark result."""
     result = run_benchmark()
     RESULTS_DIR.mkdir(parents=True, exist_ok=True)
     out = RESULTS_DIR / "multimodal_clip_discrimination.json"
     out.write_text(json.dumps(result, indent=2), encoding="utf-8")
 
     print("\nMultimodal image-grounding discrimination (CLIP vs hash-bag):")
-    for name in ("clip", "hashbag_baseline"):
-        stage = result[name]
+    for name, stage in (
+        ("clip", result["clip"]),
+        ("hashbag_baseline", result["hashbag_baseline"]),
+    ):
         if stage.get("available"):
             print(
                 f"  {name:18} gap={stage['gap']:+.4f}  AUC={stage['pairwise_auc']:.4f} "

@@ -15,6 +15,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Add the permanent text-and-data-mining and machine-learning Use Limitation
+  for the Advanced/Labs source under `LicenseRef-BUSL-1.1-ANULUM-TDM`;
+  preserve the Apache core licence and original conversion parameters.
+
 ### Fixed
 
 - Align Ruff 0.16.10 and Gradio 6.29.1 across hooks, demo metadata and

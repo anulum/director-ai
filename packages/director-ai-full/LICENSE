@@ -1,9 +1,12 @@
+SPDX-License-Identifier: LicenseRef-BUSL-1.1-ANULUM-TDM
+Business Source License 1.1 with an added permanent Use Limitation.
+
 Business Source License 1.1 — Parameters
 (PENDING LEGAL REVIEW before public release)
 
 Licensor:             Miroslav Šotek (ANULUM)
 Licensed Work:        The Director-AI advanced modules — the source files in this
-                      repository carrying SPDX-License-Identifier: BUSL-1.1.
+                      repository carrying SPDX-License-Identifier: LicenseRef-BUSL-1.1-ANULUM-TDM.
                       © 2020-2026 Miroslav Šotek. All rights reserved.
 Additional Use Grant: You may make non-production use of the Licensed Work
                       (development, testing, evaluation, and research) at no
@@ -11,6 +14,20 @@ Additional Use Grant: You may make non-production use of the Licensed Work
                       derivative of it as a hosted or managed service, require a
                       commercial license from the Licensor
                       (protoscience@anulum.li).
+
+Use Limitation:
+
+Text and data mining and machine learning. Notwithstanding any other
+provision of this License, including any Additional Use Grant and any
+permission for non-production use, no right is granted to use the Licensed
+Work, or any part of it, for text and data mining or for collecting,
+training, fine-tuning or evaluating machine learning or artificial
+intelligence models, except with the Licensor's prior written permission.
+This limitation does not restrict running the Licensed Work as software for
+its documented purpose. This limitation is permanent: it survives the Change
+Date and applies to every version of the Licensed Work, unless the Licensor
+withdraws it in writing.
+
 Change Date:          The fourth anniversary of the first publicly available
                       distribution of each specific version of the Licensed Work.
 Change License:       Apache-2.0

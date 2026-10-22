@@ -125,7 +125,7 @@ jobs:
       # Every tracked file must carry SPDX copyright + licence metadata, via an
       # inline header or a REUSE.toml annotation. Fails the build on any uncovered
       # file so the open-core (Apache-2.0) / media (CC-BY-4.0) / paid-tier
-      # (BUSL-1.1) licence boundary stays machine-checkable (WCG-3).
+      # (LicenseRef-BUSL-1.1-ANULUM-TDM) licence boundary stays machine-checkable (WCG-3).
       - name: REUSE lint
         uses: fsfe/reuse-action@676e2d560c9a403aa252096d99fcab3e1132b0f5 # v6.0.0
         with:

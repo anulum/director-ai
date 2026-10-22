@@ -1,10 +1,10 @@
-# SPDX-License-Identifier: BUSL-1.1
-# Commercial licence available
-# Concepts 1996-2026 Miroslav Sotek. All rights reserved.
-# Code 2020-2026 Miroslav Sotek. All rights reserved.
+# SPDX-License-Identifier: LicenseRef-BUSL-1.1-ANULUM-TDM
+# Commercial license available
+# © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
+# © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI - Safety dashboard Gradio app contracts
+# DIRECTOR-AI — tests/test_safety_dashboard_app.py
 
 """Contract tests for the safety-dashboard Gradio app module.
 
@@ -22,19 +22,19 @@ from director_ai.ui import safety_dashboard
 
 
 class TestModulePlacement:
-    def test_launcher_is_defined_in_the_app_module(self):
+    def test_launcher_is_defined_in_the_app_module(self) -> None:
         launcher = dashboard_app_module.launch_safety_dashboard
         assert launcher.__module__ == dashboard_app_module.__name__
 
-    def test_facade_re_exports_the_same_launcher_object(self):
+    def test_facade_re_exports_the_same_launcher_object(self) -> None:
         assert (
             safety_dashboard.launch_safety_dashboard
             is dashboard_app_module.launch_safety_dashboard
         )
 
-    def test_module_exports_only_the_launcher(self):
+    def test_module_exports_only_the_launcher(self) -> None:
         assert dashboard_app_module.__all__ == ["launch_safety_dashboard"]
 
-    def test_app_module_has_no_import_time_builder_or_gradio_binding(self):
+    def test_app_module_has_no_import_time_builder_or_gradio_binding(self) -> None:
         for name in ("build_safety_dashboard", "gr", "gradio"):
             assert not hasattr(dashboard_app_module, name)

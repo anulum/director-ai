@@ -1,4 +1,14 @@
+<!-- SPDX-License-Identifier: CC-BY-4.0 -->
+<!-- Commercial license available -->
+<!-- © Concepts 1996–2026 Miroslav Šotek. All rights reserved. -->
+<!-- © Code 2020–2026 Miroslav Šotek. All rights reserved. -->
+<!-- ORCID: 0009-0009-3560-0851 -->
+<!-- Contact: www.anulum.li | protoscience@anulum.li -->
+<!-- DIRECTOR-AI — docs-site/api/enterprise.md -->
+
 # Enterprise API
+
+Advanced/Labs uses are subject to the [permanent Use Limitation](../licensing.md); text and data mining and machine-learning uses require prior written permission.
 
 Multi-tenant scoring isolation, declarative policy rules, and audit logging. These modules are lazy-loaded — importing `director_ai` does not pull them in until accessed.
 
@@ -184,12 +194,13 @@ assert ok, error
 ## License Matrix
 
 The enterprise module is part of the **Advanced & Labs** tier, licensed under
-**BUSL-1.1** (source-available).
+**LicenseRef-BUSL-1.1-ANULUM-TDM** (source-available). Every non-production row
+below remains subject to the permanent Use Limitation described above.
 
 | Use Case | License Required |
 |----------|-----------------|
-| Evaluation / prototyping | BUSL-1.1 (free) |
-| Non-production internal use | BUSL-1.1 (free) |
+| Evaluation / prototyping | LicenseRef-BUSL-1.1-ANULUM-TDM (free) |
+| Non-production internal use | LicenseRef-BUSL-1.1-ANULUM-TDM (free) |
 | Production deployment | Commercial license |
 | Hosted / SaaS product | Commercial license |
 

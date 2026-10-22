@@ -7,12 +7,21 @@
 # Director-AI — server tests
 """Multi-angle tests for FastAPI server pipeline."""
 
+from __future__ import annotations
+
 import sys
+from collections.abc import Iterator, Sequence
 from pathlib import Path
 from types import ModuleType, SimpleNamespace
+from typing import TYPE_CHECKING, NoReturn
 from unittest.mock import patch
 
 import pytest
+from starlette.requests import Request
+from starlette.types import ASGIApp, Receive, Scope, Send
+
+if TYPE_CHECKING:
+    from director_ai.core.types import CoherenceScore, ReviewResult
 
 try:
     from fastapi.testclient import TestClient
@@ -28,7 +37,7 @@ pytestmark = pytest.mark.skipif(not _FASTAPI_AVAILABLE, reason="FastAPI not inst
 
 
 @pytest.fixture
-def client():
+def client() -> Iterator[TestClient]:
     """TestClient for the Director AI server (with lifespan)."""
     config = DirectorConfig(use_nli=False, metrics_enabled=True)
     app = create_app(config)
@@ -39,7 +48,7 @@ def client():
 class TestHealth:
     """Health endpoint tests."""
 
-    def test_health_ok(self, client):
+    def test_health_ok(self, client: TestClient) -> None:
         resp = client.get("/v1/health")
         assert resp.status_code == 200
         data = resp.json()
@@ -47,7 +56,7 @@ class TestHealth:
         assert "version" in data
         assert "uptime_seconds" in data
 
-    def test_health_has_profile(self, client):
+    def test_health_has_profile(self, client: TestClient) -> None:
         resp = client.get("/v1/health")
         data = resp.json()
         assert "profile" in data
@@ -56,7 +65,7 @@ class TestHealth:
 class TestReview:
     """Review endpoint tests."""
 
-    def test_review_valid(self, client):
+    def test_review_valid(self, client: TestClient) -> None:
         resp = client.post(
             "/v1/review",
             json={"prompt": "What color is the sky?", "response": "Blue"},
@@ -68,7 +77,7 @@ class TestReview:
         assert "h_logical" in data
         assert "h_factual" in data
 
-    def test_review_missing_fields(self, client):
+    def test_review_missing_fields(self, client: TestClient) -> None:
         resp = client.post("/v1/review", json={"prompt": "Hello"})
         assert resp.status_code == 422  # Validation error
 
@@ -76,7 +85,7 @@ class TestReview:
 class TestProcess:
     """Process endpoint tests."""
 
-    def test_process_valid(self, client):
+    def test_process_valid(self, client: TestClient) -> None:
         resp = client.post(
             "/v1/process",
             json={"prompt": "What is the meaning of life?"},
@@ -87,7 +96,7 @@ class TestProcess:
         assert "halted" in data
         assert "candidates_evaluated" in data
 
-    def test_process_missing_prompt(self, client):
+    def test_process_missing_prompt(self, client: TestClient) -> None:
         resp = client.post("/v1/process", json={})
         assert resp.status_code == 422
 
@@ -95,7 +104,7 @@ class TestProcess:
 class TestBatch:
     """Batch endpoint tests."""
 
-    def test_batch_valid(self, client):
+    def test_batch_valid(self, client: TestClient) -> None:
         resp = client.post(
             "/v1/batch",
             json={
@@ -110,7 +119,7 @@ class TestBatch:
         assert data["succeeded"] + data["failed"] == 2
         assert len(data["results"]) + len(data["errors"]) == 2
 
-    def test_batch_empty_prompts(self, client):
+    def test_batch_empty_prompts(self, client: TestClient) -> None:
         resp = client.post("/v1/batch", json={"prompts": []})
         assert resp.status_code == 422  # min_length=1
 
@@ -118,7 +127,7 @@ class TestBatch:
 class TestMetrics:
     """Metrics endpoint tests."""
 
-    def test_metrics_json(self, client):
+    def test_metrics_json(self, client: TestClient) -> None:
         # Trigger a review first
         client.post(
             "/v1/review",
@@ -131,7 +140,7 @@ class TestMetrics:
         assert "histograms" in data
         assert "gauges" in data
 
-    def test_metrics_prometheus(self, client):
+    def test_metrics_prometheus(self, client: TestClient) -> None:
         resp = client.get("/v1/metrics/prometheus")
         assert resp.status_code == 200
         assert "director_ai_" in resp.text
@@ -140,14 +149,14 @@ class TestMetrics:
 class TestConfig:
     """Config endpoint tests."""
 
-    def test_config_endpoint(self, client):
+    def test_config_endpoint(self, client: TestClient) -> None:
         resp = client.get("/v1/config")
         assert resp.status_code == 200
         data = resp.json()
         assert "config" in data
         assert "coherence_threshold" in data["config"]
 
-    def test_scorer_models_endpoint(self, client):
+    def test_scorer_models_endpoint(self, client: TestClient) -> None:
         resp = client.get("/v1/scorer/models")
         assert resp.status_code == 200
         data = resp.json()
@@ -157,7 +166,9 @@ class TestConfig:
         assert "distilroberta-fast" not in aliases
         assert data["current"]["nli_model"]
 
-    def test_scorer_models_endpoint_can_include_domain_only(self, client):
+    def test_scorer_models_endpoint_can_include_domain_only(
+        self, client: TestClient
+    ) -> None:
         resp = client.get("/v1/scorer/models?include_domain_only=true")
         assert resp.status_code == 200
         data = resp.json()
@@ -169,7 +180,7 @@ class TestConfig:
 class TestStats:
     """Stats endpoint tests."""
 
-    def test_stats_returns_summary(self, client):
+    def test_stats_returns_summary(self, client: TestClient) -> None:
         resp = client.get("/v1/stats")
         assert resp.status_code == 200
         data = resp.json()
@@ -178,7 +189,7 @@ class TestStats:
         assert "rejected" in data
         assert isinstance(data["total"], int)
 
-    def test_stats_after_review(self, client):
+    def test_stats_after_review(self, client: TestClient) -> None:
         client.post(
             "/v1/review",
             json={"prompt": "Q", "response": "A"},
@@ -188,11 +199,11 @@ class TestStats:
         data = resp.json()
         assert data["total"] >= 1
 
-    def test_stats_hourly(self, client):
+    def test_stats_hourly(self, client: TestClient) -> None:
         resp = client.get("/v1/stats/hourly")
         assert resp.status_code == 200
 
-    def test_stats_hourly_custom_days(self, client):
+    def test_stats_hourly_custom_days(self, client: TestClient) -> None:
         resp = client.get("/v1/stats/hourly?days=1")
         assert resp.status_code == 200
 
@@ -200,13 +211,13 @@ class TestStats:
 class TestDashboard:
     """Dashboard endpoint tests."""
 
-    def test_dashboard_html(self, client):
+    def test_dashboard_html(self, client: TestClient) -> None:
         resp = client.get("/v1/dashboard")
         assert resp.status_code == 200
         assert "Director-AI Dashboard" in resp.text
         assert "Total Reviews" in resp.text
 
-    def test_dashboard_after_review(self, client):
+    def test_dashboard_after_review(self, client: TestClient) -> None:
         client.post(
             "/v1/review",
             json={"prompt": "Q", "response": "A"},
@@ -219,7 +230,7 @@ class TestDashboard:
 class TestWebSocket:
     """WebSocket /v1/stream endpoint tests."""
 
-    def test_ws_valid_prompt(self, client):
+    def test_ws_valid_prompt(self, client: TestClient) -> None:
         with client.websocket_connect("/v1/stream") as ws:
             ws.send_json({"prompt": "What is 2+2?"})
             data = ws.receive_json()
@@ -227,19 +238,19 @@ class TestWebSocket:
             assert "output" in data
             assert "halted" in data
 
-    def test_ws_empty_prompt(self, client):
+    def test_ws_empty_prompt(self, client: TestClient) -> None:
         with client.websocket_connect("/v1/stream") as ws:
             ws.send_json({"prompt": ""})
             data = ws.receive_json()
             assert "error" in data
 
-    def test_ws_missing_prompt(self, client):
+    def test_ws_missing_prompt(self, client: TestClient) -> None:
         with client.websocket_connect("/v1/stream") as ws:
             ws.send_json({"foo": "bar"})
             data = ws.receive_json()
             assert "error" in data
 
-    def test_ws_multiple_messages(self, client):
+    def test_ws_multiple_messages(self, client: TestClient) -> None:
         with client.websocket_connect("/v1/stream") as ws:
             ws.send_json({"prompt": "Q1"})
             d1 = ws.receive_json()
@@ -248,20 +259,20 @@ class TestWebSocket:
             assert d1["type"] == "result"
             assert d2["type"] == "result"
 
-    def test_ws_prompt_exceeds_max_length(self, client):
+    def test_ws_prompt_exceeds_max_length(self, client: TestClient) -> None:
         with client.websocket_connect("/v1/stream") as ws:
             ws.send_json({"prompt": "x" * 100_001})
             data = ws.receive_json()
             assert "error" in data
             assert "100000" in data["error"]
 
-    def test_ws_non_string_prompt(self, client):
+    def test_ws_non_string_prompt(self, client: TestClient) -> None:
         with client.websocket_connect("/v1/stream") as ws:
             ws.send_json({"prompt": 12345})
             data = ws.receive_json()
             assert "error" in data
 
-    def test_ws_non_dict_payload(self, client):
+    def test_ws_non_dict_payload(self, client: TestClient) -> None:
         with client.websocket_connect("/v1/stream") as ws:
             ws.send_json([1, 2, 3])
             data = ws.receive_json()
@@ -271,7 +282,7 @@ class TestWebSocket:
 class TestWebSocketAgentError:
     """WebSocket error handling when agent.process() raises."""
 
-    def test_ws_agent_error_returns_error_json(self, client):
+    def test_ws_agent_error_returns_error_json(self, client: TestClient) -> None:
         from unittest.mock import patch
 
         with (
@@ -286,19 +297,8 @@ class TestWebSocketAgentError:
             assert "error" in data
             assert "processing failed" in data["error"]
 
-    def test_ws_agent_error_does_not_kill_connection(self, client):
+    def test_ws_agent_error_does_not_kill_connection(self, client: TestClient) -> None:
         from unittest.mock import patch
-
-        call_count = 0
-
-        def _fail_once(prompt):
-            nonlocal call_count
-            call_count += 1
-            if call_count == 1:
-                raise ValueError("transient error")
-            from director_ai.core.agent import CoherenceAgent
-
-            return CoherenceAgent.process(client.app, prompt)
 
         with client.websocket_connect("/v1/stream") as ws:
             with patch(
@@ -318,7 +318,7 @@ class TestWebSocketAgentError:
 class TestServerClaimSupportEvidenceSerialization:
     """Server evidence serialization preserves claim-support diagnostics."""
 
-    def test_evidence_without_claim_support_omits_claim_fields(self):
+    def test_evidence_without_claim_support_omits_claim_fields(self) -> None:
         from director_ai._server_helpers import evidence_to_dict as _evidence_to_dict
         from director_ai.core.types import ScoringEvidence
 
@@ -331,11 +331,12 @@ class TestServerClaimSupportEvidenceSerialization:
 
         encoded = _evidence_to_dict(evidence)
 
+        assert encoded is not None
         assert "claim_coverage" not in encoded
         assert "per_claim_divergences" not in encoded
         assert "claims" not in encoded
 
-    def test_evidence_with_claim_support_preserves_claim_fields(self):
+    def test_evidence_with_claim_support_preserves_claim_fields(self) -> None:
         from director_ai._server_helpers import evidence_to_dict as _evidence_to_dict
         from director_ai.core.types import ScoringEvidence
 
@@ -351,6 +352,7 @@ class TestServerClaimSupportEvidenceSerialization:
 
         encoded = _evidence_to_dict(evidence)
 
+        assert encoded is not None
         assert encoded["claim_coverage"] == 0.75
         assert encoded["per_claim_divergences"] == [0.1, 0.8]
         assert encoded["claims"] == ["Supported claim.", "Unsupported claim."]
@@ -359,7 +361,7 @@ class TestServerClaimSupportEvidenceSerialization:
 class TestServerOperationalReadiness:
     """Server health and readiness expose deployability boundaries."""
 
-    def test_health_reports_model_revision_registry_failures(self):
+    def test_health_reports_model_revision_registry_failures(self) -> None:
         config = DirectorConfig(
             use_nli=False,
             nli_model="unverified-org/unverified-model",
@@ -375,7 +377,9 @@ class TestServerOperationalReadiness:
         assert revision_health["ok"] is False
         assert revision_health["checks"]["nli"]["status"] == "error"
 
-    def test_production_mode_requires_knowledge_router(self, monkeypatch):
+    def test_production_mode_requires_knowledge_router(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         from unittest.mock import patch
 
         # A production server fail-fasts without a per-installation audit salt;
@@ -424,7 +428,7 @@ class TestServerOperationalReadiness:
             ).read_bytes() == data
             assert str(tmp_path) not in response.text
 
-    def test_ready_endpoint_is_available_without_nli(self):
+    def test_ready_endpoint_is_available_without_nli(self) -> None:
         app = create_app(DirectorConfig(use_nli=False))
 
         with TestClient(app) as client:
@@ -441,7 +445,7 @@ class TestServerCoverageGaps:
     def _fast_config() -> DirectorConfig:
         return DirectorConfig.from_profile("fast")
 
-    def test_http_endpoint_label_handles_unmatched_and_partial_routes(self):
+    def test_http_endpoint_label_handles_unmatched_and_partial_routes(self) -> None:
         from starlette.routing import Match
 
         from director_ai.server import _http_endpoint_label
@@ -452,12 +456,15 @@ class TestServerCoverageGaps:
         class PartialMatcher:
             path = "/partial"
 
-            def matches(self, _scope):
+            def matches(self, _scope: Scope) -> tuple[Match, Scope]:
                 return Match.PARTIAL, {}
 
-        request = SimpleNamespace(
-            scope={"type": "http", "path": "/unknown"},
-            app=SimpleNamespace(routes=[NoMatcher(), PartialMatcher()]),
+        request = Request(
+            {
+                "type": "http",
+                "path": "/unknown",
+                "app": SimpleNamespace(routes=[NoMatcher(), PartialMatcher()]),
+            }
         )
 
         assert _http_endpoint_label(request) == "/partial"
@@ -465,7 +472,7 @@ class TestServerCoverageGaps:
         request.app.routes = [NoMatcher()]
         assert _http_endpoint_label(request) == "__unmatched__"
 
-    def test_http_endpoint_label_handles_full_and_invalid_candidate_paths(self):
+    def test_http_endpoint_label_handles_full_and_invalid_candidate_paths(self) -> None:
         from starlette.routing import Match
 
         from director_ai.server import _http_endpoint_label
@@ -473,30 +480,37 @@ class TestServerCoverageGaps:
         class InvalidPathMatcher:
             path = None
 
-            def matches(self, _scope):
+            def matches(self, _scope: Scope) -> tuple[Match, Scope]:
                 return Match.FULL, {}
 
         class FullMatcher:
             path = "/resolved"
 
-            def matches(self, _scope):
+            def matches(self, _scope: Scope) -> tuple[Match, Scope]:
                 return Match.FULL, {}
 
-        request = SimpleNamespace(
-            scope={"type": "http", "path": "/resolved"},
-            app=SimpleNamespace(routes=[InvalidPathMatcher(), FullMatcher()]),
+        request = Request(
+            {
+                "type": "http",
+                "path": "/resolved",
+                "app": SimpleNamespace(routes=[InvalidPathMatcher(), FullMatcher()]),
+            }
         )
 
         assert _http_endpoint_label(request) == "/resolved"
 
-    def test_create_app_uses_non_default_profile_from_environment(self, monkeypatch):
+    def test_create_app_uses_non_default_profile_from_environment(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         monkeypatch.setenv("DIRECTOR_PROFILE", "fast")
 
         app = create_app()
 
         assert app.state.config.profile == "fast"
 
-    def test_create_app_logs_loaded_managed_secrets(self, monkeypatch, caplog):
+    def test_create_app_logs_loaded_managed_secrets(
+        self, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+    ) -> None:
         import director_ai.core.secrets as secrets_mod
 
         monkeypatch.setattr(
@@ -510,7 +524,9 @@ class TestServerCoverageGaps:
 
         assert "Loaded 1 managed secret(s) from backend" in caplog.text
 
-    def test_lifespan_logs_commercial_and_trial_license_branches(self, caplog):
+    def test_lifespan_logs_commercial_and_trial_license_branches(
+        self, caplog: pytest.LogCaptureFixture
+    ) -> None:
         from director_ai.core.license import LicenseInfo
 
         commercial = LicenseInfo(
@@ -542,7 +558,9 @@ class TestServerCoverageGaps:
                 pass
             assert expected in caplog.text
 
-    def test_lifespan_runs_otel_setup_when_enabled(self, monkeypatch):
+    def test_lifespan_runs_otel_setup_when_enabled(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         import director_ai.core.otel as otel_mod
 
         calls: list[str] = []
@@ -556,21 +574,25 @@ class TestServerCoverageGaps:
 
         assert calls == ["setup"]
 
-    def test_lifespan_starts_and_stops_review_queue(self, monkeypatch):
+    def test_lifespan_starts_and_stops_review_queue(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         import director_ai.core.runtime.review_queue as review_queue_mod
 
         events: list[tuple[str, object]] = []
 
         class FakeReviewQueue:
-            def __init__(self, scorer, *, max_batch, flush_timeout_ms):
+            def __init__(
+                self, scorer: object, *, max_batch: int, flush_timeout_ms: float
+            ) -> None:
                 events.append(("init", scorer))
                 events.append(("max_batch", max_batch))
                 events.append(("flush_timeout_ms", flush_timeout_ms))
 
-            async def start(self):
+            async def start(self) -> None:
                 events.append(("start", None))
 
-            async def stop(self):
+            async def stop(self) -> None:
                 events.append(("stop", None))
 
         monkeypatch.setattr(review_queue_mod, "ReviewQueue", FakeReviewQueue)
@@ -580,21 +602,23 @@ class TestServerCoverageGaps:
         cfg.review_queue_flush_timeout_ms = 1.5
         app = create_app(cfg)
 
-        with TestClient(app) as client:
-            assert client.app.state._state["review_queue"].__class__ is FakeReviewQueue
+        with TestClient(app):
+            assert app.state._state["review_queue"].__class__ is FakeReviewQueue
 
         assert ("max_batch", 7) in events
         assert ("flush_timeout_ms", 1.5) in events
         assert ("start", None) in events
         assert ("stop", None) in events
 
-    def test_lifespan_wires_postgres_audit_sink(self, monkeypatch):
+    def test_lifespan_wires_postgres_audit_sink(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         import director_ai.enterprise.audit_pg as audit_pg_mod
 
         sinks: list[str] = []
 
         class FakePostgresAuditSink:
-            def __init__(self, db_url: str):
+            def __init__(self, db_url: str) -> None:
                 sinks.append(db_url)
 
         monkeypatch.setattr(audit_pg_mod, "PostgresAuditSink", FakePostgresAuditSink)
@@ -602,13 +626,13 @@ class TestServerCoverageGaps:
         cfg.audit_postgres_url = "postgresql://audit.example/db"
         app = create_app(cfg)
 
-        with TestClient(app) as client:
-            audit_logger = client.app.state._state["audit"]
+        with TestClient(app):
+            audit_logger = app.state._state["audit"]
 
         assert sinks == ["postgresql://audit.example/db"]
         assert audit_logger is not None
 
-    def test_create_app_rejects_too_many_cors_origins(self):
+    def test_create_app_rejects_too_many_cors_origins(self) -> None:
         cfg = self._fast_config()
         cfg.cors_origins = ",".join(f"https://app{idx}.example" for idx in range(101))
 
@@ -617,9 +641,9 @@ class TestServerCoverageGaps:
 
     def test_create_app_rate_limit_without_slowapi_strict_and_warns(
         self,
-        monkeypatch,
-        caplog,
-    ):
+        monkeypatch: pytest.MonkeyPatch,
+        caplog: pytest.LogCaptureFixture,
+    ) -> None:
         import director_ai.server as server_mod
 
         monkeypatch.setattr(server_mod, "_SLOWAPI_AVAILABLE", False)
@@ -640,29 +664,33 @@ class TestServerCoverageGaps:
 
     def test_create_app_wires_optional_slowapi_limiter(
         self,
-        monkeypatch,
-        caplog,
-    ):
+        monkeypatch: pytest.MonkeyPatch,
+        caplog: pytest.LogCaptureFixture,
+    ) -> None:
         import director_ai.server as server_mod
 
         limiter_calls: list[dict[str, object]] = []
 
         class FakeLimiter:
-            def __init__(self, **kwargs):
+            def __init__(self, **kwargs: object) -> None:
                 limiter_calls.append(kwargs)
 
         class FakeSlowAPIMiddleware:
-            def __init__(self, app, *args, **kwargs):
+            def __init__(self, app: ASGIApp, *args: object, **kwargs: object) -> None:
                 self.app = app
 
-            async def __call__(self, scope, receive, send):
+            async def __call__(
+                self, scope: Scope, receive: Receive, send: Send
+            ) -> None:
                 await self.app(scope, receive, send)
 
         class FakeRateLimitExceededError(Exception):
             pass
 
         fake_errors = ModuleType("slowapi.errors")
-        fake_errors.RateLimitExceeded = FakeRateLimitExceededError
+        monkeypatch.setattr(
+            fake_errors, "RateLimitExceeded", FakeRateLimitExceededError, raising=False
+        )
         monkeypatch.setattr(server_mod, "_SLOWAPI_AVAILABLE", True)
         monkeypatch.setattr(server_mod, "Limiter", FakeLimiter)
         monkeypatch.setattr(
@@ -702,22 +730,26 @@ class TestServerCoverageGaps:
 
     def test_lifespan_wires_cloud_provider_without_key_and_contradiction_halt(
         self,
-        monkeypatch,
-    ):
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
         import director_ai.core.agent as agent_mod
 
         captured: dict[str, object] = {}
 
         class FakeCoherenceAgent:
-            def __init__(self, **kwargs):
+            def __init__(self, **kwargs: object) -> None:
                 captured.update(kwargs)
 
         monkeypatch.setattr(agent_mod, "CoherenceAgent", FakeCoherenceAgent)
         cfg = self._fast_config()
         cfg.llm_provider = "anthropic"
         cfg.llm_api_key = ""
-        cfg.build_contradiction_halt = lambda _store: "halt-controller"  # type: ignore[method-assign]
-        cfg.build_correctness_feedback = lambda: "feedback-client"  # type: ignore[method-assign]
+        monkeypatch.setattr(
+            cfg, "build_contradiction_halt", lambda _store: "halt-controller"
+        )
+        monkeypatch.setattr(
+            cfg, "build_correctness_feedback", lambda: "feedback-client"
+        )
         app = create_app(cfg)
 
         with TestClient(app):
@@ -728,13 +760,15 @@ class TestServerCoverageGaps:
         assert captured["contradiction_halt"] == "halt-controller"
         assert captured["correctness_feedback"] == "feedback-client"
 
-    def test_lifespan_wires_cloud_provider_api_key(self, monkeypatch):
+    def test_lifespan_wires_cloud_provider_api_key(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         import director_ai.core.agent as agent_mod
 
         captured: dict[str, object] = {}
 
         class FakeCoherenceAgent:
-            def __init__(self, **kwargs):
+            def __init__(self, **kwargs: object) -> None:
                 captured.update(kwargs)
 
         monkeypatch.setattr(agent_mod, "CoherenceAgent", FakeCoherenceAgent)
@@ -751,15 +785,15 @@ class TestServerCoverageGaps:
 
     def test_lifespan_wires_local_provider_and_sqlite_stats(
         self,
-        monkeypatch,
-        tmp_path,
-    ):
+        monkeypatch: pytest.MonkeyPatch,
+        tmp_path: Path,
+    ) -> None:
         import director_ai.core.agent as agent_mod
 
         captured: dict[str, object] = {}
 
         class FakeCoherenceAgent:
-            def __init__(self, **kwargs):
+            def __init__(self, **kwargs: object) -> None:
                 captured.update(kwargs)
 
         monkeypatch.setattr(agent_mod, "CoherenceAgent", FakeCoherenceAgent)
@@ -770,23 +804,23 @@ class TestServerCoverageGaps:
         cfg.stats_db_path = str(tmp_path / "stats.sqlite")
         app = create_app(cfg)
 
-        with TestClient(app) as client:
-            assert client.app.state._state["stats"] is not None
+        with TestClient(app):
+            assert app.state._state["stats"] is not None
 
         assert captured["llm_api_url"] == "http://127.0.0.1:8080/v1"
 
-    def test_health_reports_commercial_and_trial_license_branches(self):
+    def test_health_reports_commercial_and_trial_license_branches(self) -> None:
         app = create_app(self._fast_config())
 
         with TestClient(app) as client:
-            client.app.state._license = SimpleNamespace(
+            app.state._license = SimpleNamespace(
                 is_commercial=True,
                 is_trial=False,
                 tier="enterprise",
                 licensee="ACME",
             )
             commercial = client.get("/v1/health").json()
-            client.app.state._license = SimpleNamespace(
+            app.state._license = SimpleNamespace(
                 is_commercial=False,
                 is_trial=True,
                 expires="2026-12-31",
@@ -796,7 +830,9 @@ class TestServerCoverageGaps:
         assert commercial["status"] == "ok"
         assert trial["status"] == "ok"
 
-    def test_health_live_source_and_unbound_tenant_disclosure_paths(self, caplog):
+    def test_health_live_source_and_unbound_tenant_disclosure_paths(
+        self, caplog: pytest.LogCaptureFixture
+    ) -> None:
         cfg = self._fast_config()
         cfg.api_keys = ["secret"]
         app = create_app(cfg)
@@ -821,15 +857,17 @@ class TestServerCoverageGaps:
             "license": "open-core",
         }
         assert "version" in authenticated_health.json()
-        assert source.json()["license"] == "Apache-2.0 AND BUSL-1.1"
+        assert (
+            source.json()["license"] == "Apache-2.0 AND LicenseRef-BUSL-1.1-ANULUM-TDM"
+        )
         assert config_response.status_code == 200
         assert "Unbound tenant claim: tenant-a" in caplog.text
 
-    def test_http_middleware_records_metrics_when_endpoint_raises(self):
+    def test_http_middleware_records_metrics_when_endpoint_raises(self) -> None:
         app = create_app(self._fast_config())
 
-        @app.get("/boom")
-        async def boom():
+        @app.get("/boom", response_model=None)
+        async def boom() -> NoReturn:
             raise RuntimeError("boom")
 
         with TestClient(app, raise_server_exceptions=False) as client:
@@ -837,10 +875,10 @@ class TestServerCoverageGaps:
 
         assert response.status_code == 500
 
-    def test_source_endpoint_commercial_and_disabled_paths(self):
+    def test_source_endpoint_commercial_and_disabled_paths(self) -> None:
         commercial_app = create_app(self._fast_config())
         with TestClient(commercial_app) as client:
-            client.app.state._license = SimpleNamespace(
+            commercial_app.state._license = SimpleNamespace(
                 is_commercial=True,
                 is_trial=False,
                 tier="enterprise",
@@ -865,7 +903,7 @@ class TestServerCoverageGaps:
         disabled_commercial_cfg.source_endpoint_enabled = False
         disabled_commercial_app = create_app(disabled_commercial_cfg)
         with TestClient(disabled_commercial_app) as client:
-            client.app.state._license = SimpleNamespace(
+            disabled_commercial_app.state._license = SimpleNamespace(
                 is_commercial=True,
                 is_trial=False,
                 tier="enterprise",
@@ -875,15 +913,15 @@ class TestServerCoverageGaps:
             assert response.status_code == 404
             assert "commercial license" in response.json()["detail"]
 
-    def test_ready_reports_missing_scorer_and_unloaded_nli(self):
+    def test_ready_reports_missing_scorer_and_unloaded_nli(self) -> None:
         cfg = self._fast_config()
         app = create_app(cfg)
 
         with TestClient(app) as client:
-            client.app.state._state["scorer"] = None
+            app.state._state["scorer"] = None
             missing = client.get("/v1/ready")
             cfg.use_nli = True
-            client.app.state._state["scorer"] = SimpleNamespace(
+            app.state._state["scorer"] = SimpleNamespace(
                 _nli=SimpleNamespace(model_available=False)
             )
             unloaded = client.get("/v1/ready")
@@ -893,19 +931,19 @@ class TestServerCoverageGaps:
         assert unloaded.status_code == 503
         assert unloaded.json()["reason"] == "NLI model not loaded"
 
-    def test_feedback_store_success_disagreement_and_calibration(self):
+    def test_feedback_store_success_disagreement_and_calibration(self) -> None:
         class FakeFeedbackStore:
-            def __init__(self):
-                self.reports = []
+            def __init__(self) -> None:
+                self.reports: list[dict[str, object]] = []
 
-            def report(self, **kwargs):
+            def report(self, **kwargs: object) -> None:
                 self.reports.append(kwargs)
 
-            def count(self, domain=None):
+            def count(self, domain: str | None = None) -> int:
                 assert domain == "medical"
                 return len(self.reports)
 
-            def close(self):
+            def close(self) -> None:
                 self.closed = True
 
         app = create_app(self._fast_config())
@@ -921,7 +959,7 @@ class TestServerCoverageGaps:
                     "review_id": "r1",
                 },
             )
-            client.app.state._state["feedback_store"] = FakeFeedbackStore()
+            app.state._state["feedback_store"] = FakeFeedbackStore()
             accepted = client.post(
                 "/v1/feedback",
                 headers={"X-Tenant-ID": "tenant-a"},
@@ -946,21 +984,21 @@ class TestServerCoverageGaps:
         assert body["tenant_id"] == "tenant-a"
         assert bad_calibration.status_code == 400
 
-    def test_verify_endpoint_no_scorer_sanitizer_and_no_context_paths(self):
+    def test_verify_endpoint_no_scorer_sanitizer_and_no_context_paths(self) -> None:
         app = create_app(self._fast_config())
 
         class BlockingSanitizer:
-            def check(self, text):
+            def check(self, text: str) -> SimpleNamespace:
                 del text
                 return SimpleNamespace(blocked=True, reason="blocked")
 
         with TestClient(app) as client:
-            client.app.state._state["scorer"] = None
+            app.state._state["scorer"] = None
             no_scorer = client.post(
                 "/v1/verify",
                 json={"prompt": "p", "response": "r"},
             )
-            client.app.state._state["scorer"] = SimpleNamespace(
+            app.state._state["scorer"] = SimpleNamespace(
                 ground_truth_store=SimpleNamespace(
                     retrieve_context=lambda *args, **kwargs: ""
                 ),
@@ -970,7 +1008,7 @@ class TestServerCoverageGaps:
                 "/v1/verify",
                 json={"prompt": "p", "response": "r"},
             )
-            client.app.state._state["sanitizer"] = BlockingSanitizer()
+            app.state._state["sanitizer"] = BlockingSanitizer()
             blocked = client.post(
                 "/v1/verify",
                 json={"prompt": "p", "response": "r"},
@@ -984,20 +1022,20 @@ class TestServerCoverageGaps:
         assert blocked.status_code == 400
         assert "blocked" in blocked.json()["detail"]
 
-    def test_process_redaction_and_internal_error_paths(self):
+    def test_process_redaction_and_internal_error_paths(self) -> None:
         from director_ai.core.types import CoherenceScore, ReviewResult
 
         class FakeRedactor:
             enabled = True
 
-            def __call__(self, text):
+            def __call__(self, text: str) -> str:
                 return text.replace("secret", "[redacted]")
 
-            def redact(self, text):
+            def redact(self, text: str) -> str:
                 return text.replace("secret", "[redacted]")
 
         class FakeAgent:
-            async def aprocess(self, prompt, tenant_id=""):
+            async def aprocess(self, prompt: str, tenant_id: str = "") -> ReviewResult:
                 assert prompt == "Tell me [redacted]"
                 assert tenant_id == "tenant-a"
                 return ReviewResult(
@@ -1014,20 +1052,20 @@ class TestServerCoverageGaps:
                 )
 
         class FailingAgent:
-            async def aprocess(self, prompt, tenant_id=""):
+            async def aprocess(self, prompt: str, tenant_id: str = "") -> ReviewResult:
                 del prompt, tenant_id
                 raise RuntimeError("processor failed")
 
         app = create_app(self._fast_config())
         with TestClient(app) as client:
-            client.app.state._state["redactor"] = FakeRedactor()
-            client.app.state._state["agent"] = FakeAgent()
+            app.state._state["redactor"] = FakeRedactor()
+            app.state._state["agent"] = FakeAgent()
             ok = client.post(
                 "/v1/process",
                 headers={"X-Tenant-ID": "tenant-a"},
                 json={"prompt": "Tell me secret"},
             )
-            client.app.state._state["agent"] = FailingAgent()
+            app.state._state["agent"] = FailingAgent()
             failed = client.post("/v1/process", json={"prompt": "boom"})
 
         assert ok.status_code == 200
@@ -1037,17 +1075,21 @@ class TestServerCoverageGaps:
         assert body["fallback_used"] is True
         assert failed.status_code == 500
 
-    def test_batch_review_process_redaction_and_error_paths(self):
+    def test_batch_review_process_redaction_and_error_paths(self) -> None:
         from director_ai.core.types import CoherenceScore, ReviewResult
 
         class FakeRedactor:
             enabled = True
 
-            def redact(self, text):
+            def redact(self, text: str) -> str:
                 return text.replace("secret", "[redacted]")
 
         class FakeBatchResult:
-            def __init__(self, results, errors=()):
+            def __init__(
+                self,
+                results: list[tuple[bool, CoherenceScore]] | list[ReviewResult],
+                errors: Sequence[tuple[int, str]] = (),
+            ) -> None:
                 self.results = results
                 self.total = len(results) + len(errors)
                 self.succeeded = len(results)
@@ -1055,7 +1097,9 @@ class TestServerCoverageGaps:
                 self.errors = list(errors)
 
         class FakeBatcher:
-            async def review_batch_async(self, pairs, tenant_id=""):
+            async def review_batch_async(
+                self, pairs: list[tuple[str, str]], tenant_id: str = ""
+            ) -> FakeBatchResult:
                 assert pairs == [("p [redacted]", "r [redacted]")]
                 assert tenant_id == "tenant-a"
                 score = CoherenceScore(
@@ -1066,7 +1110,9 @@ class TestServerCoverageGaps:
                 )
                 return FakeBatchResult([(True, score)])
 
-            async def process_batch_async(self, prompts, tenant_id=""):
+            async def process_batch_async(
+                self, prompts: list[str], tenant_id: str = ""
+            ) -> FakeBatchResult:
                 assert prompts == ["p [redacted]"]
                 assert tenant_id == "tenant-a"
                 score = CoherenceScore(
@@ -1088,11 +1134,15 @@ class TestServerCoverageGaps:
                 )
 
         class FailingBatcher:
-            async def review_batch_async(self, pairs, tenant_id=""):
+            async def review_batch_async(
+                self, pairs: list[tuple[str, str]], tenant_id: str = ""
+            ) -> FakeBatchResult:
                 del pairs, tenant_id
                 raise ValueError("bad batch")
 
-            async def process_batch_async(self, prompts, tenant_id=""):
+            async def process_batch_async(
+                self, prompts: list[str], tenant_id: str = ""
+            ) -> FakeBatchResult:
                 del prompts, tenant_id
                 raise RuntimeError("batch failed")
 
@@ -1102,8 +1152,8 @@ class TestServerCoverageGaps:
                 "/v1/batch",
                 json={"task": "review", "prompts": ["p"], "responses": []},
             )
-            client.app.state._state["redactor"] = FakeRedactor()
-            client.app.state._state["batch"] = FakeBatcher()
+            app.state._state["redactor"] = FakeRedactor()
+            app.state._state["batch"] = FakeBatcher()
             review_ok = client.post(
                 "/v1/batch",
                 headers={"X-Tenant-ID": "tenant-a"},
@@ -1118,7 +1168,7 @@ class TestServerCoverageGaps:
                 headers={"X-Tenant-ID": "tenant-a"},
                 json={"task": "process", "prompts": ["p secret"]},
             )
-            client.app.state._state["batch"] = FailingBatcher()
+            app.state._state["batch"] = FailingBatcher()
             value_error = client.post(
                 "/v1/batch",
                 json={"task": "review", "prompts": ["p"], "responses": ["r"]},
@@ -1137,7 +1187,7 @@ class TestServerCoverageGaps:
         assert value_error.status_code == 422
         assert internal.status_code == 500
 
-    def test_compliance_utility_endpoints_calibrated_and_no_feedback_loop(self):
+    def test_compliance_utility_endpoints_calibrated_and_no_feedback_loop(self) -> None:
         app = create_app(self._fast_config())
 
         with TestClient(app) as client:
@@ -1169,9 +1219,9 @@ class TestServerCoverageGaps:
             "matched_output": "",
         }
 
-    def test_stats_store_summary_hourly_and_prometheus_summary(self):
+    def test_stats_store_summary_hourly_and_prometheus_summary(self) -> None:
         class FakeStats:
-            def summary(self):
+            def summary(self) -> dict[str, int | float]:
                 return {
                     "total": 3,
                     "approved": 2,
@@ -1181,13 +1231,13 @@ class TestServerCoverageGaps:
                     "avg_latency_ms": 12.5,
                 }
 
-            def hourly_breakdown(self, days=7):
+            def hourly_breakdown(self, days: int = 7) -> list[dict[str, str | int]]:
                 assert days == 2
                 return [{"hour": "2026-06-01T00:00:00Z", "total": 1}]
 
         app = create_app(self._fast_config())
         with TestClient(app) as client:
-            client.app.state._state["stats"] = FakeStats()
+            app.state._state["stats"] = FakeStats()
             stats = client.get("/v1/stats")
             hourly = client.get("/v1/stats/hourly?days=2")
 

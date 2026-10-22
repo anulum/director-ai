@@ -1,8 +1,16 @@
+<!-- SPDX-License-Identifier: CC-BY-4.0 -->
+<!-- Commercial license available -->
+<!-- © Concepts 1996–2026 Miroslav Šotek. All rights reserved. -->
+<!-- © Code 2020–2026 Miroslav Šotek. All rights reserved. -->
+<!-- ORCID: 0009-0009-3560-0851 -->
+<!-- Contact: www.anulum.li | protoscience@anulum.li -->
+<!-- DIRECTOR-AI — docs-site/licensing.md -->
+
 # Licensing
 
 <div class="hero-subtitle" style="font-size: 1.15em; color: var(--md-default-fg-color--light); margin-bottom: 2em;">
 The licence model. Open core under Apache-2.0 — free for any use, including production.<br/>
-Advanced &amp; Labs under BUSL-1.1 — free to evaluate; a commercial licence unlocks production.<br/>
+Advanced &amp; Labs under LicenseRef-BUSL-1.1-ANULUM-TDM — non-production use is subject to the permanent Use Limitation; production requires a commercial licence.<br/>
 Looking for tiers and prices? See the <a href="pricing.md">Pricing page</a>.
 </div>
 
@@ -38,15 +46,15 @@ the dedicated **[Pricing page](pricing.md)** — one source of truth for prices.
 
 In short: `director-ai-lite` is the free PyPI adoption package; the
 **Apache-2.0 core** in `director-ai` is free for everyone, in production, with
-no strings; the commercial tiers add production entitlement for the **BUSL-1.1
+no strings; the commercial tiers add production entitlement for the **LicenseRef-BUSL-1.1-ANULUM-TDM
 Advanced & Labs** capabilities plus support; Director-Class AI is a separate
 action-control and evidence product with scoped terms, not a Director-AI wheel.
 
 | Route | Licence status | Support | Production use |
 |---|---|---|---|
 | **Director-Lite** | Free package; Apache-2.0 adoption surface | Community / self-support | Allowed, including closed-source products |
-| **Director-AI Pro self-host** | Commercial licence for BUSL-1.1 advanced tier | Priority support, 99.5 % support target | Allowed for self-hosted production and internal platforms |
-| **Director-AI Full self-host** | Commercial licence for BUSL-1.1 Advanced plus Labs/Research | Direct engineering support | Allowed for the complete self-hosted capability set |
+| **Director-AI Pro self-host** | Commercial licence for LicenseRef-BUSL-1.1-ANULUM-TDM advanced tier | Priority support, 99.5 % support target | Allowed for self-hosted production and internal platforms |
+| **Director-AI Full self-host** | Commercial licence for LicenseRef-BUSL-1.1-ANULUM-TDM Advanced plus Labs/Research | Direct engineering support | Allowed for the complete self-hosted capability set |
 | **Director-Class AI** | Separate BUSL action-control product with negotiated terms | Defined in the accepted order form | High-impact agent action control, approval routing, and evidence under the scoped deployment terms |
 
 [See pricing :material-arrow-right:](pricing.md){ .md-button .md-button--primary }
@@ -113,15 +121,20 @@ detection, streaming halt, and the agent/MCP preflight guard — is licensed und
 products. Self-host without restrictions. Modify and redistribute. No
 source-disclosure obligation.
 
-## :material-flask: Advanced & Labs — BUSL-1.1
+## :material-flask: Advanced & Labs — LicenseRef-BUSL-1.1-ANULUM-TDM
 
 The advanced capabilities (under `core/<advanced>/`, `enterprise/`, `voice/`,
 `ui/`, `experimental/`, `compliance/`, `agentic/`) are **source-available** under
-[BUSL-1.1](https://mariadb.com/bsl11/).
+[modified licence](https://github.com/anulum/director-ai/blob/main/LICENSES/LicenseRef-BUSL-1.1-ANULUM-TDM.txt).
 
-**You can:** read the source, evaluate, and use it for free in any
-**non-production** setting. Each file automatically converts to Apache-2.0 on its
-change date.
+Non-production use is subject to the complete modified terms. Text and data
+mining and collecting, training, fine-tuning or evaluating machine-learning or
+artificial-intelligence models require the Licensor's prior written permission.
+This does not restrict running the software for its documented purpose.
+The Use Limitation is permanent and survives the Change Date unless withdrawn
+in writing. Original Change Date (the fourth anniversary of each version's first
+public distribution) and Change License (`Apache-2.0`) parameters remain unchanged
+pending the Licensor's later relicensing decision.
 
 **The obligation:** production and hosted/SaaS use of the advanced tier requires
 a commercial licence (the tiers above).
@@ -131,21 +144,27 @@ a commercial licence (the tiers above).
 ## :material-frequently-asked-questions: FAQ
 
 ??? question "Can I use Director-AI in academic research?"
-    Yes. The Apache-2.0 core is free for any use. The BUSL-1.1 advanced tier is
-    free for non-production research and evaluation; a published deployment that
-    serves external users on the advanced tier would need a commercial licence.
+    The Apache-2.0 core is free for any use. Advanced/Labs non-production research
+    is subject to the permanent Use Limitation: text and data mining and
+    machine-learning uses need prior written permission. Running the software
+    for its documented purpose is excepted. A production deployment of the
+    advanced tier needs a commercial licence.
 
 ??? question "Can I use it in my SaaS product?"
-    The Apache-2.0 core: yes, freely, including closed-source SaaS. The BUSL-1.1
+    The Apache-2.0 core: yes, freely, including closed-source SaaS. The LicenseRef-BUSL-1.1-ANULUM-TDM
     advanced tier in a hosted/production service requires a commercial licence.
 
 ??? question "Can I use the free version for internal tools?"
-    The Apache-2.0 core: yes, without restriction. The BUSL-1.1 advanced tier is
-    free for non-production internal use; production use needs a commercial licence.
+    The Apache-2.0 core: yes, without restriction. Advanced/Labs non-production
+    internal use is subject to the permanent Use Limitation described above;
+    production use needs a commercial licence.
 
 ??? question "Do I need a license for evaluation or prototyping?"
-    No. The core is Apache-2.0, and the advanced tier is free to evaluate under
-    BUSL-1.1. Buy a commercial licence when an advanced capability ships to production.
+    The core is Apache-2.0. Advanced/Labs evaluation and prototyping are subject
+    to the permanent Use Limitation described above. Text and data mining and
+    machine-learning uses need prior written permission; running the software
+    for its documented purpose is excepted. Production use needs a commercial
+    licence.
 
 ??? question "What about contributions?"
     Contributors retain copyright. Contributions to the Apache-2.0 core are
@@ -166,3 +185,8 @@ a commercial licence (the tiers above).
 <small>Email: [director.class.ai@anulum.li](mailto:director.class.ai@anulum.li) · Web: [anulum.li](https://www.anulum.li)</small>
 
 </div>
+
+The permanent limitation applies to the Advanced/Labs Licensed Work; the
+Apache-2.0 core retains its existing terms. The original legal-review notice
+and conversion fields remain unchanged; their presence does not end the
+permanent limitation.

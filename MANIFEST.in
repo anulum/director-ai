@@ -9,7 +9,7 @@ recursive-include src *.py *.pyi *.pkl
 include packages/tier_build_hooks.py
 include packages/paid_tier_manifest.json
 
-# Open-core release: keep the BUSL-1.1 advanced & labs packages out of the PyPI
+# Open-core release: keep the LicenseRef-BUSL-1.1-ANULUM-TDM advanced & labs packages out of the PyPI
 # sdist too (they remain source-available in the git repository). The wheel
 # excludes them via pyproject [tool.setuptools.packages.find].exclude.
 # Extended 2026-07-16 per decisions D1/D2 (ladder P3 re-slice).

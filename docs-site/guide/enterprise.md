@@ -1,7 +1,19 @@
+<!-- SPDX-License-Identifier: CC-BY-4.0 -->
+<!-- Commercial license available -->
+<!-- © Concepts 1996–2026 Miroslav Šotek. All rights reserved. -->
+<!-- © Code 2020–2026 Miroslav Šotek. All rights reserved. -->
+<!-- ORCID: 0009-0009-3560-0851 -->
+<!-- Contact: www.anulum.li | protoscience@anulum.li -->
+<!-- DIRECTOR-AI — docs-site/guide/enterprise.md -->
+
 # Enterprise Modules
 
-Three modules ship in the source-available Advanced & Labs tier (BUSL-1.1): free
-to evaluate, with a commercial licence required for production use.
+Advanced/Labs uses are subject to the [permanent Use Limitation](../licensing.md); text and data mining and machine-learning uses require prior written permission.
+
+Three modules ship in the source-available Advanced & Labs tier
+(LicenseRef-BUSL-1.1-ANULUM-TDM). Non-production use, including evaluation, is
+subject to the permanent Use Limitation above. Production use requires a
+commercial licence.
 
 ## TenantRouter
 
@@ -59,14 +71,15 @@ router = director_ai.TenantRouter()
 
 ## When You Need a Commercial Licence
 
-These modules are BUSL-1.1. The Apache-2.0 core is always free; the table below
-covers the **Advanced & Labs** tier only.
+These modules are LicenseRef-BUSL-1.1-ANULUM-TDM. The Apache-2.0 core is always free; the table below
+covers the **Advanced & Labs** tier only. Every non-production row remains
+subject to the permanent Use Limitation above.
 
 | Scenario | License |
 |----------|---------|
-| Evaluation / prototyping | BUSL-1.1 (free) |
-| Research / academic, non-production | BUSL-1.1 (free) |
-| Non-production internal use | BUSL-1.1 (free) |
+| Evaluation / prototyping | LicenseRef-BUSL-1.1-ANULUM-TDM (free) |
+| Research / academic, non-production | LicenseRef-BUSL-1.1-ANULUM-TDM (free) |
+| Non-production internal use | LicenseRef-BUSL-1.1-ANULUM-TDM (free) |
 | Production internal tool | Commercial (Indie+) |
 | Production SaaS | Commercial (Pro+) |
 | Multi-tenant production with SLA | Commercial (Enterprise) |

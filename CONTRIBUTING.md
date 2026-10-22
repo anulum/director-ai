@@ -1,4 +1,14 @@
+<!-- SPDX-License-Identifier: Apache-2.0 -->
+<!-- Commercial license available -->
+<!-- © Concepts 1996–2026 Miroslav Šotek. All rights reserved. -->
+<!-- © Code 2020–2026 Miroslav Šotek. All rights reserved. -->
+<!-- ORCID: 0009-0009-3560-0851 -->
+<!-- Contact: www.anulum.li | protoscience@anulum.li -->
+<!-- DIRECTOR-AI — CONTRIBUTING.md -->
+
 # Contributing to Director-AI
+
+Advanced/Labs uses are subject to the [permanent Use Limitation](docs-site/licensing.md); text and data mining and machine-learning uses require prior written permission.
 
 ## Getting Started
 
@@ -160,7 +170,7 @@ The package lives in `src/director_ai/` with two profiles:
 ## License
 
 Director-AI is open core: the core is Apache-2.0 and the advanced & labs tier is
-BUSL-1.1. Contributions target the **Apache-2.0 core** and are accepted under
+LicenseRef-BUSL-1.1-ANULUM-TDM. Contributions target the **Apache-2.0 core** and are accepted under
 Apache-2.0. By contributing, you agree to license your contribution under the
 same terms as the file it touches. See [licensing](docs-site/licensing.md) for
 the full model.

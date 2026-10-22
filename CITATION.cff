@@ -1,10 +1,11 @@
-# ─────────────────────────────────────────────────────────────────────
-# Director-AI — Citation Metadata
-# © 1998-2026 Miroslav Sotek. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+# Commercial license available
+# © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
+# © Code 2020–2026 Miroslav Šotek. All rights reserved.
+# ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# ORCID: https://orcid.org/0009-0009-3560-0851
-# License: Apache-2.0 core | BUSL-1.1 advanced | Commercial licensing available
-# ─────────────────────────────────────────────────────────────────────
+# DIRECTOR-AI — citation metadata
+# Apache-2.0 core and modified Advanced/Labs terms are described by NOTICE.md.
 cff-version: 1.2.0
 title: "Director-AI: Coherence Engine"
 message: "If you use this software, please cite it using the metadata below."
@@ -17,9 +18,7 @@ authors:
 version: "3.21.0"
 doi: "10.5281/zenodo.18822167"
 date-released: "2026-07-29"
-license:
-  - "Apache-2.0"
-  - "BUSL-1.1"
+license-url: https://github.com/anulum/director-ai/blob/main/NOTICE.md
 repository-code: "https://github.com/anulum/director-ai"
 url: "https://www.anulum.li"
 abstract: >-
@@ -44,7 +43,15 @@ keywords:
 references:
   - type: software
     title: "SCPN Fusion Core"
+    authors:
+      - family-names: "Sotek"
+        given-names: "Miroslav"
+        orcid: "https://orcid.org/0009-0009-3560-0851"
     repository-code: "https://github.com/anulum/scpn-fusion-core"
   - type: software
     title: "SC-NeuroCore"
+    authors:
+      - family-names: "Šotek"
+        given-names: "Miroslav"
+        orcid: "https://orcid.org/0009-0009-3560-0851"
     repository-code: "https://github.com/anulum/sc-neurocore"

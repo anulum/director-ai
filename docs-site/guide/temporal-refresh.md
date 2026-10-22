@@ -1,6 +1,16 @@
+<!-- SPDX-License-Identifier: CC-BY-4.0 -->
+<!-- Commercial license available -->
+<!-- © Concepts 1996–2026 Miroslav Šotek. All rights reserved. -->
+<!-- © Code 2020–2026 Miroslav Šotek. All rights reserved. -->
+<!-- ORCID: 0009-0009-3560-0851 -->
+<!-- Contact: www.anulum.li | protoscience@anulum.li -->
+<!-- DIRECTOR-AI — docs-site/guide/temporal-refresh.md -->
+
 # Live temporal-claim refresh
 
-> **Status: advanced tier (BUSL-1.1), opt-in, makes live web requests.** The
+Advanced/Labs uses are subject to the [permanent Use Limitation](../licensing.md); text and data mining and machine-learning uses require prior written permission.
+
+> **Status: advanced tier (LicenseRef-BUSL-1.1-ANULUM-TDM), opt-in, makes live web requests.** The
 > reliable payload is the *retrieved current evidence*. The verdict is decided by
 > an injected NLI scorer when present, and falls back to a coarse lexical triage
 > otherwise — treat a lexical `drift_suspected` as "verify", not "false".

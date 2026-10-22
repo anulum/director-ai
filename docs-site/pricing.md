@@ -1,4 +1,14 @@
+<!-- SPDX-License-Identifier: CC-BY-4.0 -->
+<!-- Commercial license available -->
+<!-- © Concepts 1996–2026 Miroslav Šotek. All rights reserved. -->
+<!-- © Code 2020–2026 Miroslav Šotek. All rights reserved. -->
+<!-- ORCID: 0009-0009-3560-0851 -->
+<!-- Contact: www.anulum.li | protoscience@anulum.li -->
+<!-- DIRECTOR-AI — docs-site/pricing.md -->
+
 # Pricing
+
+Advanced/Labs uses are subject to the [permanent Use Limitation](licensing.md); text and data mining and machine-learning uses require prior written permission.
 
 <div class="hero-subtitle" style="font-size: 1.2em; color: var(--md-default-fg-color--light); margin-bottom: 1.5em;">
 The core is free — forever, in production, no strings.<br/>
@@ -92,9 +102,10 @@ without paying anyone. [Get started](quickstart.md){ .md-button }
 
 ## :material-currency-usd: Commercial tiers — CHF or USD
 
-The **Advanced & Labs** capabilities are source-available under BUSL-1.1: free to
-read and evaluate, free in non-production. A commercial licence unlocks them in
-production and hosted/SaaS deployments, and adds support and SLAs.
+The **Advanced & Labs** capabilities are source-available under
+LicenseRef-BUSL-1.1-ANULUM-TDM. Non-production use, including evaluation, is
+subject to the permanent Use Limitation described above. A commercial licence
+unlocks production and hosted/SaaS deployments, and adds support and SLAs.
 
 | Path | Price | Package | Choose it when |
 |---|---:|---|---|
@@ -216,7 +227,7 @@ stands behind them; the core that does the catching is free.
 
 ??? question "What exactly is free?"
     `director-ai-lite` is free. The Apache-2.0 core in `director-ai` is also free
-    for any use, including closed-source production. Only the BUSL-1.1 Advanced
+    for any use, including closed-source production. Only the LicenseRef-BUSL-1.1-ANULUM-TDM Advanced
     & Labs tier needs a commercial licence for production.
 
 ??? question "Will PyPI promote all tiers?"
@@ -225,12 +236,17 @@ stands behind them; the core that does the catching is free.
     there as the premium service/category, not as a separate wheel.
 
 ??? question "Do I need a licence to evaluate?"
-    No. The core is Apache-2.0; the advanced tier is free to read and evaluate
-    under BUSL-1.1. Buy a licence when an advanced capability ships to production.
+    The core is Apache-2.0. The advanced tier permits non-production use under
+    LicenseRef-BUSL-1.1-ANULUM-TDM, subject to its permanent Use Limitation.
+    Text and data mining and machine-learning uses need prior written permission;
+    running the software for its documented purpose is excepted. Production use
+    needs a commercial licence. See the [full terms](licensing.md).
 
 ??? question "What happens to BUSL files over time?"
-    Each converts automatically to Apache-2.0 on its change date (the fourth
-    anniversary). Today's advanced tier becomes tomorrow's open core.
+    The original Change Date (the fourth anniversary of each version's first
+    public distribution) and Change License (`Apache-2.0`) remain unchanged.
+    The permanent Use Limitation continues beyond that date unless the Licensor
+    withdraws it in writing. See the [full terms](licensing.md).
 
 For the full legal model, see [Licensing](licensing.md).
 

@@ -1,5 +1,5 @@
 {
-  "SPDX-License-Identifier": "Apache-2.0 AND BUSL-1.1",
+  "SPDX-License-Identifier": "Apache-2.0 AND LicenseRef-BUSL-1.1-ANULUM-TDM",
   "counts": {
     "benchmarked": 52,
     "experimental_hooks": 23,

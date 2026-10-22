@@ -4,7 +4,7 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI — citation tracing for chain-of-thought
+# Director-AI — citation tracing for chain-of-thought
 
 """Trace the claims in a reasoning chain to the citations that back them.
 
@@ -33,7 +33,7 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     # ``Citation`` is used only as a (PEP 563 string) annotation here, so the
-    # advanced BUSL-1.1 citation_grounding package is not needed to import this
+    # advanced LicenseRef-BUSL-1.1-ANULUM-TDM citation_grounding package is not needed to import this
     # module — the Apache-2.0 core wheel excludes it. ``trace_citations`` imports
     # the runtime helpers lazily and raises a clear error if the tier is absent.
     from ..citation_grounding.citations import Citation
@@ -112,7 +112,7 @@ def trace_citations(text: str) -> TraceResult:
     except ImportError as exc:  # pragma: no cover - only without the advanced tier
         raise ImportError(
             "citation tracing requires the advanced citation-grounding module "
-            "(BUSL-1.1), which is absent from the Apache-2.0 core wheel"
+            "(LicenseRef-BUSL-1.1-ANULUM-TDM), which is absent from the Apache-2.0 core wheel"
         ) from exc
     body_end = reference_section_start(text)
     citations = [c for c in resolve_citations(text) if c.start < body_end]

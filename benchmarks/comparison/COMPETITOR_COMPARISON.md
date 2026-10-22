@@ -1,4 +1,14 @@
+<!-- SPDX-License-Identifier: Apache-2.0 -->
+<!-- Commercial license available -->
+<!-- © Concepts 1996–2026 Miroslav Šotek. All rights reserved. -->
+<!-- © Code 2020–2026 Miroslav Šotek. All rights reserved. -->
+<!-- ORCID: 0009-0009-3560-0851 -->
+<!-- Contact: www.anulum.li | protoscience@anulum.li -->
+<!-- DIRECTOR-AI — benchmarks/comparison/COMPETITOR_COMPARISON.md -->
+
 # Director-AI -- Competitor Benchmark Comparison
+
+Advanced/Labs uses are subject to the [permanent Use Limitation](../../docs-site/licensing.md); text and data mining and machine-learning uses require prior written permission.
 
 Last updated: 2026-03-14 (v3.8.0) — full competitive landscape, frontier LLM eval, L40S latency, 23-model NLI survey
 
@@ -16,7 +26,7 @@ Last updated: 2026-03-14 (v3.8.0) — full competitive landscape, frontier LLM e
 | **False-halt rate** | 4.4% (135 passages, heuristic) | N/A | N/A | N/A | N/A |
 | **AggreFact bal. acc** | 75.6% (0.4B) | N/A | N/A | N/A | N/A |
 | **Integrations** | LC/LI/LG/HS/CrewAI | LangChain | Python | LC/LI | Python |
-| **License** | Apache-2.0 / BUSL-1.1 | Apache 2.0 | Apache 2.0 | Apache 2.0 | MIT |
+| **License** | Apache-2.0 / LicenseRef-BUSL-1.1-ANULUM-TDM | Apache 2.0 | Apache 2.0 | Apache 2.0 | MIT |
 
 ## Measured Latency (benchmarks/latency_bench.py)
 
@@ -84,7 +94,7 @@ FactCG (arXiv 2501.17144), MiniCheck (arXiv 2404.10774), Granite Guardian 3.3
 | 5 | Granite Guardian 3.3 (IBM) | 76.5% | 8B | No | — | Apache 2.0 |
 | 6 | Mistral-Large 2 | 76.5% | 123B | No | API | Proprietary |
 | 7 | GPT-4o (leaderboard) | 75.9% | ~200B | No | API | Proprietary |
-| **8** | **Director-AI (FactCG)** | **75.6%** | **0.4B** | **Yes** | **0.5 ms (L40S FP16)** | **Apache-2.0 / BUSL-1.1** |
+| **8** | **Director-AI (FactCG)** | **75.6%** | **0.4B** | **Yes** | **0.5 ms (L40S FP16)** | **Apache-2.0 / LicenseRef-BUSL-1.1-ANULUM-TDM** |
 | 9 | Qwen2.5-72B | 75.6% | 72B | No | — | Proprietary |
 | 10 | FactCG-RBT (RoBERTa) | 75.4% | 0.4B | No | — | MIT |
 | 11 | MiniCheck-Flan-T5-L | 75.0% | 0.8B | No | ~120 ms | MIT |

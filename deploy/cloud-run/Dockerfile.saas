@@ -88,7 +88,7 @@ PY
 FROM python:3.12-slim@sha256:f77ac9e44ae96ef2c90b8053ea08c31f8be030f824196b0ae4db6d462c84e51f
 
 LABEL org.opencontainers.image.source="https://github.com/anulum/director-ai"
-LABEL org.opencontainers.image.licenses="Apache-2.0 AND BUSL-1.1 AND MIT"
+LABEL org.opencontainers.image.licenses="Apache-2.0 AND LicenseRef-BUSL-1.1-ANULUM-TDM AND MIT"
 
 WORKDIR /app
 

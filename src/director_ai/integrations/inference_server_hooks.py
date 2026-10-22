@@ -1,10 +1,10 @@
 # SPDX-License-Identifier: Apache-2.0
-# Commercial licence available
-# Concepts 1996-2026 Miroslav Sotek. All rights reserved.
-# Code 2020-2026 Miroslav Sotek. All rights reserved.
+# Commercial license available
+# © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
+# © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI - inference-server hook adapters
+# DIRECTOR-AI — src/director_ai/integrations/inference_server_hooks.py
 
 """Pre-sampling hook boundary for inference server integrations."""
 
@@ -18,7 +18,7 @@ from typing import TYPE_CHECKING, Literal
 from director_ai.core.safety_event import SafetyEvent
 
 if TYPE_CHECKING:
-    # Advanced-tier (BUSL-1.1) type used only in annotations; not required at
+    # Advanced-tier (LicenseRef-BUSL-1.1-ANULUM-TDM) type used only in annotations; not required at
     # runtime, so the Apache core wheel does not need core.trajectory installed.
     from director_ai.core.trajectory import PreHaltSteeringDecision
 

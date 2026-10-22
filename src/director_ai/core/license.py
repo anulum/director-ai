@@ -378,7 +378,7 @@ def load_license() -> LicenseInfo:
     2. DIRECTOR_LICENSE_KEY env var (syntax check only; does not activate)
     3. DIRECTOR_LICENSE_FILE env var (path to signed JSON)
     4. ~/.director-ai/license.json (default file location)
-    5. Falls back to the open-core community tier (Apache-2.0 core + BUSL-1.1
+    5. Falls back to the open-core community tier (Apache-2.0 core + LicenseRef-BUSL-1.1-ANULUM-TDM
        advanced, free for non-production)
     """
     key = os.environ.get("DIRECTOR_LICENSE_KEY", "").strip()
@@ -417,11 +417,13 @@ def load_license() -> LicenseInfo:
             logger.info("License: %s (default file)", info.message)
             return info
 
-    logger.info("License: open core (Apache-2.0 + BUSL-1.1, community)")
+    logger.info(
+        "License: open core (Apache-2.0 + LicenseRef-BUSL-1.1-ANULUM-TDM, community)"
+    )
     return LicenseInfo(
         tier="community",
         valid=True,
-        message="open core: Apache-2.0 + BUSL-1.1 (no commercial license)",
+        message="open core: Apache-2.0 + LicenseRef-BUSL-1.1-ANULUM-TDM (no commercial license)",
     )
 
 

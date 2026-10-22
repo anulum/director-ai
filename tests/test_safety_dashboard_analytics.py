@@ -1,10 +1,10 @@
-# SPDX-License-Identifier: BUSL-1.1
-# Commercial licence available
-# Concepts 1996-2026 Miroslav Sotek. All rights reserved.
-# Code 2020-2026 Miroslav Sotek. All rights reserved.
+# SPDX-License-Identifier: LicenseRef-BUSL-1.1-ANULUM-TDM
+# Commercial license available
+# © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
+# © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI - Safety dashboard analytics contracts
+# DIRECTOR-AI — tests/test_safety_dashboard_analytics.py
 
 """Contract tests for the safety-dashboard event analytics module.
 
@@ -27,17 +27,17 @@ from director_ai.ui import safety_dashboard
 
 
 class TestModulePlacement:
-    def test_parser_is_defined_in_the_analytics_module(self):
+    def test_parser_is_defined_in_the_analytics_module(self) -> None:
         parser = dashboard_analytics_module.parse_dashboard_records
         assert parser.__module__ == dashboard_analytics_module.__name__
 
-    def test_facade_re_exports_the_same_parser_object(self):
+    def test_facade_re_exports_the_same_parser_object(self) -> None:
         assert (
             safety_dashboard.parse_dashboard_records
             is dashboard_analytics_module.parse_dashboard_records
         )
 
-    def test_module_all_names_the_facade_contract(self):
+    def test_module_all_names_the_facade_contract(self) -> None:
         assert set(dashboard_analytics_module.__all__) == {
             "_drift_alert_rows",
             "_evidence_rows",
@@ -57,7 +57,7 @@ class TestModulePlacement:
 
 
 class TestParserContracts:
-    def test_parser_collects_records_and_line_scoped_warnings(self):
+    def test_parser_collects_records_and_line_scoped_warnings(self) -> None:
         events = "\n".join(
             [
                 json.dumps({"tenant_id": "acme", "policy_decision": "halt"}),
@@ -70,11 +70,11 @@ class TestParserContracts:
         assert any(error.startswith("events:2:") for error in errors)
         assert any(error.startswith("events:3:") for error in errors)
 
-    def test_rate_validator_rejects_out_of_range_thresholds(self):
+    def test_rate_validator_rejects_out_of_range_thresholds(self) -> None:
         with pytest.raises(ValueError, match="halt_alert_threshold"):
             safety_dashboard.build_safety_dashboard("", halt_alert_threshold=1.5)
 
-    def test_min_window_validator_rejects_non_positive_counts(self):
+    def test_min_window_validator_rejects_non_positive_counts(self) -> None:
         with pytest.raises(ValueError, match="min_drift_window_events"):
             safety_dashboard.build_observability_operations_report(
                 "", min_drift_window_events=0

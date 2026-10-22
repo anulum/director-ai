@@ -1,16 +1,28 @@
-<!-- SPDX-License-Identifier: BUSL-1.1 -->
+<!-- SPDX-License-Identifier: LicenseRef-BUSL-1.1-ANULUM-TDM -->
+<!-- Commercial license available -->
+<!-- © Concepts 1996–2026 Miroslav Šotek. All rights reserved. -->
+<!-- © Code 2020–2026 Miroslav Šotek. All rights reserved. -->
+<!-- ORCID: 0009-0009-3560-0851 -->
+<!-- Contact: www.anulum.li | protoscience@anulum.li -->
+<!-- DIRECTOR-AI — packages/director-ai-full/README.md -->
 
 # director-ai-full
 
 The **full** commercial tier for [Director-AI](https://github.com/anulum/director-ai),
 the response-level LLM hallucination guardrail.
 
-This package layers the BUSL-1.1 advanced and labs/research modules on top of the
+This package layers the LicenseRef-BUSL-1.1-ANULUM-TDM advanced and labs/research modules on top of the
 free Apache-2.0 `director-ai` core. Installing it pulls the core automatically:
 
 ```bash
 pip install director-ai-full
 ```
 
-Licensed under BUSL-1.1 (see `LICENSE`); commercial licensing available at
+Licensed under LicenseRef-BUSL-1.1-ANULUM-TDM (see `LICENSE`); commercial licensing available at
 www.anulum.li. The source remains available in the public repository.
+
+The added Use Limitation is permanent: text and data mining and machine-learning
+uses require the Licensor's prior written permission. It does not restrict
+running the software for its documented purpose and survives the Change Date
+unless withdrawn in writing. Original Change Date and Change License parameters
+remain unchanged pending the Licensor's later relicensing decision.

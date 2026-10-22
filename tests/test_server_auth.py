@@ -4,7 +4,7 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI — Server Auth/Rate Limit/Correlation ID Tests
+# Director-AI — Server Auth/Rate Limit/Correlation ID Tests
 """Multi-angle tests for server auth, rate limit, correlation pipeline."""
 
 from __future__ import annotations
@@ -14,13 +14,19 @@ import os
 import sys
 import types
 import uuid
+from collections.abc import Callable
+from pathlib import Path
+from typing import NoReturn
 
 import pytest
+from starlette.requests import Request
+from starlette.types import ASGIApp, Receive, Scope, Send
 
 from director_ai.core.config import DirectorConfig
 from director_ai.core.metrics import metrics
 
 try:
+    from fastapi import FastAPI
     from fastapi.testclient import TestClient
 
     from director_ai.server import (
@@ -37,7 +43,7 @@ except ImportError:
 pytestmark = pytest.mark.skipif(not _SERVER_AVAILABLE, reason="fastapi not installed")
 
 
-def _auth_app(metrics_require_auth=True):
+def _auth_app(metrics_require_auth: bool = True) -> FastAPI:
     cfg = DirectorConfig(
         api_keys=["test-key-123"],
         llm_provider="mock",
@@ -46,12 +52,12 @@ def _auth_app(metrics_require_auth=True):
     return create_app(cfg)
 
 
-def _noauth_app():
+def _noauth_app() -> FastAPI:
     cfg = DirectorConfig(api_keys=[], llm_provider="mock")
     return create_app(cfg)
 
 
-def _map_only_app():
+def _map_only_app() -> FastAPI:
     # Tenant-map-only config (no separate api_keys) — the production-profile
     # shape. Before the effective-keys fix this was fail-open.
     cfg = DirectorConfig(
@@ -66,27 +72,35 @@ class _FakeRateLimitExceededError(Exception):
 
 
 class _FakeSlowAPIMiddleware:
-    def __init__(self, app, *args, **kwargs):
+    def __init__(self, app: ASGIApp, *args: object, **kwargs: object) -> None:
         del args, kwargs
         self.app = app
 
-    async def __call__(self, scope, receive, send):
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         await self.app(scope, receive, send)
 
 
 class _FakeLimiter:
-    def __init__(self, *, key_func, default_limits, storage_uri):
+    def __init__(
+        self,
+        *,
+        key_func: Callable[[Request], str],
+        default_limits: list[str],
+        storage_uri: str | None,
+    ) -> None:
         self.key_func = key_func
         self.default_limits = default_limits
         self.storage_uri = storage_uri
 
 
-def _install_fake_slowapi(monkeypatch):
+def _install_fake_slowapi(monkeypatch: pytest.MonkeyPatch) -> types.ModuleType:
     import director_ai.server as server_mod
 
     fake_slowapi = types.ModuleType("slowapi")
     fake_errors = types.ModuleType("slowapi.errors")
-    fake_errors.RateLimitExceeded = _FakeRateLimitExceededError
+    monkeypatch.setattr(
+        fake_errors, "RateLimitExceeded", _FakeRateLimitExceededError, raising=False
+    )
     monkeypatch.setitem(sys.modules, "slowapi", fake_slowapi)
     monkeypatch.setitem(sys.modules, "slowapi.errors", fake_errors)
     monkeypatch.setattr(server_mod, "_SLOWAPI_AVAILABLE", True)
@@ -106,26 +120,26 @@ def _install_fake_slowapi(monkeypatch):
     return server_mod
 
 
-def test_map_only_config_enforces_auth():
+def test_map_only_config_enforces_auth() -> None:
     """Regression: a map-only config must require a key (was fail-open)."""
     with TestClient(_map_only_app()) as client:
         r = client.get("/v1/config")
     assert r.status_code == 401
 
 
-def test_map_only_authenticates_listed_key():
+def test_map_only_authenticates_listed_key() -> None:
     with TestClient(_map_only_app()) as client:
         r = client.get("/v1/config", headers={"X-API-Key": "map-key-1"})
     assert r.status_code == 200
 
 
-def test_map_only_rejects_unlisted_key():
+def test_map_only_rejects_unlisted_key() -> None:
     with TestClient(_map_only_app()) as client:
         r = client.get("/v1/config", headers={"X-API-Key": "not-a-key"})
     assert r.status_code == 401
 
 
-def test_map_only_wrong_tenant_forbidden():
+def test_map_only_wrong_tenant_forbidden() -> None:
     with TestClient(_map_only_app()) as client:
         r = client.get(
             "/v1/config",
@@ -134,7 +148,7 @@ def test_map_only_wrong_tenant_forbidden():
     assert r.status_code == 403
 
 
-def test_map_only_matching_tenant_allowed():
+def test_map_only_matching_tenant_allowed() -> None:
     with TestClient(_map_only_app()) as client:
         r = client.get(
             "/v1/config",
@@ -143,38 +157,38 @@ def test_map_only_matching_tenant_allowed():
     assert r.status_code == 200
 
 
-def test_auth_rejects_missing_key():
+def test_auth_rejects_missing_key() -> None:
     with TestClient(_auth_app()) as client:
         r = client.get("/v1/config")
     assert r.status_code == 401
 
 
-def test_auth_rejects_wrong_key():
+def test_auth_rejects_wrong_key() -> None:
     with TestClient(_auth_app()) as client:
         r = client.get("/v1/config", headers={"X-API-Key": "wrong"})
     assert r.status_code == 401
 
 
-def test_auth_accepts_correct_key():
+def test_auth_accepts_correct_key() -> None:
     with TestClient(_auth_app()) as client:
         r = client.get("/v1/config", headers={"X-API-Key": "test-key-123"})
     assert r.status_code == 200
 
 
-def test_health_exempt_from_auth():
+def test_health_exempt_from_auth() -> None:
     with TestClient(_auth_app()) as client:
         r = client.get("/v1/health")
     assert r.status_code == 200
 
 
-def test_liveness_exposes_minimal_ok_payload():
+def test_liveness_exposes_minimal_ok_payload() -> None:
     with TestClient(_auth_app()) as client:
         r = client.get("/v1/live")
     assert r.status_code == 200
     assert r.json() == {"ok": True}
 
 
-def test_health_unauthenticated_hides_build_detail():
+def test_health_unauthenticated_hides_build_detail() -> None:
     """With keys configured, an unauthenticated probe sees only status+licence."""
     with TestClient(_auth_app()) as client:
         r = client.get("/v1/health")
@@ -187,7 +201,7 @@ def test_health_unauthenticated_hides_build_detail():
         assert leaked not in data
 
 
-def test_health_authenticated_returns_build_detail():
+def test_health_authenticated_returns_build_detail() -> None:
     """A valid key unlocks the full health payload."""
     with TestClient(_auth_app()) as client:
         r = client.get("/v1/health", headers={"X-API-Key": "test-key-123"})
@@ -197,7 +211,7 @@ def test_health_authenticated_returns_build_detail():
     assert "model_revisions" in data
 
 
-def test_health_dev_no_keys_returns_detail():
+def test_health_dev_no_keys_returns_detail() -> None:
     """No auth posture (dev): detail is returned to keep debugging usable."""
     with TestClient(_noauth_app()) as client:
         r = client.get("/v1/health")
@@ -205,12 +219,13 @@ def test_health_dev_no_keys_returns_detail():
     assert r.json()["version"]
 
 
-def test_source_commercial_hides_tier_and_version():
+def test_source_commercial_hides_tier_and_version() -> None:
     """Commercial mode reports only the licence type, never tier or version."""
     from types import SimpleNamespace
 
-    with TestClient(_noauth_app()) as client:
-        client.app.state._license = SimpleNamespace(
+    app = _noauth_app()
+    with TestClient(app) as client:
+        app.state._license = SimpleNamespace(
             is_commercial=True,
             is_trial=False,
             tier="enterprise",
@@ -224,32 +239,32 @@ def test_source_commercial_hides_tier_and_version():
     assert not data.get("version")
 
 
-def test_prometheus_exempt_when_metrics_auth_disabled():
+def test_prometheus_exempt_when_metrics_auth_disabled() -> None:
     with TestClient(_auth_app(metrics_require_auth=False)) as client:
         r = client.get("/v1/metrics/prometheus")
     assert r.status_code == 200
 
 
-def test_prometheus_requires_auth_by_default():
+def test_prometheus_requires_auth_by_default() -> None:
     with TestClient(_auth_app()) as client:
         r = client.get("/v1/metrics/prometheus")
     assert r.status_code == 401
 
 
-def test_no_auth_when_keys_empty():
+def test_no_auth_when_keys_empty() -> None:
     with TestClient(_noauth_app()) as client:
         r = client.get("/v1/config")
     assert r.status_code == 200
 
 
-def test_correlation_id_generated():
+def test_correlation_id_generated() -> None:
     with TestClient(_noauth_app()) as client:
         r = client.get("/v1/health")
     assert "X-Request-ID" in r.headers
     assert len(r.headers["X-Request-ID"]) > 0
 
 
-def test_correlation_id_echoed():
+def test_correlation_id_echoed() -> None:
     with TestClient(_noauth_app()) as client:
         r = client.get(
             "/v1/health",
@@ -258,7 +273,7 @@ def test_correlation_id_echoed():
     assert r.headers["X-Request-ID"] == "my-trace-42"
 
 
-def test_correlation_id_replaces_values_with_disallowed_characters():
+def test_correlation_id_replaces_values_with_disallowed_characters() -> None:
     inbound = "trace with spaces"
 
     with TestClient(_noauth_app()) as client:
@@ -269,7 +284,7 @@ def test_correlation_id_replaces_values_with_disallowed_characters():
     uuid.UUID(outbound)
 
 
-def test_correlation_id_replaces_overlong_values():
+def test_correlation_id_replaces_overlong_values() -> None:
     inbound = f"trace-{'x' * 200}"
 
     with TestClient(_noauth_app()) as client:
@@ -281,7 +296,7 @@ def test_correlation_id_replaces_overlong_values():
     uuid.UUID(outbound)
 
 
-def test_http_metrics_use_route_templates_for_path_parameters():
+def test_http_metrics_use_route_templates_for_path_parameters() -> None:
     metrics.reset()
 
     with TestClient(_noauth_app()) as client:
@@ -295,7 +310,7 @@ def test_http_metrics_use_route_templates_for_path_parameters():
     assert "customer-secret-session" not in repr(labels)
 
 
-def test_http_metrics_count_auth_failures():
+def test_http_metrics_count_auth_failures() -> None:
     metrics.reset()
 
     with TestClient(_auth_app()) as client:
@@ -311,12 +326,12 @@ def test_http_metrics_count_auth_failures():
     assert 'endpoint="/v1/config",method="GET",status="401"' in labels
 
 
-def test_http_metrics_count_unhandled_application_exceptions():
+def test_http_metrics_count_unhandled_application_exceptions() -> None:
     metrics.reset()
     app = _noauth_app()
 
-    @app.get("/v1/exploding/{item_id}")
-    def exploding_route(item_id: str):
+    @app.get("/v1/exploding/{item_id}", response_model=None)
+    def exploding_route(item_id: str) -> NoReturn:
         raise RuntimeError(f"boom:{item_id}")
 
     with TestClient(app, raise_server_exceptions=False) as client:
@@ -330,7 +345,7 @@ def test_http_metrics_count_unhandled_application_exceptions():
     assert "customer-secret" not in repr(labels)
 
 
-def test_api_keys_redacted_in_config():
+def test_api_keys_redacted_in_config() -> None:
     with TestClient(_auth_app()) as client:
         r = client.get(
             "/v1/config",
@@ -341,7 +356,7 @@ def test_api_keys_redacted_in_config():
     assert data["config"]["api_keys"] == "***"
 
 
-def test_rate_limiter_has_default_limits():
+def test_rate_limiter_has_default_limits() -> None:
     """Limiter is constructed with default_limits when rate_limit_rpm > 0."""
     try:
         from slowapi import Limiter  # noqa: F401
@@ -357,11 +372,17 @@ def test_rate_limiter_has_default_limits():
 
 
 @pytest.mark.skipif(not _SLOWAPI_AVAILABLE, reason="slowapi not installed")
-def test_rate_limiter_uses_redis_storage_uri(monkeypatch):
+def test_rate_limiter_uses_redis_storage_uri(monkeypatch: pytest.MonkeyPatch) -> None:
     import director_ai.server as server_mod
 
     class FakeLimiter:
-        def __init__(self, *, key_func, default_limits, storage_uri):
+        def __init__(
+            self,
+            *,
+            key_func: Callable[[Request], str],
+            default_limits: list[str],
+            storage_uri: str | None,
+        ) -> None:
             self._key_func = key_func
             self._default_limits = default_limits
             self._storage_uri = storage_uri
@@ -378,7 +399,9 @@ def test_rate_limiter_uses_redis_storage_uri(monkeypatch):
     assert app.state.limiter._storage_uri == "redis://localhost:6379/0"
 
 
-def test_rate_limiter_wires_redis_storage_without_slowapi_dependency(monkeypatch):
+def test_rate_limiter_wires_redis_storage_without_slowapi_dependency(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     _install_fake_slowapi(monkeypatch)
 
     cfg = DirectorConfig(
@@ -395,9 +418,9 @@ def test_rate_limiter_wires_redis_storage_without_slowapi_dependency(monkeypatch
 
 
 def test_rate_limiter_warns_for_multi_worker_inmemory_fake_slowapi(
-    caplog,
-    monkeypatch,
-):
+    caplog: pytest.LogCaptureFixture,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     _install_fake_slowapi(monkeypatch)
 
     cfg = DirectorConfig(
@@ -413,7 +436,9 @@ def test_rate_limiter_warns_for_multi_worker_inmemory_fake_slowapi(
     assert "per worker process" in caplog.text
 
 
-def test_unbound_tenant_claim_logs_hashed_key_only(caplog):
+def test_unbound_tenant_claim_logs_hashed_key_only(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
     cfg = DirectorConfig(
         api_keys=["test-key-123"],
         llm_provider="mock",
@@ -433,7 +458,7 @@ def test_unbound_tenant_claim_logs_hashed_key_only(caplog):
     assert "test-key-123" not in caplog.text
 
 
-def test_prompt_too_long_returns_422():
+def test_prompt_too_long_returns_422() -> None:
     with TestClient(_noauth_app()) as client:
         r = client.post(
             "/v1/review",
@@ -442,7 +467,7 @@ def test_prompt_too_long_returns_422():
     assert r.status_code == 422
 
 
-def test_response_too_long_returns_422():
+def test_response_too_long_returns_422() -> None:
     with TestClient(_noauth_app()) as client:
         r = client.post(
             "/v1/review",
@@ -451,7 +476,7 @@ def test_response_too_long_returns_422():
     assert r.status_code == 422
 
 
-def test_valid_body_sizes_accepted():
+def test_valid_body_sizes_accepted() -> None:
     with TestClient(_noauth_app()) as client:
         r = client.post(
             "/v1/review",
@@ -463,7 +488,7 @@ def test_valid_body_sizes_accepted():
 # ── Stats backend tests ──────────────────────────────────────────────
 
 
-def test_prometheus_stats_returns_summary():
+def test_prometheus_stats_returns_summary() -> None:
     """Default prometheus backend returns summary dict from /v1/stats."""
     cfg = DirectorConfig(api_keys=[], llm_provider="mock", stats_backend="prometheus")
     app = create_app(cfg)
@@ -475,7 +500,7 @@ def test_prometheus_stats_returns_summary():
     assert "approved" in data
 
 
-def test_prometheus_hourly_graceful():
+def test_prometheus_hourly_graceful() -> None:
     """Prometheus backend returns empty hourly breakdown with note."""
     cfg = DirectorConfig(api_keys=[], llm_provider="mock", stats_backend="prometheus")
     app = create_app(cfg)
@@ -487,7 +512,7 @@ def test_prometheus_hourly_graceful():
     assert "sqlite" in data["note"]
 
 
-def test_dashboard_renders_with_prometheus():
+def test_dashboard_renders_with_prometheus() -> None:
     cfg = DirectorConfig(api_keys=[], llm_provider="mock", stats_backend="prometheus")
     app = create_app(cfg)
     with TestClient(app) as client:
@@ -499,22 +524,22 @@ def test_dashboard_renders_with_prometheus():
 # -- Source-availability endpoint tests --------------------------------------
 
 
-def test_source_returns_200():
+def test_source_returns_200() -> None:
     with TestClient(_noauth_app()) as client:
         r = client.get("/v1/source")
     assert r.status_code == 200
     data = r.json()
-    assert data["license"] == "Apache-2.0 AND BUSL-1.1"
+    assert data["license"] == "Apache-2.0 AND LicenseRef-BUSL-1.1-ANULUM-TDM"
     assert "repository_url" in data
 
 
-def test_source_exempt_from_auth():
+def test_source_exempt_from_auth() -> None:
     with TestClient(_auth_app()) as client:
         r = client.get("/v1/source")
     assert r.status_code == 200
 
 
-def test_source_disabled_returns_404():
+def test_source_disabled_returns_404() -> None:
     cfg = DirectorConfig(
         api_keys=[],
         llm_provider="mock",
@@ -526,7 +551,9 @@ def test_source_disabled_returns_404():
     assert r.status_code == 404
 
 
-def test_bare_license_key_stays_open_core(monkeypatch, tmp_path):
+def test_bare_license_key_stays_open_core(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
     monkeypatch.setenv("HOME", str(tmp_path))
     monkeypatch.setenv(
         "DIRECTOR_LICENSE_KEY",
@@ -543,10 +570,10 @@ def test_bare_license_key_stays_open_core(monkeypatch, tmp_path):
     data = source.json()
     # A bare key (no signed file) does not activate commercial mode: the
     # endpoint still reports the open-core licence, not "commercial".
-    assert data["license"] == "Apache-2.0 AND BUSL-1.1"
+    assert data["license"] == "Apache-2.0 AND LicenseRef-BUSL-1.1-ANULUM-TDM"
 
 
-def test_source_custom_repo_url():
+def test_source_custom_repo_url() -> None:
     cfg = DirectorConfig(
         api_keys=[],
         llm_provider="mock",
@@ -559,7 +586,7 @@ def test_source_custom_repo_url():
     assert r.json()["repository_url"] == "https://git.example.com/fork"
 
 
-def test_metrics_auth_required_returns_401():
+def test_metrics_auth_required_returns_401() -> None:
     """When metrics_require_auth=True, /v1/metrics/prometheus needs API key."""
     cfg = DirectorConfig(
         api_keys=["secret"],
@@ -572,7 +599,7 @@ def test_metrics_auth_required_returns_401():
     assert r.status_code == 401
 
 
-def test_metrics_auth_required_with_key_returns_200():
+def test_metrics_auth_required_with_key_returns_200() -> None:
     cfg = DirectorConfig(
         api_keys=["secret"],
         llm_provider="mock",
@@ -584,7 +611,7 @@ def test_metrics_auth_required_with_key_returns_200():
     assert r.status_code == 200
 
 
-def test_extract_request_api_key_accepts_bearer_token_for_prometheus_scrapers():
+def test_extract_request_api_key_accepts_bearer_token_for_prometheus_scrapers() -> None:
     from starlette.requests import Request
 
     request = Request(
@@ -596,7 +623,9 @@ def test_extract_request_api_key_accepts_bearer_token_for_prometheus_scrapers():
     assert _extract_request_api_key(request) == "secret"
 
 
-def test_rate_limit_strict_raises_without_slowapi(monkeypatch):
+def test_rate_limit_strict_raises_without_slowapi(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """rate_limit_strict=True + missing slowapi raises ImportError."""
     import director_ai.server as srv
 
@@ -606,7 +635,7 @@ def test_rate_limit_strict_raises_without_slowapi(monkeypatch):
         create_app(cfg)
 
 
-def test_server_provider_wiring_openai(monkeypatch):
+def test_server_provider_wiring_openai(monkeypatch: pytest.MonkeyPatch) -> None:
     """VULN-DAI-001 regression: provider config must pass api_key directly to
     CoherenceAgent and never write it into os.environ."""
     monkeypatch.delenv("OPENAI_API_KEY", raising=False)
@@ -618,7 +647,7 @@ def test_server_provider_wiring_openai(monkeypatch):
     assert os.environ.get("OPENAI_API_KEY") != "from-config"
 
 
-def test_server_local_provider_wires_generation_parameters():
+def test_server_local_provider_wires_generation_parameters() -> None:
     cfg = DirectorConfig(
         api_keys=[],
         llm_provider="local",
@@ -635,7 +664,7 @@ def test_server_local_provider_wires_generation_parameters():
     assert agent.generator.temperature == 0.3
 
 
-def test_sqlite_stats_works(tmp_path):
+def test_sqlite_stats_works(tmp_path: Path) -> None:
     db_path = str(tmp_path / "test_stats.db")
     cfg = DirectorConfig(
         api_keys=[],
@@ -655,7 +684,9 @@ def test_sqlite_stats_works(tmp_path):
     not _SLOWAPI_AVAILABLE,
     reason="the per-process warning only fires when the SlowAPI limiter is active",
 )
-def test_multi_worker_inmemory_rate_limit_warns(caplog):
+def test_multi_worker_inmemory_rate_limit_warns(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
     """Multi-worker in-memory rate limiting warns it is per-process."""
     import logging
 
@@ -670,7 +701,7 @@ def test_multi_worker_inmemory_rate_limit_warns(caplog):
     assert "per worker process" in caplog.text
 
 
-def test_single_worker_rate_limit_no_warning(caplog):
+def test_single_worker_rate_limit_no_warning(caplog: pytest.LogCaptureFixture) -> None:
     """A single worker does not trigger the per-process rate-limit warning."""
     import logging
 

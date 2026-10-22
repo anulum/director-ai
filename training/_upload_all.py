@@ -4,7 +4,7 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI — _upload_all
+# Director-AI — _upload_all
 #!/usr/bin/env python3
 """Upload all training artifacts to Hugging Face Hub."""
 
@@ -67,7 +67,7 @@ score = scorer.score("The capital of France is Paris.", "Paris is in Germany.")
 
 ## License
 
-Apache-2.0 (core) / BUSL-1.1 (advanced) | Commercial licensing: [anulum.li](https://www.anulum.li)
+Apache-2.0 (core) / LicenseRef-BUSL-1.1-ANULUM-TDM (advanced) | Commercial licensing: [anulum.li](https://www.anulum.li)
 """
 
 if LARGE_DIR.exists():
@@ -131,7 +131,7 @@ score = scorer.score("The capital of France is Paris.", "Paris is in Germany.")
 
 ## License
 
-Apache-2.0 (core) / BUSL-1.1 (advanced) | Commercial licensing: [anulum.li](https://www.anulum.li)
+Apache-2.0 (core) / LicenseRef-BUSL-1.1-ANULUM-TDM (advanced) | Commercial licensing: [anulum.li](https://www.anulum.li)
 """
 
 if BASE_DIR.exists():
@@ -181,7 +181,7 @@ Combined training data for hallucination detection models used in
 
 ## License
 
-Apache-2.0 (core) / BUSL-1.1 (advanced) | Commercial licensing: [anulum.li](https://www.anulum.li)
+Apache-2.0 (core) / LicenseRef-BUSL-1.1-ANULUM-TDM (advanced) | Commercial licensing: [anulum.li](https://www.anulum.li)
 """
 
 if DATA_DIR.exists():

@@ -1,10 +1,10 @@
-# SPDX-License-Identifier: BUSL-1.1
+# SPDX-License-Identifier: LicenseRef-BUSL-1.1-ANULUM-TDM
 # Commercial license available
 # © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI — hallucination economics benchmark
+# Director-AI — hallucination economics benchmark
 
 """Measure the cost-risk guard-action selector.
 
@@ -27,9 +27,41 @@ from __future__ import annotations
 
 import json
 import time
+from typing import TypedDict
 
 from benchmarks._common import RESULTS_DIR
 from director_ai.core.routing import HallucinationEconomics
+
+
+class DecisionAccuracy(TypedDict):
+    """Correct decisions across the fixed labelled scenarios."""
+
+    n: int
+    accuracy: float
+
+
+class ValueRealised(TypedDict):
+    """Expected loss avoided in the scenarios worth guarding."""
+
+    guarded_scenarios: int
+    mean_loss_avoided: float
+
+
+class Throughput(TypedDict):
+    """Measured decision rate in calls per second."""
+
+    decisions_per_sec: float
+
+
+class BenchmarkResult(TypedDict):
+    """Complete serialisable economics benchmark output."""
+
+    benchmark: str
+    decision: DecisionAccuracy
+    value: ValueRealised
+    throughput: Throughput
+    backend: str
+
 
 # (risk, hallucination_cost, expected_action)
 _SCENARIOS: list[tuple[float, float, str]] = [
@@ -42,7 +74,8 @@ _SCENARIOS: list[tuple[float, float, str]] = [
 ]
 
 
-def decision_accuracy() -> dict:
+def decision_accuracy() -> DecisionAccuracy:
+    """Replay labelled risks through the public decision selector."""
     econ = HallucinationEconomics()
     hits = sum(
         1
@@ -52,7 +85,8 @@ def decision_accuracy() -> dict:
     return {"n": len(_SCENARIOS), "accuracy": round(hits / len(_SCENARIOS), 4)}
 
 
-def value_realised() -> dict:
+def value_realised() -> ValueRealised:
+    """Measure expected loss avoided on the same labelled scenarios."""
     econ = HallucinationEconomics()
     values = [
         d.value
@@ -63,7 +97,8 @@ def value_realised() -> dict:
     return {"guarded_scenarios": len(values), "mean_loss_avoided": mean}
 
 
-def throughput(repeats: int) -> dict:
+def throughput(repeats: int) -> Throughput:
+    """Time repeated decisions without including selector construction."""
     econ = HallucinationEconomics()
     t0 = time.perf_counter()
     for _ in range(repeats):
@@ -74,7 +109,8 @@ def throughput(repeats: int) -> dict:
     return {"decisions_per_sec": round(rate, 1)}
 
 
-def run(*, repeats: int = 20000) -> dict:
+def run(*, repeats: int = 20000) -> BenchmarkResult:
+    """Return correctness, expected value and native decision throughput."""
     return {
         "benchmark": "hallucination_economics",
         "decision": decision_accuracy(),
@@ -85,6 +121,7 @@ def run(*, repeats: int = 20000) -> dict:
 
 
 def main() -> None:
+    """Write and display the complete benchmark result."""
     result = run()
     RESULTS_DIR.mkdir(parents=True, exist_ok=True)
     (RESULTS_DIR / "hallucination_economics.json").write_text(

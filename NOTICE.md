@@ -1,3 +1,11 @@
+<!-- SPDX-License-Identifier: Apache-2.0 -->
+<!-- Commercial license available -->
+<!-- © Concepts 1996–2026 Miroslav Šotek. All rights reserved. -->
+<!-- © Code 2020–2026 Miroslav Šotek. All rights reserved. -->
+<!-- ORCID: 0009-0009-3560-0851 -->
+<!-- Contact: www.anulum.li | protoscience@anulum.li -->
+<!-- DIRECTOR-AI — NOTICE.md -->
+
 # NOTICE — Licensing & Commercial Use
 
 © 1998–2026 Miroslav Šotek. All rights reserved.
@@ -17,13 +25,17 @@ the agent/MCP preflight guard are licensed under
 [Apache-2.0](LICENSES/Apache-2.0.txt). Free for any use, including production and
 closed-source products, with no source-disclosure obligation.
 
-### Advanced & Labs — BUSL-1.1
+### Advanced & Labs — LicenseRef-BUSL-1.1-ANULUM-TDM
 
 The advanced capabilities (under `core/<advanced>/`, `enterprise/`, `voice/`,
 `ui/`, `experimental/`, `compliance/`, `agentic/`) are source-available under
-[BUSL-1.1](LICENSES/BUSL-1.1.txt). Free for non-production and evaluation use;
-each file converts to Apache-2.0 on its change date. A commercial license is
-available for organisations that:
+[LicenseRef-BUSL-1.1-ANULUM-TDM](LICENSES/LicenseRef-BUSL-1.1-ANULUM-TDM.txt). Non-production use is subject
+to the complete modified terms. The permanent Use Limitation requires the
+Licensor's prior written permission for text and data mining and machine-learning
+uses, including model evaluation. It does not restrict running the software for
+its documented purpose and survives the Change Date unless withdrawn in writing.
+Original Change Date and Change License parameters remain unchanged pending the
+Licensor's later relicensing decision. A commercial license is available for organisations that:
 
 - Run the advanced tier in production or as a hosted/SaaS service
 - Need SLA-backed support, indemnification, or custom builds
@@ -35,7 +47,7 @@ Contact [protoscience@anulum.li](mailto:protoscience@anulum.li) for terms.
 | Use Case | License |
 |----------|---------|
 | Core in any setting (research, internal, production, closed-source) | Apache-2.0 (free) |
-| Advanced & Labs — evaluation / non-production | BUSL-1.1 (free) |
+| Advanced & Labs — evaluation / non-production | LicenseRef-BUSL-1.1-ANULUM-TDM; subject to the permanent Use Limitation above |
 | Advanced & Labs — production or SaaS | Commercial |
 
 ## Third-Party Components

@@ -1,6 +1,16 @@
+<!-- SPDX-License-Identifier: CC-BY-4.0 -->
+<!-- Commercial license available -->
+<!-- © Concepts 1996–2026 Miroslav Šotek. All rights reserved. -->
+<!-- © Code 2020–2026 Miroslav Šotek. All rights reserved. -->
+<!-- ORCID: 0009-0009-3560-0851 -->
+<!-- Contact: www.anulum.li | protoscience@anulum.li -->
+<!-- DIRECTOR-AI — docs/COMPLIANCE.md -->
+
 # Compliance Evidence Guide
 
-> **Module**: Director-AI | **Version**: 3.21.0 | **License**: Apache-2.0 core / BUSL-1.1 advanced
+Advanced/Labs uses are subject to the [permanent Use Limitation](../docs-site/licensing.md); text and data mining and machine-learning uses require prior written permission.
+
+> **Module**: Director-AI | **Version**: 3.21.0 | **License**: Apache-2.0 core / LicenseRef-BUSL-1.1-ANULUM-TDM advanced
 >
 > © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
 

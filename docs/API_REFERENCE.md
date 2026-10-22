@@ -1,6 +1,16 @@
+<!-- SPDX-License-Identifier: CC-BY-4.0 -->
+<!-- Commercial license available -->
+<!-- © Concepts 1996–2026 Miroslav Šotek. All rights reserved. -->
+<!-- © Code 2020–2026 Miroslav Šotek. All rights reserved. -->
+<!-- ORCID: 0009-0009-3560-0851 -->
+<!-- Contact: www.anulum.li | protoscience@anulum.li -->
+<!-- DIRECTOR-AI — docs/API_REFERENCE.md -->
+
 # Director-AI API Reference
 
-> **Version**: 3.21.0 | **License**: Apache-2.0 core / BUSL-1.1 advanced | Commercial licensing available
+Advanced/Labs uses are subject to the [permanent Use Limitation](../docs-site/licensing.md); text and data mining and machine-learning uses require prior written permission.
+
+> **Version**: 3.21.0 | **License**: Apache-2.0 core / LicenseRef-BUSL-1.1-ANULUM-TDM advanced | Commercial licensing available
 >
 > **Note**: The canonical API docs are at [anulum.github.io/director-ai](https://anulum.github.io/director-ai/api/). This file is a legacy reference.
 
@@ -817,4 +827,4 @@ minor releases:
 **Author**: Miroslav Sotek -- ORCID [0009-0009-3560-0851](https://orcid.org/0009-0009-3560-0851)
 **Copyright**: © 1998-2026 Miroslav Sotek. All rights reserved.
 **Website**: [www.anulum.li](https://www.anulum.li)
-**License**: Apache-2.0 core / BUSL-1.1 advanced | Commercial licensing available
+**License**: Apache-2.0 core / LicenseRef-BUSL-1.1-ANULUM-TDM advanced | Commercial licensing available

@@ -5,7 +5,7 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI — Capability-coverage matrix generator and CI ratchet
+# Director-AI — Capability-coverage matrix generator and CI ratchet
 
 """Generate the public capability-matrix matrix and gate new gaps (WCC-1).
 
@@ -152,7 +152,7 @@ def build_matrix(repo: Path) -> dict[str, Any]:
         return [row["name"] for row in rows if not row[field]]
 
     return {
-        "SPDX-License-Identifier": "Apache-2.0 AND BUSL-1.1",
+        "SPDX-License-Identifier": "Apache-2.0 AND LicenseRef-BUSL-1.1-ANULUM-TDM",
         "schema_version": _SCHEMA_VERSION,
         "counts": {
             "public_exports": len(exports),
