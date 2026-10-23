@@ -8,14 +8,17 @@
   "types": "./dist/index.d.ts",
   "files": [
     "dist",
-    "README.md"
+    "README.md",
+    "LICENSE",
+    "LICENSE.license"
   ],
   "scripts": {
     "prebuild": "node -e \"import('node:fs').then(fs => fs.rmSync('dist', { recursive: true, force: true }))\"",
     "build": "tsc -p tsconfig.json",
     "docs": "typedoc --options typedoc.json",
     "prepack": "npm run build",
-    "test": "npm run build && node --test test/*.test.mjs"
+    "test": "npm run build && npm run check && node --test --experimental-test-coverage --test-coverage-exclude=node_modules/** --test-coverage-include=dist/index.js --test-coverage-include=test/*.mjs --test-coverage-include=tools/*.mjs --test-coverage-lines=100 --test-coverage-branches=100 --test-coverage-functions=100 test/*.test.mjs",
+    "check": "tsc -p tsconfig.test.json"
   },
   "peerDependencies": {
     "@ai-sdk/provider": "^3.0.10",
@@ -24,6 +27,7 @@
   "devDependencies": {
     "@ai-sdk/provider": "^3.0.10",
     "@types/json-schema": "^7.0.15",
+    "@types/node": "26.6.4",
     "ai": "^6.0.184",
     "typedoc": "0.28.20",
     "typescript": "^6.0.3"

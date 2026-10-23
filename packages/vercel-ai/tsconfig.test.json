@@ -1,0 +1,14 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "allowJs": true,
+    "checkJs": true,
+    "declaration": false,
+    "noEmit": true,
+    "rootDir": ".",
+    "target": "ES2024",
+    "types": ["node"],
+    "lib": ["ES2024", "ESNext.Array", "DOM", "DOM.Iterable", "DOM.AsyncIterable"]
+  },
+  "include": ["src/**/*.ts", "test/**/*.mjs", "tools/**/*.mjs"]
+}

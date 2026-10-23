@@ -67,6 +67,20 @@ jobs:
       - name: Docstring ratchet (source tree)
         run: ruff check src/director_ai --select D
 
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "26.10.0"
+          cache: npm
+          cache-dependency-path: packages/vercel-ai/package-lock.json
+
+      - name: Vercel middleware types, HTTP contracts and API documentation
+        working-directory: packages/vercel-ai
+        run: |
+          npm ci --ignore-scripts
+          npm test
+          npm run docs
+          npm audit --audit-level=low
+
       - name: REUSE compliance (SPDX licensing)
         uses: fsfe/reuse-action@676e2d560c9a403aa252096d99fcab3e1132b0f5 # v6.0.0
 

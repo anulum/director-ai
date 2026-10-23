@@ -99,6 +99,20 @@ PY
   `core/threat_intel`, `core/trace_safe`, `core/types.py`, `core/vector_store.py`,
   and `core/verification`.
 
+## Vercel Middleware Checks
+
+The root CI lint job qualifies `packages/vercel-ai` with Node.js 26.10.0:
+strict TypeScript and JavaScript test/tool checking, public middleware HTTP and
+streaming contracts, 100% selected SDK line/branch/function coverage, warning-fatal
+TypeDoc and the complete npm dependency audit. Run the same commands from the
+SDK contributor instructions in `packages/vercel-ai/README.md`.
+
+Protocol fixtures exercise actual loopback HTTP and readable streams; they do
+not establish model inference accuracy or a deployed service's qualification.
+The SDK documentation collector supplies source-bound diagnostics, while the
+repository-wide historical-baseline ratchet remains a separate enforcement
+boundary.
+
 ## Current Known Boundaries
 
 - Lite Scorer v2 evidence remains a staged pipeline until a trained student

@@ -50,7 +50,7 @@ dialogue = "dcade191fe15536a0e833d642f3566fe1352b0cf8df3b984d62ad5f312725ced"
 "security-results" = ["security", "sast"]
 
 [job_sha256]
-"lint" = "8c51ca467b5530ef1f268de09915667949f19a710cca324ae596336fe3811dff"
+"lint" = "4dd1f43759f42ea682f21deb34b93f730fd554e1b2b4cf387ce753419135f944"
 "director-lite" = "e3c9726d700e61b978085de8bac940da4dc4da8c40d1247faef35454bff5ac33"
 "paid-tiers" = "f7de2d0043a7b4e027dbd428db80917815d00aedcf2b6522c09b4dcfea226f3a"
 "typecheck" = "30744707370e437c4c74a25d6efd09b8a62b371b2e668b9c9aa3973b0545b6c1"
