@@ -9,7 +9,7 @@
     "python_model_classes": 1070,
     "python_model_source_modules": 540,
     "rust_pyo3_model_wrappers": 83,
-    "test_files": 803
+    "test_files": 808
   },
   "documentation": {
     "public_pages": [
@@ -6155,6 +6155,11 @@
       "tests/test_python_only_contributor_path_real_surface.py",
       "tests/test_quality_ratchet_baseline.py",
       "tests/test_quality_ratchet_contracts.py",
+      "tests/test_quality_ratchet_drift.py",
+      "tests/test_quality_ratchet_inventory.py",
+      "tests/test_quality_ratchet_native.py",
+      "tests/test_quality_ratchet_typing.py",
+      "tests/test_quality_ratchet_typing_protocol.py",
       "tests/test_query_decomposition.py",
       "tests/test_query_decomposition_real_surface.py",
       "tests/test_rag_integration.py",
