@@ -9,7 +9,7 @@
     "python_model_classes": 1070,
     "python_model_source_modules": 540,
     "rust_pyo3_model_wrappers": 83,
-    "test_files": 801
+    "test_files": 803
   },
   "documentation": {
     "public_pages": [
@@ -6153,6 +6153,8 @@
       "tests/test_public_sector_boundary.py",
       "tests/test_python_only_contributor_path.py",
       "tests/test_python_only_contributor_path_real_surface.py",
+      "tests/test_quality_ratchet_baseline.py",
+      "tests/test_quality_ratchet_contracts.py",
       "tests/test_query_decomposition.py",
       "tests/test_query_decomposition_real_surface.py",
       "tests/test_rag_integration.py",
