@@ -12,9 +12,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
-import shutil
 import subprocess
-import sys
 from pathlib import Path
 
 import pytest
@@ -26,6 +24,7 @@ from tools.quality_ratchet_baseline import (
     committed_files,
     compare_baselines,
     parse_baseline,
+    parse_git_blob_batch,
     read_committed_baseline,
     resolve_commit,
     verify_adoption_sources,
@@ -148,6 +147,28 @@ def test_committed_files_preserve_original_binary_bytes_and_missing_paths(
         ("src/executable.py", "src/absent.py", "src/original.py"),
     )
     assert actual == expected
+    assert committed_files(git_repository, origin, ("src/absent.py",)) == {}
+
+
+def test_selected_sources_ignore_unrelated_non_utf8_git_names(
+    git_repository: Path,
+) -> None:
+    """Read selected Unicode paths beside an unrelated native Git byte filename.
+
+    Parameters
+    ----------
+    git_repository : Path
+        Real POSIX repository using the selected Git object format.
+    """
+    unrelated = git_repository / os.fsdecode(b"unrelated-\xff.py")
+    unrelated.write_bytes(b"unrelated Git path bytes\n")
+    selected = "src/\u017elt\u00fd.py"
+    expected = b"selected original bytes\x00\n"
+    (git_repository / selected).write_bytes(expected)
+    git(git_repository, "add", ".")
+    git(git_repository, "commit", "-m", "Record distinct filename encodings")
+    origin = resolve_commit(git_repository, "HEAD")
+    assert committed_files(git_repository, origin, (selected,)) == {selected: expected}
     assert committed_files(git_repository, origin, ("src/absent.py",)) == {}
 
 
@@ -391,55 +412,106 @@ def test_adoption_rejects_a_finding_without_original_committed_source_bytes(
         verify_adoption_sources(git_repository, original.origin_commit, candidate)
 
 
-@pytest.mark.parametrize("fault", ("reference", "kind", "short", "trailing"))
-def test_original_git_transport_refuses_corruption_after_actual_object_read(
-    git_repository: Path, monkeypatch: pytest.MonkeyPatch, fault: str
+def capture_git_blob_batch(
+    root: Path, paths: tuple[str, ...]
+) -> tuple[bytes, dict[str, bytes]]:
+    """Capture actual batch output and original object identities from Git.
+
+    Parameters
+    ----------
+    root : Path
+        Real committed binary and executable source repository.
+    paths : tuple[str, ...]
+        Original regular paths to request in sorted batch order.
+
+    Returns
+    -------
+    tuple[bytes, dict[str, bytes]]
+        Unmodified native output and its exact original requested identifiers.
+    """
+    objects = {
+        path: git(root, "--no-replace-objects", "rev-parse", "HEAD:" + path)
+        .strip()
+        .encode("ascii")
+        for path in sorted(paths)
+    }
+    result = subprocess.run(
+        ["git", "--no-replace-objects", "cat-file", "--batch"],
+        cwd=root,
+        input=b"".join(oid + b"\n" for oid in objects.values()),
+        capture_output=True,
+        check=True,
+        timeout=20,
+    )
+    return result.stdout, objects
+
+
+@pytest.mark.parametrize("paths", ((), ("src/original.py", "src/executable.py")))
+def test_native_blob_batch_parser_round_trips_captured_git_frames(
+    git_repository: Path, paths: tuple[str, ...]
 ) -> None:
-    """Reject corrupted native framing after reading actual original Git objects.
+    """Decode actual empty and binary multi-object batches without interception.
 
     Parameters
     ----------
     git_repository : Path
-        Real committed binary source repository.
-    monkeypatch : pytest.MonkeyPatch
-        Temporary subprocess PATH selection, restored by the runner.
-    fault : str
-        Recorded native response corruption, never accepted as native evidence.
+        Actual source repository in the selected native object format.
+    paths : tuple[str, ...]
+        Empty or deliberately unsorted binary and executable requests.
     """
-    origin = resolve_commit(git_repository, "HEAD")
-    original_git = shutil.which("git")
-    assert original_git is not None
-    directory = git_repository / "fault-bin"
-    directory.mkdir()
-    runner = directory / "git"
-    runner.write_text(
-        f"#!{sys.executable}\n"
-        "import subprocess, sys\n"
-        "from pathlib import Path\n"
-        f"fault = {fault!r}\n"
-        "batch = 'cat-file' in sys.argv and '--batch' in sys.argv\n"
-        "data = sys.stdin.buffer.read() if batch else None\n"
-        f"result = subprocess.run([{original_git!r}, *sys.argv[1:]], "
-        "input=data, capture_output=True, timeout=20, check=True)\n"
-        "output = result.stdout\n"
-        "Path('git-native-original.bin').write_bytes(output)\n"
-        "if fault == 'reference' and 'rev-parse' in sys.argv:\n"
-        "    output = b'HEAD\\n'\n"
-        "elif batch and fault == 'kind':\n"
-        "    output = output.replace(b' blob ', b' commit ', 1)\n"
-        "elif batch and fault == 'short':\n"
-        "    output = output[:-2]\n"
-        "elif batch and fault == 'trailing':\n"
-        "    output += b'unexpected'\n"
-        "sys.stdout.buffer.write(output)\n"
+    data, objects = capture_git_blob_batch(git_repository, paths)
+    expected = {path: (git_repository / path).read_bytes() for path in paths}
+    assert parse_git_blob_batch(data, objects) == expected
+    assert (
+        committed_files(git_repository, resolve_commit(git_repository, "HEAD"), paths)
+        == expected
     )
-    runner.chmod(0o755)
-    monkeypatch.setenv("PATH", str(directory) + os.pathsep + os.environ["PATH"])
+
+
+@pytest.mark.parametrize(
+    "fault",
+    (
+        "object-id",
+        "kind",
+        "negative-size",
+        "invalid-size",
+        "short",
+        "separator",
+        "trailing",
+        "header-members",
+        "missing-header-newline",
+    ),
+)
+def test_native_blob_batch_parser_refuses_malformed_captured_frames(
+    git_repository: Path, fault: str
+) -> None:
+    """Refuse explicit damaged controls derived from actual native binary frames.
+
+    Parameters
+    ----------
+    git_repository : Path
+        Real source repository in the selected Git object format.
+    fault : str
+        Identity, header, length, separator or trailing-byte violation.
+    """
+    paths = ("src/original.py", "src/executable.py")
+    data, objects = capture_git_blob_batch(git_repository, paths)
+    assert parse_git_blob_batch(data, objects) == {
+        path: (git_repository / path).read_bytes() for path in paths
+    }
+    header, rest = data.split(b"\n", 1)
+    oid, kind, raw_size = header.split(b" ")
+    separator = len(header) + 1 + int(raw_size)
+    damaged = {
+        "object-id": b"0" * len(oid) + b" " + kind + b" " + raw_size + b"\n" + rest,
+        "kind": oid + b" tree " + raw_size + b"\n" + rest,
+        "negative-size": oid + b" blob -1\n" + rest,
+        "invalid-size": oid + b" blob invalid\n" + rest,
+        "short": data[: separator - 1],
+        "separator": data[:separator] + b"x" + data[separator + 1 :],
+        "trailing": data + b"unexpected",
+        "header-members": header + b" extra\n" + rest,
+        "missing-header-newline": header,
+    }[fault]
     with pytest.raises(ValueError):
-        committed_files(git_repository, origin, ("src/original.py",))
-    original = (git_repository / "git-native-original.bin").read_bytes()
-    if fault == "reference":
-        assert original.strip().decode() == origin
-    else:
-        assert b" blob " in original.split(b"\n", 1)[0]
-        assert (git_repository / "src/original.py").read_bytes() in original
+        parse_git_blob_batch(damaged, objects)

@@ -45,6 +45,32 @@ class Baseline:
     profiles: dict[str, Snapshot]
 
 
+def parse_commit_id(value: object) -> str:
+    """Validate a full immutable SHA-1 or SHA-256 Git commit identifier.
+
+    Parameters
+    ----------
+    value : object
+        Decoded baseline member or stripped native Git revision output.
+
+    Returns
+    -------
+    str
+        Original lowercase hexadecimal object identifier.
+
+    Raises
+    ------
+    ValueError
+        If the value is not a full identifier in either Git object format.
+    """
+    if (
+        not isinstance(value, str)
+        or re.fullmatch(r"[a-f0-9]{40}|[a-f0-9]{64}", value) is None
+    ):
+        raise ValueError("Invalid immutable quality origin commit")
+    return value
+
+
 def resolve_commit(root: Path, reference: str) -> str:
     """Resolve a Git reference once, rejecting options and noncommit objects.
 
@@ -80,10 +106,7 @@ def resolve_commit(root: Path, reference: str) -> str:
         check=True,
         timeout=20,
     )
-    commit = result.stdout.strip()
-    if re.fullmatch(r"[a-f0-9]{40}|[a-f0-9]{64}", commit) is None:
-        raise ValueError("Invalid immutable quality origin commit")
-    return commit
+    return parse_commit_id(result.stdout.strip())
 
 
 def parse_baseline(data: bytes) -> Baseline:
@@ -107,11 +130,9 @@ def parse_baseline(data: bytes) -> Baseline:
     value = object_mapping(decode_quality_json(data))
     if set(value) != {"schema", "origin_commit", "profiles"}:
         raise ValueError("Invalid original quality baseline members")
-    origin = value["origin_commit"]
-    if value["schema"] != BASELINE_SCHEMA or not isinstance(origin, str):
+    if value["schema"] != BASELINE_SCHEMA:
         raise ValueError("Invalid original quality baseline schema")
-    if re.fullmatch(r"[a-f0-9]{40}|[a-f0-9]{64}", origin) is None:
-        raise ValueError("Invalid immutable quality origin commit")
+    origin = parse_commit_id(value["origin_commit"])
     profiles = {}
     for name, raw in object_mapping(value["profiles"]).items():
         snapshot = parse_snapshot(raw)
@@ -173,7 +194,7 @@ def committed_files(
     """
     if resolve_commit(root, commit) != commit:
         raise ValueError("Quality source lookup requires an immutable commit")
-    requested = {repository_path(path) for path in paths}
+    requested = {repository_path(path).encode("utf-8") for path in paths}
     result = subprocess.run(
         ["git", "--no-replace-objects", "ls-tree", "-rz", "--full-tree", commit],
         cwd=root,
@@ -186,9 +207,9 @@ def committed_files(
         if not entry:
             continue
         metadata, raw_path = entry.split(b"\t", 1)
-        path = raw_path.decode("utf-8")
-        if path not in requested:
+        if raw_path not in requested:
             continue
+        path = raw_path.decode("utf-8")
         mode, kind, oid = metadata.split(b" ")
         if mode not in (b"100644", b"100755") or kind != b"blob":
             raise ValueError("Original quality source is not a regular Git blob")
@@ -204,18 +225,43 @@ def committed_files(
         check=True,
         timeout=20,
     )
+    return parse_git_blob_batch(result.stdout, entries)
+
+
+def parse_git_blob_batch(data: bytes, objects: dict[str, bytes]) -> dict[str, bytes]:
+    """Decode exact Git cat-file batch frames for the requested original blobs.
+
+    Parameters
+    ----------
+    data : bytes
+        Complete native batch output, including each header and blob separator.
+    objects : dict[str, bytes]
+        Selected paths mapped to original object identifiers, requested in
+        sorted path order. Paths and identifiers come from the original Git tree.
+
+    Returns
+    -------
+    dict[str, bytes]
+        Exact binary blob bytes indexed by their selected paths.
+
+    Raises
+    ------
+    ValueError
+        If a frame has the wrong identity, kind, size or separator, is truncated,
+        or leaves unconsumed bytes after the last requested object.
+    """
     cursor, files = 0, {}
-    for path in ordered:
-        end = result.stdout.index(b"\n", cursor)
-        oid, kind, raw_size = result.stdout[cursor:end].split(b" ")
+    for path, expected in sorted(objects.items()):
+        end = data.index(b"\n", cursor)
+        oid, kind, raw_size = data[cursor:end].split(b" ")
         size = int(raw_size)
-        if oid != entries[path] or kind != b"blob" or size < 0:
+        if oid != expected or kind != b"blob" or size < 0:
             raise ValueError("Invalid original quality Git object response")
         start, cursor = end + 1, end + size + 2
-        if cursor > len(result.stdout) or result.stdout[cursor - 1 : cursor] != b"\n":
+        if cursor > len(data) or data[cursor - 1 : cursor] != b"\n":
             raise ValueError("Incomplete original quality Git blob response")
-        files[path] = result.stdout[start : cursor - 1]
-    if cursor != len(result.stdout):
+        files[path] = data[start : cursor - 1]
+    if cursor != len(data):
         raise ValueError("Unexpected trailing original quality Git bytes")
     return files
 
