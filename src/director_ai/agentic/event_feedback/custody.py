@@ -10,15 +10,18 @@
 
 from __future__ import annotations
 
+import logging
 import os
 import stat
 from collections.abc import Iterator
-from contextlib import ExitStack, contextmanager, suppress
+from contextlib import ExitStack, contextmanager
 from dataclasses import dataclass
 from pathlib import Path
 from uuid import uuid4
 
 from .codec import FeedbackInvalidError, canonical
+
+logger = logging.getLogger(__name__)
 
 
 def private_bytes(path: Path, directory_fd: int | None = None) -> bytes:
@@ -193,8 +196,10 @@ class PinnedDirectory:
         _single_name(name)
         self.verify()
         try:
-            with suppress(FileExistsError):
+            try:
                 os.mkdir(name, 0o700, dir_fd=self.descriptor)
+            except FileExistsError:
+                logger.debug("Existing child requires descriptor verification")
             with ExitStack() as descriptors:
                 fd = os.open(
                     name,
@@ -324,8 +329,12 @@ def durable_directory(
             for name in absolute.parts[1:]:
                 current = current / name
                 if create and (root is None or root.path in current.parents):
-                    with suppress(FileExistsError):
+                    try:
                         os.mkdir(name, 0o700, dir_fd=parent)
+                    except FileExistsError:
+                        logger.debug(
+                            "Existing ancestor requires descriptor verification"
+                        )
                 child = os.open(
                     name, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=parent
                 )

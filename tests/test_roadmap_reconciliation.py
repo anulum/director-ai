@@ -46,9 +46,8 @@ def test_roadmap_status_lists_only_current_open_actionable_items() -> None:
     roadmap = _read("ROADMAP.md")
     status = _read("docs/ROADMAP_STATUS.md")
 
-    assert (
-        "Current open-item reconciliation lives in `docs/ROADMAP_STATUS.md`" in roadmap
-    )
+    assert "[status index](docs/ROADMAP_STATUS.md)" in roadmap
+    assert "distinguishes implemented source" in roadmap
     assert "| R1 | Independent external security test" in status
     # R1-R7 are the operational public status items that stay public.
     for rid in ["R1", "R2", "R3", "R4", "R5", "R6", "R7"]:
@@ -59,9 +58,11 @@ def test_roadmap_status_lists_only_current_open_actionable_items() -> None:
     # disclosure of forward plans. They must not reappear in the public status.
     for rid in ["R8", "R9", "R10", "R11", "R12", "R13", "R14", "R15", "R16", "R17"]:
         assert f"| {rid} |" not in status
-    assert "tracked internally" in status
-    assert "docs/internal/TODO_CONSOLIDATED.md" in status
-    assert "Older unchecked internal checklists" in status
+    assert (
+        "Execution priorities and audit dispositions are maintained privately" in status
+    )
+    assert "Complete autonomous approval, execution, independent verification" in status
+    assert "result-custody qualification remains open" in status
 
 
 def test_public_roadmap_has_single_unchecked_item_after_reconciliation() -> None:
@@ -74,18 +75,18 @@ def test_public_roadmap_has_single_unchecked_item_after_reconciliation() -> None
     ]
 
 
-def test_internal_todo_surface_has_single_canonical_file() -> None:
-    """Keep stale internal TODO mirrors from reappearing."""
-    canonical = Path("docs/internal/TODO_CONSOLIDATED.md")
-    stale_mirror = Path("docs/internal/TODO.md")
+def test_public_roadmap_keeps_private_execution_records_unpublished() -> None:
+    """Keep public qualification evidence separate from private execution records."""
+    roadmap = _read("ROADMAP.md")
     status = _read("docs/ROADMAP_STATUS.md")
 
-    # docs/internal is intentionally ignored and absent from fresh CI checkouts.
-    # Local agent checkouts keep the canonical file; public CI can only enforce
-    # that public tracked roadmap surfaces point to the canonical internal path
-    # and do not recreate the stale mirror.
-    if canonical.exists():
-        assert "Consolidated Internal TODO" in canonical.read_text(encoding="utf-8")
-    assert not stale_mirror.exists()
-    assert "docs/internal/TODO_CONSOLIDATED.md" in status
-    assert "docs/internal/TODO.md" not in status
+    assert not Path("docs/internal/TODO.md").exists()
+    for surface in [roadmap, status]:
+        assert "docs/internal/" not in surface
+        assert ".coordination/" not in surface
+    assert (
+        "Execution priorities and audit dispositions are maintained privately" in status
+    )
+    assert (
+        "Source review alone does not complete independent external testing" in status
+    )
