@@ -105,7 +105,7 @@ jobs:
             -p tools.pytest_partition --partition-index "$PARTITION_INDEX" \
             --partition-report partition.json --partition-revision "$GITHUB_SHA" \
             --partition-timings "$RUNNER_TEMP/director-test-timings/snapshot.json" \
-            --junitxml partition.xml
+            --junitxml partition.xml -o junit_family=xunit1
 
       - name: Upload native test and coverage evidence
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
