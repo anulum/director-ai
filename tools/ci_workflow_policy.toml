@@ -7,7 +7,7 @@
 # Director-AI — continuous integration
 schema_version = 1
 coordinator_sha256 = "6400f34e14cda84c26338c02e41ff0d4f436bc689d6b28c87401ecfa30ee28df"
-job_order = ["lint", "director-lite", "paid-tiers", "typecheck", "test-partitions", "go-quality-parser", "test", "floor", "test-extras", "security", "sbom", "fuzz", "sast", "benchmark", "docker-smoke", "rust", "lean", "reuse", "discord-notify", "static-results", "security-results"]
+job_order = ["lint", "director-lite", "paid-tiers", "typecheck", "test-timing-baseline", "test-partitions", "go-quality-parser", "test", "test-timings", "floor", "test-extras", "security", "sbom", "fuzz", "sast", "benchmark", "docker-smoke", "rust", "lean", "reuse", "discord-notify", "static-results", "security-results"]
 required_checks = ["Test (Python 3.11)", "Lint & Format"]
 
 [limits]
@@ -32,9 +32,11 @@ dialogue = "dcade191fe15536a0e833d642f3566fe1352b0cf8df3b984d62ad5f312725ced"
 "director-lite" = []
 "paid-tiers" = []
 "typecheck" = []
-"test-partitions" = []
+"test-timing-baseline" = []
+"test-partitions" = ["test-timing-baseline"]
 "go-quality-parser" = []
-"test" = ["test-partitions", "go-quality-parser"]
+"test" = ["test-timing-baseline", "test-partitions", "go-quality-parser"]
+"test-timings" = ["test"]
 "floor" = []
 "test-extras" = []
 "security" = []
@@ -51,13 +53,15 @@ dialogue = "dcade191fe15536a0e833d642f3566fe1352b0cf8df3b984d62ad5f312725ced"
 "security-results" = ["security", "sast"]
 
 [job_sha256]
+"test-timings" = "1ca7bf41c9ed52e5e0f79bfc02b02a465a2c54ae51cc85c58832b4a1ffabc0a3"
+"test-timing-baseline" = "53f6cf7cc0000e1da256265a86fb70a1f07c0bed86dd3a55159b04ec623446ae"
 "go-quality-parser" = "875c382a78d6d8b58962ba1031112350796ae0db8abd53c042519874d4963cc7"
 "lint" = "04f3e258e0f42a9d3797cbddb55189c8b37d3649b3e5538eadcce267b8ea2992"
 "director-lite" = "93bb9159bff763fc7520a5d5af4cbaf6d165a8807e83dfe884baf1e257d46684"
 "paid-tiers" = "9fbc81fa84551b6fbd7aab4c4280e9b1ebe171d58b062d257714544afa6f2313"
-"typecheck" = "e09d3c0a839c149b268b96813b34ac53d373e90f22947817db13ca2e34b1c510"
-"test-partitions" = "3d8c86804b990752fee240d53db7f5123ffea98a51e668d7e0f2354a7aeb659c"
-"test" = "5075dddede8ecd846daf4167d7dc5bd09ff1cd052a16cb7e9aade94f53cb207c"
+"typecheck" = "a1df8034e837d833b98a81f3e06a7602462f3e7586525eada32ff352d5eb636b"
+"test-partitions" = "f979465b985d24eba6417e588cf8da0251fb6984f88bdd7eef500fa4815e90cf"
+"test" = "09b42c62920985b9e2bd57cee6db0db49b18ec71847d0ba3dde3eb774b948016"
 "floor" = "a4a6df7e2cd87974102eb7604f23e8746c9639b298d60e8e816bc32af0830f61"
 "test-extras" = "f88a76551c44db753a8bcc372382f3e38c4d8408b2bb0d62a21cc6d394a3f84c"
 "security" = "18e25ed3029b92bedf98447223062e85b628d979ef7845e5df835bd4c4939b3d"
@@ -103,7 +107,7 @@ condition = ""
 [[categories]]
 id = "python"
 workflow = ".github/workflows/ci-python.yml"
-jobs = ["test-partitions", "go-quality-parser", "test"]
+jobs = ["test-timing-baseline", "test-partitions", "go-quality-parser", "test", "test-timings"]
 caller_needs = []
 secrets = ["CODECOV_TOKEN"]
 skip_events = []

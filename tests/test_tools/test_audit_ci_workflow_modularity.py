@@ -7,6 +7,8 @@
 # Director-AI — native workflow ownership and graph refusals
 """Audit actual repository workflows and deliberate drift in their real bytes."""
 
+import itertools
+import os
 import shutil
 import subprocess
 import sys
@@ -18,12 +20,51 @@ from tools.audit_ci_workflow_modularity import (
     audit_ci_workflow_modularity,
     read_workflow,
 )
-from tools.ci_workflow_inventory import POLICY_PATH, ROOT, ci_workflow_paths
+from tools.ci_workflow_inventory import (
+    POLICY_PATH,
+    ROOT,
+    ci_workflow_paths,
+    object_mapping,
+)
 
 
 def test_actual_distributed_workflows_have_complete_ownership() -> None:
     """Audit the shipping coordinator, every actual owner and all native inputs."""
     assert audit_ci_workflow_modularity() == []
+
+
+@pytest.mark.parametrize(
+    "outcomes",
+    list(itertools.product(("success", "failure", "skipped", "cancelled"), repeat=3)),
+)
+def test_actual_native_aggregate_guard_requires_every_success(
+    outcomes: tuple[str, str, str],
+) -> None:
+    """Execute the shipping shell guard for every mandatory prerequisite outcome."""
+    source = read_workflow(ROOT / ".github/workflows/ci-python.yml")
+    job = object_mapping(object_mapping(source["jobs"])["test"])
+    assert job["if"] == "always()"
+    assert job["needs"] == [
+        "test-timing-baseline",
+        "test-partitions",
+        "go-quality-parser",
+    ]
+    steps = job["steps"]
+    assert isinstance(steps, list)
+    step = object_mapping(steps[0])
+    script = step["run"]
+    assert isinstance(script, str)
+    keys = ("TIMING_BASELINE_RESULT", "PARTITION_RESULT", "NATIVE_GO_RESULT")
+    assert set(object_mapping(step["env"])) == set(keys)
+    result = subprocess.run(
+        ["bash", "-e", "-c", script],
+        cwd=ROOT,
+        env={**os.environ, **dict(zip(keys, outcomes, strict=True))},
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert (result.returncode == 0) == all(value == "success" for value in outcomes)
 
 
 @pytest.mark.parametrize(

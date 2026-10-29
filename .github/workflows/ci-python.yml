@@ -23,9 +23,36 @@ env:
   CARGO_NET_RETRY: "10"
 
 jobs:
+  test-timing-baseline:
+    name: Common test timing snapshot
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.12"
+      - uses: actions/cache/restore@caa296126883cff596d87d8935842f9db880ef25 # v5
+        with:
+          path: ${{ runner.temp }}/director-test-timings/snapshot.json
+          key: ${{ github.repository }}-director-pytest-timings-v1-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: ${{ github.repository }}-director-pytest-timings-v1-
+      - name: Validate history or prepare a complete cold snapshot
+        run: |
+          snapshot="$RUNNER_TEMP/director-test-timings/snapshot.json"
+          if [ ! -e "$snapshot" ]; then
+            python -m tools.pytest_partition_timings cold --output "$snapshot"
+          fi
+          python -m tools.pytest_partition_timings validate --input "$snapshot"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: test-timing-baseline
+          path: ${{ runner.temp }}/director-test-timings/snapshot.json
+          if-no-files-found: error
+
   test-partitions:
     name: Test partition ${{ matrix.partition }} (Python ${{ matrix.python-version }})
     runs-on: ubuntu-latest
+    needs: [test-timing-baseline]
     strategy:
       fail-fast: false
       matrix:
@@ -64,13 +91,21 @@ jobs:
           pip install --no-deps -e .
 
 
+      - name: Download this run's common timing snapshot
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: test-timing-baseline
+          path: ${{ runner.temp }}/director-test-timings
+
       - name: Run the complete assigned test partition
         env:
           PARTITION_INDEX: ${{ matrix.partition }}
         run: |
           coverage run --parallel-mode --source=director_ai -m pytest tests/ -v --tb=short \
             -p tools.pytest_partition --partition-index "$PARTITION_INDEX" \
-            --partition-report partition.json --partition-revision "$GITHUB_SHA"
+            --partition-report partition.json --partition-revision "$GITHUB_SHA" \
+            --partition-timings "$RUNNER_TEMP/director-test-timings/snapshot.json" \
+            --junitxml partition.xml
 
       - name: Upload native test and coverage evidence
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -78,6 +113,7 @@ jobs:
           name: test-partition-${{ matrix.python-version }}-${{ matrix.partition }}
           path: |
             partition.json
+            partition.xml
             .coverage.*
           include-hidden-files: true
           if-no-files-found: error
@@ -120,12 +156,23 @@ jobs:
   test:
     name: Complete tests (Python ${{ matrix.python-version }})
     runs-on: ubuntu-latest
-    needs: [test-partitions, go-quality-parser]
+    needs: [test-timing-baseline, test-partitions, go-quality-parser]
+    if: always()
     strategy:
       fail-fast: false
       matrix:
         python-version: ["3.11", "3.12", "3.13"]
     steps:
+      - name: Require every mandatory native prerequisite
+        env:
+          TIMING_BASELINE_RESULT: ${{ needs.test-timing-baseline.result }}
+          PARTITION_RESULT: ${{ needs.test-partitions.result }}
+          NATIVE_GO_RESULT: ${{ needs.go-quality-parser.result }}
+        run: |
+          test "$TIMING_BASELINE_RESULT" = success
+          test "$PARTITION_RESULT" = success
+          test "$NATIVE_GO_RESULT" = success
+
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
@@ -143,12 +190,19 @@ jobs:
           pattern: test-partition-${{ matrix.python-version }}-*
           path: test-partitions
 
+      - name: Download the exact common timing snapshot
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: test-timing-baseline
+          path: ${{ runner.temp }}/director-test-timings
+
       - name: Verify every native case and original model review
         env:
           PYTHON_LANE: ${{ matrix.python-version }}
         run: |
           python -m tools.aggregate_test_partitions --input test-partitions \
-            --revision "$GITHUB_SHA" --python-version "$PYTHON_LANE" --output complete-tests.json
+            --revision "$GITHUB_SHA" --python-version "$PYTHON_LANE" --output complete-tests.json \
+            --timings "$RUNNER_TEMP/director-test-timings/snapshot.json" --timing-output timings.json
 
       - name: Combine all coverage and enforce the unchanged floor
         run: |
@@ -181,5 +235,29 @@ jobs:
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: complete-tests-${{ matrix.python-version }}
-          path: complete-tests.json
+          path: |
+            complete-tests.json
+            timings.json
           if-no-files-found: error
+
+  test-timings:
+    name: Retain verified test timing advice
+    runs-on: ubuntu-latest
+    needs: [test]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.12"
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: complete-tests-*
+          path: test-timing-reports
+      - name: Merge every successful Python lane
+        run: |
+          python -m tools.pytest_partition_timings record --input test-timing-reports \
+            --revision "$GITHUB_SHA" --output "$RUNNER_TEMP/director-test-timings/snapshot.json"
+      - uses: actions/cache/save@caa296126883cff596d87d8935842f9db880ef25 # v5
+        with:
+          path: ${{ runner.temp }}/director-test-timings/snapshot.json
+          key: ${{ github.repository }}-director-pytest-timings-v1-${{ github.run_id }}-${{ github.run_attempt }}

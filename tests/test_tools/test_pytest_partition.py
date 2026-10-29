@@ -18,19 +18,20 @@ from tools.ci_workflow_inventory import ROOT, load_ci_workflow_policy
 from tools.pytest_partition import partition_for_nodeid
 
 
-def test_every_original_halueval_range_has_exactly_one_worker() -> None:
-    """Every real model case keeps its contiguous original task range."""
+def test_every_original_halueval_row_has_exactly_one_worker() -> None:
+    """Each original model row has one owner and each task covers all workers."""
     policy = load_ci_workflow_policy()
-    size = policy.rows_per_task // policy.partitions
     for task in policy.dataset_sha256:
         assert [
             partition_for_nodeid(
-                f"tests/test_halueval_benchmark.py::test_halueval_full[{task}-{i * size}]",
+                f"tests/test_halueval_benchmark.py::test_halueval_full[{task}-{i}]",
                 policy.partitions,
                 policy.rows_per_task,
             )
-            for i in range(policy.partitions)
-        ] == list(range(policy.partitions))
+            for i in range(policy.rows_per_task)
+        ] == list(range(policy.partitions)) * (
+            policy.rows_per_task // policy.partitions
+        )
     for nodeid in (
         "tests/test_halueval_benchmark.py::test_halueval_full",
         "tests/test_halueval_benchmark.py::test_halueval_full[qa-201]",

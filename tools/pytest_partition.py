@@ -9,7 +9,6 @@
 
 from __future__ import annotations
 
-import hashlib
 import json
 import platform
 import re
@@ -19,47 +18,9 @@ from pathlib import Path
 import pytest
 
 from tools.ci_workflow_inventory import ROOT, load_ci_workflow_policy
-
-
-def partition_for_nodeid(nodeid: str, count: int, rows_per_task: int) -> int:
-    """Assign a real case to one worker, preserving module fixture locality.
-
-    Parameters
-    ----------
-    nodeid : str
-        Exact pytest collection identifier.
-    count, rows_per_task : int
-        Positive partition count and complete HaluEval task row count.
-
-    Returns
-    -------
-    int
-        Zero-based exclusive worker index. Each worker receives one original
-        HaluEval range per task; other cases stay with their owning module.
-
-    Raises
-    ------
-    ValueError
-        If the partition contract or a full HaluEval case ID is invalid.
-    """
-    if count <= 0 or rows_per_task <= 0 or rows_per_task % count:
-        raise ValueError("Invalid complete test partition contract")
-    if nodeid.startswith("tests/test_halueval_benchmark.py::test_halueval_full"):
-        match = re.fullmatch(
-            r"tests/test_halueval_benchmark\.py::test_halueval_full\[(qa|summarization|dialogue)-(\d+)\]",
-            nodeid,
-        )
-        size = rows_per_task // count
-        if match is None:
-            raise ValueError("Full HaluEval case lacks a declared task range")
-        offset = int(match.group(2))
-        if offset >= rows_per_task or offset % size:
-            raise ValueError("Full HaluEval case has an undeclared range")
-        return offset // size
-    module = nodeid.split("::", maxsplit=1)[0]
-    return (
-        int.from_bytes(hashlib.sha256(module.encode("utf-8")).digest(), "big") % count
-    )
+from tools.pytest_partition_schedule import partition_assignments
+from tools.pytest_partition_schedule import partition_for_nodeid as partition_for_nodeid
+from tools.pytest_partition_timings import read_timing_snapshot
 
 
 @dataclass
@@ -76,6 +37,10 @@ class PartitionState:
         Fresh JSON report path, written only at terminal session completion.
     targets : list[str]
         Actual command-line collection roots.
+    timings : dict[str, float]
+        Validated scheduling advice shared by every worker in this lane.
+    timing_snapshot_sha256 : str
+        Exact bytes of the common snapshot used for the assignment.
     collected, selected : list[str]
         Complete and selected native node IDs.
     results : list[dict[str, object]]
@@ -88,6 +53,8 @@ class PartitionState:
     revision: str
     report: Path
     targets: list[str]
+    timings: dict[str, float]
+    timing_snapshot_sha256: str
     collected: list[str] = field(default_factory=list)
     selected: list[str] = field(default_factory=list)
     results: list[dict[str, object]] = field(default_factory=list)
@@ -108,6 +75,7 @@ def pytest_addoption(parser: pytest.Parser) -> None:
     group.addoption("--partition-index", type=int, default=None)
     group.addoption("--partition-report", type=Path, default=None)
     group.addoption("--partition-revision", default=None)
+    group.addoption("--partition-timings", type=Path, default=None)
 
 
 def pytest_configure(config: pytest.Config) -> None:
@@ -127,8 +95,9 @@ def pytest_configure(config: pytest.Config) -> None:
     index: object = config.getoption("partition_index")
     report: object = config.getoption("partition_report")
     revision: object = config.getoption("partition_revision")
+    timings: object = config.getoption("partition_timings")
     _partition = None
-    if index is None and report is None and revision is None:
+    if index is None and report is None and revision is None and timings is None:
         return
     policy = load_ci_workflow_policy(ROOT)
     if (
@@ -139,6 +108,7 @@ def pytest_configure(config: pytest.Config) -> None:
         or not isinstance(revision, str)
         or not re.fullmatch(r"[0-9a-f]{40}", revision)
         or report.exists()
+        or (timings is not None and not isinstance(timings, Path))
     ):
         raise pytest.UsageError(
             "A valid partition requires a fresh report path and exact SHA"
@@ -155,6 +125,12 @@ def pytest_configure(config: pytest.Config) -> None:
     )
     if any(config.getoption(option, default=False) for option in selection_options):
         raise pytest.UsageError("Partitioned runs cannot filter the collected cases")
+    try:
+        weights, snapshot_digest = read_timing_snapshot(
+            timings, ".".join(platform.python_version().split(".")[:2])
+        )
+    except (ValueError, KeyError, OSError) as exc:
+        raise pytest.UsageError("Common test timing snapshot refused") from exc
     _partition = PartitionState(
         index,
         policy.partitions,
@@ -162,6 +138,8 @@ def pytest_configure(config: pytest.Config) -> None:
         revision,
         report,
         list(config.args),
+        weights,
+        snapshot_digest,
     )
 
 
@@ -191,8 +169,11 @@ def pytest_collection_modifyitems(
         raise pytest.UsageError("Duplicate native pytest case IDs")
     selected: list[pytest.Item] = []
     deselected: list[pytest.Item] = []
+    assignments = partition_assignments(
+        state.collected, state.count, state.rows_per_task, state.timings
+    )
     for item in items:
-        owner = partition_for_nodeid(item.nodeid, state.count, state.rows_per_task)
+        owner = assignments[item.nodeid]
         (selected if owner == state.index else deselected).append(item)
     if not selected:
         raise pytest.UsageError("The selected test partition has no native cases")
@@ -217,6 +198,7 @@ def pytest_runtest_logreport(report: pytest.TestReport) -> None:
             "nodeid": report.nodeid,
             "phase": report.when,
             "outcome": report.outcome,
+            "duration": report.duration,
             "halueval": evidence,
         }
     )
@@ -239,7 +221,7 @@ def pytest_sessionfinish(session: pytest.Session, exitstatus: int) -> None:
     with state.report.open("x", encoding="utf-8") as stream:
         json.dump(
             {
-                "schema": "director-test-partition.v1",
+                "schema": "director-test-partition.v2",
                 "revision": state.revision,
                 "python_version": platform.python_version(),
                 "index": state.index,
@@ -247,6 +229,7 @@ def pytest_sessionfinish(session: pytest.Session, exitstatus: int) -> None:
                 "rows_per_task": state.rows_per_task,
                 "exit_code": int(exitstatus),
                 "targets": state.targets,
+                "timing_snapshot_sha256": state.timing_snapshot_sha256,
                 "collected": state.collected,
                 "selected": state.selected,
                 "results": state.results,

@@ -4,7 +4,7 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-AI — complete model-backed HaluEval test ranges
+# Director-AI — complete model-backed HaluEval test rows
 """Exercise every original HaluEval row with the real configured NLI model."""
 
 from __future__ import annotations
@@ -21,7 +21,7 @@ from benchmarks.halueval_eval import _CACHE_DIR, run_halueval_benchmark
 from tools.ci_workflow_inventory import load_ci_workflow_policy
 
 POLICY = load_ci_workflow_policy(Path(__file__).resolve().parents[1])
-RANGE_SIZE = POLICY.rows_per_task // POLICY.partitions
+RANGE_SIZE = 1
 
 
 @pytest.mark.slow
@@ -50,7 +50,7 @@ def test_halueval_full(
     sample_offset: int,
     record_property: Callable[[str, object], None],
 ) -> None:
-    """Review one complete original range and retain every real review identity.
+    """Review one original row and retain both real response review identities.
 
     Parameters
     ----------

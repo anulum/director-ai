@@ -23,7 +23,9 @@ from tools.ci_workflow_inventory import (
     object_mapping,
     string_tuple,
 )
-from tools.pytest_partition import partition_for_nodeid
+from tools.pytest_partition_artifacts import partition_artifact_reports
+from tools.pytest_partition_schedule import HALUEVAL_PREFIX, partition_assignments
+from tools.pytest_partition_timings import LANE_SCHEMA, read_timing_snapshot
 
 
 def _unique_object(pairs: list[tuple[str, object]]) -> dict[str, object]:
@@ -56,6 +58,7 @@ def verify_test_partitions(
     revision: str,
     python_version: str,
     root: Path = ROOT,
+    timing_snapshot: Path | None = None,
 ) -> dict[str, object]:
     """Verify the complete disjoint collection, native outcomes and model inputs.
 
@@ -69,12 +72,17 @@ def verify_test_partitions(
         Expected Python major.minor lane, such as 3.11.
     root : Path
         Checkout containing the immutable workflow and input contracts.
+    timing_snapshot : Path or None
+        Exact common scheduling snapshot, or None for native cold scheduling.
 
     Returns
     -------
     dict[str, object]
         Measured complete case count, original model-review count and hashes
-        of all verified native report files.
+        of all verified native report files and the common timing snapshot.
+        Scheduling weights sum the native phases for each live unit; zero
+        totals receive a positive one-nanosecond scheduling floor while the
+        original phase measurements remain unchanged in the worker reports.
 
     Raises
     ------
@@ -91,12 +99,14 @@ def verify_test_partitions(
         raise ValueError("An exact source SHA and supported Python lane are required")
     if len(report_paths) != policy.partitions:
         raise ValueError("Every native test partition is required")
+    hints, snapshot_digest = read_timing_snapshot(timing_snapshot, python_version)
     expected_inputs = expected_halueval_inputs(root)
     collected: tuple[str, ...] | None = None
     selected_union: set[str] = set()
     indices: set[int] = set()
     actual_inputs: dict[tuple[str, int, bool], str] = {}
     report_hashes = {}
+    measured_weights: dict[str, float] = {}
     for path in report_paths:
         report = _read_report(path)
         index = report["index"]
@@ -115,7 +125,7 @@ def verify_test_partitions(
         ):
             raise ValueError("Native Python lane differs from the requested version")
         if (
-            report["schema"] != "director-test-partition.v1"
+            report["schema"] != "director-test-partition.v2"
             or report["revision"] != revision
             or report["exit_code"] != 0
             or report["count"] != policy.partitions
@@ -124,6 +134,7 @@ def verify_test_partitions(
             or type(report["exit_code"]) is not int
             or type(report["count"]) is not int
             or type(report["rows_per_task"]) is not int
+            or report["timing_snapshot_sha256"] != snapshot_digest
         ):
             raise ValueError(
                 "Native test report does not prove the complete required run"
@@ -133,12 +144,10 @@ def verify_test_partitions(
             raise ValueError("Native collections differ across required workers")
         collected = all_cases
         selected = string_tuple(report["selected"])
-        expected = tuple(
-            case
-            for case in collected
-            if partition_for_nodeid(case, policy.partitions, policy.rows_per_task)
-            == index
+        assignments = partition_assignments(
+            list(collected), policy.partitions, policy.rows_per_task, hints
         )
+        expected = tuple(case for case in collected if assignments[case] == index)
         if (
             not selected
             or selected != expected
@@ -171,6 +180,22 @@ def verify_test_partitions(
             ):
                 raise ValueError("Repeated, failed or invalid native test phase")
             phases[case][phase] = row
+            duration = row["duration"]
+            if (
+                type(duration) is not float
+                or not math.isfinite(duration)
+                or duration < 0
+            ):
+                raise ValueError("Native phase duration must be finite and nonnegative")
+            unit = (
+                case
+                if case.startswith(HALUEVAL_PREFIX)
+                else case.split("::", maxsplit=1)[0]
+            )
+            elapsed = measured_weights.get(unit, 0.0) + duration
+            if not math.isfinite(elapsed):
+                raise ValueError("Native phase durations overflow the measured unit")
+            measured_weights[unit] = elapsed
         for case, parts in phases.items():
             if "setup" not in parts or "teardown" not in parts:
                 raise ValueError(
@@ -207,7 +232,7 @@ def verify_test_partitions(
                 )
             )
             task, offset = payload["task"], payload["sample_offset"]
-            size = policy.rows_per_task // policy.partitions
+            size = 1
             if (
                 not isinstance(task, str)
                 or task not in policy.dataset_sha256
@@ -218,7 +243,7 @@ def verify_test_partitions(
             if (
                 case
                 != f"tests/test_halueval_benchmark.py::test_halueval_full[{task}-{offset}]"
-                or offset != index * size
+                or not 0 <= offset < policy.rows_per_task
             ):
                 raise ValueError("HaluEval case and original row range differ")
             if (
@@ -277,9 +302,7 @@ def verify_test_partitions(
     required_cases = {
         f"tests/test_halueval_benchmark.py::test_halueval_full[{task}-{offset}]"
         for task in policy.dataset_sha256
-        for offset in range(
-            0, policy.rows_per_task, policy.rows_per_task // policy.partitions
-        )
+        for offset in range(policy.rows_per_task)
     }
     if not required_cases <= selected_union or actual_inputs != expected_inputs:
         raise ValueError("The complete original 1200-review HaluEval run is not proven")
@@ -290,6 +313,10 @@ def verify_test_partitions(
         "collected_cases": len(collected),
         "halueval_reviews": len(actual_inputs),
         "report_sha256": report_hashes,
+        "timing_snapshot_sha256": snapshot_digest,
+        "scheduling_weights": {
+            unit: max(seconds, 1e-9) for unit, seconds in measured_weights.items()
+        },
     }
 
 
@@ -306,15 +333,33 @@ def main() -> int:
     parser.add_argument("--revision", required=True)
     parser.add_argument("--python-version", required=True)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--timings", type=Path)
+    parser.add_argument("--timing-output", type=Path)
     args = parser.parse_args()
     try:
         result = verify_test_partitions(
-            sorted(args.input.glob("*/partition.json")),
+            partition_artifact_reports(
+                args.input, args.python_version, load_ci_workflow_policy().partitions
+            ),
             args.revision,
             args.python_version,
+            timing_snapshot=args.timings,
         )
         with args.output.open("x", encoding="utf-8") as stream:
             json.dump(result, stream, indent=2, allow_nan=False)
+        if args.timing_output is not None:
+            with args.timing_output.open("x", encoding="utf-8") as stream:
+                json.dump(
+                    {
+                        "schema": LANE_SCHEMA,
+                        "revision": args.revision,
+                        "python_version": args.python_version,
+                        "weights": result["scheduling_weights"],
+                    },
+                    stream,
+                    sort_keys=True,
+                    allow_nan=False,
+                )
     except (OSError, ValueError, KeyError):
         print("Complete native test and model evidence verification refused")
         return 1

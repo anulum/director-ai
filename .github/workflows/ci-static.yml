@@ -128,8 +128,8 @@ jobs:
         run: |
           python -m tools.audit_ci_workflow_modularity
           actionlint .github/workflows/ci*.yml
-          mypy --strict tools/ci_workflow_inventory.py tools/audit_ci_workflow_modularity.py tools/check_ci_gate.py tools/pytest_partition.py tools/aggregate_test_partitions.py benchmarks/halueval_eval.py
-          pytest tests/test_tools/test_ci_workflow_inventory.py tests/test_tools/test_audit_ci_workflow_modularity.py tests/test_tools/test_check_ci_gate.py tests/test_tools/test_pytest_partition.py tests/test_tools/test_aggregate_test_partitions.py tests/test_halueval_eval.py -q
+          mypy --strict tools/ci_workflow_inventory.py tools/audit_ci_workflow_modularity.py tools/check_ci_gate.py tools/pytest_partition.py tools/pytest_partition_schedule.py tools/pytest_partition_timings.py tools/pytest_partition_artifacts.py tools/aggregate_test_partitions.py benchmarks/halueval_eval.py
+          pytest tests/test_tools/test_ci_workflow_inventory.py tests/test_tools/test_audit_ci_workflow_modularity.py tests/test_tools/test_check_ci_gate.py tests/test_tools/test_pytest_partition.py tests/test_tools/test_pytest_partition_schedule.py tests/test_tools/test_pytest_partition_timings.py tests/test_tools/test_pytest_partition_artifacts.py tests/test_tools/test_aggregate_test_partitions.py tests/test_halueval_eval.py -q
   reuse:
     name: REUSE Compliance (SPDX)
     runs-on: ubuntu-latest

@@ -182,16 +182,40 @@ The CI coordinator calls the responsibility workflows declared by
 `tests/` inventory in eight workers. Each test belongs to exactly one worker.
 The full HaluEval benchmark preserves the first 200 rows of QA, summarization
 and dialogue and both original responses: 1,200 model-backed reviews per
-Python version. Every worker evaluates a contiguous 25-row range per task.
-The existing 25-row QA smoke test remains in the suite.
+Python version. Each original row is a separate native test that reviews both
+responses, allowing expensive model work to move between workers. Without
+timing history, rows are assigned cyclically: each worker reviews 25 original
+rows per task. Ordinary test modules remain together to preserve fixture
+locality. The existing 25-row QA smoke test remains in the suite.
+
+One immutable timing snapshot is prepared before the workers start. All workers
+and their aggregate verify the same snapshot hash. Historical timings only
+balance the current complete discovery: new tests enter automatically and
+removed tests cannot be restored by a cache entry. Without history, scheduling
+remains deterministic and complete; corrupt supplied history fails before tests.
+Measured ordinary modules stay together, while individual HaluEval rows can move
+between workers. The longest measured units are assigned first to the least
+loaded worker.
 
 The aggregate requires matching source SHA and Python lane, the same complete
 collection, disjoint selected cases, native outcomes for every selected case,
 and all original model-review identities from `benchmarks/halueval_ci_inputs.tsv`.
+Downloaded artifact directories must match every expected worker index. Each
+must contain its matching native report, JUnit and readable branch-coverage
+databases with measured arcs; missing, extra or misidentified bundles fail
+before any coverage combination.
 Missing models or data, substituted inputs, duplicate reviews and skipped
 required model cases fail the aggregate. All eight coverage databases are
 combined before the unchanged 97% gate. Downstream SBOM, fuzz, regression
 benchmarks and push-only Docker validation wait for the complete Python run.
+
+Workers retain native phase durations and JUnit alongside their coverage and
+original review evidence. Only verified complete lanes produce new scheduling
+weights; all three lanes and their coverage gates must succeed before a future
+snapshot is cached. Zero measured unit durations receive a positive scheduling
+floor of one nanosecond; original phase measurements remain in the worker
+reports. Timing advice is neither cached scores nor proof that a test ran.
+Failed, skipped or cancelled prerequisites fail the aggregate explicitly.
 
 `Test (Python 3.11)` and `Lint & Format` remain the branch-protection names
 through one aggregate job definition. Both require every applicable category.
