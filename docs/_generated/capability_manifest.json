@@ -9,7 +9,7 @@
     "python_model_classes": 1070,
     "python_model_source_modules": 540,
     "rust_pyo3_model_wrappers": 83,
-    "test_files": 808
+    "test_files": 812
   },
   "documentation": {
     "public_pages": [
@@ -6156,6 +6156,10 @@
       "tests/test_quality_ratchet_baseline.py",
       "tests/test_quality_ratchet_contracts.py",
       "tests/test_quality_ratchet_drift.py",
+      "tests/test_quality_ratchet_golang.py",
+      "tests/test_quality_ratchet_golang_drift.py",
+      "tests/test_quality_ratchet_golang_inventory.py",
+      "tests/test_quality_ratchet_golang_protocol.py",
       "tests/test_quality_ratchet_inventory.py",
       "tests/test_quality_ratchet_native.py",
       "tests/test_quality_ratchet_typing.py",

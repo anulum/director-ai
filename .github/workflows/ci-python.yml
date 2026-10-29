@@ -38,6 +38,23 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: "1.27.1"
+          cache-dependency-path: |
+            gateway/go/go.sum
+            tools/quality_ratchet_go/go.mod
+
+      - name: Install the qualified native Go convention checker
+        env:
+          GOTOOLCHAIN: local
+          GOBIN: ${{ runner.temp }}/director-native-tools
+        run: |
+          mkdir -p "$GOBIN"
+          go install github.com/mgechev/revive@v1.17.0
+          test "$("$GOBIN/revive" -version)" = "version 1.17.0"
+          echo "$GOBIN" >> "$GITHUB_PATH"
+
       - name: Install dependencies
         run: |
           pip install --require-hashes --no-deps -r requirements/ci-dev.txt
@@ -65,10 +82,45 @@ jobs:
           include-hidden-files: true
           if-no-files-found: error
 
+  go-quality-parser:
+    name: Native Go documentation command
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: "1.27.1"
+          cache-dependency-path: tools/quality_ratchet_go/go.mod
+
+      - name: Qualify the actual compiled native command
+        working-directory: tools/quality_ratchet_go
+        env:
+          GOTOOLCHAIN: local
+          DIRECTOR_QUALITY_GO_COVERDIR: ${{ runner.temp }}/go-command-coverage
+        run: |
+          test -z "$(gofmt -l .)"
+          go vet .
+          mkdir -p "$DIRECTOR_QUALITY_GO_COVERDIR"
+          go test -count=1 -timeout=120s .
+          go tool covdata textfmt -i="$DIRECTOR_QUALITY_GO_COVERDIR" -o=go-command-statements.out
+          go tool cover -func=go-command-statements.out
+          awk 'NR > 1 { statements += $2; if ($2 > 0 && $3 == 0) missing = 1 } END { exit missing || statements == 0 }' go-command-statements.out
+          go doc -all -u . > go-command-reference.txt
+
+      - name: Upload original native command evidence
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: go-documentation-command
+          path: |
+            tools/quality_ratchet_go/go-command-statements.out
+            tools/quality_ratchet_go/go-command-reference.txt
+          if-no-files-found: error
+
   test:
     name: Complete tests (Python ${{ matrix.python-version }})
     runs-on: ubuntu-latest
-    needs: [test-partitions]
+    needs: [test-partitions, go-quality-parser]
     strategy:
       fail-fast: false
       matrix:

@@ -113,6 +113,38 @@ The SDK documentation collector supplies source-bound diagnostics, while the
 repository-wide historical-baseline ratchet remains a separate enforcement
 boundary.
 
+## Native Go Documentation Collector
+
+`tools.quality_ratchet_golang.capture_go_documentation` combines Go 1.27.1
+declaration parsing with Revive 1.17.0 convention checks. It inventories
+Git-visible Go sources under `gateway` and `tools`, including private
+declarations and test files, and excludes only the two declared generated
+protobuf outputs. Source paths must be regular files without symbolic parents.
+Unrelated non-Go filenames do not change the source cohort.
+
+The collector binds findings to original source SHA-256 values and physical
+positions. Module configuration, native helper sources and tool versions bind
+the profile identity. Failed builds, malformed native reports, contradictory
+statuses and changes during analysis prevent a complete snapshot. Documentation
+and line-masking directives remain visible as findings.
+
+From the selected Git repository, with both pinned executables installed:
+
+```python
+from pathlib import Path
+
+from tools.quality_ratchet_golang import capture_go_documentation
+
+snapshot = capture_go_documentation(Path.cwd(), "go", "revive")
+print(len(snapshot.sources), len(snapshot.findings))
+```
+
+The native command's own tests execute its compiled CLI, including malformed
+inputs, duplicate inputs and an actual unwritable output descriptor. CI requires
+that native job alongside the complete Python test partitions. These checks
+qualify the collector; repository-wide historical-baseline enforcement remains
+a separate boundary.
+
 ## Current Known Boundaries
 
 - Lite Scorer v2 evidence remains a staged pipeline until a trained student

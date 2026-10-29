@@ -5,7 +5,7 @@
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-AI — complete Git-visible quality source inventory
-"""Bind native Python checks to every maintained Git-visible source byte."""
+"""Bind native quality checks to maintained Git-visible source bytes."""
 
 from __future__ import annotations
 
@@ -61,14 +61,33 @@ def source_path(root: Path, relative: str) -> Path:
     ValueError, OSError
         If the path is invalid, symbolic, absent or not a regular file.
     """
-    path = _source_candidate(root, relative)
+    path = source_candidate(root, relative)
     if not path.is_file():
         raise ValueError("Quality source is not a regular file")
     return path
 
 
-def _source_candidate(root: Path, relative: str) -> Path:
-    """Check every original path component before any missing-source classification."""
+def source_candidate(root: Path, relative: str) -> Path:
+    """Resolve original source ownership before classifying missing tracked bytes.
+
+    Parameters
+    ----------
+    root : Path
+        Resolved canonical repository root.
+    relative : str
+        Canonical repository-relative POSIX source path.
+
+    Returns
+    -------
+    Path
+        Original candidate without symbolic components. It may be absent after
+        a tracked deletion; callers requiring regular bytes use ``source_path``.
+
+    Raises
+    ------
+    ValueError, OSError
+        If the path is invalid or any original component is symbolic.
+    """
     relative = repository_path(relative)
     path = root
     for part in Path(relative).parts:
@@ -127,7 +146,7 @@ def python_sources(root: Path) -> tuple[str, ...]:
             continue
         if relative != "setup.py" and Path(relative).parts[0] not in PYTHON_ROOTS:
             raise ValueError("Python source lies outside the declared quality scope")
-        candidate = _source_candidate(root, relative)
+        candidate = source_candidate(root, relative)
         if not candidate.exists():
             continue  # Pending tracked deletion; no source byte remains.
         source_path(root, relative)
