@@ -194,7 +194,7 @@ haystack = [
     "haystack-ai>=2.0",
 ]
 crewai = [
-    "crewai>=1.15.23,<2",
+    "crewai>=1.15.33,<2",
     "litellm>=1.83.7",
 ]
 # The adapter is dependency-light and imports Guardrails AI only when used.
@@ -208,11 +208,11 @@ docs = [
     "mkdocs-material>=9.5",
     "mkdocstrings[python]>=0.24",
     "mkdocs-jupyter>=0.25",
-    "nbconvert>=7.17.1",
+    "nbconvert>=7.17.2",
 ]
 otel = [
-    "opentelemetry-api>=1.20",
-    "opentelemetry-sdk>=1.20",
+    "opentelemetry-api>=1.45.1",
+    "opentelemetry-sdk>=1.45.1",
 ]
 langfuse = [
     "langfuse>=2.0",
@@ -231,7 +231,7 @@ demo = [
     "gradio>=6.29.1,<7.0",
 ]
 ingestion = [
-    "pypdf>=6.15.0",
+    "pypdf>=6.21.2",
     "python-docx>=1.0",
     "beautifulsoup4>=4.12",
 ]
@@ -327,10 +327,10 @@ dev = [
     "pydantic>=2.0,<3",
     "python-multipart>=0.0.7,<1",
     "slowapi>=0.1.9,<1",
-    "pypdf>=6.15.0",
+    "pypdf>=6.21.2",
     "python-docx>=1.0",
     "beautifulsoup4>=4.12",
-    "opentelemetry-sdk>=1.20",
+    "opentelemetry-sdk>=1.45.1",
     "gradio>=6.29.1,<7.0",
     "audioop-lts>=0.2.2; python_version >= '3.13'",
 ]

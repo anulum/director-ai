@@ -84,9 +84,9 @@ Supply-chain controls for heavy optional packages live in
 
 ## Shared CI and optional-runtime constraints
 
-Use uv 0.11.33 to regenerate the profiles. CrewAI CLI 1.15.23 requires
-`uv~=0.11.6`, so the shared application environment retains the newest
-compatible 0.11 release. The dev and CPU inference profiles
+The canonical graph resolves uv 0.13.6. CrewAI CLI 1.15.33 accepts
+`uv>=0.13.4,<1`, so the shared application environment can use the patched
+0.13 release without a dependency override. The dev and CPU inference profiles
 are installed together, so their shared packages must resolve compatibly.
 `ci-inference.constraints.in` retains Datasets 5.0.1's `fsspec<=2026.6.0`
 and `huggingface-hub<2.0` requirements. It also keeps NumPy below 2.5 to
@@ -94,7 +94,7 @@ match Presidio Analyzer 2.2.364 in the root optional-extra graph. Both
 Presidio extras require that release or newer, preventing a resolver from
 selecting an older analyzer to accommodate a newer NumPy. The shared profile
 also retains Instructor's `rich<15` bound and CrewAI's `pydantic<2.13`
-bound. CrewAI now requires 1.15.23 or later: that upstream release accepts
+bound. CrewAI now requires 1.15.33 or later: the upstream dependency graph accepts
 patched JSON Repair, so the old resolver override
 is removed and the upstream dependency contract applies unchanged.
 

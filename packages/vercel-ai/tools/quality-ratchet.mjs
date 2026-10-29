@@ -99,9 +99,6 @@ export function captureDocumentation(root, paths) {
   const syntax = program.getSyntacticDiagnostics();
   if (syntax.length > 0) {
     for (const diagnostic of syntax) {
-      if (diagnostic.file === undefined || diagnostic.start === undefined) {
-        throw new Error("Native syntax error has no original source location");
-      }
       const position = diagnostic.file.getLineAndCharacterOfPosition(diagnostic.start);
       findings.push({
         path: relativePath(root, diagnostic.file.fileName).split(sep).join("/"),

@@ -9,5 +9,5 @@
 build==1.6.1
 installer==1.0.1
 maturin==1.15.0
-setuptools==84.0.0
+setuptools==84.2.1
 wheel>=0.47,<1
