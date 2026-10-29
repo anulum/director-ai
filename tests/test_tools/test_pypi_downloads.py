@@ -13,6 +13,8 @@ import http.client
 import importlib.util
 import json
 import re
+import runpy
+import sys
 import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -127,10 +129,10 @@ def test_project_writer_rejects_every_alternate_target_before_fetch(
 
     fetched = False
 
-    def unexpected_fetch(package: str) -> bytes:
+    def observed_fetch(package: str) -> bytes:
         nonlocal fetched
         fetched = True
-        return b"{}"
+        return _payload_bytes(_SAMPLE)
 
     assert (
         downloads.main(
@@ -141,11 +143,48 @@ def test_project_writer_rejects_every_alternate_target_before_fetch(
                 "downloads/director-ai.csv",
                 "--project-csv-only",
             ],
-            unexpected_fetch,
+            observed_fetch,
         )
         == 1
     )
     assert not fetched
+    csv_path = tmp_path / "downloads" / "director-ai.csv"
+    assert (
+        downloads.main(
+            ["--package", "director-ai", "--csv", str(csv_path)],
+            observed_fetch,
+        )
+        == 0
+    )
+    assert fetched
+    assert downloads.read_csv(csv_path) == {
+        "2026-07-17": {"without_mirrors": 11, "with_mirrors": 19},
+        "2026-07-18": {"without_mirrors": 13, "with_mirrors": 23},
+    }
+
+
+def test_cli_prints_project_package_without_writing(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """The script entry point exposes project identity without fetching or writing."""
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            str(_MODULE_PATH),
+            "--pyproject",
+            str(_ROOT / "pyproject.toml"),
+            "--print-package",
+        ],
+    )
+    with pytest.raises(SystemExit) as exc_info:
+        runpy.run_path(str(_MODULE_PATH), run_name="__main__")
+    assert exc_info.value.code == 0
+    assert capsys.readouterr().out == "director-ai\n"
+    assert list(tmp_path.iterdir()) == []
 
 
 @pytest.mark.parametrize(
@@ -683,7 +722,7 @@ def test_workflow_has_one_push_only_bounded_writer_and_pinned_actions() -> None:
         "Push only the reviewed metrics ref"
     )
     assert (
-        "actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a" in workflow
+        "actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9" in workflow
     )
     assert "director-ai-metrics/downloads/director-ai.csv" in workflow
     assert "retention-days: 30" in workflow
