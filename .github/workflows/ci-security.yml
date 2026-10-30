@@ -43,6 +43,10 @@ jobs:
       - name: Install pip-audit
         run: pip install --require-hashes -r requirements/ci-audit.txt
 
+      - uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
+        with:
+          version: "0.13.6"
+
       - name: Audit dependencies
         # Fail closed: audit the core requirements and the production server
         # dependency closure. Both were clean at flip time (2026-06-07); any new
@@ -61,6 +65,9 @@ jobs:
         run: |
           pip-audit --format cyclonedx-json -o vdr-core.json -r requirements.txt
           pip-audit --format cyclonedx-json -o vdr-docker-server.json -r requirements/docker-server.txt
+
+      - name: Audit complete Python lock
+        run: uv audit --frozen --no-progress --color never --output-format json
 
       - name: Upload VDR artifacts
         if: always()

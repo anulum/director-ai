@@ -5,14 +5,15 @@
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
 # DIRECTOR-AI — governed security exception register validation
-"""Validate the governed security-scan exception register.
+"""Validate security-scan exceptions and the required complete-lock audit command.
 
 Each accepted scan finding must carry an owner, a reason, a compensating
 control, and an expiry no earlier than the validation date. The CLI fails
 (exit 1) on a malformed or
 expired entry, so a tolerated finding can never silently become permanent
 security debt. It is stdlib-only (tomllib) so it runs in the lint job without
-extra dependencies.
+extra dependencies. Workflow tests use ``validate_lock_audit`` to enforce the
+complete native lock scope and refusal of shell success overrides.
 
 Usage::
 
@@ -22,6 +23,7 @@ Usage::
 
 from __future__ import annotations
 
+import shlex
 import sys
 import tomllib
 from datetime import date
@@ -43,6 +45,47 @@ _SCHEMA_VERSION = "director.security_exceptions.v1"
 _DEFAULT_PATH = (
     Path(__file__).resolve().parent.parent / "requirements" / "security-exceptions.toml"
 )
+_LOCK_AUDIT_ARGV = (
+    "uv",
+    "audit",
+    "--frozen",
+    "--no-progress",
+    "--color",
+    "never",
+    "--output-format",
+    "json",
+)
+
+
+def validate_lock_audit(
+    command: str, *, continue_on_error: object = False
+) -> list[str]:
+    """Check the complete-lock CI command without executing an advisory scan.
+
+    Parameters
+    ----------
+    command : str
+        Shell command read from the maintained workflow step.
+    continue_on_error : object, optional
+        Decoded step or job failure override; only literal False is accepted.
+
+    Returns
+    -------
+    list[str]
+        Problems with failure propagation, command syntax or audit scope.
+        Shell control operators, extra flags and multiple commands are refused.
+    """
+    problems: list[str] = []
+    if continue_on_error is not False:
+        problems.append("The complete-lock audit must propagate failures")
+    try:
+        argv = tuple(shlex.split(command.strip()))
+    except ValueError:
+        problems.append("The complete-lock audit has malformed shell quoting")
+    else:
+        if len(command.strip().splitlines()) != 1 or argv != _LOCK_AUDIT_ARGV:
+            problems.append("The complete-lock audit command or scope has changed")
+    return problems
 
 
 def validate(payload: dict[str, object], today: date) -> list[str]:

@@ -11,6 +11,8 @@ from __future__ import annotations
 
 import importlib.util
 import re
+import runpy
+import sys
 import tomllib
 from datetime import date
 from pathlib import Path
@@ -20,6 +22,10 @@ import pytest
 import yaml
 from packaging.requirements import Requirement
 from packaging.version import Version
+
+from tools.audit_ci_workflow_modularity import read_workflow
+from tools.check_security_exceptions import validate_lock_audit
+from tools.ci_workflow_inventory import object_mapping
 
 _ROOT = Path(__file__).resolve().parent.parent
 _SPEC = importlib.util.spec_from_file_location(
@@ -426,3 +432,240 @@ def test_cli_rejects_false_valued_toml_expiry(
 
     assert checker.main(["--path", str(register), "--today", "2026-10-03"]) == 1
     assert "not an ISO date" in capsys.readouterr().err
+
+
+@pytest.fixture
+def lock_audit_step() -> dict[str, object]:
+    """Read the unique complete-lock audit from the real reusable workflow."""
+    workflow = read_workflow(_ROOT / ".github/workflows/ci-security.yml")
+    jobs = object_mapping(workflow["jobs"])
+    security = object_mapping(jobs["security"])
+    steps = security["steps"]
+    assert isinstance(steps, list)
+    matches = [
+        step
+        for step in map(object_mapping, steps)
+        if step.get("name") == "Audit complete Python lock"
+    ]
+    assert len(matches) == 1
+    return matches[0]
+
+
+def test_complete_lock_audit_is_unconditional_and_required(
+    lock_audit_step: dict[str, object],
+) -> None:
+    """Bind the real native audit to the required main push and PR security job."""
+    command = lock_audit_step["run"]
+    assert isinstance(command, str)
+    assert validate_lock_audit(command) == []
+    assert set(lock_audit_step) == {"name", "run"}
+    called = read_workflow(_ROOT / ".github/workflows/ci-security.yml")
+    job = object_mapping(object_mapping(called["jobs"])["security"])
+    assert "if" not in job
+    assert (
+        validate_lock_audit(
+            command, continue_on_error=job.get("continue-on-error", False)
+        )
+        == []
+    )
+    caller = read_workflow(_ROOT / ".github/workflows/ci.yml")
+    for scope in (called, job, caller):
+        environment = object_mapping(scope.get("env", {}))
+        assert not any(key.startswith("UV_") for key in environment), (
+            "UV_ environment variables must not override the complete-lock audit"
+        )
+    events = object_mapping(caller["on"])
+    for event in ("push", "pull_request"):
+        assert object_mapping(events[event])["branches"] == ["main"]
+    jobs = object_mapping(caller["jobs"])
+    security = object_mapping(jobs["security"])
+    assert security == {"uses": "./.github/workflows/ci-security.yml"}
+    needs = object_mapping(jobs["ci-gate"])["needs"]
+    assert isinstance(needs, list)
+    assert "security" in needs
+
+
+@pytest.mark.parametrize("location", ["workflow", "job", "caller"])
+@pytest.mark.parametrize(
+    ("variable", "prohibited"), [("UV_PROJECT", True), ("CI", False)]
+)
+def test_complete_lock_guard_checks_inherited_environment(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    lock_audit_step: dict[str, object],
+    location: str,
+    variable: str,
+    prohibited: bool,
+) -> None:
+    """Reject real workflow environment overrides while allowing unrelated keys."""
+    called = read_workflow(_ROOT / ".github/workflows/ci-security.yml")
+    caller = read_workflow(_ROOT / ".github/workflows/ci.yml")
+    scopes = {
+        "workflow": called,
+        "job": object_mapping(object_mapping(called["jobs"])["security"]),
+        "caller": caller,
+    }
+    scopes[location]["env"] = {variable: "controlled-environment-probe"}
+    jobs = object_mapping(called["jobs"])
+    jobs["security"] = scopes["job"]
+    called["jobs"] = jobs
+    workflows = tmp_path / ".github/workflows"
+    workflows.mkdir(parents=True)
+    for name, workflow in (("ci-security.yml", called), ("ci.yml", caller)):
+        (workflows / name).write_text(yaml.safe_dump(workflow), encoding="utf-8")
+    monkeypatch.setitem(globals(), "_ROOT", tmp_path)
+    if prohibited:
+        with pytest.raises(AssertionError, match="UV_ environment variables"):
+            test_complete_lock_audit_is_unconditional_and_required(lock_audit_step)
+    else:
+        test_complete_lock_audit_is_unconditional_and_required(lock_audit_step)
+
+
+@pytest.mark.parametrize(
+    "change",
+    [
+        ("--frozen", ""),
+        ("audit", "tree"),
+        ("uv ", "pip-audit --locked "),
+        (" --no-progress", " --package joserfc --no-progress"),
+        (" --color never", " --ignore-until-fixed --color never"),
+        (" --output-format json", " --output-format json || true"),
+        (" --output-format json", " --output-format json; exit 0"),
+        ("uv audit", "uv\naudit"),
+        ("json", '"json'),
+        ("uv audit --frozen --no-progress --color never --output-format json", ""),
+    ],
+)
+def test_complete_lock_policy_refuses_actual_command_mutations(
+    lock_audit_step: dict[str, object], change: tuple[str, str]
+) -> None:
+    """Refuse scope loss and success overrides applied to the real CI command."""
+    command = lock_audit_step["run"]
+    assert isinstance(command, str)
+    original, replacement = change
+    assert original in command
+    assert validate_lock_audit(command.replace(original, replacement))
+
+
+@pytest.mark.parametrize("override", [True, "${{ true }}", 0, None])
+def test_complete_lock_policy_refuses_failure_overrides(
+    lock_audit_step: dict[str, object], override: object
+) -> None:
+    """Fail closed for literal and expression-based job or step overrides."""
+    command = lock_audit_step["run"]
+    assert isinstance(command, str)
+    assert validate_lock_audit(command, continue_on_error=override)
+
+
+def test_complete_lock_setup_preserves_tool_pin_and_requirements_audits() -> None:
+    """Retain the existing CI tool version and both required profile audits."""
+    workflow = read_workflow(_ROOT / ".github/workflows/ci-security.yml")
+    job = object_mapping(object_mapping(workflow["jobs"])["security"])
+    steps = job["steps"]
+    assert isinstance(steps, list)
+    setup = [
+        step
+        for step in map(object_mapping, steps)
+        if str(step.get("uses", "")).startswith("astral-sh/setup-uv@")
+    ]
+    assert len(setup) == 1
+    assert setup[0]["uses"] == (
+        "astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e"
+    )
+    nightly = read_workflow(_ROOT / ".github/workflows/nightly-red-team.yml")
+    nightly_job = object_mapping(object_mapping(nightly["jobs"])["live-red-team"])
+    nightly_steps = nightly_job["steps"]
+    assert isinstance(nightly_steps, list)
+    nightly_pins = [
+        object_mapping(step["with"])["version"]
+        for step in map(object_mapping, nightly_steps)
+        if str(step.get("uses", "")).startswith("astral-sh/setup-uv@")
+    ]
+    assert [object_mapping(setup[0]["with"])["version"]] == nightly_pins == ["0.13.6"]
+    audits = [
+        step
+        for step in map(object_mapping, steps)
+        if step.get("name") == "Audit dependencies"
+    ]
+    assert len(audits) == 1
+    assert set(audits[0]) == {"name", "run"}
+    assert str(audits[0]["run"]).strip().splitlines() == [
+        "pip-audit --strict --desc on -r requirements.txt",
+        "pip-audit --strict --desc on -r requirements/docker-server.txt",
+    ]
+
+
+def test_register_script_entrypoint_accepts_the_committed_register(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """Run the maintained script entrypoint against the actual exception file."""
+    script = _ROOT / "tools/check_security_exceptions.py"
+    monkeypatch.setattr(sys, "argv", [str(script)])
+    with pytest.raises(SystemExit) as result:
+        runpy.run_path(str(script), run_name="__main__")
+    assert result.value.code == 0
+    assert "security exception register OK" in capsys.readouterr().out
+
+
+def test_register_script_extra_argument_cannot_mask_an_expired_entry(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """Keep expiry refusal effective through the script's argument parser."""
+    register = tmp_path / "expired.toml"
+    register.write_text(
+        'schema_version = "director.security_exceptions.v1"\n'
+        "exceptions = [\n"
+        '  { id = "GHSA-expiry-regression", tool = "pip-audit", package = "probe", '
+        'reason = "validator expiry regression", compensating_control = "test only", '
+        'owner = "protoscience@anulum.li", opened = "2026-01-01", '
+        'expires = "2026-02-01", scope = "ci-dependency-audit" },\n'
+        "]\n",
+        encoding="utf-8",
+    )
+    script = _ROOT / "tools/check_security_exceptions.py"
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            str(script),
+            "extra-argument",
+            "--path",
+            str(register),
+            "--today",
+            "2027-01-01",
+        ],
+    )
+    with pytest.raises(SystemExit) as result:
+        runpy.run_path(str(script), run_name="__main__")
+    assert result.value.code == 1
+    assert "expired on 2026-02-01" in capsys.readouterr().err
+
+
+@pytest.mark.parametrize(
+    ("dependency", "prohibited"), [("pytest>=7", False), ("mcp>=1.30", True)]
+)
+def test_manifest_guard_checks_grouped_dependencies(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    dependency: str,
+    prohibited: bool,
+) -> None:
+    """Prove the actual CI guard detects a prohibited new dependency group."""
+    manifest = (_ROOT / "pyproject.toml").read_text(encoding="utf-8")
+    assert "dependency-groups" not in tomllib.loads(manifest)
+    (tmp_path / "pyproject.toml").write_text(
+        manifest
+        + "\n[dependency-groups]\n"
+        + f"validation = [{dependency!r}, {{ include-group = 'base' }}]\n"
+        + "base = []\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setitem(globals(), "_ROOT", tmp_path)
+    guard = TestMcpRemediationInvariant()
+    if prohibited:
+        with pytest.raises(AssertionError, match="mcp"):
+            guard.test_mcp_absent_from_runtime_dependency_surfaces()
+    else:
+        guard.test_mcp_absent_from_runtime_dependency_surfaces()
