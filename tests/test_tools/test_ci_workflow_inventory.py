@@ -87,8 +87,8 @@ def _native_checkout(tmp_path: Path) -> Path:
         ('job_order = ["lint"', 'job_order = ["lint", "lint"'),
         ('jobs = ["director-lite"]', 'jobs = ["lint"]'),
         ('"lint" = []', '"unowned" = []'),
-        ("partitions = 8", "partitions = true"),
-        ("partitions = 8", "partitions = 3"),
+        ("partitions = 10", "partitions = true"),
+        ("partitions = 10", "partitions = 3"),
         (
             'qa = "1b7118e6dcc3881e5fc87b77b48d9334f0a24d51073ea9dc05baf5a74814580f"',
             'qa = "not-a-digest"',

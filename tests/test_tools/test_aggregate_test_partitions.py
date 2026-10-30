@@ -133,7 +133,7 @@ def test_ambiguous_or_invalid_native_evidence_is_refused(
 def test_a_small_real_collection_cannot_prove_all_required_tests(
     tmp_path: Path,
 ) -> None:
-    """Eight empty success labels do not prove any executed native model review."""
+    """Empty success labels do not prove any executed native model review."""
     paths = []
     policy = load_ci_workflow_policy()
     for index in range(policy.partitions):

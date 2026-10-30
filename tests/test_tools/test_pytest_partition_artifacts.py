@@ -19,7 +19,7 @@ from pathlib import Path
 
 import pytest
 
-from tools.ci_workflow_inventory import ROOT
+from tools.ci_workflow_inventory import ROOT, load_ci_workflow_policy
 from tools.pytest_partition_artifacts import partition_artifact_reports
 from tools.pytest_partition_timings import COLD_SNAPSHOT
 
@@ -28,7 +28,7 @@ from tools.pytest_partition_timings import COLD_SNAPSHOT
 def native_artifacts(
     tmp_path_factory: pytest.TempPathFactory,
 ) -> tuple[Path, Path, Path]:
-    """Generate eight real partial worker attempts and actual incompatible coverage."""
+    """Generate every declared partial worker and actual incompatible coverage."""
     root = tmp_path_factory.mktemp("native-indexed-coverage")
     bundles = root / "bundles"
     bundles.mkdir()
@@ -45,7 +45,7 @@ def native_artifacts(
     line_config.write_text("[run]\nbranch = false\n")
     env = dict(os.environ)
     env.pop("COVERAGE_PROCESS_START", None)
-    for index in range(8):
+    for index in range(load_ci_workflow_policy().partitions):
         bundle = bundles / f"test-partition-{lane}-{index}"
         bundle.mkdir()
         result = subprocess.run(
@@ -124,8 +124,9 @@ def test_actual_layout_is_readable_without_accepting_partial_execution(
         p.relative_to(root): p.read_bytes() for p in root.rglob("*") if p.is_file()
     }
     lane = ".".join(platform.python_version().split(".")[:2])
-    reports = partition_artifact_reports(root, lane, 8)
-    assert [json.loads(p.read_text())["index"] for p in reports] == list(range(8))
+    count = load_ci_workflow_policy().partitions
+    reports = partition_artifact_reports(root, lane, count)
+    assert [json.loads(p.read_text())["index"] for p in reports] == list(range(count))
     assert sum(json.loads(p.read_text())["exit_code"] == 0 for p in reports) == 1
     assert all(
         json.loads(p.read_text())["targets"] == ["tests/test_types.py"] for p in reports
@@ -160,6 +161,7 @@ def test_actual_layout_is_readable_without_accepting_partial_execution(
     "mutation",
     [
         "missing-directory",
+        "missing-last-directory",
         "extra-directory",
         "bundle-link",
         "bundle-file",
@@ -187,10 +189,15 @@ def test_missing_wrong_or_unusable_native_coverage_cannot_be_combined(
     root = tmp_path / "bundles"
     shutil.copytree(original, root)
     lane = ".".join(platform.python_version().split(".")[:2])
-    bundle = root / f"test-partition-{lane}-0"
+    index = (
+        load_ci_workflow_policy().partitions - 1
+        if mutation == "missing-last-directory"
+        else 0
+    )
+    bundle = root / f"test-partition-{lane}-{index}"
     report = bundle / "partition.json"
     coverage_file = next(bundle.glob(".coverage.*"))
-    if mutation == "missing-directory":
+    if mutation in {"missing-directory", "missing-last-directory"}:
         bundle.rename(tmp_path / "retained-bundle")
     elif mutation == "extra-directory":
         (root / "unindexed-extra").mkdir()
@@ -229,7 +236,7 @@ def test_missing_wrong_or_unusable_native_coverage_cannot_be_combined(
         elif mutation == "coverage-unmeasured":
             shutil.copyfile(empty_data, coverage_file)
     with pytest.raises(ValueError):
-        partition_artifact_reports(root, lane, 8)
+        partition_artifact_reports(root, lane, load_ci_workflow_policy().partitions)
 
 
 @pytest.mark.parametrize("lane,count", [("3.14", 8), ("3.12", 0), ("3.12", True)])

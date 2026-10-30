@@ -179,12 +179,13 @@ the full model.
 
 The CI coordinator calls the responsibility workflows declared by
 `tools/ci_workflow_policy.toml`. Each Python version collects the complete
-`tests/` inventory in eight workers. Each test belongs to exactly one worker.
+`tests/` inventory in ten workers, for 30 workers across Python 3.11–3.13.
+Each test belongs to exactly one worker per Python version.
 The full HaluEval benchmark preserves the first 200 rows of QA, summarization
 and dialogue and both original responses: 1,200 model-backed reviews per
 Python version. Each original row is a separate native test that reviews both
 responses, allowing expensive model work to move between workers. Without
-timing history, rows are assigned cyclically: each worker reviews 25 original
+timing history, rows are assigned cyclically: each worker reviews 20 original
 rows per task. Ordinary test modules remain together to preserve fixture
 locality. The existing 25-row QA smoke test remains in the suite.
 
@@ -205,7 +206,7 @@ must contain its matching native report, JUnit and readable branch-coverage
 databases with measured arcs; missing, extra or misidentified bundles fail
 before any coverage combination.
 Missing models or data, substituted inputs, duplicate reviews and skipped
-required model cases fail the aggregate. All eight coverage databases are
+required model cases fail the aggregate. Coverage from all ten indexed workers is
 combined before the unchanged 97% gate. SBOM, fuzz, regression benchmarks
 and push-only Docker validation run independently from the same checked-out
 source. They install or build their own dependencies and do not consume the

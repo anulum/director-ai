@@ -49,8 +49,10 @@ def native_cases() -> list[str]:
     return cases
 
 
+@pytest.mark.parametrize("count", [8, 10])
 def test_complete_native_row_collection_and_cold_assignment(
     native_cases: list[str],
+    count: int,
 ) -> None:
     """Retain every real row, both-label test body and ordinary module owner."""
     policy = load_ci_workflow_policy()
@@ -60,35 +62,37 @@ def test_complete_native_row_collection_and_cold_assignment(
         for task in policy.dataset_sha256
         for index in range(policy.rows_per_task)
     }
-    assignments = partition_assignments(native_cases, 8, 200, {})
+    assignments = partition_assignments(native_cases, count, 200, {})
     assert list(assignments) == native_cases
     for task in policy.dataset_sha256:
-        for worker in range(8):
+        for worker in range(count):
             assert (
                 sum(
                     assignments[case] == worker
                     for case in actual_rows
                     if case.startswith(f"{HALUEVAL_PREFIX}[{task}-")
                 )
-                == 25
+                == policy.rows_per_task // count
             )
     for module in ("tests/test_types.py", "tests/test_config.py"):
         owners = {
             assignments[case] for case in native_cases if case.startswith(module + "::")
         }
-        assert owners == {partition_for_nodeid(module, 8, 200)}
+        assert owners == {partition_for_nodeid(module, count, 200)}
 
 
+@pytest.mark.parametrize("count", [8, 10])
 def test_warm_schedule_is_deterministic_and_uses_every_native_case(
     native_cases: list[str],
+    count: int,
 ) -> None:
     """Deliberate timing hints change placement, never the discovered inventory."""
     hints = {"tests/test_config.py": 1000.0, "tests/test_types.py": 1.0}
-    assignments = partition_assignments(native_cases, 8, 200, hints)
+    assignments = partition_assignments(native_cases, count, 200, hints)
     assert set(assignments) == set(native_cases)
-    assert set(assignments.values()) == set(range(8))
+    assert set(assignments.values()) == set(range(count))
     assert assignments == partition_assignments(
-        list(reversed(native_cases)), 8, 200, hints
+        list(reversed(native_cases)), count, 200, hints
     )
     assert {
         assignments[case]

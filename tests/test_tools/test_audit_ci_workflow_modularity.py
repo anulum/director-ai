@@ -198,7 +198,7 @@ def test_actual_native_aggregate_guard_requires_every_success(
         ),
         (
             ".github/workflows/ci-python.yml",
-            "partition: [0, 1, 2, 3, 4, 5, 6, 7]",
+            "partition: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]",
             "partition: [0, 1, 2]",
         ),
         ("tools/ci_workflow_policy.toml", '"sbom" = []', '"sbom" = ["unknown"]'),
