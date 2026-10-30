@@ -78,3 +78,47 @@ def test_public_gate_cli_uses_actual_declared_categories() -> None:
             check=False,
         )
         assert result.returncode == expected, result.stdout + result.stderr
+
+
+@pytest.mark.parametrize("category", ["sbom", "fuzz", "benchmark", "runtime"])
+@pytest.mark.parametrize(
+    "outcome", ["success", "failure", "cancelled", "skipped", "missing"]
+)
+def test_independent_validation_results_are_required_by_cli(
+    category: str, outcome: str
+) -> None:
+    """Require every independent check through the actual shipping gate command.
+
+    Parameters
+    ----------
+    category : str
+        Independent source validation whose native result is supplied to CI.
+    outcome : str
+        Actual terminal result, or omission from the native result object.
+    """
+    import json
+    import os
+    import subprocess
+    import sys
+
+    from tools.ci_workflow_inventory import ROOT
+
+    results = {
+        owner.identity: {"result": "success"}
+        for owner in load_ci_workflow_policy().categories
+    }
+    if outcome == "missing":
+        del results[category]
+    else:
+        results[category]["result"] = outcome
+    result = subprocess.run(
+        [sys.executable, "-m", "tools.check_ci_gate", "--event", "push"],
+        cwd=ROOT,
+        env={**os.environ, "CI_RESULTS": json.dumps(results)},
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    assert result.returncode == (0 if outcome == "success" else 1), (
+        result.stdout + result.stderr
+    )

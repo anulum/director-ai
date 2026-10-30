@@ -206,8 +206,11 @@ databases with measured arcs; missing, extra or misidentified bundles fail
 before any coverage combination.
 Missing models or data, substituted inputs, duplicate reviews and skipped
 required model cases fail the aggregate. All eight coverage databases are
-combined before the unchanged 97% gate. Downstream SBOM, fuzz, regression
-benchmarks and push-only Docker validation wait for the complete Python run.
+combined before the unchanged 97% gate. SBOM, fuzz, regression benchmarks
+and push-only Docker validation run independently from the same checked-out
+source. They install or build their own dependencies and do not consume the
+Python test artefacts. Both required aggregate checks still require every
+applicable category to succeed, including the complete Python run.
 
 Workers retain native phase durations and JUnit alongside their coverage and
 original review evidence. Only verified complete lanes produce new scheduling

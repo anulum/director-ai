@@ -45,19 +45,15 @@ jobs:
     uses: ./.github/workflows/ci-security.yml
 
   sbom:
-    needs: [python]
     uses: ./.github/workflows/ci-sbom.yml
 
   fuzz:
-    needs: [python]
     uses: ./.github/workflows/ci-fuzz.yml
 
   benchmark:
-    needs: [python]
     uses: ./.github/workflows/ci-benchmark.yml
 
   runtime:
-    needs: [python]
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     uses: ./.github/workflows/ci-runtime.yml
 

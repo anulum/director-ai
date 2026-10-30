@@ -24,13 +24,33 @@ from tools.ci_workflow_inventory import (
     POLICY_PATH,
     ROOT,
     ci_workflow_paths,
+    load_ci_workflow_policy,
     object_mapping,
+    string_tuple,
 )
 
 
 def test_actual_distributed_workflows_have_complete_ownership() -> None:
     """Audit the shipping coordinator, every actual owner and all native inputs."""
     assert audit_ci_workflow_modularity() == []
+
+
+@pytest.mark.parametrize("category", ["sbom", "fuzz", "benchmark", "runtime"])
+def test_independent_validation_does_not_wait_for_model_tests(category: str) -> None:
+    """Keep independent checks concurrent and required by the final native gate.
+
+    Parameters
+    ----------
+    category : str
+        Native validation owner that builds from the checked-out source.
+    """
+    callers = object_mapping(read_workflow(ROOT / ".github/workflows/ci.yml")["jobs"])
+    assert "needs" not in object_mapping(callers[category])
+    policy = load_ci_workflow_policy()
+    owner = {item.identity: item for item in policy.categories}[category]
+    assert owner.caller_needs == ()
+    assert all(policy.dependencies[job] == () for job in owner.jobs)
+    assert category in string_tuple(object_mapping(callers["ci-gate"])["needs"])
 
 
 @pytest.mark.parametrize(
@@ -102,6 +122,18 @@ def test_actual_native_aggregate_guard_requires_every_success(
             "uses: other/repo/.github/workflows/ci.yml@main",
         ),
         (".github/workflows/ci.yml", "  lite:\n", "  lite:\n    needs: [static]\n"),
+        (".github/workflows/ci.yml", "  sbom:\n", "  sbom:\n    needs: [python]\n"),
+        (".github/workflows/ci.yml", "  fuzz:\n", "  fuzz:\n    needs: [python]\n"),
+        (
+            ".github/workflows/ci.yml",
+            "  benchmark:\n",
+            "  benchmark:\n    needs: [python]\n",
+        ),
+        (
+            ".github/workflows/ci.yml",
+            "  runtime:\n",
+            "  runtime:\n    needs: [python]\n",
+        ),
         (".github/workflows/ci.yml", "  lite:\n", "  lite:\n    if: false\n"),
         (".github/workflows/ci.yml", "  lite:\n", "  lite:\n    secrets: inherit\n"),
         (
@@ -169,11 +201,11 @@ def test_actual_native_aggregate_guard_requires_every_success(
             "partition: [0, 1, 2, 3, 4, 5, 6, 7]",
             "partition: [0, 1, 2]",
         ),
-        ("tools/ci_workflow_policy.toml", '"sbom" = ["test"]', '"sbom" = ["unknown"]'),
+        ("tools/ci_workflow_policy.toml", '"sbom" = []', '"sbom" = ["unknown"]'),
         (
             "tools/ci_workflow_policy.toml",
-            'caller_needs = ["python"]',
-            "caller_needs = []",
+            'jobs = ["sbom"]\ncaller_needs = []',
+            'jobs = ["sbom"]\ncaller_needs = ["python"]',
         ),
         ("tools/ci_workflow_policy.toml", "skip_events = []", 'skip_events = ["push"]'),
         ("tools/ci_workflow_policy.toml", "reusable_count = 20", "reusable_count = 50"),
