@@ -1,9 +1,14 @@
+<!-- SPDX-License-Identifier: Apache-2.0 -->
+<!-- Commercial license available -->
+<!-- © Concepts 1996–2026 Miroslav Šotek. All rights reserved. -->
+<!-- © Code 2020–2026 Miroslav Šotek. All rights reserved. -->
+<!-- ORCID: 0009-0009-3560-0851 -->
+<!-- Contact: www.anulum.li | protoscience@anulum.li -->
+<!-- Director-AI — Rust FFI pipeline -->
+
 # Director-AI Rust FFI Pipeline (Backfire Kernel)
 
 > **Crate**: `backfire-kernel` | **Director-AI release**: 3.21.0 | **License**: Apache-2.0
->
-> © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
-> © Code 2020–2026 Miroslav Šotek. All rights reserved.
 
 ---
 
@@ -494,7 +499,7 @@ pip install backfire-kernel
 
 - Rust toolchain (≥1.75, edition 2021)
 - maturin (≥1.12)
-- Python ≥3.10
+- Python ≥3.11
 - PyO3 ≥0.22
 
 ---

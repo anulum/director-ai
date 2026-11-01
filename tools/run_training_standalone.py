@@ -6,7 +6,7 @@
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI — Standalone GPU Fine-tuning Script
 
-"""Self-contained fine-tuning script for JarvisLabs (Python 3.10 compatible).
+"""Self-contained fine-tuning script for JarvisLabs (requires Python 3.11+).
 
 Requires: transformers, datasets, torch, scikit-learn, numpy
 

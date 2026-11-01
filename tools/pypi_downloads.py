@@ -12,30 +12,17 @@ from __future__ import annotations
 import argparse
 import csv
 import http.client
-import importlib
 import json
 import os
 import sys
 import tempfile
 import time
+import tomllib
 from collections.abc import Callable, Mapping
 from datetime import date
 from pathlib import Path
-from typing import Any, Protocol, cast
+from typing import Any, cast
 from urllib.parse import quote
-
-
-class _TomlLoader(Protocol):
-    """Describe the TOML loader shared by supported Python versions."""
-
-    def loads(self, data: str, /) -> dict[str, Any]:
-        """Parse one TOML document."""
-
-
-tomllib = cast(
-    _TomlLoader,
-    importlib.import_module("tomllib" if sys.version_info >= (3, 11) else "tomli"),
-)
 
 PYPISTATS_HOST = "pypistats.org"
 PYPISTATS_PATH = "/api/packages/{package}/overall"

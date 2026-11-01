@@ -17,12 +17,8 @@ a facade. The package's own behavioural suite lives in
 from __future__ import annotations
 
 import sys
+import tomllib
 from pathlib import Path
-
-try:  # pragma: no cover - exercised on Python 3.11+ in CI.
-    import tomllib
-except ModuleNotFoundError:  # pragma: no cover
-    import tomli as tomllib  # type: ignore[no-redef]
 
 ROOT = Path(__file__).resolve().parents[1]
 LITE_PACKAGE = ROOT / "packages" / "director-ai-lite"
@@ -39,6 +35,7 @@ def _tokens(text: str) -> list[str]:
 
 
 def test_lite_package_is_standalone_apache() -> None:
+    """Verify the standalone distribution metadata and supported Python floor."""
     pyproject = tomllib.loads((LITE_PACKAGE / "pyproject.toml").read_text())
     project = pyproject["project"]
 
@@ -55,6 +52,7 @@ def test_lite_package_is_standalone_apache() -> None:
 
 
 def test_lite_exposes_its_own_standalone_surface() -> None:
+    """Verify the Lite exports belong to the independent distribution."""
     import director_ai_lite
 
     assert director_ai_lite.__version__ == "3.21.0"
@@ -70,6 +68,7 @@ def test_lite_exposes_its_own_standalone_surface() -> None:
 
 
 def test_lite_guard_runs_model_free_halt_path() -> None:
+    """Verify the Lite streaming guard halts an ungrounded response tail."""
     from director_ai_lite import guard
 
     # The grounding heuristic is gradual: it halts once the share of ungrounded
