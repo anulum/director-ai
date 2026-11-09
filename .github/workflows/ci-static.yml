@@ -59,13 +59,19 @@ jobs:
         run: python tools/check_mojibake.py --root .
 
       - name: Check formatting (ruff)
-        run: ruff format --check src/ tests/ examples/
+        run: ruff format --check src/ tests/ examples/ tools/typescript_generated_recipe.py tools/typescript_package_artifacts.py tools/verify_typescript_generated.py
 
       - name: Lint (ruff)
-        run: ruff check src/ tests/ examples/
+        run: ruff check src/ tests/ examples/ tools/typescript_generated_recipe.py tools/typescript_package_artifacts.py tools/verify_typescript_generated.py
 
       - name: Docstring ratchet (source tree)
         run: ruff check src/director_ai --select D
+
+      - name: Generated SDK Python API documentation
+        run: >-
+          ruff check --isolated --select D --config 'lint.pydocstyle.convention="numpy"'
+          tools/typescript_generated_recipe.py tools/typescript_package_artifacts.py tools/verify_typescript_generated.py
+          tests/test_typescript_generated_recipe.py tests/test_typescript_package_artifacts.py tests/test_verify_typescript_generated.py
 
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
@@ -80,6 +86,13 @@ jobs:
           npm test
           npm run docs
           npm audit --audit-level=low
+          artefacts="$(mktemp -d "$RUNNER_TEMP/director-sdk-generated.XXXXXX")"
+          npm pack --offline --json --pack-destination "$artefacts"
+          PYTHONPATH="$GITHUB_WORKSPACE" python -m tools.verify_typescript_generated \
+            --root "$GITHUB_WORKSPACE" \
+            --artefacts "$GITHUB_WORKSPACE/packages/vercel-ai" \
+            --package "$artefacts/"*.tgz \
+            --workspace "$artefacts/verification"
 
       - name: Studio manifest types and real HTTP contracts
         working-directory: studio-web
@@ -134,7 +147,7 @@ jobs:
         run: |
           python -m tools.audit_ci_workflow_modularity
           actionlint .github/workflows/ci*.yml
-          mypy --strict tools/ci_workflow_inventory.py tools/audit_ci_workflow_modularity.py tools/check_ci_gate.py tools/pytest_partition.py tools/pytest_partition_schedule.py tools/pytest_partition_timings.py tools/pytest_partition_artifacts.py tools/aggregate_test_partitions.py benchmarks/halueval_eval.py
+          mypy --strict tools/ci_workflow_inventory.py tools/audit_ci_workflow_modularity.py tools/check_ci_gate.py tools/pytest_partition.py tools/pytest_partition_schedule.py tools/pytest_partition_timings.py tools/pytest_partition_artifacts.py tools/aggregate_test_partitions.py benchmarks/halueval_eval.py tools/typescript_generated_recipe.py tools/typescript_package_artifacts.py tools/verify_typescript_generated.py tests/test_typescript_generated_recipe.py tests/test_typescript_package_artifacts.py tests/test_verify_typescript_generated.py
           pytest tests/test_tools/test_ci_workflow_inventory.py tests/test_tools/test_audit_ci_workflow_modularity.py tests/test_tools/test_check_ci_gate.py tests/test_tools/test_pytest_partition.py tests/test_tools/test_pytest_partition_schedule.py tests/test_tools/test_pytest_partition_timings.py tests/test_tools/test_pytest_partition_artifacts.py tests/test_tools/test_aggregate_test_partitions.py tests/test_halueval_eval.py -q
   reuse:
     name: REUSE Compliance (SPDX)

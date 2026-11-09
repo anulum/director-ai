@@ -78,3 +78,39 @@ TypeDoc's declared compiler peer range ends at 6.0.x; compiler-major upgrades
 require qualification of both the compiler API and the documentation builder.
 The parser collector measures declarations and masking directives. Strict
 semantic checking remains the separate `npm run check` and build contract.
+
+## Generated package and documentation verification
+
+From this directory in a source checkout, after the contributor checks above,
+compare a real npm package and the generated documentation with fresh native
+outputs. Python 3.11 or newer is required for the repository verifier:
+
+```bash
+repo_root="$(git rev-parse --show-toplevel)"
+artefacts="$(mktemp -d)"
+npm pack --offline --json --pack-destination "$artefacts"
+PYTHONPATH="$repo_root" python -m tools.verify_typescript_generated \
+  --root "$repo_root" \
+  --artefacts "$repo_root/packages/vercel-ai" \
+  --package "$artefacts/"*.tgz \
+  --workspace "$artefacts/verification"
+```
+
+`npm pack` runs the original prepack/build hooks. The verifier compares every
+`dist` and API-documentation file with a fresh compiler/TypeDoc run, and compares
+the archive's complete member names, bytes and modes with the source and fresh
+compiled output. It also checks archive framing and input custody under one
+deadline. Its workspace must be new and outside the source and supplied outputs.
+Keep the original npm command output, archive and verifier receipts together.
+
+The identity binds Git HEAD, safe origin, package version, input/output modes,
+installed dependency bytes and the executing verification tools. TypeDoc source
+links can depend on the checkout path as well as the revision and origin;
+documentation from another checkout is not normalized into acceptance. An absent
+origin currently produces a fatal TypeDoc warning. Authenticated URLs, URL query
+strings, fragments and whitespace are refused before origin output is recorded.
+Source/declaration maps and inline sources need separate recipe qualification.
+
+Successful comparison establishes same-source reproducibility and supplied
+package agreement. It does not establish independent publication provenance,
+qualify a remote npm release or certify the Studio/gateway integration.

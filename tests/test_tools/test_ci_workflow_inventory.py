@@ -381,3 +381,108 @@ def test_an_empty_category_inventory_is_refused(tmp_path: Path) -> None:
     path.write_text("schema_version = 1\ncategories = []\n")
     with pytest.raises(ValueError, match="nonempty list"):
         load_ci_workflow_policy(tmp_path)
+
+
+def test_sdk_generated_package_gate_uses_actual_prepack_and_complete_inputs() -> None:
+    """Keep native packaging, source-bound verification and Python owner gates required."""
+    jobs = object_mapping(read_workflow(workflow_path_for_job("lint"))["jobs"])
+    lint = object_mapping(jobs["lint"])
+    raw = lint["steps"]
+    assert isinstance(raw, list)
+    steps = [object_mapping(step) for step in raw]
+    sdk = next(
+        step
+        for step in steps
+        if step.get("name")
+        == "Vercel middleware types, HTTP contracts and API documentation"
+    )
+    assert sdk["working-directory"] == "packages/vercel-ai"
+    assert "if" not in sdk and not sdk.get("continue-on-error", False)
+    run = str(sdk["run"])
+    assert run.index("npm audit --audit-level=low") < run.index(
+        "npm pack --offline --json"
+    )
+    assert 'npm pack --offline --json --pack-destination "$artefacts"' in run
+    assert "npm pack --ignore-scripts" not in run
+    assert (
+        'PYTHONPATH="$GITHUB_WORKSPACE" python -m tools.verify_typescript_generated'
+        in run
+    )
+    assert '--root "$GITHUB_WORKSPACE"' in run
+    assert '--artefacts "$GITHUB_WORKSPACE/packages/vercel-ai"' in run
+    assert '--package "$artefacts/"*.tgz' in run
+    assert '--workspace "$artefacts/verification"' in run
+    documentation = next(
+        step
+        for step in steps
+        if step.get("name") == "Generated SDK Python API documentation"
+    )
+    assert "--isolated --select D" in str(documentation["run"])
+    assert "if" not in documentation and not documentation.get(
+        "continue-on-error", False
+    )
+    typecheck = object_mapping(jobs["typecheck"])
+    checks = typecheck["steps"]
+    assert isinstance(checks, list)
+    owner = next(
+        object_mapping(step)
+        for step in checks
+        if object_mapping(step).get("name")
+        == "Workflow ownership and complete-test contracts"
+    )
+    strict = str(owner["run"])
+    assert "mypy --strict" in strict
+    for name in (
+        "typescript_generated_recipe",
+        "typescript_package_artifacts",
+        "verify_typescript_generated",
+    ):
+        assert f"tools/{name}.py" in strict
+        assert f"tests/test_{name}.py" in strict
+        assert f"tools/{name}.py" in str(documentation["run"])
+        assert f"tests/test_{name}.py" in str(documentation["run"])
+
+
+@pytest.mark.parametrize(
+    "before,after",
+    [
+        ("npm pack --offline --json", "npm pack --ignore-scripts --offline --json"),
+        ("python -m tools.verify_typescript_generated", "python -m compileall"),
+        ('--package "$artefacts/"*.tgz', '--package "$artefacts/missing.tgz"'),
+        (
+            '--workspace "$artefacts/verification"',
+            '--workspace "$GITHUB_WORKSPACE/packages/vercel-ai"',
+        ),
+        (
+            "      - name: Vercel middleware types, HTTP contracts and API documentation\n",
+            "      - name: Vercel middleware types, HTTP contracts and API documentation\n        continue-on-error: true\n",
+        ),
+        (
+            "      - name: Generated SDK Python API documentation\n",
+            "      - name: Generated SDK Python API documentation\n        if: false\n",
+        ),
+    ],
+)
+def test_generated_package_gate_mutations_refuse(
+    tmp_path: Path, before: str, after: str
+) -> None:
+    """Reject actual packaging bypasses, incomplete inputs and optional checks.
+
+    Parameters
+    ----------
+    tmp_path : Path
+        Real source-bound workflow and policy fixture.
+    before : str
+        Original mandatory executable gate declaration.
+    after : str
+        Deliberately invalid packaging, input, workspace or failure policy.
+    """
+    root = _native_checkout(tmp_path)
+    path = workflow_path_for_job("lint", root)
+    original = path.read_text()
+    assert before in original
+    path.write_text(original.replace(before, after, 1))
+    assert (
+        "Executable body differs from its versioned contract: lint"
+        in audit_ci_workflow_modularity(root)
+    )

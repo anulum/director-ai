@@ -113,6 +113,30 @@ The SDK documentation collector supplies source-bound diagnostics, while the
 repository-wide historical-baseline ratchet remains a separate enforcement
 boundary.
 
+### Generated SDK package and documentation
+
+The CI lint job also runs the SDK's original `npm pack` prepack/build hooks and
+`python -m tools.verify_typescript_generated`. Follow the source-checkout command
+in `packages/vercel-ai/README.md`; both `--package` and `--artefacts` are required.
+The latter contains `dist` and the separate `build/api-docs` tree. API HTML is not
+part of the npm payload.
+
+The verifier regenerates both complete output trees with the locked native
+compiler/TypeDoc recipe and compares every file and mode. Archive inspection
+requires the complete source/compiler-derived payload, including package metadata,
+README and both licence files; duplicate, additional, missing or nonregular
+members, damaged gzip/tar framing and concurrent input changes fail. Receipts bind
+the original compressed archive, source/configuration bytes, Git context, package
+version, executable and installed dependency graph under a shared deadline.
+
+Keep the same source checkout, Git revision and safe origin for a comparison.
+TypeDoc can include checkout-relative source paths; no HTML or source-link
+normalization is permitted. Missing origin warnings stay fatal. Changed compiler
+map/inline-source flags or documentation options require new recipe qualification.
+A passing comparison proves reproducibility and supplied package agreement,
+without attesting an independent publisher or extending Studio/gateway coverage.
+The lower-level package-member comparison API alone is not generator provenance.
+
 ## Native TypeScript Documentation Snapshots
 
 With Node.js 26.13.0 installed, install the committed compiler dependencies from
