@@ -17,11 +17,16 @@
 import http from 'k6/http';
 import { check } from 'k6';
 
+/** Base address of the gateway selected by the operator. */
 const baseURL = __ENV.DIRECTOR_URL || 'http://localhost:8080';
+/** Optional gateway API key supplied to the real HTTP request. */
 const apiKey = __ENV.DIRECTOR_KEY || '';
+/** Concurrent users requested by the operator. */
 const vus = Number(__ENV.DIRECTOR_VUS || 50);
+/** Finite load duration in the native k6 duration format. */
 const duration = __ENV.DIRECTOR_DURATION || '30s';
 
+/** Native k6 schedule and existing failure/latency thresholds. */
 export const options = {
   vus: vus,
   duration: duration,
@@ -31,6 +36,7 @@ export const options = {
   },
 };
 
+/** Send one chat-completion request through the configured gateway. */
 export default function () {
   const payload = JSON.stringify({
     model: 'gpt-4o-mini',

@@ -9,7 +9,6 @@
 import { createHash } from "node:crypto";
 import { readFileSync, realpathSync, statSync } from "node:fs";
 import { resolve, relative as relativePath, sep } from "node:path";
-import { fileURLToPath } from "node:url";
 import ts from "typescript";
 
 /** Actual parser configuration; semantic/import qualification is a separate profile. */
@@ -191,6 +190,6 @@ export function main(args) {
   }
 }
 
-if (process.argv[1] !== undefined && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+if (import.meta.main) {
   process.exitCode = main(process.argv.slice(2));
 }

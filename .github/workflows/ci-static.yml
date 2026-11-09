@@ -77,7 +77,9 @@ jobs:
         with:
           node-version: "26.13.0"
           cache: npm
-          cache-dependency-path: packages/vercel-ai/package-lock.json
+          cache-dependency-path: |
+            packages/vercel-ai/package-lock.json
+            gateway/go/bench/package-lock.json
 
       - name: Vercel middleware types, HTTP contracts and API documentation
         working-directory: packages/vercel-ai
@@ -93,6 +95,35 @@ jobs:
             --artefacts "$GITHUB_WORKSPACE/packages/vercel-ai" \
             --package "$artefacts/"*.tgz \
             --workspace "$artefacts/verification"
+
+      - name: Install the pinned native k6 runtime
+        env:
+          K6_ARCHIVE_SHA256: "39c3117b6af817592dcd0ce4242105c0a7af10948c2a425306f0be8f7a8a8ab1"
+        run: |
+          archive="$RUNNER_TEMP/k6-v2.3.0-linux-amd64.tar.gz"
+          install_dir="$RUNNER_TEMP/director-k6"
+          mkdir -p "$install_dir"
+          curl --fail --show-error --location --retry 3 \
+            https://github.com/grafana/k6/releases/download/v2.3.0/k6-v2.3.0-linux-amd64.tar.gz \
+            --output "$archive"
+          printf '%s  %s\n' "$K6_ARCHIVE_SHA256" "$archive" | sha256sum --check --strict
+          tar -xzf "$archive" -C "$install_dir" --strip-components=1 k6-v2.3.0-linux-amd64/k6
+          "$install_dir/k6" version
+
+      - name: Gateway native JavaScript types, runtime and documentation
+        working-directory: gateway/go/bench
+        env:
+          K6_BINARY: ${{ runner.temp }}/director-k6/k6
+          K6_CONFIG: ${{ runner.temp }}/director-k6/config.json
+          K6_NO_USAGE_REPORT: "true"
+          K6_AUTO_EXTENSION_RESOLUTION: "false"
+          K6_WEB_DASHBOARD: "false"
+        run: |
+          printf '{}\n' > "$K6_CONFIG"
+          npm ci --ignore-scripts --no-audit --no-fund
+          npm test
+          npm run docs
+          npm audit --audit-level=low
 
       - name: Studio manifest types and real HTTP contracts
         working-directory: studio-web

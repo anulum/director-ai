@@ -54,7 +54,11 @@ def test_native_node_consumers_match_the_executing_locked_profile() -> None:
         assert object_mapping(setup["with"]) == {
             "node-version": NODE_VERSION,
             "cache": "npm",
-            "cache-dependency-path": "packages/vercel-ai/package-lock.json",
+            "cache-dependency-path": (
+                "packages/vercel-ai/package-lock.json\ngateway/go/bench/package-lock.json\n"
+                if job_id == "lint"
+                else "packages/vercel-ai/package-lock.json"
+            ),
         }
     locked = object_mapping(
         json.loads((ROOT / "packages/vercel-ai/package-lock.json").read_text())
@@ -476,6 +480,125 @@ def test_generated_package_gate_mutations_refuse(
         Original mandatory executable gate declaration.
     after : str
         Deliberately invalid packaging, input, workspace or failure policy.
+    """
+    root = _native_checkout(tmp_path)
+    path = workflow_path_for_job("lint", root)
+    original = path.read_text()
+    assert before in original
+    path.write_text(original.replace(before, after, 1))
+    assert (
+        "Executable body differs from its versioned contract: lint"
+        in audit_ci_workflow_modularity(root)
+    )
+
+
+def test_gateway_native_profile_and_complete_lock_audit_are_required() -> None:
+    """Bind real compiler hosts, verified k6 and all dependencies to the required job."""
+    job = object_mapping(
+        object_mapping(read_workflow(workflow_path_for_job("lint"))["jobs"])["lint"]
+    )
+    raw = job["steps"]
+    assert isinstance(raw, list)
+    steps = [object_mapping(step) for step in raw]
+    install = next(
+        step
+        for step in steps
+        if step.get("name") == "Install the pinned native k6 runtime"
+    )
+    gateway = next(
+        step
+        for step in steps
+        if step.get("name")
+        == "Gateway native JavaScript types, runtime and documentation"
+    )
+    assert steps.index(install) < steps.index(gateway)
+    assert object_mapping(install["env"])["K6_ARCHIVE_SHA256"] == (
+        "39c3117b6af817592dcd0ce4242105c0a7af10948c2a425306f0be8f7a8a8ab1"
+    )
+    assert "sha256sum --check --strict" in str(install["run"])
+    assert "--strip-components=1 k6-v2.3.0-linux-amd64/k6" in str(install["run"])
+    assert gateway["working-directory"] == "gateway/go/bench"
+    assert (
+        gateway["run"]
+        == "printf '{}\\n' > \"$K6_CONFIG\"\nnpm ci --ignore-scripts --no-audit --no-fund\nnpm test\nnpm run docs\nnpm audit --audit-level=low\n"
+    )
+    assert object_mapping(gateway["env"]) == {
+        "K6_BINARY": "${{ runner.temp }}/director-k6/k6",
+        "K6_CONFIG": "${{ runner.temp }}/director-k6/config.json",
+        "K6_NO_USAGE_REPORT": "true",
+        "K6_AUTO_EXTENSION_RESOLUTION": "false",
+        "K6_WEB_DASHBOARD": "false",
+    }
+    for step in (install, gateway):
+        assert "if" not in step and not step.get("continue-on-error", False)
+    package = ROOT / "gateway/go/bench"
+    compiler = object_mapping(json.loads((package / "tsconfig.json").read_text()))
+    assert compiler["files"] == ["passthrough.js"]
+    options = object_mapping(compiler["compilerOptions"])
+    assert options["types"] == ["k6"]
+    assert options["lib"] == ["ES2022"]
+    for name in (
+        "strict",
+        "checkJs",
+        "noEmit",
+        "allowJs",
+        "exactOptionalPropertyTypes",
+        "noUncheckedIndexedAccess",
+        "noUnusedLocals",
+        "noUnusedParameters",
+    ):
+        assert options[name] is True
+    assert options["skipLibCheck"] is False
+    tools = object_mapping(json.loads((package / "tsconfig.tools.json").read_text()))
+    assert object_mapping(tools["compilerOptions"])["types"] == ["node"]
+    assert tools["include"] == ["tools/**/*.mjs", "test/**/*.mjs"]
+    metadata = object_mapping(json.loads((package / "package.json").read_text()))
+    scripts = object_mapping(metadata["scripts"])
+    assert scripts["check"] == "tsc -p tsconfig.json && tsc -p tsconfig.tools.json"
+    assert "--test-coverage-lines=100" in str(scripts["test"])
+    assert "--test-coverage-branches=100" in str(scripts["test"])
+    assert "--test-coverage-functions=100" in str(scripts["test"])
+    assert "--test-coverage-include=test/*.mjs" in str(scripts["test"])
+    assert "--test-coverage-include=tools/*.mjs" in str(scripts["test"])
+    assert "--test-coverage-exclude=node_modules/**" in str(scripts["test"])
+    assert "--test-concurrency=1" in str(scripts["test"])
+
+
+@pytest.mark.parametrize(
+    "before,after",
+    [
+        ("sha256sum --check --strict", "sha256sum --version"),
+        (
+            'K6_AUTO_EXTENSION_RESOLUTION: "false"',
+            'K6_AUTO_EXTENSION_RESOLUTION: "true"',
+        ),
+        (
+            "working-directory: gateway/go/bench",
+            "working-directory: packages/vercel-ai",
+        ),
+        (
+            "npm audit --audit-level=low\n\n      - name: Studio manifest",
+            "npm audit --audit-level=critical\n\n      - name: Studio manifest",
+        ),
+        (
+            "      - name: Gateway native JavaScript types, runtime and documentation\n",
+            "      - name: Gateway native JavaScript types, runtime and documentation\n        continue-on-error: true\n",
+        ),
+    ],
+)
+def test_gateway_native_gate_drift_refuses(
+    tmp_path: Path, before: str, after: str
+) -> None:
+    """Refuse weakened real checksum, runtime, location, audit or failure contracts.
+
+    Parameters
+    ----------
+    tmp_path : Path
+        Actual workflow/policy inputs retained for the deliberate invalid control.
+    before : str
+        Original mandatory executable declaration.
+    after : str
+        Invalid replacement passed through the real public workflow audit.
     """
     root = _native_checkout(tmp_path)
     path = workflow_path_for_job("lint", root)

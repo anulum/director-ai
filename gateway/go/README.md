@@ -126,6 +126,42 @@ Coverage (Phase 2):
   end-to-end with echo + audit record, 429 enforcement, X-Request-ID
   echo)
 
+## Benchmark source qualification
+
+The required CI lint job checks `bench/passthrough.js` with TypeScript 6.0.3,
+full `strict` JavaScript checking, `exactOptionalPropertyTypes` and
+`skipLibCheck: false`, using the actual `@types/k6` 2.3.1 declarations.
+Node tools and tests use their separate Node host profile. The native profile
+uses Node.js 26.13.0 and k6 2.3.0 on Linux x86-64; it does not certify other hosts.
+
+From the repository root, with the pinned k6 binary installed:
+
+```bash
+npm --prefix packages/vercel-ai ci --ignore-scripts --no-audit --no-fund
+npm --prefix gateway/go/bench ci --ignore-scripts --no-audit --no-fund
+K6_BINARY="$(command -v k6)" npm --prefix gateway/go/bench test
+npm --prefix gateway/go/bench run docs
+```
+
+The test command explicitly prepares the locked upstream declaration before
+checking. The publisher's refined `responseType` optional property includes
+`undefined`, contrary to its base interface under exact optional typing. The
+preparation command accepts only the original or corrected SHA-256 and changes
+that property to `Exclude<RT, undefined>`. The original package, APIs and MIT
+licence remain; the installed declaration is locally corrected, not an
+unmodified publisher payload. Explicit `undefined` remains invalid, matching
+the native HTTP API. A publisher update requires review of the correction and
+full requalification, rather than accepting new bytes or relaxing the compiler.
+
+Tests invoke the real k6 binary: they inspect its schedule, reject an invalid
+host import and response member, and send one loopback HTTP request with and
+without a gateway key. These are functional host/benchmark-source checks, not
+Go gateway load tests, model inference or comparative performance measurements.
+Node coverage includes the complete preparation tool and both test files at
+100% lines, branches and functions. The benchmark itself runs in k6, not Node;
+no V8 coverage claim is made for that native script. CI also audits the complete
+benchmark dependency lock with failures blocking at every head.
+
 ## Benchmarking
 
 `bench/passthrough.js` is a k6 scenario that hammers the gateway's

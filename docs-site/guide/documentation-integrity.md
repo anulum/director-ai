@@ -167,6 +167,23 @@ WASM integration need their own native qualification; a complete parser snapshot
 does not certify those boundaries. Repository-wide baseline enforcement also
 remains separate.
 
+## Gateway Native JavaScript Checks
+
+The required lint job separately qualifies `gateway/go/bench/passthrough.js`
+against its genuine k6 host. Its locked compiler checks all libraries and exact
+optional properties. Node tooling and tests have a separate host profile.
+The real pinned k6 runtime supplies import/schedule checks and loopback HTTP
+execution, including operation without an API key; native compiler controls
+refuse a nonexistent module and response member. Explanatory JSDoc is measured
+by the same native documentation collector as the SDK.
+
+The preparation tool and both Node test files retain complete line, branch and
+function coverage at 100%. This does not report V8 coverage for the benchmark
+running in k6, nor certify Go gateway throughput or model accuracy. The full
+new dependency lock has its own blocking audit in the same required job.
+See `gateway/go/README.md` for the pinned runtime, install commands and the
+byte-bound correction to the actual upstream k6 declaration.
+
 ## Native Go Documentation Collector
 
 `tools.quality_ratchet_golang.capture_go_documentation` combines Go 1.27.1

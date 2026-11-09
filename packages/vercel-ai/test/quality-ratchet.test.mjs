@@ -236,3 +236,25 @@ test("actual input mutation after original native qualification refuses unstable
     syncBuiltinESMExports();
   }
 });
+
+
+test("symlink public command runs its real parser and preserves refusal status", () => {
+  const root = inputRoot({ "clean.ts": "/** Original CLI input. */\nexport const value = 1;",
+    "missing.ts": "export const value = 1;" });
+  const linked = join(root, "native-documentation.mjs");
+  symlinkSync(command, linked);
+  /** Original CLI cases must not turn into an empty successful import under an alias. */
+  const cases = [
+    { args: [root, "clean.ts"], status: 0, text: '\"findings\":[]' },
+    { args: [root, "missing.ts"], status: 1, text: "declaration-documentation" },
+    { args: ["--version"], status: 0, text: '\"typescript\":\"6.0.3\"' },
+    { args: [], status: 2, text: "Native TypeScript documentation refused." },
+  ];
+  for (const [index, { args, status, text }] of cases.entries()) {
+    const native = spawnSync(process.execPath, [linked, ...args], { encoding: "utf8", timeout: 15000 });
+    writeFileSync(join(root, "symlink-command-" + index + ".json"),
+      JSON.stringify({ args, status: native.status, stdout: native.stdout, stderr: native.stderr }));
+    assert.equal(native.status, status);
+    assert.ok((native.stdout + native.stderr).includes(text));
+  }
+});

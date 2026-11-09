@@ -1,0 +1,15 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "types": [
+      "node"
+    ]
+  },
+  "files": [],
+  "include": [
+    "tools/**/*.mjs",
+    "test/**/*.mjs"
+  ]
+}

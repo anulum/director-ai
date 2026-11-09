@@ -1,0 +1,21 @@
+{
+  "name": "@director-ai/gateway-benchmark-checks",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "license": "Apache-2.0",
+  "engines": {
+    "node": "26.13.0"
+  },
+  "scripts": {
+    "prepare:types": "node tools/prepare-k6-types.mjs",
+    "check": "tsc -p tsconfig.json && tsc -p tsconfig.tools.json",
+    "docs": "node ../../../packages/vercel-ai/tools/quality-ratchet.mjs ../../.. gateway/go/bench/passthrough.js gateway/go/bench/tools/prepare-k6-types.mjs gateway/go/bench/test/prepare-k6-types.test.mjs gateway/go/bench/test/passthrough.test.mjs",
+    "test": "npm run prepare:types && npm run check && node --test --test-concurrency=1 --experimental-test-coverage --test-coverage-exclude=node_modules/** --test-coverage-include=tools/*.mjs --test-coverage-include=test/*.mjs --test-coverage-lines=100 --test-coverage-branches=100 --test-coverage-functions=100 test/*.test.mjs"
+  },
+  "devDependencies": {
+    "@types/k6": "2.3.1",
+    "@types/node": "26.6.4",
+    "typescript": "6.0.3"
+  }
+}
