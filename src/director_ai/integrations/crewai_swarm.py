@@ -4,7 +4,7 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI — CrewAI multi-agent swarm guardian adapter
+# Director-AI — CrewAI multi-agent swarm guardian adapter
 """CrewAI swarm adapter: wrap crew tasks with guardian scoring.
 
 Hooks into CrewAI task lifecycle to score agent outputs before
@@ -47,7 +47,21 @@ __all__ = ["CrewGuardian", "TaskGuardResult"]
 
 @dataclass(frozen=True)
 class TaskGuardResult:
-    """Result of guarding a CrewAI task output."""
+    """Outcome of a task handoff or final crew output.
+
+    Parameters
+    ----------
+    approved : bool
+        Whether the guardian allowed the output.
+    agent_id : str
+        Source agent identifier.
+    score : float
+        Divergence score from zero (grounded) to one (ungrounded).
+    reason : str
+        Guardian diagnostic when the output was blocked.
+    quarantined : bool
+        Whether the source agent was quarantined.
+    """
 
     approved: bool
     agent_id: str
@@ -64,7 +78,8 @@ class CrewGuardian:
     guardian : SwarmGuardian
         The swarm guardian coordinating agents.
     scorer : HandoffScorer | None
-        Optional custom scorer. Defaults to keyword-based.
+        Optional handoff scorer. When absent, retain the guardian's keyword
+        scoring and the registered agent's coherence threshold.
     auto_quarantine : bool
         Quarantine agent on rejection (default True).
     """
@@ -75,14 +90,8 @@ class CrewGuardian:
         scorer: HandoffScorer | None = None,
         auto_quarantine: bool = True,
     ) -> None:
+        """Bind the guardian, optional scorer and quarantine policy."""
         self._guardian = guardian
-        if scorer is None:
-            # Lazy import: HandoffScorer ships in the advanced tier
-            # (director-ai-pro); the free wheel imports this module fine
-            # and only needs it when a scorer is not supplied.
-            from director_ai.agentic.handoff_scorer import HandoffScorer
-
-            scorer = HandoffScorer()
         self._scorer = scorer
         self._auto_quarantine = auto_quarantine
         self._guarded_count = 0
@@ -111,6 +120,8 @@ class CrewGuardian:
         Returns
         -------
         TaskGuardResult
+            Decision and divergence score, with a refusal reason and the
+            resulting quarantine state when the output is blocked.
         """
         self._guarded_count += 1
 
@@ -131,6 +142,7 @@ class CrewGuardian:
             to_agent=next_agent_id,
             message=task_output,
             context=context,
+            scorer=self._scorer,
         )
 
         if result.should_halt:
@@ -174,6 +186,12 @@ class CrewGuardian:
             The last agent in the pipeline.
         context : str
             Ground truth context.
+
+        Returns
+        -------
+        TaskGuardResult
+            Final-output verdict using the supplied scorer or the guardian's
+            existing agent policy, with the same quarantine behaviour as a task.
         """
         output_text = str(crew_result)
         return self.guard_task_output(
@@ -185,7 +203,13 @@ class CrewGuardian:
 
     @property
     def stats(self) -> dict[str, int]:
-        """Guarding statistics."""
+        """Return guarded, blocked and approved output counts.
+
+        Returns
+        -------
+        dict[str, int]
+            A fresh snapshot including refusals of already quarantined agents.
+        """
         return {
             "guarded": self._guarded_count,
             "blocked": self._blocked_count,
