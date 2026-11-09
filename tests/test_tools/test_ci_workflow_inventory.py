@@ -102,6 +102,69 @@ def test_python_partitions_install_the_native_compiler_before_all_tests() -> Non
     assert "--junitxml partition.xml" in command
 
 
+def test_studio_manifest_contracts_run_after_the_locked_compiler_install() -> None:
+    """Keep real manifest types and HTTP tests mandatory in the existing CI gate."""
+    job = object_mapping(
+        object_mapping(read_workflow(workflow_path_for_job("lint"))["jobs"])["lint"]
+    )
+    raw = job["steps"]
+    assert isinstance(raw, list)
+    steps = [object_mapping(step) for step in raw]
+    sdk = next(
+        i
+        for i, step in enumerate(steps)
+        if step.get("name")
+        == "Vercel middleware types, HTTP contracts and API documentation"
+    )
+    studio = next(
+        i
+        for i, step in enumerate(steps)
+        if step.get("name") == "Studio manifest types and real HTTP contracts"
+    )
+    assert sdk < studio
+    assert "npm ci --ignore-scripts" in str(steps[sdk]["run"])
+    assert steps[studio]["working-directory"] == "studio-web"
+    assert steps[studio]["run"] == "npm run test:manifest\nnpm run docs:manifest\n"
+    assert "if" not in steps[studio]
+    assert not steps[studio].get("continue-on-error", False)
+
+
+@pytest.mark.parametrize(
+    "before,after",
+    (
+        ("npm run test:manifest", "node --check src/contract/manifest.ts"),
+        ("working-directory: studio-web", "working-directory: packages/vercel-ai"),
+        (
+            "      - name: Studio manifest types and real HTTP contracts\n",
+            "      - name: Studio manifest types and real HTTP contracts\n        continue-on-error: true\n",
+        ),
+    ),
+)
+def test_studio_manifest_gate_drift_is_refused(
+    tmp_path: Path, before: str, after: str
+) -> None:
+    """Refuse syntax-only substitutes, wrong roots and optional manifest failures.
+
+    Parameters
+    ----------
+    tmp_path : Path
+        Isolated real workflow owners and their declared executable policy.
+    before : str
+        Original mandatory Studio declaration.
+    after : str
+        Invalid replacement which must fail the public workflow audit.
+    """
+    root = _native_checkout(tmp_path)
+    path = workflow_path_for_job("lint", root)
+    original = path.read_text()
+    assert before in original
+    path.write_text(original.replace(before, after, 1))
+    assert (
+        "Executable body differs from its versioned contract: lint"
+        in audit_ci_workflow_modularity(root)
+    )
+
+
 @pytest.mark.parametrize(
     "before,after",
     (

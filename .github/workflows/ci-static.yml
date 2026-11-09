@@ -81,6 +81,12 @@ jobs:
           npm run docs
           npm audit --audit-level=low
 
+      - name: Studio manifest types and real HTTP contracts
+        working-directory: studio-web
+        run: |
+          npm run test:manifest
+          npm run docs:manifest
+
       - name: REUSE compliance (SPDX licensing)
         uses: fsfe/reuse-action@676e2d560c9a403aa252096d99fcab3e1132b0f5 # v6.0.0
 

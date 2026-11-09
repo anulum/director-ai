@@ -1,3 +1,11 @@
+<!-- SPDX-License-Identifier: Apache-2.0 -->
+<!-- Commercial license available -->
+<!-- © Concepts 1996–2026 Miroslav Šotek. All rights reserved. -->
+<!-- © Code 2020–2026 Miroslav Šotek. All rights reserved. -->
+<!-- ORCID: 0009-0009-3560-0851 -->
+<!-- Contact: www.anulum.li | protoscience@anulum.li -->
+<!-- Director-AI Studio — portal and manifest development -->
+
 # Director-AI Studio — AI-Safety / Streaming Academy (Tier-B portal)
 
 Phase-0 skeleton for the dedicated Director-AI portal: the place to **learn** how
@@ -20,7 +28,7 @@ the CEO honesty rulings H1–H4; baseline:
 
 1. **Contract is the only seam** — `src/contract/manifest.ts` reads the committed
    schema-A `studio_manifest.json` (produced by `tools/emit_studio_manifest.py`),
-   forward-tolerant (unknown fields render at the boundary, never throw). The portal
+   forward-tolerant (unknown fields remain available in `extra`). The portal
    never reaches into Python internals.
 2. **Shared libraries** — `@anulum/ui` + `@anulum/portal-kit` are the only styling/
    layout source (local mirror in `src/tokens/` until they publish).
@@ -62,11 +70,43 @@ npm run test         # Vitest unit/component
 npm run e2e          # Playwright (home → learn → play → evidence)
 ```
 
-The first WASM bundle is the committed `backfire-wasm` pkg
-(`../backfire-kernel/crates/backfire-wasm/pkg`), already wasm-pack-built and
-browser-smoke-tested (`tools/run_wasm_browser_worker_smoke.py`).
+The full portal build also requires a real `backfire-wasm` package at
+`../backfire-kernel/crates/backfire-wasm/pkg`. The manifest checks below do not
+build that package or qualify its browser behaviour. The separate kernel smoke
+runner is `tools/run_wasm_browser_worker_smoke.py`.
 
-## Data sources (all committed)
+## Manifest contract checks
+
+The manifest reader can be checked independently of the portal's unresolved
+React, shared-package and WASM build dependencies. Use the repository's locked
+TypeScript compiler and Node 26.13.0:
+
+```bash
+npm ci --prefix ../packages/vercel-ai --ignore-scripts
+npm run test:manifest
+npm run docs:manifest
+```
+
+The test command strictly checks the actual TypeScript reader and native JavaScript
+tests, then requires 100% native line, branch and function coverage for both.
+The tests stage the committed `docs/_generated/studio_manifest.json` with the
+actual sync script and consume those bytes through real loopback HTTP. They
+also check flat-payload compatibility, future eras and verbs, unknown fields,
+malformed fields, HTTP refusal, invalid JSON and a disconnected endpoint.
+The existing Vitest and full portal build commands remain separate requirements.
+
+`parseManifest` and `loadManifest` accept the producer's federation envelope:
+typed fields come from its own `schema_a` member. Unknown envelope fields are
+retained in `manifest.extra`; unknown nested schema fields are retained in
+`manifest.extra.schema_a`, keeping equal names at different levels distinct.
+Legacy flat schema-A payloads retain their existing `extra` layout. A malformed
+`schema_a` uses safe defaults rather than accepting outer identity fields, while
+its original value remains unchanged in `manifest.extra.schema_a`.
+The browser loader defaults to `/studio_manifest.json`, staged under `public/`
+by `npm run sync:manifest`. These checks do not qualify the full portal or WASM
+runtime.
+
+## Data sources and build inputs
 
 - `docs/_generated/studio_manifest.json` — schema-A verbs/capabilities (Capabilities).
 - `benchmarks/scores/factcg-*.json`, `benchmarks/results/*` — accuracy + FPR (Benchmarks, Evidence).
