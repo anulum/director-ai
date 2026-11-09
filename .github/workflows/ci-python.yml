@@ -65,6 +65,16 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "26.13.0"
+          cache: npm
+          cache-dependency-path: packages/vercel-ai/package-lock.json
+
+      - name: Install the locked native TypeScript compiler
+        working-directory: packages/vercel-ai
+        run: npm ci --ignore-scripts --no-audit --no-fund
+
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version: "1.27.1"

@@ -52,7 +52,7 @@ in progress or provide an independent execution-authority boundary.
 
 ## Contributor checks
 
-Use Node.js 26.10.0, matching the repository CI toolchain, then run:
+Use Node.js 26.13.0, matching the repository CI toolchain, then run:
 
 ```bash
 npm ci --ignore-scripts
@@ -72,3 +72,9 @@ documentation and other validation warnings.
 The documentation collector in `tools/quality-ratchet.mjs` emits source-bound
 diagnostics for the repository quality tooling; its successful capture alone
 does not accept a historical baseline or enforce the whole repository ratchet.
+
+The committed compiler profile uses TypeScript 6.0.3 and TypeDoc 0.28.20.
+TypeDoc's declared compiler peer range ends at 6.0.x; compiler-major upgrades
+require qualification of both the compiler API and the documentation builder.
+The parser collector measures declarations and masking directives. Strict
+semantic checking remains the separate `npm run check` and build contract.

@@ -7,18 +7,145 @@
 # Director-AI — real distributed workflow inventory contracts
 """Read all actual CI owners and immutable public benchmark identities."""
 
+import json
 from pathlib import Path
 
 import pytest
 
+from tools.audit_ci_workflow_modularity import (
+    audit_ci_workflow_modularity,
+    read_workflow,
+)
 from tools.ci_workflow_inventory import (
     ROOT,
     ci_workflow_paths,
     expected_halueval_inputs,
     load_ci_workflow_policy,
+    object_mapping,
     read_ci_workflow_source,
     workflow_path_for_job,
 )
+from tools.quality_ratchet_typescript import NODE_VERSION, TYPESCRIPT_VERSION
+
+
+def test_native_node_consumers_match_the_executing_locked_profile() -> None:
+    """Bind every maintained Node consumer to the actual adapter and compiler lock."""
+    for path, job_id in (
+        (workflow_path_for_job("lint"), "lint"),
+        (workflow_path_for_job("test-partitions"), "test-partitions"),
+        (ROOT / ".github/workflows/docs.yml", "typedoc"),
+    ):
+        job = object_mapping(object_mapping(read_workflow(path)["jobs"])[job_id])
+        raw = job["steps"]
+        assert isinstance(raw, list)
+        steps = [object_mapping(step) for step in raw]
+        setups = [
+            step
+            for step in steps
+            if str(step.get("uses", "")).startswith("actions/setup-node@")
+        ]
+        assert len(setups) == 1
+        setup = setups[0]
+        assert (
+            setup["uses"]
+            == "actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1"
+        )
+        assert "if" not in setup and not setup.get("continue-on-error", False)
+        assert object_mapping(setup["with"]) == {
+            "node-version": NODE_VERSION,
+            "cache": "npm",
+            "cache-dependency-path": "packages/vercel-ai/package-lock.json",
+        }
+    locked = object_mapping(
+        json.loads((ROOT / "packages/vercel-ai/package-lock.json").read_text())
+    )
+    compiler = object_mapping(
+        object_mapping(locked["packages"])["node_modules/typescript"]
+    )
+    assert compiler["version"] == TYPESCRIPT_VERSION
+
+
+def test_python_partitions_install_the_native_compiler_before_all_tests() -> None:
+    """Keep a mandatory locked compiler before the complete unfiltered pytest command."""
+    jobs = object_mapping(
+        read_workflow(workflow_path_for_job("test-partitions"))["jobs"]
+    )
+    job = object_mapping(jobs["test-partitions"])
+    raw = job["steps"]
+    assert isinstance(raw, list)
+    steps = [object_mapping(step) for step in raw]
+    setup = next(
+        i
+        for i, step in enumerate(steps)
+        if "actions/setup-node@" in str(step.get("uses", ""))
+    )
+    install = next(
+        i
+        for i, step in enumerate(steps)
+        if step.get("name") == "Install the locked native TypeScript compiler"
+    )
+    tests = next(
+        i
+        for i, step in enumerate(steps)
+        if step.get("name") == "Run the complete assigned test partition"
+    )
+    assert setup < install < tests
+    assert steps[install]["working-directory"] == "packages/vercel-ai"
+    assert steps[install]["run"] == "npm ci --ignore-scripts --no-audit --no-fund"
+    assert "if" not in steps[install] and not steps[install].get(
+        "continue-on-error", False
+    )
+    command = str(steps[tests]["run"])
+    assert "-m pytest tests/" in command
+    assert '--partition-index "$PARTITION_INDEX"' in command
+    assert "--partition-report partition.json" in command
+    assert "--junitxml partition.xml" in command
+
+
+@pytest.mark.parametrize(
+    "before,after",
+    (
+        ('node-version: "26.13.0"', 'node-version: "0.0.0"'),
+        ("working-directory: packages/vercel-ai", "working-directory: packages/absent"),
+        (
+            "npm ci --ignore-scripts --no-audit --no-fund",
+            "npm install --ignore-scripts",
+        ),
+        (
+            "      - name: Install the locked native TypeScript compiler\n",
+            "      - name: Install the locked native TypeScript compiler\n        if: false\n",
+        ),
+        (
+            "      - name: Install the locked native TypeScript compiler\n",
+            "      - name: Install the locked native TypeScript compiler\n        continue-on-error: true\n",
+        ),
+    ),
+)
+def test_native_compiler_prerequisite_drift_is_refused(
+    tmp_path: Path,
+    before: str,
+    after: str,
+) -> None:
+    """Reject real executable prerequisite mutations through the public workflow audit.
+
+    Parameters
+    ----------
+    tmp_path : Path
+        Isolated original source-bound workflow checkout.
+    before : str
+        Exact original native prerequisite declaration.
+    after : str
+        Deliberately invalid version, installation, condition or failure policy.
+    """
+    root = _native_checkout(tmp_path)
+    path = workflow_path_for_job("test-partitions", root)
+    original = path.read_text()
+    assert before in original
+    path.write_text(original.replace(before, after, 1))
+    assert (
+        "Executable body differs from its versioned contract: test-partitions"
+        in audit_ci_workflow_modularity(root)
+    )
 
 
 def test_every_declared_job_resolves_to_its_real_owner() -> None:

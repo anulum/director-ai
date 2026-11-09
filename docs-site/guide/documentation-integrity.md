@@ -101,7 +101,7 @@ PY
 
 ## Vercel Middleware Checks
 
-The root CI lint job qualifies `packages/vercel-ai` with Node.js 26.10.0:
+The root CI lint job qualifies `packages/vercel-ai` with Node.js 26.13.0:
 strict TypeScript and JavaScript test/tool checking, public middleware HTTP and
 streaming contracts, 100% selected SDK line/branch/function coverage, warning-fatal
 TypeDoc and the complete npm dependency audit. Run the same commands from the
@@ -112,6 +112,36 @@ not establish model inference accuracy or a deployed service's qualification.
 The SDK documentation collector supplies source-bound diagnostics, while the
 repository-wide historical-baseline ratchet remains a separate enforcement
 boundary.
+
+## Native TypeScript Documentation Snapshots
+
+With Node.js 26.13.0 installed, install the committed compiler dependencies from
+`packages/vercel-ai` using `npm ci --ignore-scripts --no-audit --no-fund`. From the
+selected Git source repository, capture the native declaration and masking report:
+
+```python
+from pathlib import Path
+
+from tools.quality_ratchet_typescript import capture_typescript_documentation
+
+snapshot = capture_typescript_documentation(Path.cwd(), "node")
+print(len(snapshot.sources), len(snapshot.findings))
+```
+
+The inventory includes maintained JavaScript and TypeScript source, declarations,
+tests and tooling. It refuses symbolic source ownership, malformed native reports,
+unsupported tool/configuration identities and source or engine changes during
+analysis. Native Git, compiler calls and final custody checks share the caller's
+whole deadline. Findings retain original source positions and byte hashes;
+the profile identity includes the executing adapter, helper and locked recipe.
+
+This parser profile checks syntax, declaration documentation and masking directives.
+It does not resolve imports or establish strict semantic or generated-output
+qualification. SDK build/type checks and warning-fatal TypeDoc remain separate
+native gates. Gateway host typing and Studio's dependency, generated-manifest and
+WASM integration need their own native qualification; a complete parser snapshot
+does not certify those boundaries. Repository-wide baseline enforcement also
+remains separate.
 
 ## Native Go Documentation Collector
 

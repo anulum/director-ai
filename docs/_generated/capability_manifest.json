@@ -9,7 +9,7 @@
     "python_model_classes": 1070,
     "python_model_source_modules": 540,
     "rust_pyo3_model_wrappers": 83,
-    "test_files": 815
+    "test_files": 817
   },
   "documentation": {
     "public_pages": [
@@ -6162,6 +6162,8 @@
       "tests/test_quality_ratchet_golang_protocol.py",
       "tests/test_quality_ratchet_inventory.py",
       "tests/test_quality_ratchet_native.py",
+      "tests/test_quality_ratchet_typescript.py",
+      "tests/test_quality_ratchet_typescript_integrity.py",
       "tests/test_quality_ratchet_typing.py",
       "tests/test_quality_ratchet_typing_protocol.py",
       "tests/test_query_decomposition.py",
