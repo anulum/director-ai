@@ -40,18 +40,44 @@ From the repo root:
 ```bash
 make test-wasm
 make wasm-build
+make wasm-build-node
 ```
 
 Direct crate commands:
 
 ```bash
 cd backfire-kernel/crates/backfire-wasm
-wasm-pack test --node
-wasm-pack build --target web --release
+wasm-pack test --node -- --locked
+wasm-pack build --target web --release -- --locked
 ```
 
-CI already builds the web target in `.github/workflows/wheels.yml` and uploads
-the `pkg/` directory as the `wasm-edge-runtime` artefact.
+Use wasm-pack `0.15.1`. The required Rust CI job executes wasm32 tests in
+Node `26.13.0`; the benchmark job builds and exercises the generated Node
+package. The wheels workflow builds the separate web target and uploads
+`pkg/` as the `wasm-edge-runtime` artefact. `make wasm-build-node` writes
+`pkg-nodejs/` and preserves an existing web-target `pkg/`.
+
+### Compare the runtime interfaces
+
+After building the Node package and installing the Python native extension:
+
+```bash
+python -m benchmarks.wasm_overhead_bench \
+  --wasm-module backfire-kernel/crates/backfire-wasm/pkg-nodejs/backfire_wasm.js \
+  --output benchmarks/results/wasm_streaming_comparison.json
+```
+
+The default workload remains 1,000 tokens and 50 independent sessions for
+each of Rust FFI, Python orchestration and Node/WASM. A missing runtime or an
+incomplete session refuses the comparison. The output retains every sample,
+native input hashes, host load and affinity, and does not overwrite an
+existing result.
+
+The three interfaces include different costs: Rust accepts a batch and calls
+Python for each score; Python constructs events and uses native statistics;
+WASM returns a complete session snapshot for each token. Their timings are
+not pure FFI overhead or NLI inference latency. Shared-host measurements are
+labelled non-isolated and cannot establish deployment latency guarantees.
 
 Validate the generated package metadata and release digests:
 

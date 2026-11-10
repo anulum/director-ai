@@ -1,3 +1,10 @@
+<!-- SPDX-License-Identifier: Apache-2.0 -->
+<!-- Commercial license available -->
+<!-- © Concepts 1996–2026 Miroslav Šotek. All rights reserved. -->
+<!-- © Code 2020–2026 Miroslav Šotek. All rights reserved. -->
+<!-- ORCID: 0009-0009-3560-0851 -->
+<!-- Contact: www.anulum.li | protoscience@anulum.li -->
+<!-- Director-AI — WebAssembly streaming halt runtime -->
 # backfire-wasm
 
 WebAssembly bindings for the Director-Class AI streaming halt
@@ -26,28 +33,30 @@ backfire-kernel/crates/backfire-wasm/
 
 ## Building
 
-```bash
-# from the crate directory
-wasm-pack build --target web --release
+Use wasm-pack 0.15.1. From the repository root:
 
-# other targets
-wasm-pack build --target nodejs --release
-wasm-pack build --target bundler --release     # Webpack/Vite
-wasm-pack build --target no-modules --release  # classic <script>
+```bash
+make wasm-build       # web module in pkg/
+make wasm-build-node  # Node module in pkg-nodejs/
 ```
 
-The default artefact weighs ~110 KB uncompressed (`*.wasm`) plus
-~12 KB of JS glue. `wasm-opt -Oz` is run by `wasm-pack` during a
-release build.
+The separate Node output preserves an existing web package. Direct crate
+commands are equivalent:
 
-Cargo cache lives on the Samsung working drive per the project convention — set
-`CARGO_TARGET_DIR=/media/anulum/GOTM/_caches/rust-target`
-before running to avoid hammering the root partition.
+```bash
+wasm-pack build --target web --release -- --locked
+wasm-pack build --target nodejs --release --out-dir pkg-nodejs -- --locked
+```
+
+Set `CARGO_TARGET_DIR` to an owned build directory when needed. The Make
+targets otherwise use the repository's `backfire-kernel/target/`. Release
+builds use wasm-pack's wasm-opt step; package size depends on the toolchain
+and target, so retain the generated artefact identities for each build.
 
 ## Testing
 
 ```bash
-wasm-pack test --node
+wasm-pack test --node -- --locked
 ```
 
 The seven integration tests in `tests/kernel.rs` run against a real
@@ -94,7 +103,7 @@ the Rust `StreamSession`) so the host can decide what to render.
 ## Hosting the browser demo
 
 ```bash
-wasm-pack build --target web --release
+wasm-pack build --target web --release -- --locked
 cd example
 python3 -m http.server 8000
 # open http://localhost:8000 in a browser

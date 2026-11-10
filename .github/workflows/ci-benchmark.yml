@@ -30,18 +30,63 @@ jobs:
         with:
           python-version: "3.12"
 
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version: "26.13.0"
+          cache: npm
+          cache-dependency-path: gateway/go/bench/package-lock.json
+
+      - uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable
+        with:
+          targets: wasm32-unknown-unknown
+
       - name: Install dependencies
         run: |
           pip install --require-hashes --no-deps -r requirements/ci-dev.txt
-          maturin build --release --manifest-path backfire-kernel/crates/backfire-ffi/Cargo.toml --out dist/backfire-kernel
+          maturin build --release --locked --manifest-path backfire-kernel/crates/backfire-ffi/Cargo.toml --out dist/backfire-kernel
           python -m pip install --force-reinstall --no-deps --no-index dist/backfire-kernel/backfire_kernel-*.whl
           pip install --no-deps -e .
+
+      - name: Build the Node WASM package
+        run: |
+          cargo install wasm-pack@0.15.1 --locked
+          make wasm-build-node
+
+      - name: Check streaming comparison sources and real runtime contracts
+        env:
+          NODE_V8_COVERAGE: ${{ github.workspace }}/build/streaming-comparison/node-coverage
+        run: |
+          npm --prefix gateway/go/bench ci --ignore-scripts --no-audit --no-fund
+          npm --prefix packages/vercel-ai ci --ignore-scripts --no-audit --no-fund
+          npm --prefix gateway/go/bench run prepare:types
+          npm --prefix gateway/go/bench run check
+          npm --prefix gateway/go/bench run docs
+          packages/vercel-ai/node_modules/.bin/typedoc --tsconfig gateway/go/bench/tsconfig.tools.json --entryPoints benchmarks/wasm_overhead_node.mjs --out build/streaming-comparison/api-docs --name 'Streaming runtime comparison' --readme benchmarks/README.md --treatWarningsAsErrors --treatValidationWarningsAsErrors --validation.notDocumented --validation.invalidLink --validation.notExported
+          npm --prefix gateway/go/bench run test:wasm
+          ruff format --check benchmarks/wasm_overhead_bench.py tests/test_wasm_overhead_bench.py tests/test_wasm_ci_contracts.py tests/test_tools/test_ci_workflow_inventory.py
+          ruff check benchmarks/wasm_overhead_bench.py tests/test_wasm_overhead_bench.py tests/test_wasm_ci_contracts.py tests/test_tools/test_ci_workflow_inventory.py
+          ruff check --isolated --select D --config 'lint.pydocstyle.convention="numpy"' benchmarks/wasm_overhead_bench.py tests/test_wasm_overhead_bench.py tests/test_wasm_ci_contracts.py tests/test_tools/test_ci_workflow_inventory.py
+          mypy --strict benchmarks/wasm_overhead_bench.py tests/test_wasm_overhead_bench.py tests/test_wasm_ci_contracts.py tests/test_tools/test_ci_workflow_inventory.py
+          coverage run --rcfile benchmarks/streaming_comparison.coveragerc -m pytest tests/test_wasm_overhead_bench.py tests/test_wasm_ci_contracts.py tests/test_tools/test_ci_workflow_inventory.py -q
+          coverage combine --keep --rcfile benchmarks/streaming_comparison.coveragerc
+          coverage report --rcfile benchmarks/streaming_comparison.coveragerc --fail-under=100
+          coverage json --rcfile benchmarks/streaming_comparison.coveragerc -o build/streaming-comparison/python-coverage.json
+
+      - name: Compare all three streaming runtimes
+        run: |
+          python -m benchmarks.wasm_overhead_bench \
+            --wasm-module backfire-kernel/crates/backfire-wasm/pkg-nodejs/backfire_wasm.js \
+            --output benchmarks/results/wasm_streaming_comparison.json
 
       - name: Run regression benchmarks
         run: python -m benchmarks.regression_suite
 
       - name: Upload results
+        if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: benchmark-results
-          path: benchmarks/results/
+          include-hidden-files: true
+          path: |
+            benchmarks/results/
+            build/streaming-comparison/

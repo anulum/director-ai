@@ -1,9 +1,15 @@
 # SPDX-License-Identifier: Apache-2.0
+# Commercial license available
+# © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
+# © Code 2020–2026 Miroslav Šotek. All rights reserved.
+# ORCID: 0009-0009-3560-0851
+# Contact: www.anulum.li | protoscience@anulum.li
+# Director-AI — repository build, verification and documentation commands
 .DEFAULT_GOAL := help
 PYTHON ?= python
 PYTHON_ONLY_CHECK_ARGS ?=
 GENERATED_DOCS_DIR ?= $(CURDIR)/build/generated-docs
-.PHONY: help test python-only-check test-rust test-julia test-lean test-go test-wasm test-all proto wasm-build lint fmt docs docs-build docs-all docs-polyglot docs-rust docs-go docs-typescript docs-julia docs-lean docs-protobuf bench clean build preflight preflight-fast bandit sast install-hooks docker-build docker-run backup julia-instantiate grpc-scoring ab-bench
+.PHONY: help test python-only-check test-rust test-julia test-lean test-go test-wasm test-all proto wasm-build wasm-build-node lint fmt docs docs-build docs-all docs-polyglot docs-rust docs-go docs-typescript docs-julia docs-lean docs-protobuf bench clean build preflight preflight-fast bandit sast install-hooks docker-build docker-run backup julia-instantiate grpc-scoring ab-bench
 
 help: ## Show available targets
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-18s\033[0m %s\n", $$1, $$2}'
@@ -25,13 +31,18 @@ test-julia: ## Run Julia threshold-tuner tests
 
 test-wasm: ## Build + test the backfire-wasm edge runtime
 	cd backfire-kernel/crates/backfire-wasm && \
-		CARGO_TARGET_DIR=$${CARGO_TARGET_DIR:-/media/anulum/GOTM/_caches/rust-target} \
-		wasm-pack test --node
+		CARGO_TARGET_DIR=$${CARGO_TARGET_DIR:-$(CURDIR)/backfire-kernel/target} \
+		wasm-pack test --node -- --locked
 
 wasm-build: ## Build the backfire-wasm web module (pkg/)
 	cd backfire-kernel/crates/backfire-wasm && \
-		CARGO_TARGET_DIR=$${CARGO_TARGET_DIR:-/media/anulum/GOTM/_caches/rust-target} \
-		wasm-pack build --target web --release
+		CARGO_TARGET_DIR=$${CARGO_TARGET_DIR:-$(CURDIR)/backfire-kernel/target} \
+		wasm-pack build --target web --release -- --locked
+
+wasm-build-node: ## Build the backfire-wasm Node module (pkg-nodejs/)
+	cd backfire-kernel/crates/backfire-wasm && \
+		CARGO_TARGET_DIR=$${CARGO_TARGET_DIR:-$(CURDIR)/backfire-kernel/target} \
+		wasm-pack build --target nodejs --release --out-dir pkg-nodejs -- --locked
 
 test-lean: ## Build Lean 4 formal models (HaltMonitor)
 	cd formal/HaltMonitor && lake build

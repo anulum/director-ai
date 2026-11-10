@@ -32,6 +32,11 @@ jobs:
       - uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable
         with:
           components: clippy, rustfmt
+          targets: wasm32-unknown-unknown
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version: "26.13.0"
 
       - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
         with:
@@ -41,10 +46,10 @@ jobs:
         run: cargo fmt --all -- --check
 
       - name: Clippy
-        run: cargo clippy --workspace --all-targets -- -D warnings
+        run: cargo clippy --workspace --all-targets --locked -- -D warnings
 
       - name: Build
-        run: cargo build --workspace
+        run: cargo build --workspace --locked
 
       # backfire-ffi's default extension-module feature leaves the
       # interpreter symbols to the host Python process, so its unit-test
@@ -55,8 +60,14 @@ jobs:
 
       - name: Test
         run: |
-          cargo test --workspace --exclude backfire-ffi
-          cargo test -p backfire-ffi --no-default-features
+          cargo test --workspace --exclude backfire-ffi --locked
+          cargo test -p backfire-ffi --no-default-features --locked
+
+      - name: Test the wasm32 runtime in Node
+        run: |
+          cargo install wasm-pack@0.15.1 --locked
+          cd crates/backfire-wasm
+          wasm-pack test --node -- --locked
 
       # Supply-chain gate (WCG-2): fail on known RustSec vulnerabilities, on any
       # dependency licence outside the permissive allow-list, and on unknown

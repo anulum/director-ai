@@ -1,0 +1,21 @@
+# SPDX-License-Identifier: Apache-2.0
+# Commercial license available
+# © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
+# © Code 2020–2026 Miroslav Šotek. All rights reserved.
+# ORCID: 0009-0009-3560-0851
+# Contact: www.anulum.li | protoscience@anulum.li
+# Director-AI — complete streaming comparison Python coverage
+[run]
+branch = True
+parallel = True
+data_file = build/streaming-comparison/.coverage
+include =
+    benchmarks/wasm_overhead_bench.py
+    tests/test_wasm_overhead_bench.py
+    tests/test_wasm_ci_contracts.py
+    tests/test_tools/test_ci_workflow_inventory.py
+
+[report]
+exclude_lines =
+exclude_also =
+partial_branches =

@@ -1,6 +1,10 @@
 # SPDX-License-Identifier: Apache-2.0
-# © 1998–2026 Miroslav Šotek. All rights reserved.
+# Commercial license available
+# © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
+# © Code 2020–2026 Miroslav Šotek. All rights reserved.
+# ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
+# Director-AI — Rust wheels and WASM package builds
 name: Build & Publish Rust Wheels
 
 on:
@@ -69,10 +73,10 @@ jobs:
           targets: wasm32-unknown-unknown
 
       - name: Install wasm-pack
-        run: cargo install wasm-pack@0.13.1 --locked
+        run: cargo install wasm-pack@0.15.1 --locked
 
       - name: Build WASM package
-        run: wasm-pack build --target web --release --out-dir pkg
+        run: wasm-pack build --target web --release --out-dir pkg -- --locked
         working-directory: backfire-kernel/crates/backfire-wasm
 
       - name: Verify output

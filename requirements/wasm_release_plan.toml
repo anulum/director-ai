@@ -10,7 +10,10 @@
 crate = "backfire-kernel/crates/backfire-wasm"
 doc = "docs-site/deployment/wasm-runtime.md"
 workflow = ".github/workflows/wheels.yml"
-make_targets = ["test-wasm", "wasm-build"]
+make_targets = ["test-wasm", "wasm-build", "wasm-build-node"]
+wasm_pack_version = "0.15.1"
+node_package = "backfire-kernel/crates/backfire-wasm/pkg-nodejs"
+comparison_command = "python -m benchmarks.wasm_overhead_bench"
 package_name = "backfire-wasm"
 scope = "halt decision only; host supplies one coherence score per token"
 package_validator = "tools/check_wasm_release_package.py"

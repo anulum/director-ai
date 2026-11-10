@@ -551,7 +551,12 @@ def test_gateway_native_profile_and_complete_lock_audit_are_required() -> None:
     assert options["skipLibCheck"] is False
     tools = object_mapping(json.loads((package / "tsconfig.tools.json").read_text()))
     assert object_mapping(tools["compilerOptions"])["types"] == ["node"]
-    assert tools["include"] == ["tools/**/*.mjs", "test/**/*.mjs"]
+    assert tools["include"] == [
+        "tools/**/*.mjs",
+        "test/**/*.mjs",
+        "../../../benchmarks/wasm_overhead_node.mjs",
+        "../../../benchmarks/wasm_overhead_node.test.mjs",
+    ]
     metadata = object_mapping(json.loads((package / "package.json").read_text()))
     scripts = object_mapping(metadata["scripts"])
     assert scripts["check"] == "tsc -p tsconfig.json && tsc -p tsconfig.tools.json"
@@ -562,6 +567,15 @@ def test_gateway_native_profile_and_complete_lock_audit_are_required() -> None:
     assert "--test-coverage-include=tools/*.mjs" in str(scripts["test"])
     assert "--test-coverage-exclude=node_modules/**" in str(scripts["test"])
     assert "--test-concurrency=1" in str(scripts["test"])
+    for flag in (
+        "--test-coverage-lines=100",
+        "--test-coverage-branches=100",
+        "--test-coverage-functions=100",
+        "--test-coverage-exclude=node_modules/**",
+        "--test-coverage-include=../../../benchmarks/wasm_overhead_node.mjs",
+        "--test-coverage-include=../../../benchmarks/wasm_overhead_node.test.mjs",
+    ):
+        assert flag in str(scripts["test:wasm"])
 
 
 @pytest.mark.parametrize(
