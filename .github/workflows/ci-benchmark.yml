@@ -69,8 +69,8 @@ jobs:
           mypy --strict benchmarks/wasm_overhead_bench.py tests/test_wasm_overhead_bench.py tests/test_wasm_ci_contracts.py tests/test_tools/test_ci_workflow_inventory.py
           coverage run --rcfile benchmarks/streaming_comparison.coveragerc -m pytest tests/test_wasm_overhead_bench.py tests/test_wasm_ci_contracts.py tests/test_tools/test_ci_workflow_inventory.py -q
           coverage combine --keep --rcfile benchmarks/streaming_comparison.coveragerc
-          coverage report --rcfile benchmarks/streaming_comparison.coveragerc --fail-under=100
-          coverage json --rcfile benchmarks/streaming_comparison.coveragerc -o build/streaming-comparison/python-coverage.json
+          coverage report --keep-combined --rcfile benchmarks/streaming_comparison.coveragerc --fail-under=100
+          coverage json --keep-combined --rcfile benchmarks/streaming_comparison.coveragerc -o build/streaming-comparison/python-coverage.json
 
       - name: Compare all three streaming runtimes
         run: |

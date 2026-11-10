@@ -65,7 +65,8 @@ def test_required_benchmark_job_runs_the_real_three_runtime_comparison() -> None
     assert "--fail-under=100" in checks
     assert "--treatWarningsAsErrors" in checks
     assert "--validation.notDocumented" in checks
-    assert "coverage json" in checks
+    assert "coverage report --keep-combined" in checks
+    assert "coverage json --keep-combined" in checks
     assert str(object_mapping(steps[check]["env"])["NODE_V8_COVERAGE"]).endswith(
         "/build/streaming-comparison/node-coverage"
     )
