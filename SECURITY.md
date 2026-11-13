@@ -148,6 +148,11 @@ the latest 1.5.9 also remains in the affected range. Universal advisory scans
 continue to report these findings; the embedded-only assessment is not a
 claim that the full optional dependency graph is advisory-free.
 
+The complete-lock audit (`uv audit --frozen`) ignores these four ids only while
+`requirements/security-exceptions.toml` holds them as `uv-audit` entries with an
+expiry; an expired or unregistered ignore fails the security job, so the
+exception is re-reviewed rather than kept by default.
+
 Upgrading within the vulnerable no-fix range is not a remediation. The alerts
 are dismissed as not used only after the embedded-only tests pass; when an
 upstream fixed release exists, regenerate and verify the vector extra lock from

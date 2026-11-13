@@ -5546,7 +5546,7 @@
     "license": "Apache-2.0 AND LicenseRef-BUSL-1.1-ANULUM-TDM",
     "name": "director-ai",
     "readme": "README.md",
-    "requires_python": ">=3.11",
+    "requires_python": ">=3.11.5",
     "version": "3.21.0"
   },
   "project_label": "Director-AI",

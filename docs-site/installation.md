@@ -179,4 +179,4 @@ scorer = CoherenceScorer(
 
 ## Python Version
 
-Requires Python 3.11+.
+Requires Python 3.11.5 or newer.

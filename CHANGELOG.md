@@ -17,6 +17,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Require Python 3.11.5 or newer. Soupsieve 2.10, the last release for
+  Python 3.11.0 to 3.11.4, carries an advisory without a fix there; the
+  lock and the development profiles now resolve soupsieve 4.1 only.
+- The complete-lock audit ignores ChromaDB's four server-only advisories,
+  which have no fixed release, only while they are held in the governed
+  exception register with an expiry; an unregistered or expired ignore
+  fails the security job.
 - Add the permanent text-and-data-mining and machine-learning Use Limitation
   for the Advanced/Labs source under `LicenseRef-BUSL-1.1-ANULUM-TDM`;
   preserve the Apache core licence and original conversion parameters.

@@ -41,4 +41,50 @@ schema_version = "director.security_exceptions.v1"
 # tests/test_security_exceptions.py rejects reintroduced PyJWT waivers and
 # vulnerable pins across all runtime and tool profiles.
 
-exceptions = []
+
+# chromadb 1.5.9 (owner decision 2026-11-13): the four advisories affect the ChromaDB
+# server only and no release fixes them; see SECURITY.md. Re-review monthly.
+
+[[exceptions]]
+id = "GHSA-f4j7-r4q5-qw2c"
+tool = "uv-audit"
+package = "chromadb"
+reason = "ChromaDB server pre-authentication code injection; no fixed release exists (1.5.9 is the newest)."
+compensating_control = "chromadb is only the optional [vector] extra, not in the default install; the backend uses the embedded in-process client only, tests refuse HttpClient, and no ChromaDB server is deployed."
+owner = "protoscience@anulum.li"
+opened = "2026-11-13"
+expires = "2026-12-13"
+scope = "ci-lock-audit"
+
+[[exceptions]]
+id = "GHSA-2wm9-hf6c-p5cr"
+tool = "uv-audit"
+package = "chromadb"
+reason = "ChromaDB server missing tenant authorization; no fixed release exists (1.5.9 is the newest)."
+compensating_control = "chromadb is only the optional [vector] extra, not in the default install; the backend uses the embedded in-process client only, tests refuse HttpClient, and no ChromaDB server is deployed."
+owner = "protoscience@anulum.li"
+opened = "2026-11-13"
+expires = "2026-12-13"
+scope = "ci-lock-audit"
+
+[[exceptions]]
+id = "GHSA-xph7-9rjv-w5fr"
+tool = "uv-audit"
+package = "chromadb"
+reason = "ChromaDB server SimpleRBACAuthorizationProvider cross-tenant authorization; no fixed release exists (1.5.9 is the newest)."
+compensating_control = "chromadb is only the optional [vector] extra, not in the default install; the backend uses the embedded in-process client only, tests refuse HttpClient, and no ChromaDB server is deployed."
+owner = "protoscience@anulum.li"
+opened = "2026-11-13"
+expires = "2026-12-13"
+scope = "ci-lock-audit"
+
+[[exceptions]]
+id = "GHSA-36p7-vc44-83pf"
+tool = "uv-audit"
+package = "chromadb"
+reason = "ChromaDB server authenticated code injection through collection updates; no fixed release exists (1.5.9 is the newest)."
+compensating_control = "chromadb is only the optional [vector] extra, not in the default install; the backend uses the embedded in-process client only, tests refuse HttpClient, and no ChromaDB server is deployed."
+owner = "protoscience@anulum.li"
+opened = "2026-11-13"
+expires = "2026-12-13"
+scope = "ci-lock-audit"

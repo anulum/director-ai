@@ -42,7 +42,7 @@ def test_lite_package_is_standalone_apache() -> None:
     assert project["name"] == "director-ai-lite"
     assert project["version"] == "3.21.0"
     assert project["license"] == "Apache-2.0"
-    assert project["requires-python"] == ">=3.11"
+    assert project["requires-python"] == ">=3.11.5"
     # Standalone: no runtime dependencies. The full package is an opt-in extra.
     assert project["dependencies"] == []
     assert "director-ai>=3.21.0,<4" in project["optional-dependencies"]["full"]

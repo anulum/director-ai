@@ -67,7 +67,9 @@ jobs:
           pip-audit --format cyclonedx-json -o vdr-docker-server.json -r requirements/docker-server.txt
 
       - name: Audit complete Python lock
-        run: uv audit --frozen --no-progress --color never --output-format json
+        # The ignored ids are chromadb's server-only advisories without a fixed release,
+        # held in requirements/security-exceptions.toml (tool uv-audit) with an expiry.
+        run: uv audit --frozen --no-progress --color never --output-format json --ignore GHSA-f4j7-r4q5-qw2c --ignore GHSA-2wm9-hf6c-p5cr --ignore GHSA-xph7-9rjv-w5fr --ignore GHSA-36p7-vc44-83pf
 
       - name: Upload VDR artifacts
         if: always()

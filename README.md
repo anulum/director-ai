@@ -528,7 +528,7 @@ Select via config: `scorer_backend="rules"`, `"embed"`, `"deberta"`, or `"lite"`
 | **Rust kernel** | 20 benchmarked compute functions | `[rust]` (requires maturin) |
 | **Voice** | ElevenLabs, OpenAI TTS, Deepgram adapters | `[voice]` |
 
-Python 3.11+. Full guide: [docs/installation](https://anulum.github.io/director-ai/installation/).
+Python 3.11.5+. Full guide: [docs/installation](https://anulum.github.io/director-ai/installation/).
 
 ---
 

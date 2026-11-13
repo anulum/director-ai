@@ -20,7 +20,7 @@ authors = [
 license = "LicenseRef-BUSL-1.1-ANULUM-TDM"
 license-files = ["LICENSE"]
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.11.5"
 keywords = [
     "llm",
     "hallucination",

@@ -24,7 +24,7 @@ from packaging.requirements import Requirement
 from packaging.version import Version
 
 from tools.audit_ci_workflow_modularity import read_workflow
-from tools.check_security_exceptions import validate_lock_audit
+from tools.check_security_exceptions import lock_audit_ignores, validate_lock_audit
 from tools.ci_workflow_inventory import object_mapping
 
 _ROOT = Path(__file__).resolve().parent.parent
@@ -446,20 +446,33 @@ def lock_audit_step() -> dict[str, object]:
     return matches[0]
 
 
+_COMMITTED_REGISTER = _ROOT / "requirements" / "security-exceptions.toml"
+"""The repository's own register, fixed at import so tests that move ``_ROOT`` keep it."""
+
+
+def _registered_ignores() -> frozenset[str]:
+    """Return the advisory ids the committed register lets the lock audit ignore today."""
+    payload = tomllib.loads(_COMMITTED_REGISTER.read_text(encoding="utf-8"))
+    return lock_audit_ignores(payload, date.today())
+
+
 def test_complete_lock_audit_is_unconditional_and_required(
     lock_audit_step: dict[str, object],
 ) -> None:
     """Bind the real native audit to the required main push and PR security job."""
     command = lock_audit_step["run"]
     assert isinstance(command, str)
-    assert validate_lock_audit(command) == []
+    ignores = _registered_ignores()
+    assert validate_lock_audit(command, ignores=ignores) == []
     assert set(lock_audit_step) == {"name", "run"}
     called = read_workflow(_ROOT / ".github/workflows/ci-security.yml")
     job = object_mapping(object_mapping(called["jobs"])["security"])
     assert "if" not in job
     assert (
         validate_lock_audit(
-            command, continue_on_error=job.get("continue-on-error", False)
+            command,
+            continue_on_error=job.get("continue-on-error", False),
+            ignores=ignores,
         )
         == []
     )
@@ -539,7 +552,9 @@ def test_complete_lock_policy_refuses_actual_command_mutations(
     assert isinstance(command, str)
     original, replacement = change
     assert original in command
-    assert validate_lock_audit(command.replace(original, replacement))
+    ignores = _registered_ignores()
+    assert validate_lock_audit(command, ignores=ignores) == []
+    assert validate_lock_audit(command.replace(original, replacement), ignores=ignores)
 
 
 @pytest.mark.parametrize("override", [True, "${{ true }}", 0, None])
@@ -549,7 +564,9 @@ def test_complete_lock_policy_refuses_failure_overrides(
     """Fail closed for literal and expression-based job or step overrides."""
     command = lock_audit_step["run"]
     assert isinstance(command, str)
-    assert validate_lock_audit(command, continue_on_error=override)
+    assert validate_lock_audit(
+        command, continue_on_error=override, ignores=_registered_ignores()
+    )
 
 
 def test_complete_lock_setup_preserves_tool_pin_and_requirements_audits() -> None:
@@ -664,3 +681,63 @@ def test_manifest_guard_checks_grouped_dependencies(
             guard.test_mcp_absent_from_runtime_dependency_surfaces()
     else:
         guard.test_mcp_absent_from_runtime_dependency_surfaces()
+
+
+_IGNORE_REFUSAL = (
+    "The complete-lock audit ignores an advisory the register does not hold"
+)
+_SCOPE_REFUSAL = "The complete-lock audit command or scope has changed"
+
+
+@pytest.mark.parametrize(
+    ("suffix", "message"),
+    [
+        (" --ignore GHSA-unregistered-probe", _IGNORE_REFUSAL),
+        (" --ignore GHSA-f4j7-r4q5-qw2c", _IGNORE_REFUSAL),
+        (" --ignore", _SCOPE_REFUSAL),
+        (" --ignore-until-fixed GHSA-f4j7-r4q5-qw2c", _SCOPE_REFUSAL),
+    ],
+)
+def test_lock_audit_refuses_an_ignore_the_register_does_not_grant(
+    lock_audit_step: dict[str, object], suffix: str, message: str
+) -> None:
+    """Refuse an unregistered, repeated, dangling or differently spelled ignore."""
+    command = lock_audit_step["run"]
+    assert isinstance(command, str)
+    problems = validate_lock_audit(command + suffix, ignores=_registered_ignores())
+    assert problems == [message]
+
+
+def test_lock_audit_refuses_the_registered_ignores_after_their_expiry(
+    lock_audit_step: dict[str, object],
+) -> None:
+    """An expired register entry no longer lets the real audit skip its advisory."""
+    payload = tomllib.loads(_COMMITTED_REGISTER.read_text(encoding="utf-8"))
+    expiries = {
+        date.fromisoformat(entry["expires"])
+        for entry in payload["exceptions"]
+        if entry["tool"] == "uv-audit"
+    }
+    after = max(expiries).toordinal() + 1
+    ignores = lock_audit_ignores(payload, date.fromordinal(after))
+    command = lock_audit_step["run"]
+    assert isinstance(command, str)
+    assert ignores == frozenset()
+    assert validate_lock_audit(command, ignores=ignores) == [_IGNORE_REFUSAL]
+
+
+def test_only_unexpired_uv_audit_entries_grant_lock_audit_ignores() -> None:
+    """Other tools, bad expiries, empty ids and malformed tables grant nothing."""
+    entry = {"tool": "uv-audit", "id": "GHSA-kept", "expires": "2026-06-07"}
+    payload: dict[str, object] = {
+        "exceptions": [
+            entry,
+            {**entry, "id": "GHSA-other-tool", "tool": "pip-audit"},
+            {**entry, "id": "GHSA-bad-date", "expires": "never"},
+            {**entry, "id": "  "},
+            {**entry, "id": "GHSA-expired", "expires": "2026-06-06"},
+            "not a table",
+        ]
+    }
+    assert lock_audit_ignores(payload, _TODAY) == frozenset({"GHSA-kept"})
+    assert lock_audit_ignores({"exceptions": "not a list"}, _TODAY) == frozenset()

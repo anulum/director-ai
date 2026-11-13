@@ -185,7 +185,7 @@ Scale, evaluate, fine-tune, and deploy.
 
 ## Prerequisites
 
-All notebooks run on **Python 3.11+** with `pip install director-ai`.
+All notebooks run on **Python 3.11.5+** with `pip install director-ai`.
 
 Notebooks requiring optional extras note this in their first cell:
 
