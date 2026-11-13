@@ -24,6 +24,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   which have no fixed release, only while they are held in the governed
   exception register with an expiry; an unregistered or expired ignore
   fails the security job.
+- The Vercel middleware audit no longer treats npm's exit code as the gate.
+  GHSA-g3hv-75wg-m249 (minimatch through 11.0.0) is a governed `npm-audit`
+  exception until 2026-12-13: typedoc 0.28.20 requires minimatch ^10.2.5 and
+  fails on 11, and minimatch is only in that dev-only documentation tool,
+  not in the published package. An unregistered, expired, empty, malformed
+  or npm error report fails the step.
 - Add the permanent text-and-data-mining and machine-learning Use Limitation
   for the Advanced/Labs source under `LicenseRef-BUSL-1.1-ANULUM-TDM`;
   preserve the Apache core licence and original conversion parameters.

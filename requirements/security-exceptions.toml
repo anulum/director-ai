@@ -17,7 +17,7 @@
 #
 #   [[exceptions]]
 #   id = "GHSA-xxxx-xxxx-xxxx"          # advisory id from the scanner
-#   tool = "pip-audit"                  # pip-audit | semgrep | bandit | dependabot
+#   tool = "pip-audit"                  # pip-audit | uv-audit | npm-audit | semgrep | bandit | dependabot
 #   package = "torch"                   # affected package or rule
 #   reason = "No fixed release; not reachable from shipped code paths."
 #   compensating_control = "torch only used in optional [nli]/[finetune] extras; \
@@ -88,3 +88,18 @@ owner = "protoscience@anulum.li"
 opened = "2026-11-13"
 expires = "2026-12-13"
 scope = "ci-lock-audit"
+
+# minimatch through 11.0.0 (owner decision 2026-11-13): typedoc 0.28.20, the
+# newest release, requires minimatch ^10.2.5 and fails on 11. The package is
+# only in that documentation tool's development graph. Re-review monthly.
+
+[[exceptions]]
+id = "GHSA-g3hv-75wg-m249"
+tool = "npm-audit"
+package = "minimatch"
+reason = "typedoc 0.28.20 requires minimatch ^10.2.5 and fails with 11 (mini.matchOne is not a function)."
+compensating_control = "minimatch is only a dev-only documentation tool run on repository-owned globs; it is not in the published package."
+owner = "protoscience@anulum.li"
+opened = "2026-11-13"
+expires = "2026-12-13"
+scope = "packages/vercel-ai"

@@ -58,8 +58,16 @@ Use Node.js 26.13.0, matching the repository CI toolchain, then run:
 npm ci --ignore-scripts
 npm test
 npm run docs
-npm audit --audit-level=low
+audit="${RUNNER_TEMP:-/tmp}/vercel-ai-npm-audit.json"
+npm audit --json > "$audit" || true
+PYTHONPATH="$(cd ../.. && pwd)" python -m tools.check_security_exceptions --npm-audit "$audit"
 ```
+
+The audit gate accepts GHSA-g3hv-75wg-m249 only while the governed
+`npm-audit` entry in `requirements/security-exceptions.toml` is unexpired.
+typedoc 0.28.20 requires minimatch ^10.2.5 and fails on 11, and minimatch
+is not part of the published package. npm's exit code does not decide the
+check.
 
 `npm test` builds the package, checks TypeScript and JavaScript test/tool types,
 and enforces 100% line, branch and function coverage for the selected SDK

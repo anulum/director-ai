@@ -87,7 +87,9 @@ jobs:
           npm ci --ignore-scripts
           npm test
           npm run docs
-          npm audit --audit-level=low
+          audit="$RUNNER_TEMP/vercel-ai-npm-audit.json"
+          npm audit --json > "$audit" || true
+          PYTHONPATH="$GITHUB_WORKSPACE" python -m tools.check_security_exceptions --npm-audit "$audit"
           artefacts="$(mktemp -d "$RUNNER_TEMP/director-sdk-generated.XXXXXX")"
           npm pack --offline --json --pack-destination "$artefacts"
           PYTHONPATH="$GITHUB_WORKSPACE" python -m tools.verify_typescript_generated \

@@ -403,9 +403,13 @@ def test_sdk_generated_package_gate_uses_actual_prepack_and_complete_inputs() ->
     assert sdk["working-directory"] == "packages/vercel-ai"
     assert "if" not in sdk and not sdk.get("continue-on-error", False)
     run = str(sdk["run"])
-    assert run.index("npm audit --audit-level=low") < run.index(
-        "npm pack --offline --json"
-    )
+    assert 'npm audit --json > "$audit" || true' in run
+    assert (
+        'PYTHONPATH="$GITHUB_WORKSPACE" python -m tools.check_security_exceptions '
+        '--npm-audit "$audit"'
+    ) in run
+    assert "npm audit --audit-level=low" not in run
+    assert run.index("npm audit --json") < run.index("npm pack --offline --json")
     assert 'npm pack --offline --json --pack-destination "$artefacts"' in run
     assert "npm pack --ignore-scripts" not in run
     assert (

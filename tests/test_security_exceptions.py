@@ -10,6 +10,7 @@
 from __future__ import annotations
 
 import importlib.util
+import json
 import re
 import runpy
 import sys
@@ -741,3 +742,283 @@ def test_only_unexpired_uv_audit_entries_grant_lock_audit_ignores() -> None:
     }
     assert lock_audit_ignores(payload, _TODAY) == frozenset({"GHSA-kept"})
     assert lock_audit_ignores({"exceptions": "not a list"}, _TODAY) == frozenset()
+
+
+_NPM_TODAY = date(2026, 11, 13)
+_NPM_ADVISORY = "GHSA-g3hv-75wg-m249"
+_NPM_URL = "https://github.com/advisories/GHSA-g3hv-75wg-m249"
+
+
+def _npm_entry(**overrides: str) -> dict[str, str]:
+    """Build one complete npm-audit register entry."""
+    entry = {
+        "id": _NPM_ADVISORY,
+        "tool": "npm-audit",
+        "package": "minimatch",
+        "reason": "typedoc 0.28.20 requires minimatch ^10.2.5 and fails with 11",
+        "compensating_control": "dev-only documentation tool; not in the published package",
+        "owner": "protoscience@anulum.li",
+        "opened": "2026-11-13",
+        "expires": "2026-12-13",
+        "scope": "packages/vercel-ai",
+    }
+    entry.update(overrides)
+    return entry
+
+
+def _npm_report(vulnerabilities: dict[str, object]) -> str:
+    """Serialise one npm audit vulnerabilities object."""
+    return json.dumps({"auditReportVersion": 2, "vulnerabilities": vulnerabilities})
+
+
+def _minimatch_via(url: str = _NPM_URL) -> dict[str, object]:
+    """Build one advisory via object whose URL carries the governed GHSA."""
+    return {"source": 1113512, "name": "minimatch", "url": url, "severity": "high"}
+
+
+def test_npm_audit_accepts_a_report_covered_by_an_unexpired_entry() -> None:
+    """Accept the real advisory shape, including a followed package name and a duplicate URL."""
+    report = _npm_report(
+        {
+            "typedoc": {"via": ["minimatch"]},
+            "minimatch": {"via": [_minimatch_via(), _minimatch_via(_NPM_URL.upper())]},
+        }
+    )
+    assert (
+        checker.check_npm_audit(report, {"exceptions": [_npm_entry()]}, _NPM_TODAY)
+        == []
+    )
+
+
+def test_npm_audit_accepts_a_report_with_no_advisories() -> None:
+    """A vulnerabilities object with no via entries is a clean report."""
+    assert (
+        checker.check_npm_audit(
+            _npm_report({"typedoc": {}}), {"exceptions": []}, _NPM_TODAY
+        )
+        == []
+    )
+
+
+def test_npm_audit_refuses_an_unregistered_advisory_with_its_whole_message() -> None:
+    """An advisory with no npm-audit entry fails as that exact sentence."""
+    report = _npm_report({"minimatch": {"via": [_minimatch_via()]}})
+    assert checker.check_npm_audit(report, {"exceptions": []}, _NPM_TODAY) == [
+        checker.npm_audit_unregistered(_NPM_ADVISORY)
+    ]
+    assert checker.check_npm_audit(
+        report, {"exceptions": "not a list"}, _NPM_TODAY
+    ) == [checker.npm_audit_unregistered(_NPM_ADVISORY)]
+    assert checker.check_npm_audit(
+        report,
+        {
+            "exceptions": [
+                "not a table",
+                _npm_entry(tool="uv-audit"),
+                _npm_entry(package="typedoc"),
+                _npm_entry(id="GHSA-other-xxxx-yyyy"),
+            ]
+        },
+        _NPM_TODAY,
+    ) == [checker.npm_audit_unregistered(_NPM_ADVISORY)]
+
+
+def test_npm_audit_refuses_an_expired_entry_with_its_whole_message() -> None:
+    """A lapsed or undated npm-audit entry does not hold its advisory."""
+    report = _npm_report({"minimatch": {"via": [_minimatch_via()]}})
+    expired = checker.check_npm_audit(
+        report,
+        {"exceptions": [_npm_entry(expires="2026-11-12")]},
+        _NPM_TODAY,
+    )
+    undated = checker.check_npm_audit(
+        report,
+        {"exceptions": [_npm_entry(expires="never")]},
+        _NPM_TODAY,
+    )
+    assert expired == undated == [checker.npm_audit_expired(_NPM_ADVISORY)]
+    held_after_expired = checker.check_npm_audit(
+        report,
+        {
+            "exceptions": [
+                _npm_entry(expires="2026-11-12"),
+                _npm_entry(),
+            ]
+        },
+        _NPM_TODAY,
+    )
+    assert held_after_expired == []
+
+
+@pytest.mark.parametrize(
+    ("report", "message"),
+    [
+        ("", checker.NPM_AUDIT_EMPTY),
+        (" \n\t", checker.NPM_AUDIT_EMPTY),
+        ("{", checker.NPM_AUDIT_MALFORMED),
+        ("null", checker.NPM_AUDIT_MALFORMED),
+        ("[]", checker.NPM_AUDIT_MALFORMED),
+        (
+            json.dumps({"error": {"code": "ENOLOCK"}, "vulnerabilities": {}}),
+            checker.NPM_AUDIT_ERROR,
+        ),
+        ("{}", checker.NPM_AUDIT_NO_VULNERABILITIES),
+        (
+            json.dumps({"vulnerabilities": []}),
+            checker.NPM_AUDIT_NO_VULNERABILITIES,
+        ),
+        (
+            json.dumps({"vulnerabilities": {"minimatch": "nope"}}),
+            checker.NPM_AUDIT_BAD_RECORD,
+        ),
+        (
+            json.dumps({"vulnerabilities": {"minimatch": {"via": "minimatch"}}}),
+            checker.NPM_AUDIT_BAD_VIA,
+        ),
+        (
+            json.dumps({"vulnerabilities": {"minimatch": {"via": [1]}}}),
+            checker.NPM_AUDIT_BAD_VIA,
+        ),
+        (
+            json.dumps({"vulnerabilities": {"minimatch": {"via": ["typedoc"]}}}),
+            checker.NPM_AUDIT_UNKNOWN_FOLLOW,
+        ),
+        (
+            json.dumps({"vulnerabilities": {"minimatch": {"via": [{"url": 1}]}}}),
+            checker.NPM_AUDIT_NO_GHSA,
+        ),
+        (
+            json.dumps(
+                {
+                    "vulnerabilities": {
+                        "minimatch": {
+                            "via": [{"url": "https://example.invalid/advisory"}]
+                        }
+                    }
+                }
+            ),
+            checker.NPM_AUDIT_NO_GHSA,
+        ),
+    ],
+)
+def test_npm_audit_refuses_unusable_reports_with_their_whole_message(
+    report: str, message: str
+) -> None:
+    """Each empty, malformed, error and incomplete report fails as one whole sentence."""
+    assert checker.check_npm_audit(
+        report, {"exceptions": [_npm_entry()]}, _NPM_TODAY
+    ) == [message]
+
+
+def test_npm_audit_cli_prints_the_whole_refusal_and_accepts_a_covered_report(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """The CLI prints only the checker message, and npm's absence from argv cannot pass a bad report."""
+    register = tmp_path / "register.toml"
+    register.write_text(
+        _COMMITTED_REGISTER.read_text(encoding="utf-8"), encoding="utf-8"
+    )
+    refused = tmp_path / "refused.json"
+    refused.write_text("{", encoding="utf-8")
+    assert (
+        checker.main(
+            [
+                "--path",
+                str(register),
+                "--npm-audit",
+                str(refused),
+                "--today",
+                "2026-11-13",
+            ]
+        )
+        == 1
+    )
+    assert capsys.readouterr().err == checker.NPM_AUDIT_MALFORMED + "\n"
+    missing = tmp_path / "missing.json"
+    assert (
+        checker.main(
+            [
+                "--path",
+                str(register),
+                "--today",
+                "2026-11-13",
+                "--npm-audit",
+                str(missing),
+            ]
+        )
+        == 1
+    )
+    assert capsys.readouterr().err == checker.NPM_AUDIT_EMPTY + "\n"
+    covered = tmp_path / "covered.json"
+    covered.write_text(
+        _npm_report({"minimatch": {"via": [_minimatch_via()]}}),
+        encoding="utf-8",
+    )
+    assert (
+        checker.main(
+            [
+                "--npm-audit",
+                str(covered),
+                "--path",
+                str(register),
+                "--today",
+                "2026-11-13",
+            ]
+        )
+        == 0
+    )
+    assert capsys.readouterr().out == "npm audit report OK\n"
+    assert (
+        checker.main(["--path", str(register), "--today", "2026-11-13", "--npm-audit"])
+        == 0
+    )
+    assert "security exception register OK" in capsys.readouterr().out
+
+
+def test_vercel_middleware_step_uses_the_npm_audit_checker() -> None:
+    """The middleware step judges the JSON report; the gateway audit stays a plain level gate."""
+    workflow = read_workflow(_ROOT / ".github/workflows/ci-static.yml")
+    steps = object_mapping(object_mapping(workflow["jobs"])["lint"])["steps"]
+    assert isinstance(steps, list)
+    mapped = [object_mapping(step) for step in steps]
+    middleware = next(
+        step
+        for step in mapped
+        if step.get("name")
+        == "Vercel middleware types, HTTP contracts and API documentation"
+    )
+    gateway = next(
+        step
+        for step in mapped
+        if step.get("name")
+        == "Gateway native JavaScript types, runtime and documentation"
+    )
+    run = str(middleware["run"])
+    assert 'audit="$RUNNER_TEMP/vercel-ai-npm-audit.json"' in run
+    assert 'npm audit --json > "$audit" || true' in run
+    assert (
+        'PYTHONPATH="$GITHUB_WORKSPACE" python -m tools.check_security_exceptions '
+        '--npm-audit "$audit"'
+    ) in run
+    assert "npm audit --audit-level=low" not in run
+    assert "npm audit --audit-level=low" in str(gateway["run"])
+    assert "--npm-audit" not in str(gateway["run"])
+    payload = tomllib.loads(_COMMITTED_REGISTER.read_text(encoding="utf-8"))
+    assert (
+        checker.check_npm_audit(
+            _npm_report(
+                {
+                    "typedoc": {"via": ["minimatch"]},
+                    "minimatch": {"via": [_minimatch_via()]},
+                }
+            ),
+            payload,
+            _NPM_TODAY,
+        )
+        == []
+    )
+    assert checker.check_npm_audit(
+        _npm_report({"minimatch": {"via": [_minimatch_via()]}}),
+        payload,
+        date(2026, 12, 14),
+    ) == [checker.npm_audit_expired(_NPM_ADVISORY)]

@@ -153,6 +153,22 @@ The complete-lock audit (`uv audit --frozen`) ignores these four ids only while
 expiry; an expired or unregistered ignore fails the security job, so the
 exception is re-reviewed rather than kept by default.
 
+### minimatch — GHSA-g3hv-75wg-m249
+
+`packages/vercel-ai` runs `npm audit` for its documentation toolchain.
+minimatch through 11.0.0 is reported by GHSA-g3hv-75wg-m249, and the fix is
+11.0.1. typedoc 0.28.20, the newest release, requires minimatch ^10.2.5 and
+fails on 11 (`mini.matchOne is not a function`) while generating the gateway
+benchmark docs. minimatch is only in that devDependency graph. It is not a
+dependency of the published middleware package. TypeDoc runs on
+repository-owned globs.
+
+The middleware step writes `npm audit --json` and accepts the report only
+when every advisory is held by an unexpired `npm-audit` entry. npm's own
+exit code does not decide the step. The entry expires on 2026-12-13. The
+gateway benchmark package stays on a plain `npm audit --audit-level=low`
+because that audit is clean.
+
 Upgrading within the vulnerable no-fix range is not a remediation. The alerts
 are dismissed as not used only after the embedded-only tests pass; when an
 upstream fixed release exists, regenerate and verify the vector extra lock from
