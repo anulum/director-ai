@@ -286,7 +286,7 @@ train = [
     "datasets>=2.14",
     "accelerate>=0.21",
     "peft>=0.6",
-    "pillow>=10,<13",
+    "pillow>=13,<14",
 ]
 managed-training = [
     "google-cloud-aiplatform>=1.133",
@@ -295,7 +295,7 @@ managed-training = [
 multimodal = [
     "open_clip_torch>=2.24,<4",
     "torchvision>=0.15",
-    "pillow>=10,<13",
+    "pillow>=13,<14",
 ]
 security = [
     "cyclonedx-bom>=4.0",

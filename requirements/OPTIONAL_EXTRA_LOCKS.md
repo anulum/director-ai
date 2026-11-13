@@ -48,9 +48,10 @@ For lighter checks, sync only the extra under review:
 uv sync --locked --extra server
 ```
 
-The demo extra and both Space README files target Gradio 6.29.1. The
-checked-in `requirements/demo.txt` exports the demo dependency graph with
-hashes from the same root lock:
+Both Space README files target Gradio SDK 6.29.1. The checked-in
+`requirements/demo.txt` exports the demo dependency graph with hashes from
+the same root lock, which resolves a newer Gradio inside `>=6.29.1,<7`
+when a dependency such as Pillow requires it:
 
 ```bash
 uv export --locked --extra demo --no-dev --no-emit-project \
