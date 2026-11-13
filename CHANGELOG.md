@@ -36,6 +36,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Raise OpenTelemetry to 1.45.2 (semantic conventions 0.66b2) in the root
+  lock, the server, demo, GPU, Cloud Run, CI and training profiles, and the
+  `otel` extra's floors. 1.45.1 carries CVE-2026-126360 (a regular expression
+  denial of service in `TraceContextTextMapPropagator.extract()`).
 - Align Ruff 0.16.10 and Gradio 6.29.1 across hooks, demo metadata and
   dependency profiles. Preserve compatible Datasets/Hub and Presidio/NumPy
   combinations while refreshing the complete optional dependency graph.
