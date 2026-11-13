@@ -22,7 +22,11 @@ from pathlib import Path
 
 import pytest
 
-from tools.typescript_generated_recipe import capture_toolchain, run_native
+from tools.typescript_generated_recipe import (
+    _signal_group,
+    capture_toolchain,
+    run_native,
+)
 
 ROOT = Path(__file__).resolve().parents[1]
 SDK = ROOT / "packages/vercel-ai"
@@ -448,3 +452,28 @@ Path({str(outcome)!r}).write_text(json.dumps(result))
     for pid in [original["pid"], int(marker.read_text())]:
         with pytest.raises(ProcessLookupError):
             os.kill(pid, 0)
+
+
+def test_signal_group_reports_a_group_that_already_ended() -> None:
+    """A group that exited before the deadline signal is reported, not hidden.
+
+    The command runs in its own session, exits and is reaped; signalling its
+    former group then meets ``ProcessLookupError``, which the helper turns
+    into ``False``. A live group receives the signal and reports ``True``.
+    """
+    import signal
+
+    ended = subprocess.Popen([sys.executable, "-c", "pass"], start_new_session=True)
+    ended.wait(timeout=30)
+    assert _signal_group(ended.pid, signal.SIGTERM) is False
+
+    live = subprocess.Popen(
+        [sys.executable, "-c", "import time; time.sleep(30)"], start_new_session=True
+    )
+    try:
+        assert _signal_group(live.pid, signal.SIGTERM) is True
+        assert live.wait(timeout=30) == -signal.SIGTERM
+    finally:
+        if live.poll() is None:
+            live.kill()
+            live.wait(timeout=30)

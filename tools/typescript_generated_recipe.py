@@ -17,7 +17,6 @@ import signal
 import stat
 import subprocess
 import time
-from contextlib import suppress
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -30,6 +29,30 @@ def _remaining(deadline: float) -> float:
             "Generated TypeScript verification exhausted its whole deadline"
         )
     return value
+
+
+def _signal_group(pid: int, signum: signal.Signals) -> bool:
+    """Send ``signum`` to the process group led by ``pid``.
+
+    Parameters
+    ----------
+    pid : int
+        Leader of the recipe command's own process group.
+    signum : signal.Signals
+        Signal to deliver to the whole group.
+
+    Returns
+    -------
+    bool
+        ``True`` when the group received the signal; ``False`` when it had
+        already ended (``ProcessLookupError``), which is the expected race
+        between a deadline and a command that exits on its own.
+    """
+    try:
+        os.killpg(pid, signum)
+    except ProcessLookupError:
+        return False
+    return True
 
 
 def _digest(path: Path, deadline: float) -> str:
@@ -159,15 +182,13 @@ def run_native(
         if isinstance(error, KeyboardInterrupt):
             interruption = error
         cleanup_deadline = time.monotonic() + 5
-        with suppress(ProcessLookupError):
-            os.killpg(process.pid, signal.SIGTERM)
+        _signal_group(process.pid, signal.SIGTERM)
         try:
             stdout, stderr = process.communicate(
                 timeout=max(0.0, cleanup_deadline - time.monotonic() - 1)
             )
         except subprocess.TimeoutExpired:
-            with suppress(ProcessLookupError):
-                os.killpg(process.pid, signal.SIGKILL)
+            _signal_group(process.pid, signal.SIGKILL)
             try:
                 stdout, stderr = process.communicate(
                     timeout=max(0.0, cleanup_deadline - time.monotonic())
