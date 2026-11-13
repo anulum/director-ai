@@ -14,6 +14,8 @@ Director-AI — Repository overview
 
 <h1 align="center">Director-AI</h1>
 
+> This repository is a public mirror of ANULUM's canonical source; development history predating publication is held privately.
+
 <p align="center">
   <strong>Response-level LLM hallucination guardrail — NLI + RAG grounding, sealed audit evidence, and opt-in streaming contradiction checks</strong>
 </p>
