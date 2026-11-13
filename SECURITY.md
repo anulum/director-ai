@@ -74,28 +74,18 @@ Director-AI's usage:
 
 ### Closed CI scanner exceptions
 
-The three owner-ruled MCP exceptions from 2026-07-17 are closed. The native
-Semgrep 1.178.0 lock now selects MCP 1.29.0, above the 1.27.2 and 1.28.1
-fixed-version floors. Regression tests require the patched MCP SAST pin and prohibit
-reintroducing these resolved waivers.
+The three owner-ruled MCP exceptions from 2026-07-17 are closed. Semgrep
+1.179.0 runs from its official image, pinned by digest, outside the locked
+profiles, so the SAST lock no longer carries MCP or OpenTelemetry. Regression
+tests require that absence and prohibit reintroducing these resolved waivers.
 No MCP server transport is started by the CI scanner.
 
 ### Expiring CI-only PyJWT exception
 
-On 2026-09-30 the owner accepted the 12 specific PyJWT advisories listed in
-`requirements/security-exceptions.toml`, solely for the CI SAST lock and only
-until **2026-10-17**. Semgrep 1.178.0 requires `PyJWT~=2.13.0`; the fixes require
-2.14.0 or 2.15.0, outside that range. Native resolution rejects that combination.
-The affected 2.13.0 pin occurs only in the SAST profile. The official Semgrep
-wheel uses JWT in its MCP server token verifier; CI invokes `semgrep scan` and
-does not start that server. This is a bounded reachability assessment, not a
-claim that the scanner package is advisory-free in other modes.
-
-The unchanged register validator rejects expiry, and regression tests bind the
-waiver to the exact advisory IDs, pin, scope and non-server command. Runtime
-profiles receive no exception. Remove these entries and regenerate the SAST
-lock when a compatible upstream release permits all fixes; do not override
-Semgrep metadata or renew the expiry without a new owner decision.
+The CI-only PyJWT waiver is closed. Semgrep now runs from its official image,
+outside the locked profiles, so the SAST lock does not carry PyJWT. Runtime
+and enterprise profiles that still declare PyJWT stay at or above 2.15.0.
+CI invokes `semgrep scan` and does not start the scanner's MCP server.
 
 ## Licensing
 

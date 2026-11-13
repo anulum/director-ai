@@ -22,7 +22,7 @@ All gates must pass before merge.
 | test | `pytest --cov` (3 Python versions) | Correctness + ≥97% coverage |
 | test-extras | `pytest` with server/grpc extras | Integration with optional deps |
 | security | `pip-audit` | Supply-chain vulnerabilities |
-| sast | `bandit` + `semgrep` | OWASP + code patterns |
+| sast | `bandit`, plus Semgrep 1.179.0 from its digest-pinned image | OWASP + code patterns |
 | fuzz | `pytest test_fuzz.py` (Hypothesis) | Property-based edge cases |
 | benchmark | `benchmarks.regression_suite` | Performance non-regression |
 | rust | `cargo fmt/clippy/test` | Rust backend correctness |

@@ -198,9 +198,9 @@ class TestDependabotTool:
 class TestMcpRemediationInvariant:
     """Reject resolved MCP waivers and regression below advisory fix floors.
 
-    The 2026-07-17 owner ruling was closed when the native Semgrep lock
-    resolved MCP 1.29.0. Patched packages replace reachability exceptions;
-    generic register tests above retain malformed-entry and expiry checks.
+    The 2026-07-17 owner ruling stays closed. Semgrep 1.179.0 runs from its
+    official image, so the SAST lock no longer carries MCP. Generic register
+    tests above retain malformed-entry and expiry checks.
     """
 
     RESOLVED = {
@@ -220,16 +220,6 @@ class TestMcpRemediationInvariant:
         payload = tomllib.loads(self.REGISTER.read_text(encoding="utf-8"))
         return list(payload["exceptions"])
 
-    def _mcp_version(self) -> Version:
-        """Read the unique resolved MCP version from the native SAST lock."""
-        pins = re.findall(
-            r"^mcp==([^ ;\\]+)",
-            self.CI_SAST_LOCK.read_text(encoding="utf-8"),
-            flags=re.MULTILINE,
-        )
-        assert len(pins) == 1, "SAST must carry one auditable MCP pin"
-        return Version(pins[0])
-
     def test_register_excludes_exactly_the_resolved_waivers(self) -> None:
         """Resolved advisory IDs cannot remain scanner exceptions."""
         assert not ({entry["id"] for entry in self._entries()} & self.RESOLVED.keys())
@@ -238,10 +228,12 @@ class TestMcpRemediationInvariant:
         """MCP remediation closes the waiver instead of renewing its expiry."""
         assert not [entry for entry in self._entries() if entry["package"] == "mcp"]
 
-    def test_patched_pin_replaces_the_reachability_exception(self) -> None:
-        """Every waived advisory must be fixed by the resolved SAST version."""
-        for advisory, fixed in self.RESOLVED.items():
-            assert self._mcp_version() >= fixed, advisory
+    def test_sast_lock_does_not_carry_mcp(self) -> None:
+        """The image-hosted scanner does not put MCP back into the SAST lock."""
+        text = self.CI_SAST_LOCK.read_text(encoding="utf-8")
+        assert not re.search(r"^mcp==", text, flags=re.MULTILINE)
+        assert not re.search(r"^semgrep==", text, flags=re.MULTILINE)
+        assert re.search(r"^bandit==", text, flags=re.MULTILINE)
 
     def test_mcp_absent_from_runtime_dependency_surfaces(self) -> None:
         """The scanner dependency does not become a direct runtime dependency."""
@@ -261,11 +253,19 @@ class TestMcpRemediationInvariant:
             lines = lock.read_text(encoding="utf-8").splitlines()
             assert not any(line.startswith("mcp==") for line in lines), lock
 
-    def test_mcp_enters_as_semgreps_patched_transitive(self) -> None:
-        """The checked SAST pin remains wired to an installed Semgrep scanner."""
+    def test_semgrep_stays_outside_the_locked_profiles(self) -> None:
+        """The scanner image is the only Semgrep install, and MCP stays out."""
         text = self.CI_SAST_LOCK.read_text(encoding="utf-8")
-        assert re.search(r"^semgrep==[^ ;\\]+", text, flags=re.MULTILINE)
-        assert self._mcp_version() >= max(self.RESOLVED.values())
+        assert not re.search(r"^semgrep==", text, flags=re.MULTILINE)
+        assert not re.search(r"^mcp==", text, flags=re.MULTILINE)
+        workflow = (_ROOT / ".github/workflows/ci-security.yml").read_text(
+            encoding="utf-8"
+        )
+        assert (
+            "semgrep/semgrep@sha256:93963d9295a366f59e4850127b1550400ee7b388f04fe144e4a1f6325d96e01b"
+            in workflow
+        )
+        assert "semgrep scan" in workflow
 
 
 class TestPyjwtRemediationInvariant:
@@ -312,13 +312,8 @@ class TestPyjwtRemediationInvariant:
     def test_scanner_lock_resolves_compatible_patched_transitives(self) -> None:
         """The native scanner lock cannot regress to the vulnerable graph."""
         text = self.CI_SAST_LOCK.read_text(encoding="utf-8")
-        for package, floor in (
-            ("pyjwt", self.FIXED_FLOOR),
-            ("semgrep", Version("1.179.0")),
-        ):
-            pins = re.findall(rf"^{package}==([^ ;\\]+)", text, flags=re.MULTILINE)
-            assert len(pins) == 1, f"SAST must carry one auditable {package} pin"
-            assert Version(pins[0]) >= floor
+        assert not re.search(r"^semgrep==", text, flags=re.MULTILINE)
+        assert not re.search(r"^pyjwt==", text, flags=re.MULTILINE)
 
     def test_vulnerable_pin_is_absent_from_other_runtime_and_tool_profiles(
         self,

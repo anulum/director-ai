@@ -36,9 +36,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Split CI into reusable owners with a versioned ownership and graph guard in
   hosted CI and normal local preflight; preserve required check names.
 
-- The CI scanner profile uses Semgrep 1.179.0 with patched PyJWT 2.15.1,
-  closing the temporary dependency exceptions without overriding upstream
-  package metadata.
+- Semgrep 1.179.0 runs from its official image, pinned by digest, outside
+  the locked profiles. The SAST lock keeps Bandit and no longer carries
+  Semgrep, MCP, or PyJWT.
 - The enterprise extra requires PyJWT 2.15 or later, preventing pip from
   accepting versions below the advisory fix floor.
 

@@ -94,23 +94,24 @@ jobs:
         run: bandit -r src/director_ai/ -c pyproject.toml
 
       - name: Run Semgrep
-        # Enforcing (--error): scoped to the shipped library `src/director_ai/`
-        # (matching the Bandit scope above). That tree is Semgrep-clean under
-        # p/python + p/security-audit (verified: 0 findings), with any false
-        # positives suppressed inline via justified `# nosemgrep` comments; a new
-        # real blocking finding there fails the build. Dev/CI tooling, training
-        # launchers, benchmark harnesses, generated protobuf, and tests are
-        # excluded (accepted dev-script patterns, not shipped risk). Uses the
-        # maintained Semgrep CLI from the hash-pinned SAST lock; the legacy
-        # returntocorp/semgrep-action is deprecated and was failing on infra,
-        # not on a code finding. The rulesets are registry-live, so a future
-        # ruleset update can surface a new
-        # finding in src/ — triage it (fix or justified nosemgrep), do not silence.
+        # Semgrep 1.179.0 runs from its official image, pinned by digest, so
+        # its dependency pins never enter the locked profiles. Every release
+        # from 1.179 requires OpenTelemetry API 1.37 and MCP 1.29, both with
+        # published advisories. The scan stays enforcing and scoped to the
+        # shipped library src/director_ai/, with p/python and p/security-audit,
+        # matching the Bandit scope. That tree is clean under those packs
+        # (0 findings); a new blocking finding fails the build. Dev tooling,
+        # training launchers, benchmark harnesses, generated protobuf, and
+        # tests stay out of the scan. The rulesets are registry-live, so a
+        # later ruleset update can surface a new finding in src/: triage it,
+        # do not silence it.
         run: |
-          semgrep scan --config p/python --config p/security-audit \
+          docker run --rm --user "$(id -u):$(id -g)" -e HOME=/tmp \
+            -e SEMGREP_SEND_METRICS=off \
+            -v "$GITHUB_WORKSPACE:/src" -w /src \
+            semgrep/semgrep@sha256:93963d9295a366f59e4850127b1550400ee7b388f04fe144e4a1f6325d96e01b \
+            semgrep scan --config p/python --config p/security-audit \
             --error --metrics off --timeout 30 src/director_ai/
-        env:
-          SEMGREP_SEND_METRICS: "off"
 
   security-results:
     name: Security job results
