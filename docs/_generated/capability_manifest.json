@@ -9,7 +9,7 @@
     "python_model_classes": 1070,
     "python_model_source_modules": 540,
     "rust_pyo3_model_wrappers": 83,
-    "test_files": 820
+    "test_files": 822
   },
   "documentation": {
     "public_pages": [
@@ -6394,6 +6394,8 @@
       "tests/test_voice_guard.py",
       "tests/test_voice_pipeline.py",
       "tests/test_wasm_browser_worker_smoke.py",
+      "tests/test_wasm_ci_contracts.py",
+      "tests/test_wasm_overhead_bench.py",
       "tests/test_wasm_release_package.py",
       "tests/test_wasm_runtime_priority.py",
       "tests/test_ws_ticket.py",
