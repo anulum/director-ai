@@ -565,7 +565,7 @@ def test_complete_lock_setup_preserves_tool_pin_and_requirements_audits() -> Non
     ]
     assert len(setup) == 1
     assert setup[0]["uses"] == (
-        "astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e"
+        "astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2"
     )
     nightly = read_workflow(_ROOT / ".github/workflows/nightly-red-team.yml")
     nightly_job = object_mapping(object_mapping(nightly["jobs"])["live-red-team"])
