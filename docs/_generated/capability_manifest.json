@@ -6,10 +6,10 @@
     "optional_extras": 62,
     "public_api_exports": 227,
     "public_documentation_pages": 208,
-    "python_model_classes": 1070,
-    "python_model_source_modules": 540,
+    "python_model_classes": 1073,
+    "python_model_source_modules": 542,
     "rust_pyo3_model_wrappers": 83,
-    "test_files": 822
+    "test_files": 831
   },
   "documentation": {
     "public_pages": [
@@ -457,6 +457,10 @@
       {
         "name": "AgentState",
         "path": "src/director_ai/agentic/swarm_guardian.py"
+      },
+      {
+        "name": "AgentStreamEvent",
+        "path": "src/director_ai/core/agent.py"
       },
       {
         "name": "AgenticStepRequest",
@@ -2111,6 +2115,10 @@
         "path": "src/director_ai/core/runtime/kernel.py"
       },
       {
+        "name": "HaltOutput",
+        "path": "src/director_ai/core/runtime/kernel.py"
+      },
+      {
         "name": "HaltTraceAttribution",
         "path": "src/director_ai/core/types.py"
       },
@@ -2841,6 +2849,10 @@
       {
         "name": "NashSolver",
         "path": "src/director_ai/core/swarm_equilibrium/solvers.py"
+      },
+      {
+        "name": "NativeGrounding",
+        "path": "src/director_ai/core/scoring/_native_grounding.py"
       },
       {
         "name": "NegationFlipRule",
@@ -4645,6 +4657,7 @@
       "src/director_ai/_server_helpers.py",
       "src/director_ai/_server_lifecycle.py",
       "src/director_ai/_server_models.py",
+      "src/director_ai/_server_streaming.py",
       "src/director_ai/agentic/agent_profile.py",
       "src/director_ai/agentic/event_feedback/cli.py",
       "src/director_ai/agentic/event_feedback/codec.py",
@@ -4970,6 +4983,7 @@
       "src/director_ai/core/scoring/_divergence_routing.py",
       "src/director_ai/core/scoring/_heuristics.py",
       "src/director_ai/core/scoring/_llm_judge.py",
+      "src/director_ai/core/scoring/_native_grounding.py",
       "src/director_ai/core/scoring/_nli_accel.py",
       "src/director_ai/core/scoring/_nli_chunking.py",
       "src/director_ai/core/scoring/_nli_claims.py",
@@ -5597,6 +5611,7 @@
       "tests/test_agent.py",
       "tests/test_agent_framework_deploy_pack.py",
       "tests/test_agent_identity.py",
+      "tests/test_agent_native_grounding.py",
       "tests/test_agent_passport_registry.py",
       "tests/test_agent_preflight.py",
       "tests/test_agent_profile.py",
@@ -5960,6 +5975,7 @@
       "tests/test_judge_common.py",
       "tests/test_kb_health.py",
       "tests/test_kernel.py",
+      "tests/test_kernel_output_verdict.py",
       "tests/test_kernel_validation.py",
       "tests/test_knowledge.py",
       "tests/test_knowledge_api.py",
@@ -6048,6 +6064,7 @@
       "tests/test_multimodal_guard.py",
       "tests/test_multimodal_guard_real_surface.py",
       "tests/test_multimodal_temporal_evidence.py",
+      "tests/test_native_scorer_grounding.py",
       "tests/test_neuro_symbolic.py",
       "tests/test_neuro_symbolic_verifier.py",
       "tests/test_new_integrations.py",
@@ -6069,6 +6086,7 @@
       "tests/test_no_kb_calibration.py",
       "tests/test_notebook_gallery.py",
       "tests/test_notebook_gallery_real_surface.py",
+      "tests/test_npm_audit_gate.py",
       "tests/test_numeric_verifier.py",
       "tests/test_numeric_verifier_parity.py",
       "tests/test_observability.py",
@@ -6292,6 +6310,7 @@
       "tests/test_store_conflicts.py",
       "tests/test_store_snapshot.py",
       "tests/test_store_versioning.py",
+      "tests/test_stream_transport_verdicts.py",
       "tests/test_streaming.py",
       "tests/test_streaming_contradiction_halt_bench.py",
       "tests/test_streaming_debug.py",
@@ -6299,9 +6318,13 @@
       "tests/test_streaming_gate.py",
       "tests/test_streaming_halt_claim_docs.py",
       "tests/test_streaming_halt_evidence.py",
+      "tests/test_streaming_lifecycle.py",
       "tests/test_streaming_nli_failure.py",
       "tests/test_streaming_repair.py",
+      "tests/test_streaming_runtime_evidence.py",
+      "tests/test_streaming_runtime_paths.py",
       "tests/test_streaming_runtime_real_surface.py",
+      "tests/test_streaming_score_inputs.py",
       "tests/test_streaming_sse.py",
       "tests/test_stress_cli.py",
       "tests/test_structured_halt_recovery.py",

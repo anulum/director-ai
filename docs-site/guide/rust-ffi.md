@@ -51,9 +51,7 @@ streaming = RustStreamingKernel(
         window_threshold=0.55,
     ),
 )
-session = streaming.stream_tokens(
-    ["The ", "sky ", "is ", "blue."], lambda token: 0.9
-)
+session = streaming.stream_tokens(["The ", "sky ", "is ", "blue."], lambda token: 0.9)
 print(session.halted, session.avg_coherence())
 ```
 
@@ -77,9 +75,7 @@ from director_ai import CoherenceScorer, GroundTruthStore
 
 store = GroundTruthStore()
 store.add("capital", "Paris is the capital of France.", tenant_id="example")
-scorer = CoherenceScorer(
-    scorer_backend="rust", use_nli=False, ground_truth_store=store
-)
+scorer = CoherenceScorer(scorer_backend="rust", use_nli=False, ground_truth_store=store)
 approved, score = scorer.review(
     "capital", "Paris is the capital of France.", tenant_id="example"
 )
