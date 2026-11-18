@@ -11,6 +11,8 @@ from typing import Protocol, cast
 
 import pytest
 
+from director_ai.core.retrieval.knowledge import GroundTruthStore
+from director_ai.core.runtime.contradiction_halt import ContradictionHalt
 from director_ai.core.scoring.contradiction import (
     ContradictionResult,
     ContradictionScorer,
@@ -202,6 +204,48 @@ def test_public_judge_and_empty_input_short_circuit_are_consistent() -> None:
     assert scorer.contradiction("", "The database is plaintext.") == 0.0
     assert scorer.contradiction("The database is encrypted.", " ") == 0.0
     assert len(tokenizer.calls) == 2
+
+
+def test_tenant_claim_checks_use_only_the_selected_grounding() -> None:
+    """The real retrieval and scoring pipeline sends only scoped premises to NLI."""
+    store = GroundTruthStore()
+    store.add("museum", "The museum opens at noon.", tenant_id="east")
+    store.add("museum", "The museum opens at eight.", tenant_id="west")
+    scorer, tokenizer, _model = _scorer([[0.0, 0.0, 5.0]])
+    halt = ContradictionHalt(
+        scorer,
+        store.retrieve_context,
+        retrieve_scoped=lambda claim, tenant: store.retrieve_context(
+            claim, tenant_id=tenant
+        ),
+    )
+    claim = "The museum opens at ten."
+
+    assert halt.should_halt(claim, tenant_id="east").fact == "The museum opens at noon."
+    assert halt.should_halt(claim, tenant_id="empty").contradiction == 0.0
+    assert (
+        halt.should_halt(claim, tenant_id="west").fact == "The museum opens at eight."
+    )
+    assert [call["premises"] for call in tokenizer.calls] == [
+        ("The museum opens at noon.",),
+        ("The museum opens at eight.",),
+    ]
+
+
+def test_scoped_claim_requires_explicit_retrieval_support() -> None:
+    """Legacy unary retrieval cannot be invoked to check a tenant claim."""
+    store = GroundTruthStore()
+    store.add("museum", "The museum opens at noon.")
+    scorer, tokenizer, _model = _scorer([[0.0, 0.0, 5.0]])
+    halt = ContradictionHalt(scorer, store.retrieve_context)
+    claim = "The museum opens at ten."
+
+    with pytest.raises(ValueError, match="requires retrieve_scoped"):
+        halt.should_halt(claim, tenant_id="east")
+    with pytest.raises(ValueError, match="tenant_id must not be blank"):
+        halt.should_halt(claim, tenant_id=" ")
+    assert tokenizer.calls == []
+    assert halt.should_halt(claim).fact == "The museum opens at noon."
 
 
 def test_from_pretrained_uses_transformers_protocol_and_revision(

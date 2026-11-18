@@ -15,8 +15,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Add `HaltOutput` and `stream_output_result` to expose the output monitor's
+  delivered text and halt verdict together.
+
 ### Changed
 
+- Every halt now latches the Rust and Python streaming kernels and the Rust
+  safety kernel. Callers that reuse a halted kernel must call `reactivate()`
+  before processing another stream. An inactive kernel reports `kernel_inactive`.
+- `StreamingKernel` raises `ValueError` for `window_size < 1`,
+  `trend_window < 2` or `trend_threshold <= 0`. Trend checks use the
+  least-squares projected drop across the window.
+- Tenant-scoped contradiction checks require a tenant-aware `retrieve_scoped`
+  callback. For streaming providers in contradiction mode, the configured
+  contradiction threshold governs streaming halts. The coherence floor still
+  applies in coherence mode.
 - Require Python 3.11.5 or newer. Soupsieve 2.10, the last release for
   Python 3.11.0 to 3.11.4, carries an advisory without a fix there; the
   lock and the development profiles now resolve soupsieve 4.1 only.
@@ -36,6 +51,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- The gRPC stream reports the halt verdict and withholds the triggering token.
 - Raise OpenTelemetry to 1.45.2 (semantic conventions 0.66b2) in the root
   lock, the server, demo, GPU, Cloud Run, CI and training profiles, and the
   `otel` extra's floors. 1.45.1 carries CVE-2026-126360 (a regular expression

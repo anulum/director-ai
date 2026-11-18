@@ -23,6 +23,7 @@ import asyncio
 import threading
 from typing import TYPE_CHECKING, Any
 
+from ..cache import _BYPASS_SCORE_CACHE
 from ..otel import trace_cache, trace_calibration, trace_review
 from ..types import CoherenceScore, ScoringEvidence
 from ._divergence import DIVERGENCE_NEUTRAL, DivergenceMixin
@@ -247,6 +248,13 @@ class ReviewPipelineMixin(DivergenceMixin):
                 threshold = self.W_FACT + self.W_LOGIC * nli_threshold
         return threshold, None
 
+    def _record_approved_answer(self, action: str) -> None:
+        """Append an approved answer to the bounded scorer history."""
+        with self._history_lock:
+            self.history.append(action)
+            if len(self.history) > self.window:
+                self.history.pop(0)
+
     def _finalise_review(
         self,
         coherence: float,
@@ -258,10 +266,13 @@ class ReviewPipelineMixin(DivergenceMixin):
         detected_task_type: str | None = None,
         escalated_to_judge: bool | None = None,
         soft_limit_override: float | None = None,
+        *,
+        record_history: bool = True,
     ) -> tuple[bool, CoherenceScore]:
-        """Build CoherenceScore, gate on threshold, update history.
+        """Gate the score on the threshold and optionally record approval.
 
-        Returns (approved, CoherenceScore).
+        Callers that run subsequent decision stages record history after the
+        final verdict.
         """
         t = threshold_override if threshold_override is not None else self.threshold
         approved = coherence >= t
@@ -290,10 +301,8 @@ class ReviewPipelineMixin(DivergenceMixin):
             )
             if coherence < soft:
                 warning = True
-            with self._history_lock:
-                self.history.append(action)
-                if len(self.history) > self.window:
-                    self.history.pop(0)
+            if record_history:
+                self._record_approved_answer(action)
 
         strict_rejected = self.strict_mode and not (
             self._nli and self._nli.model_available
@@ -472,6 +481,10 @@ class ReviewPipelineMixin(DivergenceMixin):
 
     # ── Composite scoring ─────────────────────────────────────────────
 
+    def _requires_fresh_scores(self) -> bool:
+        """Return whether configured review stages consume grounding evidence."""
+        return self._verified_scorer_enabled or self._reasoning.enabled
+
     def _score_cache_scope(
         self, session: Any | None = None, tenant_id: str = ""
     ) -> str:
@@ -527,8 +540,9 @@ class ReviewPipelineMixin(DivergenceMixin):
         with trace_review() as span:
             self._enforce_model_backed_nli_requirement()
             # Rust fast-path: delegate full review to backfire_kernel
-            if self._rust_scorer is not None:
-                approved_r, score_obj = self._rust_scorer.review(prompt, action)
+            if self._rust_scorer is not None and not self.strict_mode:
+                with self._native_grounding.scoped(tenant_id):
+                    approved_r, score_obj = self._rust_scorer.review(prompt, action)
                 h_l = getattr(score_obj, "h_logical", 0.0)
                 h_f = getattr(score_obj, "h_factual", 0.0)
                 fallback = 1.0 - (self.W_LOGIC * h_l + self.W_FACT * h_f)
@@ -541,50 +555,48 @@ class ReviewPipelineMixin(DivergenceMixin):
                 span.set_attribute("coherence.backend", "rust")
                 return result
 
-            cache_scope = self._score_cache_scope(session=session, tenant_id=tenant_id)
+            inj_detector, inj_fail_closed = self._get_injection_runtime_state()
+            cache = self.cache
+            if (
+                _BYPASS_SCORE_CACHE.get()
+                or self._requires_fresh_scores()
+                or (session is not None and self._nli is not None)
+            ):
+                cache = None
+            cache_scope = (
+                self._score_cache_scope(session=session, tenant_id=tenant_id)
+                if cache
+                else ""
+            )
 
             # Raw-support operating point (WCS-2a): resolved once so the
             # cache-hit and fresh-scoring paths gate identically — a
             # decision must not depend on cache state.
             raw_op = self._raw_support_operating_point(prompt, action)
 
-            if self.cache:
+            cached = None
+            if cache:
                 with trace_cache(scope_present=bool(cache_scope)) as cache_span:
-                    cached = self.cache.get(
+                    cached = cache.get(
                         prompt,
                         action,
                         tenant_id=tenant_id,
                         scope=cache_scope,
                     )
                     cache_span.set_attribute("cache.hit", cached is not None)
-                if cached is not None:
-                    cached_task = self._detect_task_type(prompt, action)
-                    cached_t, cached_soft = self._effective_review_threshold(
-                        prompt,
-                        action,
-                        cached_task,
-                        raw_op=raw_op,
-                    )
-                    result = self._apply_conformal_interval(
-                        self._finalise_review(
-                            cached.score,
-                            cached.h_logical,
-                            cached.h_factual,
-                            action,
-                            threshold_override=cached_t,
-                            detected_task_type=cached_task,
-                            soft_limit_override=cached_soft,
-                        )
-                    )
-                    span.set_attribute("coherence.score", cached.score)
-                    span.set_attribute("coherence.approved", result[0])
-                    span.set_attribute("coherence.cached", True)
-                    return result
-            h_logic, h_fact, coherence, evidence = self._heuristic_coherence(
-                prompt,
-                action,
-                tenant_id=tenant_id,
-            )
+            if cached is None:
+                h_logic, h_fact, coherence, evidence = self._heuristic_coherence(
+                    prompt,
+                    action,
+                    tenant_id=tenant_id,
+                )
+            else:
+                h_logic, h_fact, coherence = (
+                    cached.h_logical,
+                    cached.h_factual,
+                    cached.score,
+                )
+                evidence = None
 
             cross_turn = None
             # Raw-support routes also skip the cross-turn blend: their
@@ -620,8 +632,8 @@ class ReviewPipelineMixin(DivergenceMixin):
                                 0.0, min(1.0, (coherence - cal_lo) / cal_span)
                             )
 
-            if self.cache:
-                self.cache.put(
+            if cache and cached is None:
+                cache.put(
                     prompt,
                     action,
                     coherence,
@@ -652,6 +664,7 @@ class ReviewPipelineMixin(DivergenceMixin):
                 threshold_override=effective_threshold,
                 detected_task_type=task_type,
                 soft_limit_override=soft_override,
+                record_history=False,
             )
             result = self._apply_verified_scorer(
                 result[1],
@@ -683,7 +696,6 @@ class ReviewPipelineMixin(DivergenceMixin):
                         )
                 session.add_turn(prompt, action, result[1].score)
             # Injection detection (when enabled)
-            inj_detector, inj_fail_closed = self._get_injection_runtime_state()
             if inj_detector is not None:
                 try:
                     inj = inj_detector.detect(intent=prompt, response=action)
@@ -704,9 +716,11 @@ class ReviewPipelineMixin(DivergenceMixin):
                 result[1].intent_drift_triggered = drift.triggered
 
             result = self._apply_conformal_interval(result)
+            if result[0]:
+                self._record_approved_answer(action)
             span.set_attribute("coherence.score", result[1].score)
             span.set_attribute("coherence.approved", result[0])
-            span.set_attribute("coherence.cached", False)
+            span.set_attribute("coherence.cached", cached is not None)
             span.set_attribute("coherence.h_logical", h_logic)
             span.set_attribute("coherence.h_factual", h_fact)
             span.set_attribute("coherence.warning", result[1].warning)
@@ -871,6 +885,9 @@ class ReviewPipelineMixin(DivergenceMixin):
         items: list[tuple[str, str]],
     ) -> bool:
         """Return True when the coalesced path cannot match review() semantics."""
+        inj_detector, _ = self._get_injection_runtime_state()
+        if self._requires_fresh_scores() or inj_detector is not None:
+            return True
         if self._adaptive_router is not None:
             return True
         if self._retrieval_abstention_threshold > 0:

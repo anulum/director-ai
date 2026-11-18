@@ -28,6 +28,7 @@ from ..metrics import metrics
 from ..otel import trace_nli_inference, trace_retrieval
 from ..types import EvidenceChunk, ScoringEvidence
 from ._heuristics import DIVERGENCE_CONTRADICTED, DIVERGENCE_NEUTRAL
+from ._native_grounding import NativeGrounding
 from .nli import NLIScorer
 
 __all__ = ["FactualDivergenceMixin"]
@@ -49,6 +50,7 @@ class FactualDivergenceMixin:
     logger: logging.Logger
     _nli: NLIScorer | None
     _rust_scorer: Any
+    _native_grounding: NativeGrounding
     _fact_inner_agg: str
     _fact_outer_agg: str
     _premise_ratio: float
@@ -160,10 +162,11 @@ class FactualDivergenceMixin:
         Returns 0.0 (aligned) to 1.0 (hallucinated).
         When strict_mode is True and NLI is unavailable, returns 0.9 (reject).
         """
-        if self._rust_scorer is not None:
-            _, score_obj = self._rust_scorer.review(prompt, text_output)
+        if self._rust_scorer is not None and not self.strict_mode:
+            with self._native_grounding.scoped(tenant_id):
+                _, score_obj = self._rust_scorer.review(prompt, text_output)
             fallback = 1.0 - getattr(score_obj, "score", 0.5)
-            return getattr(score_obj, "h_factual", fallback)
+            return float(getattr(score_obj, "h_factual", fallback))
 
         fact_inner = _inner_agg if _inner_agg is not None else self._fact_inner_agg
         fact_outer = _outer_agg if _outer_agg is not None else self._fact_outer_agg

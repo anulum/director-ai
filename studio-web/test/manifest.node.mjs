@@ -187,6 +187,29 @@ test("a non-success HTTP status is refused before parsing an otherwise valid bod
     });
 });
 
+test("aborting a pending manifest load closes the actual HTTP response", { timeout: 3000 }, async (context) => {
+    const server = createServer();
+    context.after(() => new Promise((resolve) => {
+        server.closeAllConnections();
+        server.close(() => resolve(undefined));
+    }));
+    server.listen(0, "127.0.0.1");
+    await once(server, "listening");
+    const address = server.address();
+    assert.ok(address && typeof address !== "string");
+    const accepted = once(server, "request");
+    const controller = new globalThis.AbortController();
+    const loading = loadManifest(
+        `http://127.0.0.1:${address.port}/studio_manifest.json`, controller.signal,
+    );
+    const [, response] = await accepted;
+    const closed = once(response, "close");
+    const refused = assert.rejects(loading, { name: "AbortError" });
+    controller.abort();
+    await refused;
+    await closed;
+});
+
 test("malformed actual HTTP JSON does not produce a usable manifest", async (context) => {
     await assert.rejects(loadManifest(await serve(context, "{broken-json")));
 });

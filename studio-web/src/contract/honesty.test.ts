@@ -12,8 +12,12 @@ import {
 
 describe("gradeStatus (H4 single source of grading)", () => {
   it("maps producer statuses onto canonical statuses", () => {
+    expect(gradeStatus("validated")).toBe("validated");
     expect(gradeStatus("reference-validated")).toBe("validated");
+    expect(gradeStatus("bounded-model")).toBe("bounded");
     expect(gradeStatus("bounded-support")).toBe("bounded");
+    expect(gradeStatus("bounded")).toBe("bounded");
+    expect(gradeStatus("roadmap")).toBe("roadmap");
     expect(gradeStatus("toolchain-gated")).toBe("roadmap");
     expect(gradeStatus("falsified")).toBe("falsified");
     expect(gradeStatus("refuted")).toBe("refuted");

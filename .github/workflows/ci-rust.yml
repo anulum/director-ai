@@ -37,6 +37,12 @@ jobs:
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
         with:
           node-version: "26.13.0"
+          cache: npm
+          cache-dependency-path: studio-web/package-lock.json
+
+      - name: Audit the locked Studio dependencies
+        run: python3 -m tools.npm_audit_gate --exceptions .github/npm-audit-exceptions.json studio-web/package-lock.json
+        working-directory: .
 
       - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
         with:
@@ -83,3 +89,23 @@ jobs:
 
       - name: Deny check (advisories, licences, bans, sources)
         run: cargo deny check
+
+      - name: Build the Studio web-target WASM package
+        working-directory: .
+        run: make wasm-build
+
+      - name: Install and build Studio from its lock
+        working-directory: studio-web
+        run: |
+          npm ci --ignore-scripts --strict-peer-deps --no-audit
+          npm run lint
+          npm test
+          npm run build
+
+      - name: Exercise the production Studio in sandboxed Chrome
+        working-directory: studio-web
+        env:
+          STUDIO_CHROME_EXECUTABLE: /usr/bin/google-chrome
+        run: |
+          "$STUDIO_CHROME_EXECUTABLE" --version
+          npm run e2e

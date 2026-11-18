@@ -237,7 +237,6 @@ def resolve_scorer_backend(cfg: DirectorConfig) -> str:
     if cfg.scorer_backend != "auto":
         return cfg.scorer_backend
 
-    # Priority: rust > onnx > deberta > nli-lite > lite
     import importlib.util
 
     if importlib.util.find_spec("backfire_kernel") is not None:
@@ -248,12 +247,11 @@ def resolve_scorer_backend(cfg: DirectorConfig) -> str:
         logger.info("Auto scorer: selected 'onnx' (onnx_path configured)")
         return "onnx"
 
-    if cfg.use_nli:
-        logger.info("Auto scorer: selected 'deberta' (NLI enabled)")
-        return "deberta"
-
-    logger.info("Auto scorer: selected 'lite' (no NLI available)")
-    return "lite"
+    logger.info(
+        "Auto scorer: selected 'deberta' (%s)",
+        "NLI enabled" if cfg.use_nli else "Python heuristic",
+    )
+    return "deberta"
 
 
 def build_scorer(
@@ -511,7 +509,8 @@ def build_contradiction_halt(
     the NLI extra is missing / the model cannot load — the caller then keeps
     the coherence halt instead of failing startup, matching the prompt-guard
     degrade path. The halt scores each completed streamed claim against the
-    store's retrieved grounding and stops on a contradiction.
+    store's retrieved grounding for the request's tenant and stops on a
+    contradiction.
     """
     if not cfg.streaming_contradiction_halt:
         return None
@@ -535,7 +534,13 @@ def build_contradiction_halt(
             exc,
         )
         return None
-    return ContradictionHalt(scorer, store.retrieve_context)
+    return ContradictionHalt(
+        scorer,
+        store.retrieve_context,
+        retrieve_scoped=lambda claim, tenant: store.retrieve_context(
+            claim, tenant_id=tenant
+        ),
+    )
 
 
 def build_correctness_feedback(

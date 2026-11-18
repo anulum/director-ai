@@ -4,37 +4,31 @@
 // © Code 2020–2026 Miroslav Šotek. All rights reserved.
 // ORCID: 0009-0009-3560-0851
 // Contact: www.anulum.li | protoscience@anulum.li
-// Director-Class AI — lib
-// ─────────────────────────────────────────────────────────────────────
-// Director-Class AI — Backfire Kernel Core Engine
-// © 1998-2026 Miroslav Šotek. All rights reserved.
-// License: Apache-2.0
-// ─────────────────────────────────────────────────────────────────────
+// Director-AI — native scoring and token gates
 #![deny(unsafe_code)]
 //! Core scoring engine, token gating, and safety kernel for
 //! real-time AI output verification.
 //!
-//! The entire hot path (scoring + gating) must complete in ≤50ms
-//! as specified in the Backfire Prevention Protocols §2.2.
+//! The scoring and gating design budget is 50 ms. Deployment latency depends
+//! on the host, callback and scoring backend and must be measured there.
 //!
 //! # Safety Invariants
 //!
-//! 1. **Halt is irreversible within a session**: once `is_active` transitions
-//!    to `false` via `emergency_stop()`, no token passes the gate until
-//!    `reactivate()` is called explicitly. The `AtomicBool` uses `SeqCst`
-//!    ordering — no token decision can be reordered across a halt.
+//! 1. **Halts persist until reactivation**: every streaming halt deactivates
+//!    the gate. Subsequent calls refuse before scoring another token until
+//!    the host explicitly calls `reactivate()`. Gate flags use sequentially
+//!    consistent atomic loads and stores.
 //!
-//! 2. **Non-finite scores are lethal**: any NaN or Inf from a coherence
-//!    callback is replaced with 0.0 (guaranteed halt). Callback panics
-//!    are caught via `catch_unwind` and treated identically.
+//! 2. **Nonfinite scores become zero**: NaN, either infinity and callback
+//!    panics use a zero fallback. The configured thresholds determine the
+//!    decision; a zero hard limit alone permits zero.
 //!
-//! 3. **All three halt mechanisms are independent**: hard limit, sliding
-//!    window average, and downward trend each trigger independently.
-//!    A single-token spike cannot mask a sustained coherence decline.
+//! 3. **Checks have a defined order**: hard limit, window average, then
+//!    downward trend. The trend uses the shared least-squares projected drop
+//!    over the recent score window, also used by the Python and WASM paths.
 //!
-//! 4. **No allocations in the hot path**: `VecDeque` and `Vec` are
-//!    pre-allocated before the token loop. The scoring loop itself
-//!    performs only arithmetic, comparisons, and atomic loads/stores.
+//! 4. **Traces allocate storage**: streaming retains token strings, scores
+//!    and events. Window and trace storage contribute to runtime cost.
 
 pub mod bm25;
 pub mod compute;

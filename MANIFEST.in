@@ -4,6 +4,9 @@ include CHANGELOG.md
 include NOTICE.md
 recursive-include src *.py *.pyi *.pkl
 
+# The Studio npm audit test belongs to repository CI.
+exclude tests/test_npm_audit_gate.py
+
 # The sdist must carry the free-wheel build shim so a wheel built from the
 # sdist applies the same paid-module slicing as a repo build.
 include packages/tier_build_hooks.py

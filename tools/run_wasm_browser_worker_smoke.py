@@ -23,7 +23,9 @@ import threading
 import time
 import urllib.parse
 import urllib.request
+from collections.abc import Iterator
 from dataclasses import dataclass
+from functools import partial
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any, cast
@@ -105,7 +107,7 @@ def run_wasm_browser_worker_smoke(
     chrome_path: str | Path | None = None,
     timeout_seconds: int = 30,
 ) -> WasmBrowserWorkerSmokeReport:
-    """Run headless Chrome against a browser module Worker smoke page."""
+    """Run the module Worker smoke with Chrome's normal sandbox settings."""
 
     package_path = Path(package_dir).resolve()
     blockers: list[dict[str, str]] = []
@@ -150,6 +152,7 @@ def run_wasm_browser_worker_smoke(
 
 
 def _write_smoke_assets(web_root: Path) -> None:
+    """Write the page and Worker that verify the generated WASM package."""
     (web_root / "smoke.html").write_text(
         """
 <!doctype html>
@@ -223,7 +226,11 @@ try {
     first.halted === false &&
     second.halted === true &&
     third.halted === true &&
-    String(second.halt_reason || "").startsWith("hard_limit")
+    String(second.halt_reason || "").startsWith("hard_limit") &&
+    third.halt_reason === second.halt_reason &&
+    first.tokens.join(" ") === "safe-token" &&
+    second.tokens.join(" ") === "safe-token halt-token" &&
+    third.tokens.join(" ") === second.tokens.join(" ")
   );
   self.postMessage({
     passed,
@@ -233,6 +240,7 @@ try {
     halt_reason: second.halt_reason || "",
     active_after_halt: kernel.is_active(),
     token_count: third.tokens.length,
+    tokens: third.tokens,
   });
 } catch (error) {
   self.postMessage({
@@ -248,12 +256,9 @@ try {
 
 
 @contextlib.contextmanager
-def _serve_directory(directory: Path):
-    handler = lambda *args, **kwargs: SimpleHTTPRequestHandler(  # noqa: E731
-        *args,
-        directory=str(directory),
-        **kwargs,
-    )
+def _serve_directory(directory: Path) -> Iterator[str]:
+    """Serve the smoke assets over a temporary loopback endpoint."""
+    handler = partial(SimpleHTTPRequestHandler, directory=str(directory))
     server = ThreadingHTTPServer(("127.0.0.1", 0), handler)
     thread = threading.Thread(target=server.serve_forever, daemon=True)
     thread.start()
@@ -271,42 +276,37 @@ def _run_chrome_worker_result(
     *,
     timeout_seconds: int,
 ) -> dict[str, Any]:
+    """Launch Chrome once and report the Worker result or a startup error."""
     with tempfile.TemporaryDirectory(prefix="director-chrome-profile-") as profile:
         profile_dir = Path(profile)
-        process = subprocess.Popen(  # nosec B603
-            [
-                str(chrome),
-                "--headless=new",
-                "--disable-gpu",
-                "--disable-dev-shm-usage",
-                "--no-sandbox",
-                "--remote-debugging-port=0",
-                f"--user-data-dir={profile_dir}",
-                "about:blank",
-            ],
-            stderr=subprocess.PIPE,
-            stdout=subprocess.PIPE,
-            text=True,
-        )
         try:
-            port = _wait_for_devtools_port(
-                profile_dir,
-                process,
-                timeout_seconds=timeout_seconds,
-            )
-            worker_result = _poll_worker_result(
-                port=port,
-                url=url,
-                timeout_seconds=timeout_seconds,
-            )
-        except (OSError, TimeoutError, ValueError, subprocess.SubprocessError) as exc:
-            worker_result = {
-                "passed": False,
-                "error": str(exc),
-            }
-        finally:
-            _terminate_process(process)
-        return worker_result
+            with subprocess.Popen(  # nosec B603
+                [
+                    str(chrome),
+                    "--headless=new",
+                    "--disable-gpu",
+                    "--disable-dev-shm-usage",
+                    "--disable-background-networking",
+                    "--remote-debugging-address=127.0.0.1",
+                    "--remote-debugging-port=0",
+                    f"--user-data-dir={profile_dir}",
+                    "about:blank",
+                ],
+                stderr=subprocess.PIPE,
+                stdout=subprocess.DEVNULL,
+                text=True,
+            ) as process:
+                try:
+                    port = _wait_for_devtools_port(
+                        profile_dir, process, timeout_seconds=timeout_seconds
+                    )
+                    return _poll_worker_result(
+                        port=port, url=url, timeout_seconds=timeout_seconds
+                    )
+                finally:
+                    _terminate_process(process)
+        except (OSError, RuntimeError, ValueError, subprocess.SubprocessError) as exc:
+            return {"passed": False, "error": str(exc)}
 
 
 def _wait_for_devtools_port(

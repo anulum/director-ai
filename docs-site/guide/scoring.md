@@ -252,7 +252,9 @@ print(f"Size: {scorer.cache.size}")
 
 ## Batch Scoring
 
-Score multiple pairs in 2 GPU forward passes (when NLI is available):
+Score multiple pairs in one request. Eligible model-backed pairs share NLI
+passes. Claim verification, reasoning, and output detection run the review
+for each pair.
 
 ```python
 items = [

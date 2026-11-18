@@ -17,9 +17,24 @@ import hashlib
 import threading
 import time
 from collections import OrderedDict
+from collections.abc import Iterator
+from contextlib import contextmanager
+from contextvars import ContextVar
 from dataclasses import dataclass
 
 __all__ = ["ScoreCache"]
+
+_BYPASS_SCORE_CACHE: ContextVar[bool] = ContextVar("bypass_score_cache", default=False)
+
+
+@contextmanager
+def _review_without_score_cache() -> Iterator[None]:
+    """Request a fresh review in the current thread or async context."""
+    token = _BYPASS_SCORE_CACHE.set(True)
+    try:
+        yield
+    finally:
+        _BYPASS_SCORE_CACHE.reset(token)
 
 
 @dataclass(frozen=True)

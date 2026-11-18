@@ -11,6 +11,8 @@ from __future__ import annotations
 import asyncio
 import sys
 import types
+from collections.abc import AsyncIterator
+from typing import Any, cast
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -21,7 +23,7 @@ URL = "http://localhost:8080/completion"
 
 
 class TestMockGenerator:
-    def test_default_candidates(self):
+    def test_default_candidates(self) -> None:
         g = MockGenerator()
         candidates = g.generate_candidates("test")
         assert len(candidates) == 3
@@ -29,17 +31,17 @@ class TestMockGenerator:
         assert candidates[1]["type"] == "hallucination"
         assert candidates[2]["type"] == "ambiguous"
 
-    def test_n_less_than_pool(self):
+    def test_n_less_than_pool(self) -> None:
         g = MockGenerator()
         assert len(g.generate_candidates("test", n=1)) == 1
 
-    def test_n_greater_than_pool_cycles(self):
+    def test_n_greater_than_pool_cycles(self) -> None:
         g = MockGenerator()
         candidates = g.generate_candidates("test", n=5)
         assert len(candidates) == 5
         assert candidates[3]["type"] == candidates[0]["type"]
 
-    def test_stream_tokens_yields_truthful_mock_response_words(self):
+    def test_stream_tokens_yields_truthful_mock_response_words(self) -> None:
         async def collect_tokens() -> list[str]:
             return [token async for token in MockGenerator().stream_tokens("test")]
 
@@ -59,7 +61,7 @@ class TestMockGenerator:
 
 
 class TestLLMGeneratorRetry:
-    def test_generation_parameters_are_wired_into_payload(self):
+    def test_generation_parameters_are_wired_into_payload(self) -> None:
         g = LLMGenerator(
             URL,
             max_tokens=256,
@@ -96,23 +98,25 @@ class TestLLMGeneratorRetry:
             ({"api_url": URL, "stop_sequences": "END"}, "stop_sequences"),
         ],
     )
-    def test_invalid_generation_configuration_rejected(self, kwargs, message):
+    def test_invalid_generation_configuration_rejected(
+        self, kwargs: dict[str, Any], message: str
+    ) -> None:
         with pytest.raises(ValueError, match=message):
             LLMGenerator(**kwargs)
 
     @pytest.mark.parametrize("prompt", ["", "   ", 42])
-    def test_invalid_prompt_rejected(self, prompt):
+    def test_invalid_prompt_rejected(self, prompt: object) -> None:
         g = LLMGenerator(URL)
         with pytest.raises(ValueError, match="prompt"):
-            g.generate_candidates(prompt, n=1)  # type: ignore[arg-type]
+            g.generate_candidates(cast(str, prompt), n=1)
 
     @pytest.mark.parametrize("n", [0, -1])
-    def test_invalid_candidate_count_rejected(self, n):
+    def test_invalid_candidate_count_rejected(self, n: int) -> None:
         g = LLMGenerator(URL)
         with pytest.raises(ValueError, match="n"):
             g.generate_candidates("test", n=n)
 
-    def test_success_first_try(self):
+    def test_success_first_try(self) -> None:
         g = LLMGenerator(URL, max_retries=3)
         mock_resp = MagicMock()
         mock_resp.status_code = 200
@@ -126,7 +130,7 @@ class TestLLMGeneratorRetry:
         assert candidates[0]["text"] == "answer"
         assert candidates[0]["source"] == "LLM"
 
-    def test_retry_on_timeout(self):
+    def test_retry_on_timeout(self) -> None:
         import requests as req
 
         g = LLMGenerator(URL, max_retries=2, base_delay=0.01)
@@ -141,7 +145,7 @@ class TestLLMGeneratorRetry:
             candidates = g.generate_candidates("test", n=1)
         assert candidates[0]["text"] == "ok"
 
-    def test_all_retries_exhausted(self):
+    def test_all_retries_exhausted(self) -> None:
         import requests as req
 
         g = LLMGenerator(URL, max_retries=2, base_delay=0.01)
@@ -154,7 +158,7 @@ class TestLLMGeneratorRetry:
         assert candidates[0]["source"] == "System"
         assert "unavailable" in candidates[0]["text"]
 
-    def test_http_error_no_retry(self):
+    def test_http_error_no_retry(self) -> None:
         g = LLMGenerator(URL, max_retries=2, base_delay=0.01)
         mock_resp = MagicMock()
         mock_resp.status_code = 500
@@ -169,7 +173,7 @@ class TestLLMGeneratorRetry:
 
 
 class TestCircuitBreaker:
-    def test_circuit_opens_after_threshold(self):
+    def test_circuit_opens_after_threshold(self) -> None:
         import requests as req
 
         g = LLMGenerator(URL, max_retries=1, base_delay=0.01)
@@ -184,7 +188,7 @@ class TestCircuitBreaker:
 
         assert g._circuit_open is True
 
-    def test_circuit_open_fast_fails(self):
+    def test_circuit_open_fast_fails(self) -> None:
         g = LLMGenerator(URL)
         g._circuit_open = True
 
@@ -195,7 +199,7 @@ class TestCircuitBreaker:
             mock_post.assert_not_called()
         assert "unavailable" in candidates[0]["text"]
 
-    def test_reset_circuit(self):
+    def test_reset_circuit(self) -> None:
         g = LLMGenerator(URL)
         g._circuit_open = True
         g._consecutive_failures = 10
@@ -222,17 +226,24 @@ def test_llm_generator_stream_tokens_falls_back_to_generated_text() -> None:
     assert tokens == ["hello", "world"]
 
 
-def test_llm_generator_stream_tokens_uses_sse_when_available(monkeypatch) -> None:
+def test_llm_generator_stream_tokens_uses_sse_when_available(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     calls: dict[str, object] = {}
 
     class FakeResponse:
-        async def __aenter__(self):
+        headers = {"content-type": "text/event-stream"}
+
+        def raise_for_status(self) -> None:
+            """Represent a successful HTTP response."""
+
+        async def __aenter__(self) -> FakeResponse:
             return self
 
-        async def __aexit__(self, *_exc):
+        async def __aexit__(self, *_exc: object) -> bool:
             return False
 
-        async def aiter_lines(self):
+        async def aiter_lines(self) -> AsyncIterator[str]:
             for line in (
                 'data: {"content": "hello"}',
                 'data: {"token": "world"}',
@@ -242,16 +253,18 @@ def test_llm_generator_stream_tokens_uses_sse_when_available(monkeypatch) -> Non
                 yield line
 
     class FakeClient:
-        def __init__(self, *, timeout):
+        def __init__(self, *, timeout: float) -> None:
             calls["timeout"] = timeout
 
-        async def __aenter__(self):
+        async def __aenter__(self) -> FakeClient:
             return self
 
-        async def __aexit__(self, *_exc):
+        async def __aexit__(self, *_exc: object) -> bool:
             return False
 
-        def stream(self, method, url, *, json):
+        def stream(
+            self, method: str, url: str, *, json: dict[str, object]
+        ) -> FakeResponse:
             calls["method"] = method
             calls["url"] = url
             calls["json"] = json

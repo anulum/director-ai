@@ -74,6 +74,20 @@ def _normalise_nli_arg(value: Any) -> Any:
     return value
 
 
+def _torch_probabilities(logits: Any) -> np.ndarray:
+    """Normalise PyTorch logits and return NumPy-compatible probabilities.
+
+    Promote bfloat16 logits before softmax because NumPy cannot represent
+    bfloat16 tensors and the probabilities benefit from float32 precision.
+    """
+    import torch
+
+    if getattr(logits, "dtype", None) is torch.bfloat16:
+        logits = logits.float()
+    probabilities: np.ndarray = torch.softmax(logits, dim=1).cpu().numpy()
+    return probabilities
+
+
 class ModelInferenceMixin:
     """PyTorch/ONNX inference surface of :class:`NLIScorer`.
 
@@ -155,7 +169,7 @@ class ModelInferenceMixin:
             with torch.no_grad():
                 logits = self._model(**inputs).logits
 
-            probs = torch.softmax(logits, dim=1).cpu().numpy()[0]
+            probs = _torch_probabilities(logits)[0]
 
         if len(probs) == 2:
             return float(1.0 - probs[1])
@@ -213,7 +227,7 @@ class ModelInferenceMixin:
         with torch.no_grad():
             logits = self._model(**inputs).logits
 
-        probs = torch.softmax(logits, dim=1).cpu().numpy()
+        probs = _torch_probabilities(logits)
 
         return _probs_to_divergence(probs, self._label_indices)
 
@@ -319,7 +333,7 @@ class ModelInferenceMixin:
         inputs = {k: v.to(device) for k, v in inputs.items()}
         with torch.no_grad():
             logits = self._model(**inputs).logits
-        probs = torch.softmax(logits, dim=1).cpu().numpy()
+        probs = _torch_probabilities(logits)
 
         divergences = _probs_to_divergence(probs, self._label_indices)
         confidences = _probs_to_confidence(probs)

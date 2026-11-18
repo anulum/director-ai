@@ -26,9 +26,15 @@ import logging
 import threading
 import time
 from collections import defaultdict
-from collections.abc import Iterator
-from typing import Any
+from collections.abc import Callable, Coroutine, Iterator
+from concurrent.futures import Future
+from contextlib import aclosing
+from typing import Any, NoReturn, cast
+from weakref import ref
 
+from ._server_lifecycle import _build_coherence_agent
+from ._server_streaming import stream_for_transport
+from .core.agent import AgentStreamEvent
 from .core.config import DirectorConfig
 
 logger = logging.getLogger("DirectorAI.gRPC")
@@ -117,13 +123,9 @@ def create_grpc_server(
 
     cfg = config or DirectorConfig.from_env()
 
-    from .core.agent import CoherenceAgent
-
     store = cfg.build_store()
     scorer = cfg.build_scorer(store=store)
-    agent = CoherenceAgent(
-        _scorer=scorer, _store=store, max_candidates=cfg.max_candidates
-    )
+    agent = _build_coherence_agent(cfg, scorer, store)
 
     _api_key_tenant_map: dict[str, str] = {}
     if cfg.api_key_tenant_map:
@@ -151,14 +153,55 @@ def create_grpc_server(
     token_evt = director_pb2.TokenEvent
     has_proto = True
 
-    # Shared background event loop for async streaming RPCs
-    _bg_loop = asyncio.new_event_loop()
-    _bg_thread = threading.Thread(
-        target=_bg_loop.run_forever,
-        daemon=True,
-        name="grpc-async",
-    )
-    _bg_thread.start()
+    stream_loop: asyncio.AbstractEventLoop | None = None
+    stream_loop_lock = threading.Lock()
+    stream_loop_stopped = False
+
+    def _server_running() -> bool:
+        """Check the native server's termination without owning its lifetime."""
+        active_server = server_ref()
+        return active_server is not None and bool(
+            active_server.wait_for_termination(timeout=0)
+        )
+
+    async def _wait_for_server_stop() -> None:
+        """Observe shutdown on the streaming loop without blocking its tasks."""
+        while _server_running():
+            await asyncio.sleep(0.2)
+
+    def _run_stream_loop(loop: asyncio.AbstractEventLoop) -> None:
+        """Run the shared stream loop and close pending async work at shutdown."""
+        nonlocal stream_loop_stopped
+        with asyncio.Runner(loop_factory=lambda: loop) as runner:
+            try:
+                runner.run(_wait_for_server_stop())
+            finally:
+                with stream_loop_lock:
+                    stream_loop_stopped = True
+
+    def _submit_stream(
+        produce: Callable[[], Coroutine[Any, Any, None]],
+    ) -> Future[None] | None:
+        """Start streaming on demand and refuse submissions once shutdown begins."""
+        nonlocal stream_loop
+        with stream_loop_lock:
+            if stream_loop_stopped:
+                return None
+            if stream_loop is None:
+                loop = asyncio.new_event_loop()
+                thread = threading.Thread(
+                    target=_run_stream_loop,
+                    args=(loop,),
+                    daemon=True,
+                    name="grpc-async",
+                )
+                try:
+                    thread.start()
+                except RuntimeError:
+                    loop.close()
+                    raise
+                stream_loop = loop
+            return asyncio.run_coroutine_threadsafe(produce(), stream_loop)
 
     def _tenant_from_context(context: Any) -> str:
         """Resolve the effective tenant from gRPC metadata."""
@@ -249,40 +292,67 @@ def create_grpc_server(
             return batch_resp(responses=responses)
 
         def stream_tokens(self, request: Any, context: Any) -> Iterator[Any]:
-            """Stream generated tokens with per-token coherence metadata."""
+            """Stream approved tokens and a terminal event when oversight halts."""
             import queue
 
+            abort = cast("Callable[[object, str], NoReturn]", context.abort)
+            if not request.prompt.strip():
+                abort(
+                    grpc.StatusCode.INVALID_ARGUMENT,
+                    "prompt must be a non-empty string",
+                )
             tid = _tenant_from_context(context)
             _enforce_rate_limit(context, tid)
-            q: queue.Queue[tuple[str, float] | None] = queue.Queue()
+            q: queue.Queue[AgentStreamEvent | None] = queue.Queue()
 
             async def _produce() -> None:
                 """Bridge async agent streaming into the synchronous RPC iterator."""
                 try:
-                    async for tok, coh in agent.stream(request.prompt, tenant_id=tid):
-                        q.put((tok, coh))
+                    async with aclosing(
+                        stream_for_transport(agent, cfg, request.prompt, tid)
+                    ) as events:
+                        async for event in events:
+                            q.put(event)
                 finally:
                     q.put(None)
 
-            future = asyncio.run_coroutine_threadsafe(_produce(), _bg_loop)
+            def _wake_on_termination() -> None:
+                """Release a worker waiting for its next provider event."""
+                q.put(None)
 
-            i = 0
-            while True:
-                item = q.get()
-                if item is None:
-                    break
-                tok, coh = item
-                halted = coh < cfg.hard_limit
-                yield token_evt(
-                    token=tok,
-                    coherence=round(coh, 4),
-                    index=i,
-                    halted=halted,
-                    halt_reason="hard_limit" if halted else "",
-                )
-                i += 1
-
-            future.result()
+            if not context.add_callback(_wake_on_termination):
+                return
+            try:
+                future = _submit_stream(_produce)
+            except Exception as exc:
+                logger.error("gRPC stream startup failed (%s)", type(exc).__name__)
+                future = None
+            if future is None:
+                abort(grpc.StatusCode.UNAVAILABLE, "streaming unavailable")
+            try:
+                i = 0
+                while True:
+                    event = q.get()
+                    if event is None or not context.is_active():
+                        break
+                    reason = event.halt_reason
+                    if reason == "coherence_halt" and event.coherence < cfg.hard_limit:
+                        reason = "hard_limit"
+                    yield token_evt(
+                        token="" if reason else event.token,
+                        coherence=round(event.coherence, 4),
+                        index=i,
+                        halted=bool(reason),
+                        halt_reason=reason,
+                    )
+                    i += 1
+                if context.is_active():
+                    future.result()
+            except Exception as exc:
+                logger.error("gRPC streaming failed (%s)", type(exc).__name__)
+                abort(grpc.StatusCode.INTERNAL, "streaming failed")
+            finally:
+                future.cancel()
 
         # gRPC dispatch aliases — the generated service stub looks
         # up methods by their PascalCase proto names.
@@ -337,6 +407,7 @@ def create_grpc_server(
         interceptors=interceptors,
         options=server_options,
     )
+    server_ref = ref(server)
 
     # Server reflection is an explicit opt-in (KIMI-D 2026-07-15):
     # exposing the full service schema aids reconnaissance, so deployments

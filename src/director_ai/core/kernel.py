@@ -4,11 +4,15 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Backward-compat shim: director_ai.core.kernel -> director_ai.core.runtime.kernel
+# Director-AI — legacy kernel imports
 """Backward-compatibility re-export of :mod:`director_ai.core.runtime.kernel`."""
 
 import importlib as _il
 import sys as _sys
+
+from .runtime.kernel import HaltMonitor as HaltMonitor
+from .runtime.kernel import HaltOutput as HaltOutput
+from .runtime.kernel import SafetyKernel as SafetyKernel
 
 _real = _il.import_module("director_ai.core.runtime.kernel")
 _sys.modules[__name__] = _real

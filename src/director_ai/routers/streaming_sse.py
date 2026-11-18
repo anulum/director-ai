@@ -32,8 +32,10 @@ import asyncio
 import json
 import logging
 from collections.abc import AsyncIterator
+from contextlib import aclosing
 from typing import Any
 
+from .._server_streaming import stream_for_transport
 from ..core.metrics import metrics
 
 logger = logging.getLogger("DirectorAI.Server")
@@ -163,38 +165,30 @@ async def _oversight_events(
 ) -> AsyncIterator[str]:
     """Yield token-level pre-egress oversight frames for one session.
 
-    Mirrors the WebSocket oversight branch: every token is scored by the
-    streaming kernel *before* it is forwarded, and the token that trips
-    the halt is never delivered.
+    A halt decision reports its trigger score and reason before the triggering
+    token can be forwarded.
     """
-    from ..core import StreamingKernel
-
-    kernel = StreamingKernel(
-        hard_limit=cfg.hard_limit,
-        window_size=getattr(cfg, "window_size", 5),
-        window_threshold=getattr(cfg, "window_threshold", 0.5),
-    )
-    kernel.reset_state()
     delivered = 0
-    halted = False
+    reason = ""
     last_score = 1.0
-    async for token, score in agent.stream(prompt, tenant_id=tenant_id):
-        last_score = score
-        if kernel.check_halt(score):
-            halted = True
-            break
-        yield _sse_event(
-            "token",
-            {"token": token, "coherence": round(score, 4)},
-        )
-        delivered += 1
+    async with aclosing(stream_for_transport(agent, cfg, prompt, tenant_id)) as events:
+        async for event in events:
+            last_score = event.coherence
+            reason = event.halt_reason
+            if reason:
+                break
+            yield _sse_event(
+                "token",
+                {"token": event.token, "coherence": round(last_score, 4)},
+            )
+            delivered += 1
     yield _sse_event(
-        "halt" if halted else "complete",
+        "halt" if reason else "complete",
         {
-            "halted": halted,
+            "halted": bool(reason),
             "tokens_delivered": delivered,
             "coherence": round(last_score, 4),
-            **({"reason": "coherence_halt"} if halted else {}),
+            **({"reason": reason} if reason else {}),
         },
     )
 

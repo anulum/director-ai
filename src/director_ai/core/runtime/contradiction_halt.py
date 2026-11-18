@@ -34,6 +34,7 @@ __all__ = ["ContradictionHaltDecision", "ContradictionHalt"]
 # A retriever maps a claim to its grounding: a list of facts, a single
 # semicolon-joined context string (the GroundTruthStore format), or None.
 Retriever = Callable[[str], "str | Sequence[str] | None"]
+ScopedRetriever = Callable[[str, str], "str | Sequence[str] | None"]
 
 
 @dataclass(frozen=True)
@@ -66,6 +67,9 @@ class ContradictionHalt:
     threshold:
         ``P(contradiction)`` at or above which to halt. Defaults to the
         scorer's own threshold.
+    retrieve_scoped:
+        ``retrieve_scoped(claim, tenant_id)`` returning the grounding visible
+        to the tenant. Required for tenant-scoped claims.
     """
 
     def __init__(
@@ -74,18 +78,36 @@ class ContradictionHalt:
         retrieve: Retriever,
         *,
         threshold: float | None = None,
+        retrieve_scoped: ScopedRetriever | None = None,
     ) -> None:
         self._scorer = scorer
         self._retrieve = retrieve
+        self._retrieve_scoped = retrieve_scoped
         self._threshold = (
             float(threshold) if threshold is not None else scorer.threshold
         )
 
-    def should_halt(self, claim: str) -> ContradictionHaltDecision:
-        """Halt when *claim* contradicts any retrieved grounding fact."""
+    def should_halt(
+        self, claim: str, *, tenant_id: str = ""
+    ) -> ContradictionHaltDecision:
+        """Halt when *claim* contradicts any grounding visible to the tenant.
+
+        An empty tenant ID uses the unscoped retriever. A nonempty tenant ID
+        requires scoped retrieval. Whitespace-only IDs raise ``ValueError``.
+        """
         if not claim or not claim.strip():
             return ContradictionHaltDecision(halt=False, contradiction=0.0)
-        facts = _as_facts(self._retrieve(claim))
+        if tenant_id:
+            if not tenant_id.strip():
+                raise ValueError("tenant_id must not be blank")
+            if self._retrieve_scoped is None:
+                raise ValueError(
+                    "tenant-scoped contradiction halt requires retrieve_scoped"
+                )
+            grounding = self._retrieve_scoped(claim, tenant_id)
+        else:
+            grounding = self._retrieve(claim)
+        facts = _as_facts(grounding)
         if not facts:
             # Ungrounded claim: not a contradiction, so never halt on it here.
             return ContradictionHaltDecision(halt=False, contradiction=0.0)

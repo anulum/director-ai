@@ -23,8 +23,9 @@ Usage::
 
 from __future__ import annotations
 
-import asyncio
+import inspect
 import logging
+import math
 
 __all__ = ["AsyncStreamingKernel"]
 import time
@@ -36,7 +37,7 @@ from collections.abc import (
     Callable,
     Iterable,
 )
-from typing import cast
+from dataclasses import dataclass
 
 from .kernel import HaltMonitor
 from .streaming import StreamSession, TokenEvent, _mean, _trend_drop
@@ -51,6 +52,15 @@ CoherenceCallback = Callable[[str], float] | Callable[[str], Awaitable[float]]
 # consecutive failure the stream halts rather than streaming unscored forever
 # (fail-open) on a broken scorer. A successful call resets the counter.
 _MAX_CONSECUTIVE_CALLBACK_ERRORS = 3
+
+
+@dataclass
+class _StreamHaltState:
+    """Preserve one invocation's stop cause and deferred-halt metadata."""
+
+    reason: str = ""
+    index: int = -1
+    soft_halted: bool = False
 
 
 class AsyncStreamingKernel(HaltMonitor):
@@ -133,15 +143,52 @@ class AsyncStreamingKernel(HaltMonitor):
 
         Parameters
         ----------
-        token_source : async iterable of str — token source.
-        coherence_callback : (str) -> float OR async (str) -> Awaitable[float].
+        token_source : async iterable of str or iterable of str
+            Token source in generation order.
+        coherence_callback : callable
+            Returns a float directly or through an awaitable such as a
+            coroutine, task or future.
             Receives the accumulated output so far (not the individual
             token). Called every ``score_every_n`` tokens.
+            NaN and either infinity become zero before history, adaptive
+            decisions or halt checks, matching the native streaming kernel.
 
         Yields
         ------
-        TokenEvent for each token, with ``halted=True`` on the final if halted.
+        TokenEvent
+            One event per observed token, with ``halted=True`` on the token
+            that stops the stream. A soft window or trend halt waits for a
+            sentence boundary or at most 50 additional tokens. A hard-limit
+            violation still stops immediately. Every actual halt leaves the
+            kernel inactive until explicit reactivation.
+        """
+        async for event in self._stream_tokens(
+            token_source, coherence_callback, _StreamHaltState()
+        ):
+            yield event
 
+    async def _stream_tokens(
+        self,
+        token_source: AsyncIterable[str] | Iterable[str],
+        coherence_callback: CoherenceCallback,
+        halt_state: _StreamHaltState,
+    ) -> AsyncIterator[TokenEvent]:
+        """Run the shared event engine with invocation-local deferred halt state.
+
+        Parameters
+        ----------
+        token_source : async iterable of str or iterable of str
+            Actual upstream token source.
+        coherence_callback : callable
+            Host scorer invoked with accumulated output.
+        halt_state : _StreamHaltState
+            Actual stop cause and soft-halt state shared with the collector.
+            Each public invocation creates a separate state object.
+
+        Yields
+        ------
+        TokenEvent
+            Events from the same scoring and halt path for both public APIs.
         """
         window: deque[float] = deque(maxlen=self.window_size)
         coherence_history: list[float] = []
@@ -159,6 +206,7 @@ class AsyncStreamingKernel(HaltMonitor):
                 token = str(token)
 
             if not self.is_active:
+                halt_state.reason = "kernel_inactive"
                 yield TokenEvent(
                     token=token,
                     index=i,
@@ -171,6 +219,7 @@ class AsyncStreamingKernel(HaltMonitor):
             # Total timeout check
             elapsed = time.monotonic() - stream_start
             if self.total_timeout > 0 and elapsed > self.total_timeout:
+                halt_state.reason = "total_timeout"
                 self.emergency_stop()
                 yield TokenEvent(
                     token=token,
@@ -204,6 +253,7 @@ class AsyncStreamingKernel(HaltMonitor):
                             consecutive_callback_errors,
                             exc,
                         )
+                        halt_state.reason = "callback_error"
                         self.emergency_stop()
                         yield TokenEvent(
                             token=token,
@@ -220,6 +270,7 @@ class AsyncStreamingKernel(HaltMonitor):
                         exc,
                     )
                     score = last_score
+                score = score if math.isfinite(score) else 0.0
                 last_score = score
                 if self.adaptive:
                     w_avg = _mean(window) if window else score
@@ -233,9 +284,8 @@ class AsyncStreamingKernel(HaltMonitor):
             now = time.monotonic()
 
             # Token timeout check
-            if (
-                self.token_timeout > 0 and (now - token_start) > self.token_timeout
-            ):  # pragma: no cover — timing-gated: needs a stalled stream
+            if self.token_timeout > 0 and (now - token_start) > self.token_timeout:
+                halt_state.reason = "token_timeout"
                 self.emergency_stop()
                 yield TokenEvent(
                     token=token,
@@ -258,6 +308,7 @@ class AsyncStreamingKernel(HaltMonitor):
             window.append(score)
 
             if score < self.hard_limit:
+                halt_state.reason = ""
                 event.halted = True
                 self.emergency_stop()
                 yield event
@@ -269,43 +320,51 @@ class AsyncStreamingKernel(HaltMonitor):
                 at_cap = _soft_halt_extra_tokens >= self._SOFT_HALT_CAP
                 if self._is_sentence_boundary(token) or at_cap:
                     event.halted = True
+                    halt_state.soft_halted = True
+                    self.emergency_stop()
                     yield event
                     return
                 yield event
                 i += 1
                 continue
 
-            # Soft zone warning
-            if score < self.soft_limit:
-                event.warning = True
-
             # Sliding window average
             halt_reason = ""
             if len(window) >= self.window_size:
                 avg = _mean(window)
                 if avg < self.window_threshold:
-                    halt_reason = "window_avg"
+                    halt_reason = f"window_avg ({avg:.4f} < {self.window_threshold})"
 
             # Downward trend (linear regression, matching sync kernel)
             if not halt_reason and len(coherence_history) >= self.trend_window:
                 recent = coherence_history[-self.trend_window :]
-                if _trend_drop(recent) > self.trend_threshold:
-                    halt_reason = "downward_trend"
+                drop = _trend_drop(recent)
+                if drop > self.trend_threshold:
+                    halt_reason = (
+                        f"downward_trend ({drop:.4f} > {self.trend_threshold})"
+                    )
 
             if halt_reason:
                 if self.halt_mode == "soft":
                     _soft_halt_pending = True
+                    halt_state.reason = halt_reason
+                    halt_state.index = event.index
                     if self._is_sentence_boundary(token):
                         event.halted = True
+                        halt_state.soft_halted = True
+                        self.emergency_stop()
                         yield event
                         return
                     yield event
                     i += 1
                     continue
                 event.halted = True
+                self.emergency_stop()
                 yield event
                 return
 
+            if score < self.soft_limit:
+                event.warning = True
             yield event
             i += 1
 
@@ -319,10 +378,32 @@ class AsyncStreamingKernel(HaltMonitor):
         token_source: AsyncIterable[str] | Iterable[str],
         coherence_callback: CoherenceCallback,
     ) -> StreamSession:
-        """Collect all events into a StreamSession (convenience wrapper)."""
-        session = StreamSession(start_time=time.monotonic())
+        """Collect events and preserve the actual deferred halt decision.
 
-        async for event in self.stream_tokens(token_source, coherence_callback):
+        Parameters
+        ----------
+        token_source : async iterable of str or iterable of str
+            Upstream tokens passed through the shared event engine.
+        coherence_callback : callable
+            Host scorer returning a score directly or through an awaitable.
+
+        Returns
+        -------
+        StreamSession
+            Observed tokens, scores and warnings. Completed soft halts retain
+            their initial window or trend reason and trigger index, and their
+            output includes the delivered sentence. Hard halts exclude the
+            violating token. The configured session callback runs once after
+            a halted session has been collected. Deadline and exhausted
+            callback failures retain their operational stop causes instead
+            of being inferred from the fallback coherence value.
+        """
+        session = StreamSession(start_time=time.monotonic())
+        halt_state = _StreamHaltState()
+
+        async for event in self._stream_tokens(
+            token_source, coherence_callback, halt_state
+        ):
             session.tokens.append(event.token)
             session.events.append(event)
             session.coherence_history.append(event.coherence)
@@ -330,8 +411,13 @@ class AsyncStreamingKernel(HaltMonitor):
                 session.warning_count += 1
             if event.halted:
                 session.halted = True
-                session.halt_index = event.index
-                session.halt_reason = self._halt_reason(event, session)
+                session.soft_halted = halt_state.soft_halted
+                session.halt_index = (
+                    halt_state.index if halt_state.soft_halted else event.index
+                )
+                session.halt_reason = halt_state.reason or self._halt_reason(
+                    event, session
+                )
                 break
 
         session.end_time = time.monotonic()
@@ -373,8 +459,8 @@ class AsyncStreamingKernel(HaltMonitor):
 
     @staticmethod
     async def _call_callback(callback: CoherenceCallback, token: str) -> float:
-        """Call sync or async callback."""
+        """Resolve one score from the callback before evaluating the token."""
         result: float | Awaitable[float] = callback(token)
-        if asyncio.iscoroutine(result):
+        if inspect.isawaitable(result):
             return float(await result)
-        return float(cast(float, result))
+        return float(result)

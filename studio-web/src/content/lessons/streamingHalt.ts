@@ -5,18 +5,18 @@
 // artefact + a runnable WASM cell; the brainstorm reviews the pattern, not prose.
 
 import type { Lesson } from "../schema";
+import { DEFAULT_BACKFIRE_CONFIG } from "../../wasm/backfireConfig";
 
+/** Teach the distinction between the Python claim check and WASM score gate. */
 export const streamingHaltLesson: Lesson = {
   id: "streaming-contradiction-halt",
-  title: "How the contradiction-driven streaming halt works",
+  title: "Streaming coherence and contradiction halts",
   track: "learn",
-  // The lesson teaches from the real engine the science ran.
   artefact: "backfire-kernel/crates/backfire-wasm/pkg",
   summary:
-    "A completed streamed claim is scored for contradiction against the retrieved " +
-    "grounding facts; when P(contradiction) crosses the threshold the stream halts " +
-    "on that token. A correct-but-unsupported claim is neutral, not a contradiction, " +
-    "so it does not halt — only a claim that contradicts a governed fact does.",
+    "The Python contradiction interlock checks completed claims against retrieved " +
+    "facts. The browser exercise runs the WASM coherence kernel with supplied scores " +
+    "to show how a token below the hard limit stops the stream.",
   cells: [
     {
       kind: "katex",
@@ -24,9 +24,8 @@ export const streamingHaltLesson: Lesson = {
         "P_{\\mathrm{halt}} = \\max_{f \\in \\text{facts}} P(\\text{contradiction} \\mid f, \\text{claim})",
     },
     {
-      // Runs the committed WasmStreamingKernel live in the browser (Play seam).
       kind: "wasm-halt",
-      source: JSON.stringify({ threshold: 0.65 }),
+      source: JSON.stringify(DEFAULT_BACKFIRE_CONFIG),
     },
   ],
   // Fact-checked against the shipped mechanism + its honest evidence caveat.

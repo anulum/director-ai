@@ -246,8 +246,8 @@ def test_process_round_trips_generated_response_over_real_grpc_channel() -> None
     assert response.fallback_used is False
 
 
-def test_stream_tokens_round_trips_real_streaming_rpc() -> None:
-    """StreamTokens should return ordered token events from a real streaming RPC."""
+def test_stream_tokens_reports_agent_halt_above_the_service_floor() -> None:
+    """The language-independent RPC verdict preserves an agent-side halt."""
     config = DirectorConfig(use_nli=False, hard_limit=0.0, rate_limit_rpm=0)
 
     with _running_server(config) as address, grpc.insecure_channel(address) as channel:
@@ -263,8 +263,10 @@ def test_stream_tokens_round_trips_real_streaming_rpc() -> None:
     assert [event.index for event in events] == list(range(len(events)))
     assert [event.token for event in events][:3] == ["Based", "on", "my"]
     assert all(0.0 <= event.coherence <= 1.0 for event in events)
-    assert all(event.halted is False for event in events)
-    assert all(event.halt_reason == "" for event in events)
+    assert all(not event.halted and not event.halt_reason for event in events[:-1])
+    assert events[-1].halted is True
+    assert events[-1].halt_reason == "coherence_halt"
+    assert events[-1].token == ""
 
 
 def test_stream_tokens_authentication_abort_uses_stream_rpc_status() -> None:

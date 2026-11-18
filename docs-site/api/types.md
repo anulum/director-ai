@@ -63,7 +63,7 @@ Evidence collected during scoring — retrieved KB chunks, NLI details, and attr
 | `nli_premise` | `str` | NLI premise text used |
 | `nli_hypothesis` | `str` | NLI hypothesis text used |
 | `nli_score` | `float` | Raw NLI divergence score |
-| `chunk_scores` | `list[float] \| None` | Per-chunk NLI scores |
+| `chunk_scores` | `list[float] \| None` | NLI scores for chunks of the hypothesis, in hypothesis order |
 | `premise_chunk_count` | `int` | Number of premise chunks |
 | `hypothesis_chunk_count` | `int` | Number of hypothesis chunks |
 | `attributions` | `list[ClaimAttribution] \| None` | Per-claim source attribution |
@@ -106,12 +106,15 @@ Maps a summary claim to its source sentence.
 
 Structured halt reason with evidence chunks.
 
+For synchronous streaming, the scorer reviews the prefix through the
+trigger token. A deferred halt may complete the sentence after that prefix.
+
 | Field | Type | Description |
 |-------|------|-------------|
 | `reason` | `str` | Halt mechanism that triggered |
 | `last_score` | `float` | Coherence score at halt point |
-| `evidence_chunks` | `list[EvidenceChunk]` | Contradicting chunks |
-| `nli_scores` | `list[float] \| None` | NLI scores at halt point |
+| `evidence_chunks` | `list[EvidenceChunk]` | Retrieved chunks attached by the halt evidence producer |
+| `nli_scores` | `list[float] \| None` | NLI scores for chunks of the triggering hypothesis in hypothesis order |
 | `suggested_action` | `str` | Recommended action (e.g., "retry with KB context") |
 | `trace_attribution` | `HaltTraceAttribution \| None` | Fact source, retrieval path, scorer path, token offset, threshold, and halt-margin data |
 | `counterfactual_diagnostic` | `CounterfactualHaltDiagnostic \| None` | Single-fact change diagnostic for the halt |
@@ -140,7 +143,7 @@ Trace coordinates for the halt decision.
 | `scorer_path` | `str` | Scorer method that produced the structured review |
 | `token_offset` | `int` | Token index where the halt condition triggered |
 | `threshold` | `float \| None` | Limit that was crossed |
-| `causal_contribution` | `float` | Absolute margin beyond the limit |
+| `causal_contribution` | `float` | Absolute margin measured when the condition triggered |
 
 ## SafetyEvent {: #safetyevent }
 

@@ -306,7 +306,10 @@ DIRECTOR_REVIEW_QUEUE_FLUSH_TIMEOUT_MS=10 \
 director-ai serve
 ```
 
-The queue collects concurrent `/v1/review` requests and flushes them as a single `review_batch()` call, reducing GPU kernel launches from 2*N to 2 per flush window (when NLI is available).
+The queue collects concurrent `/v1/review` requests and flushes them in one
+`review_batch()` call. Eligible pairs share NLI passes. With claim verification,
+reasoning, or output detection enabled, the scorer completes each pair's
+review individually.
 
 ## Managed Training
 

@@ -24,8 +24,10 @@ import logging
 import threading
 import time
 import uuid
+from contextlib import aclosing
 from typing import Any
 
+from .._server_streaming import stream_for_transport
 from ..core.metrics import metrics
 from ..server_support import (
     _extract_api_key_from_headers,
@@ -212,52 +214,37 @@ def create_streaming_router() -> APIRouter:
 
             if data.get("streaming_oversight"):
                 try:
-                    from ..core import StreamingKernel
-
-                    # Token-level pre-egress oversight. The WebSocket consumes
-                    # ``agent.stream()`` (per-token coherence) and applies its own
-                    # kernel as the egress gate: each token is scored *before* it
-                    # is forwarded, and the token that trips the halt is never
-                    # delivered. This is genuine pre-delivery interception, not
-                    # scoring a fully generated answer after the fact.
-                    kernel = StreamingKernel(
-                        hard_limit=cfg.hard_limit,
-                        window_size=getattr(cfg, "window_size", 5),
-                        window_threshold=getattr(cfg, "window_threshold", 0.5),
-                    )
-                    kernel.reset_state()
                     cancel_event = data["_cancel_event"]
                     delivered = 0
-                    halted = False
+                    reason = ""
                     last_score = 1.0
-                    async for token, score in agent.stream(
-                        prompt,
-                        tenant_id=ws_tenant_id,
-                    ):
-                        if cancel_event.is_set():
-                            return
-                        last_score = score
-                        if kernel.check_halt(score):
-                            # Pre-egress: suppress the halting token entirely.
-                            halted = True
-                            break
-                        await _send(
-                            {
-                                "session_id": session_id,
-                                "type": "token",
-                                "token": token,
-                                "coherence": round(score, 4),
-                            },
-                        )
-                        delivered += 1
+                    async with aclosing(
+                        stream_for_transport(agent, cfg, prompt, ws_tenant_id)
+                    ) as events:
+                        async for event in events:
+                            if cancel_event.is_set():
+                                return
+                            last_score = event.coherence
+                            reason = event.halt_reason
+                            if reason:
+                                break
+                            await _send(
+                                {
+                                    "session_id": session_id,
+                                    "type": "token",
+                                    "token": event.token,
+                                    "coherence": round(last_score, 4),
+                                },
+                            )
+                            delivered += 1
                     await _send(
                         {
                             "session_id": session_id,
-                            "type": "halt" if halted else "complete",
-                            "halted": halted,
+                            "type": "halt" if reason else "complete",
+                            "halted": bool(reason),
                             "tokens_delivered": delivered,
                             "coherence": round(last_score, 4),
-                            **({"reason": "coherence_halt"} if halted else {}),
+                            **({"reason": reason} if reason else {}),
                         },
                     )
                 except (

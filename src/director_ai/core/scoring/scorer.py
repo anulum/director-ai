@@ -28,6 +28,7 @@ from ._divergence import (
     DIVERGENCE_NEUTRAL as DIVERGENCE_NEUTRAL,
 )
 from ._llm_judge import LLMJudge
+from ._native_grounding import NativeGrounding
 from ._review_pipeline import ReviewPipelineMixin
 from ._task_scoring import _DIALOGUE_TURN_RE
 from .nli import NLIScorer, nli_available
@@ -71,7 +72,9 @@ class CoherenceScorer(ReviewPipelineMixin):
         If NLI model is unavailable and strict_mode is True, divergence
         returns 0.9 (reject) and sets ``strict_mode_rejected=True``.
     require_model_backed_nli : bool – when True, fail closed unless a
-        model-backed NLI backend is available (DeBERTa/ONNX/MiniCheck/Rust).
+        model-backed NLI backend is available (DeBERTa/ONNX/MiniCheck).
+        The current Rust/backfire wrapper uses heuristics and cannot satisfy
+        this requirement merely because the native extension is installed.
     history_window : int – rolling history size.
     use_nli : bool | None – True forces NLI, False disables it,
         None (default) auto-detects based on installed packages.
@@ -182,6 +185,11 @@ class CoherenceScorer(ReviewPipelineMixin):
         self.history: list[str] = []
         self.window = history_window
         self.ground_truth_store = ground_truth_store
+        self._native_grounding = NativeGrounding(
+            ground_truth_store.retrieve_context
+            if scorer_backend in ("rust", "backfire") and ground_truth_store is not None
+            else None
+        )
         self.logger = logging.getLogger("DirectorAI")
         self._history_lock = threading.Lock()
 
@@ -212,11 +220,7 @@ class CoherenceScorer(ReviewPipelineMixin):
 
                 self._rust_scorer = RustCoherenceScorer(
                     config=BackfireConfig(coherence_threshold=threshold),
-                    knowledge_callback=(
-                        ground_truth_store.retrieve_context
-                        if ground_truth_store
-                        else None
-                    ),
+                    knowledge_callback=self._native_grounding,
                 )
                 self.use_nli = False
             except (ImportError, AttributeError, OSError):
@@ -673,7 +677,8 @@ class CoherenceScorer(ReviewPipelineMixin):
     def _has_model_backed_nli(self) -> bool:
         """Return True when scoring has a model-backed contradiction path."""
         if self._rust_scorer is not None:
-            return True
+            # This wrapper supplies no model callback to the native scorer.
+            return False
         if self._nli is None or not self._nli.model_available:
             return False
         return getattr(self._nli, "backend", "") != "lite"

@@ -1,0 +1,61 @@
+/*
+ * SPDX-License-Identifier: Apache-2.0
+ * Commercial license available
+ * © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
+ * © Code 2020–2026 Miroslav Šotek. All rights reserved.
+ * ORCID: 0009-0009-3560-0851
+ * Contact: www.anulum.li | protoscience@anulum.li
+ * Director-AI Studio — LOCAL MIRROR of the @anulum/ui Instrument-Deck tokens.
+ * Swapped for the shared design-system import once @anulum/ui publishes; the
+ * token NAMES are the contract, so the swap is a one-line import change.
+ * Every colour/space/radius is a token — never a literal in a component. */
+
+:root {
+  /* Surfaces — dark by default (light optional via the shared theme toggle). */
+  --bg: #080b13;
+  --surface: #131a29;
+  --surface-2: #1b2438;
+  --border: #243049;
+
+  /* Accents. */
+  --accent: #5d92ff;
+  --accent-2: #38d2c4;
+
+  /* Text. */
+  --text: #e6ecf7;
+  --text-muted: #94a3b8;
+
+  /* Honesty palette — MUST equal honesty.ts / @anulum/ui (H4). */
+  --status-validated: #34d399;
+  --status-boundary: #fbbf24;
+  --status-voided: #f87171;
+  --status-unknown: #94a3b8;
+
+  /* Type. */
+  --font-sans: Inter, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+
+  /* Space + radius + motion (tokens, never literals). */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 16px;
+  --space-4: 24px;
+  --radius: 12px;
+  --motion-fast: 120ms;
+  --motion-base: 240ms;
+  --ease: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --motion-fast: 0ms;
+    --motion-base: 0ms;
+  }
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+}

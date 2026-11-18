@@ -153,6 +153,16 @@ The complete-lock audit (`uv audit --frozen`) ignores these four ids only while
 expiry; an expired or unregistered ignore fails the security job, so the
 exception is re-reviewed rather than kept by default.
 
+### Studio development dependencies
+
+Studio CI audits its full npm lock before building. The repository owner
+approved a development-only exception for picomatch's GHSA-fc5q-39xc-vjpf
+on 2026-11-18. It covers the recorded lock SHA-256 and ends at the start of
+2026-11-24 UTC. The gate requires every affected install to be development-only
+and refuses additional advisories, changes to the lock, missing audit data
+and an expired exception. The production audit for the authorised lock found
+zero advisories. Refreshing the exception requires a new owner decision.
+
 ### minimatch — GHSA-g3hv-75wg-m249
 
 `packages/vercel-ai` runs `npm audit` for its documentation toolchain.

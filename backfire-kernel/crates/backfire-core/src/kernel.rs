@@ -9,6 +9,7 @@
 // Director-Class AI — Safety Kernel (Output Gate) + Streaming Kernel
 // Mirrors: src/director_ai/core/kernel.py + streaming.py
 // ─────────────────────────────────────────────────────────────────────
+#![deny(missing_docs)]
 //! Token-level safety gate that monitors coherence in real-time
 //! and severs the output stream if coherence drops below the hard
 //! safety limit.
@@ -24,6 +25,8 @@ use std::time::Instant;
 use backfire_types::score::TokenEvent;
 use backfire_types::{BackfireConfig, StreamSession};
 
+use crate::signals::trend_drop;
+
 /// Coherence callback: given a token, returns the current coherence score.
 pub type CoherenceCallback<'a> = &'a dyn Fn(&str) -> f64;
 
@@ -36,6 +39,7 @@ pub struct SafetyKernel {
 }
 
 impl SafetyKernel {
+    /// Construct an active hard-limit gate for a host-supplied score floor.
     pub fn new(hard_limit: f64) -> Self {
         Self {
             hard_limit,
@@ -43,6 +47,7 @@ impl SafetyKernel {
         }
     }
 
+    /// Use the hard limit from a caller-validated native configuration.
     pub fn from_config(config: &BackfireConfig) -> Self {
         Self::new(config.hard_limit)
     }
@@ -50,7 +55,8 @@ impl SafetyKernel {
     /// Emit output tokens while monitoring coherence in real-time.
     ///
     /// Returns assembled output string, or interrupt message if halted.
-    /// Mirrors `stream_output()` from `kernel.py:27-59`.
+    /// An inactive gate refuses before scoring another token. Nonfinite
+    /// callback results and callback panics become zero before comparison.
     pub fn stream_output(
         &self,
         tokens: &[&str],
@@ -59,6 +65,9 @@ impl SafetyKernel {
         let mut output_buffer = Vec::with_capacity(tokens.len());
 
         for token in tokens {
+            if !self.is_active.load(Ordering::SeqCst) {
+                return "[KERNEL INTERRUPT: KERNEL INACTIVE]".to_string();
+            }
             let current_score = match std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
                 coherence_callback(token)
             })) {
@@ -86,7 +95,7 @@ impl SafetyKernel {
         output_buffer.join("")
     }
 
-    /// Halt the inference engine.
+    /// Stop subsequent token-gate iterations until explicit reactivation.
     pub fn emergency_stop(&self) {
         log::error!(">>> SAFETY KERNEL ACTIVATED: INFERENCE HALTED <<<");
         self.is_active.store(false, Ordering::SeqCst);
@@ -98,6 +107,7 @@ impl SafetyKernel {
         log::info!("Safety kernel reactivated");
     }
 
+    /// Return whether this gate is armed to process another token.
     pub fn is_active(&self) -> bool {
         self.is_active.load(Ordering::SeqCst)
     }
@@ -117,6 +127,7 @@ pub struct StreamingKernel {
 }
 
 impl StreamingKernel {
+    /// Construct an active stream gate from a caller-validated configuration.
     pub fn new(config: BackfireConfig) -> Self {
         Self {
             config,
@@ -127,7 +138,8 @@ impl StreamingKernel {
     /// Process tokens with full streaming oversight.
     ///
     /// Returns a `StreamSession` with the complete oversight trace.
-    /// Mirrors `stream_tokens()` from `streaming.py:118-207`.
+    /// The trend uses the shared least-squares projected drop over the recent
+    /// window. Every halt deactivates the gate until explicit reactivation.
     pub fn stream_tokens(
         &self,
         tokens: &[&str],
@@ -193,6 +205,7 @@ impl StreamingKernel {
                     session.halt_index = i as i32;
                     session.halt_reason =
                         format!("window_avg ({avg:.4} < {})", self.config.window_threshold);
+                    self.is_active.store(false, Ordering::SeqCst);
                     session.events.push(event);
                     break;
                 }
@@ -202,7 +215,7 @@ impl StreamingKernel {
             if session.coherence_history.len() >= self.config.trend_window {
                 let recent = &session.coherence_history
                     [session.coherence_history.len() - self.config.trend_window..];
-                let drop = recent[0] - recent[recent.len() - 1];
+                let drop = trend_drop(recent);
                 if drop > self.config.trend_threshold {
                     event.halted = true;
                     session.halted = true;
@@ -211,6 +224,7 @@ impl StreamingKernel {
                         "downward_trend ({drop:.4} > {})",
                         self.config.trend_threshold
                     );
+                    self.is_active.store(false, Ordering::SeqCst);
                     session.events.push(event);
                     break;
                 }
@@ -237,10 +251,12 @@ impl StreamingKernel {
         }
     }
 
+    /// Return whether another stream can be processed without reactivation.
     pub fn is_active(&self) -> bool {
         self.is_active.load(Ordering::SeqCst)
     }
 
+    /// Re-arm the gate so a new stream can start after any halt.
     pub fn reactivate(&self) {
         self.is_active.store(true, Ordering::SeqCst);
     }
@@ -251,6 +267,140 @@ mod tests {
     use std::cell::Cell;
 
     use super::*;
+
+    fn stream_scores(kernel: &StreamingKernel, scores: &[f64]) -> StreamSession {
+        let tokens: Vec<String> = (0..scores.len()).map(|i| format!("token-{i}")).collect();
+        let token_refs: Vec<&str> = tokens.iter().map(String::as_str).collect();
+        let index = Cell::new(0);
+        kernel.stream_tokens(&token_refs, &|_| {
+            let i = index.get();
+            index.set(i + 1);
+            scores[i]
+        })
+    }
+
+    #[test]
+    fn regression_detects_decline_with_equal_endpoints() {
+        let kernel = StreamingKernel::new(BackfireConfig::default());
+        let session = stream_scores(&kernel, &[0.8, 1.0, 0.8, 0.5, 0.8]);
+        assert!(session.halted);
+        assert!(session.halt_reason.starts_with("downward_trend (0.2000"));
+        assert_eq!(session.halt_index, 4);
+    }
+
+    #[test]
+    fn regression_does_not_halt_on_declining_endpoints_with_rising_trend() {
+        let kernel = StreamingKernel::new(BackfireConfig::default());
+        let session = stream_scores(&kernel, &[0.9, 0.5, 0.8, 1.0, 0.7]);
+        assert!(!session.halted);
+        assert_eq!(session.token_count(), 5);
+    }
+
+    #[test]
+    fn recent_window_halts_even_when_full_history_average_passes() {
+        let config = BackfireConfig {
+            window_size: 3,
+            window_threshold: 0.7,
+            trend_threshold: 1.0,
+            ..BackfireConfig::default()
+        };
+        let kernel = StreamingKernel::new(config);
+        let scores = [0.9, 0.9, 0.9, 0.6, 0.6, 0.6];
+        let session = stream_scores(&kernel, &scores);
+        assert!(session.halted);
+        assert_eq!(session.halt_index, 5);
+        assert_eq!(session.coherence_history, scores);
+        assert!(session.halt_reason.starts_with("window_avg (0.6000"));
+        assert!(!kernel.is_active());
+    }
+
+    #[test]
+    fn safety_kernel_emits_real_callback_failure_halt_and_reactivation_logs() {
+        let stamp = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let path = std::env::temp_dir().join(format!(
+            "backfire-kernel-{}-{stamp}.log",
+            std::process::id()
+        ));
+        let sink = std::fs::OpenOptions::new()
+            .create_new(true)
+            .write(true)
+            .open(&path)
+            .unwrap();
+        env_logger::Builder::new()
+            .filter_level(log::LevelFilter::Info)
+            .format_timestamp(None)
+            .target(env_logger::Target::Pipe(Box::new(sink)))
+            .try_init()
+            .unwrap();
+        let kernel = SafetyKernel::new(0.5);
+        assert!(kernel
+            .stream_output(&["unscored"], &|_| panic!("score producer failed"))
+            .contains("KERNEL INTERRUPT"));
+        kernel.reactivate();
+        log::logger().flush();
+        let content = std::fs::read_to_string(&path).unwrap();
+        assert!(content.contains("Coherence callback panicked"));
+        assert!(content.contains("SAFETY KERNEL ACTIVATED"));
+        assert!(content.contains("Safety kernel reactivated"));
+        eprintln!("Native kernel log {}:\n{content}", path.display());
+    }
+
+    #[test]
+    fn safety_kernel_emergency_stop_blocks_callback_until_reactivation() {
+        let kernel = SafetyKernel::new(0.5);
+        let calls = Cell::new(0);
+        let score = |_: &str| {
+            calls.set(calls.get() + 1);
+            0.9
+        };
+        kernel.emergency_stop();
+        assert!(kernel
+            .stream_output(&["blocked"], &score)
+            .contains("KERNEL INTERRUPT"));
+        assert_eq!(calls.get(), 0);
+        kernel.reactivate();
+        assert_eq!(kernel.stream_output(&["safe"], &score), "safe");
+        assert_eq!(calls.get(), 1);
+    }
+
+    #[test]
+    fn safety_kernel_hard_halt_blocks_a_later_passing_stream() {
+        let kernel = SafetyKernel::new(0.5);
+        assert!(kernel
+            .stream_output(&["bad"], &|_| 0.1)
+            .contains("KERNEL INTERRUPT"));
+        assert!(!kernel.is_active());
+        assert!(kernel
+            .stream_output(&["must-not-pass"], &|_| 0.9)
+            .contains("KERNEL INTERRUPT"));
+    }
+
+    #[test]
+    fn every_streaming_halt_requires_reactivation_before_another_stream() {
+        for scores in [vec![0.1], vec![0.54, 0.54, 0.54], vec![0.95, 0.85, 0.55]] {
+            let config = BackfireConfig {
+                window_size: 3,
+                trend_window: 3,
+                trend_threshold: 0.2,
+                ..BackfireConfig::default()
+            };
+            let kernel = StreamingKernel::new(config);
+            let halted = stream_scores(&kernel, &scores);
+            assert!(halted.halted);
+            assert!(!kernel.is_active());
+            let blocked = stream_scores(&kernel, &[0.9]);
+            assert!(blocked.halted);
+            assert!(blocked.tokens.is_empty());
+            assert_eq!(blocked.halt_reason, "kernel_inactive");
+            kernel.reactivate();
+            let resumed = stream_scores(&kernel, &[0.9]);
+            assert!(!resumed.halted);
+            assert_eq!(resumed.token_count(), 1);
+        }
+    }
 
     // ── SafetyKernel tests ────────────────────────────────────────
 
@@ -425,7 +575,8 @@ mod tests {
         let config = BackfireConfig::default();
         let kernel = StreamingKernel::new(config);
         assert!(kernel.is_active());
-        kernel.is_active.store(false, Ordering::SeqCst);
+        let stopped = kernel.stream_tokens(&["stop"], &|_| 0.0);
+        assert!(stopped.halted);
         assert!(!kernel.is_active());
         kernel.reactivate();
         assert!(kernel.is_active());
@@ -435,7 +586,8 @@ mod tests {
     fn test_streaming_inactive_kernel_halts_immediately() {
         let config = BackfireConfig::default();
         let kernel = StreamingKernel::new(config);
-        kernel.is_active.store(false, Ordering::SeqCst);
+        let stopped = kernel.stream_tokens(&["stop"], &|_| 0.0);
+        assert!(stopped.halted);
         let session = kernel.stream_tokens(&["a", "b", "c"], &|_| 0.9);
         assert!(session.halted);
         assert_eq!(session.halt_index, 0);

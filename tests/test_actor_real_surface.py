@@ -41,15 +41,28 @@ class _ActorServerState:
     response_status: int = 200
     stream_events: tuple[dict[str, str], ...] = ()
     requests: list[_RecordedRequest] = field(default_factory=list)
+    stream_body: bytes | None = None
+    completion_body: bytes | None = None
+    stream_status: int | None = None
+    stream_content_type: str = "text/event-stream"
+    completion_hold: tuple[threading.Event, threading.Event] | None = None
 
     def response_for_request(self, path: str, payload: dict[str, object]) -> bytes:
         """Return the JSON or SSE response body for a recorded request."""
         self.requests.append(_RecordedRequest(path=path, payload=payload))
         if payload.get("stream") is True:
+            if self.stream_body is not None:
+                return self.stream_body
             return b"".join(
                 f"data: {json.dumps(event)}\n\n".encode()
                 for event in self.stream_events
             )
+        if self.completion_hold is not None:
+            entered, release = self.completion_hold
+            entered.set()
+            release.wait(timeout=2.0)
+        if self.completion_body is not None:
+            return self.completion_body
         index = min(
             sum(
                 1
@@ -89,10 +102,12 @@ class _ActorHandler(BaseHTTPRequestHandler):
 
         body = state.response_for_request(self.path, cast(dict[str, object], payload))
         if payload.get("stream") is True:
-            content_type = "text/event-stream"
+            content_type = state.stream_content_type
+            status = state.stream_status or state.response_status
         else:
             content_type = "application/json"
-        self.send_response(state.response_status)
+            status = state.response_status
+        self.send_response(status)
         self.send_header("Content-Type", content_type)
         self.send_header("Content-Length", str(len(body)))
         self.end_headers()
@@ -225,6 +240,148 @@ def test_llm_generator_streams_tokens_from_real_sse_endpoint() -> None:
             },
         )
     ]
+
+
+@pytest.mark.parametrize(
+    ("body", "status", "content_type", "tokens", "requests"),
+    [
+        (
+            b'data:{"content":"first"}\n\ndata: [DONE]\n\n',
+            200,
+            "text/event-stream",
+            ["first"],
+            1,
+        ),
+        (b"data: [DONE]\n\n", 200, "text/event-stream", [], 1),
+        (
+            b'data: {"stop":false}\n\ndata: {"token":"receipt"}\n\ndata: [DONE]\n\n',
+            200,
+            "text/event-stream",
+            ["receipt"],
+            1,
+        ),
+        (
+            b": keep-alive\n\ndata:\n\n",
+            200,
+            "text/event-stream",
+            ["fallback", "response"],
+            2,
+        ),
+        (
+            b'data: {"content":"unavailable"}\n\n',
+            503,
+            "text/event-stream",
+            ["fallback", "response"],
+            2,
+        ),
+        (
+            b'{"content":"original response"}',
+            200,
+            "application/json",
+            ["original", "response"],
+            1,
+        ),
+        (b'{"content":""}', 200, "application/json", [], 1),
+        (
+            b'{"choices":[{"text":null}]}',
+            200,
+            "application/json",
+            ["fallback", "response"],
+            2,
+        ),
+        (b"null", 200, "application/json", ["fallback", "response"], 2),
+    ],
+)
+def test_stream_terminators_and_available_fallbacks(
+    body: bytes, status: int, content_type: str, tokens: list[str], requests: int
+) -> None:
+    """Terminate, reuse, or retry according to the actual upstream response."""
+    with _ActorServer(({"content": "fallback response"},)) as server:
+        server.state.stream_body = body
+        server.state.stream_status = status
+        server.state.stream_content_type = content_type
+        generator = LLMGenerator(server.url, max_retries=1, timeout=5.0)
+        assert _collect_stream(generator, "Stream the release receipt.") == tokens
+        assert len(server.state.requests) == requests
+
+
+@pytest.mark.parametrize(
+    "failure",
+    [
+        b"data: incomplete\n\n",
+        b'data: {"error":"interrupted"}\n\n',
+        b'data: {"content":42}\n\n',
+    ],
+)
+def test_stream_error_after_output_never_replays_another_generation(
+    failure: bytes,
+) -> None:
+    """An interrupted stream keeps its prefix and reports its failure."""
+
+    async def collect(generator: LLMGenerator) -> None:
+        """Read the approved prefix and then observe the protocol error."""
+        stream = generator.stream_tokens("Stream the release receipt.")
+        assert await anext(stream) == "first"
+        with pytest.raises(RuntimeError, match="after output started"):
+            await anext(stream)
+
+    with _ActorServer(({"content": "different response"},)) as server:
+        server.state.stream_body = b'data: {"content":"first"}\n\n' + failure
+        asyncio.run(collect(LLMGenerator(server.url, max_retries=1, timeout=5.0)))
+        assert len(server.state.requests) == 1
+
+
+def test_unavailable_stream_and_completion_surface_an_error() -> None:
+    """An unavailable upstream cannot generate an ordinary text event."""
+    with _ActorServer(({"error": "unavailable"},), response_status=503) as server:
+        with pytest.raises(RuntimeError, match="completion unavailable"):
+            _collect_stream(
+                LLMGenerator(server.url, max_retries=1, timeout=5.0),
+                "Stream the release receipt.",
+            )
+        assert len(server.state.requests) == 2
+
+
+@pytest.mark.parametrize("completion", [b'{"error":"unavailable"}', b"incomplete"])
+def test_missing_completion_text_cannot_look_like_an_empty_success(
+    completion: bytes,
+) -> None:
+    """An unusable completion body fails the pre-output retry."""
+    with _ActorServer(({"error": "unavailable"},)) as server:
+        server.state.stream_body = b""
+        server.state.completion_body = completion
+        with pytest.raises(RuntimeError, match="completion unavailable"):
+            _collect_stream(
+                LLMGenerator(server.url, max_retries=1, timeout=5.0),
+                "Stream the release receipt.",
+            )
+        assert len(server.state.requests) == 2
+
+
+@pytest.mark.asyncio
+async def test_actor_whole_completion_fallback_leaves_the_loop_available() -> None:
+    """The replay request can stay in flight while the event loop runs."""
+    entered = threading.Event()
+    release = threading.Event()
+    with _ActorServer(({"content": "fallback response"},)) as server:
+        server.state.completion_hold = (entered, release)
+        server.state.stream_status = 503
+        generator = LLMGenerator(server.url, max_retries=1, timeout=5.0)
+
+        async def collect() -> list[str]:
+            """Drain the public token stream after the upstream is released."""
+            return [
+                token async for token in generator.stream_tokens("Release receipt.")
+            ]
+
+        task = asyncio.create_task(collect())
+        try:
+            assert await asyncio.to_thread(entered.wait, 5.0)
+            assert not task.done()
+        finally:
+            release.set()
+            await asyncio.gather(task, return_exceptions=True)
+        assert task.result() == ["fallback", "response"]
 
 
 def test_llm_generator_logs_real_http_error_with_truncated_body(

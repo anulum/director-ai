@@ -1,6 +1,20 @@
+<!--
+SPDX-License-Identifier: Apache-2.0
+Commercial license available
+© Concepts 1996–2026 Miroslav Šotek. All rights reserved.
+© Code 2020–2026 Miroslav Šotek. All rights reserved.
+ORCID: 0009-0009-3560-0851
+Contact: www.anulum.li | protoscience@anulum.li
+Director-AI — CoherenceScorer API
+-->
+
 # CoherenceScorer
 
-The central scoring engine. Computes a composite coherence score from two independent signals — NLI contradiction probability (H_logical) and RAG fact deviation (H_factual) — then accepts or rejects the response.
+The central scoring engine combines logical divergence (`H_logical`) and
+retrieved-fact divergence (`H_factual`), then accepts or rejects the response.
+The signals depend on the configured backend and scoring profile. Heuristic
+backends, including the current Rust wrapper, do not provide model-backed
+NLI contradiction probabilities.
 
 ```
 coherence = 1.0 - (W_LOGIC × H_logical + W_FACT × H_factual)
@@ -42,12 +56,13 @@ print(f"Evidence: {score.evidence}")  # Retrieved context + NLI details
 | `w_logic` | `float \| None` | `None` | Override weight for NLI divergence; `None` inherits `0.6` |
 | `w_fact` | `float \| None` | `None` | Override weight for factual divergence; `None` inherits `0.4` |
 | `strict_mode` | `bool` | `False` | Reject if NLI unavailable (no heuristic fallback) |
+| `require_model_backed_nli` | `bool` | `False` | Raise `RuntimeError` from review APIs when model-backed NLI is unavailable |
 | `use_nli` | `bool \| None` | `None` | `True` = force NLI, `False` = disable, `None` = auto-detect |
 | `nli_model` | `str \| None` | `None` | HuggingFace model ID (default: FactCG-DeBERTa-v3-Large) |
 | `ground_truth_store` | `GroundTruthStore \| None` | `None` | Fact store for RAG retrieval |
-| `cache_size` | `int` | `0` | LRU cache max entries (0 = disabled) |
+| `cache_size` | `int` | `0` | LRU cache capacity for scalar scores (0 = disabled). Halt evidence uses a fresh review. |
 | `cache_ttl` | `float` | `300.0` | Cache entry TTL in seconds |
-| `scorer_backend` | `str` | `"deberta"` | Backend: `deberta`, `onnx`, `minicheck`, `hybrid`, `lite`, `rust` |
+| `scorer_backend` | `str` | `"deberta"` | Backend: `deberta`, `onnx`, `minicheck`, `hybrid`, `lite`, `rust` (alias `backfire`) |
 | `nli_quantize_8bit` | `bool` | `False` | 8-bit quantization (reduces VRAM from ~1.5GB to ~400MB) |
 | `nli_device` | `str \| None` | `None` | Torch device (`"cuda"`, `"cuda:0"`, `"cpu"`) |
 | `nli_torch_dtype` | `str \| None` | `None` | Torch dtype (`"float16"`, `"bfloat16"`) |
@@ -64,18 +79,32 @@ print(f"Evidence: {score.evidence}")  # Retrieved context + NLI details
 ### review()
 
 ```python
-approved, score = scorer.review(prompt: str, action: str, session=None, tenant_id: str = "") -> tuple[bool, CoherenceScore]
+approved, score = scorer.review(prompt, action, session=None, tenant_id="")
 ```
 
 Score a single prompt/response pair. Returns `(approved, CoherenceScore)`.
+The Python review path reuses scalar scores where possible. Session updates
+and output detection still run on cache hits. Claim verification, reasoning,
+and reviews that combine conversation history with NLI use fresh scores and
+grounding. The scorer's rolling history records answers after final approval.
+
+`tenant_id` scopes retrieval for that call. The Rust and `backfire` paths
+bind it to their synchronous store callback and restore the previous context
+after success or an exception. Empty identity preserves unscoped retrieval;
+authenticate and authorise the caller's tenant before invoking this API.
+Without a store, the Rust wrapper returns missing context and a neutral
+factual divergence of `0.5`, rather than using native demo facts.
 
 ### review_batch()
 
 ```python
-results = scorer.review_batch(items: list[tuple[str, str]]) -> list[tuple[bool, CoherenceScore]]
+results = scorer.review_batch(items, tenant_id="")
 ```
 
-Score multiple pairs. Currently routes each item through `review()` sequentially. For parallel execution, wrap the scorer in `BatchProcessor`.
+Score multiple pairs and return a list of `(approved, CoherenceScore)` results.
+Eligible model-backed pairs share batched NLI passes. Configurations with
+claim verification, reasoning, or output detection call `review()` for each
+pair so every configured check runs. The same `tenant_id` applies to every item.
 
 ```python
 items = [
@@ -86,6 +115,15 @@ results = scorer.review_batch(items)
 for approved, score in results:
     print(f"approved={approved}  score={score.score:.3f}")
 ```
+
+### areview()
+
+```python
+approved, score = await scorer.areview(prompt, action, tenant_id="example")
+```
+
+Run `review()` in an executor thread and return the same tuple. The explicit
+tenant and model requirement are preserved through this entry point.
 
 ### review_with_samples()
 
@@ -120,7 +158,14 @@ configured mode needs sentence-level aggregation.
 | `minicheck` | `pip install director-ai[minicheck]` | ~60 ms/pair | 72.6% BA | Yes |
 | `lite` | included | <0.5 ms/pair | ~65% BA | No |
 | `hybrid` | `[nli]` + judge provider | 20-50 ms/pair | ~78% BA | Yes |
-| `rust` | build `backfire-kernel` | ~1 ms/pair | ~65% BA | No |
+| `rust` / `backfire` | build `backfire-kernel` | Deployment measurement required | Native heuristics; no NLI accuracy claim | No |
+
+The current Rust wrapper does not supply an NLI model callback. Setting
+`require_model_backed_nli=True` therefore raises `RuntimeError` from
+`review()`, `review_batch()` and `areview()` for either native alias.
+`strict_mode=True` instead follows the common missing-model rejection path,
+with `strict_mode_rejected=True` and `degraded_mode=True`. For the lower-level
+native callback contract, see [Rust Python bindings](../guide/rust-ffi.md).
 
 ### Backend registry and scaling helpers
 

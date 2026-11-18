@@ -190,13 +190,15 @@ export function isEraSupported(manifest: StudioManifest): boolean {
 /**
  * Fetch the staged manifest and parse its envelope or legacy flat schema.
  * @param url Public manifest URL, relative to the document in a browser.
+ * @param signal Optional signal that cancels fetching and reading the response.
  * @returns Producer capabilities with the same extension custody as parsing.
  * @throws Error When HTTP fails; fetch and JSON decoding failures also propagate.
  */
 export async function loadManifest(
     url = "/studio_manifest.json",
+    signal: AbortSignal | null = null,
 ): Promise<StudioManifest> {
-    const response = await fetch(url);
+    const response = await fetch(url, { signal });
     if (!response.ok) {
         throw new Error(`studio_manifest.json unavailable (HTTP ${response.status})`);
     }

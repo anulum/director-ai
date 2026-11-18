@@ -14,17 +14,20 @@ import asyncio
 import logging
 import os
 import threading
-from collections.abc import AsyncIterator
+from collections.abc import AsyncGenerator, AsyncIterator
+from contextlib import aclosing
+from dataclasses import dataclass, replace
 from typing import TYPE_CHECKING, Any
 
 from .actor import LLMGenerator, MockGenerator
+from .cache import _review_without_score_cache
 from .calibration.recall_correctness import recall_outcome
 from .retrieval.knowledge import GroundTruthStore
 from .runtime.kernel import HaltMonitor
 from .runtime.streaming import StreamingKernel
 from .runtime.streaming_gate import StreamingCoherenceGate, ends_claim
 from .scoring.scorer import CoherenceScorer
-from .types import HaltEvidence, ReviewResult
+from .types import CoherenceScore, HaltEvidence, ReviewResult
 
 # One scored candidate: (text, coherence score object, coherence value).
 _ScoredCandidate = tuple[str | None, Any, float]
@@ -40,7 +43,7 @@ if TYPE_CHECKING:
         PassportVerifier,
     )
 
-__all__ = ["CoherenceAgent"]
+__all__ = ["AgentStreamEvent", "CoherenceAgent"]
 
 _PROVIDER_ENV_KEYS = {
     "openai": "OPENAI_API_KEY",
@@ -51,6 +54,18 @@ _PROVIDER_ENV_KEYS = {
 def _physical_budget_exhausted(verdict: GroundingVerdict) -> bool:
     event = getattr(verdict, "safety_event", None)
     return event is not None and event.halt_reason == "physical_budget_exceeded"
+
+
+@dataclass(frozen=True, slots=True)
+class AgentStreamEvent:
+    """A scored token and its optional pre-delivery halt reason.
+
+    A whole-response rejection is represented by a halt with no token.
+    """
+
+    token: str | None
+    coherence: float
+    halt_reason: str = ""
 
 
 class CoherenceAgent:
@@ -65,7 +80,10 @@ class CoherenceAgent:
     Parameters
     ----------
     llm_api_url : str | None — direct URL to OpenAI-compatible endpoint.
-    use_nli : bool | None — enable NLI model scoring.
+    use_nli : bool or None
+        True configures the model-backed scoring path. Otherwise prefer the
+        native heuristic scorer when available. Model availability and
+        required-model refusal remain the configured scorer's responsibility.
     provider : str | None — "openai" or "anthropic". Reads API key from env.
         Mutually exclusive with llm_api_url.
     production_mode : bool — require an explicit real LLM generator.
@@ -171,32 +189,31 @@ class CoherenceAgent:
         self.correctness_feedback = correctness_feedback
 
     def _build_scorer(self, use_nli: bool | None) -> CoherenceScorer:
-        """Construct scorer, preferring Rust backend when installed."""
+        """Preserve the scoring API and prefer Rust unless NLI was requested."""
         from .scoring.backends import get_backend
 
-        try:
-            get_backend("rust")
-            from backfire_kernel import BackfireConfig, RustCoherenceScorer
-
-            cfg = BackfireConfig(coherence_threshold=0.6)
-            # The Rust scorer satisfies the same review() contract; the kernel
-            # extension is untyped, so it is bound to the CoherenceScorer type here.
-            scorer: CoherenceScorer = RustCoherenceScorer(
-                config=cfg,
-                knowledge_callback=self.store.retrieve_context,
-            )
-            self.logger.info("Rust CoherenceScorer active (via registry)")
-            return scorer
-        except (  # pragma: no cover — only when backfire_kernel absent
-            KeyError,
-            ImportError,
-            TypeError,
-            ValueError,
-            RuntimeError,
-            OSError,
-        ) as exc:
-            self.logger.debug("Rust scorer unavailable (%s) — Python fallback", exc)
-        return CoherenceScorer(  # pragma: no cover — kernel-absent fallback (wheel in coverage job)
+        if use_nli is not True:
+            try:
+                get_backend("rust")
+                scorer = CoherenceScorer(
+                    threshold=0.6,
+                    ground_truth_store=self.store,
+                    use_nli=False,
+                    scorer_backend="rust",
+                )
+                if scorer._rust_scorer is not None:
+                    self.logger.info("Rust CoherenceScorer active (via registry)")
+                    return scorer
+            except (
+                KeyError,
+                ImportError,
+                TypeError,
+                ValueError,
+                RuntimeError,
+                OSError,
+            ) as exc:
+                self.logger.debug("Rust scorer unavailable (%s) — Python fallback", exc)
+        return CoherenceScorer(
             threshold=0.6,
             ground_truth_store=self.store,
             use_nli=use_nli,
@@ -249,7 +266,7 @@ class CoherenceAgent:
         self._raise_if_cancelled(cancel_event)
 
         if best[0] is not None:
-            result = self._emit_approved(best, n)
+            result = self._emit_approved(best[0], best[1], best[2], n)
         else:
             result = self._handle_rejection(prompt, tenant_id, rejected, n)
 
@@ -387,6 +404,14 @@ class CoherenceAgent:
             )
         return self.passport_verifier.verify(passport)
 
+    def _review_candidate(
+        self, prompt: str, text: str, tenant_id: str
+    ) -> tuple[bool, CoherenceScore]:
+        """Review once with the request's tenant, if one was supplied."""
+        if tenant_id:
+            return self.scorer.review(prompt, text, tenant_id=tenant_id)
+        return self.scorer.review(prompt, text)
+
     def _score_candidates(
         self,
         candidates: list[dict[str, Any]],
@@ -406,10 +431,7 @@ class CoherenceAgent:
                     "Candidate %d is error text, skipping: %s", i, text[:60]
                 )
                 continue
-            try:
-                approved, score = self.scorer.review(prompt, text, tenant_id=tenant_id)
-            except TypeError:
-                approved, score = self.scorer.review(prompt, text)
+            approved, score = self._review_candidate(prompt, text, tenant_id)
 
             self.logger.info(
                 "Candidate %d Coherence=%.4f Approved=%s",
@@ -425,22 +447,32 @@ class CoherenceAgent:
 
         return best, rejected, len(candidates)
 
-    def _emit_approved(self, best: _ScoredCandidate, n_candidates: int) -> ReviewResult:
-        """Build ReviewResult for the best approved candidate."""
-        text, score, coherence = best
-        # An approved candidate always carries its generated text.
-        assert text is not None
+    def _emit_approved(
+        self, text: str, score: CoherenceScore, coherence: float, n_candidates: int
+    ) -> ReviewResult:
+        """Forward the approved candidate through the final output monitor."""
 
         def coherence_monitor(_token: str) -> float:
             return coherence
 
-        final_output = self.kernel.stream_output([text], coherence_monitor)
+        output = self.kernel.stream_output_result([text], coherence_monitor)
         prefix = self.disclaimer_prefix if score and score.warning else ""
         return ReviewResult(
-            output=f"{prefix}{final_output}",
+            output=f"{prefix}{output.output}",
             coherence=score,
-            halted=False,
+            halted=output.halted,
             candidates_evaluated=n_candidates,
+            halt_evidence=(
+                HaltEvidence(
+                    reason=output.halt_reason,
+                    last_score=coherence
+                    if output.last_score is None
+                    else output.last_score,
+                    evidence_chunks=[],
+                )
+                if output.halted
+                else None
+            ),
         )
 
     def _handle_rejection(
@@ -468,6 +500,16 @@ class CoherenceAgent:
                 candidates_evaluated=n_candidates,
                 fallback_used=True,
             )
+
+        if (
+            rej_text is not None
+            and rej_score is not None
+            and rej_score.evidence is None
+            and getattr(self.scorer, "cache", None) is not None
+        ):
+            with _review_without_score_cache():
+                _, reviewed = self._review_candidate(prompt, rej_text, tenant_id)
+            rej_score = replace(rej_score, evidence=reviewed.evidence)
 
         ev_chunks = []
         nli_scores = None
@@ -531,27 +573,77 @@ class CoherenceAgent:
             cancel_event,
         )
 
+    async def _process_stream_fallback(
+        self, prompt: str, tenant_id: str
+    ) -> ReviewResult:
+        """Review a whole-response provider without occupying the event loop."""
+        cancel_event = threading.Event()
+        try:
+            return await self.aprocess(prompt, tenant_id, cancel_event=cancel_event)
+        except asyncio.CancelledError:
+            cancel_event.set()
+            raise
+
+    async def _stream_fragments(
+        self, prompt: str
+    ) -> AsyncGenerator[tuple[str, str], None]:
+        """Carry local provider spans alongside the established output tokens."""
+        if isinstance(self.generator, LLMGenerator):
+            async with aclosing(self.generator._stream_fragments(prompt)) as fragments:
+                async for fragment in fragments:
+                    yield fragment
+            return
+
+        tokens: AsyncIterator[str] = aiter(self.generator.stream_tokens(prompt))
+        separator = ""
+        try:
+            async for token in tokens:
+                yield token, separator + token
+                separator = " "
+        finally:
+            close = getattr(tokens, "aclose", None)
+            if close is not None:
+                await close()
+
     async def stream(
         self,
         prompt: str,
         tenant_id: str = "",
     ) -> AsyncIterator[tuple[str, float]]:
-        """Stream tokens with real-time halt oversight.
+        """Yield scored tokens, including the token that triggered a halt.
 
-        Yields ``(token, coherence)`` tuples. Halting stops future tokens but
-        does not retract delivered ones.
+        Call :meth:`stream_events` to inspect the decision before delivering
+        a token to a downstream client.
+        """
+        if not hasattr(self.generator, "stream_tokens"):
+            result = await self._process_stream_fallback(prompt, tenant_id)
+            score = result.coherence.score if result.coherence else 0.0
+            for word in result.output.split():
+                yield word, score
+            return
+
+        async with aclosing(self.stream_events(prompt, tenant_id)) as events:
+            async for event in events:
+                if event.token is not None:
+                    yield event.token, event.coherence
+
+    async def stream_events(
+        self,
+        prompt: str,
+        tenant_id: str = "",
+    ) -> AsyncGenerator[AgentStreamEvent, None]:
+        """Yield per-token scores and decisions for pre-delivery oversight.
 
         With a configured :class:`ContradictionHalt`
         (``streaming_contradiction_halt=True``) each completed claim is scored
-        by ``P(contradiction)`` against retrieved grounding facts and the
-        stream halts on genuine contradiction — the calibrated real-time
-        mechanism (false-halt 1.48% over 135 grounded passages at threshold
-        0.2; see ``benchmarks/results/streaming_contradiction_halt_base.json``
-        and the streaming guide).
+        by ``P(contradiction)`` against grounding facts visible to the tenant.
+        The stream stops when that probability reaches the configured
+        threshold. See the streaming guide for measured behaviour.
 
         Without it, halting falls back to the coherence signal
-        (``StreamingKernel`` sliding window, trend detection, hard/soft halt),
-        which remains experimental: coherence scores of correct and
+        (``StreamingKernel`` sliding window, trend detection, hard limit).
+        Each stream tracks its own scores for these checks.
+        This signal remains experimental: coherence scores of correct and
         hallucinated partial text overlap, so that path cannot separate them
         without a high false-halt rate (see
         ``benchmarks/streaming_false_halt_bench.py``). Coherence is re-scored
@@ -564,9 +656,17 @@ class CoherenceAgent:
             raise ValueError("prompt must be a non-empty string")
 
         if not hasattr(self.generator, "stream_tokens"):
-            result = self.process(prompt, tenant_id=tenant_id)
+            result = await self._process_stream_fallback(prompt, tenant_id)
+            score = result.coherence.score if result.coherence else 0.0
+            if result.halted:
+                evidence = result.halt_evidence
+                if evidence is None:
+                    yield AgentStreamEvent(None, score, "coherence_halt")
+                else:
+                    yield AgentStreamEvent(None, evidence.last_score, evidence.reason)
+                return
             for word in result.output.split():
-                yield word, result.coherence.score if result.coherence else 0.0
+                yield AgentStreamEvent(word, score)
             return
 
         contradiction_halt = getattr(self, "contradiction_halt", None)
@@ -576,29 +676,38 @@ class CoherenceAgent:
             # is yielded for observability; it is held between claim boundaries.
             claim_tokens: list[str] = []
             last_contra = 0.0
-            async for token in self.generator.stream_tokens(prompt):
-                claim_tokens.append(token)
-                if ends_claim(token):
-                    decision = contradiction_halt.should_halt(
-                        " ".join(claim_tokens).strip(),
-                    )
-                    last_contra = decision.contradiction
-                    claim_tokens = []
-                    yield token, 1.0 - last_contra
-                    if decision.halt:
-                        return
-                else:
-                    yield token, 1.0 - last_contra
+            async with aclosing(self._stream_fragments(prompt)) as fragments:
+                async for token, fragment in fragments:
+                    claim_tokens.append(fragment)
+                    if ends_claim(fragment):
+                        claim = "".join(claim_tokens).strip()
+                        decision = (
+                            contradiction_halt.should_halt(claim, tenant_id=tenant_id)
+                            if tenant_id
+                            else contradiction_halt.should_halt(claim)
+                        )
+                        last_contra = decision.contradiction
+                        claim_tokens = []
+                        reason = "contradiction" if decision.halt else ""
+                        yield AgentStreamEvent(token, 1.0 - last_contra, reason)
+                        if decision.halt:
+                            return
+                    else:
+                        yield AgentStreamEvent(token, 1.0 - last_contra)
             return
 
-        self.streaming_kernel.reset_state()
+        settings = self.streaming_kernel
+        kernel = StreamingKernel(
+            hard_limit=settings.hard_limit,
+            window_size=settings.window_size,
+            window_threshold=settings.window_threshold,
+            trend_window=settings.trend_window,
+            trend_threshold=settings.trend_threshold,
+        )
         accumulated: list[str] = []
 
         def _score_text(text: str) -> float:
-            try:
-                _, score = self.scorer.review(prompt, text, tenant_id=tenant_id)
-            except TypeError:
-                _, score = self.scorer.review(prompt, text)
+            _, score = self._review_candidate(prompt, text, tenant_id)
             return float(score.score)
 
         # Gate re-scoring to complete claims: NLI/RAG coherence on a half-finished
@@ -606,12 +715,11 @@ class CoherenceAgent:
         # model judges a finished claim and the score holds between boundaries.
         gate = StreamingCoherenceGate(_score_text)
 
-        def _coherence_cb(token: str) -> float:
-            accumulated.append(token)
-            return gate.update(" ".join(accumulated))
-
-        async for token in self.generator.stream_tokens(prompt):  # pragma: no branch
-            score = _coherence_cb(token)
-            yield token, score
-            if self.streaming_kernel.check_halt(score):
-                return
+        async with aclosing(self._stream_fragments(prompt)) as fragments:
+            async for token, fragment in fragments:
+                accumulated.append(fragment)
+                score = gate.update("".join(accumulated))
+                halted = kernel.check_halt(score)
+                yield AgentStreamEvent(token, score, "coherence_halt" if halted else "")
+                if halted:
+                    return

@@ -80,10 +80,10 @@ class DivergenceMixin(TaskRoutedCoherenceMixin, FactualDivergenceMixin):
 
         When strict_mode is True and NLI is unavailable, returns 0.9 (reject).
         """
-        if self._rust_scorer is not None:
+        if self._rust_scorer is not None and not self.strict_mode:
             _, score_obj = self._rust_scorer.review(prompt, text_output)
             fallback = 1.0 - getattr(score_obj, "score", 0.5)
-            return getattr(score_obj, "h_logical", fallback)
+            return float(getattr(score_obj, "h_logical", fallback))
 
         if self._nli and self._nli.model_available:
             logic_inner = (

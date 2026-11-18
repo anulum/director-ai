@@ -11,11 +11,37 @@
 from __future__ import annotations
 
 import logging
+import math
 import threading
 import time
 from collections.abc import Callable, Iterable
+from dataclasses import dataclass
+from typing import Literal
 
-__all__ = ["HaltMonitor", "SafetyKernel"]
+__all__ = ["HaltMonitor", "HaltOutput", "SafetyKernel"]
+
+_HaltReason = Literal[
+    "",
+    "kernel_inactive",
+    "total_timeout",
+    "callback_timeout",
+    "token_timeout",
+    "hard_limit",
+]
+
+
+@dataclass(frozen=True, slots=True)
+class HaltOutput:
+    """The output, stop reason and last score observed by the monitor."""
+
+    output: str
+    halt_reason: _HaltReason = ""
+    last_score: float | None = None
+
+    @property
+    def halted(self) -> bool:
+        """Return whether this call stopped before completing its output."""
+        return bool(self.halt_reason)
 
 
 class HaltMonitor:
@@ -39,7 +65,25 @@ class HaltMonitor:
         on_halt: Callable[[float], None] | None = None,
         token_timeout: float = 0.0,
         total_timeout: float = 0.0,
-    ):
+    ) -> None:
+        """Configure the coherence floor, halt callback and optional timeouts.
+
+        Parameters
+        ----------
+        hard_limit : float
+            Inclusive lower passing score in the interval [0, 1].
+        on_halt : callable, optional
+            Receives the score that triggered a hard-limit halt.
+        token_timeout : float
+            Maximum callback duration in seconds; zero disables the limit.
+        total_timeout : float
+            Maximum stream duration in seconds; zero disables the limit.
+
+        Raises
+        ------
+        ValueError
+            If the coherence floor is outside [0, 1].
+        """
         if not (0.0 <= hard_limit <= 1.0):
             raise ValueError(f"hard_limit must be in [0, 1], got {hard_limit}")
         self.hard_limit = hard_limit
@@ -55,20 +99,50 @@ class HaltMonitor:
         token_generator: Iterable[str],
         coherence_callback: Callable[[str], float],
     ) -> str:
-        """Emit output tokens while monitoring coherence in real-time.
+        """Return the assembled output or the original halt message."""
+        return self.stream_output_result(token_generator, coherence_callback).output
 
-        Returns assembled output string, or an interrupt message if halted.
-        Respects token_timeout and total_timeout when > 0.
+    def stream_output_result(
+        self,
+        token_generator: Iterable[str],
+        coherence_callback: Callable[[str], float],
+    ) -> HaltOutput:
+        """Emit output under monitoring and return this call's verdict.
+
+        Parameters
+        ----------
+        token_generator : iterable of str
+            Tokens in generation order.
+        coherence_callback : callable
+            Receives the accumulated output including the proposed token and
+            returns a coherence score. Nonfinite results become zero before
+            comparison or delivery to the halt callback.
+
+        Returns
+        -------
+        HaltOutput
+            Assembled output, or the halt message with its reason. The
+            score is absent if this call had no successful score check.
+            An inactive gate refuses before scoring. Use ``reactivate``
+            to re-arm it.
+            Positive token and total timeouts are measured in seconds.
         """
         output_buffer: list[str] = []
         stream_start = time.monotonic()
+        last_score = None
 
         for token in token_generator:
+            if not self.is_active:
+                return HaltOutput(
+                    "[HALT: KERNEL INACTIVE]", "kernel_inactive", last_score
+                )
             if self.total_timeout > 0:
                 elapsed = time.monotonic() - stream_start
                 if elapsed > self.total_timeout:
                     self.emergency_stop()
-                    return "[HALT: TOTAL TIMEOUT EXCEEDED]"
+                    return HaltOutput(
+                        "[HALT: TOTAL TIMEOUT EXCEEDED]", "total_timeout", last_score
+                    )
 
             token_start = time.monotonic()
             accumulated = "".join(output_buffer) + token
@@ -76,22 +150,30 @@ class HaltMonitor:
                 current_score = coherence_callback(accumulated)
             except (TimeoutError, OSError):
                 self.emergency_stop()
-                return "[HALT: CALLBACK TIMEOUT]"
+                return HaltOutput(
+                    "[HALT: CALLBACK TIMEOUT]", "callback_timeout", last_score
+                )
+            current_score = current_score if math.isfinite(current_score) else 0.0
+            last_score = current_score
             token_elapsed = time.monotonic() - token_start
 
             if self.token_timeout > 0 and token_elapsed > self.token_timeout:
                 self.emergency_stop()
-                return "[HALT: TOKEN TIMEOUT EXCEEDED]"
+                return HaltOutput(
+                    "[HALT: TOKEN TIMEOUT EXCEEDED]", "token_timeout", current_score
+                )
 
             if current_score < self.hard_limit:
                 self.emergency_stop()
                 if self.on_halt:
                     self.on_halt(current_score)
-                return "[HALT: COHERENCE BELOW THRESHOLD]"
+                return HaltOutput(
+                    "[HALT: COHERENCE BELOW THRESHOLD]", "hard_limit", current_score
+                )
 
             output_buffer.append(token)
 
-        return "".join(output_buffer)
+        return HaltOutput("".join(output_buffer), last_score=last_score)
 
     def emergency_stop(self) -> None:
         """Halt the output stream."""

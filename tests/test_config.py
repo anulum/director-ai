@@ -1393,7 +1393,8 @@ class TestConfigCoverageGaps:
             hybrid_retrieval=False,
             reranker_enabled=False,
         )
-        assert cfg._resolve_scorer_backend() == "lite"
+        assert not cfg.use_nli
+        assert cfg._resolve_scorer_backend() == "deberta"
 
     def test_build_scorer_wires_optional_runtime_features(
         self, monkeypatch: pytest.MonkeyPatch

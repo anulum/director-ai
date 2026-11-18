@@ -4,7 +4,7 @@
 //
 // One app, three outputs (pattern §2.1): a standalone static build, a
 // Module-Federation 2.x remote exposing <DirectorAIStudioPanel> for the
-// Institute hub, and a WASM bundle (the committed backfire-wasm kernel) for the
+// Institute hub, and a WASM bundle (generated from the backfire-wasm crate) for the
 // live in-browser halt. COOP/COEP are set so SharedArrayBuffer-backed WASM
 // multithreading is available later without a config change (seam, not feature).
 
@@ -12,22 +12,10 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import { federation } from "@module-federation/vite";
 
-// Cross-origin isolation headers — required for SharedArrayBuffer / threaded WASM.
-const crossOriginIsolation = {
-  name: "cross-origin-isolation",
-  configureServer(server: { middlewares: { use: (fn: unknown) => void } }) {
-    server.middlewares.use(
-      (
-        _req: unknown,
-        res: { setHeader: (k: string, v: string) => void },
-        next: () => void,
-      ) => {
-        res.setHeader("Cross-Origin-Opener-Policy", "same-origin");
-        res.setHeader("Cross-Origin-Embedder-Policy", "require-corp");
-        next();
-      },
-    );
-  },
+/** Apply the same cross-origin isolation to development and production preview. */
+const isolationHeaders = {
+  "Cross-Origin-Opener-Policy": "same-origin",
+  "Cross-Origin-Embedder-Policy": "require-corp",
 };
 
 export default defineConfig({
@@ -42,15 +30,15 @@ export default defineConfig({
         "./DirectorAIStudioPanel":
           "./src/federation/DirectorAIStudioPanel.tsx",
       },
-      // Singleton-shared react/react-dom — the #1 MFE runtime-error source is a
-      // duplicated react; pin one version across the workspace, not strictVersion.
+      // Share one React version with a compatible host.
       shared: {
-        react: { singleton: true, requiredVersion: false },
-        "react-dom": { singleton: true, requiredVersion: false },
+        react: { singleton: true, requiredVersion: "19.3.1" },
+        "react-dom": { singleton: true, requiredVersion: "19.3.1" },
       },
     }),
-    crossOriginIsolation,
   ],
+  server: { headers: isolationHeaders },
+  preview: { headers: isolationHeaders },
   // backfire-wasm ships a .wasm asset; keep it out of inlining so it streams.
   assetsInclude: ["**/*.wasm"],
   build: {

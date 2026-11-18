@@ -1,15 +1,22 @@
+<!--
+SPDX-License-Identifier: Apache-2.0
+Commercial license available
+© Concepts 1996–2026 Miroslav Šotek. All rights reserved.
+© Code 2020–2026 Miroslav Šotek. All rights reserved.
+ORCID: 0009-0009-3560-0851
+Contact: www.anulum.li | protoscience@anulum.li
+Director-AI — Streaming halt guide
+-->
+
 # Streaming Halt
 
-!!! success "Contradiction halt replaces the old coherence callback"
-    Director-AI's streaming halt now uses the contradiction-driven claim gate for
-    production streaming deployments. Completed streamed claims are scored for
-    `P(contradiction)` against retrieved grounding facts, and the stream halts
-    when a claim contradicts governed knowledge. The older coherence callback is
-    kept as a generic `StreamingKernel` example, but it is no longer the
-    recommended production streaming signal.
+!!! note "Opt-in contradiction halt"
+    With contradiction halt enabled, Director-AI scores completed claims for
+    `P(contradiction)` against retrieved grounding facts. The stream stops
+    when that probability reaches the configured threshold.
 
     Current proof is
-    `benchmarks/results/streaming_contradiction_halt_base.json`: threshold 0.2,
+    `benchmarks/results/streaming_contradiction_halt_base.json`: threshold 0.5,
     612 grounded passages, 507 contradiction passages, false-halt rate 0.0065
     (4/612). Recall splits by contradiction kind: semantic recall 0.9309
     (202/217) — the headline contradiction-detection capability — and numeric
@@ -119,6 +126,11 @@ def handle_halt(session):
 kernel = StreamingKernel(on_halt=handle_halt)
 ```
 
+The synchronous output monitor exposes `HaltMonitor.stream_output_result()`
+for callers that need the verdict alongside the output text. It reports a
+reason when delivery stops and a last score when it has successfully checked
+one. The existing `stream_output()` method continues to return the text.
+
 ## Async Streaming
 
 ```python
@@ -133,7 +145,62 @@ kernel = AsyncStreamingKernel(
 session = await kernel.stream_to_session(async_token_gen, coherence_fn)
 ```
 
+The async kernel awaits scores returned as coroutines, tasks or futures before
+deciding whether to deliver a token. Callbacks can also return a score directly.
+
+Both Python kernels leave the gate inactive after an actual halt; call
+`reactivate()` before starting another stream. With `halt_mode="soft"`, a window
+or trend violation permits tokens until the next sentence boundary or 50
+additional tokens. A hard-limit violation still stops immediately, including
+while a soft halt is pending. Soft halts deliberately allow more output and
+cannot guarantee that the additional text is grounded.
+
+The collected async session preserves the initial soft-halt reason and trigger
+index in `halt_reason` and `halt_index`. Its `soft_halted` flag is true and its
+`output` includes the delivered sentence; a hard halt excludes the violating
+token. The session callback runs once after collection, and each collected
+session retains its own halt metadata. These generic Python soft-halt controls
+are separate from the contradiction-driven claim gate and are not a native
+WASM soft-halt feature.
+
+Async session stop causes distinguish `token_timeout`, `total_timeout`,
+`callback_error` and `kernel_inactive` from the score-based halt reasons.
+Operational failures may use a fallback event score; that value is not a
+measured contradiction score. Timeouts are checked after a source or callback
+returns and do not forcibly cancel a stalled producer or synchronous callback.
+
+For the coherence-based `CoherenceAgent.stream()` path, each call keeps its
+own score window and trend history. Concurrent calls on the same agent use
+the configured thresholds with independent histories.
+
+The base installation supports whole-response scoring through the Python
+heuristic when NLI is disabled and the automatic scorer selects its fallback.
+Generic token-level coherence oversight uses `director-ai[rust]` for the
+rolling-window and trend checks. If the runtime reaches one of those checks
+without the extension, the SDK raises an installation error and SSE emits a
+terminal `error` event. The opt-in contradiction path with a streaming
+provider uses its NLI model and grounding store for claim decisions.
+
 ## REST SSE Endpoint
+
+SSE and WebSocket oversight deliver a terminal `halt` event with the reason,
+trigger score and delivered-token count. The transport withholds the triggering
+token when the agent flags a halt. For a whole-response provider, the reason
+comes from the response verdict, including `hard_limit` and `kernel_inactive`
+when the final output monitor refuses delivery.
+With contradiction halt enabled, the configured contradiction threshold decides
+these events. Coherence-based streaming also applies the server's configured
+egress limits.
+
+The local generation adapter treats `[DONE]` as the end of the response and
+uses whole completion JSON when the upstream returns it. It can request a
+whole completion as a fallback before any output starts. If the upstream
+fails after output starts, the stream reports the failure with the original
+prefix intact. Whole-completion requests run off the event loop.
+Scoring preserves the provider's text across chunk boundaries. A number or
+word split across events is reassembled without inserting whitespace. A whole
+JSON completion retains its original spacing for scoring and emits the usual
+word tokens to clients.
 
 `POST /v1/stream/sse` serves the same two session shapes as the
 `/v1/stream` WebSocket — whole-answer processing and token-level
@@ -316,7 +383,14 @@ python -m benchmarks.streaming_false_halt_bench --nli
 
 ## Structured Halt Evidence
 
-When a `scorer` is passed to `stream_tokens()`, halt events include a `HaltEvidence` object with the top-K contradicting chunks and NLI scores:
+When a `scorer` is passed to `stream_tokens()`, halt events include a
+`HaltEvidence` object with up to `top_k` retrieved chunks and any available
+NLI scores.
+
+`top_k` limits the retrieved facts attached to the packet. NLI scores
+describe the hypothesis chunks in generation order. A halt evidence review
+reads the current tenant's grounding directly, even when the scalar score
+cache has an entry for the same prefix.
 
 ```python
 session = kernel.stream_tokens(
@@ -343,7 +417,21 @@ if session.halt_evidence_structured:
         print(f"  - {chunk.text[:80]} (distance={chunk.distance:.3f})")
 ```
 
-Each `TokenEvent` on halt also carries a `halt_evidence` field with the same `HaltEvidence` object. Its `trace_attribution` field records the fact source, retrieval path, scorer path, token offset, threshold, and halt margin. Its `counterfactual_diagnostic` field answers which single retrieved fact branch would have prevented the halt.
+The terminal `TokenEvent` contains the same `HaltEvidence` object as the
+session. Its attribution records the trigger token offset, threshold and
+margin measured when the condition was met. For a deferred halt, the scorer
+and evidence callback receive the prefix through the trigger token. The event
+and delivered output still include the sentence ending. The counterfactual
+diagnostic applies its score intervention model to the trigger observation.
+
+For tenant-scoped halt evidence, pass the authenticated `tenant_id` to
+`stream_tokens()`. The kernel forwards that identity to `scorer.review()`,
+safety events and token traces. The native `rust` and `backfire` scorer paths
+also bind this identity to their retrieval callback for that invocation; see
+[Rust Python bindings](rust-ffi.md). A backend serving tenant-scoped requests must
+apply that identity to its retrieval and score-cache lookups. Authentication
+and authorisation belong to the calling application. Omitting the identifier
+retains the scorer's unscoped behavior.
 
 When OpenTelemetry is enabled, the same halt fields are exported as
 `stream.halt_cause.*` and `stream.counterfactual.*` attributes on
@@ -427,11 +515,12 @@ correct-but-unsupported claim is neutral, not a contradiction, so it is allowed.
 
 How it works:
 
-- tokens accumulate until a claim boundary (`ends_claim`, shared with
-  `StreamingCoherenceGate`); only complete claims reach the scorer;
+- the agent accumulates provider chunks until a chunk ends with claim
+  punctuation (`.`, `!`, `?`, `;`, or `:`). A trailing fragment keeps the
+  previous score until the stream ends;
 - the claim is scored for `P(contradiction)` from a three-class NLI model
-  (`ContradictionScorer`) against each retrieved grounding fact, and the
-  strongest contradiction decides;
+  (`ContradictionScorer`) against each grounding fact retrieved for the
+  request's tenant, and the strongest contradiction decides;
 - an ungrounded claim (no retrieval hit) never halts — an absent fact is not a
   contradiction.
 
@@ -450,12 +539,20 @@ DirectorConfig(
 
 Current streaming proof:
 
-| Artefact | Device | Correct passages | Contradiction passages | False-halt | Semantic recall | Numeric recall | Notes |
-|---|---|---:|---:|---:|---:|---:|---|
-| `benchmarks/results/streaming_contradiction_halt_base.json` | A30 GPU | 612 | 507 | 0.0065 | 0.9309 | 0.5586 | Isolated JarvisLabs A30 refresh, n>=500/class; load average and command recorded in `benchmark_context`; per-kind split in `halt_recall_by_kind` |
+| Artefact | Device | Threshold | Correct passages | Contradiction passages | False-halt | Semantic recall | Numeric recall |
+|---|---|---:|---:|---:|---:|---:|---:|
+| `benchmarks/results/streaming_contradiction_halt_base.json` | A30 GPU | 0.5 | 612 | 507 | 0.0065 | 0.9309 | 0.5586 |
 
-This proves the streaming halt is fixed for contradiction-scoped claims: the
-current gate keeps 608/612 grounded passages open and catches semantic
+The historical artefact records `--threshold 0.5` in its command. Its top-level
+`threshold` field holds the scorer's default, 0.2. A replay with pinned weights
+at the applied threshold of 0.5 reproduced the counts in the table.
+
+The benchmark replays labelled passages with whitespace tokenization and a
+three-word minimum per claim. Its rates describe that corpus and segmentation.
+Live SSE, WebSocket, and gRPC sessions receive chunk boundaries from the
+provider and use the agent's claim punctuation rule.
+
+In this benchmark, the gate kept 608/612 grounded passages open and caught semantic
 contradictions at 0.9309 recall (202/217, halt precision 0.9891). Numeric-value
 contradictions are the standing gap (0.5586 recall, 162/290) — NLI-based
 detection reasons weakly over bare numbers — pulling the aggregate to 0.7179

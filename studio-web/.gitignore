@@ -6,5 +6,10 @@ dist-ssr/
 coverage/
 playwright-report/
 test-results/
+build/
+*.tsbuildinfo
 *.local
 public/studio_manifest.json
+!/src/tokens/
+/src/tokens/*
+!/src/tokens/instrument-deck.css

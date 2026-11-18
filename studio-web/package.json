@@ -3,8 +3,11 @@
     "private": true,
     "version": "0.0.0",
     "type": "module",
-    "description": "Director-AI AI-Safety / Streaming Academy — dedicated Tier-B portal (Phase-0 scaffold)",
+    "description": "Director-AI AI-Safety / Streaming Academy",
     "license": "Apache-2.0",
+    "engines": {
+        "node": "^22.23.4 || ^24.0.0 || >=26.0.0"
+    },
     "scripts": {
         "sync:manifest": "node scripts/sync-manifest.mjs",
         "predev": "npm run sync:manifest",
@@ -12,7 +15,7 @@
         "dev": "vite",
         "build": "tsc -b && vite build",
         "preview": "vite preview",
-        "test": "vitest run",
+        "test": "vitest run src",
         "e2e": "playwright test",
         "lint": "eslint . && tsc --noEmit",
         "check:manifest": "node ../packages/vercel-ai/node_modules/typescript/bin/tsc --project tsconfig.manifest.json",
@@ -20,28 +23,27 @@
         "docs:manifest": "node ../packages/vercel-ai/node_modules/typedoc/bin/typedoc --entryPoints src/contract/manifest.ts --tsconfig tsconfig.manifest.json --readme README.md --out build/manifest-docs --name \"Director-AI Studio manifest\" --validation.notDocumented --validation.notExported --validation.invalidLink --treatWarningsAsErrors --treatValidationWarningsAsErrors"
     },
     "dependencies": {
-        "react": "19.0.0",
-        "react-dom": "19.0.0",
-        "react-router-dom": "7.1.1",
-        "zustand": "5.0.2",
+        "react": "19.3.1",
+        "react-dom": "19.3.1",
+        "react-router-dom": "7.18.5",
         "backfire-wasm": "file:../backfire-kernel/crates/backfire-wasm/pkg"
     },
-    "peerDependencies": {
-        "@anulum/ui": "workspace:*",
-        "@anulum/portal-kit": "workspace:*"
-    },
     "devDependencies": {
-        "@module-federation/vite": "1.4.1",
-        "@playwright/test": "1.49.1",
-        "@types/react": "19.0.2",
-        "@types/react-dom": "19.0.2",
-        "@vitejs/plugin-react": "4.3.4",
-        "@vitest/coverage-v8": "5.0.3",
-        "eslint": "9.17.0",
-        "jsdom": "25.0.1",
+        "@eslint/js": "10.0.1",
+        "@module-federation/runtime": "2.9.3",
+        "@module-federation/vite": "1.24.1",
+        "@playwright/test": "1.65.1",
+        "@types/node": "26.6.6",
+        "@types/react": "19.3.0",
+        "@types/react-dom": "19.3.0",
+        "@typescript-eslint/parser": "8.73.0",
+        "@vitejs/plugin-react": "6.3.0",
+        "@vitest/coverage-v8": "5.1.0",
+        "eslint": "10.15.0",
+        "eslint-plugin-react-hooks": "7.1.1",
         "typescript": "5.8.2",
-        "vite": "8.1.6",
-        "vitest": "5.0.3"
-    },
-    "comment": "@anulum/ui + @anulum/portal-kit are peer deps published by the SCPN-STUDIO keeper; until then a local Instrument-Deck token mirror (src/tokens) + local honesty bridge (src/contract/honesty.ts) stand in. Pinned versions are placeholders to be reconciled against the workspace lock at integration."
+        "vite": "8.3.8",
+        "vitest": "5.1.0",
+        "webpack": "5.112.2"
+    }
 }

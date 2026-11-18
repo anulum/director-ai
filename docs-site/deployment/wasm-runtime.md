@@ -96,9 +96,11 @@ PYTHONPATH=src python tools/run_wasm_browser_worker_smoke.py \
   --json benchmarks/results/wasm_browser_worker_smoke_<UTC_TIMESTAMP>.json
 ```
 
-The smoke starts a localhost server, launches headless Chrome, loads a module
-Worker, imports `backfire_wasm.js`, initialises the `.wasm` payload, verifies a
-passing token, verifies a hard halt, and verifies the halt is irrevocable.
+The smoke starts a localhost server and launches headless Chrome with its
+normal sandbox settings. A module Worker loads the generated WASM package and
+checks that the hard halt retains the triggering token and refuses later
+tokens. Chrome startup failures appear in the report. If Chrome reports that
+its Unix socket path is too long, set `TMPDIR` to a short writable directory.
 
 ## Readiness Evidence
 
@@ -160,6 +162,31 @@ for (const token of tokens) {
 
 For browser use, run scoring and `process_token` in a Web Worker so the UI
 thread does not stall on long streams.
+
+The constructor requires all fields of the native `BackfireConfig`, as shown
+in the crate README, and rejects malformed JSON or parameters rejected by the
+native configuration validator. An object containing only `threshold` is not
+valid. This validation happens before the stream window is allocated.
+
+NaN and either infinity are converted to zero before recording events or
+applying the halt checks, matching the native Rust streaming kernel. Finite
+scores are not clamped. Hard-limit and window-average checks use strict `<`;
+the downward-trend check uses strict `>`. A score of zero does not force a halt
+if the configured thresholds permit it.
+
+The trend uses the least-squares slope across the recent `trend_window` scores.
+Its projected drop is `-slope * (trend_window - 1)`, computed by the same native
+function used by the Rust and Python streaming paths.
+
+Every returned session is an independent snapshot. The halting token remains
+in its trace, and later calls leave that halted session unchanged. Create a new
+kernel for the next stream and call `free()` when an instance is finished.
+WASM token-event timestamps are zero; the host owns time measurement.
+
+These coherence checks do not implement the Python evidence-bound
+completed-claim contradiction interlock. The WASM module supplies neither
+retrieval nor a calibrated NLI model, and its halt decision is not a factuality
+or prevention guarantee.
 
 ## Links
 

@@ -53,6 +53,10 @@ Returns `True` if `torch` and `transformers` are importable.
 | `minicheck` | MiniCheck-DeBERTa-L | ~60 ms/pair | 72.6% BA | ~400 MB |
 | `lite` | word-overlap heuristic | <0.5 ms/pair | ~65% BA | 0 |
 
+For the PyTorch backend, `bfloat16` controls model inference precision. The
+scorer converts bfloat16 logits to float32 before computing probabilities for
+single scores, batch scores and confidence.
+
 ## MiniCheck precision tiers
 
 The `minicheck` backend selects a checkpoint via `minicheck_variant`. Each maps

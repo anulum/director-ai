@@ -18,7 +18,14 @@ authors = [
     {name = "Miroslav Šotek", email = "protoscience@anulum.li"}
 ]
 license = "Apache-2.0 AND LicenseRef-BUSL-1.1-ANULUM-TDM"
-license-files = ["LICENSE", "LICENSES/*.txt", "NOTICE.md"]
+license-files = [
+    "LICENSE",
+    "LICENSES/Apache-2.0.txt",
+    "LICENSES/CC-BY-4.0.txt",
+    "LICENSES/LicenseRef-BUSL-1.1-ANULUM-TDM.txt",
+    "LICENSES/MIT.txt",
+    "NOTICE.md",
+]
 readme = "README.md"
 requires-python = ">=3.11.5"
 keywords = [

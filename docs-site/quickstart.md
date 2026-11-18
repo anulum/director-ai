@@ -316,7 +316,8 @@ for approved, score in results:
     print(f"approved={approved}  score={score.score:.3f}")
 ```
 
-`review_batch()` batches NLI pairs into 2 GPU forward passes when NLI is available. Dialogue items fall back to sequential scoring.
+`review_batch()` groups NLI inference for eligible pairs. Configured claim
+verification, reasoning, and output detection run for each pair.
 
 ## Async Usage
 

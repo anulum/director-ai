@@ -9,15 +9,18 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
 import os
 import threading
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from types import TracebackType
 from typing import Self, cast
 
-from director_ai.core.agent import CoherenceAgent
+import pytest
+
+from director_ai.core.agent import AgentStreamEvent, CoherenceAgent
 from director_ai.core.types import ReviewResult
 from director_ai.integrations.providers import OpenAIProvider
 
@@ -37,6 +40,7 @@ class _ChatServerState:
 
     replies: tuple[str, ...]
     requests: list[_RecordedChatRequest] = field(default_factory=list)
+    first_request_hold: tuple[threading.Event, threading.Event] | None = None
 
     def response_body(self, path: str, headers: dict[str, str], body: bytes) -> bytes:
         """Record one request and return a chat-completions JSON response."""
@@ -50,6 +54,10 @@ class _ChatServerState:
                 payload=cast(dict[str, object], payload),
             )
         )
+        if self.first_request_hold is not None and len(self.requests) == 1:
+            entered, release = self.first_request_hold
+            entered.set()
+            release.wait(timeout=2.0)
         requested = payload.get("n", 1)
         count = requested if isinstance(requested, int) and requested > 0 else 1
         choices = [
@@ -165,6 +173,135 @@ def test_agent_openai_provider_process_uses_real_chat_completions_protocol() -> 
         "max_tokens": 512,
     }
     assert request.headers["Authorization"] == "Bearer local-provider-token"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("events", [False, True])
+async def test_whole_response_stream_keeps_the_event_loop_available(
+    events: bool,
+) -> None:
+    """A second request can finish while the first provider response is held."""
+    text = "The release policy requires two approvals."
+    prompt = "Summarise the release policy."
+    entered = threading.Event()
+    release = threading.Event()
+    with _ChatServer((text,)) as server:
+        server.state.first_request_hold = (entered, release)
+        agent = CoherenceAgent(
+            provider="openai",
+            api_key="local-async-test",
+            use_nli=False,
+            max_candidates=1,
+            production_mode=True,
+        )
+        assert isinstance(agent.generator, OpenAIProvider)
+        agent.generator.base_url = server.base_url
+        agent.store.add("release policy", text, tenant_id="team")
+
+        async def collect() -> list[str | None]:
+            """Consume the requested public API using the same provider."""
+            if events:
+                return [
+                    event.token async for event in agent.stream_events(prompt, "team")
+                ]
+            return [word async for word, _ in agent.stream(prompt, "team")]
+
+        task = asyncio.create_task(collect())
+        try:
+            assert await asyncio.to_thread(entered.wait, 5.0)
+            assert not task.done()
+            second = await agent.aprocess(prompt, "team")
+            assert not second.halted and second.output == text
+            assert not task.done()
+        finally:
+            release.set()
+            await asyncio.gather(task, return_exceptions=True)
+        assert task.result() == text.split()
+        assert len(server.state.requests) == 2
+
+
+@pytest.mark.asyncio
+async def test_whole_response_halt_without_exported_evidence_remains_terminal() -> None:
+    """Preserve an actual final-monitor refusal when an application redacts evidence."""
+
+    class EvidenceRedactingAgent(CoherenceAgent):
+        """Expose verdicts while keeping private evidence in the worker."""
+
+        def process(
+            self,
+            prompt: str,
+            tenant_id: str = "",
+            cancel_event: threading.Event | None = None,
+        ) -> ReviewResult:
+            """Strip optional evidence after the actual review and output monitor."""
+            result = super().process(prompt, tenant_id, cancel_event)
+            assert result.halt_evidence is not None
+            assert result.halt_evidence.reason == "kernel_inactive"
+            return replace(result, halt_evidence=None)
+
+    text = "The release policy requires two approvals."
+    prompt = "Summarise the release policy."
+    with _ChatServer((text,)) as server:
+        agent = EvidenceRedactingAgent(
+            provider="openai",
+            api_key="local-redaction-test",
+            use_nli=False,
+            max_candidates=1,
+            production_mode=True,
+        )
+        assert isinstance(agent.generator, OpenAIProvider)
+        agent.generator.base_url = server.base_url
+        agent.store.add("release policy", text, tenant_id="team")
+        agent.kernel.emergency_stop()
+
+        result = await agent.aprocess(prompt, "team")
+        assert result.halted and result.halt_evidence is None
+        assert result.coherence is not None
+        events = [event async for event in agent.stream_events(prompt, "team")]
+        assert events == [
+            AgentStreamEvent(None, result.coherence.score, "coherence_halt")
+        ]
+        assert len(server.state.requests) == 2
+
+
+def test_cancelled_whole_response_is_never_reviewed() -> None:
+    """Cancellation reaches the worker before it can score the held response."""
+    text = "The release policy requires two approvals."
+    prompt = "Summarise the release policy."
+    entered = threading.Event()
+    release = threading.Event()
+    with _ChatServer((text,)) as server:
+        server.state.first_request_hold = (entered, release)
+        agent = CoherenceAgent(
+            provider="openai",
+            api_key="local-cancel-test",
+            use_nli=False,
+            max_candidates=1,
+            production_mode=True,
+        )
+        assert isinstance(agent.generator, OpenAIProvider)
+        agent.generator.base_url = server.base_url
+        agent.store.add("release policy", text, tenant_id="team")
+
+        async def cancel() -> None:
+            """Cancel while the real HTTP handler still holds the response."""
+
+            async def receive() -> None:
+                """Enter generation through the event-stream API."""
+                await anext(agent.stream_events(prompt, "team"))
+
+            task = asyncio.create_task(receive())
+            try:
+                assert await asyncio.to_thread(entered.wait, 5.0)
+                task.cancel()
+                with pytest.raises(asyncio.CancelledError):
+                    await task
+            finally:
+                release.set()
+                await asyncio.gather(task, return_exceptions=True)
+
+        asyncio.run(cancel())
+        assert text not in agent.scorer.history
 
 
 class _PatchedEnviron:

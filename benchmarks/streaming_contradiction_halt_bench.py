@@ -46,6 +46,7 @@ import time
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass
 from pathlib import Path
+from typing import TypedDict
 
 from benchmarks.streaming_false_halt_bench import (
     BAD_PASSAGES,
@@ -60,6 +61,35 @@ RESULTS_DIR = Path(__file__).parent / "results"
 
 # A claim check maps a completed claim to a halt decision against its grounding.
 ClaimCheck = Callable[[str], ContradictionHaltDecision]
+
+
+class _BadPassageResult(TypedDict):
+    """Outcome and labelled trigger position for a contradictory passage."""
+
+    id: str
+    kind: str
+    halted: bool
+    halt_index: int
+    expected_halt_index: int
+    contradiction: float
+
+
+class _BenchmarkReport(TypedDict):
+    """Serializable report for a complete labelled streaming replay."""
+
+    benchmark: str
+    benchmark_context: dict[str, object]
+    gate: str
+    model: str
+    device: str
+    threshold: float
+    n_good: int
+    n_bad: int
+    halt_quality: dict[str, float | int]
+    halt_recall_by_kind: dict[str, dict[str, float | int]]
+    wall_ms: float
+    per_good: list[dict[str, str | bool | float]]
+    per_bad: list[_BadPassageResult]
 
 
 @dataclass(frozen=True)
@@ -128,7 +158,7 @@ def _aggregate(
     bad: list[tuple[StreamHaltOutcome, int]],
     *,
     token_tolerance: int = 8,
-) -> dict:
+) -> dict[str, float | int]:
     """Confusion + token-timing metrics, matching the original bench's schema."""
     false_positives = sum(1 for o in good if o.halted)
     true_positives = sum(1 for o, _exp in bad if o.halted)
@@ -164,19 +194,23 @@ def _aggregate(
     }
 
 
-def _build_halt(model_id: str, threshold: float, device: int):
+def _build_halt(
+    model_id: str, threshold: float, device: int
+) -> tuple[Callable[[dict[str, str]], ClaimCheck], float]:
     """Wire a :class:`ContradictionHalt` factory bound to a per-passage store."""
     from director_ai.core import GroundTruthStore
     from director_ai.core.runtime.contradiction_halt import ContradictionHalt
     from director_ai.core.scoring.contradiction import ContradictionScorer
 
-    scorer = ContradictionScorer.from_pretrained(model_id, device=device)
+    scorer = ContradictionScorer.from_pretrained(
+        model_id, device=device, threshold=threshold
+    )
 
     def make_check(facts: dict[str, str]) -> ClaimCheck:
         store = GroundTruthStore()
         for key, value in facts.items():
             store.add(key, value)
-        halt = ContradictionHalt(scorer, store.retrieve_context, threshold=threshold)
+        halt = ContradictionHalt(scorer, store.retrieve_context)
         return halt.should_halt
 
     return make_check, scorer.threshold
@@ -228,7 +262,9 @@ def _is_numeric_fragment(fragment: str) -> bool:
     return fragment.replace(",", "").replace(".", "").isdigit()
 
 
-def _recall_by_kind(per_bad: list[dict]) -> dict:
+def _recall_by_kind(
+    per_bad: list[_BadPassageResult],
+) -> dict[str, dict[str, float | int]]:
     """Split halt recall by contradiction kind (semantic vs numeric)."""
     kinds: dict[str, list[bool]] = {"semantic": [], "numeric": []}
     for row in per_bad:
@@ -249,12 +285,12 @@ def run_benchmark(
     *,
     threshold: float = 0.5,
     device: int = -1,
-) -> dict:
+) -> _BenchmarkReport:
     """Stream every labelled passage through the contradiction gate and score it."""
     make_check, resolved_threshold = _build_halt(model_id, threshold, device)
 
     good_outcomes: list[StreamHaltOutcome] = []
-    per_good: list[dict] = []
+    per_good: list[dict[str, str | bool | float]] = []
     t0 = time.perf_counter()
     for pid, facts, passage in GOOD_PASSAGES:
         outcome = stream_until_contradiction(
@@ -270,7 +306,7 @@ def run_benchmark(
         )
 
     bad_outcomes: list[tuple[StreamHaltOutcome, int]] = []
-    per_bad: list[dict] = []
+    per_bad: list[_BadPassageResult] = []
     for pid, facts, passage, expected_fragment in BAD_PASSAGES:
         expected_index = _expected_halt_index(passage, expected_fragment)
         outcome = stream_until_contradiction(
@@ -299,7 +335,7 @@ def run_benchmark(
         "gate": "contradiction",
         "model": model_id,
         "device": _device_label(device),
-        "threshold": round(float(resolved_threshold), 4),
+        "threshold": resolved_threshold,
         "n_good": len(GOOD_PASSAGES),
         "n_bad": len(BAD_PASSAGES),
         "halt_quality": _aggregate(good_outcomes, bad_outcomes),

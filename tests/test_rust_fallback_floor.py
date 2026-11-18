@@ -18,12 +18,110 @@ the no-Rust path and assert the Python floor produces correct results
 
 from __future__ import annotations
 
+import asyncio
 import importlib.util
+import json
+from contextlib import aclosing
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from threading import Thread
 
 import numpy as np
 import pytest
 
 _KERNEL_ABSENT = importlib.util.find_spec("backfire_kernel") is None
+
+
+def test_auto_scorer_reviews_grounded_answer_on_the_installed_runtime() -> None:
+    """Keep auto whole-response review available on the base installation."""
+    from director_ai.core.config import DirectorConfig
+    from director_ai.core.retrieval.knowledge import GroundTruthStore
+
+    cfg = DirectorConfig(
+        mode="auto",
+        use_nli=False,
+        hybrid_retrieval=False,
+        reranker_enabled=False,
+        adaptive_threshold_enabled=False,
+    )
+    assert not cfg.use_nli
+    store = GroundTruthStore()
+    prompt = "What is the approved reference value?"
+    answer = "The approved reference value is alpha."
+    store.add(prompt, answer)
+    scorer = cfg.build_scorer(store)
+    approved, score = scorer.review(prompt, answer)
+    assert approved and score.score >= cfg.coherence_threshold
+    assert scorer.scorer_backend == ("deberta" if _KERNEL_ABSENT else "rust")
+
+
+def test_http_agent_keeps_whole_response_and_stream_dependency_contract() -> None:
+    """Exercise real HTTP generation with and without the compiled kernel."""
+    from director_ai.core.agent import CoherenceAgent
+
+    prompt = "What is the approved reference value?"
+    tokens = ("The ", "approved ", "reference ", "value ", "is ", "alpha.")
+    response = "".join(tokens)
+
+    class Completion(BaseHTTPRequestHandler):
+        """Serve the same grounded response on the whole and stream paths."""
+
+        def do_POST(self) -> None:
+            """Return the requested local completion representation."""
+            request = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
+            assert request["prompt"] == prompt
+            if request.get("stream"):
+                body = (
+                    "".join(
+                        f"data: {json.dumps({'content': token})}\n\n"
+                        for token in tokens
+                    ).encode()
+                    + b"data: [DONE]\n\n"
+                )
+                content_type = "text/event-stream"
+            else:
+                body = json.dumps({"content": response}).encode()
+                content_type = "application/json"
+            self.send_response(200)
+            self.send_header("Content-Type", content_type)
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+
+    with ThreadingHTTPServer(("127.0.0.1", 0), Completion) as provider:
+        worker = Thread(target=provider.serve_forever, kwargs={"poll_interval": 0.01})
+        worker.start()
+        try:
+            agent = CoherenceAgent(
+                llm_api_url=f"http://127.0.0.1:{provider.server_port}/completion",
+                use_nli=False,
+                production_mode=True,
+                max_candidates=1,
+            )
+            agent.store.add(prompt, response)
+            assert agent.scorer.scorer_backend == (
+                "deberta" if _KERNEL_ABSENT else "rust"
+            )
+            result = agent.process(prompt)
+            assert result.output.endswith(response) and not result.halted
+
+            async def collect() -> None:
+                """Check the whole stream or its first mandatory native check."""
+                async with aclosing(agent.stream_events(prompt)) as events:
+                    if _KERNEL_ABSENT:
+                        prefix = tuple([(await anext(events)).token for _ in range(4)])
+                        assert prefix == tokens[:4]
+                        with pytest.raises(RuntimeError, match=r"director-ai\[rust\]"):
+                            await anext(events)
+                    else:
+                        observed = [event async for event in events]
+                        assert tuple(event.token for event in observed) == tokens
+                        assert all(not event.halt_reason for event in observed)
+
+            asyncio.run(collect())
+        finally:
+            provider.shutdown()
+            worker.join(timeout=2)
+            assert not worker.is_alive()
 
 
 def test_knowledge_word_overlap_python_floor() -> None:

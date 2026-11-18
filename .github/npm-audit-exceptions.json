@@ -1,0 +1,14 @@
+{
+  "schema": 1,
+  "exceptions": [
+    {
+      "advisory": "GHSA-fc5q-39xc-vjpf",
+      "package": "picomatch",
+      "scope": "dev",
+      "granted": "2026-11-18",
+      "expires": "2026-11-24",
+      "lock_sha256": "ca0094daf7791b964f0bcb83825c7e83cd554b799623438dd6a3fdee3ac99fbd",
+      "reason": "Decision record dated 2026-11-18T14:19:10Z, “the owner approves a DIRECTOR-AI dev-only picomatch exception until 2026-11-24”. The owner said “Výnimka do 24.11.” for this exact Studio lock. All affected install paths are development-only and the production audit reported zero findings."
+    }
+  ]
+}

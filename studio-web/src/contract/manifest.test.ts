@@ -5,6 +5,7 @@
 import { describe, expect, it } from "vitest";
 import { isEraSupported, parseManifest } from "./manifest";
 
+/** A supported flat manifest used to verify parsing and forward tolerance. */
 const VALID = {
   contract_era: "v1",
   protocol_version: "1",

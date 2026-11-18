@@ -18,12 +18,14 @@ Provides ``StreamingKernel`` which extends ``HaltMonitor`` with:
 from __future__ import annotations
 
 import logging
+import math
 import time
 from collections import deque
 from collections.abc import Callable, Iterable, Sequence
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 
+from ..cache import _review_without_score_cache
 from ..mandatory import mandatory_execution, require_rust_kernel
 from ..observability.callbacks import (
     TokenTraceCallback,
@@ -200,11 +202,52 @@ class StreamingKernel(HaltMonitor):
         adaptive: bool = False,
         max_cadence: int = 8,
     ) -> None:
+        """Configure token scoring, window checks and halt delivery.
+
+        Parameters
+        ----------
+        hard_limit : float
+            Inclusive lower passing score, between zero and one.
+        window_size : int
+            Number of scores in the moving average, at least one.
+        window_threshold : float
+            Halt when a complete window's mean falls below this score.
+        trend_window : int
+            Number of scores used for the regression trend, at least two.
+        trend_threshold : float
+            Positive projected drop required to trigger a trend halt.
+        on_halt : callable, optional
+            Receives the completed halted session.
+        soft_limit : float
+            Scores below this value add a warning to the token event.
+        streaming_debug : bool
+            Include per-token window and trend diagnostics.
+        halt_mode : {"hard", "soft"}
+            Stop immediately or defer a non-hard-limit halt to a sentence end.
+        score_every_n : int
+            Initial positive token interval between callback invocations.
+        adaptive : bool
+            Adjust the callback interval according to recent scores.
+        max_cadence : int
+            Maximum positive adaptive callback interval.
+
+        Raises
+        ------
+        ValueError
+            If the hard limit, windows, trend threshold, halt mode or cadence
+            violates its constructor constraint.
+        """
         super().__init__(hard_limit=hard_limit)
         # The base HaltMonitor invokes its ``on_halt`` with a coherence score;
         # the streaming kernels instead fire on a completed StreamSession, so
         # the session-level callback is kept on a separate attribute.
         self._on_halt_session = on_halt
+        if window_size < 1:
+            raise ValueError(f"window_size must be >= 1, got {window_size}")
+        if trend_window < 2:
+            raise ValueError(f"trend_window must be >= 2, got {trend_window}")
+        if trend_threshold <= 0:
+            raise ValueError(f"trend_threshold must be > 0, got {trend_threshold}")
         if halt_mode not in ("hard", "soft"):
             raise ValueError(f"halt_mode must be 'hard' or 'soft', got {halt_mode!r}")
         if score_every_n < 1:
@@ -227,9 +270,18 @@ class StreamingKernel(HaltMonitor):
     def check_halt(self, score: float) -> bool:
         """Evaluate halt conditions for a single score update.
 
-        Maintains internal sliding window and trend history.
-        Returns True if any halt condition is met.
+        Parameters
+        ----------
+        score : float
+            Host coherence score. Nonfinite values become zero before storage.
+
+        Returns
+        -------
+        bool
+            Whether the incremental window or history triggers a halt check.
+            This method maintains its own history; ``reset_state`` clears it.
         """
+        score = score if math.isfinite(score) else 0.0
         self._window.append(score)
         self._history.append(score)
         if score < self.hard_limit:
@@ -354,30 +406,46 @@ class StreamingKernel(HaltMonitor):
 
         Parameters
         ----------
-        token_generator : iterable of str — token source.
-        coherence_callback : callable(str) -> float — receives the
+        token_generator : iterable of str
+            Token source in generation order.
+        coherence_callback : callable
+            Receives the
             accumulated output so far (not the individual token) and
             returns a coherence score in [0, 1]. Called every
             ``score_every_n`` tokens; cadence adapts when ``adaptive=True``.
-        evidence_callback : callable(str) -> str | None — optional, returns
-            human-readable evidence snippet explaining the coherence score.
-            Called only on halt events to avoid overhead on every token.
-        scorer : CoherenceScorer | None — when provided, halt events
-            include structured HaltEvidence with top-K contradicting chunks.
-        top_k : int — number of evidence chunks to include (default 3).
-        prompt : str — original user prompt, passed to scorer.review() for
-            KB/RAG context in halt evidence.
+            NaN and either infinity become zero before history, telemetry
+            or halt checks, matching the native streaming kernel.
+        evidence_callback : callable, optional
+            Returns a human-readable evidence snippet explaining the score.
+            Called at a completed halt with the prefix through the trigger token.
+        scorer : CoherenceScorer, optional
+            Reviews the trigger prefix to attach structured halt evidence.
+        top_k : int
+            Maximum number of retrieved evidence chunks in a halt trace.
+        prompt : str
+            Original prompt passed to ``scorer.review`` for retrieval context.
+        trace_callbacks : list of TokenTraceCallback, optional
+            Receives token events and the final stream summary.
+        tenant_id : str
+            Tenant identity used for halt-evidence retrieval, token traces
+            and safety events.
+        request_id : str
+            Request identity attached to token traces and safety events.
+        structured_recovery : StructuredRecoveryConfig, optional
+            Controls recovery metadata collected from partial structured output.
 
         Returns
         -------
-        StreamSession with full oversight trace.
-
+        StreamSession
+            Observed tokens, scores, events and halt evidence. The halting
+            token remains in the trace and is removed from hard-halted output.
         """
         session = StreamSession(start_time=time.monotonic())
         window: deque[float] = deque(maxlen=self.window_size)
         _soft_halt_pending = False
         _soft_halt_reason = ""
         _soft_halt_extra_tokens = 0
+        soft_halt_metrics: tuple[float | None, float] | None = None
         recovery_state = (
             StructuredRecoveryState(structured_recovery)
             if structured_recovery is not None
@@ -425,58 +493,67 @@ class StreamingKernel(HaltMonitor):
                     )
                 )
 
-        def _finalize_halt(event: TokenEvent, reason: str) -> None:
+        def _finalize_halt(
+            event: TokenEvent,
+            reason: str,
+            *,
+            trigger_metrics: tuple[float | None, float] | None = None,
+        ) -> None:
             """Populate session, safety, and structured evidence for a halt."""
+            self.emergency_stop()
             event.halted = True
             session.halted = True
             if session.halt_index < 0:
                 session.halt_index = event.index
             session.halt_reason = reason
+            trigger_score = session.coherence_history[session.halt_index]
+            threshold, contribution = (
+                trigger_metrics
+                if trigger_metrics is not None
+                else self._trace_metrics(
+                    reason, event, session.coherence_history, window
+                )
+            )
+            trigger_prefix = (
+                "".join(session.tokens[: session.halt_index + 1])
+                if evidence_callback or scorer is not None
+                else ""
+            )
             if recovery_state is not None:
                 session.structured_recovery = recovery_state.finalise(
                     halted_at=session.halt_index,
                 )
             if evidence_callback:
-                ev = evidence_callback("".join(session.tokens))
+                ev = evidence_callback(trigger_prefix)
                 event.evidence = ev
                 session.halt_evidence = ev
             if scorer is not None:
-                accumulated = "".join(session.tokens)
-                prompt_context = prompt.strip() or accumulated
-                _, cs = scorer.review(prompt_context, accumulated)
+                prompt_context = prompt.strip() or trigger_prefix
+                with _review_without_score_cache():
+                    if tenant_id:
+                        _, cs = scorer.review(
+                            prompt_context, trigger_prefix, tenant_id=tenant_id
+                        )
+                    else:
+                        _, cs = scorer.review(prompt_context, trigger_prefix)
                 chunks: list[EvidenceChunk] = []
                 nli_scores: list[float] | None = None
                 scoring_evidence = cs.evidence
-                if scoring_evidence is not None and scoring_evidence.chunks:
-                    ranked_indices = sorted(
-                        range(len(scoring_evidence.chunks)),
-                        key=lambda index: scoring_evidence.chunks[index].distance,
-                    )
-                    selected_indices = ranked_indices[:top_k]
-                    chunks = [
-                        scoring_evidence.chunks[index] for index in selected_indices
-                    ]
+                if scoring_evidence is not None:
+                    chunks = sorted(
+                        scoring_evidence.chunks, key=lambda chunk: chunk.distance
+                    )[:top_k]
                     if scoring_evidence.chunk_scores:
-                        nli_scores = [
-                            scoring_evidence.chunk_scores[index]
-                            for index in selected_indices
-                            if index < len(scoring_evidence.chunk_scores)
-                        ]
-                threshold, contribution = self._trace_metrics(
-                    reason,
-                    event,
-                    session.coherence_history,
-                    window,
-                )
+                        nli_scores = list(scoring_evidence.chunk_scores)
                 counterfactual = (
                     CounterfactualVerifier.explain_halt_fact_change(
-                        observed_score=event.coherence,
+                        observed_score=trigger_score,
                         threshold=threshold,
                         evidence_chunks=chunks,
                         proposed_fact=(
                             cs.evidence.nli_hypothesis
                             if cs.evidence is not None
-                            else accumulated
+                            else trigger_prefix
                         ),
                     )
                     if CounterfactualVerifier is not None and threshold is not None
@@ -512,19 +589,13 @@ class StreamingKernel(HaltMonitor):
                     attributes={"token_offset": str(event.index)},
                 )
             if event.safety_event is None:
-                threshold, _ = self._trace_metrics(
-                    reason,
-                    event,
-                    session.coherence_history,
-                    window,
-                )
                 event.safety_event = SafetyEvent.from_policy_decision(
                     hook_id="streaming.kernel",
                     hook_scope="streaming",
                     policy_decision="halt",
                     halt_reason=reason,
                     threshold=threshold,
-                    observed_score=event.coherence,
+                    observed_score=trigger_score,
                     request_id=request_id,
                     tenant_id=tenant_id,
                     tenant_safe_explanation=self._suggested_action(reason),
@@ -552,10 +623,12 @@ class StreamingKernel(HaltMonitor):
                 try:
                     score = coherence_callback(accumulated)
                 except (TimeoutError, OSError):
+                    self.emergency_stop()
                     session.halted = True
                     session.halt_index = i
                     session.halt_reason = "callback_timeout"
                     break
+                score = score if math.isfinite(score) else 0.0
                 last_score = score
                 if self.adaptive:
                     w_avg = _mean(window) if window else score
@@ -598,7 +671,6 @@ class StreamingKernel(HaltMonitor):
                 halt_reason = f"hard_limit ({score:.4f} < {self.hard_limit})"
                 session.halt_index = event.index
                 _finalize_halt(event, halt_reason)
-                self.emergency_stop()
                 session.events.append(event)
                 _emit_trace(event, halt_reason)
                 break
@@ -610,7 +682,9 @@ class StreamingKernel(HaltMonitor):
                 at_cap = _soft_halt_extra_tokens >= self._SOFT_HALT_CAP
                 if _is_sentence_boundary(token) or at_cap:
                     session.soft_halted = True
-                    _finalize_halt(event, _soft_halt_reason)
+                    _finalize_halt(
+                        event, _soft_halt_reason, trigger_metrics=soft_halt_metrics
+                    )
                     _emit_trace(event, _soft_halt_reason)
                     break
                 _emit_trace(event)
@@ -640,6 +714,9 @@ class StreamingKernel(HaltMonitor):
                         _finalize_halt(event, halt_reason)
                         _emit_trace(event, halt_reason)
                         break
+                    soft_halt_metrics = self._trace_metrics(
+                        halt_reason, event, session.coherence_history, window
+                    )
                     _emit_trace(event, halt_reason)
                     continue
                 # Hard halt

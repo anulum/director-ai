@@ -8,77 +8,71 @@
 
 # Director-AI Studio — AI-Safety / Streaming Academy (Tier-B portal)
 
-Phase-0 skeleton for the dedicated Director-AI portal: the place to **learn** how
-an LLM hallucination guardrail works, **play** with the contradiction-halt live in
-your browser, and **audit** its accuracy *and its false-positive cost*. Built to
-the fleet pattern (`DEDICATED_STUDIO_PORTALS_PATTERN_*` / `*_AHEAD_OF_SOTA_*`) and
-the CEO honesty rulings H1–H4; baseline:
-`.coordination/planning/SCPN-STUDIO/AI_SAFETY_STREAMING_ACADEMY_BASELINE_2026-06-24T1911.md`.
+Studio serves the Director-AI capability manifest and runs the generated
+WASM coherence kernel in the browser. The Play route supplies sample coherence
+scores and displays the native halt reason and token trace. The Python
+contradiction interlock scores completed claims against retrieved facts.
+Learn presents the streaming lesson and links to the Play exercise.
+It shares the sample configuration with Play. Opening Play loads the generated
+binding and WASM binary.
 
-> **Status — Phase-0 scaffold, pre-ratification.** This stages the *seven never-redo
-> seams* as concrete, reviewable structure. It does **not** yet `npm install`/build
-> green here: the shared `@anulum/ui` + `@anulum/portal-kit` workspace libraries are
-> published by the SCPN-STUDIO keeper (ratified, not yet released), so this scaffold
-> uses a **local Instrument-Deck token mirror** (`src/tokens/`) and a **local honesty
-> bridge** (`src/contract/honesty.ts`) that are swapped for the shared packages with
-> no structural change once they land. The WASM glue, the contract-consumption layer,
-> and the content schema are real and bind to **committed** artefacts.
+The navigation offers Home, Learn, Play and Capabilities. The planned Pipeline,
+Benchmarks, Science & Evidence, Red-Team, Architecture and 3D Lab paths retain
+their bookmark addresses and show their availability. Unknown addresses and
+planned routes link back to the Studio home.
 
-## The seven seams baked in (research §7 — get these right → never rework)
+## Build and runtime boundaries
 
-1. **Contract is the only seam** — `src/contract/manifest.ts` reads the committed
-   schema-A `studio_manifest.json` (produced by `tools/emit_studio_manifest.py`),
-   forward-tolerant (unknown fields remain available in `extra`). The portal
-   never reaches into Python internals.
-2. **Shared libraries** — `@anulum/ui` + `@anulum/portal-kit` are the only styling/
-   layout source (local mirror in `src/tokens/` until they publish).
-3. **MFE independence** — `vite.config.ts` exposes `scpn_director_ai /
-   ./DirectorAIStudioPanel` (Module Federation 2.x), singleton-shared react.
-4. **Static + WASM** — no backend; the live halt runs the **committed**
-   `backfire-wasm` (`WasmStreamingKernel.process_token`) client-side. COOP/COEP
-   headers set for future multithreading.
-5. **Content as data** — `src/content/schema.ts` + one example lesson binding to a
-   real scorer artefact; new science → new content, zero architecture change.
-6. **Versioned, drift-guarded** — the consumed manifest is drift-gated in CI
-   (`emit_studio_manifest.py --check`); evidence is digest-sealed.
-7. **Forward-tolerant consumption** — the manifest reader tolerates unknown verbs/
-   fields and degrades honestly.
+- The standalone app uses the local Instrument-Deck stylesheet and the local
+  honesty contract in `src/contract/honesty.ts`.
+- The browser fetches schema-A from the manifest emitted by
+  `tools/emit_studio_manifest.py`. Studio displays the producer's declared
+  safety tiers and keeps unknown fields in `extra`.
+- Vite exposes `scpn_director_ai/DirectorAIStudioPanel` through Module Federation
+  and shares React 19.3.1 and React DOM 19.3.1 as singletons. A federated host
+  passes the Studio entry URL as `portalUrl` so the panel reads its manifest
+  from the producer's origin.
+- Each Play run opens and frees a native streaming session. The hard halt
+  retains its triggering token in the trace and stops feeding later tokens.
+  The trace keeps token text, score, activity and halt reason for each step.
+  Returning to Play during initialisation reuses the pending WASM download.
+  **Retry WASM** handles a failed asset request or compilation. If the loaded
+  kernel fails during a run, **Reload page** fetches a fresh module and keeps
+  the current route.
+- Play shows a fixed message for load and run failures. Capabilities shows a
+  fixed unavailable state for failed requests and invalid JSON.
+- Dev and preview send COOP and COEP headers. Serve the built assets and the
+  manifest from the same origin for the standalone app.
+  Serve the built HTML with its Studio mount element intact.
 
-## Honesty rulings (CEO, 2026-06-24) — enforced in `src/contract/honesty.ts`
+## Build and test
 
-- **H1** in-browser reproduction is a **consumer** signal ("reproduced in your
-  browser ✓"), never auto-promoted to `verified-at-source`.
-- **H2** reproduction is **digest-based**; a content-digest mismatch fires the
-  honesty gate loudly as drift.
-- **H3** reproduction respects **Exactness** — bit-exact vs tolerance-aware, the UI
-  says which.
-- **H4** the `@anulum/ui` honesty bridge is the single source of grading;
-  `falsified`/`refuted` are first-class.
-
-## Section spine (`learn → play → audit`)
-
-Home · Learn · **Play** (live halt) · Pipeline · Capabilities · Benchmarks ·
-Science & Evidence · Red-Team/Robustness · Architecture & Federation · 3D Lab.
-
-## Build (once the shared packages publish)
+From the repository root, run `make wasm-build` to generate the web-target
+package. Then enter `studio-web` and install the locked Node dependency graph.
 
 ```bash
-npm install
-npm run dev          # local dev server
-npm run build        # standalone static build + the MFE remoteEntry.js
-npm run test         # Vitest unit/component
-npm run e2e          # Playwright (home → learn → play → evidence)
+npm ci --ignore-scripts --strict-peer-deps
+npm run lint
+npm run test
+npm run build
+npx playwright install chromium
+npm run e2e
 ```
 
-The full portal build also requires a real `backfire-wasm` package at
-`../backfire-kernel/crates/backfire-wasm/pkg`. The manifest checks below do not
-build that package or qualify its browser behaviour. The separate kernel smoke
-runner is `tools/run_wasm_browser_worker_smoke.py`.
+Playwright opens the production build through Vite preview with Chromium's
+sandbox enabled. Set `STUDIO_CHROME_EXECUTABLE` to use an installed Chrome
+binary. The browser tests cover the capability manifest, native halt,
+repeat runs, WASM asset recovery and the remote panel from a separate origin.
+The required Rust CI job builds the web-target package from the same checkout,
+installs Studio from its lockfile and runs lint, unit tests, the production build
+and Playwright using the runner's sandboxed Google Chrome.
+If a route bundle fails to load, the navigation stays available. **Reload
+page** reloads the current route and its assets.
+The separate Web Worker smoke command is `tools/run_wasm_browser_worker_smoke.py`.
 
 ## Manifest contract checks
 
-The manifest reader can be checked independently of the portal's unresolved
-React, shared-package and WASM build dependencies. Use the repository's locked
+The manifest reader has standalone checks using the SDK's locked
 TypeScript compiler and Node 26.13.0:
 
 ```bash
@@ -103,7 +97,11 @@ Legacy flat schema-A payloads retain their existing `extra` layout. A malformed
 `schema_a` uses safe defaults rather than accepting outer identity fields, while
 its original value remains unchanged in `manifest.extra.schema_a`.
 The browser loader defaults to `/studio_manifest.json`, staged under `public/`
-by `npm run sync:manifest`. These checks do not qualify the full portal or WASM
+by `npm run sync:manifest`. It accepts an `AbortSignal`. The Capabilities
+route cancels the request when leaving the view. The federated panel cancels
+it when removed or when the portal URL changes. Every portal change shows
+the loading state until the selected producer responds. These checks do not qualify
+the full portal or WASM
 runtime.
 
 ## Data sources and build inputs

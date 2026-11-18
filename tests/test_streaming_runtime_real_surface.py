@@ -31,10 +31,10 @@ if TYPE_CHECKING:
 
 
 class _ChunkScoreScorer:
-    """Production-shaped scorer returning per-chunk NLI scores."""
+    """Return hypothesis scores and independently ordered retrieval facts."""
 
     def review(self, prompt: str, response: str) -> tuple[bool, CoherenceScore]:
-        """Return a score whose chunks intentionally arrive out of distance order."""
+        """Return three hypothesis scores alongside out-of-order retrieval facts."""
         del prompt, response
         evidence = ScoringEvidence(
             chunks=[
@@ -82,8 +82,8 @@ class _AttributeSpan:
         self.attributes[key] = value
 
 
-def test_streaming_halt_evidence_keeps_chunk_scores_aligned_to_top_chunks() -> None:
-    """Structured halt evidence should keep per-chunk scores with ranked chunks."""
+def test_streaming_halt_evidence_preserves_hypothesis_score_order() -> None:
+    """Rank and cap retrieved facts while preserving every hypothesis score."""
     kernel = StreamingKernel(hard_limit=0.99)
 
     session = kernel.stream_tokens(
@@ -97,7 +97,7 @@ def test_streaming_halt_evidence_keeps_chunk_scores_aligned_to_top_chunks() -> N
     evidence = session.halt_evidence_structured
     assert evidence is not None
     assert [chunk.source for chunk in evidence.evidence_chunks] == ["near", "middle"]
-    assert evidence.nli_scores == [0.1, 0.4]
+    assert evidence.nli_scores == [0.7, 0.1, 0.4]
 
 
 def test_streaming_kernel_halts_on_real_downward_trend_path() -> None:

@@ -9,8 +9,11 @@ import { copyFileSync, mkdirSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
+/** Script directory used so staging is independent of the working directory. */
 const here = dirname(fileURLToPath(import.meta.url));
+/** Committed output of the producer's manifest emitter. */
 const src = resolve(here, "..", "..", "docs", "_generated", "studio_manifest.json");
+/** Static asset consumed by the standalone portal and its federated panel. */
 const dest = resolve(here, "..", "public", "studio_manifest.json");
 
 mkdirSync(dirname(dest), { recursive: true });

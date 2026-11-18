@@ -263,7 +263,8 @@ def health():
 
 For API servers under concurrent load, enable server-level request accumulation.
 The queue collects incoming `/v1/review` requests and flushes them as a single
-`review_batch()` call, reducing GPU kernel launches from 2*N to 2 per flush window (when NLI is available).
+`review_batch()` call. Eligible pairs share NLI passes. Claim verification,
+reasoning, and output detection complete a review for each pair.
 
 ```python
 from director_ai.core.config import DirectorConfig

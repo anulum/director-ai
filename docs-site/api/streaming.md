@@ -112,10 +112,10 @@ Tracks the complete state of a streaming oversight session.
 
 | Property | Type | Description |
 |----------|------|-------------|
-| `output` | `str` | Safe partial output (up to halt point) |
+| `output` | `str` | Text delivered before a hard halt or through the terminal token of a completed soft halt |
 | `halted` | `bool` | Whether generation was stopped |
 | `soft_halted` | `bool` | Whether soft halt was triggered |
-| `halt_index` | `int` | Token index where halt occurred (-1 if none) |
+| `halt_index` | `int` | Index of the token that triggered the halt condition (-1 if none) |
 | `halt_reason` | `str` | Which mechanism triggered halt |
 | `halt_evidence_structured` | `HaltEvidence \| None` | Structured evidence with chunks |
 | `safety_events` | `list[SafetyEvent]` | Tenant-safe halt event records |
@@ -127,6 +127,10 @@ Tracks the complete state of a streaming oversight session.
 OpenTelemetry streaming spans include `stream.halt_cause.*` and
 `stream.counterfactual.*` attributes when structured halt evidence is
 available.
+
+For a deferred halt, evidence and telemetry use the trigger prefix and the
+margin measured at the trigger. The terminal event marks where delivery
+stopped.
 
 ---
 

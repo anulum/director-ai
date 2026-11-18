@@ -5,52 +5,76 @@
 // (perf budget: < 200KB JS on first paint, WASM on the Play route only).
 
 import { Suspense, lazy } from "react";
-import { NavLink, Route, Routes } from "react-router-dom";
+import { Link, NavLink, Route, Routes, useLocation } from "react-router-dom";
+import { RouteLoadBoundary } from "./sections/RouteLoadBoundary";
 
+/** Load the manifest view only when the visitor opens Capabilities. */
 const Capabilities = lazy(() =>
   import("./sections/Capabilities").then((m) => ({ default: m.Capabilities })),
 );
+/** Load the lesson without starting the WASM exercise. */
+const Learn = lazy(() => import("./sections/Learn").then((m) => ({ default: m.Learn })));
+/** Defer the kernel and exercise until the visitor opens Play. */
 const Play = lazy(() => import("./sections/Play").then((m) => ({ default: m.Play })));
 
-// The adaptable spine (pattern §2.4); each repo keeps the order of engagement.
-const SECTIONS: ReadonlyArray<{ path: string; label: string }> = [
-  { path: "/", label: "Home" },
-  { path: "/learn", label: "Learn" },
-  { path: "/play", label: "Play" },
+/** Available views in the standalone portal's navigation order. */
+const SECTIONS: ReadonlyArray<{
+  /** Browser pathname matched by the router. */
+  path: string;
+  /** Visible link name. */
+  label: string;
+  /** View rendered at this path. */
+  view: React.ComponentType;
+}> = [
+  { path: "/", label: "Home", view: Home },
+  { path: "/learn", label: "Learn", view: Learn },
+  { path: "/play", label: "Play", view: Play },
+  { path: "/capabilities", label: "Capabilities", view: Capabilities },
+];
+
+/** Planned routes retain their bookmark addresses and titles. */
+const PLANNED_SECTIONS = [
   { path: "/pipeline", label: "Pipeline" },
-  { path: "/capabilities", label: "Capabilities" },
   { path: "/benchmarks", label: "Benchmarks" },
   { path: "/evidence", label: "Science & Evidence" },
   { path: "/redteam", label: "Red-Team" },
   { path: "/architecture", label: "Architecture" },
   { path: "/lab", label: "3D Lab" },
-];
+] as const;
 
-function Placeholder({ title }: { title: string }): React.JSX.Element {
+/** Explain an unavailable route and give the visitor a way back. */
+function RouteNotice({ title, children }: {
+  /** Heading that identifies the route status. */
+  title: string;
+  /** Reason the route lacks a working view. */
+  children: React.ReactNode;
+}): React.JSX.Element {
   return (
     <section>
       <h2>{title}</h2>
-      <p style={{ color: "var(--text-muted)" }}>
-        Phase-{">"}0 content lands here, bound to a committed artefact (content-as-data).
-      </p>
+      <p>{children}</p>
+      <Link to="/">Open Studio home</Link>
     </section>
   );
 }
 
+/** Introduce the portal's kernel demonstration and manifest view. */
 function Home(): React.JSX.Element {
   return (
     <section>
       <h1>AI-Safety / Streaming Academy</h1>
       <p>
-        Learn how an LLM hallucination guardrail works, play with the contradiction
-        halt live in your browser, and audit its accuracy <em>and</em> its
-        false-positive cost.
+        Run the WASM coherence halt with sample scores and explore the capabilities
+        declared by the Director-AI manifest.
       </p>
     </section>
   );
 }
 
+/** Render persistent navigation and recover independently per pathname. */
 export default function App(): React.JSX.Element {
+  const { pathname } = useLocation();
+
   return (
     <div style={{ maxWidth: 1100, margin: "0 auto", padding: "var(--space-4)" }}>
       <nav style={{ display: "flex", gap: "var(--space-3)", flexWrap: "wrap" }}>
@@ -61,20 +85,23 @@ export default function App(): React.JSX.Element {
         ))}
       </nav>
       <main>
-        <Suspense fallback={<p>Loading…</p>}>
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/learn" element={<Placeholder title="Learn" />} />
-            <Route path="/play" element={<Play />} />
-            <Route path="/pipeline" element={<Placeholder title="Pipeline" />} />
-            <Route path="/capabilities" element={<Capabilities />} />
-            <Route path="/benchmarks" element={<Placeholder title="Benchmarks" />} />
-            <Route path="/evidence" element={<Placeholder title="Science & Evidence" />} />
-            <Route path="/redteam" element={<Placeholder title="Red-Team" />} />
-            <Route path="/architecture" element={<Placeholder title="Architecture" />} />
-            <Route path="/lab" element={<Placeholder title="3D Lab" />} />
-          </Routes>
-        </Suspense>
+        <RouteLoadBoundary key={pathname}>
+          <Suspense fallback={<p>Loading…</p>}>
+            <Routes>
+              {SECTIONS.map(({ path, view: View }) => (
+                <Route key={path} path={path} element={<View />} />
+              ))}
+              {PLANNED_SECTIONS.map(({ path, label }) => (
+                <Route key={path} path={path} element={
+                  <RouteNotice title={label}>This section is planned for a future Studio release.</RouteNotice>
+                } />
+              ))}
+              <Route path="*" element={
+                <RouteNotice title="Studio page not found">This address does not match a Studio page.</RouteNotice>
+              } />
+            </Routes>
+          </Suspense>
+        </RouteLoadBoundary>
       </main>
     </div>
   );

@@ -5,20 +5,19 @@
 <!-- ORCID: 0009-0009-3560-0851 -->
 <!-- Contact: www.anulum.li | protoscience@anulum.li -->
 <!-- Director-AI — WebAssembly streaming halt runtime -->
+
 # backfire-wasm
 
 WebAssembly bindings for the Director-Class AI streaming halt
 kernel. Deploys the safety check to any runtime that can load a
-WASM module — browsers, Cloudflare Workers, Deno, Node, Wasmtime.
+WASM module with its generated JavaScript bindings, such as browsers or Node.
 
-The WASM path is intended for **edge scoring only**: the kernel
+The WASM path provides **halt decisions only**: the kernel
 decides whether the next token clears `hard_limit`, fires window
-and trend checks, and returns the updated session. The actual NLI
-coherence number must come from somewhere — the host (browser, edge
-function, Node process) is responsible for producing one per token
-and feeding it in. The bundled Python/Rust stack in the repo keeps
-the full scoring path; this crate is the minimum viable halt
-check for environments that cannot run PyTorch.
+and trend checks, and returns the updated session. The host (browser, edge
+function, Node process) must produce a coherence score per token and feed it
+to the kernel. The bundled Python/Rust stack in the repo keeps
+the full scoring path; this crate contains no model or retrieval backend.
 
 ## Layout
 
@@ -26,7 +25,7 @@ check for environments that cannot run PyTorch.
 backfire-kernel/crates/backfire-wasm/
 ├── Cargo.toml          # cdylib + rlib, wasm-bindgen-test dev dep
 ├── src/lib.rs          # WasmStreamingKernel JS-facing API
-├── tests/kernel.rs     # wasm-bindgen-test — 7 node-executable cases
+├── tests/kernel.rs     # real Node/WASM integration tests
 ├── example/index.html  # minimal browser demo
 └── pkg/                # wasm-pack build output (gitignored)
 ```
@@ -59,10 +58,12 @@ and target, so retain the generated artefact identities for each build.
 wasm-pack test --node -- --locked
 ```
 
-The seven integration tests in `tests/kernel.rs` run against a real
-WASM build under Node: construction, all-pass path, sub-threshold
-hard halt, window-average halt, downward-trend halt, irrevocable
-halt, and malformed config rejection.
+The integration tests in `tests/kernel.rs` execute a real WASM build under Node.
+They cover construction, canonical configuration validation, missing fields,
+malformed JSON, all three halt reasons and their precedence, strict threshold
+boundaries, window eviction, recent-history trend checks, nonfinite scores,
+independent snapshots and permanent halt state. A host-target `cargo test`
+does not execute these `wasm32` tests.
 
 ## API
 
@@ -86,19 +87,45 @@ const config = JSON.stringify({
 });
 const kernel = new WasmStreamingKernel(config);
 
-for (const token of tokens) {
-    const score = await coherenceFromEdgeNli(token); // host-supplied
-    const session = kernel.process_token(token, score);
-    if (session.halted) {
-        console.log("halted:", session.halt_reason);
-        break;
+try {
+    for (const token of tokens) {
+        const score = await coherenceFromEdgeNli(token); // host-supplied
+        const session = kernel.process_token(token, score);
+        if (session.halted) {
+            console.log("halted:", session.halt_reason);
+            break;
+        }
     }
+} finally {
+    kernel.free();
 }
 ```
 
 `process_token` returns the full session object (serialised from
 the Rust `StreamSession`) so the host can decide what to render.
 `kernel.is_active()` is a cheap getter for the same flag.
+
+The constructor requires the complete `BackfireConfig` shown above and applies
+the native configuration validator before allocating the stream window.
+`{threshold: 0.65}` is not that configuration. A malformed or invalid
+configuration throws before an instance is returned.
+
+Hosts should supply finite coherence scores in `[0, 1]`. As in the native Rust
+streaming kernel, NaN and either infinity become zero before recording the
+token event or making a halt decision. Finite values are not clamped. The hard
+limit uses `<`, the window average uses `<`, and the downward drop uses `>`;
+equality alone does not trigger that check. A zero score can remain active
+when the configured limits allow it.
+
+The downward trend is the projected drop `-slope * (N - 1)` from a least-squares
+fit to the recent `N = trend_window` scores. Rust, WASM and the Python streaming
+paths use the same native regression function.
+
+The token that triggers a halt is included in the trace. After any halt,
+further `process_token` calls leave the original session unchanged. Create a
+new kernel for each stream, then call `free()` when finished. Returned snapshots
+are independent JavaScript values; event timestamps are zero because this
+crate does not implement a host clock.
 
 ## Hosting the browser demo
 
@@ -126,6 +153,11 @@ version bumps — the publish step is operator-triggered.
   token. Edge deployments typically run a distilled or quantised
   NLI model via Transformers.js / ONNX-WebRuntime and feed the
   score in from JavaScript.
+- **No factuality guarantee.** These generic coherence checks do not implement
+  the Python evidence-bound completed-claim contradiction interlock. Retrieval,
+  calibration and the meaning of a supplied score remain host responsibilities.
+- **JavaScript host bindings.** The generated web and Node packages use
+  `wasm-bindgen`; the raw module is not a standalone WASI executable.
 - **No OpenTelemetry bridge.** OTEL spans are the Python host's
   concern. JavaScript callers that want token-level traces should
   set up `@opentelemetry/api` on their side and instrument

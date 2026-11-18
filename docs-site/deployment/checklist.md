@@ -45,7 +45,7 @@ Before deploying Director-AI to production, verify each item:
       packet, verification flags, operator sign-off, and evidence hash
 - [ ] Run `PYTHONPATH=src python -m benchmarks.edge_mobile_evidence` and archive the JSON packet with the release evidence
 - [ ] Run `PYTHONPATH=src python tools/check_wasm_release_package.py` after `wasm-pack build` when publishing the edge runtime
-- [ ] Run `PYTHONPATH=src python tools/run_wasm_browser_worker_smoke.py` for browser/Web Worker deployments
+- [ ] Run the [sandboxed Chrome Web Worker smoke](wasm-runtime.md#build-and-test) for browser/Web Worker deployments
 - [ ] For browser, Worker, mobile, or embedded deployments, require
       `ready_for_release=true`; local-trial evidence alone is not enough for a
       customer release.

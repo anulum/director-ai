@@ -1,90 +1,106 @@
 // SPDX-License-Identifier: Apache-2.0
 // © Code 2020–2026 Miroslav Šotek. All rights reserved.
-// Director-AI Studio — Play section: the signature live streaming-halt.
-//
-// Runs the COMMITTED backfire-wasm kernel client-side. The visitor feeds tokens
-// with contradiction scores and watches the stream HALT on the offending token —
-// the same logic the science ran, no server (H1: a consumer-side demo, never
-// promoted to verification). Lazy-loaded on this route only (perf budget).
+// Director-AI Studio — play the WASM coherence halt with sample scores.
 
-import { useEffect, useRef, useState } from "react";
-import { type HaltStep, StreamingHaltSession, openSession } from "../wasm/backfireKernel";
+import { useEffect, useState } from "react";
+import { DEFAULT_BACKFIRE_CONFIG } from "../wasm/backfireConfig";
+import { type HaltStep, initKernel, StreamingHaltSession } from "../wasm/backfireKernel";
 
-// A bundled sample: a benign claim, then one that contradicts the grounding.
-const SAMPLE: ReadonlyArray<{ token: string; score: number }> = [
-  { token: "Paris", score: 0.02 },
-  { token: " is", score: 0.03 },
-  { token: " the", score: 0.02 },
-  { token: " capital", score: 0.04 },
-  { token: " of", score: 0.03 },
-  { token: " Germany", score: 0.88 }, // contradicts grounding → halt
+/** Fixed input sequence that crosses the default hard limit near the end. */
+const SAMPLE: ReadonlyArray<{
+  /** Text fragment supplied to the native session. */
+  token: string;
+  /** Host-supplied coherence for this fragment. */
+  score: number;
+}> = [
+  { token: "Paris", score: 0.98 },
+  { token: " is", score: 0.97 },
+  { token: " the", score: 0.98 },
+  { token: " capital", score: 0.96 },
+  { token: " of", score: 0.97 },
+  { token: " Germany", score: 0.12 },
+  { token: ".", score: 0.99 },
 ];
 
+/** Distinguish asset failures from failures that require a fresh browser module. */
+type KernelStatus = "loading" | "ready" | "load-error" | "run-error";
+
+/** Render a retryable browser demo and an independent trace for each run. */
 export function Play(): React.JSX.Element {
-  const sessionRef = useRef<StreamingHaltSession | null>(null);
   const [steps, setSteps] = useState<HaltStep[]>([]);
-  const [ready, setReady] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [status, setStatus] = useState<KernelStatus>("loading");
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
-    let cancelled = false;
-    openSession({ threshold: 0.65 })
-      .then((session) => {
-        if (cancelled) {
-          session.dispose();
-          return;
-        }
-        sessionRef.current = session;
-        setReady(true);
-      })
-      .catch((e: unknown) => setError(e instanceof Error ? e.message : String(e)));
-    return () => {
-      cancelled = true;
-      sessionRef.current?.dispose();
-      sessionRef.current = null;
-    };
-  }, []);
+    let current = true;
+    void initKernel().then(
+      () => { if (current) setStatus("ready"); },
+      () => { if (current) setStatus("load-error"); },
+    );
+    return () => { current = false; };
+  }, [attempt]);
 
-  function run(): void {
-    const session = sessionRef.current;
-    if (!session) return;
-    const collected: HaltStep[] = [];
-    for (const { token, score } of SAMPLE) {
-      const step = session.push(token, score);
-      collected.push(step);
-      if (!step.active) break; // halted
-    }
-    setSteps(collected);
+  /** Initialise again after an asset load or compilation error. */
+  function retry(): void {
+    setStatus("loading");
+    setAttempt((previous) => previous + 1);
   }
 
-  if (error) return <p style={{ color: "var(--status-voided)" }}>WASM error: {error}</p>;
+  /** Feed the sample to a new native session and release its memory. */
+  function run(): void {
+    try {
+      const session = new StreamingHaltSession();
+      const collected: HaltStep[] = [];
+      try {
+        for (const { token, score } of SAMPLE) {
+          const step = session.push(token, score);
+          collected.push(step);
+          if (!step.active) break;
+        }
+      } finally {
+        session.dispose();
+      }
+      setSteps(collected);
+    } catch {
+      setSteps([]);
+      setStatus("run-error");
+    }
+  }
 
-  const halted = steps.length > 0 && !steps[steps.length - 1]?.active;
+  const reason = steps.at(-1)?.haltReason;
+  const reloadRequired = status === "run-error";
   return (
     <section>
-      <h2>Play — live contradiction halt</h2>
+      <h2>Play — WASM coherence halt</h2>
       <p>
-        The committed <code>backfire-wasm</code> kernel runs in your browser. Reproduced
-        in your browser ✓ — a consumer-side demo, not a verification claim.
+        Run the native kernel in your browser with sample coherence scores.
+        A score below {DEFAULT_BACKFIRE_CONFIG.hard_limit.toFixed(2)} triggers a hard halt.
       </p>
-      <button type="button" disabled={!ready} onClick={run}>
-        {ready ? "Stream the sample answer" : "Loading kernel…"}
-      </button>
-      <ol style={{ fontFamily: "var(--font-mono)" }}>
-        {steps.map((s, i) => (
-          <li
-            key={i}
-            style={{ color: s.active ? "var(--text)" : "var(--status-voided)" }}
-          >
-            {JSON.stringify(s.token)} score={s.score.toFixed(2)}{" "}
-            {s.active ? "" : "← HALT"}
-          </li>
-        ))}
-      </ol>
-      {halted && (
-        <p style={{ color: "var(--status-voided)" }}>
-          Stream halted: a completed claim contradicted the grounding.
-        </p>
+      {status === "load-error" || reloadRequired ? (
+        <>
+          <p role="alert">{reloadRequired ? "The WASM sample could not run." : "The WASM kernel could not load."}</p>
+          {reloadRequired ? (
+            <button type="button" onClick={() => window.location.reload()}>Reload page</button>
+          ) : (
+            <button type="button" onClick={retry}>Retry WASM</button>
+          )}
+        </>
+      ) : (
+        <button type="button" disabled={status === "loading"} onClick={run}>
+          {status === "ready" ? "Run the sample" : "Loading kernel…"}
+        </button>
+      )}
+      {steps.length > 0 && (
+        <ol aria-label="Token trace" style={{ fontFamily: "var(--font-mono)" }}>
+          {steps.map((step, index) => (
+            <li key={index} style={{ color: step.active ? "var(--text)" : "var(--status-voided)" }}>
+              {JSON.stringify(step.token)} score={step.score.toFixed(2)} {step.active ? "" : "← HALT"}
+            </li>
+          ))}
+        </ol>
+      )}
+      {reason && (
+        <p role="status">Stream halted: {reason}</p>
       )}
     </section>
   );

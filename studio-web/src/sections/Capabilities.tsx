@@ -1,11 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 // © Code 2020–2026 Miroslav Šotek. All rights reserved.
-// Director-AI Studio — Capabilities section: the manifest verbs explorer with the
-// honesty palette. Reads the committed schema-A manifest (the only seam) and
-// renders each verb's honest safety tier; an unsupported era warns, never crashes.
+// Director-AI Studio — show the producer-declared capabilities in the manifest.
 
 import { useEffect, useState } from "react";
-import { HONESTY_PALETTE, gradeStatus } from "../contract/honesty";
 import {
   type StudioManifest,
   type Verb,
@@ -13,26 +10,15 @@ import {
   loadManifest,
 } from "../contract/manifest";
 
-// Map a verb's safety tier onto an honest claim status (production→validated).
-function tierStatus(verb: Verb): string {
-  switch (verb.safety_tier) {
-    case "production":
-      return "validated";
-    case "certified":
-      return "validated";
-    default:
-      return "bounded"; // research is true-within-a-boundary, never "validated"
-  }
-}
-
-function VerbRow({ verb }: { verb: Verb }): React.JSX.Element {
-  const status = gradeStatus(tierStatus(verb));
+/** Render a capability with the assurance tier declared by the producer. */
+function VerbRow({ verb }: {
+  /** One manifest entry as declared by the producer. */
+  verb: Verb;
+}): React.JSX.Element {
   return (
     <tr>
       <td style={{ fontFamily: "var(--font-mono)" }}>{verb.verb}</td>
-      <td>
-        <span style={{ color: HONESTY_PALETTE[status] }}>{verb.safety_tier}</span>
-      </td>
+      <td>{verb.safety_tier}</td>
       <td>{verb.side_effect}</td>
       <td>{verb.timing.class}</td>
       <td>{verb.backends.join(", ")}</td>
@@ -41,24 +27,32 @@ function VerbRow({ verb }: { verb: Verb }): React.JSX.Element {
   );
 }
 
+/** Fetch the Studio manifest and show its declared capabilities and era. */
 export function Capabilities(): React.JSX.Element {
   const [manifest, setManifest] = useState<StudioManifest | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [unavailable, setUnavailable] = useState(false);
 
   useEffect(() => {
-    loadManifest()
+    const controller = new AbortController();
+    const { signal } = controller;
+    void loadManifest(undefined, signal)
       .then(setManifest)
-      .catch((e: unknown) => setError(e instanceof Error ? e.message : String(e)));
+      .catch(() => {
+        if (!signal.aborted) setUnavailable(true);
+      });
+    return () => controller.abort();
   }, []);
 
-  if (error) return <p style={{ color: "var(--status-voided)" }}>{error}</p>;
-  if (!manifest) return <p>Loading capabilities…</p>;
+  if (unavailable) {
+    return <p role="alert" style={{ color: "var(--status-voided)" }}>The Studio capability manifest could not load.</p>;
+  }
+  if (!manifest) return <p role="status">Loading capabilities…</p>;
 
   return (
     <section>
       <h2>Capabilities</h2>
       {!isEraSupported(manifest) && (
-        <p style={{ color: "var(--status-boundary)" }}>
+        <p role="status" style={{ color: "var(--status-boundary)" }}>
           Manifest era {manifest.contract_era} differs from this build — fields shown
           best-effort.
         </p>
@@ -71,7 +65,7 @@ export function Capabilities(): React.JSX.Element {
         <thead>
           <tr>
             <th>verb</th>
-            <th>safety tier</th>
+            <th>Declared safety tier</th>
             <th>side effect</th>
             <th>timing</th>
             <th>backends</th>

@@ -83,7 +83,10 @@ for approved, cs in results:
     print(f"approved={approved}, score={cs.score:.3f}")
 ```
 
-`review_batch()` batches logical and factual NLI through `score_batch()` (2 GPU forward passes total) when NLI is available. Dialogue items fall back to sequential `review()`. Without NLI, all items are scored sequentially via heuristics.
+`review_batch()` groups logical and factual NLI for eligible requests.
+Claim verification, reasoning, and output detection require a separate
+`review()` for each pair. See the [scorer API](scorer.md#review_batch) for the
+review contract.
 
 ## Full API
 

@@ -10,8 +10,13 @@
 
 from __future__ import annotations
 
+import asyncio
+import json
 import logging
-from collections.abc import AsyncIterator, Sequence
+import re
+import threading
+from collections.abc import AsyncGenerator, AsyncIterator, Iterator, Sequence
+from contextlib import aclosing
 from typing import Any
 
 import requests
@@ -110,6 +115,7 @@ class LLMGenerator:
         self.temperature = temperature
         self.stop_sequences = stop
         self.logger = logging.getLogger("LLMGenerator")
+        self._circuit_lock = threading.Lock()
         self._consecutive_failures = 0
         self._circuit_open = False
         self._circuit_threshold = CIRCUIT_BREAKER_THRESHOLD
@@ -127,10 +133,11 @@ class LLMGenerator:
             payload["stream"] = True
         return payload
 
-    def _request_with_retry(self, payload: dict[str, Any]) -> dict[str, Any] | None:
-        """Single request with exponential backoff. Returns parsed dict or None."""
-        if self._circuit_open:
-            return None
+    def _request_with_retry(self, payload: dict[str, Any]) -> str | None:
+        """Read completion text with bounded exponential backoff."""
+        with self._circuit_lock:
+            if self._circuit_open:
+                return None
 
         import time
 
@@ -142,13 +149,20 @@ class LLMGenerator:
                     timeout=self.timeout,
                 )
                 if response.status_code == 200:
-                    self._consecutive_failures = 0
-                    return dict(response.json())
-                self.logger.error(
-                    "LLM Error %d: %s",
-                    response.status_code,
-                    response.text[:500],
-                )
+                    text = self._completion_text(response.json())
+                    if text is not None:
+                        with self._circuit_lock:
+                            self._consecutive_failures = 0
+                        return text
+                    self.logger.warning("LLM response omitted completion text")
+                else:
+                    self.logger.error(
+                        "LLM Error %d: %s",
+                        response.status_code,
+                        response.text[:500],
+                    )
+            except requests.exceptions.JSONDecodeError:
+                self.logger.warning("LLM returned invalid completion JSON")
             except requests.exceptions.Timeout:
                 self.logger.warning(
                     "LLM timeout (attempt %d/%d)",
@@ -166,19 +180,36 @@ class LLMGenerator:
                 delay = self.base_delay * (2**attempt)
                 time.sleep(delay)
 
-        self._consecutive_failures += 1
-        if self._consecutive_failures >= self._circuit_threshold:
-            self._circuit_open = True
-            self.logger.error(
-                "Circuit breaker open after %d failures",
-                self._circuit_threshold,
-            )
+        with self._circuit_lock:
+            self._consecutive_failures += 1
+            if self._consecutive_failures >= self._circuit_threshold:
+                self._circuit_open = True
+                self.logger.error(
+                    "Circuit breaker open after %d failures",
+                    self._circuit_threshold,
+                )
         return None
 
     def reset_circuit(self) -> None:
         """Reset the circuit breaker."""
-        self._circuit_open = False
-        self._consecutive_failures = 0
+        with self._circuit_lock:
+            self._circuit_open = False
+            self._consecutive_failures = 0
+
+    @staticmethod
+    def _completion_text(data: object) -> str | None:
+        """Read the text in a supported whole completion body."""
+        if not isinstance(data, dict):
+            return None
+        content = data.get("content")
+        if isinstance(content, str):
+            return content
+        choices = data.get("choices")
+        if isinstance(choices, list) and choices and isinstance(choices[0], dict):
+            text = choices[0].get("text")
+            if isinstance(text, str):
+                return text
+        return None
 
     def generate_candidates(self, prompt: str, n: int = 3) -> list[dict[str, Any]]:
         """Generate *n* candidate responses from the LLM backend."""
@@ -188,12 +219,8 @@ class LLMGenerator:
         payload = self._build_payload(prompt)
 
         for _i in range(n):
-            data = self._request_with_retry(payload)
-            if data is not None:
-                text = data.get(
-                    "content",
-                    data.get("choices", [{}])[0].get("text", ""),
-                )
+            text = self._request_with_retry(payload)
+            if text is not None:
                 candidates.append({"text": text, "source": "LLM"})
             else:
                 candidates.append(
@@ -203,26 +230,81 @@ class LLMGenerator:
         return candidates
 
     async def stream_tokens(self, prompt: str) -> AsyncIterator[str]:
-        """Yield tokens via SSE streaming if supported, else replay."""
+        """Yield one completion, retrying only before any output was yielded."""
+        async with aclosing(self._stream_fragments(prompt)) as fragments:
+            async for token, _ in fragments:
+                yield token
+
+    @staticmethod
+    def _completion_fragments(text: str) -> Iterator[tuple[str, str]]:
+        """Pair legacy word tokens with the exact spans of a whole completion."""
+        start = 0
+        last_word_end = len(text.rstrip())
+        for match in re.finditer(r"\S+", text):
+            end = len(text) if match.end() == last_word_end else match.end()
+            yield match[0], text[start:end]
+            start = end
+
+    async def _stream_fragments(
+        self, prompt: str
+    ) -> AsyncGenerator[tuple[str, str], None]:
+        """Yield a wire token and its verbatim text for review."""
+        payload = self._build_payload(prompt, stream=True)
         try:
             import httpx
+        except ImportError:
+            self.logger.debug("HTTPX unavailable for SSE")
+        else:
+            started = False
+            try:
+                async with (
+                    httpx.AsyncClient(timeout=self.timeout) as client,
+                    client.stream("POST", self.api_url, json=payload) as resp,
+                ):
+                    resp.raise_for_status()
+                    media_type = resp.headers.get("content-type", "").partition(";")[0]
+                    if media_type.strip().lower() == "application/json":
+                        await resp.aread()
+                        text = self._completion_text(resp.json())
+                        if text is None:
+                            raise ValueError("missing text in completion response")
+                        for fragment in self._completion_fragments(text):
+                            started = True
+                            yield fragment
+                        return
+                    async for line in resp.aiter_lines():
+                        if not line.startswith("data:"):
+                            continue
+                        frame = line[5:].strip()
+                        if not frame:
+                            continue
+                        if frame == "[DONE]":
+                            return
+                        data = json.loads(frame)
+                        if not isinstance(data, dict) or "error" in data:
+                            raise ValueError("invalid completion event")
+                        token: object = data.get("content", data.get("token"))
+                        if token is None:
+                            continue
+                        if not isinstance(token, str):
+                            raise ValueError("completion token must be a string")
+                        if not token:
+                            continue
+                        started = True
+                        yield token, token
+                if started:
+                    return
+            except (httpx.HTTPError, httpx.InvalidURL, ValueError) as exc:
+                if started:
+                    raise RuntimeError(
+                        "LLM stream interrupted after output started"
+                    ) from exc
+                self.logger.debug(
+                    "SSE pre-output fallback after %s", type(exc).__name__
+                )
 
-            payload = self._build_payload(prompt, stream=True)
-            async with httpx.AsyncClient(timeout=self.timeout) as client:
-                async with client.stream("POST", self.api_url, json=payload) as resp:
-                    async for line in resp.aiter_lines():  # pragma: no branch
-                        if line.startswith("data: "):  # pragma: no branch
-                            import json
-
-                            data = json.loads(line[6:])
-                            token = data.get("content", data.get("token", ""))
-                            if token:  # pragma: no branch
-                                yield token
-                return
-        except (ImportError, Exception) as exc:
-            self.logger.debug("SSE streaming unavailable (%s) — replay fallback", exc)
-
-        # Replay fallback
-        candidates = self.generate_candidates(prompt, n=1)
-        for word in candidates[0]["text"].split():
-            yield word
+        candidate = (await asyncio.to_thread(self.generate_candidates, prompt, n=1))[0]
+        if candidate["source"] != "LLM":
+            raise RuntimeError("LLM completion unavailable")
+        for fragment in self._completion_fragments(candidate["text"]):
+            yield fragment

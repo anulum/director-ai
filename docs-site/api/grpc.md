@@ -76,6 +76,24 @@ service DirectorService {
 }
 ```
 
+For `StreamTokens`, gRPC uses the configured generator and grounding policy.
+On a halt, the final event has `halted=true` and an empty `token`. It carries
+the trigger score and the `halt_reason`. For a whole-response provider the
+event uses the response verdict, including `kernel_inactive` when the final
+output monitor is already stopped. Approved tokens arrive in index order. A stream that
+completes normally ends after the last approved token.
+Coherence window and trend checks can stop a stream even when the hard floor
+alone would accept the score.
+Client cancellation ends the stream and releases its RPC worker even while the
+provider is waiting to send its next event.
+The server starts its streaming event loop on the first streaming RPC. The
+loop closes after server termination once its provider work has unwound.
+An empty or whitespace-only prompt returns `INVALID_ARGUMENT`. If the
+streaming loop is unavailable, the RPC returns `UNAVAILABLE` with
+`streaming unavailable`. A generation or scoring failure ends the RPC with
+`INTERNAL` and `streaming failed`. Any approved tokens already delivered
+remain available to the caller. An RPC error carries no halt event.
+
 ### Legacy Python Client
 
 ```python
