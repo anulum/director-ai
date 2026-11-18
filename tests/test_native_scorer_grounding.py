@@ -34,8 +34,11 @@ def test_repeated_review_preserves_configured_claim_verification(entry: str) -> 
     supported = "Notifications support Slack and Microsoft Teams."
     store.add("notifications", supported, tenant_id=tenant)
     scorer = DirectorConfig(
+        mode="grounded",
         scorer_backend="deberta",
         use_nli=False,
+        hybrid_retrieval=False,
+        reranker_enabled=False,
         coherence_threshold=0.1,
         adaptive_threshold_enabled=False,
         verified_scorer_enabled=True,
@@ -53,6 +56,7 @@ def test_repeated_review_preserves_configured_claim_verification(entry: str) -> 
             )
         else:
             approved, score = scorer.review(prompt, action, tenant_id=tenant)
+        assert score.degraded_mode
         assert score.score >= scorer.threshold
         assert not approved and not score.approved
         assert score.verified_approved is False

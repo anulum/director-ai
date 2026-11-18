@@ -104,7 +104,7 @@ def test_every_excluded_package_exists_in_the_source_tree() -> None:
 
 
 def test_sdist_manifest_mirrors_the_wheel_boundary() -> None:
-    """Match sdist prune and exclude declarations to the package manifest."""
+    """Require the paid boundary and repository-only CI exclusions in the sdist."""
     text = (ROOT / "MANIFEST.in").read_text(encoding="utf-8")
     pruned = set(re.findall(r"^prune (\S+)$", text, re.M))
     expected_prunes = {"src/" + g.rstrip("*").replace(".", "/") for g in ROOT_EXCLUDE}
@@ -114,7 +114,9 @@ def test_sdist_manifest_mirrors_the_wheel_boundary() -> None:
     )
 
     excluded = set(re.findall(r"^exclude (\S+)$", text, re.M))
-    expected_excludes = {"src/" + m for m in PAID_MODULES}
+    repository_only_tests = {"tests/test_npm_audit_gate.py"}
+    assert all((ROOT / path).is_file() for path in repository_only_tests)
+    expected_excludes = {"src/" + m for m in PAID_MODULES} | repository_only_tests
     assert excluded == expected_excludes, (
         f"missing excludes={sorted(expected_excludes - excluded)}"
         f" stale excludes={sorted(excluded - expected_excludes)}"

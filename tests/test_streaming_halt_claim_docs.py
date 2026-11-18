@@ -24,11 +24,19 @@ def _normalise_whitespace(text: str) -> str:
     return " ".join(text.split())
 
 
-def test_streaming_guide_documents_contradiction_replacement() -> None:
-    """Retain the documented contradiction-halt replacement and recorded evidence figures."""
+def test_streaming_guide_documents_grounded_contradiction_halt() -> None:
+    """Keep the opt-in halt, evidence boundary and recorded numbers explicit."""
     doc = _normalise_whitespace(_read_doc("docs-site/guide/streaming.md"))
 
-    assert "Contradiction halt replaces the old coherence callback" in doc
+    assert (
+        "With contradiction halt enabled, Director-AI scores completed claims "
+        "for `P(contradiction)` against retrieved grounding facts." in doc
+    )
+    assert (
+        "The stream stops when that probability reaches the configured threshold."
+        in doc
+    )
+    assert "an ungrounded claim (no retrieval hit) never halts" in doc
     assert "streaming_contradiction_halt_base.json" in doc
     assert "false-halt rate 0.0065" in doc
     assert "semantic recall 0.9309" in doc

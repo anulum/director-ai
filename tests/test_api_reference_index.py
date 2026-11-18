@@ -54,10 +54,10 @@ def test_signature_docs_match_current_api_surfaces() -> None:
     # __dict__ membership would miss mixin-provided methods.
     assert not hasattr(CoherenceScorer, "score_chunked")
     assert hasattr(NLIScorer, "score_chunked")
-    assert agent_process.parameters["prompt"].annotation in {str, "str"}
-    assert "query" not in agent_process.parameters
-    assert agent_aprocess.parameters["prompt"].annotation in {str, "str"}
-    assert "query" not in agent_aprocess.parameters
+    for agent_method in (agent_process, agent_aprocess):
+        assert agent_method.parameters["prompt"].annotation in {str, "str"}
+        assert agent_method.parameters["tenant_id"].default == ""
+        assert "query" not in agent_method.parameters
     assert nli_init.parameters["model_name"].default is None
 
     scorer_doc = _api_page("scorer.md")
@@ -68,8 +68,8 @@ def test_signature_docs_match_current_api_surfaces() -> None:
     assert "NLIScorer.score_chunked()" in scorer_doc
 
     agent_doc = _api_page("agent.md")
-    assert "result = agent.process(prompt: str" in agent_doc
-    assert "result = await agent.aprocess(prompt: str" in agent_doc
+    assert 'result = agent.process(prompt, tenant_id="example")' in agent_doc
+    assert 'result = await agent.aprocess(prompt, tenant_id="example")' in agent_doc
     assert "agent.process(query: str" not in agent_doc
     assert "agent.aprocess(query: str" not in agent_doc
 

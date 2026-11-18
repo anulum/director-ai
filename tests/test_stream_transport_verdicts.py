@@ -13,7 +13,7 @@ from __future__ import annotations
 import json
 import socket
 from collections.abc import Iterator
-from contextlib import contextmanager, suppress
+from contextlib import contextmanager
 from dataclasses import dataclass
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from importlib import import_module
@@ -290,7 +290,7 @@ def test_grpc_termination_releases_a_held_stream(
             if not deliver_prefix:
                 entered.set()
                 release.wait(timeout=10.0)
-            with suppress(BrokenPipeError, ConnectionResetError):
+            try:
                 self.send_response(200)
                 self.send_header("Content-Type", "text/event-stream")
                 self.send_header("Content-Length", str(len(prefix) + len(end)))
@@ -301,6 +301,10 @@ def test_grpc_termination_releases_a_held_stream(
                     entered.set()
                     release.wait(timeout=10.0)
                 self.wfile.write(end)
+            except (BrokenPipeError, ConnectionResetError):
+                # Deliberate termination can close the upstream connection.
+                if not release.is_set():
+                    raise
 
     upstream = ThreadingHTTPServer(("127.0.0.1", 0), HeldCompletion)
     worker = Thread(target=upstream.serve_forever, kwargs={"poll_interval": 0.01})
