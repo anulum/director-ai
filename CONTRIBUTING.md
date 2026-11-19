@@ -49,6 +49,22 @@ make python-only-check PYTHON=.venv/bin/python PYTHON_ONLY_CHECK_ARGS="--no-test
 make python-only-check PYTHON=.venv/bin/python PYTHON_ONLY_CHECK_ARGS="--print-plan"
 ```
 
+## Native Rust documentation checks
+
+The Rust quality reader checks authored declarations and binds recognised
+macro recipes to their source imports. Use Rust 1.98.1 and the repository's
+Python development environment. Fetch the locked reader dependencies once
+before running the offline native checks.
+
+```bash
+cargo +1.98.1 fetch --locked --manifest-path tools/quality_ratchet_rust/Cargo.toml
+DIRECTOR_QUALITY_CARGO="$(rustup which --toolchain 1.98.1 cargo)" \
+DIRECTOR_QUALITY_RUSTC="$(rustup which --toolchain 1.98.1 rustc)" \
+  python -m pytest tools/quality_ratchet_rust_tests
+```
+
+The required Rust job also audits the reader's own Cargo lock.
+
 ## Makefile Targets
 
 | Target | Command | Description |

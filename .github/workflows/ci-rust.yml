@@ -87,6 +87,9 @@ jobs:
       - name: Audit advisories (RustSec)
         run: cargo audit
 
+      - name: Audit the Rust quality reader lock
+        run: cargo audit --file ../tools/quality_ratchet_rust/Cargo.lock
+
       - name: Deny check (advisories, licences, bans, sources)
         run: cargo deny check
 
@@ -109,3 +112,27 @@ jobs:
         run: |
           "$STUDIO_CHROME_EXECUTABLE" --version
           npm run e2e
+
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.12"
+
+      - name: Install the locked native test harness
+        working-directory: .
+        run: pip install --require-hashes --no-deps -r requirements/ci-dev.txt
+
+      - name: Verify the pinned native Rust quality profile
+        working-directory: .
+        run: |
+          rustup toolchain install 1.98.1 --profile minimal --component clippy --component rustfmt
+          DIRECTOR_QUALITY_CARGO="$(rustup which --toolchain 1.98.1 cargo)"
+          DIRECTOR_QUALITY_RUSTC="$(rustup which --toolchain 1.98.1 rustc)"
+          export DIRECTOR_QUALITY_CARGO DIRECTOR_QUALITY_RUSTC
+          manifest=tools/quality_ratchet_rust/Cargo.toml
+          cargo +1.98.1 fetch --locked --manifest-path "$manifest"
+          cargo +1.98.1 fmt --manifest-path "$manifest" --all -- --check
+          cargo +1.98.1 clippy --manifest-path "$manifest" --locked --offline --all-targets -- -D warnings
+          ruff check tools/quality_ratchet_rust.py tools/quality_ratchet_rust_declarations.py tools/quality_ratchet_rust_tests
+          ruff format --check tools/quality_ratchet_rust.py tools/quality_ratchet_rust_declarations.py tools/quality_ratchet_rust_tests
+          mypy --strict tools/quality_ratchet_rust.py tools/quality_ratchet_rust_declarations.py tools/quality_ratchet_rust_tests
+          python -m pytest tools/quality_ratchet_rust_tests
