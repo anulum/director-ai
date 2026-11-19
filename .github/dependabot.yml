@@ -13,18 +13,11 @@ updates:
     schedule:
       interval: "weekly"
       day: "monday"
-    # Open update PRs (was 0 = disabled). Minor/patch are grouped into one PR to
-    # keep noise down; major bumps stay separate so they get individual review
-    # and migration per the no-deferred-dep-upgrades policy.
-    open-pull-requests-limit: 10
-    groups:
-      actions-minor-patch:
-        update-types:
-          - "minor"
-          - "patch"
-    labels:
-      - "dependencies"
-      - "ci"
+    # Review action pins and workflow-body digests together in maintenance.
+    open-pull-requests-limit: 0
+    rebase-strategy: disabled
+    ignore:
+      - dependency-name: "*"
 
   - package-ecosystem: "uv"
     directory: "/"
