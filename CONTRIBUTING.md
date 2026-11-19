@@ -70,6 +70,19 @@ make python-only-check PYTHON=.venv/bin/python PYTHON_ONLY_CHECK_ARGS="--print-p
 | `make install-hooks` | `git config core.hooksPath .githooks` | Install local git hooks |
 | `make clean` | Remove dist/, build/, __pycache__ | Clean build artifacts |
 
+## Native Protobuf documentation checks
+
+The Protobuf documentation tests use `protoc` 3.21.12 to inspect the source
+descriptors of both checked-in schemas. In the development environment, install
+the pinned descriptor reader and typing stubs, then run the native tests.
+
+```bash
+python -m pip install --require-hashes -r requirements/quality-protobuf.txt
+python -m pytest tests/test_quality_ratchet_protobuf.py tests/test_quality_ratchet_protobuf_descriptors.py
+```
+
+Run `make docs-protobuf` to build the HTML reference for both schemas.
+
 ## Code Style
 
 - **Formatter**: [ruff format](https://docs.astral.sh/ruff/formatter/) (line length 88)

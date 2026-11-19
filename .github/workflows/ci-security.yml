@@ -71,6 +71,9 @@ jobs:
         # held in requirements/security-exceptions.toml (tool uv-audit) with an expiry.
         run: uv audit --frozen --no-progress --color never --output-format json --ignore GHSA-f4j7-r4q5-qw2c --ignore GHSA-2wm9-hf6c-p5cr --ignore GHSA-xph7-9rjv-w5fr --ignore GHSA-36p7-vc44-83pf
 
+      - name: Audit the native Protobuf quality lock
+        run: pip-audit --strict --disable-pip --require-hashes -r requirements/quality-protobuf.txt
+
       - name: Upload VDR artifacts
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2

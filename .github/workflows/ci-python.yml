@@ -92,10 +92,23 @@ jobs:
           test "$("$GOBIN/revive" -version)" = "version 1.17.0"
           echo "$GOBIN" >> "$GITHUB_PATH"
 
+      - name: Install the qualified native Protobuf compiler
+        run: |
+          if [ "$(protoc --version 2>/dev/null)" != "libprotoc 3.21.12" ]; then
+            sudo apt-get update
+            sudo apt-get install --yes --no-install-recommends protobuf-compiler
+            test "$(/usr/bin/protoc --version)" = "libprotoc 3.21.12"
+            native_tools="$RUNNER_TEMP/director-protobuf"
+            mkdir -p "$native_tools"
+            ln -s /usr/bin/protoc "$native_tools/protoc"
+            echo "$native_tools" >> "$GITHUB_PATH"
+          fi
+
       - name: Install dependencies
         run: |
           pip install --require-hashes --no-deps -r requirements/ci-dev.txt
           pip install --require-hashes --no-deps -r requirements/ci-inference.txt
+          pip install --require-hashes -r requirements/quality-protobuf.txt
           maturin build --release --manifest-path backfire-kernel/crates/backfire-ffi/Cargo.toml --out dist/backfire-kernel
           python -m pip install --force-reinstall --no-deps --no-index dist/backfire-kernel/backfire_kernel-*.whl
           pip install --no-deps -e .
