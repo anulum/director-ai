@@ -155,13 +155,12 @@ exception is re-reviewed rather than kept by default.
 
 ### Studio development dependencies
 
-Studio CI audits its full npm lock before building. The repository owner
-approved a development-only exception for picomatch's GHSA-fc5q-39xc-vjpf
-on 2026-11-18. It covers the recorded lock SHA-256 and ends at the start of
-2026-11-24 UTC. The gate requires every affected install to be development-only
-and refuses additional advisories, changes to the lock, missing audit data
-and an expired exception. The production audit for the authorised lock found
-zero advisories. Refreshing the exception requires a new owner decision.
+Studio CI audits its full npm lock before building. GitHub withdrew the
+picomatch advisory on 2026-11-18. The full and production Studio lock audits
+both reported zero findings. [GitHub advisory](https://github.com/advisories/GHSA-fc5q-39xc-vjpf)
+
+The audit gate requires a valid report and checks any exception against the
+locked dependency graph and its expiry.
 
 ### minimatch — GHSA-g3hv-75wg-m249
 

@@ -306,14 +306,12 @@ def test_the_exceptions_file_needs_its_schema(tmp_path: Path) -> None:
 
 
 def test_the_repository_exceptions_are_valid() -> None:
-    """Each committed exception is development-only and lasts at most seven days."""
+    """Bind committed exceptions to the Studio lock and respect the withdrawal."""
     exceptions = load_exceptions(ROOT / ".github/npm-audit-exceptions.json")
     lock = ROOT / "studio-web/package-lock.json"
-    assert len(exceptions) == 1
-    exception = exceptions[0]
-    assert (exception.advisory, exception.package) == (ADVISORY, "picomatch")
-    assert (exception.granted, exception.expires) == (GRANTED, EXPIRES)
-    assert exception.lock_sha256 == hashlib.sha256(lock.read_bytes()).hexdigest()
+    digest = hashlib.sha256(lock.read_bytes()).hexdigest()
+    assert ADVISORY not in {exception.advisory for exception in exceptions}
+    assert all(exception.lock_sha256 == digest for exception in exceptions)
 
 
 class _Runner:
