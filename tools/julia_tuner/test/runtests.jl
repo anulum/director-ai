@@ -193,3 +193,5 @@ end
         end
     end
 end
+
+include("cli.jl")

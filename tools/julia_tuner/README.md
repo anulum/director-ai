@@ -1,3 +1,11 @@
+<!-- SPDX-License-Identifier: Apache-2.0 -->
+<!-- Commercial license available -->
+<!-- © Concepts 1996–2026 Miroslav Šotek. All rights reserved. -->
+<!-- © Code 2020–2026 Miroslav Šotek. All rights reserved. -->
+<!-- ORCID: 0009-0009-3560-0851 -->
+<!-- Contact: www.anulum.li | protoscience@anulum.li -->
+<!-- Director-AI — Julia threshold tuner usage -->
+
 # Director-AI Threshold Tuner (Julia)
 
 Offline companion to the Director-AI scoring pipeline. Given a
@@ -40,6 +48,10 @@ tests/test_prepare_threshold_data.py
 ```
 
 ## Quick start
+
+After instantiating the project, run `julia tools/julia_tuner/bin/tune_threshold.jl --help`
+from the repository root to see the available options. Argument parsing runs
+before the Bayesian sampler loads.
 
 ```bash
 # 1. Instantiate once per machine

@@ -14,9 +14,13 @@ Pkg.activate(joinpath(@__DIR__, ".."))
 using ArgParse
 using Random
 
-include(joinpath(@__DIR__, "..", "src", "DirectorThresholdTuner.jl"))
-using .DirectorThresholdTuner
+"""
+    _parse()
 
+Parse the threshold tuner's input/output paths, sample budgets and optional RNG
+seed from the actual process arguments. ArgParse prints help or rejects invalid
+arguments before any scoring data is read.
+"""
 function _parse()
     s = ArgParseSettings(
         prog = "tune_threshold.jl",
@@ -50,16 +54,27 @@ function _parse()
     return parse_args(s)
 end
 
-function main()
-    args = _parse()
-    rng = args["seed"] >= 0 ? MersenneTwister(args["seed"]) : Random.default_rng()
-    examples = load_scores_jsonl(args["input"])
-    result = tune(examples;
-                  rng = rng,
-                  n_bootstrap = args["bootstrap"],
-                  n_bayes_samples = args["samples"],
-                  n_bayes_warmup = args["warmup"])
-    save_result_json(args["output"], result)
+"""
+    main(args)
+
+Load labelled scoring data, run the threshold analyses and write their complete
+JSON result to the requested output path. Report the point estimate, bootstrap
+interval and Bayesian mean after successful publication.
+"""
+function main(args::Dict{String,Any})
+    seed = args["seed"]
+    rng = if seed >= 0
+        MersenneTwister(seed)
+    else
+        Random.default_rng()
+    end
+    examples = DirectorThresholdTuner.load_scores_jsonl(args["input"])
+    result = DirectorThresholdTuner.tune(examples;
+                                         rng = rng,
+                                         n_bootstrap = args["bootstrap"],
+                                         n_bayes_samples = args["samples"],
+                                         n_bayes_warmup = args["warmup"])
+    DirectorThresholdTuner.save_result_json(args["output"], result)
     println("wrote $(args["output"]) — point=$(result.point_threshold) " *
             "BA=$(round(result.point_balanced_accuracy; digits = 4)) " *
             "bootstrap=[$(round(result.bootstrap_lo; digits = 3)), " *
@@ -67,4 +82,8 @@ function main()
             "bayes_mean=$(round(result.bayesian_mean; digits = 3))")
 end
 
-abspath(PROGRAM_FILE) == @__FILE__ && main()
+if abspath(PROGRAM_FILE) == @__FILE__
+    options = _parse()
+    include(joinpath(@__DIR__, "..", "src", "DirectorThresholdTuner.jl"))
+    main(options)
+end
