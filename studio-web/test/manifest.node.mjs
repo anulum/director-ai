@@ -146,12 +146,27 @@ test("malformed schema members retain original data and never inherit outer auth
             assert.deepEqual(loaded.extra.schema_a, raw);
         }
     }
-    for (const raw of [null, false, 7, "not-an-object", undefined, []]) {
+    for (const raw of [null, false, 7, "not-an-object", undefined]) {
         const manifest = parseManifest(raw);
         assert.equal(manifest.studio, "unknown");
         assert.deepEqual(manifest.verbs, []);
         assert.deepEqual(manifest.evidence_types, []);
         assert.equal(manifest.ui_module, undefined);
+    }
+});
+
+test("flat arrays use manifest defaults and retain the whole payload as schema metadata", async (context) => {
+    for (const raw of [Object.freeze([]), Object.freeze([schema, null, "future"])]) {
+        const manifest = parseManifest(raw);
+        assert.equal(manifest.studio, "unknown");
+        assert.equal(manifest.contract_era, "unknown");
+        assert.deepEqual(manifest.verbs, []);
+        assert.deepEqual(manifest.evidence_types, []);
+        assert.equal(manifest.ui_module, undefined);
+        assert.equal(isEraSupported(manifest), false);
+        assert.deepEqual(Object.keys(manifest.extra), ["schema_a"]);
+        assert.strictEqual(manifest.extra.schema_a, raw);
+        assert.deepEqual(await loadManifest(await serve(context, JSON.stringify(raw))), manifest);
     }
 });
 

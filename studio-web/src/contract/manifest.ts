@@ -131,17 +131,18 @@ function parseVerb(raw: unknown): Verb {
  *
  * Forward-tolerant by construction: missing scalars fall back to safe defaults.
  * Unknown envelope fields stay in `extra`; unknown nested schema fields stay in
- * `extra.schema_a`. Flat payloads retain their existing `extra` shape. The own
+ * `extra.schema_a`. Flat objects retain their existing `extra` shape. The own
  * `schema_a` field selects the envelope even when malformed, so outer fields
- * cannot impersonate missing nested fields. Malformed nested values remain
- * unchanged in `extra.schema_a`. Unexpected eras remain available
- * for the UI to warn. Parsing never mutates its input.
+ * cannot impersonate missing nested fields. Malformed nested values and
+ * top-level arrays use safe defaults and remain unchanged in `extra.schema_a`.
+ * Unexpected eras remain available so the UI can warn. Parsing never mutates
+ * its input.
  *
  * @param raw Decoded JSON from the manifest producer or a legacy flat payload.
  * @returns Typed fields with safe defaults and unmodified unknown metadata.
  */
 export function parseManifest(raw: unknown): StudioManifest {
-    const envelope = asRecord(raw);
+    const envelope = asRecord(Array.isArray(raw) ? { schema_a: raw } : raw);
     const wrapped = Object.hasOwn(envelope, "schema_a");
     const nested = envelope["schema_a"];
     const nestedIsObject = nested !== null && typeof nested === "object" && !Array.isArray(nested);

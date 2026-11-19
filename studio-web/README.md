@@ -93,9 +93,10 @@ The existing Vitest and full portal build commands remain separate requirements.
 typed fields come from its own `schema_a` member. Unknown envelope fields are
 retained in `manifest.extra`; unknown nested schema fields are retained in
 `manifest.extra.schema_a`, keeping equal names at different levels distinct.
-Legacy flat schema-A payloads retain their existing `extra` layout. A malformed
-`schema_a` uses safe defaults rather than accepting outer identity fields, while
-its original value remains unchanged in `manifest.extra.schema_a`.
+Legacy flat schema-A objects retain their existing `extra` layout. A malformed
+`schema_a` or a top-level array uses safe defaults for typed fields. The reader
+retains the original value in `manifest.extra.schema_a`, including the entire
+array in input order when the payload is a top-level array.
 The browser loader defaults to `/studio_manifest.json`, staged under `public/`
 by `npm run sync:manifest`. It accepts an `AbortSignal`. The Capabilities
 route cancels the request when leaving the view. The federated panel cancels
