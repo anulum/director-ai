@@ -41,6 +41,19 @@ jobs:
       - name: Install verified Lean toolchain
         run: bash tools/install_lean.sh
 
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.12"
+
+      - name: Install the locked native test harness
+        run: pip install --require-hashes --no-deps -r requirements/ci-dev.txt
+
+      - name: Verify the native Lean quality profile
+        run: |
+          DIRECTOR_QUALITY_LEAN="$(command -v lean)"
+          export DIRECTOR_QUALITY_LEAN
+          python -m pytest formal/HaltMonitor/tests
+
       - name: Build and check Lean proofs
         working-directory: formal/HaltMonitor
         run: lake build

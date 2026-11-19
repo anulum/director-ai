@@ -80,6 +80,20 @@ The proof package needs no network access after toolchain installation. Typical 
 rig. A failure means a proof broke, not a flaky run — the
 theorems are machine-checked with no nondeterminism.
 
+## Native Lean quality checks
+
+The Lean quality profile reads source declarations and diagnostics with the
+pinned compiler. Use the real Lean binary from the HaltMonitor toolchain and
+the repository's development environment.
+
+```bash
+DIRECTOR_QUALITY_LEAN="$(cd formal/HaltMonitor && elan which lean)" \
+  python -m pytest formal/HaltMonitor/tests
+```
+
+The tests compile the original imports in an isolated environment. The proof
+build still runs separately with `lake build` from `formal/HaltMonitor`.
+
 ## Adding another model
 
 1. Create `formal/<Component>/` with its own `lakefile.toml` and
