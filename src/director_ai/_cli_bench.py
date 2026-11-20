@@ -42,6 +42,7 @@ def _cmd_eval(args: list[str]) -> None:
     output_file = None
     model = None
     quantize_mode = None
+    int8_reduce_range: bool | None = None
 
     i = 0
     while i < len(args):
@@ -69,14 +70,18 @@ def _cmd_eval(args: list[str]) -> None:
                 )
                 sys.exit(1)
             i += 2
+        elif args[i] in ("--int8-reduce-range", "--int8-full-range"):
+            int8_reduce_range = args[i] == "--int8-reduce-range"
+            i += 1
         else:
             i += 1
 
+    _require_int8_range(quantize_mode, int8_reduce_range)
     if quantize_mode:
         from director_ai.core.scoring.nli import export_onnx
 
         print(f"Exporting ONNX with {quantize_mode} quantization...")
-        export_onnx(quantize=quantize_mode)
+        export_onnx(quantize=quantize_mode, int8_reduce_range=int8_reduce_range)
         print("Export complete.")
         return
 
@@ -536,6 +541,8 @@ def _print_eval_help() -> None:
         "  --output FILE           Write benchmark results as JSON\n"
         "  --model ID              Override scorer model identifier\n"
         "  --quantize int8|fp16    Export an ONNX scorer with quantization\n"
+        "  --int8-reduce-range     INT8 range for x86 CPUs without VNNI\n"
+        "  --int8-full-range       INT8 range for AVX512-VNNI, AVX-VNNI, AMX or ARM\n"
     )
 
 
@@ -728,14 +735,37 @@ def _cmd_validate_data(args: list[str]) -> None:
         sys.exit(1)
 
 
+def _require_int8_range(quantize: str | None, int8_reduce_range: bool | None) -> None:
+    """Exit unless the INT8 range flags match the requested precision.
+
+    An INT8 export must name its range policy for the target CPU, and the
+    range flags are refused for any other precision.
+    """
+    if quantize == "int8" and int8_reduce_range is None:
+        print(
+            "Error: --quantize int8 needs --int8-reduce-range (x86 without VNNI) "
+            "or --int8-full-range (AVX512-VNNI, AVX-VNNI, AMX or ARM)"
+        )
+        sys.exit(1)
+    if quantize != "int8" and int8_reduce_range is not None:
+        print(
+            "Error: --int8-reduce-range and --int8-full-range apply only to "
+            "--quantize int8"
+        )
+        sys.exit(1)
+
+
 def _cmd_export(args: list[str]) -> None:
     """Export NLI model to ONNX or pre-build TensorRT engine cache.
 
     Usage::
 
         director-ai export --format onnx --output factcg_onnx
-        director-ai export --format onnx --quantize int8
+        director-ai export --format onnx --quantize int8 --int8-reduce-range
         director-ai export --format tensorrt --onnx-dir factcg_onnx
+
+    INT8 export needs ``--int8-reduce-range`` for x86 CPUs without VNNI or
+    ``--int8-full-range`` for CPUs with AVX512-VNNI, AVX-VNNI or AMX, and ARM.
     """
     fmt = "onnx"
     output_dir = "factcg_onnx"
@@ -743,6 +773,7 @@ def _cmd_export(args: list[str]) -> None:
     quantize = None
     fp16 = True
     model = None
+    int8_reduce_range: bool | None = None
 
     i = 0
     while i < len(args):
@@ -764,17 +795,22 @@ def _cmd_export(args: list[str]) -> None:
         elif args[i] == "--no-fp16":
             fp16 = False
             i += 1
+        elif args[i] in ("--int8-reduce-range", "--int8-full-range"):
+            int8_reduce_range = args[i] == "--int8-reduce-range"
+            i += 1
         else:
             i += 1
 
     if fmt == "onnx":
         from director_ai.core.scoring.nli import export_onnx
 
+        _require_int8_range(quantize, int8_reduce_range)
         print(f"Exporting ONNX model to {output_dir}...")
         export_onnx(
             model_name=model or "yaxili96/FactCG-DeBERTa-v3-Large",
             output_dir=output_dir,
             quantize=quantize,
+            int8_reduce_range=int8_reduce_range,
         )
         print(f"Done. Load with: NLIScorer(backend='onnx', onnx_path='{output_dir}')")
     elif fmt == "tensorrt":

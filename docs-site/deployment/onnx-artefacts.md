@@ -98,6 +98,18 @@ If the variable is unset, local library use remains backward compatible, but
 container and server deployments should always set it and mount the model root
 read-only.
 
+A containment refusal, a malformed export manifest, a manifest naming a missing
+file, or a model whose digest does not match its manifest raises
+`PermissionError` to the caller. Only a missing runtime, or a missing directory
+or file where no manifest promised one, falls back to the heuristic scorer, so
+a policy violation never degrades silently.
+
+For production, set `DIRECTOR_ONNX_REQUIRE_MANIFEST=1`. It refuses export
+directories without a manifest, and full-range INT8 models on CPUs that are
+not confirmed to have AVX512-VNNI, AVX-VNNI or AMX. Without it these load with
+a warning. The distilled lite scorer's current layout has no manifest yet, so
+leave the setting off for that scorer until it ships with one.
+
 ## Wheel Target Matrix
 
 `requirements/onnx_wheel_targets.toml` is the tracked source for these targets.

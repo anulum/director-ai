@@ -499,7 +499,10 @@ file (`tokenizer.json`, `vocab.txt`, or `spiece.model`), and symlinked model
 or tokenizer files must remain inside the artefact directory and
 `DIRECTOR_ONNX_ALLOWED_DIRS` when that allowlist is configured. Missing local
 assets fail closed instead of falling through to a hub or PyTorch load; remote
-hub loads remain pinned to the released distilled model revision.
+hub loads remain pinned to the released distilled model revision. A directory
+with an export manifest (`director_onnx_manifest.json`) serves exactly the file
+it names and refuses a digest mismatch; a directory without one logs a warning,
+and `DIRECTOR_ONNX_REQUIRE_MANIFEST=1` refuses it.
 
 Select via config: `scorer_backend="rules"`, `"embed"`, `"deberta"`, or `"lite"`.
 

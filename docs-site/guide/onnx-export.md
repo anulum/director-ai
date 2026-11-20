@@ -31,6 +31,44 @@ loader line as runtime NLI. The export-only graph/runtime wheels are pinned in
 For deployable directory layout and wheel target coverage, see
 [ONNX Artefacts](../deployment/onnx-artefacts.md).
 
+## Quantised exports and the export manifest
+
+`quantize="fp16"` writes `model_fp16.onnx` and `quantize="int8"` writes
+`model_quantized.onnx` next to the FP32 `model.onnx`. INT8 needs an explicit
+range policy for the CPU that will serve the model:
+
+```python
+export_onnx(
+    model_name="yaxili96/FactCG-DeBERTa-v3-Large",
+    output_dir="models/factcg_onnx",
+    quantize="int8",
+    int8_reduce_range=True,  # x86 without VNNI; False with AVX512-VNNI, AVX-VNNI, AMX or ARM
+)
+```
+
+On the CLI, `--quantize int8` needs `--int8-reduce-range` or
+`--int8-full-range`.
+
+Every export writes `director_onnx_manifest.json`. It names the served file,
+its SHA-256 digest, the precision and the INT8 range policy. The ONNX backend
+serves exactly that file and refuses a file that is missing or whose digest no
+longer matches. The bytes it verifies are the bytes ONNX Runtime loads, so the
+file cannot change between the check and the load. A manifest-bound model is
+therefore read into memory once before the session is created.
+
+A directory without a manifest keeps the older layout rule and logs one
+warning per directory. One that holds an FP16 export next to another model is
+refused, because its intended precision cannot be told; re-export it to bind
+the served file. Set `DIRECTOR_ONNX_REQUIRE_MANIFEST=1` to refuse every
+directory without a manifest.
+
+At load, a full-range INT8 model (`int8_reduce_range=False`) is checked
+against the serving CPU. On x86 without the `avx512_vnni`, `avx_vnni` or
+`amx_int8` flags the backend logs a warning, because full-range 8-bit dot
+products can saturate there and score wrongly without an error. With
+`DIRECTOR_ONNX_REQUIRE_MANIFEST=1` it refuses instead, and it also refuses when
+the CPU flags cannot be read. ARM CPUs are not affected.
+
 ## Use the ONNX model
 
 ```python

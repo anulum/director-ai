@@ -159,7 +159,7 @@ bypass the queue.
 | Function | Module | Description |
 |----------|--------|-------------|
 | `nli_available()` | `core.nli` | Check NLI readiness |
-| `export_onnx()` | `core.nli` | Export model to ONNX |
+| `export_onnx()` | `core.nli` | Export model to ONNX with a manifest that binds the served file's digest; INT8 needs `int8_reduce_range` |
 | `export_tensorrt()` | `core.nli` | Export ONNX model to TensorRT |
 | `guard()` | `integrations.sdk_guard` | One-liner SDK interceptor (duck-type detection) |
 | `get_score()` | `integrations.sdk_guard` | Retrieve last score from context |

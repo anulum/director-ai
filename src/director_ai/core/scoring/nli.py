@@ -234,9 +234,10 @@ class NLIScorer(ClaimCoverageMixin, MiniCheckBackendMixin, ModelInferenceMixin):
                 )
                 self._model_loaded = True
                 return False
-            # Path-traversal safety is handled inside _load_onnx_session, which
-            # canonicalises the directory and enforces _is_relative_to on the
-            # resolved model file; a bad path falls back to the heuristic.
+            # _load_onnx_session canonicalises the directory, keeps the model
+            # file inside it, and serves the manifest-bound file after checking
+            # its digest. A policy or integrity refusal raises PermissionError
+            # here; only an unavailable runtime or file falls back.
             self._tokenizer, self._onnx_session = _load_onnx_session(
                 self._onnx_path,
                 device=self._device,

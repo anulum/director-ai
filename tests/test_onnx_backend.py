@@ -522,7 +522,7 @@ class TestOnnxPerformanceDoc:
 
 
 class TestOnnxPathValidation:
-    """ONNX path is resolved before use; bad paths fall back safely."""
+    """ONNX path is resolved before use; missing paths fall back, refusals raise."""
 
     def test_nonexistent_onnx_path_falls_back(self) -> None:
         """A nonexistent absolute ONNX path should fall back safely."""
@@ -539,6 +539,46 @@ class TestOnnxPathValidation:
         scorer = NLIScorer(backend="onnx", onnx_path=str(not_a_dir))
 
         assert scorer.model_available is False
+
+    def test_policy_refusal_reaches_the_caller(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """A path outside the allowed roots raises instead of falling back."""
+        allowed = tmp_path / "allowed"
+        outside = tmp_path / "outside"
+        allowed.mkdir()
+        outside.mkdir()
+        (outside / "model.onnx").write_bytes(b"onnx")
+        monkeypatch.setenv("DIRECTOR_ONNX_ALLOWED_DIRS", str(allowed))
+
+        scorer = NLIScorer(backend="onnx", onnx_path=str(outside))
+
+        with pytest.raises(PermissionError, match="DIRECTOR_ONNX_ALLOWED_DIRS"):
+            scorer.score("premise", "hypothesis")
+
+    def test_missing_manifest_bound_file_reaches_the_caller(
+        self, tmp_path: Path
+    ) -> None:
+        """A manifest whose file is gone raises instead of the heuristic score."""
+        from director_ai.core.scoring import _nli_export
+
+        bundle = tmp_path / "bundle"
+        bundle.mkdir()
+        (bundle / "model.onnx").write_bytes(b"onnx")
+        _nli_export._write_onnx_manifest(
+            bundle,
+            precision="fp32",
+            source_model="test/model",
+            source_revision="abc123",
+            int8_reduce_range=None,
+        )
+        (bundle / "model.onnx").unlink()
+        _nli_export._load_onnx_session.cache_clear()
+
+        scorer = NLIScorer(backend="onnx", onnx_path=str(bundle))
+
+        with pytest.raises(PermissionError, match="names a missing model file"):
+            scorer.score("premise", "hypothesis")
 
     def test_relative_onnx_path_resolved_not_passed_through(self) -> None:
         """A relative nonexistent path should resolve and fall back safely."""

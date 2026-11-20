@@ -15,6 +15,8 @@ CoherenceScorer, and performance documentation.
 from __future__ import annotations
 
 import os
+from pathlib import Path
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -25,13 +27,17 @@ pytest.importorskip("onnxruntime", reason="onnxruntime required for TensorRT tes
 
 
 class TestExportTensorrt:
-    def test_missing_onnx_dir_raises(self, tmp_path):
+    """TensorRT engine-cache export."""
+
+    def test_missing_onnx_dir_raises(self, tmp_path: Path) -> None:
+        """A missing ONNX directory raises."""
         from director_ai.core.nli import export_tensorrt
 
         with pytest.raises(FileNotFoundError, match="ONNX model not found"):
             export_tensorrt(onnx_dir=str(tmp_path / "no_such_dir"))
 
-    def test_no_trt_provider_raises(self, tmp_path):
+    def test_no_trt_provider_raises(self, tmp_path: Path) -> None:
+        """Export without the TensorRT provider raises."""
         onnx_dir = tmp_path / "onnx"
         onnx_dir.mkdir()
         (onnx_dir / "model.onnx").write_bytes(b"dummy")
@@ -50,7 +56,8 @@ class TestExportTensorrt:
         ):
             export_tensorrt(onnx_dir=str(onnx_dir))
 
-    def test_creates_cache_dir(self, tmp_path):
+    def test_creates_cache_dir(self, tmp_path: Path) -> None:
+        """Export creates the cache directory and runs a warmup."""
         onnx_dir = tmp_path / "onnx"
         onnx_dir.mkdir()
         (onnx_dir / "model.onnx").write_bytes(b"dummy")
@@ -99,14 +106,15 @@ class TestExportTensorrt:
             assert cache_dir.exists()
             mock_session.run.assert_called_once()
 
-    def test_fp16_default_true(self, tmp_path):
+    def test_fp16_default_true(self, tmp_path: Path) -> None:
+        """FP16 is enabled by default."""
         onnx_dir = tmp_path / "onnx"
         onnx_dir.mkdir()
         (onnx_dir / "model.onnx").write_bytes(b"dummy")
 
         captured_opts = {}
 
-        def capture_session(model_file, opts, providers):
+        def capture_session(model_file: str, opts: Any, providers: Any) -> MagicMock:
             for p in providers:
                 if isinstance(p, tuple) and p[0] == "TensorrtExecutionProvider":
                     captured_opts.update(p[1])
@@ -149,7 +157,10 @@ class TestExportTensorrt:
 
 
 class TestTrtAutoDetection:
-    def test_trt_cache_dir_triggers_trt_ep(self, tmp_path):
+    """TensorRT provider selection from a cache directory."""
+
+    def test_trt_cache_dir_triggers_trt_ep(self, tmp_path: Path) -> None:
+        """An existing cache directory enables the TensorRT provider."""
         onnx_dir = tmp_path / "onnx"
         onnx_dir.mkdir()
         (onnx_dir / "model.onnx").write_bytes(b"dummy")
@@ -158,7 +169,7 @@ class TestTrtAutoDetection:
 
         captured_providers = []
 
-        def capture_session(model_file, opts, providers):
+        def capture_session(model_file: str, opts: Any, providers: Any) -> MagicMock:
             captured_providers.extend(providers)
             mock = MagicMock()
             mock.get_providers.return_value = ["TensorrtExecutionProvider"]
@@ -194,7 +205,8 @@ class TestTrtAutoDetection:
         )
         assert trt_in_providers
 
-    def test_no_trt_cache_skips_trt_ep(self, tmp_path):
+    def test_no_trt_cache_skips_trt_ep(self, tmp_path: Path) -> None:
+        """Without a cache directory the TensorRT provider is skipped."""
         onnx_dir = tmp_path / "onnx"
         onnx_dir.mkdir()
         (onnx_dir / "model.onnx").write_bytes(b"dummy")
@@ -202,7 +214,7 @@ class TestTrtAutoDetection:
 
         captured_providers = []
 
-        def capture_session(model_file, opts, providers):
+        def capture_session(model_file: str, opts: Any, providers: Any) -> MagicMock:
             captured_providers.extend(providers)
             mock = MagicMock()
             mock.get_providers.return_value = ["CUDAExecutionProvider"]
@@ -244,7 +256,10 @@ class TestTrtAutoDetection:
 
 
 class TestCLIExport:
-    def test_export_onnx_format(self):
+    """The export CLI for ONNX and TensorRT."""
+
+    def test_export_onnx_format(self) -> None:
+        """The ONNX export forwards its defaults."""
         from director_ai.cli import main
 
         with patch("director_ai.core.nli.export_onnx") as mock_export:
@@ -254,21 +269,50 @@ class TestCLIExport:
             model_name="yaxili96/FactCG-DeBERTa-v3-Large",
             output_dir="/tmp/test_onnx",
             quantize=None,
+            int8_reduce_range=None,
         )
 
-    def test_export_onnx_with_quantize(self):
+    def test_export_onnx_with_quantize(self) -> None:
+        """An INT8 export forwards its range policy."""
         from director_ai.cli import main
 
         with patch("director_ai.core.nli.export_onnx") as mock_export:
-            main(["export", "--format", "onnx", "--quantize", "int8"])
+            main(
+                [
+                    "export",
+                    "--format",
+                    "onnx",
+                    "--quantize",
+                    "int8",
+                    "--int8-reduce-range",
+                ]
+            )
 
         mock_export.assert_called_once_with(
             model_name="yaxili96/FactCG-DeBERTa-v3-Large",
             output_dir="factcg_onnx",
             quantize="int8",
+            int8_reduce_range=True,
         )
 
-    def test_export_tensorrt_format(self):
+    def test_export_int8_without_a_range_policy_exits(
+        self, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        """An INT8 export without a range policy exits before exporting."""
+        from director_ai.cli import main
+
+        with (
+            patch("director_ai.core.nli.export_onnx") as mock_export,
+            pytest.raises(SystemExit) as stopped,
+        ):
+            main(["export", "--format", "onnx", "--quantize", "int8"])
+
+        assert stopped.value.code == 1
+        assert "--int8-reduce-range" in capsys.readouterr().out
+        mock_export.assert_not_called()
+
+    def test_export_tensorrt_format(self) -> None:
+        """The TensorRT export forwards its paths."""
         from director_ai.cli import main
 
         with patch("director_ai.core.nli.export_tensorrt") as mock_export:
@@ -281,7 +325,8 @@ class TestCLIExport:
             fp16=True,
         )
 
-    def test_export_tensorrt_no_fp16(self):
+    def test_export_tensorrt_no_fp16(self) -> None:
+        """The no-fp16 flag disables FP16."""
         from director_ai.cli import main
 
         with patch("director_ai.core.nli.export_tensorrt") as mock_export:
@@ -291,7 +336,8 @@ class TestCLIExport:
         mock_export.assert_called_once()
         assert mock_export.call_args.kwargs["fp16"] is False
 
-    def test_export_unknown_format_exits(self):
+    def test_export_unknown_format_exits(self) -> None:
+        """An unknown format exits."""
         from director_ai.cli import main
 
         with pytest.raises(SystemExit, match="1"):
@@ -302,7 +348,10 @@ class TestCLIExport:
 
 
 class TestExportsUpdated:
-    def test_export_tensorrt_in_all(self):
+    """Public exports of the export functions."""
+
+    def test_export_tensorrt_in_all(self) -> None:
+        """The TensorRT export is a public name."""
         from director_ai.core import nli
 
         assert "export_tensorrt" in nli.__all__

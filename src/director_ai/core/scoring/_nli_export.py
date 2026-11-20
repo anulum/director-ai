@@ -8,16 +8,35 @@
 """ONNX export, TensorRT engine cache, and dynamic batching.
 
 Extracted from nli.py to reduce module size.
+
+An export directory written by :func:`export_onnx` carries a manifest
+(:data:`ONNX_MANIFEST_FILENAME`) that names the served model file, its
+SHA-256 digest, its precision and, for INT8, the quantisation range
+policy. Loaders serve exactly that file: a missing bound file or a digest
+mismatch is refused, and the verified bytes are what ONNX Runtime loads.
+A full-range INT8 model on an x86 CPU without VNNI or AMX is warned about,
+or refused in strict mode. Load-policy refusals (``PermissionError``) are
+never turned into an unavailable backend.
+
+Directories without a manifest still load, with one warning per directory.
+``DIRECTOR_ONNX_REQUIRE_MANIFEST=1`` refuses them and also refuses a
+full-range INT8 model whose CPU support cannot be confirmed.
 """
 
 from __future__ import annotations
 
+import hashlib
 import inspect
+import json
 import logging
 import math
 import os
+import platform
+import re
+import tempfile
 import time
 from collections.abc import Callable
+from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
 from typing import Any
@@ -33,6 +52,22 @@ _FACTCG_TEMPLATE = (
 
 _DEFAULT_MODEL = "yaxili96/FactCG-DeBERTa-v3-Large"
 _LOCAL_ARTIFACT_REVISION = "local-artifact"
+
+ONNX_MANIFEST_FILENAME = "director_onnx_manifest.json"
+"""Manifest naming the served ONNX file of an export directory."""
+
+_ONNX_MANIFEST_SCHEMA = "director-ai.onnx-export.v1"
+_PRECISION_FILES = {
+    "fp32": "model.onnx",
+    "int8": "model_quantized.onnx",
+    "fp16": "model_fp16.onnx",
+}
+_DIGEST = re.compile(r"[0-9a-f]{64}")
+_HASH_CHUNK = 1 << 20
+_REQUIRE_MANIFEST_ENV = "DIRECTOR_ONNX_REQUIRE_MANIFEST"
+_FULL_RANGE_INT8_CPU_FLAGS = frozenset({"avx512_vnni", "avx_vnni", "amx_int8"})
+_X86_MACHINES = frozenset({"x86_64", "amd64", "i386", "i686", "x86"})
+_LEGACY_WARNED: set[Path] = set()
 
 logger = logging.getLogger("DirectorAI.NLI")
 
@@ -85,7 +120,194 @@ def _is_relative_to(path: Path, root: Path) -> bool:
     return True
 
 
-def _resolve_onnx_model_file(onnx_path: str) -> tuple[Path, Path]:
+def _sha256_file(path: Path) -> str:
+    """Return the SHA-256 hex digest of a file, read in chunks."""
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(_HASH_CHUNK), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _write_onnx_manifest(
+    output_path: Path,
+    *,
+    precision: str,
+    source_model: str,
+    source_revision: str | None,
+    int8_reduce_range: bool | None,
+) -> Path:
+    """Bind an export directory to the file it serves and that file's digest.
+
+    The manifest is written to a temporary file in the same directory and
+    moved into place, so a crash never leaves a half-written manifest.
+    """
+    model_file = output_path / _PRECISION_FILES[precision]
+    payload = {
+        "schema": _ONNX_MANIFEST_SCHEMA,
+        "model_file": model_file.name,
+        "sha256": _sha256_file(model_file),
+        "precision": precision,
+        "int8_reduce_range": int8_reduce_range,
+        "source_model": source_model,
+        "source_revision": source_revision,
+        "opset": 17,
+    }
+    manifest = output_path / ONNX_MANIFEST_FILENAME
+    descriptor, temporary = tempfile.mkstemp(
+        dir=output_path, prefix=f".{ONNX_MANIFEST_FILENAME}.", suffix=".tmp"
+    )
+    try:
+        with os.fdopen(descriptor, "w", encoding="utf-8") as handle:
+            handle.write(json.dumps(payload, sort_keys=True, indent=2) + "\n")
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.replace(temporary, manifest)
+    except BaseException:
+        Path(temporary).unlink(missing_ok=True)
+        raise
+    return manifest
+
+
+def _strict_manifest_mode() -> bool:
+    """Return whether ``DIRECTOR_ONNX_REQUIRE_MANIFEST=1`` is set."""
+    return os.environ.get(_REQUIRE_MANIFEST_ENV, "").strip() == "1"
+
+
+def _cpu_flags(cpuinfo: Path = Path("/proc/cpuinfo")) -> frozenset[str] | None:
+    """Return the Linux CPU feature flags, or ``None`` when unreadable."""
+    try:
+        text = cpuinfo.read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        return None
+    for line in text.splitlines():
+        key, _, value = line.partition(":")
+        if key.strip() == "flags":
+            return frozenset(value.split())
+    return None
+
+
+def _full_range_int8_supported() -> bool | None:
+    """Return whether this CPU serves full-range INT8 without saturation.
+
+    Non-x86 CPUs (ARM) are not affected. On x86 the answer needs one of
+    the VNNI or AMX flags; ``None`` means the flags could not be read.
+    """
+    if platform.machine().lower() not in _X86_MACHINES:
+        return True
+    flags = _cpu_flags()
+    if flags is None:
+        return None
+    return bool(flags & _FULL_RANGE_INT8_CPU_FLAGS)
+
+
+def _check_int8_range_policy(model_file: Path) -> None:
+    """Warn about, or in strict mode refuse, a full-range INT8 mismatch."""
+    supported = _full_range_int8_supported()
+    if supported:
+        return
+    reason = (
+        "this x86 CPU has no AVX512-VNNI, AVX-VNNI or AMX"
+        if supported is False
+        else "the CPU flags could not be read"
+    )
+    message = (
+        f"Full-range INT8 ONNX model may saturate here because {reason}; "
+        f"re-export it with int8_reduce_range=True: {model_file}"
+    )
+    if _strict_manifest_mode():
+        raise PermissionError(message)
+    logger.warning(message)
+
+
+@dataclass(frozen=True)
+class _ManifestBinding:
+    """The served file, digest and precision named by an export manifest."""
+
+    model_file: Path
+    sha256: str
+    precision: str
+    int8_reduce_range: bool | None
+
+
+def _manifest_binding(onnx_dir: Path) -> _ManifestBinding | None:
+    """Return the manifest's binding after checking its form and file.
+
+    Returns ``None`` when the directory has no manifest. A malformed
+    manifest, a missing bound file, or a full-range INT8 model refused in
+    strict mode raises ``PermissionError``, so it is never treated as an
+    unavailable model. The digest is checked by the caller on the bytes it
+    loads.
+    """
+    manifest = onnx_dir / ONNX_MANIFEST_FILENAME
+    if not manifest.exists():
+        return None
+    try:
+        payload = json.loads(manifest.read_text(encoding="utf-8"))
+    except (OSError, ValueError) as exc:
+        raise PermissionError(f"ONNX manifest is unreadable: {manifest}") from exc
+    if not isinstance(payload, dict) or payload.get("schema") != _ONNX_MANIFEST_SCHEMA:
+        raise PermissionError(f"ONNX manifest has an unknown schema: {manifest}")
+    name, digest = payload.get("model_file"), payload.get("sha256")
+    precision, reduce_range = payload.get("precision"), payload.get("int8_reduce_range")
+    if (
+        not isinstance(name, str)
+        or name not in _PRECISION_FILES.values()
+        or precision not in _PRECISION_FILES
+        or _PRECISION_FILES[precision] != name
+        or not isinstance(digest, str)
+        or not _DIGEST.fullmatch(digest)
+        or (precision == "int8") != isinstance(reduce_range, bool)
+        or (precision != "int8" and reduce_range is not None)
+    ):
+        raise PermissionError(f"ONNX manifest is malformed: {manifest}")
+    model_file = onnx_dir / name
+    if not model_file.is_file():
+        raise PermissionError(f"ONNX manifest names a missing model file: {model_file}")
+    if precision == "int8" and reduce_range is False:
+        _check_int8_range_policy(model_file)
+    return _ManifestBinding(model_file, digest, precision, reduce_range)
+
+
+def _verified_model_bytes(binding: _ManifestBinding) -> bytes:
+    """Read the bound model once and return the bytes that match its digest."""
+    data = binding.model_file.read_bytes()
+    if hashlib.sha256(data).hexdigest() != binding.sha256:
+        raise PermissionError(
+            f"ONNX model digest does not match its manifest: {binding.model_file}"
+        )
+    return data
+
+
+def _legacy_directory(onnx_dir: Path) -> None:
+    """Refuse in strict mode, else warn once, about a manifest-less export."""
+    if _strict_manifest_mode():
+        raise PermissionError(
+            f"ONNX directory has no export manifest and "
+            f"{_REQUIRE_MANIFEST_ENV}=1 is set: {onnx_dir}"
+        )
+    if onnx_dir not in _LEGACY_WARNED:
+        _LEGACY_WARNED.add(onnx_dir)
+        logger.warning(
+            "ONNX directory has no export manifest, so its served file and "
+            "digest are not bound; re-export it with `director-ai export "
+            "--format onnx --output %s` and set %s=1 in production: %s",
+            onnx_dir,
+            _REQUIRE_MANIFEST_ENV,
+            onnx_dir,
+        )
+
+
+def _resolve_served_model(
+    onnx_path: str,
+) -> tuple[Path, Path, _ManifestBinding | None]:
+    """Return the export directory, the served file and its manifest binding.
+
+    A manifest selects the file. Without one the legacy layout applies,
+    with a warning (or a refusal in strict mode), but a directory holding
+    an FP16 export next to another ONNX file is refused, because its
+    intended precision cannot be told. The digest is not checked here.
+    """
     onnx_dir = Path(onnx_path).expanduser().resolve()
     allowed_dirs = _configured_onnx_allowed_dirs()
     if allowed_dirs and not any(
@@ -97,13 +319,24 @@ def _resolve_onnx_model_file(onnx_path: str) -> tuple[Path, Path]:
     if not onnx_dir.is_dir():
         raise FileNotFoundError(f"Not a directory: {onnx_path}")
 
+    binding = _manifest_binding(onnx_dir)
     quantized = onnx_dir / "model_quantized.onnx"
     model_file = onnx_dir / "model.onnx"
-    if not quantized.exists() and not model_file.exists():
-        for candidate in sorted(onnx_dir.iterdir()):  # pragma: no branch
-            if candidate.name.endswith(".onnx"):  # pragma: no branch
-                model_file = candidate
-                break
+    if binding is not None:
+        model_file = binding.model_file
+    else:
+        _legacy_directory(onnx_dir)
+        exports = sorted(p.name for p in onnx_dir.iterdir() if p.suffix == ".onnx")
+        if "model_fp16.onnx" in exports and len(exports) > 1:
+            raise PermissionError(
+                f"ONNX directory without a manifest holds an FP16 export next to "
+                f"other models; re-export it to bind the served file: {onnx_dir}"
+            )
+        if not quantized.exists() and not model_file.exists():
+            for candidate in sorted(onnx_dir.iterdir()):  # pragma: no branch
+                if candidate.name.endswith(".onnx"):  # pragma: no branch
+                    model_file = candidate
+                    break
 
     resolved_model = model_file.resolve()
     if not _is_relative_to(resolved_model, onnx_dir):
@@ -113,6 +346,21 @@ def _resolve_onnx_model_file(onnx_path: str) -> tuple[Path, Path]:
     ):
         raise PermissionError(
             f"ONNX model file is outside DIRECTOR_ONNX_ALLOWED_DIRS: {resolved_model}",
+        )
+    return onnx_dir, model_file, binding
+
+
+def _resolve_onnx_model_file(onnx_path: str) -> tuple[Path, Path]:
+    """Return the export directory and the model file it serves.
+
+    The manifest-bound file's digest is verified by streaming it, so callers
+    that open the path themselves (the distilled scorer) get the same
+    integrity check as the ONNX session loader.
+    """
+    onnx_dir, model_file, binding = _resolve_served_model(onnx_path)
+    if binding is not None and _sha256_file(model_file) != binding.sha256:
+        raise PermissionError(
+            f"ONNX model digest does not match its manifest: {model_file}"
         )
     return onnx_dir, model_file
 
@@ -124,24 +372,33 @@ def _load_onnx_session(
 ) -> tuple[Any, Any]:
     """Load ONNX Runtime session + tokenizer from exported directory."""
     try:
+        # Resolve and verify first, so a policy refusal is raised even when
+        # the runtime itself is not installed. A manifest-bound model is read
+        # once, and those verified bytes are what ONNX Runtime loads.
+        onnx_dir, model_file_path, binding = _resolve_served_model(onnx_path)
+        model_source: str | bytes = str(model_file_path)
+        if binding is not None:
+            model_source = _verified_model_bytes(binding)
         import onnxruntime as ort
         from transformers import AutoTokenizer
 
-        onnx_dir, model_file_path = _resolve_onnx_model_file(onnx_path)
         tokenizer = AutoTokenizer.from_pretrained(
             str(onnx_dir),
             revision=_LOCAL_ARTIFACT_REVISION,
             local_files_only=True,
         )
 
-        # Prefer quantized model on CPU
+        # Legacy directories without a manifest prefer the quantized model on
+        # CPU; a manifest serves exactly the file it names.
         quantized = onnx_dir / "model_quantized.onnx"
         if (
-            quantized.exists()
+            binding is None
+            and quantized.exists()
             and (device is None or "cpu" in (device or ""))
             and _is_relative_to(quantized.resolve(), onnx_dir)
         ):
             model_file_path = quantized
+            model_source = str(quantized)
             logger.info("Using INT8 quantized model: %s", quantized)
 
         providers: list[str | tuple[str, dict[str, object]]] = [
@@ -174,20 +431,18 @@ def _load_onnx_session(
         opts = ort.SessionOptions()
         opts.graph_optimization_level = ort.GraphOptimizationLevel.ORT_ENABLE_ALL
         opts.log_severity_level = 3  # suppress Memcpy transformer warnings
-        session = ort.InferenceSession(str(model_file_path), opts, providers=providers)
+        session = ort.InferenceSession(model_source, opts, providers=providers)
         logger.info(
             "ONNX session: %s (%s)",
             model_file_path,
             session.get_providers()[0],
         )
         return tokenizer, session
-    except (
-        ImportError,
-        RuntimeError,
-        OSError,
-        FileNotFoundError,
-        PermissionError,
-    ) as e:
+    except PermissionError:
+        # A load-policy or integrity refusal must reach the caller; turning
+        # it into an unavailable backend would fail open.
+        raise
+    except (ImportError, RuntimeError, OSError) as e:
         logger.warning("ONNX session unavailable: %s", e)
         return None, None
 
@@ -197,21 +452,35 @@ def export_onnx(
     output_dir: str = "factcg_onnx",
     quantize: str | None = None,
     revision: str | None = None,
+    int8_reduce_range: bool | None = None,
 ) -> str:
     """Export NLI model to ONNX format, optionally quantized.
 
     Parameters
     ----------
     quantize : "int8", "fp16", or None (default FP32).
+    int8_reduce_range : bool or None
+        Required for ``quantize="int8"`` and refused otherwise. Choose it
+        for the CPU that will serve the model: ``True`` for x86 CPUs
+        without VNNI, whose 8-bit dot products can saturate at full range;
+        ``False`` for CPUs with AVX512-VNNI, AVX-VNNI or AMX, and for ARM.
 
     Requires ``torch``, ``transformers``, and ``onnx``.
     For int8: also requires ``onnxruntime`` quantization module.
+    The directory gets a manifest naming the served file and its digest.
     Load the result with
     ``NLIScorer(backend="onnx", onnx_path=<returned_dir>)``.
 
     """
     if quantize not in {None, "int8", "fp16"}:
         raise ValueError("quantize must be one of: None, 'int8', 'fp16'")
+    if quantize == "int8" and int8_reduce_range is None:
+        raise ValueError(
+            "int8 export needs int8_reduce_range for the target CPU: True "
+            "without VNNI, False with AVX512-VNNI, AVX-VNNI, AMX or on ARM"
+        )
+    if quantize != "int8" and int8_reduce_range is not None:
+        raise ValueError("int8_reduce_range applies only to int8 export")
 
     import torch
     from transformers import AutoModelForSequenceClassification, AutoTokenizer
@@ -290,8 +559,17 @@ def export_onnx(
 
         src = str(model_file)
         dst = str(output_path / "model_quantized.onnx")
-        quantize_dynamic(src, dst, weight_type=QuantType.QInt8)
-        logger.info("INT8 quantized model saved to %s", dst)
+        quantize_dynamic(
+            src,
+            dst,
+            weight_type=QuantType.QInt8,
+            reduce_range=bool(int8_reduce_range),
+        )
+        logger.info(
+            "INT8 quantized model saved to %s (reduce_range=%s)",
+            dst,
+            int8_reduce_range,
+        )
     elif quantize == "fp16":
         import onnx
         from onnxruntime.transformers import float16
@@ -303,6 +581,13 @@ def export_onnx(
         onnx.save(model_fp16, dst)
         logger.info("FP16 model saved to %s", dst)
 
+    _write_onnx_manifest(
+        output_path,
+        precision=quantize or "fp32",
+        source_model=model_name,
+        source_revision=rev,
+        int8_reduce_range=int8_reduce_range,
+    )
     return output_dir
 
 

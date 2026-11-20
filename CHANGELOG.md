@@ -34,6 +34,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add `FinetuneConfig.general_benchmark_path` and the
   `director-ai finetune --general-benchmark FILE` option for the
   post-training anti-regression check.
+- Add the `int8_reduce_range` argument to `export_onnx()` and the
+  `--int8-reduce-range` and `--int8-full-range` CLI options. Every ONNX export
+  now writes `director_onnx_manifest.json`, which names the served file, its
+  SHA-256 digest, the precision and the INT8 range policy.
 - Add `HaltOutput` and `stream_output_result` to expose the output monitor's
   delivered text and halt verdict together.
 
@@ -110,6 +114,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     so the gate rejects them until one is written next to them with
     `TrainingProvenance.from_rows(rows).write(model_dir)` from their known
     training rows, or passed as `provenance_path`.
+- The ONNX backend no longer fails open.
+  - A containment refusal, a malformed manifest, a manifest naming a missing
+    file or a digest mismatch raises `PermissionError` to the caller instead
+    of turning into an unavailable backend that falls back to the heuristic
+    scorer. The path is checked before the runtime is imported, and ONNX
+    Runtime loads the same bytes whose digest was verified.
+  - A directory without a manifest still loads, with one warning per
+    directory. `DIRECTOR_ONNX_REQUIRE_MANIFEST=1` refuses such directories
+    and is recommended for production; the distilled lite scorer's current
+    layout has no manifest yet, so leave it unset there for now.
+  - A full-range INT8 model loaded on an x86 CPU without AVX512-VNNI,
+    AVX-VNNI or AMX logs a warning, because its 8-bit dot products can
+    saturate. With `DIRECTOR_ONNX_REQUIRE_MANIFEST=1` it is refused, as is a
+    full-range model whose CPU flags cannot be read.
+  - A manifest serves exactly the file it names, so an FP16 export is no
+    longer silently served as FP32. A directory without a manifest that holds
+    an FP16 export next to another model is refused as ambiguous.
+  - INT8 export requires an explicit `int8_reduce_range` (`True` for x86 CPUs
+    without VNNI, `False` with AVX512-VNNI, AVX-VNNI, AMX or on ARM) and passes
+    it to ONNX Runtime's dynamic quantisation. The CLI refuses the range flags
+    without `--quantize int8`, with exit code 1.
+  - The manifest is written to a temporary file and moved into place, so a
+    crash during export cannot leave a half-written manifest.
 - Suspend paid-wheel uploads to the unavailable private package index and
   remove the publisher credential from the release workflow. Direct
   subscribers to commercial support for licensed wheel delivery.

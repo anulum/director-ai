@@ -9,7 +9,10 @@
 
 from __future__ import annotations
 
+import hashlib
+import json
 import os
+import platform
 import sys
 from collections.abc import Callable
 from contextlib import nullcontext
@@ -98,13 +101,14 @@ def _fake_torch(
         path: str,
         **kwargs: object,
     ) -> None:
-        """Validate the export contract passed to ``torch.onnx.export``."""
+        """Validate the export contract and write the graph file like torch."""
         assert isinstance(path, str)
         assert kwargs["input_names"] == ["input_ids", "attention_mask"]
         assert kwargs["output_names"] == ["logits"]
         dynamic_axes = cast(dict[str, dict[int, str]], kwargs["dynamic_axes"])
         assert dynamic_axes["logits"] == {0: "batch"}
         assert model(*args) is _FAKE_LOGITS
+        Path(path).write_bytes(b"onnx-graph")
 
     module = _module(
         "torch",
@@ -322,7 +326,9 @@ def test_export_onnx_int8_quantization_writes_quantized_model(
     """INT8 export should call ONNX Runtime dynamic quantization."""
     fake_torch = _fake_torch()
     fake_transformers = _fake_transformers()
-    quantize_dynamic = Mock()
+    quantize_dynamic = Mock(
+        side_effect=lambda src, dst, **_kwargs: Path(dst).write_bytes(b"int8")
+    )
     quantization_module = _module(
         "onnxruntime.quantization",
         QuantType=SimpleNamespace(QInt8="qint8"),
@@ -337,6 +343,7 @@ def test_export_onnx_int8_quantization_writes_quantized_model(
         output_dir=str(tmp_path),
         quantize="int8",
         revision="abc123",
+        int8_reduce_range=True,
     )
 
     assert result == str(tmp_path)
@@ -344,7 +351,13 @@ def test_export_onnx_int8_quantization_writes_quantized_model(
         str(tmp_path / "model.onnx"),
         str(tmp_path / "model_quantized.onnx"),
         weight_type="qint8",
+        reduce_range=True,
     )
+    manifest = _manifest(tmp_path)
+    assert manifest["model_file"] == "model_quantized.onnx"
+    assert manifest["precision"] == "int8"
+    assert manifest["int8_reduce_range"] is True
+    assert manifest["sha256"] == hashlib.sha256(b"int8").hexdigest()
 
 
 def test_export_onnx_fp16_quantization_converts_and_saves(
@@ -356,7 +369,7 @@ def test_export_onnx_fp16_quantization_converts_and_saves(
     fake_transformers = _fake_transformers()
     fake_model = object()
     onnx_load = Mock(return_value=fake_model)
-    onnx_save = Mock()
+    onnx_save = Mock(side_effect=lambda _model, dst: Path(dst).write_bytes(b"fp16"))
     fake_onnx = _module("onnx", load=onnx_load, save=onnx_save)
     fake_fp16_model = object()
     convert_float_to_float16 = Mock(return_value=fake_fp16_model)
@@ -388,6 +401,12 @@ def test_export_onnx_fp16_quantization_converts_and_saves(
         fake_fp16_model,
         str(tmp_path / "model_fp16.onnx"),
     )
+    manifest = _manifest(tmp_path)
+    assert manifest["model_file"] == "model_fp16.onnx"
+    assert manifest["precision"] == "fp16"
+    assert manifest["int8_reduce_range"] is None
+    onnx_dir, served = nli_export._resolve_onnx_model_file(str(tmp_path))
+    assert served == onnx_dir / "model_fp16.onnx"
 
 
 def test_export_tensorrt_requires_available_provider(
@@ -533,3 +552,385 @@ def test_dynamic_batcher_timeout_not_elapsed_before_first_submit() -> None:
     batcher = nli_export.OnnxDynamicBatcher(lambda pairs: [0.1], flush_timeout_ms=10.0)
 
     assert batcher._timeout_elapsed(1_000.0) is False
+
+
+def _manifest(directory: Path) -> dict[str, object]:
+    """Read the export manifest written into ``directory``."""
+    payload = json.loads(
+        (directory / nli_export.ONNX_MANIFEST_FILENAME).read_text(encoding="utf-8")
+    )
+    assert isinstance(payload, dict)
+    return payload
+
+
+def _bind(
+    directory: Path,
+    precision: str,
+    contents: bytes,
+    *,
+    int8_reduce_range: bool = True,
+) -> Path:
+    """Write one model file and a manifest that binds it."""
+    directory.mkdir(parents=True, exist_ok=True)
+    name = {"fp32": "model.onnx", "int8": "model_quantized.onnx"}.get(
+        precision, "model_fp16.onnx"
+    )
+    (directory / name).write_bytes(contents)
+    return nli_export._write_onnx_manifest(
+        directory,
+        precision=precision,
+        source_model="test/model",
+        source_revision="abc123",
+        int8_reduce_range=int8_reduce_range if precision == "int8" else None,
+    )
+
+
+@pytest.mark.parametrize(
+    ("quantize", "reduce_range", "message"),
+    [
+        ("int8", None, "needs int8_reduce_range"),
+        (None, True, "applies only to int8"),
+        ("fp16", False, "applies only to int8"),
+    ],
+)
+def test_export_onnx_requires_an_explicit_int8_range_only_for_int8(
+    tmp_path: Path,
+    quantize: str | None,
+    reduce_range: bool | None,
+    message: str,
+) -> None:
+    """INT8 needs a range policy for the target CPU; other precisions refuse one."""
+    with pytest.raises(ValueError, match=message):
+        nli_export.export_onnx(
+            output_dir=str(tmp_path),
+            quantize=quantize,
+            int8_reduce_range=reduce_range,
+        )
+
+
+def test_fp32_export_binds_model_onnx(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A default export binds model.onnx with its digest."""
+    monkeypatch.setitem(sys.modules, "torch", cast(ModuleType, _fake_torch()))
+    monkeypatch.setitem(sys.modules, "transformers", _fake_transformers().module)
+
+    nli_export.export_onnx(
+        model_name="test/model", output_dir=str(tmp_path), revision="abc123"
+    )
+
+    manifest = _manifest(tmp_path)
+    assert manifest["model_file"] == "model.onnx"
+    assert manifest["precision"] == "fp32"
+    assert manifest["source_revision"] == "abc123"
+    assert (
+        manifest["sha256"]
+        == hashlib.sha256((tmp_path / "model.onnx").read_bytes()).hexdigest()
+    )
+
+
+def test_manifest_serves_its_file_instead_of_the_legacy_choice(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A manifest-bound FP32 file is served on CPU even beside an INT8 file."""
+    nli_export._load_onnx_session.cache_clear()
+    bundle = tmp_path / "bundle"
+    _bind(bundle, "fp32", b"fp32")
+    (bundle / "model_quantized.onnx").write_bytes(b"int8")
+    captured: dict[str, object] = {}
+
+    class FakeSession:
+        """Fake ONNX Runtime session exposing provider metadata."""
+
+        def get_providers(self) -> list[str]:
+            """Return the active provider order."""
+            return ["CPUExecutionProvider"]
+
+    def inference_session(
+        model_file: str,
+        opts: object,
+        providers: list[str | tuple[str, dict[str, object]]],
+    ) -> FakeSession:
+        """Capture the served model file."""
+        captured["model_file"] = model_file
+        return FakeSession()
+
+    monkeypatch.setitem(
+        sys.modules,
+        "transformers",
+        _module(
+            "transformers",
+            AutoTokenizer=SimpleNamespace(from_pretrained=Mock(return_value=object())),
+        ),
+    )
+    monkeypatch.setitem(
+        sys.modules,
+        "onnxruntime",
+        _module(
+            "onnxruntime",
+            GraphOptimizationLevel=SimpleNamespace(ORT_ENABLE_ALL="all"),
+            get_available_providers=Mock(return_value=["CPUExecutionProvider"]),
+            SessionOptions=Mock(
+                return_value=SimpleNamespace(
+                    graph_optimization_level=None, log_severity_level=None
+                )
+            ),
+            InferenceSession=Mock(side_effect=inference_session),
+        ),
+    )
+
+    nli_export._load_onnx_session(str(bundle), device="cpu")
+
+    assert captured["model_file"] == b"fp32"
+
+
+def test_digest_mismatch_is_refused(tmp_path: Path) -> None:
+    """A model changed after export is refused, never served."""
+    bundle = tmp_path / "bundle"
+    _bind(bundle, "int8", b"int8")
+    (bundle / "model_quantized.onnx").write_bytes(b"tampered")
+
+    with pytest.raises(PermissionError, match="digest does not match"):
+        nli_export._resolve_onnx_model_file(str(bundle))
+
+
+def test_policy_refusal_is_raised_even_without_the_runtime(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A refused path raises before the runtime import is attempted."""
+    nli_export._load_onnx_session.cache_clear()
+    bundle = tmp_path / "bundle"
+    _bind(bundle, "fp32", b"fp32")
+    (bundle / "model.onnx").write_bytes(b"tampered")
+    monkeypatch.setitem(sys.modules, "onnxruntime", cast(ModuleType, None))
+
+    with pytest.raises(PermissionError, match="digest does not match"):
+        nli_export._load_onnx_session(str(bundle))
+
+
+@pytest.mark.parametrize(
+    "payload",
+    [
+        "{not json",
+        json.dumps({"schema": "other"}),
+        json.dumps(
+            {
+                "schema": "director-ai.onnx-export.v1",
+                "model_file": "model.onnx",
+                "precision": "int8",
+                "sha256": "0" * 64,
+            }
+        ),
+        json.dumps(
+            {
+                "schema": "director-ai.onnx-export.v1",
+                "model_file": "../model.onnx",
+                "precision": "fp32",
+                "sha256": "0" * 64,
+            }
+        ),
+        json.dumps(
+            {
+                "schema": "director-ai.onnx-export.v1",
+                "model_file": "model.onnx",
+                "precision": "fp32",
+                "sha256": "short",
+            }
+        ),
+        json.dumps(
+            {
+                "schema": "director-ai.onnx-export.v1",
+                "model_file": "model.onnx",
+                "precision": "fp32",
+                "sha256": "0" * 64,
+                "int8_reduce_range": True,
+            }
+        ),
+    ],
+)
+def test_malformed_manifests_are_refused(tmp_path: Path, payload: str) -> None:
+    """Unreadable, unknown or inconsistent manifests are refused."""
+    bundle = tmp_path / "bundle"
+    bundle.mkdir()
+    (bundle / "model.onnx").write_bytes(b"fp32")
+    (bundle / nli_export.ONNX_MANIFEST_FILENAME).write_text(payload, encoding="utf-8")
+
+    with pytest.raises(PermissionError, match="ONNX manifest"):
+        nli_export._resolve_onnx_model_file(str(bundle))
+
+
+@pytest.mark.parametrize("replacement", ["absent", "directory"])
+def test_manifest_naming_a_missing_file_is_refused(
+    tmp_path: Path, replacement: str
+) -> None:
+    """A bound file that is gone, or not a regular file, refuses the load."""
+    bundle = tmp_path / "bundle"
+    _bind(bundle, "fp32", b"fp32")
+    (bundle / "model.onnx").unlink()
+    if replacement == "directory":
+        (bundle / "model.onnx").mkdir()
+
+    with pytest.raises(PermissionError, match="names a missing model file"):
+        nli_export._resolve_onnx_model_file(str(bundle))
+
+
+def test_int8_manifest_needs_a_boolean_range_policy(tmp_path: Path) -> None:
+    """An INT8 manifest without its range policy is malformed."""
+    bundle = tmp_path / "bundle"
+    manifest = _bind(bundle, "int8", b"int8")
+    payload = _manifest(bundle)
+    payload["int8_reduce_range"] = None
+    manifest.write_text(json.dumps(payload), encoding="utf-8")
+
+    with pytest.raises(PermissionError, match="ONNX manifest is malformed"):
+        nli_export._resolve_onnx_model_file(str(bundle))
+
+
+def test_session_loads_the_verified_bytes_and_refuses_a_swap(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The bytes checked against the manifest are the bytes that are loaded."""
+    bundle = tmp_path / "bundle"
+    _bind(bundle, "fp32", b"fp32")
+    binding = nli_export._manifest_binding(bundle)
+    assert binding is not None
+    assert nli_export._verified_model_bytes(binding) == b"fp32"
+
+    (bundle / "model.onnx").write_bytes(b"swapped")
+    with pytest.raises(PermissionError, match="digest does not match"):
+        nli_export._verified_model_bytes(binding)
+
+
+def test_manifest_write_is_atomic(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A failed write keeps the previous manifest and leaves no temporary file."""
+    bundle = tmp_path / "bundle"
+    _bind(bundle, "fp32", b"fp32")
+    before = _manifest(bundle)
+
+    def fail_replace(source: str, target: Path) -> None:
+        """Simulate a crash between writing and moving the manifest."""
+        raise OSError("disk gone")
+
+    monkeypatch.setattr(os, "replace", fail_replace)
+    (bundle / "model.onnx").write_bytes(b"new")
+    with pytest.raises(OSError, match="disk gone"):
+        _bind(bundle, "fp32", b"new")
+
+    assert _manifest(bundle) == before
+    assert sorted(p.name for p in bundle.iterdir()) == [
+        nli_export.ONNX_MANIFEST_FILENAME,
+        "model.onnx",
+    ]
+
+
+def test_legacy_directory_warns_once_and_strict_mode_refuses(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """A manifest-less export warns once; the strict setting refuses it."""
+    bundle = tmp_path / "legacy"
+    bundle.mkdir()
+    (bundle / "model.onnx").write_bytes(b"fp32")
+    monkeypatch.delenv("DIRECTOR_ONNX_REQUIRE_MANIFEST", raising=False)
+
+    with caplog.at_level("WARNING", logger="DirectorAI.NLI"):
+        nli_export._resolve_onnx_model_file(str(bundle))
+        nli_export._resolve_onnx_model_file(str(bundle))
+    warnings = [r for r in caplog.records if "no export manifest" in r.getMessage()]
+    assert len(warnings) == 1
+    assert "director-ai export --format onnx" in warnings[0].getMessage()
+
+    monkeypatch.setenv("DIRECTOR_ONNX_REQUIRE_MANIFEST", "1")
+    with pytest.raises(PermissionError, match="DIRECTOR_ONNX_REQUIRE_MANIFEST=1"):
+        nli_export._resolve_onnx_model_file(str(bundle))
+
+
+def test_cpu_flags_are_read_from_cpuinfo(tmp_path: Path) -> None:
+    """The flags line is parsed; a missing line or file gives ``None``."""
+    cpuinfo = tmp_path / "cpuinfo"
+    cpuinfo.write_text("processor\t: 0\nflags\t\t: sse4_2 avx avx512_vnni\n")
+    assert nli_export._cpu_flags(cpuinfo) == frozenset({"sse4_2", "avx", "avx512_vnni"})
+    cpuinfo.write_text("processor\t: 0\n")
+    assert nli_export._cpu_flags(cpuinfo) is None
+    assert nli_export._cpu_flags(tmp_path / "absent") is None
+
+
+@pytest.mark.parametrize(
+    ("machine", "flags", "expected"),
+    [
+        ("aarch64", None, True),
+        ("x86_64", frozenset({"avx", "avx_vnni"}), True),
+        ("AMD64", frozenset({"amx_int8"}), True),
+        ("x86_64", frozenset({"avx", "avx2"}), False),
+        ("x86_64", None, None),
+    ],
+)
+def test_full_range_int8_support_follows_the_cpu(
+    monkeypatch: pytest.MonkeyPatch,
+    machine: str,
+    flags: frozenset[str] | None,
+    expected: bool | None,
+) -> None:
+    """ARM and VNNI or AMX x86 CPUs qualify; unreadable flags are unknown."""
+    monkeypatch.setattr(platform, "machine", lambda: machine)
+    monkeypatch.setattr(nli_export, "_cpu_flags", lambda: flags)
+
+    assert nli_export._full_range_int8_supported() is expected
+
+
+@pytest.mark.parametrize(
+    ("supported", "reason"),
+    [(False, "has no AVX512-VNNI"), (None, "could not be read")],
+)
+def test_full_range_int8_mismatch_warns_or_refuses_in_strict_mode(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+    supported: bool | None,
+    reason: str,
+) -> None:
+    """A full-range INT8 model on an unconfirmed CPU warns, or refuses."""
+    bundle = tmp_path / "bundle"
+    _bind(bundle, "int8", b"int8", int8_reduce_range=False)
+    monkeypatch.setattr(nli_export, "_full_range_int8_supported", lambda: supported)
+    monkeypatch.delenv("DIRECTOR_ONNX_REQUIRE_MANIFEST", raising=False)
+
+    with caplog.at_level("WARNING", logger="DirectorAI.NLI"):
+        _, served = nli_export._resolve_onnx_model_file(str(bundle))
+    assert served.name == "model_quantized.onnx"
+    assert any(reason in r.getMessage() for r in caplog.records)
+
+    monkeypatch.setenv("DIRECTOR_ONNX_REQUIRE_MANIFEST", "1")
+    with pytest.raises(PermissionError, match="int8_reduce_range=True"):
+        nli_export._resolve_onnx_model_file(str(bundle))
+
+
+def test_full_range_int8_on_a_supporting_cpu_is_silent(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """A full-range INT8 model on a VNNI CPU loads without a warning."""
+    bundle = tmp_path / "bundle"
+    _bind(bundle, "int8", b"int8", int8_reduce_range=False)
+    monkeypatch.setattr(nli_export, "_full_range_int8_supported", lambda: True)
+    monkeypatch.setenv("DIRECTOR_ONNX_REQUIRE_MANIFEST", "1")
+
+    with caplog.at_level("WARNING", logger="DirectorAI.NLI"):
+        nli_export._resolve_onnx_model_file(str(bundle))
+    assert not caplog.records
+
+
+def test_legacy_fp16_beside_another_export_is_refused(tmp_path: Path) -> None:
+    """Without a manifest an FP16 file next to FP32 is ambiguous and refused."""
+    bundle = tmp_path / "bundle"
+    bundle.mkdir()
+    (bundle / "model.onnx").write_bytes(b"fp32")
+    (bundle / "model_fp16.onnx").write_bytes(b"fp16")
+
+    with pytest.raises(PermissionError, match="FP16 export next to other models"):
+        nli_export._resolve_onnx_model_file(str(bundle))

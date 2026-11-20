@@ -290,7 +290,7 @@ class TestNLIModelLoadingSafety:
         self,
         tmp_path: Path,
     ) -> None:
-        """ONNX loading should reject directories outside allowed roots."""
+        """ONNX loading raises for directories outside allowed roots."""
         import os
         import sys
 
@@ -311,17 +311,16 @@ class TestNLIModelLoadingSafety:
             from director_ai.core.nli import _load_onnx_session
 
             _load_onnx_session.cache_clear()
-            tokenizer, session = _load_onnx_session(str(outside))
+            with pytest.raises(PermissionError, match="DIRECTOR_ONNX_ALLOWED_DIRS"):
+                _load_onnx_session(str(outside))
 
-        assert tokenizer is None
-        assert session is None
         mock_ort.InferenceSession.assert_not_called()
 
     def test_onnx_loader_rejects_model_file_symlink_escape(
         self,
         tmp_path: Path,
     ) -> None:
-        """ONNX loading should reject model-file symlink escapes."""
+        """ONNX loading raises for model-file symlink escapes."""
         import os
         import sys
 
@@ -345,10 +344,9 @@ class TestNLIModelLoadingSafety:
             from director_ai.core.nli import _load_onnx_session
 
             _load_onnx_session.cache_clear()
-            tokenizer, session = _load_onnx_session(str(bundle))
+            with pytest.raises(PermissionError, match="escapes model directory"):
+                _load_onnx_session(str(bundle))
 
-        assert tokenizer is None
-        assert session is None
         mock_ort.InferenceSession.assert_not_called()
 
     def test_quantized_model_load_falls_back_when_bitsandbytes_is_unavailable(

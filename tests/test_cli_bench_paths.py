@@ -16,14 +16,17 @@ from __future__ import annotations
 import json
 import random
 import sys
+from pathlib import Path
 from types import ModuleType, SimpleNamespace
+from typing import Any
 
 import pytest
 
 from director_ai import _cli_bench
 
 
-def test_eval_quantize_rejects_unknown_mode(capsys):
+def test_eval_quantize_rejects_unknown_mode(capsys: pytest.CaptureFixture[str]) -> None:
+    """Eval quantize rejects unknown mode."""
     with pytest.raises(SystemExit) as exc_info:
         _cli_bench._cmd_eval(["--quantize", "bf16"])
 
@@ -31,10 +34,15 @@ def test_eval_quantize_rejects_unknown_mode(capsys):
     assert "int8" in capsys.readouterr().out
 
 
-def test_eval_quantize_exports_with_selected_mode(monkeypatch, capsys):
+def test_eval_quantize_exports_with_selected_mode(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """Eval quantize exports with selected mode."""
     calls: list[str | None] = []
     fake_nli = ModuleType("director_ai.core.scoring.nli")
-    fake_nli.export_onnx = lambda quantize=None, **_kwargs: calls.append(quantize)
+    vars(fake_nli)["export_onnx"] = lambda quantize=None, **_kwargs: calls.append(
+        quantize
+    )
     monkeypatch.setitem(sys.modules, "director_ai.core.scoring.nli", fake_nli)
 
     _cli_bench._cmd_eval(["--quantize", "fp16"])
@@ -43,19 +51,71 @@ def test_eval_quantize_exports_with_selected_mode(monkeypatch, capsys):
     assert "Export complete" in capsys.readouterr().out
 
 
-def test_eval_ignores_unknown_tokens_before_quantize(monkeypatch, capsys):
-    calls: list[str | None] = []
+def test_eval_ignores_unknown_tokens_before_quantize(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """Eval skips unknown tokens and forwards the INT8 range policy."""
+    calls: list[tuple[str | None, bool | None]] = []
     fake_nli = ModuleType("director_ai.core.scoring.nli")
-    fake_nli.export_onnx = lambda quantize=None, **_kwargs: calls.append(quantize)
+    vars(fake_nli)["export_onnx"] = lambda quantize=None, int8_reduce_range=None: (
+        calls.append((quantize, int8_reduce_range))
+    )
     monkeypatch.setitem(sys.modules, "director_ai.core.scoring.nli", fake_nli)
 
-    _cli_bench._cmd_eval(["--ignored", "--quantize", "int8"])
+    _cli_bench._cmd_eval(["--ignored", "--quantize", "int8", "--int8-full-range"])
 
-    assert calls == ["int8"]
+    assert calls == [("int8", False)]
     assert "Export complete" in capsys.readouterr().out
 
 
-def test_eval_rejects_invalid_max_samples(capsys):
+def test_eval_int8_export_without_a_range_policy_exits(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """An INT8 export without a range policy exits before exporting."""
+    calls: list[object] = []
+    fake_nli = ModuleType("director_ai.core.scoring.nli")
+    vars(fake_nli)["export_onnx"] = lambda **kwargs: calls.append(kwargs)
+    monkeypatch.setitem(sys.modules, "director_ai.core.scoring.nli", fake_nli)
+
+    with pytest.raises(SystemExit) as stopped:
+        _cli_bench._cmd_eval(["--quantize", "int8"])
+
+    assert stopped.value.code == 1
+    assert "--int8-full-range" in capsys.readouterr().out
+    assert calls == []
+
+
+@pytest.mark.parametrize(
+    ("command", "arguments"),
+    [
+        ("eval", ["--int8-full-range"]),
+        ("eval", ["--quantize", "fp16", "--int8-reduce-range"]),
+        ("export", ["--format", "onnx", "--int8-reduce-range"]),
+    ],
+)
+def test_int8_range_flags_without_int8_export_exit(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+    command: str,
+    arguments: list[str],
+) -> None:
+    """A range flag without an INT8 export exits 1 before any export."""
+    calls: list[object] = []
+    fake_nli = ModuleType("director_ai.core.scoring.nli")
+    vars(fake_nli)["export_onnx"] = lambda **kwargs: calls.append(kwargs)
+    monkeypatch.setitem(sys.modules, "director_ai.core.scoring.nli", fake_nli)
+    handler = _cli_bench._cmd_eval if command == "eval" else _cli_bench._cmd_export
+
+    with pytest.raises(SystemExit) as stopped:
+        handler(arguments)
+
+    assert stopped.value.code == 1
+    assert "apply only to --quantize int8" in capsys.readouterr().out
+    assert calls == []
+
+
+def test_eval_rejects_invalid_max_samples(capsys: pytest.CaptureFixture[str]) -> None:
+    """Eval rejects invalid max samples."""
     with pytest.raises(SystemExit) as exc_info:
         _cli_bench._cmd_eval(["--max-samples", "many"])
 
@@ -63,10 +123,19 @@ def test_eval_rejects_invalid_max_samples(capsys):
     assert "invalid --max-samples value: many" in capsys.readouterr().out
 
 
-def test_eval_reports_missing_benchmarks_package(monkeypatch, capsys):
+def test_eval_reports_missing_benchmarks_package(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """Eval reports missing benchmarks package."""
     original_import = __import__
 
-    def fake_import(name, globals=None, locals=None, fromlist=(), level=0):
+    def fake_import(
+        name: Any,
+        globals: Any = None,
+        locals: Any = None,
+        fromlist: Any = (),
+        level: Any = 0,
+    ) -> Any:
         if name == "benchmarks.run_all":
             raise ImportError("benchmarks unavailable")
         return original_import(name, globals, locals, fromlist, level)
@@ -80,7 +149,11 @@ def test_eval_reports_missing_benchmarks_package(monkeypatch, capsys):
     assert "benchmarks package not found" in capsys.readouterr().out
 
 
-def test_bench_warn_only_failure_is_reported_but_not_fatal(monkeypatch, capsys):
+def test_bench_warn_only_failure_is_reported_but_not_fatal(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """Bench warn only failure is reported but not fatal."""
+
     def ok() -> None:
         return None
 
@@ -89,15 +162,15 @@ def test_bench_warn_only_failure_is_reported_but_not_fatal(monkeypatch, capsys):
 
     latency_failure.__name__ = "test_latency_ceiling"
     fake_suite = ModuleType("benchmarks.regression_suite")
-    fake_suite.test_heuristic_accuracy = ok
-    fake_suite.test_streaming_stability = ok
-    fake_suite.test_latency_ceiling = latency_failure
-    fake_suite.test_metrics_integrity = ok
-    fake_suite.test_evidence_schema = ok
-    fake_suite.test_e2e_heuristic_delta = ok
-    fake_suite.test_false_halt_rate = ok
+    vars(fake_suite)["test_heuristic_accuracy"] = ok
+    vars(fake_suite)["test_streaming_stability"] = ok
+    vars(fake_suite)["test_latency_ceiling"] = latency_failure
+    vars(fake_suite)["test_metrics_integrity"] = ok
+    vars(fake_suite)["test_evidence_schema"] = ok
+    vars(fake_suite)["test_e2e_heuristic_delta"] = ok
+    vars(fake_suite)["test_false_halt_rate"] = ok
     fake_benchmarks = ModuleType("benchmarks")
-    fake_benchmarks.regression_suite = fake_suite
+    vars(fake_benchmarks)["regression_suite"] = fake_suite
     monkeypatch.setitem(sys.modules, "benchmarks", fake_benchmarks)
     monkeypatch.setitem(sys.modules, "benchmarks.regression_suite", fake_suite)
 
@@ -109,9 +182,9 @@ def test_bench_warn_only_failure_is_reported_but_not_fatal(monkeypatch, capsys):
 
 
 def test_bench_seed_and_max_samples_truncate_regression_suite(
-    monkeypatch,
-    capsys,
-):
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """Bench seed and max samples truncate regression suite."""
     calls: list[str] = []
     seeds: list[int] = []
 
@@ -124,15 +197,15 @@ def test_bench_seed_and_max_samples_truncate_regression_suite(
     first.__name__ = "test_heuristic_accuracy"
     second.__name__ = "test_streaming_stability"
     fake_suite = ModuleType("benchmarks.regression_suite")
-    fake_suite.test_heuristic_accuracy = first
-    fake_suite.test_streaming_stability = second
-    fake_suite.test_latency_ceiling = second
-    fake_suite.test_metrics_integrity = second
-    fake_suite.test_evidence_schema = second
-    fake_suite.test_e2e_heuristic_delta = second
-    fake_suite.test_false_halt_rate = second
+    vars(fake_suite)["test_heuristic_accuracy"] = first
+    vars(fake_suite)["test_streaming_stability"] = second
+    vars(fake_suite)["test_latency_ceiling"] = second
+    vars(fake_suite)["test_metrics_integrity"] = second
+    vars(fake_suite)["test_evidence_schema"] = second
+    vars(fake_suite)["test_e2e_heuristic_delta"] = second
+    vars(fake_suite)["test_false_halt_rate"] = second
     fake_benchmarks = ModuleType("benchmarks")
-    fake_benchmarks.regression_suite = fake_suite
+    vars(fake_benchmarks)["regression_suite"] = fake_suite
     monkeypatch.setitem(sys.modules, "benchmarks", fake_benchmarks)
     monkeypatch.setitem(sys.modules, "benchmarks.regression_suite", fake_suite)
     monkeypatch.setattr(random, "seed", lambda seed: seeds.append(seed))
@@ -144,7 +217,10 @@ def test_bench_seed_and_max_samples_truncate_regression_suite(
     assert "1 passed, 0 warned, 0 failed" in capsys.readouterr().out
 
 
-def test_bench_rejects_invalid_seed_and_max_samples(capsys):
+def test_bench_rejects_invalid_seed_and_max_samples(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """Bench rejects invalid seed and max samples."""
     with pytest.raises(SystemExit) as seed_exc:
         _cli_bench._cmd_bench(["--seed", "not-an-int"])
 
@@ -158,7 +234,8 @@ def test_bench_rejects_invalid_seed_and_max_samples(capsys):
     assert "invalid --max-samples value: not-an-int" in capsys.readouterr().out
 
 
-def test_bench_rejects_unknown_dataset(capsys):
+def test_bench_rejects_unknown_dataset(capsys: pytest.CaptureFixture[str]) -> None:
+    """Bench rejects unknown dataset."""
     with pytest.raises(SystemExit) as exc_info:
         _cli_bench._cmd_bench(["--dataset", "external"])
 
@@ -166,10 +243,19 @@ def test_bench_rejects_unknown_dataset(capsys):
     assert "Unknown dataset 'external'" in capsys.readouterr().out
 
 
-def test_bench_reports_missing_benchmarks_package(monkeypatch, capsys):
+def test_bench_reports_missing_benchmarks_package(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """Bench reports missing benchmarks package."""
     original_import = __import__
 
-    def fake_import(name, globals=None, locals=None, fromlist=(), level=0):
+    def fake_import(
+        name: Any,
+        globals: Any = None,
+        locals: Any = None,
+        fromlist: Any = (),
+        level: Any = 0,
+    ) -> Any:
         if name == "benchmarks" and fromlist == ("regression_suite",):
             raise ImportError("benchmarks unavailable")
         return original_import(name, globals, locals, fromlist, level)
@@ -184,10 +270,10 @@ def test_bench_reports_missing_benchmarks_package(monkeypatch, capsys):
 
 
 def test_bench_failed_required_test_exits_and_writes_report(
-    monkeypatch,
-    tmp_path,
-    capsys,
-):
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """Bench failed required test exits and writes report."""
+
     def ok() -> None:
         return None
 
@@ -196,15 +282,15 @@ def test_bench_failed_required_test_exits_and_writes_report(
 
     e2e_failure.__name__ = "test_e2e_heuristic_delta"
     fake_suite = ModuleType("benchmarks.regression_suite")
-    fake_suite.test_heuristic_accuracy = ok
-    fake_suite.test_latency_ceiling = ok
-    fake_suite.test_metrics_integrity = ok
-    fake_suite.test_evidence_schema = ok
-    fake_suite.test_e2e_heuristic_delta = e2e_failure
-    fake_suite.test_false_halt_rate = ok
-    fake_suite.test_streaming_stability = ok
+    vars(fake_suite)["test_heuristic_accuracy"] = ok
+    vars(fake_suite)["test_latency_ceiling"] = ok
+    vars(fake_suite)["test_metrics_integrity"] = ok
+    vars(fake_suite)["test_evidence_schema"] = ok
+    vars(fake_suite)["test_e2e_heuristic_delta"] = e2e_failure
+    vars(fake_suite)["test_false_halt_rate"] = ok
+    vars(fake_suite)["test_streaming_stability"] = ok
     fake_benchmarks = ModuleType("benchmarks")
-    fake_benchmarks.regression_suite = fake_suite
+    vars(fake_benchmarks)["regression_suite"] = fake_suite
     monkeypatch.setitem(sys.modules, "benchmarks", fake_benchmarks)
     monkeypatch.setitem(sys.modules, "benchmarks.regression_suite", fake_suite)
     output = tmp_path / "bench.json"
@@ -228,7 +314,8 @@ def test_bench_failed_required_test_exits_and_writes_report(
     assert "Results written to" in out
 
 
-def test_tune_prints_usage_without_args(capsys):
+def test_tune_prints_usage_without_args(capsys: pytest.CaptureFixture[str]) -> None:
+    """Tune prints usage without args."""
     with pytest.raises(SystemExit) as exc_info:
         _cli_bench._cmd_tune([])
 
@@ -236,7 +323,10 @@ def test_tune_prints_usage_without_args(capsys):
     assert "Usage: director-ai tune" in capsys.readouterr().out
 
 
-def test_tune_unknown_option_without_dataset_reports_missing_input(capsys):
+def test_tune_unknown_option_without_dataset_reports_missing_input(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """Tune unknown option without dataset reports missing input."""
     with pytest.raises(SystemExit) as exc_info:
         _cli_bench._cmd_tune(["--unknown-option"])
 
@@ -244,7 +334,10 @@ def test_tune_unknown_option_without_dataset_reports_missing_input(capsys):
     assert "missing dataset file" in capsys.readouterr().out
 
 
-def test_tune_rejects_missing_file(tmp_path, capsys):
+def test_tune_rejects_missing_file(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """Tune rejects missing file."""
     missing = tmp_path / "missing.jsonl"
 
     with pytest.raises(SystemExit) as exc_info:
@@ -255,10 +348,9 @@ def test_tune_rejects_missing_file(tmp_path, capsys):
 
 
 def test_tune_skips_invalid_rows_and_writes_profile_overlay(
-    monkeypatch,
-    tmp_path,
-    capsys,
-):
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """Tune skips invalid rows and writes profile overlay."""
     dataset = tmp_path / "labels.jsonl"
     dataset.write_text(
         "\n".join(
@@ -286,17 +378,17 @@ def test_tune_skips_invalid_rows_and_writes_profile_overlay(
         samples=1,
     )
 
-    def fake_tune(samples):
+    def fake_tune(samples: Any) -> Any:
         observed["samples"] = samples
         return result
 
-    def fake_overlay(tune_result, *, profile, base_profile):
+    def fake_overlay(tune_result: Any, *, profile: Any, base_profile: Any) -> Any:
         observed["overlay"] = (tune_result, profile, base_profile)
         return "overlay: yes\n"
 
-    fake_tuner.tune = fake_tune
-    fake_tuner.format_confidence_report = lambda tune_result: "confidence: ok"
-    fake_tuner.format_profile_overlay = fake_overlay
+    vars(fake_tuner)["tune"] = fake_tune
+    vars(fake_tuner)["format_confidence_report"] = lambda tune_result: "confidence: ok"
+    vars(fake_tuner)["format_profile_overlay"] = fake_overlay
     monkeypatch.setitem(sys.modules, "director_ai.core.training.tuner", fake_tuner)
 
     _cli_bench._cmd_tune(
@@ -319,7 +411,10 @@ def test_tune_skips_invalid_rows_and_writes_profile_overlay(
     assert "Best threshold: 0.7" in out
 
 
-def test_tune_exits_when_no_valid_samples(tmp_path, capsys):
+def test_tune_exits_when_no_valid_samples(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """Tune exits when no valid samples."""
     dataset = tmp_path / "empty.jsonl"
     dataset.write_text('{"prompt":"p"}\n', encoding="utf-8")
 
@@ -330,7 +425,8 @@ def test_tune_exits_when_no_valid_samples(tmp_path, capsys):
     assert "no valid samples found" in capsys.readouterr().out
 
 
-def test_finetune_prints_usage_without_args(capsys):
+def test_finetune_prints_usage_without_args(capsys: pytest.CaptureFixture[str]) -> None:
+    """Finetune prints usage without args."""
     with pytest.raises(SystemExit) as exc_info:
         _cli_bench._cmd_finetune([])
 
@@ -338,7 +434,10 @@ def test_finetune_prints_usage_without_args(capsys):
     assert "Usage: director-ai finetune" in capsys.readouterr().out
 
 
-def test_finetune_rejects_missing_train_file(tmp_path, capsys):
+def test_finetune_rejects_missing_train_file(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """Finetune rejects missing train file."""
     missing = tmp_path / "train.jsonl"
 
     with pytest.raises(SystemExit) as exc_info:
@@ -349,10 +448,9 @@ def test_finetune_rejects_missing_train_file(tmp_path, capsys):
 
 
 def test_finetune_success_prints_all_optional_result_fields(
-    monkeypatch,
-    tmp_path,
-    capsys,
-):
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """Finetune success prints all optional result fields."""
     train_file = tmp_path / "train.jsonl"
     eval_file = tmp_path / "eval.jsonl"
     train_file.write_text('{"premise":"p","hypothesis":"h","label":1}\n')
@@ -366,13 +464,13 @@ def test_finetune_success_prints_all_optional_result_fields(
         batch_size = 16
         base_model = "base"
         mix_general_data = False
-        general_data_path = None
-        early_stopping_patience = None
+        general_data_path: str | None = None
+        early_stopping_patience: int | None = None
         class_weighted_loss = False
         auto_benchmark = False
         auto_onnx_export = False
 
-    def fake_finetune(path, *, eval_path, config):
+    def fake_finetune(path: Any, *, eval_path: Any, config: Any) -> Any:
         observed["path"] = path
         observed["eval_path"] = eval_path
         observed["config"] = config
@@ -389,8 +487,8 @@ def test_finetune_success_prints_all_optional_result_fields(
         )
 
     fake_module = ModuleType("director_ai.core.training.finetune")
-    fake_module.FinetuneConfig = FakeConfig
-    fake_module.finetune_nli = fake_finetune
+    vars(fake_module)["FinetuneConfig"] = FakeConfig
+    vars(fake_module)["finetune_nli"] = fake_finetune
     monkeypatch.setitem(sys.modules, "director_ai.core.training.finetune", fake_module)
 
     _cli_bench._cmd_finetune(
@@ -420,6 +518,7 @@ def test_finetune_success_prints_all_optional_result_fields(
     )
 
     config = observed["config"]
+    assert isinstance(config, FakeConfig)
     assert observed["path"] == str(train_file)
     assert observed["eval_path"] == str(eval_file)
     assert config.output_dir == "/models/domain"
@@ -440,7 +539,10 @@ def test_finetune_success_prints_all_optional_result_fields(
     assert "ONNX export:     /models/domain/model.onnx" in out
 
 
-def test_finetune_rejects_unknown_option(tmp_path, monkeypatch, capsys):
+def test_finetune_rejects_unknown_option(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """Finetune rejects unknown option."""
     train_file = tmp_path / "train.jsonl"
     train_file.write_text('{"premise":"p","hypothesis":"h","label":1}\n')
 
@@ -448,8 +550,8 @@ def test_finetune_rejects_unknown_option(tmp_path, monkeypatch, capsys):
         pass
 
     fake_module = ModuleType("director_ai.core.training.finetune")
-    fake_module.FinetuneConfig = FakeConfig
-    fake_module.finetune_nli = lambda *_args, **_kwargs: None
+    vars(fake_module)["FinetuneConfig"] = FakeConfig
+    vars(fake_module)["finetune_nli"] = lambda *_args, **_kwargs: None
     monkeypatch.setitem(sys.modules, "director_ai.core.training.finetune", fake_module)
 
     with pytest.raises(SystemExit) as exc_info:
@@ -460,10 +562,9 @@ def test_finetune_rejects_unknown_option(tmp_path, monkeypatch, capsys):
 
 
 def test_validate_data_prints_warnings_and_exits_on_errors(
-    monkeypatch,
-    tmp_path,
-    capsys,
-):
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """Validate data prints warnings and exits on errors."""
     data_file = tmp_path / "train.jsonl"
     data_file.write_text('{"premise":"p","hypothesis":"h","label":1}\n')
 
@@ -473,7 +574,7 @@ def test_validate_data_prints_warnings_and_exits_on_errors(
         summary=lambda: "1 valid, 1 invalid",
     )
     fake_module = ModuleType("director_ai.core.training.finetune_validator")
-    fake_module.validate_finetune_data = lambda path: report
+    vars(fake_module)["validate_finetune_data"] = lambda path: report
     monkeypatch.setitem(
         sys.modules,
         "director_ai.core.training.finetune_validator",
@@ -490,7 +591,10 @@ def test_validate_data_prints_warnings_and_exits_on_errors(
     assert "invalid label" in out
 
 
-def test_validate_data_prints_usage_without_args(capsys):
+def test_validate_data_prints_usage_without_args(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """Validate data prints usage without args."""
     with pytest.raises(SystemExit) as exc_info:
         _cli_bench._cmd_validate_data([])
 
@@ -498,7 +602,10 @@ def test_validate_data_prints_usage_without_args(capsys):
     assert "Usage: director-ai validate-data" in capsys.readouterr().out
 
 
-def test_validate_data_rejects_missing_file(tmp_path, capsys):
+def test_validate_data_rejects_missing_file(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """Validate data rejects missing file."""
     missing = tmp_path / "train.jsonl"
 
     with pytest.raises(SystemExit) as exc_info:
@@ -509,12 +616,12 @@ def test_validate_data_rejects_missing_file(tmp_path, capsys):
 
 
 def test_export_forwards_model_name_and_ignores_unrecognised_tokens(
-    monkeypatch,
-    capsys,
-):
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """Export forwards the model name and INT8 range policy and skips unknown tokens."""
     calls: list[dict[str, object]] = []
     fake_nli = ModuleType("director_ai.core.scoring.nli")
-    fake_nli.export_onnx = lambda **kwargs: calls.append(kwargs)
+    vars(fake_nli)["export_onnx"] = lambda **kwargs: calls.append(kwargs)
     monkeypatch.setitem(sys.modules, "director_ai.core.scoring.nli", fake_nli)
 
     _cli_bench._cmd_export(
@@ -527,20 +634,34 @@ def test_export_forwards_model_name_and_ignores_unrecognised_tokens(
             "out-dir",
             "--quantize",
             "int8",
+            "--int8-reduce-range",
             "--ignored",
         ],
     )
 
     assert calls == [
-        {"model_name": "custom-nli", "output_dir": "out-dir", "quantize": "int8"},
+        {
+            "model_name": "custom-nli",
+            "output_dir": "out-dir",
+            "quantize": "int8",
+            "int8_reduce_range": True,
+        },
     ]
     assert "out-dir" in capsys.readouterr().out
 
 
-def test_export_tensorrt_uses_no_fp16(monkeypatch, capsys):
+def test_export_tensorrt_uses_no_fp16(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """Export tensorrt uses no fp16."""
     calls: list[dict[str, object]] = []
     fake_nli = ModuleType("director_ai.core.scoring.nli")
-    fake_nli.export_tensorrt = lambda **kwargs: calls.append(kwargs) or "cache-dir"
+
+    def export_tensorrt(**kwargs: object) -> str:
+        calls.append(kwargs)
+        return "cache-dir"
+
+    vars(fake_nli)["export_tensorrt"] = export_tensorrt
     monkeypatch.setitem(sys.modules, "director_ai.core.scoring.nli", fake_nli)
 
     _cli_bench._cmd_export(
@@ -551,7 +672,8 @@ def test_export_tensorrt_uses_no_fp16(monkeypatch, capsys):
     assert "cache-dir" in capsys.readouterr().out
 
 
-def test_export_rejects_unknown_format(capsys):
+def test_export_rejects_unknown_format(capsys: pytest.CaptureFixture[str]) -> None:
+    """Export rejects unknown format."""
     with pytest.raises(SystemExit) as exc_info:
         _cli_bench._cmd_export(["--format", "gguf"])
 
@@ -559,14 +681,17 @@ def test_export_rejects_unknown_format(capsys):
     assert "Unknown format 'gguf'" in capsys.readouterr().out
 
 
-def test_eval_runs_suite_and_writes_results(monkeypatch, tmp_path, capsys):
+def test_eval_runs_suite_and_writes_results(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """Eval runs suite and writes results."""
     fake_run_all = ModuleType("benchmarks.run_all")
-    fake_run_all._run_suite = lambda model, max_samples: {
+    vars(fake_run_all)["_run_suite"] = lambda model, max_samples: {
         "model": model,
         "max_samples": max_samples,
         "accuracy": 0.91,
     }
-    fake_run_all._print_comparison_table = lambda table: print(
+    vars(fake_run_all)["_print_comparison_table"] = lambda table: print(
         json.dumps(table, sort_keys=True),
     )
     fake_benchmarks = ModuleType("benchmarks")
@@ -598,13 +723,13 @@ def test_eval_runs_suite_and_writes_results(monkeypatch, tmp_path, capsys):
 class _OperatingPointScorer:
     """Scorer double: task from the prompt prefix, support from the response."""
 
-    def raw_task_support(self, prompt, response):
+    def raw_task_support(self, prompt: Any, response: Any) -> Any:
         task = prompt.split(":", 1)[0]
         return task, float(response)
 
 
 @pytest.fixture
-def _operating_point_config(monkeypatch):
+def _operating_point_config(monkeypatch: pytest.MonkeyPatch) -> None:
     from director_ai.core.config import DirectorConfig
 
     fake_cfg = SimpleNamespace(build_scorer=lambda store=None: _OperatingPointScorer())
@@ -615,14 +740,15 @@ def _operating_point_config(monkeypatch):
     )
 
 
-def _write_jsonl(path, rows):
+def _write_jsonl(path: Any, rows: Any) -> Any:
     path.write_text(
         "\n".join(json.dumps(row) for row in rows) + "\n",
         encoding="utf-8",
     )
 
 
-def test_operating_points_help_paths(capsys):
+def test_operating_points_help_paths(capsys: pytest.CaptureFixture[str]) -> None:
+    """Operating points help paths."""
     _cli_bench._cmd_operating_points(["--help"])
     assert "matched-FPR" in capsys.readouterr().out
 
@@ -632,7 +758,10 @@ def test_operating_points_help_paths(capsys):
     assert "Usage" in capsys.readouterr().out
 
 
-def test_operating_points_missing_file_paths(capsys):
+def test_operating_points_missing_file_paths(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """Operating points missing file paths."""
     with pytest.raises(SystemExit) as exc_info:
         _cli_bench._cmd_operating_points(["--dataset", ""])
     assert exc_info.value.code == 1
@@ -644,7 +773,10 @@ def test_operating_points_missing_file_paths(capsys):
     assert "file not found" in capsys.readouterr().out
 
 
-def test_operating_points_rejects_malformed_target_fpr(capsys):
+def test_operating_points_rejects_malformed_target_fpr(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """Operating points rejects malformed target fpr."""
     with pytest.raises(SystemExit) as exc_info:
         _cli_bench._cmd_operating_points(["--target-fpr", "dialogue0.05"])
     assert exc_info.value.code == 1
@@ -656,7 +788,10 @@ def test_operating_points_rejects_malformed_target_fpr(capsys):
     assert "invalid --target-fpr" in capsys.readouterr().out
 
 
-def test_operating_points_skips_bad_lines_and_requires_samples(tmp_path, capsys):
+def test_operating_points_skips_bad_lines_and_requires_samples(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """Operating points skips bad lines and requires samples."""
     dataset = tmp_path / "empty.jsonl"
     dataset.write_text(
         'not-json\n{"prompt": "p"}\n\n',
@@ -674,8 +809,9 @@ def test_operating_points_skips_bad_lines_and_requires_samples(tmp_path, capsys)
 
 
 def test_operating_points_requires_calibratable_tasks(
-    tmp_path, capsys, _operating_point_config
-):
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], _operating_point_config: None
+) -> None:
+    """Operating points requires calibratable tasks."""
     dataset = tmp_path / "qa.jsonl"
     _write_jsonl(dataset, [{"prompt": "qa: q", "response": "0.9", "label": True}])
 
@@ -687,8 +823,9 @@ def test_operating_points_requires_calibratable_tasks(
 
 
 def test_operating_points_calibrates_and_writes_the_overlay(
-    tmp_path, capsys, _operating_point_config
-):
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], _operating_point_config: None
+) -> None:
+    """Operating points calibrates and writes the overlay."""
     dataset = tmp_path / "labeled.jsonl"
     _write_jsonl(
         dataset,
