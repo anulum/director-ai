@@ -49,6 +49,9 @@ tests/test_prepare_threshold_data.py
 
 ## Quick start
 
+Use Julia 1.13.4 or a later Julia 1.x release with the checked-in project
+and manifest. CI tests the CLI and builds the API reference on Julia 1.13.4.
+
 After instantiating the project, run `julia tools/julia_tuner/bin/tune_threshold.jl --help`
 from the repository root to see the available options. Argument parsing runs
 before the Bayesian sampler loads.
@@ -109,6 +112,8 @@ One JSON object per line, UTF-8:
 `bayesian.*` bracket the uncertainty. When the two intervals agree
 within their reported spread, the operating point is stable; when
 they disagree, the sample is likely too small or too skewed.
+
+For repeatable sampling, use the same Julia version, manifest, data and seed.
 
 ## Tests
 
