@@ -142,6 +142,13 @@ scorer.enable_injection_detection(
 )
 ```
 
+The production profile requires model-backed NLI. With
+`scorer_backend: auto`, startup selects a configured ONNX model or uses
+DeBERTa. Startup checks that the selected model can load before serving.
+The standalone Rust scorer provides heuristic scoring for profiles
+that allow it. Explicit backend choices still pass through the same
+model requirement check.
+
 ## Calibrate on deployment traffic
 
 Use reviewed requests from the target model, domain and retrieval path.

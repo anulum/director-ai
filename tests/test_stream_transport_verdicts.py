@@ -385,10 +385,11 @@ def test_streaming_transport_preserves_the_pre_egress_verdict(
 
 
 @pytest.mark.parametrize("threshold", [0.60, 0.50])
+@pytest.mark.parametrize("coherence_requires_nli", [True, False])
 def test_sse_contradiction_threshold_governs_egress(
-    completion_url: str, tmp_path: Path, threshold: float
+    completion_url: str, tmp_path: Path, threshold: float, coherence_requires_nli: bool
 ) -> None:
-    """Pin the streaming guide's contradiction-mode threshold rule over SSE."""
+    """Use the required NLI model at startup and the contradiction cut at egress."""
     torch = pytest.importorskip("torch")
     transformers = pytest.importorskip("transformers")
     vocabulary = ("[PAD]", "[UNK]", "[CLS]", "[SEP]", "[MASK]", "reference")
@@ -411,6 +412,10 @@ def test_sse_contradiction_threshold_governs_egress(
     api_key = "local-test"
     config = DirectorConfig(
         mode="grounded",
+        use_nli=True,
+        coherence_require_model_backed_nli=coherence_requires_nli,
+        injection_detection_enabled=not coherence_requires_nli,
+        injection_require_model_backed_nli=not coherence_requires_nli,
         nli_model=str(tmp_path),
         nli_model_revision="",
         reranker_enabled=False,

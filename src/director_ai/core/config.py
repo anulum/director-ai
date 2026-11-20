@@ -167,8 +167,8 @@ class DirectorConfig:
     reasoning_escalation_margin: float = 0.15
 
     # Scorer backend: "deberta", "onnx", "minicheck", "hybrid", "lite", "rust"
-    # "auto" prefers Rust, then a configured ONNX model, then "deberta".
-    # The last choice uses the Python heuristic when NLI is disabled.
+    # "auto" prefers Rust when model-backed NLI is optional. Otherwise it
+    # selects the configured ONNX model or the DeBERTa backend.
     scorer_backend: str = "auto"
 
     # Token-level hallucinated-span detector (opt-in). The response/claim-level

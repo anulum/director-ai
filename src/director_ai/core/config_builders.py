@@ -233,13 +233,16 @@ def build_store(cfg: DirectorConfig) -> GroundTruthStore:
 
 
 def resolve_scorer_backend(cfg: DirectorConfig) -> str:
-    """Resolve 'auto' scorer backend to best available."""
+    """Choose an available backend that meets the configured NLI policy."""
     if cfg.scorer_backend != "auto":
         return cfg.scorer_backend
 
     import importlib.util
 
-    if importlib.util.find_spec("backfire_kernel") is not None:
+    requires_model = cfg.coherence_require_model_backed_nli or (
+        cfg.injection_detection_enabled and cfg.injection_require_model_backed_nli
+    )
+    if not requires_model and importlib.util.find_spec("backfire_kernel") is not None:
         logger.info("Auto scorer: selected 'rust' (backfire_kernel available)")
         return "rust"
 
