@@ -51,6 +51,31 @@ class ConformalCalibrator:
             )
         self._target = target_coverage
 
+    @property
+    def target_coverage(self) -> float:
+        """Return the configured coverage target ``1 - α``."""
+        return self._target
+
+    @property
+    def minimum_calibration_size(self) -> int:
+        """Return the smallest labelled fold that supports the target.
+
+        Split-conformal coverage needs the ``ceil((n + 1)(1 - α))``-th
+        order statistic to exist among ``n`` scores. With fewer scores
+        :meth:`calibrate` can only fall back to the largest score, which
+        carries no coverage guarantee. Callers refuse such folds before
+        they train. The search starts two below the closed-form bound
+        ``t / (1 - t)``, so it stays short when the target lies very
+        close to one, and then steps up with the same expression as
+        :meth:`calibrate`. The returned size therefore always yields an
+        unclamped order statistic in :meth:`calibrate`.
+        """
+        target = self._target
+        n = max(1, math.floor(target / (1.0 - target)) - 2)
+        while math.ceil(target * (n + 1)) > n:
+            n += 1
+        return n
+
     def calibrate(
         self,
         guardrail: TrainedGuardrail,

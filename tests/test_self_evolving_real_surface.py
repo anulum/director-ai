@@ -15,6 +15,7 @@ from pathlib import Path
 import pytest
 
 from director_ai.core.self_evolving import (
+    ConformalCalibrator,
     FeedbackEvent,
     InMemoryFeedbackStore,
     JSONLFeedbackStore,
@@ -34,7 +35,10 @@ def _feedback_events() -> list[FeedbackEvent]:
                 response="Approved public summary.",
                 label="safe",
                 tenant_id="tenant-a",
-                metadata={"channel": "operator-review"},
+                metadata={
+                    "channel": "operator-review",
+                    "source_cluster": f"release-review-{index}",
+                },
                 timestamp=float(index),
             )
         )
@@ -44,7 +48,10 @@ def _feedback_events() -> list[FeedbackEvent]:
                 response="Blocked.",
                 label="unsafe",
                 tenant_id="tenant-a",
-                metadata={"channel": "operator-review"},
+                metadata={
+                    "channel": "operator-review",
+                    "source_cluster": f"release-review-{index}",
+                },
                 timestamp=float(index) + 0.25,
             )
         )
@@ -55,7 +62,10 @@ def _feedback_events() -> list[FeedbackEvent]:
                 response="Previously missed by guardrail.",
                 label="false_negative",
                 tenant_id="tenant-a",
-                metadata={"channel": "incident-review"},
+                metadata={
+                    "channel": "incident-review",
+                    "source_cluster": f"incident-{index}",
+                },
                 timestamp=20.0 + float(index),
             )
         )
@@ -65,7 +75,10 @@ def _feedback_events() -> list[FeedbackEvent]:
                 response="False alarm.",
                 label="false_positive",
                 tenant_id="tenant-a",
-                metadata={"channel": "incident-review"},
+                metadata={
+                    "channel": "incident-review",
+                    "source_cluster": f"incident-{index}",
+                },
                 timestamp=30.0 + float(index),
             )
         )
@@ -110,6 +123,9 @@ def test_public_jsonl_self_evolver_persists_and_scores_guardrail(
     assert report.guardrail.training_accuracy >= 0.75
     assert 0.0 <= report.threshold <= 1.0
     assert report.calibration_size == report.conformal.calibration_size
+    assert report.calibration_size >= ConformalCalibrator().minimum_calibration_size
+    assert report.calibration_clusters >= 2
+    assert report.unclustered_training_events == 0
     assert 0 < len(report.adversarial_samples) <= 10
     assert report.failure_labels == ("unsafe", "false_negative")
     assert unsafe_score > safe_score

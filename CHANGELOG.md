@@ -17,6 +17,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Add `SOURCE_CLUSTER_METADATA_KEY`, `FeedbackEvent.source_cluster`,
+  `ConformalCalibrator.target_coverage` and
+  `ConformalCalibrator.minimum_calibration_size` so callers can record each
+  feedback event's real source cluster and check the smallest calibration
+  fold a coverage target supports.
 - Add `HaltOutput` and `stream_output_result` to expose the output monitor's
   delivered text and halt verdict together.
 
@@ -57,6 +62,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- `SelfEvolver` now calibrates on held-out real source clusters only. It
+  splits whole clusters recorded in `metadata["source_cluster"]`, merges
+  clusters that share a normalised prompt, and calibrates on one seeded
+  choice of event per held-out group, because the cluster group is the
+  independent unit. Adversarial rows are generated from training-fold
+  failures only, stay in training, and are dropped when they match a held-out
+  prompt. Events without a recorded cluster train but never calibrate. A
+  round now refuses before any training or version change when fewer
+  held-out groups exist than the calibrator's coverage target needs (nine at
+  0.90), instead of reusing training rows for calibration. The new
+  `calibration_fraction` option sets the held-out share. `EvolutionReport`
+  adds `calibration_clusters`,
+  `unclustered_training_events` and `coverage_target`. `conformal` now reports
+  the calibrator's actual target instead of a fixed 0.90. Unknown
+  `failure_labels` are refused at construction instead of at the first round.
 - Suspend paid-wheel uploads to the unavailable private package index and
   remove the publisher credential from the release workflow. Direct
   subscribers to commercial support for licensed wheel delivery.

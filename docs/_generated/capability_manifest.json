@@ -9,7 +9,7 @@
     "python_model_classes": 1073,
     "python_model_source_modules": 542,
     "rust_pyo3_model_wrappers": 83,
-    "test_files": 846
+    "test_files": 847
   },
   "documentation": {
     "public_pages": [
@@ -6289,6 +6289,7 @@
       "tests/test_selective_prediction.py",
       "tests/test_self_consistency.py",
       "tests/test_self_evolving.py",
+      "tests/test_self_evolving_calibration_split.py",
       "tests/test_self_evolving_real_surface.py",
       "tests/test_self_healing.py",
       "tests/test_self_improving_guard_loop.py",

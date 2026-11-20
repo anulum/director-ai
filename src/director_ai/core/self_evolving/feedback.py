@@ -39,6 +39,17 @@ _VALID_LABELS: frozenset[str] = frozenset(
     ("safe", "unsafe", "false_positive", "false_negative")
 )
 
+SOURCE_CLUSTER_METADATA_KEY = "source_cluster"
+"""Metadata key naming the real source cluster an event came from.
+
+The operator records it, for example a conversation, incident or
+document identifier. Events from one cluster are not independent of
+each other, so :class:`~director_ai.core.self_evolving.SelfEvolver`
+keeps every cluster whole on one side of its calibration split.
+Events without it remain usable for training but never for
+calibration.
+"""
+
 
 @dataclass(frozen=True)
 class FeedbackEvent:
@@ -47,7 +58,10 @@ class FeedbackEvent:
     ``prompt`` is the input the guardrail saw. ``response`` is
     the model output. ``label`` is the operator's verdict.
     ``tenant_id`` and ``metadata`` are optional sidecar fields
-    that downstream trainers or calibrators can filter by.
+    that downstream trainers or calibrators can filter by. When
+    present, ``metadata["source_cluster"]`` records the event's real
+    source cluster (see :data:`SOURCE_CLUSTER_METADATA_KEY`) and
+    must be a non-empty value without surrounding whitespace.
     ``timestamp`` defaults to ``time.time()`` at construction —
     tests pass explicit values for determinism.
     """
@@ -60,7 +74,7 @@ class FeedbackEvent:
     timestamp: float = field(default_factory=lambda: time.time())
 
     def __post_init__(self) -> None:
-        """Validate label and prompt invariants."""
+        """Validate label, prompt and source-cluster invariants."""
         if self.label not in _VALID_LABELS:
             raise ValueError(
                 f"FeedbackEvent.label must be one of {sorted(_VALID_LABELS)}; "
@@ -68,6 +82,19 @@ class FeedbackEvent:
             )
         if not self.prompt:
             raise ValueError("FeedbackEvent.prompt must be non-empty")
+        cluster: object = self.metadata.get(SOURCE_CLUSTER_METADATA_KEY)
+        if cluster is not None and (
+            not isinstance(cluster, str) or not cluster or cluster != cluster.strip()
+        ):
+            raise ValueError(
+                f"FeedbackEvent.metadata[{SOURCE_CLUSTER_METADATA_KEY!r}] must be "
+                f"non-empty without surrounding whitespace; got {cluster!r}"
+            )
+
+    @property
+    def source_cluster(self) -> str | None:
+        """Return the recorded source cluster, or ``None`` when absent."""
+        return self.metadata.get(SOURCE_CLUSTER_METADATA_KEY)
 
     def to_json(self) -> str:
         """Serialise this event as deterministic JSON."""

@@ -36,11 +36,15 @@ without touching the orchestrator:
 
 The :class:`SelfEvolver` orchestrator runs one round:
 
-1. Pull recent failures from the store.
-2. Generate adversarial variants.
-3. Train a new guardrail.
-4. Calibrate a conformal threshold on a held-out fold.
+1. Hold out whole real source clusters for calibration.
+2. Generate adversarial variants from training-fold failures.
+3. Train a new guardrail on the training fold and those variants.
+4. Calibrate a conformal threshold on the held-out real clusters.
 5. Atomically hot-swap into the caller-supplied registry.
+
+Record each real event's source cluster in
+``metadata["source_cluster"]`` (:data:`SOURCE_CLUSTER_METADATA_KEY`).
+Events without it train but never calibrate.
 """
 
 from .adversarial import (
@@ -50,6 +54,7 @@ from .adversarial import (
 from .calibration import ConformalCalibrator
 from .evolver import EvolutionReport, SelfEvolver
 from .feedback import (
+    SOURCE_CLUSTER_METADATA_KEY,
     FeedbackEvent,
     FeedbackLabel,
     FeedbackStore,
@@ -89,6 +94,7 @@ __all__ = [
     "PerceptronGuardrailTrainer",
     "PerturbativeAdversarialGenerator",
     "ReviewedFeedbackManifest",
+    "SOURCE_CLUSTER_METADATA_KEY",
     "SelfEvolver",
     "SelfImprovingGuardLoop",
     "SyntheticDistillationBuilder",
