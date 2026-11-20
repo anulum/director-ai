@@ -60,16 +60,21 @@ def _run_training_worker(
             auto_onnx_export=cfg.get("auto_onnx_export", False),
         )
 
-        import random
-
         from director_ai.core.training.finetune import _load_jsonl
+        from director_ai.core.training.training_provenance import (
+            split_rows_by_cluster,
+        )
 
         rows = _load_jsonl(data_path)
-        rng = random.Random(42)
-        rng.shuffle(rows)
-        n_eval = max(1, int(len(rows) * 0.1))
-        eval_rows = rows[:n_eval]
-        train_rows = rows[n_eval:]
+        # Whole source clusters and repeated content stay on one side, so the
+        # evaluation rows are independent of the training rows.
+        train_rows, eval_rows = split_rows_by_cluster(rows, eval_fraction=0.1, seed=42)
+        logger.info(
+            "Job %s split: %d training rows, %d evaluation rows",
+            job.job_id,
+            len(train_rows),
+            len(eval_rows),
+        )
 
         train_path = data_path.parent / f"{job.job_id}_train.jsonl"
         eval_path = data_path.parent / f"{job.job_id}_eval.jsonl"
@@ -84,7 +89,11 @@ def _run_training_worker(
 
         # Set result fields before state so readers see consistent data
         job.model_path = result.output_dir
-        job.metrics = result.eval_metrics
+        job.metrics = {
+            **result.eval_metrics,
+            "split_train_rows": len(train_rows),
+            "split_eval_rows": len(eval_rows),
+        }
         job.regression_report = result.regression_report
         job.completed_at = time.time()
         job.progress = 1.0

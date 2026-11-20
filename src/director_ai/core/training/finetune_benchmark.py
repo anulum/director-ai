@@ -15,10 +15,20 @@ general accuracy against the baseline. Three outcomes:
 - ``deploy_domain_only`` — regression 3-8pp, use only via domain backend
 - ``reject``          — regression > 8pp, catastrophic forgetting
 
+The gate fails closed. It also returns ``reject``, before loading the model,
+when no general benchmark is supplied, the benchmark has no usable rows,
+the model's training provenance is unavailable, or a general or domain row
+shares content or a source cluster with the training rows. A general
+balanced accuracy of zero is ``reject`` too.
+
 Usage::
 
     from director_ai.core.finetune_benchmark import benchmark_finetuned_model
-    report = benchmark_finetuned_model("./my-model", eval_path="domain_eval.jsonl")
+    report = benchmark_finetuned_model(
+        "./my-model",
+        general_path="general_heldout.jsonl",
+        eval_path="domain_eval.jsonl",
+    )
     print(report.recommendation)
 """
 
@@ -26,6 +36,7 @@ from __future__ import annotations
 
 import json
 import logging
+import math
 import time
 from collections.abc import Mapping
 from dataclasses import dataclass, field
@@ -40,6 +51,12 @@ from .model_registry import (
     TrainingModelProfile,
     resolve_finetune_model,
 )
+from .training_provenance import (
+    PROVENANCE_FILENAME,
+    SOURCE_CLUSTER_FIELD,
+    TrainingProvenance,
+    row_cluster,
+)
 
 logger = logging.getLogger("DirectorAI.FinetuneBenchmark")
 
@@ -52,7 +69,13 @@ _REJECT_THRESHOLD_PP = 8.0
 
 @dataclass
 class RegressionReport:
-    """Result of anti-regression benchmark."""
+    """Result of anti-regression benchmark.
+
+    The defaults describe a model that has not passed the gate:
+    ``recommendation`` is ``"reject"`` and ``regression_acceptable`` is
+    false until a completed general benchmark sets them. ``details["reason"]``
+    explains a rejection that happened before any measurement.
+    """
 
     domain_accuracy: float = 0.0
     domain_f1: float = 0.0
@@ -60,14 +83,23 @@ class RegressionReport:
     general_f1: float = 0.0
     baseline_accuracy: float = _BASELINE_ACCURACY
     regression_pp: float = 0.0
-    regression_acceptable: bool = True
-    recommendation: str = "deploy"
+    regression_acceptable: bool = False
+    recommendation: str = "reject"
     details: dict[str, Any] = field(default_factory=dict)
 
     def summary(self) -> str:
-        """Render a compact human-readable regression summary."""
+        """Render a compact human-readable regression summary.
+
+        The domain figure is marked "(selection set)" when the same rows also
+        chose the best checkpoint, because it is then optimistic.
+        """
+        selection = (
+            " (selection set)"
+            if self.details.get("domain_set_selected_checkpoint")
+            else ""
+        )
         lines = [
-            f"Domain bal_acc: {self.domain_accuracy:.1%}",
+            f"Domain bal_acc: {self.domain_accuracy:.1%}{selection}",
             f"General bal_acc: {self.general_accuracy:.1%}",
             f"Baseline bal_acc: {self.baseline_accuracy:.1%}",
             f"Regression: {self.regression_pp:+.1f}pp",
@@ -246,9 +278,15 @@ def _load_benchmark_jsonl(path: str | Path) -> list[TrainingRow]:
             )
             label = row.get("label")
             if premise and hypothesis and label is not None:
-                rows.append(
-                    {"premise": premise, "hypothesis": hypothesis, "label": int(label)},
-                )
+                loaded: TrainingRow = {
+                    "premise": premise,
+                    "hypothesis": hypothesis,
+                    "label": int(label),
+                }
+                cluster = row_cluster(row)
+                if cluster is not None:
+                    loaded[SOURCE_CLUSTER_FIELD] = cluster
+                rows.append(loaded)
     return rows
 
 
@@ -333,6 +371,35 @@ def _evaluate_model(
         release_torch_cuda()
 
 
+def _reject(report: RegressionReport, reason: str) -> RegressionReport:
+    """Mark ``report`` as rejected for ``reason`` and return it."""
+    report.recommendation = "reject"
+    report.regression_acceptable = False
+    report.details["reason"] = reason
+    logger.warning("Anti-regression rejected: %s", reason)
+    return report
+
+
+def _training_provenance(
+    model_path: str | Path,
+    provenance_path: str | Path | None,
+) -> TrainingProvenance | None:
+    """Load the model's training provenance, or ``None`` when unavailable."""
+    if provenance_path is None:
+        local = Path(model_path)
+        if not local.is_dir():
+            return None
+        provenance_path = local / PROVENANCE_FILENAME
+    candidate = Path(provenance_path)
+    if not candidate.is_file():
+        return None
+    try:
+        return TrainingProvenance.read(candidate)
+    except (ValueError, OSError):
+        logger.warning("Training provenance is unreadable: %s", candidate)
+        return None
+
+
 def benchmark_finetuned_model(
     model_path: str | Path,
     general_path: str | Path | None = None,
@@ -342,6 +409,7 @@ def benchmark_finetuned_model(
     *,
     local_files_only: bool = False,
     template: str | None = None,
+    provenance_path: str | Path | None = None,
 ) -> RegressionReport:
     """Benchmark a fine-tuned model for regression.
 
@@ -350,7 +418,9 @@ def benchmark_finetuned_model(
     model_path : str or Path
         Fine-tuned model directory or trusted model-hub reference.
     general_path : str, Path or None
-        General benchmark JSONL, or the packaged AggreFact subset when omitted.
+        General benchmark JSONL held out from training. ``None`` rejects:
+        no packaged default exists, because a default could coincide with
+        replay data.
     eval_path : str, Path or None
         JSONL containing domain evaluation samples.
     baseline_accuracy : float
@@ -361,76 +431,83 @@ def benchmark_finetuned_model(
         Refuse model-hub access; required for service-owned HTTP artefacts.
     template : str or None
         Registry input template, or filename inference for a standalone model.
+    provenance_path : str, Path or None
+        Training provenance written by ``finetune_nli``. Defaults to the
+        file of that name inside a local ``model_path`` directory.
 
     Returns
     -------
     RegressionReport
         Domain/general metrics and the corresponding regression recommendation.
+        No general path, a general file without usable rows, missing
+        provenance, evaluation rows that are not independent of training, and
+        a zero or undefined general accuracy all give ``reject``.
+
+    Raises
+    ------
+    FileNotFoundError
+        If a named general or domain file does not exist.
 
     """
     report = RegressionReport(baseline_accuracy=baseline_accuracy)
 
-    # Domain evaluation
-    if eval_path is not None:
-        domain_samples = _load_benchmark_jsonl(eval_path)
-        if domain_samples:
-            logger.info("Evaluating domain data: %d samples", len(domain_samples))
-            domain_metrics = _evaluate_model(
-                model_path,
-                domain_samples,
-                batch_size,
-                local_files_only=local_files_only,
-                template=template,
-            )
-            report.domain_accuracy = domain_metrics["balanced_accuracy"]
-            report.domain_f1 = domain_metrics["f1"]
-            report.details["domain_samples"] = len(domain_samples)
-
-    # General evaluation
     if general_path is None:
-        pkg_dir = Path(__file__).parent.parent
-        candidate = pkg_dir / "data" / "aggrefact_benchmark_1k.jsonl"
-        if candidate.exists():
-            general_path = candidate
+        return _reject(report, "no general benchmark supplied")
+    provenance = _training_provenance(model_path, provenance_path)
+    if provenance is None:
+        return _reject(report, "training provenance unavailable")
+    general_samples = _load_benchmark_jsonl(general_path)
+    if not general_samples:
+        return _reject(report, "general benchmark has no usable rows")
+    domain_samples = _load_benchmark_jsonl(eval_path) if eval_path is not None else []
+    shared_general = provenance.overlapping_rows(general_samples)
+    shared_domain = provenance.overlapping_rows(domain_samples)
+    report.details["shared_with_training"] = {
+        "general": shared_general,
+        "domain": shared_domain,
+    }
+    if shared_general or shared_domain:
+        return _reject(report, "evaluation rows overlap the training rows")
 
-    if general_path is not None:
-        general_samples = _load_benchmark_jsonl(general_path)
-        if general_samples:
-            logger.info(
-                "Evaluating general benchmark: %d samples",
-                len(general_samples),
-            )
-            general_metrics = _evaluate_model(
-                model_path,
-                general_samples,
-                batch_size,
-                local_files_only=local_files_only,
-                template=template,
-            )
-            report.general_accuracy = general_metrics["balanced_accuracy"]
-            report.general_f1 = general_metrics["f1"]
-            report.details["general_samples"] = len(general_samples)
-    else:
-        logger.warning("No general benchmark data — skipping regression check")
-        report.details["general_skipped"] = True
+    if domain_samples:
+        logger.info("Evaluating domain data: %d samples", len(domain_samples))
+        domain_metrics = _evaluate_model(
+            model_path,
+            domain_samples,
+            batch_size,
+            local_files_only=local_files_only,
+            template=template,
+        )
+        report.domain_accuracy = domain_metrics["balanced_accuracy"]
+        report.domain_f1 = domain_metrics["f1"]
+        report.details["domain_samples"] = len(domain_samples)
 
-    # Regression decision
-    if report.general_accuracy > 0:
-        report.regression_pp = (report.general_accuracy - baseline_accuracy) * 100
-        regression_magnitude = -report.regression_pp  # positive = worse
+    logger.info("Evaluating general benchmark: %d samples", len(general_samples))
+    general_metrics = _evaluate_model(
+        model_path,
+        general_samples,
+        batch_size,
+        local_files_only=local_files_only,
+        template=template,
+    )
+    report.general_accuracy = general_metrics["balanced_accuracy"]
+    report.general_f1 = general_metrics["f1"]
+    report.details["general_samples"] = len(general_samples)
 
-        if regression_magnitude <= _DEPLOY_THRESHOLD_PP:
-            report.recommendation = "deploy"
-            report.regression_acceptable = True
-        elif regression_magnitude <= _REJECT_THRESHOLD_PP:
-            report.recommendation = "deploy_domain_only"
-            report.regression_acceptable = False
-        else:
-            report.recommendation = "reject"
-            report.regression_acceptable = False
-    else:
+    if not math.isfinite(report.general_accuracy) or report.general_accuracy <= 0.0:
+        return _reject(report, "general balanced accuracy is zero or undefined")
+
+    report.regression_pp = (report.general_accuracy - baseline_accuracy) * 100
+    regression_magnitude = -report.regression_pp  # positive = worse
+    if regression_magnitude <= _DEPLOY_THRESHOLD_PP:
+        report.recommendation = "deploy"
+        report.regression_acceptable = True
+    elif regression_magnitude <= _REJECT_THRESHOLD_PP:
         report.recommendation = "deploy_domain_only"
-        report.details["reason"] = "no general benchmark available"
+        report.regression_acceptable = False
+    else:
+        report.recommendation = "reject"
+        report.regression_acceptable = False
 
     logger.info(
         "Benchmark: domain=%.1f%%, general=%.1f%%, regression=%+.1fpp, rec=%s",
@@ -459,7 +536,9 @@ def benchmark_model_candidates(
     model_artifacts : Mapping
         Registry aliases or model identifiers mapped to trained artifact paths.
     general_path, eval_path : str, Path, or None
-        General and domain evaluation datasets, or the benchmark defaults.
+        General and domain evaluation datasets. Without a general dataset,
+        or without a candidate's training provenance, that candidate is
+        rejected.
     batch_size : int or None
         Evaluation batch size, or each model profile's recommended size.
     allow_experimental : bool

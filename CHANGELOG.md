@@ -22,6 +22,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `ConformalCalibrator.minimum_calibration_size` so callers can record each
   feedback event's real source cluster and check the smallest calibration
   fold a coverage target supports.
+- Add row-level training provenance in `director_ai.core.training`:
+  `TrainingProvenance`, `split_rows_by_cluster`, `PROVENANCE_FILENAME` and
+  `SOURCE_CLUSTER_FIELD`. NLI rows may carry a `source_cluster`; loading
+  refuses a value that is present but empty, padded or not a string. Fine-tuning
+  writes the content keys and cluster digests of every training and replay row
+  next to the saved model, and `benchmark_finetuned_model` accepts a
+  `provenance_path` for models stored elsewhere. The provenance file is
+  training metadata: its digests confirm whether a guessed text or cluster was
+  trained on, so handle it like the training data when sharing a model.
+- Add `FinetuneConfig.general_benchmark_path` and the
+  `director-ai finetune --general-benchmark FILE` option for the
+  post-training anti-regression check.
 - Add `HaltOutput` and `stream_output_result` to expose the output monitor's
   delivered text and halt verdict together.
 
@@ -77,6 +89,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `unclustered_training_events` and `coverage_target`. `conformal` now reports
   the calibrator's actual target instead of a fixed 0.90. Unknown
   `failure_labels` are refused at construction instead of at the first round.
+- The fine-tuning anti-regression gate now fails closed, and its evaluation
+  data must be independent of training.
+  - It rejects, before loading the model, when no general benchmark is given,
+    the benchmark has no usable rows, the model's training provenance is
+    missing, or any general or domain row shares normalised content or a
+    `source_cluster` with the training rows. A zero or undefined general
+    balanced accuracy is rejected too.
+  - `RegressionReport` defaults to `reject`, and a failing auto-benchmark now
+    reports `reject` instead of an empty report.
+  - The packaged AggreFact path, which served as both the replay default and
+    the benchmark default and is not shipped, is gone. Replay mixing needs an
+    explicit `general_data_path` and raises for a missing or empty file.
+  - `finetune_nli` refuses evaluation rows that overlap the training rows.
+  - The local fine-tuning worker splits uploads by source cluster and repeated
+    content instead of by row.
+  - The fine-tuning API refuses `mix_general_data=true`, because a request
+    cannot name replay data.
+  - Migration: models fine-tuned before this release have no provenance file,
+    so the gate rejects them until one is written next to them with
+    `TrainingProvenance.from_rows(rows).write(model_dir)` from their known
+    training rows, or passed as `provenance_path`.
 - Suspend paid-wheel uploads to the unavailable private package index and
   remove the publisher credential from the release workflow. Direct
   subscribers to commercial support for licensed wheel delivery.

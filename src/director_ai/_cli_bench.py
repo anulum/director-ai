@@ -582,11 +582,13 @@ def _print_finetune_help() -> None:
         "  --lr FLOAT              Learning rate (default: 2e-5)\n"
         "  --batch-size N          Batch size (default: 16)\n"
         "  --base-model ID         Base model (default: FactCG-DeBERTa-v3-Large)\n"
-        "  --mix-general           Mix general NLI data to prevent forgetting\n"
-        "  --general-data FILE     General NLI JSONL for --mix-general\n"
+        "  --mix-general           Mix replay NLI data (needs --general-data)\n"
+        "  --general-data FILE     Replay NLI JSONL; implies --mix-general\n"
         "  --early-stopping N      Stop after N evals without improvement\n"
         "  --class-weights         Apply inverse-frequency class weights\n"
         "  --auto-benchmark        Run anti-regression check after training\n"
+        "  --general-benchmark FILE  Held-out general JSONL for --auto-benchmark;\n"
+        "                          without it the check reports reject\n"
         "  --auto-onnx             Export to ONNX after training\n"
     )
 
@@ -653,12 +655,19 @@ def _cmd_finetune(args: list[str]) -> None:
         elif args[i] == "--auto-benchmark":
             config.auto_benchmark = True
             i += 1
+        elif args[i] == "--general-benchmark" and i + 1 < len(args):
+            config.general_benchmark_path = args[i + 1]
+            i += 2
         elif args[i] == "--auto-onnx":
             config.auto_onnx_export = True
             i += 1
         else:
             print(f"Unknown option: {args[i]}")
             sys.exit(1)
+
+    if config.mix_general_data and not config.general_data_path:
+        print("Error: --mix-general requires --general-data FILE")
+        sys.exit(1)
 
     result = finetune_nli(train_file, eval_path=eval_file, config=config)
 
@@ -677,6 +686,12 @@ def _cmd_finetune(args: list[str]) -> None:
         print(
             f"  Regression:      {rr['regression_pp']:+.1f}pp → {rr['recommendation']}",
         )
+        if rr.get("reason"):
+            print(f"  Reason:          {rr['reason']}")
+        if rr.get("domain_set_selected_checkpoint"):
+            print(
+                f"  Domain bal. acc: {rr['domain_accuracy']:.1%} (selection set)",
+            )
     if result.onnx_path:
         print(f"  ONNX export:     {result.onnx_path}")
     print("\nUse the model:")

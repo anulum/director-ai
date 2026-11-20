@@ -12,14 +12,25 @@ from __future__ import annotations
 import json
 import sys
 import types
+from pathlib import Path
 from types import SimpleNamespace
+from typing import Any
 
 import pytest
 
+from director_ai.core.training.finetune import TrainingRow
+from director_ai.core.training.training_provenance import (
+    PROVENANCE_FILENAME,
+    TrainingProvenance,
+)
+
 
 class TestFinetuneConfig:
-    def test_defaults(self):
-        from director_ai.core.finetune import FinetuneConfig
+    """FinetuneConfig defaults and overrides."""
+
+    def test_defaults(self) -> None:
+        """Core hyperparameters have their documented defaults."""
+        from director_ai.core.training.finetune import FinetuneConfig
 
         cfg = FinetuneConfig()
         assert cfg.epochs == 3
@@ -28,16 +39,18 @@ class TestFinetuneConfig:
         assert cfg.max_length == 512
         assert "FactCG" in cfg.base_model
 
-    def test_custom_values(self):
-        from director_ai.core.finetune import FinetuneConfig
+    def test_custom_values(self) -> None:
+        """Constructor arguments override the defaults."""
+        from director_ai.core.training.finetune import FinetuneConfig
 
         cfg = FinetuneConfig(epochs=5, learning_rate=1e-5, output_dir="/tmp/test")
         assert cfg.epochs == 5
         assert cfg.learning_rate == 1e-5
         assert cfg.output_dir == "/tmp/test"
 
-    def test_phase_e_defaults(self):
-        from director_ai.core.finetune import FinetuneConfig
+    def test_phase_e_defaults(self) -> None:
+        """Replay, early stopping and benchmark options start disabled."""
+        from director_ai.core.training.finetune import FinetuneConfig
 
         cfg = FinetuneConfig()
         assert cfg.mix_general_data is False
@@ -48,8 +61,9 @@ class TestFinetuneConfig:
         assert cfg.auto_benchmark is False
         assert cfg.auto_onnx_export is False
 
-    def test_phase_e_custom(self):
-        from director_ai.core.finetune import FinetuneConfig
+    def test_phase_e_custom(self) -> None:
+        """Replay, early stopping and benchmark options can be enabled."""
+        from director_ai.core.training.finetune import FinetuneConfig
 
         cfg = FinetuneConfig(
             mix_general_data=True,
@@ -66,8 +80,11 @@ class TestFinetuneConfig:
 
 
 class TestFinetuneResult:
-    def test_defaults(self):
-        from director_ai.core.finetune import FinetuneResult
+    """FinetuneResult defaults and values."""
+
+    def test_defaults(self) -> None:
+        """An empty result carries zero metrics and no reports."""
+        from director_ai.core.training.finetune import FinetuneResult
 
         result = FinetuneResult()
         assert result.epochs_completed == 0
@@ -77,8 +94,9 @@ class TestFinetuneResult:
         assert result.onnx_path == ""
         assert result.mixed_general_samples == 0
 
-    def test_with_values(self):
-        from director_ai.core.finetune import FinetuneResult
+    def test_with_values(self) -> None:
+        """Result fields keep the supplied values."""
+        from director_ai.core.training.finetune import FinetuneResult
 
         result = FinetuneResult(
             output_dir="./model",
@@ -91,8 +109,11 @@ class TestFinetuneResult:
 
 
 class TestLoadJsonl:
-    def test_load_standard_format(self, tmp_path):
-        from director_ai.core.finetune import _load_jsonl
+    """JSONL loading of NLI training rows."""
+
+    def test_load_standard_format(self, tmp_path: Path) -> None:
+        """Premise, hypothesis and label rows load in order."""
+        from director_ai.core.training.finetune import _load_jsonl
 
         f = tmp_path / "train.jsonl"
         f.write_text(
@@ -115,8 +136,9 @@ class TestLoadJsonl:
         assert rows[0]["label"] == 1
         assert rows[1]["label"] == 0
 
-    def test_load_alternative_field_names(self, tmp_path):
-        from director_ai.core.finetune import _load_jsonl
+    def test_load_alternative_field_names(self, tmp_path: Path) -> None:
+        """The doc and claim aliases map to premise and hypothesis."""
+        from director_ai.core.training.finetune import _load_jsonl
 
         f = tmp_path / "train.jsonl"
         f.write_text(
@@ -129,8 +151,9 @@ class TestLoadJsonl:
         assert rows[0]["premise"] == "Source text."
         assert rows[0]["hypothesis"] == "Derived claim."
 
-    def test_skip_incomplete_rows(self, tmp_path):
-        from director_ai.core.finetune import _load_jsonl
+    def test_skip_incomplete_rows(self, tmp_path: Path) -> None:
+        """Rows missing a required field are skipped."""
+        from director_ai.core.training.finetune import _load_jsonl
 
         f = tmp_path / "train.jsonl"
         f.write_text(
@@ -145,8 +168,9 @@ class TestLoadJsonl:
         rows = _load_jsonl(f)
         assert len(rows) == 1
 
-    def test_skip_blank_lines(self, tmp_path):
-        from director_ai.core.finetune import _load_jsonl
+    def test_skip_blank_lines(self, tmp_path: Path) -> None:
+        """Blank lines are skipped."""
+        from director_ai.core.training.finetune import _load_jsonl
 
         f = tmp_path / "train.jsonl"
         f.write_text(
@@ -159,17 +183,58 @@ class TestLoadJsonl:
         rows = _load_jsonl(f)
         assert len(rows) == 1
 
-    def test_empty_file_returns_empty(self, tmp_path):
-        from director_ai.core.finetune import _load_jsonl
+    def test_empty_file_returns_empty(self, tmp_path: Path) -> None:
+        """An empty file loads no rows."""
+        from director_ai.core.training.finetune import _load_jsonl
 
         f = tmp_path / "empty.jsonl"
         f.write_text("", encoding="utf-8")
         rows = _load_jsonl(f)
         assert rows == []
 
+    def test_load_keeps_a_valid_source_cluster(self, tmp_path: Path) -> None:
+        """A valid source cluster stays on the loaded row."""
+        from director_ai.core.training.finetune import _load_jsonl
+
+        f = tmp_path / "train.jsonl"
+        f.write_text(
+            json.dumps(
+                {
+                    "premise": "a",
+                    "hypothesis": "b",
+                    "label": 1,
+                    "source_cluster": "doc-3",
+                }
+            )
+            + "\n"
+            + json.dumps({"premise": "c", "hypothesis": "d", "label": 0})
+            + "\n",
+            encoding="utf-8",
+        )
+        rows = _load_jsonl(f)
+        assert rows[0]["source_cluster"] == "doc-3"
+        assert "source_cluster" not in rows[1]
+
+    def test_load_refuses_a_malformed_source_cluster(self, tmp_path: Path) -> None:
+        """A padded source cluster is refused."""
+        from director_ai.core.training.finetune import _load_jsonl
+
+        f = tmp_path / "train.jsonl"
+        f.write_text(
+            json.dumps(
+                {"premise": "a", "hypothesis": "b", "label": 1, "source_cluster": " x"}
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+        with pytest.raises(ValueError, match="source_cluster"):
+            _load_jsonl(f)
+
 
 class TestMixGeneralData:
-    def _make_jsonl(self, tmp_path, name, n):
+    """Explicit replay mixing and its refusals."""
+
+    def _make_jsonl(self, tmp_path: Path, name: str, n: int) -> Path:
         rows = [
             {"premise": f"P{i}", "hypothesis": f"H{i}", "label": i % 2}
             for i in range(n)
@@ -181,10 +246,11 @@ class TestMixGeneralData:
         )
         return f
 
-    def test_mix_adds_general_data(self, tmp_path):
-        from director_ai.core.finetune import _mix_general_data
+    def test_mix_adds_general_data(self, tmp_path: Path) -> None:
+        """Replay rows are added to the domain rows."""
+        from director_ai.core.training.finetune import _mix_general_data
 
-        domain = [
+        domain: list[TrainingRow] = [
             {"premise": f"D{i}", "hypothesis": f"C{i}", "label": i % 2}
             for i in range(100)
         ]
@@ -198,23 +264,19 @@ class TestMixGeneralData:
         assert n_added > 0
         assert len(mixed) == len(domain) + n_added
 
-    def test_mix_with_missing_file_returns_original(self):
-        from director_ai.core.finetune import _mix_general_data
+    def test_mix_refuses_a_missing_replay_file(self) -> None:
+        """A missing replay file raises instead of skipping replay."""
+        from director_ai.core.training.finetune import _mix_general_data
 
-        domain = [{"premise": "D", "hypothesis": "C", "label": 1}]
-        mixed, n_added = _mix_general_data(
-            domain,
-            "/nonexistent_path_xyz.jsonl",
-            0.2,
-            42,
-        )
-        assert n_added == 0
-        assert mixed is domain
+        domain: list[TrainingRow] = [{"premise": "D", "hypothesis": "C", "label": 1}]
+        with pytest.raises(FileNotFoundError, match="replay data not found"):
+            _mix_general_data(domain, "/nonexistent_path_xyz.jsonl", 0.2, 42)
 
-    def test_mix_ratio_is_approximate(self, tmp_path):
-        from director_ai.core.finetune import _mix_general_data
+    def test_mix_ratio_is_approximate(self, tmp_path: Path) -> None:
+        """The replay share approximates the requested ratio."""
+        from director_ai.core.training.finetune import _mix_general_data
 
-        domain = [
+        domain: list[TrainingRow] = [
             {"premise": f"D{i}", "hypothesis": f"C{i}", "label": i % 2}
             for i in range(800)
         ]
@@ -228,20 +290,23 @@ class TestMixGeneralData:
         actual_ratio = n_added / len(mixed)
         assert 0.15 < actual_ratio < 0.25
 
-    def test_mix_with_default_missing_general_data_returns_original(self):
-        from director_ai.core.finetune import _mix_general_data
+    def test_finetune_refuses_replay_mixing_without_a_path(
+        self, tmp_path: Path
+    ) -> None:
+        """Replay mixing without a path is refused before training."""
+        from director_ai.core.training.finetune import FinetuneConfig, finetune_nli
 
-        domain = [{"premise": "D", "hypothesis": "C", "label": 1}]
+        train_file = self._make_jsonl(tmp_path, "train.jsonl", 4)
+        with pytest.raises(ValueError, match="general_data_path"):
+            finetune_nli(train_file, config=FinetuneConfig(mix_general_data=True))
 
-        mixed, n_added = _mix_general_data(domain, None, 0.2, 42)
+    def test_mix_uses_all_general_rows_when_ratio_exceeds_available(
+        self, tmp_path: Path
+    ) -> None:
+        """A ratio above the available rows uses every replay row."""
+        from director_ai.core.training.finetune import _mix_general_data
 
-        assert mixed is domain
-        assert n_added == 0
-
-    def test_mix_uses_all_general_rows_when_ratio_exceeds_available(self, tmp_path):
-        from director_ai.core.finetune import _mix_general_data
-
-        domain = [
+        domain: list[TrainingRow] = [
             {"premise": f"D{i}", "hypothesis": f"C{i}", "label": i % 2}
             for i in range(20)
         ]
@@ -252,52 +317,71 @@ class TestMixGeneralData:
         assert n_added == 3
         assert len(mixed) == 23
 
-    def test_mix_with_empty_general_file_returns_original(self, tmp_path):
-        from director_ai.core.finetune import _mix_general_data
+    def test_mix_refuses_an_empty_replay_file(self, tmp_path: Path) -> None:
+        """An empty replay file raises instead of skipping replay."""
+        from director_ai.core.training.finetune import _mix_general_data
 
-        domain = [{"premise": "D", "hypothesis": "C", "label": 1}]
+        domain: list[TrainingRow] = [{"premise": "D", "hypothesis": "C", "label": 1}]
         general_file = tmp_path / "empty.jsonl"
         general_file.write_text("", encoding="utf-8")
 
-        mixed, n_added = _mix_general_data(domain, general_file, 0.2, 42)
-
-        assert mixed is domain
-        assert n_added == 0
+        with pytest.raises(ValueError, match="No valid samples"):
+            _mix_general_data(domain, general_file, 0.2, 42)
 
 
 class TestComputeClassWeights:
-    def test_balanced_weights_are_equal(self):
-        from director_ai.core.finetune import _compute_class_weights
+    """Inverse-frequency class weights."""
 
-        rows = [{"label": 0}] * 100 + [{"label": 1}] * 100
+    def test_balanced_weights_are_equal(self) -> None:
+        """Balanced labels get equal weights."""
+        from director_ai.core.training.finetune import _compute_class_weights
+
+        zero: TrainingRow = {"label": 0}
+        one: TrainingRow = {"label": 1}
+        rows = [zero] * 100 + [one] * 100
         weights = _compute_class_weights(rows)
         assert len(weights) == 2
         assert abs(weights[0] - weights[1]) < 1e-6
 
-    def test_imbalanced_weights_compensate(self):
-        from director_ai.core.finetune import _compute_class_weights
+    def test_imbalanced_weights_compensate(self) -> None:
+        """The minority class gets the larger weight."""
+        from director_ai.core.training.finetune import _compute_class_weights
 
-        rows = [{"label": 0}] * 900 + [{"label": 1}] * 100
+        zero: TrainingRow = {"label": 0}
+        one: TrainingRow = {"label": 1}
+        rows = [zero] * 900 + [one] * 100
         weights = _compute_class_weights(rows)
         assert weights[1] > weights[0]
         assert weights[1] / weights[0] > 5
 
 
 class TestDatasetAndMetrics:
-    def test_prepare_dataset_factcg_and_pair_paths(self, monkeypatch):
-        from director_ai.core.finetune import _prepare_dataset
+    """Dataset preparation, metrics and weighted loss."""
+
+    def test_prepare_dataset_factcg_and_pair_paths(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """FactCG and paired inputs tokenise through the expected columns."""
+        from director_ai.core.training.finetune import _prepare_dataset
 
         class _Dataset:
-            def __init__(self, data):
+            def __init__(self, data: dict[str, Any]) -> None:
                 self.data = data
-                self.map_calls = []
-                self.format_name = None
+                self.map_calls: list[dict[str, Any]] = []
+                self.format_name: str | None = None
 
             @classmethod
-            def from_dict(cls, data):
+            def from_dict(cls, data: dict[str, Any]) -> _Dataset:
                 return cls(data)
 
-            def map(self, fn, *, batched, batch_size, remove_columns):
+            def map(
+                self,
+                fn: Any,
+                *,
+                batched: bool,
+                batch_size: int,
+                remove_columns: list[str],
+            ) -> _Dataset:
                 self.map_calls.append(
                     {
                         "batched": batched,
@@ -308,19 +392,21 @@ class TestDatasetAndMetrics:
                 self.data.update(fn(self.data))
                 return self
 
-            def set_format(self, format_name):
+            def set_format(self, format_name: str) -> None:
                 self.format_name = format_name
 
         datasets_module = types.SimpleNamespace(Dataset=_Dataset)
         monkeypatch.setitem(sys.modules, "datasets", datasets_module)
 
-        calls = []
+        calls: list[tuple[tuple[Any, ...], dict[str, Any]]] = []
 
-        def tokenizer(*args, **kwargs):
+        def tokenizer(*args: Any, **kwargs: Any) -> dict[str, list[list[int]]]:
             calls.append((args, kwargs))
             return {"input_ids": [[1, 2]], "attention_mask": [[1, 1]]}
 
-        rows = [{"premise": "Premise", "hypothesis": "Claim", "label": 1}]
+        rows: list[TrainingRow] = [
+            {"premise": "Premise", "hypothesis": "Claim", "label": 1}
+        ]
         factcg = _prepare_dataset(rows, tokenizer, max_length=17, is_factcg=True)
         paired = _prepare_dataset(rows, tokenizer, max_length=19, is_factcg=False)
 
@@ -335,10 +421,11 @@ class TestDatasetAndMetrics:
         assert calls[0][1]["max_length"] == 17
         assert calls[1][1]["max_length"] == 19
 
-    def test_metrics_cover_empty_balanced_accuracy_and_binary_f1_edges(self):
+    def test_metrics_cover_empty_balanced_accuracy_and_binary_f1_edges(self) -> None:
+        """Metric helpers handle empty and edge inputs."""
         import numpy as np
 
-        from director_ai.core.finetune import (
+        from director_ai.core.training.finetune import (
             _balanced_accuracy,
             _binary_f1_score,
             _compute_metrics,
@@ -357,25 +444,31 @@ class TestDatasetAndMetrics:
         )
         assert metrics == {"balanced_accuracy": 1.0, "f1": 1.0}
 
-    def test_metric_defensive_zero_denominator_branches(self, monkeypatch):
-        from director_ai.core.finetune import _balanced_accuracy, _binary_f1_score
+    def test_metric_defensive_zero_denominator_branches(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Zero denominators yield zero metrics."""
+        from director_ai.core.training.finetune import (
+            _balanced_accuracy,
+            _binary_f1_score,
+        )
 
         class _Labels:
-            def __eq__(self, other):
+            def __eq__(self, other: object) -> Any:
                 assert other == "ghost"
                 return "empty-mask"
 
         class _NpForBalancedAccuracy:
             @staticmethod
-            def asarray(values):
+            def asarray(values: Any) -> _Labels:
                 return _Labels()
 
             @staticmethod
-            def unique(values):
+            def unique(values: Any) -> list[str]:
                 return ["ghost"]
 
             @staticmethod
-            def count_nonzero(values):
+            def count_nonzero(values: Any) -> int:
                 assert values == "empty-mask"
                 return 0
 
@@ -386,18 +479,19 @@ class TestDatasetAndMetrics:
             calls = iter((1, -1, -1))
 
             @staticmethod
-            def asarray(values):
+            def asarray(values: Any) -> int:
                 return 1
 
             @classmethod
-            def count_nonzero(cls, values):
+            def count_nonzero(cls, values: Any) -> int:
                 return next(cls.calls)
 
         monkeypatch.setitem(sys.modules, "numpy", _NpForF1)
         assert _binary_f1_score([1], [1]) == 0.0
 
-    def test_python_sum_and_mean_helpers(self, monkeypatch):
-        from director_ai.core import finetune as finetune_mod
+    def test_python_sum_and_mean_helpers(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """The Python reducers match the expected sums and means."""
+        from director_ai.core.training import finetune as finetune_mod
 
         monkeypatch.setattr(finetune_mod, "_RUST_FINETUNE", False)
 
@@ -406,19 +500,22 @@ class TestDatasetAndMetrics:
         assert finetune_mod._mean_float([]) == 0.0
         assert finetune_mod._mean_float([0.25, 0.75]) == pytest.approx(0.5)
 
-    def test_weighted_trainer_compute_loss_returns_loss_or_outputs(self, monkeypatch):
-        from director_ai.core.finetune import _make_weighted_trainer_class
+    def test_weighted_trainer_compute_loss_returns_loss_or_outputs(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """The weighted trainer returns the loss, with outputs on request."""
+        from director_ai.core.training.finetune import _make_weighted_trainer_class
 
         class _WeightTensor:
-            def to(self, device):
+            def to(self, device: str) -> _WeightTensor:
                 assert device == "cpu"
                 return self
 
         class _CrossEntropyLoss:
-            def __init__(self, weight):
+            def __init__(self, weight: Any) -> None:
                 self.weight = weight
 
-            def __call__(self, logits, labels):
+            def __call__(self, logits: Any, labels: Any) -> str:
                 assert logits == SimpleNamespace(device="cpu")
                 assert labels == ["labels"]
                 return "weighted-loss"
@@ -431,7 +528,7 @@ class TestDatasetAndMetrics:
             nn = _NN
 
             @staticmethod
-            def tensor(values, dtype):
+            def tensor(values: list[float], dtype: str) -> _WeightTensor:
                 assert values == [0.5, 2.0]
                 assert dtype == "float32"
                 return _WeightTensor()
@@ -446,7 +543,7 @@ class TestDatasetAndMetrics:
         trainer_cls = _make_weighted_trainer_class([0.5, 2.0])
 
         class _Model:
-            def __call__(self, **inputs):
+            def __call__(self, **inputs: Any) -> SimpleNamespace:
                 assert inputs == {"input_ids": [1]}
                 return SimpleNamespace(logits=SimpleNamespace(device="cpu"))
 
@@ -460,62 +557,66 @@ class TestDatasetAndMetrics:
 
 
 class TestFinetuneNli:
-    def _write_rows(self, path, rows):
+    """finetune_nli orchestration with a fake training stack."""
+
+    def _write_rows(self, path: Path, rows: list[dict[str, Any]]) -> Path:
         path.write_text(
             "\n".join(json.dumps(row) for row in rows) + "\n",
             encoding="utf-8",
         )
         return path
 
-    def _install_fake_transformers(self, monkeypatch, recorder):
+    def _install_fake_transformers(
+        self, monkeypatch: pytest.MonkeyPatch, recorder: dict[str, Any]
+    ) -> None:
         class _Tokenizer:
             @classmethod
-            def from_pretrained(cls, *args, **kwargs):
+            def from_pretrained(cls, *args: Any, **kwargs: Any) -> _Tokenizer:
                 recorder["tokenizer_from_pretrained"] = (args, kwargs)
                 return cls()
 
-            def save_pretrained(self, output_dir):
+            def save_pretrained(self, output_dir: str) -> None:
                 recorder["tokenizer_saved"] = output_dir
 
         class _Model:
-            def __init__(self):
-                self.to_calls = []
+            def __init__(self) -> None:
+                self.to_calls: list[str] = []
 
             @classmethod
-            def from_pretrained(cls, *args, **kwargs):
+            def from_pretrained(cls, *args: Any, **kwargs: Any) -> _Model:
                 recorder["model_from_pretrained"] = (args, kwargs)
                 model = cls()
                 recorder["model"] = model
                 return model
 
-            def to(self, device):
+            def to(self, device: str) -> _Model:
                 self.to_calls.append(device)
                 return self
 
         class _TrainingArguments:
-            def __init__(self, **kwargs):
+            def __init__(self, **kwargs: Any) -> None:
                 recorder["training_args"] = kwargs
 
         class _EarlyStoppingCallback:
-            def __init__(self, **kwargs):
+            def __init__(self, **kwargs: Any) -> None:
                 recorder["early_stopping"] = kwargs
 
         class _Trainer:
-            def __init__(self, **kwargs):
+            def __init__(self, **kwargs: Any) -> None:
                 recorder["trainer"] = self
                 recorder["trainer_kwargs"] = kwargs
                 self.model = kwargs["model"]
 
-            def train(self):
+            def train(self) -> SimpleNamespace:
                 recorder["trained"] = True
                 if recorder.get("drop_model_on_train"):
                     self.model = None
                 return SimpleNamespace(training_loss=0.123)
 
-            def save_model(self, output_dir):
+            def save_model(self, output_dir: str) -> None:
                 recorder["model_saved"] = output_dir
 
-            def evaluate(self):
+            def evaluate(self) -> dict[str, float]:
                 return {"eval_balanced_accuracy": 0.91, "eval_f1": 0.88}
 
         module = SimpleNamespace(
@@ -527,8 +628,9 @@ class TestFinetuneNli:
         )
         monkeypatch.setitem(sys.modules, "transformers", module)
 
-    def test_finetune_requires_valid_training_rows(self, tmp_path):
-        from director_ai.core.finetune import finetune_nli
+    def test_finetune_requires_valid_training_rows(self, tmp_path: Path) -> None:
+        """An empty training file is refused."""
+        from director_ai.core.training.finetune import finetune_nli
 
         train_file = tmp_path / "empty.jsonl"
         train_file.write_text("", encoding="utf-8")
@@ -537,10 +639,11 @@ class TestFinetuneNli:
             finetune_nli(train_file)
 
     def test_finetune_reports_missing_extra_after_loading_data(
-        self, tmp_path, monkeypatch
-    ):
-        from director_ai.core import finetune as finetune_mod
-        from director_ai.core.finetune import finetune_nli
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """A missing transformers install names the extra to install."""
+        from director_ai.core.training import finetune as finetune_mod
+        from director_ai.core.training.finetune import finetune_nli
 
         train_file = self._write_rows(
             tmp_path / "train.jsonl",
@@ -558,16 +661,17 @@ class TestFinetuneNli:
 
     def test_finetune_full_orchestration_with_eval_callbacks_and_exports(
         self,
-        tmp_path,
-        monkeypatch,
-    ):
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """A full run trains, evaluates, benchmarks, exports and records provenance."""
         import director_ai.core._device as device_mod
         import director_ai.core.scoring.nli as nli_mod
         import director_ai.core.training.finetune_benchmark as benchmark_mod
-        from director_ai.core import finetune as finetune_mod
-        from director_ai.core.finetune import FinetuneConfig, finetune_nli
+        from director_ai.core.training import finetune as finetune_mod
+        from director_ai.core.training.finetune import FinetuneConfig, finetune_nli
 
-        recorder = {}
+        recorder: dict[str, Any] = {}
         self._install_fake_transformers(monkeypatch, recorder)
         train_file = self._write_rows(
             tmp_path / "train.jsonl",
@@ -619,16 +723,22 @@ class TestFinetuneNli:
             "_make_weighted_trainer_class",
             lambda weights: sys.modules["transformers"].Trainer,
         )
-        monkeypatch.setattr(
-            benchmark_mod,
-            "benchmark_finetuned_model",
-            lambda output_dir, eval_path: SimpleNamespace(
-                recommendation="accept",
+        benchmark_calls: list[tuple[str, str | None, Path | None]] = []
+
+        def fake_benchmark(
+            output_dir: str, general_path: str | None, eval_path: Path | None
+        ) -> SimpleNamespace:
+            benchmark_calls.append((output_dir, general_path, eval_path))
+            return SimpleNamespace(
+                recommendation="deploy",
+                regression_acceptable=True,
                 general_accuracy=0.81,
                 domain_accuracy=0.93,
                 regression_pp=-0.2,
-            ),
-        )
+                details={},
+            )
+
+        monkeypatch.setattr(benchmark_mod, "benchmark_finetuned_model", fake_benchmark)
 
         cfg = FinetuneConfig(
             base_model="local/nli",
@@ -644,6 +754,7 @@ class TestFinetuneNli:
             class_weighted_loss=True,
             early_stopping_patience=3,
             auto_benchmark=True,
+            general_benchmark_path=str(tmp_path / "general_heldout.jsonl"),
             auto_onnx_export=True,
         )
 
@@ -660,11 +771,19 @@ class TestFinetuneNli:
             "eval_f1": 0.88,
         }
         assert result.regression_report == {
-            "recommendation": "accept",
+            "recommendation": "deploy",
+            "regression_acceptable": True,
             "general_accuracy": 0.81,
             "domain_accuracy": 0.93,
             "regression_pp": -0.2,
+            "reason": "",
+            "domain_set_selected_checkpoint": True,
         }
+        assert benchmark_calls == [
+            (cfg.output_dir, cfg.general_benchmark_path, eval_file),
+        ]
+        provenance = TrainingProvenance.read(tmp_path / "model" / PROVENANCE_FILENAME)
+        assert len(provenance.content_keys) == 3
         assert result.onnx_path == str(tmp_path / "model" / "onnx")
         assert result.mixed_general_samples == 1
         assert recorder["cache_cleared"] is True
@@ -688,15 +807,16 @@ class TestFinetuneNli:
 
     def test_finetune_without_eval_uses_no_eval_training_arguments(
         self,
-        tmp_path,
-        monkeypatch,
-    ):
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """Without evaluation data the trainer runs without evaluation."""
         import director_ai.core._device as device_mod
         import director_ai.core.scoring.nli as nli_mod
-        from director_ai.core import finetune as finetune_mod
-        from director_ai.core.finetune import FinetuneConfig, finetune_nli
+        from director_ai.core.training import finetune as finetune_mod
+        from director_ai.core.training.finetune import FinetuneConfig, finetune_nli
 
-        recorder = {}
+        recorder: dict[str, Any] = {}
         self._install_fake_transformers(monkeypatch, recorder)
         train_file = self._write_rows(
             tmp_path / "train.jsonl",
@@ -731,18 +851,19 @@ class TestFinetuneNli:
         assert recorder["trainer_kwargs"]["compute_metrics"] is None
         assert recorder["trainer_kwargs"]["callbacks"] is None
 
-    def test_finetune_auto_benchmark_failure_is_non_fatal(
+    def test_finetune_auto_benchmark_failure_rejects(
         self,
-        tmp_path,
-        monkeypatch,
-    ):
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """A failing auto-benchmark yields a reject report."""
         import director_ai.core._device as device_mod
         import director_ai.core.scoring.nli as nli_mod
         import director_ai.core.training.finetune_benchmark as benchmark_mod
-        from director_ai.core import finetune as finetune_mod
-        from director_ai.core.finetune import FinetuneConfig, finetune_nli
+        from director_ai.core.training import finetune as finetune_mod
+        from director_ai.core.training.finetune import FinetuneConfig, finetune_nli
 
-        recorder = {}
+        recorder: dict[str, Any] = {}
         self._install_fake_transformers(monkeypatch, recorder)
         train_file = self._write_rows(
             tmp_path / "train.jsonl",
@@ -761,7 +882,9 @@ class TestFinetuneNli:
             lambda rows, tokenizer, max_length, is_factcg: list(rows),
         )
 
-        def fail_benchmark(output_dir, eval_path):
+        def fail_benchmark(
+            output_dir: str, general_path: str | None, eval_path: Path | None
+        ) -> SimpleNamespace:
             raise RuntimeError("benchmark unavailable")
 
         monkeypatch.setattr(benchmark_mod, "benchmark_finetuned_model", fail_benchmark)
@@ -774,19 +897,28 @@ class TestFinetuneNli:
             ),
         )
 
-        assert result.regression_report == {}
+        assert result.regression_report == {
+            "recommendation": "reject",
+            "regression_acceptable": False,
+            "general_accuracy": 0.0,
+            "domain_accuracy": 0.0,
+            "regression_pp": 0.0,
+            "reason": "auto-benchmark failed",
+            "domain_set_selected_checkpoint": False,
+        }
 
     def test_finetune_cleanup_tolerates_missing_trainer_model(
         self,
-        tmp_path,
-        monkeypatch,
-    ):
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """Cleanup tolerates a trainer without a model."""
         import director_ai.core._device as device_mod
         import director_ai.core.scoring.nli as nli_mod
-        from director_ai.core import finetune as finetune_mod
-        from director_ai.core.finetune import FinetuneConfig, finetune_nli
+        from director_ai.core.training import finetune as finetune_mod
+        from director_ai.core.training.finetune import FinetuneConfig, finetune_nli
 
-        recorder = {"drop_model_on_train": True}
+        recorder: dict[str, Any] = {"drop_model_on_train": True}
         self._install_fake_transformers(monkeypatch, recorder)
         train_file = self._write_rows(
             tmp_path / "train.jsonl",
@@ -818,16 +950,91 @@ class TestFinetuneNli:
         assert recorder["model"].to_calls == []
         assert recorder["released_cuda"] is True
 
+    def test_finetune_refuses_evaluation_rows_shared_with_training(
+        self, tmp_path: Path
+    ) -> None:
+        """Evaluation rows sharing content or a cluster with training are refused."""
+        from director_ai.core.training.finetune import finetune_nli
+
+        train_file = self._write_rows(
+            tmp_path / "train.jsonl",
+            [
+                {
+                    "premise": "P1",
+                    "hypothesis": "H1",
+                    "label": 1,
+                    "source_cluster": "doc-1",
+                },
+                {"premise": "P2", "hypothesis": "H2", "label": 0},
+            ],
+        )
+        eval_file = self._write_rows(
+            tmp_path / "eval.jsonl",
+            [
+                {
+                    "premise": "Other",
+                    "hypothesis": "Claim",
+                    "label": 1,
+                    "source_cluster": "doc-1",
+                },
+                {"premise": "p2", "hypothesis": " h2 ", "label": 0},
+            ],
+        )
+
+        with pytest.raises(ValueError, match="2 evaluation rows share"):
+            finetune_nli(train_file, eval_path=eval_file)
+
+    def test_finetune_auto_benchmark_without_general_benchmark_rejects(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """The auto-benchmark rejects when no general benchmark is configured."""
+        import director_ai.core._device as device_mod
+        import director_ai.core.scoring.nli as nli_mod
+        from director_ai.core.training import finetune as finetune_mod
+        from director_ai.core.training.finetune import FinetuneConfig, finetune_nli
+
+        recorder: dict[str, Any] = {}
+        self._install_fake_transformers(monkeypatch, recorder)
+        train_file = self._write_rows(
+            tmp_path / "train.jsonl",
+            [{"premise": "P", "hypothesis": "H", "label": 1}],
+        )
+        monkeypatch.setattr(
+            finetune_mod, "resolve_model_revision", lambda model, revision: None
+        )
+        monkeypatch.setattr(nli_mod, "clear_model_cache", lambda: None)
+        monkeypatch.setattr(device_mod, "release_torch_cuda", lambda: None)
+        monkeypatch.setattr(
+            finetune_mod,
+            "_prepare_dataset",
+            lambda rows, tokenizer, max_length, is_factcg: list(rows),
+        )
+
+        result = finetune_nli(
+            train_file,
+            config=FinetuneConfig(
+                output_dir=str(tmp_path / "model"), auto_benchmark=True
+            ),
+        )
+
+        assert result.regression_report["recommendation"] == "reject"
+        assert result.regression_report["regression_acceptable"] is False
+        assert result.regression_report["reason"] == "no general benchmark supplied"
+
 
 class TestExports:
-    def test_finetune_in_core_all(self):
+    """Public exports of the fine-tuning API."""
+
+    def test_finetune_in_core_all(self) -> None:
+        """The fine-tuning names are in the core exports."""
         from director_ai.core import __all__
 
         assert "finetune_nli" in __all__
         assert "FinetuneConfig" in __all__
         assert "FinetuneResult" in __all__
 
-    def test_importable(self):
+    def test_importable(self) -> None:
+        """The fine-tuning API imports from the core package."""
         from director_ai.core import FinetuneConfig, FinetuneResult, finetune_nli
 
         assert callable(finetune_nli)
@@ -836,13 +1043,17 @@ class TestExports:
 
 
 class TestCliFinetune:
-    def test_finetune_no_args_exits(self):
+    """The finetune CLI entry point."""
+
+    def test_finetune_no_args_exits(self) -> None:
+        """The CLI exits without a training file."""
         from director_ai.cli import main
 
         with pytest.raises(SystemExit):
             main(["finetune"])
 
-    def test_finetune_missing_file_exits(self):
+    def test_finetune_missing_file_exits(self) -> None:
+        """The CLI exits for a missing training file."""
         from director_ai.cli import main
 
         with pytest.raises(SystemExit):

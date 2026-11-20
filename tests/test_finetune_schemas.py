@@ -70,6 +70,13 @@ def test_start_request_defaults_pin_the_local_training_contract() -> None:
         schemas_module.StartRequest(general_data_ratio=0.6)
 
 
+def test_start_request_refuses_replay_mixing_without_a_dataset() -> None:
+    """Refuse replay mixing, because the request cannot name replay data."""
+    with pytest.raises(ValueError, match="explicit replay dataset"):
+        schemas_module.StartRequest(mix_general_data=True)
+    assert schemas_module.StartRequest(mix_general_data=False).mix_general_data is False
+
+
 def test_managed_lookup_request_requires_job_id() -> None:
     """Require a nonempty managed job identifier and preserve backend defaults."""
     with pytest.raises(ValueError):

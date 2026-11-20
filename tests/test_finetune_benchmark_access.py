@@ -20,6 +20,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from director_ai.core.config import DirectorConfig
+from director_ai.core.training.training_provenance import TrainingProvenance
 from director_ai.finetune_jobs import FinetuneJob
 from director_ai.server import create_app
 
@@ -350,6 +351,9 @@ def test_completed_local_checkpoint_runs_real_inference(
         state_dict={},
     )
     checkpoint.save_pretrained(model)
+    TrainingProvenance.from_rows(
+        [{"premise": "trained evidence", "hypothesis": "approval", "label": 0}]
+    ).write(model)
     _job(tmp_path, model)
     dataset_id = _dataset(client)
     response = client.post(

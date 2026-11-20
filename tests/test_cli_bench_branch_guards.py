@@ -125,6 +125,8 @@ def test_finetune_success_omits_absent_optional_result_fields(
 
     class FakeConfig:
         output_dir = "./director-finetuned"
+        mix_general_data = False
+        general_data_path: str | None = None
 
     def finetune_nli(
         path: str,
@@ -190,8 +192,9 @@ def test_validate_data_clean_report_exits_zero(
 
 
 def test_tuner_functions_from_rejects_incomplete_modules() -> None:
+    """Modules lacking any required tuner function are not accepted."""
     incomplete = ModuleType("director_ai.core.calibration.tuner")
-    incomplete.tune = lambda records: SimpleNamespace()  # type: ignore[attr-defined]
+    vars(incomplete)["tune"] = lambda records: SimpleNamespace()
 
     assert _cli_bench._tuner_functions_from(incomplete) is None
     assert _cli_bench._tuner_functions_from(object()) is None
@@ -200,6 +203,7 @@ def test_tuner_functions_from_rejects_incomplete_modules() -> None:
 def test_load_tuner_functions_raises_when_canonical_lacks_functions(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """A canonical tuner module without its functions raises."""
     bare = ModuleType("director_ai.core.calibration.tuner")
     monkeypatch.setitem(sys.modules, "director_ai.core.calibration.tuner", bare)
     monkeypatch.delitem(sys.modules, "director_ai.core.training.tuner", raising=False)

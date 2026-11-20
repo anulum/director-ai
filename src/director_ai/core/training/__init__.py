@@ -45,9 +45,17 @@ from .trained_model_registry import (
     TrainedModelRecord,
     TrainedModelRegistry,
 )
+from .training_provenance import (
+    PROVENANCE_FILENAME,
+    SOURCE_CLUSTER_FIELD,
+    TrainingProvenance,
+    split_rows_by_cluster,
+)
 
 __all__ = [
     "DEFAULT_FINE_TUNE_MODEL_ALIAS",
+    "PROVENANCE_FILENAME",
+    "SOURCE_CLUSTER_FIELD",
     "STAGE_CANDIDATE",
     "STAGE_PRODUCTION",
     "STAGE_RETIRED",
@@ -64,6 +72,7 @@ __all__ = [
     "TrainingJobSubmission",
     "TrainingHarvestReport",
     "TrainingModelProfile",
+    "TrainingProvenance",
     "TrainingResultRecord",
     "TrainingScenario",
     "TrainingSweepPlan",
@@ -77,5 +86,6 @@ __all__ = [
     "harvest_training_results",
     "list_finetune_model_profiles",
     "resolve_finetune_model",
+    "split_rows_by_cluster",
     "submit_training_job",
 ]

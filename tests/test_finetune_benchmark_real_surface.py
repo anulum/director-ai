@@ -22,6 +22,7 @@ from director_ai.core.training.finetune_benchmark import (
     ModelBenchmarkResult,
     benchmark_finetuned_model,
 )
+from director_ai.core.training.training_provenance import TrainingProvenance
 
 
 def _write_jsonl(path: Path, rows: list[dict[str, object]]) -> None:
@@ -30,6 +31,15 @@ def _write_jsonl(path: Path, rows: list[dict[str, object]]) -> None:
         "\n".join(json.dumps(row) for row in rows) + "\n",
         encoding="utf-8",
     )
+
+
+def _model_with_provenance(tmp_path: Path) -> Path:
+    """Write a training provenance into a temporary model directory."""
+    model = tmp_path / "candidate"
+    TrainingProvenance.from_rows(
+        [{"premise": "Training text.", "hypothesis": "Training claim.", "label": 1}]
+    ).write(model)
+    return model
 
 
 def _deployable_result(alias: str = "candidate") -> ModelBenchmarkResult:
@@ -71,7 +81,7 @@ def test_empty_domain_and_general_data_do_not_invoke_model(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """Empty benchmark files should produce a domain-only recommendation."""
+    """Empty benchmark files reject without invoking the model."""
     empty = tmp_path / "empty.jsonl"
     empty.write_text("\n{not-json}\n", encoding="utf-8")
 
@@ -92,20 +102,21 @@ def test_empty_domain_and_general_data_do_not_invoke_model(
     monkeypatch.setattr(benchmark_mod, "_evaluate_model", fail_evaluate_model)
 
     report = benchmark_finetuned_model(
-        "/models/candidate",
+        _model_with_provenance(tmp_path),
         general_path=empty,
         eval_path=empty,
     )
 
-    assert report.recommendation == "deploy_domain_only"
-    assert report.details == {"reason": "no general benchmark available"}
+    assert report.recommendation == "reject"
+    assert report.regression_acceptable is False
+    assert report.details == {"reason": "general benchmark has no usable rows"}
 
 
-def test_default_package_benchmark_data_is_loaded_when_present(
+def test_packaged_benchmark_data_is_never_used_implicitly(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """The default package benchmark lookup should evaluate bundled data."""
+    """A bundled benchmark file at the old default location is never read."""
     fake_module = tmp_path / "core" / "training" / "finetune_benchmark.py"
     bundled_data = tmp_path / "core" / "data" / "aggrefact_benchmark_1k.jsonl"
     fake_module.parent.mkdir(parents=True)
@@ -146,10 +157,9 @@ def test_default_package_benchmark_data_is_loaded_when_present(
     monkeypatch.setattr(benchmark_mod, "Path", path_factory)
     monkeypatch.setattr(benchmark_mod, "_evaluate_model", evaluate_model)
 
-    report = benchmark_finetuned_model("/models/candidate", batch_size=7)
+    report = benchmark_finetuned_model(_model_with_provenance(tmp_path), batch_size=7)
 
-    assert calls == [("/models/candidate", 1, 7)]
-    assert report.recommendation == "deploy"
-    assert report.general_accuracy == 0.80
-    assert report.general_f1 == 0.77
-    assert report.details["general_samples"] == 1
+    assert calls == []
+    assert report.recommendation == "reject"
+    assert report.general_accuracy == 0.0
+    assert report.details == {"reason": "no general benchmark supplied"}

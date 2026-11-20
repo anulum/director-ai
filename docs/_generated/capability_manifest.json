@@ -6,10 +6,10 @@
     "optional_extras": 62,
     "public_api_exports": 227,
     "public_documentation_pages": 208,
-    "python_model_classes": 1073,
-    "python_model_source_modules": 542,
+    "python_model_classes": 1074,
+    "python_model_source_modules": 543,
     "rust_pyo3_model_wrappers": 83,
-    "test_files": 847
+    "test_files": 849
   },
   "documentation": {
     "public_pages": [
@@ -4367,6 +4367,10 @@
         "path": "src/director_ai/core/training/model_registry.py"
       },
       {
+        "name": "TrainingProvenance",
+        "path": "src/director_ai/core/training/training_provenance.py"
+      },
+      {
         "name": "TrainingResultRecord",
         "path": "src/director_ai/core/training/results.py"
       },
@@ -5072,6 +5076,7 @@
       "src/director_ai/core/training/results.py",
       "src/director_ai/core/training/sweeps.py",
       "src/director_ai/core/training/trained_model_registry.py",
+      "src/director_ai/core/training/training_provenance.py",
       "src/director_ai/core/training/tuner.py",
       "src/director_ai/core/training/vertex_runner.py",
       "src/director_ai/core/trajectory/rollback.py",
@@ -5679,6 +5684,7 @@
       "tests/test_cli_bench_paths.py",
       "tests/test_cli_bench_real_surface.py",
       "tests/test_cli_core_real_surface.py",
+      "tests/test_cli_finetune_options.py",
       "tests/test_cli_forensics.py",
       "tests/test_cli_ingest_formats.py",
       "tests/test_cli_ingest_properties.py",
@@ -6395,6 +6401,7 @@
       "tests/test_train_distillation_reproducibility_real_surface.py",
       "tests/test_trained_model_registry.py",
       "tests/test_training_model_registry.py",
+      "tests/test_training_provenance.py",
       "tests/test_trajectory_rollback.py",
       "tests/test_trajectory_rollback_evidence.py",
       "tests/test_trajectory_simulator.py",

@@ -142,8 +142,10 @@ bypass the queue.
 | `finetune_nli()` | `core.finetune` | Fine-tune NLI model on domain data |
 | `validate_finetune_data()` | `core.finetune_validator` | Validate JSONL training data |
 | `DataQualityReport` | `core.finetune_validator` | Validation report dataclass |
-| `benchmark_finetuned_model()` | `core.finetune_benchmark` | Benchmark fine-tuned vs baseline |
-| `RegressionReport` | `core.finetune_benchmark` | Benchmark result dataclass |
+| `benchmark_finetuned_model()` | `core.finetune_benchmark` | Benchmark fine-tuned vs baseline; rejects without an independent general benchmark and training provenance |
+| `RegressionReport` | `core.finetune_benchmark` | Benchmark result dataclass; defaults to `reject` |
+| `TrainingProvenance` | `core.training` | Content keys and source clusters of the rows a model trained on |
+| `split_rows_by_cluster()` | `core.training` | Train and evaluation split that keeps source clusters and repeated content whole |
 
 ## Threshold Tuning
 

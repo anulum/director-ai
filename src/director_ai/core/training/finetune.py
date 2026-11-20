@@ -61,6 +61,7 @@ except Exception:  # pragma: no cover - mandatory dependency
 from ..mandatory import mandatory_execution
 from ..model_revisions import resolve_model_revision
 from .finetune_validator import _validate_loaded_training_rows
+from .training_provenance import SOURCE_CLUSTER_FIELD, TrainingProvenance, row_cluster
 
 logger = logging.getLogger("DirectorAI.FineTune")
 
@@ -102,13 +103,16 @@ class FinetuneConfig:
     save_strategy: str = "epoch"
     gradient_accumulation_steps: int = 1
 
-    # Phase E: training optimization
+    # Phase E: training optimization. Replay mixing needs an explicit
+    # ``general_data_path``; the auto-benchmark needs an independent
+    # ``general_benchmark_path`` and otherwise reports ``reject``.
     mix_general_data: bool = False
     general_data_path: str | None = None
     general_data_ratio: float = 0.2
     early_stopping_patience: int = 0
     class_weighted_loss: bool = False
     auto_benchmark: bool = False
+    general_benchmark_path: str | None = None
     auto_onnx_export: bool = False
 
 
@@ -129,7 +133,11 @@ class FinetuneResult:
 
 
 def _load_jsonl(path: str | Path) -> list[TrainingRow]:
-    """Load JSONL dataset with premise/hypothesis/label fields."""
+    """Load JSONL rows with premise, hypothesis, label and optional cluster.
+
+    A valid ``source_cluster`` field is kept on the loaded row so that splits
+    and provenance can keep source clusters whole.
+    """
     rows: list[TrainingRow] = []
     with open(path, encoding="utf-8") as f:
         for line_num, line in enumerate(f, 1):
@@ -148,39 +156,60 @@ def _load_jsonl(path: str | Path) -> list[TrainingRow]:
                     line_num,
                 )
                 continue
-            rows.append(
-                {
-                    "premise": premise,
-                    "hypothesis": hypothesis,
-                    "label": int(label),
-                },
-            )
+            loaded: TrainingRow = {
+                "premise": premise,
+                "hypothesis": hypothesis,
+                "label": int(label),
+            }
+            cluster = row_cluster(row)
+            if cluster is not None:
+                loaded[SOURCE_CLUSTER_FIELD] = cluster
+            rows.append(loaded)
     logger.info("Loaded %d samples from %s", len(rows), path)
     return rows
 
 
 def _mix_general_data(
     domain_rows: list[TrainingRow],
-    general_path: str | Path | None,
+    general_path: str | Path,
     ratio: float,
     seed: int,
 ) -> tuple[list[TrainingRow], int]:
-    """Mix general-purpose NLI data into domain data to prevent catastrophic forgetting.
+    """Mix explicit general NLI replay rows into domain rows.
 
-    Returns (mixed_rows, n_general_added).
+    Replay data limits catastrophic forgetting. It is never chosen
+    implicitly: the caller names the file, and a missing or unusable file
+    raises instead of training silently without replay.
+
+    Parameters
+    ----------
+    domain_rows : list[TrainingRow]
+        Loaded domain training rows.
+    general_path : str or Path
+        JSONL replay rows.
+    ratio : float
+        Target replay share of the mixed set.
+    seed : int
+        Seed for sampling and shuffling.
+
+    Returns
+    -------
+    tuple[list[TrainingRow], int]
+        Mixed rows and the number of replay rows added.
+
+    Raises
+    ------
+    FileNotFoundError
+        If the replay file does not exist.
+    ValueError
+        If the replay file has no usable rows or invalid labels.
     """
-    if general_path is None:
-        pkg_dir = Path(__file__).parent.parent
-        general_path = pkg_dir / "data" / "aggrefact_benchmark_1k.jsonl"
-
     general_path = Path(general_path)
-    if not general_path.exists():
-        logger.warning("General data not found at %s, skipping mix", general_path)
-        return domain_rows, 0
+    if not general_path.is_file():
+        raise FileNotFoundError(f"replay data not found: {general_path}")
 
     general_rows = _load_jsonl(general_path)
-    if not general_rows:
-        return domain_rows, 0
+    _validate_loaded_training_rows(general_rows, general_path)
 
     n_general = int(len(domain_rows) * ratio / (1 - ratio))
     # Deterministic sampling keeps fine-tune mixes reproducible; this is not crypto.
@@ -377,6 +406,66 @@ def _make_weighted_trainer_class(class_weights: list[float]) -> type[Any]:
     return WeightedTrainer
 
 
+def _auto_benchmark(
+    config: FinetuneConfig,
+    eval_path: str | Path | None,
+) -> dict[str, Any]:
+    """Benchmark the saved model and summarise the verdict, failing closed.
+
+    Parameters
+    ----------
+    config : FinetuneConfig
+        Training configuration naming the saved model and general benchmark.
+    eval_path : str, Path or None
+        Domain evaluation rows reported alongside the general benchmark.
+
+    Returns
+    -------
+    dict[str, Any]
+        Recommendation, acceptability, accuracies, regression and reason. A
+        benchmark that raises yields ``reject``. When ``eval_path`` is given it
+        is the set that chose the best checkpoint, so its domain figure is
+        flagged with ``domain_set_selected_checkpoint``.
+    """
+    from director_ai.core.training.finetune_benchmark import (
+        benchmark_finetuned_model,
+    )
+
+    try:
+        report = benchmark_finetuned_model(
+            config.output_dir,
+            general_path=config.general_benchmark_path,
+            eval_path=eval_path,
+        )
+    except Exception as exc:
+        logger.warning("Auto-benchmark failed: %s", exc)
+        return {
+            "recommendation": "reject",
+            "regression_acceptable": False,
+            "general_accuracy": 0.0,
+            "domain_accuracy": 0.0,
+            "regression_pp": 0.0,
+            "reason": "auto-benchmark failed",
+            "domain_set_selected_checkpoint": eval_path is not None,
+        }
+    if eval_path is not None:
+        report.details["domain_set_selected_checkpoint"] = True
+    logger.info(
+        "Anti-regression: %s (%.1fpp)",
+        report.recommendation,
+        report.regression_pp,
+    )
+    return {
+        "recommendation": report.recommendation,
+        "regression_acceptable": report.regression_acceptable,
+        "general_accuracy": report.general_accuracy,
+        "domain_accuracy": report.domain_accuracy,
+        "regression_pp": report.regression_pp,
+        "reason": str(report.details.get("reason", "")),
+        "domain_set_selected_checkpoint": eval_path is not None,
+    }
+
+
 def finetune_nli(
     train_path: str | Path,
     eval_path: str | Path | None = None,
@@ -392,17 +481,29 @@ def finetune_nli(
 
     Returns
     -------
-    FinetuneResult with output_dir and best metrics.
+    FinetuneResult with output_dir and best metrics. The saved model
+    directory also holds the training provenance used by the
+    anti-regression benchmark.
 
     Raises
     ------
     ValueError
         If the loaded training or evaluation rows cannot train a binary NLI
-        classification head, or the warmup ratio is outside [0, 1].
+        classification head, replay mixing lacks an explicit path, evaluation
+        rows share content or a source cluster with training rows, or the
+        warmup ratio is outside [0, 1].
+    FileNotFoundError
+        If the configured replay file does not exist.
 
     """
     if config is None:
         config = FinetuneConfig()
+    replay_path = config.general_data_path
+    if config.mix_general_data and not replay_path:
+        raise ValueError(
+            "mix_general_data requires general_data_path; replay data is never "
+            "chosen implicitly"
+        )
 
     train_rows = _load_jsonl(train_path)
     _validate_loaded_training_rows(train_rows, train_path)
@@ -412,6 +513,24 @@ def finetune_nli(
         _validate_loaded_training_rows(eval_rows, eval_path)
     else:
         eval_rows = None
+
+    # Phase E: mix explicit replay data to prevent catastrophic forgetting
+    n_general_mixed = 0
+    if config.mix_general_data and replay_path:
+        train_rows, n_general_mixed = _mix_general_data(
+            train_rows,
+            replay_path,
+            config.general_data_ratio,
+            config.seed,
+        )
+    provenance = TrainingProvenance.from_rows(train_rows)
+    if eval_rows:
+        shared = provenance.overlapping_rows(eval_rows)
+        if shared:
+            raise ValueError(
+                f"{shared} evaluation rows share content or a source cluster "
+                "with the training rows; evaluation data must be independent"
+            )
 
     base_model_revision = resolve_model_revision(
         config.base_model,
@@ -432,16 +551,6 @@ def finetune_nli(
     from director_ai.core.scoring.nli import clear_model_cache
 
     clear_model_cache()
-
-    # Phase E: mix general data to prevent catastrophic forgetting
-    n_general_mixed = 0
-    if config.mix_general_data:
-        train_rows, n_general_mixed = _mix_general_data(
-            train_rows,
-            config.general_data_path,
-            config.general_data_ratio,
-            config.seed,
-        )
 
     # Phase E: compute class weights for imbalanced datasets
     class_weights = None
@@ -555,6 +664,7 @@ def finetune_nli(
 
         trainer.save_model(config.output_dir)
         tokenizer.save_pretrained(config.output_dir)
+        provenance.write(config.output_dir)
         logger.info("Model saved to %s", config.output_dir)
 
         result = FinetuneResult(
@@ -580,28 +690,7 @@ def finetune_nli(
 
         # Phase E: auto-benchmark against baseline
         if config.auto_benchmark:
-            try:
-                from director_ai.core.training.finetune_benchmark import (
-                    benchmark_finetuned_model,
-                )
-
-                report = benchmark_finetuned_model(
-                    config.output_dir,
-                    eval_path=eval_path,
-                )
-                result.regression_report = {
-                    "recommendation": report.recommendation,
-                    "general_accuracy": report.general_accuracy,
-                    "domain_accuracy": report.domain_accuracy,
-                    "regression_pp": report.regression_pp,
-                }
-                logger.info(
-                    "Anti-regression: %s (%.1fpp)",
-                    report.recommendation,
-                    report.regression_pp,
-                )
-            except Exception as exc:
-                logger.warning("Auto-benchmark failed: %s", exc)
+            result.regression_report = _auto_benchmark(config, eval_path)
 
         # Phase E: auto ONNX export
         if config.auto_onnx_export:

@@ -20,7 +20,7 @@ from __future__ import annotations
 from typing import Any
 
 try:
-    from pydantic import BaseModel, ConfigDict, Field
+    from pydantic import BaseModel, ConfigDict, Field, field_validator
 
     _FASTAPI_AVAILABLE = True
 except ImportError:
@@ -70,7 +70,8 @@ if _FASTAPI_AVAILABLE:
         learning_rate : float
             Positive learning rate, at most 0.001; defaults to 0.00002.
         mix_general_data : bool
-            Whether to mix general examples into training; false by default.
+            Must stay false. Replay mixing needs an explicit replay dataset,
+            which this request cannot name, so true is refused.
         general_data_ratio : float
             General-example proportion from 0 to 0.5; defaults to 0.2.
         early_stopping_patience : int
@@ -79,6 +80,8 @@ if _FASTAPI_AVAILABLE:
             Whether to weight loss by class frequency; false by default.
         auto_benchmark : bool
             Whether to request automatic local benchmarking; true by default.
+            Without an independent general benchmark the report says
+            ``reject``; this request cannot name one.
         auto_onnx_export : bool
             Whether to request ONNX export; false by default.
         """
@@ -94,6 +97,17 @@ if _FASTAPI_AVAILABLE:
         class_weighted_loss: bool = False
         auto_benchmark: bool = True
         auto_onnx_export: bool = False
+
+        @field_validator("mix_general_data")
+        @classmethod
+        def _refuse_implicit_replay(cls, value: bool) -> bool:
+            """Refuse replay mixing that has no explicit replay dataset."""
+            if value:
+                raise ValueError(
+                    "mix_general_data needs an explicit replay dataset, which "
+                    "this request cannot supply"
+                )
+            return value
 
     class JobStatus(BaseModel):
         """Public job progress response."""

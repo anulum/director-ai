@@ -22,6 +22,7 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from director_ai.core.config import DirectorConfig
+from director_ai.core.training.training_provenance import TrainingProvenance
 from director_ai.finetune_api import FinetuneJob
 from director_ai.server import create_app
 
@@ -175,7 +176,9 @@ def test_benchmark_malformed_dataset_maps_native_attribute_error(
     """Actual malformed JSONL produces a fixed per-model failure sentence."""
     job_id = "a" * 32
     model = tmp_path / "models" / "candidate"
-    model.mkdir()
+    TrainingProvenance.from_rows(
+        [{"premise": "trained", "hypothesis": "row", "label": 0}]
+    ).write(model)
     job = FinetuneJob(
         job_id=job_id,
         state="completed",
