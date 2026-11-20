@@ -79,6 +79,9 @@ The command returns 0 only when readiness, warmup stability, p95, and error-rate
 checks pass; a target miss returns 2 while still writing a verifiable evidence
 packet.
 
+An HTTP success must carry a boolean `approved` verdict and a finite numeric
+`coherence` score from 0 to 1. Invalid review fields count as protocol errors.
+
 The packet is safe to retain in an internal evidence store: it contains only
 aggregate measurements, workload identity, failure categories, and non-secret
 runtime provenance. It does not contain API keys or raw prompt/response bodies.

@@ -347,7 +347,9 @@ director-ai latency-slo \
 
 The command checks `/v1/ready`, sends a fixed benign workload through the real
 `/v1/review` HTTP boundary, excludes warmup requests, and exits with status 2
-when either the p95 or error-rate target is missed. Its integrity packet records
+when either the p95 or error-rate target is missed. Successful reviews require
+a boolean `approved` verdict and a finite numeric `coherence` score from 0 to 1.
+Its integrity packet records
 the operating point, aggregate p50/p95/p99, throughput, runtime provenance,
 workload hash, and failure categories. It never records the API key or raw
 prompt/response bodies.

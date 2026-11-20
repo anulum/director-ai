@@ -154,10 +154,14 @@ def _request_once(config: LatencySLOConfig, index: int) -> _RequestMeasurement:
             body = result.json()
         except ValueError:
             return _RequestMeasurement(latency_ms, False, "invalid_json")
-        if not isinstance(body, dict) or not {
-            "approved",
-            "coherence",
-        }.issubset(body):
+        if not isinstance(body, dict) or not isinstance(body.get("approved"), bool):
+            return _RequestMeasurement(latency_ms, False, "invalid_response")
+        coherence = body.get("coherence")
+        if (
+            isinstance(coherence, bool)
+            or not isinstance(coherence, int | float)
+            or not 0.0 <= coherence <= 1.0
+        ):
             return _RequestMeasurement(latency_ms, False, "invalid_response")
         return _RequestMeasurement(latency_ms, True)
     except requests.Timeout:

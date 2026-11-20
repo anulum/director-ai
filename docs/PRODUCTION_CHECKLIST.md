@@ -344,8 +344,9 @@ director-ai latency-slo \
 ```
 
 Treat the target as an operator-approved deployment SLO, not a universal
-Director-AI guarantee. Archive the integrity packet and repeat the gate after
-changes to the model, image, hardware, queue, proxy, or concurrency target.
+Director-AI guarantee. The gate counts invalid verdict or coherence fields in
+its protocol error rate. Archive the integrity packet and repeat the gate
+after changes to the model, image, hardware, queue, proxy, or concurrency target.
 
 ---
 

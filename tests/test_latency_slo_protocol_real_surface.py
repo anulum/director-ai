@@ -180,6 +180,32 @@ def test_readiness_protocol_failures_are_classified_without_response_leakage(
         (_ProtocolReply(body=b"not-json"), "invalid_json"),
         (_ProtocolReply(body=b'{"approved":true}'), "invalid_response"),
         (_ProtocolReply(body=b"[]"), "invalid_response"),
+        (
+            _ProtocolReply(body=b'{"approved":"true","coherence":0.9}'),
+            "invalid_response",
+        ),
+        (_ProtocolReply(body=b'{"approved":1,"coherence":0.9}'), "invalid_response"),
+        (
+            _ProtocolReply(body=b'{"approved":true,"coherence":"0.9"}'),
+            "invalid_response",
+        ),
+        (
+            _ProtocolReply(body=b'{"approved":true,"coherence":null}'),
+            "invalid_response",
+        ),
+        (
+            _ProtocolReply(body=b'{"approved":true,"coherence":true}'),
+            "invalid_response",
+        ),
+        (
+            _ProtocolReply(body=b'{"approved":true,"coherence":-0.1}'),
+            "invalid_response",
+        ),
+        (_ProtocolReply(body=b'{"approved":true,"coherence":1.1}'), "invalid_response"),
+        (
+            _ProtocolReply(body=b'{"approved":true,"coherence":1e999}'),
+            "invalid_response",
+        ),
         (_ProtocolReply(delay_s=0.2), "timeout"),
         (_ProtocolReply(disconnect=True), "transport_error"),
     ],
@@ -208,6 +234,34 @@ def test_review_protocol_failures_count_towards_the_error_rate(
     assert measurements["failed"] == 1
     assert measurements["failure_categories"] == {category: 1}
     assert packet["content"]["qualification"]["passed"] is False
+
+
+@pytest.mark.parametrize(
+    "body",
+    [
+        b'{"approved":false,"coherence":0}',
+        b'{"approved":true,"coherence":1}',
+    ],
+)
+def test_review_qualification_accepts_boolean_verdicts_and_unit_score_bounds(
+    body: bytes,
+) -> None:
+    """A valid rejection and both unit-interval limits count as HTTP success."""
+    state = _ProtocolState(reviews=[_ProtocolReply(body=body)])
+    with _LiveProtocolServer(state) as server:
+        packet = run_latency_slo(
+            LatencySLOConfig(
+                server_url=server.base_url,
+                request_count=1,
+                warmup_count=0,
+                concurrency=1,
+                target_p95_ms=5_000.0,
+                max_error_rate=0.0,
+            )
+        )
+
+    assert packet["content"]["measurements"]["successful"] == 1
+    assert packet["content"]["qualification"]["passed"] is True
 
 
 def test_warmup_instability_and_measured_target_miss_both_fail_the_gate() -> None:
