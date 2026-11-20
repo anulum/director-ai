@@ -38,19 +38,26 @@ export ScoredExample, balanced_accuracy, optimise_threshold,
        TuneResult, tune, load_scores_jsonl, save_result_json
 
 """
-    ScoredExample
+    ScoredExample(score, label)
 
 One labelled observation from a scorer run.
 
 Fields:
-- `score::Float64` — scorer output in ``[0, 1]`` (higher = more
-  confident the response is grounded / supported).
+- `score::Float64` — finite scorer output. Higher values indicate stronger
+  grounding. Finite values outside ``[0, 1]`` retain their original value.
 - `label::Bool` — ground-truth label (`true` = grounded,
   `false` = hallucinated). Mapped from 0/1 integers on load.
 """
 struct ScoredExample
     score::Float64
     label::Bool
+
+    """Construct an observation after verifying its converted score is finite."""
+    function ScoredExample(score, label)
+        converted = convert(Float64, score)
+        isfinite(converted) || throw(ArgumentError("score must be finite"))
+        return new(converted, label)
+    end
 end
 
 """
@@ -207,21 +214,31 @@ end
     load_scores_jsonl(path) -> Vector{ScoredExample}
 
 Read a JSON-lines file. Each line must be an object with at least a
-numeric `score` field and a `label` field (accepted as boolean, 0/1,
-or the strings "true"/"false"). Other keys are ignored, so the
+numeric `score` field representable as a finite `Float64` and a `label` field
+(accepted as boolean, 0/1, or the strings "true"/"false"). Score and JSON
+syntax errors report the physical input line. Other keys are ignored so the
 Python feeder can emit a superset of fields.
 """
 function load_scores_jsonl(path::AbstractString)
     out = ScoredExample[]
     open(path, "r") do io
-        for line in eachline(io)
+        for (lineno, line) in enumerate(eachline(io))
             stripped = strip(line)
             isempty(stripped) && continue
-            obj = JSON.parse(stripped)
+            obj = try
+                JSON.parse(stripped)
+            catch err
+                err isa ArgumentError || rethrow()
+                throw(ArgumentError("line $lineno: invalid JSON"))
+            end
             obj isa AbstractDict || throw(ArgumentError("expected a JSON object"))
             haskey(obj, "score") || throw(ArgumentError("missing 'score'"))
             haskey(obj, "label") || throw(ArgumentError("missing 'label'"))
-            score = Float64(obj["score"])
+            raw_score = obj["score"]
+            raw_score isa Real ||
+                throw(ArgumentError("line $lineno: score must be numeric"))
+            score = Float64(raw_score)
+            isfinite(score) || throw(ArgumentError("line $lineno: score must be finite"))
             raw_label = obj["label"]
             label = _coerce_label(raw_label)
             push!(out, ScoredExample(score, label))

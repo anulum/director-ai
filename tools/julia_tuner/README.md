@@ -90,10 +90,16 @@ One JSON object per line, UTF-8:
 {"score": 0.31, "label": false, "source": "aggrefact:summ"}
 ```
 
-- `score` — scorer output. Any real number; typically in `[0, 1]`.
+- `score` — numeric scorer output representable as a finite `Float64`,
+  typically in `[0, 1]`. The JSONL loader reports the line for invalid scores.
+  The Julia `ScoredExample` constructor also rejects NaN and infinities.
 - `label` — ground-truth boolean, `0`/`1`, or one of
   `"true"/"false"/"supported"/"unsupported"/"grounded"/"hallucinated"`.
 - `source` — optional input metadata. The tuner ignores this field.
+
+Finite scores below 0 or above 1 retain their value. With the default grid
+they always predict the same class at every threshold and contribute a
+constant likelihood factor to the Bayesian posterior.
 
 ## Output format
 

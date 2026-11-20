@@ -140,6 +140,16 @@ end
     end
 end
 
+@testset "ScoredExample score validity" begin
+    for score in (NaN, Inf, -Inf, big"1e999")
+        @test_throws ArgumentError("score must be finite") ScoredExample(score, true)
+    end
+    extremes = [ScoredExample(-0.25, false), ScoredExample(1.25, true)]
+    @test extremes[1].score == -0.25
+    @test extremes[2].score == 1.25
+    @test balanced_accuracy(extremes, 0.0) == balanced_accuracy(extremes, 1.0) == 1.0
+end
+
 @testset "load_scores_jsonl" begin
     @testset "parses valid records" begin
         mktempdir() do dir
@@ -173,6 +183,24 @@ end
             p = joinpath(dir, "array.jsonl")
             write(p, "[0.9, true]\n")
             @test_throws ArgumentError load_scores_jsonl(p)
+        end
+    end
+    @testset "reports the physical line of invalid scores" begin
+        mktempdir() do dir
+            p = joinpath(dir, "bad-scores.jsonl")
+            for (score, message) in (
+                ("NaN", "line 3: invalid JSON"),
+                ("Infinity", "line 3: invalid JSON"),
+                ("-Infinity", "line 3: invalid JSON"),
+                ("1e999", "line 3: score must be finite"),
+                ("-1e999", "line 3: score must be finite"),
+                ("\"NaN\"", "line 3: score must be numeric"),
+            )
+                write(p, "{\"score\":0.8,\"label\":true}\n\n{\"score\":$score,\"label\":false}\n")
+                @test_throws ArgumentError(message) load_scores_jsonl(p)
+            end
+            write(p, "{\"score\":-0.25,\"label\":false}\n{\"score\":1.25,\"label\":true}\n")
+            @test getfield.(load_scores_jsonl(p), :score) == [-0.25, 1.25]
         end
     end
     @testset "rejects bad label strings" begin

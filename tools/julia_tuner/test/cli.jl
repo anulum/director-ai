@@ -71,5 +71,13 @@ end
             @test result["bayesian"]["lo"] ≈ 0.12333050586352708
             @test result["bayesian"]["hi"] ≈ 0.9994250598923783
         end
+
+        write(input, "{\"score\":0.8,\"label\":true}\n\n{\"score\":1e999,\"label\":false}\n")
+        output = joinpath(directory, "seeded.json")
+        original_result = read(output)
+        invalid = run_tuner(script, "--input", input, "--output", output)
+        @test invalid.status != 0
+        @test occursin("line 3: score must be finite", invalid.errors)
+        @test read(output) == original_result
     end
 end
