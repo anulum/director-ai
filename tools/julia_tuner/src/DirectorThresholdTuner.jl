@@ -42,6 +42,9 @@ export ScoredExample, balanced_accuracy, optimise_threshold,
 
 One labelled observation from a scorer run.
 
+The constructor accepts numeric scores convertible to a finite `Float64`.
+Boolean scores raise `ArgumentError`.
+
 Fields:
 - `score::Float64` — finite scorer output. Higher values indicate stronger
   grounding. Finite values outside ``[0, 1]`` retain their original value.
@@ -52,8 +55,9 @@ struct ScoredExample
     score::Float64
     label::Bool
 
-    """Construct an observation after verifying its converted score is finite."""
+    """Construct an observation with a finite score."""
     function ScoredExample(score, label)
+        score isa Bool && throw(ArgumentError("score must be numeric"))
         converted = convert(Float64, score)
         isfinite(converted) || throw(ArgumentError("score must be finite"))
         return new(converted, label)
@@ -235,14 +239,15 @@ function load_scores_jsonl(path::AbstractString)
             haskey(obj, "score") || throw(ArgumentError("missing 'score'"))
             haskey(obj, "label") || throw(ArgumentError("missing 'label'"))
             raw_score = obj["score"]
-            if !(raw_score isa Real) || raw_score isa Bool
-                throw(ArgumentError("line $lineno: score must be numeric"))
+            raw_score isa Real || throw(ArgumentError("line $lineno: score must be numeric"))
+            label = _coerce_label(obj["label"])
+            example = try
+                ScoredExample(raw_score, label)
+            catch err
+                err isa ArgumentError || rethrow()
+                throw(ArgumentError("line $lineno: $(err.msg)"))
             end
-            score = Float64(raw_score)
-            isfinite(score) || throw(ArgumentError("line $lineno: score must be finite"))
-            raw_label = obj["label"]
-            label = _coerce_label(raw_label)
-            push!(out, ScoredExample(score, label))
+            push!(out, example)
         end
     end
     return out

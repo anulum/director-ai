@@ -93,7 +93,7 @@ One JSON object per line, UTF-8:
 - `score` — a JSON number representable as a finite `Float64`, typically
   in `[0, 1]`. Numeric `0` and `1` are valid scores. The JSONL loader
   rejects boolean scores and reports the line for invalid scores.
-  The Julia `ScoredExample` constructor also rejects NaN and infinities.
+  The Julia `ScoredExample` constructor also rejects booleans, NaN and infinities.
 - `label` — ground-truth boolean, `0`/`1`, or one of
   `"true"/"false"/"supported"/"unsupported"/"grounded"/"hallucinated"`.
 - `source` — optional input metadata. The tuner ignores this field.

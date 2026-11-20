@@ -141,6 +141,12 @@ end
 end
 
 @testset "ScoredExample score validity" begin
+    for score in (true, false)
+        @test_throws ArgumentError("score must be numeric") ScoredExample(score, true)
+    end
+    @test ScoredExample(0, false) == ScoredExample(0.0, false)
+    @test ScoredExample(1, true) == ScoredExample(1.0, true)
+    @test ScoredExample(1 // 2, true) == ScoredExample(0.5, true)
     for score in (NaN, Inf, -Inf, big"1e999")
         @test_throws ArgumentError("score must be finite") ScoredExample(score, true)
     end
