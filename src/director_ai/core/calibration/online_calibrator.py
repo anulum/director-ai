@@ -16,7 +16,7 @@ Usage::
     calibrator = OnlineCalibrator(store)
     report = calibrator.calibrate()
     print(f"Optimal threshold: {report.optimal_threshold}")
-    print(f"FPR: {report.fpr:.3f} ± {report.fpr_ci:.3f}")
+    print(f"False approval rate: {report.fpr:.3f}")
 """
 
 from __future__ import annotations
@@ -78,7 +78,12 @@ def _wilson_ci(successes: int, total: int, z: float = 1.96) -> float:
 
 @dataclass
 class CalibrationReport:
-    """Result of online threshold calibration."""
+    """Result of online threshold calibration.
+
+    Approval is positive. FPR measures false approvals among human-rejected
+    reviews, and FNR measures false rejections among human-approved reviews.
+    The Wilson fields store the half-width about the Wilson centre.
+    """
 
     correction_count: int
     optimal_threshold: float | None  # None if insufficient data

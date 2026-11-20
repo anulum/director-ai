@@ -14,7 +14,7 @@ Director-AI — ProductionGuard guide
 
 `ProductionGuard` is the batteries-included entry point for production
 deployments. It bundles calibrated scoring, human feedback loop, conformal
-confidence intervals, agent tool-call verification, injection detection, and
+risk intervals, agent tool-call verification, injection detection, and
 optional deterministic sector-policy checks into a single API.
 
 ## Quick Start
@@ -77,10 +77,10 @@ flows, and labelled calibration traces.
 
 ## With Calibration
 
-Enable online calibration to get confidence intervals and adaptive thresholds:
+Enable calibration to compute routing intervals and adaptive thresholds.
 
 ```python
-guard.enable_calibration(alpha=0.1)  # 90% confidence intervals
+guard.enable_calibration(alpha=0.1)  # 90% target coverage
 
 result = guard.check("What is the max dose?", "Max 400mg per dose.")
 print(result.confidence_interval)  # (0.72, 0.89)
@@ -169,7 +169,7 @@ guard = ProductionGuard(
 |--------|-------------|
 | `from_profile(name)` | Create from a named profile (fast, medical, finance, etc.) |
 | `load_facts(facts)` | Load key-value facts into the knowledge base |
-| `enable_calibration(alpha)` | Enable online calibration with conformal CIs |
+| `enable_calibration(alpha)` | Enable calibration with conformal routing intervals |
 | `check(prompt, response, sector_policy=...)` | Score a response, optionally run a deterministic sector policy, return `GuardResult` |
 | `check_verified(response, source)` | Per-claim verification against source text |
 | `check_injection(intent, response, ...)` | Detect injection effects, return `InjectionResult` |
@@ -183,7 +183,7 @@ guard = ProductionGuard(
 | `approved` | `bool` | Whether the response passed |
 | `score` | `float` | Coherence score [0, 1] |
 | `coherence` | `CoherenceScore` | Full scoring details |
-| `confidence_interval` | `tuple[float, float] | None` | Conformal CI (if calibration enabled) |
+| `confidence_interval` | `tuple[float, float] | None` | Conformal routing bounds (if calibration enabled) |
 | `calibrated_threshold` | `float | None` | Adjusted threshold (if calibration enabled) |
 | `sector_policy_report` | `BankingPolicyReport | None` | Deterministic sector-policy result when `sector_policy` is set |
 
@@ -191,4 +191,6 @@ guard = ProductionGuard(
 `GuardResult.confidence_interval` tuple and records operator feedback through
 `ConformalPredictor.add_observation()`. Deployments that need a routing outcome
 instead of only an interval can pass the score to `ConformalRoutingPolicy` and
-route by calibrated upper/lower risk bounds.
+route by the upper and lower risk bounds. See [calibration and
+coverage](online-calibration.md#scores-and-abstention) for the assumptions and
+limits of the interval.

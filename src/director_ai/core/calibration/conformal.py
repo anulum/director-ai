@@ -4,15 +4,12 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-"""Conformal prediction intervals for guardrail decisions.
+"""Conformal routing intervals for guardrail decisions.
 
-Provides calibrated, distribution-free uncertainty estimates on
-hallucination probability. Instead of binary approved/rejected,
-returns a prediction interval: "95% confident hallucination
-probability is between 5% and 15%."
-
-Implements split conformal prediction using accumulated human
-feedback from FeedbackStore as calibration data.
+Use residuals against reviewed binary labels to construct intervals around
+the inverted coherence score. The target coverage is marginal under
+exchangeability and a suitable calibration quantile. Validate coverage on
+the deployment population and use the interval to choose a route.
 
 Reference: Mohri & Hashimoto (ICML 2024), "Conformal Factuality."
 """
@@ -66,7 +63,7 @@ except Exception:  # pragma: no cover - mandatory dependency
 
 @dataclass
 class PredictionInterval:
-    """Calibrated prediction interval for hallucination probability."""
+    """Routing interval based on residuals against binary review labels."""
 
     point_estimate: float  # P(hallucination) point estimate from score
     lower: float  # lower bound (e.g., 5%)
@@ -256,7 +253,7 @@ class ConformalPredictor:
         self.calibrate(scores, labels)
 
     def predict(self, score: float) -> PredictionInterval:
-        """Predict hallucination probability interval for a new score.
+        """Compute a routing interval for a new coherence score.
 
         Parameters
         ----------
@@ -266,7 +263,7 @@ class ConformalPredictor:
         Returns
         -------
         PredictionInterval
-            Calibrated interval with coverage guarantee.
+            Routing interval with target coverage and calibration sample count.
         """
         n = len(self._scores)
         point_est = self._score_to_prob(score)
@@ -358,8 +355,5 @@ class ConformalPredictor:
 
     @staticmethod
     def _score_to_prob(score: float) -> float:
-        """Convert coherence score to hallucination probability.
-
-        Simple inversion: P(hallucination) ≈ 1 - score.
-        """
+        """Return the clipped inverse coherence score used as a risk estimate."""
         return max(0.0, min(1.0, 1.0 - score))

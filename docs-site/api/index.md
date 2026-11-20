@@ -136,7 +136,7 @@ For the product and pilot context around these APIs, see
 | `ConsensusScorer` | `director_ai.core.scoring.consensus` | Cross-model factual agreement |
 | `CrossVerifierConsensus` | `director_ai.core.scoring.consensus` | Critical-domain verifier fusion with required coverage and calibrated risk interval |
 | `ByzantineFaultTolerantConsensus` | `director_ai.core.scoring.consensus` | PBFT-style verifier vote quorum |
-| `ConformalPredictor` | `director_ai.core.calibration.conformal` | Calibrated P(hallucination) intervals |
+| `ConformalPredictor` | `director_ai.core.calibration.conformal` | Risk routing intervals from binary-label residuals |
 | `ConformalRoutingPolicy` | `director_ai.core.calibration.conformal` | Conservative allow, human-review, stronger-model, and reject routing from conformal risk bounds |
 | `ConformalRoutingDecision` | `director_ai.core.calibration.conformal` | Evidence-carrying route decision for calibrated uncertainty |
 | `FeedbackLoopDetector` | `director_ai.compliance.feedback_loop_detector` | EU AI Act Art 15(4) feedback loop detection |
@@ -190,7 +190,7 @@ See [Structured Verification Guide](../guide/structured-verification.md).
 | Class | Module | Purpose |
 |-------|--------|---------|
 | `FeedbackStore` | `core.calibration.feedback_store` | SQLite-backed human correction store |
-| `OnlineCalibrator` | `core.calibration.online_calibrator` | Threshold sweep + FPR/FNR with Wilson CIs |
+| `OnlineCalibrator` | `core.calibration.online_calibrator` | Threshold sweep and reviewed error rates with Wilson half-widths |
 | `CalibrationReport` | `core.calibration.online_calibrator` | Calibration metrics dataclass |
 | `HumanReviewQueue` | `core.runtime.human_review` | Reviewer case queue with append-only decisions |
 | `AdaptiveThresholdLearner` | `core.calibration.adaptive_threshold` | Human-gated Thompson-sampling threshold recommender |

@@ -1,3 +1,13 @@
+<!--
+SPDX-License-Identifier: CC-BY-4.0
+Commercial license available
+© Concepts 1996–2026 Miroslav Šotek. All rights reserved.
+© Code 2020–2026 Miroslav Šotek. All rights reserved.
+ORCID: 0009-0009-3560-0851
+Contact: www.anulum.li | protoscience@anulum.li
+Director-AI — Verification Gems
+-->
+
 # Verification Gems
 
 Director-AI v3.10 includes standalone verification and analysis modules
@@ -194,8 +204,10 @@ curl -X POST http://localhost:8080/v1/consensus \
 
 ## Conformal Prediction Intervals
 
-Calibrated, distribution-free uncertainty on hallucination probability.
-Based on Mohri & Hashimoto (ICML 2024).
+The predictor builds a routing interval from errors on reviewed binary
+labels. This six-case example falls below the default sample floor.
+The policy routes the result to human review. See [calibration and
+coverage](online-calibration.md#scores-and-abstention).
 
 ```python
 from director_ai import ConformalPredictor, ConformalRoutingPolicy
@@ -206,7 +218,7 @@ predictor.calibrate(
     labels=[False, False, True, True, False, True],
 )
 interval = predictor.predict(score=0.7)
-print(f"P(hallucination) in [{interval.lower:.2f}, {interval.upper:.2f}]")
+print(f"Routing interval: [{interval.lower:.2f}, {interval.upper:.2f}]")
 print(f"Reliable: {interval.is_reliable}")
 
 policy = ConformalRoutingPolicy(

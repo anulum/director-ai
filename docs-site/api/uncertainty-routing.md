@@ -1,9 +1,20 @@
+<!--
+SPDX-License-Identifier: CC-BY-4.0
+Commercial license available
+© Concepts 1996–2026 Miroslav Šotek. All rights reserved.
+© Code 2020–2026 Miroslav Šotek. All rights reserved.
+ORCID: 0009-0009-3560-0851
+Contact: www.anulum.li | protoscience@anulum.li
+Director-AI — Conformal and uncertainty-aware routing
+-->
+
 # Conformal & Uncertainty-Aware Routing
 
 `UncertaintyRouter` turns a calibrated hallucination interval into a downstream
 action. Where `RiskRouter` routes *inputs* to a scoring backend, this router
-acts on the *output*: it consumes the conformal `PredictionInterval` over
-hallucination probability and applies documented risk bounds.
+acts on the *output*. It consumes a conformal `PredictionInterval` and
+applies risk bounds to select a route. The bounds use residuals against
+binary review labels. See [calibration and coverage](../guide/online-calibration.md#scores-and-abstention).
 
 | Condition | Action |
 |---|---|
@@ -20,8 +31,8 @@ the action — to a review queue for `escalate_human`, to a stronger model for
 ## Online calibration
 
 `ConformalPredictor.add_observation(score, correct_label)` folds one human
-verdict into the calibration set and refreshes the conformal quantile, so the
-intervals tighten as feedback accumulates. `correct_label=True` marks a correct
+verdict into the calibration set and refreshes the conformal quantile.
+The intervals can widen as new errors enter the sample. `correct_label=True` marks a correct
 (non-hallucinated) response.
 
 ```python

@@ -1,3 +1,13 @@
+<!--
+SPDX-License-Identifier: CC-BY-4.0
+Commercial license available
+© Concepts 1996–2026 Miroslav Šotek. All rights reserved.
+© Code 2020–2026 Miroslav Šotek. All rights reserved.
+ORCID: 0009-0009-3560-0851
+Contact: www.anulum.li | protoscience@anulum.li
+Director-AI — Production Deployment Guide
+-->
+
 # Production Deployment Guide
 
 ## Architecture
@@ -131,6 +141,18 @@ scorer.enable_injection_detection(
     baseline_divergence=0.4,
 )
 ```
+
+## Calibrate on deployment traffic
+
+Use reviewed requests from the target model, domain and retrieval path.
+Record the starting score policy and fit a candidate on representative
+labelled data. The [operating-points command](../guide/online-calibration.md#task-routed-operating-points)
+writes a candidate overlay for the dialogue and summarization support routes.
+Use [reviewed feedback](../guide/online-calibration.md#calibrating) to measure
+false approvals and false rejections and propose a coherence threshold.
+Before applying either change, check errors, abstentions and sample counts
+on separate labelled data. Recheck those metrics when the environment or
+traffic changes.
 
 ## Scaling
 

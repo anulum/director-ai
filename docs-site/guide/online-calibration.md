@@ -1,12 +1,49 @@
+<!--
+SPDX-License-Identifier: CC-BY-4.0
+Commercial license available
+© Concepts 1996–2026 Miroslav Šotek. All rights reserved.
+© Code 2020–2026 Miroslav Šotek. All rights reserved.
+ORCID: 0009-0009-3560-0851
+Contact: www.anulum.li | protoscience@anulum.li
+Director-AI — Online Calibration
+-->
+
 # Online Calibration
 
 Improve the guardrail from reviewed production feedback. Feedback can propose
 better thresholds and training jobs, but runtime changes still require an
 explicit deployment approval.
 
-## Why Online Calibration?
+## Scores and abstention
 
-Every guardrail ships with a default threshold (0.30 for director-ai). But the optimal threshold depends on your deployment: your documents, your domain, your tolerance for false positives vs false negatives. Online calibration collects human corrections and proposes threshold updates that minimise errors on your actual data.
+`CoherenceScore.score` is the configured scorer's composite coherence signal.
+Higher scores indicate stronger coherence on that route. Read `approved`
+for the policy decision, since task-specific gates, strict mode and other
+checks can also affect it. A score of 0.8 gives no probability that an
+answer is true. The default `DirectorConfig.coherence_threshold` is 0.60
+and serves as a starting point. Review the effective profile and scorer
+for each deployment.
+
+If grounding is expected and `abstained` is true, retrieval yielded no
+usable evidence for the factual signal. The logical signal can still produce
+a verdict. Route these cases to review or obtain better evidence before
+accepting them as grounded. Report **selective coverage** as the fraction
+of eligible requests receiving a decision without abstention. Report error
+rates on that selected subset with their denominators and keep the
+abstention rate visible. A stricter policy can lower coverage even when its
+error rate on selected requests improves.
+
+A conformal routing interval is derived from residuals against reviewed
+binary labels. `coverage` is the requested target and `is_reliable` measures
+whether the sample-count floor was met. An uncalibrated predictor returns
+the full range `[0, 1]`, and the routing policy sends unreliable estimates
+to human review. Standard split-conformal coverage is marginal over
+exchangeable calibration and evaluation examples with a suitable
+calibration quantile. It does not establish a case-specific probability,
+coverage for every tenant or an error ceiling on automatically approved
+answers. Evaluate deployment coverage and error separately by task and
+recheck after changes to the model, retrieval, prompts or traffic mix.
+[Split-conformal assumptions](https://arxiv.org/abs/2107.07511)
 
 ## Workflow
 
@@ -62,8 +99,8 @@ report = calibrator.calibrate()
 
 print(f"Corrections: {report.correction_count}")
 print(f"Current accuracy: {report.current_accuracy:.1%}")
-print(f"FPR: {report.fpr:.3f} ± {report.fpr_ci:.3f}")
-print(f"FNR: {report.fnr:.3f} ± {report.fnr_ci:.3f}")
+print(f"False approval rate: {report.fpr:.3f}")
+print(f"False rejection rate: {report.fnr:.3f}")
 
 if report.optimal_threshold is not None:
     print(f"Optimal threshold: {report.optimal_threshold}")
@@ -74,23 +111,78 @@ else:
 ### Per-Domain Calibration
 
 ```python
-# Calibrate medical domain separately
-med_report = calibrator.calibrate(domain="medical")
-fin_report = calibrator.calibrate(domain="finance")
-
-print(f"Medical FPR: {med_report.fpr:.3f}")
-print(f"Finance FPR: {fin_report.fpr:.3f}")
+support_report = calibrator.calibrate(domain="customer_support")
+print(f"Reviewed responses: {support_report.correction_count}")
+print(f"Proposed threshold: {support_report.optimal_threshold}")
 ```
 
-### Confidence Intervals
+### Error rates and confidence intervals
 
-Error rates include Wilson score 95% confidence intervals. With 50 corrections where 3 are false positives:
+In `CalibrationReport`, approval is the positive class. `fpr` counts false
+approvals among responses humans rejected. `fnr` counts false rejections
+among responses humans approved. Preserve those two denominators. A zero
+rate with no examples of that class is an unavailable estimate. A threshold
+proposal also needs enough positively scored examples and both label classes.
+The proposal maximizes balanced accuracy over the selected feedback and
+needs separate evaluation on held-out reviews.
 
+For example, 3 false approvals among 50 human-rejected responses give an
+observed rate of `3/50 = 0.0600` and a Wilson 95% interval of
+`[0.0206, 0.1622]`. The report's `fpr_ci` and `fnr_ci` fields carry the
+interval half-width. Wilson intervals are centred differently from the
+observed proportion, so adding and subtracting those fields from the
+observed rate does not recover the endpoints. [Wilson intervals](https://www.itl.nist.gov/div898/handbook/prc/section2/prc241.htm)
+
+The interval expresses sampling uncertainty under the binomial model for a
+specified review population. Targeted feedback, correlated examples and
+traffic drift can limit how far that estimate generalizes. Publish the
+review population, sample counts, model revision, KB snapshot and policy
+together. Use a separate, representative evaluation before adopting a
+candidate threshold and monitor error and coverage after deployment.
+
+## Task-routed operating points
+
+Keep the deployed NLI checker and premise composition when scoring the
+calibration samples. Use JSONL records with `prompt`, `response` and a
+boolean `label` that is true for a correct response.
+
+```bash
+DIRECTOR_USE_NLI=true DIRECTOR_SCORER_BACKEND=deberta \
+  director-ai operating-points calibration.jsonl \
+  --target-fpr dialogue=0.045 --target-fpr summarization=0.025 \
+  --output operating-points.env
 ```
-FPR: 0.060 ± 0.042  (95% CI: [0.018, 0.102])
-```
 
-This is what makes "we guarantee <X% hallucination rate" measurable per deployment — not a marketing claim, but a statistical fact with confidence bounds.
+This example selects the model-backed DeBERTa path. If the deployment uses
+ONNX, use its configured ONNX model for calibration. The automatic backend
+can select the Rust heuristic, which cannot supply raw NLI support for
+this command. Review the generated environment overlay before deployment.
+
+The command uses a different convention from feedback reports. Here, FPR counts
+**false rejections of correct responses**, and catch rate counts rejected
+incorrect responses. The fitted FPR is measured on the input sample.
+A route with no correct examples cannot be calibrated. A route with no
+incorrect examples reports catch rate as `n/a`.
+
+In the archived NLI-only HaluEval evaluation on an NVIDIA L4, the labelled
+pair calibration and the end-to-end harness used different premise
+composition paths. The reports show why a calibration target needs
+independent validation on the deployment path.
+
+| Route | Target false rejection | Pair calibration | End-to-end |
+| --- | ---: | ---: | ---: |
+| Dialogue | 4.5% | 8/191 (4.2%) | 17/200 (8.5%) |
+| Summarization, weakest link | 2.5% | 4/188 (2.1%) | 10/200 (5.0%) |
+
+[Pair calibration packet](https://github.com/anulum/director-ai/blob/9e066ce0019fc0c89685f4e3f8febbfe55b42848/benchmarks/results/wcs2a_operating_points_calibration.json) ·
+[Dialogue evaluation](https://github.com/anulum/director-ai/blob/9e066ce0019fc0c89685f4e3f8febbfe55b42848/benchmarks/results/e2e_nli_only_200_wcs2a_dialogue_raw.json) ·
+[Summarization evaluation](https://github.com/anulum/director-ai/blob/9e066ce0019fc0c89685f4e3f8febbfe55b42848/benchmarks/results/e2e_nli_only_200_wcs2a_weakest_link.json)
+
+The FactCG LLM-AggreFact results measure per-dataset mean balanced accuracy
+on a different evaluation. The leaderboard reports 75.6% at 0.50, the
+committed score packet reports 75.8% at 0.46, and per-dataset threshold
+replay reports 77.76%. Keep these operating points separate from deployment
+error and coverage estimates. [Benchmark operating points](../benchmarks.md)
 
 ## Exporting Training Data
 
@@ -280,7 +372,3 @@ class CalibrationReport:
     fpr_ci: float  # 95% CI half-width
     fnr_ci: float  # 95% CI half-width
 ```
-
-## Data Moat
-
-The feedback loop creates a switching cost: the longer a customer uses director-ai, the more calibration data they accumulate. Switching to a competitor means losing that deployment-specific accuracy improvement.
