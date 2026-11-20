@@ -38,6 +38,9 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--max-error-rate", type=float, default=0.01)
     parser.add_argument("--tenant-id", default="")
     parser.add_argument(
+        "--workload", type=Path, help="JSONL file with prompt and response text pairs"
+    )
+    parser.add_argument(
         "--api-key-env",
         default="DIRECTOR_API_KEY",
         help="environment variable holding the API key (never written to evidence)",
@@ -50,10 +53,41 @@ def _parser() -> argparse.ArgumentParser:
     return parser
 
 
+def _load_workload(path: Path) -> tuple[tuple[str, str], ...]:
+    """Read ordered review pairs without exposing private input in errors."""
+    pairs = []
+    with path.open(encoding="utf-8") as source:
+        for number, line in enumerate(source, start=1):
+            if not line.strip():
+                continue
+            try:
+                row = json.loads(line)
+            except json.JSONDecodeError:
+                raise ValueError(f"invalid workload JSON at line {number}") from None
+            if not isinstance(row, dict) or not (
+                isinstance(prompt := row.get("prompt"), str)
+                and isinstance(response := row.get("response"), str)
+            ):
+                raise ValueError(
+                    f"workload line {number} requires prompt and response strings"
+                )
+            pairs.append((prompt, response))
+    return tuple(pairs)
+
+
 def _cmd_latency_slo(args: list[str]) -> None:
-    namespace = _parser().parse_args(args)
+    """Measure the configured deployment and save its integrity packet."""
+    parser = _parser()
+    namespace = parser.parse_args(args)
     api_key = os.environ.get(namespace.api_key_env, "")
     try:
+        workload = None
+        if namespace.workload is not None:
+            workload = _load_workload(namespace.workload)
+            if namespace.output.exists() and namespace.workload.samefile(
+                namespace.output
+            ):
+                raise ValueError("output must differ from the workload file")
         config = LatencySLOConfig(
             server_url=namespace.server,
             request_count=namespace.request_count,
@@ -64,9 +98,12 @@ def _cmd_latency_slo(args: list[str]) -> None:
             max_error_rate=namespace.max_error_rate,
             tenant_id=namespace.tenant_id,
             api_key=api_key,
+            workload=workload,
         )
+    except (OSError, UnicodeError):
+        parser.error("cannot read the workload as UTF-8 JSONL")
     except ValueError as exc:
-        _parser().error(str(exc))
+        parser.error(str(exc))
 
     packet = run_latency_slo(config)
     namespace.output.parent.mkdir(parents=True, exist_ok=True)

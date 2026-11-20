@@ -82,9 +82,17 @@ packet.
 An HTTP success must carry a boolean `approved` verdict and a finite numeric
 `coherence` score from 0 to 1. Invalid review fields count as protocol errors.
 
+For representative request sizes and repetition, set
+`--workload path/to/reviews.jsonl`. Each UTF-8 line carries string `prompt` and
+`response` fields. The probe consumes pairs in file order, starting with
+warmup and then continuing into measurement. It repeats the file as needed.
+Include enough distinct pairs across both phases to measure uncached traffic.
+With no workload file, the command uses the built-in benign probe.
+
 The packet is safe to retain in an internal evidence store: it contains only
 aggregate measurements, workload identity, failure categories, and non-secret
-runtime provenance. It does not contain API keys or raw prompt/response bodies.
+runtime provenance. For a custom workload it records the count and SHA-256 of
+the ordered pairs. Keep the input file separately for reproduction.
 
 ## Setup
 

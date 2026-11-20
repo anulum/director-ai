@@ -9,12 +9,14 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import socket
 import threading
 import time
 from dataclasses import dataclass, field
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from pathlib import Path
 from types import TracebackType
 from typing import Self, cast
 
@@ -48,6 +50,7 @@ class _ProtocolState:
     reviews: list[_ProtocolReply] = field(default_factory=list)
     review_count: int = 0
     review_headers: list[dict[str, str]] = field(default_factory=list)
+    review_bodies: list[dict[str, str]] = field(default_factory=list)
 
     def next_review(self) -> _ProtocolReply:
         """Return the next planned review response, repeating the last one."""
@@ -97,11 +100,12 @@ class _QualificationHandler(BaseHTTPRequestHandler):
         self._reply(state.readiness)
 
     def do_POST(self) -> None:
-        """Record safe headers and serve the next review contract."""
+        """Record each local test request and serve the next review reply."""
         length = int(self.headers.get("Content-Length", "0") or "0")
-        self.rfile.read(length)
+        content = json.loads(self.rfile.read(length))
         state = cast(_QualificationHTTPServer, self.server).state
         state.review_headers.append(dict(self.headers.items()))
+        state.review_bodies.append(content)
         self._reply(state.next_review())
 
     def log_message(self, format: str, *args: object) -> None:
@@ -262,6 +266,130 @@ def test_review_qualification_accepts_boolean_verdicts_and_unit_score_bounds(
 
     assert packet["content"]["measurements"]["successful"] == 1
     assert packet["content"]["qualification"]["passed"] is True
+
+
+def test_cli_measures_supplied_workload_after_its_warmup_prefix(tmp_path: Path) -> None:
+    """The installed command sends custom pairs in the declared cyclic order."""
+    rows = [
+        {"prompt": "Warmup", "response": "First reply"},
+        {"prompt": "Private workload Ä", "response": "  Preserve actual whitespace. "},
+        {"prompt": "Third prompt", "response": "Third reply"},
+    ]
+    source = tmp_path / "workload.jsonl"
+    source.write_text("\n" + "\n".join(map(json.dumps, rows)) + "\n", encoding="utf-8")
+    output = tmp_path / "probe.json"
+    state = _ProtocolState()
+    with _LiveProtocolServer(state) as server:
+        cli.main(
+            [
+                "latency-slo",
+                "--server",
+                server.base_url,
+                "--workload",
+                str(source),
+                "--output",
+                str(output),
+                "--warmup",
+                "1",
+                "--requests",
+                "3",
+                "--concurrency",
+                "1",
+                "--target-p95-ms",
+                "5000",
+            ]
+        )
+
+    evidence = output.read_text(encoding="utf-8")
+    packet = json.loads(evidence)
+    canonical = json.dumps(
+        [[row["prompt"], row["response"]] for row in rows],
+        separators=(",", ":"),
+        ensure_ascii=True,
+    )
+    assert state.review_bodies == rows + rows[:1]
+    assert packet["content"]["measurements"]["total"] == 3
+    assert packet["content"]["workload"] == {
+        "name": "director-ai-jsonl-review-v1",
+        "pair_count": 3,
+        "sha256": hashlib.sha256(canonical.encode()).hexdigest(),
+        "bodies_recorded": False,
+    }
+    assert verify_latency_slo_evidence(packet) == (True, "verified")
+    assert "Private workload" not in evidence
+    assert "Preserve actual whitespace" not in evidence
+    assert str(source) not in evidence
+
+
+@pytest.mark.parametrize(
+    ("data", "error"),
+    [
+        (None, "cannot read the workload"),
+        (b"Private workload\xff", "cannot read the workload"),
+        (b"Private workload\n", "invalid workload JSON at line 1"),
+        (b"[]\n", "requires prompt and response strings"),
+        (b'{"response":"Private workload"}\n', "requires prompt and response strings"),
+        (
+            b'{"prompt":"Private workload","response":false}\n',
+            "requires prompt and response strings",
+        ),
+        (b"\n", "requires nonblank prompts and responses"),
+        (
+            b'{"prompt":" ","response":"Private workload"}\n',
+            "requires nonblank prompts and responses",
+        ),
+        (
+            b'{"prompt":"Private workload","response":" "}\n',
+            "requires nonblank prompts and responses",
+        ),
+    ],
+)
+def test_cli_refuses_invalid_workload_before_connecting(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+    data: bytes | None,
+    error: str,
+) -> None:
+    """Rejected inputs disclose neither file data nor an evidence packet."""
+    source = tmp_path / "workload.jsonl"
+    if data is not None:
+        source.write_bytes(data)
+    output = tmp_path / "probe.json"
+    state = _ProtocolState()
+    with _LiveProtocolServer(state) as server, pytest.raises(SystemExit) as exc_info:
+        cli.main(
+            [
+                "latency-slo",
+                "--server",
+                server.base_url,
+                "--workload",
+                str(source),
+                "--output",
+                str(output),
+            ]
+        )
+
+    assert exc_info.value.code == 2
+    stderr = capsys.readouterr().err
+    assert error in stderr
+    assert "Private workload" not in stderr
+    assert not state.review_bodies
+    assert not output.exists()
+
+
+def test_cli_preserves_workload_when_output_aliases_it(tmp_path: Path) -> None:
+    """A hard link must not let the report overwrite the workload source."""
+    source = tmp_path / "workload.jsonl"
+    content = b'{"prompt":"Preserve this","response":"Preserve the pair"}\n'
+    source.write_bytes(content)
+    alias = tmp_path / "output.json"
+    alias.hardlink_to(source)
+
+    with pytest.raises(SystemExit) as exc_info:
+        cli.main(["latency-slo", "--workload", str(source), "--output", str(alias)])
+
+    assert exc_info.value.code == 2
+    assert source.read_bytes() == alias.read_bytes() == content
 
 
 def test_warmup_instability_and_measured_target_miss_both_fail_the_gate() -> None:

@@ -347,6 +347,9 @@ Treat the target as an operator-approved deployment SLO, not a universal
 Director-AI guarantee. The gate counts invalid verdict or coherence fields in
 its protocol error rate. Archive the integrity packet and repeat the gate
 after changes to the model, image, hardware, queue, proxy, or concurrency target.
+For a production traffic measurement, pass `--workload reviews.jsonl` with
+ordered UTF-8 `prompt` and `response` pairs. Retain the workload securely for
+reproduction and record whether warmup or repetition populates the review cache.
 
 ---
 

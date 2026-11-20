@@ -65,6 +65,7 @@ class LatencySLOConfig:
     max_error_rate: float = 0.01
     tenant_id: str = ""
     api_key: str = field(default="", repr=False)
+    workload: tuple[tuple[str, str], ...] | None = field(default=None, repr=False)
 
     def __post_init__(self) -> None:
         """Reject ambiguous, unsafe, or mathematically invalid inputs."""
@@ -93,6 +94,14 @@ class LatencySLOConfig:
             or not 0.0 <= self.max_error_rate <= 1.0
         ):
             raise ValueError("max_error_rate must be between 0 and 1")
+        if self.workload is not None and (
+            not self.workload
+            or any(
+                not prompt.strip() or not response.strip()
+                for prompt, response in self.workload
+            )
+        ):
+            raise ValueError("workload requires nonblank prompts and responses")
 
     @property
     def base_url(self) -> str:
@@ -116,8 +125,9 @@ def _headers(config: LatencySLOConfig) -> dict[str, str]:
     return headers
 
 
-def _workload_hash() -> str:
-    payload = json.dumps(_WORKLOAD, separators=(",", ":"), ensure_ascii=True)
+def _workload_hash(workload: tuple[tuple[str, str], ...]) -> str:
+    """Hash the ordered text pairs independently of the source file layout."""
+    payload = json.dumps(workload, separators=(",", ":"), ensure_ascii=True)
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
 
@@ -135,8 +145,10 @@ def _percentile(values: list[float], percentile: float) -> float | None:
     return ordered[lower] + (ordered[upper] - ordered[lower]) * fraction
 
 
-def _request_once(config: LatencySLOConfig, index: int) -> _RequestMeasurement:
-    prompt, response = _WORKLOAD[index % len(_WORKLOAD)]
+def _request_once(
+    config: LatencySLOConfig, pair: tuple[str, str]
+) -> _RequestMeasurement:
+    prompt, response = pair
     started = time.perf_counter()
     try:
         with requests.Session() as session:
@@ -180,13 +192,19 @@ def _request_once(config: LatencySLOConfig, index: int) -> _RequestMeasurement:
 
 def _execute_requests(
     config: LatencySLOConfig,
+    workload: tuple[tuple[str, str], ...],
     count: int,
+    *,
+    start: int = 0,
 ) -> tuple[list[_RequestMeasurement], float]:
     if count == 0:
         return [], 0.0
     started = time.perf_counter()
     with ThreadPoolExecutor(max_workers=min(config.concurrency, count)) as pool:
-        futures = [pool.submit(_request_once, config, index) for index in range(count)]
+        futures = [
+            pool.submit(_request_once, config, workload[index % len(workload)])
+            for index in range(start, start + count)
+        ]
         measurements = [future.result() for future in as_completed(futures)]
     return measurements, time.perf_counter() - started
 
@@ -234,13 +252,17 @@ def run_latency_slo(config: LatencySLOConfig) -> dict[str, Any]:
     """Run the qualification and return a secret-safe integrity packet."""
     import director_ai
 
+    workload = _WORKLOAD if config.workload is None else config.workload
+    measurement_start = 0 if config.workload is None else config.warmup_count
     ready, readiness_failure = _probe_readiness(config)
     warmup: list[_RequestMeasurement] = []
     measured: list[_RequestMeasurement] = []
     duration_s = 0.0
     if ready:
-        warmup, _ = _execute_requests(config, config.warmup_count)
-        measured, duration_s = _execute_requests(config, config.request_count)
+        warmup, _ = _execute_requests(config, workload, config.warmup_count)
+        measured, duration_s = _execute_requests(
+            config, workload, config.request_count, start=measurement_start
+        )
 
     successful_latencies = [item.latency_ms for item in measured if item.success]
     failed = len(measured) - len(successful_latencies)
@@ -279,9 +301,13 @@ def run_latency_slo(config: LatencySLOConfig) -> dict[str, Any]:
             "error_rate_lte": config.max_error_rate,
         },
         "workload": {
-            "name": "director-ai-benign-review-v1",
-            "pair_count": len(_WORKLOAD),
-            "sha256": _workload_hash(),
+            "name": (
+                "director-ai-benign-review-v1"
+                if config.workload is None
+                else "director-ai-jsonl-review-v1"
+            ),
+            "pair_count": len(workload),
+            "sha256": _workload_hash(workload),
             "bodies_recorded": False,
         },
         "readiness": {

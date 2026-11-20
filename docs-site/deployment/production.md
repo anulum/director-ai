@@ -345,7 +345,7 @@ director-ai latency-slo \
   --output evidence/latency-slo.json
 ```
 
-The command checks `/v1/ready`, sends a fixed benign workload through the real
+The command checks `/v1/ready`, sends a benign default workload through the real
 `/v1/review` HTTP boundary, excludes warmup requests, and exits with status 2
 when either the p95 or error-rate target is missed. Successful reviews require
 a boolean `approved` verdict and a finite numeric `coherence` score from 0 to 1.
@@ -353,6 +353,12 @@ Its integrity packet records
 the operating point, aggregate p50/p95/p99, throughput, runtime provenance,
 workload hash, and failure categories. It never records the API key or raw
 prompt/response bodies.
+
+Use `--workload path/to/reviews.jsonl` for an ordered production-like set of
+UTF-8 JSON rows with nonblank `prompt` and `response` strings. Warmup uses the
+first pairs and measurement continues at the next pair. Both phases wrap at
+the end of the file. Record the request mix and cache conditions with the
+result. The packet binds the ordered pairs by SHA-256.
 
 An exit status of 0 supports only this statement: **this deployment met the
 declared target for this workload and operating point**. It does not establish
