@@ -9,6 +9,7 @@
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -36,15 +37,51 @@ def test_streaming_guide_documents_grounded_contradiction_halt() -> None:
         "The stream stops when that probability reaches the configured threshold."
         in doc
     )
-    assert "an ungrounded claim (no retrieval hit) never halts" in doc
-    assert "streaming_contradiction_halt_base.json" in doc
-    assert "false-halt rate 0.0065" in doc
-    assert "semantic recall 0.9309" in doc
-    assert "numeric recall 0.5586" in doc
+    assert "when retrieval returns no usable facts" in doc
+    assert "An exception raised by retrieval or scoring interrupts" in doc
+    assert "Previously reviewed and released windows remain with the client." in doc
+
+
+def test_public_streaming_counts_follow_archived_benchmark() -> None:
+    """Tie public rates and operating point to archived passage decisions."""
+    archive = "benchmarks/results/streaming_contradiction_halt_base.json"
+    report = json.loads(_read_doc(archive))
+    command = report["benchmark_context"]["command"]
+    threshold = command[command.index("--threshold") + 1]
+    good = report["per_good"]
+    bad = report["per_bad"]
+    false_halts = sum(row["halted"] for row in good)
+    caught = sum(row["halted"] for row in bad)
+    summary = (
+        f"measured {false_halts}/{len(good)} false halts "
+        f"and caught {caught}/{len(bad)} contradictions"
+    )
+    readme = _normalise_whitespace(_read_doc("README.md"))
+    why = _normalise_whitespace(_read_doc("docs-site/guide/why-director-ai.md"))
+    guide = _normalise_whitespace(_read_doc("docs-site/guide/streaming.md"))
+    assert f"benchmark at threshold {threshold} {summary}" in readme
+    assert f"benchmark at threshold {threshold} {summary}" in why
+    assert f"{summary} at threshold {threshold}" in guide
+    assert archive in guide
+    assert (
+        f"| Grounded | {false_halts} false halts | {len(good)} | "
+        f"{false_halts / len(good):.4f} |" in guide
+    )
+    assert (
+        f"| All contradictions | {len(bad) - caught} misses | "
+        f"{len(bad)} | {(len(bad) - caught) / len(bad):.4f} |" in guide
+    )
+    for kind in ("semantic", "numeric"):
+        rows = [row for row in bad if row["kind"] == kind]
+        misses = sum(not row["halted"] for row in rows)
+        assert (
+            f"| {kind.capitalize()} contradiction | {misses} misses | "
+            f"{len(rows)} | {misses / len(rows):.4f} |" in guide
+        )
 
 
 def test_market_docs_keep_unsupported_vs_contradiction_boundary() -> None:
-    """Keep public claims explicit about contradiction and absence-of-evidence limits."""
+    """Keep public claims explicit about contradiction and missing evidence."""
     market = _normalise_whitespace(
         _read_doc("docs-site/guide/market-value-and-positioning.md")
     )

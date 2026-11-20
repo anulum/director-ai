@@ -15,20 +15,9 @@ Director-AI — Streaming halt guide
     `P(contradiction)` against retrieved grounding facts. The stream stops
     when that probability reaches the configured threshold.
 
-    Current proof is
-    `benchmarks/results/streaming_contradiction_halt_base.json`: threshold 0.5,
-    612 grounded passages, 507 contradiction passages, false-halt rate 0.0065
-    (4/612). Recall splits by contradiction kind: semantic recall 0.9309
-    (202/217) — the headline contradiction-detection capability — and numeric
-    recall 0.5586 (162/290), the known gap where NLI-based detection is weakest
-    on bare-number contradictions (aggregate recall 0.7179, 364/507). Measured
-    on an isolated JarvisLabs A30 GPU (load average 2.2 vs the earlier
-    non-isolated 33), Python 3.11.15. The broader held-out
-    contradiction evaluation in
-    `benchmarks/results/contradiction_holdout_finetuned.json` reports AUC
-    0.9885 and recall 0.9741 at threshold 0.2 over 6,321 held-out pairs; promote
-    those fine-tuned weights only after the release artefact is published and
-    pinned.
+    Response-level scoring remains the production gate. See
+    [benchmark evidence and failure modes](#measured-behaviour) for what
+    this interlock measures and what a client can receive before a halt.
 
 ## Overview
 
@@ -521,8 +510,8 @@ How it works:
 - the claim is scored for `P(contradiction)` from a three-class NLI model
   (`ContradictionScorer`) against each grounding fact retrieved for the
   request's tenant, and the strongest contradiction decides;
-- an ungrounded claim (no retrieval hit) never halts — an absent fact is not a
-  contradiction.
+- when retrieval returns no usable facts, the gate records no contradiction
+  and continues. Claims without support still need response-level review.
 
 Enable it on the server via configuration. It is off by default because it needs
 the `nli` extra and deployment-owned latency sizing:
@@ -537,42 +526,56 @@ DirectorConfig(
 
 ### Measured behaviour
 
-Current streaming proof:
+The [archived A30 run](https://github.com/anulum/director-ai/blob/a92103dc6c9f841bfbdc9a17b3d321fd3e75f7bc/benchmarks/results/streaming_contradiction_halt_base.json)
+used an isolated NVIDIA A30, Python 3.11.15 and
+`MoritzLaurer/DeBERTa-v3-large-mnli-fever-anli-ling-wanli`. It measured 4/612
+false halts and caught 364/507 contradictions at threshold 0.5.
 
-| Artefact | Device | Threshold | Correct passages | Contradiction passages | False-halt | Semantic recall | Numeric recall |
-|---|---|---:|---:|---:|---:|---:|---:|
-| `benchmarks/results/streaming_contradiction_halt_base.json` | A30 GPU | 0.5 | 612 | 507 | 0.0065 | 0.9309 | 0.5586 |
+| Label in the benchmark | Outcome counted | Passages | Rate |
+|---|---|---:|---:|
+| Grounded | 4 false halts | 612 | 0.0065 |
+| Semantic contradiction | 15 misses | 217 | 0.0691 |
+| Numeric contradiction | 128 misses | 290 | 0.4414 |
+| All contradictions | 143 misses | 507 | 0.2821 |
 
-The historical artefact records `--threshold 0.5` in its command. Its top-level
-`threshold` field holds the scorer's default, 0.2. A replay with pinned weights
-at the applied threshold of 0.5 reproduced the counts in the table.
+The [original runner](https://github.com/anulum/director-ai/blob/a92103dc6c9f841bfbdc9a17b3d321fd3e75f7bc/benchmarks/streaming_contradiction_halt_bench.py)
+passed the command's `--threshold 0.5` to the interlock and wrote the scorer's
+default `0.2` into the report's top-level `threshold` field. A later shared-CPU
+replay pinned model revision `b3546ea6b0346eb6f8d5d68b13c7dc6d0376b3d7` and
+reproduced the counts at `0.5`. The replay establishes the recorded operating
+point for this corpus. It supplies no latency result for production traffic,
+and the current runtime configuration defaults to `0.2`.
 
 The benchmark replays labelled passages with whitespace tokenization and a
-three-word minimum per claim. Its rates describe that corpus and segmentation.
-Live SSE, WebSocket, and gRPC sessions receive chunk boundaries from the
-provider and use the agent's claim punctuation rule.
+three-word minimum per claim. Live SSE, WebSocket and gRPC sessions use
+provider chunk boundaries and the agent's claim punctuation rule. A final
+unpunctuated fragment can leave the previous score in place. The benchmark
+estimates neither misses caused by unavailable or irrelevant grounding nor
+false halts on claims whose support status is unknown.
 
-In this benchmark, the gate kept 608/612 grounded passages open and caught semantic
-contradictions at 0.9309 recall (202/217, halt precision 0.9891). Numeric-value
-contradictions are the standing gap (0.5586 recall, 162/290) — NLI-based
-detection reasons weakly over bare numbers — pulling the aggregate to 0.7179
-(364/507). The remaining misses are direction-reversal claims
-(swapped photosynthesis gases; oxygen mislabelled as the dominant atmospheric
-gas) that the MNLI backend scores as weak contradictions. It does not claim to
-halt every unsupported addition; ungrounded claims are deliberately left to
-response-level review because absence of evidence is not a contradiction.
+A missing retrieval hit lets the claim proceed. Incorrect or stale retrieved
+facts can cause an unnecessary halt or hide a real contradiction.
+An exception raised by retrieval or scoring interrupts the agent stream.
+The server protocols report handled runtime exceptions as stream errors.
+Plan for the possibility that a client has already received a prefix before
+the error or halt.
+
+The OpenAI-compatible proxy has a separate disclosure policy over periodic
+response reviews. In `immediate` mode it can release content before rejection.
+With `--on-fail reject`, `--stream-disclosure buffered` holds the next window
+until review and discards that unreleased window on rejection. The proxy
+normally reviews every eight content chunks and at stream completion.
+Previously reviewed and released windows remain with the client.
 
 On synthesised, unambiguous contradictions
 (`benchmarks/contradiction_recall.py`, 25,882 injected variants of supported
 LLM-AggreFact claims) the off-the-shelf NLI model reaches **AUC 0.82** with
 **recall 51.5 %** of true contradictions at a **6.7 % false-halt** rate on the
-originals (threshold 0.2). Against the raw AggreFact *unsupported* class
-(`benchmarks/contradiction_aggrefact.py`) recall reads ~19 %, but that is a
-lower bound: the unsupported class mixes genuine contradictions with
-merely-unsupported claims, which a contradiction detector deliberately does not
-fire on. Passage-level grounding (`--granularity passage`) does not help — the
-max over several passages adds noise and raises false-halt without lifting
-recall.
+originals (threshold 0.2). The raw AggreFact *unsupported* class mixes
+genuine contradictions with claims that lack support. Its halt fraction
+(`benchmarks/contradiction_aggrefact.py`) therefore cannot estimate
+contradiction recall. The archived passage-level variant recorded more
+false halts without higher recall.
 
 The off-the-shelf model caps near 51 % recall on clean injected contradictions;
 a model fine-tuned on the contradiction-vs-unsupported boundary is the path to

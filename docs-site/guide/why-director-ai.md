@@ -24,13 +24,12 @@ for fact-critical streams.
 Director-AI makes factual coherence a control point before output is accepted,
 stored, routed, or acted on.
 
-**Claim-level streaming halt.** The production streaming signal is contradiction-driven:
-completed streamed claims are checked against retrieved facts and the stream
-halts when a claim contradicts governed knowledge. The latest local benchmark
-artifact (`benchmarks/results/streaming_contradiction_halt_base.json`) reports
-4/135 false halts and 28/30 caught contradiction passages on the small streaming
-suite; broader held-out contradiction evidence is recorded in
-`benchmarks/results/contradiction_holdout_finetuned.json`.
+**Claim-level streaming halt.** The opt-in interlock checks completed claims
+against retrieved facts at a configured contradiction threshold. The archived
+A30 benchmark at threshold 0.5 measured 4/612 false halts and caught 364/507
+contradictions. [Streaming evidence](streaming.md#measured-behaviour) covers
+the benchmark corpus, numeric misses, retrieval and disclosure limits.
+Response-level scoring is the production gate.
 
 **Dual-entropy scoring.** Two independent signals:
 
@@ -39,9 +38,9 @@ suite; broader held-out contradiction evidence is recorded in
 
 The final score combines both: `coherence = 1 - (0.6 * H_logical + 0.4 * H_factual)`.
 
-**Evidence on rejection.** Every halt includes the specific KB chunks that
-contradicted the response. No black-box "this was flagged" — your users or QA
-team see exactly why.
+**Evidence on rejection.** Response review can attach supporting or
+contradicting KB chunks to explain its verdict. A streaming termination can
+instead carry a reason code, such as `contradiction`.
 
 **0.4B parameters, millisecond-scale latency.** FactCG-DeBERTa-v3-Large runs at ~14.6 ms/pair on a commodity ONNX GPU, down to 0.5 ms/pair on a datacentre L40S (FP16, batch=32). No API calls, no metering, no rate limits.
 
