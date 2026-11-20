@@ -9,7 +9,7 @@
     "python_model_classes": 1073,
     "python_model_source_modules": 542,
     "rust_pyo3_model_wrappers": 83,
-    "test_files": 831
+    "test_files": 837
   },
   "documentation": {
     "public_pages": [
@@ -5680,6 +5680,7 @@
       "tests/test_cli_core_real_surface.py",
       "tests/test_cli_forensics.py",
       "tests/test_cli_ingest_formats.py",
+      "tests/test_cli_ingest_properties.py",
       "tests/test_cli_ingest_real_surface.py",
       "tests/test_cli_kpis.py",
       "tests/test_cli_lazy_dispatch.py",
@@ -5794,6 +5795,7 @@
       "tests/test_doc_modules.py",
       "tests/test_doc_modules_real_surface.py",
       "tests/test_doc_parser.py",
+      "tests/test_doc_parser_properties.py",
       "tests/test_doc_registry.py",
       "tests/test_dp_rag.py",
       "tests/test_dp_rag_pipeline.py",
@@ -5953,6 +5955,7 @@
       "tests/test_inference_server_hooks.py",
       "tests/test_ingest.py",
       "tests/test_ingestion_pipeline.py",
+      "tests/test_ingestion_pipeline_properties.py",
       "tests/test_ingestion_pipeline_provenance.py",
       "tests/test_ingestion_plugins.py",
       "tests/test_ingestion_plugins_real_surface.py",
@@ -6180,6 +6183,8 @@
       "tests/test_quality_ratchet_golang_protocol.py",
       "tests/test_quality_ratchet_inventory.py",
       "tests/test_quality_ratchet_native.py",
+      "tests/test_quality_ratchet_protobuf.py",
+      "tests/test_quality_ratchet_protobuf_descriptors.py",
       "tests/test_quality_ratchet_typescript.py",
       "tests/test_quality_ratchet_typescript_integrity.py",
       "tests/test_quality_ratchet_typing.py",
@@ -6368,6 +6373,7 @@
       "tests/test_tools/test_ci_workflow_inventory.py",
       "tests/test_tools/test_emit_studio_manifest.py",
       "tests/test_tools/test_emit_studio_manifest_real_surface.py",
+      "tests/test_tools/test_paid_distribution_workflow.py",
       "tests/test_tools/test_pypi_downloads.py",
       "tests/test_tools/test_pytest_partition.py",
       "tests/test_tools/test_pytest_partition_artifacts.py",

@@ -49,6 +49,24 @@ make python-only-check PYTHON=.venv/bin/python PYTHON_ONLY_CHECK_ARGS="--no-test
 make python-only-check PYTHON=.venv/bin/python PYTHON_ONLY_CHECK_ARGS="--print-plan"
 ```
 
+## Reproduce document-ingest properties
+
+The required CI fuzz job uses seed 0, the locked development dependencies and
+the native wheel. Run the same document corpus from a development environment
+with those dependencies installed.
+
+```bash
+python -m pytest tests/test_cli_ingest_properties.py \
+  tests/test_doc_parser_properties.py tests/test_ingestion_pipeline_properties.py \
+  --hypothesis-seed=0
+```
+
+The corpus has explicit example counts and input limits. It exercises real
+document formats, sparse files above the CLI size limit, pipeline writes
+and rollback through the in-memory vector store, and proofs reopened from
+a local provenance ledger. Record the source commit, seed and minimised
+Hypothesis example when reporting a failure.
+
 ## Native Rust documentation checks
 
 The Rust quality reader checks authored declarations and binds recognised

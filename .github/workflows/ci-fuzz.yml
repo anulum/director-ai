@@ -39,6 +39,9 @@ jobs:
           pip install --require-hashes -r requirements/ci-fuzz.txt
 
       - name: Run property-based fuzz tests
-        run: pytest tests/test_fuzz.py -v --hypothesis-seed=0
+        run: |
+          pytest tests/test_fuzz.py tests/test_cli_ingest_properties.py \
+            tests/test_doc_parser_properties.py tests/test_ingestion_pipeline_properties.py \
+            -v --hypothesis-seed=0
         env:
           HYPOTHESIS_MAX_EXAMPLES: "200"
