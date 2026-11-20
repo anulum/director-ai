@@ -1,0 +1,457 @@
+# SPDX-License-Identifier: Apache-2.0
+# Commercial licence available
+# © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
+# © Code 2020–2026 Miroslav Šotek. All rights reserved.
+# ORCID: 0009-0009-3560-0851
+# Contact: www.anulum.li | protoscience@anulum.li
+# Director-AI — Julia branch coverage dispositions
+
+# Coverage measurement for the source tree below. Only observed outcomes count
+# as coverage. Class A records a dominating guard. Class B relies on a qualified
+# producer. Open outcomes retain their original disposition.
+schema = "director-ai.julia-branch-dispositions.v1"
+source_tree = "2d153e3e42a39b336c9c1ff00466492ceb29cf33"
+observed = 475
+outcomes = 510
+julia_version = "1.13.4"
+# Reference Git used for the repository-path analysis.
+git_reference_version = "2.43.0"
+
+[[package_pins]]
+manifest = "analyzer"
+package = "ArgParse"
+version = "1.2.0"
+git-tree-sha1 = "22cf435ac22956a7b45b0168abbc871176e7eecc"
+
+[[package_pins]]
+manifest = "analyzer"
+package = "DynamicPPL"
+version = "0.36.15"
+git-tree-sha1 = "07218fc45d4f1abc9de4498e8cf966b6672c84f0"
+
+[[package_pins]]
+manifest = "analyzer"
+package = "Turing"
+version = "0.39.10"
+git-tree-sha1 = "58ad6cfe65311dc4ddc0e13e6747f3fad26f1034"
+
+[[package_pins]]
+manifest = "tuner"
+package = "ArgParse"
+version = "1.2.0"
+git-tree-sha1 = "22cf435ac22956a7b45b0168abbc871176e7eecc"
+
+[[package_pins]]
+manifest = "tuner"
+package = "JSON"
+version = "1.13.4"
+git-tree-sha1 = "06d90f699285d055e34f0b014636a75a17ff2252"
+
+[[unobserved]]
+owner = "tools/julia_tuner/src/DirectorThresholdTuner.jl"
+owner_blob = "e38cb72d5551a75d171c6b1ed7780951bdc9ef8c"
+site = 20
+line = 245
+outcome = false
+expression = ":(err isa ArgumentError)"
+disposition = "OPEN"
+reason = "The normal malformed-string parser path from JSON.jl 1.13.4 produces ArgumentError. Other process/runtime exceptions are propagated. No general invariant rules out the non-ArgumentError leg."
+
+[[unobserved]]
+owner = "tools/julia_tuner/src/DirectorThresholdTuner.jl"
+owner_blob = "e38cb72d5551a75d171c6b1ed7780951bdc9ef8c"
+site = 25
+line = 257
+outcome = false
+expression = ":(err isa ArgumentError)"
+disposition = "B"
+reason = "The Real check admits the pinned JSON numeric types. Float64 conversion of these types returns a value, and the constructor refuses boolean or nonfinite values with ArgumentError."
+producer = "JSON"
+
+[[unobserved]]
+owner = "tools/quality_ratchet_julia/Declarations.jl"
+owner_blob = "8ff387dffa5ce1c7f8f7f3ac0a7cd1548ddf45bb"
+site = 3
+line = 62
+outcome = true
+expression = ":(value isa GlobalRef)"
+disposition = "OPEN"
+reason = "Reference representation. The checked parser creates bare GlobalRefs for implicit Core macros, intercepted in scan! as macrocall heads. The pinned Turing documentation marker is dotted. Existing native controls cover the generated forms. Keep this branch open for other valid producers of direct target references."
+
+[[unobserved]]
+owner = "tools/quality_ratchet_julia/Declarations.jl"
+owner_blob = "8ff387dffa5ce1c7f8f7f3ac0a7cd1548ddf45bb"
+site = 16
+line = 107
+outcome = false
+expression = ":(line > 0)"
+disposition = "B"
+reason = "Julia 1.13.4 JuliaSyntax, Meta.parseall and expr conversion. Location producer. Meta.parseall starts at one and tracks original newlines. Declaration calls take only that initial position or a parser LineNumberNode. Apply the assertion to qualification inputs from that producer."
+producer = "JuliaSyntax"
+
+[[unobserved]]
+owner = "tools/quality_ratchet_julia/Declarations.jl"
+owner_blob = "8ff387dffa5ce1c7f8f7f3ac0a7cd1548ddf45bb"
+site = 49
+line = 192
+outcome = false
+expression = ":(length(args) == 4)"
+disposition = "B"
+reason = "Julia 1.13.4 JuliaSyntax, Meta.parseall and expr conversion. Documentation wrapper. JuliaSyntax parses the doc and target as the two children of a doc node. Expression conversion prepends exactly the Core macro and location. An authored qualified call is a different carrier and is refused separately."
+producer = "JuliaSyntax"
+
+[[unobserved]]
+owner = "tools/quality_ratchet_julia/Declarations.jl"
+owner_blob = "8ff387dffa5ce1c7f8f7f3ac0a7cd1548ddf45bb"
+site = 66
+line = 230
+outcome = false
+expression = ":(length(args) == 1)"
+disposition = "B"
+reason = "Julia 1.13.4 JuliaSyntax, Meta.parseall and expr conversion. Assignment wrapper. JuliaSyntax produces one expression under const, including the assignment, global or local wrapper. Mutable-struct field attributes are now handled before the generic const scanner. The local-const control reaches the following assignment-shape refusal."
+producer = "JuliaSyntax"
+
+[[unobserved]]
+owner = "tools/quality_ratchet_julia/GeneratedDeclarations.jl"
+owner_blob = "c3d04913e6024ca269df06b16bda223ac1e8655c"
+site = 5
+line = 29
+outcome = false
+expression = ":(length(call.args) == 4)"
+disposition = "B"
+reason = "ArgParse 1.2.0 settings.jl::_add_arg_table!, lines 775–838. Arity. Both _add_arg_table! field constructors supply the callee, parameter record, escaped settings and alias record."
+producer = "ArgParse"
+
+[[unobserved]]
+owner = "tools/quality_ratchet_julia/GeneratedDeclarations.jl"
+owner_blob = "c3d04913e6024ca269df06b16bda223ac1e8655c"
+site = 6
+line = 31
+outcome = false
+expression = ":(Meta.isexpr(names, :vect))"
+disposition = "B"
+reason = "ArgParse 1.2.0 settings.jl::_add_arg_table!, lines 775–838. Alias choice. After the string leg fails, the macro producer converts tuple aliases to vectors before admitting a pending name."
+producer = "ArgParse"
+
+[[unobserved]]
+owner = "tools/quality_ratchet_julia/GeneratedDeclarations.jl"
+owner_blob = "c3d04913e6024ca269df06b16bda223ac1e8655c"
+site = 8
+line = 33
+outcome = false
+expression = ":(!(isempty(aliases)))"
+disposition = "B"
+reason = "ArgParse 1.2.0 settings.jl::_add_arg_table!, lines 775–838. Nonempty aliases. The producer splices empty or heterogeneous literal vectors into its input, so the field constructor does not emit them as alias records."
+producer = "ArgParse"
+
+[[unobserved]]
+owner = "tools/quality_ratchet_julia/GeneratedDeclarations.jl"
+owner_blob = "c3d04913e6024ca269df06b16bda223ac1e8655c"
+site = 9
+line = 33
+outcome = false
+expression = ":(aliases !== nothing)"
+disposition = "B"
+reason = "ArgParse 1.2.0 settings.jl::_add_arg_table!, lines 775–838. Presence of aliases. The producer only emits a field with a pending string or validated vector."
+producer = "ArgParse"
+
+[[unobserved]]
+owner = "tools/quality_ratchet_julia/GeneratedDeclarations.jl"
+owner_blob = "c3d04913e6024ca269df06b16bda223ac1e8655c"
+site = 10
+line = 33
+outcome = false
+expression = ":(aliases !== nothing && (!(isempty(aliases)) && all((x->begin\n                      #= tools/quality_ratchet_julia/GeneratedDeclarations.jl:33 =#\n                      x isa AbstractString\n                  end), aliases)))"
+disposition = "B"
+reason = "ArgParse 1.2.0 settings.jl::_add_arg_table!, lines 775–838. Combined alias guard. The earlier carrier checks supply a nonempty vector of strings or a singleton string. Review nested escaped expressions separately from generated field calls."
+producer = "ArgParse"
+
+[[unobserved]]
+owner = "tools/quality_ratchet_julia/GeneratedDeclarations.jl"
+owner_blob = "c3d04913e6024ca269df06b16bda223ac1e8655c"
+site = 11
+line = 35
+outcome = false
+expression = ":(Meta.isexpr(params, :parameters))"
+disposition = "B"
+reason = "ArgParse 1.2.0 settings.jl::_add_arg_table!, lines 775–838. Parameter record. Each field constructor supplies an explicit parameters node."
+producer = "ArgParse"
+
+[[unobserved]]
+owner = "tools/quality_ratchet_julia/GeneratedDeclarations.jl"
+owner_blob = "c3d04913e6024ca269df06b16bda223ac1e8655c"
+site = 12
+line = 35
+outcome = false
+expression = ":(Meta.isexpr(params, :parameters) && length(params.args) == 1)"
+disposition = "B"
+reason = "ArgParse 1.2.0 settings.jl::_add_arg_table!, lines 775–838. Parameter record arity. Both constructors populate that node with one splatted dictionary."
+producer = "ArgParse"
+
+[[unobserved]]
+owner = "tools/quality_ratchet_julia/GeneratedDeclarations.jl"
+owner_blob = "c3d04913e6024ca269df06b16bda223ac1e8655c"
+site = 13
+line = 38
+outcome = false
+expression = ":(Meta.isexpr(splat, :...))"
+disposition = "B"
+reason = "ArgParse 1.2.0 settings.jl::_add_arg_table!, lines 775–838. Splat carrier. The constructors place the dictionary under an explicit splat node."
+producer = "ArgParse"
+
+[[unobserved]]
+owner = "tools/quality_ratchet_julia/GeneratedDeclarations.jl"
+owner_blob = "c3d04913e6024ca269df06b16bda223ac1e8655c"
+site = 14
+line = 38
+outcome = false
+expression = ":(Meta.isexpr(splat, :...) && length(splat.args) == 1)"
+disposition = "B"
+reason = "ArgParse 1.2.0 settings.jl::_add_arg_table!, lines 775–838. Splat arity. Each constructor supplies exactly one dictionary call as the splat argument."
+producer = "ArgParse"
+
+[[unobserved]]
+owner = "tools/quality_ratchet_julia/GeneratedDeclarations.jl"
+owner_blob = "c3d04913e6024ca269df06b16bda223ac1e8655c"
+site = 15
+line = 41
+outcome = false
+expression = ":(Meta.isexpr(options, :call))"
+disposition = "B"
+reason = "ArgParse 1.2.0 settings.jl::_add_arg_table!, lines 775–838. Dictionary carrier. Both constructors build the options dictionary with Expr(:call, exopt...)."
+producer = "ArgParse"
+
+[[unobserved]]
+owner = "tools/quality_ratchet_julia/GeneratedDeclarations.jl"
+owner_blob = "c3d04913e6024ca269df06b16bda223ac1e8655c"
+site = 16
+line = 41
+outcome = false
+expression = ":(Meta.isexpr(options, :call) && first(options.args) == GlobalRef(ArgParse, :Dict))"
+disposition = "B"
+reason = "ArgParse 1.2.0 settings.jl::_add_arg_table!, lines 775–838. Dictionary identity. Both constructors seed exopt with Dict. Macro hygiene resolves that callee to the ArgParse binding."
+producer = "ArgParse"
+
+[[unobserved]]
+owner = "tools/quality_ratchet_julia/GeneratedDeclarations.jl"
+owner_blob = "c3d04913e6024ca269df06b16bda223ac1e8655c"
+site = 17
+line = 45
+outcome = false
+expression = ":(first(option.args) == GlobalRef(ArgParse, :(=>)))"
+disposition = "B"
+reason = "ArgParse 1.2.0 settings.jl::_add_arg_table!, lines 775–838. Pair identity. Both supported option forms generate the same Pair callee inside the macro body."
+producer = "ArgParse"
+
+[[unobserved]]
+owner = "tools/quality_ratchet_julia/GeneratedDeclarations.jl"
+owner_blob = "c3d04913e6024ca269df06b16bda223ac1e8655c"
+site = 18
+line = 45
+outcome = false
+expression = ":(length(option.args) == 3)"
+disposition = "B"
+reason = "ArgParse 1.2.0 settings.jl::_add_arg_table!, lines 775–838. Pair arity. Both option constructors supply a callee, quoted name and escaped value."
+producer = "ArgParse"
+
+[[unobserved]]
+owner = "tools/quality_ratchet_julia/GeneratedDeclarations.jl"
+owner_blob = "c3d04913e6024ca269df06b16bda223ac1e8655c"
+site = 19
+line = 45
+outcome = false
+expression = ":(Meta.isexpr(option, :call))"
+disposition = "B"
+reason = "ArgParse 1.2.0 settings.jl::_add_arg_table!, lines 775–838. Pair carrier. Both option constructors explicitly create Expr(:call, :(=>), ...). The executed malformed option-name test checks a later predicate on the same chain."
+producer = "ArgParse"
+
+[[unobserved]]
+owner = "tools/quality_ratchet_julia/GeneratedDeclarations.jl"
+owner_blob = "c3d04913e6024ca269df06b16bda223ac1e8655c"
+site = 24
+line = 61
+outcome = false
+expression = ":(Meta.isexpr(expansion, :block))"
+disposition = "B"
+reason = "DynamicPPL 0.36.15 compiler.jl::build_output and make_evaluator. Outer block. DynamicPPL build_output returns the MacroTools block around two generated methods."
+producer = "DynamicPPL"
+
+[[unobserved]]
+owner = "tools/quality_ratchet_julia/GeneratedDeclarations.jl"
+owner_blob = "c3d04913e6024ca269df06b16bda223ac1e8655c"
+site = 25
+line = 63
+outcome = false
+expression = ":(length(methods) == 2)"
+disposition = "B"
+reason = "DynamicPPL 0.36.15 compiler.jl::build_output and make_evaluator. Method count. That output template emits one evaluator and one documentation-wrapped factory, aside from locations."
+producer = "DynamicPPL"
+
+[[unobserved]]
+owner = "tools/quality_ratchet_julia/GeneratedDeclarations.jl"
+owner_blob = "c3d04913e6024ca269df06b16bda223ac1e8655c"
+site = 26
+line = 65
+outcome = false
+expression = ":(Meta.isexpr(attached, :macrocall))"
+disposition = "B"
+reason = "DynamicPPL 0.36.15 compiler.jl::build_output and make_evaluator. Factory carrier. The output template wraps the factory in Base.@__doc__. Its observed native maker emits the dotted macro reference."
+producer = "DynamicPPL"
+
+[[unobserved]]
+owner = "tools/quality_ratchet_julia/GeneratedDeclarations.jl"
+owner_blob = "c3d04913e6024ca269df06b16bda223ac1e8655c"
+site = 27
+line = 66
+outcome = false
+expression = ":(marker == \"Base.@__doc__\")"
+disposition = "B"
+reason = "DynamicPPL 0.36.15 compiler.jl::build_output and make_evaluator. Documentation marker. The output template interpolates Base before @__doc__. Both the carrier and reference name were checked with native expansion."
+producer = "DynamicPPL"
+
+[[unobserved]]
+owner = "tools/quality_ratchet_julia/GeneratedDeclarations.jl"
+owner_blob = "c3d04913e6024ca269df06b16bda223ac1e8655c"
+site = 28
+line = 66
+outcome = false
+expression = ":(Meta.isexpr(attached, :macrocall))"
+disposition = "B"
+reason = "DynamicPPL 0.36.15 compiler.jl::build_output and make_evaluator. Factory macro predicate. The factory is wrapped by that same output template before this second check."
+producer = "DynamicPPL"
+
+[[unobserved]]
+owner = "tools/quality_ratchet_julia/GeneratedDeclarations.jl"
+owner_blob = "c3d04913e6024ca269df06b16bda223ac1e8655c"
+site = 29
+line = 66
+outcome = false
+expression = ":(Meta.isexpr(evaluator, :function))"
+disposition = "B"
+reason = "DynamicPPL 0.36.15 compiler.jl::build_output and make_evaluator. Evaluator function. MacroTools combinedef receives the evaluator definition copied and amended by build_output."
+producer = "DynamicPPL"
+
+[[unobserved]]
+owner = "tools/quality_ratchet_julia/GeneratedDeclarations.jl"
+owner_blob = "c3d04913e6024ca269df06b16bda223ac1e8655c"
+site = 30
+line = 66
+outcome = false
+expression = ":(Meta.isexpr(evaluator, :function) && (Meta.isexpr(attached, :macrocall) && (marker == \"Base.@__doc__\" && length(attached.args) == 3)))"
+disposition = "B"
+reason = "DynamicPPL 0.36.15 compiler.jl::build_output and make_evaluator. Combined shape. The fixed output template supplies the evaluator, wrapped factory and marker. The observed factory wrapper has head, location and body."
+producer = "DynamicPPL"
+
+[[unobserved]]
+owner = "tools/quality_ratchet_julia/GeneratedDeclarations.jl"
+owner_blob = "c3d04913e6024ca269df06b16bda223ac1e8655c"
+site = 31
+line = 70
+outcome = false
+expression = ":(Meta.isexpr(constructor, :function))"
+disposition = "B"
+reason = "DynamicPPL 0.36.15 compiler.jl::build_output and make_evaluator. Factory function. MacroTools combinedef emits the actual factory beneath the documentation macro."
+producer = "DynamicPPL"
+
+[[unobserved]]
+owner = "tools/quality_ratchet_julia/GeneratedDeclarations.jl"
+owner_blob = "c3d04913e6024ca269df06b16bda223ac1e8655c"
+site = 32
+line = 73
+outcome = false
+expression = ":(Declarations.signature_target(evaluator.args[1]) == target)"
+disposition = "B"
+reason = "DynamicPPL 0.36.15 compiler.jl::build_output and make_evaluator. Evaluator target. DynamicPPL copies the authored name before adding evaluator arguments. Qualified controls retain the target for ordinary, typed and callable forms. Preserve independent review of normalization across supported signatures."
+producer = "DynamicPPL"
+
+[[unobserved]]
+owner = "tools/quality_ratchet_julia/GeneratedDeclarations.jl"
+owner_blob = "c3d04913e6024ca269df06b16bda223ac1e8655c"
+site = 33
+line = 73
+outcome = false
+expression = ":(Declarations.signature_target(evaluator.args[1]) == target && Declarations.signature_target(constructor.args[1]) == target)"
+disposition = "B"
+reason = "DynamicPPL 0.36.15 compiler.jl::build_output and make_evaluator. Target pair. DynamicPPL may add a synthetic callable receiver name when building the factory. The scanner projects both callable targets to their type. Qualified controls cover the receiver variants, with other supported normalization awaiting independent disposition."
+producer = "DynamicPPL"
+
+[[unobserved]]
+owner = "tools/quality_ratchet_julia/GeneratedDeclarations.jl"
+owner_blob = "c3d04913e6024ca269df06b16bda223ac1e8655c"
+site = 36
+line = 90
+outcome = false
+expression = ":(invocation.name == Declarations.ARGUMENT_TABLE)"
+disposition = "A"
+reason = "Dispatch. Authored Declarations.scan! constructs invocations only when the macro name is in MODEL or ARGUMENT_TABLE. GeneratedDeclarations.inspect consumes that exact invocation list. After the model return, the remaining admitted name is the argument table."
+
+[[unobserved.dominating_guards]]
+owner = "tools/quality_ratchet_julia/Declarations.jl"
+owner_blob = "8ff387dffa5ce1c7f8f7f3ac0a7cd1548ddf45bb"
+lines = [47]
+
+[[unobserved.dominating_guards]]
+owner = "tools/quality_ratchet_julia/inspect.jl"
+owner_blob = "d2f284ecfa2f35e10b83123fb5f77518cced03a6"
+lines = [153]
+
+[[unobserved.dominating_guards]]
+owner = "tools/quality_ratchet_julia/GeneratedDeclarations.jl"
+owner_blob = "c3d04913e6024ca269df06b16bda223ac1e8655c"
+lines = [87, 88]
+
+[[unobserved]]
+owner = "tools/quality_ratchet_julia/inspect.jl"
+owner_blob = "d2f284ecfa2f35e10b83123fb5f77518cced03a6"
+site = 16
+line = 72
+outcome = false
+expression = ":(!(isempty(files)))"
+disposition = "A"
+reason = "Nonempty list. julia_sources refuses an empty selected package before calling inspect_sources."
+
+[[unobserved.dominating_guards]]
+owner = "tools/quality_ratchet_julia/inspect.jl"
+owner_blob = "d2f284ecfa2f35e10b83123fb5f77518cced03a6"
+lines = [30]
+
+[[unobserved]]
+owner = "tools/quality_ratchet_julia/inspect.jl"
+owner_blob = "d2f284ecfa2f35e10b83123fb5f77518cced03a6"
+site = 17
+line = 72
+outcome = false
+expression = ":(!(isempty(files)) && length(files) == length(Set(files)))"
+disposition = "A"
+reason = "Unique inventory. julia_sources deduplicates and sorts the path bytes. The real conflicted index emitted the same path three times and the scanner produced exactly one source after the working file contained valid Julia."
+
+[[unobserved.dominating_guards]]
+owner = "tools/quality_ratchet_julia/inspect.jl"
+owner_blob = "d2f284ecfa2f35e10b83123fb5f77518cced03a6"
+lines = [26]
+
+[[unobserved]]
+owner = "tools/quality_ratchet_julia/inspect.jl"
+owner_blob = "d2f284ecfa2f35e10b83123fb5f77518cced03a6"
+site = 21
+line = 78
+outcome = false
+expression = ":(normpath(file) == file)"
+disposition = "B"
+reason = "Git 2.43.0 ls-files paths and scanner julia_sources path scope. Canonical path. The real POSIX Git index listing supplies normalized repository-relative paths. Scope also requires the tools/julia_tuner/ prefix. The noncanonical guard is downstream of those constraints."
+producer = "Git"
+
+[[unobserved]]
+owner = "tools/quality_ratchet_julia/inspect.jl"
+owner_blob = "d2f284ecfa2f35e10b83123fb5f77518cced03a6"
+site = 22
+line = 78
+outcome = false
+expression = ":(!(isabspath(file)))"
+disposition = "A"
+reason = "Relative path. git ls-files supplies repository-root-relative names. Every accepted .jl name also starts with tools/julia_tuner/, excluding a leading / before this check."
+
+[[unobserved.dominating_guards]]
+owner = "tools/quality_ratchet_julia/inspect.jl"
+owner_blob = "d2f284ecfa2f35e10b83123fb5f77518cced03a6"
+lines = [30]

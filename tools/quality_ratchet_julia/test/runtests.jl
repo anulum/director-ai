@@ -7,6 +7,7 @@
 # Director-AI — native Julia declaration reader tests
 
 using Test
+import TOML
 
 include("../Declarations.jl")
 
@@ -14,6 +15,46 @@ const TUNER = "tools/julia_tuner"
 const LIBRARY = joinpath(TUNER, "src", "DirectorThresholdTuner.jl")
 const LAUNCHER = joinpath(TUNER, "bin", "tune_threshold.jl")
 const HISTORICAL = "391228da74540de1f5edc948df83765c1619e42a"
+
+@testset "Julia branch producer pins" begin
+    record = TOML.parsefile(joinpath(@__DIR__, "..", "branch_dispositions.toml"))
+    manifests = Dict(
+        "analyzer" => TOML.parsefile(joinpath(@__DIR__, "..", "Manifest.toml")),
+        "tuner" => TOML.parsefile(joinpath(TUNER, "Manifest.toml")),
+    )
+    @test record["schema"] == "director-ai.julia-branch-dispositions.v1"
+    @test record["julia_version"] == string(VERSION)
+    for (name, manifest) in manifests
+        @testset "$name Julia version" begin
+            @test manifest["julia_version"] == record["julia_version"]
+        end
+    end
+
+    pins = record["package_pins"]
+    @test Set((pin["manifest"], pin["package"]) for pin in pins) == Set((
+        ("analyzer", "ArgParse"),
+        ("analyzer", "DynamicPPL"),
+        ("analyzer", "Turing"),
+        ("tuner", "ArgParse"),
+        ("tuner", "JSON"),
+    ))
+    for pin in pins
+        scope, name = pin["manifest"], pin["package"]
+        @testset "$scope $name producer pin" begin
+            entry = only(manifests[scope]["deps"][name])
+            @test entry["version"] == pin["version"]
+            @test entry["git-tree-sha1"] == pin["git-tree-sha1"]
+        end
+    end
+
+    residuals = record["unobserved"]
+    @test length(residuals) == record["outcomes"] - record["observed"]
+    @test length(Set((row["owner"], row["site"], row["outcome"]) for row in residuals)) ==
+        length(residuals)
+    @test Set(row["disposition"] for row in residuals) == Set(("A", "B", "OPEN"))
+    @test Set(row["producer"] for row in residuals if row["disposition"] == "B") ==
+        Set(("ArgParse", "DynamicPPL", "Git", "JSON", "JuliaSyntax"))
+end
 
 @testset "Julia tuner source declarations" begin
     source = read(LIBRARY, String)
