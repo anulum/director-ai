@@ -54,6 +54,18 @@ const HISTORICAL = "391228da74540de1f5edc948df83765c1619e42a"
     @test Set(row["disposition"] for row in residuals) == Set(("A", "B", "OPEN"))
     @test Set(row["producer"] for row in residuals if row["disposition"] == "B") ==
         Set(("ArgParse", "DynamicPPL", "Git", "JSON", "JuliaSyntax"))
+
+    bindings = Set((row["owner"], row["owner_blob"]) for row in residuals)
+    for row in residuals
+        for guard in get(row, "dominating_guards", ())
+            push!(bindings, (guard["owner"], guard["owner_blob"]))
+        end
+    end
+    for (owner, expected_blob) in sort!(collect(bindings))
+        @testset "$owner Git blob" begin
+            @test readchomp(`git hash-object --no-filters -- $owner`) == expected_blob
+        end
+    end
 end
 
 @testset "Julia tuner source declarations" begin

@@ -14,7 +14,8 @@ source_tree = "2d153e3e42a39b336c9c1ff00466492ceb29cf33"
 observed = 475
 outcomes = 510
 julia_version = "1.13.4"
-# Reference Git used for the repository-path analysis.
+# The path disposition relies on Git's documented repository-relative paths.
+# This version identifies the reference run.
 git_reference_version = "2.43.0"
 
 [[package_pins]]
