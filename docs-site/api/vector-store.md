@@ -2,6 +2,10 @@
 
 Semantic vector store for RAG-based factual grounding. Ingest documents, then pass to `CoherenceScorer` for fact-checked scoring. Supports pluggable backends via a registry pattern.
 
+The in-memory backend ranks by word overlap. Both scoring paths retain Unicode
+word characters and whitespace, lowercase the text and split it into tokens.
+Returned evidence retains its original text and metadata.
+
 ## Usage
 
 ```python

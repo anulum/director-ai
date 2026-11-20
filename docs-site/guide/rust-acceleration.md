@@ -2,7 +2,10 @@
 
 *Added in v3.11.0*
 
-Director-AI optionally accelerates hot-path functions via the Rust-based Backfire Kernel. When installed, several hot-path functions dispatch to compiled Rust code automatically. When not installed, Python fallbacks run transparently.
+Director-AI uses the Backfire Kernel for selected scoring, retrieval and
+streaming operations. Availability depends on the operation. In-memory
+retrieval has a Python fallback. Mandatory operations such as streaming trend
+checks require the kernel and report how to install it if it is absent.
 
 ## Install
 
@@ -38,11 +41,12 @@ These run inside `VerifiedScorer.verify()` for each claim. With 5 claims and 3 s
 
 ### BM25 Retrieval
 
-| Function | Python | Rust | Speedup | Called |
-|----------|--------|------|---------|-------|
-| BM25 query (1000 docs) | ~30 ms | ~10 ms | 3x | per retrieval in hybrid mode |
+The `HybridBackend` ranks BM25 terms in Python and uses a Rust integer sum
+when the kernel is installed. The underlying `InMemoryBackend` can call Rust
+for word overlap on the same normalised tokens as the Python path. Standalone
+BM25 benchmarks exercise the separate `RustBM25` interface. [Signal benchmarks](rust-benchmarks.md)
 
-The `RustBM25` class is available directly:
+Use that standalone interface as follows.
 
 ```python
 from backfire_kernel import RustBM25
@@ -78,11 +82,10 @@ installed; choose the path explicitly with `RegexPIIDetector(prefer_rust=...)`.
 
 ## When Rust Helps
 
-**NLI mode (production):** Model inference is 19-200 ms. Python signal extraction adds ~3 ms. Rust saves ~2 ms — marginal improvement.
-
-**Heuristic/fallback mode:** No model inference. Python signal extraction is 20-50 ms of the total 50-100 ms. Rust saves 15-30 ms — meaningful improvement.
-
-**Hybrid retrieval:** BM25 inner loop on 1000+ docs benefits from Rust's tight arithmetic loops and no-GIL execution.
+**Model-backed review** delegates NLI to the configured inference backend.
+Assess latency with retrieval, inference and review enabled on the same
+workload. The `rust` scorer is a heuristic backend and is refused by profiles
+that require model-backed NLI. [Production profile](../deployment/production.md)
 
 ## Architecture
 
@@ -99,32 +102,12 @@ backfire-kernel/crates/
 └── Cargo.toml         ← workspace config
 ```
 
-Python auto-dispatch (no code changes needed):
-
-```python
-# verified_scorer.py — automatic
-try:
-    from backfire_kernel import rust_entity_overlap, ...
-    _RUST_SIGNALS = True
-except ImportError:
-    _RUST_SIGNALS = False
-
-def _entity_overlap(text_a, text_b):
-    if _RUST_SIGNALS:
-        return rust_entity_overlap(text_a, text_b)
-    # Python fallback...
-```
-
 ## Verification
 
-Check if Rust acceleration is active:
+Check the installed kernel version in the runtime environment.
 
-```python
-from director_ai.core.scoring.verified_scorer import _RUST_SIGNALS
-from director_ai.core.runtime.streaming import _RUST_TREND
-
-print(f"Rust signals: {_RUST_SIGNALS}")
-print(f"Rust trend:   {_RUST_TREND}")
+```bash
+python -m pip show backfire-kernel
 ```
 
 ## Running Rust Tests

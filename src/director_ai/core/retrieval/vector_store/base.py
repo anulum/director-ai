@@ -238,8 +238,8 @@ class InMemoryBackend(VectorBackend):
     ) -> list[dict[str, Any]]:
         """Rank stored docs by word overlap and return the top ``n_results``.
 
-        Filters by ``tenant_id`` when given, scores via the Rust word-overlap
-        path (Python Jaccard fallback), and drops zero-overlap matches.
+        Filters by ``tenant_id`` and drops zero-overlap matches. Both scoring
+        paths use the same case, punctuation and whitespace normalisation.
         """
         if not isinstance(text, str):
             raise ValueError("query text must be a string")
@@ -267,19 +267,22 @@ class InMemoryBackend(VectorBackend):
         import re
 
         _strip = re.compile(r"[^\w\s]")
-        query_words = set(_strip.sub("", text).lower().split())
+        query_tokens = _strip.sub("", text).lower().split()
+        query_words = set(query_tokens)
+        native_query = " ".join(query_tokens)
         scored: list[tuple[float, dict[str, Any]]] = []
         for doc in docs:
+            doc_tokens = _strip.sub("", doc["text"]).lower().split()
+            similarity = None
             if _RUST_VECTOR_BASE:
                 try:
-                    similarity = float(rust_word_overlap(text, doc["text"]))
+                    similarity = float(
+                        rust_word_overlap(native_query, " ".join(doc_tokens))
+                    )
                 except Exception:
-                    doc_words = set(_strip.sub("", doc["text"]).lower().split())
-                    overlap = len(query_words & doc_words)
-                    total = max(len(query_words | doc_words), 1)
-                    similarity = overlap / total
-            else:
-                doc_words = set(_strip.sub("", doc["text"]).lower().split())
+                    similarity = None
+            if similarity is None:
+                doc_words = set(doc_tokens)
                 overlap = len(query_words & doc_words)
                 total = max(len(query_words | doc_words), 1)
                 similarity = overlap / total

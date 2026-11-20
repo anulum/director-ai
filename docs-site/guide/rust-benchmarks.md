@@ -1,12 +1,15 @@
 # Rust vs Python Signal Benchmarks
 
-The optional `backfire-kernel` Rust extension (PyO3/maturin) accelerates five scoring signals and BM25 retrieval. All numbers measured on a single core, 5,000 iterations, median microseconds.
+These component measurements compare Python implementations with
+`backfire-kernel` calls. The BM25 row exercises standalone `RustBM25` with a
+synthetic corpus. All figures are median microseconds on one core with 5,000
+timed iterations.
 
 ## Signal Performance
 
 | Signal | Python (us) | Rust (us) | Speedup | Notes |
 |--------|------------|-----------|---------|-------|
-| **BM25 query** (100 docs) | 110.2 | 10.8 | **10.2x** | Largest absolute gain — dominates retrieval-heavy pipelines |
+| **BM25 query** (100 docs) | 110.2 | 10.8 | **10.2x** | Standalone lexical search |
 | **trend_drop** | 6.2 | 0.3 | **20.7x** | Linear regression for streaming halt detection |
 | **entity_overlap** | 14.7 | 3.7 | **4.0x** | Named entity set intersection |
 | **numerical_consistency** | 14.8 | 2.3 | **6.4x** | Number extraction + comparison |
@@ -17,7 +20,7 @@ Rust wins decisively on computation-heavy signals (BM25, trend_drop, entity, num
 
 ## When to Use Rust
 
-- **RAG pipelines**: BM25 at 10.2x is the biggest win. If your pipeline does retrieval on every scoring call, Rust saves ~100 us per call.
+- **Hybrid retrieval** uses its own BM25 implementation together with the configured dense backend. Measure the deployed combination for an end-to-end latency estimate. [Runtime dispatch](rust-acceleration.md)
 - **Streaming halt**: trend_drop at 20.7x means the streaming kernel can check halt conditions at sub-microsecond cost.
 - **High-throughput servers**: at 1,000 RPS, the 4-6x speedup on entity + numerical saves ~25 ms/s of CPU time.
 

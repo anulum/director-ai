@@ -1,12 +1,17 @@
 # SPDX-License-Identifier: Apache-2.0
 # Commercial license available
-# Copyright 2020-2026 Miroslav Sotek
+# © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
+# © Code 2020–2026 Miroslav Šotek. All rights reserved.
+# ORCID: 0009-0009-3560-0851
+# Contact: www.anulum.li | protoscience@anulum.li
+# Director-AI — vector store integration tests
 """Real-surface coverage for the core vector store production path."""
 
 from __future__ import annotations
 
 import pytest
 
+from director_ai.core.retrieval.vector_store import base as vector_backend
 from director_ai.core.retrieval.vector_store.base import InMemoryBackend
 from director_ai.core.retrieval.vector_store.composite import HybridBackend
 from director_ai.core.retrieval.vector_store.store import VectorGroundTruthStore
@@ -182,3 +187,25 @@ def test_hybrid_backend_bm25_path_ranks_real_term_matches() -> None:
 
     assert [result["id"] for result in results] == ["policy-blue"]
     assert "distance" in results[0]
+
+
+def test_vector_word_overlap_keeps_rank_when_native_kernel_is_absent(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Use the same normalised tokens in the native and Python query paths."""
+    backend = InMemoryBackend()
+    text = "CAFÉ, C++\u001c42—days"
+    backend.add("policy", text, {"tenant_id": "alpha"})
+    backend.add("alternative", "Café 15 days", {"tenant_id": "alpha"})
+    backend.add("foreign", "café c 42days", {"tenant_id": "beta"})
+    query = "café C 42days"
+
+    available = backend.query(query, tenant_id="alpha")
+    assert backend.query(query, tenant_id="unused") == []
+    monkeypatch.setattr(vector_backend, "_RUST_VECTOR_BASE", False)
+    fallback = backend.query(query, tenant_id="alpha")
+
+    assert available == fallback
+    assert [row["id"] for row in fallback] == ["policy", "alternative"]
+    assert fallback[0]["distance"] == 0.0
+    assert fallback[0]["text"] == text
