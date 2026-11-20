@@ -90,6 +90,22 @@ If your policy requires the attestation to name the tag ref, add
 commit check. Their attestation records `refs/heads/main` from the manual
 publication run, so the tag-ref check fails for that release.
 
+### Rebuild reproducibility
+
+Four local builds of the `v3.21.0` tag used clean Linux x86-64 checkouts,
+Python 3.12.14, build 1.5.1 and setuptools 83.0.0. Both default builds
+matched the published wheel and source archive in member paths and file
+contents. Their archive SHA-256 values differed across runs and from the
+published values.
+
+With the tag commit time set as `SOURCE_DATE_EPOCH`, the two local
+wheel files matched byte for byte. The source archives still differed in
+gzip and tar metadata while carrying the same file contents.
+[SOURCE_DATE_EPOCH specification](https://reproducible-builds.org/docs/source-date-epoch/)
+
+To confirm the exact bytes of a distributed release, use its published
+manifest and attestation with the procedure above.
+
 ## Package Notes
 
 | Package | Extra | Risk class | Required controls |
