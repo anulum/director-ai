@@ -72,12 +72,27 @@ end
             @test result["bayesian"]["hi"] ≈ 0.9994250598923783
         end
 
-        write(input, "{\"score\":0.8,\"label\":true}\n\n{\"score\":1e999,\"label\":false}\n")
         output = joinpath(directory, "seeded.json")
         original_result = read(output)
-        invalid = run_tuner(script, "--input", input, "--output", output)
-        @test invalid.status != 0
-        @test occursin("line 3: score must be finite", invalid.errors)
-        @test read(output) == original_result
+        for (score, message) in (
+            ("1e999", "line 3: score must be finite"),
+            ("true", "line 3: score must be numeric"),
+            ("false", "line 3: score must be numeric"),
+        )
+            write(input, "{\"score\":0.8,\"label\":true}\n\n{\"score\":$score,\"label\":false}\n")
+            invalid = run_tuner(script, "--input", input, "--output", output)
+            @test invalid.status != 0
+            @test occursin(message, invalid.errors)
+            @test read(output) == original_result
+        end
+
+        write(input, repeat("{\"score\":0,\"label\":false}\n{\"score\":1,\"label\":true}\n", 8))
+        output = joinpath(directory, "integer-scores.json")
+        valid = run_tuner(script, "--input", input, "--output", output, "--bootstrap", "100",
+                          "--samples", "40", "--warmup", "20", "--seed", "42")
+        @test valid.status == 0
+        result = JSON.parsefile(output)
+        @test result["n_examples"] == 16
+        @test result["point"]["balanced_accuracy"] == 1.0
     end
 end

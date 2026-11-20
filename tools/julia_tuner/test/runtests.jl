@@ -160,12 +160,16 @@ end
                 println(io, "")  # blank line skipped
                 println(io,
                         JSON.json(Dict("score" => 0.7, "label" => "grounded")))
+                println(io, "{\"score\":0,\"label\":false}")
+                println(io, "{\"score\":1,\"label\":true}")
             end
             ex = load_scores_jsonl(p)
-            @test length(ex) == 3
+            @test length(ex) == 5
             @test ex[1] == ScoredExample(0.9, true)
             @test ex[2] == ScoredExample(0.2, false)
             @test ex[3] == ScoredExample(0.7, true)
+            @test ex[4] == ScoredExample(0.0, false)
+            @test ex[5] == ScoredExample(1.0, true)
         end
     end
     @testset "rejects records missing fields" begin
@@ -195,6 +199,8 @@ end
                 ("1e999", "line 3: score must be finite"),
                 ("-1e999", "line 3: score must be finite"),
                 ("\"NaN\"", "line 3: score must be numeric"),
+                ("true", "line 3: score must be numeric"),
+                ("false", "line 3: score must be numeric"),
             )
                 write(p, "{\"score\":0.8,\"label\":true}\n\n{\"score\":$score,\"label\":false}\n")
                 @test_throws ArgumentError(message) load_scores_jsonl(p)

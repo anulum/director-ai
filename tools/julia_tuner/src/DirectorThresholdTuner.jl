@@ -213,8 +213,8 @@ end
 """
     load_scores_jsonl(path) -> Vector{ScoredExample}
 
-Read a JSON-lines file. Each line must be an object with at least a
-numeric `score` field representable as a finite `Float64` and a `label` field
+Read a JSON-lines file. Each line must be an object with a `score` field
+containing a JSON number representable as a finite `Float64` and a `label` field
 (accepted as boolean, 0/1, or the strings "true"/"false"). Score and JSON
 syntax errors report the physical input line. Other keys are ignored so the
 Python feeder can emit a superset of fields.
@@ -235,8 +235,9 @@ function load_scores_jsonl(path::AbstractString)
             haskey(obj, "score") || throw(ArgumentError("missing 'score'"))
             haskey(obj, "label") || throw(ArgumentError("missing 'label'"))
             raw_score = obj["score"]
-            raw_score isa Real ||
+            if !(raw_score isa Real) || raw_score isa Bool
                 throw(ArgumentError("line $lineno: score must be numeric"))
+            end
             score = Float64(raw_score)
             isfinite(score) || throw(ArgumentError("line $lineno: score must be finite"))
             raw_label = obj["label"]
