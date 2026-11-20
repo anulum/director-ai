@@ -29,7 +29,8 @@ threshold back into `DirectorConfig`.
 module DirectorThresholdTuner
 
 using Distributions
-using JSON3
+import JSON
+using MCMCChains: Chains
 using Random
 using Statistics
 using StatsBase
@@ -191,7 +192,8 @@ function bayesian_threshold_posterior(examples::AbstractVector{ScoredExample};
     labels = Bool[ex.label for ex in examples]
     model = _threshold_model(scores, labels)
     chain = sample(rng, model, NUTS(), n_samples;
-                   discard_initial = n_warmup, progress = false)
+                   discard_initial = n_warmup,
+                   chain_type = Chains, progress = false)
     ts = vec(chain[:threshold].data)
     lo = quantile(ts, 0.025)
     hi = quantile(ts, 0.975)
@@ -255,11 +257,12 @@ function load_scores_jsonl(path::AbstractString)
         for line in eachline(io)
             stripped = strip(line)
             isempty(stripped) && continue
-            obj = JSON3.read(stripped)
-            haskey(obj, :score) || throw(ArgumentError("missing 'score'"))
-            haskey(obj, :label) || throw(ArgumentError("missing 'label'"))
-            score = Float64(obj[:score])
-            raw_label = obj[:label]
+            obj = JSON.parse(stripped)
+            obj isa AbstractDict || throw(ArgumentError("expected a JSON object"))
+            haskey(obj, "score") || throw(ArgumentError("missing 'score'"))
+            haskey(obj, "label") || throw(ArgumentError("missing 'label'"))
+            score = Float64(obj["score"])
+            raw_label = obj["label"]
             label = _coerce_label(raw_label)
             push!(out, ScoredExample(score, label))
         end
@@ -285,10 +288,9 @@ end
 """
     save_result_json(path, result)
 
-Write the `TuneResult` as a JSON object to `path`, replacing any
-existing file. The schema is a flat, language-neutral document —
-deliberately matched to what the Python side expects from
-`tools/prepare_threshold_data.py`.
+Write a `director-ai.threshold-tune.v1` JSON object to `path`, replacing
+any existing file. The document records the point, bootstrap and Bayesian
+estimates for the supplied result.
 """
 function save_result_json(path::AbstractString, result::TuneResult)
     doc = Dict(
@@ -313,7 +315,7 @@ function save_result_json(path::AbstractString, result::TuneResult)
         ),
     )
     open(path, "w") do io
-        JSON3.write(io, doc)
+        JSON.json(io, doc)
     end
     return path
 end

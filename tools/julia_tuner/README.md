@@ -26,8 +26,8 @@ The Python tuner in `benchmarks/aggrefact_eval.py` returns a point
 estimate only. Shipping a threshold without an uncertainty band has
 burned us in the past (see the FPR-campaign metric reset of
 2026-04-12, where a per-dataset threshold hid a fragile operating
-point). Julia's `Turing.jl` gives an off-the-shelf, trustworthy
-Bayesian posterior without hand-rolling MCMC in Python.
+point). The tuner uses `Turing.jl` to sample the posterior under the stated
+threshold model.
 
 ## Layout
 
@@ -36,7 +36,7 @@ tools/julia_tuner/
 ├── Project.toml                   # Julia project manifest
 ├── src/DirectorThresholdTuner.jl  # library module
 ├── bin/tune_threshold.jl          # CLI entry
-├── test/runtests.jl               # ~30 test cases
+├── test/                          # native library and CLI tests
 └── README.md                      # this file
 ```
 
@@ -51,6 +51,8 @@ tests/test_prepare_threshold_data.py
 
 Use Julia 1.13.4 or a later Julia 1.x release with the checked-in project
 and manifest. CI tests the CLI and builds the API reference on Julia 1.13.4.
+Run `Pkg.instantiate()` after updating the checkout to install the locked
+JSON.jl and Turing dependencies.
 
 After instantiating the project, run `julia tools/julia_tuner/bin/tune_threshold.jl --help`
 from the repository root to see the available options. Argument parsing runs
@@ -108,10 +110,12 @@ One JSON object per line, UTF-8:
 }
 ```
 
-`point.threshold` is the sample optimum; `bootstrap.*` and
-`bayesian.*` bracket the uncertainty. When the two intervals agree
-within their reported spread, the operating point is stable; when
-they disagree, the sample is likely too small or too skewed.
+`point.threshold` maximises balanced accuracy on the supplied sample.
+The bootstrap reports variation under resampling. The Bayesian interval
+summarises the sampled threshold model. On multimodal data, one NUTS chain
+can stay in one mode and report a narrow interval while other modes still
+carry substantial probability. Check agreement across independent seeds
+before using the Bayesian summary to choose a threshold.
 
 For repeatable sampling, use the same Julia version, manifest, data and seed.
 
@@ -121,13 +125,13 @@ For repeatable sampling, use the same Julia version, manifest, data and seed.
 julia --project=tools/julia_tuner -e 'using Pkg; Pkg.test()'
 ```
 
-The Julia side currently has **9 testsets covering ~30 cases**:
+The native Julia suite covers
 balanced-accuracy edge conditions (perfect separation, inversion,
 degenerate labels, boundary), grid search (known optimum, empty,
 degenerate, custom grid), bootstrap (CI brackets, narrowing with
 data, bad arguments, CI scaling), Bayesian concentration, `tune`
 round-trip, JSONL load (valid, missing fields, bad label strings),
-and `save_result_json` schema round-trip.
+`save_result_json` schema round-trip, and the CLI subprocess contract.
 
 The Python feeder is covered by
 `tests/test_prepare_threshold_data.py` plus
@@ -137,16 +141,12 @@ and custom keys, with subprocess coverage for the production
 `tools/prepare_threshold_data.py` CLI converting CSV/JSON inputs into
 Julia tuner JSONL and preserving output atomicity on input errors.
 
-## Performance notes
+## Measure runtime
 
-| Stage | 5 000 examples | Notes |
-| --- | --- | --- |
-| grid search | `≈ 2 ms` | pure Julia loop |
-| bootstrap × 2000 | `≈ 5 s` | trivially parallelisable |
-| Bayesian NUTS (800+400) | `≈ 20 s` | cold start dominates |
-
-Numbers are indicative — re-run against your own hardware before
-quoting them anywhere.
+Time the quick-start command with a fixed JSONL input, seed and sampling
+budget. Measure fresh-process runs for CLI latency and warm calls to the
+individual Julia functions for grid search, bootstrap and sampling timings.
+Record the build, lock and thread counts alongside the measurements.
 
 ## Not covered
 

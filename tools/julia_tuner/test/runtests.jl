@@ -8,7 +8,8 @@
 
 using Test
 using Random
-using JSON3
+import JSON
+using MCMCChains: Chains
 
 include(joinpath(@__DIR__, "..", "src", "DirectorThresholdTuner.jl"))
 using .DirectorThresholdTuner
@@ -118,6 +119,8 @@ end
         @test 0.35 <= bayes.mean <= 0.65
         @test bayes.lo < bayes.mean < bayes.hi
         @test 0.0 <= bayes.lo && bayes.hi <= 1.0
+        @test bayes.chain isa Chains
+        @test length(bayes.chain[:threshold]) == 200
     end
     @testset "empty input rejected" begin
         @test_throws ArgumentError bayesian_threshold_posterior(ScoredExample[])
@@ -142,11 +145,11 @@ end
         mktempdir() do dir
             p = joinpath(dir, "scores.jsonl")
             open(p, "w") do io
-                println(io, JSON3.write(Dict("score" => 0.9, "label" => true)))
-                println(io, JSON3.write(Dict("score" => 0.2, "label" => 0)))
+                println(io, JSON.json(Dict("score" => 0.9, "label" => true)))
+                println(io, JSON.json(Dict("score" => 0.2, "label" => 0)))
                 println(io, "")  # blank line skipped
                 println(io,
-                        JSON3.write(Dict("score" => 0.7, "label" => "grounded")))
+                        JSON.json(Dict("score" => 0.7, "label" => "grounded")))
             end
             ex = load_scores_jsonl(p)
             @test length(ex) == 3
@@ -158,9 +161,17 @@ end
     @testset "rejects records missing fields" begin
         mktempdir() do dir
             p = joinpath(dir, "bad.jsonl")
-            open(p, "w") do io
-                println(io, JSON3.write(Dict("score" => 0.9)))
+            for (record, missing) in ((Dict("score" => 0.9), "label"),
+                                      (Dict("label" => true), "score"))
+                write(p, JSON.json(record) * "\n")
+                @test_throws ArgumentError("missing '$missing'") load_scores_jsonl(p)
             end
+        end
+    end
+    @testset "rejects non-object records" begin
+        mktempdir() do dir
+            p = joinpath(dir, "array.jsonl")
+            write(p, "[0.9, true]\n")
             @test_throws ArgumentError load_scores_jsonl(p)
         end
     end
@@ -169,7 +180,7 @@ end
             p = joinpath(dir, "bad.jsonl")
             open(p, "w") do io
                 println(io,
-                        JSON3.write(Dict("score" => 0.9, "label" => "maybe")))
+                        JSON.json(Dict("score" => 0.9, "label" => "maybe")))
             end
             @test_throws ArgumentError load_scores_jsonl(p)
         end
@@ -184,12 +195,12 @@ end
                      n_bayes_warmup = 100, rng = MersenneTwister(16))
             out = joinpath(dir, "result.json")
             save_result_json(out, r)
-            doc = JSON3.read(read(out, String))
-            @test doc.schema == "director-ai.threshold-tune.v1"
-            @test doc.n_examples == 120
-            @test doc.point.balanced_accuracy >= 0.0
-            @test doc.bootstrap.lo <= doc.bootstrap.hi
-            @test doc.bayesian.lo <= doc.bayesian.hi
+            doc = JSON.parsefile(out)
+            @test doc["schema"] == "director-ai.threshold-tune.v1"
+            @test doc["n_examples"] == 120
+            @test doc["point"]["balanced_accuracy"] >= 0.0
+            @test doc["bootstrap"]["lo"] <= doc["bootstrap"]["hi"]
+            @test doc["bayesian"]["lo"] <= doc["bayesian"]["hi"]
         end
     end
 end

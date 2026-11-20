@@ -7,7 +7,7 @@
 # Director-AI — Threshold tuner process contracts
 
 using Test
-using JSON3
+import JSON
 
 """
     run_tuner(script, arguments...)
@@ -39,14 +39,14 @@ end
     @test success(`$(Base.julia_cmd()) --startup-file=no -e $probe $script`)
 
     scores_path = joinpath(@__DIR__, "..", "..", "..", "benchmarks", "scores", "factcg-anli.json")
-    scores = JSON3.read(read(scores_path, String))["AggreFact-CNN"]
+    scores = JSON.parsefile(scores_path)["AggreFact-CNN"]
     mktempdir() do directory
         input = joinpath(directory, "scores.jsonl")
         open(input, "w") do stream
             for label in (0, 1)
                 selected = Iterators.take((row for row in scores if row[1] == label), 8)
                 for row in selected
-                    println(stream, JSON3.write((score = row[2], label = label)))
+                    println(stream, JSON.json((score = row[2], label = label)))
                 end
             end
         end
@@ -57,14 +57,14 @@ end
                             "--samples", "40", "--warmup", "20", seed...)
             @test run.status == 0
             @test occursin("wrote $output", run.output)
-            result = JSON3.read(read(output, String))
-            @test result.schema == "director-ai.threshold-tune.v1"
-            @test result.n_examples == 16
-            @test result.positive_rate == 0.5
-            @test result.point.threshold ≈ 0.005
-            @test result.point.balanced_accuracy == 0.625
-            @test 0 <= result.bootstrap.lo <= result.bootstrap.hi <= 1
-            @test 0 <= result.bayesian.lo <= result.bayesian.hi <= 1
+            result = JSON.parsefile(output)
+            @test result["schema"] == "director-ai.threshold-tune.v1"
+            @test result["n_examples"] == 16
+            @test result["positive_rate"] == 0.5
+            @test result["point"]["threshold"] ≈ 0.005
+            @test result["point"]["balanced_accuracy"] == 0.625
+            @test 0 <= result["bootstrap"]["lo"] <= result["bootstrap"]["hi"] <= 1
+            @test 0 <= result["bayesian"]["lo"] <= result["bayesian"]["hi"] <= 1
         end
     end
 end
