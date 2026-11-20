@@ -31,6 +31,10 @@ execution, approval consumption, independent verification and durable retention
 of its complete result. The feedback receipt alone does not establish these
 properties.
 
+A repair or retry is a new attempt under the original limits. Time, token,
+cost and effect budgets are cumulative across retries, provider changes and
+restarts, and an unknown amount does not release a reservation.
+
 External security testing, benchmark claims and environment-specific live
 deployments retain the evidence gates in the status index.
 
