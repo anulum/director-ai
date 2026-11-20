@@ -184,9 +184,8 @@ jobs:
 
       - name: Refuse paid artefacts on the public lane
         # Hard gate (decision D3): director-ai-pro / director-ai-full are
-        # BUSL wheels for the private index only. If one ever appears here,
-        # a public copy could shadow the private index for every customer
-        # (dependency confusion) — fail the release instead.
+        # BUSL wheels for private distribution only. Fail the release if
+        # any paid artefact reaches the public PyPI lane.
         run: |
           shopt -s nullglob
           core_present=false

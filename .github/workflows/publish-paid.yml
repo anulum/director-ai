@@ -7,22 +7,15 @@
 # DIRECTOR-AI — paid-tier publishing workflow
 name: Publish paid tiers (pro + full)
 
-# The LicenseRef-BUSL-1.1-ANULUM-TDM paid wheels (director-ai-pro, director-ai-full) are distributed
-# through the access-to-artifact gate (decisions D2/D3, 2026-07-16). PRIMARY
-# channel: the self-hosted private index at pypi.remanentia.com (pypiserver,
-# per-customer basic-auth tokens) — licensed customers install with
-#   pip install director-ai-pro \
-#     --index-url https://pypi.org/simple/ \
-#     --extra-index-url https://<customer>:<token>@pypi.remanentia.com/simple/
-# FALLBACK channel: Release assets on a separate private repository.
+# Release assets on a separate private repository are the only supported upload
+# destination for these paid wheels. The private package index is unavailable.
+# Keep its upload credentials out of this job.
 #
 # Operator setup (one-time):
-#   - private index: add secret PRIVATE_INDEX_PUBLISHER_TOKEN (the `publisher`
-#     htpasswd token from the index box — see CREDENTIALS.md);
-#   - fallback repo: set repo variable PAID_DIST_REPO to "<owner>/<dist-repo>"
-#     and add secret PAID_DIST_TOKEN (fine-grained PAT, contents:write on the
-#     dist repo only).
-# Until configured, each upload step is a documented no-op.
+#   - Set repo variable PAID_DIST_REPO to "<owner>/<private-dist-repo>".
+#   - Add secret PAID_DIST_TOKEN (fine-grained PAT, contents:write on the
+#     private distribution repo only).
+# Until configured, this workflow builds and verifies the paid wheels.
 
 on:
   release:
@@ -97,17 +90,9 @@ jobs:
             python scripts/check_paid_wheel.py "verify-$tier" "$tier"
           done
 
-      - name: Publish to the private index (pypi.remanentia.com)
-        env:
-          TWINE_USERNAME: publisher
-          TWINE_PASSWORD: ${{ secrets.PRIVATE_INDEX_PUBLISHER_TOKEN }}
+      - name: Report private index availability
         run: |
-          if [ -z "$TWINE_PASSWORD" ]; then
-            echo "PRIVATE_INDEX_PUBLISHER_TOKEN is not set — skipping the"
-            echo "private-index upload (index not live yet; see ladder P4)."
-            exit 0
-          fi
-          twine upload --repository-url https://pypi.remanentia.com/ dist-paid/*.whl
+          echo "The private package index is unavailable. Skipping index publication."
 
       - name: Publish to the private distribution repo
         if: ${{ vars.PAID_DIST_REPO != '' }}

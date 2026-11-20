@@ -46,12 +46,12 @@ Director-AI — Repository overview
 |---|---|---|---|
 | **Director-Lite** | `pip install director-ai-lite` | Apache-2.0 · free | Three-line guard facade, model-free heuristic default, facts/RAG handoff, optional NLI upgrade |
 | **Director-AI** | `pip install director-ai` | Apache-2.0 · free | Full open-core runtime: `guard()`, 5-tier scoring, RAG grounding and evidence packets, REST/gRPC server and proxy, SDK and framework integrations, CLI verification, opt-in streaming contradiction halt |
-| **Director-AI Pro** | Private index (`pypi.remanentia.com`) | LicenseRef-BUSL-1.1-ANULUM-TDM · CHF or USD 490/yr | Advanced production entitlement: verified scorer, sharded NLI, cross-model consensus, forecasting, calibration, training tools, enterprise packages, priority support |
-| **Director-AI Full** | Private index (`pypi.remanentia.com`) | LicenseRef-BUSL-1.1-ANULUM-TDM · CHF or USD 980/yr | Everything in Pro plus the Labs/Research module set and direct engineering support |
+| **Director-AI Pro** | Licensed wheels via [commercial support](mailto:director.class.ai@anulum.li) | LicenseRef-BUSL-1.1-ANULUM-TDM · CHF or USD 490/yr | Advanced production entitlement: verified scorer, sharded NLI, cross-model consensus, forecasting, calibration, training tools, enterprise packages, priority support |
+| **Director-AI Full** | Licensed wheels via [commercial support](mailto:director.class.ai@anulum.li) | LicenseRef-BUSL-1.1-ANULUM-TDM · CHF or USD 980/yr | Everything in Pro plus the Labs/Research module set and direct engineering support |
 | **Director-Class AI** | Commercial engagement | Scoped order form | Action-control and evidence boundary for agent fleets; requested via [protoscience@anulum.li](mailto:protoscience@anulum.li) |
 
-An annual subscription covers private-index access and every release of the
-purchased tier while it is active. Pricing and checkout:
+An annual subscription covers every release of the purchased tier while it is
+active. See current pricing and checkout options at
 **[anulum.li/director-ai/pricing](https://www.anulum.li/director-ai/pricing.html)**.
 
 PyPI is the adoption front door. `director-ai-lite` is the free package we
@@ -62,14 +62,10 @@ commercial order rather than as a PyPI wheel.
 
 ### Installing a paid tier
 
-Subscribers receive a customer name and token; the paid wheel then installs
-alongside the public core:
-
-```bash
-pip install director-ai-pro \
-  --index-url https://pypi.org/simple/ \
-  --extra-index-url https://CUSTOMER:TOKEN@pypi.remanentia.com/simple/
-```
+The private package index is currently unavailable. Subscribers can request
+their licensed wheel from [commercial support](mailto:director.class.ai@anulum.li).
+Once you receive the wheel, install it alongside the public core with
+`python -m pip install /path/to/wheel.whl`.
 
 The paid wheels layer into the same `director_ai` namespace — no code
 changes, the names that raise "requires the advanced tier" in a core-only

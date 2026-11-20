@@ -51,6 +51,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Suspend paid-wheel uploads to the unavailable private package index and
+  remove the publisher credential from the release workflow. Direct
+  subscribers to commercial support for licensed wheel delivery.
 - The gRPC stream reports the halt verdict and withholds the triggering token.
 - Raise OpenTelemetry to 1.45.2 (semantic conventions 0.66b2) in the root
   lock, the server, demo, GPU, Cloud Run, CI and training profiles, and the

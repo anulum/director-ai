@@ -60,17 +60,13 @@ using one in a core-only install raises a clear
 `requires the advanced tier` error instead of failing obscurely. The source
 of all tiers remains visible in this repository (source-available).
 
-Subscribers install a paid tier from the private index; it layers into the
-same `director_ai` namespace:
-
-```bash
-pip install director-ai-pro \
-  --index-url https://pypi.org/simple/ \
-  --extra-index-url https://CUSTOMER:TOKEN@pypi.remanentia.com/simple/
-```
+The private package index is currently unavailable. Subscribers can request
+their licensed wheel from [commercial support](mailto:director.class.ai@anulum.li).
+Install the supplied wheel with `python -m pip install /path/to/wheel.whl`.
+It layers into the same `director_ai` namespace.
 
 An annual subscription (Pro CHF/USD 490, Full CHF/USD 980 per year) covers
-index access and all releases of the tier while active. Checkout and plans:
+all releases of the tier while active. See checkout and plans at
 [anulum.li/director-ai/pricing](https://www.anulum.li/director-ai/pricing.html).
 
 ## Operator Notes
