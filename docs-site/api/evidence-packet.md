@@ -10,7 +10,9 @@ Use a clean virtual environment on a supported Python version. Set
 `CORE_WHEEL` and `LICENSED_WHEEL` to the paths of matching Core and licensed
 Pro or Full wheels from the same release as this guide. The licensed wheel can be
 installed from a local file. The [pricing page](../pricing.md) describes
-delivery. Core supplies `quickstart` and `verify-evidence`. Pro and Full
+delivery. Core supplies `quickstart` and `verify-evidence`. In Core alone,
+`evidence` exits with the advanced-tier diagnostic before creating a packet
+or its output directory. Pro and Full
 supply `production-check` and the parts that emit the packet.
 
 ```bash

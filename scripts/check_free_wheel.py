@@ -54,6 +54,7 @@ _FREE_ESSENTIALS = (
 
 _SIMULATION = """
 import importlib.util
+from pathlib import Path
 
 import director_ai
 
@@ -85,6 +86,26 @@ except ImportError as exc:
         raise SystemExit(f"boundary error lost the friendly message: {exc}")
 else:
     raise SystemExit("core.LLMGenerator resolved in a core-only install")
+
+director_ai.cli.main(["compliance", "--help"])
+for arguments, needed, output in (
+    (["evidence", "--emit", "evidence-probe"], "director_ai.core.answer_bom", "evidence-probe"),
+    (["compliance", "report", "--db", "missing-probe.db"], "director_ai.compliance", "missing-probe.db"),
+    (["compliance", "evidence-kit", "--output", "compliance-probe"], "director_ai.compliance", "compliance-probe"),
+):
+    try:
+        director_ai.cli.main(arguments)
+    except SystemExit as exc:
+        expected = (
+            f"this subcommand requires the advanced tier ({needed} is not installed). "
+            "Install director-ai-pro to use it."
+        )
+        if str(exc) != expected:
+            raise SystemExit(f"unexpected paid-command refusal: {exc}") from exc
+    else:
+        raise SystemExit(f"paid command executed in the free wheel: {arguments}")
+    if Path(output).exists():
+        raise SystemExit(f"paid command created output in the free wheel: {output}")
 
 print("import simulation OK")
 """

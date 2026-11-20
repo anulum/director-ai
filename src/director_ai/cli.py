@@ -29,6 +29,7 @@ import sys
 from collections.abc import Callable
 from dataclasses import dataclass
 from importlib import import_module
+from importlib.util import find_spec
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -45,7 +46,6 @@ __all__ = ["_INGEST_MAX_FILE_SIZE"]
 from ._cli_verify import (
     _cmd_adversarial_test,
     _cmd_check_step,
-    _cmd_compliance,
     _cmd_consensus,
     _cmd_cost_report,
     _cmd_doctor,
@@ -59,10 +59,27 @@ from ._cli_verify import (
     _cmd_verify_reasoning,
     _cmd_wizard,
 )
+from ._cli_verify import (
+    _cmd_compliance as _run_compliance,
+)
 from .cli_quickstart import _cmd_quickstart
 
 if TYPE_CHECKING:
     from ._cli_ingest import _INGEST_MAX_FILE_SIZE
+
+
+def _advanced_tier_error(module: str) -> SystemExit:
+    """Return the standard CLI refusal for an absent paid module."""
+    return SystemExit(
+        f"this subcommand requires the advanced tier ({module} is not installed). "
+        "Install director-ai-pro to use it."
+    )
+
+
+def _require_advanced_module(module: str) -> None:
+    """Refuse an absent paid module before running an operation."""
+    if find_spec(module) is None:
+        raise _advanced_tier_error(module)
 
 
 def _lazy_handler(module: str, attr: str) -> Callable[[list[str]], None]:
@@ -77,11 +94,7 @@ def _lazy_handler(module: str, attr: str) -> Callable[[list[str]], None]:
         try:
             mod = import_module(module, __package__)
         except ModuleNotFoundError as exc:
-            raise SystemExit(
-                f"this subcommand requires the advanced tier "
-                f"(director_ai{module} is not installed). "
-                "Install director-ai-pro to use it."
-            ) from exc
+            raise _advanced_tier_error(f"director_ai{module}") from exc
         handler: Callable[[list[str]], None] = getattr(mod, attr)
         handler(args)
 
@@ -183,8 +196,16 @@ def _cmd_version(args: list[str]) -> None:
     )
 
 
+def _cmd_compliance(args: list[str]) -> None:
+    """Keep compliance help readable and gate execution on the paid overlay."""
+    if args and args[0] not in ("-h", "--help"):
+        _require_advanced_module("director_ai.compliance")
+    _run_compliance(args)
+
+
 def _cmd_evidence(args: list[str]) -> None:
     """Run the narrow grounding demo and emit a verifiable evidence packet."""
+    _require_advanced_module("director_ai.core.answer_bom")
     out_dir = Path("evidence")
     profile = "fast"
     i = 0

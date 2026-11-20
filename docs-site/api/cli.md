@@ -131,8 +131,10 @@ director-ai production-check --path director_guard
 director-ai production-check --path director_guard --require-secrets
 ```
 
-Pro or Full supplies `production-check` and evidence emission. Core supplies
-the scaffold generator and `verify-evidence`. Follow the
+Pro or Full supplies `production-check`, evidence emission and compliance
+operations. Core supplies the scaffold generator, `verify-evidence` and
+`compliance --help`. Core reports the advanced-tier requirement before
+executing paid commands or creating their output. Follow the
 [installed-package walkthrough](evidence-packet.md) for the model, credentials
 and policy demo.
 
