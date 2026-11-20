@@ -45,6 +45,51 @@ PyPI publication succeed, and it refuses to overwrite an existing same-name
 asset. A conflict therefore stops the release for operator reconciliation
 instead of silently replacing public bytes.
 
+### Verify a Core distribution
+
+Use an authenticated GitHub CLI to verify the release checksums and
+provenance before installing. Obtain the expected full commit SHA from a
+trusted release record or checkout. This Bash example uses the wheel, source
+archive and source commit for Core release `3.21.0`. [GitHub CLI reference](https://cli.github.com/manual/gh_attestation_verify)
+
+```bash
+set -euo pipefail
+
+repo=anulum/director-ai
+version=3.21.0
+tag="v${version}"
+expected_commit=33bd3fd8444fb80d19e56a0ae3c8c7120067cb4e
+wheel="dist/director_ai-${version}-py3-none-any.whl"
+sdist="dist/director_ai-${version}.tar.gz"
+release_dir=$(mktemp -d)
+mkdir "$release_dir/dist"
+
+gh release download "$tag" --repo "$repo" --dir "$release_dir/dist" \
+  --pattern "${wheel##*/}" --pattern "${sdist##*/}"
+gh release download "$tag" --repo "$repo" --dir "$release_dir" \
+  --pattern dist-sha256.txt
+
+(
+  cd "$release_dir"
+  sha256sum -- "$wheel" "$sdist" | cmp - dist-sha256.txt
+  for artifact in "$wheel" "$sdist"; do
+    gh attestation verify "$artifact" --repo "$repo" \
+      --signer-workflow "$repo/.github/workflows/publish.yml" \
+      --source-digest "$expected_commit" --deny-self-hosted-runners
+  done
+)
+printf 'Verified distributions are in %s/dist\n' "$release_dir"
+```
+
+For a distribution downloaded from PyPI, compare its SHA-256 with the
+release manifest entry for that filename and run the same attestation check
+on the downloaded file. Stop installation if either check fails.
+
+If your policy requires the attestation to name the tag ref, add
+`--source-ref "refs/tags/$tag"`. The `3.21.0` distributions pass the source
+commit check. Their attestation records `refs/heads/main` from the manual
+publication run, so the tag-ref check fails for that release.
+
 ## Package Notes
 
 | Package | Extra | Risk class | Required controls |

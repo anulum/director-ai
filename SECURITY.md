@@ -283,6 +283,10 @@ Deployment notes for torch, transformers, ONNX Runtime, Chroma, and other
 heavy optional packages live in
 ``docs-site/deployment/supply-chain.md``.
 
+The [Core distribution verification procedure](docs-site/deployment/supply-chain.md#verify-a-core-distribution)
+checks release checksums and binds the downloaded files to the publisher
+workflow and expected source commit.
+
 ### Physical-action residual risks
 
 Cyber-physical hooks can screen proposed actions before they reach a robot,
