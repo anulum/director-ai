@@ -17,9 +17,9 @@ labelled eval set (AggreFact, HaluEval, custom KB) — compute:
    accuracy on the sample.
 2. **Bootstrap 95% CI** — non-parametric resampling over the
    per-example pairs to bound threshold uncertainty.
-3. **Bayesian posterior** — `Turing.jl` model with `Beta` prior on
-   the threshold and Bernoulli likelihood, yielding a posterior mean
-   and 95% credible interval.
+3. **Bayesian posterior** — piecewise integration of a `Beta` threshold
+   prior and Bernoulli likelihood, yielding posterior moments and a
+   95% credible interval.
 
 The module is deliberately standalone — no FFI into Python, no
 runtime dependency from Director-AI on Julia. Operators run it as a
@@ -28,13 +28,10 @@ threshold back into `DirectorConfig`.
 """
 module DirectorThresholdTuner
 
-using Distributions
 import JSON
 using MCMCChains: Chains
 using Random
 using Statistics
-using StatsBase
-using Turing
 
 export ScoredExample, balanced_accuracy, optimise_threshold,
        bootstrap_threshold_ci, bayesian_threshold_posterior,
@@ -161,44 +158,7 @@ function bootstrap_threshold_ci(examples::AbstractVector{ScoredExample};
             samples = valid)
 end
 
-@model function _threshold_model(scores, labels)
-    threshold ~ Beta(2.0, 2.0)
-    for i in eachindex(scores)
-        p = scores[i] >= threshold ? 0.99 : 0.01
-        labels[i] ~ Bernoulli(p)
-    end
-end
-
-"""
-    bayesian_threshold_posterior(examples; n_samples, n_warmup, rng)
-
-Fit a simple generative model: a threshold ``t`` drawn from
-``Beta(2, 2)`` where each example's label is Bernoulli(0.99 or 0.01)
-depending on whether its score exceeds ``t``. MCMC with NUTS yields
-the posterior over ``t``.
-
-Returns `(mean, std, lo, hi, chain)` with `lo`/`hi` the 95%
-credible-interval bounds and `chain` the underlying `Chains` object
-for downstream diagnostics.
-"""
-function bayesian_threshold_posterior(examples::AbstractVector{ScoredExample};
-                                      n_samples::Integer = 800,
-                                      n_warmup::Integer = 400,
-                                      rng::AbstractRNG = Random.default_rng())
-    n_samples > 0 && n_warmup > 0 ||
-        throw(ArgumentError("n_samples and n_warmup must be positive"))
-    isempty(examples) && throw(ArgumentError("no examples supplied"))
-    scores = Float64[ex.score for ex in examples]
-    labels = Bool[ex.label for ex in examples]
-    model = _threshold_model(scores, labels)
-    chain = sample(rng, model, NUTS(), n_samples;
-                   discard_initial = n_warmup,
-                   chain_type = Chains, progress = false)
-    ts = vec(chain[:threshold].data)
-    lo = quantile(ts, 0.025)
-    hi = quantile(ts, 0.975)
-    return (mean = mean(ts), std = std(ts), lo = lo, hi = hi, chain = chain)
-end
+include("threshold_posterior.jl")
 
 """
     TuneResult

@@ -22,8 +22,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- The optional Julia tuner uses maintained JSON.jl and Turing dependencies.
-  It reads the existing JSONL input and emits the same threshold result schema.
+- The optional Julia tuner uses maintained JSON.jl and integrates the full
+  piecewise threshold posterior, including separated modes. The CLI schema
+  and Julia `Chains` output are preserved.
 - The optional Julia threshold tuner now requires Julia 1.13.4 or a later
   Julia 1.x release. Instantiate it with the refreshed lock. CI tests the CLI
   and audits the complete Julia dependency lock.

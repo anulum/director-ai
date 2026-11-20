@@ -39,11 +39,11 @@ function _parse()
             arg_type = Int
             default = 2000
         "--samples"
-            help = "Bayesian MCMC samples (post-warmup)"
+            help = "Independent Bayesian posterior draws"
             arg_type = Int
             default = 800
         "--warmup"
-            help = "Bayesian MCMC warmup"
+            help = "Legacy positive warmup setting (direct sampling has no warmup)"
             arg_type = Int
             default = 400
         "--seed"

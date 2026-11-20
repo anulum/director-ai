@@ -13,7 +13,7 @@ labelled set of scorer outputs, it reports:
 
 - the balanced-accuracy-maximising **point threshold**
 - a non-parametric **bootstrap 95% CI**
-- a **Bayesian posterior** over the threshold (`Turing.jl`, NUTS)
+- a **Bayesian posterior** over the threshold, integrated across the score intervals
 
 All three are additive diagnostics: the Python production pipeline
 is unchanged. Operators run this tool against exported score logs,
@@ -26,15 +26,17 @@ The Python tuner in `benchmarks/aggrefact_eval.py` returns a point
 estimate only. Shipping a threshold without an uncertainty band has
 burned us in the past (see the FPR-campaign metric reset of
 2026-04-12, where a per-dataset threshold hid a fragile operating
-point). The tuner uses `Turing.jl` to sample the posterior under the stated
-threshold model.
+point). The threshold has a Beta(2, 2) prior. A matching label has likelihood
+0.99 and a mismatching label has likelihood 0.01. The likelihood is
+constant between scores, so the tuner integrates across those intervals
+and can draw independently from the entire posterior.
 
 ## Layout
 
 ```
 tools/julia_tuner/
 ├── Project.toml                   # Julia project manifest
-├── src/DirectorThresholdTuner.jl  # library module
+├── src/                          # library module and posterior integration
 ├── bin/tune_threshold.jl          # CLI entry
 ├── test/                          # native library and CLI tests
 └── README.md                      # this file
@@ -52,11 +54,11 @@ tests/test_prepare_threshold_data.py
 Use Julia 1.13.4 or a later Julia 1.x release with the checked-in project
 and manifest. CI tests the CLI and builds the API reference on Julia 1.13.4.
 Run `Pkg.instantiate()` after updating the checkout to install the locked
-JSON.jl and Turing dependencies.
+JSON.jl and MCMCChains dependencies.
 
 After instantiating the project, run `julia tools/julia_tuner/bin/tune_threshold.jl --help`
 from the repository root to see the available options. Argument parsing runs
-before the Bayesian sampler loads.
+before the tuner library loads.
 
 ```bash
 # 1. Instantiate once per machine
@@ -74,7 +76,7 @@ julia --project=tools/julia_tuner \
     tools/julia_tuner/bin/tune_threshold.jl \
     --input /tmp/scores.jsonl \
     --output /tmp/threshold.json \
-    --bootstrap 2000 --samples 800 --warmup 400 --seed 42
+    --bootstrap 2000 --samples 800 --seed 42
 
 cat /tmp/threshold.json | jq
 ```
@@ -91,8 +93,7 @@ One JSON object per line, UTF-8:
 - `score` — scorer output. Any real number; typically in `[0, 1]`.
 - `label` — ground-truth boolean, `0`/`1`, or one of
   `"true"/"false"/"supported"/"unsupported"/"grounded"/"hallucinated"`.
-- `source` — optional, copied through to the output so multi-dataset
-  pivots are possible downstream.
+- `source` — optional input metadata. The tuner ignores this field.
 
 ## Output format
 
@@ -112,12 +113,14 @@ One JSON object per line, UTF-8:
 
 `point.threshold` maximises balanced accuracy on the supplied sample.
 The bootstrap reports variation under resampling. The Bayesian interval
-summarises the sampled threshold model. On multimodal data, one NUTS chain
-can stay in one mode and report a narrow interval while other modes still
-carry substantial probability. Check agreement across independent seeds
-before using the Bayesian summary to choose a threshold.
-
-For repeatable sampling, use the same Julia version, manifest, data and seed.
+is the equal-tail 95% interval of the specified threshold model and can
+span multiple modes. The Bayesian mean, standard deviation and interval
+are independent of the seed and sample budget. The seed controls the
+bootstrap resamples and the independent posterior draws returned as a
+`Chains` object by the Julia API. The legacy positive `--warmup` option
+and `n_warmup` keyword preserve the iteration numbering of the Julia
+chain. The sampler has no warmup. For repeatable draws, use the same Julia
+version, manifest, data and seed.
 
 ## Tests
 
@@ -129,7 +132,7 @@ The native Julia suite covers
 balanced-accuracy edge conditions (perfect separation, inversion,
 degenerate labels, boundary), grid search (known optimum, empty,
 degenerate, custom grid), bootstrap (CI brackets, narrowing with
-data, bad arguments, CI scaling), Bayesian concentration, `tune`
+data, bad arguments, CI scaling), Bayesian concentration and multimodal integration, `tune`
 round-trip, JSONL load (valid, missing fields, bad label strings),
 `save_result_json` schema round-trip, and the CLI subprocess contract.
 

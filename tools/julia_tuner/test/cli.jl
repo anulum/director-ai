@@ -30,6 +30,7 @@ end
     @test help.status == 0
     @test occursin("--input", help.output)
     @test occursin("--output", help.output)
+    @test occursin("--warmup", help.output)
 
     missing = run_tuner(script)
     @test missing.status != 0
@@ -64,7 +65,11 @@ end
             @test result["point"]["threshold"] ≈ 0.005
             @test result["point"]["balanced_accuracy"] == 0.625
             @test 0 <= result["bootstrap"]["lo"] <= result["bootstrap"]["hi"] <= 1
-            @test 0 <= result["bayesian"]["lo"] <= result["bayesian"]["hi"] <= 1
+            @test sort!(collect(keys(result["bayesian"]))) == ["hi", "lo", "mean", "std"]
+            @test result["bayesian"]["mean"] ≈ 0.8092590290144229
+            @test result["bayesian"]["std"] ≈ 0.31814980800707654
+            @test result["bayesian"]["lo"] ≈ 0.12333050586352708
+            @test result["bayesian"]["hi"] ≈ 0.9994250598923783
         end
     end
 end

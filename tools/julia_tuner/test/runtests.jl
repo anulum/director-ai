@@ -205,4 +205,5 @@ end
     end
 end
 
+include("posterior.jl")
 include("cli.jl")
