@@ -63,6 +63,10 @@ graph TD
 
 ## Recommended Setup
 
+First follow the [local production walkthrough](../api/evidence-packet.md) to
+check the installed package, scaffold and model-backed scoring on the bundled
+policy facts.
+
 For a production scaffold with authenticated service defaults, tenant routing,
 audit stores, signed knowledge writes, and Prometheus-ready metrics:
 
@@ -71,8 +75,9 @@ director-ai quickstart --profile production
 cd director_guard
 ```
 
-Fill `.env` with the deployment API-key to tenant map, proxy API keys, upstream
-LLM URL, CORS origins, and KB signing key, then run:
+Fill `.env` with the deployment API-key-to-tenant map, proxy API keys, LLM
+and proxy upstream URLs, knowledge-write and audit HMAC keys, and CORS
+origins. Then start the services:
 
 ```bash
 docker compose up

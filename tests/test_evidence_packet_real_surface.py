@@ -11,12 +11,15 @@ from __future__ import annotations
 
 import json
 import os
+import secrets
 
 # The real-surface checks intentionally invoke the local Python CLI.
 import subprocess  # nosec B404
 import sys
 from pathlib import Path
 from typing import cast
+
+from pytest import MonkeyPatch
 
 from tools.test_surface_policy_manifest import KNOWN_TEST_SURFACE_CLASSIFICATIONS
 
@@ -100,3 +103,27 @@ def test_evidence_packet_cli_emits_and_verifies_packet(tmp_path: Path) -> None:
     verify_file = _run_cli("verify-evidence", str(packet_path))
     assert verify_file.returncode == 0, verify_file.stdout + verify_file.stderr
     assert "Evidence packet VERIFIED" in verify_file.stdout
+
+
+def test_production_evidence_refuses_missing_model(
+    tmp_path: Path,
+    monkeypatch: MonkeyPatch,
+) -> None:
+    """The production CLI refuses to emit a heuristic packet when FactCG is missing."""
+    monkeypatch.setenv("HF_HOME", str(tmp_path / "hf"))
+    monkeypatch.setenv("HF_HUB_CACHE", str(tmp_path / "hf" / "hub"))
+    monkeypatch.setenv(
+        "DIRECTOR_API_KEY_TENANT_MAP",
+        json.dumps({secrets.token_urlsafe(32): "demo"}),
+    )
+    monkeypatch.setenv(
+        "DIRECTOR_KNOWLEDGE_WRITE_HMAC_KEYS",
+        "demo:" + secrets.token_hex(32),
+    )
+    out = tmp_path / "evidence"
+
+    result = _run_cli("evidence", "--emit", str(out), "--profile", "production")
+
+    assert result.returncode == 1, result.stdout
+    assert "requires model-backed NLI" in result.stderr
+    assert not out.exists()

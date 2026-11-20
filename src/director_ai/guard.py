@@ -99,7 +99,9 @@ class ProductionGuard(
     """Batteries-included guardrail for production deployments.
 
     Wires together CoherenceScorer, OnlineCalibrator, FeedbackStore,
-    ConformalPredictor, and VerifiedScorer into a single API.
+    ConformalPredictor, and VerifiedScorer into a single API. Configurations
+    that require model-backed NLI use the configured scorer and refuse scoring
+    when that model is unavailable.
     """
 
     def __init__(
@@ -109,11 +111,14 @@ class ProductionGuard(
     ) -> None:
         self._config = config or DirectorConfig()
         self._store = store or GroundTruthStore()
-        self._scorer = CoherenceScorer(
-            threshold=self._config.coherence_threshold,
-            ground_truth_store=self._store,
-            use_nli=self._config.use_nli,
-        )
+        if getattr(self._config, "coherence_require_model_backed_nli", False):
+            self._scorer = self._config.build_scorer(store=self._store)
+        else:
+            self._scorer = CoherenceScorer(
+                threshold=self._config.coherence_threshold,
+                ground_truth_store=self._store,
+                use_nli=self._config.use_nli,
+            )
         self._verified = VerifiedScorer()
         # PII redaction parity with the REST server: when redact_pii is set, the
         # SDK path scrubs prompt + response before scoring, so direct guard use

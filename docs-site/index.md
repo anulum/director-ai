@@ -74,7 +74,7 @@ those controls to LLM output.
 
 | Surface | Why it matters | Start here |
 |---|---|---|
-| Evidence packet CLI | Run and verify a sealed local packet before asking a team to trust the guard | [Evidence Packet](api/evidence-packet.md) |
+| Evidence packet CLI | Emit a local demo packet with Pro or Full and verify it with Core | [Evidence Packet](api/evidence-packet.md) |
 | Voice Guard | Guard token streams before they become speech output or voice-agent actions | [Voice AI](guide/voice-ai.md) |
 | Inference-server hooks | Reject or mask unsafe tokens before sampling in vLLM, TGI, and llama.cpp deployments | [Inference-server hooks](integrations/inference-server-hooks.md) |
 | Supply-chain controls | Keep model, dependency, SBOM, and ML-BOM evidence visible to operators | [Supply Chain](deployment/supply-chain.md) |

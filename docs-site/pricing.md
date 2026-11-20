@@ -27,8 +27,8 @@ Pay when you need Advanced & Labs in production, managed deployment, or support 
 | Tier | Install / delivery | Price | What ships |
 |---|---|---:|---|
 | **Director-Lite** | `pip install director-ai-lite` | **USD 0** | Three-line `guard()` facade, model-free heuristic default, facts/RAG handoff, optional NLI upgrade |
-| **Director-AI** | `pip install director-ai` | **USD 0** | Full open-core runtime: SDK guard, 5-tier scoring, REST/gRPC server, framework integrations, evidence packets, opt-in streaming contradiction halt |
-| **Director-AI Pro** | Private self-hosted delivery | **CHF or USD 490/yr** | Advanced production modules and priority support |
+| **Director-AI** | `pip install director-ai` | **USD 0** | Full open-core runtime: SDK guard, 5-tier scoring, REST/gRPC server, framework integrations, offline evidence-packet verification, opt-in streaming contradiction halt |
+| **Director-AI Pro** | Private self-hosted delivery | **CHF or USD 490/yr** | Advanced production modules, evidence demo emission and priority support |
 | **Director-AI Full** | Private self-hosted delivery | **CHF or USD 980/yr** | Pro plus Labs/Research modules and direct engineering support |
 | **Director-Class AI** | Separate commercial product | **Scoped order form** | Action-control and evidence boundary; deployment and support are scoped separately |
 

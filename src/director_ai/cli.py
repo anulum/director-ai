@@ -618,7 +618,7 @@ def _command_specs() -> dict[str, _CommandSpec]:
         ),
         "evidence": _CommandSpec(
             _cmd_evidence,
-            "evidence [--emit DIR]  Run the narrow demo, emit a verifiable packet",
+            "evidence [--emit DIR] [--profile NAME]  Emit a demo packet (Pro/Full)",
         ),
         "verify-evidence": _CommandSpec(
             _cmd_verify_evidence,

@@ -127,8 +127,14 @@ python guard.py
 # Create and validate an authenticated production scaffold
 director-ai quickstart --profile production
 director-ai production-check --path director_guard
+# After filling the required values in director_guard/.env
 director-ai production-check --path director_guard --require-secrets
 ```
+
+Pro or Full supplies `production-check` and evidence emission. Core supplies
+the scaffold generator and `verify-evidence`. Follow the
+[installed-package walkthrough](evidence-packet.md) for the model, credentials
+and policy demo.
 
 ### Benchmarking
 

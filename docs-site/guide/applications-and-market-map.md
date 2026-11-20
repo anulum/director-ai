@@ -92,7 +92,7 @@ inside LLM output flow.
 | Surface | Public package/docs | Commercial extension boundary |
 |---|---|---|
 | Director-Lite | `director-ai-lite`, three-line guard facade, free onboarding | None required for free-tier use |
-| Director-AI | `director-ai`, open-core SDK, scorers, APIs, integrations, evidence packet, docs | Paid Pro use for Advanced & Labs production deployment |
+| Director-AI | `director-ai`, open-core SDK, scorers, APIs, integrations, evidence-packet verification, docs | Paid Pro use for Advanced & Labs production deployment |
 | Director-Class AI | Separate product and repository; no public PyPI package | Runtime action control, human approval routing, and tamper-evident action evidence under scoped commercial terms |
 
 This table is the public-vs-commercial *boundary*; for the full commercial tier
@@ -107,21 +107,10 @@ is scoped independently when an agent also needs an effector-bound action gate.
 
 ## First Evidence Packet
 
-Before any serious pilot discussion, produce a small evidence packet:
-
-```bash
-pip install "director-ai[nli]"
-director-ai evidence --emit evidence/
-director-ai verify-evidence evidence/
-```
-
-That packet should prove:
-
-1. a governed fact loaded successfully;
-2. a grounded answer passed;
-3. a hallucinated or contradictory answer failed;
-4. the decision record has a digest and can be verified;
-5. the operator can explain what happened without exposing secrets.
+The [installed-package walkthrough](../api/evidence-packet.md) checks a
+supported answer and a contradiction against a bundled policy knowledge base.
+Use Pro or Full to emit the demo packet. Reviewers can verify the recorded
+outcomes and content digest with Core.
 
 ## Documentation Path
 

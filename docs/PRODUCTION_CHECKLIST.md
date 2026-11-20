@@ -94,9 +94,14 @@ app.add_middleware(DirectorGuard, facts={"policy": "30 days"}, on_fail="reject")
 
 ### Generate config
 
+Pro or Full provides the scaffold validator. Follow the
+[local production walkthrough](../docs-site/api/evidence-packet.md) for the
+model-backed smoke check.
+
 ```bash
 director-ai quickstart --profile production
 director-ai production-check --path director_guard
+# After filling the required values in director_guard/.env
 director-ai production-check --path director_guard --require-secrets
 
 # OR, for manual integration:

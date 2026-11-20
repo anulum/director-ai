@@ -45,7 +45,7 @@ Director-AI — Repository overview
 | Tier | Install / delivery | Licence · billing | Ships |
 |---|---|---|---|
 | **Director-Lite** | `pip install director-ai-lite` | Apache-2.0 · free | Three-line guard facade, model-free heuristic default, facts/RAG handoff, optional NLI upgrade |
-| **Director-AI** | `pip install director-ai` | Apache-2.0 · free | Full open-core runtime: `guard()`, 5-tier scoring, RAG grounding and evidence packets, REST/gRPC server and proxy, SDK and framework integrations, CLI verification, opt-in streaming contradiction halt |
+| **Director-AI** | `pip install director-ai` | Apache-2.0 · free | Full open-core runtime: `guard()`, 5-tier scoring, RAG grounding, offline evidence-packet verification, REST/gRPC server and proxy, SDK and framework integrations, opt-in streaming contradiction halt |
 | **Director-AI Pro** | Licensed wheels via [commercial support](mailto:director.class.ai@anulum.li) | LicenseRef-BUSL-1.1-ANULUM-TDM · CHF or USD 490/yr | Advanced production entitlement: verified scorer, sharded NLI, cross-model consensus, forecasting, calibration, training tools, enterprise packages, priority support |
 | **Director-AI Full** | Licensed wheels via [commercial support](mailto:director.class.ai@anulum.li) | LicenseRef-BUSL-1.1-ANULUM-TDM · CHF or USD 980/yr | Everything in Pro plus the Labs/Research module set and direct engineering support |
 | **Director-Class AI** | Commercial engagement | Scoped order form | Action-control and evidence boundary for agent fleets; requested via [protoscience@anulum.li](mailto:protoscience@anulum.li) |
@@ -71,31 +71,20 @@ The paid wheels layer into the same `director_ai` namespace — no code
 changes, the names that raise "requires the advanced tier" in a core-only
 install simply start working.
 
-## The one-command demo
+## Run the production evidence demo
 
-The narrow thing Director-AI does, end to end — load a small policy knowledge
-base, approve a grounded answer, block a hallucinated one, and emit a
-tamper-evident record of every decision:
+Use the [installed-package walkthrough](docs-site/api/evidence-packet.md) to
+validate the production scaffold, score two completed answers against a small
+local knowledge base with FactCG, and verify the recorded decisions. Packet
+emission and the scaffold validator require a matching licensed Pro or Full
+wheel. Core can generate the scaffold and verify a packet supplied by someone
+else.
 
 ```bash
-pip install "director-ai[nli]"
-director-ai evidence --emit evidence/        # runs the 7-step demo, writes a sealed packet
-director-ai verify-evidence evidence/        # re-checks the packet's integrity + outcomes
+# In the configured environment from the walkthrough
+director-ai evidence --emit evidence/ --profile production
+director-ai verify-evidence evidence/
 ```
-
-The seven steps the packet records:
-
-1. Load the bundled policy facts into the knowledge base.
-2. Ask a policy question through the guard.
-3. A **grounded** answer is approved.
-4. A **hallucinated** answer is blocked.
-5. The guard records the score and decision evidence.
-6. An evidence JSON (Answer Bill of Materials + OpenTelemetry eval record) is emitted.
-7. The packet is sealed with a digest for offline verification.
-
-`evidence_packet.json` is sealed with a SHA-256 digest, so a reviewer can verify
-it without re-running the guard. The default fast profile keeps the demo local
-and deterministic; install the `[nli]` extra for model-backed production scoring.
 
 ---
 
@@ -203,7 +192,7 @@ an output.
 
 | Surface | What it gives operators | Start here |
 |---|---|---|
-| Evidence packet CLI | A sealed local demo packet that approves one grounded answer, rejects one hallucinated answer, and verifies the packet digest | `director-ai evidence --emit evidence/` then `director-ai verify-evidence evidence/` |
+| Evidence packet CLI | Local approve/reject evidence with offline verification | [Installed-package walkthrough](docs-site/api/evidence-packet.md) |
 | Voice Guard | Token filtering and guarded TTS/STT pipeline adapters for voice AI flows | [Voice AI](docs-site/guide/voice-ai.md) |
 | Inference-server hooks | Pre-sampling reject/mask hooks for vLLM, TGI, and llama.cpp deployments | [Inference-server hooks](docs-site/integrations/inference-server-hooks.md) |
 | Supply-chain controls | Model/dependency provenance, SBOM/ML-BOM surfaces, and deployment pinning guidance | [Supply chain](docs-site/deployment/supply-chain.md) |

@@ -26,7 +26,7 @@ checklist.
 | Protect a RAG bot | `director-ai[vector]` | [KB Ingestion](guide/kb-ingestion.md) |
 | Evaluate a pilot | labelled examples | [Evaluation Onboarding](guide/onboarding.md) |
 | Deploy a service | `director-ai quickstart --run` | [Production Guide](deployment/production.md) |
-| Prepare a production stack | `director-ai quickstart --profile production` | [Monitoring](deployment/monitoring.md) |
+| Prepare a production stack | `director-ai quickstart --profile production` | [Local production walkthrough](api/evidence-packet.md) |
 
 ## Recommended Path
 
@@ -106,8 +106,9 @@ cd director_guard
 ```
 
 Fill `.env` with `DIRECTOR_API_KEY_TENANT_MAP`, `DIRECTOR_PROXY_API_KEYS`,
-`DIRECTOR_LLM_API_URL`, `DIRECTOR_UPSTREAM_URL`, `DIRECTOR_KB_HMAC_KEYS`, and
-`DIRECTOR_CORS_ORIGINS`, then start the service:
+`DIRECTOR_LLM_API_URL`, `DIRECTOR_UPSTREAM_URL`, `DIRECTOR_KB_HMAC_KEYS`,
+`DIRECTOR_AUDIT_HMAC_SECRET`, and `DIRECTOR_CORS_ORIGINS`. Then start the
+service:
 
 ```bash
 docker compose up

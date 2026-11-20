@@ -37,20 +37,12 @@ DEMO_FACTS: dict[str, str] = {
     "warranty": "Hardware carries a 24-month limited warranty.",
     "support_hours": "Support operates 09:00-17:00 CET on business days.",
     "data_region": "Customer data is stored in the EU (Frankfurt) region.",
+    "library": "The library opens on Monday.",
 }
 
-DEMO_QUESTION = (
-    "According to the refund_window policy, are refunds available within "
-    "30 days of purchase?"
-)
-DEMO_GROUNDED_ANSWER = (
-    "Yes. According to the refund_window policy, refunds are available within "
-    "30 days of purchase."
-)
-DEMO_HALLUCINATED_ANSWER = (
-    "No. According to the refund_window policy, refunds are available any time, "
-    "with a cash bonus."
-)
+DEMO_QUESTION = "What day does the library open?"
+DEMO_GROUNDED_ANSWER = DEMO_FACTS["library"]
+DEMO_HALLUCINATED_ANSWER = "The library stays closed on Monday."
 
 
 def _canonical_digest(payload: dict[str, Any]) -> str:

@@ -56,7 +56,7 @@ surfaces around the scorer:
 
 | Surface | Role in a deployment |
 |---|---|
-| Evidence packet CLI | Gives evaluators a sealed approve/reject packet and an integrity verifier before a pilot starts. |
+| Evidence packet CLI | Pro and Full emit a local approve/reject packet. Core verifies an existing packet. |
 | Voice Guard | Applies the same token and stream controls to voice AI and TTS/STT pipelines. |
 | Inference-server hooks | Lets operators reject or mask unsafe tokens before sampling in vLLM, TGI, and llama.cpp. |
 | Supply-chain controls | Keeps dependency, model, SBOM, ML-BOM, and release-pinning evidence visible during deployment review. |
