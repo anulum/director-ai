@@ -6,13 +6,19 @@
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-AI — Piecewise threshold posterior
 
+"""One score interval of constant likelihood in the threshold model."""
 struct ThresholdInterval
+    "Lower score boundary of the interval."
     lower::Float64
+    "Upper score boundary of the interval."
     upper::Float64
+    "Conditional weights of the three rescaled Beta components."
     prior_weights::NTuple{3,Float64}
+    "Log of the prior interval mass times its relative likelihood."
     log_mass::Float64
 end
 
+"""Integrate the restricted Beta prior and attach the interval likelihood."""
 function ThresholdInterval(lower::Float64, upper::Float64, agreements::Int)
     # The restricted Beta(2, 2) prior is a mixture of Beta(1, 3), Beta(2, 2)
     # and Beta(3, 1) on the rescaled interval. These positive terms avoid
@@ -26,6 +32,7 @@ function ThresholdInterval(lower::Float64, upper::Float64, agreements::Int)
                              log_mass)
 end
 
+"""Build the intervals by grouping score boundaries and sweeping label agreement."""
 function _threshold_intervals(examples::AbstractVector{ScoredExample})
     changes = Dict{Float64,Int}()
     agreements = 0
@@ -50,12 +57,14 @@ function _threshold_intervals(examples::AbstractVector{ScoredExample})
     return intervals
 end
 
+"""Compute the conditional threshold mean within one score interval."""
 function _interval_mean(interval::ThresholdInterval)
     left, middle, right = interval.prior_weights
     return muladd(interval.upper - interval.lower,
                   0.25 * left + 0.5 * middle + 0.75 * right, interval.lower)
 end
 
+"""Pool conditional moments into the full posterior standard deviation."""
 function _posterior_std(intervals, peak::Float64, total::Float64, center::Float64)
     deviation = 0.0
     normalizer = sqrt(total)
@@ -74,6 +83,7 @@ function _posterior_std(intervals, peak::Float64, total::Float64, center::Float6
     return deviation
 end
 
+"""Invert the posterior CDF using the selected interval's conditional CDF."""
 function _posterior_quantile(intervals, cumulative, probability::Float64)
     index = searchsortedlast(cumulative, probability) + 1
     interval = intervals[index]

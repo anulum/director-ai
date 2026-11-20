@@ -52,7 +52,9 @@ Fields:
   `false` = hallucinated). Mapped from 0/1 integers on load.
 """
 struct ScoredExample
+    "Scorer output. Higher scores indicate stronger grounding."
     score::Float64
+    "Ground-truth label. A true value marks a supported example."
     label::Bool
 
     """Construct an observation with a finite score."""
@@ -75,21 +77,17 @@ behaviour for degenerate label distributions.
 """
 function balanced_accuracy(examples::AbstractVector{ScoredExample},
                            threshold::Real)::Float64
-    tp = tn = fp = fn = 0
+    tp = tn = pos = neg = 0
     for ex in examples
         pred = ex.score >= threshold
-        if ex.label && pred
-            tp += 1
-        elseif ex.label && !pred
-            fn += 1
-        elseif !ex.label && pred
-            fp += 1
+        if ex.label
+            pos += 1
+            tp += pred
         else
-            tn += 1
+            neg += 1
+            tn += !pred
         end
     end
-    pos = tp + fn
-    neg = tn + fp
     if pos == 0 || neg == 0
         return NaN
     end
@@ -177,17 +175,29 @@ include("threshold_posterior.jl")
 Combined output of `tune`. All thresholds are on the ``[0, 1]`` scale.
 """
 struct TuneResult
+    "Number of labelled observations used in the tune."
     n_examples::Int
+    "Fraction of observations with a positive label."
     positive_rate::Float64
+    "Grid threshold with the highest sampled balanced accuracy."
     point_threshold::Float64
+    "Balanced accuracy at the selected grid threshold."
     point_balanced_accuracy::Float64
+    "Lower 95% bootstrap confidence bound for the threshold."
     bootstrap_lo::Float64
+    "Upper 95% bootstrap confidence bound for the threshold."
     bootstrap_hi::Float64
+    "Mean of the valid resampled thresholds."
     bootstrap_mean::Float64
+    "Sample standard deviation of the valid resampled thresholds."
     bootstrap_std::Float64
+    "Mean of the integrated threshold posterior."
     bayesian_mean::Float64
+    "Standard deviation of the integrated threshold posterior."
     bayesian_std::Float64
+    "Lower equal-tail 95% posterior credible bound."
     bayesian_lo::Float64
+    "Upper equal-tail 95% posterior credible bound."
     bayesian_hi::Float64
 end
 
@@ -253,6 +263,7 @@ function load_scores_jsonl(path::AbstractString)
     return out
 end
 
+"""Interpret boolean, numeric and documented string label encodings."""
 function _coerce_label(value)
     if value isa Bool
         return value

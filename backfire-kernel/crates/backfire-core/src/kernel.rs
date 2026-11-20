@@ -34,7 +34,9 @@ pub type CoherenceCallback<'a> = &'a dyn Fn(&str) -> f64;
 ///
 /// Mirrors `SafetyKernel` from `kernel.py:12-69`.
 pub struct SafetyKernel {
+    /// Minimum accepted score for each token.
     hard_limit: f64,
+    /// Atomic latch cleared by an interruption and reset by reactivation.
     is_active: AtomicBool,
 }
 
@@ -122,7 +124,9 @@ impl SafetyKernel {
 ///
 /// Mirrors `StreamingKernel` from `streaming.py:79-214`.
 pub struct StreamingKernel {
+    /// Thresholds and window sizes used for streaming decisions.
     config: BackfireConfig,
+    /// Atomic latch that rejects later streams after any halt until reactivation.
     is_active: AtomicBool,
 }
 
@@ -262,12 +266,14 @@ impl StreamingKernel {
     }
 }
 
+/// Exercises callback failure, latch transitions and streaming decisions on the native API.
 #[cfg(test)]
 mod tests {
     use std::cell::Cell;
 
     use super::*;
 
+    /// Feed one generated token per score through the native callback interface.
     fn stream_scores(kernel: &StreamingKernel, scores: &[f64]) -> StreamSession {
         let tokens: Vec<String> = (0..scores.len()).map(|i| format!("token-{i}")).collect();
         let token_refs: Vec<&str> = tokens.iter().map(String::as_str).collect();
@@ -279,6 +285,7 @@ mod tests {
         })
     }
 
+    /// Check that the fitted decline can cross the threshold with equal endpoint scores.
     #[test]
     fn regression_detects_decline_with_equal_endpoints() {
         let kernel = StreamingKernel::new(BackfireConfig::default());
@@ -288,6 +295,7 @@ mod tests {
         assert_eq!(session.halt_index, 4);
     }
 
+    /// Check that falling endpoints can still pass when the fitted trend rises.
     #[test]
     fn regression_does_not_halt_on_declining_endpoints_with_rising_trend() {
         let kernel = StreamingKernel::new(BackfireConfig::default());
@@ -296,6 +304,7 @@ mod tests {
         assert_eq!(session.token_count(), 5);
     }
 
+    /// Halt on the latest low scores even when earlier high scores keep the full mean above the floor.
     #[test]
     fn recent_window_halts_even_when_full_history_average_passes() {
         let config = BackfireConfig {
@@ -314,6 +323,7 @@ mod tests {
         assert!(!kernel.is_active());
     }
 
+    /// Capture logger output for a panicking callback, its interruption and reactivation.
     #[test]
     fn safety_kernel_emits_real_callback_failure_halt_and_reactivation_logs() {
         let stamp = std::time::SystemTime::now()
@@ -348,6 +358,7 @@ mod tests {
         eprintln!("Native kernel log {}:\n{content}", path.display());
     }
 
+    /// Check that emergency stop prevents callback invocation until reactivation.
     #[test]
     fn safety_kernel_emergency_stop_blocks_callback_until_reactivation() {
         let kernel = SafetyKernel::new(0.5);
@@ -366,6 +377,7 @@ mod tests {
         assert_eq!(calls.get(), 1);
     }
 
+    /// Check that a hard-limit interruption rejects the next stream even with a passing score.
     #[test]
     fn safety_kernel_hard_halt_blocks_a_later_passing_stream() {
         let kernel = SafetyKernel::new(0.5);
@@ -378,6 +390,7 @@ mod tests {
             .contains("KERNEL INTERRUPT"));
     }
 
+    /// Verify the latch and restart for hard-limit, average and trend interruptions.
     #[test]
     fn every_streaming_halt_requires_reactivation_before_another_stream() {
         for scores in [vec![0.1], vec![0.54, 0.54, 0.54], vec![0.95, 0.85, 0.55]] {
@@ -404,6 +417,7 @@ mod tests {
 
     // ── SafetyKernel tests ────────────────────────────────────────
 
+    /// Join tokens whose scores satisfy the per-token floor.
     #[test]
     fn test_safety_kernel_pass() {
         let kernel = SafetyKernel::new(0.5);
@@ -411,6 +425,7 @@ mod tests {
         assert_eq!(output, "Hello world");
     }
 
+    /// Return the interruption marker when a score falls below the floor.
     #[test]
     fn test_safety_kernel_halt() {
         let kernel = SafetyKernel::new(0.5);
@@ -418,6 +433,7 @@ mod tests {
         assert!(output.contains("KERNEL INTERRUPT"));
     }
 
+    /// Apply the supplied score floor to an otherwise passing score.
     #[test]
     fn test_safety_kernel_custom_limit() {
         let kernel = SafetyKernel::new(0.7);
@@ -425,6 +441,7 @@ mod tests {
         assert!(output.contains("KERNEL INTERRUPT"));
     }
 
+    /// Restore the active flag after an emergency stop.
     #[test]
     fn test_safety_kernel_reactivate() {
         let kernel = SafetyKernel::new(0.5);
@@ -434,6 +451,7 @@ mod tests {
         assert!(kernel.is_active());
     }
 
+    /// Interrupt when a panicking callback yields the zero fallback.
     #[test]
     fn test_safety_kernel_callback_panic() {
         let kernel = SafetyKernel::new(0.5);
@@ -442,6 +460,7 @@ mod tests {
         assert!(output.contains("KERNEL INTERRUPT"));
     }
 
+    /// Interrupt when a NaN callback yields the zero fallback.
     #[test]
     fn test_safety_kernel_nan_score() {
         let kernel = SafetyKernel::new(0.5);
@@ -452,6 +471,7 @@ mod tests {
 
     // ── StreamingKernel tests ─────────────────────────────────────
 
+    /// Retain the full output and token count for a passing stream.
     #[test]
     fn test_streaming_pass_all() {
         let config = BackfireConfig::default();
@@ -462,6 +482,7 @@ mod tests {
         assert_eq!(session.token_count(), 3);
     }
 
+    /// Record the index and reason of the first sub-floor token.
     #[test]
     fn test_streaming_hard_limit_halt() {
         let config = BackfireConfig::default();
@@ -479,6 +500,7 @@ mod tests {
         assert!(session.halt_reason.contains("hard_limit"));
     }
 
+    /// Halt when a full window fails the average despite passing token scores.
     #[test]
     fn test_streaming_window_avg_halt() {
         let mut config = BackfireConfig::default();
@@ -491,6 +513,7 @@ mod tests {
         assert!(session.halt_reason.contains("window_avg"));
     }
 
+    /// Isolate the trend halt by lowering the hard and average floors.
     #[test]
     fn test_streaming_downward_trend_halt() {
         let mut config = BackfireConfig::default();
@@ -511,6 +534,7 @@ mod tests {
         assert!(session.halt_reason.contains("downward_trend"));
     }
 
+    /// Check that the session exposes a nonnegative elapsed duration.
     #[test]
     fn test_streaming_duration_tracked() {
         let config = BackfireConfig::default();
@@ -519,6 +543,7 @@ mod tests {
         assert!(session.duration_ms() >= 0.0);
     }
 
+    /// Compute the arithmetic mean over the recorded scores.
     #[test]
     fn test_streaming_avg_coherence() {
         let config = BackfireConfig::default();
@@ -534,6 +559,7 @@ mod tests {
         assert!((session.avg_coherence() - 0.7).abs() < 1e-9);
     }
 
+    /// Include the interruption marker in the string form of a halted stream.
     #[test]
     fn test_streaming_string_output_halted() {
         let config = BackfireConfig::default();
@@ -548,6 +574,7 @@ mod tests {
         assert!(output.contains("KERNEL INTERRUPT"));
     }
 
+    /// Return the joined tokens from the passing string output path.
     #[test]
     fn test_streaming_string_output_pass() {
         let config = BackfireConfig::default();
@@ -556,6 +583,7 @@ mod tests {
         assert_eq!(output, "Hello world");
     }
 
+    /// Check that the basic gate applies the hard limit read from the shared config.
     #[test]
     fn test_safety_kernel_from_config() {
         let config = BackfireConfig {
@@ -570,6 +598,7 @@ mod tests {
         assert!(output2.contains("KERNEL INTERRUPT"));
     }
 
+    /// Check the active flag before a halt, after it and after reactivation.
     #[test]
     fn test_streaming_is_active_and_reactivate() {
         let config = BackfireConfig::default();
@@ -582,6 +611,7 @@ mod tests {
         assert!(kernel.is_active());
     }
 
+    /// Report an inactive-session halt at index zero without accepting tokens.
     #[test]
     fn test_streaming_inactive_kernel_halts_immediately() {
         let config = BackfireConfig::default();
@@ -595,6 +625,7 @@ mod tests {
         assert!(session.tokens.is_empty());
     }
 
+    /// Route a panicking callback to a zero score and the hard-limit halt.
     #[test]
     fn test_streaming_callback_panic_halts() {
         let config = BackfireConfig::default();
@@ -604,6 +635,7 @@ mod tests {
         assert!(session.halt_reason.contains("hard_limit"));
     }
 
+    /// Route a NaN callback result to a zero score and the hard-limit halt.
     #[test]
     fn test_streaming_nan_callback_halts() {
         let config = BackfireConfig::default();
@@ -613,6 +645,7 @@ mod tests {
         assert!(session.halt_reason.contains("hard_limit"));
     }
 
+    /// Return an empty, passing session for an empty slice.
     #[test]
     fn test_streaming_empty_tokens() {
         let config = BackfireConfig::default();
@@ -623,6 +656,7 @@ mod tests {
         assert_eq!(session.output(), "");
     }
 
+    /// Check ordered event tokens, zero-based indices and the passing flag.
     #[test]
     fn test_streaming_events_match_tokens() {
         let config = BackfireConfig::default();

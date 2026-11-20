@@ -9,19 +9,17 @@
 
 from __future__ import annotations
 
-import sys
 from collections.abc import Iterator, Sequence
 from pathlib import Path
-from types import ModuleType, SimpleNamespace
-from typing import TYPE_CHECKING, NoReturn
+from types import SimpleNamespace
+from typing import NoReturn
 from unittest.mock import patch
 
 import pytest
 from starlette.requests import Request
-from starlette.types import ASGIApp, Receive, Scope, Send
+from starlette.types import Scope
 
-if TYPE_CHECKING:
-    from director_ai.core.types import CoherenceScore, ReviewResult
+from director_ai.core.types import CoherenceScore, ReviewResult
 
 try:
     from fastapi.testclient import TestClient
@@ -49,6 +47,7 @@ class TestHealth:
     """Health endpoint tests."""
 
     def test_health_ok(self, client: TestClient) -> None:
+        """Return the server health status and expected runtime fields."""
         resp = client.get("/v1/health")
         assert resp.status_code == 200
         data = resp.json()
@@ -57,6 +56,7 @@ class TestHealth:
         assert "uptime_seconds" in data
 
     def test_health_has_profile(self, client: TestClient) -> None:
+        """Include the active configuration profile in health output."""
         resp = client.get("/v1/health")
         data = resp.json()
         assert "profile" in data
@@ -66,6 +66,7 @@ class TestReview:
     """Review endpoint tests."""
 
     def test_review_valid(self, client: TestClient) -> None:
+        """Score a valid prompt and response through the review route."""
         resp = client.post(
             "/v1/review",
             json={"prompt": "What color is the sky?", "response": "Blue"},
@@ -78,6 +79,7 @@ class TestReview:
         assert "h_factual" in data
 
     def test_review_missing_fields(self, client: TestClient) -> None:
+        """Reject review payloads missing required fields."""
         resp = client.post("/v1/review", json={"prompt": "Hello"})
         assert resp.status_code == 422  # Validation error
 
@@ -86,6 +88,7 @@ class TestProcess:
     """Process endpoint tests."""
 
     def test_process_valid(self, client: TestClient) -> None:
+        """Return generated output and coherence for a valid process request."""
         resp = client.post(
             "/v1/process",
             json={"prompt": "What is the meaning of life?"},
@@ -97,6 +100,7 @@ class TestProcess:
         assert "candidates_evaluated" in data
 
     def test_process_missing_prompt(self, client: TestClient) -> None:
+        """Reject processing when the prompt field is absent."""
         resp = client.post("/v1/process", json={})
         assert resp.status_code == 422
 
@@ -105,6 +109,7 @@ class TestBatch:
     """Batch endpoint tests."""
 
     def test_batch_valid(self, client: TestClient) -> None:
+        """Return a batch result for each supplied prompt."""
         resp = client.post(
             "/v1/batch",
             json={
@@ -120,6 +125,7 @@ class TestBatch:
         assert len(data["results"]) + len(data["errors"]) == 2
 
     def test_batch_empty_prompts(self, client: TestClient) -> None:
+        """Validate the batch request against its nonempty prompt constraint."""
         resp = client.post("/v1/batch", json={"prompts": []})
         assert resp.status_code == 422  # min_length=1
 
@@ -128,6 +134,7 @@ class TestMetrics:
     """Metrics endpoint tests."""
 
     def test_metrics_json(self, client: TestClient) -> None:
+        """Expose aggregate scores and counts in the JSON metrics response."""
         # Trigger a review first
         client.post(
             "/v1/review",
@@ -141,6 +148,7 @@ class TestMetrics:
         assert "gauges" in data
 
     def test_metrics_prometheus(self, client: TestClient) -> None:
+        """Return the Prometheus exposition format from the metrics route."""
         resp = client.get("/v1/metrics/prometheus")
         assert resp.status_code == 200
         assert "director_ai_" in resp.text
@@ -150,6 +158,7 @@ class TestConfig:
     """Config endpoint tests."""
 
     def test_config_endpoint(self, client: TestClient) -> None:
+        """Expose the effective server configuration through the API."""
         resp = client.get("/v1/config")
         assert resp.status_code == 200
         data = resp.json()
@@ -157,6 +166,7 @@ class TestConfig:
         assert "coherence_threshold" in data["config"]
 
     def test_scorer_models_endpoint(self, client: TestClient) -> None:
+        """List available scorer models with their public metadata."""
         resp = client.get("/v1/scorer/models")
         assert resp.status_code == 200
         data = resp.json()
@@ -169,6 +179,7 @@ class TestConfig:
     def test_scorer_models_endpoint_can_include_domain_only(
         self, client: TestClient
     ) -> None:
+        """Include domain-specific scorer models when requested."""
         resp = client.get("/v1/scorer/models?include_domain_only=true")
         assert resp.status_code == 200
         data = resp.json()
@@ -181,6 +192,7 @@ class TestStats:
     """Stats endpoint tests."""
 
     def test_stats_returns_summary(self, client: TestClient) -> None:
+        """Return the expected counters, timings and coherence summary."""
         resp = client.get("/v1/stats")
         assert resp.status_code == 200
         data = resp.json()
@@ -190,6 +202,7 @@ class TestStats:
         assert isinstance(data["total"], int)
 
     def test_stats_after_review(self, client: TestClient) -> None:
+        """Count a completed review in subsequent statistics."""
         client.post(
             "/v1/review",
             json={"prompt": "Q", "response": "A"},
@@ -200,10 +213,12 @@ class TestStats:
         assert data["total"] >= 1
 
     def test_stats_hourly(self, client: TestClient) -> None:
+        """Return the default hourly statistics series."""
         resp = client.get("/v1/stats/hourly")
         assert resp.status_code == 200
 
     def test_stats_hourly_custom_days(self, client: TestClient) -> None:
+        """Accept a custom date range for hourly statistics."""
         resp = client.get("/v1/stats/hourly?days=1")
         assert resp.status_code == 200
 
@@ -212,12 +227,14 @@ class TestDashboard:
     """Dashboard endpoint tests."""
 
     def test_dashboard_html(self, client: TestClient) -> None:
+        """Serve the statistics dashboard with an HTML response."""
         resp = client.get("/v1/dashboard")
         assert resp.status_code == 200
         assert "Director-AI Dashboard" in resp.text
         assert "Total Reviews" in resp.text
 
     def test_dashboard_after_review(self, client: TestClient) -> None:
+        """Render dashboard statistics after a review is recorded."""
         client.post(
             "/v1/review",
             json={"prompt": "Q", "response": "A"},
@@ -231,6 +248,7 @@ class TestWebSocket:
     """WebSocket /v1/stream endpoint tests."""
 
     def test_ws_valid_prompt(self, client: TestClient) -> None:
+        """Score a WebSocket prompt and return a result frame."""
         with client.websocket_connect("/v1/stream") as ws:
             ws.send_json({"prompt": "What is 2+2?"})
             data = ws.receive_json()
@@ -239,18 +257,21 @@ class TestWebSocket:
             assert "halted" in data
 
     def test_ws_empty_prompt(self, client: TestClient) -> None:
+        """Reply with an error to a WebSocket frame with an empty prompt."""
         with client.websocket_connect("/v1/stream") as ws:
             ws.send_json({"prompt": ""})
             data = ws.receive_json()
             assert "error" in data
 
     def test_ws_missing_prompt(self, client: TestClient) -> None:
+        """Report a missing prompt in the WebSocket payload."""
         with client.websocket_connect("/v1/stream") as ws:
             ws.send_json({"foo": "bar"})
             data = ws.receive_json()
             assert "error" in data
 
     def test_ws_multiple_messages(self, client: TestClient) -> None:
+        """Return separate results for successive messages on one connection."""
         with client.websocket_connect("/v1/stream") as ws:
             ws.send_json({"prompt": "Q1"})
             d1 = ws.receive_json()
@@ -260,6 +281,7 @@ class TestWebSocket:
             assert d2["type"] == "result"
 
     def test_ws_prompt_exceeds_max_length(self, client: TestClient) -> None:
+        """Reject a prompt beyond the WebSocket length limit."""
         with client.websocket_connect("/v1/stream") as ws:
             ws.send_json({"prompt": "x" * 100_001})
             data = ws.receive_json()
@@ -267,12 +289,14 @@ class TestWebSocket:
             assert "100000" in data["error"]
 
     def test_ws_non_string_prompt(self, client: TestClient) -> None:
+        """Reject a non-string prompt before scoring."""
         with client.websocket_connect("/v1/stream") as ws:
             ws.send_json({"prompt": 12345})
             data = ws.receive_json()
             assert "error" in data
 
     def test_ws_non_dict_payload(self, client: TestClient) -> None:
+        """Reject a JSON payload whose top level is not an object."""
         with client.websocket_connect("/v1/stream") as ws:
             ws.send_json([1, 2, 3])
             data = ws.receive_json()
@@ -283,6 +307,7 @@ class TestWebSocketAgentError:
     """WebSocket error handling when agent.process() raises."""
 
     def test_ws_agent_error_returns_error_json(self, client: TestClient) -> None:
+        """Report a processing failure in a structured WebSocket error."""
         from unittest.mock import patch
 
         with (
@@ -298,6 +323,7 @@ class TestWebSocketAgentError:
             assert "processing failed" in data["error"]
 
     def test_ws_agent_error_does_not_kill_connection(self, client: TestClient) -> None:
+        """Continue serving a subsequent message after a processing error."""
         from unittest.mock import patch
 
         with client.websocket_connect("/v1/stream") as ws:
@@ -319,6 +345,7 @@ class TestServerClaimSupportEvidenceSerialization:
     """Server evidence serialization preserves claim-support diagnostics."""
 
     def test_evidence_without_claim_support_omits_claim_fields(self) -> None:
+        """Omit claim fields when the evidence provides no claim analysis."""
         from director_ai._server_helpers import evidence_to_dict as _evidence_to_dict
         from director_ai.core.types import ScoringEvidence
 
@@ -337,6 +364,7 @@ class TestServerClaimSupportEvidenceSerialization:
         assert "claims" not in encoded
 
     def test_evidence_with_claim_support_preserves_claim_fields(self) -> None:
+        """Preserve claim coverage, divergence and text in serialised evidence."""
         from director_ai._server_helpers import evidence_to_dict as _evidence_to_dict
         from director_ai.core.types import ScoringEvidence
 
@@ -362,6 +390,7 @@ class TestServerOperationalReadiness:
     """Server health and readiness expose deployability boundaries."""
 
     def test_health_reports_model_revision_registry_failures(self) -> None:
+        """Report the model revision check failure in health metadata."""
         config = DirectorConfig(
             use_nli=False,
             nli_model="unverified-org/unverified-model",
@@ -380,6 +409,7 @@ class TestServerOperationalReadiness:
     def test_production_mode_requires_knowledge_router(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
+        """Refuse production startup when the knowledge router is unavailable."""
         from unittest.mock import patch
 
         # A production server fail-fasts without a per-installation audit salt;
@@ -429,6 +459,7 @@ class TestServerOperationalReadiness:
             assert str(tmp_path) not in response.text
 
     def test_ready_endpoint_is_available_without_nli(self) -> None:
+        """Report ready when the deployment does not require NLI."""
         app = create_app(DirectorConfig(use_nli=False))
 
         with TestClient(app) as client:
@@ -446,6 +477,7 @@ class TestServerCoverageGaps:
         return DirectorConfig.from_profile("fast")
 
     def test_http_endpoint_label_handles_unmatched_and_partial_routes(self) -> None:
+        """Label a partial route by its template and unmatched paths consistently."""
         from starlette.routing import Match
 
         from director_ai.server import _http_endpoint_label
@@ -473,6 +505,7 @@ class TestServerCoverageGaps:
         assert _http_endpoint_label(request) == "__unmatched__"
 
     def test_http_endpoint_label_handles_full_and_invalid_candidate_paths(self) -> None:
+        """Prefer the matching template over invalid route candidates."""
         from starlette.routing import Match
 
         from director_ai.server import _http_endpoint_label
@@ -502,6 +535,7 @@ class TestServerCoverageGaps:
     def test_create_app_uses_non_default_profile_from_environment(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
+        """Resolve the requested non-default profile from the environment."""
         monkeypatch.setenv("DIRECTOR_PROFILE", "fast")
 
         app = create_app()
@@ -511,6 +545,7 @@ class TestServerCoverageGaps:
     def test_create_app_logs_loaded_managed_secrets(
         self, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
     ) -> None:
+        """Log the count retrieved from the managed secret backend."""
         import director_ai.core.secrets as secrets_mod
 
         monkeypatch.setattr(
@@ -527,6 +562,7 @@ class TestServerCoverageGaps:
     def test_lifespan_logs_commercial_and_trial_license_branches(
         self, caplog: pytest.LogCaptureFixture
     ) -> None:
+        """Report commercial and trial licensing during application startup."""
         from director_ai.core.license import LicenseInfo
 
         commercial = LicenseInfo(
@@ -561,6 +597,7 @@ class TestServerCoverageGaps:
     def test_lifespan_runs_otel_setup_when_enabled(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
+        """Initialise OpenTelemetry when enabled for the application."""
         import director_ai.core.otel as otel_mod
 
         calls: list[str] = []
@@ -577,6 +614,7 @@ class TestServerCoverageGaps:
     def test_lifespan_starts_and_stops_review_queue(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
+        """Start and stop the review queue with the configured batch settings."""
         import director_ai.core.runtime.review_queue as review_queue_mod
 
         events: list[tuple[str, object]] = []
@@ -613,6 +651,7 @@ class TestServerCoverageGaps:
     def test_lifespan_wires_postgres_audit_sink(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
+        """Connect the configured PostgreSQL sink to the application audit logger."""
         import director_ai.enterprise.audit_pg as audit_pg_mod
 
         sinks: list[str] = []
@@ -633,6 +672,7 @@ class TestServerCoverageGaps:
         assert audit_logger is not None
 
     def test_create_app_rejects_too_many_cors_origins(self) -> None:
+        """Reject a CORS allowlist larger than the server's limit."""
         cfg = self._fast_config()
         cfg.cors_origins = ",".join(f"https://app{idx}.example" for idx in range(101))
 
@@ -644,6 +684,7 @@ class TestServerCoverageGaps:
         monkeypatch: pytest.MonkeyPatch,
         caplog: pytest.LogCaptureFixture,
     ) -> None:
+        """Require SlowAPI in strict mode and log the optional-mode fallback."""
         import director_ai.server as server_mod
 
         monkeypatch.setattr(server_mod, "_SLOWAPI_AVAILABLE", False)
@@ -662,76 +703,32 @@ class TestServerCoverageGaps:
 
         assert "rate_limit_rpm=10 but slowapi not installed" in caplog.text
 
-    def test_create_app_wires_optional_slowapi_limiter(
-        self,
-        monkeypatch: pytest.MonkeyPatch,
-        caplog: pytest.LogCaptureFixture,
+    def test_create_app_enforces_per_worker_memory_quota(
+        self, caplog: pytest.LogCaptureFixture
     ) -> None:
-        import director_ai.server as server_mod
-
-        limiter_calls: list[dict[str, object]] = []
-
-        class FakeLimiter:
-            def __init__(self, **kwargs: object) -> None:
-                limiter_calls.append(kwargs)
-
-        class FakeSlowAPIMiddleware:
-            def __init__(self, app: ASGIApp, *args: object, **kwargs: object) -> None:
-                self.app = app
-
-            async def __call__(
-                self, scope: Scope, receive: Receive, send: Send
-            ) -> None:
-                await self.app(scope, receive, send)
-
-        class FakeRateLimitExceededError(Exception):
-            pass
-
-        fake_errors = ModuleType("slowapi.errors")
-        monkeypatch.setattr(
-            fake_errors, "RateLimitExceeded", FakeRateLimitExceededError, raising=False
-        )
-        monkeypatch.setattr(server_mod, "_SLOWAPI_AVAILABLE", True)
-        monkeypatch.setattr(server_mod, "Limiter", FakeLimiter)
-        monkeypatch.setattr(
-            server_mod,
-            "SlowAPIMiddleware",
-            FakeSlowAPIMiddleware,
-            raising=False,
-        )
-        monkeypatch.setattr(
-            server_mod,
-            "get_remote_address",
-            lambda request: "ip",
-            raising=False,
-        )
-        monkeypatch.setitem(sys.modules, "slowapi.errors", fake_errors)
-
-        redis_cfg = self._fast_config()
-        redis_cfg.rate_limit_rpm = 42
-        redis_cfg.redis_url = "redis://user:secret@cache.example/0"
-        with caplog.at_level("INFO", logger="DirectorAI.Server"):
-            redis_app = create_app(redis_cfg)
-
-        worker_cfg = self._fast_config()
-        worker_cfg.rate_limit_rpm = 7
-        worker_cfg.server_workers = 2
+        """Keep each in-memory worker's request quota independent."""
+        config = self._fast_config()
+        config.rate_limit_rpm = 1
+        config.server_workers = 2
         with caplog.at_level("WARNING", logger="DirectorAI.Server"):
-            worker_app = create_app(worker_cfg)
+            first_app = create_app(config)
+            second_app = create_app(config)
 
-        assert redis_app.state.limiter is not None
-        assert worker_app.state.limiter is not None
-        assert limiter_calls[0]["default_limits"] == ["42/minute"]
-        assert limiter_calls[0]["storage_uri"] == "redis://user:secret@cache.example/0"
-        assert limiter_calls[1]["default_limits"] == ["7/minute"]
-        assert limiter_calls[1]["storage_uri"] is None
-        assert "cache.example/0" in caplog.text
+        with TestClient(first_app) as first, TestClient(second_app) as second:
+            assert first.get("/v1/config").status_code == 200
+            denied = first.get("/v1/config")
+            assert denied.status_code == 429
+            assert denied.json() == {"detail": "Rate limit exceeded"}
+            assert second.get("/v1/config").status_code == 200
+
         assert "server_workers=2" in caplog.text
+        assert "per worker process" in caplog.text
 
     def test_lifespan_wires_cloud_provider_without_key_and_contradiction_halt(
         self,
         monkeypatch: pytest.MonkeyPatch,
     ) -> None:
+        """Wire feedback and contradiction halt for the cloud provider without a key."""
         import director_ai.core.agent as agent_mod
 
         captured: dict[str, object] = {}
@@ -763,6 +760,7 @@ class TestServerCoverageGaps:
     def test_lifespan_wires_cloud_provider_api_key(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
+        """Pass an explicit API key to the configured cloud provider."""
         import director_ai.core.agent as agent_mod
 
         captured: dict[str, object] = {}
@@ -788,6 +786,7 @@ class TestServerCoverageGaps:
         monkeypatch: pytest.MonkeyPatch,
         tmp_path: Path,
     ) -> None:
+        """Use the configured local endpoint and initialise SQLite statistics."""
         import director_ai.core.agent as agent_mod
 
         captured: dict[str, object] = {}
@@ -810,6 +809,7 @@ class TestServerCoverageGaps:
         assert captured["llm_api_url"] == "http://127.0.0.1:8080/v1"
 
     def test_health_reports_commercial_and_trial_license_branches(self) -> None:
+        """Respond with a healthy status for commercial and trial configurations."""
         app = create_app(self._fast_config())
 
         with TestClient(app) as client:
@@ -833,6 +833,7 @@ class TestServerCoverageGaps:
     def test_health_live_source_and_unbound_tenant_disclosure_paths(
         self, caplog: pytest.LogCaptureFixture
     ) -> None:
+        """Check public liveness and keep tenant-sensitive metadata behind authentication."""
         cfg = self._fast_config()
         cfg.api_keys = ["secret"]
         app = create_app(cfg)
@@ -864,6 +865,7 @@ class TestServerCoverageGaps:
         assert "Unbound tenant claim: tenant-a" in caplog.text
 
     def test_http_middleware_records_metrics_when_endpoint_raises(self) -> None:
+        """Record HTTP metrics even when a route handler fails."""
         app = create_app(self._fast_config())
 
         @app.get("/boom", response_model=None)
@@ -876,6 +878,7 @@ class TestServerCoverageGaps:
         assert response.status_code == 500
 
     def test_source_endpoint_commercial_and_disabled_paths(self) -> None:
+        """Check commercial source disclosure and its disabled variants."""
         commercial_app = create_app(self._fast_config())
         with TestClient(commercial_app) as client:
             commercial_app.state._license = SimpleNamespace(
@@ -914,6 +917,7 @@ class TestServerCoverageGaps:
             assert "commercial license" in response.json()["detail"]
 
     def test_ready_reports_missing_scorer_and_unloaded_nli(self) -> None:
+        """Return separate readiness reasons for missing scorer and unloaded model."""
         cfg = self._fast_config()
         app = create_app(cfg)
 
@@ -932,6 +936,8 @@ class TestServerCoverageGaps:
         assert unloaded.json()["reason"] == "NLI model not loaded"
 
     def test_feedback_store_success_disagreement_and_calibration(self) -> None:
+        """Persist disagreement feedback and validate calibration requests."""
+
         class FakeFeedbackStore:
             def __init__(self) -> None:
                 self.reports: list[dict[str, object]] = []
@@ -985,6 +991,7 @@ class TestServerCoverageGaps:
         assert bad_calibration.status_code == 400
 
     def test_verify_endpoint_no_scorer_sanitizer_and_no_context_paths(self) -> None:
+        """Distinguish unavailable, source-free and sanitiser-blocked verification."""
         app = create_app(self._fast_config())
 
         class BlockingSanitizer:
@@ -1023,7 +1030,7 @@ class TestServerCoverageGaps:
         assert "blocked" in blocked.json()["detail"]
 
     def test_process_redaction_and_internal_error_paths(self) -> None:
-        from director_ai.core.types import CoherenceScore, ReviewResult
+        """Redact prompts and generated text and surface internal errors safely."""
 
         class FakeRedactor:
             enabled = True
@@ -1076,7 +1083,7 @@ class TestServerCoverageGaps:
         assert failed.status_code == 500
 
     def test_batch_review_process_redaction_and_error_paths(self) -> None:
-        from director_ai.core.types import CoherenceScore, ReviewResult
+        """Exercise review and process batches with redaction and per-item errors."""
 
         class FakeRedactor:
             enabled = True
@@ -1188,6 +1195,7 @@ class TestServerCoverageGaps:
         assert internal.status_code == 500
 
     def test_compliance_utility_endpoints_calibrated_and_no_feedback_loop(self) -> None:
+        """Expose populated calibration and an empty feedback-loop result."""
         app = create_app(self._fast_config())
 
         with TestClient(app) as client:
@@ -1220,6 +1228,8 @@ class TestServerCoverageGaps:
         }
 
     def test_stats_store_summary_hourly_and_prometheus_summary(self) -> None:
+        """Read summary and hourly statistics and render the Prometheus summary."""
+
         class FakeStats:
             def summary(self) -> dict[str, int | float]:
                 return {

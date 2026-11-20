@@ -9,3 +9,4 @@
 lxml-stubs>=0.5.1
 types-PyYAML>=6.0
 types-requests>=2.31
+types-setuptools>=84.2.0.20261104

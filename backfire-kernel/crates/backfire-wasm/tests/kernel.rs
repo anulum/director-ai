@@ -18,6 +18,9 @@
 // refusal, each halt decision and boundary, eviction, snapshots and nonfinite
 // scores. Browser/Worker package tests cover the separate generated web entry.
 
+//! Node integration tests for the public WebAssembly streaming API.
+//! They check native decision semantics and JavaScript session snapshots.
+
 #![cfg(target_arch = "wasm32")]
 
 use backfire_wasm::WasmStreamingKernel;
@@ -25,6 +28,7 @@ use js_sys::Reflect;
 use wasm_bindgen::JsValue;
 use wasm_bindgen_test::wasm_bindgen_test;
 
+/// Return a complete native configuration for the JavaScript-facing constructor.
 fn default_config() -> &'static str {
     r#"{
         "coherence_threshold": 0.6,
@@ -42,18 +46,22 @@ fn default_config() -> &'static str {
     }"#
 }
 
+/// Read a named property from a JavaScript session or event object.
 fn get(obj: &JsValue, key: &str) -> JsValue {
     Reflect::get(obj, &JsValue::from_str(key)).unwrap()
 }
 
+/// Read the halted flag from a serialised session snapshot.
 fn is_halted(session: &JsValue) -> bool {
     get(session, "halted").as_bool().unwrap_or(false)
 }
 
+/// Read the halt reason as a JavaScript string.
 fn halt_reason(session: &JsValue) -> String {
     get(session, "halt_reason").as_string().unwrap_or_default()
 }
 
+/// Apply numeric overrides while retaining the other configuration fields.
 fn config_with(changes: &[(&str, f64)]) -> String {
     let config = js_sys::JSON::parse(default_config()).unwrap();
     for (field, value) in changes {
@@ -70,10 +78,12 @@ fn config_with(changes: &[(&str, f64)]) -> String {
         .unwrap()
 }
 
+/// Read a session property as a JavaScript array.
 fn array_field(session: &JsValue, field: &str) -> js_sys::Array {
     js_sys::Array::from(&get(session, field))
 }
 
+/// Check that the zero fallback drives both the halt decision and the event trace.
 fn assert_nonfinite_score_becomes_zero(score: f64) {
     let mut kernel = WasmStreamingKernel::new(default_config()).unwrap();
     let session = kernel.process_token("unscored", score);
@@ -90,12 +100,14 @@ fn assert_nonfinite_score_becomes_zero(score: f64) {
     assert_eq!(get(&event, "halted").as_bool(), Some(true));
 }
 
+/// Check that a valid configuration starts an active stream.
 #[wasm_bindgen_test]
 fn construction_is_active() {
     let kernel = WasmStreamingKernel::new(default_config()).unwrap();
     assert!(kernel.is_active());
 }
 
+/// Keep the session active across several passing score windows.
 #[wasm_bindgen_test]
 fn all_passing_tokens_do_not_halt() {
     let mut kernel = WasmStreamingKernel::new(default_config()).unwrap();
@@ -106,6 +118,7 @@ fn all_passing_tokens_do_not_halt() {
     assert!(kernel.is_active());
 }
 
+/// Halt on a low individual score and report the hard-limit reason.
 #[wasm_bindgen_test]
 fn sub_threshold_token_triggers_hard_halt() {
     let mut kernel = WasmStreamingKernel::new(default_config()).unwrap();
@@ -117,6 +130,7 @@ fn sub_threshold_token_triggers_hard_halt() {
     assert!(!kernel.is_active());
 }
 
+/// Halt when three passing token scores fill a sub-threshold average window.
 #[wasm_bindgen_test]
 fn window_average_below_threshold_triggers_halt() {
     // hard_limit 0.5 leaves room for window avg to fall without any
@@ -131,6 +145,7 @@ fn window_average_below_threshold_triggers_halt() {
     assert!(halt_reason(&session).starts_with("window_avg"));
 }
 
+/// Check that a steep recent decline halts with the native fixture.
 #[wasm_bindgen_test]
 fn downward_trend_triggers_halt() {
     let mut kernel = WasmStreamingKernel::new(default_config()).unwrap();
@@ -142,6 +157,7 @@ fn downward_trend_triggers_halt() {
     assert!(is_halted(&session));
 }
 
+/// Keep the kernel halted after a subsequent high score.
 #[wasm_bindgen_test]
 fn halt_is_irrevocable() {
     let mut kernel = WasmStreamingKernel::new(default_config()).unwrap();
@@ -151,11 +167,13 @@ fn halt_is_irrevocable() {
     assert!(is_halted(&session));
 }
 
+/// Reject non-JSON input at construction.
 #[wasm_bindgen_test]
 fn malformed_config_returns_error() {
     assert!(WasmStreamingKernel::new("not json").is_err());
 }
 
+/// Return native validation errors for invalid thresholds, weights and window sizes.
 #[wasm_bindgen_test]
 fn canonical_config_validation_rejects_invalid_parameters() {
     for (field, value, message) in [
@@ -180,6 +198,7 @@ fn canonical_config_validation_rejects_invalid_parameters() {
     }
 }
 
+/// Reject partial host configuration when required native fields are absent.
 #[wasm_bindgen_test]
 fn incomplete_studio_config_is_refused() {
     let error = WasmStreamingKernel::new(r#"{"threshold":0.65}"#)
@@ -188,21 +207,25 @@ fn incomplete_studio_config_is_refused() {
     assert!(error.as_string().unwrap().contains("coherence_threshold"));
 }
 
+/// Check that NaN is recorded and evaluated as zero.
 #[wasm_bindgen_test]
 fn nan_score_matches_native_zero_score() {
     assert_nonfinite_score_becomes_zero(f64::NAN);
 }
 
+/// Check that positive infinity uses the zero fallback.
 #[wasm_bindgen_test]
 fn positive_infinity_matches_native_zero_score() {
     assert_nonfinite_score_becomes_zero(f64::INFINITY);
 }
 
+/// Check that negative infinity uses the zero fallback.
 #[wasm_bindgen_test]
 fn negative_infinity_matches_native_zero_score() {
     assert_nonfinite_score_becomes_zero(f64::NEG_INFINITY);
 }
 
+/// Allow the zero fallback when it equals the hard limit.
 #[wasm_bindgen_test]
 fn zero_hard_limit_keeps_native_strict_comparison_for_nonfinite_input() {
     let mut kernel = WasmStreamingKernel::new(&config_with(&[("hard_limit", 0.0)])).unwrap();
@@ -215,6 +238,7 @@ fn zero_hard_limit_keeps_native_strict_comparison_for_nonfinite_input() {
     );
 }
 
+/// Keep an individual score equal to the hard limit.
 #[wasm_bindgen_test]
 fn hard_limit_equality_does_not_halt() {
     let mut kernel = WasmStreamingKernel::new(default_config()).unwrap();
@@ -223,6 +247,7 @@ fn hard_limit_equality_does_not_halt() {
     assert!(kernel.is_active());
 }
 
+/// Keep a full window whose mean equals the configured floor.
 #[wasm_bindgen_test]
 fn window_threshold_equality_does_not_halt() {
     let mut kernel = WasmStreamingKernel::new(default_config()).unwrap();
@@ -232,6 +257,7 @@ fn window_threshold_equality_does_not_halt() {
     assert!(kernel.is_active());
 }
 
+/// Keep a stream whose projected drop equals the configured tolerance.
 #[wasm_bindgen_test]
 fn trend_threshold_equality_does_not_halt() {
     let mut kernel = WasmStreamingKernel::new(&config_with(&[("trend_threshold", 0.25)])).unwrap();
@@ -241,6 +267,7 @@ fn trend_threshold_equality_does_not_halt() {
     assert!(kernel.is_active());
 }
 
+/// Halt once the oldest high scores have left the average window.
 #[wasm_bindgen_test]
 fn window_discards_old_high_scores_before_deciding() {
     let config = config_with(&[("window_threshold", 0.7), ("trend_threshold", 1.0)]);
@@ -254,6 +281,7 @@ fn window_discards_old_high_scores_before_deciding() {
     assert_eq!(array_field(&session, "tokens").length(), 6);
 }
 
+/// Allow the stream when the fitted drop stays within the limit over the recent window.
 #[wasm_bindgen_test]
 fn trend_uses_recent_window_instead_of_entire_history() {
     let mut kernel = WasmStreamingKernel::new(&config_with(&[("trend_threshold", 0.25)])).unwrap();
@@ -263,6 +291,7 @@ fn trend_uses_recent_window_instead_of_entire_history() {
     assert!(kernel.is_active());
 }
 
+/// Report the hard limit when all three checks could halt at the same token.
 #[wasm_bindgen_test]
 fn hard_limit_precedes_simultaneous_window_and_trend_halts() {
     let mut kernel = WasmStreamingKernel::new(&config_with(&[("window_threshold", 0.8)])).unwrap();
@@ -272,6 +301,7 @@ fn hard_limit_precedes_simultaneous_window_and_trend_halts() {
     assert!(halt_reason(&session).starts_with("hard_limit"));
 }
 
+/// Report the average first when both average and trend checks could halt.
 #[wasm_bindgen_test]
 fn window_halt_precedes_simultaneous_trend_halt() {
     let mut kernel = WasmStreamingKernel::new(&config_with(&[("window_threshold", 0.75)])).unwrap();
@@ -281,6 +311,7 @@ fn window_halt_precedes_simultaneous_trend_halt() {
     assert!(halt_reason(&session).starts_with("window_avg"));
 }
 
+/// Compare snapshots before and after a token submitted to each halted stream.
 #[wasm_bindgen_test]
 fn every_halt_preserves_original_session_on_later_calls() {
     for scores in [vec![0.1], vec![0.54, 0.54, 0.54], vec![0.95, 0.85, 0.55]] {
@@ -296,6 +327,7 @@ fn every_halt_preserves_original_session_on_later_calls() {
     }
 }
 
+/// Check that an initial snapshot contains no tokens, scores or events.
 #[wasm_bindgen_test]
 fn empty_session_has_no_events_or_halt() {
     let kernel = WasmStreamingKernel::new(default_config()).unwrap();
@@ -307,6 +339,7 @@ fn empty_session_has_no_events_or_halt() {
     }
 }
 
+/// Check that an earlier snapshot stays fixed and Unicode tokens retain order.
 #[wasm_bindgen_test]
 fn snapshots_are_independent_and_events_preserve_token_order() {
     let mut kernel = WasmStreamingKernel::new(default_config()).unwrap();
@@ -323,6 +356,7 @@ fn snapshots_are_independent_and_events_preserve_token_order() {
     }
 }
 
+/// Record finite scores outside the unit interval without clamping them.
 #[wasm_bindgen_test]
 fn finite_scores_keep_native_values_without_clamping() {
     let mut kernel = WasmStreamingKernel::new(default_config()).unwrap();
@@ -335,6 +369,7 @@ fn finite_scores_keep_native_values_without_clamping() {
     assert_eq!(scores.get(1).as_f64(), Some(-0.25));
 }
 
+/// Check the shared fitted-drop decision and index with equal endpoints.
 #[wasm_bindgen_test]
 fn regression_detects_decline_with_equal_endpoints() {
     let config = config_with(&[
@@ -352,6 +387,7 @@ fn regression_detects_decline_with_equal_endpoints() {
     assert_eq!(get(&session, "halt_index").as_f64(), Some(4.0));
 }
 
+/// Keep all five tokens when the fitted trend rises despite falling endpoints.
 #[wasm_bindgen_test]
 fn regression_does_not_halt_on_declining_endpoints_with_rising_trend() {
     let config = config_with(&[

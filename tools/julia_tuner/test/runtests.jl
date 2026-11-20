@@ -14,11 +14,12 @@ using MCMCChains: Chains
 include(joinpath(@__DIR__, "..", "src", "DirectorThresholdTuner.jl"))
 using .DirectorThresholdTuner
 
-# Synthetic generator: Gaussian scores whose class means straddle
-# ``true_threshold`` by a small margin. Classes overlap, so there is a
-# well-defined Bayes-optimal threshold at the boundary crossing point
-# — which is exactly ``true_threshold`` when the noise is symmetric
-# and class-balanced.
+"""
+Draw labelled Gaussian scores with means on either side of `true_threshold`.
+
+The classes overlap. With symmetric noise and balanced classes, their density
+crossing at `true_threshold` is the Bayes-optimal decision boundary.
+"""
 function _synthetic(n::Int, true_threshold::Float64, noise::Float64;
                     rng = MersenneTwister(42))
     out = ScoredExample[]
@@ -79,7 +80,8 @@ end
         pt = optimise_threshold(ex)
         boot = bootstrap_threshold_ci(ex; n_resamples = 300,
                                       rng = MersenneTwister(10))
-        @test boot.lo <= pt.threshold <= boot.hi
+        @test boot.lo <= pt.threshold
+        @test pt.threshold <= boot.hi
         @test boot.hi - boot.lo < 0.3
     end
     @testset "narrow CI with more data" begin
@@ -116,9 +118,12 @@ end
         bayes = bayesian_threshold_posterior(ex; n_samples = 200,
                                              n_warmup = 200,
                                              rng = MersenneTwister(14))
-        @test 0.35 <= bayes.mean <= 0.65
-        @test bayes.lo < bayes.mean < bayes.hi
-        @test 0.0 <= bayes.lo && bayes.hi <= 1.0
+        @test 0.35 <= bayes.mean
+        @test bayes.mean <= 0.65
+        @test bayes.lo < bayes.mean
+        @test bayes.mean < bayes.hi
+        @test 0.0 <= bayes.lo
+        @test bayes.hi <= 1.0
         @test bayes.chain isa Chains
         @test length(bayes.chain[:threshold]) == 200
     end
@@ -134,7 +139,7 @@ end
                  n_bayes_warmup = 150, rng = MersenneTwister(15))
         @test r isa TuneResult
         @test r.n_examples == 200
-        @test 0.0 <= r.positive_rate <= 1.0
+        @test r.positive_rate == count(example -> example.label, ex) / length(ex)
         @test r.bootstrap_lo <= r.bootstrap_hi
         @test r.bayesian_lo <= r.bayesian_hi
     end
@@ -147,13 +152,14 @@ end
     @test ScoredExample(0, false) == ScoredExample(0.0, false)
     @test ScoredExample(1, true) == ScoredExample(1.0, true)
     @test ScoredExample(1 // 2, true) == ScoredExample(0.5, true)
-    for score in (NaN, Inf, -Inf, big"1e999")
+    for score in (NaN, Inf, -Inf, BigFloat("1e999"))
         @test_throws ArgumentError("score must be finite") ScoredExample(score, true)
     end
     extremes = [ScoredExample(-0.25, false), ScoredExample(1.25, true)]
     @test extremes[1].score == -0.25
     @test extremes[2].score == 1.25
-    @test balanced_accuracy(extremes, 0.0) == balanced_accuracy(extremes, 1.0) == 1.0
+    @test balanced_accuracy(extremes, 0.0) == 1.0
+    @test balanced_accuracy(extremes, 1.0) == 1.0
 end
 
 @testset "load_scores_jsonl" begin

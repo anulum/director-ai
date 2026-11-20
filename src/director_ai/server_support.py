@@ -6,10 +6,10 @@
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI — FastAPI server support helpers
 
-"""Stateless helpers shared by the Director-AI FastAPI server.
+"""HTTP helpers shared by the Director-AI FastAPI server.
 
-These functions carry no application state — they read request headers, derive
-low-cardinality metric labels, normalise request IDs, and record metrics. They
+Read and normalise HTTP request data, record metrics and install
+request throttling. They
 live apart from ``server.py`` so the ``create_app`` factory keeps to application
 wiring. ``server.py`` re-imports them, so ``director_ai.server.<name>`` keeps
 resolving for callers and tests.
@@ -20,13 +20,16 @@ from __future__ import annotations
 import hmac
 import time
 import uuid
-from collections.abc import Mapping
+from collections.abc import Awaitable, Callable, Mapping
 from typing import TYPE_CHECKING, Any
 
 from .core.metrics import metrics
 
 if TYPE_CHECKING:
-    from fastapi import Request
+    from fastapi import FastAPI, Request
+    from slowapi import Limiter
+    from starlette.middleware.base import RequestResponseEndpoint
+    from starlette.responses import Response
 
 _REQUEST_ID_MAX_LENGTH = 128
 _REQUEST_ID_ALLOWED_CHARS = frozenset(
@@ -162,6 +165,46 @@ def _record_http_metrics(
             "status": str(status_code),
         },
     )
+
+
+def _install_http_rate_limit(app: FastAPI, limiter: Limiter, rule: str) -> None:
+    """Enforce the configuration on requests matching a mounted HTTP route.
+
+    Use the router's match result, which is available for included routers even
+    when their final endpoint is resolved only at dispatch time.
+    """
+    from slowapi.errors import RateLimitExceeded
+    from starlette.middleware.base import BaseHTTPMiddleware
+    from starlette.responses import JSONResponse
+    from starlette.routing import Match
+
+    async def forward(request: Request, call_next: RequestResponseEndpoint) -> Response:
+        """Run the matched HTTP endpoint after admission by the limiter."""
+        return await call_next(request)
+
+    limited_forward: Callable[
+        [Request, RequestResponseEndpoint], Awaitable[Response]
+    ] = limiter.limit(rule)(forward)
+
+    async def rate_limit_response(request: Request, exc: Exception) -> JSONResponse:
+        """Return the server's standard error for an exhausted quota."""
+        return JSONResponse({"detail": "Rate limit exceeded"}, status_code=429)
+
+    async def dispatch(
+        request: Request, call_next: RequestResponseEndpoint
+    ) -> Response:
+        """Throttle matched requests and leave unmatched routes to FastAPI."""
+        if not any(
+            route.matches(request.scope)[0] is Match.FULL for route in app.routes
+        ):
+            return await call_next(request)
+        try:
+            return await limited_forward(request, call_next)
+        except RateLimitExceeded as exc:
+            return await rate_limit_response(request, exc)
+
+    app.add_exception_handler(RateLimitExceeded, rate_limit_response)
+    app.add_middleware(BaseHTTPMiddleware, dispatch=dispatch)
 
 
 def _normalize_request_id(raw: str | None) -> str:

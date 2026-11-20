@@ -13,6 +13,8 @@ import json
 import socket
 import threading
 import time
+from collections.abc import Callable
+from functools import partial
 from pathlib import Path
 from types import TracebackType
 from typing import Self
@@ -225,35 +227,61 @@ def test_installed_cli_returns_two_and_writes_evidence_on_target_miss(
 
 
 @pytest.mark.parametrize(
-    ("field", "value"),
+    "make_config",
     [
-        ("server_url", "file:///tmp/server.sock"),
-        ("server_url", "http://user:secret@127.0.0.1:8080"),
-        ("server_url", "http://127.0.0.1:8080?token=secret"),
-        ("request_count", 0),
-        ("request_count", True),
-        ("request_count", 1_000_001),
-        ("warmup_count", -1),
-        ("warmup_count", True),
-        ("warmup_count", 100_001),
-        ("concurrency", 0),
-        ("concurrency", True),
-        ("concurrency", 1_025),
-        ("timeout_ms", 0.0),
-        ("timeout_ms", float("nan")),
-        ("target_p95_ms", 0.0),
-        ("target_p95_ms", float("inf")),
-        ("max_error_rate", -0.1),
-        ("max_error_rate", 1.1),
-        ("max_error_rate", float("nan")),
+        pytest.param(
+            partial(LatencySLOConfig, server_url="file:///tmp/server.sock"),
+            id="file-url",
+        ),
+        pytest.param(
+            partial(LatencySLOConfig, server_url="http://user:secret@127.0.0.1:8080"),
+            id="url-credentials",
+        ),
+        pytest.param(
+            partial(LatencySLOConfig, server_url="http://127.0.0.1:8080?token=secret"),
+            id="url-query",
+        ),
+        pytest.param(partial(LatencySLOConfig, request_count=0), id="zero-requests"),
+        pytest.param(
+            partial(LatencySLOConfig, request_count=True), id="boolean-requests"
+        ),
+        pytest.param(
+            partial(LatencySLOConfig, request_count=1_000_001), id="too-many-requests"
+        ),
+        pytest.param(partial(LatencySLOConfig, warmup_count=-1), id="negative-warmup"),
+        pytest.param(partial(LatencySLOConfig, warmup_count=True), id="boolean-warmup"),
+        pytest.param(
+            partial(LatencySLOConfig, warmup_count=100_001), id="too-much-warmup"
+        ),
+        pytest.param(partial(LatencySLOConfig, concurrency=0), id="zero-concurrency"),
+        pytest.param(
+            partial(LatencySLOConfig, concurrency=True), id="boolean-concurrency"
+        ),
+        pytest.param(
+            partial(LatencySLOConfig, concurrency=1_025), id="too-much-concurrency"
+        ),
+        pytest.param(partial(LatencySLOConfig, timeout_ms=0.0), id="zero-timeout"),
+        pytest.param(
+            partial(LatencySLOConfig, timeout_ms=float("nan")), id="nan-timeout"
+        ),
+        pytest.param(partial(LatencySLOConfig, target_p95_ms=0.0), id="zero-p95"),
+        pytest.param(
+            partial(LatencySLOConfig, target_p95_ms=float("inf")), id="infinite-p95"
+        ),
+        pytest.param(
+            partial(LatencySLOConfig, max_error_rate=-0.1), id="negative-error-rate"
+        ),
+        pytest.param(
+            partial(LatencySLOConfig, max_error_rate=1.1), id="error-rate-over-one"
+        ),
+        pytest.param(
+            partial(LatencySLOConfig, max_error_rate=float("nan")), id="nan-error-rate"
+        ),
     ],
 )
 def test_qualification_configuration_rejects_ambiguous_operating_points(
-    field: str,
-    value: object,
+    make_config: Callable[[], LatencySLOConfig],
 ) -> None:
     """A qualification claim must have a complete, valid operating point."""
-    values: dict[str, object] = {"server_url": "http://127.0.0.1:8080"}
-    values[field] = value
     with pytest.raises(ValueError):
-        LatencySLOConfig(**values)
+        make_config()

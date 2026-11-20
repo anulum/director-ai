@@ -63,7 +63,7 @@ def _advisory(url: str = URL, dependency: str = "picomatch") -> dict[str, Any]:
 
 
 def _vulnerabilities() -> dict[str, Any]:
-    """The shape npm reports for the cockpit lock, with the vitest cycle."""
+    """Build an audit fixture for the cockpit lock and its Vitest dependency cycle."""
     return {
         "picomatch": {"via": [_advisory()], "nodes": ["node_modules/picomatch"]},
         "fdir": {"via": ["picomatch"], "nodes": ["node_modules/fdir"]},

@@ -6,6 +6,8 @@
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-AI — swarm coherence tests
 
+"""Exercise agreement, contradiction and halt state across agent messages."""
+
 from __future__ import annotations
 
 from typing import TypedDict
@@ -47,6 +49,7 @@ class _StubNLI:
 
 
 def test_split_claims_filters_and_caps() -> None:
+    """Filter short claim fragments and enforce the extraction limit."""
     assert _split_claims("A real claim here. No. Another real claim here.") == [
         "A real claim here.",
         "Another real claim here.",
@@ -57,6 +60,7 @@ def test_split_claims_filters_and_caps() -> None:
 
 
 def test_lexical_overlap_values() -> None:
+    """Score lexical overlap, including empty inputs."""
     # _lexical_overlap delegates to the shared text_overlap helper; dispatch and
     # Python/Rust parity are covered by test_text_overlap.
     assert _lexical_overlap("alpha beta gamma", "alpha beta delta") == pytest.approx(
@@ -69,6 +73,7 @@ def test_lexical_overlap_values() -> None:
 
 
 def test_coherent_cascade_does_not_halt() -> None:
+    """Keep accepting messages when the agents' claims agree."""
     mon = SwarmCoherenceMonitor(nli=_StubNLI())
     u1 = mon.observe("planner", "The deadline is the first of March.")
     u2 = mon.observe("researcher", "The budget is fifty thousand francs.")
@@ -82,6 +87,7 @@ def test_coherent_cascade_does_not_halt() -> None:
 
 
 def test_contradiction_halts_cascade_with_evidence() -> None:
+    """Halt on contradictory claims and retain the supporting evidence."""
     prior = "The deadline is the first of March."
     new = "The deadline is the first of April."
     mon = SwarmCoherenceMonitor(nli=_StubNLI({(prior, new): 0.93}))
@@ -101,6 +107,7 @@ def test_contradiction_halts_cascade_with_evidence() -> None:
 
 
 def test_same_agent_claims_do_not_self_contradict() -> None:
+    """Exclude candidates from the same agent when checking contradictions."""
     a = "The sky is blue."
     b = "The sky is green."
     mon = SwarmCoherenceMonitor(nli=_StubNLI({(a, b): 0.9, (b, a): 0.9}))
@@ -111,6 +118,7 @@ def test_same_agent_claims_do_not_self_contradict() -> None:
 
 
 def test_same_agent_across_messages_is_not_cross_agent() -> None:
+    """Exclude earlier messages from the same author from cross-agent checks."""
     first = "The deadline is in March."
     second = "The deadline is in April."
     # Even though the two messages conflict, they are from the SAME agent across
@@ -123,6 +131,7 @@ def test_same_agent_across_messages_is_not_cross_agent() -> None:
 
 
 def test_observe_after_halt_short_circuits() -> None:
+    """Return the latched outcome without checking more claims."""
     prior, new = "The constraint holds firmly.", "The constraint does not hold."
     mon = SwarmCoherenceMonitor(nli=_StubNLI({(prior, new): 0.9}))
     mon.observe("a1", prior)
@@ -137,6 +146,7 @@ def test_observe_after_halt_short_circuits() -> None:
 
 
 def test_without_nli_never_flags_contradiction() -> None:
+    """Keep lexical similarity alone from triggering a contradiction."""
     mon = SwarmCoherenceMonitor()
     prior, new = "The total is ten units.", "The total is twelve units."
     mon.observe("a1", prior)
@@ -150,6 +160,7 @@ def test_without_nli_never_flags_contradiction() -> None:
 
 
 def test_coherence_score_reflects_contradicted_fraction() -> None:
+    """Reflect the fraction of contradicted claims in the score."""
     prior, new = "Alpha is true.", "Alpha is false."
     mon = SwarmCoherenceMonitor(nli=_StubNLI({(prior, new): 0.9}))
     mon.observe("a1", prior)  # 1 claim, 0 contradicted
@@ -159,6 +170,7 @@ def test_coherence_score_reflects_contradicted_fraction() -> None:
 
 
 def test_empty_swarm_is_coherent() -> None:
+    """Return the maximum coherence score before any claims arrive."""
     mon = SwarmCoherenceMonitor(nli=_StubNLI())
     assert mon._coherence() == 1.0
 
@@ -167,6 +179,7 @@ def test_empty_swarm_is_coherent() -> None:
 
 
 def test_max_claims_drops_oldest_established() -> None:
+    """Evict the oldest retained claims when capacity is reached."""
     mon = SwarmCoherenceMonitor(nli=_StubNLI(), max_claims=2)
     mon.observe("a1", "First claim here is long. Second claim here is long.")
     mon.observe("a2", "Third claim here is long.")
@@ -179,6 +192,7 @@ def test_max_claims_drops_oldest_established() -> None:
 
 
 def test_observe_message_wrapper() -> None:
+    """Pass the message author and text through the convenience entry point."""
     prior, new = "The price went up.", "The price went down."
     mon = SwarmCoherenceMonitor(nli=_StubNLI({(prior, new): 0.9}))
     mon.observe_message(AgentMessage("a1", (prior,)))
@@ -190,6 +204,7 @@ def test_observe_message_wrapper() -> None:
 
 
 def test_reset_clears_state_and_unhalts() -> None:
+    """Remove retained claims and the halt latch when resetting."""
     prior, new = "It rained all day.", "It did not rain."
     mon = SwarmCoherenceMonitor(nli=_StubNLI({(prior, new): 0.9}))
     mon.observe("a1", prior)
@@ -205,6 +220,7 @@ def test_reset_clears_state_and_unhalts() -> None:
 
 
 def test_flag_threshold_defaults_and_overrides() -> None:
+    """Use the default contradiction cutoff unless a caller supplies one."""
     assert SwarmCoherenceMonitor(nli=_StubNLI())._flag_threshold == 0.5
     assert (
         SwarmCoherenceMonitor(
@@ -216,6 +232,7 @@ def test_flag_threshold_defaults_and_overrides() -> None:
 
 
 def test_threshold_gates_weak_contradictions() -> None:
+    """Suppress contradictions that score below the cutoff."""
     prior, new = "The claim P holds.", "The claim P fails."
     mon = SwarmCoherenceMonitor(
         nli=_StubNLI({(prior, new): 0.4}), contradiction_threshold=0.5
@@ -232,6 +249,7 @@ def test_threshold_gates_weak_contradictions() -> None:
     "kwargs", [{"contradiction_threshold": 1.5}, {"max_claims": 0}]
 )
 def test_invalid_construction_raises(kwargs: _MonitorOptions) -> None:
+    """Reject invalid monitor limits and thresholds."""
     with pytest.raises(ValueError):
         SwarmCoherenceMonitor(**kwargs)
 
@@ -240,6 +258,7 @@ def test_invalid_construction_raises(kwargs: _MonitorOptions) -> None:
 
 
 def test_guard_factory_returns_fresh_isolated_monitors() -> None:
+    """Keep state independent between monitors from the same guard."""
     from director_ai.core.config import DirectorConfig
     from director_ai.guard import ProductionGuard
 
@@ -255,6 +274,7 @@ def test_guard_factory_returns_fresh_isolated_monitors() -> None:
 
 
 def test_multiple_contradictions_sorted_strongest_first() -> None:
+    """Return multiple contradictions in descending strength order."""
     p1, p2 = "Fact one stands firm.", "Fact two stands firm."
     new = "Both facts collapse entirely now."
     mon = SwarmCoherenceMonitor(
@@ -284,6 +304,7 @@ _CLAIM = st.lists(_WORD, min_size=3, max_size=8).map(lambda ws: " ".join(ws) + "
 @given(texts=st.lists(_TEXT, min_size=1, max_size=6))
 @settings(max_examples=120, deadline=None)
 def test_lexical_swarm_never_flags_and_coherence_bounded(texts: list[str]) -> None:
+    """Keep lexical-only runs free of flags and within the score bounds."""
     mon = SwarmCoherenceMonitor()  # no NLI -> never flags contradictions
     last = None
     for i, t in enumerate(texts):
@@ -303,10 +324,10 @@ def test_lexical_swarm_never_flags_and_coherence_bounded(texts: list[str]) -> No
 def test_swarm_stays_halted_once_contradiction_seen(
     prior: str, new: str, tail: list[str]
 ) -> None:
+    """Check that a halted monitor stays halted on subsequent observations."""
     mon = SwarmCoherenceMonitor(nli=_StubNLI({(prior, new): 0.95, (new, prior): 0.95}))
     mon.observe("a", prior)
     update = mon.observe("b", new)
-    if update.halted:
-        # monotonic: every later observation stays halted
-        for i, t in enumerate(tail):
-            assert mon.observe(f"c{i}", t).halted is True
+    assert update.halted is True
+    for i, text in enumerate(tail):
+        assert mon.observe(f"c{i}", text).halted is True

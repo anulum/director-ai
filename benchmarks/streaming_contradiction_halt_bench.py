@@ -217,9 +217,10 @@ def _build_halt(
 
 
 def _isolation_verdict(load_avg: tuple[float, ...]) -> str:
-    """Classify host isolation from the 1-minute load and core count, so the
-    artefact honestly labels an isolated (dedicated GPU) refresh versus a
-    contended shared-workstation run rather than hard-coding one label."""
+    """Classify host load using the one-minute average per CPU core.
+
+    The benchmark records this label to distinguish quiet and contended runs.
+    """
     if not load_avg:
         return "unknown"
     cores = os.cpu_count() or 1
@@ -233,7 +234,6 @@ def _isolation_verdict(load_avg: tuple[float, ...]) -> str:
 
 def _runtime_metadata() -> dict[str, object]:
     """Return host context (isolation classified from live load)."""
-
     try:
         load_avg = tuple(round(value, 4) for value in os.getloadavg())
     except OSError:
@@ -256,9 +256,10 @@ def _runtime_metadata() -> dict[str, object]:
 
 
 def _is_numeric_fragment(fragment: str) -> bool:
-    """A corrupted fragment is *numeric* when it is a bare number — the class of
-    contradiction where NLI-based detection is known to be weakest, tracked
-    separately so the semantic recall (the headline capability) is not masked."""
+    """Identify bare numeric fragments after removing commas and periods.
+
+    The benchmark reports their halt recall separately from semantic recall.
+    """
     return fragment.replace(",", "").replace(".", "").isdigit()
 
 
@@ -347,6 +348,7 @@ def run_benchmark(
 
 
 def main() -> None:
+    """Measure the selected model’s streaming halt decisions and save the JSON report."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--model",

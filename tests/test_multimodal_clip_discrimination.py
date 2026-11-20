@@ -24,10 +24,12 @@ from benchmarks.multimodal_clip_discrimination import (
 
 
 def test_separation_empty() -> None:
+    """Return counts alone when one comparison group is empty."""
     assert separation([], [0.1]) == {"n_matched": 0, "n_mismatched": 1}
 
 
 def test_separation_perfect() -> None:
+    """Report a positive gap and unit AUC when all matches rank first."""
     s = separation([0.9, 0.8], [0.2, 0.1])
     assert s["gap"] > 0
     assert s["pairwise_auc"] == 1.0
@@ -35,12 +37,14 @@ def test_separation_perfect() -> None:
 
 def test_separation_no_signal() -> None:
     # Identical distributions -> all ties -> AUC 0.5, zero gap.
+    """Assign ties half credit with zero mean score gap."""
     s = separation([0.5, 0.5], [0.5, 0.5])
     assert s["pairwise_auc"] == 0.5
     assert s["gap"] == 0.0
 
 
 def test_run_benchmark_hashbag_runs_clip_degrades_without_dep() -> None:
+    """Report real hash-bag metrics and expose CLIP only when its dependency is available."""
     result = run_benchmark()
     assert result["benchmark"] == "multimodal_clip_discrimination"
     # Hash-bag baseline is dependency-free and always produces a metric.

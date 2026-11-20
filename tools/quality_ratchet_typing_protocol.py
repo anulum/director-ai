@@ -12,6 +12,7 @@ from __future__ import annotations
 import configparser
 import re
 import subprocess
+from collections.abc import Mapping
 from pathlib import Path
 
 from tools.ci_workflow_inventory import object_mapping
@@ -61,8 +62,12 @@ def parse_typing_environment(
         raise ValueError("Native typing environment could not be identified")
     identity = object_mapping(decode_quality_json(installed.stdout.encode()))
     runtime, packages = identity.get("python"), identity.get("packages")
+    search_path = identity.get("search_path")
     if (
-        set(identity) != {"python", "packages"}
+        set(identity) != {"python", "packages", "isolated", "search_path"}
+        or identity["isolated"] is not True
+        or not isinstance(search_path, list)
+        or not search_path
         or not isinstance(runtime, list)
         or len(runtime) != 3
         or any(type(part) is not int or part < 0 for part in runtime)
@@ -71,6 +76,16 @@ def parse_typing_environment(
         or not packages
     ):
         raise ValueError("Invalid native typing environment identity")
+    for path in search_path:
+        if (
+            not isinstance(path, list)
+            or len(path) != 2
+            or path[0] not in ("repository", "environment", "base", "absolute")
+            or not isinstance(path[1], str)
+            or not path[1]
+            or "\0" in path[1]
+        ):
+            raise ValueError("Invalid native typing search path")
     names = set()
     for package in packages:
         if (
@@ -121,6 +136,8 @@ def parse_typing_result(
     identity: str,
     config: Path,
     configuration: str,
+    *,
+    source_aliases: Mapping[str, str] | None = None,
 ) -> tuple[tuple[Finding, ...], tuple[str, ...]]:
     """Qualify original error locations, notes and configuration advisories.
 
@@ -138,6 +155,8 @@ def parse_typing_result(
         Actual derived INI path named by native unused-section advisories.
     configuration : str
         Exact derived INI bytes supplied to the compiler.
+    source_aliases : Mapping of str to str or None
+        Exact native temporary source filenames mapped to inventoried identities.
 
     Returns
     -------
@@ -199,8 +218,13 @@ def parse_typing_result(
             raise ValueError(
                 "Native typing error lacks a source-bound rule or position"
             )
-        path = Path(filename)
-        relative = path.relative_to(root).as_posix() if path.is_absolute() else filename
+        if source_aliases is not None and filename in source_aliases:
+            relative = source_aliases[filename]
+        else:
+            path = Path(filename)
+            relative = (
+                path.relative_to(root).as_posix() if path.is_absolute() else filename
+            )
         findings_list.append(
             Finding(
                 relative,

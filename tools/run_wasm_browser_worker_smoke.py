@@ -59,7 +59,6 @@ class WasmBrowserWorkerSmokeReport:
 
     def to_dict(self) -> dict[str, Any]:
         """Serialise the smoke report."""
-
         return {
             "schema_version": self.schema_version,
             "passed": self.passed,
@@ -72,7 +71,6 @@ class WasmBrowserWorkerSmokeReport:
 
     def to_markdown(self) -> str:
         """Return a compact operator-readable report."""
-
         blockers = [
             f"- {blocker['code']} — {blocker['message']}" for blocker in self.blockers
         ]
@@ -108,7 +106,6 @@ def run_wasm_browser_worker_smoke(
     timeout_seconds: int = 30,
 ) -> WasmBrowserWorkerSmokeReport:
     """Run the module Worker smoke with Chrome's normal sandbox settings."""
-
     package_path = Path(package_dir).resolve()
     blockers: list[dict[str, str]] = []
     if not package_path.is_dir():
@@ -128,6 +125,7 @@ def run_wasm_browser_worker_smoke(
             worker_result={},
             blockers=blockers,
         )
+    chrome = chrome.absolute()
     chrome_version = _chrome_version(chrome)
     with tempfile.TemporaryDirectory(prefix="director-wasm-worker-") as tmp:
         web_root = Path(tmp)
@@ -276,7 +274,10 @@ def _run_chrome_worker_result(
     *,
     timeout_seconds: int,
 ) -> dict[str, Any]:
-    """Launch Chrome once and report the Worker result or a startup error."""
+    """Launch Chrome once and report the Worker result or a startup error.
+
+    Chrome uses a profile-relative temporary path for its Unix socket.
+    """
     with tempfile.TemporaryDirectory(prefix="director-chrome-profile-") as profile:
         profile_dir = Path(profile)
         try:
@@ -292,6 +293,8 @@ def _run_chrome_worker_result(
                     f"--user-data-dir={profile_dir}",
                     "about:blank",
                 ],
+                cwd=profile_dir,
+                env=dict(os.environ, TMPDIR="."),
                 stderr=subprocess.PIPE,
                 stdout=subprocess.DEVNULL,
                 text=True,
@@ -609,7 +612,6 @@ def _blocker(code: str, message: str) -> dict[str, str]:
 
 def main(argv: list[str] | None = None) -> int:
     """Run the browser worker smoke from the command line."""
-
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--package-dir", type=Path, default=DEFAULT_PACKAGE_DIR)
     parser.add_argument("--chrome-path", type=Path, default=None)

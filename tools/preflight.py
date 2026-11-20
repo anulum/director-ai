@@ -125,6 +125,18 @@ GATES: list[Gate] = [
         ],
     ),
     (
+        "quality-ratchet",
+        [
+            sys.executable,
+            "-m",
+            "tools.check_quality_ratchet",
+            "--all",
+            "check",
+            "--timeout",
+            "600",
+        ],
+    ),
+    (
         "pytest",
         [
             sys.executable,
@@ -140,7 +152,7 @@ GATES: list[Gate] = [
     ),
 ]
 
-SLOW_GATES = {"mypy", "pytest"}
+SLOW_GATES = {"mypy", "pytest", "quality-ratchet"}
 WARN_ONLY = {"spdx-guard"}
 
 
@@ -277,7 +289,7 @@ def main() -> int:
     parser.add_argument(
         "--no-tests",
         action="store_true",
-        help="Skip pytest and mypy (fast lint-only mode)",
+        help="Skip tests and native typing and quality checks (fast lint-only mode)",
     )
     parser.add_argument(
         "--coverage",

@@ -35,11 +35,13 @@ from director_ai.core.types import CoherenceScore, EvidenceChunk, ScoringEvidenc
 
 @pytest.fixture
 def scorer() -> CoherenceScorer:
+    """Use the heuristic scorer for ordinary input boundary tests."""
     return CoherenceScorer(use_nli=False)
 
 
 @pytest.fixture
 def strict_scorer() -> CoherenceScorer:
+    """Provide a heuristic-only configuration with strict safety checks."""
     return CoherenceScorer(use_nli=False, strict_mode=True)
 
 
@@ -60,24 +62,29 @@ class TestEmptyInputs:
     def test_empty_inputs_no_crash(
         self, scorer: CoherenceScorer, prompt: str, response: str
     ) -> None:
+        """Score empty and partially empty input pairs without an exception."""
         approved, score = scorer.review(prompt, response)
         assert isinstance(approved, bool)
         assert 0.0 <= score.score <= 1.0
 
     def test_whitespace_only_prompt(self, scorer: CoherenceScorer) -> None:
+        """Handle a prompt containing only whitespace."""
         approved, score = scorer.review("   \n\t  ", "Normal response")
         assert isinstance(approved, bool)
 
     def test_whitespace_only_response(self, scorer: CoherenceScorer) -> None:
+        """Handle an answer containing only whitespace."""
         approved, score = scorer.review("Normal prompt", "   \n\t  ")
         assert isinstance(approved, bool)
 
     def test_null_bytes_in_input(self, scorer: CoherenceScorer) -> None:
+        """Return a score when input includes a null byte."""
         approved, score = scorer.review("test\x00prompt", "test\x00response")
         assert isinstance(approved, bool)
         assert 0.0 <= score.score <= 1.0
 
     def test_single_char_inputs(self, scorer: CoherenceScorer) -> None:
+        """Score a prompt and response that each contain one character."""
         approved, score = scorer.review("?", ".")
         assert isinstance(approved, bool)
 
@@ -102,17 +109,20 @@ class TestUnicodeInputs:
     def test_multilingual_no_crash(
         self, scorer: CoherenceScorer, prompt: str, response: str
     ) -> None:
+        """Handle input in multiple writing systems without decoding errors."""
         approved, score = scorer.review(prompt, response)
         assert isinstance(approved, bool)
         assert 0.0 <= score.score <= 1.0
 
     def test_zero_width_chars(self, scorer: CoherenceScorer) -> None:
+        """Return a score for strings containing zero-width characters."""
         approved, score = scorer.review(
             "test\u200b\u200c\u200dprompt", "response\ufeff"
         )
         assert isinstance(approved, bool)
 
     def test_surrogate_like_chars(self, scorer: CoherenceScorer) -> None:
+        """Handle surrogate-like characters passed as Python strings."""
         approved, score = scorer.review("𝕋𝕖𝕤𝕥", "ℝ𝕖𝕤𝕡𝕠𝕟𝕤𝕖")
         assert isinstance(approved, bool)
 
@@ -125,12 +135,14 @@ class TestLongText:
 
     @pytest.mark.parametrize("length", [1_000, 10_000, 100_000])
     def test_long_response_no_crash(self, scorer: CoherenceScorer, length: int) -> None:
+        """Score responses across the tested long-input boundaries."""
         long_text = "word " * length
         approved, score = scorer.review("Summarise", long_text)
         assert isinstance(approved, bool)
         assert 0.0 <= score.score <= 1.0
 
     def test_long_prompt_no_crash(self, scorer: CoherenceScorer) -> None:
+        """Score a long prompt with a short response."""
         long_prompt = "context " * 50_000
         approved, score = scorer.review(long_prompt, "Short answer.")
         assert isinstance(approved, bool)
@@ -143,6 +155,7 @@ class TestScoreInvariants:
     """Score components must satisfy mathematical invariants."""
 
     def test_score_in_range(self, scorer: CoherenceScorer) -> None:
+        """Keep the coherence value inside the unit interval."""
         for _ in range(20):
             _, score = scorer.review("What is AI?", "AI is artificial intelligence.")
             assert 0.0 <= score.score <= 1.0
@@ -150,6 +163,7 @@ class TestScoreInvariants:
             assert 0.0 <= score.h_factual <= 1.0
 
     def test_deterministic(self, scorer: CoherenceScorer) -> None:
+        """Return the same score for repeated identical inputs."""
         _, s1 = scorer.review("What?", "Answer.")
         _, s2 = scorer.review("What?", "Answer.")
         assert s1.score == s2.score
@@ -157,6 +171,7 @@ class TestScoreInvariants:
         assert s1.h_factual == s2.h_factual
 
     def test_weights_sum_to_one(self) -> None:
+        """Keep the default factual and logical weights normalised."""
         assert abs(CoherenceScorer.W_LOGIC + CoherenceScorer.W_FACT - 1.0) < 1e-9
 
     def test_coherence_formula_consistency(self, scorer: CoherenceScorer) -> None:
@@ -177,16 +192,19 @@ class TestThresholdBoundary:
 
     @pytest.mark.parametrize("threshold", [0.0, 0.1, 0.3, 0.5, 0.7, 0.9, 1.0])
     def test_various_thresholds_accepted(self, threshold: float) -> None:
+        """Accept thresholds throughout the supported interval."""
         scorer = CoherenceScorer(use_nli=False, threshold=threshold)
         approved, score = scorer.review("test", "test")
         assert isinstance(approved, bool)
 
     def test_threshold_zero_always_approves(self) -> None:
+        """Approve a scored answer when the acceptance threshold is zero."""
         scorer = CoherenceScorer(use_nli=False, threshold=0.0)
         approved, _ = scorer.review("test", "test")
         assert approved is True
 
     def test_threshold_one_rejects_nonperfect(self) -> None:
+        """Reject an imperfect score at the maximum threshold."""
         scorer = CoherenceScorer(use_nli=False, threshold=1.0, soft_limit=1.0)
         # Heuristic scorer unlikely to produce exactly 1.0
         approved, score = scorer.review("X is Y", "Z is W")
@@ -194,14 +212,17 @@ class TestThresholdBoundary:
         assert isinstance(approved, bool)
 
     def test_invalid_threshold_raises(self) -> None:
+        """Reject a threshold above one."""
         with pytest.raises(ValueError, match="threshold"):
             CoherenceScorer(use_nli=False, threshold=1.5)
 
     def test_negative_threshold_raises(self) -> None:
+        """Reject a threshold below zero."""
         with pytest.raises(ValueError, match="threshold"):
             CoherenceScorer(use_nli=False, threshold=-0.1)
 
     def test_soft_limit_below_threshold_raises(self) -> None:
+        """Refuse a soft limit below the acceptance threshold."""
         with pytest.raises(ValueError, match="soft_limit"):
             CoherenceScorer(use_nli=False, threshold=0.7, soft_limit=0.5)
 
@@ -213,12 +234,15 @@ class TestStrictMode:
     """Strict mode must disable heuristic fallbacks."""
 
     def test_strict_mode_flag_stored(self, strict_scorer: CoherenceScorer) -> None:
+        """Expose the configured strict-mode state."""
         assert strict_scorer.strict_mode is True
 
     def test_non_strict_default(self, scorer: CoherenceScorer) -> None:
+        """Keep strict mode disabled in the ordinary configuration."""
         assert scorer.strict_mode is False
 
     def test_require_model_backed_nli_fails_closed_without_model_backend(self) -> None:
+        """Fail closed when the required model-backed scorer is unavailable."""
         scorer = CoherenceScorer(
             use_nli=False,
             strict_mode=True,
@@ -230,6 +254,7 @@ class TestStrictMode:
     def test_require_model_backed_nli_batch_fails_closed_without_model_backend(
         self,
     ) -> None:
+        """Fail closed before batch scoring when no model backend is available."""
         scorer = CoherenceScorer(
             use_nli=False,
             strict_mode=True,
@@ -246,10 +271,12 @@ class TestPerformanceDoc:
     """Document and verify performance guarantees."""
 
     def test_heuristic_score_has_evidence_field(self, scorer: CoherenceScorer) -> None:
+        """Keep evidence available as a field on heuristic scores."""
         _, score = scorer.review("What is AI?", "AI is intelligence.")
         assert hasattr(score, "evidence")
 
     def test_heuristic_score_has_components(self, scorer: CoherenceScorer) -> None:
+        """Expose the logical and factual components of a heuristic result."""
         _, score = scorer.review("Q", "A")
         assert hasattr(score, "h_logical")
         assert hasattr(score, "h_factual")
@@ -257,6 +284,7 @@ class TestPerformanceDoc:
         assert hasattr(score, "approved")
 
     def test_review_returns_tuple(self, scorer: CoherenceScorer) -> None:
+        """Return approval and the score object from the review entry point."""
         result = scorer.review("Q", "A")
         assert isinstance(result, tuple)
         assert len(result) == 2
@@ -267,6 +295,7 @@ class TestFallbackIncidentConcurrency:
     """Fallback incident emission must be thread-safe and once-per-stage."""
 
     def test_fallback_incident_emitted_once_per_stage_under_contention(self) -> None:
+        """Emit a single incident per fallback stage under concurrent calls."""
         metrics.reset()
         scorer = CoherenceScorer(use_nli=False)
 
@@ -296,6 +325,7 @@ class TestFallbackIncidentConcurrency:
 def test_vector_store_evidence_falls_back_to_keyword_chunks_when_vector_query_misses(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """Use keyword retrieval to obtain evidence after an empty vector query."""
     from director_ai.core.retrieval.vector_store import (
         InMemoryBackend,
         VectorGroundTruthStore,
@@ -329,6 +359,7 @@ class TestScorerCoverageGaps:
     """Dedicated branch tests for CoherenceScorer internals."""
 
     def test_parallel_pool_lifecycle_and_destructor_shutdown(self) -> None:
+        """Close the parallel scorer's executor on explicit and destructor shutdown."""
         scorer = CoherenceScorer(use_nli=False)
         pool = scorer._get_parallel_pool()
 
@@ -358,6 +389,7 @@ class TestScorerCoverageGaps:
     def test_model_backed_nli_detection_rejects_lite_backend(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
+        """Distinguish the lightweight heuristic NLI backend from a model-backed one."""
         scorer = CoherenceScorer(use_nli=False)
 
         class LiteNLI:
@@ -375,6 +407,7 @@ class TestScorerCoverageGaps:
         assert scorer._has_model_backed_nli() is True
 
     def test_adaptive_retrieval_enablement_installs_router(self) -> None:
+        """Enable the retrieval router and skip retrieval for the tested prompt."""
         scorer = CoherenceScorer(use_nli=False)
 
         scorer.enable_adaptive_retrieval(threshold=0.7, default_retrieve=False)
@@ -384,6 +417,7 @@ class TestScorerCoverageGaps:
         assert decision.retrieve is False
 
     def test_constructor_custom_cache_and_validation_edges(self) -> None:
+        """Accept a custom cache and validate backend and weight combinations."""
         cache = ScoreCache()
         scorer = CoherenceScorer(use_nli=False, cache=cache)
         assert scorer.cache is cache
@@ -407,6 +441,8 @@ class TestScorerCoverageGaps:
     def test_minicheck_lazy_success_and_failure(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
+        """Initialise and cache MiniCheck lazily and handle provider setup failure."""
+
         class AvailableMiniCheck:
             model_available = True
 
@@ -442,6 +478,8 @@ class TestScorerCoverageGaps:
     def test_prompt_premise_evidence_uses_counted_nli_and_escalation(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
+        """Collect premise evidence and chunk counts before escalating the score."""
+
         class FakeNLI:
             model_available = True
             last_token_count = 17
@@ -484,6 +522,8 @@ class TestScorerCoverageGaps:
     def test_prompt_premise_evidence_confidence_weighted_path(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
+        """Keep evidence from the confidence-weighted premise aggregation."""
+
         class FakeNLI:
             model_available = True
             last_token_count = 11
@@ -515,6 +555,7 @@ class TestScorerCoverageGaps:
         assert evidence.hypothesis_chunk_count == 2
 
     def test_dialogue_factual_divergence_requires_model_backed_nli(self) -> None:
+        """Require model-backed NLI before computing dialogue divergence."""
         scorer = CoherenceScorer(use_nli=False)
 
         with pytest.raises(RuntimeError, match="NLI model required"):
@@ -524,6 +565,8 @@ class TestScorerCoverageGaps:
         self,
         monkeypatch: pytest.MonkeyPatch,
     ) -> None:
+        """Pass the loaded NLI backend to the dialogue scorer."""
+
         # WCS-2a default: the dialogue route delegates to the raw
         # weakest-link support scorer, not the baseline squeeze.
         class FakeNLI:
@@ -557,6 +600,8 @@ class TestScorerCoverageGaps:
         self,
         monkeypatch: pytest.MonkeyPatch,
     ) -> None:
+        """Pass the baseline score when squeeze mode takes the legacy path."""
+
         class FakeNLI:
             model_available = True
 
@@ -589,6 +634,7 @@ class TestScorerCoverageGaps:
     def test_injection_detection_init_failure_resets_state(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
+        """Clear the detector and strict toggle when detector setup fails."""
         import director_ai.core.safety.injection as injection_module
 
         class FailingInjectionDetector:
@@ -612,6 +658,8 @@ class TestScorerCoverageGaps:
         assert scorer._injection_fail_closed is False
 
     def test_factual_divergence_strict_and_heuristic_fallbacks(self) -> None:
+        """Use the contradicted sentinel in strict mode and a bounded heuristic otherwise."""
+
         class Store:
             def retrieve_context(
                 self, prompt: str, top_k: int = 3, tenant_id: str = ""
@@ -639,6 +687,8 @@ class TestScorerCoverageGaps:
     def test_factual_divergence_claim_decomposition_reweights_long_output(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
+        """Reweight factual divergence when decomposing a long answer into claims."""
+
         class Store:
             def retrieve_context(
                 self, prompt: str, top_k: int = 3, tenant_id: str = ""
@@ -680,6 +730,7 @@ class TestScorerCoverageGaps:
     def test_vector_store_evidence_uses_retrieved_chunks_with_nli_counts(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
+        """Include the retrieved vector chunk, score and NLI token count in evidence."""
         from unittest.mock import MagicMock
 
         from director_ai.core.retrieval.vector_store import VectorGroundTruthStore
@@ -728,6 +779,8 @@ class TestScorerCoverageGaps:
     def test_factual_evidence_escalates_with_judge_when_requested(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
+        """Use judge escalation when it is requested for factual evidence."""
+
         class Store:
             def retrieve_context(
                 self, prompt: str, top_k: int = 3, tenant_id: str = ""
@@ -775,6 +828,7 @@ class TestScorerCoverageGaps:
         assert evidence.nli_score == 0.22
 
     def test_factual_divergence_with_vector_abstention_returns_neutral(self) -> None:
+        """Return neutral factual divergence when vector retrieval abstains."""
         from director_ai.core.retrieval.vector_store import (
             InMemoryBackend,
             VectorGroundTruthStore,
@@ -803,6 +857,7 @@ class TestScorerCoverageGaps:
         )
 
     def test_heuristic_factual_penalises_negation_and_novel_entities(self) -> None:
+        """Apply the maximum heuristic penalty for negation and novel entities."""
         score = CoherenceScorer._heuristic_factual(
             "Alice did not visit Paris.",
             "Alice visited Rome.",
@@ -811,6 +866,7 @@ class TestScorerCoverageGaps:
         assert score == 1.0
 
     def test_logical_strict_mode_without_nli_rejects(self) -> None:
+        """Return contradicted logical divergence when strict mode lacks NLI."""
         scorer = CoherenceScorer(use_nli=False, strict_mode=True)
 
         assert scorer.calculate_logical_divergence("prompt", "answer") == (
@@ -820,6 +876,7 @@ class TestScorerCoverageGaps:
     def test_heuristic_logical_returns_neutral_for_empty_token_sets(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
+        """Return neutral logical divergence when tokenisation yields empty sets."""
         monkeypatch.setattr(
             divergence_module, "rust_heuristic_logical_divergence", None
         )
@@ -830,6 +887,7 @@ class TestScorerCoverageGaps:
     def test_parallel_coherence_cleans_up_factual_future_after_logic_failure(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
+        """Dispose of the factual future when parallel logical scoring fails."""
         import time
 
         class FakeNLI:
@@ -863,6 +921,7 @@ class TestScorerCoverageGaps:
             scorer._heuristic_coherence("prompt", "answer")
 
     def test_meta_classifier_fail_closed_raises_runtime_error(self) -> None:
+        """Raise a runtime error when required adaptive classification fails."""
         scorer = CoherenceScorer(use_nli=False)
         scorer._adaptive_threshold_enabled = True
         scorer._adaptive_threshold_fail_closed = True
@@ -874,6 +933,7 @@ class TestScorerCoverageGaps:
     def test_meta_classifier_returns_value_set_while_waiting_for_lock(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
+        """Reuse the classifier installed while this call waited for the lock."""
         scorer = CoherenceScorer(use_nli=False)
         sentinel = object()
 
@@ -900,6 +960,8 @@ class TestScorerCoverageGaps:
         self,
         monkeypatch: pytest.MonkeyPatch,
     ) -> None:
+        """Look for the bundled classifier when adaptive thresholding is enabled."""
+
         class ExistingPath:
             def __init__(self, *_parts: object) -> None:
                 self.parts = _parts
@@ -925,6 +987,7 @@ class TestScorerCoverageGaps:
         assert scorer._meta_classifier_path == ""
 
     def test_finalise_review_dry_run_warning_and_retrieval_confidence(self) -> None:
+        """Record retrieval confidence and warn without blocking in dry-run mode."""
         scorer = CoherenceScorer(use_nli=False, threshold=0.8, soft_limit=0.9)
         scorer._dry_run = True
         evidence = ScoringEvidence(
@@ -949,6 +1012,7 @@ class TestScorerCoverageGaps:
         assert scorer.history[-1] == "answer"
 
     def test_verified_source_and_routing_guards(self) -> None:
+        """Select verified evidence sources and enforce the scorer's routing conditions."""
         scorer = CoherenceScorer(use_nli=False)
         scorer._verified_scorer_enabled = True
         scorer._verified_scorer_low_confidence_margin = 0.05
@@ -995,6 +1059,7 @@ class TestScorerCoverageGaps:
     def test_verified_scorer_approved_result_preserves_review_verdict(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
+        """Attach an approved verified result while preserving the review outcome."""
         import director_ai.core.scoring.verified_scorer as verified_module
 
         class ApprovedVerification:
@@ -1045,6 +1110,8 @@ class TestScorerCoverageGaps:
     def test_review_batch_errors_and_meta_threshold_path(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
+        """Refuse malformed NLI batches and apply per-item adaptive thresholds."""
+
         class FakeNLI:
             model_available = True
             backend = "deberta"
@@ -1096,6 +1163,7 @@ class TestScorerCoverageGaps:
     def test_factual_retrieval_abstention_and_confidence_weighted_score(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
+        """Abstain on insufficient evidence and weight usable retrieval by confidence."""
         from unittest.mock import MagicMock
 
         from director_ai.core.retrieval.vector_store import VectorGroundTruthStore
@@ -1146,6 +1214,7 @@ class TestScorerCoverageGaps:
     def test_finalise_review_evicts_history_and_verified_guard_without_source(
         self,
     ) -> None:
+        """Enforce the review history limit and skip verification without a source."""
         scorer = CoherenceScorer(use_nli=False, threshold=0.2, history_window=1)
         scorer._finalise_review(0.9, 0.1, 0.1, "first")
         scorer._finalise_review(0.9, 0.1, 0.1, "second")
@@ -1164,6 +1233,7 @@ class TestScorerCoverageGaps:
         self,
         monkeypatch: pytest.MonkeyPatch,
     ) -> None:
+        """Preserve the original accepted verdict when reasoning handles a non-string source."""
         from director_ai.core.scoring.reasoning_scorer import ReasoningVerdict
 
         scorer = CoherenceScorer(
@@ -1219,6 +1289,7 @@ class TestScorerCoverageGaps:
     def test_reasoning_tier_noop_when_margin_does_not_escalate(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
+        """Keep the existing score when the reasoning margin does not trigger escalation."""
         scorer = CoherenceScorer(
             use_nli=False,
             reasoning_enabled=True,
@@ -1240,6 +1311,7 @@ class TestScorerCoverageGaps:
     def test_review_cross_turn_failure_and_intent_drift_are_recorded(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
+        """Retain cross-turn divergence and intent-drift observations after a check fails."""
         from unittest.mock import MagicMock
 
         class FakeNLI:
@@ -1312,6 +1384,8 @@ class TestScorerCoverageGaps:
     def test_review_records_successful_injection_risk(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
+        """Attach the injection risk returned by the configured detector."""
+
         class Risk:
             injection_risk = 0.66
 
@@ -1337,6 +1411,8 @@ class TestScorerCoverageGaps:
     def test_review_invokes_reasoning_tier_when_enabled(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
+        """Invoke the reasoning tier during review when it is enabled."""
+
         class Reasoning:
             enabled = True
 
@@ -1373,6 +1449,8 @@ class TestScorerCoverageGaps:
     def test_review_injection_fail_closed_reraises_detector_error(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
+        """Propagate detector failures when injection handling is configured to fail closed."""
+
         class FailingDetector:
             def detect(self, *, intent: str, response: str) -> None:
                 del intent, response
@@ -1393,6 +1471,8 @@ class TestScorerCoverageGaps:
     def test_review_batch_fallback_and_no_context_paths(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
+        """Fall back to sequential review and retain neutral factual scores without context."""
+
         class FakeNLI:
             model_available = True
             backend = "deberta"
@@ -1441,6 +1521,7 @@ class TestScorerCoverageGaps:
         assert all(result[1].h_factual == 0.5 for result in batch_results)
 
     def test_review_batch_requires_sequential_for_judge_and_vector_store(self) -> None:
+        """Choose sequential batch review when the judge or vector store needs it."""
         from director_ai.core.retrieval.vector_store import VectorGroundTruthStore
 
         scorer = CoherenceScorer(use_nli=False)
@@ -1454,6 +1535,8 @@ class TestScorerCoverageGaps:
     def test_review_batch_raises_if_nli_disappears_after_initial_gate(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
+        """Fail closed if the batch NLI backend disappears during setup."""
+
         class FakeNLI:
             model_available = True
             backend = "deberta"
@@ -1479,6 +1562,7 @@ class TestFactualDivergenceGroundingQuery:
     """A grounded scorer stays neutral when the prompt carries no query."""
 
     def test_whitespace_prompt_returns_neutral_despite_store(self) -> None:
+        """Return neutral factual divergence for a blank prompt even with retrieval enabled."""
         from director_ai.core import GroundTruthStore
 
         store = GroundTruthStore()

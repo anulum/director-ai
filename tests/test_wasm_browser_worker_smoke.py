@@ -6,6 +6,8 @@
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI — WASM browser worker smoke tests
 
+"""Exercise the WebAssembly browser Worker result parser and smoke CLI."""
+
 from __future__ import annotations
 
 import json
@@ -21,12 +23,14 @@ from tools.run_wasm_browser_worker_smoke import (
 
 
 def test_parse_worker_result_text_extracts_worker_json() -> None:
+    """Decode a passing Worker message into the result mapping."""
     payload = _parse_worker_result_text('{"passed":true}')
 
     assert payload == {"passed": True}
 
 
 def test_parse_worker_result_text_reports_invalid_json() -> None:
+    """Keep malformed Worker output with its JSON parser error."""
     payload = _parse_worker_result_text("pending")
 
     assert payload["passed"] is False
@@ -121,14 +125,16 @@ def test_browser_worker_smoke_keeps_sandbox_on_startup_failure(
     """Launch the configured browser once with its sandbox settings intact."""
     launches = tmp_path / "launches.txt"
     monkeypatch.setenv("DIRECTOR_BROWSER_TEST_LAUNCHES", str(launches))
-    browser = tmp_path / "chrome"
+    monkeypatch.chdir(tmp_path)
+    browser = tmp_path / "launchers/chrome"
+    browser.parent.mkdir()
     browser.write_text(
         """#!/bin/sh
 if [ "$1" = "--version" ]; then
     printf 'Test Chrome\\n'
     exit 0
 fi
-printf '%s\\n' "$@" >> "$DIRECTOR_BROWSER_TEST_LAUNCHES"
+printf '%s\\n' "$PWD" "$TMPDIR" "$@" >> "$DIRECTOR_BROWSER_TEST_LAUNCHES"
 printf 'Browser sandbox startup failed\\n' >&2
 exit 1
 """,
@@ -137,10 +143,12 @@ exit 1
     browser.chmod(0o700)
 
     report = run_wasm_browser_worker_smoke(
-        tmp_path, chrome_path=browser, timeout_seconds=3
+        tmp_path, chrome_path=browser.relative_to(tmp_path), timeout_seconds=3
     )
 
-    args = launches.read_text(encoding="utf-8").splitlines()
+    directory, temporary, *args = launches.read_text(encoding="utf-8").splitlines()
+    assert temporary == "."
+    assert f"--user-data-dir={directory}" in args
     assert args.count("--headless=new") == 1
     assert "--no-sandbox" not in args
     assert "--disable-setuid-sandbox" not in args

@@ -47,6 +47,10 @@ TYPING_CONFIGURATIONS = (
     "requirements/ci-dev.txt",
     "requirements/ci-types.txt",
 )
+PYTHON_TYPING_CONFIGURATIONS = (
+    *TYPING_CONFIGURATIONS,
+    "requirements/quality-protobuf.txt",
+)
 GENERATED_MODULES = frozenset(
     {
         "director_ai.director_pb2",
@@ -63,11 +67,50 @@ TYPING_FLAGS = (
     "--no-error-summary",
     "--no-color-output",
 )
-ENVIRONMENT_CODE = (
-    "import importlib.metadata as m,json,sys; "
-    "print(json.dumps({'python':list(sys.version_info[:3]),"
-    "'packages':sorted(set((d.metadata['Name'],d.version) for d in m.distributions()))}))"
+MYPY_COMMAND = ("-I", "-B", "-m", "mypy")
+ENVIRONMENT_CODE = """
+import importlib.metadata as metadata
+import json
+import os
+import sys
+from pathlib import Path
+
+from mypy.pyinfo import getsearchdirs
+
+repository = Path.cwd().resolve()
+roots = (
+    ("repository", repository),
+    ("environment", Path(sys.prefix).resolve()),
+    ("base", Path(sys.base_prefix).resolve()),
 )
+
+def portable_path(value):
+    path = Path(value).resolve()
+    for scope, root in roots:
+        if path.is_relative_to(root):
+            return [scope, path.relative_to(root).as_posix()]
+    return ["absolute", str(path)]
+
+mypy_roots = [path for path in os.environ.get("MYPYPATH", "").split(os.pathsep) if path]
+interpreter_paths, site_paths = getsearchdirs()
+print(json.dumps({
+    "python": list(sys.version_info[:3]),
+    "isolated": bool(
+        sys.flags.isolated
+        and sys.flags.ignore_environment
+        and sys.flags.no_user_site
+        and sys.flags.safe_path
+    ),
+    "search_path": [
+        portable_path(path)
+        for path in [str(repository), *mypy_roots, *interpreter_paths, *site_paths]
+    ],
+    "packages": sorted({
+        (package.metadata["Name"], package.version)
+        for package in metadata.distributions()
+    }),
+}))
+"""
 STRICT_OPTIONS = {
     "warn_unused_configs": True,
     "disallow_any_generics": True,
@@ -150,6 +193,27 @@ def _configuration(root: Path) -> str:
     return output.getvalue()
 
 
+def _compiler_environment(root: Path) -> dict[str, str]:
+    """Build the native typing environment with repository-owned import roots.
+
+    Parameters
+    ----------
+    root : Path
+        Selected repository whose imports the native compiler must inspect.
+
+    Returns
+    -------
+    dict of str and str
+        Process environment with explicit MyPy roots and no ambient PYTHONPATH.
+    """
+    environment = dict(os.environ)
+    environment.pop("PYTHONPATH", None)
+    environment["MYPYPATH"] = os.pathsep.join(
+        str(root / directory) for directory in ("src", "packages")
+    )
+    return environment
+
+
 def _run(
     argv: list[str], root: Path, deadline: float, environment: dict[str, str]
 ) -> subprocess.CompletedProcess[str]:
@@ -172,9 +236,7 @@ def _environment(
     root: Path, python: str, deadline: float, environment: dict[str, str]
 ) -> object:
     """Capture actual compiler and interpreter identity within the whole deadline."""
-    version = _run(
-        [python, "-B", "-m", "mypy", "--version"], root, deadline, environment
-    )
+    version = _run([python, *MYPY_COMMAND, "--version"], root, deadline, environment)
     installed = _run(
         [python, "-I", "-B", "-c", ENVIRONMENT_CODE], root, deadline, environment
     )
@@ -217,12 +279,9 @@ def capture_python_typing(
     if not paths:
         raise ValueError("Native typing source inventory is empty")
     sources = hash_sources(root, paths)
-    hashes = hash_sources(root, TYPING_CONFIGURATIONS)
+    hashes = hash_sources(root, PYTHON_TYPING_CONFIGURATIONS)
     configuration = _configuration(root)
-    environment = dict(os.environ)
-    environment["MYPYPATH"] = os.pathsep.join(
-        str(root / path) for path in ("src", "packages")
-    )
+    environment = _compiler_environment(root)
     installed = _environment(root, python, deadline, environment)
     identity = hashlib.sha256(
         json.dumps(
@@ -233,6 +292,7 @@ def capture_python_typing(
                 "configuration": configuration,
                 "configuration_hashes": hashes,
                 "import_roots": ["src", "packages"],
+                "compiler_command": MYPY_COMMAND,
                 "environment": installed,
                 "source_roots": PYTHON_ROOTS,
                 "generated_paths": GENERATED_PYTHON,
@@ -254,9 +314,7 @@ def capture_python_typing(
             result = _run(
                 [
                     python,
-                    "-B",
-                    "-m",
-                    "mypy",
+                    *MYPY_COMMAND,
                     *TYPING_FLAGS,
                     "--config-file",
                     str(config),
@@ -277,7 +335,7 @@ def capture_python_typing(
     if (
         python_sources(root) != inventory
         or hash_sources(root, paths) != sources
-        or hash_sources(root, TYPING_CONFIGURATIONS) != hashes
+        or hash_sources(root, PYTHON_TYPING_CONFIGURATIONS) != hashes
         or _environment(root, python, deadline, environment) != installed
     ):
         raise ValueError(

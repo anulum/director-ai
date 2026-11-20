@@ -57,13 +57,24 @@ jobs:
         # Debian/Ubuntu (it no longer needs cairo since v53).
         run: sudo apt-get update && sudo apt-get install -y libpango-1.0-0 libpangoft2-1.0-0
 
-      - name: Install with extras
+      - name: Install Redis for the server integration tests
+        if: contains(matrix.extras, 'server')
         run: |
-          IFS=, read -ra EXTRA_NAMES <<< "${{ matrix.extras }}"
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends redis-server
+
+      - name: Install with extras
+        env:
+          EXTRAS: ${{ matrix.extras }}
+        run: |
+          IFS=, read -ra EXTRA_NAMES <<< "$EXTRAS"
           UV_EXTRAS=()
           for extra in "${EXTRA_NAMES[@]}"; do
             UV_EXTRAS+=(--extra "$extra")
           done
+          if [[ ",$EXTRAS," == *,server,* ]]; then
+            UV_EXTRAS+=(--extra enterprise)
+          fi
           uv sync --locked "${UV_EXTRAS[@]}"
           uv run maturin develop --release --manifest-path backfire-kernel/crates/backfire-ffi/Cargo.toml
 
@@ -81,10 +92,12 @@ jobs:
           extras = set(os.environ["EXTRAS"].split(","))
 
           if "server" in extras:
+              import redis
+              import slowapi
               from director_ai.server import create_app
 
-              assert create_app
-              print("server OK")
+              assert create_app and redis and slowapi
+              print("server rate limiting dependencies OK")
           if "grpc" in extras:
               from director_ai.grpc_server import create_grpc_server
 
@@ -197,6 +210,8 @@ jobs:
                 tests/test_server.py
                 tests/test_server_audit.py
                 tests/test_server_auth.py
+                tests/test_server_real_surface.py
+                tests/test_redis_enterprise_real_surface.py
                 tests/test_server_compliance.py
                 tests/test_server_feedback.py
                 tests/test_server_tenant.py
@@ -297,7 +312,7 @@ jobs:
             echo "::error::No extras-specific tests configured for ${{ matrix.extras }}"
             exit 1
           fi
-          uv run pytest "${TEST_TARGETS[@]}" -v --tb=short \
+          uv run --no-sync pytest "${TEST_TARGETS[@]}" -v --tb=short \
             --cov=director_ai \
             --cov-report=term-missing \
             --cov-report=xml \

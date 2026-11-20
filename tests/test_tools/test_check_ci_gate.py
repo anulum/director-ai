@@ -80,7 +80,9 @@ def test_public_gate_cli_uses_actual_declared_categories() -> None:
         assert result.returncode == expected, result.stdout + result.stderr
 
 
-@pytest.mark.parametrize("category", ["sbom", "fuzz", "benchmark", "runtime"])
+@pytest.mark.parametrize(
+    "category", ["sbom", "fuzz", "benchmark", "runtime", "quality"]
+)
 @pytest.mark.parametrize(
     "outcome", ["success", "failure", "cancelled", "skipped", "missing"]
 )

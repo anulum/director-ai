@@ -8,8 +8,9 @@
 .DEFAULT_GOAL := help
 PYTHON ?= python
 PYTHON_ONLY_CHECK_ARGS ?=
+QUALITY_RATCHET_ARGS ?=
 GENERATED_DOCS_DIR ?= $(CURDIR)/build/generated-docs
-.PHONY: help test python-only-check test-rust test-julia test-lean test-go test-wasm test-all proto wasm-build wasm-build-node lint fmt docs docs-build docs-all docs-polyglot docs-rust docs-go docs-typescript docs-julia docs-lean docs-protobuf bench clean build preflight preflight-fast bandit sast install-hooks docker-build docker-run backup julia-instantiate grpc-scoring ab-bench
+.PHONY: help test python-only-check quality-ratchet quality-julia-native test-rust test-julia test-lean test-go test-wasm test-all proto wasm-build wasm-build-node lint fmt docs docs-build docs-all docs-polyglot docs-rust docs-go docs-typescript docs-julia docs-lean docs-protobuf bench clean build preflight preflight-fast bandit sast install-hooks docker-build docker-run backup julia-instantiate grpc-scoring ab-bench
 
 help: ## Show available targets
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-18s\033[0m %s\n", $$1, $$2}'
@@ -19,6 +20,14 @@ test: ## Run Python tests with coverage
 
 python-only-check: ## Run contributor checks without optional runtime toolchains
 	$(PYTHON) tools/python_only_check.py $(PYTHON_ONLY_CHECK_ARGS)
+
+quality-ratchet: ## Check every required native profile against the trusted baseline
+	$(PYTHON) -m tools.check_quality_ratchet --all check --timeout 600 $(QUALITY_RATCHET_ARGS)
+
+JULIA ?= julia
+
+quality-julia-native: ## Inspect source and generated Julia declarations
+	JULIA_LOAD_PATH=@:@stdlib $(JULIA) --startup-file=no --history-file=no $(JULIA_QUALITY_ARGS) --project=tools/quality_ratchet_julia tools/quality_ratchet_julia/inspect.jl "$(CURDIR)"
 
 test-rust: ## Run Rust tests (backfire-kernel)
 	cd backfire-kernel && cargo test --workspace
@@ -82,10 +91,10 @@ sbom: ## Regenerate the per-extra declared-dependency SBOMs
 	python -m scripts.generate_sboms
 
 preflight: ## Full preflight gate
-	python tools/preflight.py
+	$(PYTHON) -m tools.preflight
 
 preflight-fast: ## Lint-only preflight (~5s)
-	python tools/preflight.py --no-tests
+	$(PYTHON) -m tools.preflight --no-tests
 
 docs: ## Local docs server
 	mkdocs serve

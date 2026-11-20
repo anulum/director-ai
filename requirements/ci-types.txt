@@ -19,6 +19,10 @@ types-requests==2.33.0.20260906 \
     --hash=sha256:76ab8a0fb736744a0c3deee7aa57b2927e301f078d9e61f5391b3e92002416b9 \
     --hash=sha256:9f53622652bd921ead7a54d665be1b8d518165c8b51cc9d68d944cd6b6bfa8fb
     # via -r requirements/ci-types.in
+types-setuptools==84.2.0.20261104 \
+    --hash=sha256:1ec758bbeddf88d52f963fe663beabc2117b6aae73cf3d2902d7dd0df81bd76e \
+    --hash=sha256:23e9bf876adca8df2285a68f76c355128b1e679b27cfec4854faf350cd7999e5
+    # via -r requirements/ci-types.in
 urllib3==2.8.0 \
     --hash=sha256:0cf3cae568d36aa9576b28dfb35f11328f1cb974ca7647d9475ebb86c75ac6e3 \
     --hash=sha256:63bf2ead4c879426ebf22ef2a781eeb4aa3b4ae798a0435506f8687fd5bb9b63

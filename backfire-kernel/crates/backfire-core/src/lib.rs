@@ -30,14 +30,23 @@
 //! 4. **Traces allocate storage**: streaming retains token strings, scores
 //!    and events. Window and trace storage contribute to runtime cost.
 
+/// Sparse term-based retrieval with BM25 ranking.
 pub mod bm25;
+/// CPU kernels for scoring and signal processing.
 pub mod compute;
+/// Per-token and rolling-window coherence gates.
 pub mod kernel;
+/// Fact retrieval interfaces and in-memory ground truth.
 pub mod knowledge;
+/// Natural language inference interface and heuristic backend.
 pub mod nli;
+/// Pattern matching for personally identifiable information.
 pub mod pii_scan;
+/// Logical and factual coherence scoring.
 pub mod scorer;
+/// Verification signals, including the shared projected trend drop.
 pub mod signals;
+/// Reductions, confidence intervals and calibration statistics.
 pub mod stats;
 
 pub use bm25::BM25Engine;

@@ -6,6 +6,8 @@
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-AI — runtime threshold governor tests
 
+"""Exercise threshold proposal, approval and audit history for runtime adaptation."""
+
 from __future__ import annotations
 
 from collections.abc import Callable
@@ -140,11 +142,13 @@ def _interval(
     ],
 )
 def test_invalid_construction_raises(kwargs: _GovernorOptions) -> None:
+    """Refuse invalid governor limits and initial settings."""
     with pytest.raises(ValueError):
         _governor(_seg_rec(), **kwargs)
 
 
 def test_live_threshold_defaults_to_current() -> None:
+    """Return the initial threshold for a segment with no applied changes."""
     gov = _governor(_seg_rec())
     assert gov.live_threshold("medical") == 0.5
 
@@ -153,6 +157,7 @@ def test_live_threshold_defaults_to_current() -> None:
 
 
 def test_propose_blocks_on_global_source() -> None:
+    """Reject a segment proposal backed only by global evidence."""
     gov = _governor(_seg_rec(source="global"))
     change = gov.propose("medical")
     assert isinstance(change, ThresholdChange)
@@ -162,6 +167,7 @@ def test_propose_blocks_on_global_source() -> None:
 
 
 def test_propose_no_change_when_recommended_none() -> None:
+    """Leave the live threshold in place when no recommendation exists."""
     gov = _governor(_seg_rec(recommended=None))
     change = gov.propose("medical")
     assert change.applied is False
@@ -169,6 +175,7 @@ def test_propose_no_change_when_recommended_none() -> None:
 
 
 def test_propose_holds_for_human_approval() -> None:
+    """Hold a proposed change until a human can approve it."""
     gov = _governor(_seg_rec(requires_human_approval=True))
     change = gov.propose("medical")
     assert change.applied is False
@@ -178,6 +185,7 @@ def test_propose_holds_for_human_approval() -> None:
 
 
 def test_propose_applies_when_no_approval_needed() -> None:
+    """Apply one bounded step when no approval is required."""
     gov = _governor(_seg_rec(recommended=0.7), max_step=0.05)
     change = gov.propose("medical")
     assert change.applied is True
@@ -187,6 +195,7 @@ def test_propose_applies_when_no_approval_needed() -> None:
 
 
 def test_auto_apply_overrides_human_approval() -> None:
+    """Apply a gated recommendation under explicit auto-apply configuration."""
     gov = _governor(_seg_rec(requires_human_approval=True), auto_apply=True)
     change = gov.propose("medical")
     assert change.applied is True
@@ -196,18 +205,21 @@ def test_auto_apply_overrides_human_approval() -> None:
 
 
 def test_step_is_bounded_by_max_step() -> None:
+    """Bound movement toward a distant recommendation by the step limit."""
     gov = _governor(_seg_rec(recommended=0.95), max_step=0.05)
     change = gov.propose("medical")
     assert change.to_threshold == pytest.approx(0.55)  # not 0.95
 
 
 def test_step_reaches_target_when_within_max_step() -> None:
+    """Reach a nearby recommended threshold in a single step."""
     gov = _governor(_seg_rec(recommended=0.52), max_step=0.05)
     change = gov.propose("medical")
     assert change.to_threshold == pytest.approx(0.52)
 
 
 def test_step_can_move_downward() -> None:
+    """Allow a bounded step toward a lower threshold."""
     gov = _governor(_seg_rec(recommended=0.2), max_step=0.05)
     change = gov.propose("medical")
     assert change.to_threshold == pytest.approx(0.45)
@@ -217,6 +229,7 @@ def test_step_can_move_downward() -> None:
 
 
 def test_apply_with_approval_applies_human_gated_change() -> None:
+    """Apply a gated recommendation after receiving approval."""
     gov = _governor(_seg_rec(requires_human_approval=True))
     change = gov.apply("medical", approve=True)
     assert change.applied is True
@@ -224,6 +237,7 @@ def test_apply_with_approval_applies_human_gated_change() -> None:
 
 
 def test_apply_without_approval_blocks() -> None:
+    """Keep the live threshold when the required approval is missing."""
     gov = _governor(_seg_rec(requires_human_approval=True))
     change = gov.apply("medical", approve=False)
     assert change.applied is False
@@ -231,6 +245,7 @@ def test_apply_without_approval_blocks() -> None:
 
 
 def test_apply_nothing_to_apply_on_global_source() -> None:
+    """Retain the threshold when global evidence provides no applicable change."""
     gov = _governor(_seg_rec(source="global"))
     change = gov.apply("medical", approve=True)
     assert change.applied is False
@@ -238,6 +253,7 @@ def test_apply_nothing_to_apply_on_global_source() -> None:
 
 
 def test_apply_no_approval_needed() -> None:
+    """Apply a recommendation that requires no approval."""
     gov = _governor(_seg_rec(requires_human_approval=False))
     change = gov.apply("medical")
     assert change.applied is True
@@ -247,6 +263,7 @@ def test_apply_no_approval_needed() -> None:
 
 
 def test_effective_threshold_without_interval() -> None:
+    """Keep the live threshold when there is no uncertainty interval."""
     gov = _governor(_seg_rec())
     eff = gov.effective_threshold("medical")
     assert isinstance(eff, EffectiveThreshold)
@@ -256,6 +273,7 @@ def test_effective_threshold_without_interval() -> None:
 
 
 def test_effective_threshold_tightens_on_uncertainty() -> None:
+    """Apply the configured penalty when the router escalates."""
     gov = _governor(
         _seg_rec(),
         uncertainty_router=UncertaintyRouter(),
@@ -268,6 +286,7 @@ def test_effective_threshold_tightens_on_uncertainty() -> None:
 
 
 def test_effective_threshold_allows_when_router_confident() -> None:
+    """Keep the live threshold when the router allows the interval."""
     gov = _governor(_seg_rec(), uncertainty_router=UncertaintyRouter())
     eff = gov.effective_threshold(
         "medical", interval=_interval(lower=0.0, upper=0.1, reliable=True)
@@ -278,6 +297,7 @@ def test_effective_threshold_allows_when_router_confident() -> None:
 
 
 def test_effective_threshold_tighten_clamps_at_zero() -> None:
+    """Clamp an uncertainty-adjusted threshold at zero."""
     gov = _governor(
         _seg_rec(),
         current_threshold=0.05,
@@ -294,6 +314,7 @@ def test_effective_threshold_tighten_clamps_at_zero() -> None:
 
 
 def test_history_records_only_applied_changes() -> None:
+    """Include only applied proposals in the change history."""
     gov = _governor(_seg_rec(recommended=0.7))
     gov.propose("medical")  # applied
     assert len(gov.history()) == 1
@@ -302,6 +323,7 @@ def test_history_records_only_applied_changes() -> None:
 
 
 def test_observe_forwards_to_learner() -> None:
+    """Deliver segment observations to the threshold learner."""
     learner = _StubLearner(_seg_rec())
     gov = RuntimeThresholdGovernor(
         learner=learner, current_threshold=0.5, clock=lambda: 1.0
@@ -311,6 +333,7 @@ def test_observe_forwards_to_learner() -> None:
 
 
 def test_change_timestamp_from_clock() -> None:
+    """Use the injected clock for the recorded change time."""
     gov = _governor(_seg_rec(recommended=0.52), clock=lambda: 42.0)
     change = gov.propose("medical")
     assert change.at == 42.0
@@ -320,6 +343,7 @@ def test_change_timestamp_from_clock() -> None:
 
 
 def test_guard_builds_threshold_governor() -> None:
+    """Expose the runtime threshold governor from the production guard."""
     from director_ai.core.config import DirectorConfig
     from director_ai.guard import ProductionGuard
 

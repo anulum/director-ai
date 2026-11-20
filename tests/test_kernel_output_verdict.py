@@ -30,14 +30,23 @@ def test_monitor_reports_refusal_and_rearm_without_interpreting_response_text() 
     assert stopped == HaltOutput(marker, "hard_limit", 0.0)
     assert stopped.halted and scores == [0.0] and not monitor.is_active
 
-    def unexpected_callback(_: str) -> float:
-        """An inactive monitor must refuse before scoring the next token."""
-        raise AssertionError("inactive monitor scored a token")
+    scored_tokens: list[str] = []
 
-    inactive = monitor.stream_output_result(["candidate"], unexpected_callback)
+    def score_candidate(token: str) -> float:
+        """Record each candidate the monitor admits to scoring."""
+        scored_tokens.append(token)
+        return 0.5
+
+    inactive = monitor.stream_output_result(["candidate"], score_candidate)
     assert inactive == HaltOutput("[HALT: KERNEL INACTIVE]", "kernel_inactive")
+    assert scored_tokens == []
     monitor.reactivate()
-    assert monitor.stream_output_result([], unexpected_callback) == HaltOutput("")
+    assert monitor.stream_output_result([], score_candidate) == HaltOutput("")
+    assert scored_tokens == []
+
+    resumed = monitor.stream_output_result(["candidate"], score_candidate)
+    assert resumed == HaltOutput("candidate", last_score=0.5)
+    assert scored_tokens == ["candidate"]
 
 
 def test_monitor_reports_total_timeout_and_keeps_previous_score() -> None:

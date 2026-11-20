@@ -6,14 +6,11 @@
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-AI — hallucination economics tests
 
+"""Exercise the expected-cost model for choosing how to guard a response."""
+
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
-
 import pytest
-
-if TYPE_CHECKING:
-    from director_ai.guard import ProductionGuard
 
 from director_ai.core.routing import (
     DEFAULT_ACTIONS,
@@ -21,22 +18,26 @@ from director_ai.core.routing import (
     GuardAction,
     HallucinationEconomics,
 )
+from director_ai.guard import ProductionGuard
 
 # ── GuardAction validation ──────────────────────────────────────────────────
 
 
 def test_guard_action_rejects_negative_cost() -> None:
+    """Refuse an action whose execution cost is negative."""
     with pytest.raises(ValueError, match="cost"):
         GuardAction("x", cost=-0.1, catch=0.5)
 
 
 @pytest.mark.parametrize("catch", [-0.01, 1.01, 2.0])
 def test_guard_action_rejects_out_of_range_catch(catch: float) -> None:
+    """Refuse catch fractions outside the unit interval."""
     with pytest.raises(ValueError, match="catch"):
         GuardAction("x", cost=0.1, catch=catch)
 
 
 def test_guard_action_accepts_boundaries() -> None:
+    """Accept both zero and complete detection."""
     assert GuardAction("a", cost=0.0, catch=0.0).catch == 0.0
     assert GuardAction("b", cost=3.0, catch=1.0).catch == 1.0
 
@@ -45,12 +46,14 @@ def test_guard_action_accepts_boundaries() -> None:
 
 
 def test_expected_cost_formula() -> None:
+    """Add action cost to the expected loss from uncaught errors."""
     action = GuardAction("nli", cost=0.2, catch=0.9)
     # 0.2 + 0.5 * (1 - 0.9) * 10 = 0.2 + 0.5
     assert HallucinationEconomics.expected_cost(action, 0.5, 10.0) == pytest.approx(0.7)
 
 
 def test_expected_cost_skip_is_pure_risk_times_cost() -> None:
+    """Charge the full expected hallucination loss when skipping."""
     skip = GuardAction("skip", cost=0.0, catch=0.0)
     assert HallucinationEconomics.expected_cost(skip, 0.3, 20.0) == pytest.approx(6.0)
 
@@ -59,6 +62,7 @@ def test_expected_cost_skip_is_pure_risk_times_cost() -> None:
 
 
 def test_decide_very_low_risk_skips() -> None:
+    """Skip when the expected loss is below the cost of guarding."""
     econ = HallucinationEconomics()
     d = econ.decide(0.01)  # hallucination_cost default 1.0
     assert isinstance(d, EconomicDecision)
@@ -69,6 +73,7 @@ def test_decide_very_low_risk_skips() -> None:
 
 
 def test_decide_low_risk_low_stakes_picks_cheap_guard() -> None:
+    """Choose the inexpensive guard for low-risk, low-stakes output."""
     econ = HallucinationEconomics()
     d = econ.decide(0.05)
     assert d.action == "heuristic"
@@ -76,6 +81,7 @@ def test_decide_low_risk_low_stakes_picks_cheap_guard() -> None:
 
 
 def test_decide_high_risk_high_stakes_escalates() -> None:
+    """Pay for escalation when both risk and downstream cost are high."""
     econ = HallucinationEconomics()
     d = econ.decide(0.9, hallucination_cost=100.0)
     assert d.action == "escalate"
@@ -85,6 +91,7 @@ def test_decide_high_risk_high_stakes_escalates() -> None:
 
 
 def test_decide_high_risk_low_stakes_uses_nli_not_escalation() -> None:
+    """Prefer the NLI check when high risk carries low downstream cost."""
     econ = HallucinationEconomics()
     d = econ.decide(0.9, hallucination_cost=1.0)
     assert d.action == "nli"
@@ -94,6 +101,7 @@ def test_decide_high_risk_low_stakes_uses_nli_not_escalation() -> None:
 
 
 def test_decide_reports_baseline_value_and_residual() -> None:
+    """Reconcile baseline loss, guard value and residual risk."""
     econ = HallucinationEconomics()
     d = econ.decide(0.5, hallucination_cost=10.0)
     # baseline = 0.5 * 10 = 5.0; best is nli (0.2 + 0.5*0.1*10 = 0.7)
@@ -105,6 +113,7 @@ def test_decide_reports_baseline_value_and_residual() -> None:
 
 
 def test_decide_breakdown_covers_every_action() -> None:
+    """Include and verify the expected cost for every configured action."""
     econ = HallucinationEconomics()
     d = econ.decide(0.4, hallucination_cost=5.0)
     names = {name for name, _ in d.breakdown}
@@ -121,6 +130,7 @@ def test_decide_breakdown_covers_every_action() -> None:
 
 
 def test_custom_menu_single_action() -> None:
+    """Use the sole available action in a custom menu."""
     only = GuardAction("only", cost=0.5, catch=0.8)
     econ = HallucinationEconomics(actions=[only], hallucination_cost=10.0)
     d = econ.decide(0.5)
@@ -129,6 +139,7 @@ def test_custom_menu_single_action() -> None:
 
 
 def test_perfect_catch_zero_cost_dominates() -> None:
+    """Select free perfect detection over skipping a high-risk response."""
     menu = [
         GuardAction("skip", 0.0, 0.0),
         GuardAction("oracle", 0.0, 1.0),  # free perfect guard
@@ -144,27 +155,32 @@ def test_perfect_catch_zero_cost_dominates() -> None:
 
 
 def test_empty_action_menu_raises() -> None:
+    """Reject an empty set of available actions."""
     with pytest.raises(ValueError, match="at least one"):
         HallucinationEconomics(actions=[])
 
 
 def test_negative_default_hallucination_cost_raises() -> None:
+    """Reject a negative default cost for a hallucination."""
     with pytest.raises(ValueError, match="hallucination_cost"):
         HallucinationEconomics(hallucination_cost=-1.0)
 
 
 @pytest.mark.parametrize("risk", [-0.01, 1.01])
 def test_decide_rejects_out_of_range_risk(risk: float) -> None:
+    """Reject risks outside the unit interval."""
     with pytest.raises(ValueError, match="risk"):
         HallucinationEconomics().decide(risk)
 
 
 def test_decide_rejects_negative_per_call_hallucination_cost() -> None:
+    """Reject a negative outcome cost supplied for one decision."""
     with pytest.raises(ValueError, match="hallucination_cost"):
         HallucinationEconomics().decide(0.5, hallucination_cost=-2.0)
 
 
 def test_default_actions_are_ordered_and_valid() -> None:
+    """Check the default menu's ordering and valid probabilities."""
     assert DEFAULT_ACTIONS[0].name == "skip"
     assert all(0.0 <= a.catch <= 1.0 and a.cost >= 0.0 for a in DEFAULT_ACTIONS)
 
@@ -174,12 +190,12 @@ def test_default_actions_are_ordered_and_valid() -> None:
 
 def _guard() -> ProductionGuard:
     from director_ai.core.config import DirectorConfig
-    from director_ai.guard import ProductionGuard
 
     return ProductionGuard(config=DirectorConfig(use_nli=False))
 
 
 def test_guard_economics_property_persists() -> None:
+    """Reuse the economics engine across guard property lookups."""
     guard = _guard()
     first = guard.economics
     assert isinstance(first, HallucinationEconomics)
@@ -187,6 +203,7 @@ def test_guard_economics_property_persists() -> None:
 
 
 def test_guard_economics_decision() -> None:
+    """Expose the economics decision through the guard entry point."""
     guard = _guard()
     d = guard.guard_economics(0.9, hallucination_cost=100.0)
     assert isinstance(d, EconomicDecision)
@@ -195,6 +212,7 @@ def test_guard_economics_decision() -> None:
 
 
 def test_guard_economics_low_risk_skips() -> None:
+    """Expose that guarding has no value in the low-risk example."""
     guard = _guard()
     d = guard.guard_economics(0.01)
     assert d.action == "skip"
@@ -213,6 +231,7 @@ _COST = st.floats(min_value=0.0, max_value=1e6, allow_nan=False, allow_infinity=
 @given(risk=_RISK, cost=_COST)
 @settings(max_examples=200, deadline=None)
 def test_economics_decision_is_consistent(risk: float, cost: float) -> None:
+    """Check consistency of the selected action and cost breakdown over valid inputs."""
     decision = HallucinationEconomics().decide(risk, hallucination_cost=cost)
     names = {a.name for a in DEFAULT_ACTIONS}
     assert decision.action in names
@@ -229,6 +248,7 @@ def test_economics_decision_is_consistent(risk: float, cost: float) -> None:
 @given(risk=_RISK, cost=_COST)
 @settings(max_examples=100, deadline=None)
 def test_expected_cost_matches_breakdown_minimum(risk: float, cost: float) -> None:
+    """Verify that the chosen expected cost is minimal across actions."""
     decision = HallucinationEconomics().decide(risk, hallucination_cost=cost)
     best = min(c for _, c in decision.breakdown)
     assert decision.expected_cost == best

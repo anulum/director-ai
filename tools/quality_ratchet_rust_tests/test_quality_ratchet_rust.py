@@ -254,8 +254,36 @@ def test_public_capture_discards_caller_compiler_wrappers_and_flags(
         "CARGO_BUILD_RUSTC",
     ):
         monkeypatch.setenv(key, "unavailable-caller-compiler")
+    monkeypatch.setenv("CARGO_BUILD_TARGET", "wasm32-unknown-unknown")
+    monkeypatch.setenv("CARGO_BUILD_RUSTFLAGS", "--unqualified-option")
     snapshot = capture_rust_documentation(rust_repository, *rust_tools)
     assert snapshot.complete and snapshot.findings == ()
+
+
+@pytest.mark.parametrize("location", ("source", "parent", "cache"))
+@pytest.mark.parametrize("name", ("config", "config.toml"))
+def test_public_capture_refuses_ambient_cargo_configuration(
+    rust_repository: Path,
+    rust_tools: tuple[str, str],
+    monkeypatch: pytest.MonkeyPatch,
+    location: str,
+    name: str,
+) -> None:
+    """Refuse ordinary Cargo configuration in each supported lookup location."""
+    cache = rust_repository.parent / "cargo-cache"
+    monkeypatch.setenv("CARGO_HOME", os.path.relpath(cache, rust_repository))
+    directory = {
+        "source": rust_repository / ".cargo",
+        "parent": rust_repository.parent / ".cargo",
+        "cache": cache,
+    }[location]
+    directory.mkdir()
+    (directory / name).write_text("[build]\njobs = 1\n", encoding="utf-8")
+
+    with pytest.raises(
+        ValueError, match="Ambient Cargo configuration requires qualification"
+    ):
+        capture_rust_documentation(rust_repository, *rust_tools)
 
 
 @pytest.mark.parametrize(
@@ -265,6 +293,7 @@ def test_public_capture_discards_caller_compiler_wrappers_and_flags(
         "warning",
         "inventory",
         "configuration",
+        "cargo-configuration",
         "helper",
         "adapter",
         "decoder",
@@ -358,6 +387,10 @@ def test_public_capture_requires_complete_original_process_and_source_identity(
                 config.write_text(
                     config.read_text() + "\n# Actual late configuration change.\n"
                 )
+            elif attack == "cargo-configuration":
+                config = rust_repository / ".cargo/config.toml"
+                config.parent.mkdir()
+                config.write_text("[build]\njobs = 1\n", encoding="utf-8")
             elif attack in ("helper", "adapter", "decoder"):
                 changed = {
                     "helper": main,
@@ -371,7 +404,12 @@ def test_public_capture_requires_complete_original_process_and_source_identity(
         return result
 
     monkeypatch.setattr(quality_ratchet_rust, "_run", custody)
-    with pytest.raises(ValueError):
+    message = (
+        "Ambient Cargo configuration requires qualification"
+        if attack == "cargo-configuration"
+        else None
+    )
+    with pytest.raises(ValueError, match=message):
         capture_rust_documentation(rust_repository, cargo, rustc)
     assert processes
     if attack == "syntax":

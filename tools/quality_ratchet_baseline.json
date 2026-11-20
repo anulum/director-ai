@@ -2079,7 +2079,7 @@
           "rule": "julia-doc-method"
         }
       ],
-      "identity": "582fcbacce516ed9b4705d5fbc9b239f6f916fa8ed9ed34501cf656c609a4503",
+      "identity": "a2a06f40049cd090593d4baac8ebeab9a1f9f1f4803af86383699278228c38f0",
       "profile": "julia-docs",
       "schema": "quality-ratchet.snapshot.v2",
       "sources": {

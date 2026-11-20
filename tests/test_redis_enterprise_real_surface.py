@@ -1,10 +1,17 @@
 # SPDX-License-Identifier: Apache-2.0
 # Commercial license available
-# Copyright 2020-2026 Miroslav Sotek
-"""Real-surface coverage for Redis enterprise retrieval and cache wiring."""
+# © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
+# © Code 2020–2026 Miroslav Šotek. All rights reserved.
+# ORCID: 0009-0009-3560-0851
+# Contact: www.anulum.li | protoscience@anulum.li
+# Director-AI — Redis integration tests
+
+"""Exercise Redis retrieval, cached scores and shared server request quotas."""
 
 from __future__ import annotations
 
+import json
+import secrets
 import shutil
 import socket
 import subprocess
@@ -228,6 +235,38 @@ def test_real_redis_score_cache_enforces_ttl_generation_and_prefix_clear(
     assert cache.misses == 0
 
 
+@pytest.mark.parametrize(
+    "invalid_score",
+    [None, "invalid", "Infinity", 10**400],
+    ids=["non-object", "invalid-number", "non-finite", "overflow"],
+)
+def test_real_redis_cache_recovers_after_invalid_persisted_score(
+    redis_url: str, invalid_score: str | int | None
+) -> None:
+    """Delete an unreadable score and serve a new valid entry for the same query."""
+    prefix = "dai:test:invalid-score:"
+    cache = redis_module.RedisScoreCache(redis_url=redis_url, prefix=prefix)
+    cache.put("refund policy", "evidence", 0.75, 0.1, 0.2)
+
+    with _redis_client(redis_url) as client:
+        key = next(client.scan_iter(match=f"{prefix}*"))
+        if invalid_score is None:
+            payload = "[]"
+        else:
+            fields = json.loads(client.get(key))
+            fields["score"] = invalid_score
+            payload = json.dumps(fields)
+        client.set(key, payload)
+
+        assert cache.get("refund policy", "evidence") is None
+        assert client.get(key) is None
+        assert cache.misses == 1 and cache.hits == 0
+
+    cache.put("refund policy", "evidence", 0.8, 0.1, 0.2)
+    restored = cache.get("refund policy", "evidence")
+    assert restored is not None and restored.score == pytest.approx(0.8)
+
+
 def test_config_build_store_uses_real_redis_backend(redis_url: str) -> None:
     """DirectorConfig store construction should open the Redis enterprise store."""
     store = build_store(
@@ -242,3 +281,44 @@ def test_config_build_store_uses_real_redis_backend(redis_url: str) -> None:
     context = store.retrieve_context("evidence policy")
 
     assert context == "Redis-backed evidence remains tenant scoped."
+
+
+def test_server_instances_share_a_redis_backed_request_quota(
+    redis_url: str, caplog: pytest.LogCaptureFixture
+) -> None:
+    """Share the HTTP route quota over Redis and keep credentials out of logs."""
+    from fastapi.testclient import TestClient
+
+    from director_ai.server import create_app
+
+    password = secrets.token_hex(16)
+    user = "director-rate-tests"
+    with _redis_client(redis_url) as client:
+        client.execute_command(
+            "ACL", "SETUSER", user, "on", f">{password}", "~*", "+@all"
+        )
+    authenticated_url = redis_url.replace("redis://", f"redis://{user}:{password}@", 1)
+
+    cfg = DirectorConfig.from_profile("fast")
+    cfg.api_keys = []
+    cfg.rate_limit_rpm = 1
+    cfg.redis_url = authenticated_url
+    cfg.server_workers = 2
+
+    with caplog.at_level("INFO", logger="DirectorAI.Server"):
+        first_app = create_app(cfg)
+        second_app = create_app(cfg)
+        with TestClient(first_app) as first, TestClient(second_app) as second:
+            assert first.get("/v1/config").status_code == 200
+            denied = second.get("/v1/config")
+            assert denied.status_code == 429
+            assert denied.json() == {"detail": "Rate limit exceeded"}
+
+    assert first_app.state.limiter is not second_app.state.limiter
+    assert "Rate limiting backed by Redis" in caplog.text
+    credentials_logged = any(
+        user in record.getMessage() or password in record.getMessage()
+        for record in caplog.records
+    )
+    assert not credentials_logged
+    assert "per worker process" not in caplog.text

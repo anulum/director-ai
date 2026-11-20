@@ -1,7 +1,7 @@
 {
   "SPDX-License-Identifier": "Apache-2.0 AND LicenseRef-BUSL-1.1-ANULUM-TDM",
   "counts": {
-    "github_workflows": 29,
+    "github_workflows": 30,
     "model_documentation_pages": 90,
     "optional_extras": 62,
     "public_api_exports": 227,
@@ -9,7 +9,7 @@
     "python_model_classes": 1073,
     "python_model_source_modules": 542,
     "rust_pyo3_model_wrappers": 83,
-    "test_files": 838
+    "test_files": 846
   },
   "documentation": {
     "public_pages": [
@@ -5575,6 +5575,7 @@
       ".github/workflows/ci-notify.yml",
       ".github/workflows/ci-packages.yml",
       ".github/workflows/ci-python.yml",
+      ".github/workflows/ci-quality.yml",
       ".github/workflows/ci-runtime.yml",
       ".github/workflows/ci-rust.yml",
       ".github/workflows/ci-sbom.yml",
@@ -6175,19 +6176,27 @@
       "tests/test_python_only_contributor_path.py",
       "tests/test_python_only_contributor_path_real_surface.py",
       "tests/test_quality_ratchet_baseline.py",
+      "tests/test_quality_ratchet_cli.py",
       "tests/test_quality_ratchet_contracts.py",
       "tests/test_quality_ratchet_drift.py",
       "tests/test_quality_ratchet_golang.py",
+      "tests/test_quality_ratchet_golang_cli.py",
       "tests/test_quality_ratchet_golang_drift.py",
       "tests/test_quality_ratchet_golang_inventory.py",
       "tests/test_quality_ratchet_golang_protocol.py",
       "tests/test_quality_ratchet_inventory.py",
+      "tests/test_quality_ratchet_lean_cli.py",
       "tests/test_quality_ratchet_native.py",
+      "tests/test_quality_ratchet_notebook_cli.py",
       "tests/test_quality_ratchet_protobuf.py",
+      "tests/test_quality_ratchet_protobuf_cli.py",
       "tests/test_quality_ratchet_protobuf_descriptors.py",
+      "tests/test_quality_ratchet_rust_cli.py",
       "tests/test_quality_ratchet_typescript.py",
+      "tests/test_quality_ratchet_typescript_cli.py",
       "tests/test_quality_ratchet_typescript_integrity.py",
       "tests/test_quality_ratchet_typing.py",
+      "tests/test_quality_ratchet_typing_cli.py",
       "tests/test_quality_ratchet_typing_protocol.py",
       "tests/test_query_decomposition.py",
       "tests/test_query_decomposition_real_surface.py",

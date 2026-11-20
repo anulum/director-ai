@@ -22,19 +22,25 @@ from director_ai.ui import safety_dashboard
 
 
 class TestModulePlacement:
+    """Protect the dashboard launcher import boundary."""
+
     def test_launcher_is_defined_in_the_app_module(self) -> None:
+        """Keep the launcher implementation in the application module."""
         launcher = dashboard_app_module.launch_safety_dashboard
         assert launcher.__module__ == dashboard_app_module.__name__
 
     def test_facade_re_exports_the_same_launcher_object(self) -> None:
+        """Preserve launcher identity through the dashboard facade."""
         assert (
             safety_dashboard.launch_safety_dashboard
             is dashboard_app_module.launch_safety_dashboard
         )
 
     def test_module_exports_only_the_launcher(self) -> None:
+        """Keep the application module export list limited to its launcher."""
         assert dashboard_app_module.__all__ == ["launch_safety_dashboard"]
 
     def test_app_module_has_no_import_time_builder_or_gradio_binding(self) -> None:
+        """Import the application module without loading Gradio bindings or its builder."""
         for name in ("build_safety_dashboard", "gr", "gradio"):
             assert not hasattr(dashboard_app_module, name)

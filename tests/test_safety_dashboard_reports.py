@@ -40,18 +40,23 @@ _COLUMN_NAMES = (
 
 
 class TestModulePlacement:
+    """Protect the report model locations and supported facade imports."""
+
     def test_models_are_defined_in_the_reports_module(self) -> None:
+        """Keep each report model defined in the reports module."""
         for name in _MODEL_NAMES:
             cls = getattr(dashboard_reports_module, name)
             assert cls.__module__ == dashboard_reports_module.__name__
 
     def test_facade_re_exports_models_and_columns_unchanged(self) -> None:
+        """Preserve report model and column identity through the facade imports."""
         for name in (*_MODEL_NAMES, *_COLUMN_NAMES):
             assert getattr(safety_dashboard, name) is getattr(
                 dashboard_reports_module, name
             )
 
     def test_module_all_covers_models_columns_and_status_aliases(self) -> None:
+        """Include the status aliases alongside the model and column exports."""
         assert set(dashboard_reports_module.__all__) == {
             *_MODEL_NAMES,
             *_COLUMN_NAMES,
@@ -60,6 +65,7 @@ class TestModulePlacement:
         }
 
     def test_ui_package_surface_is_unchanged(self) -> None:
+        """Keep the supported trust and operations models importable from the UI package."""
         from director_ai import ui
 
         assert ui.TrustControl is dashboard_reports_module.TrustControl
@@ -70,7 +76,10 @@ class TestModulePlacement:
 
 
 class TestValidationContracts:
+    """Exercise model validation and tenant-safe report serialisation."""
+
     def test_trust_control_normalises_and_validates_status(self) -> None:
+        """Normalise whitespace and case, then reject unrecognised control status values."""
         control = dashboard_reports_module.TrustControl(
             control=" halt-drill ",
             status=" PASSED ",
@@ -83,12 +92,14 @@ class TestValidationContracts:
             )
 
     def test_compliance_export_requires_core_fields(self) -> None:
+        """Reject a compliance reference whose standard contains only whitespace."""
         with pytest.raises(ValueError, match="standard is required"):
             dashboard_reports_module.ComplianceExportRef(
                 standard=" ", name="SOC2", status="available", evidence_ref="runs/2"
             )
 
     def test_reports_serialise_tenant_safe_payloads(self) -> None:
+        """Check the privacy classification, columns and empty-tenant Markdown."""
         report = dashboard_reports_module.TrustConsoleReport(
             title="t",
             generated_at="now",

@@ -55,6 +55,7 @@ from .server_support import (
 from .server_support import (
     _http_endpoint_label as _http_endpoint_label,  # re-exported for tests
 )
+from .server_support import _install_http_rate_limit
 from .server_support import (
     _normalize_request_id as _normalize_request_id,  # re-exported for tests
 )
@@ -125,12 +126,8 @@ __all__ = [
 logger = logging.getLogger("DirectorAI.Server")
 
 try:
-    from fastapi import (
-        FastAPI,
-        Request,
-    )
+    from fastapi import FastAPI
     from fastapi.middleware.cors import CORSMiddleware
-    from fastapi.responses import JSONResponse
 
     _FASTAPI_AVAILABLE = True
 except ImportError:
@@ -144,7 +141,6 @@ Limiter: Any
 try:
     import slowapi as _slowapi_mod
     from slowapi import Limiter as _Limiter
-    from slowapi.middleware import SlowAPIMiddleware
     from slowapi.util import get_remote_address
 
     slowapi = _slowapi_mod
@@ -352,12 +348,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
             storage_uri = None
             if cfg.redis_url:
                 storage_uri = cfg.redis_url
-                logger.info(
-                    "Rate limiting backed by Redis: %s",
-                    cfg.redis_url.split("@")[-1]
-                    if "@" in cfg.redis_url
-                    else cfg.redis_url,
-                )
+                logger.info("Rate limiting backed by Redis")
             elif cfg.server_workers > 1:
                 # In-memory storage is per worker process; the configured limit is
                 # multiplied by the worker count and is not shared across
@@ -374,19 +365,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
                 storage_uri=storage_uri,
             )
             app.state.limiter = limiter
-            from slowapi.errors import RateLimitExceeded
-
-            app.add_middleware(SlowAPIMiddleware)
-
-            @app.exception_handler(RateLimitExceeded)
-            async def _rate_limit_handler(
-                request: Request, exc: RateLimitExceeded
-            ) -> JSONResponse:
-                """Render SlowAPI rate-limit failures as JSON responses."""
-                return JSONResponse(  # pragma: no cover — ASGI runtime handler
-                    status_code=429,
-                    content={"detail": "Rate limit exceeded"},
-                )
+            _install_http_rate_limit(app, limiter, _rate_str)
 
     # Correlation IDs + API-key auth + tenant binding + metrics live in
     # _server_auth_middleware.py; this wires app.state auth surfaces and

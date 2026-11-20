@@ -268,7 +268,12 @@ response headers.
 DIRECTOR_RATE_LIMIT_RPM=60 director-ai serve
 ```
 
-Returns 429 when exceeded. Install `pip install director-ai[server]` for Redis-backed distributed rate limiting.
+The server applies the quota per client IP and HTTP request path. Requests that
+exceed the quota receive HTTP 429 with `{"detail": "Rate limit exceeded"}`.
+
+The default in-memory quota is local to each worker process. For a quota shared
+across workers or replicas, install `director-ai[server,enterprise]` and set
+`DIRECTOR_REDIS_URL` to the shared Redis instance.
 
 ## CORS
 

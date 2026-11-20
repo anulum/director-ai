@@ -30,7 +30,6 @@ if str(LITE_SRC) not in sys.path:
 
 def _tokens(text: str) -> list[str]:
     """Return deterministic whitespace-suffixed tokens for streaming tests."""
-
     return [token + " " for token in text.split()]
 
 

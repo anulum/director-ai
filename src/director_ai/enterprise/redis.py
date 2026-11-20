@@ -13,15 +13,13 @@ from __future__ import annotations
 
 import json
 import logging
+import math
 import re
 import time
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 from director_ai.core import GroundTruthStore
-from director_ai.core.cache import ScoreCache
-
-if TYPE_CHECKING:
-    from director_ai.core.cache import _CacheEntry
+from director_ai.core.cache import ScoreCache, _CacheEntry
 
 # redis is optional — declare as Any so the except-branch
 # assignment does not conflict with mypy-inferred module type.
@@ -159,9 +157,7 @@ class RedisScoreCache(ScoreCache):
         except Exception as exc:
             logger.error("Redis connection failed: %s", exc)
             raise
-        logger.info(
-            "Initialized RedisScoreCache at %s (ttl=%ss)", redis_url, ttl_seconds
-        )
+        logger.info("Initialized RedisScoreCache (ttl=%ss)", ttl_seconds)
 
     def get(
         self,
@@ -170,10 +166,7 @@ class RedisScoreCache(ScoreCache):
         tenant_id: str = "",
         scope: str = "",
     ) -> _CacheEntry | None:
-        """Load a cached score entry, enforcing generation and JSON integrity."""
-        # Local import to construct the expected _CacheEntry format transparently
-        from director_ai.core.cache import _CacheEntry
-
+        """Load a finite cached score entry for the current generation."""
         tenant_id = _validate_redis_tenant_id(tenant_id)
         k = self._key(query, prefix, tenant_id, scope)
         redis_key = f"{self.prefix}{k}"
@@ -185,24 +178,32 @@ class RedisScoreCache(ScoreCache):
 
         try:
             parsed = json.loads(data)
-            if parsed.get("generation", 0) != self._generation:
-                self.client.delete(redis_key)
-                self.misses += 1
-                return None
+            if (
+                isinstance(parsed, dict)
+                and parsed.get("generation") == self._generation
+            ):
+                entry = _CacheEntry(
+                    score=float(parsed["score"]),
+                    h_logical=float(parsed["h_logical"]),
+                    h_factual=float(parsed["h_factual"]),
+                    created_at=float(parsed["created_at"]),
+                    generation=int(parsed["generation"]),
+                )
+                values = (
+                    entry.score,
+                    entry.h_logical,
+                    entry.h_factual,
+                    entry.created_at,
+                )
+                if all(map(math.isfinite, values)):
+                    self.hits += 1
+                    return entry
+        except (KeyError, TypeError, ValueError, OverflowError):
+            pass
 
-            entry = _CacheEntry(
-                score=float(parsed["score"]),
-                h_logical=float(parsed["h_logical"]),
-                h_factual=float(parsed["h_factual"]),
-                created_at=float(parsed["created_at"]),
-                generation=int(parsed["generation"]),
-            )
-            self.hits += 1
-            return entry
-        except (json.JSONDecodeError, KeyError, TypeError):
-            self.client.delete(redis_key)
-            self.misses += 1
-            return None
+        self.client.delete(redis_key)
+        self.misses += 1
+        return None
 
     def put(
         self,

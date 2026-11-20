@@ -74,7 +74,7 @@ jobs:
       - name: Audit the native Protobuf quality lock
         run: pip-audit --strict --disable-pip --require-hashes -r requirements/quality-protobuf.txt
 
-      - name: Audit complete Julia lock
+      - name: Audit complete Julia locks
         run: |
           scanner="$RUNNER_TEMP/julia-osv-scanner"
           inventory="$RUNNER_TEMP/julia-osv-scanner.json"
@@ -83,8 +83,10 @@ jobs:
             https://github.com/google/osv-scanner/releases/download/v2.7.1/osv-scanner_linux_amd64
           printf '%s  %s\n' fb7dab19a8bd9bbe5c3189f09d4b7ee1820c9553a23bac202648a56efd2f6ee8 "$scanner" | sha256sum --check --strict
           chmod u+x "$scanner"
-          python -m tools.export_julia_lock_for_osv tools/julia_tuner/Manifest.toml > "$inventory"
-          "$scanner" scan source --lockfile "osv-scanner:$inventory"
+          for manifest in tools/julia_tuner/Manifest.toml tools/quality_ratchet_julia/Manifest.toml; do
+            python -m tools.export_julia_lock_for_osv "$manifest" > "$inventory"
+            "$scanner" scan source --lockfile "osv-scanner:$inventory"
+          done
 
       - name: Upload VDR artifacts
         if: always()

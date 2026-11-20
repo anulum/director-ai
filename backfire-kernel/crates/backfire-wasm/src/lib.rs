@@ -22,9 +22,13 @@ use wasm_bindgen::prelude::*;
 ///
 /// The first halt is permanent. Create another instance for a new stream.
 pub struct WasmStreamingKernel {
+    /// Validated native thresholds and window sizes for this stream.
     config: BackfireConfig,
+    /// Session history and the first halt decision returned to the host.
     session: StreamSession,
+    /// Latest scores used by the sliding-average check.
     window: VecDeque<f64>,
+    /// True until the first halt locks the session.
     is_active: bool,
 }
 
@@ -136,6 +140,7 @@ impl WasmStreamingKernel {
 }
 
 impl WasmStreamingKernel {
+    /// Record the failing event and seal the session at its first halt.
     fn halt(&mut self, i: usize, reason_key: &str, val: f64, limit: f64, event: &mut TokenEvent) {
         event.halted = true;
         self.session.halted = true;

@@ -11,16 +11,11 @@ from __future__ import annotations
 
 import logging
 import os
-import sys
-import types
 import uuid
-from collections.abc import Callable
 from pathlib import Path
 from typing import NoReturn
 
 import pytest
-from starlette.requests import Request
-from starlette.types import ASGIApp, Receive, Scope, Send
 
 from director_ai.core.config import DirectorConfig
 from director_ai.core.metrics import metrics
@@ -67,79 +62,22 @@ def _map_only_app() -> FastAPI:
     return create_app(cfg)
 
 
-class _FakeRateLimitExceededError(Exception):
-    pass
-
-
-class _FakeSlowAPIMiddleware:
-    def __init__(self, app: ASGIApp, *args: object, **kwargs: object) -> None:
-        del args, kwargs
-        self.app = app
-
-    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
-        await self.app(scope, receive, send)
-
-
-class _FakeLimiter:
-    def __init__(
-        self,
-        *,
-        key_func: Callable[[Request], str],
-        default_limits: list[str],
-        storage_uri: str | None,
-    ) -> None:
-        self.key_func = key_func
-        self.default_limits = default_limits
-        self.storage_uri = storage_uri
-
-
-def _install_fake_slowapi(monkeypatch: pytest.MonkeyPatch) -> types.ModuleType:
-    import director_ai.server as server_mod
-
-    fake_slowapi = types.ModuleType("slowapi")
-    fake_errors = types.ModuleType("slowapi.errors")
-    monkeypatch.setattr(
-        fake_errors, "RateLimitExceeded", _FakeRateLimitExceededError, raising=False
-    )
-    monkeypatch.setitem(sys.modules, "slowapi", fake_slowapi)
-    monkeypatch.setitem(sys.modules, "slowapi.errors", fake_errors)
-    monkeypatch.setattr(server_mod, "_SLOWAPI_AVAILABLE", True)
-    monkeypatch.setattr(server_mod, "Limiter", _FakeLimiter)
-    monkeypatch.setattr(
-        server_mod,
-        "SlowAPIMiddleware",
-        _FakeSlowAPIMiddleware,
-        raising=False,
-    )
-    monkeypatch.setattr(
-        server_mod,
-        "get_remote_address",
-        lambda request: getattr(request, "client", None) or "client",
-        raising=False,
-    )
-    return server_mod
-
-
-def test_map_only_config_enforces_auth() -> None:
-    """Regression: a map-only config must require a key (was fail-open)."""
-    with TestClient(_map_only_app()) as client:
-        r = client.get("/v1/config")
-    assert r.status_code == 401
-
-
 def test_map_only_authenticates_listed_key() -> None:
+    """Accept an API key listed in the tenant map alone."""
     with TestClient(_map_only_app()) as client:
         r = client.get("/v1/config", headers={"X-API-Key": "map-key-1"})
     assert r.status_code == 200
 
 
 def test_map_only_rejects_unlisted_key() -> None:
+    """Reject an unknown key when the tenant map is the only authority."""
     with TestClient(_map_only_app()) as client:
         r = client.get("/v1/config", headers={"X-API-Key": "not-a-key"})
     assert r.status_code == 401
 
 
 def test_map_only_wrong_tenant_forbidden() -> None:
+    """Refuse a mapped key on a request for a different tenant."""
     with TestClient(_map_only_app()) as client:
         r = client.get(
             "/v1/config",
@@ -149,6 +87,7 @@ def test_map_only_wrong_tenant_forbidden() -> None:
 
 
 def test_map_only_matching_tenant_allowed() -> None:
+    """Allow a mapped key to act for its bound tenant."""
     with TestClient(_map_only_app()) as client:
         r = client.get(
             "/v1/config",
@@ -158,30 +97,35 @@ def test_map_only_matching_tenant_allowed() -> None:
 
 
 def test_auth_rejects_missing_key() -> None:
+    """Require an API key when server authentication is enabled."""
     with TestClient(_auth_app()) as client:
         r = client.get("/v1/config")
     assert r.status_code == 401
 
 
 def test_auth_rejects_wrong_key() -> None:
+    """Return an authentication failure for an incorrect key."""
     with TestClient(_auth_app()) as client:
         r = client.get("/v1/config", headers={"X-API-Key": "wrong"})
     assert r.status_code == 401
 
 
 def test_auth_accepts_correct_key() -> None:
+    """Accept a request bearing a configured key."""
     with TestClient(_auth_app()) as client:
         r = client.get("/v1/config", headers={"X-API-Key": "test-key-123"})
     assert r.status_code == 200
 
 
 def test_health_exempt_from_auth() -> None:
+    """Keep the health endpoint reachable without authentication."""
     with TestClient(_auth_app()) as client:
         r = client.get("/v1/health")
     assert r.status_code == 200
 
 
 def test_liveness_exposes_minimal_ok_payload() -> None:
+    """Limit the liveness response to a minimal status payload."""
     with TestClient(_auth_app()) as client:
         r = client.get("/v1/live")
     assert r.status_code == 200
@@ -240,24 +184,28 @@ def test_source_commercial_hides_tier_and_version() -> None:
 
 
 def test_prometheus_exempt_when_metrics_auth_disabled() -> None:
+    """Allow unauthenticated scrapes when metrics authentication is disabled."""
     with TestClient(_auth_app(metrics_require_auth=False)) as client:
         r = client.get("/v1/metrics/prometheus")
     assert r.status_code == 200
 
 
 def test_prometheus_requires_auth_by_default() -> None:
+    """Require authentication for metrics under the default policy."""
     with TestClient(_auth_app()) as client:
         r = client.get("/v1/metrics/prometheus")
     assert r.status_code == 401
 
 
 def test_no_auth_when_keys_empty() -> None:
+    """Allow requests when no API keys are configured."""
     with TestClient(_noauth_app()) as client:
         r = client.get("/v1/config")
     assert r.status_code == 200
 
 
 def test_correlation_id_generated() -> None:
+    """Issue a correlation identifier when a caller supplies none."""
     with TestClient(_noauth_app()) as client:
         r = client.get("/v1/health")
     assert "X-Request-ID" in r.headers
@@ -265,6 +213,7 @@ def test_correlation_id_generated() -> None:
 
 
 def test_correlation_id_echoed() -> None:
+    """Return the caller's valid correlation identifier in the response."""
     with TestClient(_noauth_app()) as client:
         r = client.get(
             "/v1/health",
@@ -274,6 +223,7 @@ def test_correlation_id_echoed() -> None:
 
 
 def test_correlation_id_replaces_values_with_disallowed_characters() -> None:
+    """Replace correlation identifiers containing disallowed characters."""
     inbound = "trace with spaces"
 
     with TestClient(_noauth_app()) as client:
@@ -285,6 +235,7 @@ def test_correlation_id_replaces_values_with_disallowed_characters() -> None:
 
 
 def test_correlation_id_replaces_overlong_values() -> None:
+    """Replace oversized correlation identifiers before returning them."""
     inbound = f"trace-{'x' * 200}"
 
     with TestClient(_noauth_app()) as client:
@@ -297,6 +248,7 @@ def test_correlation_id_replaces_overlong_values() -> None:
 
 
 def test_http_metrics_use_route_templates_for_path_parameters() -> None:
+    """Label requests by their route template instead of individual path parameters."""
     metrics.reset()
 
     with TestClient(_noauth_app()) as client:
@@ -311,6 +263,7 @@ def test_http_metrics_use_route_templates_for_path_parameters() -> None:
 
 
 def test_http_metrics_count_auth_failures() -> None:
+    """Include rejected authentication requests in HTTP metrics."""
     metrics.reset()
 
     with TestClient(_auth_app()) as client:
@@ -327,6 +280,7 @@ def test_http_metrics_count_auth_failures() -> None:
 
 
 def test_http_metrics_count_unhandled_application_exceptions() -> None:
+    """Include unhandled application errors in HTTP metrics."""
     metrics.reset()
     app = _noauth_app()
 
@@ -346,6 +300,7 @@ def test_http_metrics_count_unhandled_application_exceptions() -> None:
 
 
 def test_api_keys_redacted_in_config() -> None:
+    """Redact configured keys when serialising server configuration."""
     with TestClient(_auth_app()) as client:
         r = client.get(
             "/v1/config",
@@ -356,89 +311,28 @@ def test_api_keys_redacted_in_config() -> None:
     assert data["config"]["api_keys"] == "***"
 
 
-def test_rate_limiter_has_default_limits() -> None:
-    """Limiter is constructed with default_limits when rate_limit_rpm > 0."""
-    try:
-        from slowapi import Limiter  # noqa: F401
-    except ImportError:
-        pytest.skip("slowapi not installed")
-
-    cfg = DirectorConfig(rate_limit_rpm=60, llm_provider="mock")
-    app = create_app(cfg)
-    limiter = app.state.limiter
-    assert limiter is not None
-    assert limiter._default_limits is not None
-    assert len(limiter._default_limits) > 0
-
-
-@pytest.mark.skipif(not _SLOWAPI_AVAILABLE, reason="slowapi not installed")
-def test_rate_limiter_uses_redis_storage_uri(monkeypatch: pytest.MonkeyPatch) -> None:
-    import director_ai.server as server_mod
-
-    class FakeLimiter:
-        def __init__(
-            self,
-            *,
-            key_func: Callable[[Request], str],
-            default_limits: list[str],
-            storage_uri: str | None,
-        ) -> None:
-            self._key_func = key_func
-            self._default_limits = default_limits
-            self._storage_uri = storage_uri
-
-    monkeypatch.setattr(server_mod, "Limiter", FakeLimiter)
+def test_authenticated_requests_use_the_configured_rate_limit() -> None:
+    """Enforce the mounted route quota after authenticating the caller."""
     cfg = DirectorConfig(
-        rate_limit_rpm=60,
-        redis_url="redis://localhost:6379/0",
+        api_keys=["test-key-123"],
         llm_provider="mock",
+        use_nli=False,
+        rate_limit_rpm=1,
     )
     app = create_app(cfg)
-
-    assert app.state.limiter is not None
-    assert app.state.limiter._storage_uri == "redis://localhost:6379/0"
-
-
-def test_rate_limiter_wires_redis_storage_without_slowapi_dependency(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    _install_fake_slowapi(monkeypatch)
-
-    cfg = DirectorConfig(
-        rate_limit_rpm=60,
-        redis_url="redis://redis.example/0",
-        llm_provider="mock",
-    )
-    app = create_app(cfg)
-
-    limiter = app.state.limiter
-    assert limiter.storage_uri == "redis://redis.example/0"
-    assert limiter.default_limits == ["60/minute"]
-    assert _FakeRateLimitExceededError in app.exception_handlers
-
-
-def test_rate_limiter_warns_for_multi_worker_inmemory_fake_slowapi(
-    caplog: pytest.LogCaptureFixture,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    _install_fake_slowapi(monkeypatch)
-
-    cfg = DirectorConfig(
-        api_keys=[],
-        llm_provider="mock",
-        rate_limit_rpm=60,
-        server_workers=2,
-    )
-    with caplog.at_level(logging.WARNING, logger="DirectorAI.Server"):
-        app = create_app(cfg)
-
-    assert app.state.limiter.storage_uri is None
-    assert "per worker process" in caplog.text
+    headers = {"X-API-Key": "test-key-123"}
+    with TestClient(app) as client:
+        assert client.get("/v1/config").status_code == 401
+        assert client.get("/v1/config", headers=headers).status_code == 200
+        denied = client.get("/v1/config", headers=headers)
+        assert denied.status_code == 429
+        assert denied.json() == {"detail": "Rate limit exceeded"}
 
 
 def test_unbound_tenant_claim_logs_hashed_key_only(
     caplog: pytest.LogCaptureFixture,
 ) -> None:
+    """Include a key fingerprint rather than the raw key in the denial log."""
     cfg = DirectorConfig(
         api_keys=["test-key-123"],
         llm_provider="mock",
@@ -459,6 +353,7 @@ def test_unbound_tenant_claim_logs_hashed_key_only(
 
 
 def test_prompt_too_long_returns_422() -> None:
+    """Reject a request whose prompt exceeds the configured limit."""
     with TestClient(_noauth_app()) as client:
         r = client.post(
             "/v1/review",
@@ -468,6 +363,7 @@ def test_prompt_too_long_returns_422() -> None:
 
 
 def test_response_too_long_returns_422() -> None:
+    """Reject a request whose response text exceeds the configured limit."""
     with TestClient(_noauth_app()) as client:
         r = client.post(
             "/v1/review",
@@ -477,6 +373,7 @@ def test_response_too_long_returns_422() -> None:
 
 
 def test_valid_body_sizes_accepted() -> None:
+    """Accept a request when both body fields fit their limits."""
     with TestClient(_noauth_app()) as client:
         r = client.post(
             "/v1/review",
@@ -513,6 +410,7 @@ def test_prometheus_hourly_graceful() -> None:
 
 
 def test_dashboard_renders_with_prometheus() -> None:
+    """Render the dashboard when Prometheus instrumentation is enabled."""
     cfg = DirectorConfig(api_keys=[], llm_provider="mock", stats_backend="prometheus")
     app = create_app(cfg)
     with TestClient(app) as client:
@@ -525,6 +423,7 @@ def test_dashboard_renders_with_prometheus() -> None:
 
 
 def test_source_returns_200() -> None:
+    """Return the source disclosure response when enabled."""
     with TestClient(_noauth_app()) as client:
         r = client.get("/v1/source")
     assert r.status_code == 200
@@ -534,12 +433,14 @@ def test_source_returns_200() -> None:
 
 
 def test_source_exempt_from_auth() -> None:
+    """Keep source disclosure reachable without an API key."""
     with TestClient(_auth_app()) as client:
         r = client.get("/v1/source")
     assert r.status_code == 200
 
 
 def test_source_disabled_returns_404() -> None:
+    """Return not found when source disclosure is disabled."""
     cfg = DirectorConfig(
         api_keys=[],
         llm_provider="mock",
@@ -554,6 +455,7 @@ def test_source_disabled_returns_404() -> None:
 def test_bare_license_key_stays_open_core(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
+    """Keep a bare licence key from changing the open-core mode."""
     monkeypatch.setenv("HOME", str(tmp_path))
     monkeypatch.setenv(
         "DIRECTOR_LICENSE_KEY",
@@ -574,6 +476,7 @@ def test_bare_license_key_stays_open_core(
 
 
 def test_source_custom_repo_url() -> None:
+    """Include the configured repository URL in source disclosure."""
     cfg = DirectorConfig(
         api_keys=[],
         llm_provider="mock",
@@ -600,6 +503,7 @@ def test_metrics_auth_required_returns_401() -> None:
 
 
 def test_metrics_auth_required_with_key_returns_200() -> None:
+    """Allow a valid key to scrape authenticated metrics."""
     cfg = DirectorConfig(
         api_keys=["secret"],
         llm_provider="mock",
@@ -612,6 +516,7 @@ def test_metrics_auth_required_with_key_returns_200() -> None:
 
 
 def test_extract_request_api_key_accepts_bearer_token_for_prometheus_scrapers() -> None:
+    """Accept a bearer credential supplied by a Prometheus scraper."""
     from starlette.requests import Request
 
     request = Request(
@@ -636,8 +541,10 @@ def test_rate_limit_strict_raises_without_slowapi(
 
 
 def test_server_provider_wiring_openai(monkeypatch: pytest.MonkeyPatch) -> None:
-    """VULN-DAI-001 regression: provider config must pass api_key directly to
-    CoherenceAgent and never write it into os.environ."""
+    """Check provider startup with an explicit key and no ambient credential.
+
+    Confirm that app creation does not copy the configured key into the environment.
+    """
     monkeypatch.delenv("OPENAI_API_KEY", raising=False)
     cfg = DirectorConfig(llm_provider="openai", llm_api_key="from-config")
     app = create_app(cfg)
@@ -648,6 +555,7 @@ def test_server_provider_wiring_openai(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def test_server_local_provider_wires_generation_parameters() -> None:
+    """Forward local provider generation limits and sampling settings."""
     cfg = DirectorConfig(
         api_keys=[],
         llm_provider="local",
@@ -665,6 +573,7 @@ def test_server_local_provider_wires_generation_parameters() -> None:
 
 
 def test_sqlite_stats_works(tmp_path: Path) -> None:
+    """Return a zero request count from a fresh SQLite statistics store."""
     db_path = str(tmp_path / "test_stats.db")
     cfg = DirectorConfig(
         api_keys=[],

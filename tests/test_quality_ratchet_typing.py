@@ -82,6 +82,10 @@ def typing_repository(tmp_path: Path) -> Path:
     )
     (root / "requirements/ci-dev.txt").write_text("mypy==1.20.2\n")
     (root / "requirements/ci-types.txt").write_text("types-requests==2.33.0.20260906\n")
+    protobuf_lock = (
+        Path(__file__).resolve().parents[1] / "requirements/quality-protobuf.txt"
+    )
+    (root / "requirements/quality-protobuf.txt").write_bytes(protobuf_lock.read_bytes())
     (root / "src/legacy.py").write_text("def missing(value):\n    return value\n")
     commit_typing_sources(root)
     return root

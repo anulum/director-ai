@@ -8,12 +8,14 @@
 
 """Self-contained fine-tuning script for JarvisLabs (requires Python 3.11+).
 
-Requires: transformers, datasets, torch, scikit-learn, numpy
+Requires: transformers, datasets (with PyArrow), torch, scikit-learn, numpy
 
 Datasets:
   - VitaminC (370K fact-verification pairs) → factcg-vitaminc
   - SNLI (550K general NLI) → factcg-snli
   - ContractNLI (6.8K legal NLI) → factcg-legal
+
+The command exits with an error if no model is trained successfully.
 
 Usage::
 
@@ -27,18 +29,81 @@ import os
 import random
 import subprocess
 import time
+from collections.abc import Iterable, Mapping, Sequence
+from hashlib import sha256
+from importlib import import_module
 from pathlib import Path
+from typing import Literal, Protocol, SupportsInt, TypedDict, cast
 
 import numpy as np
 import torch
-from datasets import Dataset, load_dataset
-from sklearn.metrics import balanced_accuracy_score, f1_score
+from datasets import ClassLabel, Dataset, load_dataset
+from numpy.typing import NDArray
 from transformers import (
     AutoModelForSequenceClassification,
     AutoTokenizer,
     Trainer,
     TrainingArguments,
 )
+
+
+class _TrainingExample(TypedDict):
+    """One binary fact verification training example."""
+
+    premise: str
+    hypothesis: str
+    label: int
+
+
+class _TrainingResult(TypedDict):
+    """Checkpoint metrics stored in the standalone training result."""
+
+    name: str
+    train_samples: int
+    eval_samples: int
+    balanced_accuracy: float
+    f1: float
+    training_time_min: float
+    eval_metrics: dict[str, float]
+
+
+class _Tokenizer(Protocol):
+    """Tokenizer operations used by the batched Dataset mapping."""
+
+    def __call__(
+        self,
+        text: Sequence[str],
+        *,
+        truncation: bool,
+        padding: Literal["max_length"],
+        max_length: int,
+    ) -> Mapping[str, object]:
+        """Encode a batch to the requested fixed sequence length."""
+        ...
+
+
+class _ClassificationMetrics(Protocol):
+    """The two untyped scikit-learn entry points used for evaluation."""
+
+    def balanced_accuracy_score(
+        self, labels: NDArray[np.generic], predictions: NDArray[np.generic]
+    ) -> float:
+        """Average recall across the classes present in the reference labels."""
+        ...
+
+    def f1_score(
+        self,
+        labels: NDArray[np.generic],
+        predictions: NDArray[np.generic],
+        *,
+        average: Literal["binary"],
+        zero_division: Literal[0],
+    ) -> float:
+        """Compute positive-class F1, with zero for undefined scores."""
+        ...
+
+
+_metrics = cast(_ClassificationMetrics, import_module("sklearn.metrics"))
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s: %(message)s")
 logger = logging.getLogger("train")
@@ -55,14 +120,41 @@ MODELS_DIR = Path("/home/director-ai/models")
 MAX_SAMPLES = 100_000  # per dataset, overridable via --max-samples
 
 
-def write_jsonl(rows, path):
+def write_jsonl(rows: Sequence[_TrainingExample], path: Path) -> None:
+    """Write fact verification examples as UTF-8 JSON Lines.
+
+    Parameters
+    ----------
+    rows : Sequence of _TrainingExample
+        Binary examples to write in input order.
+    path : Path
+        Destination file. Parent directories are created if needed.
+    """
     path.parent.mkdir(parents=True, exist_ok=True)
-    with open(path, "w") as f:
+    with path.open("w", encoding="utf-8") as f:
         f.writelines(json.dumps(row, ensure_ascii=False) + "\n" for row in rows)
     logger.info("Wrote %d samples to %s", len(rows), path)
 
 
-def split_data(rows, eval_ratio=0.1, seed=42):
+def split_data(
+    rows: list[_TrainingExample], eval_ratio: float = 0.1, seed: int = 42
+) -> tuple[list[_TrainingExample], list[_TrainingExample]]:
+    """Shuffle examples in place and reserve the leading evaluation fraction.
+
+    Parameters
+    ----------
+    rows : list of _TrainingExample
+        Examples to shuffle and split.
+    eval_ratio : float
+        Fraction of examples to reserve, with one reserved when available.
+    seed : int
+        Random seed for a reproducible partition.
+
+    Returns
+    -------
+    tuple of list
+        Training examples followed by evaluation examples.
+    """
     rng = random.Random(seed)
     rng.shuffle(rows)
     n_eval = max(1, int(len(rows) * eval_ratio))
@@ -72,8 +164,19 @@ def split_data(rows, eval_ratio=0.1, seed=42):
 # ── Data Preparation ───────────────────────────────────────────────
 
 
-def nli_to_binary(label_raw):
-    """Convert 3-way NLI label to binary: entailment→1, contradiction→0, neutral→None."""
+def nli_to_binary(label_raw: str | SupportsInt) -> int | None:
+    """Map NLI entailment and contradiction labels to binary outcomes.
+
+    Parameters
+    ----------
+    label_raw : str or SupportsInt
+        NLI label text or a numeric dataset label.
+
+    Returns
+    -------
+    int or None
+        One for entailment, zero for contradiction and None for excluded labels.
+    """
     if isinstance(label_raw, str):
         low = label_raw.lower()
         if low in ("entailment", "supports"):
@@ -89,13 +192,24 @@ def nli_to_binary(label_raw):
     return None  # neutral (-1, 1)
 
 
-def prepare_vitaminc(max_samples):
-    """VitaminC: fact verification with Wikipedia evidence."""
+def prepare_vitaminc(max_samples: int) -> tuple[int, int]:
+    """Prepare labelled VitaminC claims and Wikipedia evidence.
+
+    Parameters
+    ----------
+    max_samples : int
+        Maximum number of accepted binary examples across the dataset splits.
+
+    Returns
+    -------
+    tuple of int
+        Numbers written to the training and evaluation files.
+    """
     logger.info("Loading VitaminC...")
-    rows = []
+    rows: list[_TrainingExample] = []
     for split in ["train", "validation", "test"]:
         try:
-            ds = load_dataset("tals/vitaminc", split=split, trust_remote_code=True)
+            ds = load_dataset("tals/vitaminc", split=split)
             for item in ds:
                 evidence = item.get("evidence", "")
                 claim = item.get("claim", "")
@@ -122,13 +236,24 @@ def prepare_vitaminc(max_samples):
     return len(train), len(eval_)
 
 
-def prepare_snli(max_samples):
-    """SNLI: general natural language inference."""
+def prepare_snli(max_samples: int) -> tuple[int, int]:
+    """Prepare labelled Stanford Natural Language Inference examples.
+
+    Parameters
+    ----------
+    max_samples : int
+        Maximum number of accepted binary examples across the dataset splits.
+
+    Returns
+    -------
+    tuple of int
+        Numbers written to the training and evaluation files.
+    """
     logger.info("Loading SNLI...")
-    rows = []
+    rows: list[_TrainingExample] = []
     for split in ["train", "validation", "test"]:
         try:
-            ds = load_dataset("snli", split=split, trust_remote_code=True)
+            ds = load_dataset("stanfordnlp/snli", split=split)
             for item in ds:
                 premise = item.get("premise", "")
                 hypothesis = item.get("hypothesis", "")
@@ -155,25 +280,43 @@ def prepare_snli(max_samples):
     return len(train), len(eval_)
 
 
-def prepare_legal(max_samples):
-    """ContractNLI: legal domain NLI."""
+def prepare_legal(max_samples: int) -> tuple[int, int]:
+    """Prepare labelled ContractNLI examples.
+
+    Parameters
+    ----------
+    max_samples : int
+        Maximum number of accepted binary examples across the dataset splits.
+
+    Returns
+    -------
+    tuple of int
+        Numbers written to the training and evaluation files.
+    """
     logger.info("Loading ContractNLI...")
-    rows = []
+    parquet_root = (
+        "hf://datasets/kiddothe2b/contract-nli@refs%2Fconvert%2Fparquet/contractnli_a"
+    )
+    rows: list[_TrainingExample] = []
     for split in ["train", "test"]:
         try:
             ds = load_dataset(
-                "kiddothe2b/contract-nli",
-                "contractnli_a",
+                "parquet",
+                data_files={split: f"{parquet_root}/{split}/*.parquet"},
                 split=split,
-                trust_remote_code=True,
             )
+            labels = ds.features["label"]
+            if not isinstance(labels, ClassLabel):
+                raise ValueError("ContractNLI requires named class labels")
             for item in ds:
                 premise = item.get("premise", "")
                 hypothesis = item.get("hypothesis", "")
                 label_raw = item.get("label")
-                if not premise or not hypothesis or label_raw is None:
+                if not premise or not hypothesis or not isinstance(label_raw, int):
                     continue
-                label = nli_to_binary(label_raw)
+                if not 0 <= label_raw < labels.num_classes:
+                    continue
+                label = nli_to_binary(labels.int2str(label_raw))
                 if label is not None:
                     rows.append(
                         {"premise": premise, "hypothesis": hypothesis, "label": label},
@@ -196,27 +339,83 @@ def prepare_legal(max_samples):
 # ── Training ───────────────────────────────────────────────────────
 
 
-def load_jsonl(path):
-    rows = []
-    with open(path) as f:
+def load_jsonl(path: str | Path) -> list[_TrainingExample]:
+    """Read binary examples produced by the standalone data preparation.
+
+    Parameters
+    ----------
+    path : str or Path
+        UTF-8 JSON Lines file with premise, hypothesis and integer label fields.
+
+    Returns
+    -------
+    list of _TrainingExample
+        Validated examples in file order. Empty lines are skipped.
+
+    Raises
+    ------
+    ValueError
+        If a nonempty line cannot be decoded as a training example.
+    """
+    rows: list[_TrainingExample] = []
+    with Path(path).open(encoding="utf-8") as f:
         for line in f:
             line = line.strip()
             if line:
-                rows.append(json.loads(line))
+                row: object = json.loads(line)
+                if not (
+                    isinstance(row, dict)
+                    and isinstance(row.get("premise"), str)
+                    and isinstance(row.get("hypothesis"), str)
+                    and isinstance(row.get("label"), int)
+                ):
+                    raise ValueError(f"Invalid training example in {path}")
+                rows.append(cast(_TrainingExample, row))
     return rows
 
 
-def tokenize_dataset(rows, tokenizer, max_length=512):
-    texts = [
-        FACTCG_TEMPLATE.format(premise=r["premise"], hypothesis=r["hypothesis"])
-        for r in rows
-        if r["premise"] and r["hypothesis"]
-    ]
-    labels = [r["label"] for r in rows if r["premise"] and r["hypothesis"]]
+def tokenize_dataset(
+    rows: Sequence[_TrainingExample], tokenizer: _Tokenizer, max_length: int = 512
+) -> Dataset:
+    """Encode nonempty examples with the FactCG prompt and retain their labels.
 
-    ds = Dataset.from_dict({"text": texts, "labels": labels})
+    Bind the in-memory Arrow table to a content fingerprint so tokenization
+    can proceed independently of Arrow's Python pickling hooks.
 
-    def _tokenize(batch):
+    Parameters
+    ----------
+    rows : Sequence of _TrainingExample
+        Labelled premise and hypothesis pairs.
+    tokenizer : _Tokenizer
+        Batch tokenizer for the selected training model.
+    max_length : int
+        Fixed token sequence length after truncation and padding.
+
+    Returns
+    -------
+    datasets.Dataset
+        Encoded examples in PyTorch format.
+    """
+    texts: list[str] = []
+    labels: list[int] = []
+    fingerprint = sha256()
+    for row in rows:
+        if row["premise"] and row["hypothesis"]:
+            text = FACTCG_TEMPLATE.format(
+                premise=row["premise"], hypothesis=row["hypothesis"]
+            )
+            label = row["label"]
+            texts.append(text)
+            labels.append(label)
+            fingerprint.update(json.dumps([text, label]).encode("utf-8"))
+
+    table = import_module("pyarrow").Table.from_pydict(
+        {"text": texts, "labels": labels}
+    )
+    ds = Dataset(table, fingerprint=fingerprint.hexdigest())
+
+    def _tokenize(batch: Mapping[str, Sequence[str]]) -> Mapping[str, object]:
+        """Encode the text column of one batch."""
         return tokenizer(
             batch["text"],
             truncation=True,
@@ -229,16 +428,48 @@ def tokenize_dataset(rows, tokenizer, max_length=512):
     return ds
 
 
-def compute_metrics(eval_pred):
+def compute_metrics(eval_pred: Iterable[NDArray[np.generic]]) -> dict[str, float]:
+    """Score model predictions with balanced accuracy and binary F1.
+
+    Parameters
+    ----------
+    eval_pred : Iterable of numpy.ndarray
+        Batch logits followed by their reference labels.
+
+    Returns
+    -------
+    dict of str to float
+        Balanced accuracy and positive-class F1.
+    """
     logits, labels = eval_pred
     preds = np.argmax(logits, axis=-1)
     return {
-        "balanced_accuracy": balanced_accuracy_score(labels, preds),
-        "f1": f1_score(labels, preds, average="binary", zero_division=0),
+        "balanced_accuracy": _metrics.balanced_accuracy_score(labels, preds),
+        "f1": _metrics.f1_score(labels, preds, average="binary", zero_division=0),
     }
 
 
-def train_model(name, train_path, eval_path, output_dir):
+def train_model(
+    name: str, train_path: str | Path, eval_path: str | Path, output_dir: Path
+) -> _TrainingResult | None:
+    """Fine-tune the standalone classifier and persist checkpoint metrics.
+
+    Parameters
+    ----------
+    name : str
+        Dataset name included in logs and result metadata.
+    train_path : str or Path
+        Prepared training examples.
+    eval_path : str or Path
+        Prepared evaluation examples.
+    output_dir : Path
+        Destination for the model, tokenizer and training result.
+
+    Returns
+    -------
+    _TrainingResult or None
+        Evaluation metrics and sample counts, or None for empty training data.
+    """
     logger.info("=== Training: %s ===", name)
     train_rows = load_jsonl(train_path)
     eval_rows = load_jsonl(eval_path)
@@ -262,7 +493,7 @@ def train_model(name, train_path, eval_path, output_dir):
         per_device_train_batch_size=24,
         per_device_eval_batch_size=48,
         learning_rate=2e-5,
-        warmup_ratio=0.1,
+        warmup_steps=0.1,
         weight_decay=0.01,
         fp16=True,
         seed=42,
@@ -294,12 +525,12 @@ def train_model(name, train_path, eval_path, output_dir):
     trainer.save_model(str(output_dir))
     tokenizer.save_pretrained(str(output_dir))
 
-    eval_metrics = trainer.evaluate()
+    eval_metrics: dict[str, float] = trainer.evaluate()
     bal_acc = eval_metrics.get("eval_balanced_accuracy", 0.0)
     logger.info("Best balanced accuracy: %.1f%%", bal_acc * 100)
     logger.info("Training time: %.1f minutes", elapsed / 60)
 
-    result = {
+    result: _TrainingResult = {
         "name": name,
         "train_samples": len(train_rows),
         "eval_samples": len(eval_rows),
@@ -409,6 +640,9 @@ if __name__ == "__main__":
     print(f"  Total time: {total_time:.1f} minutes")
     print(f"  GPU: {gpu_name}")
     print("=" * 60)
+
+    if not results:
+        raise SystemExit("No models were trained successfully.")
 
     summary = {
         "results": results,

@@ -27,17 +27,22 @@ from director_ai.ui import safety_dashboard
 
 
 class TestModulePlacement:
+    """Cover the analytics implementation location and facade exports."""
+
     def test_parser_is_defined_in_the_analytics_module(self) -> None:
+        """Keep the parser implementation in the analytics module."""
         parser = dashboard_analytics_module.parse_dashboard_records
         assert parser.__module__ == dashboard_analytics_module.__name__
 
     def test_facade_re_exports_the_same_parser_object(self) -> None:
+        """Expose the same parser object through the dashboard facade."""
         assert (
             safety_dashboard.parse_dashboard_records
             is dashboard_analytics_module.parse_dashboard_records
         )
 
     def test_module_all_names_the_facade_contract(self) -> None:
+        """Match the analytics export set and check each implementation origin."""
         assert set(dashboard_analytics_module.__all__) == {
             "_drift_alert_rows",
             "_evidence_rows",
@@ -57,7 +62,10 @@ class TestModulePlacement:
 
 
 class TestParserContracts:
+    """Cover line-scoped input failures and report threshold validation."""
+
     def test_parser_collects_records_and_line_scoped_warnings(self) -> None:
+        """Retain the valid entry and identify the lines with malformed or non-object inputs."""
         events = "\n".join(
             [
                 json.dumps({"tenant_id": "acme", "policy_decision": "halt"}),
@@ -71,10 +79,12 @@ class TestParserContracts:
         assert any(error.startswith("events:3:") for error in errors)
 
     def test_rate_validator_rejects_out_of_range_thresholds(self) -> None:
+        """Refuse a halt alert threshold above the unit interval."""
         with pytest.raises(ValueError, match="halt_alert_threshold"):
             safety_dashboard.build_safety_dashboard("", halt_alert_threshold=1.5)
 
     def test_min_window_validator_rejects_non_positive_counts(self) -> None:
+        """Refuse an operations report with zero observations in its minimum drift window."""
         with pytest.raises(ValueError, match="min_drift_window_events"):
             safety_dashboard.build_observability_operations_report(
                 "", min_drift_window_events=0

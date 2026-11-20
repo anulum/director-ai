@@ -6,8 +6,10 @@
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-AI — live temporal-refresh tests
 
-"""Parser, provider, verdict-engine, polyglot-parity and guard-wiring coverage
-for the live web-search temporal-claim refresher. No network is touched."""
+"""Exercise temporal claim refresh using local search and inference fixtures.
+
+Cover search parsing, verdict selection and the guard entry point.
+"""
 
 from __future__ import annotations
 
@@ -109,6 +111,7 @@ def _position_claim(
 
 
 def test_lexical_overlap_values() -> None:
+    """Match Jaccard overlap and return zero for an empty input."""
     # _lexical_overlap delegates to the shared text_overlap helper; dispatch and
     # Python/Rust parity are covered by test_text_overlap.
     assert tr._lexical_overlap("a b c", "b c d") == pytest.approx(0.5)
@@ -116,17 +119,20 @@ def test_lexical_overlap_values() -> None:
 
 
 def test_content_and_numeric_tokens() -> None:
+    """Separate substantive words from numeric evidence tokens."""
     assert tr._content_tokens("The CEO of Twitter!") == {"ceo", "twitter"}
     assert tr._numeric_tokens("population is 67 million in 2026") == {"67", "2026"}
 
 
 def test_coverage_containment_and_empty() -> None:
+    """Score complete, missing and empty evidence coverage."""
     assert tr._coverage(set(), "anything") == 0.0
     assert tr._coverage({"sam", "altman"}, "Sam Altman is CEO") == pytest.approx(1.0)
     assert tr._coverage({"jack", "dorsey"}, "Linda Yaccarino is CEO") == 0.0
 
 
 def test_strip_markup() -> None:
+    """Remove HTML tags and decode entities before matching text."""
     assert tr._strip_markup("a <b>bold</b>  &amp; clean") == "a bold & clean"
 
 
@@ -136,6 +142,7 @@ def test_strip_markup() -> None:
 
 
 def test_resolve_ddg_redirect_href() -> None:
+    """Unwrap a DuckDuckGo redirect to the decoded destination."""
     href = (
         "//duckduckgo.com/l/?uddg=https%3A%2F%2Fen.wikipedia.org%2Fwiki%2FX&amp;rut=z"
     )
@@ -143,11 +150,13 @@ def test_resolve_ddg_redirect_href() -> None:
 
 
 def test_resolve_bare_and_plain_hrefs() -> None:
+    """Normalise protocol-relative links and preserve absolute links."""
     assert tr._resolve_ddg_href("//example.com/page") == "https://example.com/page"
     assert tr._resolve_ddg_href("https://example.com/x") == "https://example.com/x"
 
 
 def test_resolve_ddg_redirect_without_uddg_param() -> None:
+    """Keep the redirect URL when it has no destination parameter."""
     assert (
         tr._resolve_ddg_href("//duckduckgo.com/l/?rut=z")
         == "https://duckduckgo.com/l/?rut=z"
@@ -155,6 +164,7 @@ def test_resolve_ddg_redirect_without_uddg_param() -> None:
 
 
 def test_lookalike_host_is_not_treated_as_duckduckgo() -> None:
+    """Keep lookalike domains outside the redirect parser."""
     # A host that merely contains 'duckduckgo.com' as a substring must not be
     # unwrapped as a DuckDuckGo redirect (incomplete-url-substring-sanitization).
     href = "//duckduckgo.com.evil.test/l/?uddg=https%3A%2F%2Fattacker.test%2Fx"
@@ -166,11 +176,13 @@ def test_lookalike_host_is_not_treated_as_duckduckgo() -> None:
 
 
 def test_genuine_ddg_subdomain_still_resolves() -> None:
+    """Unwrap links from an actual DuckDuckGo subdomain."""
     href = "//html.duckduckgo.com/l/?uddg=https%3A%2F%2Fen.wikipedia.org%2Fwiki%2FY"
     assert tr._resolve_ddg_href(href) == "https://en.wikipedia.org/wiki/Y"
 
 
 def test_ddg_hits_parsing_and_cap() -> None:
+    """Parse ranked search results and enforce the requested limit."""
     hits = tr._ddg_hits(_DDG_HTML, max_results=5)
     assert len(hits) == 2
     assert hits[0].title == "Sam Altman - Wikipedia"
@@ -181,6 +193,7 @@ def test_ddg_hits_parsing_and_cap() -> None:
 
 
 def test_ddg_hits_fewer_snippets_than_titles() -> None:
+    """Retain a titled result when no matching snippet exists."""
     html = b'<a class="result__a" href="//x">Title only</a>'
     hits = tr._ddg_hits(html, max_results=3)
     assert hits[0].title == "Title only" and hits[0].snippet == ""
@@ -192,6 +205,7 @@ def test_ddg_hits_fewer_snippets_than_titles() -> None:
 
 
 def test_provider_parses_results_and_builds_query_url() -> None:
+    """Build the search URL and parse the returned evidence."""
     getter = _StubGetter()
     provider = DuckDuckGoSearchProvider(http=getter)
     hits = provider.search("CEO of OpenAI", max_results=2)
@@ -200,6 +214,7 @@ def test_provider_parses_results_and_builds_query_url() -> None:
 
 
 def test_provider_non_200_and_empty_body_and_error_return_empty() -> None:
+    """Return no evidence for status, body and transport failures."""
     assert (
         DuckDuckGoSearchProvider(http=_StubGetter(status=503)).search(
             "q", max_results=3
@@ -232,11 +247,13 @@ def test_provider_non_200_and_empty_body_and_error_return_empty() -> None:
     ],
 )
 def test_refresher_rejects_bad_config(kwargs: _RefresherOptions) -> None:
+    """Refuse invalid limits, settings and probability thresholds."""
     with pytest.raises(ValueError):
         TemporalRefresher(**kwargs)
 
 
 def test_claim_context_widens_with_source_text() -> None:
+    """Use surrounding source text to recover the asserted claim."""
     claim = _position_claim()
     assert TemporalRefresher._claim_context(claim, "") == "The CEO of Twitter is"
     assert (
@@ -250,6 +267,7 @@ def test_claim_context_widens_with_source_text() -> None:
 
 
 def test_subject_and_value_position_and_statistic() -> None:
+    """Extract subjects and values for position and statistic claims."""
     refresher = TemporalRefresher(provider=_StubProvider([]))
     q_pos, v_pos = refresher._subject_and_value(
         _position_claim(), "The CEO of Twitter is Jack Dorsey."
@@ -267,6 +285,7 @@ def test_subject_and_value_position_and_statistic() -> None:
 
 
 def test_subject_query_falls_back_when_all_noise() -> None:
+    """Keep a fallback query when subject terms are all filtered."""
     # A claim whose content is entirely stop words still yields a non-empty query.
     refresher = TemporalRefresher(provider=_StubProvider([]))
     noise = FreshnessClaim(
@@ -292,6 +311,7 @@ def _hits_altman() -> list[SearchHit]:
 
 
 def test_verdict_no_hits_is_no_fresh_evidence() -> None:
+    """Report a lack of fresh evidence when search yields no hits."""
     refresher = TemporalRefresher(provider=_StubProvider([]))
     report = refresher.refresh(FreshnessResult(claims=[_position_claim()]))
     assert report.refreshes[0].verdict == "no_fresh_evidence"
@@ -299,6 +319,7 @@ def test_verdict_no_hits_is_no_fresh_evidence() -> None:
 
 
 def test_verdict_nli_contradicted_and_supported() -> None:
+    """Classify evidence from the NLI contradiction probability."""
     src = "The CEO of Twitter is Jack Dorsey."
     fr = FreshnessResult(claims=[_position_claim()])
 
@@ -315,6 +336,7 @@ def test_verdict_nli_contradicted_and_supported() -> None:
 
 
 def test_verdict_lexical_drift_and_supported() -> None:
+    """Distinguish lexical drift from a covered stated value."""
     fr = FreshnessResult(claims=[_position_claim()])
     drift = TemporalRefresher(provider=_StubProvider(_hits_yaccarino()))
     r_drift = drift.refresh(
@@ -331,6 +353,7 @@ def test_verdict_lexical_drift_and_supported() -> None:
 
 
 def test_verdict_review_when_no_value_and_no_nli() -> None:
+    """Require review when evidence lacks a usable asserted value."""
     # No source_text -> no asserted value extractable for a position claim.
     refresher = TemporalRefresher(provider=_StubProvider(_hits_altman()))
     r = refresher.refresh(FreshnessResult(claims=[_position_claim()])).refreshes[0]
@@ -344,6 +367,7 @@ def test_verdict_review_when_no_value_and_no_nli() -> None:
 
 
 def test_refresh_skips_claims_below_staleness_threshold() -> None:
+    """Ignore claims whose staleness does not warrant a lookup."""
     fresh = FreshnessClaim(
         text="x is", claim_type="position", staleness_risk=0.1, reason="r"
     )
@@ -353,6 +377,7 @@ def test_refresh_skips_claims_below_staleness_threshold() -> None:
 
 
 def test_refresh_response_scores_then_refreshes() -> None:
+    """Score response freshness before refreshing its claims."""
     refresher = TemporalRefresher(provider=_StubProvider(_hits_yaccarino()))
     report = refresher.refresh_response("The CEO of Twitter is Jack Dorsey.")
     assert report.checked >= 1
@@ -360,12 +385,14 @@ def test_refresh_response_scores_then_refreshes() -> None:
 
 
 def test_refresh_claims_bypasses_scoring() -> None:
+    """Refresh pre-scored claims without invoking the scorer."""
     refresher = TemporalRefresher(provider=_StubProvider(_hits_altman()))
     report = refresher.refresh_claims([_position_claim()])
     assert isinstance(report, RefreshReport) and report.checked == 1
 
 
 def test_report_buckets() -> None:
+    """Group refreshes by supported, contradicted and drift verdicts."""
     report = RefreshReport(
         refreshes=[
             ClaimRefresh(_position_claim(), "q", "supported", "nli", 1.0, 0.2, 0.0, ()),
@@ -390,6 +417,7 @@ def test_report_buckets() -> None:
 def test_guard_temporal_refresher_persists_and_refreshes(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """Reuse the guard's refresher and return a report from its provider."""
     guard = ProductionGuard()
     # Swap the lazily-built refresher's provider for a stub (no network).
     refresher = guard.temporal_refresher

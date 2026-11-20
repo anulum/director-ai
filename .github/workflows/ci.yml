@@ -63,13 +63,16 @@ jobs:
   lean:
     uses: ./.github/workflows/ci-lean.yml
 
+  quality:
+    uses: ./.github/workflows/ci-quality.yml
+
   notify:
-    needs: [static, python, extras, security, fuzz, benchmark, rust, lean]
+    needs: [static, python, extras, security, fuzz, benchmark, rust, lean, quality]
     if: always() && github.ref == 'refs/heads/main'
     uses: ./.github/workflows/ci-notify.yml
     with:
       results: >-
-        {"lint": "${{ needs.static.outputs.lint }}", "typecheck": "${{ needs.static.outputs.typecheck }}", "test": "${{ needs.python.result }}", "test-extras": "${{ needs.extras.result }}", "security": "${{ needs.security.outputs.security }}", "fuzz": "${{ needs.fuzz.result }}", "sast": "${{ needs.security.outputs.sast }}", "benchmark": "${{ needs.benchmark.result }}", "rust": "${{ needs.rust.result }}", "lean": "${{ needs.lean.result }}"}
+        {"lint": "${{ needs.static.outputs.lint }}", "typecheck": "${{ needs.static.outputs.typecheck }}", "test": "${{ needs.python.result }}", "test-extras": "${{ needs.extras.result }}", "security": "${{ needs.security.outputs.security }}", "fuzz": "${{ needs.fuzz.result }}", "sast": "${{ needs.security.outputs.sast }}", "benchmark": "${{ needs.benchmark.result }}", "rust": "${{ needs.rust.result }}", "lean": "${{ needs.lean.result }}", "quality": "${{ needs.quality.result }}"}
     secrets:
       DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
 
@@ -78,7 +81,7 @@ jobs:
     name: ${{ matrix.check }}
     runs-on: ubuntu-latest
     if: always()
-    needs: [static, lite, packages, python, floor, extras, security, sbom, fuzz, benchmark, runtime, rust, lean, notify]
+    needs: [static, lite, packages, python, floor, extras, security, sbom, fuzz, benchmark, runtime, rust, lean, quality, notify]
     strategy:
       fail-fast: false
       matrix:

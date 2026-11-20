@@ -36,6 +36,7 @@ class TestDirectorConfig:
     """Tests for DirectorConfig dataclass."""
 
     def test_default_values(self) -> None:
+        """Pin the default thresholds, runtime provider and server settings."""
         cfg = DirectorConfig()
         assert cfg.coherence_threshold == 0.6
         assert cfg.hard_limit == 0.5
@@ -48,12 +49,14 @@ class TestDirectorConfig:
         assert cfg.profile == "default"
 
     def test_custom_values(self) -> None:
+        """Retain explicit threshold and port values alongside unchanged defaults."""
         cfg = DirectorConfig(coherence_threshold=0.8, use_nli=True, server_port=9090)
         assert cfg.coherence_threshold == 0.8
         assert cfg.use_nli is True
         assert cfg.server_port == 9090
 
     def test_to_dict(self) -> None:
+        """Export the default profile and threshold as a mapping."""
         cfg = DirectorConfig()
         d = cfg.to_dict()
         assert isinstance(d, dict)
@@ -61,21 +64,25 @@ class TestDirectorConfig:
         assert d["profile"] == "default"
 
     def test_server_host_defaults_to_loopback(self) -> None:
+        """Bind the server to loopback when no address is configured."""
         # Secure default: a direct embedder that binds this value is not exposed
         # on all interfaces unless it opts in.
         assert DirectorConfig().server_host == "127.0.0.1"
 
     def test_to_dict_redacts_api_key(self) -> None:
+        """Mask the configured provider API key in exported settings."""
         cfg = DirectorConfig(llm_api_key="sk-secret-123")
         d = cfg.to_dict()
         assert d["llm_api_key"] == "***"
 
     def test_to_dict_empty_key_not_redacted(self) -> None:
+        """Preserve an empty provider key in exported settings."""
         cfg = DirectorConfig(llm_api_key="")
         d = cfg.to_dict()
         assert d["llm_api_key"] == ""
 
     def test_to_dict_redacts_license_secrets(self) -> None:
+        """Mask the licence key and file path in exported settings."""
         cfg = DirectorConfig(
             license_key="LIC-SECRET-XYZ",
             license_file="/etc/director/license.key",
@@ -85,6 +92,7 @@ class TestDirectorConfig:
         assert d["license_file"] == "***"
 
     def test_to_dict_empty_license_fields_not_redacted(self) -> None:
+        """Preserve empty licence fields when no licence is configured."""
         cfg = DirectorConfig(license_key="", license_file="")
         d = cfg.to_dict()
         assert d["license_key"] == ""
@@ -92,7 +100,10 @@ class TestDirectorConfig:
 
 
 class TestApiKeysEnvParsing:
+    """Exercise accepted environment encodings and production provider validation."""
+
     def test_comma_separated(self) -> None:
+        """Parse a comma-separated key list through the exported helper."""
         from director_ai.core.config_env import (
             parse_api_keys_env as _parse_api_keys_env,
         )
@@ -101,6 +112,7 @@ class TestApiKeysEnvParsing:
         assert _parse_api_keys_env("sk-a,sk-b") == ["sk-a", "sk-b"]
 
     def test_json_array(self) -> None:
+        """Parse a JSON array of keys."""
         from director_ai.core.config_env import (
             parse_api_keys_env as _parse_api_keys_env,
         )
@@ -108,6 +120,7 @@ class TestApiKeysEnvParsing:
         assert _parse_api_keys_env('["sk-a","sk-b"]') == ["sk-a", "sk-b"]
 
     def test_json_array_does_not_embed_brackets(self) -> None:
+        """Remove JSON delimiters from a one-key array."""
         from director_ai.core.config_env import (
             parse_api_keys_env as _parse_api_keys_env,
         )
@@ -119,6 +132,7 @@ class TestApiKeysEnvParsing:
         assert "[" not in keys[0] and '"' not in keys[0]
 
     def test_whitespace_and_blanks_dropped(self) -> None:
+        """Strip surrounding whitespace and discard blank elements."""
         from director_ai.core.config_env import (
             parse_api_keys_env as _parse_api_keys_env,
         )
@@ -127,6 +141,7 @@ class TestApiKeysEnvParsing:
         assert _parse_api_keys_env('[" sk-a ", "", "sk-b"]') == ["sk-a", "sk-b"]
 
     def test_empty_returns_empty_list(self) -> None:
+        """Treat empty and whitespace-only settings as no keys."""
         from director_ai.core.config_env import (
             parse_api_keys_env as _parse_api_keys_env,
         )
@@ -135,6 +150,7 @@ class TestApiKeysEnvParsing:
         assert _parse_api_keys_env("   ") == []
 
     def test_malformed_json_falls_back_to_comma(self) -> None:
+        """Use comma parsing when the input is malformed JSON."""
         from director_ai.core.config_env import (
             parse_api_keys_env as _parse_api_keys_env,
         )
@@ -144,6 +160,7 @@ class TestApiKeysEnvParsing:
         assert _parse_api_keys_env("[sk-a,sk-b") == ["[sk-a", "sk-b"]
 
     def test_json_non_list_falls_back_to_comma(self) -> None:
+        """Keep a JSON object as a key string on the comma fallback."""
         from director_ai.core.config_env import (
             parse_api_keys_env as _parse_api_keys_env,
         )
@@ -152,6 +169,7 @@ class TestApiKeysEnvParsing:
         assert _parse_api_keys_env('{"k":"v"}') == ['{"k":"v"}']
 
     def test_production_mode_rejects_mock_llm_provider(self) -> None:
+        """Reject a mock provider when production mode is selected."""
         with pytest.raises(ValueError, match="production_mode requires a real LLM"):
             DirectorConfig(
                 **dict[str, Any](production_mode=True, api_keys={"tenant-api-key"})
@@ -162,6 +180,7 @@ class TestProfileLoading:
     """Tests for from_profile()."""
 
     def test_fast_profile(self) -> None:
+        """Disable NLI and metrics and request one candidate in the fast profile."""
         cfg = DirectorConfig.from_profile("fast")
         assert cfg.profile == "fast"
         assert cfg.use_nli is False
@@ -169,12 +188,14 @@ class TestProfileLoading:
         assert cfg.metrics_enabled is False
 
     def test_thorough_profile(self) -> None:
+        """Keep NLI and three candidates enabled in the thorough profile."""
         cfg = DirectorConfig.from_profile("thorough")
         assert cfg.profile == "thorough"
         assert cfg.use_nli is True
         assert cfg.max_candidates == 3
 
     def test_research_profile(self) -> None:
+        """Set stricter acceptance and request five candidates in the research profile."""
         cfg = DirectorConfig.from_profile("research")
         assert cfg.profile == "research"
         assert cfg.use_nli is True
@@ -184,6 +205,7 @@ class TestProfileLoading:
     def test_production_profile_requires_api_keys_from_env(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
+        """Refuse the production profile without a key or tenant map in its environment."""
         # No hard-coded key: without env-injected secrets, production fails closed.
         monkeypatch.delenv("DIRECTOR_API_KEYS", raising=False)
         monkeypatch.delenv("DIRECTOR_API_KEY_TENANT_MAP", raising=False)
@@ -195,6 +217,7 @@ class TestProfileLoading:
     def test_production_profile_loads_with_env_tenant_map(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
+        """Load the production tenant bindings from the supplied environment."""
         monkeypatch.delenv("DIRECTOR_API_KEYS", raising=False)
         monkeypatch.setenv(
             "DIRECTOR_API_KEY_TENANT_MAP", '{"real-prod-key":"tenant-default"}'
@@ -210,6 +233,7 @@ class TestProfileLoading:
     def test_production_profile_is_fail_closed_and_observable(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
+        """Require model-backed checks and observability in the production profile."""
         monkeypatch.setenv(
             "DIRECTOR_API_KEY_TENANT_MAP", '{"real-prod-key":"tenant-default"}'
         )
@@ -240,6 +264,7 @@ class TestProfileLoading:
         assert cfg.otel_enabled is True
 
     def test_unknown_profile_raises(self) -> None:
+        """Reject a profile name absent from the registry."""
         with pytest.raises(ValueError, match="Unknown profile"):
             DirectorConfig.from_profile("nonexistent")
 
@@ -248,6 +273,7 @@ class TestProfileLoading:
         ["medical", "finance", "legal", "summarization", "research"],
     )
     def test_high_stakes_profiles_use_hybrid(self, name: str) -> None:
+        """Enable hybrid scoring and a judge for high-stakes profiles."""
         cfg = DirectorConfig.from_profile(name)
         assert cfg.scorer_backend == "hybrid"
         assert cfg.llm_judge_enabled is True
@@ -274,6 +300,7 @@ class TestProfileLoading:
         wl: float,
         wf: float,
     ) -> None:
+        """Match each domain preset's thresholds, weights and retrieval options."""
         cfg = DirectorConfig.from_profile(name)
         assert cfg.profile == name
         assert cfg.coherence_threshold == pytest.approx(threshold)
@@ -285,6 +312,7 @@ class TestProfileLoading:
         assert cfg.w_fact == pytest.approx(wf)
 
     def test_profile_metadata_contains_operational_fields(self) -> None:
+        """Expose workload, validation and calibration metadata for operators."""
         meta = DirectorConfig.profile_metadata("medical")
 
         assert meta.name == "medical"
@@ -297,6 +325,7 @@ class TestProfileLoading:
         assert "director-ai tune" in meta.calibration_command
 
     def test_regulated_profile_metadata_matches_validation_artifacts(self) -> None:
+        """Match the reported regulated-profile false-positive rates to their artifacts."""
         root = Path(__file__).resolve().parents[1]
         medical = json.loads(
             (root / "benchmarks/results/medical_eval.json").read_text(encoding="utf-8")
@@ -318,6 +347,7 @@ class TestProfileLoading:
     def test_public_docs_do_not_claim_stock_regulated_profiles_are_measured(
         self,
     ) -> None:
+        """Keep documented calibration requirements and measured rates accurate."""
         root = Path(__file__).resolve().parents[1]
         docs = "\n".join(
             [
@@ -345,6 +375,7 @@ class TestProfileLoading:
         assert "100.0% FPR" in docs
 
     def test_profile_metadata_serializes_dependencies_as_list(self) -> None:
+        """Encode the profile's required dependencies as a JSON-compatible list."""
         data = DirectorConfig.profile_metadata("summarization").to_dict()
 
         assert data["name"] == "summarization"
@@ -360,6 +391,7 @@ class TestProfileLoading:
     def test_regulated_and_summarization_profiles_enable_verified_scorer(
         self, name: str
     ) -> None:
+        """Carry verified scoring settings from the profiles into the scorer."""
         cfg = DirectorConfig.from_profile(name)
         scorer = cfg.build_scorer()
 
@@ -370,6 +402,7 @@ class TestProfileLoading:
         assert scorer._verified_scorer_min_coverage == pytest.approx(0.5)
 
     def test_verified_scorer_config_validates_bounds(self) -> None:
+        """Refuse out-of-range verification margins, coverage or retrieval counts."""
         with pytest.raises(ValueError, match="verified_scorer_low_confidence_margin"):
             DirectorConfig(verified_scorer_low_confidence_margin=1.5)
         with pytest.raises(ValueError, match="verified_scorer_min_coverage"):
@@ -378,6 +411,7 @@ class TestProfileLoading:
             DirectorConfig(verified_scorer_evidence_top_k=0)
 
     def test_span_detector_config_validates_bounds(self) -> None:
+        """Enforce bounds on span probability and span sizes."""
         with pytest.raises(ValueError, match="span_token_threshold"):
             DirectorConfig(span_token_threshold=1.5)
         with pytest.raises(ValueError, match="span_min_tokens"):
@@ -386,6 +420,7 @@ class TestProfileLoading:
             DirectorConfig(span_max_length=0)
 
     def test_list_profile_metadata_matches_builtin_profiles(self) -> None:
+        """Include each built-in preset in the public metadata listing."""
         names = {meta.name for meta in DirectorConfig.list_profile_metadata()}
 
         for name in (
@@ -406,45 +441,56 @@ class TestProfileLoading:
             assert name in names
 
     def test_unknown_profile_metadata_raises(self) -> None:
+        """Reject metadata lookups for unknown profile names."""
         with pytest.raises(ValueError, match="Unknown profile"):
             DirectorConfig.profile_metadata("nonexistent")
 
 
 class TestSummarizationAggregation:
+    """Pin the aggregation and evidence settings used for summarisation."""
+
     def test_summarization_profile_uses_min_inner_trimmed_mean_outer(self) -> None:
+        """Apply minimum inner and trimmed-mean outer factual aggregation."""
         cfg = DirectorConfig.from_profile("summarization")
         assert cfg.nli_fact_inner_agg == "min"
         assert cfg.nli_fact_outer_agg == "trimmed_mean"
 
     def test_summarization_profile_logic_agg(self) -> None:
+        """Apply minimum inner and mean outer logical aggregation."""
         cfg = DirectorConfig.from_profile("summarization")
         assert cfg.nli_logic_inner_agg == "min"
         assert cfg.nli_logic_outer_agg == "mean"
 
     def test_summarization_profile_premise_ratio(self) -> None:
+        """Retain the larger premise ratio used for summarisation."""
         cfg = DirectorConfig.from_profile("summarization")
         assert cfg.nli_premise_ratio == 0.85
 
     def test_summarization_profile_thresholds(self) -> None:
+        """Keep the three summarisation thresholds at their preset values."""
         cfg = DirectorConfig.from_profile("summarization")
         assert cfg.coherence_threshold == 0.15
         assert cfg.hard_limit == 0.08
         assert cfg.soft_limit == 0.25
 
     def test_summarization_profile_w_logic_zero(self) -> None:
+        """Weight summarisation decisions entirely by factual coherence."""
         cfg = DirectorConfig.from_profile("summarization")
         assert cfg.w_logic == 0.0
         assert cfg.w_fact == 1.0
 
     def test_summarization_profile_retrieval_top_k(self) -> None:
+        """Consider eight retrieved candidates during summary verification."""
         cfg = DirectorConfig.from_profile("summarization")
         assert cfg.nli_fact_retrieval_top_k == 8
 
     def test_summarization_profile_prompt_as_premise(self) -> None:
+        """Use the supplied source prompt as the premise for summarisation."""
         cfg = DirectorConfig.from_profile("summarization")
         assert cfg.nli_use_prompt_as_premise is True
 
     def test_default_profile_uses_max_max(self) -> None:
+        """Retain max aggregation and the standard retrieval settings by default."""
         cfg = DirectorConfig()
         assert cfg.nli_fact_inner_agg == "max"
         assert cfg.nli_fact_outer_agg == "max"
@@ -458,6 +504,7 @@ class TestEnvLoading:
     """Tests for from_env()."""
 
     def test_env_override(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Read configured override values from the environment."""
         monkeypatch.setenv("DIRECTOR_COHERENCE_THRESHOLD", "0.8")
         monkeypatch.setenv("DIRECTOR_USE_NLI", "true")
         monkeypatch.setenv("DIRECTOR_SERVER_PORT", "9999")
@@ -469,16 +516,19 @@ class TestEnvLoading:
         assert cfg.finetune_models_dir == "/srv/director-models"
 
     def test_env_ignores_unknown(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Ignore unregistered environment settings."""
         monkeypatch.setenv("DIRECTOR_TOTALLY_UNKNOWN", "value")
         cfg = DirectorConfig.from_env()
         assert cfg.coherence_threshold == 0.6  # default unchanged
 
     def test_custom_prefix(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Read settings from the caller-selected environment prefix."""
         monkeypatch.setenv("DAI_COHERENCE_THRESHOLD", "0.9")
         cfg = DirectorConfig.from_env(prefix="DAI_")
         assert cfg.coherence_threshold == 0.9
 
     def test_feedback_db_path_from_env(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Read the configured feedback database location from the environment."""
         monkeypatch.setenv("DIRECTOR_FEEDBACK_DB_PATH", "/tmp/director-feedback.db")
         cfg = DirectorConfig.from_env()
         assert cfg.feedback_db_path == "/tmp/director-feedback.db"
@@ -488,6 +538,7 @@ class TestYamlLoading:
     """Tests for from_yaml()."""
 
     def test_load_json_file(self) -> None:
+        """Build configuration from a local JSON object."""
         data = {"coherence_threshold": 0.75, "use_nli": True, "profile": "custom"}
         with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
             json.dump(data, f)
@@ -502,6 +553,7 @@ class TestYamlLoading:
             os.unlink(path)
 
     def test_load_ignores_unknown_keys(self) -> None:
+        """Ignore JSON keys that are outside the configuration schema."""
         data = {"coherence_threshold": 0.5, "not_a_real_field": "ignored"}
         with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
             json.dump(data, f)
@@ -514,6 +566,7 @@ class TestYamlLoading:
             os.unlink(path)
 
     def test_load_non_dict_returns_default(self) -> None:
+        """Use the default configuration when the JSON root is not an object."""
         with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
             f.write('"just a string"')
             path = f.name
@@ -525,6 +578,7 @@ class TestYamlLoading:
             os.unlink(path)
 
     def test_load_file_not_found(self) -> None:
+        """Report a missing configuration file to the caller."""
         with pytest.raises(FileNotFoundError):
             DirectorConfig.from_yaml("/nonexistent/path.json")
 
@@ -533,6 +587,7 @@ class TestBuildStore:
     """Tests for DirectorConfig.build_store()."""
 
     def test_build_store_returns_vector_store(self) -> None:
+        """Build a vector-backed store when a vector backend is configured."""
         from director_ai.core.retrieval.vector_store import VectorGroundTruthStore
 
         cfg = DirectorConfig()
@@ -544,6 +599,7 @@ class TestBuildStore:
         )
 
     def test_build_store_memory_backend_default(self) -> None:
+        """Use the default in-memory knowledge backend."""
         from director_ai.core.retrieval.vector_store import InMemoryBackend
 
         cfg = DirectorConfig(
@@ -554,11 +610,13 @@ class TestBuildStore:
         assert isinstance(store.backend, InMemoryBackend)
 
     def test_build_scorer_receives_store(self) -> None:
+        """Attach the configured knowledge store to the constructed scorer."""
         cfg = DirectorConfig()
         scorer = cfg.build_scorer()
         assert scorer.ground_truth_store is not None
 
     def test_build_scorer_custom_store_override(self) -> None:
+        """Honour an explicit knowledge-store override."""
         from director_ai.core.retrieval.vector_store import VectorGroundTruthStore
 
         cfg = DirectorConfig()
@@ -608,6 +666,7 @@ class TestBuildStore:
     def test_grounded_recipe_wraps_hybrid_before_reranker(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
+        """Place hybrid fusion beneath the outer reranking backend."""
         from unittest.mock import MagicMock
 
         mock_module = MagicMock()
@@ -640,6 +699,7 @@ class TestBuildStore:
         assert store.backend._base._rrf_k == 47
 
     def test_build_store_passes_fusion_method_and_weights(self) -> None:
+        """Pass the configured fusion method and weights to hybrid retrieval."""
         from director_ai.core.retrieval.vector_store import HybridBackend
 
         cfg = DirectorConfig(
@@ -661,6 +721,7 @@ class TestBuildStore:
         assert store.backend._dense_w == 0.7
 
     def test_retrieval_recipe_metadata_exposes_grounded_contract(self) -> None:
+        """Expose the grounded recipe contract in retrieval metadata."""
         cfg = DirectorConfig(mode="grounded")
 
         recipe = cfg.retrieval_recipe()
@@ -677,6 +738,7 @@ class TestBuildStore:
         assert hybrid["dense_weight"] == 1.0
 
     def test_retrieval_recipe_surfaces_non_default_fusion_method(self) -> None:
+        """Include the selected non-default fusion method in retrieval metadata."""
         cfg = DirectorConfig(
             mode="grounded",
             hybrid_fusion_method="combmnz",
@@ -703,6 +765,7 @@ class TestBuildStore:
     def test_build_store_skips_unavailable_reranker_outside_production(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
+        """Keep the store usable without an optional reranker outside production."""
         from unittest.mock import MagicMock
 
         mock_module = MagicMock()
@@ -721,6 +784,7 @@ class TestBuildStore:
     def test_build_store_fails_unavailable_reranker_in_production(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
+        """Refuse production startup when the configured reranker is unavailable."""
         from unittest.mock import MagicMock
 
         mock_module = MagicMock()
@@ -746,6 +810,7 @@ class TestBuildStore:
     def test_build_store_sentence_transformer_backend(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
+        """Select the sentence-transformer embedding backend."""
         from unittest.mock import MagicMock
 
         mock_st = MagicMock()
@@ -764,6 +829,7 @@ class TestBuildStore:
         assert isinstance(store.backend, SentenceTransformerBackend)
 
     def test_build_store_registry_fallback(self) -> None:
+        """Construct a store through the registered fallback backend."""
         from director_ai.core.retrieval.vector_store import InMemoryBackend
 
         cfg = DirectorConfig(
@@ -776,27 +842,33 @@ class TestBuildStore:
         assert isinstance(store.backend, InMemoryBackend)
 
     def test_hybrid_rrf_k_must_be_positive_integer(self) -> None:
+        """Refuse a non-positive RRF rank constant."""
         with pytest.raises(ValueError, match="hybrid_rrf_k"):
             DirectorConfig(hybrid_rrf_k=0)
 
     def test_hybrid_rrf_k_must_not_be_bool(self) -> None:
+        """Reject booleans as RRF rank constants."""
         with pytest.raises(ValueError, match="hybrid_rrf_k must be an integer"):
             DirectorConfig(hybrid_rrf_k=True)
 
     def test_llm_judge_rubric_must_be_boolean(self) -> None:
+        """Require the judge rubric toggle to be a boolean."""
         with pytest.raises(ValueError, match="llm_judge_rubric must be a boolean"):
             DirectorConfig(**dict[str, Any](llm_judge_rubric="yes"))
 
     def test_llm_judge_ensemble_must_be_integer(self) -> None:
+        """Reject fractional judge ensemble sizes."""
         with pytest.raises(ValueError, match="llm_judge_ensemble must be an integer"):
             DirectorConfig(llm_judge_ensemble=True)
 
     @pytest.mark.parametrize("value", [0, 6])
     def test_llm_judge_ensemble_range(self, value: int) -> None:
+        """Refuse ensemble sizes outside the supported range."""
         with pytest.raises(ValueError, match="between 1 and 5"):
             DirectorConfig(llm_judge_ensemble=value)
 
     def test_build_scorer_passes_rubric_and_ensemble(self) -> None:
+        """Forward the judge rubric toggle and ensemble size to the scorer."""
         cfg = DirectorConfig(
             llm_judge_rubric=True,
             llm_judge_ensemble=3,
@@ -808,6 +880,7 @@ class TestBuildStore:
         assert scorer._judge._ensemble_n == 3
 
     def test_claim_decomposition_provider_rejects_unknown(self) -> None:
+        """Reject unregistered claim-decomposition providers."""
         with pytest.raises(
             ValueError, match="claim_decomposition_provider must be one of"
         ):
@@ -817,16 +890,19 @@ class TestBuildStore:
             )
 
     def test_claim_decomposition_provider_requires_model(self) -> None:
+        """Require a model for the configured claim-decomposition provider."""
         with pytest.raises(ValueError, match="claim_decomposition_model must be set"):
             DirectorConfig(claim_decomposition_provider="openai")
 
     def test_claim_decomposition_defaults_stay_off(self) -> None:
+        """Keep claim decomposition disabled by default."""
         cfg = DirectorConfig()
 
         assert cfg.claim_decomposition_provider == ""
         assert cfg.claim_decomposition_model == ""
 
     def test_build_scorer_passes_claim_decomposition(self) -> None:
+        """Pass the configured claim-decomposition options to the scorer."""
         cfg = DirectorConfig(
             use_nli=False,
             scorer_backend="lite",
@@ -844,11 +920,13 @@ class TestBuildStore:
         assert decomposer.model == "gpt-4o-mini"
 
     def test_hybrid_fusion_method_is_canonicalised(self) -> None:
+        """Canonicalise the recognised hybrid fusion method."""
         cfg = DirectorConfig(hybrid_fusion_method="  ZScore ")
 
         assert cfg.hybrid_fusion_method == "zscore"
 
     def test_hybrid_fusion_method_rejects_unknown(self) -> None:
+        """Reject unregistered hybrid fusion methods."""
         with pytest.raises(ValueError, match="fusion_method must be one of"):
             DirectorConfig(hybrid_fusion_method="borda")
 
@@ -857,6 +935,7 @@ class TestBuildStore:
         ["hybrid_sparse_weight", "hybrid_dense_weight"],
     )
     def test_hybrid_fusion_weight_must_be_non_negative(self, field: str) -> None:
+        """Reject a negative weight on either side of hybrid fusion."""
         with pytest.raises(ValueError, match=f"{field} must be non-negative"):
             DirectorConfig(**dict[str, Any]({field: -0.5}))
 
@@ -865,10 +944,12 @@ class TestBuildStore:
         ["hybrid_sparse_weight", "hybrid_dense_weight"],
     )
     def test_hybrid_fusion_weight_must_be_numeric(self, field: str) -> None:
+        """Reject nonnumeric hybrid fusion weights."""
         with pytest.raises(ValueError, match=f"{field} must be numeric"):
             DirectorConfig(**dict[str, Any]({field: True}))
 
     def test_hybrid_fusion_weights_must_not_both_be_zero(self) -> None:
+        """Require a positive contribution from at least one hybrid retrieval source."""
         with pytest.raises(ValueError, match="at least one hybrid fusion weight"):
             DirectorConfig(hybrid_sparse_weight=0.0, hybrid_dense_weight=0.0)
 
@@ -877,70 +958,87 @@ class TestValidationBoundaries:
     """Negative tests for __post_init__ validation constraints."""
 
     def test_coherence_threshold_below_zero(self) -> None:
+        """Reject an acceptance threshold below zero."""
         with pytest.raises(ValueError, match="coherence_threshold"):
             DirectorConfig(coherence_threshold=-0.1)
 
     def test_coherence_threshold_above_one(self) -> None:
+        """Reject an acceptance threshold above one."""
         with pytest.raises(ValueError, match="coherence_threshold"):
             DirectorConfig(coherence_threshold=1.1)
 
     def test_hard_limit_below_zero(self) -> None:
+        """Reject a negative streaming hard limit."""
         with pytest.raises(ValueError, match="hard_limit"):
             DirectorConfig(hard_limit=-0.01)
 
     def test_hard_limit_above_one(self) -> None:
+        """Reject a streaming hard limit above one."""
         with pytest.raises(ValueError, match="hard_limit"):
             DirectorConfig(hard_limit=1.5)
 
     def test_soft_limit_below_zero(self) -> None:
+        """Reject a negative streaming soft limit."""
         with pytest.raises(ValueError, match="soft_limit"):
             DirectorConfig(soft_limit=-0.1)
 
     def test_soft_limit_above_one(self) -> None:
+        """Reject a streaming soft limit above one."""
         with pytest.raises(ValueError, match="soft_limit"):
             DirectorConfig(soft_limit=2.0)
 
     def test_soft_limit_below_hard_limit(self) -> None:
+        """Reject a soft limit lower than the hard limit."""
         with pytest.raises(ValueError, match="soft_limit.*hard_limit"):
             DirectorConfig(hard_limit=0.7, soft_limit=0.3)
 
     def test_max_candidates_zero(self) -> None:
+        """Require at least one generation candidate."""
         with pytest.raises(ValueError, match="max_candidates"):
             DirectorConfig(max_candidates=0)
 
     def test_history_window_zero(self) -> None:
+        """Require room for at least one item in the history window."""
         with pytest.raises(ValueError, match="history_window"):
             DirectorConfig(history_window=0)
 
     def test_temperature_above_two(self) -> None:
+        """Reject sampling temperatures above two."""
         with pytest.raises(ValueError, match="llm_temperature"):
             DirectorConfig(llm_temperature=2.5)
 
     def test_temperature_below_zero(self) -> None:
+        """Reject negative sampling temperatures."""
         with pytest.raises(ValueError, match="llm_temperature"):
             DirectorConfig(llm_temperature=-0.1)
 
     def test_max_tokens_zero(self) -> None:
+        """Require a positive generation token limit."""
         with pytest.raises(ValueError, match="llm_max_tokens"):
             DirectorConfig(llm_max_tokens=0)
 
     def test_batch_concurrency_zero(self) -> None:
+        """Require at least one concurrent batch request slot."""
         with pytest.raises(ValueError, match="batch_max_concurrency"):
             DirectorConfig(batch_max_concurrency=0)
 
     def test_server_port_zero(self) -> None:
+        """Reject port zero in the server configuration."""
         with pytest.raises(ValueError, match="server_port"):
             DirectorConfig(server_port=0)
 
     def test_server_port_above_65535(self) -> None:
+        """Reject ports outside the maximum TCP port."""
         with pytest.raises(ValueError, match="server_port"):
             DirectorConfig(server_port=70000)
 
     def test_server_workers_zero(self) -> None:
+        """Require at least one server worker."""
         with pytest.raises(ValueError, match="server_workers"):
             DirectorConfig(server_workers=0)
 
     def test_valid_boundary_values_pass(self) -> None:
+        """Accept the supported lower configuration boundaries."""
         cfg = DirectorConfig(
             coherence_threshold=0.0,
             hard_limit=0.0,
@@ -952,6 +1050,7 @@ class TestValidationBoundaries:
         assert cfg.server_port == 1
 
     def test_valid_upper_boundary_values_pass(self) -> None:
+        """Accept the supported upper configuration boundaries."""
         cfg = DirectorConfig(
             coherence_threshold=1.0,
             hard_limit=1.0,
@@ -966,16 +1065,19 @@ class TestEnvCoercionErrors:
     """Error paths in from_env() type coercion."""
 
     def test_invalid_bool_raises(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Report invalid boolean environment values."""
         monkeypatch.setenv("DIRECTOR_USE_NLI", "maybe")
         with pytest.raises(ValueError, match="invalid bool"):
             DirectorConfig.from_env()
 
     def test_invalid_int_raises(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Report invalid integer environment values."""
         monkeypatch.setenv("DIRECTOR_SERVER_PORT", "not_a_number")
         with pytest.raises(ValueError, match="Invalid value"):
             DirectorConfig.from_env()
 
     def test_invalid_float_raises(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Report invalid floating-point environment values."""
         monkeypatch.setenv("DIRECTOR_COHERENCE_THRESHOLD", "xyz")
         with pytest.raises(ValueError, match="Invalid value"):
             DirectorConfig.from_env()
@@ -985,46 +1087,56 @@ class TestNewV25Fields:
     """Tests for v2.5.0 config fields: stats, source, gRPC."""
 
     def test_default_stats_backend(self) -> None:
+        """Use the built-in process-local statistics backend by default."""
         cfg = DirectorConfig()
         assert cfg.stats_backend == "prometheus"
         assert cfg.stats_db_path == "~/.director-ai/stats.db"
 
     def test_sqlite_stats_backend(self) -> None:
+        """Accept SQLite as a statistics backend."""
         cfg = DirectorConfig(stats_backend="sqlite")
         assert cfg.stats_backend == "sqlite"
 
     def test_invalid_stats_backend(self) -> None:
+        """Reject an unknown statistics backend."""
         with pytest.raises(ValueError, match="stats_backend"):
             DirectorConfig(stats_backend="redis")
 
     def test_default_source_fields(self) -> None:
+        """Expose the default source-disclosure configuration."""
         cfg = DirectorConfig()
         assert cfg.source_endpoint_enabled is True
         assert cfg.source_repository_url.startswith("https://github.com/")
 
     def test_grpc_defaults(self) -> None:
+        """Keep the gRPC settings at their declared defaults."""
         cfg = DirectorConfig()
         assert cfg.grpc_max_message_mb == 4
         assert cfg.grpc_deadline_seconds == 30.0
 
     def test_grpc_max_message_mb_below_one(self) -> None:
+        """Require a gRPC message size of at least one megabyte."""
         with pytest.raises(ValueError, match="grpc_max_message_mb"):
             DirectorConfig(grpc_max_message_mb=0)
 
     def test_grpc_deadline_zero(self) -> None:
+        """Refuse a zero gRPC deadline."""
         with pytest.raises(ValueError, match="grpc_deadline_seconds"):
             DirectorConfig(grpc_deadline_seconds=0)
 
     def test_grpc_deadline_negative(self) -> None:
+        """Refuse a negative gRPC deadline."""
         with pytest.raises(ValueError, match="grpc_deadline_seconds"):
             DirectorConfig(grpc_deadline_seconds=-1.0)
 
     def test_env_override_stats_backend(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Select the configured statistics backend from the environment."""
         monkeypatch.setenv("DIRECTOR_STATS_BACKEND", "sqlite")
         cfg = DirectorConfig.from_env()
         assert cfg.stats_backend == "sqlite"
 
     def test_env_override_grpc(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Read the gRPC settings from their environment fields."""
         monkeypatch.setenv("DIRECTOR_GRPC_MAX_MESSAGE_MB", "8")
         monkeypatch.setenv("DIRECTOR_GRPC_DEADLINE_SECONDS", "60.0")
         cfg = DirectorConfig.from_env()
@@ -1032,6 +1144,7 @@ class TestNewV25Fields:
         assert cfg.grpc_deadline_seconds == 60.0
 
     def test_to_dict_includes_new_fields(self) -> None:
+        """Include the statistics, disclosure and gRPC settings in the export."""
         cfg = DirectorConfig()
         d = cfg.to_dict()
         assert "stats_backend" in d
@@ -1040,15 +1153,18 @@ class TestNewV25Fields:
         assert "onnx_path" in d
 
     def test_onnx_path_default_empty(self) -> None:
+        """Leave the ONNX model path empty when unset."""
         cfg = DirectorConfig()
         assert cfg.onnx_path == ""
 
     def test_onnx_path_from_env(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Read the ONNX model path from the environment."""
         monkeypatch.setenv("DIRECTOR_ONNX_PATH", "/models/onnx")
         cfg = DirectorConfig.from_env()
         assert cfg.onnx_path == "/models/onnx"
 
     def test_build_scorer_passes_onnx_path(self) -> None:
+        """Forward the ONNX path to the constructed scorer."""
         cfg = DirectorConfig(
             scorer_backend="onnx",
             use_nli=True,
@@ -1063,15 +1179,18 @@ class TestWeightValidation:
     """Tests for w_logic + w_fact constraint."""
 
     def test_weights_must_sum_to_one(self) -> None:
+        """Require nonzero scoring weights to sum to one."""
         with pytest.raises(ValueError, match="w_logic.*w_fact.*1.0"):
             DirectorConfig(w_logic=0.3, w_fact=0.3)
 
     def test_zero_weights_skip_validation(self) -> None:
+        """Allow both weights to be zero through configuration validation."""
         cfg = DirectorConfig(w_logic=0.0, w_fact=0.0)
         assert cfg.w_logic == 0.0
         assert cfg.w_fact == 0.0
 
     def test_valid_weights_pass(self) -> None:
+        """Accept a normalised pair of scoring weights."""
         cfg = DirectorConfig(w_logic=0.7, w_fact=0.3)
         assert cfg.w_logic == pytest.approx(0.7)
         assert cfg.w_fact == pytest.approx(0.3)
@@ -1081,6 +1200,7 @@ class TestClaimSupportConfigWiring:
     """DirectorConfig claim-support settings must reach the scorer boundary."""
 
     def test_claim_support_settings_are_wired_into_scorer(self) -> None:
+        """Pass claim-support settings through to the scorer."""
         cfg = DirectorConfig(
             nli_claim_coverage_enabled=False,
             nli_claim_support_threshold=0.7,
@@ -1094,6 +1214,7 @@ class TestClaimSupportConfigWiring:
         assert scorer._claim_coverage_alpha == 0.25
 
     def test_summarization_premise_budget_defaults_to_whole_document(self) -> None:
+        """Use the whole summarisation premise by default."""
         # WCS-1 D2 (BENCHMARK_REPORT §16): 0 = whole document; the pre-WCS-1
         # 3000-char truncation stays available as an explicit rollback.
         assert DirectorConfig().nli_summarization_premise_chars == 0
@@ -1105,11 +1226,13 @@ class TestClaimSupportConfigWiring:
     def test_summarization_premise_budget_reads_from_env(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
+        """Read a custom summarisation premise budget from the environment."""
         monkeypatch.setenv("DIRECTOR_NLI_SUMMARIZATION_PREMISE_CHARS", "3000")
         cfg = DirectorConfig.from_env()
         assert cfg.nli_summarization_premise_chars == 3000
 
     def test_operating_point_defaults_and_scorer_wiring(self) -> None:
+        """Verify default operating points and propagate explicit scorer settings."""
         # WCS-2a (BENCHMARK_REPORT §16): dialogue defaults to the raw
         # weakest-link support gate; summarisation keeps the blend with
         # weakest_link available as an explicit choice.
@@ -1133,6 +1256,7 @@ class TestClaimSupportConfigWiring:
     def test_operating_point_fields_read_from_env(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
+        """Read operating-point controls from the environment."""
         monkeypatch.setenv("DIRECTOR_NLI_DIALOGUE_SCORING", "baseline_squeeze")
         monkeypatch.setenv("DIRECTOR_NLI_DIALOGUE_SUPPORT_THRESHOLD", "0.015")
         monkeypatch.setenv("DIRECTOR_NLI_SUMMARIZATION_AGGREGATION", "weakest_link")
@@ -1146,6 +1270,7 @@ class TestClaimSupportConfigWiring:
     def test_grpc_reflection_is_an_explicit_opt_in(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
+        """Leave gRPC reflection disabled until explicitly enabled."""
         # KIMI-D: reflection exposes the full service schema, default off.
         assert DirectorConfig().grpc_reflection_enabled is False
         monkeypatch.setenv("DIRECTOR_GRPC_REFLECTION_ENABLED", "true")
@@ -1153,6 +1278,7 @@ class TestClaimSupportConfigWiring:
 
     @pytest.mark.parametrize("profile", ["medical", "finance", "legal"])
     def test_regulated_profiles_redact_pii_by_default(self, profile: str) -> None:
+        """Enable PII redaction by default in regulated profiles."""
         # KIMI-C: regulated-domain profiles carry privacy_mode.
         assert DirectorConfig.from_profile(profile).privacy_mode is True
 
@@ -1180,6 +1306,7 @@ class TestClaimSupportConfigWiring:
     def test_operating_point_fields_are_validated(
         self, kwargs: dict[str, Any], match: str
     ) -> None:
+        """Reject operating-point values outside their policy bounds."""
         with pytest.raises(ValueError, match=match):
             DirectorConfig(**kwargs)
 
@@ -1291,16 +1418,19 @@ class TestConfigCoverageGaps:
         ],
     )
     def test_validation_edges(self, kwargs: dict[str, Any], match: str) -> None:
+        """Check the error message for each invalid configuration combination."""
         with pytest.raises(ValueError, match=match):
             DirectorConfig(**kwargs)
 
     def test_grounded_mode_sets_retrieval_abstention_default(self) -> None:
+        """Enable NLI and set the abstention default when selecting grounded mode."""
         cfg = DirectorConfig(mode="grounded", retrieval_abstention_threshold=0.0)
 
         assert cfg.use_nli is True
         assert cfg.retrieval_abstention_threshold == pytest.approx(0.3)
 
     def test_hardened_mode_enforces_fail_closed_settings(self) -> None:
+        """Apply the production, signature and fail-closed defaults in hardened mode."""
         cfg = DirectorConfig(
             **dict[str, Any](
                 hardened=True,
@@ -1321,6 +1451,7 @@ class TestConfigCoverageGaps:
         assert cfg.strict_mode is True
 
     def test_build_store_general_mode_returns_ground_truth_store(self) -> None:
+        """Use the ordinary ground-truth store in general mode."""
         from director_ai.core.retrieval.knowledge import GroundTruthStore
 
         store = DirectorConfig(mode="general").build_store()
@@ -1330,6 +1461,8 @@ class TestConfigCoverageGaps:
     def test_build_store_remanentia_skips_local_decorators(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
+        """Keep the remote Remanentia store free of local hybrid and reranker layers."""
+
         class FakeRemanentiaBackend:
             def __init__(self, **kwargs: Any) -> None:
                 self.kwargs = kwargs
@@ -1376,6 +1509,7 @@ class TestConfigCoverageGaps:
     def test_resolve_scorer_backend_auto_paths(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
+        """Resolve automatic backend selection according to NLI and ONNX availability."""
         import importlib.util
 
         cfg = DirectorConfig(scorer_backend="auto", onnx_path="/tmp/model.onnx")
@@ -1399,6 +1533,7 @@ class TestConfigCoverageGaps:
     def test_build_scorer_wires_optional_runtime_features(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
+        """Propagate optional model, scoring and runtime settings to the scorer."""
         import director_ai.core.scoring.scorer as scorer_module
 
         captured: dict[str, Any] = {}
@@ -1430,12 +1565,6 @@ class TestConfigCoverageGaps:
 
             def enable_adaptive_retrieval(self, **kwargs: Any) -> None:
                 captured["adaptive_retrieval"] = kwargs
-
-            def _get_meta_classifier(self) -> object | None:
-                return object()
-
-            def _has_model_backed_nli(self) -> bool:
-                return True
 
         monkeypatch.setattr(scorer_module, "CoherenceScorer", FakeScorer)
 
@@ -1474,6 +1603,7 @@ class TestConfigCoverageGaps:
     def test_build_scorer_passes_strict_mode(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
+        """Pass both enabled and disabled strict-mode settings to the scorer."""
         # Regression: hardened mode set a non-field ``strict_mode`` attribute
         # that build_scorer never forwarded, so the scorer's fail-closed
         # divergence path stayed disabled under hardened.
@@ -1489,9 +1619,6 @@ class TestConfigCoverageGaps:
                 self._adaptive_threshold_enabled = False
                 self._adaptive_threshold_fail_closed = False
 
-            def _has_model_backed_nli(self) -> bool:
-                return True
-
         monkeypatch.setattr(scorer_module, "CoherenceScorer", FakeScorer)
 
         DirectorConfig(strict_mode=True).build_scorer(store=GroundTruthStore())
@@ -1503,6 +1630,7 @@ class TestConfigCoverageGaps:
     def test_hardened_mode_strict_mode_reaches_scorer(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
+        """Carry hardened mode's strict-mode setting into the scorer."""
         import director_ai.core.scoring.scorer as scorer_module
 
         captured: dict[str, Any] = {}
@@ -1542,6 +1670,7 @@ class TestConfigCoverageGaps:
     def test_build_scorer_redis_cache_import_failure_is_nonfatal(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
+        """Construct the scorer when the optional Redis cache cannot be imported."""
         import director_ai.core.scoring.scorer as scorer_module
 
         class FakeScorer:
@@ -1551,9 +1680,6 @@ class TestConfigCoverageGaps:
                 self._judge = object()
                 self._adaptive_threshold_enabled = False
                 self._adaptive_threshold_fail_closed = False
-
-            def _has_model_backed_nli(self) -> bool:
-                return True
 
         monkeypatch.setattr(scorer_module, "CoherenceScorer", FakeScorer)
         monkeypatch.setitem(sys.modules, "director_ai.enterprise.redis", None)
@@ -1568,6 +1694,8 @@ class TestConfigCoverageGaps:
     def test_build_store_uses_enterprise_redis_when_available(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
+        """Initialise the enterprise Redis fact store with its URL and prefix."""
+
         class FakeRedisGroundTruthStore:
             def __init__(self, *, redis_url: str, prefix: str) -> None:
                 self.redis_url = redis_url
@@ -1599,6 +1727,7 @@ class TestConfigCoverageGaps:
     def test_build_scorer_uses_enterprise_redis_cache_when_available(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
+        """Initialise the enterprise Redis score cache with its prefix and lifetime."""
         import director_ai.core.scoring.scorer as scorer_module
 
         class FakeRedisScoreCache:
@@ -1616,9 +1745,6 @@ class TestConfigCoverageGaps:
                 self._judge = object()
                 self._adaptive_threshold_enabled = False
                 self._adaptive_threshold_fail_closed = False
-
-            def _has_model_backed_nli(self) -> bool:
-                return True
 
         redis_module = types.ModuleType("director_ai.enterprise.redis")
         vars(redis_module)["RedisGroundTruthStore"] = object
@@ -1646,6 +1772,7 @@ class TestConfigCoverageGaps:
         assert cache.ttl_seconds == 123
 
     def test_build_store_hyde_template_wraps_backend(self) -> None:
+        """Wrap the vector backend with the configured HyDE query template."""
         cfg = DirectorConfig(
             mode="grounded",
             hybrid_retrieval=False,
@@ -1664,6 +1791,7 @@ class TestConfigCoverageGaps:
         assert store.backend._template == "Write a hypothetical answer: {query}"
 
     def test_production_tenant_routing_requires_binding_map(self) -> None:
+        """Require an API key binding map when production tenant routing is enabled."""
         with pytest.raises(ValueError, match="api_key_tenant_map"):
             DirectorConfig(
                 **dict[str, Any](
@@ -1678,6 +1806,7 @@ class TestConfigCoverageGaps:
     def test_production_wildcard_host_warns(
         self, caplog: pytest.LogCaptureFixture
     ) -> None:
+        """Warn when production listens on all network interfaces."""
         with caplog.at_level(logging.WARNING, logger="DirectorAI.Config"):
             cfg = DirectorConfig(
                 production_mode=True,
@@ -1696,6 +1825,7 @@ class TestConfigCoverageGaps:
     def test_model_revision_health_uses_local_judge_model(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
+        """Include the configured local judge in model revision health."""
         import director_ai.core.model_revisions as model_revisions_module
 
         captured: dict[str, Any] = {}
@@ -1723,6 +1853,7 @@ class TestConfigCoverageGaps:
         assert captured["models"]["local_judge"] == ("local-judge", None)
 
     def test_coerce_numeric_lists(self) -> None:
+        """Parse comma-separated values as integers or floats according to field type."""
         from director_ai.core.config_env import coerce_env_value as _coerce
 
         assert vars(config_module)["_coerce"] is _coerce
@@ -1730,6 +1861,7 @@ class TestConfigCoverageGaps:
         assert _coerce("0.1,0.2", "list[float]") == [0.1, 0.2]
 
     def test_coerce_string_list_splits_and_strips(self) -> None:
+        """Strip and split string-list values and omit blank entries."""
         # The plain ``list[str]`` branch splits on commas and drops blank
         # entries without per-element numeric conversion.
         from director_ai.core.config_env import coerce_env_value as _coerce
@@ -1742,6 +1874,7 @@ class TestConfigCoverageGaps:
         assert _coerce("solo", "list") == ["solo"]
 
     def test_coerce_tuple_fields(self) -> None:
+        """Parse string and numeric tuples according to their element types."""
         from director_ai.core.config_env import coerce_env_value as _coerce
 
         # ``tuple[str, ...]`` must split on commas like a list — otherwise the
@@ -1757,6 +1890,7 @@ class TestConfigCoverageGaps:
     def test_from_env_api_keys_accepts_json_array(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
+        """Read both JSON arrays and comma-separated API keys from the environment."""
         # Regression: from_env routed api_keys through the generic list
         # coercion, which split a JSON array on commas and embedded
         # brackets/quotes into the literal keys (auth never matched).
@@ -1770,6 +1904,7 @@ class TestConfigCoverageGaps:
     def test_from_env_tuple_field_is_split(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
+        """Convert the sensitivity allowlist environment field to a tuple."""
         # Regression: tuple[str, ...] fields fell through _coerce unchanged and
         # stayed a raw string, breaking frozenset-based allowlist checks.
         from director_ai.core.config import DirectorConfig
@@ -1809,6 +1944,7 @@ class TestConfigCoverageGaps:
         kwargs: dict[str, Any],
         match: str,
     ) -> None:
+        """Propagate scorer construction errors when startup is fail-closed."""
         import director_ai.core.scoring.scorer as scorer_module
 
         class FakeScorer:
@@ -1825,19 +1961,11 @@ class TestConfigCoverageGaps:
                     False,
                 )
 
-            def enable_injection_detection(self, **init_kwargs: Any) -> None:
-                del init_kwargs
-                if method_name == "enable_injection_detection":
-                    raise RuntimeError("detector init failed")
+        def fail_startup(*_args: Any, **_kwargs: Any) -> None:
+            """Raise the configured dependency failure during scorer construction."""
+            raise RuntimeError(match)
 
-            def _get_meta_classifier(self) -> object | None:
-                if method_name == "_get_meta_classifier":
-                    raise RuntimeError("classifier init failed")
-                return object()
-
-            def _has_model_backed_nli(self) -> bool:
-                return True
-
+        setattr(FakeScorer, method_name, fail_startup)
         monkeypatch.setattr(scorer_module, "CoherenceScorer", FakeScorer)
 
         cfg = DirectorConfig(**kwargs)
@@ -1874,6 +2002,7 @@ class TestConfigCoverageGaps:
         kwargs: dict[str, Any],
         match: str,
     ) -> None:
+        """Reject fail-closed startup when a required component is unavailable."""
         import director_ai.core.scoring.scorer as scorer_module
 
         class FakeScorer:
@@ -1928,9 +2057,6 @@ class TestConfigCoverageGaps:
                 self._adaptive_threshold_enabled = False
                 self._adaptive_threshold_fail_closed = False
 
-            def _has_model_backed_nli(self) -> bool:
-                return True
-
         monkeypatch.setattr(scorer_module, "CoherenceScorer", FakeScorer)
 
         cfg = DirectorConfig(lora_adapter_path="/tmp/nonexistent-adapter")
@@ -1946,6 +2072,7 @@ class TestValidationBranchCoverage:
     """Exercise the normalisation/validation branches in config_validation."""
 
     def test_scorer_model_alias_resolves_nli_fields(self) -> None:
+        """Resolve the model, artifact, revision and length from a registered alias."""
         # A registry alias rewrites the NLI model identity through
         # resolve_scorer_model_choice during __post_init__.
         from director_ai.core.scoring.model_choices import (
@@ -1960,6 +2087,7 @@ class TestValidationBranchCoverage:
         assert cfg.nli_max_length == choice.max_length
 
     def test_grounded_mode_leaves_preset_retrieval_untouched(self) -> None:
+        """Keep explicitly selected NLI and abstention settings in grounded mode."""
         # mode 'auto' with every retrieval signal already off and a positive
         # abstention threshold skips both normalisation branches: use_nli stays
         # False and the preset threshold is preserved.
@@ -1974,6 +2102,7 @@ class TestValidationBranchCoverage:
         assert cfg.retrieval_abstention_threshold == 0.5
 
     def test_http_faiss_with_base_url_and_model_validates(self) -> None:
+        """Validate HTTP FAISS with an explicit embedding service URL and model."""
         # vector_backend 'http-faiss' passes validation once both the base URL
         # and the embedding model are set.
         cfg = DirectorConfig(
@@ -1989,22 +2118,15 @@ class TestBuildBackendBranches:
     """Cover the optional-backend dispatch branches in config_builders."""
 
     def test_build_store_chroma_backend(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Initialise the Chroma backend with the configured collection and directory."""
         import director_ai.core.retrieval.vector_store as vs
 
         captured: dict[str, Any] = {}
 
-        class FakeChroma:
+        class FakeChroma(vs.InMemoryBackend):
             def __init__(self, **kwargs: Any) -> None:
+                super().__init__()
                 captured["kwargs"] = kwargs
-
-            def add(self, *_a: Any, **_k: Any) -> None:
-                pass
-
-            def query(self, *_a: Any, **_k: Any) -> list[tuple[str, float]]:
-                return []
-
-            def count(self) -> int:
-                return 0
 
         monkeypatch.setattr(vs, "ChromaBackend", FakeChroma)
         cfg = DirectorConfig(
@@ -2023,24 +2145,17 @@ class TestBuildBackendBranches:
     def test_build_store_http_faiss_backend(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
+        """Forward the vector dimension to the HTTP FAISS backend."""
         import director_ai.core.retrieval.vector_store as vs
 
         class FakeEmbed:
             def __init__(self, **kwargs: Any) -> None:
                 self.kwargs = kwargs
 
-        class FakeFaiss:
+        class FakeFaiss(vs.InMemoryBackend):
             def __init__(self, **kwargs: Any) -> None:
+                super().__init__()
                 self.kwargs = kwargs
-
-            def add(self, *_a: Any, **_k: Any) -> None:
-                pass
-
-            def query(self, *_a: Any, **_k: Any) -> list[tuple[str, float]]:
-                return []
-
-            def count(self) -> int:
-                return 0
 
         monkeypatch.setattr(vs, "HttpEmbeddingFunction", FakeEmbed)
         monkeypatch.setattr(vs, "FAISSBackend", FakeFaiss)
@@ -2060,6 +2175,7 @@ class TestBuildBackendBranches:
     def test_build_scorer_model_fallback_resolves(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
+        """Pass the fallback model and revision into the scorer."""
         import director_ai.core.model_registry as registry_mod
         import director_ai.core.scoring.scorer as scorer_module
 
@@ -2072,9 +2188,6 @@ class TestBuildBackendBranches:
                 self._judge = None
                 self._adaptive_threshold_enabled = False
                 self._adaptive_threshold_fail_closed = False
-
-            def _has_model_backed_nli(self) -> bool:
-                return True
 
         class FakeResolved:
             model_id = "fallback/model"
@@ -2095,6 +2208,7 @@ class TestBuildBackendBranches:
     def test_build_scorer_injection_init_failure_requires_model_backed(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
+        """Report injection detector initialisation failures when a model is mandatory."""
         import director_ai.core.scoring.scorer as scorer_module
 
         class FakeScorer:
@@ -2107,9 +2221,6 @@ class TestBuildBackendBranches:
             def enable_injection_detection(self, **_kwargs: Any) -> None:
                 raise RuntimeError("injection detector init failed")
 
-            def _has_model_backed_nli(self) -> bool:
-                return True
-
         monkeypatch.setattr(scorer_module, "CoherenceScorer", FakeScorer)
         cfg = DirectorConfig(
             injection_detection_enabled=True,
@@ -2121,6 +2232,7 @@ class TestBuildBackendBranches:
     def test_build_scorer_injection_init_failure_without_model_backed(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
+        """Report injection detector initialisation failures without the model requirement."""
         # Same failure path, but require_model_backed_nli=False: the handler
         # skips the model-backed metric and still re-raises.
         import director_ai.core.scoring.scorer as scorer_module
@@ -2135,9 +2247,6 @@ class TestBuildBackendBranches:
             def enable_injection_detection(self, **_kwargs: Any) -> None:
                 raise RuntimeError("injection detector init failed")
 
-            def _has_model_backed_nli(self) -> bool:
-                return True
-
         monkeypatch.setattr(scorer_module, "CoherenceScorer", FakeScorer)
         cfg = DirectorConfig(injection_detection_enabled=True)
         with pytest.raises(RuntimeError, match="injection detector init failed"):
@@ -2146,6 +2255,7 @@ class TestBuildBackendBranches:
     def test_build_scorer_cost_callback_records(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
+        """Record scoring-provider usage through the cost callback."""
         import director_ai.core.scoring.scorer as scorer_module
 
         class FakeJudge:
@@ -2160,9 +2270,6 @@ class TestBuildBackendBranches:
                 self._adaptive_threshold_enabled = False
                 self._adaptive_threshold_fail_closed = False
 
-            def _has_model_backed_nli(self) -> bool:
-                return True
-
         monkeypatch.setattr(scorer_module, "CoherenceScorer", FakeScorer)
         scorer = DirectorConfig(cost_tracking_enabled=True).build_scorer(
             store=GroundTruthStore()
@@ -2174,6 +2281,7 @@ class TestBuildBackendBranches:
 
 
 def test_profile_metadata_registry_contract() -> None:
+    """Check required workload and validation fields for every registered profile."""
     from director_ai.core.config_profiles import PROFILE_METADATA, ProfileMetadata
 
     assert PROFILE_METADATA

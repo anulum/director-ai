@@ -127,31 +127,27 @@ def test_core_server_routes_round_trip_over_real_app(
     assert "halted" in websocket_payload
 
 
-def test_server_rate_limiter_is_wired_over_real_app(
+def test_server_rate_limiter_enforces_mounted_http_routes(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """Rate limiting should mount the production SlowAPI middleware."""
+    """Throttle mounted HTTP routes while preserving normal 404 responses."""
     monkeypatch.setenv("DIRECTOR_FORCE_CPU", "1")
     config = DirectorConfig.from_profile("fast")
     config.hybrid_retrieval = False
     config.llm_provider = "mock"
-    config.rate_limit_rpm = 60
+    config.rate_limit_rpm = 1
     config.reranker_enabled = False
     config.use_nli = False
     app = create_app(config)
 
-    middleware_names = {
-        cast(type[object], middleware.cls).__name__
-        for middleware in app.user_middleware
-    }
-
     with TestClient(app) as client:
-        config_response = client.get("/v1/config")
-
-    assert config_response.status_code == 200
-    assert "SlowAPIMiddleware" in middleware_names
-    assert app.state.limiter is not None
-    assert app.state.limiter._default_limits is not None
+        assert client.get("/v1/config").status_code == 200
+        limited = client.get("/v1/config")
+        assert limited.status_code == 429
+        assert limited.json() == {"detail": "Rate limit exceeded"}
+        assert client.get("/v1/health").status_code == 200
+        assert client.get("/missing").status_code == 404
+        assert client.get("/missing").status_code == 404
 
 
 def test_server_rejects_excessive_cors_origins_over_create_app() -> None:

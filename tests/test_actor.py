@@ -23,7 +23,10 @@ URL = "http://localhost:8080/completion"
 
 
 class TestMockGenerator:
+    """Exercise deterministic candidates and streamed tokens from the mock generator."""
+
     def test_default_candidates(self) -> None:
+        """Return the default number of nonempty candidates."""
         g = MockGenerator()
         candidates = g.generate_candidates("test")
         assert len(candidates) == 3
@@ -32,16 +35,20 @@ class TestMockGenerator:
         assert candidates[2]["type"] == "ambiguous"
 
     def test_n_less_than_pool(self) -> None:
+        """Return only the requested candidates when the pool is larger."""
         g = MockGenerator()
         assert len(g.generate_candidates("test", n=1)) == 1
 
     def test_n_greater_than_pool_cycles(self) -> None:
+        """Cycle through the candidate pool to satisfy a larger request."""
         g = MockGenerator()
         candidates = g.generate_candidates("test", n=5)
         assert len(candidates) == 5
         assert candidates[3]["type"] == candidates[0]["type"]
 
     def test_stream_tokens_yields_truthful_mock_response_words(self) -> None:
+        """Preserve words and spacing when streaming the mock reply."""
+
         async def collect_tokens() -> list[str]:
             return [token async for token in MockGenerator().stream_tokens("test")]
 
@@ -61,7 +68,10 @@ class TestMockGenerator:
 
 
 class TestLLMGeneratorRetry:
+    """Exercise provider parameters, input validation and retry behaviour."""
+
     def test_generation_parameters_are_wired_into_payload(self) -> None:
+        """Forward configured generation parameters to the provider payload."""
         g = LLMGenerator(
             URL,
             max_tokens=256,
@@ -101,22 +111,26 @@ class TestLLMGeneratorRetry:
     def test_invalid_generation_configuration_rejected(
         self, kwargs: dict[str, Any], message: str
     ) -> None:
+        """Reject invalid generation settings at construction."""
         with pytest.raises(ValueError, match=message):
             LLMGenerator(**kwargs)
 
     @pytest.mark.parametrize("prompt", ["", "   ", 42])
     def test_invalid_prompt_rejected(self, prompt: object) -> None:
+        """Reject malformed prompts before contacting the provider."""
         g = LLMGenerator(URL)
         with pytest.raises(ValueError, match="prompt"):
             g.generate_candidates(cast(str, prompt), n=1)
 
     @pytest.mark.parametrize("n", [0, -1])
     def test_invalid_candidate_count_rejected(self, n: int) -> None:
+        """Reject invalid candidate counts before making a request."""
         g = LLMGenerator(URL)
         with pytest.raises(ValueError, match="n"):
             g.generate_candidates("test", n=n)
 
     def test_success_first_try(self) -> None:
+        """Return the first successful provider response directly."""
         g = LLMGenerator(URL, max_retries=3)
         mock_resp = MagicMock()
         mock_resp.status_code = 200
@@ -131,6 +145,7 @@ class TestLLMGeneratorRetry:
         assert candidates[0]["source"] == "LLM"
 
     def test_retry_on_timeout(self) -> None:
+        """Retry a provider timeout and return the successful response."""
         import requests as req
 
         g = LLMGenerator(URL, max_retries=2, base_delay=0.01)
@@ -146,6 +161,7 @@ class TestLLMGeneratorRetry:
         assert candidates[0]["text"] == "ok"
 
     def test_all_retries_exhausted(self) -> None:
+        """Report failure when every allowed attempt times out."""
         import requests as req
 
         g = LLMGenerator(URL, max_retries=2, base_delay=0.01)
@@ -159,6 +175,7 @@ class TestLLMGeneratorRetry:
         assert "unavailable" in candidates[0]["text"]
 
     def test_http_error_no_retry(self) -> None:
+        """Surface an HTTP failure without retrying the request."""
         g = LLMGenerator(URL, max_retries=2, base_delay=0.01)
         mock_resp = MagicMock()
         mock_resp.status_code = 500
@@ -173,7 +190,10 @@ class TestLLMGeneratorRetry:
 
 
 class TestCircuitBreaker:
+    """Exercise provider failure counting, open-circuit behaviour and recovery."""
+
     def test_circuit_opens_after_threshold(self) -> None:
+        """Open the circuit when consecutive failures reach the threshold."""
         import requests as req
 
         g = LLMGenerator(URL, max_retries=1, base_delay=0.01)
@@ -189,6 +209,7 @@ class TestCircuitBreaker:
         assert g._circuit_open is True
 
     def test_circuit_open_fast_fails(self) -> None:
+        """Refuse calls before reaching the provider while the circuit is open."""
         g = LLMGenerator(URL)
         g._circuit_open = True
 
@@ -200,6 +221,7 @@ class TestCircuitBreaker:
         assert "unavailable" in candidates[0]["text"]
 
     def test_reset_circuit(self) -> None:
+        """Clear the failure state so the next provider call can proceed."""
         g = LLMGenerator(URL)
         g._circuit_open = True
         g._consecutive_failures = 10
@@ -209,6 +231,8 @@ class TestCircuitBreaker:
 
 
 def test_llm_generator_stream_tokens_falls_back_to_generated_text() -> None:
+    """Stream generated text when native streaming is unavailable."""
+
     async def collect_tokens() -> list[str]:
         tokens: list[str] = []
         async for token in LLMGenerator(api_url="http://test").stream_tokens("prompt"):
@@ -229,6 +253,7 @@ def test_llm_generator_stream_tokens_falls_back_to_generated_text() -> None:
 def test_llm_generator_stream_tokens_uses_sse_when_available(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """Forward provider SSE chunks through the token iterator."""
     calls: dict[str, object] = {}
 
     class FakeResponse:

@@ -8,6 +8,7 @@
 """Audit actual repository workflows and deliberate drift in their real bytes."""
 
 import itertools
+import json
 import os
 import shutil
 import subprocess
@@ -35,7 +36,9 @@ def test_actual_distributed_workflows_have_complete_ownership() -> None:
     assert audit_ci_workflow_modularity() == []
 
 
-@pytest.mark.parametrize("category", ["sbom", "fuzz", "benchmark", "runtime"])
+@pytest.mark.parametrize(
+    "category", ["sbom", "fuzz", "benchmark", "runtime", "quality"]
+)
 def test_independent_validation_does_not_wait_for_model_tests(category: str) -> None:
     """Keep independent checks concurrent and required by the final native gate.
 
@@ -85,6 +88,65 @@ def test_actual_native_aggregate_guard_requires_every_success(
         check=False,
     )
     assert (result.returncode == 0) == all(value == "success" for value in outcomes)
+
+
+@pytest.mark.parametrize(
+    ("quality", "passed", "icon"),
+    [
+        ("success", "true", "✅"),
+        ("failure", "false", "❌"),
+        ("cancelled", "false", "⏹️"),
+        ("skipped", "false", "⏭️"),
+        ("", "false", "❓"),
+    ],
+)
+def test_actual_notification_requires_native_quality_success(
+    quality: str, passed: str, icon: str, tmp_path: Path
+) -> None:
+    """Require the real native quality result in the main branch notification.
+
+    Parameters
+    ----------
+    quality : str
+        Required quality job outcome supplied to the reusable workflow.
+    passed : str
+        Overall status expected in the notification output.
+    icon : str
+        Display symbol expected for the quality job outcome.
+    tmp_path : Path
+        Isolated destination for the GitHub Actions step outputs.
+    """
+    workflows = ROOT / ".github/workflows"
+    callers = object_mapping(read_workflow(workflows / "ci.yml")["jobs"])
+    caller = object_mapping(callers["notify"])
+    assert "quality" in string_tuple(caller["needs"])
+    result_input = object_mapping(caller["with"])["results"]
+    assert isinstance(result_input, str)
+    assert object_mapping(json.loads(result_input))["quality"] == (
+        "${{ needs.quality.result }}"
+    )
+    notification = object_mapping(read_workflow(workflows / "ci-notify.yml")["jobs"])
+    steps = object_mapping(notification["discord-notify"])["steps"]
+    assert isinstance(steps, list)
+    output = tmp_path / "step-output"
+    for raw in steps[:2]:
+        step = object_mapping(raw)
+        names = object_mapping(step["env"])
+        assert names["QUALITY"] == "${{ fromJSON(inputs.results).quality }}"
+        script = step["run"]
+        assert isinstance(script, str)
+        env = dict.fromkeys(names, "success")
+        env.update(QUALITY=quality, TEST_EXTRAS="skipped", GITHUB_OUTPUT=str(output))
+        subprocess.run(
+            ["bash", "-e", "-c", script],
+            cwd=ROOT,
+            env={**os.environ, **env},
+            check=True,
+            timeout=10,
+        )
+    overall, summary = output.read_text(encoding="utf-8").splitlines()
+    assert overall == f"passed={passed}"
+    assert summary.endswith(f"{icon} quality")
 
 
 @pytest.mark.parametrize(

@@ -29,6 +29,7 @@ PYTHON_ROOTS = (
     "discord-bot",
     "gpu_deploy",
     "director_guard",
+    "formal",
     "docs",
 )
 GENERATED_PYTHON = (

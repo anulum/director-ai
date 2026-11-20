@@ -205,6 +205,24 @@ def _run(
     )
 
 
+def _require_clean_cargo_configuration(root: Path, cargo_home: Path) -> None:
+    """Refuse Cargo configuration outside the pinned reader recipe."""
+    locations = (
+        cargo_home,
+        *((directory / ".cargo") for directory in (root, *root.parents)),
+    )
+    for directory in locations:
+        for name in ("config", "config.toml"):
+            path = directory / name
+            try:
+                path.lstat()
+            except FileNotFoundError:
+                continue
+            raise ValueError(
+                f"Ambient Cargo configuration requires qualification: {path}"
+            )
+
+
 def capture_rust_documentation(
     root: Path, cargo: str, rustc: str, *, timeout: float = 120.0
 ) -> Snapshot:
@@ -247,15 +265,20 @@ def capture_rust_documentation(
     adapter_hash = hashlib.sha256(Path(__file__).read_bytes()).hexdigest()
     decoder = Path(__file__).with_name("quality_ratchet_rust_declarations.py")
     decoder_hash = hashlib.sha256(decoder.read_bytes()).hexdigest()
-    environment = dict(os.environ)
-    for key in (
-        "RUSTFLAGS",
-        "CARGO_ENCODED_RUSTFLAGS",
-        "RUSTC_WRAPPER",
-        "RUSTC_WORKSPACE_WRAPPER",
-        "CARGO_BUILD_RUSTC",
-    ):
-        environment.pop(key, None)
+    configured_home = os.environ.get("CARGO_HOME")
+    cargo_home = (
+        root / configured_home
+        if configured_home is not None
+        else Path.home() / ".cargo"
+    ).resolve()
+    _require_clean_cargo_configuration(root, cargo_home)
+    environment = {
+        key: value
+        for key, value in os.environ.items()
+        if not key.startswith(("CARGO_", "RUSTC_", "RUSTDOC_"))
+        and key not in {"CARGO", "RUSTC", "RUSTFLAGS", "RUSTDOC", "RUSTDOCFLAGS"}
+    }
+    environment["CARGO_HOME"] = str(cargo_home)
     cargo_path, rustc_path = shutil.which(cargo), shutil.which(rustc)
     if cargo_path is None or rustc_path is None:
         raise ValueError("Native Rust executables are unavailable")
@@ -332,6 +355,7 @@ def capture_rust_documentation(
         raise ValueError(
             "Native Rust reader did not completely analyse original source"
         )
+    _require_clean_cargo_configuration(root, cargo_home)
     findings = rust_documentation_findings(native.stdout.encode(), sources, root)
     if bool(findings) != bool(native.returncode):
         raise ValueError("Native Rust status disagrees with original findings")

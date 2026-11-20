@@ -39,7 +39,6 @@ DEFAULT_MARKER_END = "<!-- capability-snapshot:end -->"
 
 def _default_labels() -> dict[str, str]:
     """Return stable public labels for README and docs snapshots."""
-
     return {
         "version": "Package version",
         "public_api_exports": "Public API exports",
@@ -97,7 +96,6 @@ def load_config(
     repo: Path, config_path: Path | None = None
 ) -> CapabilityManifestConfig:
     """Load portable manifest config with Director-AI-compatible defaults."""
-
     repo = repo.resolve()
     raw: dict[str, Any] = {}
     path = repo / (config_path or DEFAULT_CONFIG)
@@ -160,7 +158,6 @@ def _relative_config_path(path: Path, repo: Path) -> Path:
 
 def capability_paths(repo: Path, config: CapabilityManifestConfig) -> CapabilityPaths:
     """Return canonical manifest scan roots."""
-
     return CapabilityPaths(
         repo=repo,
         pyproject=repo / "pyproject.toml",
@@ -178,7 +175,6 @@ def build_capability_manifest(
     repo: Path, config: CapabilityManifestConfig | None = None
 ) -> dict[str, Any]:
     """Build a deterministic capability manifest for public surfaces."""
-
     repo = repo.resolve()
     config = config or load_config(repo)
     paths = capability_paths(repo, config)
@@ -275,7 +271,6 @@ def build_capability_manifest(
 
 def render_markdown_snapshot(manifest: dict[str, Any]) -> str:
     """Render a compact public snapshot for README and PyPI reuse."""
-
     counts = manifest["counts"]
     project = manifest["project"]
     labels = manifest.get("labels", _default_labels())
@@ -324,7 +319,6 @@ def refresh_readme_block(
     config: CapabilityManifestConfig,
 ) -> Path:
     """Refresh the README block bounded by configured markers."""
-
     readme_path = repo / config.readme_path
     text = readme_path.read_text(encoding="utf-8")
     start = config.readme_marker_start
@@ -347,7 +341,6 @@ def write_outputs(
     markdown_output: Path,
 ) -> tuple[Path, Path]:
     """Write deterministic JSON and Markdown outputs."""
-
     json_output.parent.mkdir(parents=True, exist_ok=True)
     markdown_output.parent.mkdir(parents=True, exist_ok=True)
     json_output.write_text(
@@ -366,7 +359,6 @@ def refresh_outputs(
     update_readme: bool = True,
 ) -> tuple[Path, Path, Path | None]:
     """Regenerate JSON, Markdown, and optionally the README snapshot."""
-
     manifest = build_capability_manifest(repo, config)
     json_path, markdown_path = write_outputs(
         manifest,
@@ -385,7 +377,6 @@ def refresh_outputs(
 
 def validate_manifest(payload: dict[str, Any]) -> dict[str, Any]:
     """Validate a capability manifest payload."""
-
     errors: list[str] = []
     if payload.get("schema_version") != CAPABILITY_MANIFEST_SCHEMA_VERSION:
         errors.append("schema_version mismatch")
@@ -431,7 +422,6 @@ def assert_outputs_current(
     check_readme: bool = True,
 ) -> None:
     """Raise if tracked generated outputs drift from current sources."""
-
     config = config or load_config(repo)
     manifest = build_capability_manifest(repo, config)
     expected_json = json.dumps(manifest, indent=2, sort_keys=True) + "\n"
@@ -657,7 +647,6 @@ def _tracked_or_discovered_files(
     excluded. Pending tracked deletions and non-ignored pending additions are
     still worktree state and must be reflected before a release manifest check.
     """
-
     tracked = _git_tracked_files(root, repo=repo, suffixes=suffixes)
     if tracked is not None:
         pending = _git_untracked_files(root, repo=repo, suffixes=suffixes)
@@ -757,6 +746,7 @@ def _readme_block_matches(
 
 
 def main(argv: Iterable[str] | None = None) -> int:
+    """Validate, check or regenerate the public capability manifest from the CLI."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--repo", type=Path, default=Path.cwd())
     parser.add_argument("--config", type=Path, default=DEFAULT_CONFIG)

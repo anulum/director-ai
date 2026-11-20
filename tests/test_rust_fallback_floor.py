@@ -125,6 +125,7 @@ def test_http_agent_keeps_whole_response_and_stream_dependency_contract() -> Non
 
 
 def test_knowledge_word_overlap_python_floor() -> None:
+    """Check Jaccard overlap and the empty-input result on the Python path."""
     from director_ai.core.retrieval import knowledge
 
     # _word_overlap delegates to the shared text_overlap helper, which runs the
@@ -135,6 +136,7 @@ def test_knowledge_word_overlap_python_floor() -> None:
 
 
 def test_nli_softmax_python_floor_large_input(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Match the reference row probabilities with Rust acceleration disabled."""
     import director_ai.core.scoring._nli_accel as _nli_accel
     from director_ai.core.scoring import nli
 
@@ -154,6 +156,7 @@ def test_nli_softmax_python_floor_large_input(monkeypatch: pytest.MonkeyPatch) -
 def test_nli_divergence_python_floor_large_batch(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """Convert support probabilities to divergence on the large-batch Python path."""
     import director_ai.core.scoring._nli_accel as _nli_accel
     from director_ai.core.scoring import nli
 
@@ -168,6 +171,7 @@ def test_nli_divergence_python_floor_large_batch(
 def test_nli_confidence_python_floor_large_batch(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """Return one bounded confidence per row without the Rust implementation."""
     import director_ai.core.scoring._nli_accel as _nli_accel
     from director_ai.core.scoring import nli
 
@@ -179,6 +183,7 @@ def test_nli_confidence_python_floor_large_batch(
 
 
 def test_doc_chunker_sum_python_floor(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Sum float values through the Python fallback and return zero for an empty list."""
     from director_ai.core.retrieval import doc_chunker
 
     monkeypatch.setattr(doc_chunker, "_RUST_DOC_CHUNKER", False)
@@ -188,6 +193,7 @@ def test_doc_chunker_sum_python_floor(monkeypatch: pytest.MonkeyPatch) -> None:
 
 def test_rust_flags_are_boolean() -> None:
     # The flags must always be plain booleans so the no-Rust floor is reachable.
+    """Require boolean availability flags for the supported Python fallback paths."""
     import director_ai.core.scoring._nli_accel as _nli_accel
     from director_ai.core.retrieval import adaptive_router, doc_chunker
     from director_ai.core.scoring import rules_scorer

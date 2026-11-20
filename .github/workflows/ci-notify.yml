@@ -34,8 +34,8 @@ jobs:
       - name: Resolve overall result
         id: result
         run: |
-          RESULTS="${{ fromJSON(inputs.results).lint }} ${{ fromJSON(inputs.results).typecheck }} ${{ fromJSON(inputs.results).test }} ${{ fromJSON(inputs.results).test-extras }} ${{ fromJSON(inputs.results).security }} ${{ fromJSON(inputs.results).fuzz }} ${{ fromJSON(inputs.results).sast }} ${{ fromJSON(inputs.results).benchmark }} ${{ fromJSON(inputs.results).rust }} ${{ fromJSON(inputs.results).lean }}"
-          if echo "$RESULTS" | grep -qE "failure|cancelled"; then
+          RESULTS="$LINT $TYPECHECK $TEST $TEST_EXTRAS $SECURITY $FUZZ $SAST $BENCHMARK $RUST $LEAN"
+          if [ "$QUALITY" != "success" ] || printf '%s\n' "$RESULTS" | grep -qE "failure|cancelled"; then
             echo "passed=false" >> "$GITHUB_OUTPUT"
           else
             echo "passed=true" >> "$GITHUB_OUTPUT"
@@ -51,12 +51,13 @@ jobs:
           BENCHMARK: ${{ fromJSON(inputs.results).benchmark }}
           RUST: ${{ fromJSON(inputs.results).rust }}
           LEAN: ${{ fromJSON(inputs.results).lean }}
+          QUALITY: ${{ fromJSON(inputs.results).quality }}
 
       - name: Build job summary
         id: summary
         run: |
           icon() { case "$1" in success) echo "✅";; failure) echo "❌";; cancelled) echo "⏹️";; skipped) echo "⏭️";; *) echo "❓";; esac; }
-          S="$(icon "$LINT") lint  $(icon "$TYPECHECK") typecheck  $(icon "$TEST") test  $(icon "$TEST_EXTRAS") extras  $(icon "$SECURITY") security  $(icon "$FUZZ") fuzz  $(icon "$SAST") sast  $(icon "$BENCHMARK") bench  $(icon "$RUST") rust  $(icon "$LEAN") lean"
+          S="$(icon "$LINT") lint  $(icon "$TYPECHECK") typecheck  $(icon "$TEST") test  $(icon "$TEST_EXTRAS") extras  $(icon "$SECURITY") security  $(icon "$FUZZ") fuzz  $(icon "$SAST") sast  $(icon "$BENCHMARK") bench  $(icon "$RUST") rust  $(icon "$LEAN") lean  $(icon "$QUALITY") quality"
           echo "jobs=$S" >> "$GITHUB_OUTPUT"
         env:
           LINT: ${{ fromJSON(inputs.results).lint }}
@@ -69,6 +70,7 @@ jobs:
           BENCHMARK: ${{ fromJSON(inputs.results).benchmark }}
           RUST: ${{ fromJSON(inputs.results).rust }}
           LEAN: ${{ fromJSON(inputs.results).lean }}
+          QUALITY: ${{ fromJSON(inputs.results).quality }}
 
       - name: Post to Discord
         if: env.DISCORD_WEBHOOK_URL != ''
