@@ -111,8 +111,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     error rate exactly in decimal arithmetic and span at least three shot
     standard errors, mode-aware seed tuples, execution receipts matched to
     the spec's shot budget, gate depth and witnesses, shot-noise variance
-    and Hoeffding radii that are finite or refused by name, and a
-    lower-bound check that compares exactly; and the barren-plateau and
+    and Hoeffding radii that are finite or refused by name, never a silent
+    zero from an underflowing term, and a lower-bound check that compares
+    exactly and is finite; and the barren-plateau and
     spiking lowering parity witnesses;
   - the ports adapters implement, for data, training, rewards, verifiers,
     compute, spend, custody and chained deployment; typed SpendLedger

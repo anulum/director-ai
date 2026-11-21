@@ -25,13 +25,17 @@ shots :math:`S_g \ge 256` and :math:`\gamma \ge 1`:
 
 The paired forms over all instances are in :mod:`.quantum_paired_noise`.
 Every function returns a finite float or refuses by name: an overflow, an
-undefined product or an underflowing level is never returned. A zero
-coefficient gives a zero radius.
+undefined product or an underflowing level is never returned. A group's term
+is zero only when its factors are exactly zero; a nonzero term that falls
+below the normal floating-point range is refused, so a radius or a variance
+never silently shrinks to zero. Every coefficient exactly zero gives a zero
+radius.
 """
 
 from __future__ import annotations
 
 import math
+import sys
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 
@@ -106,9 +110,26 @@ def pauli_groups(groups: Sequence[PauliGroupShots]) -> tuple[PauliGroupShots, ..
     return checked
 
 
+def normal_term(term: float, *, nonzero: bool, what: str) -> float:
+    """Return a group's term, refusing a nonzero one that underflowed."""
+    if nonzero and term < sys.float_info.min:
+        raise E(f"{what} underflows: a nonzero term is below the normal range")
+    return term
+
+
 def shot_weight(groups: Sequence[PauliGroupShots], what: str) -> float:
-    """Return the sum of squared half-ranges over shots."""
-    return sum_finite((g.coefficient * g.coefficient / g.shots for g in groups), what)
+    """Return the sum of squared half-ranges over shots, each term normal or zero."""
+    return sum_finite(
+        (
+            normal_term(
+                g.coefficient * g.coefficient / g.shots,
+                nonzero=g.coefficient != 0.0,
+                what=what,
+            )
+            for g in groups
+        ),
+        what,
+    )
 
 
 def shot_variance(gamma: float, groups: Sequence[PauliGroupShots]) -> float:
@@ -129,13 +150,18 @@ def shot_variance(gamma: float, groups: Sequence[PauliGroupShots]) -> float:
     Raises
     ------
     QuantumAcceptanceError
-        If a value is outside its domain or the variance is not finite.
+        If a value is outside its domain, a nonzero term underflows, or the
+        variance is not finite.
     """
     overhead, checked = gamma_factor(gamma), pauli_groups(groups)
     what = "the shot variance"
     total = sum_finite(
         (
-            g.coefficient * g.coefficient * (1.0 - g.mean * g.mean) / (g.shots - 1)
+            normal_term(
+                g.coefficient * g.coefficient * (1.0 - g.mean * g.mean) / (g.shots - 1),
+                nonzero=g.coefficient != 0.0 and abs(g.mean) != 1.0,
+                what=what,
+            )
             for g in checked
         ),
         what,
@@ -165,7 +191,8 @@ def hoeffding_radius(
     Raises
     ------
     QuantumAcceptanceError
-        If a value is outside its domain or the radius is not finite.
+        If a value is outside its domain, a nonzero term underflows, or the
+        radius is not finite.
     """
     overhead, checked, level = (
         gamma_factor(gamma),

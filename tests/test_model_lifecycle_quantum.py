@@ -11,6 +11,7 @@
 from __future__ import annotations
 
 import math
+import sys
 from dataclasses import replace
 from fractions import Fraction
 from typing import Any
@@ -813,6 +814,46 @@ class TestDomainEdges:
             )
         ]
         assert paired_shot_radius(zero, tiny, shared_calibration=False) == 0.0
+
+    @pytest.mark.parametrize(
+        "call",
+        [
+            lambda: hoeffding_radius(1.0, [group(coefficient=1e-160)], 0.05),
+            lambda: hoeffding_radius(
+                1e300, [group(coefficient=1.0), group(coefficient=1e-160)], 0.05
+            ),
+            lambda: shot_variance(1.0, [group(coefficient=1e-160)]),
+            lambda: paired_shot_radius(
+                [
+                    PairedShotInstance(
+                        1.0,
+                        1.0,
+                        (group(coefficient=1e-160),),
+                        (group(coefficient=1e-160),),
+                    )
+                ],
+                spec(),
+                shared_calibration=False,
+            ),
+        ],
+        ids=["radius", "radius-mixed", "variance", "paired"],
+    )
+    def test_n6_an_underflowing_nonzero_term_is_refused(self, call: Any) -> None:
+        """A nonzero coefficient never yields a silent zero (or subnormal) term."""
+        with pytest.raises(QuantumAcceptanceError, match="underflows"):
+            call()
+
+    def test_n6_exact_zeros_stay_zero(self) -> None:
+        """A zero coefficient, or a group with mean exactly +-1, adds an exact zero."""
+        assert shot_variance(1.0, [group(coefficient=1e-160, mean=1.0)]) == 0.0
+        assert shot_variance(1.0, [group(coefficient=0.0)]) == 0.0
+        normal = sys.float_info.min * 256
+        assert hoeffding_radius(1.0, [group(coefficient=math.sqrt(normal))], 0.05) > 0
+
+    def test_n7_a_non_finite_rounded_bound_is_refused(self) -> None:
+        """At mean = -max a tiny radius rounds the bound down to -inf: refused."""
+        with pytest.raises(QuantumAcceptanceError, match="composite lower bound"):
+            composite_lower_bound(-sys.float_info.max, 1e-300, 0.0)
 
     def test_the_composite_is_rounded_down(self) -> None:
         """0.1 - 0.2 - 0.7 rounds up in floats; the bound is the float just below exact."""

@@ -42,6 +42,7 @@ from ._checks import require_finite
 from .errors import QuantumAcceptanceError
 from .quantum_contracts import validate_shot_noise_spec
 from .quantum_records import QuantumShotNoiseAcceptanceSpec
+from .quantum_shot_noise import finite_number
 
 E = QuantumAcceptanceError
 EXACT_TOLERANCE_MULTIPLE = 3
@@ -77,7 +78,7 @@ def composite_lower_bound(
     ------
     QuantumAcceptanceError
         If a value is not finite, a radius is negative, or the bound
-        overflows.
+        overflows or rounds down to a non-finite value.
     """
     mean = require_finite(mean_improvement, "mean_improvement", E)
     radii = [
@@ -91,7 +92,8 @@ def composite_lower_bound(
         bound = float(exact)
     except OverflowError as error:
         raise E("the composite lower bound overflows") from error
-    return math.nextafter(bound, -math.inf) if Fraction(bound) > exact else bound
+    lower = math.nextafter(bound, -math.inf) if Fraction(bound) > exact else bound
+    return finite_number(lower, "the composite lower bound")
 
 
 def admits_quantum_arm(

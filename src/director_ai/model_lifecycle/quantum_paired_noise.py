@@ -170,7 +170,8 @@ def paired_shot_standard_error(instances: Sequence[PairedShotInstance]) -> float
     Raises
     ------
     QuantumAcceptanceError
-        If an instance is outside its domain or the error is not finite.
+        If an instance is outside its domain, a nonzero term underflows, or
+        the error is not finite.
     """
     checked, what = _instances(instances), "the shot standard error"
     total = sum_finite(
