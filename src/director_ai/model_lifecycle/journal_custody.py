@@ -26,6 +26,13 @@ ingests each opening before it releases the look's split. The set equality
 fails closed when an opening or an entry is ingested after the next look's
 watermark: a liveness requirement on custody, not a gap. Custody ingests
 each opening before the release and each entry before the next look opens.
+
+Every opened look ends with an entry. A look that crashes or is aborted
+after its opening is closed with an ``infrastructure_fault`` or
+``voided_evaluator_fault`` entry and its fault attestation; that entry
+rebuilds the custodied opening, so the programme is not blocked. It follows
+that one look is in flight per programme at a time: while a look's opening
+is held without its entry, the next admission is refused.
 """
 
 from __future__ import annotations

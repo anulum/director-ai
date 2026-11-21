@@ -40,7 +40,8 @@ class CustodySubprocessPort(Protocol):
     ``sealed_look_journal_entry`` record, before the programme's next look
     opens: admission refuses a journal whose entries or openings custody
     does not hold up to the look's watermark, so a lagging ingest stops the
-    next look rather than passing it.
+    next look rather than passing it. A look that is aborted after its
+    opening still gets its entry, with a fault outcome and its attestation.
     """
 
     def ingest(

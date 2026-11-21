@@ -32,10 +32,10 @@ from director_ai.model_lifecycle import (
     PreregistrationApproval,
     PreregistrationRecord,
     SealedLookJournalEntry,
+    SealedLookOpening,
     SealedLookRequest,
     SealedSplitPool,
     admit_sealed_look,
-    opening_of,
     record_digest,
 )
 
@@ -336,11 +336,25 @@ def journal_entry(
     )
 
 
+def expected_opening(entry: SealedLookJournalEntry) -> SealedLookOpening:
+    """Return the opening ``entry`` must claim, built here, not by the kernel."""
+    return SealedLookOpening(
+        "sealed-look-opening.v1",
+        entry.programme,
+        entry.journal_seq,
+        entry.study_id,
+        entry.preregistration_digest,
+        entry.split_digest,
+        entry.look_kind,
+        entry.custody_seq_at_open,
+    )
+
+
 def journal_custody(
     entry: SealedLookJournalEntry, entry_seq: int
 ) -> dict[str, CustodyIngestRecord]:
     """Return custody's records of an entry (at ``entry_seq``) and its opening."""
-    opening = record_digest(opening_of(entry))
+    opening = record_digest(expected_opening(entry))
     digest = record_digest(entry)
     return {
         opening: custody_record(
@@ -354,7 +368,7 @@ def journal_custody(
 
 def opening_record(entry: SealedLookJournalEntry) -> CustodyIngestRecord:
     """Return custody's record of ``entry``'s opening, ingested at the opening."""
-    digest = record_digest(opening_of(entry))
+    digest = record_digest(expected_opening(entry))
     return custody_record(
         digest, "sealed_look_opening", entry.custody_seq_at_open, CUSTODIAN
     )

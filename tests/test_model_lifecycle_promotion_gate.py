@@ -182,7 +182,11 @@ def inputs(
     entry = journal_entry(
         LINEAGE,
         frozen,
-        **{"preregistration_digest": record_digest(plan), **(entry_changes or {})},
+        **{
+            "preregistration_digest": record_digest(plan),
+            "open_seq": 20,
+            **(entry_changes or {}),
+        },
     )
     result = SealedLookResult(
         "sealed-look-result.v1",

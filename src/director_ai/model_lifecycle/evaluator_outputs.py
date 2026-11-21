@@ -191,7 +191,9 @@ def validate_look_result(
         The journal entry it claims.
     opening_record : CustodyIngestRecord
         Custody's record of the look's opening, which must be ingested no
-        later than the look's release.
+        later than the look's release. It is read from the custody port,
+        never taken from the requester: like ``custody_records`` at
+        admission, its truth is a custody trust.
 
     Returns
     -------
