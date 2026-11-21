@@ -51,6 +51,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     the language and dynamics companion contracts, the spiking fixed-point
     table for integer `qat.` tensors, and a family model identity digest
     that binds a model's tensors to its family and companion contract;
+  - transformer architecture specs for models trained from scratch, each
+    locked to the serving wire profile it converts to (`llama`, `qwen2`,
+    `qwen3`, `modern-bert` or a custom ONNX profile), with YaRN position
+    scaling and maximal-update width transfer, whose coordinate-check
+    receipt is required outside owned hardware;
   - 17-key custody ingest records with a fixed set of sealed kinds;
   - preregistration, approval and sealed look records with four outcomes;
   - a custody-derived, root-anchored proposer lineage and look budget,

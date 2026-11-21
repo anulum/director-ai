@@ -160,6 +160,12 @@ def compute_family_tensor_set_identity(
 ) -> TensorSetIdentity:
     """Read a model's weights under its family's rule and return their identity.
 
+    This reader is for artefacts the ecosystem produces. An external
+    upstream ``base_checkpoint`` is read with the plain
+    :func:`~.safetensors_parser.compute_tensor_set_identity` instead: it is
+    scanned for NaN and infinities only, keeps its upstream tensor names and
+    keeps its verbatim upstream digest, whatever family it will serve.
+
     Parameters
     ----------
     family : object

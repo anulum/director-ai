@@ -6,10 +6,10 @@
     "optional_extras": 62,
     "public_api_exports": 227,
     "public_documentation_pages": 208,
-    "python_model_classes": 1124,
-    "python_model_source_modules": 570,
+    "python_model_classes": 1129,
+    "python_model_source_modules": 573,
     "rust_pyo3_model_wrappers": 83,
-    "test_files": 856
+    "test_files": 858
   },
   "documentation": {
     "public_pages": [
@@ -529,6 +529,10 @@
       {
         "name": "ArchitectureMutation",
         "path": "src/director_ai/core/autopoietic/blueprint.py"
+      },
+      {
+        "name": "ArchitectureSpecError",
+        "path": "src/director_ai/model_lifecycle/errors.py"
       },
       {
         "name": "ArchiveMember",
@@ -2711,6 +2715,10 @@
         "path": "src/director_ai/core/verification/math_consistency.py"
       },
       {
+        "name": "MaximalUpdateParametrisationSpec",
+        "path": "src/director_ai/model_lifecycle/architecture_specs.py"
+      },
+      {
         "name": "MaximumHaltRate",
         "path": "src/director_ai/core/zk_attestation/statements.py"
       },
@@ -2929,6 +2937,10 @@
       {
         "name": "MultimodalVerifierAdapter",
         "path": "src/director_ai/core/multimodal_guard/adapter.py"
+      },
+      {
+        "name": "MupValidationReceipt",
+        "path": "src/director_ai/model_lifecycle/architecture_specs.py"
       },
       {
         "name": "MutationStrategy",
@@ -4595,6 +4607,10 @@
         "path": "src/director_ai/core/citation_grounding/transcript.py"
       },
       {
+        "name": "TransformerArchitectureSpec",
+        "path": "src/director_ai/model_lifecycle/architecture_specs.py"
+      },
+      {
         "name": "TraversalPolicy",
         "path": "src/director_ai/core/knowledge_graph/policy.py"
       },
@@ -4817,6 +4833,10 @@
       {
         "name": "WorkspaceConstraint",
         "path": "src/director_ai/core/cyber_physical/constraints.py"
+      },
+      {
+        "name": "YarnRopeScalingSpec",
+        "path": "src/director_ai/model_lifecycle/architecture_specs.py"
       },
       {
         "name": "Z3Backend",
@@ -5348,6 +5368,8 @@
       "src/director_ai/middleware/api_key.py",
       "src/director_ai/middleware/rate_limit.py",
       "src/director_ai/model_lifecycle/_checks.py",
+      "src/director_ai/model_lifecycle/architecture_contracts.py",
+      "src/director_ai/model_lifecycle/architecture_specs.py",
       "src/director_ai/model_lifecycle/base_checkpoints.py",
       "src/director_ai/model_lifecycle/contracts.py",
       "src/director_ai/model_lifecycle/cost_and_promotion_contracts.py",
@@ -5374,6 +5396,7 @@
       "src/director_ai/model_lifecycle/tensors.py",
       "src/director_ai/model_lifecycle/validators.py",
       "src/director_ai/model_lifecycle/weight_archives.py",
+      "src/director_ai/model_lifecycle/width_and_position_contracts.py",
       "src/director_ai/proto/converters.py",
       "src/director_ai/proxy.py",
       "src/director_ai/routers/compliance.py",
@@ -6284,11 +6307,13 @@
       "tests/test_miscoverage.py",
       "tests/test_ml_bom.py",
       "tests/test_model_benchmark_packages.py",
+      "tests/test_model_lifecycle_architecture.py",
       "tests/test_model_lifecycle_families.py",
       "tests/test_model_lifecycle_floats_and_codec.py",
       "tests/test_model_lifecycle_licence_boundary.py",
       "tests/test_model_lifecycle_looks.py",
       "tests/test_model_lifecycle_records.py",
+      "tests/test_model_lifecycle_surfaces.py",
       "tests/test_model_lifecycle_weights.py",
       "tests/test_model_package_vertex_campaign.py",
       "tests/test_model_registry.py",

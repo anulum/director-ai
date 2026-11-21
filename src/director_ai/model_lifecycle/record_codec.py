@@ -10,7 +10,11 @@
 
 :func:`from_canonical_json_bytes` looks up the record type's validator, so a
 consumer such as blob custody cannot decode a record without checking it.
-A type without a registered validator is refused.
+A type without a registered validator is refused. Two checks need more
+than the record and are left to their callers: a look result's binding to
+its journal entry (:func:`~.validators.validate_look_result`) and the
+width-transfer receipt an architecture spec needs on its funding pool
+(:func:`~.architecture_contracts.validate_transformer_architecture_spec`).
 
 Only a record's canonical bytes decode. Custody keys a record blob by the
 SHA-256 of its bytes, while admission looks a record up by the digest of
@@ -25,6 +29,8 @@ from collections.abc import Callable
 from typing import TypeVar, cast
 
 from ._checks import require_choice, require_int, require_sha256
+from .architecture_contracts import check_transformer_architecture_shape
+from .architecture_specs import MupValidationReceipt, TransformerArchitectureSpec
 from .base_checkpoints import BaseCheckpointRecord, validate_base_checkpoint_record
 from .cost_and_promotion_contracts import (
     PromotionDecisionRecord,
@@ -80,6 +86,7 @@ from .sealed_looks import (
     validate_look_request,
 )
 from .tensors import TensorDescriptor, TensorSetIdentity, tensor_set_identity
+from .width_and_position_contracts import validate_mup_validation_receipt
 
 RecordT = TypeVar("RecordT")
 
@@ -138,6 +145,8 @@ VALIDATORS: dict[type, Callable[[object], object]] = {
         (TensorSetIdentity, _validate_identity),
         (LanguageFamilyContract, validate_language_family_contract),
         (DynamicsFamilyContract, validate_dynamics_family_contract),
+        (TransformerArchitectureSpec, check_transformer_architecture_shape),
+        (MupValidationReceipt, validate_mup_validation_receipt),
     )
 }
 """Every record type the codec decodes, with the validator it runs."""

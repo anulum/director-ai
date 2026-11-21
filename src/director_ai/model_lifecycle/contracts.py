@@ -14,6 +14,24 @@ groups the records by kind for the package itself.
 
 from __future__ import annotations
 
+from .architecture_contracts import (
+    MUP_INV_D_PROFILES,
+    PROFILE_LOCKS,
+)
+from .architecture_specs import (
+    ARCHITECTURE_KINDS,
+    DOCUMENT_MASK_MODES,
+    GGUF_WIRE_PROFILES,
+    POOL_FUNDING_KINDS,
+    ArchitectureKind,
+    DocumentMaskMode,
+    GgufWireProfile,
+    MaximalUpdateParametrisationSpec,
+    MupValidationReceipt,
+    PoolFundingKind,
+    TransformerArchitectureSpec,
+    YarnRopeScalingSpec,
+)
 from .base_checkpoints import (
     BaseCheckpointRecord,
 )
@@ -109,24 +127,31 @@ from .weight_archives import (
 
 __all__ = [
     "ACTUATION_MODES",
+    "ARCHITECTURE_KINDS",
     "CONSUMING_OUTCOMES",
     "CUSTODY_DATA_CLASSES",
     "CUSTODY_OBJECT_KINDS",
+    "DOCUMENT_MASK_MODES",
     "DYNAMICS_FAMILY_RULE",
     "EMPTY_PRODUCTION_DIGEST",
     "FAMILY_CONTRACT_REGISTRY",
     "FAULT_OUTCOMES",
     "FIXED_POINT_PREFIX",
     "FLOAT_DTYPES",
+    "GGUF_WIRE_PROFILES",
     "HDF5_MAGIC",
     "INTEGER_BITS",
     "LANGUAGE_FAMILY_RULE",
     "MODEL_CUSTODY_KINDS",
+    "MUP_INV_D_PROFILES",
+    "POOL_FUNDING_KINDS",
+    "PROFILE_LOCKS",
     "QUANTUM_VARIATIONAL_FAMILY_RULE",
     "SAFE_TENSORS_DTYPES",
     "SEALED_CUSTODY_KINDS",
     "SPIKING_FAMILY_RULE",
     "ActiveModelFamily",
+    "ArchitectureKind",
     "ArchiveMember",
     "ArtefactKind",
     "BaseCheckpointRecord",
@@ -136,10 +161,12 @@ __all__ = [
     "CustodyIngestRecord",
     "CustodyObjectKind",
     "CustodyProgrammeRoles",
+    "DocumentMaskMode",
     "DualAxisLicenceRecord",
     "DynamicsFamilyContract",
     "EvaluatorOutput",
     "FixedPointFormatDecl",
+    "GgufWireProfile",
     "GraderRole",
     "GraderSpec",
     "LanguageFamilyContract",
@@ -147,7 +174,10 @@ __all__ = [
     "LineageEdge",
     "LineageRelation",
     "LookKind",
+    "MaximalUpdateParametrisationSpec",
     "ModelArtefactEnvelope",
+    "MupValidationReceipt",
+    "PoolFundingKind",
     "PreregistrationApproval",
     "PreregistrationRecord",
     "PromotionDecisionRecord",
@@ -163,5 +193,7 @@ __all__ = [
     "TensorDescriptor",
     "TensorDtype",
     "TensorSetIdentity",
+    "TransformerArchitectureSpec",
     "WeightFormat",
+    "YarnRopeScalingSpec",
 ]

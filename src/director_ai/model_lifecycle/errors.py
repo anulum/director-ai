@@ -64,6 +64,10 @@ class InconsistentFixedPointDeclarationError(MalformedWeightsError):
     """A fixed-point declaration disagrees with its tensor or names no such tensor."""
 
 
+class ArchitectureSpecError(ModelLifecycleError):
+    """A transformer architecture spec breaks a numeric rule or its wire profile."""
+
+
 class LicenceRecordError(ModelLifecycleError):
     """A dual-axis licence record or compute budget is malformed."""
 

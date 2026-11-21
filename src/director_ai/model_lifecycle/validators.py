@@ -14,6 +14,10 @@ groups the functions for the package itself.
 
 from __future__ import annotations
 
+from .architecture_contracts import (
+    check_transformer_architecture_shape,
+    validate_transformer_architecture_spec,
+)
 from .base_checkpoints import (
     validate_base_checkpoint_record,
 )
@@ -106,6 +110,11 @@ from .weight_archives import (
     list_archive_members,
     read_archive_tensor_descriptors,
 )
+from .width_and_position_contracts import (
+    validate_mup_spec,
+    validate_mup_validation_receipt,
+    validate_yarn_rope_scaling,
+)
 
 __all__ = [
     "admit_sealed_look",
@@ -113,6 +122,7 @@ __all__ = [
     "canonical_json_bytes",
     "check_look_budget",
     "check_promotion_pre_state",
+    "check_transformer_architecture_shape",
     "compute_archive_tensor_set_identity",
     "compute_family_model_identity_digest",
     "compute_family_tensor_set_identity",
@@ -149,9 +159,13 @@ __all__ = [
     "validate_lineage_edge",
     "validate_look_request",
     "validate_look_result",
+    "validate_mup_spec",
+    "validate_mup_validation_receipt",
     "validate_preregistration",
     "validate_preregistration_approval",
     "validate_promotion_decision",
     "validate_sealed_split_pool",
     "validate_slice_estimate",
+    "validate_transformer_architecture_spec",
+    "validate_yarn_rope_scaling",
 ]
