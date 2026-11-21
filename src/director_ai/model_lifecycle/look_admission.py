@@ -227,6 +227,13 @@ def admit_sealed_look(
         edges=request.declared_lineage_edges,
         prior_journal=prior_journal,
     )
+    candidates = [d for d in request.frozen_artefact_digests if d not in exempt]
+    if candidates and not any(
+        records[d].submitting_role == request.requester_role for d in candidates
+    ):
+        raise EvaluationContractError(
+            "the requester role ingested none of the look's candidates"
+        )
     if approval_record.custody_ingest_seq > watermark:
         raise PreregistrationOrderError(
             "the approval was ingested after the look's watermark"

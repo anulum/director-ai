@@ -23,7 +23,7 @@ from typing import Literal
 
 from ._checks import require_sha256
 from .digests import record_digest
-from .errors import MalformedWeightsError
+from .errors import MalformedWeightsError, UnsupportedSafetensorsDtypeError
 
 TensorDtype = Literal[
     "F64", "F32", "F16", "BF16", "F8_E4M3", "F8_E5M2",
@@ -95,6 +95,27 @@ class TensorSetIdentity:
     tensor_set_digest: str
 
 
+def _validate_descriptor(item: TensorDescriptor) -> None:
+    """Refuse a descriptor whose name, dtype or shape is malformed."""
+    if not isinstance(item, TensorDescriptor):
+        raise MalformedWeightsError("a tensor set holds TensorDescriptor records only")
+    try:
+        if not isinstance(item.name, str) or not item.name.encode("utf-8"):
+            raise MalformedWeightsError("a tensor name must be a non-empty string")
+    except UnicodeEncodeError as exc:
+        raise MalformedWeightsError("a tensor name must encode as UTF-8") from exc
+    if not isinstance(item.dtype, str) or item.dtype not in DTYPE_WIDTHS:
+        raise UnsupportedSafetensorsDtypeError(
+            f"tensor {item.name!r} has dtype {item.dtype!r}"
+        )
+    if not isinstance(item.shape, tuple) or not all(
+        type(dim) is int and dim >= 0 for dim in item.shape
+    ):
+        raise MalformedWeightsError(
+            f"tensor {item.name!r} shape must be non-negative integers"
+        )
+
+
 def tensor_set_identity(descriptors: Iterable[TensorDescriptor]) -> TensorSetIdentity:
     """Return the identity of a tensor set, whatever its shard order.
 
@@ -111,9 +132,15 @@ def tensor_set_identity(descriptors: Iterable[TensorDescriptor]) -> TensorSetIde
     Raises
     ------
     MalformedWeightsError
-        If the set is empty or two tensors share a name.
+        If the set is empty, two tensors share a name, or a descriptor's
+        name or shape is malformed.
+    UnsupportedSafetensorsDtypeError
+        If a descriptor's dtype is outside the closed set.
     """
-    ordered = sorted(descriptors, key=lambda item: item.name.encode("utf-8"))
+    items = list(descriptors)
+    for item in items:
+        _validate_descriptor(item)
+    ordered = sorted(items, key=lambda item: item.name.encode("utf-8"))
     if not ordered:
         raise MalformedWeightsError("a tensor set needs at least one tensor")
     names = [item.name for item in ordered]

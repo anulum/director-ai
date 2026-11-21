@@ -16,6 +16,7 @@ more ``*.safetensors`` shards and at most one ``config.json`` and one
   headers included), a bad header checksum, or a non-empty ``prefix``;
 * any member that is not a regular file, or whose name has a ``/``, is
   ``..``, starts with ``.``, repeats, or is not one of the allowed names;
+* non-zero padding between a member's data and its 512-byte boundary;
 * an archive whose length is not a multiple of 512, that lacks the two
   end-of-archive blocks, or that has a non-zero byte after them or more than
   10,240 bytes from the first end block to the end.
@@ -151,6 +152,11 @@ def list_archive_members(handle: BinaryIO, length: int) -> tuple[ArchiveMember, 
         offset = data_offset + -(-size // _BLOCK) * _BLOCK
         if offset > length:
             raise MalformedWeightsError(f"weight archive member {name!r} is truncated")
+        handle.seek(data_offset + size)
+        if any(handle.read(offset - data_offset - size)):
+            raise MalformedWeightsError(
+                f"weight archive member {name!r} has non-zero padding"
+            )
         members.append(ArchiveMember(name, data_offset, size))
     if not any(member.name.endswith(".safetensors") for member in members):
         raise MalformedWeightsError("weight archive holds no safetensors shard")

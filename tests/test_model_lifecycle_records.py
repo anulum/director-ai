@@ -185,6 +185,13 @@ class TestCanonicalJson:
         with pytest.raises(LicenceRecordError):
             decode_record(type(licence()), raw, validate_licence_record)
 
+    def test_lone_surrogates_are_refused_with_a_typed_error(self) -> None:
+        """A string that cannot encode as UTF-8 is refused on both sides."""
+        with pytest.raises(NonCanonicalJsonError, match="not valid Unicode"):
+            strict_json_loads(b'{"a": "\\ud800"}')
+        with pytest.raises(NonCanonicalJsonError, match="encode as UTF-8"):
+            canonical_json_bytes({"a": "\ud800"})
+
     def test_strict_loads_returns_plain_data(self) -> None:
         """Plain JSON decodes unchanged."""
         assert strict_json_loads(b'{"a":[1,2.5,null]}') == {"a": [1, 2.5, None]}

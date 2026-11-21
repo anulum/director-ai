@@ -18,6 +18,7 @@ import io
 import struct
 import tarfile
 from pathlib import Path
+from typing import cast
 
 import pytest
 
@@ -25,6 +26,7 @@ from director_ai.model_lifecycle import (
     MalformedDigestError,
     MalformedWeightsError,
     TensorDescriptor,
+    TensorDtype,
     UnsupportedSafetensorsDtypeError,
     compute_archive_tensor_set_identity,
     compute_tensor_set_digest,
@@ -120,6 +122,44 @@ class TestTensorSetIdentity:
         with pytest.raises(MalformedWeightsError, match="unique across shards"):
             tensor_set_identity([item, item])
 
+    @pytest.mark.parametrize(
+        ("item", "error", "message"),
+        [
+            (
+                TensorDescriptor("w", cast(TensorDtype, "F4"), (1,), "0" * 64),
+                UnsupportedSafetensorsDtypeError,
+                "dtype",
+            ),
+            (
+                TensorDescriptor("w", "F32", (-1,), "0" * 64),
+                MalformedWeightsError,
+                "shape",
+            ),
+            (
+                TensorDescriptor("w", "F32", cast(tuple[int, ...], [1]), "0" * 64),
+                MalformedWeightsError,
+                "shape",
+            ),
+            (
+                TensorDescriptor("", "F32", (1,), "0" * 64),
+                MalformedWeightsError,
+                "non-empty",
+            ),
+            (
+                TensorDescriptor("\ud800", "F32", (1,), "0" * 64),
+                MalformedWeightsError,
+                "encode as UTF-8",
+            ),
+            ("w", MalformedWeightsError, "TensorDescriptor"),
+        ],
+    )
+    def test_malformed_descriptors_are_refused(
+        self, item: object, error: type[Exception], message: str
+    ) -> None:
+        """Each descriptor's name, dtype and shape are validated first."""
+        with pytest.raises(error, match=message):
+            tensor_set_identity([item])  # type: ignore[list-item]
+
     def test_a_malformed_data_digest_is_refused(self) -> None:
         """Descriptors must carry a real digest."""
         with pytest.raises(MalformedDigestError):
@@ -156,6 +196,15 @@ class TestHardenedParser:
         """Bad lengths, encodings and shapes of the header are refused."""
         with pytest.raises(MalformedWeightsError, match=message):
             _parse(data)
+
+    def test_a_lone_surrogate_tensor_name_is_refused(self) -> None:
+        """R-1: a header name that cannot encode as UTF-8 is malformed."""
+        data = safetensors_bytes(
+            [],
+            entries={"\ud800": {"dtype": "U8", "shape": [1], "data_offsets": [0, 1]}},
+        )
+        with pytest.raises(MalformedWeightsError, match="not valid Unicode"):
+            _parse(data + b"\x00")
 
     def test_duplicate_tensor_keys_are_refused(self) -> None:
         """M-J4-11: a repeated member name in the header is refused."""
@@ -403,6 +452,18 @@ class TestWeightArchives:
     def test_archive_refusals(self, data: bytes, message: str) -> None:
         """Length, end blocks, repeats and the shard requirement are enforced."""
         with pytest.raises(MalformedWeightsError, match=message):
+            list_archive_members(io.BytesIO(data), len(data))
+
+    def test_non_zero_member_padding_is_refused(self) -> None:
+        """R-2: the bytes between a member's data and its boundary are zero."""
+        data = (
+            ustar_header(b"a.safetensors", 1)
+            + b"x"
+            + b"\x01"
+            + bytes(510)
+            + bytes(1024)
+        )
+        with pytest.raises(MalformedWeightsError, match="non-zero padding"):
             list_archive_members(io.BytesIO(data), len(data))
 
     def test_a_tensor_name_in_two_shards_is_refused(self, tmp_path: Path) -> None:

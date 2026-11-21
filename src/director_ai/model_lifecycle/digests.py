@@ -73,15 +73,22 @@ def canonical_json_bytes(value: object) -> bytes:
     Raises
     ------
     NonCanonicalJsonError
-        If the value holds a non-finite float or a type without a JSON form.
+        If the value holds a non-finite float, a string that does not
+        encode as UTF-8 (a lone surrogate), or a type without a JSON form.
     """
-    return json.dumps(
+    text = json.dumps(
         _to_json_value(value),
         sort_keys=True,
         separators=(",", ":"),
         ensure_ascii=False,
         allow_nan=False,
-    ).encode("utf-8")
+    )
+    try:
+        return text.encode("utf-8")
+    except UnicodeEncodeError as exc:
+        raise NonCanonicalJsonError(
+            "canonical JSON strings must encode as UTF-8"
+        ) from exc
 
 
 def record_digest(value: object) -> str:
@@ -131,16 +138,23 @@ def strict_json_loads(raw: bytes) -> object:
     Raises
     ------
     NonCanonicalJsonError
-        On invalid UTF-8, invalid JSON, a duplicate member name, or a
-        ``NaN`` or ``Infinity`` constant.
+        On invalid UTF-8, invalid JSON, a duplicate member name, a ``NaN``
+        or ``Infinity`` constant, or a string escape that decodes to a lone
+        surrogate.
     """
     try:
         text = raw.decode("utf-8")
-        return json.loads(
+        value = json.loads(
             text,
             object_pairs_hook=_refuse_duplicates,
             parse_constant=_refuse_constant,
         )
+        json.dumps(value, ensure_ascii=False).encode("utf-8")
+        return value
+    except UnicodeEncodeError as exc:
+        raise NonCanonicalJsonError(
+            "JSON holds a string that is not valid Unicode"
+        ) from exc
     except UnicodeDecodeError as exc:
         raise NonCanonicalJsonError("JSON is not valid UTF-8") from exc
     except json.JSONDecodeError as exc:

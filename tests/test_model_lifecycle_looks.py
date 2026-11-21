@@ -125,6 +125,11 @@ class TestAdmission:
         with pytest.raises(PreregistrationOrderError, match="before the approval"):
             scenario.admit()
 
+    def test_the_requester_role_must_have_ingested_a_candidate(self) -> None:
+        """R-3: a request in a role that ingested none of its candidates is refused."""
+        with pytest.raises(EvaluationContractError, match="ingested none"):
+            LookScenario(requester=PROPOSER_B).admit()
+
     def test_ingests_after_the_watermark_are_refused(self) -> None:
         """The look cannot reference a record custody has not acknowledged."""
         with pytest.raises(
@@ -680,41 +685,80 @@ class TestPromotion:
         with pytest.raises(error):
             validate_promotion_decision(_decision(**changes))
 
-    def test_the_look_result_must_belong_to_the_decision(self) -> None:
-        """The result's digest and reported artefacts bind the decision."""
-        entry = journal_entry(_lineage_id(20, A1), (A1,))
-        result = SealedLookResult(
-            "sealed-look-result.v1",
-            record_digest(entry),
-            entry.derived_proposer_lineage_id,
-            entry.split_digest,
-            _output(),
+    def test_the_look_must_belong_to_the_decision(self) -> None:
+        """The result binds by digest to its entry, which froze the candidate."""
+        entry = journal_entry(_lineage_id(20, A1), (A1, A2))
+
+        def result_of(
+            output: EvaluatorOutput, claimed: object = entry
+        ) -> SealedLookResult:
+            """Return a result for ``output`` bound to ``claimed``."""
+            return SealedLookResult(
+                "sealed-look-result.v1",
+                record_digest(claimed),
+                entry.derived_proposer_lineage_id,
+                entry.split_digest,
+                output,
+            )
+
+        def bound(
+            result: SealedLookResult, **changes: object
+        ) -> PromotionDecisionRecord:
+            """Return a decision that names ``result``."""
+            return _decision(sealed_look_result_digest=record_digest(result), **changes)
+
+        result = result_of(_output())
+        assert validate_promotion_decision(
+            bound(result), look_result=result, journal_entry=entry
         )
-        decision = _decision(sealed_look_result_digest=record_digest(result))
-        assert validate_promotion_decision(decision, look_result=result)
+        with pytest.raises(PromotionDecisionError, match="checked together"):
+            validate_promotion_decision(bound(result), look_result=result)
+        with pytest.raises(PromotionDecisionError, match="checked together"):
+            validate_promotion_decision(bound(result), journal_entry=entry)
         with pytest.raises(PromotionDecisionError, match="does not match"):
-            validate_promotion_decision(_decision(), look_result=result)
-        other = replace(
-            result,
-            evaluator_output=_output(slice_estimates=(_estimate(artefact_digest=A2),)),
+            validate_promotion_decision(
+                _decision(), look_result=result, journal_entry=entry
+            )
+        stray = result_of(_output(), claimed=replace(entry, journal_seq=9))
+        with pytest.raises(PromotionDecisionError, match="not bound"):
+            validate_promotion_decision(
+                bound(stray), look_result=stray, journal_entry=entry
+            )
+        counts = result_of(
+            EvaluatorOutput("evaluator-output.v1", "test_suite_counts", (), 10, 10)
         )
+        assert validate_promotion_decision(
+            bound(counts), look_result=counts, journal_entry=entry
+        )
+        with pytest.raises(
+            PromotionDecisionError, match="did not freeze the candidate"
+        ):
+            validate_promotion_decision(
+                bound(counts, candidate_content_digest=digest_of("other")),
+                look_result=counts,
+                journal_entry=entry,
+            )
+        other = result_of(_output(slice_estimates=(_estimate(artefact_digest=A2),)))
         with pytest.raises(
             PromotionDecisionError, match="does not report the candidate"
         ):
             validate_promotion_decision(
-                _decision(sealed_look_result_digest=record_digest(other)),
-                look_result=other,
+                bound(other), look_result=other, journal_entry=entry
             )
-        counts = replace(
-            result,
-            evaluator_output=EvaluatorOutput(
-                "evaluator-output.v1", "test_suite_counts", (), 10, 10
-            ),
-        )
-        assert validate_promotion_decision(
-            _decision(sealed_look_result_digest=record_digest(counts)),
-            look_result=counts,
-        )
+
+    def test_the_pre_state_inputs_are_typed(self) -> None:
+        """A boolean generation or a malformed digest is refused."""
+        decision = _decision(expected_active_generation=1)
+        with pytest.raises(PromotionDecisionError, match="must be an integer"):
+            check_promotion_pre_state(
+                decision,
+                active_generation=True,
+                production_digest=digest_of("production"),
+            )
+        with pytest.raises(MalformedDigestError):
+            check_promotion_pre_state(
+                decision, active_generation=1, production_digest="stale"
+            )
 
     def test_a_non_decision_is_refused(self) -> None:
         """The validator needs a decision."""
