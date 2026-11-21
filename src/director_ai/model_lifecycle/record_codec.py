@@ -39,6 +39,7 @@ from .cost_and_promotion_contracts import (
 from .custody_records import CustodyIngestRecord, validate_custody_ingest_record
 from .dataset_contracts import validate_dedup_report, validate_distillation_manifest
 from .dataset_records import DatasetDeduplicationReport, SyntheticDistillationManifest
+from .deployment_records import PostSwapVerification, validate_post_swap_verification
 from .digests import canonical_json_bytes, decode_record
 from .encoding_contracts import (
     validate_embedding_space_identity,
@@ -256,6 +257,7 @@ VALIDATORS: dict[type, Callable[[object], object]] = {
         (BarrenPlateauWitnessReceipt, validate_barren_plateau_receipt),
         (QuantumShotNoiseAcceptanceSpec, validate_shot_noise_spec),
         (QuantumCircuitExecutionReceipt, validate_receipt_shape),
+        (PostSwapVerification, validate_post_swap_verification),
     )
 }
 """Every record type the codec decodes, with the validator it runs."""

@@ -57,6 +57,14 @@ from .dataset_records import (
     SplitPartition,
     SyntheticDistillationManifest,
 )
+from .deployment_records import (
+    OBSERVATION_OUTCOMES,
+    POST_SWAP_EFFECTS,
+    POST_SWAP_OBSERVATIONS,
+    POST_SWAP_RESULTS,
+    PostSwapEvidence,
+    PostSwapVerification,
+)
 from .encoding_records import (
     POOLING_MODES,
     SCALER_KINDS,
@@ -226,6 +234,10 @@ from .study_records import (
     OnnxExportProfileSpec,
     PreregistrationBuild2Terms,
 )
+from .submission_guard import (
+    LOCAL_FUNDING,
+    PAID_FUNDING,
+)
 from .tensors import (
     SAFE_TENSORS_DTYPES,
     TensorDescriptor,
@@ -271,6 +283,7 @@ __all__ = [
     "JOB_STATES",
     "JOURNAL_ORIGIN_SEQ",
     "LANGUAGE_FAMILY_RULE",
+    "LOCAL_FUNDING",
     "MAX_DRIFT_ALPHA",
     "MAX_FAMILYWISE_ALPHA",
     "MAX_MASKED_FRACTION_CEILING",
@@ -285,11 +298,16 @@ __all__ = [
     "NETWORK_ISOLATION_LAYERS",
     "NOISE_FLOOR_MULTIPLE",
     "NO_BF16_TIERS",
+    "OBSERVATION_OUTCOMES",
     "OPTIMISATION_SENSES",
     "OUTCOME_STATUSES",
     "PIN_ACTIONS",
+    "PAID_FUNDING",
     "POOLING_MODES",
     "POOL_FUNDING_KINDS",
+    "POST_SWAP_EFFECTS",
+    "POST_SWAP_OBSERVATIONS",
+    "POST_SWAP_RESULTS",
     "PROFILE_LOCKS",
     "QUANTUM_EXECUTION_MODES",
     "QUANTUM_VARIATIONAL_FAMILY_RULE",
@@ -359,6 +377,8 @@ __all__ = [
     "PairedShotInstance",
     "PauliGroupShots",
     "PoolFundingKind",
+    "PostSwapEvidence",
+    "PostSwapVerification",
     "PreregistrationApproval",
     "PreregistrationBuild2Terms",
     "PreregistrationRecord",

@@ -24,7 +24,7 @@ import pytest
 import director_ai.model_lifecycle as kernel
 
 PACKAGE = Path(kernel.__file__).parent
-SURFACES = ("__init__.py", "contracts.py", "validators.py")
+SURFACES = ("__init__.py", "contracts.py", "validators.py", "ports.py")
 
 
 def surface_violations(source: str) -> list[str]:

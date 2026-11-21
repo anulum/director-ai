@@ -34,6 +34,10 @@ from .dataset_contracts import (
     validate_dedup_report,
     validate_distillation_manifest,
 )
+from .deployment_records import (
+    validate_post_swap_evidence,
+    validate_post_swap_verification,
+)
 from .digests import (
     canonical_json_bytes,
     decode_record,
@@ -206,6 +210,9 @@ from .study_contracts import (
     validate_dynamics_evaluation_contract,
     validate_inference_envelope,
 )
+from .submission_guard import (
+    guard_job_submission,
+)
 from .tensors import (
     tensor_set_identity,
 )
@@ -254,6 +261,7 @@ __all__ = [
     "exempt_base_digests",
     "family_rule",
     "from_canonical_json_bytes",
+    "guard_job_submission",
     "hoeffding_radius",
     "is_sealed_kind",
     "journal_entry_for",
@@ -314,6 +322,8 @@ __all__ = [
     "validate_onnx_export_profile",
     "validate_paid_run_approval",
     "validate_paired_receipts",
+    "validate_post_swap_evidence",
+    "validate_post_swap_verification",
     "validate_preregistration",
     "validate_preregistration_approval",
     "validate_pretraining_checkpoint_state",

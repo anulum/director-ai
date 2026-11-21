@@ -6,10 +6,10 @@
     "optional_extras": 62,
     "public_api_exports": 227,
     "public_documentation_pages": 208,
-    "python_model_classes": 1182,
-    "python_model_source_modules": 602,
+    "python_model_classes": 1203,
+    "python_model_source_modules": 611,
     "rust_pyo3_model_wrappers": 83,
-    "test_files": 869
+    "test_files": 870
   },
   "documentation": {
     "public_pages": [
@@ -365,6 +365,10 @@
       {
         "name": "Actor",
         "path": "src/director_ai/core/trajectory/simulator.py"
+      },
+      {
+        "name": "AdapterMergeAndExportPort",
+        "path": "src/director_ai/model_lifecycle/ports_training.py"
       },
       {
         "name": "AdaptiveConformalPredictor",
@@ -819,6 +823,10 @@
         "path": "src/director_ai/core/causal_verifier/graph.py"
       },
       {
+        "name": "ChainedDeploymentPort",
+        "path": "src/director_ai/model_lifecycle/ports_custody.py"
+      },
+      {
         "name": "CheckOutcome",
         "path": "src/director_ai/core/evidence_firewall/policy.py"
       },
@@ -901,6 +909,10 @@
       {
         "name": "ClaimVerdict",
         "path": "src/director_ai/core/scoring/verified_scorer.py"
+      },
+      {
+        "name": "CloudComputeDriverPort",
+        "path": "src/director_ai/model_lifecycle/ports_compute.py"
       },
       {
         "name": "CloudJobCancelReceipt",
@@ -1021,6 +1033,10 @@
       {
         "name": "ComponentType",
         "path": "src/director_ai/core/ml_bom/components.py"
+      },
+      {
+        "name": "ComputeAndSpendPort",
+        "path": "src/director_ai/model_lifecycle/ports_compute.py"
       },
       {
         "name": "ComputeAndTuningBudget",
@@ -1335,6 +1351,10 @@
         "path": "src/director_ai/model_lifecycle/errors.py"
       },
       {
+        "name": "CustodySubprocessPort",
+        "path": "src/director_ai/model_lifecycle/ports_custody.py"
+      },
+      {
         "name": "CustodyTierJournalEntry",
         "path": "src/director_ai/model_lifecycle/tier_journal.py"
       },
@@ -1435,6 +1455,10 @@
         "path": "src/director_ai/model_lifecycle/errors.py"
       },
       {
+        "name": "DatasetCuratorPort",
+        "path": "src/director_ai/model_lifecycle/ports_data.py"
+      },
+      {
         "name": "DatasetDeduplicationReport",
         "path": "src/director_ai/model_lifecycle/dataset_records.py"
       },
@@ -1505,6 +1529,10 @@
       {
         "name": "DeploymentPolicy",
         "path": "src/director_ai/core/customer_model_factory/deployment_manifest.py"
+      },
+      {
+        "name": "DeploymentRecordError",
+        "path": "src/director_ai/model_lifecycle/errors.py"
       },
       {
         "name": "DetoxifyDetector",
@@ -1647,6 +1675,10 @@
         "path": "src/director_ai/model_lifecycle/encoding_records.py"
       },
       {
+        "name": "DynamicsNormaliserPort",
+        "path": "src/director_ai/model_lifecycle/ports_data.py"
+      },
+      {
         "name": "EconomicDecision",
         "path": "src/director_ai/core/routing/economics.py"
       },
@@ -1745,6 +1777,10 @@
       {
         "name": "EvaluationContractError",
         "path": "src/director_ai/model_lifecycle/errors.py"
+      },
+      {
+        "name": "EvaluationGraderPort",
+        "path": "src/director_ai/model_lifecycle/ports_training.py"
       },
       {
         "name": "EvaluatorOutput",
@@ -3367,6 +3403,10 @@
         "path": "src/director_ai/core/cyber_physical/closed_loop.py"
       },
       {
+        "name": "PhysicsDynamicsVerifierPort",
+        "path": "src/director_ai/model_lifecycle/ports_verifiers.py"
+      },
+      {
         "name": "PhysicsError",
         "path": "src/director_ai/core/exceptions.py"
       },
@@ -3469,6 +3509,14 @@
       {
         "name": "PortableTrainingBackend",
         "path": "src/director_ai/core/training/jobs.py"
+      },
+      {
+        "name": "PostSwapEvidence",
+        "path": "src/director_ai/model_lifecycle/deployment_records.py"
+      },
+      {
+        "name": "PostSwapVerification",
+        "path": "src/director_ai/model_lifecycle/deployment_records.py"
       },
       {
         "name": "PostgresAuditSink",
@@ -3641,6 +3689,10 @@
       {
         "name": "QuantumVariationalSeedTuple",
         "path": "src/director_ai/model_lifecycle/quantum_records.py"
+      },
+      {
+        "name": "QuantumVariationalVerifierPort",
+        "path": "src/director_ai/model_lifecycle/ports_verifiers.py"
       },
       {
         "name": "QueryDecompositionBackend",
@@ -4183,6 +4235,10 @@
         "path": "src/director_ai/core/self_evolving/guard_loop.py"
       },
       {
+        "name": "SelfPlayProblemSynthesizerPort",
+        "path": "src/director_ai/model_lifecycle/ports_rewards.py"
+      },
+      {
         "name": "SensorStateSnapshot",
         "path": "src/director_ai/core/cyber_physical/closed_loop.py"
       },
@@ -4293,6 +4349,14 @@
       {
         "name": "SpendReservationBinding",
         "path": "src/director_ai/model_lifecycle/spend_records.py"
+      },
+      {
+        "name": "SpendReservationRefusedError",
+        "path": "src/director_ai/model_lifecycle/errors.py"
+      },
+      {
+        "name": "SpendSettlementRefusedError",
+        "path": "src/director_ai/model_lifecycle/errors.py"
       },
       {
         "name": "Sphere",
@@ -4575,6 +4639,10 @@
         "path": "src/director_ai/model_lifecycle/tensors.py"
       },
       {
+        "name": "TestTimeVerifierSearchPort",
+        "path": "src/director_ai/model_lifecycle/ports_training.py"
+      },
+      {
         "name": "TextRequest",
         "path": "src/director_ai/_server_models.py"
       },
@@ -4651,6 +4719,10 @@
         "path": "src/director_ai/model_lifecycle/encoding_records.py"
       },
       {
+        "name": "TokeniserTrainerPort",
+        "path": "src/director_ai/model_lifecycle/ports_data.py"
+      },
+      {
         "name": "ToolCallResult",
         "path": "src/director_ai/core/verification/types.py"
       },
@@ -4713,6 +4785,10 @@
       {
         "name": "TrainedModelRegistry",
         "path": "src/director_ai/core/training/trained_model_registry.py"
+      },
+      {
+        "name": "TrainingBackendPort",
+        "path": "src/director_ai/model_lifecycle/ports_training.py"
       },
       {
         "name": "TrainingDatasetSplit",
@@ -4955,6 +5031,10 @@
         "path": "src/director_ai/model_lifecycle/rlvr_records.py"
       },
       {
+        "name": "VerifiableRewardPort",
+        "path": "src/director_ai/model_lifecycle/ports_rewards.py"
+      },
+      {
         "name": "VerificationReport",
         "path": "src/director_ai/core/ml_bom/bom.py"
       },
@@ -5061,6 +5141,10 @@
       {
         "name": "ZkSnarkBackend",
         "path": "src/director_ai/core/zk_attestation/backends.py"
+      },
+      {
+        "name": "ZpdCurriculumSchedulerPort",
+        "path": "src/director_ai/model_lifecycle/ports_rewards.py"
       }
     ],
     "python_source_modules": [
@@ -5588,6 +5672,7 @@
       "src/director_ai/model_lifecycle/custody_records.py",
       "src/director_ai/model_lifecycle/dataset_contracts.py",
       "src/director_ai/model_lifecycle/dataset_records.py",
+      "src/director_ai/model_lifecycle/deployment_records.py",
       "src/director_ai/model_lifecycle/digests.py",
       "src/director_ai/model_lifecycle/encoding_contracts.py",
       "src/director_ai/model_lifecycle/encoding_records.py",
@@ -5608,6 +5693,13 @@
       "src/director_ai/model_lifecycle/lineage.py",
       "src/director_ai/model_lifecycle/look_admission.py",
       "src/director_ai/model_lifecycle/look_budget.py",
+      "src/director_ai/model_lifecycle/ports.py",
+      "src/director_ai/model_lifecycle/ports_compute.py",
+      "src/director_ai/model_lifecycle/ports_custody.py",
+      "src/director_ai/model_lifecycle/ports_data.py",
+      "src/director_ai/model_lifecycle/ports_rewards.py",
+      "src/director_ai/model_lifecycle/ports_training.py",
+      "src/director_ai/model_lifecycle/ports_verifiers.py",
       "src/director_ai/model_lifecycle/power.py",
       "src/director_ai/model_lifecycle/preregistration_approvals.py",
       "src/director_ai/model_lifecycle/promotion_evidence.py",
@@ -5633,6 +5725,7 @@
       "src/director_ai/model_lifecycle/spend_records.py",
       "src/director_ai/model_lifecycle/study_contracts.py",
       "src/director_ai/model_lifecycle/study_records.py",
+      "src/director_ai/model_lifecycle/submission_guard.py",
       "src/director_ai/model_lifecycle/tensors.py",
       "src/director_ai/model_lifecycle/tier_journal.py",
       "src/director_ai/model_lifecycle/validators.py",
@@ -6558,6 +6651,7 @@
       "tests/test_model_lifecycle_journal_v2.py",
       "tests/test_model_lifecycle_licence_boundary.py",
       "tests/test_model_lifecycle_looks.py",
+      "tests/test_model_lifecycle_ports.py",
       "tests/test_model_lifecycle_promotion_gate.py",
       "tests/test_model_lifecycle_quantum.py",
       "tests/test_model_lifecycle_recipes.py",

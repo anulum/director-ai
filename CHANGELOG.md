@@ -114,6 +114,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     and Hoeffding radii that are finite or refused by name, and a
     lower-bound check that compares exactly; and the barren-plateau and
     spiking lowering parity witnesses;
+  - the ports adapters implement, for data, training, rewards, verifiers,
+    compute, spend, custody and chained deployment; typed SpendLedger
+    refusals; post-swap verification records whose observation fixes
+    their effect and result; and a submission guard every compute driver
+    calls last, which queries the live reservation itself and requires a
+    passed barren-plateau preflight for credit-funded or paid variational
+    quantum jobs;
   - 17-key custody ingest records with a fixed set of sealed kinds;
   - preregistration, approval and sealed look records with four outcomes;
   - a custody-derived, root-anchored proposer lineage and look budget,

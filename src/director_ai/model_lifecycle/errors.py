@@ -108,6 +108,53 @@ class SpendBindingError(ModelLifecycleError):
     """A spend binding, cost estimate, approval or job record breaks its rules."""
 
 
+class SpendReservationRefusedError(ModelLifecycleError):
+    """SpendLedger refused a compute reservation request.
+
+    Parameters
+    ----------
+    pool_id : str
+        The pool the reservation was requested from.
+    ledger_reason : str
+        The ledger's stated reason.
+    """
+
+    def __init__(self, *, pool_id: str, ledger_reason: str) -> None:
+        super().__init__(
+            f"spend reservation refused for pool {pool_id!r}: {ledger_reason}"
+        )
+        self.pool_id = pool_id
+        self.ledger_reason = ledger_reason
+
+
+class SpendSettlementRefusedError(ModelLifecycleError):
+    """SpendLedger refused a reservation settlement.
+
+    Parameters
+    ----------
+    pool_id : str
+        The reservation's pool.
+    reservation_id : str
+        The reservation.
+    ledger_reason : str
+        The ledger's stated reason.
+    """
+
+    def __init__(
+        self, *, pool_id: str, reservation_id: str, ledger_reason: str
+    ) -> None:
+        super().__init__(
+            f"spend settlement refused for {pool_id!r}/{reservation_id!r}: {ledger_reason}"
+        )
+        self.pool_id = pool_id
+        self.reservation_id = reservation_id
+        self.ledger_reason = ledger_reason
+
+
+class DeploymentRecordError(ModelLifecycleError):
+    """A post-swap verification record breaks its schema."""
+
+
 class LicenceRecordError(ModelLifecycleError):
     """A dual-axis licence record or compute budget is malformed."""
 
