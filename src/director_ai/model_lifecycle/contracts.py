@@ -125,6 +125,12 @@ from .look_admission import (
 from .preregistration_approvals import (
     PreregistrationApproval,
 )
+from .promotion_evidence import (
+    ENVELOPE_CAPS,
+    MIN_TRAINING_SEEDS,
+    NOISE_FLOOR_MULTIPLE,
+    PromotionEvidence,
+)
 from .promotion_records import (
     PromotionDependencyPins,
     ServingMemoryBudget,
@@ -223,6 +229,7 @@ __all__ = [
     "DOMAIN_KINDS",
     "DYNAMICS_FAMILY_RULE",
     "EMPTY_PRODUCTION_DIGEST",
+    "ENVELOPE_CAPS",
     "FAMILY_CONTRACT_REGISTRY",
     "FAULT_KINDS",
     "FAULT_OUTCOMES",
@@ -240,10 +247,12 @@ __all__ = [
     "MAX_FAMILYWISE_ALPHA",
     "MAX_MASKED_FRACTION_CEILING",
     "MIN_REAL_TRAIN_CLUSTER_FRACTION_WITH_SYNTHETIC",
+    "MIN_TRAINING_SEEDS",
     "MODEL_CUSTODY_KINDS",
     "MONEY_CONTEXT",
     "MUP_INV_D_PROFILES",
     "NETWORK_ISOLATION_LAYERS",
+    "NOISE_FLOOR_MULTIPLE",
     "NO_BF16_TIERS",
     "OUTCOME_STATUSES",
     "PIN_ACTIONS",
@@ -318,6 +327,7 @@ __all__ = [
     "PretrainingCheckpointState",
     "PromotionDecisionRecord",
     "PromotionDependencyPins",
+    "PromotionEvidence",
     "RegisteredFamilyContractRule",
     "RlvrAlgorithmSpec",
     "RoleAuthenticationMode",

@@ -6,10 +6,10 @@
     "optional_extras": 62,
     "public_api_exports": 227,
     "public_documentation_pages": 208,
-    "python_model_classes": 1172,
-    "python_model_source_modules": 592,
+    "python_model_classes": 1173,
+    "python_model_source_modules": 595,
     "rust_pyo3_model_wrappers": 83,
-    "test_files": 867
+    "test_files": 868
   },
   "documentation": {
     "public_pages": [
@@ -3571,6 +3571,10 @@
         "path": "src/director_ai/model_lifecycle/promotion_records.py"
       },
       {
+        "name": "PromotionEvidence",
+        "path": "src/director_ai/model_lifecycle/promotion_evidence.py"
+      },
+      {
         "name": "PromptInjectionModel",
         "path": "src/director_ai/core/safety/prompt_guard.py"
       },
@@ -5569,6 +5573,9 @@
       "src/director_ai/model_lifecycle/look_budget.py",
       "src/director_ai/model_lifecycle/power.py",
       "src/director_ai/model_lifecycle/preregistration_approvals.py",
+      "src/director_ai/model_lifecycle/promotion_evidence.py",
+      "src/director_ai/model_lifecycle/promotion_exports.py",
+      "src/director_ai/model_lifecycle/promotion_gate.py",
       "src/director_ai/model_lifecycle/promotion_records.py",
       "src/director_ai/model_lifecycle/recipe_contracts.py",
       "src/director_ai/model_lifecycle/recipe_parts.py",
@@ -6508,6 +6515,7 @@
       "tests/test_model_lifecycle_journal_v2.py",
       "tests/test_model_lifecycle_licence_boundary.py",
       "tests/test_model_lifecycle_looks.py",
+      "tests/test_model_lifecycle_promotion_gate.py",
       "tests/test_model_lifecycle_recipes.py",
       "tests/test_model_lifecycle_records.py",
       "tests/test_model_lifecycle_spend.py",

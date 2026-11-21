@@ -9,11 +9,14 @@
 """Records of a build-2 study's terms, dynamics evaluation and export parity.
 
 :class:`PreregistrationBuild2Terms` holds what a preregistration fixes for a
-training study: its seeds, noise floors, matched budgets and test-time
-compute per arm. :class:`DynamicsEvaluationContract` fixes how a physical
-dynamics model is evaluated. :class:`ExportParityReport` ties an exported
-serving binary to its parent by per-slice non-inferiority checks. The rules
-are in :mod:`.study_contracts` and :mod:`.export_contracts`.
+training study: its seeds, noise floors and native-unit margins, its
+baseline arm, and the matched budget and test-time compute of each arm. Its
+record digest is the preregistration's ``search_spaces_and_budgets_digest``,
+and it binds the search spaces through its own ``search_spaces_digest``.
+:class:`DynamicsEvaluationContract` fixes how a physical dynamics model is
+evaluated. :class:`ExportParityReport` ties an exported serving binary to
+its parent by per-slice non-inferiority checks. The rules are in
+:mod:`.study_contracts` and :mod:`.export_contracts`.
 """
 
 from __future__ import annotations
@@ -48,12 +51,15 @@ class PreregistrationBuild2Terms:
     """Build-2 study terms with unit-consistent rate and non-rate noise floors."""
 
     schema: Literal["preregistration-build2-terms.v1"]
+    search_spaces_digest: str
     min_training_seeds: int
     seed_aggregation_rule: Literal["every_seed_must_pass", "median_seed"]
     test_retest_flip_rate_ceiling_bps: int
     non_rate_metric_noise_floors: tuple[tuple[str, float], ...]
+    non_rate_metric_margins: tuple[tuple[str, float], ...]
     arm_matched_budgets: tuple[tuple[str, MatchedBudgetAccountingSpec], ...]
     arm_inference_envelopes: tuple[tuple[str, InferenceComputeEnvelope], ...]
+    baseline_arm: str
     pareto_multi_budget_study: bool
     predeclared_promotion_eligible_arm_rule: str
     dynamics_eval_contract_digest: str | None

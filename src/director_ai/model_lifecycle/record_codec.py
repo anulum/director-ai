@@ -101,6 +101,7 @@ from .preregistration_approvals import (
     PreregistrationApproval,
     validate_preregistration_approval,
 )
+from .promotion_evidence import PromotionEvidence, validate_promotion_evidence
 from .promotion_records import (
     PromotionDependencyPins,
     ServingMemoryBudget,
@@ -236,6 +237,7 @@ VALIDATORS: dict[type, Callable[[object], object]] = {
         (PromotionDependencyPins, validate_dependency_pins),
         (StudyDeclineRecord, validate_study_decline),
         (CustodyTierJournalEntry, validate_tier_journal_entry),
+        (PromotionEvidence, validate_promotion_evidence),
     )
 }
 """Every record type the codec decodes, with the validator it runs."""

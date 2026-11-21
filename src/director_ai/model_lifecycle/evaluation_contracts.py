@@ -78,7 +78,10 @@ class PreregistrationRecord:
     declared_arms : tuple[str, ...]
         Names of the compared arms.
     search_spaces_and_budgets_digest : str
-        SHA-256 of the search spaces and budgets.
+        SHA-256 of the search spaces and budgets. In Build 2 it is the record
+        digest of the study's ``PreregistrationBuild2Terms``, which hold the
+        arms' budgets and bind the search spaces through their
+        ``search_spaces_digest``.
     split_pool : SealedSplitPool
         The sealed split pool.
     graders : tuple[GraderSpec, ...]

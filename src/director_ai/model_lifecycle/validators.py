@@ -115,6 +115,20 @@ from .power import (
 from .preregistration_approvals import (
     validate_preregistration_approval,
 )
+from .promotion_evidence import (
+    check_held_equal_axes,
+    check_inference_envelope,
+    check_noise_floors,
+    evidence_arm_digests,
+    spans_noise_floors,
+    validate_promotion_evidence,
+)
+from .promotion_exports import (
+    check_promotion_exports,
+)
+from .promotion_gate import (
+    validate_promotion_or_decline,
+)
 from .promotion_records import (
     validate_dependency_pins,
     validate_serving_memory_budget,
@@ -190,8 +204,12 @@ __all__ = [
     "amount",
     "any_lane_matches",
     "canonical_json_bytes",
+    "check_held_equal_axes",
+    "check_inference_envelope",
     "check_journal_order",
     "check_look_budget",
+    "check_noise_floors",
+    "check_promotion_exports",
     "check_promotion_pre_state",
     "check_tier_journal_order",
     "check_transformer_architecture_shape",
@@ -202,6 +220,7 @@ __all__ = [
     "compute_tensor_set_identity",
     "decode_record",
     "derive_proposer_lineage",
+    "evidence_arm_digests",
     "exempt_base_digests",
     "family_rule",
     "from_canonical_json_bytes",
@@ -218,6 +237,7 @@ __all__ = [
     "required_paired_sample_size",
     "scan_float_chunk",
     "select_study_entries",
+    "spans_noise_floors",
     "strict_json_loads",
     "tensor_set_identity",
     "validate_base_checkpoint_record",
@@ -259,6 +279,8 @@ __all__ = [
     "validate_preregistration_approval",
     "validate_pretraining_checkpoint_state",
     "validate_promotion_decision",
+    "validate_promotion_evidence",
+    "validate_promotion_or_decline",
     "validate_recipe_and_curriculum",
     "validate_rlvr_batch_mask_rate",
     "validate_rlvr_spec",

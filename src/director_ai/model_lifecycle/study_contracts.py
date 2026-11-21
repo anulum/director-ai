@@ -112,8 +112,9 @@ def validate_build2_terms(
     ------
     EvaluationContractError
         If the flip-rate ceiling is outside ``[0, 10000]`` basis points, a
-        noise floor is negative, the two arm tables name different arms, or a
-        field is malformed.
+        noise floor or non-rate margin is negative, the margins and noise
+        floors name different metrics, the two arm tables name different
+        arms, the baseline is not one of them, or a field is malformed.
     RecipeContractError
         If an arm's matched budget is malformed.
     MalformedDigestError
@@ -122,6 +123,7 @@ def validate_build2_terms(
     if not isinstance(terms, PreregistrationBuild2Terms):
         raise E("a PreregistrationBuild2Terms is required")
     require_choice(terms.schema, "schema", {"preregistration-build2-terms.v1"}, E)
+    require_sha256(terms.search_spaces_digest, "search_spaces_digest")
     require_int(terms.min_training_seeds, "min_training_seeds", E, minimum=1)
     require_choice(
         terms.seed_aggregation_rule,
@@ -137,17 +139,23 @@ def validate_build2_terms(
     )
     if ceiling > BPS_SCALE:
         raise E("test_retest_flip_rate_ceiling_bps must not exceed 10000")
-    for _, floor in _named_table(
+    floors = _named_table(
         terms.non_rate_metric_noise_floors, "non_rate_metric_noise_floors"
-    ):
-        if require_finite(floor, "noise floor", E) < 0.0:
-            raise E("a non-rate noise floor must not be negative")
+    )
+    margins = _named_table(terms.non_rate_metric_margins, "non_rate_metric_margins")
+    for _, value in [*floors, *margins]:
+        if require_finite(value, "non-rate floor or margin", E) < 0.0:
+            raise E("a non-rate noise floor or margin must not be negative")
+    if {metric for metric, _ in floors} != {metric for metric, _ in margins}:
+        raise E("every non-rate metric needs both a noise floor and a margin")
     budgets = _named_table(terms.arm_matched_budgets, "arm_matched_budgets")
     envelopes = _named_table(terms.arm_inference_envelopes, "arm_inference_envelopes")
     if not budgets:
         raise E("a study needs at least one arm")
     if {arm for arm, _ in budgets} != {arm for arm, _ in envelopes}:
         raise E("every arm needs both a matched budget and an inference envelope")
+    if require_text(terms.baseline_arm, "baseline_arm", E) not in dict(budgets):
+        raise E("the baseline arm is not one of the study's arms")
     for _, budget in terms.arm_matched_budgets:
         validate_matched_budget(budget)
     for _, envelope in terms.arm_inference_envelopes:

@@ -98,6 +98,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     tier position, and a release resets a digest's pins), the
     deployment-operator role, and a check that every dependency of a
     promotion is pinned in its scope by that role;
+  - the gate that ends a study with one promotion or one complete decline:
+    the terms freeze the baseline arm, a decline names every other arm, and
+    a promotion must pass the seed and noise-floor rules, equal held
+    budgets with at least one training-compute axis held, no more test-time
+    compute than the baseline, a baseline measured in the same look, its
+    serving memory budget, its scoped dependency pins and export parity
+    reports that cover the look's slices; the build-2 terms gain a
+    search-spaces digest, the baseline arm and native-unit margins for
+    non-rate metrics;
   - 17-key custody ingest records with a fixed set of sealed kinds;
   - preregistration, approval and sealed look records with four outcomes;
   - a custody-derived, root-anchored proposer lineage and look budget,

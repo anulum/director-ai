@@ -47,12 +47,15 @@ def terms(**changes: object) -> PreregistrationBuild2Terms:
     """Return valid two-arm study terms with ``changes`` applied."""
     base = PreregistrationBuild2Terms(
         schema="preregistration-build2-terms.v1",
+        search_spaces_digest=digest_of("search-spaces"),
         min_training_seeds=3,
         seed_aggregation_rule="every_seed_must_pass",
         test_retest_flip_rate_ceiling_bps=50,
         non_rate_metric_noise_floors=(("rollout_rmse_m", 0.002),),
+        non_rate_metric_margins=(("rollout_rmse_m", 0.006),),
         arm_matched_budgets=(("baseline", budget()), ("candidate", budget())),
         arm_inference_envelopes=(("baseline", envelope()), ("candidate", envelope())),
+        baseline_arm="baseline",
         pareto_multi_budget_study=False,
         predeclared_promotion_eligible_arm_rule="candidate only",
         dynamics_eval_contract_digest=digest_of("dynamics"),
@@ -187,6 +190,9 @@ class TestStudyTerms:
             ({"test_retest_flip_rate_ceiling_bps": -1}, "flip_rate"),
             ({"non_rate_metric_noise_floors": (("rmse", -0.1),)}, "negative"),
             ({"non_rate_metric_noise_floors": (("rmse", 0.1), ("rmse", 0.2))}, "names"),
+            ({"non_rate_metric_margins": (("rollout_rmse_m", -0.006),)}, "negative"),
+            ({"non_rate_metric_margins": (("energy_j", 0.5),)}, "both a noise floor"),
+            ({"non_rate_metric_margins": ()}, "both a noise floor"),
             (
                 {"arm_inference_envelopes": (("baseline", envelope()),)},
                 "both a matched budget",
@@ -200,6 +206,8 @@ class TestStudyTerms:
             ({"seed_aggregation_rule": "mean_seed"}, "seed_aggregation_rule"),
             ({"pareto_multi_budget_study": 0}, "pareto"),
             ({"predeclared_promotion_eligible_arm_rule": ""}, "predeclared"),
+            ({"baseline_arm": "other"}, "not one of the study's arms"),
+            ({"baseline_arm": ""}, "baseline_arm"),
             ({"schema": "terms.v2"}, "schema"),
         ],
     )
@@ -230,6 +238,8 @@ class TestStudyTerms:
             )
         with pytest.raises(MalformedDigestError):
             validate_build2_terms(terms(dynamics_eval_contract_digest="x"))
+        with pytest.raises(MalformedDigestError):
+            validate_build2_terms(terms(search_spaces_digest="x"))
 
     @pytest.mark.parametrize(
         "changes",
