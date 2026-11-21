@@ -26,6 +26,7 @@ from director_ai.model_lifecycle import (
     canonical_json_bytes,
     from_canonical_json_bytes,
     journal_entry_for,
+    look_opening_for,
     record_digest,
     validate_journal_entry,
 )
@@ -210,10 +211,14 @@ class TestBuilder:
         prereg = preregistration(study_id="study-7")
         scenario = LookScenario(prereg=prereg)
         request = scenario.request()
+        opening = replace(
+            look_opening_for(request, prereg, prior_journal=(), look_custody_seq=30),
+            journal_seq=4,
+        )
         entry = journal_entry_for(
             request,
             prereg,
-            journal_seq=4,
+            opening=opening,
             custody_seq_at_release=40,
             derived_proposer_lineage_id=scenario.admit().derived_proposer_lineage_id,
             status="released",
@@ -221,6 +226,7 @@ class TestBuilder:
             recorded_at_utc=UTC,
         )
         assert entry.study_id == "study-7"
+        assert (entry.journal_seq, entry.custody_seq_at_open) == (4, 30)
         assert entry.preregistration_digest == request.preregistration_digest
         assert (entry.split_digest, entry.frozen_artefact_digests, entry.programme) == (
             request.split_digest,
@@ -241,7 +247,12 @@ class TestBuilder:
             journal_entry_for(
                 scenario.request(),
                 AMENDED,
-                journal_seq=1,
+                opening=look_opening_for(
+                    scenario.request(),
+                    scenario.prereg,
+                    prior_journal=(),
+                    look_custody_seq=30,
+                ),
                 custody_seq_at_release=30,
                 derived_proposer_lineage_id=digest_of("lineage"),
                 status="released",

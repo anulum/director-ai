@@ -137,6 +137,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     a passed barren-plateau preflight on the study's split pool and a
     pinned classical baseline; a witness the family does not use is
     refused;
+  - custody witnesses of the sealed-look journal: a look's opening record,
+    ingested before any result is released, and a custody record of every
+    journal entry; admission refuses a journal whose entries or openings
+    custody does not hold up to the look's watermark, an opening ingested
+    after its look's release, and a preregistration named under two
+    studies; a look result is used only with its opening's custody record;
+    journal entries move to schema v3, which records the opening watermark,
+    and the amendment rule is anchored at the opening;
   - 17-key custody ingest records with a fixed set of sealed kinds;
   - preregistration, approval and sealed look records with four outcomes;
   - a custody-derived, root-anchored proposer lineage and look budget,

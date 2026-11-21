@@ -8,16 +8,16 @@
 
 """Building journal entries and reading a study's looks from the journal.
 
-The kernel builds every journal entry from the look it admitted, so an
-entry's study is the study of the preregistration it was admitted under.
-Admission then selects a study's earlier looks from the whole journal by
-``study_id`` instead of trusting a caller to select them.
+The kernel builds every journal entry from the look it admitted and that
+look's opening, so an entry's study is the study of the preregistration it
+was admitted under, and its position and opening watermark are the
+opening's. Admission then selects a study's earlier looks from the whole
+journal by ``study_id`` instead of trusting a caller to select them.
 
 The journal is per programme, starts at ``JOURNAL_ORIGIN_SEQ`` and its
-``journal_seq`` rises by exactly one, so a missing or repeated entry
-anywhere before the tail is refused, its head included. A truncated tail is
-not detectable here: that the journal passed in is complete up to the look
-stays a custody trust, as it is for the look budget.
+``journal_seq`` rises by exactly one, so a missing or repeated entry is
+refused, its head included. Custody's records of every entry and opening
+(:mod:`.journal_custody`) close the tail, alteration and hidden looks.
 """
 
 from __future__ import annotations
@@ -28,6 +28,7 @@ from .custody_records import CustodyIngestRecord
 from .digests import record_digest
 from .errors import EvaluationContractError, PreregistrationOrderError
 from .evaluation_contracts import PreregistrationRecord, validate_preregistration
+from .look_openings import SealedLookOpening, validate_look_opening
 from .sealed_looks import (
     JOURNAL_ORIGIN_SEQ,
     SealedLookJournalEntry,
@@ -42,7 +43,7 @@ def journal_entry_for(
     request: SealedLookRequest,
     preregistration: PreregistrationRecord,
     *,
-    journal_seq: int,
+    opening: SealedLookOpening,
     custody_seq_at_release: int,
     derived_proposer_lineage_id: str,
     status: SealedLookOutcomeStatus,
@@ -57,8 +58,9 @@ def journal_entry_for(
         The admitted request.
     preregistration : PreregistrationRecord
         The preregistration the request names.
-    journal_seq : int
-        The entry's place in the programme's journal.
+    opening : SealedLookOpening
+        The look's opening, as :func:`~.look_openings.look_opening_for` built
+        it and custody ingested it.
     custody_seq_at_release : int
         The custody watermark when the look finished.
     derived_proposer_lineage_id : str
@@ -73,24 +75,40 @@ def journal_entry_for(
     Returns
     -------
     SealedLookJournalEntry
-        The validated v2 entry.
+        The validated v3 entry.
 
     Raises
     ------
     EvaluationContractError
-        If the preregistration is not the one the request names, or a
-        record or field is malformed.
+        If the preregistration is not the one the request names, the opening
+        is of another look, or a record or field is malformed.
     """
     validate_look_request(request)
     validate_preregistration(preregistration)
+    validate_look_opening(opening)
     if record_digest(preregistration) != request.preregistration_digest:
         raise EvaluationContractError(
             "the preregistration does not match the request's digest"
         )
+    if (
+        opening.programme,
+        opening.study_id,
+        opening.preregistration_digest,
+        opening.split_digest,
+        opening.look_kind,
+    ) != (
+        request.programme,
+        preregistration.study_id,
+        request.preregistration_digest,
+        request.split_digest,
+        request.look_kind,
+    ):
+        raise EvaluationContractError("the opening is of another look")
     return validate_journal_entry(
         SealedLookJournalEntry(
-            schema="sealed-look-journal-entry.v2",
-            journal_seq=journal_seq,
+            schema="sealed-look-journal-entry.v3",
+            journal_seq=opening.journal_seq,
+            custody_seq_at_open=opening.custody_seq_at_open,
             custody_seq_at_release=custody_seq_at_release,
             derived_proposer_lineage_id=derived_proposer_lineage_id,
             split_digest=request.split_digest,

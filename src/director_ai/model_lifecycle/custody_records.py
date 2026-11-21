@@ -51,6 +51,8 @@ CustodyObjectKind = Literal[
     "split_pool",
     "corpus",
     "grader_bundle",
+    "sealed_look_opening",
+    "sealed_look_journal_entry",
 ]
 CUSTODY_OBJECT_KINDS: frozenset[str] = frozenset(
     {
@@ -62,6 +64,8 @@ CUSTODY_OBJECT_KINDS: frozenset[str] = frozenset(
         "split_pool",
         "corpus",
         "grader_bundle",
+        "sealed_look_opening",
+        "sealed_look_journal_entry",
     }
 )
 SEALED_CUSTODY_KINDS: frozenset[str] = frozenset(
@@ -90,6 +94,8 @@ _DATA_CLASSES_BY_KIND: dict[str, frozenset[str]] = {
     "preregistration": frozenset({"not_applicable"}),
     "preregistration_approval": frozenset({"not_applicable"}),
     "grader_bundle": frozenset({"not_applicable"}),
+    "sealed_look_opening": frozenset({"not_applicable"}),
+    "sealed_look_journal_entry": frozenset({"not_applicable"}),
 }
 
 

@@ -6,10 +6,10 @@
     "optional_extras": 62,
     "public_api_exports": 227,
     "public_documentation_pages": 208,
-    "python_model_classes": 1205,
-    "python_model_source_modules": 614,
+    "python_model_classes": 1206,
+    "python_model_source_modules": 617,
     "rust_pyo3_model_wrappers": 83,
-    "test_files": 872
+    "test_files": 873
   },
   "documentation": {
     "public_pages": [
@@ -4159,6 +4159,10 @@
         "path": "src/director_ai/model_lifecycle/sealed_looks.py"
       },
       {
+        "name": "SealedLookOpening",
+        "path": "src/director_ai/model_lifecycle/look_openings.py"
+      },
+      {
         "name": "SealedLookRequest",
         "path": "src/director_ai/model_lifecycle/sealed_looks.py"
       },
@@ -5697,11 +5701,13 @@
       "src/director_ai/model_lifecycle/float_scan.py",
       "src/director_ai/model_lifecycle/graders.py",
       "src/director_ai/model_lifecycle/job_contracts.py",
+      "src/director_ai/model_lifecycle/journal_custody.py",
       "src/director_ai/model_lifecycle/journal_entries.py",
       "src/director_ai/model_lifecycle/licences.py",
       "src/director_ai/model_lifecycle/lineage.py",
       "src/director_ai/model_lifecycle/look_admission.py",
       "src/director_ai/model_lifecycle/look_budget.py",
+      "src/director_ai/model_lifecycle/look_openings.py",
       "src/director_ai/model_lifecycle/merge_contracts.py",
       "src/director_ai/model_lifecycle/ports.py",
       "src/director_ai/model_lifecycle/ports_compute.py",
@@ -5716,6 +5722,7 @@
       "src/director_ai/model_lifecycle/promotion_exports.py",
       "src/director_ai/model_lifecycle/promotion_gate.py",
       "src/director_ai/model_lifecycle/promotion_records.py",
+      "src/director_ai/model_lifecycle/promotion_study.py",
       "src/director_ai/model_lifecycle/promotion_witnesses.py",
       "src/director_ai/model_lifecycle/quantum_acceptance.py",
       "src/director_ai/model_lifecycle/quantum_contracts.py",
@@ -6659,6 +6666,7 @@
       "tests/test_model_lifecycle_datasets.py",
       "tests/test_model_lifecycle_families.py",
       "tests/test_model_lifecycle_floats_and_codec.py",
+      "tests/test_model_lifecycle_journal_custody.py",
       "tests/test_model_lifecycle_journal_v2.py",
       "tests/test_model_lifecycle_licence_boundary.py",
       "tests/test_model_lifecycle_looks.py",

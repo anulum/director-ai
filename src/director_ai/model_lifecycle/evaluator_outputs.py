@@ -28,8 +28,10 @@ from ._checks import (
     require_text,
     require_tuple,
 )
+from .custody_records import CustodyIngestRecord
 from .digests import record_digest
 from .errors import EvaluationContractError
+from .look_openings import require_opening_custodied
 from .sealed_looks import SealedLookJournalEntry, validate_journal_entry
 
 EvaluatorOutputMode = Literal["slice_estimates", "test_suite_counts"]
@@ -174,9 +176,12 @@ def validate_evaluator_output(output: EvaluatorOutput) -> EvaluatorOutput:
 
 
 def validate_look_result(
-    result: SealedLookResult, entry: SealedLookJournalEntry
+    result: SealedLookResult,
+    entry: SealedLookJournalEntry,
+    *,
+    opening_record: CustodyIngestRecord,
 ) -> SealedLookResult:
-    """Check that a result belongs to a released journal entry.
+    """Check that a result belongs to a released look whose opening custody held.
 
     Parameters
     ----------
@@ -184,6 +189,9 @@ def validate_look_result(
         The result to check.
     entry : SealedLookJournalEntry
         The journal entry it claims.
+    opening_record : CustodyIngestRecord
+        Custody's record of the look's opening, which must be ingested no
+        later than the look's release.
 
     Returns
     -------
@@ -193,8 +201,11 @@ def validate_look_result(
     Raises
     ------
     EvaluationContractError
-        If the result is malformed, the entry was not released, or the
-        result's digests, lineage, split or artefacts differ from the entry.
+        If the result is malformed, the entry was not released, the result's
+        digests, lineage, split or artefacts differ from the entry, or the
+        look's opening was not in custody by its release.
+    CustodyRecordError
+        If the opening's record is malformed.
     """
     validate_journal_entry(entry)
     if (
@@ -221,4 +232,5 @@ def validate_look_result(
         raise EvaluationContractError(
             "the result reports an artefact the look did not freeze"
         )
+    require_opening_custodied(entry, opening_record)
     return result

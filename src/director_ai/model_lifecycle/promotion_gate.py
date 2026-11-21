@@ -53,10 +53,11 @@ from .cost_and_promotion_contracts import (
     PromotionDecisionRecord,
     validate_promotion_decision,
 )
+from .custody_records import CustodyIngestRecord
 from .digests import record_digest
-from .errors import EvaluationContractError, PromotionDecisionError
-from .evaluation_contracts import PreregistrationRecord, validate_preregistration
-from .evaluator_outputs import SealedLookResult, validate_look_result
+from .errors import PromotionDecisionError
+from .evaluation_contracts import PreregistrationRecord
+from .evaluator_outputs import SealedLookResult
 from .look_admission import CustodyProgrammeRoles
 from .promotion_evidence import (
     PromotionEvidence,
@@ -71,13 +72,10 @@ from .promotion_records import (
     ServingMemoryBudget,
     StudyDeclineRecord,
     validate_serving_memory_budget,
-    validate_study_decline,
 )
+from .promotion_study import check_decline, check_study_binding
 from .promotion_witnesses import FamilyWitnesses, check_family_witnesses
 from .sealed_looks import SealedLookJournalEntry
-from .study_contracts import (
-    validate_build2_terms,
-)
 from .study_records import (
     DynamicsEvaluationContract,
     ExportParityReport,
@@ -86,36 +84,6 @@ from .study_records import (
 from .tier_journal import CustodyTierJournalEntry, require_dependencies_pinned
 
 E = PromotionDecisionError
-
-
-def _check_study_binding(
-    terms: PreregistrationBuild2Terms,
-    preregistration: PreregistrationRecord,
-    journal_entry: SealedLookJournalEntry,
-    look_result: SealedLookResult,
-    roles: CustodyProgrammeRoles,
-) -> str:
-    """Bind the terms, the look and its result to the preregistration."""
-    validate_preregistration(preregistration)
-    validate_build2_terms(terms)
-    if record_digest(terms) != preregistration.search_spaces_and_budgets_digest:
-        raise E("the terms are not the preregistration's search_spaces_and_budgets")
-    if {arm for arm, _ in terms.arm_matched_budgets} != set(
-        preregistration.declared_arms
-    ):
-        raise E("the terms' arms are not the preregistration's declared arms")
-    try:
-        validate_look_result(look_result, journal_entry)
-    except EvaluationContractError as exc:
-        raise E(f"the look result is not bound: {exc}") from exc
-    digest = record_digest(preregistration)
-    if journal_entry.study_id != preregistration.study_id:
-        raise E("the look belongs to another study")
-    if journal_entry.preregistration_digest != digest:
-        raise E("the look was admitted under another preregistration")
-    if journal_entry.programme != roles.programme:
-        raise E("the look belongs to another programme")
-    return digest
 
 
 def _check_concurrent_baseline(
@@ -137,33 +105,6 @@ def _check_concurrent_baseline(
         )
 
 
-def _check_decline(
-    decline: StudyDeclineRecord,
-    evidence: PromotionEvidence,
-    candidates: set[str],
-    preregistration_digest: str,
-    look_result: SealedLookResult,
-    study_id: str,
-) -> StudyDeclineRecord:
-    """Check that a decline is the study's and names every candidate arm."""
-    if evidence.promoted_arm is not None:
-        raise E("a decline promotes no arm")
-    validate_study_decline(decline)
-    if (decline.study_id, decline.preregistration_digest) != (
-        study_id,
-        preregistration_digest,
-    ):
-        raise E("the decline names another study or preregistration")
-    if decline.sealed_look_result_digest != record_digest(look_result):
-        raise E("the decline names another look result")
-    failed = {arm for arm, _ in decline.failed_arm_reasons}
-    if failed != candidates:
-        raise E(
-            "E-8: a decline names every declared arm but the baseline, and no other"
-        )
-    return decline
-
-
 def validate_promotion_or_decline(
     *,
     decision: PromotionDecisionRecord | None,
@@ -173,6 +114,7 @@ def validate_promotion_or_decline(
     preregistration: PreregistrationRecord,
     look_result: SealedLookResult,
     journal_entry: SealedLookJournalEntry,
+    opening_record: CustodyIngestRecord,
     memory_budget: ServingMemoryBudget | None,
     pins: PromotionDependencyPins | None,
     export_reports: Sequence[ExportParityReport],
@@ -200,6 +142,8 @@ def validate_promotion_or_decline(
         The confirmatory look's result.
     journal_entry : SealedLookJournalEntry
         The confirmatory look's released journal entry.
+    opening_record : CustodyIngestRecord
+        Custody's record of the look's opening, ingested by its release.
     memory_budget : ServingMemoryBudget or None
         The promoted model's serving memory budget; not read for a decline.
     pins : PromotionDependencyPins or None
@@ -239,13 +183,13 @@ def validate_promotion_or_decline(
     MalformedDigestError
         If a digest is malformed.
     """
-    digest = _check_study_binding(
-        terms, preregistration, journal_entry, look_result, roles
+    digest = check_study_binding(
+        terms, preregistration, journal_entry, look_result, roles, opening_record
     )
     arms = evidence_arm_digests(evidence, preregistration)
     if decline is not None and decision is None:
         candidates = set(arms) - {terms.baseline_arm}
-        return _check_decline(
+        return check_decline(
             decline, evidence, candidates, digest, look_result, preregistration.study_id
         )
     if decision is None or decline is not None:
@@ -255,7 +199,10 @@ def validate_promotion_or_decline(
     if evidence.promoted_arm == terms.baseline_arm:
         raise E("the promoted arm is the study's baseline")
     validate_promotion_decision(
-        decision, look_result=look_result, journal_entry=journal_entry
+        decision,
+        look_result=look_result,
+        journal_entry=journal_entry,
+        opening_record=opening_record,
     )
     if decision.preregistration_digest != digest:
         raise E("the decision names another preregistration")

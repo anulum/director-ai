@@ -118,6 +118,9 @@ from .graders import (
     GraderRole,
     GraderSpec,
 )
+from .journal_custody import (
+    ENTRY_KIND,
+)
 from .licences import (
     CUSTODY_DATA_CLASSES,
     ComputeAndTuningBudget,
@@ -129,6 +132,10 @@ from .lineage import (
 )
 from .look_admission import (
     CustodyProgrammeRoles,
+)
+from .look_openings import (
+    OPENING_KIND,
+    SealedLookOpening,
 )
 from .merge_contracts import (
     MERGE_METHODS,
@@ -277,6 +284,7 @@ __all__ = [
     "DOMAIN_KINDS",
     "DYNAMICS_FAMILY_RULE",
     "EMPTY_PRODUCTION_DIGEST",
+    "ENTRY_KIND",
     "ENVELOPE_CAPS",
     "EXACT_TOLERANCE_MULTIPLE",
     "FAMILY_CONTRACT_REGISTRY",
@@ -298,9 +306,9 @@ __all__ = [
     "MAX_FAMILYWISE_ALPHA",
     "MAX_MASKED_FRACTION_CEILING",
     "MAX_SHOTS_PER_PAULI_GROUP",
-    "MIN_NOISE_FLOOR_MULTIPLIER",
     "MERGEABLE_KINDS",
     "MERGE_METHODS",
+    "MIN_NOISE_FLOOR_MULTIPLIER",
     "MIN_REAL_TRAIN_CLUSTER_FRACTION_WITH_SYNTHETIC",
     "MIN_SHOTS_PER_PAULI_GROUP",
     "MIN_TRAINING_SEEDS",
@@ -311,10 +319,11 @@ __all__ = [
     "NOISE_FLOOR_MULTIPLE",
     "NO_BF16_TIERS",
     "OBSERVATION_OUTCOMES",
+    "OPENING_KIND",
     "OPTIMISATION_SENSES",
     "OUTCOME_STATUSES",
-    "PIN_ACTIONS",
     "PAID_FUNDING",
+    "PIN_ACTIONS",
     "POOLING_MODES",
     "POOL_FUNDING_KINDS",
     "POST_SWAP_EFFECTS",
@@ -408,6 +417,7 @@ __all__ = [
     "RoleAuthenticationMode",
     "SandboxConfinementSpec",
     "SealedLookJournalEntry",
+    "SealedLookOpening",
     "SealedLookOutcomeStatus",
     "SealedLookRequest",
     "SealedLookResult",

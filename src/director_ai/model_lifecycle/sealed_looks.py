@@ -80,16 +80,19 @@ class SealedLookRequest:
 class SealedLookJournalEntry:
     """Custody's journal entry for one look that opened a split.
 
-    ``custody_seq_at_release`` is the custody sequence watermark when the
-    look finished; it anchors post-look taint. ``study_id`` and
+    ``custody_seq_at_open`` is the custody sequence watermark when the look
+    was admitted and its split opened; it anchors the amendment rule.
+    ``custody_seq_at_release`` is the watermark when the look finished; it
+    anchors post-look taint. ``study_id`` and
     ``preregistration_digest`` name the study and the preregistration the
     look was admitted under, so admission can select a study's earlier looks
     from the journal itself. Build entries with
     :func:`~.journal_entries.journal_entry_for`.
     """
 
-    schema: Literal["sealed-look-journal-entry.v2"]
+    schema: Literal["sealed-look-journal-entry.v3"]
     journal_seq: int
+    custody_seq_at_open: int
     custody_seq_at_release: int
     derived_proposer_lineage_id: str
     split_digest: str
@@ -107,8 +110,10 @@ class SealedLookJournalEntry:
     preregistration_digest: str
 
 
-RETIRED_JOURNAL_SCHEMAS: frozenset[str] = frozenset({"sealed-look-journal-entry.v1"})
-"""Journal entry schemas that are refused by name: v1 named no study."""
+RETIRED_JOURNAL_SCHEMAS: frozenset[str] = frozenset(
+    {"sealed-look-journal-entry.v1", "sealed-look-journal-entry.v2"}
+)
+"""Journal entry schemas refused by name: v1 named no study, v2 no opening."""
 JOURNAL_ORIGIN_SEQ = 1
 """The ``journal_seq`` of a programme's first journal entry."""
 
@@ -181,8 +186,9 @@ def validate_journal_entry(entry: SealedLookJournalEntry) -> SealedLookJournalEn
     Raises
     ------
     EvaluationContractError
-        If the schema is the retired v1, a field is malformed, or the
-        attestation digest is not present exactly for the two fault outcomes.
+        If the schema is a retired one, a field is malformed, the look was
+        released before it opened, or the attestation digest is not present
+        exactly for the two fault outcomes.
     MalformedDigestError
         If a digest is malformed.
     """
@@ -190,12 +196,12 @@ def validate_journal_entry(entry: SealedLookJournalEntry) -> SealedLookJournalEn
         raise EvaluationContractError("a SealedLookJournalEntry is required")
     if entry.schema in RETIRED_JOURNAL_SCHEMAS:
         raise EvaluationContractError(
-            f"{entry.schema} is retired: an entry must name its study and preregistration"
+            f"{entry.schema} is retired: an entry names its study, plan and opening"
         )
     require_choice(
         entry.schema,
         "schema",
-        {"sealed-look-journal-entry.v2"},
+        {"sealed-look-journal-entry.v3"},
         EvaluationContractError,
     )
     require_int(
@@ -204,11 +210,17 @@ def validate_journal_entry(entry: SealedLookJournalEntry) -> SealedLookJournalEn
         EvaluationContractError,
         minimum=JOURNAL_ORIGIN_SEQ,
     )
+    opened = require_int(
+        entry.custody_seq_at_open,
+        "custody_seq_at_open",
+        EvaluationContractError,
+        minimum=0,
+    )
     require_int(
         entry.custody_seq_at_release,
         "custody_seq_at_release",
         EvaluationContractError,
-        minimum=0,
+        minimum=opened,
     )
     require_sha256(entry.derived_proposer_lineage_id, "derived_proposer_lineage_id")
     require_sha256(entry.split_digest, "split_digest")

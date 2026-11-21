@@ -35,6 +35,7 @@ from director_ai.model_lifecycle import (
     SealedLookRequest,
     SealedSplitPool,
     admit_sealed_look,
+    opening_of,
     record_digest,
 )
 
@@ -198,6 +199,17 @@ def base_checkpoint(**changes: object) -> BaseCheckpointRecord:
     return replace(base, **changes)  # type: ignore[arg-type]
 
 
+METADATA_KINDS = frozenset(
+    {
+        "preregistration",
+        "preregistration_approval",
+        "grader_bundle",
+        "sealed_look_opening",
+        "sealed_look_journal_entry",
+    }
+)
+
+
 def custody_record(
     digest: str,
     kind: str = "artefact",
@@ -221,9 +233,7 @@ def custody_record(
         role_authentication_mode="procedural_shared_os_user_until_d8",
         byte_length=1024,
         ingested_at_utc=UTC,
-        data_class="pilot"
-        if kind not in {"preregistration", "preregistration_approval", "grader_bundle"}
-        else "not_applicable",
+        data_class="pilot" if kind not in METADATA_KINDS else "not_applicable",
         weight_format="safetensors" if model else "none",
         weight_format_reason=None,
         base_checkpoint=(
@@ -285,8 +295,12 @@ def journal_entry(
     seq: int = 1,
     study_id: str = "study-1",
     preregistration_digest: str | None = None,
+    open_seq: int | None = None,
 ) -> SealedLookJournalEntry:
-    """Return a valid v2 journal entry for an earlier look.
+    """Return a valid v3 journal entry for an earlier look.
+
+    The look opens at ``open_seq``, by default at its release watermark, and
+    names the default preregistration of its study unless one is given.
 
     By default the look belongs to study ``study-1`` under the default
     preregistration, which :class:`LookScenario` ingests.
@@ -297,8 +311,9 @@ def journal_entry(
         else ""
     )
     return SealedLookJournalEntry(
-        schema="sealed-look-journal-entry.v2",
+        schema="sealed-look-journal-entry.v3",
         journal_seq=seq,
+        custody_seq_at_open=release_seq if open_seq is None else open_seq,
         custody_seq_at_release=release_seq,
         derived_proposer_lineage_id=lineage_id,
         split_digest=split,
@@ -314,10 +329,34 @@ def journal_entry(
         evaluator_digest=digest_of("evaluator"),
         study_id=study_id,
         preregistration_digest=(
-            record_digest(preregistration())
+            record_digest(preregistration(study_id=study_id))
             if preregistration_digest is None
             else preregistration_digest
         ),
+    )
+
+
+def journal_custody(
+    entry: SealedLookJournalEntry, entry_seq: int
+) -> dict[str, CustodyIngestRecord]:
+    """Return custody's records of an entry (at ``entry_seq``) and its opening."""
+    opening = record_digest(opening_of(entry))
+    digest = record_digest(entry)
+    return {
+        opening: custody_record(
+            opening, "sealed_look_opening", entry.custody_seq_at_open, CUSTODIAN
+        ),
+        digest: custody_record(
+            digest, "sealed_look_journal_entry", entry_seq, CUSTODIAN
+        ),
+    }
+
+
+def opening_record(entry: SealedLookJournalEntry) -> CustodyIngestRecord:
+    """Return custody's record of ``entry``'s opening, ingested at the opening."""
+    digest = record_digest(opening_of(entry))
+    return custody_record(
+        digest, "sealed_look_opening", entry.custody_seq_at_open, CUSTODIAN
     )
 
 
@@ -346,6 +385,7 @@ class LookScenario:
     configured_custodian: str = CUSTODIAN
     configured_approver: str = APPROVER
     ingest_approval: bool = True
+    ingest_journal: bool = True
 
     def __post_init__(self) -> None:
         """Ingest the splits and the arm unless the test supplied records."""
@@ -398,6 +438,9 @@ class LookScenario:
         default = record_digest(preregistration())
         if any(entry.preregistration_digest == default for entry in self.journal):
             records.setdefault(default, custody_record(default, "preregistration", 5))
+        if self.ingest_journal:
+            for entry in self.journal:
+                records.update(journal_custody(entry, self.watermark))
         approval = self.approval()
         approval_digest = record_digest(approval)
         if self.ingest_approval:

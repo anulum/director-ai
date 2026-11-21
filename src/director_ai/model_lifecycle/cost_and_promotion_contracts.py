@@ -32,6 +32,7 @@ from ._checks import (
     require_text,
     require_utc_timestamp,
 )
+from .custody_records import CustodyIngestRecord
 from .digests import record_digest
 from .errors import EvaluationContractError, PromotionDecisionError
 from .evaluator_outputs import SealedLookResult, validate_look_result
@@ -95,6 +96,7 @@ def validate_promotion_decision(
     *,
     look_result: SealedLookResult | None = None,
     journal_entry: SealedLookJournalEntry | None = None,
+    opening_record: CustodyIngestRecord | None = None,
 ) -> PromotionDecisionRecord:
     """Check a promotion decision, and its look when given.
 
@@ -109,6 +111,9 @@ def validate_promotion_decision(
         The look's journal entry, required with ``look_result``. The
         result must belong to it, and the candidate must be among its
         frozen artefacts, for slice estimates and test-suite counts alike.
+    opening_record : CustodyIngestRecord, optional
+        Custody's record of the look's opening, required with
+        ``look_result``; it must be ingested no later than the release.
 
     Returns
     -------
@@ -166,17 +171,24 @@ def validate_promotion_decision(
     require_utc_timestamp(
         decision.decided_at_utc, "decided_at_utc", PromotionDecisionError
     )
-    if (look_result is None) != (journal_entry is None):
+    given = {item is None for item in (look_result, journal_entry, opening_record)}
+    if len(given) != 1:
         raise PromotionDecisionError(
-            "a look result and its journal entry are checked together"
+            "a look result, its journal entry and its opening record go together"
         )
-    if look_result is not None and journal_entry is not None:
+    if (
+        look_result is not None
+        and journal_entry is not None
+        and opening_record is not None
+    ):
         if record_digest(look_result) != decision.sealed_look_result_digest:
             raise PromotionDecisionError(
                 "the look result does not match sealed_look_result_digest"
             )
         try:
-            validate_look_result(look_result, journal_entry)
+            validate_look_result(
+                look_result, journal_entry, opening_record=opening_record
+            )
         except EvaluationContractError as exc:
             raise PromotionDecisionError(
                 f"the look result is not bound: {exc}"

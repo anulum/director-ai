@@ -31,7 +31,17 @@ from .sealed_looks import SealedLookRequest
 
 @runtime_checkable
 class CustodySubprocessPort(Protocol):
-    """Invokes the isolated blob-custody CLI boundary with typed CustodyObjectKind."""
+    """Invokes the isolated blob-custody CLI boundary with typed CustodyObjectKind.
+
+    The journal's contract binds custody in two ways. It ingests a look's
+    opening, as a ``sealed_look_opening`` record, before it releases any data
+    of the look's split; a result whose opening was ingested later is never
+    used. It also ingests each journal entry, as a
+    ``sealed_look_journal_entry`` record, before the programme's next look
+    opens: admission refuses a journal whose entries or openings custody
+    does not hold up to the look's watermark, so a lagging ingest stops the
+    next look rather than passing it.
+    """
 
     def ingest(
         self,

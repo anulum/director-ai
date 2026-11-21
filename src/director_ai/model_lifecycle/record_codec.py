@@ -103,6 +103,7 @@ from .licences import (
     validate_compute_budget,
     validate_licence_record,
 )
+from .look_openings import SealedLookOpening, validate_look_opening
 from .preregistration_approvals import (
     PreregistrationApproval,
     validate_preregistration_approval,
@@ -251,6 +252,7 @@ VALIDATORS: dict[type, Callable[[object], object]] = {
         (CustodyTierJournalEntry, validate_tier_journal_entry),
         (PromotionEvidence, validate_promotion_evidence),
         (FamilyWitnesses, validate_family_witnesses),
+        (SealedLookOpening, validate_look_opening),
         (SpikingLoweringParityReport, validate_spiking_lowering_parity),
         (QuantumVariationalSeedTuple, validate_seed_tuple),
         (BarrenPlateauWitnessReceipt, validate_barren_plateau_receipt),

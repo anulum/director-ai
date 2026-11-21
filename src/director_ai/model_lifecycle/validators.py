@@ -101,6 +101,9 @@ from .job_contracts import (
     validate_job_submission,
     validate_sandbox_confinement,
 )
+from .journal_custody import (
+    check_journal_custody,
+)
 from .journal_entries import (
     check_journal_order,
     journal_entry_for,
@@ -120,6 +123,12 @@ from .look_admission import (
 )
 from .look_budget import (
     check_look_budget,
+)
+from .look_openings import (
+    look_opening_for,
+    opening_of,
+    require_opening_custodied,
+    validate_look_opening,
 )
 from .merge_contracts import (
     merge_identity,
@@ -254,6 +263,7 @@ __all__ = [
     "check_family_witnesses",
     "check_held_equal_axes",
     "check_inference_envelope",
+    "check_journal_custody",
     "check_journal_order",
     "check_look_budget",
     "check_noise_floors",
@@ -278,16 +288,19 @@ __all__ = [
     "is_sealed_kind",
     "journal_entry_for",
     "list_archive_members",
+    "look_opening_for",
+    "merge_identity",
+    "opening_of",
     "paired_improvement",
     "paired_shot_radius",
     "paired_shot_standard_error",
-    "merge_identity",
     "read_archive_tensor_descriptors",
     "read_safetensors_descriptors",
     "read_tensor_set_descriptors",
     "record_digest",
     "require_active_family",
     "require_dependencies_pinned",
+    "require_opening_custodied",
     "require_output_training_permitted",
     "require_spiking_parity_passed",
     "required_paired_sample_size",
@@ -297,8 +310,8 @@ __all__ = [
     "spans_noise_floors",
     "strict_json_loads",
     "tensor_set_identity",
-    "validate_barren_plateau_receipt",
     "validate_adapter_merge",
+    "validate_barren_plateau_receipt",
     "validate_base_checkpoint_record",
     "validate_build2_terms",
     "validate_compute_budget",
@@ -328,6 +341,7 @@ __all__ = [
     "validate_language_family_contract",
     "validate_licence_record",
     "validate_lineage_edge",
+    "validate_look_opening",
     "validate_look_request",
     "validate_look_result",
     "validate_matched_budget",

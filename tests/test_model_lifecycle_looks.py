@@ -59,6 +59,7 @@ from tests.model_lifecycle_support import (
     digest_of,
     edge,
     journal_entry,
+    opening_record,
     preregistration,
 )
 
@@ -598,7 +599,8 @@ class TestLookRecords:
             entry.split_digest,
             _output(),
         )
-        assert validate_look_result(result, entry) == result
+        opened = opening_record(entry)
+        assert validate_look_result(result, entry, opening_record=opened) == result
         bad = [
             (replace(result, schema="result"), entry),  # type: ignore[arg-type]
             (result, replace(entry, status="candidate_failed")),
@@ -616,7 +618,7 @@ class TestLookRecords:
         ]
         for candidate, claimed in bad:
             with pytest.raises(EvaluationContractError):
-                validate_look_result(candidate, claimed)
+                validate_look_result(candidate, claimed, opening_record=opened)
 
     def test_wrong_record_types_are_refused(self) -> None:
         """Each look validator needs its own record type."""
@@ -724,26 +726,38 @@ class TestPromotion:
 
         result = result_of(_output())
         assert validate_promotion_decision(
-            bound(result), look_result=result, journal_entry=entry
+            bound(result),
+            look_result=result,
+            journal_entry=entry,
+            opening_record=opening_record(entry),
         )
-        with pytest.raises(PromotionDecisionError, match="checked together"):
+        with pytest.raises(PromotionDecisionError, match="go together"):
             validate_promotion_decision(bound(result), look_result=result)
-        with pytest.raises(PromotionDecisionError, match="checked together"):
+        with pytest.raises(PromotionDecisionError, match="go together"):
             validate_promotion_decision(bound(result), journal_entry=entry)
         with pytest.raises(PromotionDecisionError, match="does not match"):
             validate_promotion_decision(
-                _decision(), look_result=result, journal_entry=entry
+                _decision(),
+                look_result=result,
+                journal_entry=entry,
+                opening_record=opening_record(entry),
             )
         stray = result_of(_output(), claimed=replace(entry, journal_seq=9))
         with pytest.raises(PromotionDecisionError, match="not bound"):
             validate_promotion_decision(
-                bound(stray), look_result=stray, journal_entry=entry
+                bound(stray),
+                look_result=stray,
+                journal_entry=entry,
+                opening_record=opening_record(entry),
             )
         counts = result_of(
             EvaluatorOutput("evaluator-output.v1", "test_suite_counts", (), 10, 10)
         )
         assert validate_promotion_decision(
-            bound(counts), look_result=counts, journal_entry=entry
+            bound(counts),
+            look_result=counts,
+            journal_entry=entry,
+            opening_record=opening_record(entry),
         )
         with pytest.raises(
             PromotionDecisionError, match="did not freeze the candidate"
@@ -752,13 +766,17 @@ class TestPromotion:
                 bound(counts, candidate_content_digest=digest_of("other")),
                 look_result=counts,
                 journal_entry=entry,
+                opening_record=opening_record(entry),
             )
         other = result_of(_output(slice_estimates=(_estimate(artefact_digest=A2),)))
         with pytest.raises(
             PromotionDecisionError, match="does not report the candidate"
         ):
             validate_promotion_decision(
-                bound(other), look_result=other, journal_entry=entry
+                bound(other),
+                look_result=other,
+                journal_entry=entry,
+                opening_record=opening_record(entry),
             )
 
     def test_the_pre_state_inputs_are_typed(self) -> None:

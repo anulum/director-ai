@@ -43,6 +43,7 @@ from tests.model_lifecycle_support import (
     digest_of,
     edge,
     journal_entry,
+    opening_record,
     pool,
     preregistration,
 )
@@ -255,6 +256,7 @@ def inputs(
         "preregistration": plan,
         "look_result": result,
         "journal_entry": entry,
+        "opening_record": opening_record(entry),
         "memory_budget": BUDGET,
         "pins": pins,
         "export_reports": (export,),
