@@ -56,6 +56,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     `qwen3`, `modern-bert` or a custom ONNX profile), with YaRN position
     scaling and maximal-update width transfer, whose coordinate-check
     receipt is required outside owned hardware;
+  - dataset split audits and a training gate that refuses clusters,
+    near-duplicate windows or template families shared across partitions,
+    synthetic rows outside training, human biosignal or health data, and a
+    teacher whose licence does not permit training on its outputs;
+  - tokeniser and dynamics normaliser envelopes fitted on training shards
+    only, with special-token and stop-token rules, and an embedding space
+    identity that binds weights, tokeniser and pooling;
   - 17-key custody ingest records with a fixed set of sealed kinds;
   - preregistration, approval and sealed look records with four outcomes;
   - a custody-derived, root-anchored proposer lineage and look budget,

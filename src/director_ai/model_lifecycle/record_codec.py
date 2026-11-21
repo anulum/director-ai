@@ -37,7 +37,19 @@ from .cost_and_promotion_contracts import (
     validate_promotion_decision,
 )
 from .custody_records import CustodyIngestRecord, validate_custody_ingest_record
+from .dataset_contracts import validate_dedup_report, validate_distillation_manifest
+from .dataset_records import DatasetDeduplicationReport, SyntheticDistillationManifest
 from .digests import canonical_json_bytes, decode_record
+from .encoding_contracts import (
+    validate_embedding_space_identity,
+    validate_normaliser_envelope,
+    validate_tokeniser_envelope,
+)
+from .encoding_records import (
+    DynamicsNormaliserEnvelope,
+    EmbeddingSpaceIdentity,
+    TokeniserArtefactEnvelope,
+)
 from .envelopes import (
     LineageEdge,
     ModelArtefactEnvelope,
@@ -147,6 +159,11 @@ VALIDATORS: dict[type, Callable[[object], object]] = {
         (DynamicsFamilyContract, validate_dynamics_family_contract),
         (TransformerArchitectureSpec, check_transformer_architecture_shape),
         (MupValidationReceipt, validate_mup_validation_receipt),
+        (DatasetDeduplicationReport, validate_dedup_report),
+        (SyntheticDistillationManifest, validate_distillation_manifest),
+        (TokeniserArtefactEnvelope, validate_tokeniser_envelope),
+        (DynamicsNormaliserEnvelope, validate_normaliser_envelope),
+        (EmbeddingSpaceIdentity, validate_embedding_space_identity),
     )
 }
 """Every record type the codec decodes, with the validator it runs."""

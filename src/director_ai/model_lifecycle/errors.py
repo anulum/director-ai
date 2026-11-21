@@ -68,6 +68,18 @@ class ArchitectureSpecError(ModelLifecycleError):
     """A transformer architecture spec breaks a numeric rule or its wire profile."""
 
 
+class DatasetContractError(ModelLifecycleError):
+    """A split audit or a synthetic distillation manifest breaks its rules."""
+
+
+class SplitLeakageError(DatasetContractError):
+    """Training data, a template family or a fitting shard crosses the split."""
+
+
+class EncodingContractError(ModelLifecycleError):
+    """A tokeniser, normaliser or embedding space record breaks its rules."""
+
+
 class LicenceRecordError(ModelLifecycleError):
     """A dual-axis licence record or compute budget is malformed."""
 

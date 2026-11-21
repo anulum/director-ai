@@ -6,10 +6,10 @@
     "optional_extras": 62,
     "public_api_exports": 227,
     "public_documentation_pages": 208,
-    "python_model_classes": 1129,
-    "python_model_source_modules": 573,
+    "python_model_classes": 1137,
+    "python_model_source_modules": 577,
     "rust_pyo3_model_wrappers": 83,
-    "test_files": 858
+    "test_files": 859
   },
   "documentation": {
     "public_pages": [
@@ -1403,6 +1403,14 @@
         "path": "src/director_ai/core/safety/siem.py"
       },
       {
+        "name": "DatasetContractError",
+        "path": "src/director_ai/model_lifecycle/errors.py"
+      },
+      {
+        "name": "DatasetDeduplicationReport",
+        "path": "src/director_ai/model_lifecycle/dataset_records.py"
+      },
+      {
         "name": "DatasetFingerprint",
         "path": "src/director_ai/core/training/dataset_fingerprint.py"
       },
@@ -1603,6 +1611,10 @@
         "path": "src/director_ai/model_lifecycle/family_companions.py"
       },
       {
+        "name": "DynamicsNormaliserEnvelope",
+        "path": "src/director_ai/model_lifecycle/encoding_records.py"
+      },
+      {
         "name": "EconomicDecision",
         "path": "src/director_ai/core/routing/economics.py"
       },
@@ -1651,6 +1663,10 @@
         "path": "src/director_ai/core/scoring/backends.py"
       },
       {
+        "name": "EmbeddingSpaceIdentity",
+        "path": "src/director_ai/model_lifecycle/encoding_records.py"
+      },
+      {
         "name": "EmbeddingTrainingStack",
         "path": "src/director_ai/core/retrieval/embedding_tuner.py"
       },
@@ -1665,6 +1681,10 @@
       {
         "name": "EncodedOutput",
         "path": "src/director_ai/core/output_trust/guard.py"
+      },
+      {
+        "name": "EncodingContractError",
+        "path": "src/director_ai/model_lifecycle/errors.py"
       },
       {
         "name": "EnsembleComponent",
@@ -4139,6 +4159,10 @@
         "path": "src/director_ai/core/cyber_physical/geometry.py"
       },
       {
+        "name": "SplitLeakageError",
+        "path": "src/director_ai/model_lifecycle/errors.py"
+      },
+      {
         "name": "SplunkHECSink",
         "path": "src/director_ai/core/safety/siem.py"
       },
@@ -4311,6 +4335,10 @@
         "path": "src/director_ai/core/self_evolving/synthetic_distillation.py"
       },
       {
+        "name": "SyntheticDistillationManifest",
+        "path": "src/director_ai/model_lifecycle/dataset_records.py"
+      },
+      {
         "name": "SyntheticDistillationPlan",
         "path": "src/director_ai/core/self_evolving/synthetic_distillation.py"
       },
@@ -4465,6 +4493,10 @@
       {
         "name": "TokenTraceEvent",
         "path": "src/director_ai/core/observability/callbacks.py"
+      },
+      {
+        "name": "TokeniserArtefactEnvelope",
+        "path": "src/director_ai/model_lifecycle/encoding_records.py"
       },
       {
         "name": "ToolCallResult",
@@ -5374,7 +5406,11 @@
       "src/director_ai/model_lifecycle/contracts.py",
       "src/director_ai/model_lifecycle/cost_and_promotion_contracts.py",
       "src/director_ai/model_lifecycle/custody_records.py",
+      "src/director_ai/model_lifecycle/dataset_contracts.py",
+      "src/director_ai/model_lifecycle/dataset_records.py",
       "src/director_ai/model_lifecycle/digests.py",
+      "src/director_ai/model_lifecycle/encoding_contracts.py",
+      "src/director_ai/model_lifecycle/encoding_records.py",
       "src/director_ai/model_lifecycle/envelopes.py",
       "src/director_ai/model_lifecycle/errors.py",
       "src/director_ai/model_lifecycle/evaluation_contracts.py",
@@ -6308,6 +6344,7 @@
       "tests/test_ml_bom.py",
       "tests/test_model_benchmark_packages.py",
       "tests/test_model_lifecycle_architecture.py",
+      "tests/test_model_lifecycle_datasets.py",
       "tests/test_model_lifecycle_families.py",
       "tests/test_model_lifecycle_floats_and_codec.py",
       "tests/test_model_lifecycle_licence_boundary.py",

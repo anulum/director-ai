@@ -29,11 +29,22 @@ from .custody_records import (
     is_sealed_kind,
     validate_custody_ingest_record,
 )
+from .dataset_contracts import (
+    validate_dedup_and_distillation,
+    validate_dedup_report,
+    validate_distillation_manifest,
+)
 from .digests import (
     canonical_json_bytes,
     decode_record,
     record_digest,
     strict_json_loads,
+)
+from .encoding_contracts import (
+    validate_embedding_space_identity,
+    validate_normaliser_envelope,
+    validate_tokeniser_and_normaliser_disjointness,
+    validate_tokeniser_envelope,
 )
 from .envelopes import (
     require_active_family,
@@ -148,7 +159,11 @@ __all__ = [
     "validate_base_checkpoint_record",
     "validate_compute_budget",
     "validate_custody_ingest_record",
+    "validate_dedup_and_distillation",
+    "validate_dedup_report",
+    "validate_distillation_manifest",
     "validate_dynamics_family_contract",
+    "validate_embedding_space_identity",
     "validate_envelope",
     "validate_evaluator_output",
     "validate_family_tensor_layout",
@@ -161,11 +176,14 @@ __all__ = [
     "validate_look_result",
     "validate_mup_spec",
     "validate_mup_validation_receipt",
+    "validate_normaliser_envelope",
     "validate_preregistration",
     "validate_preregistration_approval",
     "validate_promotion_decision",
     "validate_sealed_split_pool",
     "validate_slice_estimate",
+    "validate_tokeniser_and_normaliser_disjointness",
+    "validate_tokeniser_envelope",
     "validate_transformer_architecture_spec",
     "validate_yarn_rope_scaling",
 ]
