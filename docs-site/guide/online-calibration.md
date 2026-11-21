@@ -267,6 +267,47 @@ for the query. Transport, authentication, and protocol failures raise
 memory-feedback failures must not break the response. Keep credentials in the
 `token` argument. URLs with embedded `user:pass@host` credentials are rejected.
 
+## Self-Evolving Calibration
+
+`SelfEvolver` retrains the guardrail from feedback and recalibrates its
+threshold with split-conformal prediction. The calibration is only valid on
+data that is independent of training, so record each event's real source
+cluster: the conversation, document or incident it came from.
+
+```python
+from director_ai.core.self_evolving import (
+    SOURCE_CLUSTER_METADATA_KEY,
+    FeedbackEvent,
+    InMemoryFeedbackStore,
+    SelfEvolver,
+)
+
+store = InMemoryFeedbackStore()
+store.append(
+    FeedbackEvent(
+        prompt="Approve the transfer?",
+        response="Approved.",
+        label="unsafe",
+        metadata={SOURCE_CLUSTER_METADATA_KEY: "ticket-4812"},
+    )
+)
+# After enough reviewed events from enough clusters:
+report = SelfEvolver(store=store).evolve(seed=7)
+```
+
+Each round holds out whole cluster groups and calibrates on one seeded event
+per held-out group. Synthetic adversarial rows stay in training, and events
+without a recorded cluster train but never calibrate. A round refuses before
+any training when fewer independent groups exist than the coverage target
+needs: nine at the default 0.90 target
+(`ConformalCalibrator.minimum_calibration_size`). `EvolutionReport` states
+the groups used and the target.
+
+The coverage guarantee is cluster-weighted. It covers an event drawn by first
+choosing a new cluster and then an event within it. When a few long
+conversations dominate traffic, the coverage of individual events can differ
+from the target.
+
 ## Self-Improving Guard Loop Gate
 
 Use `SelfImprovingGuardLoop` when calibration or fine-tuning should enter a

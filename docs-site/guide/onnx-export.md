@@ -54,7 +54,9 @@ its SHA-256 digest, the precision and the INT8 range policy. The ONNX backend
 serves exactly that file and refuses a file that is missing or whose digest no
 longer matches. The bytes it verifies are the bytes ONNX Runtime loads, so the
 file cannot change between the check and the load. A manifest-bound model is
-therefore read into memory once before the session is created.
+therefore read into memory once before the session is created. While the
+session is built, peak memory can reach about twice the model's size, more
+than a load from the path needs, so size small hosts for that peak.
 
 A directory without a manifest keeps the older layout rule and logs one
 warning per directory. One that holds an FP16 export next to another model is

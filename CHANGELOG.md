@@ -43,6 +43,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Document the `SelfEvolver` calibration in the online calibration guide,
+  including that its coverage guarantee is cluster-weighted, and note that
+  loading a manifest-bound ONNX model can briefly need about twice the
+  model's size in memory.
 - The optional Julia tuner uses maintained JSON.jl and integrates the full
   piecewise threshold posterior, including separated modes. The CLI schema
   and Julia `Chains` output are preserved.

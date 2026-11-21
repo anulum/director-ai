@@ -27,7 +27,10 @@ unit of calibration is the cluster group, not the event. Under cluster
 exchangeability, one uniformly chosen score per held-out group is exactly
 exchangeable with a uniformly chosen event of a new cluster, and the
 split-conformal coverage guarantee holds with ``n`` equal to the number of
-held-out groups. Each round therefore:
+held-out groups. The guarantee is cluster-weighted: it covers an
+event drawn by first choosing a new cluster and then an event in it, and
+per-event coverage can differ when a few long conversations dominate
+traffic. Each round therefore:
 
 * splits whole source clusters (``metadata["source_cluster"]``), never
   single rows, and merges clusters whose prompts coincide after case
