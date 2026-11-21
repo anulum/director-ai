@@ -101,7 +101,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 17-key custody ingest records with a fixed set of sealed kinds;
   - preregistration, approval and sealed look records with four outcomes;
   - a custody-derived, root-anchored proposer lineage and look budget,
-    checked by `admit_sealed_look` before a split is opened;
+    checked by `admit_sealed_look` before a split is opened. Admission
+    reads a study's earlier looks from the programme's journal itself:
+    each journal entry names its study and preregistration, the kernel
+    builds entries with `journal_entry_for`, and the journal must rise by
+    one with no gap or repeat;
   - the paired non-inferiority sample size;
   - promotion decisions with their production pre-state;
   - canonical JSON that has no form for a negative zero, and

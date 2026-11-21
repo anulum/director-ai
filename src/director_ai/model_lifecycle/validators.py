@@ -89,6 +89,11 @@ from .job_contracts import (
     validate_job_submission,
     validate_sandbox_confinement,
 )
+from .journal_entries import (
+    check_journal_order,
+    journal_entry_for,
+    select_study_entries,
+)
 from .licences import (
     require_output_training_permitted,
     validate_compute_budget,
@@ -185,6 +190,7 @@ __all__ = [
     "amount",
     "any_lane_matches",
     "canonical_json_bytes",
+    "check_journal_order",
     "check_look_budget",
     "check_promotion_pre_state",
     "check_tier_journal_order",
@@ -200,6 +206,7 @@ __all__ = [
     "family_rule",
     "from_canonical_json_bytes",
     "is_sealed_kind",
+    "journal_entry_for",
     "list_archive_members",
     "read_archive_tensor_descriptors",
     "read_safetensors_descriptors",
@@ -210,6 +217,7 @@ __all__ = [
     "require_output_training_permitted",
     "required_paired_sample_size",
     "scan_float_chunk",
+    "select_study_entries",
     "strict_json_loads",
     "tensor_set_identity",
     "validate_base_checkpoint_record",

@@ -7,9 +7,9 @@
     "public_api_exports": 227,
     "public_documentation_pages": 208,
     "python_model_classes": 1172,
-    "python_model_source_modules": 591,
+    "python_model_source_modules": 592,
     "rust_pyo3_model_wrappers": 83,
-    "test_files": 866
+    "test_files": 867
   },
   "documentation": {
     "public_pages": [
@@ -5562,6 +5562,7 @@
       "src/director_ai/model_lifecycle/float_scan.py",
       "src/director_ai/model_lifecycle/graders.py",
       "src/director_ai/model_lifecycle/job_contracts.py",
+      "src/director_ai/model_lifecycle/journal_entries.py",
       "src/director_ai/model_lifecycle/licences.py",
       "src/director_ai/model_lifecycle/lineage.py",
       "src/director_ai/model_lifecycle/look_admission.py",
@@ -6504,6 +6505,7 @@
       "tests/test_model_lifecycle_datasets.py",
       "tests/test_model_lifecycle_families.py",
       "tests/test_model_lifecycle_floats_and_codec.py",
+      "tests/test_model_lifecycle_journal_v2.py",
       "tests/test_model_lifecycle_licence_boundary.py",
       "tests/test_model_lifecycle_looks.py",
       "tests/test_model_lifecycle_recipes.py",

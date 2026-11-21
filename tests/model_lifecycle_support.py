@@ -282,16 +282,23 @@ def journal_entry(
     release_seq: int = 25,
     role: str = PROPOSER_A,
     look_kind: str = "initial_confirmatory",
+    seq: int = 1,
+    study_id: str = "study-1",
+    preregistration_digest: str | None = None,
 ) -> SealedLookJournalEntry:
-    """Return a valid journal entry for an earlier look."""
+    """Return a valid v2 journal entry for an earlier look.
+
+    By default the look belongs to study ``study-1`` under the default
+    preregistration, which :class:`LookScenario` ingests.
+    """
     fault = (
         digest_of("attestation")
         if status in {"infrastructure_fault", "voided_evaluator_fault"}
         else ""
     )
     return SealedLookJournalEntry(
-        schema="sealed-look-journal-entry.v1",
-        journal_seq=1,
+        schema="sealed-look-journal-entry.v2",
+        journal_seq=seq,
         custody_seq_at_release=release_seq,
         derived_proposer_lineage_id=lineage_id,
         split_digest=split,
@@ -305,6 +312,12 @@ def journal_entry(
         programme=PROGRAMME,
         evaluator_name="evaluator-x",
         evaluator_digest=digest_of("evaluator"),
+        study_id=study_id,
+        preregistration_digest=(
+            record_digest(preregistration())
+            if preregistration_digest is None
+            else preregistration_digest
+        ),
     )
 
 
@@ -313,14 +326,16 @@ class LookScenario:
     """A complete, admissible look: one preregistration, approval and arm.
 
     Splits are ingested at sequences 1 to 3 by the custodian, the
-    preregistration at 10, its approval at 11, and arm ``A1`` at 20.
+    preregistration at 10, its approval at 11, and arm ``A1`` at 20. When a
+    journal entry names the default preregistration and the scenario uses
+    another one of the same study, the default is ingested at 5, as an
+    earlier preregistration of that study would have been.
     """
 
     prereg: PreregistrationRecord = field(default_factory=preregistration)
     records: dict[str, CustodyIngestRecord] = field(default_factory=dict)
     edges: tuple[LineageEdge, ...] = ()
     journal: list[SealedLookJournalEntry] = field(default_factory=list)
-    study_entries: list[SealedLookJournalEntry] = field(default_factory=list)
     look_kind: str = "initial_confirmatory"
     requester: str = PROPOSER_A
     split: str = SPLITS[0]
@@ -380,6 +395,9 @@ class LookScenario:
             prereg_digest,
             custody_record(prereg_digest, "preregistration", self.prereg_seq),
         )
+        default = record_digest(preregistration())
+        if any(entry.preregistration_digest == default for entry in self.journal):
+            records.setdefault(default, custody_record(default, "preregistration", 5))
         approval = self.approval()
         approval_digest = record_digest(approval)
         if self.ingest_approval:
@@ -404,6 +422,5 @@ class LookScenario:
                 "deployment-operator",
             ),
             prior_journal=self.journal,
-            prior_study_entries=self.study_entries,
             look_custody_seq=self.watermark,
         )

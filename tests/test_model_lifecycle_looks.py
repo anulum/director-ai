@@ -226,7 +226,7 @@ class TestAdmission:
             _lineage_id(1, digest_of("x")), (digest_of("x"),), release_seq=9
         )
         with pytest.raises(PreregistrationOrderError, match="amended after a look"):
-            LookScenario(study_entries=[study_look]).admit()
+            LookScenario(journal=[study_look]).admit()
 
     def test_a_preregistration_ingested_up_to_the_watermark_is_not_an_amendment(
         self,
@@ -235,7 +235,7 @@ class TestAdmission:
         study_look = journal_entry(
             _lineage_id(1, digest_of("x")), (digest_of("x"),), release_seq=10
         )
-        assert LookScenario(study_entries=[study_look]).admit()
+        assert LookScenario(journal=[study_look]).admit()
 
     @pytest.mark.parametrize("field", ["configured_custodian", "configured_approver"])
     def test_empty_configured_roles_are_refused(self, field: str) -> None:
@@ -317,6 +317,7 @@ class TestLineageAndBudget:
             (A1,),
             status="voided_evaluator_fault",
             look_kind="fault_relook",
+            seq=2,
         )
         with pytest.raises(LookBudgetExhaustedError, match="one fault_relook"):
             LookScenario(journal=[fault, relook], look_kind="fault_relook").admit()
@@ -346,7 +347,9 @@ class TestLineageAndBudget:
 
     def test_a_tainted_base_merges_its_derivatives(self) -> None:
         """M-J4-9: a base already in a released look on the split merges."""
-        released = journal_entry(_lineage_id(20, A1), (A1,), release_seq=25)
+        released = journal_entry(
+            _lineage_id(20, A1), (A1,), release_seq=25, study_id="study-a"
+        )
         prereg = preregistration(
             frozen_look_candidate_digests=(B1,), base_checkpoint_digests=(A1,)
         )
@@ -365,7 +368,11 @@ class TestLineageAndBudget:
     def test_a_base_tainted_by_a_candidate_failure_merges(self) -> None:
         """M-J4-9b: candidate_failed taints a base like released."""
         failed = journal_entry(
-            _lineage_id(20, A1), (A1,), status="candidate_failed", release_seq=25
+            _lineage_id(20, A1),
+            (A1,),
+            status="candidate_failed",
+            release_seq=25,
+            study_id="study-a",
         )
         prereg = preregistration(
             frozen_look_candidate_digests=(B1,), base_checkpoint_digests=(A1,)
@@ -384,7 +391,9 @@ class TestLineageAndBudget:
 
     def test_independent_proposers_of_one_clean_base_keep_their_looks(self) -> None:
         """M-J4-9 control: an untainted base does not merge unrelated proposers."""
-        released = journal_entry(_lineage_id(20, A1), (A1,), release_seq=25)
+        released = journal_entry(
+            _lineage_id(20, A1), (A1,), release_seq=25, study_id="study-a"
+        )
         prereg = preregistration(
             frozen_look_candidate_digests=(B1,), base_checkpoint_digests=(BASE,)
         )
@@ -415,7 +424,9 @@ class TestLineageAndBudget:
 
     def test_a_base_in_the_requester_role_after_a_release_is_tainted(self) -> None:
         """A base the requester ingested after its release is not clean."""
-        released = journal_entry(_lineage_id(20, A1), (A1,), release_seq=25)
+        released = journal_entry(
+            _lineage_id(20, A1), (A1,), release_seq=25, study_id="study-a"
+        )
         prereg = preregistration(
             frozen_look_candidate_digests=(B1,), base_checkpoint_digests=(BASE,)
         )
@@ -445,7 +456,11 @@ class TestLineageAndBudget:
     def test_looks_outside_custody_do_not_taint(self) -> None:
         """A consuming look of unknown artefacts by an unknown role merges nothing."""
         stranger = journal_entry(
-            _lineage_id(1, A2), (A2,), role="role/unknown", release_seq=5
+            _lineage_id(1, A2),
+            (A2,),
+            role="role/unknown",
+            release_seq=5,
+            study_id="study-other",
         )
         assert LookScenario(journal=[stranger]).admit().members == frozenset({A1})
 

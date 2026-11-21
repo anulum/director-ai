@@ -37,6 +37,7 @@ from .errors import (
     UnverifiedCustodyArtefactError,
 )
 from .evaluation_contracts import PreregistrationRecord, validate_preregistration
+from .journal_entries import check_journal_order, select_study_entries
 from .lineage import LineageComponent, derive_proposer_lineage, exempt_base_digests
 from .look_budget import check_look_budget
 from .preregistration_approvals import (
@@ -46,7 +47,6 @@ from .preregistration_approvals import (
 from .sealed_looks import (
     SealedLookJournalEntry,
     SealedLookRequest,
-    validate_journal_entry,
     validate_look_request,
 )
 
@@ -111,7 +111,6 @@ def admit_sealed_look(
     custody_records: Mapping[str, CustodyIngestRecord],
     roles: CustodyProgrammeRoles,
     prior_journal: Sequence[SealedLookJournalEntry],
-    prior_study_entries: Sequence[SealedLookJournalEntry],
     look_custody_seq: int,
 ) -> LineageComponent:
     """Admit a sealed look or refuse it before any split is opened.
@@ -129,11 +128,9 @@ def admit_sealed_look(
     roles : CustodyProgrammeRoles
         The request programme's configured roles.
     prior_journal : Sequence[SealedLookJournalEntry]
-        Every earlier journal entry.
-    prior_study_entries : Sequence[SealedLookJournalEntry]
-        The earlier entries of looks made under this study's
-        preregistrations, which custody selects from the requests it
-        journalled.
+        The programme's whole journal before this look, in order. Admission
+        selects the study's earlier looks from it by ``study_id``; that it
+        is complete up to the look stays a custody trust.
     look_custody_seq : int
         The custody sequence watermark at the time of the look.
 
@@ -152,8 +149,7 @@ def admit_sealed_look(
     validate_preregistration(preregistration)
     validate_preregistration_approval(approval)
     records = _validated_records(custody_records)
-    for entry in [*prior_journal, *prior_study_entries]:
-        validate_journal_entry(entry)
+    check_journal_order(prior_journal, programme=request.programme)
     require_text(roles.custodian_role, "custodian_role", SealedPoolCustodyError)
     require_text(
         roles.threshold_approver_role, "threshold_approver_role", SealedPoolCustodyError
@@ -257,9 +253,15 @@ def admit_sealed_look(
             raise PreregistrationOrderError(
                 "a candidate was ingested before the approval"
             )
+    study_entries = select_study_entries(
+        prior_journal,
+        study_id=preregistration.study_id,
+        programme=request.programme,
+        custody_records=records,
+    )
     if any(
         prereg.custody_ingest_seq > entry.custody_seq_at_release
-        for entry in prior_study_entries
+        for entry in study_entries
     ):
         raise PreregistrationOrderError(
             "the preregistration was amended after a look of its study"

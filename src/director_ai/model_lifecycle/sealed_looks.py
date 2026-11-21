@@ -81,10 +81,14 @@ class SealedLookJournalEntry:
     """Custody's journal entry for one look that opened a split.
 
     ``custody_seq_at_release`` is the custody sequence watermark when the
-    look finished; it anchors post-look taint.
+    look finished; it anchors post-look taint. ``study_id`` and
+    ``preregistration_digest`` name the study and the preregistration the
+    look was admitted under, so admission can select a study's earlier looks
+    from the journal itself. Build entries with
+    :func:`~.journal_entries.journal_entry_for`.
     """
 
-    schema: Literal["sealed-look-journal-entry.v1"]
+    schema: Literal["sealed-look-journal-entry.v2"]
     journal_seq: int
     custody_seq_at_release: int
     derived_proposer_lineage_id: str
@@ -99,6 +103,14 @@ class SealedLookJournalEntry:
     programme: str
     evaluator_name: str
     evaluator_digest: str
+    study_id: str
+    preregistration_digest: str
+
+
+RETIRED_JOURNAL_SCHEMAS: frozenset[str] = frozenset({"sealed-look-journal-entry.v1"})
+"""Journal entry schemas that are refused by name: v1 named no study."""
+JOURNAL_ORIGIN_SEQ = 1
+"""The ``journal_seq`` of a programme's first journal entry."""
 
 
 def validate_look_request(request: SealedLookRequest) -> SealedLookRequest:
@@ -169,20 +181,29 @@ def validate_journal_entry(entry: SealedLookJournalEntry) -> SealedLookJournalEn
     Raises
     ------
     EvaluationContractError
-        If a field is malformed, or the attestation digest is not present
-        exactly for the two fault outcomes.
+        If the schema is the retired v1, a field is malformed, or the
+        attestation digest is not present exactly for the two fault outcomes.
     MalformedDigestError
         If a digest is malformed.
     """
     if not isinstance(entry, SealedLookJournalEntry):
         raise EvaluationContractError("a SealedLookJournalEntry is required")
+    if entry.schema in RETIRED_JOURNAL_SCHEMAS:
+        raise EvaluationContractError(
+            f"{entry.schema} is retired: an entry must name its study and preregistration"
+        )
     require_choice(
         entry.schema,
         "schema",
-        {"sealed-look-journal-entry.v1"},
+        {"sealed-look-journal-entry.v2"},
         EvaluationContractError,
     )
-    require_int(entry.journal_seq, "journal_seq", EvaluationContractError, minimum=0)
+    require_int(
+        entry.journal_seq,
+        "journal_seq",
+        EvaluationContractError,
+        minimum=JOURNAL_ORIGIN_SEQ,
+    )
     require_int(
         entry.custody_seq_at_release,
         "custody_seq_at_release",
@@ -218,4 +239,6 @@ def validate_journal_entry(entry: SealedLookJournalEntry) -> SealedLookJournalEn
     require_text(entry.programme, "programme", EvaluationContractError)
     require_text(entry.evaluator_name, "evaluator_name", EvaluationContractError)
     require_sha256(entry.evaluator_digest, "evaluator_digest")
+    require_text(entry.study_id, "study_id", EvaluationContractError)
+    require_sha256(entry.preregistration_digest, "preregistration_digest")
     return entry
