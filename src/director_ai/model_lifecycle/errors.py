@@ -100,6 +100,10 @@ class VerifierMaskRateDriftError(RlvrContractError):
     """A batch's masking rate drifts above the reference beyond the allowed margin."""
 
 
+class ExportParityError(ModelLifecycleError):
+    """An export profile or a serving-format parity report breaks its rules."""
+
+
 class LicenceRecordError(ModelLifecycleError):
     """A dual-axis licence record or compute budget is malformed."""
 

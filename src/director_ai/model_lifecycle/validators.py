@@ -60,6 +60,10 @@ from .evaluator_outputs import (
     validate_look_result,
     validate_slice_estimate,
 )
+from .export_contracts import (
+    validate_export_parity_report,
+    validate_onnx_export_profile,
+)
 from .family_companions import (
     validate_dynamics_family_contract,
     validate_language_family_contract,
@@ -118,7 +122,10 @@ from .rlvr_contracts import (
     validate_verifiable_reward_outcome,
     validate_verifier_fault_attestation,
 )
-from .rlvr_mask_rate import validate_rlvr_batch_mask_rate, wilson_interval
+from .rlvr_mask_rate import (
+    validate_rlvr_batch_mask_rate,
+    wilson_interval,
+)
 from .safetensors_parser import (
     compute_tensor_set_digest,
     compute_tensor_set_identity,
@@ -128,6 +135,11 @@ from .safetensors_parser import (
 from .sealed_looks import (
     validate_journal_entry,
     validate_look_request,
+)
+from .study_contracts import (
+    validate_build2_terms,
+    validate_dynamics_evaluation_contract,
+    validate_inference_envelope,
 )
 from .tensors import (
     tensor_set_identity,
@@ -173,19 +185,23 @@ __all__ = [
     "strict_json_loads",
     "tensor_set_identity",
     "validate_base_checkpoint_record",
+    "validate_build2_terms",
     "validate_compute_budget",
     "validate_curriculum_stage",
     "validate_custody_ingest_record",
     "validate_dedup_and_distillation",
     "validate_dedup_report",
     "validate_distillation_manifest",
+    "validate_dynamics_evaluation_contract",
     "validate_dynamics_family_contract",
     "validate_embedding_space_identity",
     "validate_envelope",
     "validate_evaluator_output",
+    "validate_export_parity_report",
     "validate_family_tensor_layout",
     "validate_grader",
     "validate_hardware_profile",
+    "validate_inference_envelope",
     "validate_journal_entry",
     "validate_language_family_contract",
     "validate_licence_record",
@@ -196,6 +212,7 @@ __all__ = [
     "validate_mup_spec",
     "validate_mup_validation_receipt",
     "validate_normaliser_envelope",
+    "validate_onnx_export_profile",
     "validate_preregistration",
     "validate_preregistration_approval",
     "validate_pretraining_checkpoint_state",

@@ -74,6 +74,10 @@ from .evaluator_outputs import (
     validate_evaluator_output,
     validate_slice_estimate,
 )
+from .export_contracts import (
+    validate_export_parity_report,
+    validate_onnx_export_profile,
+)
 from .family_companions import (
     DynamicsFamilyContract,
     LanguageFamilyContract,
@@ -103,6 +107,18 @@ from .sealed_looks import (
     SealedLookRequest,
     validate_journal_entry,
     validate_look_request,
+)
+from .study_contracts import (
+    validate_build2_terms,
+    validate_dynamics_evaluation_contract,
+    validate_inference_envelope,
+)
+from .study_records import (
+    DynamicsEvaluationContract,
+    ExportParityReport,
+    InferenceComputeEnvelope,
+    OnnxExportProfileSpec,
+    PreregistrationBuild2Terms,
 )
 from .tensors import TensorDescriptor, TensorSetIdentity, tensor_set_identity
 from .width_and_position_contracts import validate_mup_validation_receipt
@@ -175,6 +191,11 @@ VALIDATORS: dict[type, Callable[[object], object]] = {
         (PretrainingCheckpointState, validate_pretraining_checkpoint_state),
         (RlvrAlgorithmSpec, validate_rlvr_spec),
         (VerifierFaultAttestation, validate_verifier_fault_attestation),
+        (InferenceComputeEnvelope, validate_inference_envelope),
+        (PreregistrationBuild2Terms, validate_build2_terms),
+        (DynamicsEvaluationContract, validate_dynamics_evaluation_contract),
+        (OnnxExportProfileSpec, validate_onnx_export_profile),
+        (ExportParityReport, validate_export_parity_report),
     )
 }
 """Every record type the codec decodes, with the validator it runs."""

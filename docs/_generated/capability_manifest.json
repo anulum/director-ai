@@ -6,10 +6,10 @@
     "optional_extras": 62,
     "public_api_exports": 227,
     "public_documentation_pages": 208,
-    "python_model_classes": 1151,
-    "python_model_source_modules": 583,
+    "python_model_classes": 1158,
+    "python_model_source_modules": 586,
     "rust_pyo3_model_wrappers": 83,
-    "test_files": 860
+    "test_files": 861
   },
   "documentation": {
     "public_pages": [
@@ -1611,6 +1611,10 @@
         "path": "src/director_ai/core/scoring/temporal_refresh.py"
       },
       {
+        "name": "DynamicsEvaluationContract",
+        "path": "src/director_ai/model_lifecycle/study_records.py"
+      },
+      {
         "name": "DynamicsFamilyContract",
         "path": "src/director_ai/model_lifecycle/family_companions.py"
       },
@@ -1789,6 +1793,18 @@
       {
         "name": "ExperimentTracker",
         "path": "src/director_ai/core/training/experiment_tracker.py"
+      },
+      {
+        "name": "ExportParityError",
+        "path": "src/director_ai/model_lifecycle/errors.py"
+      },
+      {
+        "name": "ExportParityMetricSlice",
+        "path": "src/director_ai/model_lifecycle/study_records.py"
+      },
+      {
+        "name": "ExportParityReport",
+        "path": "src/director_ai/model_lifecycle/study_records.py"
       },
       {
         "name": "Expr",
@@ -2405,6 +2421,10 @@
       {
         "name": "IndicatorType",
         "path": "src/director_ai/core/threat_intel/indicators.py"
+      },
+      {
+        "name": "InferenceComputeEnvelope",
+        "path": "src/director_ai/model_lifecycle/study_records.py"
       },
       {
         "name": "InferenceHookDecision",
@@ -3127,6 +3147,10 @@
         "path": "src/director_ai/core/scoring/_nli_export.py"
       },
       {
+        "name": "OnnxExportProfileSpec",
+        "path": "src/director_ai/model_lifecycle/study_records.py"
+      },
+      {
         "name": "OntologyChecker",
         "path": "src/director_ai/core/ontology/checker.py"
       },
@@ -3441,6 +3465,10 @@
       {
         "name": "PreregistrationApproval",
         "path": "src/director_ai/model_lifecycle/preregistration_approvals.py"
+      },
+      {
+        "name": "PreregistrationBuild2Terms",
+        "path": "src/director_ai/model_lifecycle/study_records.py"
       },
       {
         "name": "PreregistrationOrderError",
@@ -5471,6 +5499,7 @@
       "src/director_ai/model_lifecycle/errors.py",
       "src/director_ai/model_lifecycle/evaluation_contracts.py",
       "src/director_ai/model_lifecycle/evaluator_outputs.py",
+      "src/director_ai/model_lifecycle/export_contracts.py",
       "src/director_ai/model_lifecycle/family_companions.py",
       "src/director_ai/model_lifecycle/family_contracts.py",
       "src/director_ai/model_lifecycle/family_registry.py",
@@ -5491,6 +5520,8 @@
       "src/director_ai/model_lifecycle/rlvr_records.py",
       "src/director_ai/model_lifecycle/safetensors_parser.py",
       "src/director_ai/model_lifecycle/sealed_looks.py",
+      "src/director_ai/model_lifecycle/study_contracts.py",
+      "src/director_ai/model_lifecycle/study_records.py",
       "src/director_ai/model_lifecycle/tensors.py",
       "src/director_ai/model_lifecycle/validators.py",
       "src/director_ai/model_lifecycle/weight_archives.py",
@@ -6413,6 +6444,7 @@
       "tests/test_model_lifecycle_looks.py",
       "tests/test_model_lifecycle_recipes.py",
       "tests/test_model_lifecycle_records.py",
+      "tests/test_model_lifecycle_study_terms.py",
       "tests/test_model_lifecycle_surfaces.py",
       "tests/test_model_lifecycle_weights.py",
       "tests/test_model_package_vertex_campaign.py",

@@ -72,6 +72,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     zero and only an attested verifier fault is masked, and a per-batch
     masking ceiling with a Wilson-interval drift test against the
     reference rate;
+  - build-2 study terms with per-arm matched budgets and test-time
+    compute caps, a dynamics evaluation contract with its evidence floors,
+    and export parity reports that refuse a serving binary unless every
+    slice is non-inferior to its parent, with the ONNX INT8, AudioWorklet
+    and GGUF stop-token checks;
   - 17-key custody ingest records with a fixed set of sealed kinds;
   - preregistration, approval and sealed look records with four outcomes;
   - a custody-derived, root-anchored proposer lineage and look budget,
