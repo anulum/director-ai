@@ -149,6 +149,7 @@ from .study_records import (
     PreregistrationBuild2Terms,
 )
 from .tensors import TensorDescriptor, TensorSetIdentity, tensor_set_identity
+from .tier_journal import CustodyTierJournalEntry, validate_tier_journal_entry
 from .width_and_position_contracts import validate_mup_validation_receipt
 
 RecordT = TypeVar("RecordT")
@@ -234,6 +235,7 @@ VALIDATORS: dict[type, Callable[[object], object]] = {
         (ServingMemoryBudget, validate_serving_memory_budget),
         (PromotionDependencyPins, validate_dependency_pins),
         (StudyDeclineRecord, validate_study_decline),
+        (CustodyTierJournalEntry, validate_tier_journal_entry),
     )
 }
 """Every record type the codec decodes, with the validator it runs."""

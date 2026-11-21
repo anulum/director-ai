@@ -154,3 +154,7 @@ class SampleSizeError(ModelLifecycleError):
 
 class PromotionDecisionError(ModelLifecycleError):
     """A promotion decision is malformed or its pre-state does not hold."""
+
+
+class UnpinnedPromotionDependencyError(PromotionDecisionError):
+    """A promotion depends on a digest that is not pinned in its scope."""

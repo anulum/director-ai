@@ -398,7 +398,10 @@ class LookScenario:
             approval=approval,
             custody_records=records,
             roles=CustodyProgrammeRoles(
-                PROGRAMME, self.configured_custodian, self.configured_approver
+                PROGRAMME,
+                self.configured_custodian,
+                self.configured_approver,
+                "deployment-operator",
             ),
             prior_journal=self.journal,
             prior_study_entries=self.study_entries,

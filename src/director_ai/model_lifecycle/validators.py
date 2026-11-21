@@ -162,6 +162,12 @@ from .study_contracts import (
 from .tensors import (
     tensor_set_identity,
 )
+from .tier_journal import (
+    active_pins,
+    check_tier_journal_order,
+    require_dependencies_pinned,
+    validate_tier_journal_entry,
+)
 from .weight_archives import (
     compute_archive_tensor_set_identity,
     list_archive_members,
@@ -174,12 +180,14 @@ from .width_and_position_contracts import (
 )
 
 __all__ = [
+    "active_pins",
     "admit_sealed_look",
     "amount",
     "any_lane_matches",
     "canonical_json_bytes",
     "check_look_budget",
     "check_promotion_pre_state",
+    "check_tier_journal_order",
     "check_transformer_architecture_shape",
     "compute_archive_tensor_set_identity",
     "compute_family_model_identity_digest",
@@ -198,6 +206,7 @@ __all__ = [
     "read_tensor_set_descriptors",
     "record_digest",
     "require_active_family",
+    "require_dependencies_pinned",
     "require_output_training_permitted",
     "required_paired_sample_size",
     "scan_float_chunk",
@@ -253,6 +262,7 @@ __all__ = [
     "validate_spend_binding",
     "validate_spend_reservation_live",
     "validate_study_decline",
+    "validate_tier_journal_entry",
     "validate_tokeniser_and_normaliser_disjointness",
     "validate_tokeniser_envelope",
     "validate_transformer_architecture_spec",

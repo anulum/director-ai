@@ -197,6 +197,12 @@ from .tensors import (
     TensorDtype,
     TensorSetIdentity,
 )
+from .tier_journal import (
+    PIN_ACTIONS,
+    TIER_ACTIONS,
+    TIER_JOURNAL_ORIGIN_SEQ,
+    CustodyTierJournalEntry,
+)
 from .weight_archives import (
     ArchiveMember,
 )
@@ -237,6 +243,7 @@ __all__ = [
     "NETWORK_ISOLATION_LAYERS",
     "NO_BF16_TIERS",
     "OUTCOME_STATUSES",
+    "PIN_ACTIONS",
     "POOLING_MODES",
     "POOL_FUNDING_KINDS",
     "PROFILE_LOCKS",
@@ -250,6 +257,8 @@ __all__ = [
     "SEALED_CUSTODY_KINDS",
     "SPIKING_FAMILY_RULE",
     "SPLIT_PARTITIONS",
+    "TIER_ACTIONS",
+    "TIER_JOURNAL_ORIGIN_SEQ",
     "TOKENISER_ALGORITHMS",
     "UNICODE_NORMALISATIONS",
     "WASM_AUDIOWORKLET_MAX_BYTES",
@@ -269,6 +278,7 @@ __all__ = [
     "CustodyIngestRecord",
     "CustodyObjectKind",
     "CustodyProgrammeRoles",
+    "CustodyTierJournalEntry",
     "DatasetDeduplicationReport",
     "DocumentMaskMode",
     "DualAxisLicenceRecord",

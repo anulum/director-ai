@@ -93,6 +93,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     arithmetic; job confinement, submission, status and cancellation
     records; and the serving memory budget, dependency pins and study
     decline records of a promotion;
+  - the custody tier journal entry, with scoped pins derived from the journal
+    alone (the latest act per digest and scope decides, up to the decision's
+    tier position, and a release resets a digest's pins), the
+    deployment-operator role, and a check that every dependency of a
+    promotion is pinned in its scope by that role;
   - 17-key custody ingest records with a fixed set of sealed kinds;
   - preregistration, approval and sealed look records with four outcomes;
   - a custody-derived, root-anchored proposer lineage and look budget,

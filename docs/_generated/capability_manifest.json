@@ -6,10 +6,10 @@
     "optional_extras": 62,
     "public_api_exports": 227,
     "public_documentation_pages": 208,
-    "python_model_classes": 1170,
-    "python_model_source_modules": 590,
+    "python_model_classes": 1172,
+    "python_model_source_modules": 591,
     "rust_pyo3_model_wrappers": 83,
-    "test_files": 865
+    "test_files": 866
   },
   "documentation": {
     "public_pages": [
@@ -1329,6 +1329,10 @@
       {
         "name": "CustodyRecordError",
         "path": "src/director_ai/model_lifecycle/errors.py"
+      },
+      {
+        "name": "CustodyTierJournalEntry",
+        "path": "src/director_ai/model_lifecycle/tier_journal.py"
       },
       {
         "name": "CustomRule",
@@ -4823,6 +4827,10 @@
         "path": "src/director_ai/core/routing/uncertainty_router.py"
       },
       {
+        "name": "UnpinnedPromotionDependencyError",
+        "path": "src/director_ai/model_lifecycle/errors.py"
+      },
+      {
         "name": "UnsafeOutputError",
         "path": "src/director_ai/core/output_trust/encoders.py"
       },
@@ -5575,6 +5583,7 @@
       "src/director_ai/model_lifecycle/study_contracts.py",
       "src/director_ai/model_lifecycle/study_records.py",
       "src/director_ai/model_lifecycle/tensors.py",
+      "src/director_ai/model_lifecycle/tier_journal.py",
       "src/director_ai/model_lifecycle/validators.py",
       "src/director_ai/model_lifecycle/weight_archives.py",
       "src/director_ai/model_lifecycle/width_and_position_contracts.py",
@@ -6502,6 +6511,7 @@
       "tests/test_model_lifecycle_spend.py",
       "tests/test_model_lifecycle_study_terms.py",
       "tests/test_model_lifecycle_surfaces.py",
+      "tests/test_model_lifecycle_tier_pins.py",
       "tests/test_model_lifecycle_weights.py",
       "tests/test_model_package_vertex_campaign.py",
       "tests/test_model_registry.py",

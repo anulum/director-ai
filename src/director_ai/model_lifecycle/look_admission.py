@@ -63,11 +63,14 @@ class CustodyProgrammeRoles:
         The only role that may ingest the programme's sealed splits.
     threshold_approver_role : str
         The only role whose preregistration approvals count.
+    deployment_operator_role : str
+        The only role whose tier pins count for a promotion.
     """
 
     programme: str
     custodian_role: str
     threshold_approver_role: str
+    deployment_operator_role: str
 
 
 def _record(
