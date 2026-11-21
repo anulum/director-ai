@@ -6,10 +6,10 @@
     "optional_extras": 62,
     "public_api_exports": 227,
     "public_documentation_pages": 208,
-    "python_model_classes": 1173,
-    "python_model_source_modules": 595,
+    "python_model_classes": 1182,
+    "python_model_source_modules": 602,
     "rust_pyo3_model_wrappers": 83,
-    "test_files": 868
+    "test_files": 869
   },
   "documentation": {
     "public_pages": [
@@ -677,6 +677,10 @@
       {
         "name": "BargainingSolution",
         "path": "src/director_ai/core/swarm_economics/bargaining.py"
+      },
+      {
+        "name": "BarrenPlateauWitnessReceipt",
+        "path": "src/director_ai/model_lifecycle/quantum_records.py"
       },
       {
         "name": "BaseCheckpointRecord",
@@ -3251,6 +3255,10 @@
         "path": "src/director_ai/model_lifecycle/spend_records.py"
       },
       {
+        "name": "PairedShotInstance",
+        "path": "src/director_ai/model_lifecycle/quantum_paired_noise.py"
+      },
+      {
         "name": "PairwiseAgreement",
         "path": "src/director_ai/core/scoring/consensus.py"
       },
@@ -3289,6 +3297,10 @@
       {
         "name": "PatternMiner",
         "path": "src/director_ai/core/continual_adversarial/miner.py"
+      },
+      {
+        "name": "PauliGroupShots",
+        "path": "src/director_ai/model_lifecycle/quantum_shot_noise.py"
       },
       {
         "name": "PayoffError",
@@ -3613,6 +3625,22 @@
       {
         "name": "QdrantBackend",
         "path": "src/director_ai/core/retrieval/vector_store/vendors.py"
+      },
+      {
+        "name": "QuantumAcceptanceError",
+        "path": "src/director_ai/model_lifecycle/errors.py"
+      },
+      {
+        "name": "QuantumCircuitExecutionReceipt",
+        "path": "src/director_ai/model_lifecycle/quantum_records.py"
+      },
+      {
+        "name": "QuantumShotNoiseAcceptanceSpec",
+        "path": "src/director_ai/model_lifecycle/quantum_records.py"
+      },
+      {
+        "name": "QuantumVariationalSeedTuple",
+        "path": "src/director_ai/model_lifecycle/quantum_records.py"
       },
       {
         "name": "QueryDecompositionBackend",
@@ -4269,6 +4297,14 @@
       {
         "name": "Sphere",
         "path": "src/director_ai/core/cyber_physical/geometry.py"
+      },
+      {
+        "name": "SpikingLoweringParityReport",
+        "path": "src/director_ai/model_lifecycle/quantum_records.py"
+      },
+      {
+        "name": "SpikingParityError",
+        "path": "src/director_ai/model_lifecycle/errors.py"
       },
       {
         "name": "SplitLeakageError",
@@ -5563,6 +5599,7 @@
       "src/director_ai/model_lifecycle/family_companions.py",
       "src/director_ai/model_lifecycle/family_contracts.py",
       "src/director_ai/model_lifecycle/family_registry.py",
+      "src/director_ai/model_lifecycle/family_witnesses.py",
       "src/director_ai/model_lifecycle/float_scan.py",
       "src/director_ai/model_lifecycle/graders.py",
       "src/director_ai/model_lifecycle/job_contracts.py",
@@ -5577,6 +5614,12 @@
       "src/director_ai/model_lifecycle/promotion_exports.py",
       "src/director_ai/model_lifecycle/promotion_gate.py",
       "src/director_ai/model_lifecycle/promotion_records.py",
+      "src/director_ai/model_lifecycle/quantum_acceptance.py",
+      "src/director_ai/model_lifecycle/quantum_contracts.py",
+      "src/director_ai/model_lifecycle/quantum_paired_noise.py",
+      "src/director_ai/model_lifecycle/quantum_records.py",
+      "src/director_ai/model_lifecycle/quantum_seeds.py",
+      "src/director_ai/model_lifecycle/quantum_shot_noise.py",
       "src/director_ai/model_lifecycle/recipe_contracts.py",
       "src/director_ai/model_lifecycle/recipe_parts.py",
       "src/director_ai/model_lifecycle/recipe_records.py",
@@ -6516,6 +6559,7 @@
       "tests/test_model_lifecycle_licence_boundary.py",
       "tests/test_model_lifecycle_looks.py",
       "tests/test_model_lifecycle_promotion_gate.py",
+      "tests/test_model_lifecycle_quantum.py",
       "tests/test_model_lifecycle_recipes.py",
       "tests/test_model_lifecycle_records.py",
       "tests/test_model_lifecycle_spend.py",

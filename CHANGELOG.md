@@ -107,6 +107,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     reports that cover the look's slices; the build-2 terms gain a
     search-spaces digest, the baseline arm and native-unit margins for
     non-rate metrics;
+  - variational quantum acceptance: specs whose sampled modes split their
+    error rate exactly in decimal arithmetic and span at least three shot
+    standard errors, mode-aware seed tuples, execution receipts matched to
+    the spec's shot budget, gate depth and witnesses, shot-noise variance
+    and Hoeffding radii that are finite or refused by name, and a
+    lower-bound check that compares exactly; and the barren-plateau and
+    spiking lowering parity witnesses;
   - 17-key custody ingest records with a fixed set of sealed kinds;
   - preregistration, approval and sealed look records with four outcomes;
   - a custody-derived, root-anchored proposer lineage and look budget,

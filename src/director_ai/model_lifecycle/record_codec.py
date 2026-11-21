@@ -84,6 +84,10 @@ from .family_companions import (
     validate_dynamics_family_contract,
     validate_language_family_contract,
 )
+from .family_witnesses import (
+    validate_barren_plateau_receipt,
+    validate_spiking_lowering_parity,
+)
 from .graders import GraderSpec, validate_grader
 from .job_contracts import (
     validate_job_cancel,
@@ -110,6 +114,15 @@ from .promotion_records import (
     validate_serving_memory_budget,
     validate_study_decline,
 )
+from .quantum_contracts import validate_receipt_shape, validate_shot_noise_spec
+from .quantum_records import (
+    BarrenPlateauWitnessReceipt,
+    QuantumCircuitExecutionReceipt,
+    QuantumShotNoiseAcceptanceSpec,
+    QuantumVariationalSeedTuple,
+    SpikingLoweringParityReport,
+)
+from .quantum_seeds import validate_seed_tuple
 from .recipe_contracts import (
     validate_pretraining_checkpoint_state,
     validate_recipe_and_curriculum,
@@ -238,6 +251,11 @@ VALIDATORS: dict[type, Callable[[object], object]] = {
         (StudyDeclineRecord, validate_study_decline),
         (CustodyTierJournalEntry, validate_tier_journal_entry),
         (PromotionEvidence, validate_promotion_evidence),
+        (SpikingLoweringParityReport, validate_spiking_lowering_parity),
+        (QuantumVariationalSeedTuple, validate_seed_tuple),
+        (BarrenPlateauWitnessReceipt, validate_barren_plateau_receipt),
+        (QuantumShotNoiseAcceptanceSpec, validate_shot_noise_spec),
+        (QuantumCircuitExecutionReceipt, validate_receipt_shape),
     )
 }
 """Every record type the codec decodes, with the validator it runs."""

@@ -53,7 +53,7 @@ class UnsupportedWeightFormatError(MalformedWeightsError):
 
 
 class MissingRequiredTensorPrefixError(MalformedWeightsError):
-    """A family's required tensor prefix has no tensor, or a tensor has no allowed prefix."""
+    """A required tensor prefix has no tensor, or a tensor has no allowed prefix."""
 
 
 class MissingFixedPointDeclarationError(MalformedWeightsError):
@@ -158,3 +158,11 @@ class PromotionDecisionError(ModelLifecycleError):
 
 class UnpinnedPromotionDependencyError(PromotionDecisionError):
     """A promotion depends on a digest that is not pinned in its scope."""
+
+
+class QuantumAcceptanceError(ModelLifecycleError):
+    """A quantum acceptance spec, receipt, seed or estimate breaks its rules."""
+
+
+class SpikingParityError(ModelLifecycleError):
+    """A spiking lowering parity witness is malformed or did not pass."""

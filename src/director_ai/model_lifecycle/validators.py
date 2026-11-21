@@ -76,6 +76,11 @@ from .family_contracts import (
 from .family_registry import (
     family_rule,
 )
+from .family_witnesses import (
+    require_spiking_parity_passed,
+    validate_barren_plateau_receipt,
+    validate_spiking_lowering_parity,
+)
 from .float_scan import (
     any_lane_matches,
     scan_float_chunk,
@@ -133,6 +138,29 @@ from .promotion_records import (
     validate_dependency_pins,
     validate_serving_memory_budget,
     validate_study_decline,
+)
+from .quantum_acceptance import (
+    admits_quantum_arm,
+    composite_lower_bound,
+    paired_improvement,
+)
+from .quantum_contracts import (
+    validate_execution_receipt,
+    validate_paired_receipts,
+    validate_receipt_shape,
+    validate_shot_noise_spec,
+)
+from .quantum_paired_noise import (
+    paired_shot_radius,
+    paired_shot_standard_error,
+)
+from .quantum_seeds import (
+    validate_quantum_seeds,
+    validate_seed_tuple,
+)
+from .quantum_shot_noise import (
+    hoeffding_radius,
+    shot_variance,
 )
 from .recipe_contracts import (
     validate_curriculum_stage,
@@ -201,6 +229,7 @@ from .width_and_position_contracts import (
 __all__ = [
     "active_pins",
     "admit_sealed_look",
+    "admits_quantum_arm",
     "amount",
     "any_lane_matches",
     "canonical_json_bytes",
@@ -213,6 +242,7 @@ __all__ = [
     "check_promotion_pre_state",
     "check_tier_journal_order",
     "check_transformer_architecture_shape",
+    "composite_lower_bound",
     "compute_archive_tensor_set_identity",
     "compute_family_model_identity_digest",
     "compute_family_tensor_set_identity",
@@ -224,9 +254,13 @@ __all__ = [
     "exempt_base_digests",
     "family_rule",
     "from_canonical_json_bytes",
+    "hoeffding_radius",
     "is_sealed_kind",
     "journal_entry_for",
     "list_archive_members",
+    "paired_improvement",
+    "paired_shot_radius",
+    "paired_shot_standard_error",
     "read_archive_tensor_descriptors",
     "read_safetensors_descriptors",
     "read_tensor_set_descriptors",
@@ -234,12 +268,15 @@ __all__ = [
     "require_active_family",
     "require_dependencies_pinned",
     "require_output_training_permitted",
+    "require_spiking_parity_passed",
     "required_paired_sample_size",
     "scan_float_chunk",
     "select_study_entries",
     "spans_noise_floors",
+    "shot_variance",
     "strict_json_loads",
     "tensor_set_identity",
+    "validate_barren_plateau_receipt",
     "validate_base_checkpoint_record",
     "validate_build2_terms",
     "validate_compute_budget",
@@ -255,6 +292,7 @@ __all__ = [
     "validate_embedding_space_identity",
     "validate_envelope",
     "validate_evaluator_output",
+    "validate_execution_receipt",
     "validate_export_parity_report",
     "validate_family_tensor_layout",
     "validate_grader",
@@ -275,22 +313,28 @@ __all__ = [
     "validate_normaliser_envelope",
     "validate_onnx_export_profile",
     "validate_paid_run_approval",
+    "validate_paired_receipts",
     "validate_preregistration",
     "validate_preregistration_approval",
     "validate_pretraining_checkpoint_state",
     "validate_promotion_decision",
     "validate_promotion_evidence",
     "validate_promotion_or_decline",
+    "validate_quantum_seeds",
+    "validate_receipt_shape",
     "validate_recipe_and_curriculum",
     "validate_rlvr_batch_mask_rate",
     "validate_rlvr_spec",
     "validate_sandbox_confinement",
     "validate_sealed_split_pool",
     "validate_seed_quadruple",
+    "validate_seed_tuple",
     "validate_serving_memory_budget",
+    "validate_shot_noise_spec",
     "validate_slice_estimate",
     "validate_spend_binding",
     "validate_spend_reservation_live",
+    "validate_spiking_lowering_parity",
     "validate_study_decline",
     "validate_tier_journal_entry",
     "validate_tokeniser_and_normaliser_disjointness",

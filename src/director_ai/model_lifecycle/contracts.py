@@ -136,6 +136,33 @@ from .promotion_records import (
     ServingMemoryBudget,
     StudyDeclineRecord,
 )
+from .quantum_acceptance import (
+    EXACT_TOLERANCE_MULTIPLE,
+)
+from .quantum_contracts import (
+    MIN_NOISE_FLOOR_MULTIPLIER,
+    MIN_SHOTS_PER_PAULI_GROUP,
+)
+from .quantum_paired_noise import (
+    PairedShotInstance,
+)
+from .quantum_records import (
+    OPTIMISATION_SENSES,
+    QUANTUM_EXECUTION_MODES,
+    SPIKING_RESET_SEMANTICS,
+    BarrenPlateauWitnessReceipt,
+    QuantumCircuitExecutionReceipt,
+    QuantumShotNoiseAcceptanceSpec,
+    QuantumVariationalSeedTuple,
+    SpikingLoweringParityReport,
+)
+from .quantum_seeds import (
+    SEED_LIMIT,
+)
+from .quantum_shot_noise import (
+    MAX_SHOTS_PER_PAULI_GROUP,
+    PauliGroupShots,
+)
 from .recipe_records import (
     ADAPTATION_MODES,
     BUDGET_AXES,
@@ -230,6 +257,7 @@ __all__ = [
     "DYNAMICS_FAMILY_RULE",
     "EMPTY_PRODUCTION_DIGEST",
     "ENVELOPE_CAPS",
+    "EXACT_TOLERANCE_MULTIPLE",
     "FAMILY_CONTRACT_REGISTRY",
     "FAULT_KINDS",
     "FAULT_OUTCOMES",
@@ -246,19 +274,24 @@ __all__ = [
     "MAX_DRIFT_ALPHA",
     "MAX_FAMILYWISE_ALPHA",
     "MAX_MASKED_FRACTION_CEILING",
+    "MAX_SHOTS_PER_PAULI_GROUP",
+    "MIN_NOISE_FLOOR_MULTIPLIER",
     "MIN_REAL_TRAIN_CLUSTER_FRACTION_WITH_SYNTHETIC",
     "MIN_TRAINING_SEEDS",
+    "MIN_SHOTS_PER_PAULI_GROUP",
     "MODEL_CUSTODY_KINDS",
     "MONEY_CONTEXT",
     "MUP_INV_D_PROFILES",
     "NETWORK_ISOLATION_LAYERS",
     "NOISE_FLOOR_MULTIPLE",
     "NO_BF16_TIERS",
+    "OPTIMISATION_SENSES",
     "OUTCOME_STATUSES",
     "PIN_ACTIONS",
     "POOLING_MODES",
     "POOL_FUNDING_KINDS",
     "PROFILE_LOCKS",
+    "QUANTUM_EXECUTION_MODES",
     "QUANTUM_VARIATIONAL_FAMILY_RULE",
     "REPRODUCIBILITY_MODES",
     "RESERVATION_STATES",
@@ -268,7 +301,9 @@ __all__ = [
     "SCALER_KINDS",
     "SCHEDULING_STRATEGIES",
     "SEALED_CUSTODY_KINDS",
+    "SEED_LIMIT",
     "SPIKING_FAMILY_RULE",
+    "SPIKING_RESET_SEMANTICS",
     "SPLIT_PARTITIONS",
     "TIER_ACTIONS",
     "TIER_JOURNAL_ORIGIN_SEQ",
@@ -279,6 +314,7 @@ __all__ = [
     "ArchitectureKind",
     "ArchiveMember",
     "ArtefactKind",
+    "BarrenPlateauWitnessReceipt",
     "BaseCheckpointRecord",
     "CiMethod",
     "CloudJobCancelReceipt",
@@ -320,6 +356,8 @@ __all__ = [
     "MupValidationReceipt",
     "OnnxExportProfileSpec",
     "PaidRunApprovalRecord",
+    "PairedShotInstance",
+    "PauliGroupShots",
     "PoolFundingKind",
     "PreregistrationApproval",
     "PreregistrationBuild2Terms",
@@ -328,6 +366,9 @@ __all__ = [
     "PromotionDecisionRecord",
     "PromotionDependencyPins",
     "PromotionEvidence",
+    "QuantumCircuitExecutionReceipt",
+    "QuantumShotNoiseAcceptanceSpec",
+    "QuantumVariationalSeedTuple",
     "RegisteredFamilyContractRule",
     "RlvrAlgorithmSpec",
     "RoleAuthenticationMode",
@@ -342,6 +383,7 @@ __all__ = [
     "ServingMemoryBudget",
     "SliceAggregateEstimate",
     "SpendReservationBinding",
+    "SpikingLoweringParityReport",
     "SplitPartition",
     "StudyDeclineRecord",
     "SyntheticDistillationManifest",
