@@ -29,7 +29,6 @@ from director_ai.model_lifecycle import (
     OutputTrainingNotPermittedError,
     PreregistrationApproval,
     PreregistrationRecord,
-    ReservedModelFamilyError,
     SampleSizeError,
     canonical_json_bytes,
     decode_record,
@@ -267,25 +266,20 @@ def _no_optional_or_untyped(annotation: object) -> bool:
 
 
 class TestEnvelopes:
-    """K-1: exact envelopes, real reservations and reserved families."""
+    """K-1: exact envelopes, real reservations and the registered families."""
 
     def test_envelope_annotations_have_no_any_dict_or_none(self) -> None:
         """K-1: no field is ``Any``, an untyped mapping or optional."""
         hints = typing.get_type_hints(ModelArtefactEnvelope)
         assert hints and all(_no_optional_or_untyped(hint) for hint in hints.values())
 
-    @pytest.mark.parametrize("family", ["language", "dynamics"])
-    def test_active_families_instantiate(self, family: str) -> None:
-        """Both active families validate."""
+    @pytest.mark.parametrize(
+        "family", ["language", "dynamics", "spiking", "quantum_variational"]
+    )
+    def test_registered_families_instantiate(self, family: str) -> None:
+        """All four registered families validate."""
         assert validate_envelope(envelope(family=family)).family == family
-
-    @pytest.mark.parametrize("family", ["spiking", "quantum_variational"])
-    def test_reserved_families_are_refused_by_name(self, family: str) -> None:
-        """Reserved families raise their own error."""
-        with pytest.raises(ReservedModelFamilyError):
-            validate_envelope(envelope(family=family))
-        with pytest.raises(ReservedModelFamilyError):
-            require_active_family(family)
+        assert require_active_family(family) == family
 
     def test_an_unknown_family_is_refused(self) -> None:
         """An unknown family is a plain envelope error."""

@@ -197,6 +197,49 @@ def read_safetensors_descriptors(
     return tuple(descriptors)
 
 
+def read_tensor_set_descriptors(
+    paths: Sequence[str | os.PathLike[str]],
+    *,
+    forbid_negative_zero: bool = False,
+) -> tuple[TensorDescriptor, ...]:
+    """Return every tensor descriptor of one safetensors file or its shards.
+
+    Parameters
+    ----------
+    paths : Sequence[str | os.PathLike[str]]
+        The model's safetensors files, in any order.
+    forbid_negative_zero : bool
+        Whether a negative zero in a floating-point tensor is refused too.
+        NaN and infinities are always refused.
+
+    Returns
+    -------
+    tuple[TensorDescriptor, ...]
+        The descriptors in file order, each with its data digest.
+
+    Raises
+    ------
+    MalformedWeightsError
+        If no path is given or any file breaks the hardened parser.
+    """
+    if not paths:
+        raise MalformedWeightsError("a tensor set needs at least one safetensors file")
+    descriptors: list[TensorDescriptor] = []
+    for path in paths:
+        with Path(path).open("rb") as handle:
+            size = os.fstat(handle.fileno()).st_size
+            descriptors.extend(
+                read_safetensors_descriptors(
+                    handle,
+                    offset=0,
+                    length=size,
+                    source=Path(path).name,
+                    forbid_negative_zero=forbid_negative_zero,
+                )
+            )
+    return tuple(descriptors)
+
+
 def compute_tensor_set_identity(
     paths: Sequence[str | os.PathLike[str]],
     *,
@@ -222,22 +265,9 @@ def compute_tensor_set_identity(
     MalformedWeightsError
         If no path is given or any file breaks the hardened parser.
     """
-    if not paths:
-        raise MalformedWeightsError("a tensor set needs at least one safetensors file")
-    descriptors: list[TensorDescriptor] = []
-    for path in paths:
-        with Path(path).open("rb") as handle:
-            size = os.fstat(handle.fileno()).st_size
-            descriptors.extend(
-                read_safetensors_descriptors(
-                    handle,
-                    offset=0,
-                    length=size,
-                    source=Path(path).name,
-                    forbid_negative_zero=forbid_negative_zero,
-                )
-            )
-    return tensor_set_identity(descriptors)
+    return tensor_set_identity(
+        read_tensor_set_descriptors(paths, forbid_negative_zero=forbid_negative_zero)
+    )
 
 
 def compute_tensor_set_digest(

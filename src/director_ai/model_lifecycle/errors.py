@@ -48,8 +48,20 @@ class NegativeZeroTensorError(MalformedWeightsError):
     """A floating-point tensor holds a negative zero where its family forbids it."""
 
 
-class ReservedModelFamilyError(ModelLifecycleError):
-    """A reserved model family name was used before its contract exists."""
+class UnsupportedWeightFormatError(MalformedWeightsError):
+    """Weights are in a format the artefact's family does not accept."""
+
+
+class MissingRequiredTensorPrefixError(MalformedWeightsError):
+    """A family's required tensor prefix has no tensor, or a tensor has no allowed prefix."""
+
+
+class MissingFixedPointDeclarationError(MalformedWeightsError):
+    """An integer ``qat.`` spiking tensor has no fixed-point declaration."""
+
+
+class InconsistentFixedPointDeclarationError(MalformedWeightsError):
+    """A fixed-point declaration disagrees with its tensor or names no such tensor."""
 
 
 class LicenceRecordError(ModelLifecycleError):
@@ -66,6 +78,10 @@ class EnvelopeError(ModelLifecycleError):
 
 class CustodyRecordError(ModelLifecycleError):
     """A custody ingest record breaks its schema or the kind rules."""
+
+
+class MissingTensorSetDigestError(CustodyRecordError):
+    """A family model identity needs a tensor-set digest the ingest lacks."""
 
 
 class UnverifiedCustodyArtefactError(ModelLifecycleError):

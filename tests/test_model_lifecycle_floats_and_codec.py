@@ -11,6 +11,7 @@
 from __future__ import annotations
 
 import io
+import json
 import random
 import struct
 from pathlib import Path
@@ -334,3 +335,24 @@ class TestRecordCodec:
         """Only registered types decode."""
         with pytest.raises(NonCanonicalJsonError, match="no registered validator"):
             from_canonical_json_bytes(dict, b"{}")
+
+    def test_only_canonical_bytes_decode(self) -> None:
+        """Other spellings of the same valid record are refused by name."""
+        record = SliceAggregateEstimate(
+            digest_of("A1"), "accuracy", "all", 0.5, 0.0, 0.75, 30
+        )
+        raw = canonical_json_bytes(record)
+        assert from_canonical_json_bytes(SliceAggregateEstimate, raw) == record
+        value = json.loads(raw)
+        spellings = [
+            raw.replace(b",", b", "),
+            json.dumps(
+                dict(reversed(sorted(value.items()))), separators=(",", ":")
+            ).encode(),
+            raw.replace(b":0.5,", b":0.50,"),
+            raw.replace(b":0.0,", b":1e-400,"),
+        ]
+        for spelling in spellings:
+            assert spelling != raw and json.loads(spelling) == value
+            with pytest.raises(NonCanonicalJsonError, match="canonical encoding"):
+                from_canonical_json_bytes(SliceAggregateEstimate, spelling)

@@ -6,10 +6,10 @@
     "optional_extras": 62,
     "public_api_exports": 227,
     "public_documentation_pages": 208,
-    "python_model_classes": 1115,
-    "python_model_source_modules": 567,
+    "python_model_classes": 1124,
+    "python_model_source_modules": 570,
     "rust_pyo3_model_wrappers": 83,
-    "test_files": 855
+    "test_files": 856
   },
   "documentation": {
     "public_pages": [
@@ -1595,6 +1595,10 @@
         "path": "src/director_ai/core/scoring/temporal_refresh.py"
       },
       {
+        "name": "DynamicsFamilyContract",
+        "path": "src/director_ai/model_lifecycle/family_companions.py"
+      },
+      {
         "name": "EconomicDecision",
         "path": "src/director_ai/core/routing/economics.py"
       },
@@ -1937,6 +1941,10 @@
       {
         "name": "FirewallSettings",
         "path": "src/director_ai/core/evidence_firewall/factory.py"
+      },
+      {
+        "name": "FixedPointFormatDecl",
+        "path": "src/director_ai/model_lifecycle/family_registry.py"
       },
       {
         "name": "Forecast",
@@ -2359,6 +2367,10 @@
         "path": "src/director_ai/core/provenance/content_commitment.py"
       },
       {
+        "name": "InconsistentFixedPointDeclarationError",
+        "path": "src/director_ai/model_lifecycle/errors.py"
+      },
+      {
         "name": "IndicatorType",
         "path": "src/director_ai/core/threat_intel/indicators.py"
       },
@@ -2567,6 +2579,10 @@
         "path": "src/director_ai/core/observability/callbacks.py"
       },
       {
+        "name": "LanguageFamilyContract",
+        "path": "src/director_ai/model_lifecycle/family_companions.py"
+      },
+      {
         "name": "LaplaceMechanism",
         "path": "src/director_ai/core/federated_privacy/mechanisms.py"
       },
@@ -2765,6 +2781,18 @@
       {
         "name": "MissingCryptoBackendError",
         "path": "src/director_ai/core/output_integrity/signing.py"
+      },
+      {
+        "name": "MissingFixedPointDeclarationError",
+        "path": "src/director_ai/model_lifecycle/errors.py"
+      },
+      {
+        "name": "MissingRequiredTensorPrefixError",
+        "path": "src/director_ai/model_lifecycle/errors.py"
+      },
+      {
+        "name": "MissingTensorSetDigestError",
+        "path": "src/director_ai/model_lifecycle/errors.py"
       },
       {
         "name": "MockGenerator",
@@ -3595,6 +3623,10 @@
         "path": "src/director_ai/core/policy_compiler/extractor.py"
       },
       {
+        "name": "RegisteredFamilyContractRule",
+        "path": "src/director_ai/model_lifecycle/family_registry.py"
+      },
+      {
         "name": "RegressionReport",
         "path": "src/director_ai/core/training/finetune_benchmark.py"
       },
@@ -3629,10 +3661,6 @@
       {
         "name": "RerankedBackend",
         "path": "src/director_ai/core/retrieval/vector_store/composite.py"
-      },
-      {
-        "name": "ReservedModelFamilyError",
-        "path": "src/director_ai/model_lifecycle/errors.py"
       },
       {
         "name": "ResolvedModel",
@@ -3933,6 +3961,10 @@
       {
         "name": "SearchHit",
         "path": "src/director_ai/core/scoring/temporal_refresh.py"
+      },
+      {
+        "name": "SecondaryFamilyContractRef",
+        "path": "src/director_ai/model_lifecycle/family_companions.py"
       },
       {
         "name": "SecretNotFoundError",
@@ -4639,6 +4671,10 @@
         "path": "src/director_ai/model_lifecycle/errors.py"
       },
       {
+        "name": "UnsupportedWeightFormatError",
+        "path": "src/director_ai/model_lifecycle/errors.py"
+      },
+      {
         "name": "Until",
         "path": "src/director_ai/core/temporal_logic/formula.py"
       },
@@ -5321,6 +5357,9 @@
       "src/director_ai/model_lifecycle/errors.py",
       "src/director_ai/model_lifecycle/evaluation_contracts.py",
       "src/director_ai/model_lifecycle/evaluator_outputs.py",
+      "src/director_ai/model_lifecycle/family_companions.py",
+      "src/director_ai/model_lifecycle/family_contracts.py",
+      "src/director_ai/model_lifecycle/family_registry.py",
       "src/director_ai/model_lifecycle/float_scan.py",
       "src/director_ai/model_lifecycle/graders.py",
       "src/director_ai/model_lifecycle/licences.py",
@@ -6245,6 +6284,7 @@
       "tests/test_miscoverage.py",
       "tests/test_ml_bom.py",
       "tests/test_model_benchmark_packages.py",
+      "tests/test_model_lifecycle_families.py",
       "tests/test_model_lifecycle_floats_and_codec.py",
       "tests/test_model_lifecycle_licence_boundary.py",
       "tests/test_model_lifecycle_looks.py",

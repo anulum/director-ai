@@ -14,7 +14,9 @@ groups the records by kind for the package itself.
 
 from __future__ import annotations
 
-from .base_checkpoints import BaseCheckpointRecord
+from .base_checkpoints import (
+    BaseCheckpointRecord,
+)
 from .cost_and_promotion_contracts import (
     EMPTY_PRODUCTION_DIGEST,
     PromotionDecisionRecord,
@@ -29,27 +31,64 @@ from .custody_records import (
     WeightFormat,
 )
 from .envelopes import (
-    RESERVED_MODEL_FAMILIES,
     ActiveModelFamily,
     ArtefactKind,
     LineageEdge,
     LineageRelation,
     ModelArtefactEnvelope,
-    ReservedModelFamily,
 )
-from .evaluation_contracts import CiMethod, PreregistrationRecord, SealedSplitPool
-from .evaluator_outputs import EvaluatorOutput, SealedLookResult, SliceAggregateEstimate
-from .float_scan import FLOAT_DTYPES
-from .graders import GraderRole, GraderSpec
+from .evaluation_contracts import (
+    CiMethod,
+    PreregistrationRecord,
+    SealedSplitPool,
+)
+from .evaluator_outputs import (
+    EvaluatorOutput,
+    SealedLookResult,
+    SliceAggregateEstimate,
+)
+from .family_companions import (
+    ACTUATION_MODES,
+    DynamicsFamilyContract,
+    LanguageFamilyContract,
+    SecondaryFamilyContractRef,
+)
+from .family_contracts import (
+    HDF5_MAGIC,
+)
+from .family_registry import (
+    DYNAMICS_FAMILY_RULE,
+    FAMILY_CONTRACT_REGISTRY,
+    FIXED_POINT_PREFIX,
+    INTEGER_BITS,
+    LANGUAGE_FAMILY_RULE,
+    QUANTUM_VARIATIONAL_FAMILY_RULE,
+    SPIKING_FAMILY_RULE,
+    FixedPointFormatDecl,
+    RegisteredFamilyContractRule,
+)
+from .float_scan import (
+    FLOAT_DTYPES,
+)
+from .graders import (
+    GraderRole,
+    GraderSpec,
+)
 from .licences import (
     CUSTODY_DATA_CLASSES,
     ComputeAndTuningBudget,
     CustodyDataClass,
     DualAxisLicenceRecord,
 )
-from .lineage import LineageComponent
-from .look_admission import CustodyProgrammeRoles
-from .preregistration_approvals import PreregistrationApproval
+from .lineage import (
+    LineageComponent,
+)
+from .look_admission import (
+    CustodyProgrammeRoles,
+)
+from .preregistration_approvals import (
+    PreregistrationApproval,
+)
 from .sealed_looks import (
     CONSUMING_OUTCOMES,
     FAULT_OUTCOMES,
@@ -64,19 +103,29 @@ from .tensors import (
     TensorDtype,
     TensorSetIdentity,
 )
-from .weight_archives import ArchiveMember
+from .weight_archives import (
+    ArchiveMember,
+)
 
 __all__ = [
-    "FLOAT_DTYPES",
+    "ACTUATION_MODES",
     "CONSUMING_OUTCOMES",
     "CUSTODY_DATA_CLASSES",
     "CUSTODY_OBJECT_KINDS",
+    "DYNAMICS_FAMILY_RULE",
     "EMPTY_PRODUCTION_DIGEST",
+    "FAMILY_CONTRACT_REGISTRY",
     "FAULT_OUTCOMES",
+    "FIXED_POINT_PREFIX",
+    "FLOAT_DTYPES",
+    "HDF5_MAGIC",
+    "INTEGER_BITS",
+    "LANGUAGE_FAMILY_RULE",
     "MODEL_CUSTODY_KINDS",
-    "RESERVED_MODEL_FAMILIES",
+    "QUANTUM_VARIATIONAL_FAMILY_RULE",
     "SAFE_TENSORS_DTYPES",
     "SEALED_CUSTODY_KINDS",
+    "SPIKING_FAMILY_RULE",
     "ActiveModelFamily",
     "ArchiveMember",
     "ArtefactKind",
@@ -88,9 +137,12 @@ __all__ = [
     "CustodyObjectKind",
     "CustodyProgrammeRoles",
     "DualAxisLicenceRecord",
+    "DynamicsFamilyContract",
     "EvaluatorOutput",
+    "FixedPointFormatDecl",
     "GraderRole",
     "GraderSpec",
+    "LanguageFamilyContract",
     "LineageComponent",
     "LineageEdge",
     "LineageRelation",
@@ -99,13 +151,14 @@ __all__ = [
     "PreregistrationApproval",
     "PreregistrationRecord",
     "PromotionDecisionRecord",
-    "ReservedModelFamily",
+    "RegisteredFamilyContractRule",
     "RoleAuthenticationMode",
     "SealedLookJournalEntry",
     "SealedLookOutcomeStatus",
     "SealedLookRequest",
     "SealedLookResult",
     "SealedSplitPool",
+    "SecondaryFamilyContractRef",
     "SliceAggregateEstimate",
     "TensorDescriptor",
     "TensorDtype",

@@ -163,6 +163,46 @@ def list_archive_members(handle: BinaryIO, length: int) -> tuple[ArchiveMember, 
     return tuple(members)
 
 
+def read_archive_tensor_descriptors(
+    path: str | os.PathLike[str], *, forbid_negative_zero: bool = False
+) -> tuple[TensorDescriptor, ...]:
+    """Return every tensor descriptor of a ``safetensors_tar``'s shards.
+
+    Parameters
+    ----------
+    path : str | os.PathLike[str]
+        The archive file.
+    forbid_negative_zero : bool
+        Whether a negative zero in a floating-point tensor is refused too.
+        NaN and infinities are always refused.
+
+    Returns
+    -------
+    tuple[TensorDescriptor, ...]
+        The descriptors of every ``.safetensors`` member, in archive order.
+
+    Raises
+    ------
+    MalformedWeightsError
+        If the archive or any shard breaks the hardened rules.
+    """
+    with Path(path).open("rb") as handle:
+        length = os.fstat(handle.fileno()).st_size
+        descriptors: list[TensorDescriptor] = []
+        for member in list_archive_members(handle, length):
+            if member.name.endswith(".safetensors"):
+                descriptors.extend(
+                    read_safetensors_descriptors(
+                        handle,
+                        offset=member.data_offset,
+                        length=member.size,
+                        source=member.name,
+                        forbid_negative_zero=forbid_negative_zero,
+                    )
+                )
+    return tuple(descriptors)
+
+
 def compute_archive_tensor_set_identity(
     path: str | os.PathLike[str], *, forbid_negative_zero: bool = False
 ) -> TensorSetIdentity:
@@ -188,18 +228,6 @@ def compute_archive_tensor_set_identity(
         If the archive or any shard breaks the hardened rules, or two shards
         share a tensor name.
     """
-    with Path(path).open("rb") as handle:
-        length = os.fstat(handle.fileno()).st_size
-        descriptors: list[TensorDescriptor] = []
-        for member in list_archive_members(handle, length):
-            if member.name.endswith(".safetensors"):
-                descriptors.extend(
-                    read_safetensors_descriptors(
-                        handle,
-                        offset=member.data_offset,
-                        length=member.size,
-                        source=member.name,
-                        forbid_negative_zero=forbid_negative_zero,
-                    )
-                )
-    return tensor_set_identity(descriptors)
+    return tensor_set_identity(
+        read_archive_tensor_descriptors(path, forbid_negative_zero=forbid_negative_zero)
+    )

@@ -45,7 +45,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - tensor-set identity from a hardened safetensors and `safetensors_tar`
     reader;
   - dual-axis licence records with `output_training_permitted`;
-  - model artefact envelopes;
+  - model artefact envelopes for four registered families: `language`,
+    `dynamics`, `spiking` and `quantum_variational`;
+  - each family's rule for weight formats, tensor-name prefixes and dtypes,
+    the language and dynamics companion contracts, the spiking fixed-point
+    table for integer `qat.` tensors, and a family model identity digest
+    that binds a model's tensors to its family and companion contract;
   - 17-key custody ingest records with a fixed set of sealed kinds;
   - preregistration, approval and sealed look records with four outcomes;
   - a custody-derived, root-anchored proposer lineage and look budget,
@@ -53,10 +58,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - the paired non-inferiority sample size;
   - promotion decisions with their production pre-state;
   - canonical JSON that has no form for a negative zero, and
-    `from_canonical_json_bytes`, which decodes any kernel record and always
-    runs its validator;
+    `from_canonical_json_bytes`, which decodes only a kernel record's
+    canonical bytes and always runs its validator;
   - a streaming check of every floating-point tensor that refuses NaN and
-    infinities, and negative zeros where a model family forbids them.
+    infinities, and negative zeros in `spiking` and `quantum_variational`
+    weights.
 
   It loads no `torch`, `transformers` or `safetensors` and no module under
   another licence. It does not train, evaluate or deploy models.

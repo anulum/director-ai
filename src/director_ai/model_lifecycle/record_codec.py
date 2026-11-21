@@ -11,6 +11,12 @@
 :func:`from_canonical_json_bytes` looks up the record type's validator, so a
 consumer such as blob custody cannot decode a record without checking it.
 A type without a registered validator is refused.
+
+Only a record's canonical bytes decode. Custody keys a record blob by the
+SHA-256 of its bytes, while admission looks a record up by the digest of
+its canonical encoding; the two agree only for canonical bytes, so any other
+spelling (whitespace, key order, ``1.50``, an exponent that underflows to
+zero) is refused here rather than missed later.
 """
 
 from __future__ import annotations
@@ -25,7 +31,7 @@ from .cost_and_promotion_contracts import (
     validate_promotion_decision,
 )
 from .custody_records import CustodyIngestRecord, validate_custody_ingest_record
-from .digests import decode_record
+from .digests import canonical_json_bytes, decode_record
 from .envelopes import (
     LineageEdge,
     ModelArtefactEnvelope,
@@ -49,6 +55,12 @@ from .evaluator_outputs import (
     SliceAggregateEstimate,
     validate_evaluator_output,
     validate_slice_estimate,
+)
+from .family_companions import (
+    DynamicsFamilyContract,
+    LanguageFamilyContract,
+    validate_dynamics_family_contract,
+    validate_language_family_contract,
 )
 from .graders import GraderSpec, validate_grader
 from .licences import (
@@ -124,6 +136,8 @@ VALIDATORS: dict[type, Callable[[object], object]] = {
         (PromotionDecisionRecord, validate_promotion_decision),
         (TensorDescriptor, _validate_descriptor),
         (TensorSetIdentity, _validate_identity),
+        (LanguageFamilyContract, validate_language_family_contract),
+        (DynamicsFamilyContract, validate_dynamics_family_contract),
     )
 }
 """Every record type the codec decodes, with the validator it runs."""
@@ -147,8 +161,8 @@ def from_canonical_json_bytes(cls: type[RecordT], raw: bytes) -> RecordT:
     Raises
     ------
     NonCanonicalJsonError
-        If ``cls`` has no registered validator or the bytes break the strict
-        decoding rules.
+        If ``cls`` has no registered validator, the bytes break the strict
+        decoding rules, or they are not the record's canonical encoding.
     ModelLifecycleError
         The validator's named refusal when the record is malformed.
     """
@@ -157,4 +171,9 @@ def from_canonical_json_bytes(cls: type[RecordT], raw: bytes) -> RecordT:
         raise NonCanonicalJsonError(
             f"{getattr(cls, '__name__', cls)!s} has no registered validator"
         )
-    return decode_record(cls, raw, validator)
+    record = decode_record(cls, raw, validator)
+    if canonical_json_bytes(record) != raw:
+        raise NonCanonicalJsonError(
+            f"{cls.__name__} bytes are not the record's canonical encoding"
+        )
+    return record

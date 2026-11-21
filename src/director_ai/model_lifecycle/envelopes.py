@@ -12,9 +12,9 @@ An envelope describes one model artefact exactly: its family, kind,
 content digest, recipe, licence, spent budget, a real spend reservation and
 its family contract. No envelope field is optional (``None``) or empty.
 
-``spiking`` and ``quantum_variational`` are reserved family names. Their
-contracts come with their own first pilot, so using them now is refused
-with :class:`~.errors.ReservedModelFamilyError`.
+Four families are registered: ``language``, ``dynamics``, ``spiking`` and
+``quantum_variational``. Each family's rule and companion contract are in
+:mod:`.family_registry` and :mod:`.family_companions`.
 
 A :class:`LineageEdge` is advisory. It may merge two lineages, never split
 one, and its declared time is informational only: lineage and ordering are
@@ -35,7 +35,7 @@ from ._checks import (
     require_unique,
     require_utc_timestamp,
 )
-from .errors import EnvelopeError, ReservedModelFamilyError
+from .errors import EnvelopeError
 from .licences import (
     ComputeAndTuningBudget,
     DualAxisLicenceRecord,
@@ -43,16 +43,30 @@ from .licences import (
     validate_licence_record,
 )
 
-ActiveModelFamily = Literal["language", "dynamics"]
-ReservedModelFamily = Literal["spiking", "quantum_variational"]
-ACTIVE_MODEL_FAMILIES: frozenset[str] = frozenset({"language", "dynamics"})
-RESERVED_MODEL_FAMILIES: frozenset[str] = frozenset({"spiking", "quantum_variational"})
+ActiveModelFamily = Literal["language", "dynamics", "spiking", "quantum_variational"]
+ACTIVE_MODEL_FAMILIES: frozenset[str] = frozenset(
+    {"language", "dynamics", "spiking", "quantum_variational"}
+)
 
 LineageRelation = Literal[
-    "finetuned_from", "merged_from", "patched_from", "exported_from", "distilled_from"
+    "finetuned_from",
+    "merged_from",
+    "patched_from",
+    "exported_from",
+    "distilled_from",
+    "pretrained_from_scratch",
+    "continued_pretrained_from",
 ]
 LINEAGE_RELATIONS: frozenset[str] = frozenset(
-    {"finetuned_from", "merged_from", "patched_from", "exported_from", "distilled_from"}
+    {
+        "finetuned_from",
+        "merged_from",
+        "patched_from",
+        "exported_from",
+        "distilled_from",
+        "pretrained_from_scratch",
+        "continued_pretrained_from",
+    }
 )
 ArtefactKind = Literal[
     "safetensors_weights", "safetensors_adapter", "word_patch", "exported_binary"
@@ -171,7 +185,7 @@ def validate_lineage_edge(edge: LineageEdge) -> LineageEdge:
 
 
 def require_active_family(family: object) -> str:
-    """Return an active family name, refusing reserved and unknown names.
+    """Return a registered family name, refusing unknown names.
 
     Parameters
     ----------
@@ -181,19 +195,13 @@ def require_active_family(family: object) -> str:
     Returns
     -------
     str
-        ``"language"`` or ``"dynamics"``.
+        One of the four registered families.
 
     Raises
     ------
-    ReservedModelFamilyError
-        If the name is ``"spiking"`` or ``"quantum_variational"``.
     EnvelopeError
-        If the name is unknown.
+        If the name is not registered.
     """
-    if isinstance(family, str) and family in RESERVED_MODEL_FAMILIES:
-        raise ReservedModelFamilyError(
-            f"model family {family!r} is reserved until its pilot supplies a contract"
-        )
     return require_choice(family, "family", ACTIVE_MODEL_FAMILIES, EnvelopeError)
 
 
@@ -212,8 +220,6 @@ def validate_envelope(envelope: ModelArtefactEnvelope) -> ModelArtefactEnvelope:
 
     Raises
     ------
-    ReservedModelFamilyError
-        If the family is reserved.
     EnvelopeError
         If a field is malformed or an edge does not end at this artefact.
     MalformedDigestError
