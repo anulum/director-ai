@@ -12,8 +12,9 @@ grpcio, chromadb) are NOT imported at module level in core modules.
 This ensures `pip install director-ai && from director_ai import CoherenceScorer`
 works without torch/transformers installed.
 
-Covers: scorer.py, nli.py, backends.py, vector_store.py, __init__.py,
-parametrised module scanning, AST + runtime import verification.
+Covers: scorer.py, nli.py, backends.py, __init__.py and every module of the
+``director_ai.model_lifecycle`` contract kernel, by parametrised AST scanning
+and runtime import verification.
 """
 
 from __future__ import annotations
@@ -26,20 +27,28 @@ import pytest
 SRC_DIR = Path(__file__).parent.parent / "src" / "director_ai"
 
 # Modules that must NOT import these at top level
-HEAVYWEIGHT_DEPS = ["torch", "transformers", "onnxruntime", "chromadb", "grpc"]
+HEAVYWEIGHT_DEPS = [
+    "torch",
+    "transformers",
+    "onnxruntime",
+    "chromadb",
+    "grpc",
+    "safetensors",
+]
 
 CORE_MODULES = [
     SRC_DIR / "core" / "scorer.py",
     SRC_DIR / "core" / "scoring" / "nli.py",
     SRC_DIR / "core" / "backends.py",
     SRC_DIR / "__init__.py",
+    *sorted((SRC_DIR / "model_lifecycle").glob("*.py")),
 ]
 
 
 def _top_level_imports(filepath: Path) -> set[str]:
     """Extract all top-level import names from a Python file."""
     tree = ast.parse(filepath.read_text(encoding="utf-8"))
-    imports = set()
+    imports: set[str] = set()
     for node in ast.walk(tree):
         if isinstance(node, ast.Import) and node.col_offset == 0:
             for alias in node.names:
@@ -56,10 +65,13 @@ class TestNoEagerHeavyImports:
     """No core module may eagerly import heavyweight dependencies."""
 
     @pytest.mark.parametrize(
-        "module_path", CORE_MODULES, ids=[p.stem for p in CORE_MODULES]
+        "module_path",
+        CORE_MODULES,
+        ids=[p.relative_to(SRC_DIR).as_posix() for p in CORE_MODULES],
     )
     @pytest.mark.parametrize("dep", HEAVYWEIGHT_DEPS)
-    def test_no_top_level_import(self, module_path, dep):
+    def test_no_top_level_import(self, module_path: Path, dep: str) -> None:
+        """A core module does not import ``dep`` at module level."""
         if not module_path.exists():
             pytest.skip(f"{module_path} does not exist")
         imports = _top_level_imports(module_path)
@@ -74,21 +86,22 @@ class TestNoEagerHeavyImports:
 class TestRuntimeImportGuard:
     """Verify core can be imported without torch/transformers."""
 
-    def test_coherence_scorer_imports_without_torch(self):
+    def test_coherence_scorer_imports_without_torch(self) -> None:
         """CoherenceScorer must be importable without torch."""
         from director_ai.core import CoherenceScorer
 
         assert CoherenceScorer is not None
 
-    def test_scorer_review_works_without_nli(self):
+    def test_scorer_review_works_without_nli(self) -> None:
         """review() must work with use_nli=False (no torch needed)."""
         from director_ai.core import CoherenceScorer
 
         scorer = CoherenceScorer(use_nli=False)
-        approved, score = scorer.review("Q", "A")
+        approved, _ = scorer.review("Q", "A")
         assert isinstance(approved, bool)
 
-    def test_ground_truth_store_imports_without_chromadb(self):
+    def test_ground_truth_store_imports_without_chromadb(self) -> None:
+        """GroundTruthStore must be constructible without chromadb."""
         from director_ai.core import GroundTruthStore
 
         store = GroundTruthStore()
@@ -101,7 +114,8 @@ class TestRuntimeImportGuard:
 class TestImportPerformance:
     """Document import time (should be < 500ms without heavy deps)."""
 
-    def test_core_import_fast(self):
+    def test_core_import_fast(self) -> None:
+        """Reloading the core package stays under two seconds."""
         import time
 
         t0 = time.perf_counter()

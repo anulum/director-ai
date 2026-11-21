@@ -40,6 +40,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   SHA-256 digest, the precision and the INT8 range policy.
 - Add `HaltOutput` and `stream_output_result` to expose the output monitor's
   delivered text and halt verdict together.
+- Add `director_ai.model_lifecycle`, a standard-library contract package for
+  the model lifecycle. It holds record types and validators only:
+  - tensor-set identity from a hardened safetensors and `safetensors_tar`
+    reader;
+  - dual-axis licence records with `output_training_permitted`;
+  - model artefact envelopes;
+  - 17-key custody ingest records with a fixed set of sealed kinds;
+  - preregistration, approval and sealed look records with four outcomes;
+  - a custody-derived, root-anchored proposer lineage and look budget,
+    checked by `admit_sealed_look` before a split is opened;
+  - the paired non-inferiority sample size;
+  - promotion decisions with their production pre-state.
+
+  It loads no `torch`, `transformers` or `safetensors` and no module under
+  another licence. It does not train, evaluate or deploy models.
 
 ### Changed
 

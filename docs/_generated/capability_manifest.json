@@ -6,10 +6,10 @@
     "optional_extras": 62,
     "public_api_exports": 227,
     "public_documentation_pages": 208,
-    "python_model_classes": 1074,
-    "python_model_source_modules": 543,
+    "python_model_classes": 1112,
+    "python_model_source_modules": 565,
     "rust_pyo3_model_wrappers": 83,
-    "test_files": 849
+    "test_files": 854
   },
   "documentation": {
     "public_pages": [
@@ -531,6 +531,10 @@
         "path": "src/director_ai/core/autopoietic/blueprint.py"
       },
       {
+        "name": "ArchiveMember",
+        "path": "src/director_ai/model_lifecycle/weight_archives.py"
+      },
+      {
         "name": "Arith",
         "path": "src/director_ai/core/neuro_symbolic/expression.py"
       },
@@ -669,6 +673,10 @@
       {
         "name": "BargainingSolution",
         "path": "src/director_ai/core/swarm_economics/bargaining.py"
+      },
+      {
+        "name": "BaseCheckpointRecord",
+        "path": "src/director_ai/model_lifecycle/base_checkpoints.py"
       },
       {
         "name": "BatchProcessor",
@@ -995,6 +1003,10 @@
         "path": "src/director_ai/core/ml_bom/components.py"
       },
       {
+        "name": "ComputeAndTuningBudget",
+        "path": "src/director_ai/model_lifecycle/licences.py"
+      },
+      {
         "name": "ComputeQuota",
         "path": "src/director_ai/core/sustainability/quota.py"
       },
@@ -1283,6 +1295,18 @@
         "path": "src/director_ai/core/scoring/consensus.py"
       },
       {
+        "name": "CustodyIngestRecord",
+        "path": "src/director_ai/model_lifecycle/custody_records.py"
+      },
+      {
+        "name": "CustodyProgrammeRoles",
+        "path": "src/director_ai/model_lifecycle/look_admission.py"
+      },
+      {
+        "name": "CustodyRecordError",
+        "path": "src/director_ai/model_lifecycle/errors.py"
+      },
+      {
         "name": "CustomRule",
         "path": "src/director_ai/enterprise/rules_dsl.py"
       },
@@ -1563,6 +1587,10 @@
         "path": "src/director_ai/voice/demo.py"
       },
       {
+        "name": "DualAxisLicenceRecord",
+        "path": "src/director_ai/model_lifecycle/licences.py"
+      },
+      {
         "name": "DuckDuckGoSearchProvider",
         "path": "src/director_ai/core/scoring/temporal_refresh.py"
       },
@@ -1643,12 +1671,24 @@
         "path": "src/director_ai/core/secrets.py"
       },
       {
+        "name": "EnvelopeError",
+        "path": "src/director_ai/model_lifecycle/errors.py"
+      },
+      {
         "name": "ErrorBreakdown",
         "path": "src/director_ai/core/labelling_cockpit/cockpit.py"
       },
       {
         "name": "EvalCase",
         "path": "src/director_ai/ci_gate.py"
+      },
+      {
+        "name": "EvaluationContractError",
+        "path": "src/director_ai/model_lifecycle/errors.py"
+      },
+      {
+        "name": "EvaluatorOutput",
+        "path": "src/director_ai/model_lifecycle/evaluator_outputs.py"
       },
       {
         "name": "EventFeedbackSession",
@@ -2005,6 +2045,10 @@
       {
         "name": "GraderReport",
         "path": "src/director_ai/core/calibration/grader_validation.py"
+      },
+      {
+        "name": "GraderSpec",
+        "path": "src/director_ai/model_lifecycle/graders.py"
       },
       {
         "name": "GraderValidationError",
@@ -2563,12 +2607,24 @@
         "path": "src/director_ai/core/scoring/rules_scorer.py"
       },
       {
+        "name": "LicenceRecordError",
+        "path": "src/director_ai/model_lifecycle/errors.py"
+      },
+      {
         "name": "LicenseError",
         "path": "src/director_ai/core/license.py"
       },
       {
         "name": "LicenseInfo",
         "path": "src/director_ai/core/license.py"
+      },
+      {
+        "name": "LineageComponent",
+        "path": "src/director_ai/model_lifecycle/lineage.py"
+      },
+      {
+        "name": "LineageEdge",
+        "path": "src/director_ai/model_lifecycle/envelopes.py"
       },
       {
         "name": "LiteBackend",
@@ -2595,6 +2651,10 @@
         "path": "src/director_ai/integrations/inference_logits_adapters.py"
       },
       {
+        "name": "LookBudgetExhaustedError",
+        "path": "src/director_ai/model_lifecycle/errors.py"
+      },
+      {
         "name": "LoopMonitor",
         "path": "src/director_ai/agentic/loop_monitor.py"
       },
@@ -2613,6 +2673,14 @@
       {
         "name": "MachineLearningBOM",
         "path": "src/director_ai/core/ml_bom/bom.py"
+      },
+      {
+        "name": "MalformedDigestError",
+        "path": "src/director_ai/model_lifecycle/errors.py"
+      },
+      {
+        "name": "MalformedWeightsError",
+        "path": "src/director_ai/model_lifecycle/errors.py"
       },
       {
         "name": "ManagedRoute",
@@ -2703,6 +2771,10 @@
         "path": "src/director_ai/core/actor.py"
       },
       {
+        "name": "ModelArtefactEnvelope",
+        "path": "src/director_ai/model_lifecycle/envelopes.py"
+      },
+      {
         "name": "ModelBenchmarkReport",
         "path": "src/director_ai/core/training/finetune_benchmark.py"
       },
@@ -2713,6 +2785,10 @@
       {
         "name": "ModelInferenceMixin",
         "path": "src/director_ai/core/scoring/_nli_model_inference.py"
+      },
+      {
+        "name": "ModelLifecycleError",
+        "path": "src/director_ai/model_lifecycle/errors.py"
       },
       {
         "name": "ModelMetrics",
@@ -2895,6 +2971,10 @@
         "path": "src/director_ai/core/guard_control/no_go.py"
       },
       {
+        "name": "NonCanonicalJsonError",
+        "path": "src/director_ai/model_lifecycle/errors.py"
+      },
+      {
         "name": "NormalFormGame",
         "path": "src/director_ai/core/swarm_equilibrium/game.py"
       },
@@ -3017,6 +3097,10 @@
       {
         "name": "OutputSink",
         "path": "src/director_ai/core/output_trust/sinks.py"
+      },
+      {
+        "name": "OutputTrainingNotPermittedError",
+        "path": "src/director_ai/model_lifecycle/errors.py"
       },
       {
         "name": "PIIRedactionFinding",
@@ -3271,6 +3355,18 @@
         "path": "src/director_ai/core/trajectory/simulator.py"
       },
       {
+        "name": "PreregistrationApproval",
+        "path": "src/director_ai/model_lifecycle/preregistration_approvals.py"
+      },
+      {
+        "name": "PreregistrationOrderError",
+        "path": "src/director_ai/model_lifecycle/errors.py"
+      },
+      {
+        "name": "PreregistrationRecord",
+        "path": "src/director_ai/model_lifecycle/evaluation_contracts.py"
+      },
+      {
         "name": "PresidioPIIDetector",
         "path": "src/director_ai/core/safety/moderation/pii.py"
       },
@@ -3317,6 +3413,14 @@
       {
         "name": "ProfileMetadata",
         "path": "src/director_ai/core/config_profiles.py"
+      },
+      {
+        "name": "PromotionDecisionError",
+        "path": "src/director_ai/model_lifecycle/errors.py"
+      },
+      {
+        "name": "PromotionDecisionRecord",
+        "path": "src/director_ai/model_lifecycle/cost_and_promotion_contracts.py"
       },
       {
         "name": "PromptInjectionModel",
@@ -3513,6 +3617,10 @@
       {
         "name": "RerankedBackend",
         "path": "src/director_ai/core/retrieval/vector_store/composite.py"
+      },
+      {
+        "name": "ReservedModelFamilyError",
+        "path": "src/director_ai/model_lifecycle/errors.py"
       },
       {
         "name": "ResolvedModel",
@@ -3715,6 +3823,10 @@
         "path": "src/director_ai/core/safety_event.py"
       },
       {
+        "name": "SampleSizeError",
+        "path": "src/director_ai/model_lifecycle/errors.py"
+      },
+      {
         "name": "SandboxTimeoutError",
         "path": "src/director_ai/core/autopoietic/builder.py"
       },
@@ -3785,6 +3897,26 @@
       {
         "name": "ScoringEvidence",
         "path": "src/director_ai/core/types.py"
+      },
+      {
+        "name": "SealedLookJournalEntry",
+        "path": "src/director_ai/model_lifecycle/sealed_looks.py"
+      },
+      {
+        "name": "SealedLookRequest",
+        "path": "src/director_ai/model_lifecycle/sealed_looks.py"
+      },
+      {
+        "name": "SealedLookResult",
+        "path": "src/director_ai/model_lifecycle/evaluator_outputs.py"
+      },
+      {
+        "name": "SealedPoolCustodyError",
+        "path": "src/director_ai/model_lifecycle/errors.py"
+      },
+      {
+        "name": "SealedSplitPool",
+        "path": "src/director_ai/model_lifecycle/evaluation_contracts.py"
       },
       {
         "name": "SearchHit",
@@ -3889,6 +4021,10 @@
       {
         "name": "SkillNode",
         "path": "src/director_ai/core/knowledge_graph/graph.py"
+      },
+      {
+        "name": "SliceAggregateEstimate",
+        "path": "src/director_ai/model_lifecycle/evaluator_outputs.py"
       },
       {
         "name": "SnapshotAuditMixin",
@@ -4195,6 +4331,14 @@
         "path": "src/director_ai/_server_models.py"
       },
       {
+        "name": "TensorDescriptor",
+        "path": "src/director_ai/model_lifecycle/tensors.py"
+      },
+      {
+        "name": "TensorSetIdentity",
+        "path": "src/director_ai/model_lifecycle/tensors.py"
+      },
+      {
         "name": "TextRequest",
         "path": "src/director_ai/_server_models.py"
       },
@@ -4479,8 +4623,16 @@
         "path": "src/director_ai/core/cyber_physical/kinematics.py"
       },
       {
+        "name": "UnsupportedSafetensorsDtypeError",
+        "path": "src/director_ai/model_lifecycle/errors.py"
+      },
+      {
         "name": "Until",
         "path": "src/director_ai/core/temporal_logic/formula.py"
+      },
+      {
+        "name": "UnverifiedCustodyArtefactError",
+        "path": "src/director_ai/model_lifecycle/errors.py"
       },
       {
         "name": "ValidationError",
@@ -5147,6 +5299,28 @@
       "src/director_ai/lite.py",
       "src/director_ai/middleware/api_key.py",
       "src/director_ai/middleware/rate_limit.py",
+      "src/director_ai/model_lifecycle/_checks.py",
+      "src/director_ai/model_lifecycle/base_checkpoints.py",
+      "src/director_ai/model_lifecycle/contracts.py",
+      "src/director_ai/model_lifecycle/cost_and_promotion_contracts.py",
+      "src/director_ai/model_lifecycle/custody_records.py",
+      "src/director_ai/model_lifecycle/digests.py",
+      "src/director_ai/model_lifecycle/envelopes.py",
+      "src/director_ai/model_lifecycle/errors.py",
+      "src/director_ai/model_lifecycle/evaluation_contracts.py",
+      "src/director_ai/model_lifecycle/evaluator_outputs.py",
+      "src/director_ai/model_lifecycle/graders.py",
+      "src/director_ai/model_lifecycle/licences.py",
+      "src/director_ai/model_lifecycle/lineage.py",
+      "src/director_ai/model_lifecycle/look_admission.py",
+      "src/director_ai/model_lifecycle/look_budget.py",
+      "src/director_ai/model_lifecycle/power.py",
+      "src/director_ai/model_lifecycle/preregistration_approvals.py",
+      "src/director_ai/model_lifecycle/safetensors_parser.py",
+      "src/director_ai/model_lifecycle/sealed_looks.py",
+      "src/director_ai/model_lifecycle/tensors.py",
+      "src/director_ai/model_lifecycle/validators.py",
+      "src/director_ai/model_lifecycle/weight_archives.py",
       "src/director_ai/proto/converters.py",
       "src/director_ai/proxy.py",
       "src/director_ai/routers/compliance.py",
@@ -5604,6 +5778,7 @@
     ],
     "test_files": [
       "tests/conftest.py",
+      "tests/model_lifecycle_support.py",
       "tests/test_accelerator_fallback_parity.py",
       "tests/test_accuracy_improvements.py",
       "tests/test_accuracy_improvements_real_surface.py",
@@ -6056,6 +6231,10 @@
       "tests/test_miscoverage.py",
       "tests/test_ml_bom.py",
       "tests/test_model_benchmark_packages.py",
+      "tests/test_model_lifecycle_licence_boundary.py",
+      "tests/test_model_lifecycle_looks.py",
+      "tests/test_model_lifecycle_records.py",
+      "tests/test_model_lifecycle_weights.py",
       "tests/test_model_package_vertex_campaign.py",
       "tests/test_model_registry.py",
       "tests/test_model_revision_policy.py",
