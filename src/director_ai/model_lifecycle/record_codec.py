@@ -85,6 +85,12 @@ from .family_companions import (
     validate_language_family_contract,
 )
 from .graders import GraderSpec, validate_grader
+from .job_contracts import (
+    validate_job_cancel,
+    validate_job_status,
+    validate_job_submission,
+    validate_sandbox_confinement,
+)
 from .licences import (
     ComputeAndTuningBudget,
     DualAxisLicenceRecord,
@@ -94,6 +100,14 @@ from .licences import (
 from .preregistration_approvals import (
     PreregistrationApproval,
     validate_preregistration_approval,
+)
+from .promotion_records import (
+    PromotionDependencyPins,
+    ServingMemoryBudget,
+    StudyDeclineRecord,
+    validate_dependency_pins,
+    validate_serving_memory_budget,
+    validate_study_decline,
 )
 from .recipe_contracts import (
     validate_pretraining_checkpoint_state,
@@ -107,6 +121,20 @@ from .sealed_looks import (
     SealedLookRequest,
     validate_journal_entry,
     validate_look_request,
+)
+from .spend_contracts import (
+    validate_cost_estimate,
+    validate_paid_run_approval,
+    validate_spend_binding,
+)
+from .spend_records import (
+    CloudJobCancelReceipt,
+    CloudJobStatusReport,
+    CloudJobSubmissionReceipt,
+    CostEstimateRecord,
+    PaidRunApprovalRecord,
+    SandboxConfinementSpec,
+    SpendReservationBinding,
 )
 from .study_contracts import (
     validate_build2_terms,
@@ -196,6 +224,16 @@ VALIDATORS: dict[type, Callable[[object], object]] = {
         (DynamicsEvaluationContract, validate_dynamics_evaluation_contract),
         (OnnxExportProfileSpec, validate_onnx_export_profile),
         (ExportParityReport, validate_export_parity_report),
+        (SpendReservationBinding, validate_spend_binding),
+        (CostEstimateRecord, validate_cost_estimate),
+        (PaidRunApprovalRecord, validate_paid_run_approval),
+        (SandboxConfinementSpec, validate_sandbox_confinement),
+        (CloudJobSubmissionReceipt, validate_job_submission),
+        (CloudJobStatusReport, validate_job_status),
+        (CloudJobCancelReceipt, validate_job_cancel),
+        (ServingMemoryBudget, validate_serving_memory_budget),
+        (PromotionDependencyPins, validate_dependency_pins),
+        (StudyDeclineRecord, validate_study_decline),
     )
 }
 """Every record type the codec decodes, with the validator it runs."""

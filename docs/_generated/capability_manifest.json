@@ -6,10 +6,10 @@
     "optional_extras": 62,
     "public_api_exports": 227,
     "public_documentation_pages": 208,
-    "python_model_classes": 1158,
-    "python_model_source_modules": 586,
+    "python_model_classes": 1170,
+    "python_model_source_modules": 590,
     "rust_pyo3_model_wrappers": 83,
-    "test_files": 864
+    "test_files": 865
   },
   "documentation": {
     "public_pages": [
@@ -899,6 +899,18 @@
         "path": "src/director_ai/core/scoring/verified_scorer.py"
       },
       {
+        "name": "CloudJobCancelReceipt",
+        "path": "src/director_ai/model_lifecycle/spend_records.py"
+      },
+      {
+        "name": "CloudJobStatusReport",
+        "path": "src/director_ai/model_lifecycle/spend_records.py"
+      },
+      {
+        "name": "CloudJobSubmissionReceipt",
+        "path": "src/director_ai/model_lifecycle/spend_records.py"
+      },
+      {
         "name": "CnfConverter",
         "path": "src/director_ai/core/formal_verification/cnf.py"
       },
@@ -1229,6 +1241,10 @@
       {
         "name": "CostAnalyser",
         "path": "src/director_ai/compliance/cost_analyser.py"
+      },
+      {
+        "name": "CostEstimateRecord",
+        "path": "src/director_ai/model_lifecycle/spend_records.py"
       },
       {
         "name": "CostRecord",
@@ -2707,6 +2723,10 @@
         "path": "src/director_ai/core/formal_verification/cnf.py"
       },
       {
+        "name": "LiveReservationProjection",
+        "path": "src/director_ai/model_lifecycle/spend_records.py"
+      },
+      {
         "name": "LocalProvider",
         "path": "src/director_ai/integrations/providers.py"
       },
@@ -3223,6 +3243,10 @@
         "path": "src/director_ai/core/redactor.py"
       },
       {
+        "name": "PaidRunApprovalRecord",
+        "path": "src/director_ai/model_lifecycle/spend_records.py"
+      },
+      {
         "name": "PairwiseAgreement",
         "path": "src/director_ai/core/scoring/consensus.py"
       },
@@ -3537,6 +3561,10 @@
       {
         "name": "PromotionDecisionRecord",
         "path": "src/director_ai/model_lifecycle/cost_and_promotion_contracts.py"
+      },
+      {
+        "name": "PromotionDependencyPins",
+        "path": "src/director_ai/model_lifecycle/promotion_records.py"
       },
       {
         "name": "PromptInjectionModel",
@@ -3955,6 +3983,10 @@
         "path": "src/director_ai/model_lifecycle/errors.py"
       },
       {
+        "name": "SandboxConfinementSpec",
+        "path": "src/director_ai/model_lifecycle/spend_records.py"
+      },
+      {
         "name": "SandboxTimeoutError",
         "path": "src/director_ai/core/autopoietic/builder.py"
       },
@@ -4123,6 +4155,10 @@
         "path": "src/director_ai/core/retrieval/vector_store/embedding.py"
       },
       {
+        "name": "ServingMemoryBudget",
+        "path": "src/director_ai/model_lifecycle/promotion_records.py"
+      },
+      {
         "name": "SessionResponse",
         "path": "src/director_ai/_server_models.py"
       },
@@ -4213,6 +4249,14 @@
       {
         "name": "SpecStatus",
         "path": "src/director_ai/core/temporal_logic/agent_specs.py"
+      },
+      {
+        "name": "SpendBindingError",
+        "path": "src/director_ai/model_lifecycle/errors.py"
+      },
+      {
+        "name": "SpendReservationBinding",
+        "path": "src/director_ai/model_lifecycle/spend_records.py"
       },
       {
         "name": "Sphere",
@@ -4321,6 +4365,10 @@
       {
         "name": "StudioManifest",
         "path": "src/director_ai/federation/manifest.py"
+      },
+      {
+        "name": "StudyDeclineRecord",
+        "path": "src/director_ai/model_lifecycle/promotion_records.py"
       },
       {
         "name": "SuiteResult",
@@ -5505,12 +5553,14 @@
       "src/director_ai/model_lifecycle/family_registry.py",
       "src/director_ai/model_lifecycle/float_scan.py",
       "src/director_ai/model_lifecycle/graders.py",
+      "src/director_ai/model_lifecycle/job_contracts.py",
       "src/director_ai/model_lifecycle/licences.py",
       "src/director_ai/model_lifecycle/lineage.py",
       "src/director_ai/model_lifecycle/look_admission.py",
       "src/director_ai/model_lifecycle/look_budget.py",
       "src/director_ai/model_lifecycle/power.py",
       "src/director_ai/model_lifecycle/preregistration_approvals.py",
+      "src/director_ai/model_lifecycle/promotion_records.py",
       "src/director_ai/model_lifecycle/recipe_contracts.py",
       "src/director_ai/model_lifecycle/recipe_parts.py",
       "src/director_ai/model_lifecycle/recipe_records.py",
@@ -5520,6 +5570,8 @@
       "src/director_ai/model_lifecycle/rlvr_records.py",
       "src/director_ai/model_lifecycle/safetensors_parser.py",
       "src/director_ai/model_lifecycle/sealed_looks.py",
+      "src/director_ai/model_lifecycle/spend_contracts.py",
+      "src/director_ai/model_lifecycle/spend_records.py",
       "src/director_ai/model_lifecycle/study_contracts.py",
       "src/director_ai/model_lifecycle/study_records.py",
       "src/director_ai/model_lifecycle/tensors.py",
@@ -6447,6 +6499,7 @@
       "tests/test_model_lifecycle_looks.py",
       "tests/test_model_lifecycle_recipes.py",
       "tests/test_model_lifecycle_records.py",
+      "tests/test_model_lifecycle_spend.py",
       "tests/test_model_lifecycle_study_terms.py",
       "tests/test_model_lifecycle_surfaces.py",
       "tests/test_model_lifecycle_weights.py",

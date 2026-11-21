@@ -87,6 +87,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     and export parity reports that refuse a serving binary unless every
     slice is non-inferior to its parent, with the ONNX INT8, AudioWorklet
     and GGUF stop-token checks;
+  - spend and job records, with a gate that lets a job start only on an
+    open, matching SpendLedger reservation whose remaining exposure covers
+    the hard cost bound, minimum charge and fee in exact decimal
+    arithmetic; job confinement, submission, status and cancellation
+    records; and the serving memory budget, dependency pins and study
+    decline records of a promotion;
   - 17-key custody ingest records with a fixed set of sealed kinds;
   - preregistration, approval and sealed look records with four outcomes;
   - a custody-derived, root-anchored proposer lineage and look budget,

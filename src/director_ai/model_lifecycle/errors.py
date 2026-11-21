@@ -104,6 +104,10 @@ class ExportParityError(ModelLifecycleError):
     """An export profile or a serving-format parity report breaks its rules."""
 
 
+class SpendBindingError(ModelLifecycleError):
+    """A spend binding, cost estimate, approval or job record breaks its rules."""
+
+
 class LicenceRecordError(ModelLifecycleError):
     """A dual-axis licence record or compute budget is malformed."""
 

@@ -83,6 +83,12 @@ from .float_scan import (
 from .graders import (
     validate_grader,
 )
+from .job_contracts import (
+    validate_job_cancel,
+    validate_job_status,
+    validate_job_submission,
+    validate_sandbox_confinement,
+)
 from .licences import (
     require_output_training_permitted,
     validate_compute_budget,
@@ -103,6 +109,11 @@ from .power import (
 )
 from .preregistration_approvals import (
     validate_preregistration_approval,
+)
+from .promotion_records import (
+    validate_dependency_pins,
+    validate_serving_memory_budget,
+    validate_study_decline,
 )
 from .recipe_contracts import (
     validate_curriculum_stage,
@@ -136,6 +147,13 @@ from .sealed_looks import (
     validate_journal_entry,
     validate_look_request,
 )
+from .spend_contracts import (
+    amount,
+    validate_cost_estimate,
+    validate_paid_run_approval,
+    validate_spend_binding,
+    validate_spend_reservation_live,
+)
 from .study_contracts import (
     validate_build2_terms,
     validate_dynamics_evaluation_contract,
@@ -157,6 +175,7 @@ from .width_and_position_contracts import (
 
 __all__ = [
     "admit_sealed_look",
+    "amount",
     "any_lane_matches",
     "canonical_json_bytes",
     "check_look_budget",
@@ -187,10 +206,12 @@ __all__ = [
     "validate_base_checkpoint_record",
     "validate_build2_terms",
     "validate_compute_budget",
+    "validate_cost_estimate",
     "validate_curriculum_stage",
     "validate_custody_ingest_record",
     "validate_dedup_and_distillation",
     "validate_dedup_report",
+    "validate_dependency_pins",
     "validate_distillation_manifest",
     "validate_dynamics_evaluation_contract",
     "validate_dynamics_family_contract",
@@ -202,6 +223,9 @@ __all__ = [
     "validate_grader",
     "validate_hardware_profile",
     "validate_inference_envelope",
+    "validate_job_cancel",
+    "validate_job_status",
+    "validate_job_submission",
     "validate_journal_entry",
     "validate_language_family_contract",
     "validate_licence_record",
@@ -213,6 +237,7 @@ __all__ = [
     "validate_mup_validation_receipt",
     "validate_normaliser_envelope",
     "validate_onnx_export_profile",
+    "validate_paid_run_approval",
     "validate_preregistration",
     "validate_preregistration_approval",
     "validate_pretraining_checkpoint_state",
@@ -220,9 +245,14 @@ __all__ = [
     "validate_recipe_and_curriculum",
     "validate_rlvr_batch_mask_rate",
     "validate_rlvr_spec",
+    "validate_sandbox_confinement",
     "validate_sealed_split_pool",
     "validate_seed_quadruple",
+    "validate_serving_memory_budget",
     "validate_slice_estimate",
+    "validate_spend_binding",
+    "validate_spend_reservation_live",
+    "validate_study_decline",
     "validate_tokeniser_and_normaliser_disjointness",
     "validate_tokeniser_envelope",
     "validate_transformer_architecture_spec",
