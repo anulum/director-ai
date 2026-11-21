@@ -100,9 +100,25 @@ from .power import (
 from .preregistration_approvals import (
     validate_preregistration_approval,
 )
+from .recipe_contracts import (
+    validate_curriculum_stage,
+    validate_pretraining_checkpoint_state,
+    validate_recipe_and_curriculum,
+)
+from .recipe_parts import (
+    validate_hardware_profile,
+    validate_matched_budget,
+    validate_seed_quadruple,
+)
 from .record_codec import (
     from_canonical_json_bytes,
 )
+from .rlvr_contracts import (
+    validate_rlvr_spec,
+    validate_verifiable_reward_outcome,
+    validate_verifier_fault_attestation,
+)
+from .rlvr_mask_rate import validate_rlvr_batch_mask_rate, wilson_interval
 from .safetensors_parser import (
     compute_tensor_set_digest,
     compute_tensor_set_identity,
@@ -158,6 +174,7 @@ __all__ = [
     "tensor_set_identity",
     "validate_base_checkpoint_record",
     "validate_compute_budget",
+    "validate_curriculum_stage",
     "validate_custody_ingest_record",
     "validate_dedup_and_distillation",
     "validate_dedup_report",
@@ -168,22 +185,32 @@ __all__ = [
     "validate_evaluator_output",
     "validate_family_tensor_layout",
     "validate_grader",
+    "validate_hardware_profile",
     "validate_journal_entry",
     "validate_language_family_contract",
     "validate_licence_record",
     "validate_lineage_edge",
     "validate_look_request",
     "validate_look_result",
+    "validate_matched_budget",
     "validate_mup_spec",
     "validate_mup_validation_receipt",
     "validate_normaliser_envelope",
     "validate_preregistration",
     "validate_preregistration_approval",
+    "validate_pretraining_checkpoint_state",
     "validate_promotion_decision",
+    "validate_recipe_and_curriculum",
+    "validate_rlvr_batch_mask_rate",
+    "validate_rlvr_spec",
     "validate_sealed_split_pool",
+    "validate_seed_quadruple",
     "validate_slice_estimate",
     "validate_tokeniser_and_normaliser_disjointness",
     "validate_tokeniser_envelope",
     "validate_transformer_architecture_spec",
+    "validate_verifiable_reward_outcome",
+    "validate_verifier_fault_attestation",
     "validate_yarn_rope_scaling",
+    "wilson_interval",
 ]

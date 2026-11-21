@@ -80,6 +80,26 @@ class EncodingContractError(ModelLifecycleError):
     """A tokeniser, normaliser or embedding space record breaks its rules."""
 
 
+class RecipeContractError(ModelLifecycleError):
+    """A training recipe, its seeds, hardware, curriculum or budget breaks a rule."""
+
+
+class RlvrContractError(ModelLifecycleError):
+    """A verifiable-reward spec or rollout outcome breaks its rules."""
+
+
+class UnattestedVerifierFaultMaskError(RlvrContractError):
+    """A rollout is masked as a verifier fault without the harness's attestation."""
+
+
+class VerifierMaskRateExceededError(RlvrContractError):
+    """A batch masks more rollouts than its spec's ceiling allows."""
+
+
+class VerifierMaskRateDriftError(RlvrContractError):
+    """A batch's masking rate drifts above the reference beyond the allowed margin."""
+
+
 class LicenceRecordError(ModelLifecycleError):
     """A dual-axis licence record or compute budget is malformed."""
 

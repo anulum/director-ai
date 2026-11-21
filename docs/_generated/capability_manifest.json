@@ -6,10 +6,10 @@
     "optional_extras": 62,
     "public_api_exports": 227,
     "public_documentation_pages": 208,
-    "python_model_classes": 1137,
-    "python_model_source_modules": 577,
+    "python_model_classes": 1151,
+    "python_model_source_modules": 583,
     "rust_pyo3_model_wrappers": 83,
-    "test_files": 859
+    "test_files": 860
   },
   "documentation": {
     "public_pages": [
@@ -1299,6 +1299,10 @@
         "path": "src/director_ai/core/scoring/consensus.py"
       },
       {
+        "name": "CurriculumStageSpec",
+        "path": "src/director_ai/model_lifecycle/recipe_records.py"
+      },
+      {
         "name": "CustodyIngestRecord",
         "path": "src/director_ai/model_lifecycle/custody_records.py"
       },
@@ -2215,6 +2219,10 @@
         "path": "src/director_ai/agentic/handoff_scorer.py"
       },
       {
+        "name": "HardwareCapabilityProfile",
+        "path": "src/director_ai/model_lifecycle/recipe_records.py"
+      },
+      {
         "name": "HardwareProfile",
         "path": "src/director_ai/core/sustainability/policy_adapter.py"
       },
@@ -2729,6 +2737,10 @@
       {
         "name": "ManagedTrainingRecord",
         "path": "src/director_ai/finetune_jobs.py"
+      },
+      {
+        "name": "MatchedBudgetAccountingSpec",
+        "path": "src/director_ai/model_lifecycle/recipe_records.py"
       },
       {
         "name": "MathConsistencyResult",
@@ -3443,6 +3455,10 @@
         "path": "src/director_ai/core/safety/moderation/pii.py"
       },
       {
+        "name": "PretrainingCheckpointState",
+        "path": "src/director_ai/model_lifecycle/recipe_records.py"
+      },
+      {
         "name": "Principal",
         "path": "src/director_ai/core/knowledge_graph/policy.py"
       },
@@ -3623,6 +3639,10 @@
         "path": "src/director_ai/core/calibration/recall_ledger.py"
       },
       {
+        "name": "RecipeContractError",
+        "path": "src/director_ai/model_lifecycle/errors.py"
+      },
+      {
         "name": "Recommendation",
         "path": "src/director_ai/core/interpretability/root_cause.py"
       },
@@ -3801,6 +3821,14 @@
       {
         "name": "RiskThresholdPolicy",
         "path": "src/director_ai/core/risk_threshold/policy.py"
+      },
+      {
+        "name": "RlvrAlgorithmSpec",
+        "path": "src/director_ai/model_lifecycle/rlvr_records.py"
+      },
+      {
+        "name": "RlvrContractError",
+        "path": "src/director_ai/model_lifecycle/errors.py"
       },
       {
         "name": "RobotCommandGuard",
@@ -4021,6 +4049,10 @@
       {
         "name": "SecureAggregator",
         "path": "src/director_ai/core/federated_privacy/secret_sharing.py"
+      },
+      {
+        "name": "SeedQuadruple",
+        "path": "src/director_ai/model_lifecycle/recipe_records.py"
       },
       {
         "name": "SegmentCoverageHealth",
@@ -4603,6 +4635,10 @@
         "path": "src/director_ai/core/training/training_provenance.py"
       },
       {
+        "name": "TrainingRecipeManifest",
+        "path": "src/director_ai/model_lifecycle/recipe_records.py"
+      },
+      {
         "name": "TrainingResultRecord",
         "path": "src/director_ai/core/training/results.py"
       },
@@ -4699,6 +4735,10 @@
         "path": "src/director_ai/federation/manifest.py"
       },
       {
+        "name": "UnattestedVerifierFaultMaskError",
+        "path": "src/director_ai/model_lifecycle/errors.py"
+      },
+      {
         "name": "UncertaintyDecision",
         "path": "src/director_ai/core/routing/uncertainty_router.py"
       },
@@ -4787,6 +4827,10 @@
         "path": "src/director_ai/core/trajectory/simulator.py"
       },
       {
+        "name": "VerifiableRewardOutcome",
+        "path": "src/director_ai/model_lifecycle/rlvr_records.py"
+      },
+      {
         "name": "VerificationReport",
         "path": "src/director_ai/core/ml_bom/bom.py"
       },
@@ -4801,6 +4845,18 @@
       {
         "name": "VerifierBackend",
         "path": "src/director_ai/core/formal_verification/verifier.py"
+      },
+      {
+        "name": "VerifierFaultAttestation",
+        "path": "src/director_ai/model_lifecycle/rlvr_records.py"
+      },
+      {
+        "name": "VerifierMaskRateDriftError",
+        "path": "src/director_ai/model_lifecycle/errors.py"
+      },
+      {
+        "name": "VerifierMaskRateExceededError",
+        "path": "src/director_ai/model_lifecycle/errors.py"
       },
       {
         "name": "VerifierSignal",
@@ -5426,7 +5482,13 @@
       "src/director_ai/model_lifecycle/look_budget.py",
       "src/director_ai/model_lifecycle/power.py",
       "src/director_ai/model_lifecycle/preregistration_approvals.py",
+      "src/director_ai/model_lifecycle/recipe_contracts.py",
+      "src/director_ai/model_lifecycle/recipe_parts.py",
+      "src/director_ai/model_lifecycle/recipe_records.py",
       "src/director_ai/model_lifecycle/record_codec.py",
+      "src/director_ai/model_lifecycle/rlvr_contracts.py",
+      "src/director_ai/model_lifecycle/rlvr_mask_rate.py",
+      "src/director_ai/model_lifecycle/rlvr_records.py",
       "src/director_ai/model_lifecycle/safetensors_parser.py",
       "src/director_ai/model_lifecycle/sealed_looks.py",
       "src/director_ai/model_lifecycle/tensors.py",
@@ -6349,6 +6411,7 @@
       "tests/test_model_lifecycle_floats_and_codec.py",
       "tests/test_model_lifecycle_licence_boundary.py",
       "tests/test_model_lifecycle_looks.py",
+      "tests/test_model_lifecycle_recipes.py",
       "tests/test_model_lifecycle_records.py",
       "tests/test_model_lifecycle_surfaces.py",
       "tests/test_model_lifecycle_weights.py",

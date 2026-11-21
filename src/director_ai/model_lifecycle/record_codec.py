@@ -91,6 +91,13 @@ from .preregistration_approvals import (
     PreregistrationApproval,
     validate_preregistration_approval,
 )
+from .recipe_contracts import (
+    validate_pretraining_checkpoint_state,
+    validate_recipe_and_curriculum,
+)
+from .recipe_records import PretrainingCheckpointState, TrainingRecipeManifest
+from .rlvr_contracts import validate_rlvr_spec, validate_verifier_fault_attestation
+from .rlvr_records import RlvrAlgorithmSpec, VerifierFaultAttestation
 from .sealed_looks import (
     SealedLookJournalEntry,
     SealedLookRequest,
@@ -164,6 +171,10 @@ VALIDATORS: dict[type, Callable[[object], object]] = {
         (TokeniserArtefactEnvelope, validate_tokeniser_envelope),
         (DynamicsNormaliserEnvelope, validate_normaliser_envelope),
         (EmbeddingSpaceIdentity, validate_embedding_space_identity),
+        (TrainingRecipeManifest, validate_recipe_and_curriculum),
+        (PretrainingCheckpointState, validate_pretraining_checkpoint_state),
+        (RlvrAlgorithmSpec, validate_rlvr_spec),
+        (VerifierFaultAttestation, validate_verifier_fault_attestation),
     )
 }
 """Every record type the codec decodes, with the validator it runs."""

@@ -63,6 +63,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - tokeniser and dynamics normaliser envelopes fitted on training shards
     only, with special-token and stop-token rules, and an embedding space
     identity that binds weights, tokeniser and pooling;
+  - training recipes with four distinct seeds, vendor-neutral hardware
+    classes that refuse bf16 where it is not native, curriculum stages whose
+    mixture weights sum to exactly one in decimal arithmetic, matched
+    budgets, and mode rules: training from scratch needs an architecture
+    and no base, every other mode a base;
+  - verifiable-reward outcomes where a candidate's failure always earns
+    zero and only an attested verifier fault is masked, and a per-batch
+    masking ceiling with a Wilson-interval drift test against the
+    reference rate;
   - 17-key custody ingest records with a fixed set of sealed kinds;
   - preregistration, approval and sealed look records with four outcomes;
   - a custody-derived, root-anchored proposer lineage and look budget,
