@@ -163,6 +163,10 @@ class OutputTrainingNotPermittedError(ModelLifecycleError):
     """A teacher's licence does not permit training on its outputs."""
 
 
+class AdapterMergeError(ModelLifecycleError):
+    """A merge's parents, weights or result break the merge rules."""
+
+
 class EnvelopeError(ModelLifecycleError):
     """A model artefact envelope or lineage edge is malformed."""
 

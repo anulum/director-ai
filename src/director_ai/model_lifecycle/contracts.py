@@ -130,6 +130,10 @@ from .lineage import (
 from .look_admission import (
     CustodyProgrammeRoles,
 )
+from .merge_contracts import (
+    MERGE_METHODS,
+    MERGEABLE_KINDS,
+)
 from .preregistration_approvals import (
     PreregistrationApproval,
 )
@@ -289,6 +293,8 @@ __all__ = [
     "MAX_MASKED_FRACTION_CEILING",
     "MAX_SHOTS_PER_PAULI_GROUP",
     "MIN_NOISE_FLOOR_MULTIPLIER",
+    "MERGEABLE_KINDS",
+    "MERGE_METHODS",
     "MIN_REAL_TRAIN_CLUSTER_FRACTION_WITH_SYNTHETIC",
     "MIN_TRAINING_SEEDS",
     "MIN_SHOTS_PER_PAULI_GROUP",

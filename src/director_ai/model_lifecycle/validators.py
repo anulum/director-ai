@@ -118,6 +118,11 @@ from .look_admission import (
 from .look_budget import (
     check_look_budget,
 )
+from .merge_contracts import (
+    merge_identity,
+    validate_adapter_merge,
+    validate_merge_result,
+)
 from .power import (
     required_paired_sample_size,
 )
@@ -269,6 +274,7 @@ __all__ = [
     "paired_improvement",
     "paired_shot_radius",
     "paired_shot_standard_error",
+    "merge_identity",
     "read_archive_tensor_descriptors",
     "read_safetensors_descriptors",
     "read_tensor_set_descriptors",
@@ -285,6 +291,7 @@ __all__ = [
     "strict_json_loads",
     "tensor_set_identity",
     "validate_barren_plateau_receipt",
+    "validate_adapter_merge",
     "validate_base_checkpoint_record",
     "validate_build2_terms",
     "validate_compute_budget",
@@ -316,6 +323,7 @@ __all__ = [
     "validate_look_request",
     "validate_look_result",
     "validate_matched_budget",
+    "validate_merge_result",
     "validate_mup_spec",
     "validate_mup_validation_receipt",
     "validate_normaliser_envelope",

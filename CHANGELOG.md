@@ -121,6 +121,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     calls last, which queries the live reservation itself and requires a
     passed barren-plateau preflight for credit-funded or paid variational
     quantum jobs;
+  - adapter merge rules: at least two distinct language artefacts of one
+    kind, bound to their contracts, with one tokeniser and a set, equal
+    architecture, embedding space and tie, linear weights that sum exactly
+    to 1, and a merged artefact that is new and claims the same identity;
+    the free-wheel check now requires the kernel and the absence of the
+    training adapters;
   - 17-key custody ingest records with a fixed set of sealed kinds;
   - preregistration, approval and sealed look records with four outcomes;
   - a custody-derived, root-anchored proposer lineage and look budget,

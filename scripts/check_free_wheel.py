@@ -50,6 +50,7 @@ _FREE_ESSENTIALS = (
     "director_ai/cli.py",
     "director_ai/_cli_verify.py",
     "director_ai/guard.py",
+    "director_ai/model_lifecycle/__init__.py",
 )
 
 _SIMULATION = """
@@ -63,6 +64,7 @@ assert director_ai.__version__, "free wheel lost its version"
 import director_ai.cli
 import director_ai.core as core
 import director_ai.guard
+import director_ai.model_lifecycle
 
 for absent in (
     "director_ai.server",
@@ -75,6 +77,7 @@ for absent in (
     "director_ai.core.training",
     "director_ai.core.verified_scorer",
     "director_ai.core.sharded_nli",
+    "director_ai.training_adapters",
 ):
     if importlib.util.find_spec(absent) is not None:
         raise SystemExit(f"paid module importable in the free wheel: {absent}")
