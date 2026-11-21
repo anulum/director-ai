@@ -18,7 +18,9 @@ import pytest
 from director_ai.model_lifecycle import (
     EvaluatorOutput,
     ExportParityError,
+    FamilyWitnesses,
     MalformedDigestError,
+    ModelArtefactEnvelope,
     PromotionDecisionError,
     PromotionDecisionRecord,
     PromotionDependencyPins,
@@ -36,7 +38,16 @@ from director_ai.model_lifecycle import (
     validate_promotion_evidence,
     validate_promotion_or_decline,
 )
-from tests.model_lifecycle_support import UTC, digest_of, journal_entry, preregistration
+from tests.model_lifecycle_support import (
+    UTC,
+    digest_of,
+    edge,
+    journal_entry,
+    pool,
+    preregistration,
+)
+from tests.model_lifecycle_support import envelope as model_envelope
+from tests.test_model_lifecycle_quantum import barren, parity, receipt, spec
 from tests.test_model_lifecycle_recipes import budget
 from tests.test_model_lifecycle_study_terms import (
     dynamics,
@@ -76,6 +87,73 @@ SLICES = EvaluatorOutput(
 )
 
 
+FAMILY_SCHEMAS = {
+    "language": "language-family-contract.v1",
+    "dynamics": "dynamics-family-contract.v1",
+    "spiking": "sc-neurocore.spiking-artefact-contract.v1",
+    "quantum_variational": "scpn-qc.variational-artefact-contract.v1",
+}
+QSPEC = spec()
+NO_WITNESSES: dict[str, Any] = dict.fromkeys(
+    (
+        "spiking_parity_report",
+        "barren_plateau_receipt",
+        "acceptance_spec",
+        "candidate_receipt",
+        "baseline_receipt",
+    )
+)
+
+
+def candidate_envelope(kind: str) -> ModelArtefactEnvelope:
+    """Return the candidate's envelope for a ``kind`` study."""
+    return model_envelope(
+        family=kind,
+        content_digest=A_CAND,
+        lineage_edges=(edge(digest_of("base"), A_CAND),),
+        family_contract_schema=FAMILY_SCHEMAS[kind],
+        family_contract_digest=FAMILY,
+    )
+
+
+def family_setup(
+    kind: str,
+) -> tuple[dict[str, object], dict[str, Any], tuple[str, ...]]:
+    """Return a ``kind`` study's term changes, witness fields and companion contracts."""
+    if kind == "dynamics":
+        return (
+            {
+                "family": "dynamics",
+                "dynamics_eval_contract_digest": record_digest(dynamics()),
+            },
+            NO_WITNESSES,
+            (),
+        )
+    base: dict[str, object] = {"family": kind, "dynamics_eval_contract_digest": None}
+    if kind == "spiking":
+        report_witness = {
+            **NO_WITNESSES,
+            "spiking_parity_report": parity(checkpoint_content_digest=A_CAND),
+        }
+        return base, report_witness, (digest_of("numeric"),)
+    if kind == "quantum_variational":
+        quantum = {
+            **NO_WITNESSES,
+            "acceptance_spec": QSPEC,
+            "candidate_receipt": receipt("finite_shot_simulator", "arm-candidate"),
+            "baseline_receipt": receipt("finite_shot_simulator", "arm-baseline"),
+            "barren_plateau_receipt": barren(
+                companion_digest=FAMILY, split_pool_digest=record_digest(pool())
+            ),
+        }
+        return (
+            {**base, "quantum_acceptance_spec_digest": record_digest(QSPEC)},
+            quantum,
+            (),
+        )
+    return base, NO_WITNESSES, ()
+
+
 def inputs(
     *,
     promote: bool = True,
@@ -85,14 +163,12 @@ def inputs(
     report_changes: dict[str, object] | None = None,
     output: EvaluatorOutput = SLICES,
     frozen: tuple[str, ...] = (A_BASE, A_CAND),
+    kind: str = "dynamics",
+    witness_changes: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    """Return a complete, admissible promotion or decline, wired by digest."""
-    study = terms(
-        **{
-            "dynamics_eval_contract_digest": record_digest(dynamics()),
-            **(terms_changes or {}),
-        }
-    )
+    """Return a complete, admissible promotion or decline of a ``kind`` study."""
+    family_terms, witness_fields, secondaries = family_setup(kind)
+    study = terms(**{**family_terms, **(terms_changes or {})})
     plan = preregistration(
         **{
             "declared_arms": ("baseline", "candidate"),
@@ -121,19 +197,29 @@ def inputs(
             **(report_changes or {}),
         }
     )
+    witnesses = replace(
+        FamilyWitnesses(
+            "promotion-family-witnesses.v1", candidate_envelope(kind), **witness_fields
+        ),
+        **(witness_changes or {}),
+    )
+    extra = [record_digest(witnesses.candidate_envelope)]
+    extra += [
+        record_digest(getattr(witnesses, name))
+        for name in witness_fields
+        if getattr(witnesses, name) is not None
+    ]
+    if witnesses.acceptance_spec is not None:
+        extra.append(witnesses.acceptance_spec.classical_baseline_digest)
     pins = PromotionDependencyPins(
         "promotion-dependency-pins.v1",
         "slot-a",
         FAMILY,
-        (),
-        (record_digest(export), WITNESS),
+        secondaries,
+        (record_digest(export), WITNESS, *extra),
     )
-    tier = journal(
-        *(
-            ("tier_pinned", digest, "slot-a")
-            for digest in (FAMILY, record_digest(export), WITNESS)
-        )
-    )
+    pinned = (FAMILY, *secondaries, *pins.witness_and_parity_digests)
+    tier = journal(*(("tier_pinned", digest, "slot-a") for digest in pinned))
     decision = PromotionDecisionRecord(
         "model-promotion-decision.v1",
         digest_of("intent"),
@@ -172,7 +258,8 @@ def inputs(
         "memory_budget": BUDGET,
         "pins": pins,
         "export_reports": (export,),
-        "dynamics_contract": dynamics(),
+        "dynamics_contract": dynamics() if kind == "dynamics" else None,
+        "family_witnesses": witnesses,
         "tier_journal": tier,
         "tier_seq_at_decision": len(tier),
         "roles": ROLES,
@@ -205,13 +292,9 @@ class TestAdmitted:
     def test_a_study_without_dynamics_needs_no_horizon(self) -> None:
         """Without a dynamics contract, no export horizon is required."""
         kwargs = inputs(
-            terms_changes={"dynamics_eval_contract_digest": None},
-            report_changes={"dynamics_rollout_horizon_h": None},
+            kind="language", report_changes={"dynamics_rollout_horizon_h": None}
         )
-        assert (
-            validate_promotion_or_decline(**{**kwargs, "dynamics_contract": None})
-            == kwargs["decision"]
-        )
+        assert validate_promotion_or_decline(**kwargs) == kwargs["decision"]
 
     def test_a_test_suite_look_has_no_slices_to_cover(self) -> None:
         """A test-suite look's coverage is vacuous."""
@@ -708,8 +791,8 @@ class TestExports:
             {**kwargs, "dynamics_contract": dynamics(min_initial_states_m=60)},
             "not the terms'",
         )
-        stray = inputs(terms_changes={"dynamics_eval_contract_digest": None})
-        refused(stray, "name no dynamics")
+        stray = inputs(kind="language")
+        refused({**stray, "dynamics_contract": dynamics()}, "name no dynamics")
 
     def test_a_malformed_report_is_refused(self) -> None:
         """Each report is validated."""

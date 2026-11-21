@@ -23,12 +23,12 @@ from __future__ import annotations
 from collections.abc import Sequence
 
 from .digests import record_digest
+from .dynamics_contracts import validate_dynamics_evaluation_contract
 from .errors import PromotionDecisionError
 from .evaluator_outputs import SealedLookResult
 from .export_contracts import validate_export_parity_report
 from .promotion_evidence import spans_noise_floors
 from .promotion_records import PromotionDependencyPins
-from .study_contracts import validate_dynamics_evaluation_contract
 from .study_records import (
     DynamicsEvaluationContract,
     ExportParityReport,

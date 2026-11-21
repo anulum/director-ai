@@ -41,6 +41,7 @@ from .dataset_contracts import validate_dedup_report, validate_distillation_mani
 from .dataset_records import DatasetDeduplicationReport, SyntheticDistillationManifest
 from .deployment_records import PostSwapVerification, validate_post_swap_verification
 from .digests import canonical_json_bytes, decode_record
+from .dynamics_contracts import validate_dynamics_evaluation_contract
 from .encoding_contracts import (
     validate_embedding_space_identity,
     validate_normaliser_envelope,
@@ -115,6 +116,7 @@ from .promotion_records import (
     validate_serving_memory_budget,
     validate_study_decline,
 )
+from .promotion_witnesses import FamilyWitnesses, validate_family_witnesses
 from .quantum_contracts import validate_receipt_shape, validate_shot_noise_spec
 from .quantum_records import (
     BarrenPlateauWitnessReceipt,
@@ -151,11 +153,7 @@ from .spend_records import (
     SandboxConfinementSpec,
     SpendReservationBinding,
 )
-from .study_contracts import (
-    validate_build2_terms,
-    validate_dynamics_evaluation_contract,
-    validate_inference_envelope,
-)
+from .study_contracts import validate_build2_terms, validate_inference_envelope
 from .study_records import (
     DynamicsEvaluationContract,
     ExportParityReport,
@@ -252,6 +250,7 @@ VALIDATORS: dict[type, Callable[[object], object]] = {
         (StudyDeclineRecord, validate_study_decline),
         (CustodyTierJournalEntry, validate_tier_journal_entry),
         (PromotionEvidence, validate_promotion_evidence),
+        (FamilyWitnesses, validate_family_witnesses),
         (SpikingLoweringParityReport, validate_spiking_lowering_parity),
         (QuantumVariationalSeedTuple, validate_seed_tuple),
         (BarrenPlateauWitnessReceipt, validate_barren_plateau_receipt),

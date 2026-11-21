@@ -148,6 +148,11 @@ from .promotion_records import (
     ServingMemoryBudget,
     StudyDeclineRecord,
 )
+from .promotion_witnesses import (
+    FAMILY_WITNESSES,
+    QUANTUM_WITNESSES,
+    FamilyWitnesses,
+)
 from .quantum_acceptance import (
     EXACT_TOLERANCE_MULTIPLE,
 )
@@ -275,6 +280,7 @@ __all__ = [
     "ENVELOPE_CAPS",
     "EXACT_TOLERANCE_MULTIPLE",
     "FAMILY_CONTRACT_REGISTRY",
+    "FAMILY_WITNESSES",
     "FAULT_KINDS",
     "FAULT_OUTCOMES",
     "FIXED_POINT_PREFIX",
@@ -296,8 +302,8 @@ __all__ = [
     "MERGEABLE_KINDS",
     "MERGE_METHODS",
     "MIN_REAL_TRAIN_CLUSTER_FRACTION_WITH_SYNTHETIC",
-    "MIN_TRAINING_SEEDS",
     "MIN_SHOTS_PER_PAULI_GROUP",
+    "MIN_TRAINING_SEEDS",
     "MODEL_CUSTODY_KINDS",
     "MONEY_CONTEXT",
     "MUP_INV_D_PROFILES",
@@ -317,6 +323,7 @@ __all__ = [
     "PROFILE_LOCKS",
     "QUANTUM_EXECUTION_MODES",
     "QUANTUM_VARIATIONAL_FAMILY_RULE",
+    "QUANTUM_WITNESSES",
     "REPRODUCIBILITY_MODES",
     "RESERVATION_STATES",
     "RETIRED_JOURNAL_SCHEMAS",
@@ -362,6 +369,7 @@ __all__ = [
     "EvaluatorOutput",
     "ExportParityMetricSlice",
     "ExportParityReport",
+    "FamilyWitnesses",
     "FixedPointFormatDecl",
     "GgufWireProfile",
     "GraderRole",

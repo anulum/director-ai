@@ -127,6 +127,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     to 1, and a merged artefact that is new and claims the same identity;
     the free-wheel check now requires the kernel and the absence of the
     training adapters;
+  - family witnesses at promotion: the build-2 terms name the study's model
+    family, and a dynamics or variational quantum study names its
+    evaluation contract exactly when it is of that family; a promotion
+    carries the candidate's pinned envelope of that family, a spiking
+    candidate its passed and pinned lowering parity report under a pinned
+    numeric contract, and a variational quantum candidate the terms'
+    acceptance spec, paired receipts of the candidate and the baseline arm,
+    a passed barren-plateau preflight on the study's split pool and a
+    pinned classical baseline; a witness the family does not use is
+    refused;
   - 17-key custody ingest records with a fixed set of sealed kinds;
   - preregistration, approval and sealed look records with four outcomes;
   - a custody-derived, root-anchored proposer lineage and look budget,

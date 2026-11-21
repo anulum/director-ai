@@ -25,6 +25,9 @@ refused:
   pair it measured the candidate on, so the comparator is concurrent;
 - the serving memory budget;
 - Q-9, its dependencies pinned in its scope by the deployment operator;
+- its family's witnesses, from the terms' family: the candidate's pinned
+  envelope, and for a spiking or variational quantum candidate its passed,
+  bound and pinned parity report, or spec, receipts and preflight;
 - its export parity reports: of the candidate, pinned as witnesses, each
   covering every ``(slice, metric)`` pair the look reported for the
   candidate, with every non-rate slice's allowed margin at least three
@@ -70,6 +73,7 @@ from .promotion_records import (
     validate_serving_memory_budget,
     validate_study_decline,
 )
+from .promotion_witnesses import FamilyWitnesses, check_family_witnesses
 from .sealed_looks import SealedLookJournalEntry
 from .study_contracts import (
     validate_build2_terms,
@@ -173,6 +177,7 @@ def validate_promotion_or_decline(
     pins: PromotionDependencyPins | None,
     export_reports: Sequence[ExportParityReport],
     dynamics_contract: DynamicsEvaluationContract | None,
+    family_witnesses: FamilyWitnesses | None,
     tier_journal: Sequence[CustodyTierJournalEntry],
     tier_seq_at_decision: int,
     roles: CustodyProgrammeRoles,
@@ -204,6 +209,9 @@ def validate_promotion_or_decline(
     dynamics_contract : DynamicsEvaluationContract or None
         The terms' dynamics contract, when they name one; not read for a
         decline.
+    family_witnesses : FamilyWitnesses or None
+        The candidate's envelope and its family's witnesses; required for a
+        promotion, not read for a decline.
     tier_journal : Sequence[CustodyTierJournalEntry]
         The programme's custody tier journal.
     tier_seq_at_decision : int
@@ -263,6 +271,17 @@ def validate_promotion_or_decline(
     validate_serving_memory_budget(memory_budget)
     require_dependencies_pinned(
         pins, tier_journal, through_seq=tier_seq_at_decision, roles=roles
+    )
+    if family_witnesses is None:
+        raise E("a promotion needs its candidate's family witnesses")
+    check_family_witnesses(
+        family_witnesses,
+        family=terms.family,
+        candidate=candidate,
+        baseline=arms[terms.baseline_arm],
+        pins=pins,
+        quantum_spec_digest=terms.quantum_acceptance_spec_digest,
+        split_pool_digest=record_digest(preregistration.split_pool),
     )
     check_promotion_exports(
         tuple(export_reports),

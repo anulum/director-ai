@@ -48,6 +48,7 @@ def terms(**changes: object) -> PreregistrationBuild2Terms:
     base = PreregistrationBuild2Terms(
         schema="preregistration-build2-terms.v1",
         search_spaces_digest=digest_of("search-spaces"),
+        family="dynamics",
         min_training_seeds=3,
         seed_aggregation_rule="every_seed_must_pass",
         test_retest_flip_rate_ceiling_bps=50,
@@ -167,7 +168,13 @@ class TestStudyTerms:
 
     def test_valid_terms_round_trip(self) -> None:
         """Valid terms and caps validate and decode through the codec."""
-        for item in (terms(), terms(quantum_acceptance_spec_digest=digest_of("q"))):
+        quantum = terms(
+            family="quantum_variational",
+            dynamics_eval_contract_digest=None,
+            quantum_acceptance_spec_digest=digest_of("q"),
+        )
+        language = terms(family="language", dynamics_eval_contract_digest=None)
+        for item in (terms(), quantum, language):
             assert validate_build2_terms(item) == item
             assert (
                 from_canonical_json_bytes(
@@ -208,6 +215,13 @@ class TestStudyTerms:
             ({"predeclared_promotion_eligible_arm_rule": ""}, "predeclared"),
             ({"baseline_arm": "other"}, "not one of the study's arms"),
             ({"baseline_arm": ""}, "baseline_arm"),
+            ({"family": "symbolic"}, "family"),
+            ({"family": "language"}, "dynamics study, and only one"),
+            ({"dynamics_eval_contract_digest": None}, "dynamics study, and only one"),
+            (
+                {"quantum_acceptance_spec_digest": digest_of("q")},
+                "quantum study, and only one",
+            ),
             ({"schema": "terms.v2"}, "schema"),
         ],
     )

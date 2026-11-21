@@ -9,8 +9,11 @@
 """Records of a build-2 study's terms, dynamics evaluation and export parity.
 
 :class:`PreregistrationBuild2Terms` holds what a preregistration fixes for a
-training study: its seeds, noise floors and native-unit margins, its
-baseline arm, and the matched budget and test-time compute of each arm. Its
+training study: its model family, seeds, noise floors and native-unit
+margins, its baseline arm, and the matched budget and test-time compute of
+each arm. A dynamics study, and only a dynamics study, names its dynamics
+evaluation contract; a variational quantum study, and only one, names its
+acceptance spec. Its
 record digest is the preregistration's ``search_spaces_and_budgets_digest``,
 and it binds the search spaces through its own ``search_spaces_digest``.
 :class:`DynamicsEvaluationContract` fixes how a physical dynamics model is
@@ -24,6 +27,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Literal
 
+from .envelopes import ActiveModelFamily
 from .recipe_records import MatchedBudgetAccountingSpec
 
 WASM_AUDIOWORKLET_MAX_BYTES = 2_097_152
@@ -52,6 +56,7 @@ class PreregistrationBuild2Terms:
 
     schema: Literal["preregistration-build2-terms.v1"]
     search_spaces_digest: str
+    family: ActiveModelFamily
     min_training_seeds: int
     seed_aggregation_rule: Literal["every_seed_must_pass", "median_seed"]
     test_retest_flip_rate_ceiling_bps: int

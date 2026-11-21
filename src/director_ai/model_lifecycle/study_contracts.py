@@ -6,15 +6,11 @@
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI — Model Lifecycle Study Term Validators
 
-"""Validators of build-2 study terms and of the dynamics evaluation contract.
+"""Validators of a build-2 study's terms and its arms' test-time compute caps.
 
-The dynamics contract fixes how much evidence a physical-dynamics model must
-face: at least 50 initial states and 8 action sequences, a conformal coverage
-level in ``(0.5, 1)``, an in-distribution false-alarm rate of at most 5 %,
-state-region bins and subtle-shift sweeps, at least 100 planning initial
-states per seed, a rollout horizon of at least 100 steps for export parity,
-and a fitted physics baseline whenever the model claims no unmodelled
-physics.
+The terms fix the study's seeds, flip-rate ceiling, non-rate noise floors and
+margins, baseline arm, and each arm's matched budget and inference envelope.
+The dynamics evaluation contract's rules are in :mod:`.dynamics_contracts`.
 """
 
 from __future__ import annotations
@@ -29,10 +25,10 @@ from ._checks import (
     require_tuple,
     require_unique,
 )
+from .envelopes import ACTIVE_MODEL_FAMILIES
 from .errors import EvaluationContractError
 from .recipe_parts import validate_matched_budget
 from .study_records import (
-    DynamicsEvaluationContract,
     InferenceComputeEnvelope,
     PreregistrationBuild2Terms,
 )
@@ -82,8 +78,8 @@ def validate_inference_envelope(
     return envelope
 
 
-def _named_table(value: object, field: str) -> list[tuple[str, object]]:
-    """Return ``(name, entry)`` pairs with distinct, non-empty names."""
+def named_table(value: object, field: str) -> list[tuple[str, object]]:
+    """Return ``(name, entry)`` pairs with distinct, non-empty names, else refuse."""
     pairs: list[tuple[str, object]] = []
     for pair in require_tuple(value, field, E):
         if not isinstance(pair, tuple) or len(pair) != 2:
@@ -114,7 +110,8 @@ def validate_build2_terms(
         If the flip-rate ceiling is outside ``[0, 10000]`` basis points, a
         noise floor or non-rate margin is negative, the margins and noise
         floors name different metrics, the two arm tables name different
-        arms, the baseline is not one of them, or a field is malformed.
+        arms, the baseline is not one of them, the family's evaluation
+        contract is missing or stray, or a field is malformed.
     RecipeContractError
         If an arm's matched budget is malformed.
     MalformedDigestError
@@ -124,6 +121,7 @@ def validate_build2_terms(
         raise E("a PreregistrationBuild2Terms is required")
     require_choice(terms.schema, "schema", {"preregistration-build2-terms.v1"}, E)
     require_sha256(terms.search_spaces_digest, "search_spaces_digest")
+    family = require_choice(terms.family, "family", ACTIVE_MODEL_FAMILIES, E)
     require_int(terms.min_training_seeds, "min_training_seeds", E, minimum=1)
     require_choice(
         terms.seed_aggregation_rule,
@@ -139,17 +137,17 @@ def validate_build2_terms(
     )
     if ceiling > BPS_SCALE:
         raise E("test_retest_flip_rate_ceiling_bps must not exceed 10000")
-    floors = _named_table(
+    floors = named_table(
         terms.non_rate_metric_noise_floors, "non_rate_metric_noise_floors"
     )
-    margins = _named_table(terms.non_rate_metric_margins, "non_rate_metric_margins")
+    margins = named_table(terms.non_rate_metric_margins, "non_rate_metric_margins")
     for _, value in [*floors, *margins]:
         if require_finite(value, "non-rate floor or margin", E) < 0.0:
             raise E("a non-rate noise floor or margin must not be negative")
     if {metric for metric, _ in floors} != {metric for metric, _ in margins}:
         raise E("every non-rate metric needs both a noise floor and a margin")
-    budgets = _named_table(terms.arm_matched_budgets, "arm_matched_budgets")
-    envelopes = _named_table(terms.arm_inference_envelopes, "arm_inference_envelopes")
+    budgets = named_table(terms.arm_matched_budgets, "arm_matched_budgets")
+    envelopes = named_table(terms.arm_inference_envelopes, "arm_inference_envelopes")
     if not budgets:
         raise E("a study needs at least one arm")
     if {arm for arm, _ in budgets} != {arm for arm, _ in envelopes}:
@@ -169,131 +167,10 @@ def validate_build2_terms(
     for name in ("dynamics_eval_contract_digest", "quantum_acceptance_spec_digest"):
         if getattr(terms, name) is not None:
             require_sha256(getattr(terms, name), name)
+    if (family == "dynamics") != (terms.dynamics_eval_contract_digest is not None):
+        raise E("a dynamics study, and only one, names its evaluation contract")
+    if (family == "quantum_variational") != (
+        terms.quantum_acceptance_spec_digest is not None
+    ):
+        raise E("a variational quantum study, and only one, names its acceptance spec")
     return terms
-
-
-def _check_dynamics_fields(contract: DynamicsEvaluationContract) -> None:
-    """Check the dynamics contract's names, kinds, digests and planner sizes."""
-    require_choice(contract.schema, "schema", {"dynamics-evaluation-contract.v1"}, E)
-    require_text(contract.behaviour_policy_id, "behaviour_policy_id", E)
-    require_text(contract.detectability_condition, "detectability_condition", E)
-    for split, behaviour in _named_table(
-        contract.split_expected_behaviours, "split_expected_behaviours"
-    ):
-        require_choice(
-            behaviour,
-            f"behaviour of {split}",
-            {"predict_within_tolerance", "defer_to_fallback"},
-            E,
-        )
-    require_choice(
-        contract.calibration_score_kind,
-        "calibration_score_kind",
-        {"per_trajectory_per_horizon", "max_over_horizon_simultaneous"},
-        E,
-    )
-    require_choice(
-        contract.interval_proper_score, "interval_proper_score", {"winkler", "crps"}, E
-    )
-    require_choice(
-        contract.shift_detector_score_kind,
-        "shift_detector_score_kind",
-        {"one_step_residual", "cusum", "ensemble_disagreement"},
-        E,
-    )
-    for name in ("state_region_bins", "subtle_shift_sweeps"):
-        items = require_tuple(getattr(contract, name), name, E)
-        for item in items:
-            require_text(item, name, E)
-        require_unique(items, name, E)
-    for name in (
-        "planner_population",
-        "planner_iterations",
-        "planning_horizon_steps",
-        "episode_length_steps",
-    ):
-        require_int(getattr(contract, name), name, E, minimum=1)
-    for name in (
-        "oracle_planner_digest",
-        "classical_controller_digest",
-        "energy_reference_params_digest",
-    ):
-        require_sha256(getattr(contract, name), name)
-    if contract.fitted_physics_parametric_baseline_digest is not None:
-        require_sha256(
-            contract.fitted_physics_parametric_baseline_digest,
-            "fitted_physics_parametric_baseline_digest",
-        )
-    require_bool(
-        contract.unmodelled_physics_terms_present, "unmodelled_physics_terms_present", E
-    )
-
-
-def validate_dynamics_evaluation_contract(
-    contract: DynamicsEvaluationContract,
-) -> DynamicsEvaluationContract:
-    """Check a dynamics evaluation contract against the evidence floors W-1 to W-7.
-
-    Parameters
-    ----------
-    contract : DynamicsEvaluationContract
-        The contract to check.
-
-    Returns
-    -------
-    DynamicsEvaluationContract
-        The same contract.
-
-    Raises
-    ------
-    EvaluationContractError
-        If an evidence floor is not met, no split is named, a model without
-        unmodelled physics names no fitted physics baseline, or a field is
-        malformed.
-    MalformedDigestError
-        If a digest is malformed.
-    """
-    if not isinstance(contract, DynamicsEvaluationContract):
-        raise E("a DynamicsEvaluationContract is required")
-    _check_dynamics_fields(contract)
-    require_int(contract.min_initial_states_m, "min_initial_states_m", E, minimum=50)
-    require_int(contract.min_action_sequences_k, "min_action_sequences_k", E, minimum=8)
-    coverage = require_finite(
-        contract.conformal_coverage_level, "conformal_coverage_level", E
-    )
-    if not 0.5 < coverage < 1.0:
-        raise E("conformal_coverage_level must lie in (0.5, 1)")
-    alarm = require_finite(
-        contract.max_id_false_alarm_rate, "max_id_false_alarm_rate", E
-    )
-    if not 0.0 < alarm <= 0.05:
-        raise E("max_id_false_alarm_rate must lie in (0, 0.05]")
-    unsafe = require_finite(
-        contract.max_unsafe_before_deferral_rate, "max_unsafe_before_deferral_rate", E
-    )
-    if not 0.0 <= unsafe <= 1.0:
-        raise E("max_unsafe_before_deferral_rate must lie in [0, 1]")
-    if not contract.split_expected_behaviours:
-        raise E("a dynamics evaluation names at least one split")
-    if not contract.state_region_bins or not contract.subtle_shift_sweeps:
-        raise E("a dynamics evaluation needs state-region bins and subtle-shift sweeps")
-    require_int(
-        contract.min_planning_initial_states_per_seed,
-        "min_planning_initial_states_per_seed",
-        E,
-        minimum=100,
-    )
-    require_int(
-        contract.onnx_parity_rollout_horizon_h,
-        "onnx_parity_rollout_horizon_h",
-        E,
-        minimum=100,
-    )
-    if (
-        contract.unmodelled_physics_terms_present is False
-        and contract.fitted_physics_parametric_baseline_digest is None
-    ):
-        raise E(
-            "without unmodelled physics terms, a fitted physics baseline is required"
-        )
-    return contract

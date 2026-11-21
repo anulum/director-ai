@@ -44,6 +44,9 @@ from .digests import (
     record_digest,
     strict_json_loads,
 )
+from .dynamics_contracts import (
+    validate_dynamics_evaluation_contract,
+)
 from .encoding_contracts import (
     validate_embedding_space_identity,
     validate_normaliser_envelope,
@@ -148,6 +151,10 @@ from .promotion_records import (
     validate_serving_memory_budget,
     validate_study_decline,
 )
+from .promotion_witnesses import (
+    check_family_witnesses,
+    validate_family_witnesses,
+)
 from .quantum_acceptance import (
     admits_quantum_arm,
     composite_lower_bound,
@@ -212,7 +219,6 @@ from .spend_contracts import (
 )
 from .study_contracts import (
     validate_build2_terms,
-    validate_dynamics_evaluation_contract,
     validate_inference_envelope,
 )
 from .submission_guard import (
@@ -245,6 +251,7 @@ __all__ = [
     "amount",
     "any_lane_matches",
     "canonical_json_bytes",
+    "check_family_witnesses",
     "check_held_equal_axes",
     "check_inference_envelope",
     "check_journal_order",
@@ -286,8 +293,8 @@ __all__ = [
     "required_paired_sample_size",
     "scan_float_chunk",
     "select_study_entries",
-    "spans_noise_floors",
     "shot_variance",
+    "spans_noise_floors",
     "strict_json_loads",
     "tensor_set_identity",
     "validate_barren_plateau_receipt",
@@ -310,6 +317,7 @@ __all__ = [
     "validate_execution_receipt",
     "validate_export_parity_report",
     "validate_family_tensor_layout",
+    "validate_family_witnesses",
     "validate_grader",
     "validate_hardware_profile",
     "validate_inference_envelope",

@@ -6,10 +6,10 @@
     "optional_extras": 62,
     "public_api_exports": 227,
     "public_documentation_pages": 208,
-    "python_model_classes": 1204,
-    "python_model_source_modules": 612,
+    "python_model_classes": 1205,
+    "python_model_source_modules": 614,
     "rust_pyo3_model_wrappers": 83,
-    "test_files": 871
+    "test_files": 872
   },
   "documentation": {
     "public_pages": [
@@ -1917,6 +1917,10 @@
       {
         "name": "FallbackModelRegistry",
         "path": "src/director_ai/core/model_registry.py"
+      },
+      {
+        "name": "FamilyWitnesses",
+        "path": "src/director_ai/model_lifecycle/promotion_witnesses.py"
       },
       {
         "name": "FederatedCalibrationRound",
@@ -5678,6 +5682,7 @@
       "src/director_ai/model_lifecycle/dataset_records.py",
       "src/director_ai/model_lifecycle/deployment_records.py",
       "src/director_ai/model_lifecycle/digests.py",
+      "src/director_ai/model_lifecycle/dynamics_contracts.py",
       "src/director_ai/model_lifecycle/encoding_contracts.py",
       "src/director_ai/model_lifecycle/encoding_records.py",
       "src/director_ai/model_lifecycle/envelopes.py",
@@ -5711,6 +5716,7 @@
       "src/director_ai/model_lifecycle/promotion_exports.py",
       "src/director_ai/model_lifecycle/promotion_gate.py",
       "src/director_ai/model_lifecycle/promotion_records.py",
+      "src/director_ai/model_lifecycle/promotion_witnesses.py",
       "src/director_ai/model_lifecycle/quantum_acceptance.py",
       "src/director_ai/model_lifecycle/quantum_contracts.py",
       "src/director_ai/model_lifecycle/quantum_paired_noise.py",
@@ -6659,6 +6665,7 @@
       "tests/test_model_lifecycle_merge.py",
       "tests/test_model_lifecycle_ports.py",
       "tests/test_model_lifecycle_promotion_gate.py",
+      "tests/test_model_lifecycle_promotion_witnesses.py",
       "tests/test_model_lifecycle_quantum.py",
       "tests/test_model_lifecycle_recipes.py",
       "tests/test_model_lifecycle_records.py",
