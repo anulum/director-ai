@@ -11,12 +11,15 @@
 The canonical rule is ``json.dumps(value, sort_keys=True,
 separators=(",", ":"), ensure_ascii=False, allow_nan=False)`` encoded as
 UTF-8, with dataclasses turned into objects, tuples into arrays and every
-float finite. :func:`record_digest` is the SHA-256 of that encoding.
+float finite and never a negative zero, so ``-0.0`` and ``0.0`` cannot give
+two digests of one record. :func:`record_digest` is the SHA-256 of that
+encoding.
 
 :func:`decode_record` turns JSON bytes back into a record: strict UTF-8, no
-duplicate member names, no ``NaN`` or ``Infinity``, exactly the record's
-field names, and no ``bool``/``int`` or ``int``/``float`` coercion. It then
-runs the record's validator, which the caller must supply.
+duplicate member names, no ``NaN`` or ``Infinity``, no negative-zero number
+token (``-0``, ``-0.0``, ``-0e0``), exactly the record's field names, and no
+``bool``/``int`` or ``int``/``float`` coercion. It then runs the record's
+validator, which the caller must supply.
 """
 
 from __future__ import annotations
@@ -29,7 +32,7 @@ import types
 from collections.abc import Callable
 from typing import Literal, TypeVar, Union, cast, get_args, get_origin, get_type_hints
 
-from .errors import NonCanonicalJsonError
+from .errors import NonCanonicalFloatError, NonCanonicalJsonError
 
 RecordT = TypeVar("RecordT")
 
@@ -51,7 +54,11 @@ def _to_json_value(value: object) -> object:
         return value
     if isinstance(value, float):
         if not math.isfinite(value):
-            raise NonCanonicalJsonError("canonical JSON floats must be finite")
+            raise NonCanonicalFloatError("canonical JSON floats must be finite")
+        if value == 0.0 and math.copysign(1.0, value) < 0.0:
+            raise NonCanonicalFloatError(
+                "canonical JSON floats must not be negative zero"
+            )
         return value
     raise NonCanonicalJsonError(f"{type(value).__name__} has no canonical JSON form")
 
@@ -73,7 +80,8 @@ def canonical_json_bytes(value: object) -> bytes:
     Raises
     ------
     NonCanonicalJsonError
-        If the value holds a non-finite float, a string that does not
+        If the value holds a non-finite or negative-zero float
+        (:class:`~.errors.NonCanonicalFloatError`), a string that does not
         encode as UTF-8 (a lone surrogate), or a type without a JSON form.
     """
     text = json.dumps(
@@ -117,6 +125,22 @@ def _refuse_duplicates(pairs: list[tuple[str, object]]) -> dict[str, object]:
     return result
 
 
+def _parse_float(literal: str) -> float:
+    """Decode a JSON number with a fraction or exponent, refusing negative zero."""
+    value = float(literal)
+    if value == 0.0 and literal.startswith("-"):
+        raise NonCanonicalFloatError(f"JSON number {literal} is a negative zero")
+    return value
+
+
+def _parse_int(literal: str) -> int:
+    """Decode a JSON integer, refusing ``-0``."""
+    value = int(literal)
+    if value == 0 and literal.startswith("-"):
+        raise NonCanonicalFloatError("JSON number -0 is a negative zero")
+    return value
+
+
 def _refuse_constant(name: str) -> object:
     """Refuse the non-standard ``NaN`` and ``Infinity`` JSON constants."""
     raise NonCanonicalJsonError(f"JSON constant {name} is not allowed")
@@ -139,8 +163,9 @@ def strict_json_loads(raw: bytes) -> object:
     ------
     NonCanonicalJsonError
         On invalid UTF-8, invalid JSON, a duplicate member name, a ``NaN``
-        or ``Infinity`` constant, or a string escape that decodes to a lone
-        surrogate.
+        or ``Infinity`` constant, a string escape that decodes to a lone
+        surrogate, or a negative-zero number token
+        (:class:`~.errors.NonCanonicalFloatError`).
     """
     try:
         text = raw.decode("utf-8")
@@ -148,6 +173,8 @@ def strict_json_loads(raw: bytes) -> object:
             text,
             object_pairs_hook=_refuse_duplicates,
             parse_constant=_refuse_constant,
+            parse_float=_parse_float,
+            parse_int=_parse_int,
         )
         json.dumps(value, ensure_ascii=False).encode("utf-8")
         return value

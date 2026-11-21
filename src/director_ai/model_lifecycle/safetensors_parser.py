@@ -37,6 +37,7 @@ from .errors import (
     NonCanonicalJsonError,
     UnsupportedSafetensorsDtypeError,
 )
+from .float_scan import scan_float_chunk
 from .tensors import (
     DTYPE_WIDTHS,
     TensorDescriptor,
@@ -123,7 +124,12 @@ def _entry(
 
 
 def read_safetensors_descriptors(
-    handle: BinaryIO, *, offset: int, length: int, source: str
+    handle: BinaryIO,
+    *,
+    offset: int,
+    length: int,
+    source: str,
+    forbid_negative_zero: bool = False,
 ) -> tuple[TensorDescriptor, ...]:
     """Parse and hash one safetensors file stored at ``offset`` in ``handle``.
 
@@ -137,6 +143,9 @@ def read_safetensors_descriptors(
         Byte length of the safetensors file.
     source : str
         Name used in refusal messages.
+    forbid_negative_zero : bool
+        Whether a negative zero in a floating-point tensor is refused too.
+        NaN and infinities are always refused.
 
     Returns
     -------
@@ -176,6 +185,12 @@ def read_safetensors_descriptors(
         remaining = end - start
         while remaining:
             chunk = _read_exact(handle, min(_CHUNK, remaining), source)
+            scan_float_chunk(
+                dtype,
+                chunk,
+                forbid_negative_zero=forbid_negative_zero,
+                source=f"{source} tensor {name!r}",
+            )
             digest.update(chunk)
             remaining -= len(chunk)
         descriptors.append(TensorDescriptor(name, dtype, shape, digest.hexdigest()))
@@ -184,6 +199,8 @@ def read_safetensors_descriptors(
 
 def compute_tensor_set_identity(
     paths: Sequence[str | os.PathLike[str]],
+    *,
+    forbid_negative_zero: bool = False,
 ) -> TensorSetIdentity:
     """Return the tensor-set identity of one safetensors file or its shards.
 
@@ -191,6 +208,9 @@ def compute_tensor_set_identity(
     ----------
     paths : Sequence[str | os.PathLike[str]]
         The model's safetensors files, in any order.
+    forbid_negative_zero : bool
+        Whether a negative zero in a floating-point tensor is refused too.
+        NaN and infinities are always refused.
 
     Returns
     -------
@@ -210,23 +230,34 @@ def compute_tensor_set_identity(
             size = os.fstat(handle.fileno()).st_size
             descriptors.extend(
                 read_safetensors_descriptors(
-                    handle, offset=0, length=size, source=Path(path).name
+                    handle,
+                    offset=0,
+                    length=size,
+                    source=Path(path).name,
+                    forbid_negative_zero=forbid_negative_zero,
                 )
             )
     return tensor_set_identity(descriptors)
 
 
-def compute_tensor_set_digest(paths: Sequence[str | os.PathLike[str]]) -> str:
+def compute_tensor_set_digest(
+    paths: Sequence[str | os.PathLike[str]], *, forbid_negative_zero: bool = False
+) -> str:
     """Return the ``tensor_set_digest`` of safetensors files.
 
     Parameters
     ----------
     paths : Sequence[str | os.PathLike[str]]
         The model's safetensors files, in any order.
+    forbid_negative_zero : bool
+        Whether a negative zero in a floating-point tensor is refused too.
+        NaN and infinities are always refused.
 
     Returns
     -------
     str
         The SHA-256 hex digest of the sorted descriptors.
     """
-    return compute_tensor_set_identity(paths).tensor_set_digest
+    return compute_tensor_set_identity(
+        paths, forbid_negative_zero=forbid_negative_zero
+    ).tensor_set_digest

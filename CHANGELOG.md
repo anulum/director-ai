@@ -51,7 +51,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - a custody-derived, root-anchored proposer lineage and look budget,
     checked by `admit_sealed_look` before a split is opened;
   - the paired non-inferiority sample size;
-  - promotion decisions with their production pre-state.
+  - promotion decisions with their production pre-state;
+  - canonical JSON that has no form for a negative zero, and
+    `from_canonical_json_bytes`, which decodes any kernel record and always
+    runs its validator;
+  - a streaming check of every floating-point tensor that refuses NaN and
+    infinities, and negative zeros where a model family forbids them.
 
   It loads no `torch`, `transformers` or `safetensors` and no module under
   another licence. It does not train, evaluate or deploy models.

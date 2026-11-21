@@ -24,6 +24,10 @@ class NonCanonicalJsonError(ModelLifecycleError):
     """A value cannot be encoded or decoded under the canonical JSON rule."""
 
 
+class NonCanonicalFloatError(NonCanonicalJsonError):
+    """A JSON float is not finite or is a negative zero."""
+
+
 class MalformedDigestError(ModelLifecycleError):
     """A digest field is not 64 lowercase hexadecimal characters."""
 
@@ -34,6 +38,14 @@ class UnsupportedSafetensorsDtypeError(ModelLifecycleError):
 
 class MalformedWeightsError(ModelLifecycleError):
     """A safetensors file or weight archive breaks the hardened parser."""
+
+
+class NonFiniteTensorError(MalformedWeightsError):
+    """A floating-point tensor holds a NaN or an infinity."""
+
+
+class NegativeZeroTensorError(MalformedWeightsError):
+    """A floating-point tensor holds a negative zero where its family forbids it."""
 
 
 class ReservedModelFamilyError(ModelLifecycleError):

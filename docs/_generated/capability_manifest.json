@@ -6,10 +6,10 @@
     "optional_extras": 62,
     "public_api_exports": 227,
     "public_documentation_pages": 208,
-    "python_model_classes": 1112,
-    "python_model_source_modules": 565,
+    "python_model_classes": 1115,
+    "python_model_source_modules": 567,
     "rust_pyo3_model_wrappers": 83,
-    "test_files": 854
+    "test_files": 855
   },
   "documentation": {
     "public_pages": [
@@ -2935,6 +2935,10 @@
         "path": "src/director_ai/core/scoring/rules_scorer.py"
       },
       {
+        "name": "NegativeZeroTensorError",
+        "path": "src/director_ai/model_lifecycle/errors.py"
+      },
+      {
         "name": "NeuralSymbolicVerifier",
         "path": "src/director_ai/core/symbolic_chain/verifier.py"
       },
@@ -2971,7 +2975,15 @@
         "path": "src/director_ai/core/guard_control/no_go.py"
       },
       {
+        "name": "NonCanonicalFloatError",
+        "path": "src/director_ai/model_lifecycle/errors.py"
+      },
+      {
         "name": "NonCanonicalJsonError",
+        "path": "src/director_ai/model_lifecycle/errors.py"
+      },
+      {
+        "name": "NonFiniteTensorError",
         "path": "src/director_ai/model_lifecycle/errors.py"
       },
       {
@@ -5309,6 +5321,7 @@
       "src/director_ai/model_lifecycle/errors.py",
       "src/director_ai/model_lifecycle/evaluation_contracts.py",
       "src/director_ai/model_lifecycle/evaluator_outputs.py",
+      "src/director_ai/model_lifecycle/float_scan.py",
       "src/director_ai/model_lifecycle/graders.py",
       "src/director_ai/model_lifecycle/licences.py",
       "src/director_ai/model_lifecycle/lineage.py",
@@ -5316,6 +5329,7 @@
       "src/director_ai/model_lifecycle/look_budget.py",
       "src/director_ai/model_lifecycle/power.py",
       "src/director_ai/model_lifecycle/preregistration_approvals.py",
+      "src/director_ai/model_lifecycle/record_codec.py",
       "src/director_ai/model_lifecycle/safetensors_parser.py",
       "src/director_ai/model_lifecycle/sealed_looks.py",
       "src/director_ai/model_lifecycle/tensors.py",
@@ -6231,6 +6245,7 @@
       "tests/test_miscoverage.py",
       "tests/test_ml_bom.py",
       "tests/test_model_benchmark_packages.py",
+      "tests/test_model_lifecycle_floats_and_codec.py",
       "tests/test_model_lifecycle_licence_boundary.py",
       "tests/test_model_lifecycle_looks.py",
       "tests/test_model_lifecycle_records.py",

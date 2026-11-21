@@ -164,7 +164,7 @@ def list_archive_members(handle: BinaryIO, length: int) -> tuple[ArchiveMember, 
 
 
 def compute_archive_tensor_set_identity(
-    path: str | os.PathLike[str],
+    path: str | os.PathLike[str], *, forbid_negative_zero: bool = False
 ) -> TensorSetIdentity:
     """Return the model-wide tensor-set identity of a ``safetensors_tar``.
 
@@ -172,6 +172,9 @@ def compute_archive_tensor_set_identity(
     ----------
     path : str | os.PathLike[str]
         The archive file.
+    forbid_negative_zero : bool
+        Whether a negative zero in a floating-point tensor is refused too.
+        NaN and infinities are always refused.
 
     Returns
     -------
@@ -196,6 +199,7 @@ def compute_archive_tensor_set_identity(
                         offset=member.data_offset,
                         length=member.size,
                         source=member.name,
+                        forbid_negative_zero=forbid_negative_zero,
                     )
                 )
     return tensor_set_identity(descriptors)

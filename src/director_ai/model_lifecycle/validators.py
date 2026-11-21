@@ -33,6 +33,7 @@ from .evaluator_outputs import (
     validate_look_result,
     validate_slice_estimate,
 )
+from .float_scan import any_lane_matches, scan_float_chunk
 from .graders import validate_grader
 from .licences import (
     require_output_training_permitted,
@@ -44,6 +45,7 @@ from .look_admission import admit_sealed_look
 from .look_budget import check_look_budget
 from .power import required_paired_sample_size
 from .preregistration_approvals import validate_preregistration_approval
+from .record_codec import from_canonical_json_bytes
 from .safetensors_parser import (
     compute_tensor_set_digest,
     compute_tensor_set_identity,
@@ -54,6 +56,9 @@ from .tensors import tensor_set_identity
 from .weight_archives import compute_archive_tensor_set_identity, list_archive_members
 
 __all__ = [
+    "any_lane_matches",
+    "from_canonical_json_bytes",
+    "scan_float_chunk",
     "admit_sealed_look",
     "canonical_json_bytes",
     "check_look_budget",

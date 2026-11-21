@@ -39,6 +39,7 @@ from .envelopes import (
 )
 from .evaluation_contracts import CiMethod, PreregistrationRecord, SealedSplitPool
 from .evaluator_outputs import EvaluatorOutput, SealedLookResult, SliceAggregateEstimate
+from .float_scan import FLOAT_DTYPES
 from .graders import GraderRole, GraderSpec
 from .licences import (
     CUSTODY_DATA_CLASSES,
@@ -66,6 +67,7 @@ from .tensors import (
 from .weight_archives import ArchiveMember
 
 __all__ = [
+    "FLOAT_DTYPES",
     "CONSUMING_OUTCOMES",
     "CUSTODY_DATA_CLASSES",
     "CUSTODY_OBJECT_KINDS",
