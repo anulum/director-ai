@@ -1,0 +1,16 @@
+{
+  "by_condition": {
+    "both": 0,
+    "neither": 1825,
+    "similarity_below_tau_only": 95,
+    "too_few_items_only": 0
+  },
+  "encoder": "sentence-transformers/all-MiniLM-L6-v2",
+  "encoder_revision": "1110a243fdf4706b3f48f1d95db1a4f5529b4d41",
+  "fallbacks": 95,
+  "g": 2,
+  "queries": 1920,
+  "schema": "director-ai.atlaskv-fallback-diagnostic.v1",
+  "split": "test",
+  "tau": 0.4
+}

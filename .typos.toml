@@ -57,6 +57,10 @@ Hashi = "Hashi"
 Unparseable = "Unparseable"
 # Substring match for "summarise/summarize" in task type detection
 summar = "summar"
+# Name parts of the AtlasKV corpus generator, whose digest is frozen: the
+# chemical suffix "-ane" (as in methane) and a generated syllable.
+ane = "ane"
+ket = "ket"
 # zk-SNARK proving system names (Jens Groth 2016, Plonk; not typos).
 # ``groth`` alone is the typos token after numeric split — must
 # whitelist it so ``groth16`` passes.

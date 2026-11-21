@@ -40,6 +40,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   SHA-256 digest, the precision and the INT8 range policy.
 - Add `HaltOutput` and `stream_output_result` to expose the output monitor's
   delivered text and halt verdict together.
+- Add an AtlasKV-style retrieval comparison under `benchmarks/`: a seeded
+  multi-tenant corpus generator, a harness that compares the hybrid
+  retrieval with flat entity-relation keys and with keys pruned through an
+  entity-name index, and a diagnostic that splits the pruned arm's
+  fallbacks by condition. The acceptance rules were frozen before the test
+  run. The pruned keys were not accepted: they found supporting evidence
+  3.45 percentage points less often than the hybrid retrieval. The results
+  and their digests are in `benchmarks/results/atlaskv/`, with the exact
+  harness bytes that produced them; the committed harness differs from them
+  in typing only, which three dev-split runs confirm.
 - Add `director_ai.model_lifecycle`, a standard-library contract package for
   the model lifecycle. It holds record types and validators only:
   - tensor-set identity from a hardened safetensors and `safetensors_tar`

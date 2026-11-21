@@ -223,6 +223,9 @@ benchmarks/results/*
 !benchmarks/results/e2e_nli_only_200_wcs2a_weakest_link.json
 # Held-out FEVER dev fact-verification evidence, 3-class model (KIMI3-fever).
 !benchmarks/results/fever_results.json
+# AtlasKV retrieval comparison: the frozen-plan dev and test artefacts, the
+# fallback diagnostic, the frozen harness bytes and the behaviour check.
+!benchmarks/results/atlaskv/
 # Tokeniser blobs are fetchable from the fine-tune's base model (WCH-6);
 # see benchmarks/models/factcg-cb/README.md. Configs/results stay tracked.
 benchmarks/models/factcg-cb/tokenizer.json

@@ -9,7 +9,7 @@
     "python_model_classes": 1158,
     "python_model_source_modules": 586,
     "rust_pyo3_model_wrappers": 83,
-    "test_files": 861
+    "test_files": 864
   },
   "documentation": {
     "public_pages": [
@@ -6017,6 +6017,9 @@
       "tests/test_api_refusals_real_surface.py",
       "tests/test_async_streaming.py",
       "tests/test_async_streaming_edge.py",
+      "tests/test_atlaskv_corpus.py",
+      "tests/test_atlaskv_fallback_diagnostic.py",
+      "tests/test_atlaskv_retrieval_bench.py",
       "tests/test_audit.py",
       "tests/test_audit_chain.py",
       "tests/test_audit_chain_real_surface.py",
