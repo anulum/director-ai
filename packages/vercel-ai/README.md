@@ -52,7 +52,7 @@ in progress or provide an independent execution-authority boundary.
 
 ## Contributor checks
 
-Use Node.js 26.13.0, matching the repository CI toolchain, then run:
+Use Node.js 26.13.1, matching the repository CI toolchain, then run:
 
 ```bash
 npm ci --ignore-scripts

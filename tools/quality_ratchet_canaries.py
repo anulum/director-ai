@@ -17,7 +17,8 @@ the engine binary the new identity names.
 A profile receives its runner and fixture at its first transition. Until
 then, :func:`run_profile_canaries` refuses it by name, so no transition of
 that profile can apply. ``notebook-types`` has both, from its first
-succession, the projection fix for Python 3.12 and later.
+succession, the projection fix for Python 3.12 and later, and
+``typescript-docs`` from its first, the Node 26.13.1 security release.
 """
 
 from __future__ import annotations
@@ -31,6 +32,8 @@ from pathlib import Path
 from tools.quality_ratchet_baseline import resolve_commit
 from tools.quality_ratchet_notebook_canary import notebook_canary_findings
 from tools.quality_ratchet_succession import FindingKey
+from tools.quality_ratchet_typescript import TYPESCRIPT_RULES
+from tools.quality_ratchet_typescript_canary import typescript_canary_findings
 
 CANARY_ROOT = "tests/fixtures/quality_ratchet_canaries"
 
@@ -135,7 +138,25 @@ def _notebook_runner(root: Path, args: argparse.Namespace) -> CanaryRun:
     )
 
 
-CANARY_RUNNERS: dict[str, CanaryRunner] = {"notebook-types": _notebook_runner}
+def _typescript_runner(root: Path, args: argparse.Namespace) -> CanaryRun:
+    """Run the typescript-docs canaries with the profile's Node and helper."""
+    paths = fixture_paths(root, "typescript-docs")
+    platform, engine, findings = typescript_canary_findings(
+        root, args.node, paths, timeout=args.timeout
+    )
+    return CanaryRun(
+        TYPESCRIPT_RULES,
+        fixture_digest(root, "typescript-docs"),
+        platform,
+        engine,
+        findings,
+    )
+
+
+CANARY_RUNNERS: dict[str, CanaryRunner] = {
+    "notebook-types": _notebook_runner,
+    "typescript-docs": _typescript_runner,
+}
 """Canary runners by profile; a profile joins at its first transition."""
 
 

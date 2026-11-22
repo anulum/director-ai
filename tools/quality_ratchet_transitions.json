@@ -1450,6 +1450,204 @@
         "/artefacts/engine/linux-x64/token": "da28d030000f4ecd84a6d570facdc5cec5dfa187445542f46c6934108d9fa6f5",
         "/artefacts/engine/linux-x64/tokenize": "da28d030000f4ecd84a6d570facdc5cec5dfa187445542f46c6934108d9fa6f5"
       }
+    },
+    {
+      "authority_approval_digest": "2bbf76d03849a3937ad8f62c2a0022ca4383aafae00b4305e3e703c2263a1fef",
+      "canary": {
+        "enabled_rules": [
+          "declaration-documentation",
+          "source-directive"
+        ],
+        "fixture_digest": "ed5103637b0ccfb64fc36bdd075fb789a80db24ea355a26683fefede50060729",
+        "new_engine_digest": "d931c649850ffa7155b8ceffb400dc916ef325866e509cc52ae36e33e8fbb9a9",
+        "new_findings": [
+          {
+            "cell": null,
+            "column": 1,
+            "line": 9,
+            "path": "tests/fixtures/quality_ratchet_canaries/typescript-docs/canary.ts",
+            "rule": "declaration-documentation"
+          },
+          {
+            "cell": null,
+            "column": 3,
+            "line": 10,
+            "path": "tests/fixtures/quality_ratchet_canaries/typescript-docs/canary.ts",
+            "rule": "source-directive"
+          }
+        ],
+        "old_engine_digest": "0adde40d1b7dfa57c8bc83cbc319758c3ec6ebba21363bb2fa752ea6b267ad1b",
+        "old_findings": [
+          {
+            "cell": null,
+            "column": 1,
+            "line": 9,
+            "path": "tests/fixtures/quality_ratchet_canaries/typescript-docs/canary.ts",
+            "rule": "declaration-documentation"
+          },
+          {
+            "cell": null,
+            "column": 3,
+            "line": 10,
+            "path": "tests/fixtures/quality_ratchet_canaries/typescript-docs/canary.ts",
+            "rule": "source-directive"
+          }
+        ],
+        "platform": "linux-x64"
+      },
+      "changed_fields": [
+        {
+          "new": "d931c649850ffa7155b8ceffb400dc916ef325866e509cc52ae36e33e8fbb9a9",
+          "path": "/artefacts/engine/linux-x64/binary"
+        },
+        {
+          "new": "5c063e46bab0fbc1c17cc445d7ff129cbdcd0471be6ed83b6ab864f8143bc864",
+          "path": "/artefacts/engine/linux-x64/tarball"
+        },
+        {
+          "new": "d9751e7b3e4220a98d137d52ffda956a50ea4f2f2c6972dfbe2db5e3ec1c40b0",
+          "path": "/engine/tools~1quality_ratchet_node_engine.py"
+        },
+        {
+          "new": "04d9cf55842562052a4d6ce59231683f612b01820c0a0749c41b0819c45058a4",
+          "old": "9e8f2ecd843bd4e7761464d59f3b365658cc6aa9a8a2c01b986b16e4674ca903",
+          "path": "/engine/tools~1quality_ratchet_typescript.py"
+        },
+        {
+          "new": [
+            "tests/fixtures/quality_ratchet_canaries/"
+          ],
+          "path": "/excluded"
+        },
+        {
+          "new": "26.13.1",
+          "old": "26.13.0",
+          "path": "/native/node"
+        }
+      ],
+      "drops": [],
+      "evidence_digest": "7133e04e86bde2c0682302d902335ef0f62205dc78bf06916ab39388ce60e3f2",
+      "message_only": [],
+      "new_identity": "1052bb13fb1e63bbcc1c44b78e94bd8e032d7f367d0f5d74190e48ea7377914f",
+      "new_preimage": {
+        "artefacts": {
+          "engine": {
+            "linux-x64": {
+              "binary": "d931c649850ffa7155b8ceffb400dc916ef325866e509cc52ae36e33e8fbb9a9",
+              "tarball": "5c063e46bab0fbc1c17cc445d7ff129cbdcd0471be6ed83b6ab864f8143bc864"
+            }
+          }
+        },
+        "engine": {
+          "packages/vercel-ai/package-lock.json": "b79b1e434b2fe26b7f8fa505b036d321e4158aa26c915d473d32fa67b730e09e",
+          "packages/vercel-ai/package.json": "ca53c2ca4a2a81efea3d37f652a51751c1fcad1d88966d335626cce891f7c13f",
+          "packages/vercel-ai/tools/quality-ratchet.mjs": "35c7a0cfaaa461b91f5d6d402cb6c9e88c1c1f6874d2b2eca9b9de7a09896bb5",
+          "tools/ci_workflow_inventory.py": "b0e3ed16f82b31c66d59503b8a21a271173c01f983a8e5530f12b54010028ff7",
+          "tools/quality_ratchet_contracts.py": "c1c9ac9025c5b6a6a59d6810dcedff5b060c38bae0b1932a2ceccb3d28c2c916",
+          "tools/quality_ratchet_inventory.py": "1bd7b88153cd5d233265277a187e68ea61c618cc6287992d4def4d0ba7c16495",
+          "tools/quality_ratchet_node_engine.py": "d9751e7b3e4220a98d137d52ffda956a50ea4f2f2c6972dfbe2db5e3ec1c40b0",
+          "tools/quality_ratchet_typescript.py": "04d9cf55842562052a4d6ce59231683f612b01820c0a0749c41b0819c45058a4"
+        },
+        "excluded": [
+          "tests/fixtures/quality_ratchet_canaries/"
+        ],
+        "native": {
+          "compilerOptions": {
+            "allowJs": true,
+            "jsx": 1,
+            "noEmit": true,
+            "noLib": true,
+            "noResolve": true,
+            "target": 99
+          },
+          "node": "26.13.1",
+          "profile": "typescript-docs",
+          "typescript": "6.0.3"
+        },
+        "profile": "typescript-docs",
+        "roots": [
+          "gateway",
+          "packages",
+          "studio-web",
+          "tools",
+          "scripts",
+          "benchmarks",
+          "examples",
+          "notebooks",
+          "training",
+          "demo",
+          "docs"
+        ],
+        "schema": "quality-ratchet.snapshot.v2",
+        "suffixes": [
+          ".cjs",
+          ".cts",
+          ".js",
+          ".jsx",
+          ".mjs",
+          ".mts",
+          ".ts",
+          ".tsx"
+        ]
+      },
+      "old_identity": "f9b1182282804457a034da490ab1094efc22ce7b5a8a122ccfc547bd882b2bbf",
+      "old_preimage": {
+        "engine": {
+          "packages/vercel-ai/package-lock.json": "b79b1e434b2fe26b7f8fa505b036d321e4158aa26c915d473d32fa67b730e09e",
+          "packages/vercel-ai/package.json": "ca53c2ca4a2a81efea3d37f652a51751c1fcad1d88966d335626cce891f7c13f",
+          "packages/vercel-ai/tools/quality-ratchet.mjs": "35c7a0cfaaa461b91f5d6d402cb6c9e88c1c1f6874d2b2eca9b9de7a09896bb5",
+          "tools/ci_workflow_inventory.py": "b0e3ed16f82b31c66d59503b8a21a271173c01f983a8e5530f12b54010028ff7",
+          "tools/quality_ratchet_contracts.py": "c1c9ac9025c5b6a6a59d6810dcedff5b060c38bae0b1932a2ceccb3d28c2c916",
+          "tools/quality_ratchet_inventory.py": "1bd7b88153cd5d233265277a187e68ea61c618cc6287992d4def4d0ba7c16495",
+          "tools/quality_ratchet_typescript.py": "9e8f2ecd843bd4e7761464d59f3b365658cc6aa9a8a2c01b986b16e4674ca903"
+        },
+        "native": {
+          "compilerOptions": {
+            "allowJs": true,
+            "jsx": 1,
+            "noEmit": true,
+            "noLib": true,
+            "noResolve": true,
+            "target": 99
+          },
+          "node": "26.13.0",
+          "profile": "typescript-docs",
+          "typescript": "6.0.3"
+        },
+        "profile": "typescript-docs",
+        "roots": [
+          "gateway",
+          "packages",
+          "studio-web",
+          "tools",
+          "scripts",
+          "benchmarks",
+          "examples",
+          "notebooks",
+          "training",
+          "demo",
+          "docs"
+        ],
+        "schema": "quality-ratchet.snapshot.v2",
+        "suffixes": [
+          ".cjs",
+          ".cts",
+          ".js",
+          ".jsx",
+          ".mjs",
+          ".mts",
+          ".ts",
+          ".tsx"
+        ]
+      },
+      "packet_digest": "35bb9e2c05f6ccd8815fe9772d7df03ba9bf1e2fd0f1fa55beb92b510e8aee93",
+      "profile": "typescript-docs",
+      "reason": "security_release",
+      "rigor_approval_digest": "1c5e7e353b6d537d56aa75653242927d5e607edbe65758dd6ee3a974172a23be",
+      "verification_records": {
+        "/artefacts/engine/linux-x64/binary": "c7507a40970d371d9229ca28b84bc821e77cdc685fe4611fd4a3b73bdbd8d024",
+        "/artefacts/engine/linux-x64/tarball": "c7507a40970d371d9229ca28b84bc821e77cdc685fe4611fd4a3b73bdbd8d024"
+      }
     }
   ]
 }

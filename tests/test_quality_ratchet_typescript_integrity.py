@@ -26,6 +26,7 @@ from tools.ci_workflow_inventory import ROOT
 from tools.quality_ratchet_contracts import snapshot_payload
 from tools.quality_ratchet_typescript import (
     TYPESCRIPT_ENGINE_INPUTS,
+    TYPESCRIPT_EXCLUDED,
     TYPESCRIPT_SUFFIXES,
     capture_typescript_documentation,
     typescript_sources,
@@ -58,7 +59,13 @@ def test_native_typescript_captures_the_actual_complete_checkout(
         capture_output=True,
         timeout=20,
     )
-    paths = sorted({raw.decode() for raw in native.stdout.split(b"\0") if raw})
+    paths = sorted(
+        {
+            path
+            for path in (raw.decode() for raw in native.stdout.split(b"\0") if raw)
+            if not path.startswith(TYPESCRIPT_EXCLUDED)
+        }
+    )
     expected = {
         path: hashlib.sha256((ROOT / path).read_bytes()).hexdigest() for path in paths
     }
@@ -187,7 +194,7 @@ def test_native_engine_identity_and_concurrent_recipe_drift(
         "with Path(" + repr(str(original_output)) + ").open('a') as stream:\n"
         " stream.write(json.dumps({'args':args,'status':result.returncode,"
         "'stdout':result.stdout,'stderr':result.stderr})+'\\n')\n"
-        "if args[-1]!='--version':\n"
+        "if args[-1]!='--version' and args[0]!='-e':\n"
         " path=Path(" + repr(str(adapter)) + ")\n"
         " path.write_text(path.read_text()+'\\n')\n"
         "sys.stdout.write(result.stdout);sys.stderr.write(result.stderr)\n"
@@ -204,7 +211,8 @@ def test_native_engine_identity_and_concurrent_recipe_drift(
     assert rejected.returncode != 0
     assert "source or engine changed" in rejected.stderr
     originals = [json.loads(line) for line in original_output.read_text().splitlines()]
-    assert len(originals) == 3
+    assert len(originals) == 4
+    assert originals[2]["args"][0] == "-e"
     assert originals[-1]["status"] == 0
     assert json.loads(originals[-1]["stdout"])["complete"] is True
     assert all(not item["stderr"] for item in originals)
@@ -240,7 +248,7 @@ def test_final_git_revalidation_cannot_outlive_the_shared_native_deadline(
         "args=sys.argv[1:]\nr=subprocess.run(["
         + repr(node)
         + ",*args],capture_output=True,text=True,timeout=20)\n"
-        "if args[-1]!='--version':\n"
+        "if args[-1]!='--version' and args[0]!='-e':\n"
         " Path(" + repr(str(original_node)) + ").write_text(r.stdout)\n"
         " Path(" + repr(str(marker)) + ").touch()\n"
         "sys.stdout.write(r.stdout);sys.stderr.write(r.stderr);sys.exit(r.returncode)\n"

@@ -73,7 +73,7 @@ The separate Web Worker smoke command is `tools/run_wasm_browser_worker_smoke.py
 ## Manifest contract checks
 
 The manifest reader has standalone checks using the SDK's locked
-TypeScript compiler and Node 26.13.0:
+TypeScript compiler and Node 26.13.1:
 
 ```bash
 npm ci --prefix ../packages/vercel-ai --ignore-scripts

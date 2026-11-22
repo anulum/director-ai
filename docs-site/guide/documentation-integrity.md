@@ -101,7 +101,7 @@ PY
 
 ## Vercel Middleware Checks
 
-The root CI lint job qualifies `packages/vercel-ai` with Node.js 26.13.0:
+The root CI lint job qualifies `packages/vercel-ai` with Node.js 26.13.1:
 strict TypeScript and JavaScript test/tool checking, public middleware HTTP and
 streaming contracts, 100% selected SDK line/branch/function coverage, warning-fatal
 TypeDoc and the complete npm dependency audit. Run the same commands from the
@@ -139,7 +139,7 @@ The lower-level package-member comparison API alone is not generator provenance.
 
 ## Native TypeScript Documentation Snapshots
 
-With Node.js 26.13.0 installed, install the committed compiler dependencies from
+With Node.js 26.13.1 installed, install the committed compiler dependencies from
 `packages/vercel-ai` using `npm ci --ignore-scripts --no-audit --no-fund`. From the
 selected Git source repository, capture the native declaration and masking report:
 

@@ -132,7 +132,7 @@ The required CI lint job checks `bench/passthrough.js` with TypeScript 6.0.3,
 full `strict` JavaScript checking, `exactOptionalPropertyTypes` and
 `skipLibCheck: false`, using the actual `@types/k6` 2.3.1 declarations.
 Node tools and tests use their separate Node host profile. The native profile
-uses Node.js 26.13.0 and k6 2.3.0 on Linux x86-64; it does not certify other hosts.
+uses Node.js 26.13.1 and k6 2.3.0 on Linux x86-64; it does not certify other hosts.
 
 From the repository root, with the pinned k6 binary installed:
 

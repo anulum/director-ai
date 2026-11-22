@@ -241,6 +241,7 @@ def test_canary_gate_runs_only_applied_transitions(
     assert canary_refusals(Path("."), ARGS, {}, after, (transition,)) == ()
     other = {"typescript-docs": snapshot("9" * 64)}
     assert canary_refusals(Path("."), ARGS, before, other, (transition,)) == ()
+    monkeypatch.delitem(CANARY_RUNNERS, "typescript-docs")
     assert canary_refusals(Path("."), ARGS, before, after, (transition,)) == (
         "typescript-docs: Profile typescript-docs has no canary runner",
     )

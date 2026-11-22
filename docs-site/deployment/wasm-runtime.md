@@ -52,7 +52,7 @@ wasm-pack build --target web --release -- --locked
 ```
 
 Use wasm-pack `0.15.1`. The required Rust CI job executes wasm32 tests in
-Node `26.13.0`; the benchmark job builds and exercises the generated Node
+Node `26.13.1`; the benchmark job builds and exercises the generated Node
 package. The wheels workflow builds the separate web target and uploads
 `pkg/` as the `wasm-edge-runtime` artefact. `make wasm-build-node` writes
 `pkg-nodejs/` and preserves an existing web-target `pkg/`.

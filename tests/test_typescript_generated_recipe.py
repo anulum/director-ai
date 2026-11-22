@@ -258,7 +258,7 @@ def test_real_native_command_preserves_output_and_finite_failure(
         os.environ.copy(),
         tmp_path / "node.json",
     )
-    assert result.strip() == "v26.13.0"
+    assert result.strip() == "v26.13.1"
     with pytest.raises(ValueError, match="did not qualify"):
         run_native(
             ["node", "--unknown-native-option"],

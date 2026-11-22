@@ -233,6 +233,8 @@ def test_native_typescript_faults_refuse_after_original_real_execution(
         " if fault=='metadata-shape': data['extra']=True\n"
         " if fault=='metadata-flag': data['compilerOptions']['noLib']=1\n"
         " output='{' if fault=='metadata-json' else json.dumps(data)\n"
+        "elif args[0]=='-e':\n"
+        " pass\n"
         "else:\n"
         " data=json.loads(output); assert data['findings']\n"
         " if fault=='stderr': error='actual refusal fault\\n'\n"
@@ -258,3 +260,11 @@ def test_native_typescript_faults_refuse_after_original_real_execution(
     assert originals
     assert all(item["status"] in (0, 1) and not item["stderr"] for item in originals)
     assert all(item["stdout"] for item in originals)
+    analysed = [
+        item
+        for item in originals
+        if item["argv"][-1] != "--version" and item["argv"][0] != "-e"
+    ]
+    assert len(analysed) == (
+        0 if fault == "node-version" or fault.startswith("metadata-") else 1
+    )

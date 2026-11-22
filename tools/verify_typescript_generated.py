@@ -47,7 +47,7 @@ from tools.typescript_package_artifacts import inspect_npm_package
 
 SDK = "packages/vercel-ai"
 OUTPUT_ROOTS = ("dist", "build/api-docs")
-NATIVE_VERSIONS = {"node": "26.13.0", "typescript": "6.0.3", "typedoc": "0.28.20"}
+NATIVE_VERSIONS = {"node": "26.13.1", "typescript": "6.0.3", "typedoc": "0.28.20"}
 COMPILER_CONFIGURATION = {
     "compilerOptions": {
         "declaration": True,

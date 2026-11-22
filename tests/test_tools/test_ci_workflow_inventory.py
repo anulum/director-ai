@@ -172,7 +172,7 @@ def test_studio_manifest_gate_drift_is_refused(
 @pytest.mark.parametrize(
     "before,after",
     (
-        ('node-version: "26.13.0"', 'node-version: "0.0.0"'),
+        ('node-version: "26.13.1"', 'node-version: "0.0.0"'),
         ("working-directory: packages/vercel-ai", "working-directory: packages/absent"),
         (
             "npm ci --ignore-scripts --no-audit --no-fund",

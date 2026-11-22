@@ -640,7 +640,7 @@ def test_actual_native_versions_cannot_satisfy_a_corrupted_profile(
     receipt = json.loads((workspace / "native-versions.json").read_text())
     assert receipt["exit"] == 0
     actual = object_mapping(json.loads(receipt["stdout"]))
-    assert actual["node"] == "26.13.0"
+    assert actual["node"] == "26.13.1"
     assert actual["typescript"] == "6.0.3"
     assert actual["typedoc"] == "0.28.20"
 

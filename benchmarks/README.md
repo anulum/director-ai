@@ -13,7 +13,7 @@ Node/WASM per-token interface. Every backend must consume the same complete
 workload; a missing runtime, halted session or malformed report fails the run.
 
 From the repository root, install the project and its native extension, then
-build the separate Node package with wasm-pack 0.15.1 and Node 26.13.0:
+build the separate Node package with wasm-pack 0.15.1 and Node 26.13.1:
 
 ```bash
 maturin build --release --locked --manifest-path backfire-kernel/crates/backfire-ffi/Cargo.toml --out dist/backfire-kernel

@@ -14,6 +14,7 @@ import json
 import math
 import subprocess
 import time
+from collections.abc import Callable
 from pathlib import Path
 
 from tools.ci_workflow_inventory import object_mapping
@@ -25,8 +26,9 @@ from tools.quality_ratchet_contracts import (
     repository_path,
 )
 from tools.quality_ratchet_inventory import hash_sources, source_candidate, source_path
+from tools.quality_ratchet_node_engine import NODE_ARTEFACTS, node_engine
 
-NODE_VERSION = "26.13.0"
+NODE_VERSION = "26.13.1"
 TYPESCRIPT_VERSION = "6.0.3"
 TYPESCRIPT_ROOTS = (
     "gateway",
@@ -41,12 +43,17 @@ TYPESCRIPT_ROOTS = (
     "demo",
     "docs",
 )
+TYPESCRIPT_EXCLUDED = ("tests/fixtures/quality_ratchet_canaries/",)
+"""Seeded canary positives, run by the tool succession check, never sources."""
 TYPESCRIPT_SUFFIXES = frozenset(
     {".ts", ".tsx", ".mts", ".cts", ".js", ".jsx", ".mjs", ".cjs"}
 )
 TYPESCRIPT_HELPER = "packages/vercel-ai/tools/quality-ratchet.mjs"
+TYPESCRIPT_RULES = ("declaration-documentation", "source-directive")
+"""The rules this profile enforces; its canaries seed one positive for each."""
 TYPESCRIPT_ENGINE_INPUTS = (
     "tools/quality_ratchet_typescript.py",
+    "tools/quality_ratchet_node_engine.py",
     "tools/quality_ratchet_contracts.py",
     "tools/quality_ratchet_inventory.py",
     "tools/ci_workflow_inventory.py",
@@ -86,7 +93,8 @@ def typescript_sources(root: Path, *, deadline: float | None = None) -> tuple[st
     Returns
     -------
     tuple[str, ...]
-        Complete sorted inventory, including tests, tooling and declarations.
+        Complete sorted inventory, including tests, tooling and declarations,
+        except the seeded canary fixture under :data:`TYPESCRIPT_EXCLUDED`.
 
     Raises
     ------
@@ -124,6 +132,8 @@ def typescript_sources(root: Path, *, deadline: float | None = None) -> tuple[st
         ):
             continue
         relative = repository_path(raw.decode("utf-8"))
+        if relative.startswith(TYPESCRIPT_EXCLUDED):
+            continue
         if Path(relative).parts[0] not in TYPESCRIPT_ROOTS:
             raise ValueError(
                 "TypeScript source lies outside the declared quality scope"
@@ -139,13 +149,17 @@ def typescript_sources(root: Path, *, deadline: float | None = None) -> tuple[st
     return tuple(sorted(paths))
 
 
-def capture_typescript_documentation(
+def analyse_typescript(
     root: Path,
     node: str,
+    select: Callable[[Path, float], tuple[str, ...]],
     *,
-    timeout: float = 120.0,
-) -> Snapshot:
-    """Measure source documentation with the actual pinned TypeScript compiler.
+    timeout: float,
+) -> tuple[Snapshot, str, str]:
+    """Analyse selected sources through the whole qualified native path.
+
+    Both the profile capture and its canary run use this one function, so a
+    change to how the helper's report becomes findings reaches both.
 
     Parameters
     ----------
@@ -153,14 +167,18 @@ def capture_typescript_documentation(
         Actual selected Git source repository.
     node : str
         Pinned native Node executable; no installation is performed.
+    select : Callable[[Path, float], tuple[str, ...]]
+        Returns the sorted repository-relative sources to analyse, given the
+        resolved root and the whole deadline; it is called again afterwards,
+        and a different answer refuses.
     timeout : float
         Positive finite whole-analysis deadline in seconds.
 
     Returns
     -------
-    Snapshot
-        Complete source-linked native declaration and masking findings.
-        This parser profile does not claim semantic typing or import qualification.
+    tuple[Snapshot, str, str]
+        The snapshot, the running Node's platform and its executed binary's
+        verified digest.
 
     Raises
     ------
@@ -206,7 +224,8 @@ def capture_typescript_documentation(
         raise ValueError(
             "Native Node or TypeScript profile differs from the qualified recipe"
         )
-    paths = typescript_sources(root, deadline=deadline)
+    platform, engine = node_engine(node, root, timeout=_remaining_seconds(deadline))
+    paths = select(root, deadline)
     sources = hash_sources(root, paths)
     native = run([str(helper), str(root), *paths])
     if native.returncode not in (0, 1) or native.stderr:
@@ -225,15 +244,16 @@ def capture_typescript_documentation(
     findings = []
     for raw in report["findings"]:
         item = object_mapping(raw)
-        if set(item) != {"path", "rule", "line", "column", "message"} or item.get(
-            "rule"
-        ) not in {"declaration-documentation", "source-directive"}:
+        if (
+            set(item) != {"path", "rule", "line", "column", "message"}
+            or item.get("rule") not in TYPESCRIPT_RULES
+        ):
             raise ValueError("Invalid original native TypeScript documentation finding")
         findings.append({**item, "cell": None})
     if bool(findings) != bool(native.returncode):
         raise ValueError("Native TypeScript status disagrees with its findings")
     if (
-        typescript_sources(root, deadline=deadline) != paths
+        select(root, deadline) != paths
         or hash_sources(root, paths) != sources
         or hash_sources(engine_root, TYPESCRIPT_ENGINE_INPUTS) != engine_sources
     ):
@@ -244,8 +264,10 @@ def capture_typescript_documentation(
                 "profile": "typescript-docs",
                 "schema": SCHEMA,
                 "native": expected,
+                "artefacts": {"engine": NODE_ARTEFACTS},
                 "engine": engine_sources,
                 "roots": TYPESCRIPT_ROOTS,
+                "excluded": TYPESCRIPT_EXCLUDED,
                 "suffixes": sorted(TYPESCRIPT_SUFFIXES),
             },
             sort_keys=True,
@@ -263,4 +285,41 @@ def capture_typescript_documentation(
         }
     )
     _remaining_seconds(deadline)
+    return snapshot, platform, engine
+
+
+def capture_typescript_documentation(
+    root: Path,
+    node: str,
+    *,
+    timeout: float = 120.0,
+) -> Snapshot:
+    """Measure source documentation with the actual pinned TypeScript compiler.
+
+    Parameters
+    ----------
+    root : Path
+        Actual selected Git source repository.
+    node : str
+        Pinned native Node executable; no installation is performed.
+    timeout : float
+        Positive finite whole-analysis deadline in seconds.
+
+    Returns
+    -------
+    Snapshot
+        Complete source-linked native declaration and masking findings.
+        This parser profile does not claim semantic typing or import qualification.
+
+    Raises
+    ------
+    ValueError, OSError, subprocess.SubprocessError
+        If source, configuration, native tools or complete analysis cannot qualify.
+    """
+    snapshot, _, _ = analyse_typescript(
+        root,
+        node,
+        lambda selected, deadline: typescript_sources(selected, deadline=deadline),
+        timeout=timeout,
+    )
     return snapshot
