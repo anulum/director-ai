@@ -25,6 +25,10 @@ make install-hooks
 pytest tests/ -v
 ```
 
+The notebook profile tests run the native check with the pinned quality
+interpreter. Set `DIRECTOR_QUALITY_PYTHON` to it before the full suite, as
+described under [Required native quality check](#required-native-quality-check).
+
 ## Python-Only Contributor Path
 
 For documentation, Python core, server, CLI, and test changes that do not touch
@@ -140,16 +144,32 @@ Run `make docs-protobuf` to build the HTML reference for both schemas.
 
 Run `make quality-ratchet` with the pinned Python, Go, TypeScript, Protobuf,
 Lean, Rust and Julia tools installed. Use `QUALITY_RATCHET_ARGS` to pass the
-toolchain paths or an explicit trusted `--base-ref`. Point `--python` to
-the qualified Python 3.11 environment for the typing profile and install its
-locked development, typing, lint and Protobuf requirements. The check compares
-all configured profiles to the committed policy and baseline at the trusted ref.
-The default trusted ref is `HEAD`. The check fails when that ref lacks either
-file. For initial adoption, establish the reviewed policy and baseline together
-at the trusted ref before enabling the required workflow. Full preflight runs
-the same native check. CI uses the pull request's exact base SHA or the pushed
-main SHA. Both aggregate checks require the result, and the main-branch
-notification includes it.
+toolchain paths or an explicit trusted `--base-ref`. Run the check with the
+pinned quality interpreter. The default `--python` is the interpreter that runs
+the check, so running it with the pinned interpreter selects it. Install it the
+way CI does, outside the checkout:
+
+```bash
+export RUNNER_TEMP="$(mktemp -d)" GITHUB_ENV="$(mktemp)"
+bash tools/install_quality_python.sh
+set -a; . "$GITHUB_ENV"; set +a
+make quality-ratchet PYTHON="$QUALITY_PYTHON"
+```
+
+The script downloads the pinned python-build-standalone 3.11.17 archive and
+checks its size and SHA-256 before extracting it. It then creates a virtual
+environment with the locked development, typing, lint and Protobuf
+requirements, without a cache. `GITHUB_ENV` receives `QUALITY_PYTHON` and
+`DIRECTOR_QUALITY_PYTHON`, both naming that environment's interpreter. The
+check compares all configured profiles to the committed policy and baseline at
+the trusted ref. The default trusted ref is `HEAD`. The check fails when that
+ref lacks either file. For initial adoption, establish the reviewed policy and
+baseline together at the trusted ref before enabling the required workflow.
+Full preflight runs the same native check. CI first walks every new commit
+against its own first parent: the pushed range, or a pull request from its
+merge base. It then checks the tip against the pull request's exact base SHA,
+or on a push against the pushed commit's first parent. Both aggregate checks
+require the result, and the main-branch notification includes it.
 The native typing profiles use isolated Python interpreters and the repository's
 configured import roots. Profile identity includes the compiler's resolved
 Python package search paths.
@@ -165,6 +185,13 @@ compiler verifies notebook syntax, including top-level `await`. The check
 statically accounts for the repository's literal `!pip` and `!director-ai`
 commands. Other shell escapes, interactive magics and typing suppressions fail
 the check. Notebook code cells and shell commands are never executed.
+The projection reads cells with the checking interpreter's own tokenizer, and
+Python 3.12 tokenises a leading `!` differently from 3.11. The profile identity
+therefore binds the interpreter binary and its `tokenize` and `token` sources
+for each platform, and only `linux-x64` is listed. The check refuses any other
+build by name, both for the checking interpreter and for the one that runs
+MyPy. The tests that run the notebook check launch the interpreter that
+`DIRECTOR_QUALITY_PYTHON` names, and fail by name when it is unset.
 
 With the Julia declaration analyzer project instantiated, run
 `make quality-julia-native` to capture diagnostic evidence for the complete Julia
