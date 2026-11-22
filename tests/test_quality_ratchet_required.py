@@ -215,6 +215,32 @@ def test_declared_transition_passes_the_gate_with_its_canary(
     assert recorded.profiles["typescript-docs"].identity == NEW_IDENTITY
 
 
+def test_an_earlier_commits_transition_runs_its_canary_at_the_tip(
+    repository: Path, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """Run the canary of a range's transition when the tip's parent already has it."""
+    start = adopt(repository, monkeypatch, tmp_path)
+    (repository / TRANSITIONS_PATH).write_bytes(file_bytes(entry()))
+    keys = parse_transition(entry()).canary.new_findings
+    good = CanaryRun(RULES, "4" * 64, "linux-x64", ENGINE, keys)
+    monkeypatch.setitem(CANARY_RUNNERS, "typescript-docs", lambda root, args: good)
+    use_captures(monkeypatch, lambda: snapshots(NEW_IDENTITY))
+    output = tmp_path / "adopted.json"
+    assert run(repository, "record", output) == 0
+    (repository / "tools" / "quality_ratchet_baseline.json").write_bytes(
+        output.read_bytes()
+    )
+    commit(repository)
+    (repository / "later.txt").write_text("later\n", encoding="utf-8")
+    commit(repository)
+    tip_check = ["check", "--all", "--root", str(repository), "--base-ref", "HEAD~1"]
+    monkeypatch.delitem(CANARY_RUNNERS, "typescript-docs")
+    assert cli.main(tip_check) == 0
+    assert cli.main([*tip_check, "--canaries-since", start]) == 1
+    monkeypatch.setitem(CANARY_RUNNERS, "typescript-docs", lambda root, args: good)
+    assert cli.main([*tip_check, "--canaries-since", start]) == 0
+
+
 def test_changes_during_analysis_are_refused(
     repository: Path, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:

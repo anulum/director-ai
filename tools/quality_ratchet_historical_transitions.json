@@ -1,0 +1,12 @@
+{
+  "entries": [
+    {
+      "commit": "1930a8d48208f654548ed9dce9dd06b1c981147c",
+      "decision_sha256": "3fd2b1a95d931ac85d2985a8cc652275d53114da728eb4d22777e48888d37004",
+      "new_identity": "a2a06f40049cd090593d4baac8ebeab9a1f9f1f4803af86383699278228c38f0",
+      "old_identity": "582fcbacce516ed9b4705d5fbc9b239f6f916fa8ed9ed34501cf656c609a4503",
+      "profile": "julia-docs"
+    }
+  ],
+  "schema": "quality-ratchet.historical-transitions.v1"
+}

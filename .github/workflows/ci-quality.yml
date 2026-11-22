@@ -116,11 +116,42 @@ jobs:
           julia --startup-file=no --history-file=no --project=tools/quality_ratchet_julia \
             tools/quality_ratchet_julia/test/generated.jl
 
-      - name: Check all native profiles against the trusted Git object
+      - name: Walk every pushed commit against its first parent
         env:
-          TRUSTED_BASE: ${{ github.event.pull_request.base.sha || github.sha }}
+          PR_BASE: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD: ${{ github.event.pull_request.head.sha }}
+          BEFORE: ${{ github.event.before }}
+        run: |
+          report="$RUNNER_TEMP/director-quality-walk/walk.json"
+          mkdir -p "$(dirname "$report")"
+          if [ -n "$PR_BASE" ]; then
+            range=(--pr-base "$PR_BASE" --to "$PR_HEAD")
+          else
+            range=(--before "$BEFORE" --to "$GITHUB_SHA")
+          fi
+          status=0
+          "$QUALITY_PYTHON" -m tools.quality_ratchet_walk "${range[@]}" \
+            --default-ref origin/main > "$report" || status=$?
+          cat "$report"
+          exit "$status"
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: native-quality-walk
+          path: ${{ runner.temp }}/director-quality-walk/walk.json
+          if-no-files-found: warn
+
+      - name: Check all native profiles against the tip's first parent
+        env:
+          TRUSTED_BASE: ${{ github.event.pull_request.base.sha }}
           GOTOOLCHAIN: local
         run: |
-          git cat-file -e "$TRUSTED_BASE^{commit}"
+          base="$TRUSTED_BASE"
+          if [ -z "$base" ]; then base=$(git rev-parse "$GITHUB_SHA^1"); fi
+          since=$("$QUALITY_PYTHON" -c 'import json, sys; print(json.load(open(sys.argv[1]))["start"])' \
+            "$RUNNER_TEMP/director-quality-walk/walk.json")
+          git cat-file -e "$base^{commit}"
+          git cat-file -e "$since^{commit}"
           "$QUALITY_PYTHON" -m tools.check_quality_ratchet --all check \
-            --base-ref "$TRUSTED_BASE" --protoc /usr/bin/protoc --timeout 600
+            --base-ref "$base" --canaries-since "$since" --protoc /usr/bin/protoc --timeout 600

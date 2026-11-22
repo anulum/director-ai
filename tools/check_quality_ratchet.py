@@ -46,6 +46,7 @@ from tools.quality_ratchet_profiles import (
 )
 from tools.quality_ratchet_succession import Transition
 from tools.quality_ratchet_succession_load import canary_refusals, load_transitions
+from tools.quality_ratchet_walk_tip import entries_since, range_canary_refusals
 
 
 def write_original_json(path: Path, payload: dict[str, object]) -> None:
@@ -134,6 +135,21 @@ def _run_required(root: Path, args: argparse.Namespace) -> int:
         refusals = compare_required_baselines(
             previous, proposed, actual, origin, transitions
         ) + canary_refusals(root, args, previous.profiles, actual.profiles, transitions)
+        if args.canaries_since is not None:
+            since = resolve_commit(root, args.canaries_since)
+            refusals = tuple(
+                sorted(
+                    set(refusals)
+                    | set(
+                        range_canary_refusals(
+                            root,
+                            args,
+                            entries_since(root, since, transitions),
+                            actual.profiles,
+                        )
+                    )
+                )
+            )
         if not refusals and args.command == "record":
             write_original_json(args.output, baseline_payload(actual))
     print(
@@ -186,6 +202,10 @@ def main(argv: list[str] | None = None) -> int:
         "--all", action="store_true", help="Run every required native profile"
     )
     parser.add_argument("--output", type=Path)
+    parser.add_argument(
+        "--canaries-since",
+        help="Also run the canaries of every entry added after this commit",
+    )
     args = parser.parse_args(argv)
     if args.command != "check" and args.output is None:
         parser.error("capture and record require an explicit --output")
