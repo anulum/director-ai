@@ -9,7 +9,7 @@
     "python_model_classes": 1206,
     "python_model_source_modules": 618,
     "rust_pyo3_model_wrappers": 83,
-    "test_files": 880
+    "test_files": 885
   },
   "documentation": {
     "public_pages": [
@@ -6208,6 +6208,7 @@
     "test_files": [
       "tests/conftest.py",
       "tests/model_lifecycle_support.py",
+      "tests/quality_ratchet_python_support.py",
       "tests/quality_ratchet_succession_support.py",
       "tests/test_accelerator_fallback_parity.py",
       "tests/test_accuracy_improvements.py",
@@ -6823,10 +6824,14 @@
       "tests/test_quality_ratchet_inventory.py",
       "tests/test_quality_ratchet_lean_cli.py",
       "tests/test_quality_ratchet_native.py",
+      "tests/test_quality_ratchet_notebook.py",
+      "tests/test_quality_ratchet_notebook_canary.py",
       "tests/test_quality_ratchet_notebook_cli.py",
+      "tests/test_quality_ratchet_notebook_source.py",
       "tests/test_quality_ratchet_protobuf.py",
       "tests/test_quality_ratchet_protobuf_cli.py",
       "tests/test_quality_ratchet_protobuf_descriptors.py",
+      "tests/test_quality_ratchet_python_engine.py",
       "tests/test_quality_ratchet_required.py",
       "tests/test_quality_ratchet_rust_cli.py",
       "tests/test_quality_ratchet_succession.py",

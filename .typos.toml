@@ -69,6 +69,9 @@ groth16 = "groth16"
 plonk = "plonk"
 # Julia package name in tools/julia_tuner/Manifest.toml — not a plural typo
 Missings = "Missings"
+# Python package name in the locked quality environment, which the notebook
+# profile's identity preimages in tools/quality_ratchet_transitions.json list
+certifi = "certifi"
 # ``anc`` / ``anc_a`` / ``anc_b`` are shorthand for "ancestor" in
 # the ontology consistency checker; not a typo for "and".
 anc = "anc"

@@ -16,7 +16,8 @@ the engine binary the new identity names.
 
 A profile receives its runner and fixture at its first transition. Until
 then, :func:`run_profile_canaries` refuses it by name, so no transition of
-that profile can apply.
+that profile can apply. ``notebook-types`` has both, from its first
+succession, the projection fix for Python 3.12 and later.
 """
 
 from __future__ import annotations
@@ -27,6 +28,8 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 
+from tools.quality_ratchet_baseline import resolve_commit
+from tools.quality_ratchet_notebook_canary import notebook_canary_findings
 from tools.quality_ratchet_succession import FindingKey
 
 CANARY_ROOT = "tests/fixtures/quality_ratchet_canaries"
@@ -58,8 +61,36 @@ class CanaryRun:
 
 
 CanaryRunner = Callable[[Path, argparse.Namespace], CanaryRun]
-CANARY_RUNNERS: dict[str, CanaryRunner] = {}
-"""Canary runners by profile; a profile joins at its first transition."""
+
+
+def fixture_paths(root: Path, profile: str) -> tuple[str, ...]:
+    """Return a profile's canary fixture files, repository-relative and sorted.
+
+    Parameters
+    ----------
+    root : Path
+        Repository root.
+    profile : str
+        The native profile.
+
+    Returns
+    -------
+    tuple[str, ...]
+        POSIX paths relative to ``root``.
+
+    Raises
+    ------
+    ValueError
+        If the fixture is missing, empty, or holds anything but regular files.
+    """
+    directory = root / CANARY_ROOT / profile
+    if directory.is_symlink() or not directory.is_dir():
+        raise ValueError(f"Profile {profile} has no canary fixture")
+    entries = sorted(directory.rglob("*"))
+    files = [entry for entry in entries if entry.is_file() and not entry.is_symlink()]
+    if not files or len(files) != len([e for e in entries if not e.is_dir()]):
+        raise ValueError(f"Profile {profile} canary fixture is not regular files")
+    return tuple(path.relative_to(root).as_posix() for path in files)
 
 
 def fixture_digest(root: Path, profile: str) -> str:
@@ -82,19 +113,30 @@ def fixture_digest(root: Path, profile: str) -> str:
     ValueError
         If the fixture is missing, empty, or holds anything but regular files.
     """
-    directory = root / CANARY_ROOT / profile
-    if directory.is_symlink() or not directory.is_dir():
-        raise ValueError(f"Profile {profile} has no canary fixture")
-    entries = sorted(directory.rglob("*"))
-    files = [entry for entry in entries if entry.is_file() and not entry.is_symlink()]
-    if not files or len(files) != len([e for e in entries if not e.is_dir()]):
-        raise ValueError(f"Profile {profile} canary fixture is not regular files")
+    prefix = f"{CANARY_ROOT}/{profile}/"
     digest = hashlib.sha256()
-    for path in files:
-        name = path.relative_to(directory).as_posix()
-        content = hashlib.sha256(path.read_bytes()).hexdigest()
-        digest.update(f"{name}\0{content}\n".encode())
+    for relative in fixture_paths(root, profile):
+        content = hashlib.sha256((root / relative).read_bytes()).hexdigest()
+        digest.update(f"{relative.removeprefix(prefix)}\0{content}\n".encode())
     return digest.hexdigest()
+
+
+def _notebook_runner(root: Path, args: argparse.Namespace) -> CanaryRun:
+    """Run the notebook-types canaries with the profile's interpreter."""
+    rules, platform, engine, findings = notebook_canary_findings(
+        root,
+        args.python,
+        resolve_commit(root, args.base_ref),
+        fixture_paths(root, "notebook-types"),
+        timeout=args.timeout,
+    )
+    return CanaryRun(
+        rules, fixture_digest(root, "notebook-types"), platform, engine, findings
+    )
+
+
+CANARY_RUNNERS: dict[str, CanaryRunner] = {"notebook-types": _notebook_runner}
+"""Canary runners by profile; a profile joins at its first transition."""
 
 
 def run_profile_canaries(

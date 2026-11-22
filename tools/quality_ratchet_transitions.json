@@ -1,0 +1,1455 @@
+{
+  "schema": "quality-ratchet.transitions.v1",
+  "transitions": [
+    {
+      "authority_approval_digest": "f58d0b7046243ca1770f727675723bf4ba39b8ddfd5e5c726729722c0f58714a",
+      "canary": {
+        "enabled_rules": [
+          "assignment",
+          "attr-defined",
+          "call-arg",
+          "call-overload",
+          "import-not-found",
+          "import-untyped",
+          "no-any-return",
+          "no-untyped-call",
+          "no-untyped-def",
+          "notebook-refused-python-syntax",
+          "notebook-refused-shell-escape",
+          "notebook-shell-escape",
+          "notebook-top-level-await",
+          "operator",
+          "type-arg",
+          "union-attr",
+          "var-annotated"
+        ],
+        "fixture_digest": "d1fc9f13f8b9bf6c2b57dfd492c29194d17a7fc90a3855427879b763dad7c479",
+        "new_engine_digest": "ff9b2ac4362b81c68622ffb1730f7138eb269177d9846399c521a44c5daffb0e",
+        "new_findings": [
+          {
+            "cell": 2,
+            "column": 31,
+            "line": 2,
+            "path": "tests/fixtures/quality_ratchet_canaries/notebook-types/canary.ipynb.json",
+            "rule": "assignment"
+          },
+          {
+            "cell": 16,
+            "column": 22,
+            "line": 3,
+            "path": "tests/fixtures/quality_ratchet_canaries/notebook-types/canary.ipynb.json",
+            "rule": "assignment"
+          },
+          {
+            "cell": 5,
+            "column": 21,
+            "line": 1,
+            "path": "tests/fixtures/quality_ratchet_canaries/notebook-types/canary.ipynb.json",
+            "rule": "attr-defined"
+          },
+          {
+            "cell": 10,
+            "column": 12,
+            "line": 5,
+            "path": "tests/fixtures/quality_ratchet_canaries/notebook-types/canary.ipynb.json",
+            "rule": "call-arg"
+          },
+          {
+            "cell": 13,
+            "column": 11,
+            "line": 2,
+            "path": "tests/fixtures/quality_ratchet_canaries/notebook-types/canary.ipynb.json",
+            "rule": "call-overload"
+          },
+          {
+            "cell": 8,
+            "column": 1,
+            "line": 1,
+            "path": "tests/fixtures/quality_ratchet_canaries/notebook-types/canary.ipynb.json",
+            "rule": "import-not-found"
+          },
+          {
+            "cell": 9,
+            "column": 1,
+            "line": 1,
+            "path": "tests/fixtures/quality_ratchet_canaries/notebook-types/canary.ipynb.json",
+            "rule": "import-untyped"
+          },
+          {
+            "cell": 11,
+            "column": 5,
+            "line": 2,
+            "path": "tests/fixtures/quality_ratchet_canaries/notebook-types/canary.ipynb.json",
+            "rule": "no-any-return"
+          },
+          {
+            "cell": 4,
+            "column": 5,
+            "line": 2,
+            "path": "tests/fixtures/quality_ratchet_canaries/notebook-types/canary.ipynb.json",
+            "rule": "no-untyped-call"
+          },
+          {
+            "cell": 3,
+            "column": 1,
+            "line": 1,
+            "path": "tests/fixtures/quality_ratchet_canaries/notebook-types/canary.ipynb.json",
+            "rule": "no-untyped-def"
+          },
+          {
+            "cell": 2,
+            "column": null,
+            "line": 1,
+            "path": "tests/fixtures/quality_ratchet_canaries/notebook-types/canary.ipynb.json",
+            "rule": "notebook-shell-escape"
+          },
+          {
+            "cell": 15,
+            "column": null,
+            "line": 2,
+            "path": "tests/fixtures/quality_ratchet_canaries/notebook-types/canary.ipynb.json",
+            "rule": "notebook-top-level-await"
+          },
+          {
+            "cell": 7,
+            "column": 17,
+            "line": 1,
+            "path": "tests/fixtures/quality_ratchet_canaries/notebook-types/canary.ipynb.json",
+            "rule": "operator"
+          },
+          {
+            "cell": 6,
+            "column": 27,
+            "line": 1,
+            "path": "tests/fixtures/quality_ratchet_canaries/notebook-types/canary.ipynb.json",
+            "rule": "type-arg"
+          },
+          {
+            "cell": 12,
+            "column": 12,
+            "line": 2,
+            "path": "tests/fixtures/quality_ratchet_canaries/notebook-types/canary.ipynb.json",
+            "rule": "union-attr"
+          },
+          {
+            "cell": 14,
+            "column": 1,
+            "line": 1,
+            "path": "tests/fixtures/quality_ratchet_canaries/notebook-types/canary.ipynb.json",
+            "rule": "var-annotated"
+          },
+          {
+            "cell": 1,
+            "column": null,
+            "line": 2,
+            "path": "tests/fixtures/quality_ratchet_canaries/notebook-types/refused-assigned-escape.ipynb.json",
+            "rule": "notebook-refused-python-syntax"
+          },
+          {
+            "cell": 1,
+            "column": null,
+            "line": 2,
+            "path": "tests/fixtures/quality_ratchet_canaries/notebook-types/refused-double-escape.ipynb.json",
+            "rule": "notebook-refused-shell-escape"
+          },
+          {
+            "cell": 1,
+            "column": null,
+            "line": 2,
+            "path": "tests/fixtures/quality_ratchet_canaries/notebook-types/refused-escape.ipynb.json",
+            "rule": "notebook-refused-shell-escape"
+          }
+        ],
+        "old_engine_digest": "ff9b2ac4362b81c68622ffb1730f7138eb269177d9846399c521a44c5daffb0e",
+        "old_findings": [
+          {
+            "cell": 2,
+            "column": 31,
+            "line": 2,
+            "path": "tests/fixtures/quality_ratchet_canaries/notebook-types/canary.ipynb.json",
+            "rule": "assignment"
+          },
+          {
+            "cell": 16,
+            "column": 22,
+            "line": 3,
+            "path": "tests/fixtures/quality_ratchet_canaries/notebook-types/canary.ipynb.json",
+            "rule": "assignment"
+          },
+          {
+            "cell": 5,
+            "column": 21,
+            "line": 1,
+            "path": "tests/fixtures/quality_ratchet_canaries/notebook-types/canary.ipynb.json",
+            "rule": "attr-defined"
+          },
+          {
+            "cell": 10,
+            "column": 12,
+            "line": 5,
+            "path": "tests/fixtures/quality_ratchet_canaries/notebook-types/canary.ipynb.json",
+            "rule": "call-arg"
+          },
+          {
+            "cell": 13,
+            "column": 11,
+            "line": 2,
+            "path": "tests/fixtures/quality_ratchet_canaries/notebook-types/canary.ipynb.json",
+            "rule": "call-overload"
+          },
+          {
+            "cell": 8,
+            "column": 1,
+            "line": 1,
+            "path": "tests/fixtures/quality_ratchet_canaries/notebook-types/canary.ipynb.json",
+            "rule": "import-not-found"
+          },
+          {
+            "cell": 9,
+            "column": 1,
+            "line": 1,
+            "path": "tests/fixtures/quality_ratchet_canaries/notebook-types/canary.ipynb.json",
+            "rule": "import-untyped"
+          },
+          {
+            "cell": 11,
+            "column": 5,
+            "line": 2,
+            "path": "tests/fixtures/quality_ratchet_canaries/notebook-types/canary.ipynb.json",
+            "rule": "no-any-return"
+          },
+          {
+            "cell": 4,
+            "column": 5,
+            "line": 2,
+            "path": "tests/fixtures/quality_ratchet_canaries/notebook-types/canary.ipynb.json",
+            "rule": "no-untyped-call"
+          },
+          {
+            "cell": 3,
+            "column": 1,
+            "line": 1,
+            "path": "tests/fixtures/quality_ratchet_canaries/notebook-types/canary.ipynb.json",
+            "rule": "no-untyped-def"
+          },
+          {
+            "cell": 2,
+            "column": null,
+            "line": 1,
+            "path": "tests/fixtures/quality_ratchet_canaries/notebook-types/canary.ipynb.json",
+            "rule": "notebook-shell-escape"
+          },
+          {
+            "cell": 15,
+            "column": null,
+            "line": 2,
+            "path": "tests/fixtures/quality_ratchet_canaries/notebook-types/canary.ipynb.json",
+            "rule": "notebook-top-level-await"
+          },
+          {
+            "cell": 7,
+            "column": 17,
+            "line": 1,
+            "path": "tests/fixtures/quality_ratchet_canaries/notebook-types/canary.ipynb.json",
+            "rule": "operator"
+          },
+          {
+            "cell": 6,
+            "column": 27,
+            "line": 1,
+            "path": "tests/fixtures/quality_ratchet_canaries/notebook-types/canary.ipynb.json",
+            "rule": "type-arg"
+          },
+          {
+            "cell": 12,
+            "column": 12,
+            "line": 2,
+            "path": "tests/fixtures/quality_ratchet_canaries/notebook-types/canary.ipynb.json",
+            "rule": "union-attr"
+          },
+          {
+            "cell": 14,
+            "column": 1,
+            "line": 1,
+            "path": "tests/fixtures/quality_ratchet_canaries/notebook-types/canary.ipynb.json",
+            "rule": "var-annotated"
+          },
+          {
+            "cell": 1,
+            "column": null,
+            "line": 2,
+            "path": "tests/fixtures/quality_ratchet_canaries/notebook-types/refused-assigned-escape.ipynb.json",
+            "rule": "notebook-refused-python-syntax"
+          },
+          {
+            "cell": 1,
+            "column": null,
+            "line": 2,
+            "path": "tests/fixtures/quality_ratchet_canaries/notebook-types/refused-double-escape.ipynb.json",
+            "rule": "notebook-refused-shell-escape"
+          },
+          {
+            "cell": 1,
+            "column": null,
+            "line": 2,
+            "path": "tests/fixtures/quality_ratchet_canaries/notebook-types/refused-escape.ipynb.json",
+            "rule": "notebook-refused-shell-escape"
+          }
+        ],
+        "platform": "linux-x64"
+      },
+      "changed_fields": [
+        {
+          "new": "224ca8be2d28841e7a382a27c51e74f4ed0aabe249a79294684e782363165948",
+          "path": "/artefacts/engine/linux-x64/archive"
+        },
+        {
+          "new": "ff9b2ac4362b81c68622ffb1730f7138eb269177d9846399c521a44c5daffb0e",
+          "path": "/artefacts/engine/linux-x64/binary"
+        },
+        {
+          "new": "2cabb6a81cafa84b475fc852c20b6bad45955ec0f88063720a831495215f776b",
+          "path": "/artefacts/engine/linux-x64/token"
+        },
+        {
+          "new": "79aa94ebe1761811ea9b2da2ada409a8cb9abd7c6eac241d0c181a36684bb609",
+          "path": "/artefacts/engine/linux-x64/tokenize"
+        },
+        {
+          "new": [
+            "8afc67e1bacc441c6d35b26762d34fe79f6c221ace94f3fd11743879601785c6",
+            "dabf56774f97cafbb2388fc3da94715f591f18d48b65b7fccb984f744aba2b94",
+            "158a499353f99020f943eed44d481b2aef883b0e2214f6447ab85db073266e6f",
+            "d5e586d686fc5d77f8737d50d55bc17c1dffd5bddd001213a0e8837113f57475",
+            "81472e6c348a9f60f3e86d8e9b97b0b4745773bd8a132dda73506144caa7fce5"
+          ],
+          "old": [
+            "86e564854ca269372cc203195ae4718af19a7342dd895caa467a7021e5e99e84",
+            "8ec87fb9fd12f2a087b593077ae110f07d7dc13a5a2593176d4870ba713dd4e3",
+            "d5e586d686fc5d77f8737d50d55bc17c1dffd5bddd001213a0e8837113f57475",
+            "81472e6c348a9f60f3e86d8e9b97b0b4745773bd8a132dda73506144caa7fce5"
+          ],
+          "path": "/engine"
+        }
+      ],
+      "drops": [],
+      "evidence_digest": "387d3f659a439bfd778dc917ea303226dd18372d7e2c2253043dbcea5e72bf9c",
+      "message_only": [],
+      "new_identity": "fc57564007b69276afdfd2f6ea49cc0160a017f39156ca4eda974dd412974a27",
+      "new_preimage": {
+        "artefacts": {
+          "engine": {
+            "linux-x64": {
+              "archive": "224ca8be2d28841e7a382a27c51e74f4ed0aabe249a79294684e782363165948",
+              "binary": "ff9b2ac4362b81c68622ffb1730f7138eb269177d9846399c521a44c5daffb0e",
+              "token": "2cabb6a81cafa84b475fc852c20b6bad45955ec0f88063720a831495215f776b",
+              "tokenize": "79aa94ebe1761811ea9b2da2ada409a8cb9abd7c6eac241d0c181a36684bb609"
+            }
+          }
+        },
+        "compiler_command": [
+          "-I",
+          "-B",
+          "-m",
+          "mypy"
+        ],
+        "configuration": "[mypy]\nexplicit_package_bases = true\nmypy_path = src\npython_version = 3.11\nstrict = true\nwarn_unused_configs = true\nignore_missing_imports = false\nignore_errors = false\nfollow_imports = normal\ndisable_error_code = \ndisallow_any_generics = true\ndisallow_subclassing_any = true\ndisallow_untyped_calls = true\ndisallow_untyped_defs = true\ndisallow_incomplete_defs = true\ncheck_untyped_defs = true\ndisallow_untyped_decorators = true\nwarn_redundant_casts = true\nwarn_unused_ignores = true\nwarn_return_any = true\nimplicit_reexport = false\nstrict_equality = true\nstrict_bytes = true\nextra_checks = true\n\n[mypy-director_ai.voice.*]\ndisallow_untyped_defs = true\ndisallow_incomplete_defs = true\nignore_errors = false\ndisable_error_code = \n\n[mypy-director_ai.agentic.*]\ndisallow_untyped_defs = true\ndisallow_incomplete_defs = true\ndisallow_untyped_calls = true\ndisallow_untyped_decorators = true\ndisallow_any_generics = true\nwarn_return_any = true\nno_implicit_reexport = true\nstrict_equality = true\nwarn_unused_ignores = true\nignore_errors = false\ndisable_error_code = \n\n[mypy-director_ai.core.retrieval.knowledge]\ndisallow_untyped_defs = true\ndisallow_incomplete_defs = true\ndisallow_untyped_calls = true\ndisallow_untyped_decorators = true\ndisallow_any_generics = true\nwarn_return_any = true\nno_implicit_reexport = true\nstrict_equality = true\nwarn_unused_ignores = true\nignore_errors = false\ndisable_error_code = \n\n[mypy-director_ai.core.config]\ndisallow_untyped_defs = true\ndisallow_incomplete_defs = true\ndisallow_untyped_calls = true\ndisallow_untyped_decorators = true\ndisallow_any_generics = true\nwarn_return_any = true\nno_implicit_reexport = true\nstrict_equality = true\nwarn_unused_ignores = true\nignore_errors = false\ndisable_error_code = \n\n[mypy-director_ai.core.containment.*]\ndisallow_untyped_defs = true\ndisallow_incomplete_defs = true\ndisallow_untyped_calls = true\ndisallow_untyped_decorators = true\ndisallow_any_generics = true\nwarn_return_any = true\nno_implicit_reexport = true\nstrict_equality = true\nwarn_unused_ignores = true\nignore_errors = false\ndisable_error_code = \n\n[mypy-director_ai.core.guard_control.*]\ndisallow_untyped_defs = true\ndisallow_incomplete_defs = true\ndisallow_untyped_calls = true\ndisallow_untyped_decorators = true\ndisallow_any_generics = true\nwarn_return_any = true\nno_implicit_reexport = true\nstrict_equality = true\nwarn_unused_ignores = true\nignore_errors = false\ndisable_error_code = \n\n[mypy-director_ai,director_ai._cli_bench,director_ai._cli_serve,director_ai._cli_verify,director_ai._server_helpers,director_ai._server_models,director_ai.cli,director_ai.compliance,director_ai.compliance.*,director_ai.core,director_ai.core.*,director_ai.core.actor,director_ai.core.agent,director_ai.core._device,director_ai.core._heuristics,director_ai.core.agent_identity,director_ai.core.agent_identity.*,director_ai.core.agent_preflight,director_ai.core.agent_preflight.*,director_ai.core.answer_bom,director_ai.core.answer_bom.*,director_ai.core.attribution,director_ai.core.attribution.*,director_ai.core.autopoietic,director_ai.core.autopoietic.*,director_ai.core.backends,director_ai.core.calibration,director_ai.core.calibration.*,director_ai.core.canary,director_ai.core.canary.*,director_ai.core.causal_verifier,director_ai.core.causal_verifier.*,director_ai.core.citation_grounding,director_ai.core.citation_grounding.*,director_ai.core.consensus,director_ai.core.consensus.*,director_ai.core.continual_adversarial,director_ai.core.continual_adversarial.*,director_ai.core.customer_model_factory,director_ai.core.customer_model_factory.*,director_ai.core.cyber_physical,director_ai.core.cyber_physical.*,director_ai.core.defense_genome,director_ai.core.defense_genome.*,director_ai.core.doc_chunker,director_ai.core.doc_parser,director_ai.core.doc_registry,director_ai.core.dp_rag,director_ai.core.dp_rag.*,director_ai.core.execution_rings,director_ai.core.execution_rings.*,director_ai.core.emergence_oracle,director_ai.core.emergence_oracle.*,director_ai.core.eval_trace,director_ai.core.eval_trace.*,director_ai.core.evaluation,director_ai.core.evaluation.*,director_ai.core.exceptions,director_ai.core.evidence_firewall,director_ai.core.evidence_firewall.*,director_ai.core.evidence_packet,director_ai.core.evidence_packet.*,director_ai.core.federated_dp,director_ai.core.federated_dp.*,director_ai.core.federated_privacy,director_ai.core.federated_privacy.*,director_ai.core.financial_services,director_ai.core.financial_services.*,director_ai.core.forecasting,director_ai.core.forecasting.*,director_ai.core.formal_verification,director_ai.core.formal_verification.*,director_ai.core.fuzzing,director_ai.core.fuzzing.*,director_ai.core.ingestion,director_ai.core.ingestion.*,director_ai.core.interpretability,director_ai.core.interpretability.*,director_ai.core.irreversibility,director_ai.core.irreversibility.*,director_ai.core.knowledge,director_ai.core.knowledge_graph,director_ai.core.knowledge_graph.*,director_ai.core.labelling_cockpit,director_ai.core.labelling_cockpit.*,director_ai.core.license,director_ai.core.mandatory,director_ai.core.memory,director_ai.core.memory.*,director_ai.core.meta_guard,director_ai.core.meta_guard.*,director_ai.core.metrics,director_ai.core.multi_scale_alignment,director_ai.core.multi_scale_alignment.*,director_ai.core.multimodal_guard,director_ai.core.multimodal_guard.*,director_ai.core.neuro_symbolic,director_ai.core.neuro_symbolic.*,director_ai.core.observability,director_ai.core.observability.*,director_ai.core.ontology,director_ai.core.ontology.*,director_ai.core.otel,director_ai.core.policy,director_ai.core.policy_compiler,director_ai.core.policy_compiler.*,director_ai.core.provenance,director_ai.core.provenance.*,director_ai.core.rasp,director_ai.core.rasp.*,director_ai.core.retrieval,director_ai.core.retrieval.*,director_ai.core.risk_threshold,director_ai.core.risk_threshold.*,director_ai.core.routing,director_ai.core.routing.*,director_ai.core.runtime,director_ai.core.runtime.*,director_ai.core.safety,director_ai.core.safety.*,director_ai.core.safety_event,director_ai.core.safety_protocol,director_ai.core.scoring,director_ai.core.scoring.*,director_ai.core.secrets,director_ai.core.self_evolving,director_ai.core.self_evolving.*,director_ai.core.self_healing,director_ai.core.self_healing.*,director_ai.core.stats,director_ai.core.streaming_repair,director_ai.core.streaming_repair.*,director_ai.core.sustainability,director_ai.core.sustainability.*,director_ai.core.swarm_coherence,director_ai.core.swarm_coherence.*,director_ai.core.swarm_economics,director_ai.core.swarm_economics.*,director_ai.core.swarm_equilibrium,director_ai.core.swarm_equilibrium.*,director_ai.core.symbolic_chain,director_ai.core.symbolic_chain.*,director_ai.core.temporal_consistency,director_ai.core.temporal_consistency.*,director_ai.core.temporal_logic,director_ai.core.temporal_logic.*,director_ai.core.tenant,director_ai.core.text_overlap,director_ai.core.threat_intel,director_ai.core.threat_intel.*,director_ai.core.trajectory,director_ai.core.trajectory.*,director_ai.core.trace_safe,director_ai.core.trace_safe.*,director_ai.core.types,director_ai.core.vector_store,director_ai.core.verification,director_ai.core.verification.*,director_ai.core.zk_attestation,director_ai.core.zk_attestation.*,director_ai.enterprise,director_ai.enterprise.*,director_ai.grpc_scoring,director_ai.grpc_server,director_ai.guard,director_ai.integrations,director_ai.integrations.*,director_ai.proto,director_ai.proto.*,director_ai.agentic,director_ai.agentic.*,director_ai.ci_gate,director_ai._cli_gate,director_ai._cli_production,director_ai._cli_train,director_ai.interlock,director_ai.lite,director_ai.middleware,director_ai.middleware.*,director_ai.testing,director_ai.testing.*,director_ai.ui,director_ai.ui.*]\ndisallow_untyped_defs = true\ndisallow_incomplete_defs = true\ndisallow_untyped_calls = true\ndisallow_untyped_decorators = true\ndisallow_any_generics = true\nwarn_return_any = true\nno_implicit_reexport = true\nstrict_equality = true\nwarn_unused_ignores = true\nignore_errors = false\ndisable_error_code = \n\n[mypy-director_ai.finetune_api,director_ai.knowledge_api,director_ai.proxy,director_ai.server]\ndisallow_untyped_defs = true\ndisallow_incomplete_defs = true\ndisallow_untyped_calls = true\ndisallow_any_generics = true\nwarn_return_any = true\nno_implicit_reexport = true\nstrict_equality = true\nwarn_unused_ignores = true\nignore_errors = false\ndisable_error_code = \n\n[mypy-director_ai.core.edge.*]\ndisallow_untyped_defs = true\ndisallow_incomplete_defs = true\ndisallow_untyped_calls = true\ndisallow_untyped_decorators = true\ndisallow_any_generics = true\nwarn_return_any = true\nno_implicit_reexport = true\nstrict_equality = true\nwarn_unused_ignores = true\nignore_errors = false\ndisable_error_code = \n\n[mypy-director_ai.core.ml_bom.*]\ndisallow_untyped_defs = true\ndisallow_incomplete_defs = true\ndisallow_untyped_calls = true\ndisallow_untyped_decorators = true\ndisallow_any_generics = true\nwarn_return_any = true\nno_implicit_reexport = true\nstrict_equality = true\nwarn_unused_ignores = true\nignore_errors = false\ndisable_error_code = \n\n[mypy-director_ai.core.output_integrity.*]\ndisallow_untyped_defs = true\ndisallow_incomplete_defs = true\ndisallow_untyped_calls = true\ndisallow_untyped_decorators = true\ndisallow_any_generics = true\nwarn_return_any = true\nno_implicit_reexport = true\nstrict_equality = true\nwarn_unused_ignores = true\nignore_errors = false\ndisable_error_code = \n\n[mypy-director_ai.core.output_trust.*]\ndisallow_untyped_defs = true\ndisallow_incomplete_defs = true\ndisallow_untyped_calls = true\ndisallow_untyped_decorators = true\ndisallow_any_generics = true\nwarn_return_any = true\nno_implicit_reexport = true\nstrict_equality = true\nwarn_unused_ignores = true\nignore_errors = false\ndisable_error_code = \n\n[mypy-director_ai.middleware.*]\ndisallow_untyped_defs = true\ndisallow_incomplete_defs = true\ndisallow_untyped_calls = true\ndisallow_untyped_decorators = true\ndisallow_any_generics = true\nwarn_return_any = true\nno_implicit_reexport = true\nstrict_equality = true\nwarn_unused_ignores = true\nignore_errors = false\ndisable_error_code = \n\n[mypy-director_ai.ui.*]\ndisallow_untyped_defs = true\ndisallow_incomplete_defs = true\ndisallow_untyped_calls = true\ndisallow_untyped_decorators = true\ndisallow_any_generics = true\nwarn_return_any = true\nno_implicit_reexport = true\nstrict_equality = true\nwarn_unused_ignores = true\nignore_errors = false\ndisable_error_code = \n\n[mypy-director_ai.director_pb2]\nignore_errors = true\n\n[mypy-director_ai.director_pb2_grpc]\nignore_errors = true\n\n[mypy-director_ai.proto.director.v1.director_pb2,director_ai.proto.director.v1.director_pb2_grpc]\nignore_errors = true\n\n[mypy-benchmarks.*]\nignore_errors = false\ndisable_error_code = \n\n[mypy-benchmarks.wasm_overhead_bench]\nignore_errors = false\ndisable_error_code = \n\n[mypy-anthropic,asn1crypto,asn1crypto.*,azure.*,backfire_kernel,boto3,chromadb,chromadb.*,crewai,crewai.*,datasets,deepgram,detoxify,elevenlabs.*,elasticsearch,faiss,google,google.cloud,google.cloud.*,googleapiclient.*,gradio,grpc,grpc_reflection.*,guardrails.*,haystack,haystack.*,huggingface_hub,hvac,langchain_core.*,minicheck,minicheck.*,nltk.*,notion_client,onnx,onnxruntime,onnxruntime.*,open_clip,openai,opentelemetry,peft,PIL,pinecone,presidio_analyzer,psycopg2,psycopg2.*,qdrant_client,qdrant_client.*,ragatouille,redis,carla,mujoco,rclpy,rclpy.*,scpn_studio_platform,scpn_studio_platform.*,sentence_transformers,slowapi,slowapi.*,torch,torch.*,transformers,uvicorn,weasyprint,weaviate,z3]\nignore_missing_imports = true\nignore_errors = false\ndisable_error_code = \n\n[mypy-benchmarks.halueval_eval]\nignore_errors = false\ndisable_error_code = \n\n",
+        "configuration_hashes": {
+          "pyproject.toml": "7b427e4ae5bb1c7549f3486751ffddcc951589fd114be9509c0f1853e26c6fc7",
+          "requirements/ci-dev.txt": "dba37454fcfc9d16046665dc5b5c3ebf24d8f71214d5e429089f58c0b9c209e1",
+          "requirements/ci-types.txt": "253cd890b21efe4acbb8805e395af469c7174dddef88b1e8aa8d3687c334d6b0"
+        },
+        "engine": [
+          "8afc67e1bacc441c6d35b26762d34fe79f6c221ace94f3fd11743879601785c6",
+          "dabf56774f97cafbb2388fc3da94715f591f18d48b65b7fccb984f744aba2b94",
+          "158a499353f99020f943eed44d481b2aef883b0e2214f6447ab85db073266e6f",
+          "d5e586d686fc5d77f8737d50d55bc17c1dffd5bddd001213a0e8837113f57475",
+          "81472e6c348a9f60f3e86d8e9b97b0b4745773bd8a132dda73506144caa7fce5"
+        ],
+        "environment": {
+          "isolated": true,
+          "packages": [
+            [
+              "Deprecated",
+              "1.3.1"
+            ],
+            [
+              "Jinja2",
+              "3.1.6"
+            ],
+            [
+              "MarkupSafe",
+              "3.0.4"
+            ],
+            [
+              "PyYAML",
+              "6.0.3"
+            ],
+            [
+              "Pygments",
+              "2.21.0"
+            ],
+            [
+              "SecretStorage",
+              "3.5.0"
+            ],
+            [
+              "annotated-doc",
+              "0.0.5"
+            ],
+            [
+              "annotated-types",
+              "0.8.0"
+            ],
+            [
+              "anyio",
+              "4.15.1"
+            ],
+            [
+              "asn1crypto",
+              "1.5.1"
+            ],
+            [
+              "backfire-kernel",
+              "0.1.3"
+            ],
+            [
+              "backports.tarfile",
+              "1.2.0"
+            ],
+            [
+              "bandit",
+              "1.9.4"
+            ],
+            [
+              "beautifulsoup4",
+              "4.15.0"
+            ],
+            [
+              "brotli",
+              "1.2.1"
+            ],
+            [
+              "build",
+              "1.6.1"
+            ],
+            [
+              "certifi",
+              "2026.10.23"
+            ],
+            [
+              "cffi",
+              "2.1.1"
+            ],
+            [
+              "cfgv",
+              "3.5.0"
+            ],
+            [
+              "charset-normalizer",
+              "3.5.2"
+            ],
+            [
+              "click",
+              "8.5.0"
+            ],
+            [
+              "coverage",
+              "7.16.2"
+            ],
+            [
+              "cryptography",
+              "50.0.2"
+            ],
+            [
+              "distlib",
+              "0.4.3"
+            ],
+            [
+              "docutils",
+              "0.23"
+            ],
+            [
+              "fastapi",
+              "0.142.2"
+            ],
+            [
+              "filelock",
+              "4.2.4"
+            ],
+            [
+              "fsspec",
+              "2026.6.0"
+            ],
+            [
+              "gradio",
+              "6.32.0"
+            ],
+            [
+              "gradio_client",
+              "2.7.2"
+            ],
+            [
+              "groovy",
+              "0.1.2"
+            ],
+            [
+              "grpcio",
+              "1.84.0"
+            ],
+            [
+              "grpcio-tools",
+              "1.81.1"
+            ],
+            [
+              "h11",
+              "0.16.0"
+            ],
+            [
+              "hf-gradio",
+              "0.4.1"
+            ],
+            [
+              "hf-xet",
+              "1.6.0"
+            ],
+            [
+              "httpcore",
+              "1.0.9"
+            ],
+            [
+              "httpx",
+              "0.28.1"
+            ],
+            [
+              "huggingface_hub",
+              "1.33.0"
+            ],
+            [
+              "hypothesis",
+              "6.168.3"
+            ],
+            [
+              "id",
+              "1.6.1"
+            ],
+            [
+              "identify",
+              "2.6.20"
+            ],
+            [
+              "idna",
+              "3.20"
+            ],
+            [
+              "importlib_metadata",
+              "9.0.1"
+            ],
+            [
+              "iniconfig",
+              "2.3.0"
+            ],
+            [
+              "jaraco.classes",
+              "3.4.0"
+            ],
+            [
+              "jaraco.context",
+              "6.1.2"
+            ],
+            [
+              "jaraco.functools",
+              "4.6.0"
+            ],
+            [
+              "jeepney",
+              "0.9.0"
+            ],
+            [
+              "keyring",
+              "25.7.0"
+            ],
+            [
+              "librt",
+              "0.16.0"
+            ],
+            [
+              "limits",
+              "5.8.0"
+            ],
+            [
+              "lxml",
+              "6.1.3"
+            ],
+            [
+              "lxml-stubs",
+              "0.5.1"
+            ],
+            [
+              "markdown-it-py",
+              "4.2.0"
+            ],
+            [
+              "maturin",
+              "1.15.0"
+            ],
+            [
+              "mdurl",
+              "0.1.2"
+            ],
+            [
+              "more-itertools",
+              "11.1.0"
+            ],
+            [
+              "mypy",
+              "1.20.2"
+            ],
+            [
+              "mypy_extensions",
+              "1.1.0"
+            ],
+            [
+              "nh3",
+              "0.3.7"
+            ],
+            [
+              "nodeenv",
+              "1.11.0"
+            ],
+            [
+              "numpy",
+              "2.4.6"
+            ],
+            [
+              "opentelemetry-api",
+              "1.45.2"
+            ],
+            [
+              "opentelemetry-sdk",
+              "1.45.2"
+            ],
+            [
+              "opentelemetry-semantic-conventions",
+              "0.66b2"
+            ],
+            [
+              "orjson",
+              "3.12.0"
+            ],
+            [
+              "packaging",
+              "26.3"
+            ],
+            [
+              "pandas",
+              "3.0.6"
+            ],
+            [
+              "pathspec",
+              "1.1.1"
+            ],
+            [
+              "pillow",
+              "13.0.0"
+            ],
+            [
+              "platformdirs",
+              "4.12.2"
+            ],
+            [
+              "pluggy",
+              "1.6.0"
+            ],
+            [
+              "pre_commit",
+              "4.6.2"
+            ],
+            [
+              "protobuf",
+              "6.33.6"
+            ],
+            [
+              "pycparser",
+              "3.0"
+            ],
+            [
+              "pydantic",
+              "2.12.5"
+            ],
+            [
+              "pydantic_core",
+              "2.41.5"
+            ],
+            [
+              "pydub",
+              "0.25.1"
+            ],
+            [
+              "pypdf",
+              "6.21.4"
+            ],
+            [
+              "pyproject_hooks",
+              "1.3.3"
+            ],
+            [
+              "pytest",
+              "9.1.1"
+            ],
+            [
+              "pytest-asyncio",
+              "1.4.0"
+            ],
+            [
+              "pytest-cov",
+              "7.1.0"
+            ],
+            [
+              "python-dateutil",
+              "2.9.0.post0"
+            ],
+            [
+              "python-discovery",
+              "1.6.1"
+            ],
+            [
+              "python-docx",
+              "1.2.0"
+            ],
+            [
+              "python-multipart",
+              "0.0.32"
+            ],
+            [
+              "pytz",
+              "2026.4"
+            ],
+            [
+              "readme_renderer",
+              "46.0"
+            ],
+            [
+              "requests",
+              "2.34.2"
+            ],
+            [
+              "requests-toolbelt",
+              "1.0.0"
+            ],
+            [
+              "rfc3986",
+              "2.0.0"
+            ],
+            [
+              "rich",
+              "14.3.4"
+            ],
+            [
+              "ruff",
+              "0.16.10"
+            ],
+            [
+              "safehttpx",
+              "0.1.7"
+            ],
+            [
+              "semantic-version",
+              "2.10.0"
+            ],
+            [
+              "setuptools",
+              "84.2.1"
+            ],
+            [
+              "shellingham",
+              "1.5.4"
+            ],
+            [
+              "six",
+              "1.17.0"
+            ],
+            [
+              "slowapi",
+              "0.1.10"
+            ],
+            [
+              "sortedcontainers",
+              "2.4.0"
+            ],
+            [
+              "soupsieve",
+              "4.1"
+            ],
+            [
+              "starlette",
+              "1.7.0"
+            ],
+            [
+              "stevedore",
+              "5.9.1"
+            ],
+            [
+              "tomlkit",
+              "0.14.0"
+            ],
+            [
+              "tqdm",
+              "4.70.1"
+            ],
+            [
+              "twine",
+              "7.0.0"
+            ],
+            [
+              "typer",
+              "0.27.2"
+            ],
+            [
+              "types-PyYAML",
+              "6.0.12.20260906"
+            ],
+            [
+              "types-protobuf",
+              "6.32.1.20260221"
+            ],
+            [
+              "types-requests",
+              "2.33.0.20260906"
+            ],
+            [
+              "types-setuptools",
+              "84.2.0.20261104"
+            ],
+            [
+              "typing-inspection",
+              "0.4.4"
+            ],
+            [
+              "typing_extensions",
+              "4.16.0"
+            ],
+            [
+              "urllib3",
+              "2.8.0"
+            ],
+            [
+              "uvicorn",
+              "0.54.0"
+            ],
+            [
+              "virtualenv",
+              "21.15.1"
+            ],
+            [
+              "wrapt",
+              "2.5.0"
+            ],
+            [
+              "zipp",
+              "4.1.0"
+            ]
+          ],
+          "python": [
+            3,
+            11,
+            17
+          ],
+          "search_path": [
+            [
+              "repository",
+              "."
+            ],
+            [
+              "repository",
+              "src"
+            ],
+            [
+              "repository",
+              "packages"
+            ],
+            [
+              "environment",
+              "lib/python3.11/site-packages"
+            ],
+            [
+              "environment",
+              "lib/python3.11/site-packages"
+            ]
+          ]
+        },
+        "flags": [
+          "--strict",
+          "--python-version=3.11",
+          "--no-incremental",
+          "--output=json",
+          "--no-error-summary",
+          "--no-color-output"
+        ],
+        "profile": "notebook-types",
+        "projection_runtime": [
+          3,
+          11,
+          17
+        ]
+      },
+      "old_identity": "8bc8d7c54f9cf4ff50b7e421e37923538c60fc5c34bbb478fb3184a40aca7bf2",
+      "old_preimage": {
+        "compiler_command": [
+          "-I",
+          "-B",
+          "-m",
+          "mypy"
+        ],
+        "configuration": "[mypy]\nexplicit_package_bases = true\nmypy_path = src\npython_version = 3.11\nstrict = true\nwarn_unused_configs = true\nignore_missing_imports = false\nignore_errors = false\nfollow_imports = normal\ndisable_error_code = \ndisallow_any_generics = true\ndisallow_subclassing_any = true\ndisallow_untyped_calls = true\ndisallow_untyped_defs = true\ndisallow_incomplete_defs = true\ncheck_untyped_defs = true\ndisallow_untyped_decorators = true\nwarn_redundant_casts = true\nwarn_unused_ignores = true\nwarn_return_any = true\nimplicit_reexport = false\nstrict_equality = true\nstrict_bytes = true\nextra_checks = true\n\n[mypy-director_ai.voice.*]\ndisallow_untyped_defs = true\ndisallow_incomplete_defs = true\nignore_errors = false\ndisable_error_code = \n\n[mypy-director_ai.agentic.*]\ndisallow_untyped_defs = true\ndisallow_incomplete_defs = true\ndisallow_untyped_calls = true\ndisallow_untyped_decorators = true\ndisallow_any_generics = true\nwarn_return_any = true\nno_implicit_reexport = true\nstrict_equality = true\nwarn_unused_ignores = true\nignore_errors = false\ndisable_error_code = \n\n[mypy-director_ai.core.retrieval.knowledge]\ndisallow_untyped_defs = true\ndisallow_incomplete_defs = true\ndisallow_untyped_calls = true\ndisallow_untyped_decorators = true\ndisallow_any_generics = true\nwarn_return_any = true\nno_implicit_reexport = true\nstrict_equality = true\nwarn_unused_ignores = true\nignore_errors = false\ndisable_error_code = \n\n[mypy-director_ai.core.config]\ndisallow_untyped_defs = true\ndisallow_incomplete_defs = true\ndisallow_untyped_calls = true\ndisallow_untyped_decorators = true\ndisallow_any_generics = true\nwarn_return_any = true\nno_implicit_reexport = true\nstrict_equality = true\nwarn_unused_ignores = true\nignore_errors = false\ndisable_error_code = \n\n[mypy-director_ai.core.containment.*]\ndisallow_untyped_defs = true\ndisallow_incomplete_defs = true\ndisallow_untyped_calls = true\ndisallow_untyped_decorators = true\ndisallow_any_generics = true\nwarn_return_any = true\nno_implicit_reexport = true\nstrict_equality = true\nwarn_unused_ignores = true\nignore_errors = false\ndisable_error_code = \n\n[mypy-director_ai.core.guard_control.*]\ndisallow_untyped_defs = true\ndisallow_incomplete_defs = true\ndisallow_untyped_calls = true\ndisallow_untyped_decorators = true\ndisallow_any_generics = true\nwarn_return_any = true\nno_implicit_reexport = true\nstrict_equality = true\nwarn_unused_ignores = true\nignore_errors = false\ndisable_error_code = \n\n[mypy-director_ai,director_ai._cli_bench,director_ai._cli_serve,director_ai._cli_verify,director_ai._server_helpers,director_ai._server_models,director_ai.cli,director_ai.compliance,director_ai.compliance.*,director_ai.core,director_ai.core.*,director_ai.core.actor,director_ai.core.agent,director_ai.core._device,director_ai.core._heuristics,director_ai.core.agent_identity,director_ai.core.agent_identity.*,director_ai.core.agent_preflight,director_ai.core.agent_preflight.*,director_ai.core.answer_bom,director_ai.core.answer_bom.*,director_ai.core.attribution,director_ai.core.attribution.*,director_ai.core.autopoietic,director_ai.core.autopoietic.*,director_ai.core.backends,director_ai.core.calibration,director_ai.core.calibration.*,director_ai.core.canary,director_ai.core.canary.*,director_ai.core.causal_verifier,director_ai.core.causal_verifier.*,director_ai.core.citation_grounding,director_ai.core.citation_grounding.*,director_ai.core.consensus,director_ai.core.consensus.*,director_ai.core.continual_adversarial,director_ai.core.continual_adversarial.*,director_ai.core.customer_model_factory,director_ai.core.customer_model_factory.*,director_ai.core.cyber_physical,director_ai.core.cyber_physical.*,director_ai.core.defense_genome,director_ai.core.defense_genome.*,director_ai.core.doc_chunker,director_ai.core.doc_parser,director_ai.core.doc_registry,director_ai.core.dp_rag,director_ai.core.dp_rag.*,director_ai.core.execution_rings,director_ai.core.execution_rings.*,director_ai.core.emergence_oracle,director_ai.core.emergence_oracle.*,director_ai.core.eval_trace,director_ai.core.eval_trace.*,director_ai.core.evaluation,director_ai.core.evaluation.*,director_ai.core.exceptions,director_ai.core.evidence_firewall,director_ai.core.evidence_firewall.*,director_ai.core.evidence_packet,director_ai.core.evidence_packet.*,director_ai.core.federated_dp,director_ai.core.federated_dp.*,director_ai.core.federated_privacy,director_ai.core.federated_privacy.*,director_ai.core.financial_services,director_ai.core.financial_services.*,director_ai.core.forecasting,director_ai.core.forecasting.*,director_ai.core.formal_verification,director_ai.core.formal_verification.*,director_ai.core.fuzzing,director_ai.core.fuzzing.*,director_ai.core.ingestion,director_ai.core.ingestion.*,director_ai.core.interpretability,director_ai.core.interpretability.*,director_ai.core.irreversibility,director_ai.core.irreversibility.*,director_ai.core.knowledge,director_ai.core.knowledge_graph,director_ai.core.knowledge_graph.*,director_ai.core.labelling_cockpit,director_ai.core.labelling_cockpit.*,director_ai.core.license,director_ai.core.mandatory,director_ai.core.memory,director_ai.core.memory.*,director_ai.core.meta_guard,director_ai.core.meta_guard.*,director_ai.core.metrics,director_ai.core.multi_scale_alignment,director_ai.core.multi_scale_alignment.*,director_ai.core.multimodal_guard,director_ai.core.multimodal_guard.*,director_ai.core.neuro_symbolic,director_ai.core.neuro_symbolic.*,director_ai.core.observability,director_ai.core.observability.*,director_ai.core.ontology,director_ai.core.ontology.*,director_ai.core.otel,director_ai.core.policy,director_ai.core.policy_compiler,director_ai.core.policy_compiler.*,director_ai.core.provenance,director_ai.core.provenance.*,director_ai.core.rasp,director_ai.core.rasp.*,director_ai.core.retrieval,director_ai.core.retrieval.*,director_ai.core.risk_threshold,director_ai.core.risk_threshold.*,director_ai.core.routing,director_ai.core.routing.*,director_ai.core.runtime,director_ai.core.runtime.*,director_ai.core.safety,director_ai.core.safety.*,director_ai.core.safety_event,director_ai.core.safety_protocol,director_ai.core.scoring,director_ai.core.scoring.*,director_ai.core.secrets,director_ai.core.self_evolving,director_ai.core.self_evolving.*,director_ai.core.self_healing,director_ai.core.self_healing.*,director_ai.core.stats,director_ai.core.streaming_repair,director_ai.core.streaming_repair.*,director_ai.core.sustainability,director_ai.core.sustainability.*,director_ai.core.swarm_coherence,director_ai.core.swarm_coherence.*,director_ai.core.swarm_economics,director_ai.core.swarm_economics.*,director_ai.core.swarm_equilibrium,director_ai.core.swarm_equilibrium.*,director_ai.core.symbolic_chain,director_ai.core.symbolic_chain.*,director_ai.core.temporal_consistency,director_ai.core.temporal_consistency.*,director_ai.core.temporal_logic,director_ai.core.temporal_logic.*,director_ai.core.tenant,director_ai.core.text_overlap,director_ai.core.threat_intel,director_ai.core.threat_intel.*,director_ai.core.trajectory,director_ai.core.trajectory.*,director_ai.core.trace_safe,director_ai.core.trace_safe.*,director_ai.core.types,director_ai.core.vector_store,director_ai.core.verification,director_ai.core.verification.*,director_ai.core.zk_attestation,director_ai.core.zk_attestation.*,director_ai.enterprise,director_ai.enterprise.*,director_ai.grpc_scoring,director_ai.grpc_server,director_ai.guard,director_ai.integrations,director_ai.integrations.*,director_ai.proto,director_ai.proto.*,director_ai.agentic,director_ai.agentic.*,director_ai.ci_gate,director_ai._cli_gate,director_ai._cli_production,director_ai._cli_train,director_ai.interlock,director_ai.lite,director_ai.middleware,director_ai.middleware.*,director_ai.testing,director_ai.testing.*,director_ai.ui,director_ai.ui.*]\ndisallow_untyped_defs = true\ndisallow_incomplete_defs = true\ndisallow_untyped_calls = true\ndisallow_untyped_decorators = true\ndisallow_any_generics = true\nwarn_return_any = true\nno_implicit_reexport = true\nstrict_equality = true\nwarn_unused_ignores = true\nignore_errors = false\ndisable_error_code = \n\n[mypy-director_ai.finetune_api,director_ai.knowledge_api,director_ai.proxy,director_ai.server]\ndisallow_untyped_defs = true\ndisallow_incomplete_defs = true\ndisallow_untyped_calls = true\ndisallow_any_generics = true\nwarn_return_any = true\nno_implicit_reexport = true\nstrict_equality = true\nwarn_unused_ignores = true\nignore_errors = false\ndisable_error_code = \n\n[mypy-director_ai.core.edge.*]\ndisallow_untyped_defs = true\ndisallow_incomplete_defs = true\ndisallow_untyped_calls = true\ndisallow_untyped_decorators = true\ndisallow_any_generics = true\nwarn_return_any = true\nno_implicit_reexport = true\nstrict_equality = true\nwarn_unused_ignores = true\nignore_errors = false\ndisable_error_code = \n\n[mypy-director_ai.core.ml_bom.*]\ndisallow_untyped_defs = true\ndisallow_incomplete_defs = true\ndisallow_untyped_calls = true\ndisallow_untyped_decorators = true\ndisallow_any_generics = true\nwarn_return_any = true\nno_implicit_reexport = true\nstrict_equality = true\nwarn_unused_ignores = true\nignore_errors = false\ndisable_error_code = \n\n[mypy-director_ai.core.output_integrity.*]\ndisallow_untyped_defs = true\ndisallow_incomplete_defs = true\ndisallow_untyped_calls = true\ndisallow_untyped_decorators = true\ndisallow_any_generics = true\nwarn_return_any = true\nno_implicit_reexport = true\nstrict_equality = true\nwarn_unused_ignores = true\nignore_errors = false\ndisable_error_code = \n\n[mypy-director_ai.core.output_trust.*]\ndisallow_untyped_defs = true\ndisallow_incomplete_defs = true\ndisallow_untyped_calls = true\ndisallow_untyped_decorators = true\ndisallow_any_generics = true\nwarn_return_any = true\nno_implicit_reexport = true\nstrict_equality = true\nwarn_unused_ignores = true\nignore_errors = false\ndisable_error_code = \n\n[mypy-director_ai.middleware.*]\ndisallow_untyped_defs = true\ndisallow_incomplete_defs = true\ndisallow_untyped_calls = true\ndisallow_untyped_decorators = true\ndisallow_any_generics = true\nwarn_return_any = true\nno_implicit_reexport = true\nstrict_equality = true\nwarn_unused_ignores = true\nignore_errors = false\ndisable_error_code = \n\n[mypy-director_ai.ui.*]\ndisallow_untyped_defs = true\ndisallow_incomplete_defs = true\ndisallow_untyped_calls = true\ndisallow_untyped_decorators = true\ndisallow_any_generics = true\nwarn_return_any = true\nno_implicit_reexport = true\nstrict_equality = true\nwarn_unused_ignores = true\nignore_errors = false\ndisable_error_code = \n\n[mypy-director_ai.director_pb2]\nignore_errors = true\n\n[mypy-director_ai.director_pb2_grpc]\nignore_errors = true\n\n[mypy-director_ai.proto.director.v1.director_pb2,director_ai.proto.director.v1.director_pb2_grpc]\nignore_errors = true\n\n[mypy-benchmarks.*]\nignore_errors = false\ndisable_error_code = \n\n[mypy-benchmarks.wasm_overhead_bench]\nignore_errors = false\ndisable_error_code = \n\n[mypy-anthropic,asn1crypto,asn1crypto.*,azure.*,backfire_kernel,boto3,chromadb,chromadb.*,crewai,crewai.*,datasets,deepgram,detoxify,elevenlabs.*,elasticsearch,faiss,google,google.cloud,google.cloud.*,googleapiclient.*,gradio,grpc,grpc_reflection.*,guardrails.*,haystack,haystack.*,huggingface_hub,hvac,langchain_core.*,minicheck,minicheck.*,nltk.*,notion_client,onnx,onnxruntime,onnxruntime.*,open_clip,openai,opentelemetry,peft,PIL,pinecone,presidio_analyzer,psycopg2,psycopg2.*,qdrant_client,qdrant_client.*,ragatouille,redis,carla,mujoco,rclpy,rclpy.*,scpn_studio_platform,scpn_studio_platform.*,sentence_transformers,slowapi,slowapi.*,torch,torch.*,transformers,uvicorn,weasyprint,weaviate,z3]\nignore_missing_imports = true\nignore_errors = false\ndisable_error_code = \n\n[mypy-benchmarks.halueval_eval]\nignore_errors = false\ndisable_error_code = \n\n",
+        "configuration_hashes": {
+          "pyproject.toml": "7b427e4ae5bb1c7549f3486751ffddcc951589fd114be9509c0f1853e26c6fc7",
+          "requirements/ci-dev.txt": "dba37454fcfc9d16046665dc5b5c3ebf24d8f71214d5e429089f58c0b9c209e1",
+          "requirements/ci-types.txt": "253cd890b21efe4acbb8805e395af469c7174dddef88b1e8aa8d3687c334d6b0"
+        },
+        "engine": [
+          "86e564854ca269372cc203195ae4718af19a7342dd895caa467a7021e5e99e84",
+          "8ec87fb9fd12f2a087b593077ae110f07d7dc13a5a2593176d4870ba713dd4e3",
+          "d5e586d686fc5d77f8737d50d55bc17c1dffd5bddd001213a0e8837113f57475",
+          "81472e6c348a9f60f3e86d8e9b97b0b4745773bd8a132dda73506144caa7fce5"
+        ],
+        "environment": {
+          "isolated": true,
+          "packages": [
+            [
+              "Deprecated",
+              "1.3.1"
+            ],
+            [
+              "Jinja2",
+              "3.1.6"
+            ],
+            [
+              "MarkupSafe",
+              "3.0.4"
+            ],
+            [
+              "PyYAML",
+              "6.0.3"
+            ],
+            [
+              "Pygments",
+              "2.21.0"
+            ],
+            [
+              "SecretStorage",
+              "3.5.0"
+            ],
+            [
+              "annotated-doc",
+              "0.0.5"
+            ],
+            [
+              "annotated-types",
+              "0.8.0"
+            ],
+            [
+              "anyio",
+              "4.15.1"
+            ],
+            [
+              "asn1crypto",
+              "1.5.1"
+            ],
+            [
+              "backfire-kernel",
+              "0.1.3"
+            ],
+            [
+              "backports.tarfile",
+              "1.2.0"
+            ],
+            [
+              "bandit",
+              "1.9.4"
+            ],
+            [
+              "beautifulsoup4",
+              "4.15.0"
+            ],
+            [
+              "brotli",
+              "1.2.1"
+            ],
+            [
+              "build",
+              "1.6.1"
+            ],
+            [
+              "certifi",
+              "2026.10.23"
+            ],
+            [
+              "cffi",
+              "2.1.1"
+            ],
+            [
+              "cfgv",
+              "3.5.0"
+            ],
+            [
+              "charset-normalizer",
+              "3.5.2"
+            ],
+            [
+              "click",
+              "8.5.0"
+            ],
+            [
+              "coverage",
+              "7.16.2"
+            ],
+            [
+              "cryptography",
+              "50.0.2"
+            ],
+            [
+              "distlib",
+              "0.4.3"
+            ],
+            [
+              "docutils",
+              "0.23"
+            ],
+            [
+              "fastapi",
+              "0.142.2"
+            ],
+            [
+              "filelock",
+              "4.2.4"
+            ],
+            [
+              "fsspec",
+              "2026.6.0"
+            ],
+            [
+              "gradio",
+              "6.32.0"
+            ],
+            [
+              "gradio_client",
+              "2.7.2"
+            ],
+            [
+              "groovy",
+              "0.1.2"
+            ],
+            [
+              "grpcio",
+              "1.84.0"
+            ],
+            [
+              "grpcio-tools",
+              "1.81.1"
+            ],
+            [
+              "h11",
+              "0.16.0"
+            ],
+            [
+              "hf-gradio",
+              "0.4.1"
+            ],
+            [
+              "hf-xet",
+              "1.6.0"
+            ],
+            [
+              "httpcore",
+              "1.0.9"
+            ],
+            [
+              "httpx",
+              "0.28.1"
+            ],
+            [
+              "huggingface_hub",
+              "1.33.0"
+            ],
+            [
+              "hypothesis",
+              "6.168.3"
+            ],
+            [
+              "id",
+              "1.6.1"
+            ],
+            [
+              "identify",
+              "2.6.20"
+            ],
+            [
+              "idna",
+              "3.20"
+            ],
+            [
+              "importlib_metadata",
+              "9.0.1"
+            ],
+            [
+              "iniconfig",
+              "2.3.0"
+            ],
+            [
+              "jaraco.classes",
+              "3.4.0"
+            ],
+            [
+              "jaraco.context",
+              "6.1.2"
+            ],
+            [
+              "jaraco.functools",
+              "4.6.0"
+            ],
+            [
+              "jeepney",
+              "0.9.0"
+            ],
+            [
+              "keyring",
+              "25.7.0"
+            ],
+            [
+              "librt",
+              "0.16.0"
+            ],
+            [
+              "limits",
+              "5.8.0"
+            ],
+            [
+              "lxml",
+              "6.1.3"
+            ],
+            [
+              "lxml-stubs",
+              "0.5.1"
+            ],
+            [
+              "markdown-it-py",
+              "4.2.0"
+            ],
+            [
+              "maturin",
+              "1.15.0"
+            ],
+            [
+              "mdurl",
+              "0.1.2"
+            ],
+            [
+              "more-itertools",
+              "11.1.0"
+            ],
+            [
+              "mypy",
+              "1.20.2"
+            ],
+            [
+              "mypy_extensions",
+              "1.1.0"
+            ],
+            [
+              "nh3",
+              "0.3.7"
+            ],
+            [
+              "nodeenv",
+              "1.11.0"
+            ],
+            [
+              "numpy",
+              "2.4.6"
+            ],
+            [
+              "opentelemetry-api",
+              "1.45.2"
+            ],
+            [
+              "opentelemetry-sdk",
+              "1.45.2"
+            ],
+            [
+              "opentelemetry-semantic-conventions",
+              "0.66b2"
+            ],
+            [
+              "orjson",
+              "3.12.0"
+            ],
+            [
+              "packaging",
+              "26.3"
+            ],
+            [
+              "pandas",
+              "3.0.6"
+            ],
+            [
+              "pathspec",
+              "1.1.1"
+            ],
+            [
+              "pillow",
+              "13.0.0"
+            ],
+            [
+              "platformdirs",
+              "4.12.2"
+            ],
+            [
+              "pluggy",
+              "1.6.0"
+            ],
+            [
+              "pre_commit",
+              "4.6.2"
+            ],
+            [
+              "protobuf",
+              "6.33.6"
+            ],
+            [
+              "pycparser",
+              "3.0"
+            ],
+            [
+              "pydantic",
+              "2.12.5"
+            ],
+            [
+              "pydantic_core",
+              "2.41.5"
+            ],
+            [
+              "pydub",
+              "0.25.1"
+            ],
+            [
+              "pypdf",
+              "6.21.4"
+            ],
+            [
+              "pyproject_hooks",
+              "1.3.3"
+            ],
+            [
+              "pytest",
+              "9.1.1"
+            ],
+            [
+              "pytest-asyncio",
+              "1.4.0"
+            ],
+            [
+              "pytest-cov",
+              "7.1.0"
+            ],
+            [
+              "python-dateutil",
+              "2.9.0.post0"
+            ],
+            [
+              "python-discovery",
+              "1.6.1"
+            ],
+            [
+              "python-docx",
+              "1.2.0"
+            ],
+            [
+              "python-multipart",
+              "0.0.32"
+            ],
+            [
+              "pytz",
+              "2026.4"
+            ],
+            [
+              "readme_renderer",
+              "46.0"
+            ],
+            [
+              "requests",
+              "2.34.2"
+            ],
+            [
+              "requests-toolbelt",
+              "1.0.0"
+            ],
+            [
+              "rfc3986",
+              "2.0.0"
+            ],
+            [
+              "rich",
+              "14.3.4"
+            ],
+            [
+              "ruff",
+              "0.16.10"
+            ],
+            [
+              "safehttpx",
+              "0.1.7"
+            ],
+            [
+              "semantic-version",
+              "2.10.0"
+            ],
+            [
+              "setuptools",
+              "84.2.1"
+            ],
+            [
+              "shellingham",
+              "1.5.4"
+            ],
+            [
+              "six",
+              "1.17.0"
+            ],
+            [
+              "slowapi",
+              "0.1.10"
+            ],
+            [
+              "sortedcontainers",
+              "2.4.0"
+            ],
+            [
+              "soupsieve",
+              "4.1"
+            ],
+            [
+              "starlette",
+              "1.7.0"
+            ],
+            [
+              "stevedore",
+              "5.9.1"
+            ],
+            [
+              "tomlkit",
+              "0.14.0"
+            ],
+            [
+              "tqdm",
+              "4.70.1"
+            ],
+            [
+              "twine",
+              "7.0.0"
+            ],
+            [
+              "typer",
+              "0.27.2"
+            ],
+            [
+              "types-PyYAML",
+              "6.0.12.20260906"
+            ],
+            [
+              "types-protobuf",
+              "6.32.1.20260221"
+            ],
+            [
+              "types-requests",
+              "2.33.0.20260906"
+            ],
+            [
+              "types-setuptools",
+              "84.2.0.20261104"
+            ],
+            [
+              "typing-inspection",
+              "0.4.4"
+            ],
+            [
+              "typing_extensions",
+              "4.16.0"
+            ],
+            [
+              "urllib3",
+              "2.8.0"
+            ],
+            [
+              "uvicorn",
+              "0.54.0"
+            ],
+            [
+              "virtualenv",
+              "21.15.1"
+            ],
+            [
+              "wrapt",
+              "2.5.0"
+            ],
+            [
+              "zipp",
+              "4.1.0"
+            ]
+          ],
+          "python": [
+            3,
+            11,
+            17
+          ],
+          "search_path": [
+            [
+              "repository",
+              "."
+            ],
+            [
+              "repository",
+              "src"
+            ],
+            [
+              "repository",
+              "packages"
+            ],
+            [
+              "environment",
+              "lib/python3.11/site-packages"
+            ],
+            [
+              "environment",
+              "lib/python3.11/site-packages"
+            ]
+          ]
+        },
+        "flags": [
+          "--strict",
+          "--python-version=3.11",
+          "--no-incremental",
+          "--output=json",
+          "--no-error-summary",
+          "--no-color-output"
+        ],
+        "profile": "notebook-types",
+        "projection_runtime": [
+          3,
+          11,
+          17
+        ]
+      },
+      "packet_digest": "ab3cf2d7b62f5708ec7bae1ed29f6bfb7263b14f2f28b257ed03a214cd2b74dd",
+      "profile": "notebook-types",
+      "reason": "engine_fix",
+      "rigor_approval_digest": "65e4820e849065a0cc550ad7d84ac447c9f9112df334f2d807ed4cd3c02d3030",
+      "verification_records": {
+        "/artefacts/engine/linux-x64/archive": "da28d030000f4ecd84a6d570facdc5cec5dfa187445542f46c6934108d9fa6f5",
+        "/artefacts/engine/linux-x64/binary": "da28d030000f4ecd84a6d570facdc5cec5dfa187445542f46c6934108d9fa6f5",
+        "/artefacts/engine/linux-x64/token": "da28d030000f4ecd84a6d570facdc5cec5dfa187445542f46c6934108d9fa6f5",
+        "/artefacts/engine/linux-x64/tokenize": "da28d030000f4ecd84a6d570facdc5cec5dfa187445542f46c6934108d9fa6f5"
+      }
+    }
+  ]
+}

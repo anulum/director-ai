@@ -30,24 +30,8 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
-      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
-        with:
-          python-version: "3.11.17"
-          cache: pip
-          cache-dependency-path: |
-            requirements/ci-dev.txt
-            requirements/ci-types.txt
-            requirements/ci-lint.txt
-            requirements/quality-protobuf.txt
-
-      - name: Install the locked Python quality environment
-        run: |
-          quality_env="$RUNNER_TEMP/director-native-quality"
-          python -m venv --without-pip "$quality_env"
-          python -m pip --python "$quality_env/bin/python" install --require-hashes --no-deps \
-            -r requirements/ci-dev.txt -r requirements/ci-types.txt \
-            -r requirements/ci-lint.txt -r requirements/quality-protobuf.txt
-          echo "QUALITY_PYTHON=$quality_env/bin/python" >> "$GITHUB_ENV"
+      - name: Install the pinned Python quality interpreter and its locked environment
+        run: bash tools/install_quality_python.sh
 
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:

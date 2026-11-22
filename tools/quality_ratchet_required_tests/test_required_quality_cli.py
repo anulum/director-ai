@@ -13,7 +13,6 @@ import json
 import os
 import shutil
 import subprocess
-import sys
 import time
 from argparse import Namespace
 from concurrent.futures import ThreadPoolExecutor
@@ -27,6 +26,7 @@ from formal.HaltMonitor.tests.test_quality_ratchet_lean import (
 from formal.HaltMonitor.tests.test_quality_ratchet_lean import (
     lean_repository as lean_repository,
 )
+from tests.quality_ratchet_python_support import quality_python
 from tests.test_quality_ratchet_cli import commit_repository
 from tests.test_quality_ratchet_golang_cli import go_repository as go_repository
 from tests.test_quality_ratchet_golang_cli import go_tools as go_tools
@@ -143,7 +143,7 @@ def require_cli(
     tool_arguments = [argument for pair in executables for argument in pair]
     return subprocess.run(
         [
-            sys.executable,
+            quality_python(),
             "-B",
             "-m",
             "tools.check_quality_ratchet",

@@ -34,11 +34,14 @@ class NotebookSource:
         Original one-based cell and line for each generated line.
     asynchronous_cells : frozenset of int
         Cells which the native Python compiler admitted as top-level coroutines.
+    escapes : tuple of tuple of int
+        One-based cell and line of each projected static shell escape.
     """
 
     text: str
     coordinates: tuple[tuple[int, int], ...]
     asynchronous_cells: frozenset[int]
+    escapes: tuple[tuple[int, int], ...]
 
 
 def _cell_text(source: object) -> str:
@@ -50,9 +53,13 @@ def _cell_text(source: object) -> str:
     return source.replace("\r\n", "\n").replace("\r", "\n")
 
 
-def _python_source(cell: str, path: str) -> list[str]:
-    """Translate only independent external commands identified outside literals."""
+def _python_source(cell: str, path: str, index: int) -> tuple[list[str], list[int]]:
+    """Translate only independent external commands identified outside literals.
+
+    Returns the projected lines and the one-based lines of projected escapes.
+    """
     lines = cell.split("\n")
+    escapes: list[int] = []
     start_of_statement = True
     for token in tokenize.generate_tokens(io.StringIO(cell).readline):
         line, column = token.start
@@ -65,19 +72,26 @@ def _python_source(cell: str, path: str) -> list[str]:
             continue
         if token.type == tokenize.NL:
             continue
+        # Python 3.11 tokenises a leading "!" as ERRORTOKEN; 3.12 and later, which
+        # added the EXCLAMATION token for f-strings, tokenise it as OP. No valid
+        # statement starts with "!", so both mean an interactive shell escape.
         if (
             start_of_statement
             and column == 0
-            and token.type == tokenize.ERRORTOKEN
+            and token.type in (tokenize.ERRORTOKEN, tokenize.OP)
             and token.string == "!"
         ):
             original = lines[line - 1]
             if _STATIC_COMMAND.fullmatch(original) is None:
-                raise ValueError(f"Unsupported notebook shell escape in {path}")
+                raise ValueError(
+                    f"Unsupported notebook shell escape in {path} "
+                    f"at cell {index} line {line}"
+                )
             # Literal external commands produce no Python bindings or reads.
             lines[line - 1] = "# " + original
+            escapes.append(line)
         start_of_statement = False
-    return lines
+    return lines, escapes
 
 
 def project_notebook(data: bytes, path: str) -> NotebookSource:
@@ -116,6 +130,7 @@ def project_notebook(data: bytes, path: str) -> NotebookSource:
     lines: list[str] = []
     coordinates: list[tuple[int, int]] = []
     asynchronous: set[int] = set()
+    escapes: list[tuple[int, int]] = []
     flags = ast.PyCF_ALLOW_TOP_LEVEL_AWAIT
     try:
         for cell_index, raw in enumerate(cells, 1):
@@ -126,7 +141,8 @@ def project_notebook(data: bytes, path: str) -> NotebookSource:
                 continue
             if kind != "code":
                 raise ValueError(f"Unsupported notebook cell type in {path}")
-            projected = _python_source(source, path)
+            projected, escaped = _python_source(source, path, cell_index)
+            escapes.extend((cell_index, line) for line in escaped)
             text = "\n".join(projected)
             ast.parse(text, filename=path, feature_version=(3, 11))
             code = compile(text, path, "exec", flags=flags, dont_inherit=True)
@@ -142,4 +158,6 @@ def project_notebook(data: bytes, path: str) -> NotebookSource:
         compile(combined, path, "exec", flags=flags, dont_inherit=True)
     except (SyntaxError, tokenize.TokenError) as exc:
         raise ValueError(f"Unsupported notebook Python syntax in {path}") from exc
-    return NotebookSource(combined, tuple(coordinates), frozenset(asynchronous))
+    return NotebookSource(
+        combined, tuple(coordinates), frozenset(asynchronous), tuple(escapes)
+    )

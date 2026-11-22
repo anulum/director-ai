@@ -5,17 +5,23 @@
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-AI — native notebook typing CLI tests
-"""Exercise real native notebook diagnostics and committed baseline comparison."""
+"""Exercise real native notebook diagnostics and committed baseline comparison.
+
+The capture runs under the pinned quality interpreter alone; one test runs it
+with the lane's own interpreter and expects the engine check's refusal.
+"""
 
 from __future__ import annotations
 
 import json
+import re
 import subprocess
 import sys
 from pathlib import Path
 
 import pytest
 
+from tests.quality_ratchet_python_support import quality_python
 from tests.test_quality_ratchet_typing_cli import commit_typing_sources
 from tests.test_quality_ratchet_typing_cli import typing_repository as typing_repository
 from tools.quality_ratchet_contracts import parse_snapshot
@@ -28,11 +34,16 @@ METADATA = {
 }
 
 
-def _cli(root: Path, command: str, *arguments: str) -> subprocess.CompletedProcess[str]:
-    """Run the notebook profile via the production CLI and native MyPy."""
+def _cli(
+    root: Path, command: str, *arguments: str, python: str | None = None
+) -> subprocess.CompletedProcess[str]:
+    """Run the notebook profile via the production CLI and native MyPy.
+
+    The pinned quality interpreter runs it unless ``python`` names another.
+    """
     return subprocess.run(
         [
-            sys.executable,
+            python or quality_python(),
             "-B",
             "-m",
             "tools.check_quality_ratchet",
@@ -145,6 +156,8 @@ def test_notebook_typing_rejects_new_debt_from_changed_snapshot(
     ("source", "reason"),
     [
         ("!pip install {package}", "Unsupported notebook shell escape"),
+        ("!pip install it's", "Unsupported notebook shell escape"),
+        ("!ls 'x", "Unsupported notebook shell escape"),
         ("%%bash\necho example\n", "Unsupported notebook Python syntax"),
         (
             "value = (\n!pip install director-ai\n)\n",
@@ -281,3 +294,22 @@ def test_notebook_typing_preserves_findings_with_ambient_pythonpath(
     result = _cli(typing_repository, "capture", "--output", str(ambient))
     assert result.returncode == 0, result.stderr
     assert parse_snapshot(json.loads(ambient.read_bytes())) == original
+
+
+def test_the_lane_interpreter_is_refused_by_the_engine_check(
+    typing_repository: Path, tmp_path: Path
+) -> None:
+    """Refuse by name a capture run by the lane's own setup-python build."""
+    _write(typing_repository, 'label: str = "score"')
+    commit_typing_sources(typing_repository)
+    output = tmp_path / "capture.json"
+    result = _cli(
+        typing_repository, "capture", "--output", str(output), python=sys.executable
+    )
+    assert result.returncode == 2
+    assert re.search(
+        r"Native quality refused: The running Python (binary|tokenize|token) "
+        r"differs from its verified artefact",
+        result.stderr,
+    ), result.stderr
+    assert not output.exists()

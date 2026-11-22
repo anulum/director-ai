@@ -3331,7 +3331,7 @@
           "rule": "no-untyped-def"
         }
       ],
-      "identity": "8bc8d7c54f9cf4ff50b7e421e37923538c60fc5c34bbb478fb3184a40aca7bf2",
+      "identity": "fc57564007b69276afdfd2f6ea49cc0160a017f39156ca4eda974dd412974a27",
       "profile": "notebook-types",
       "schema": "quality-ratchet.snapshot.v2",
       "sources": {
