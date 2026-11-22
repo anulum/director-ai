@@ -307,6 +307,8 @@ def check_step(
                 for entry in transitions[inherited:]
                 if entry.reason == CONFIGURATION_REASON
             ]
+            # A step that is not an adoption read the parent's ratchet files, so
+            # it always has a parent; the test only narrows the type for MyPy.
             if configuration and parent is not None:
                 refusals.update(
                     commit_configuration_refusals(
