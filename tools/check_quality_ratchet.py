@@ -44,6 +44,8 @@ from tools.quality_ratchet_profiles import (
     capture_profile,
     capture_required_profiles,
 )
+from tools.quality_ratchet_succession import Transition
+from tools.quality_ratchet_succession_load import canary_refusals, load_transitions
 
 
 def write_original_json(path: Path, payload: dict[str, object]) -> None:
@@ -95,6 +97,7 @@ def _run_required(root: Path, args: argparse.Namespace) -> int:
     """Run the complete required profile set against trusted baseline authority."""
     previous = None
     candidate = None
+    transitions: tuple[Transition, ...] = ()
     policy = source_path(root, POLICY_PATH).read_bytes()
     if args.command == "capture":
         origin = policy_origin(policy)
@@ -103,6 +106,7 @@ def _run_required(root: Path, args: argparse.Namespace) -> int:
         origin, previous = required_authority(
             root, base, recording=args.command == "record"
         )
+        transitions = load_transitions(root, base)
         if args.command == "check":
             candidate = parse_baseline(source_path(root, BASELINE_PATH).read_bytes())
             required_baseline_scope(candidate, origin)
@@ -127,7 +131,9 @@ def _run_required(root: Path, args: argparse.Namespace) -> int:
         write_original_json(args.output, baseline_payload(actual))
     else:
         proposed = candidate if candidate is not None else actual
-        refusals = compare_required_baselines(previous, proposed, actual, origin)
+        refusals = compare_required_baselines(
+            previous, proposed, actual, origin, transitions
+        ) + canary_refusals(root, args, previous.profiles, actual.profiles, transitions)
         if not refusals and args.command == "record":
             write_original_json(args.output, baseline_payload(actual))
     print(
@@ -193,15 +199,31 @@ def main(argv: list[str] | None = None) -> int:
             refusals: tuple[str, ...] = ()
         else:
             base = resolve_commit(root, args.base_ref)
+            transitions = load_transitions(root, base)
+            original = read_committed_baseline(root, base)
             if args.command == "record":
-                original = read_committed_baseline(root, base)
                 origin = base if original is None else original.origin_commit
                 candidate = Baseline(origin, {actual.profile: actual})
             else:
                 candidate = parse_baseline(
                     source_path(root, BASELINE_PATH).read_bytes()
                 )
-            refusals = check_native_baseline(root, base, candidate, actual)
+            refusals = check_native_baseline(root, base, candidate, actual, transitions)
+            if original is not None:
+                refusals = tuple(
+                    sorted(
+                        set(refusals)
+                        | set(
+                            canary_refusals(
+                                root,
+                                args,
+                                original.profiles,
+                                {actual.profile: actual},
+                                transitions,
+                            )
+                        )
+                    )
+                )
             if not refusals and args.command == "record":
                 write_original_json(args.output, baseline_payload(candidate))
         print(

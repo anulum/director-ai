@@ -9,7 +9,7 @@
     "python_model_classes": 1206,
     "python_model_source_modules": 617,
     "rust_pyo3_model_wrappers": 83,
-    "test_files": 873
+    "test_files": 877
   },
   "documentation": {
     "public_pages": [
@@ -6207,6 +6207,7 @@
     "test_files": [
       "tests/conftest.py",
       "tests/model_lifecycle_support.py",
+      "tests/quality_ratchet_succession_support.py",
       "tests/test_accelerator_fallback_parity.py",
       "tests/test_accuracy_improvements.py",
       "tests/test_accuracy_improvements_real_surface.py",
@@ -6823,7 +6824,10 @@
       "tests/test_quality_ratchet_protobuf.py",
       "tests/test_quality_ratchet_protobuf_cli.py",
       "tests/test_quality_ratchet_protobuf_descriptors.py",
+      "tests/test_quality_ratchet_required.py",
       "tests/test_quality_ratchet_rust_cli.py",
+      "tests/test_quality_ratchet_succession.py",
+      "tests/test_quality_ratchet_succession_load.py",
       "tests/test_quality_ratchet_typescript.py",
       "tests/test_quality_ratchet_typescript_cli.py",
       "tests/test_quality_ratchet_typescript_integrity.py",

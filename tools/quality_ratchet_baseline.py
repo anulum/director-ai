@@ -12,6 +12,7 @@ from __future__ import annotations
 import hashlib
 import re
 import subprocess
+from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -24,6 +25,7 @@ from tools.quality_ratchet_contracts import (
     repository_path,
     snapshot_payload,
 )
+from tools.quality_ratchet_succession import Transition
 
 BASELINE_PATH = "tools/quality_ratchet_baseline.json"
 BASELINE_SCHEMA = "quality-ratchet.baseline.v1"
@@ -290,7 +292,11 @@ def read_committed_baseline(root: Path, base: str) -> Baseline | None:
     return parse_baseline(files[BASELINE_PATH]) if BASELINE_PATH in files else None
 
 
-def compare_baselines(original: Baseline, candidate: Baseline) -> tuple[str, ...]:
+def compare_baselines(
+    original: Baseline,
+    candidate: Baseline,
+    transitions: Iterable[Transition] = (),
+) -> tuple[str, ...]:
     """Refuse origin/profile changes and additions to individual debt allowances.
 
     Parameters
@@ -299,6 +305,9 @@ def compare_baselines(original: Baseline, candidate: Baseline) -> tuple[str, ...
         Original baseline read from the immutable trusted base commit.
     candidate : Baseline
         Working-tree candidate baseline, which cannot supply its own authority.
+    transitions : Iterable[Transition]
+        Validated declared tool successions, applied only to exactly the
+        identity changes they declare.
 
     Returns
     -------
@@ -313,7 +322,7 @@ def compare_baselines(original: Baseline, candidate: Baseline) -> tuple[str, ...
         refusal
         for name in sorted(original.profiles)
         for refusal in compare_snapshots(
-            original.profiles[name], candidate.profiles[name]
+            original.profiles[name], candidate.profiles[name], tuple(transitions)
         )
     )
 

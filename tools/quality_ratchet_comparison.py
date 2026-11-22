@@ -9,10 +9,18 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterable
+
 from tools.quality_ratchet_contracts import Snapshot
+from tools.quality_ratchet_succession import Transition
+from tools.quality_ratchet_succession_check import compare_transition, transition_for
 
 
-def compare_snapshots(original: Snapshot, current: Snapshot) -> tuple[str, ...]:
+def compare_snapshots(
+    original: Snapshot,
+    current: Snapshot,
+    transitions: Iterable[Transition] = (),
+) -> tuple[str, ...]:
     """Compare complete native findings with an independently trusted baseline.
 
     Parameters
@@ -22,6 +30,11 @@ def compare_snapshots(original: Snapshot, current: Snapshot) -> tuple[str, ...]:
         baseline must never be supplied as trusted authority by the caller.
     current : Snapshot
         Actual current native analysis using the same effective profile.
+    transitions : Iterable[Transition]
+        Validated declared tool successions. An identity change is compared
+        under :func:`compare_transition` only when one of them declares
+        exactly this profile's change from the original's identity to the
+        current one; otherwise it is refused.
 
     Returns
     -------
@@ -41,7 +54,12 @@ def compare_snapshots(original: Snapshot, current: Snapshot) -> tuple[str, ...]:
     if original.profile != current.profile:
         return ("Native quality profile changed",)
     if original.identity != current.identity:
-        return ("Native quality tool, configuration or scope identity changed",)
+        transition = transition_for(
+            transitions, original.profile, original.identity, current.identity
+        )
+        if transition is None:
+            return ("Native quality tool, configuration or scope identity changed",)
+        return compare_transition(original, current, transition)
     previous = set(original.findings)
     violations = set()
     for finding in current.findings:

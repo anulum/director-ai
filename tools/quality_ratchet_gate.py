@@ -28,6 +28,7 @@ from tools.quality_ratchet_contracts import Snapshot, snapshot_payload
 from tools.quality_ratchet_inventory import hash_sources, source_path
 from tools.quality_ratchet_julia_native import ANALYZER_CONFIGURATIONS, ENGINE_ROOT
 from tools.quality_ratchet_profiles import PROFILE_CONFIGURATIONS, REQUIRED_PROFILES
+from tools.quality_ratchet_succession import Transition
 
 POLICY_PATH = "tools/quality_ratchet_policy.toml"
 POLICY_SCHEMA = "quality-ratchet.policy.v1"
@@ -261,7 +262,11 @@ def verify_required_captures(
 
 
 def compare_required_baselines(
-    previous: Baseline, candidate: Baseline, actual: Baseline, origin: str
+    previous: Baseline,
+    candidate: Baseline,
+    actual: Baseline,
+    origin: str,
+    transitions: tuple[Transition, ...] = (),
 ) -> tuple[str, ...]:
     """Compare every actual profile with committed and proposed allowances.
 
@@ -275,6 +280,9 @@ def compare_required_baselines(
         Complete snapshots from the real native processes in this invocation.
     origin : str
         Immutable historical origin from the trusted policy.
+    transitions : tuple[Transition, ...]
+        Validated declared tool successions; each applies only to exactly the
+        identity change it declares.
 
     Returns
     -------
@@ -283,13 +291,13 @@ def compare_required_baselines(
     """
     for baseline in (previous, candidate, actual):
         required_baseline_scope(baseline, origin)
-    violations = set(compare_baselines(previous, candidate))
+    violations = set(compare_baselines(previous, candidate, transitions))
     for profile in REQUIRED_PROFILES:
         for trusted in (previous, candidate):
             violations.update(
                 f"{profile}: {violation}"
                 for violation in compare_snapshots(
-                    trusted.profiles[profile], actual.profiles[profile]
+                    trusted.profiles[profile], actual.profiles[profile], transitions
                 )
             )
     return tuple(sorted(violations))
@@ -335,6 +343,7 @@ def check_native_baseline(
     base: str,
     candidate: Baseline,
     actual: Snapshot,
+    transitions: tuple[Transition, ...] = (),
 ) -> tuple[str, ...]:
     """Check shrink-only candidate allowances and actual native source diagnostics.
 
@@ -348,6 +357,8 @@ def check_native_baseline(
         Working-tree carrier, never substituted for original baseline authority.
     actual : Snapshot
         Complete current native quality scan.
+    transitions : tuple[Transition, ...]
+        Validated declared tool successions for exact identity changes.
 
     Returns
     -------
@@ -365,8 +376,10 @@ def check_native_baseline(
         return ()
     if set(original.profiles) != {actual.profile}:
         raise ValueError("Original baseline differs from the actual native profile set")
-    refusals = list(compare_baselines(original, candidate))
-    refusals.extend(compare_snapshots(original.profiles[actual.profile], actual))
+    refusals = list(compare_baselines(original, candidate, transitions))
+    refusals.extend(
+        compare_snapshots(original.profiles[actual.profile], actual, transitions)
+    )
     if set(candidate.profiles) != {actual.profile}:
         refusals.append("Candidate native profile set changed")
     elif snapshot_payload(candidate.profiles[actual.profile]) != snapshot_payload(
