@@ -80,8 +80,9 @@ if _FASTAPI_AVAILABLE:
             Whether to weight loss by class frequency; false by default.
         auto_benchmark : bool
             Whether to request automatic local benchmarking; true by default.
-            Without an independent general benchmark the report says
-            ``reject``; this request cannot name one.
+            The general benchmark is the operator's
+            ``finetune_general_benchmark_path``; this request cannot name
+            one, and without it the report says ``reject``.
         auto_onnx_export : bool
             Whether to request ONNX export; false by default.
         """

@@ -34,6 +34,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add `FinetuneConfig.general_benchmark_path` and the
   `director-ai finetune --general-benchmark FILE` option for the
   post-training anti-regression check.
+- Add `DirectorConfig.finetune_general_benchmark_path` (env:
+  `DIRECTOR_FINETUNE_GENERAL_BENCHMARK_PATH`), the operator's general benchmark
+  for `/v1/finetune/start` jobs, which a request cannot name. The server checks
+  it at startup; each job benchmarks against a private copy and records its
+  `general_benchmark_sha256` in the regression report. Unset, those jobs still
+  report `reject`.
 - Add the `int8_reduce_range` argument to `export_onnx()` and the
   `--int8-reduce-range` and `--int8-full-range` CLI options. Every ONNX export
   now writes `director_onnx_manifest.json`, which names the served file, its

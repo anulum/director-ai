@@ -283,6 +283,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
             create_finetune_router(
                 models_dir=finetune_models_dir,
                 operator_api_keys=tuple(cfg.finetune_operator_api_keys),
+                general_benchmark_path=cfg.finetune_general_benchmark_path or None,
             ),
             prefix="/v1/finetune",
         )

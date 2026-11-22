@@ -7,9 +7,9 @@
     "public_api_exports": 227,
     "public_documentation_pages": 208,
     "python_model_classes": 1206,
-    "python_model_source_modules": 617,
+    "python_model_source_modules": 618,
     "rust_pyo3_model_wrappers": 83,
-    "test_files": 879
+    "test_files": 880
   },
   "documentation": {
     "public_pages": [
@@ -5172,6 +5172,7 @@
       "src/director_ai/_cli_verify.py",
       "src/director_ai/_finetune_benchmark_access.py",
       "src/director_ai/_finetune_managed.py",
+      "src/director_ai/_finetune_operator_benchmark.py",
       "src/director_ai/_finetune_schemas.py",
       "src/director_ai/_finetune_worker.py",
       "src/director_ai/_guard_canary.py",
@@ -6480,6 +6481,7 @@
       "tests/test_finetune_jobs.py",
       "tests/test_finetune_managed.py",
       "tests/test_finetune_metrics_real_surface.py",
+      "tests/test_finetune_operator_benchmark.py",
       "tests/test_finetune_real_surface.py",
       "tests/test_finetune_schemas.py",
       "tests/test_finetune_validator.py",

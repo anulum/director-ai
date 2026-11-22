@@ -274,6 +274,10 @@ class DirectorConfig:
     # mounted at /v1/finetune (empty = the router default ./director-models).
     finetune_models_dir: str = ""
     finetune_operator_api_keys: list[str] = field(default_factory=list)
+    # The operator's general benchmark (labelled NLI JSONL) for the
+    # anti-regression gate of /v1/finetune jobs; a request cannot name one.
+    # Empty = those jobs report ``reject``.
+    finetune_general_benchmark_path: str = ""
     cors_origins: str = ""
     # Lifetime of a single-use browser WebSocket handshake ticket (seconds).
     ws_ticket_ttl_seconds: float = 30.0

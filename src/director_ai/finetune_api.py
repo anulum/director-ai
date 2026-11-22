@@ -57,6 +57,7 @@ from director_ai.finetune_jobs import _ManagedJobStore as _ManagedJobStore
 
 from ._finetune_managed import _managed_record_to_dict as _managed_record_to_dict
 from ._finetune_managed import register_managed_routes as register_managed_routes
+from ._finetune_operator_benchmark import operator_benchmark
 from ._finetune_worker import _run_training_worker as _run_training_worker
 from .core.exceptions import DomainRefusalError
 
@@ -125,6 +126,7 @@ def create_finetune_router(
     models_dir: Path | None = None,
     *,
     operator_api_keys: tuple[str, ...] = (),
+    general_benchmark_path: str | Path | None = None,
 ) -> APIRouter:
     """Create the fine-tuning API router.
 
@@ -134,6 +136,10 @@ def create_finetune_router(
         Directory for storing fine-tuned models.
     operator_api_keys : tuple of str
         Existing API keys granted managed-training access. Empty disables it.
+    general_benchmark_path : str, Path or None
+        The operator's general benchmark for the anti-regression gate of
+        ``/start`` jobs. A request cannot name one. Unset, those jobs report
+        ``reject``; set, it is checked here, before any route is served.
 
     Returns
     -------
@@ -144,6 +150,7 @@ def create_finetune_router(
     if not _FASTAPI_AVAILABLE:
         raise ImportError("pip install director-ai[server]")
 
+    general_benchmark = operator_benchmark(general_benchmark_path)
     if models_dir is None:
         models_dir = _DEFAULT_MODELS_DIR
     models_dir = Path(models_dir).resolve()
@@ -297,7 +304,7 @@ def create_finetune_router(
 
         thread = threading.Thread(
             target=_run_training_worker,
-            args=(job, data_path, models_dir, store),
+            args=(job, data_path, models_dir, store, general_benchmark),
             daemon=True,
         )
         thread.start()

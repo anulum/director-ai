@@ -20,6 +20,7 @@ import logging
 import time
 from pathlib import Path
 
+from director_ai._finetune_operator_benchmark import snapshot_operator_benchmark
 from director_ai.finetune_jobs import FinetuneJob, _JobStore
 
 __all__ = ["_run_training_worker"]
@@ -28,11 +29,32 @@ logger = logging.getLogger("DirectorAI.FinetuneAPI")
 
 
 def _run_training_worker(
-    job: FinetuneJob, data_path: Path, models_dir: Path, store: _JobStore
+    job: FinetuneJob,
+    data_path: Path,
+    models_dir: Path,
+    store: _JobStore,
+    general_benchmark: Path | None = None,
 ) -> None:
-    """Background thread that runs the fine-tuning pipeline."""
+    """Run one fine-tuning job in its background thread.
+
+    Parameters
+    ----------
+    job : FinetuneJob
+        The job record, updated and saved as the job progresses.
+    data_path : Path
+        The uploaded training rows, removed when the job ends.
+    models_dir : Path
+        The directory that receives the job's model.
+    store : _JobStore
+        The persistent job store.
+    general_benchmark : Path or None
+        The operator's general benchmark. When the job benchmarks itself it
+        uses a private copy, and its regression report names the copy's
+        SHA-256; without one the report says ``reject``.
+    """
     train_path: Path | None = None
     eval_path: Path | None = None
+    general_path: Path | None = None
     try:
         from director_ai.core.training.finetune import FinetuneConfig, finetune_nli
         from director_ai.core.training.model_registry import resolve_finetune_model
@@ -59,6 +81,13 @@ def _run_training_worker(
             auto_benchmark=cfg.get("auto_benchmark", True),
             auto_onnx_export=cfg.get("auto_onnx_export", False),
         )
+        general_sha256 = None
+        if config.auto_benchmark and general_benchmark is not None:
+            general_path = data_path.parent / f"{job.job_id}_general.jsonl"
+            general_sha256 = snapshot_operator_benchmark(
+                general_benchmark, general_path
+            )
+            config.general_benchmark_path = str(general_path)
 
         from director_ai.core.training.finetune import _load_jsonl
         from director_ai.core.training.training_provenance import (
@@ -95,6 +124,8 @@ def _run_training_worker(
             "split_eval_rows": len(eval_rows),
         }
         job.regression_report = result.regression_report
+        if general_sha256 is not None and isinstance(job.regression_report, dict):
+            job.regression_report["general_benchmark_sha256"] = general_sha256
         job.completed_at = time.time()
         job.progress = 1.0
         job.state = "completed"
@@ -112,7 +143,12 @@ def _run_training_worker(
         store.save(job)
         logger.error("Job %s failed: %s", job.job_id, exc)
     finally:
-        paths_to_clean: tuple[Path | None, ...] = (data_path, train_path, eval_path)
+        paths_to_clean: tuple[Path | None, ...] = (
+            data_path,
+            train_path,
+            eval_path,
+            general_path,
+        )
         for _p in paths_to_clean:
             if _p is not None:
                 _p.unlink(missing_ok=True)

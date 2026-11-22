@@ -524,6 +524,19 @@ Fine-tuning routes are mounted from `create_finetune_router()` when enabled:
 | DELETE | `/{job_id}` | Delete a fine-tune job |
 
 
+### Local fine-tuning benchmark
+
+`POST /v1/finetune/start` jobs run the anti-regression benchmark by default
+(`auto_benchmark`), but a request cannot name its general benchmark, so a caller
+cannot choose an easy one. The operator sets `finetune_general_benchmark_path`
+(`DIRECTOR_FINETUNE_GENERAL_BENCHMARK_PATH`) to a labelled NLI JSONL file held
+out from all training data. The server checks it at startup and refuses to
+start when it is missing, is not a file or holds no labelled rows. Each job
+benchmarks against a private copy taken when the job starts, and the job's
+`regression_report` records that copy's `general_benchmark_sha256`. Benchmark
+rows that overlap the job's training rows still give `reject`. Without the
+setting, these jobs report `reject`.
+
 ### Managed training permissions and benchmark inputs
 
 Every `/v1/finetune/managed/*` route requires an existing API key also listed in
@@ -661,6 +674,7 @@ field matching. Examples:
 | `DIRECTOR_SERVER_PORT` | `server_port` |
 | `DIRECTOR_API_KEYS` | `api_keys` |
 | `DIRECTOR_FINETUNE_OPERATOR_API_KEYS` | `finetune_operator_api_keys` |
+| `DIRECTOR_FINETUNE_GENERAL_BENCHMARK_PATH` | `finetune_general_benchmark_path` |
 | `DIRECTOR_API_KEY_TENANT_MAP` | `api_key_tenant_map` |
 | `DIRECTOR_KNOWLEDGE_WRITE_HMAC_KEYS` | `knowledge_write_hmac_keys` |
 | `DIRECTOR_SCORER_MODEL` | `scorer_model` |
