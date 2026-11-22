@@ -29,6 +29,7 @@ from tests.quality_ratchet_succession_support import (
     NEW_IDENTITY,
     OLD_IDENTITY,
     RULES,
+    canary_of,
     entry,
     file_bytes,
 )
@@ -207,7 +208,7 @@ def test_declared_transition_passes_the_gate_with_its_canary(
     use_captures(monkeypatch, lambda: snapshots(NEW_IDENTITY))
     output = tmp_path / "transition.json"
     assert run(repository, "record", output) == 1
-    keys = parse_transition(entry()).canary.new_findings
+    keys = canary_of(parse_transition(entry())).new_findings
     run_ = CanaryRun(RULES, "4" * 64, "linux-x64", ENGINE, keys)
     monkeypatch.setitem(CANARY_RUNNERS, "typescript-docs", lambda root, args: run_)
     assert run(repository, "record", output) == 0
@@ -221,7 +222,7 @@ def test_an_earlier_commits_transition_runs_its_canary_at_the_tip(
     """Run the canary of a range's transition when the tip's parent already has it."""
     start = adopt(repository, monkeypatch, tmp_path)
     (repository / TRANSITIONS_PATH).write_bytes(file_bytes(entry()))
-    keys = parse_transition(entry()).canary.new_findings
+    keys = canary_of(parse_transition(entry())).new_findings
     good = CanaryRun(RULES, "4" * 64, "linux-x64", ENGINE, keys)
     monkeypatch.setitem(CANARY_RUNNERS, "typescript-docs", lambda root, args: good)
     use_captures(monkeypatch, lambda: snapshots(NEW_IDENTITY))

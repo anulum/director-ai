@@ -29,12 +29,20 @@ from __future__ import annotations
 
 import hashlib
 import json
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 TRANSITIONS_PATH = "tools/quality_ratchet_transitions.json"
 TRANSITIONS_SCHEMA = "quality-ratchet.transitions.v1"
+CONFIGURATION_REASON = "configuration_change"
+"""The reason of a raw-only configuration change; it has no canary."""
 REASONS = frozenset(
-    {"security_release", "compatibility_release", "engine_fix", "engine_hardening"}
+    {
+        "security_release",
+        "compatibility_release",
+        "engine_fix",
+        "engine_hardening",
+        CONFIGURATION_REASON,
+    }
 )
 PREIMAGE_PROFILES = frozenset(
     {
@@ -79,6 +87,8 @@ ENTRY_MEMBERS = frozenset(
         "rigor_approval_digest",
     }
 )
+CONFIGURATION_MEMBERS = ENTRY_MEMBERS | {"configuration_paths"}
+"""The members of a configuration entry, which records its changed TOML paths."""
 KEY_MEMBERS = frozenset({"path", "rule", "line", "column", "cell"})
 CANARY_MEMBERS = frozenset(
     {
@@ -220,12 +230,19 @@ class Transition:
         Findings on unchanged sources whose message text alone changed.
     drops : tuple[Drop, ...]
         Findings removed from unchanged sources by a documented fix.
-    canary : CanaryEvidence
-        The canary run under both identities.
+    canary : CanaryEvidence | None
+        The canary run under both identities; None for a configuration change.
     packet_digest : str
         Digest of the approved transition evidence packet.
-    authority_approval_digest, rigor_approval_digest : str
-        The two approval records, each bound to the packet.
+    authority_approval_digest : str
+        The ratchet authority's approval record, bound to the packet.
+    rigor_approval_digest : str | None
+        The statistics reviewer's approval record, bound to the packet; None
+        only for a configuration change that uses no TOML path for the first
+        time in the file.
+    configuration_paths : dict[str, tuple[str, ...]]
+        For a configuration change, the changed TOML pointers of each file;
+        empty for every other reason.
     """
 
     profile: str
@@ -239,10 +256,11 @@ class Transition:
     evidence_digest: str
     message_only: tuple[FindingKey, ...]
     drops: tuple[Drop, ...]
-    canary: CanaryEvidence
+    canary: CanaryEvidence | None
     packet_digest: str
     authority_approval_digest: str
-    rigor_approval_digest: str
+    rigor_approval_digest: str | None
+    configuration_paths: dict[str, tuple[str, ...]] = field(default_factory=dict)
 
 
 def preimage_identity(preimage: dict[str, object]) -> str:

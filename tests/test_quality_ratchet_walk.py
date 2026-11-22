@@ -23,6 +23,7 @@ import tools.quality_ratchet_walk as walk_module
 from tests.quality_ratchet_succession_support import (
     NEW_IDENTITY,
     OLD_IDENTITY,
+    canary_of,
     entry,
     snapshot,
 )
@@ -398,7 +399,7 @@ def test_range_canaries_run_only_for_entries_the_tip_applies(
     assert range_canary_refusals(Path("."), args, (transition,), applied) == (
         "typescript-docs: Profile typescript-docs has no canary runner",
     )
-    canary = transition.canary
+    canary = canary_of(transition)
     good = CanaryRun(
         canary.enabled_rules,
         canary.fixture_digest,

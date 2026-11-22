@@ -20,6 +20,7 @@ from tests.quality_ratchet_succession_support import (
     NEW_IDENTITY,
     OLD_IDENTITY,
     RULES,
+    canary_of,
     entry,
     file_bytes,
     finding,
@@ -245,7 +246,7 @@ def test_canary_gate_runs_only_applied_transitions(
     assert canary_refusals(Path("."), ARGS, before, after, (transition,)) == (
         "typescript-docs: Profile typescript-docs has no canary runner",
     )
-    runs = iter((run_for(transition.canary.new_findings), run_for(())))
+    runs = iter((run_for(canary_of(transition).new_findings), run_for(())))
     monkeypatch.setitem(
         CANARY_RUNNERS, "typescript-docs", lambda root, args: next(runs)
     )

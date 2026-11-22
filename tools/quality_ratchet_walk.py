@@ -46,6 +46,7 @@ from tools.quality_ratchet_baseline import (
     parse_baseline,
     resolve_commit,
 )
+from tools.quality_ratchet_configuration_check import commit_configuration_refusals
 from tools.quality_ratchet_gate import (
     POLICY_PATH,
     policy_origin,
@@ -60,7 +61,11 @@ from tools.quality_ratchet_historical import (
     require_entries_append_only,
     verify_decision_digests,
 )
-from tools.quality_ratchet_succession import TRANSITIONS_PATH, Transition
+from tools.quality_ratchet_succession import (
+    CONFIGURATION_REASON,
+    TRANSITIONS_PATH,
+    Transition,
+)
 from tools.quality_ratchet_succession_load import require_append_only
 from tools.quality_ratchet_succession_parse import parse_transitions
 from tools.quality_ratchet_walk_tip import added_entries, superseded_entries
@@ -278,9 +283,12 @@ def check_step(
         candidate = parse_baseline(new[BASELINE_PATH])
         required_baseline_scope(candidate, origin)
         transitions: tuple[Transition, ...] = ()
+        inherited = 0
         if TRANSITIONS_PATH in new:
             require_append_only(old.get(TRANSITIONS_PATH), new[TRANSITIONS_PATH])
             transitions = parse_transitions(new[TRANSITIONS_PATH])
+            if TRANSITIONS_PATH in old:
+                inherited = len(parse_transitions(old[TRANSITIONS_PATH]))
         if HISTORICAL_PATH in new:
             require_entries_append_only(old.get(HISTORICAL_PATH), new[HISTORICAL_PATH])
             parse_historical(new[HISTORICAL_PATH])
@@ -294,6 +302,22 @@ def check_step(
             )
             refusals.update(mismatched)
             refusals.update(compare_baselines(previous, mapped, transitions))
+            configuration = [
+                entry
+                for entry in transitions[inherited:]
+                if entry.reason == CONFIGURATION_REASON
+            ]
+            if configuration and parent is not None:
+                refusals.update(
+                    commit_configuration_refusals(
+                        root,
+                        parent,
+                        commit,
+                        configuration,
+                        previous.profiles,
+                        candidate.profiles,
+                    )
+                )
     except (KeyError, ValueError) as error:
         name = f"missing {error}" if isinstance(error, KeyError) else str(error)
         refusals.add(f"A ratchet file does not qualify: {name}")

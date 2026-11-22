@@ -9,7 +9,7 @@
     "python_model_classes": 1206,
     "python_model_source_modules": 618,
     "rust_pyo3_model_wrappers": 83,
-    "test_files": 886
+    "test_files": 891
   },
   "documentation": {
     "public_pages": [
@@ -6208,6 +6208,7 @@
     "test_files": [
       "tests/conftest.py",
       "tests/model_lifecycle_support.py",
+      "tests/quality_ratchet_configuration_support.py",
       "tests/quality_ratchet_python_support.py",
       "tests/quality_ratchet_succession_support.py",
       "tests/test_accelerator_fallback_parity.py",
@@ -6813,6 +6814,10 @@
       "tests/test_python_only_contributor_path_real_surface.py",
       "tests/test_quality_ratchet_baseline.py",
       "tests/test_quality_ratchet_cli.py",
+      "tests/test_quality_ratchet_configuration.py",
+      "tests/test_quality_ratchet_configuration_check.py",
+      "tests/test_quality_ratchet_configuration_entries.py",
+      "tests/test_quality_ratchet_configuration_inventory.py",
       "tests/test_quality_ratchet_contracts.py",
       "tests/test_quality_ratchet_drift.py",
       "tests/test_quality_ratchet_golang.py",

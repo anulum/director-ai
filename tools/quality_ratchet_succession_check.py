@@ -196,6 +196,8 @@ def verify_canary_run(
         Sorted refusals; empty means the run reproduces the recorded canaries.
     """
     canary = transition.canary
+    if canary is None:
+        return ("The transition has no canary run",)
     refusals = []
     if tuple(sorted(enabled_rules)) != canary.enabled_rules:
         refusals.append("The recorded enabled rules differ from the profile's rules")

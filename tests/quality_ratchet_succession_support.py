@@ -14,7 +14,12 @@ import json
 from collections.abc import Mapping
 
 from tools.quality_ratchet_contracts import Finding, Snapshot
-from tools.quality_ratchet_succession import TRANSITIONS_SCHEMA, preimage_identity
+from tools.quality_ratchet_succession import (
+    TRANSITIONS_SCHEMA,
+    CanaryEvidence,
+    Transition,
+    preimage_identity,
+)
 
 ADAPTER = "tools/quality_ratchet_typescript.py"
 OLD_PREIMAGE: dict[str, object] = {
@@ -215,3 +220,21 @@ def finding(
         The finding.
     """
     return Finding(path, rule, line, 1, "requires explanatory JSDoc")
+
+
+def canary_of(transition: Transition) -> CanaryEvidence:
+    """Return the canary evidence of a tool change, which always has one.
+
+    Parameters
+    ----------
+    transition : Transition
+        A transition of any reason but ``configuration_change``.
+
+    Returns
+    -------
+    CanaryEvidence
+        Its canary run.
+    """
+    evidence = transition.canary
+    assert evidence is not None
+    return evidence

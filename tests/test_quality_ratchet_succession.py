@@ -21,6 +21,7 @@ from tests.quality_ratchet_succession_support import (
     OLD_IDENTITY,
     OLD_PREIMAGE,
     RULES,
+    canary_of,
     entry,
     file_bytes,
     finding,
@@ -62,9 +63,9 @@ def test_valid_entry_parses_with_every_member() -> None:
         OLD_IDENTITY,
         NEW_IDENTITY,
     )
-    assert transition.canary.enabled_rules == RULES
-    assert transition.canary.new_engine_digest == ENGINE
-    assert transition.canary.platform == "linux-x64"
+    assert canary_of(transition).enabled_rules == RULES
+    assert canary_of(transition).new_engine_digest == ENGINE
+    assert canary_of(transition).platform == "linux-x64"
     assert len(transition.changed_fields) == 4
     assert parse_transitions(file_bytes(entry())) == (transition,)
 
@@ -292,7 +293,7 @@ def test_old_engine_must_match_a_preimage_that_records_it() -> None:
     canary = mapping(record, "canary")
     canary["old_engine_digest"] = ENGINE
     record["canary"] = canary
-    assert parse_transition(record).canary.old_engine_digest == ENGINE
+    assert canary_of(parse_transition(record)).old_engine_digest == ENGINE
 
 
 @pytest.mark.parametrize(
@@ -492,7 +493,7 @@ def test_finding_key_drops_only_the_message() -> None:
 def test_canary_run_must_reproduce_the_record() -> None:
     """Refuse each canary difference; accept an exact reproduction."""
     transition = parse_transition(entry())
-    keys = transition.canary.new_findings
+    keys = canary_of(transition).new_findings
 
     def run(
         *,
@@ -622,8 +623,8 @@ def test_canary_findings_keep_their_multiplicity() -> None:
     canary.update(old_findings=doubled, new_findings=doubled)
     record["canary"] = canary
     transition = parse_transition(record)
-    assert len(transition.canary.new_findings) == 3
-    keys = tuple(sorted(set(transition.canary.new_findings)))
+    assert len(canary_of(transition).new_findings) == 3
+    keys = tuple(sorted(set(canary_of(transition).new_findings)))
     refusals = verify_canary_run(
         transition,
         enabled_rules=RULES,

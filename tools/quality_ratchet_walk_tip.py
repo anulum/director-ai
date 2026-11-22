@@ -24,7 +24,11 @@ from pathlib import Path
 from tools.quality_ratchet_baseline import committed_files
 from tools.quality_ratchet_canaries import run_profile_canaries
 from tools.quality_ratchet_contracts import Snapshot
-from tools.quality_ratchet_succession import TRANSITIONS_PATH, Transition
+from tools.quality_ratchet_succession import (
+    CONFIGURATION_REASON,
+    TRANSITIONS_PATH,
+    Transition,
+)
 from tools.quality_ratchet_succession_check import verify_canary_run
 from tools.quality_ratchet_succession_parse import parse_transitions
 
@@ -110,6 +114,9 @@ def range_canary_refusals(
 ) -> tuple[str, ...]:
     """Run at the tip the canaries of every added entry it still applies.
 
+    A configuration change has no canary; the per-commit walk checked it
+    statically at the commit that added it.
+
     Parameters
     ----------
     root : Path
@@ -129,7 +136,11 @@ def range_canary_refusals(
     refusals: set[str] = set()
     for entry in entries:
         snapshot = actual.get(entry.profile)
-        if snapshot is None or snapshot.identity != entry.new_identity:
+        if (
+            snapshot is None
+            or snapshot.identity != entry.new_identity
+            or entry.reason == CONFIGURATION_REASON
+        ):
             continue
         try:
             run = run_profile_canaries(root, args, entry.profile)

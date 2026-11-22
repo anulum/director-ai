@@ -170,6 +170,19 @@ against its own first parent: the pushed range, or a pull request from its
 merge base. It then checks the tip against the pull request's exact base SHA,
 or on a push against the pushed commit's first parent. Both aggregate checks
 require the result, and the main-branch notification includes it.
+
+A profile's tool identity changes only through a reviewed entry in the
+append-only `tools/quality_ratchet_transitions.json`. The `configuration_change`
+reason covers an edit of `pyproject.toml` that no tool of the three Python
+profiles reads; today that is only the setuptools package exclusion. Such an
+entry runs no canary. It records the TOML keys it changes, and the check
+recomputes them. Every changed key must be on the reviewed list in
+`tools/quality_ratchet_configuration.py`; any other key fails as an effective
+change that needs canaries. The commit that adds the entry may change only that
+file, the transitions file, the baseline's identity lines, the reviewed
+packaging metadata and one placeholder `README.md` under an excluded package.
+The walk checks that shape at that commit, and the tip check recomputes the
+TOML diff against the trusted ref.
 The native typing profiles use isolated Python interpreters and the repository's
 configured import roots. Profile identity includes the compiler's resolved
 Python package search paths.

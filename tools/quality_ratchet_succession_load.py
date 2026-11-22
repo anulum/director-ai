@@ -11,7 +11,11 @@ The candidate's transition file must begin with the trusted base commit's
 entries unchanged; entries are only ever appended. Every transition the
 current capture applies, meaning the base snapshot's identity and the
 recomputed identity match it, must then reproduce its recorded canary run
-with the engine the new identity names.
+with the engine the new identity names. A configuration change has no canary:
+the TOML diff of its configuration files is recomputed against the trusted
+base instead
+(:func:`tools.quality_ratchet_configuration_check.tip_configuration_refusals`);
+the per-commit walk checks the shape of the commit that added it.
 """
 
 from __future__ import annotations
@@ -21,11 +25,16 @@ from collections.abc import Mapping
 from pathlib import Path
 
 from tools.ci_workflow_inventory import object_mapping
-from tools.quality_ratchet_baseline import committed_files
+from tools.quality_ratchet_baseline import committed_files, resolve_commit
 from tools.quality_ratchet_canaries import run_profile_canaries
+from tools.quality_ratchet_configuration_check import tip_configuration_refusals
 from tools.quality_ratchet_contracts import Snapshot, decode_quality_json
 from tools.quality_ratchet_inventory import source_candidate
-from tools.quality_ratchet_succession import TRANSITIONS_PATH, Transition
+from tools.quality_ratchet_succession import (
+    CONFIGURATION_REASON,
+    TRANSITIONS_PATH,
+    Transition,
+)
 from tools.quality_ratchet_succession_check import transition_for, verify_canary_run
 from tools.quality_ratchet_succession_parse import parse_transitions
 
@@ -94,6 +103,9 @@ def canary_refusals(
 ) -> tuple[str, ...]:
     """Run the canaries of every transition the current capture applies.
 
+    Configuration changes run no canary; the TOML diff of their files is
+    recomputed against the trusted base ``args.base_ref`` instead.
+
     Parameters
     ----------
     root : Path
@@ -111,8 +123,14 @@ def canary_refusals(
     -------
     tuple[str, ...]
         Profile-qualified refusals, sorted; empty when no transition applies.
+
+    Raises
+    ------
+    ValueError, OSError, subprocess.SubprocessError
+        If Git refuses or a configuration file is missing or not valid TOML.
     """
     refusals: set[str] = set()
+    configuration: list[Transition] = []
     for profile, snapshot in sorted(actual.items()):
         original = trusted.get(profile)
         if original is None or original.identity == snapshot.identity:
@@ -121,6 +139,9 @@ def canary_refusals(
             transitions, profile, original.identity, snapshot.identity
         )
         if transition is None:
+            continue
+        if transition.reason == CONFIGURATION_REASON:
+            configuration.append(transition)
             continue
         try:
             run = run_profile_canaries(root, args, profile)
@@ -136,6 +157,12 @@ def canary_refusals(
                 platform=run.platform,
                 engine_digest=run.engine_digest,
                 findings=run.findings,
+            )
+        )
+    if configuration:
+        refusals.update(
+            tip_configuration_refusals(
+                root, resolve_commit(root, args.base_ref), configuration
             )
         )
     return tuple(sorted(refusals))

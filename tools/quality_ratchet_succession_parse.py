@@ -11,11 +11,23 @@ Every refusal is raised as :class:`ValueError` with a reason naming the
 member at fault. Parsing alone grants nothing: a record applies only when the
 base snapshot's identity and the identity the candidate's adapter recomputes
 match it (:mod:`tools.quality_ratchet_succession_check`).
+
+A ``configuration_change`` entry has no canary, no artefact, no drop and no
+reworded message. Its changed fields are configuration-file digests only, and
+it records the TOML pointers it changes, each on the profile's reviewed
+non-influencing list; the checks recompute them from the files. Its statistics
+approval may be absent only when every pointer it records was recorded by an
+earlier configuration entry of the same file, never on a pointer's first use.
 """
 
 from __future__ import annotations
 
 from tools.ci_workflow_inventory import object_mapping
+from tools.quality_ratchet_configuration import (
+    CONFIGURATION_FIELDS,
+    NON_INFLUENCING,
+    under,
+)
 from tools.quality_ratchet_contracts import (
     decode_quality_json,
     repository_path,
@@ -25,6 +37,8 @@ from tools.quality_ratchet_succession import (
     ABSENT,
     ARTEFACTS_POINTER,
     CANARY_MEMBERS,
+    CONFIGURATION_MEMBERS,
+    CONFIGURATION_REASON,
     ENGINE_FIELD,
     ENTRY_MEMBERS,
     KEY_MEMBERS,
@@ -205,6 +219,98 @@ def _drops(value: object, rules: tuple[str, ...]) -> tuple[Drop, ...]:
     return tuple(sorted(drops, key=lambda drop: drop.key))
 
 
+def _configuration_paths(
+    value: object, profile: str, changes: tuple[FieldChange, ...]
+) -> dict[str, tuple[str, ...]]:
+    """Parse a configuration entry's changed TOML pointers, per changed file."""
+    fields = CONFIGURATION_FIELDS.get(profile, {})
+    stray = [change.path for change in changes if change.path not in fields]
+    if stray:
+        raise ValueError(
+            "A configuration transition changes a field outside its configuration "
+            f"files: {stray[0]}"
+        )
+    files = {fields[change.path] for change in changes}
+    item = object_mapping(value)
+    if set(item) != files:
+        raise ValueError("Configuration paths must name exactly the changed files")
+    paths = {}
+    for name in sorted(files):
+        raw = item[name]
+        if (
+            not isinstance(raw, list)
+            or any(not isinstance(pointer, str) for pointer in raw)
+            or raw != sorted(set(raw))
+            or any(not pointer.startswith("/") for pointer in raw)
+        ):
+            raise ValueError("Invalid configuration paths")
+        allowed = NON_INFLUENCING.get(profile, {}).get(name, ())
+        if any(not any(under(pointer, a) for a in allowed) for pointer in raw):
+            raise ValueError(
+                "A recorded configuration path is not on the non-influencing list"
+            )
+        paths[name] = tuple(raw)
+    return paths
+
+
+def _approvals(
+    item: dict[str, object], *, optional_rigor: bool
+) -> tuple[str, str, str | None]:
+    """Parse the packet and approval digests; they must be distinct records."""
+    packet = sha256_digest(item["packet_digest"])
+    authority = sha256_digest(item["authority_approval_digest"])
+    raw = item["rigor_approval_digest"]
+    rigor = None if raw is None and optional_rigor else sha256_digest(raw)
+    digests = [packet, authority, *([rigor] if rigor is not None else [])]
+    if len(set(digests)) != len(digests):
+        raise ValueError(
+            "The packet and its two approvals must be distinct records"
+            if rigor is not None
+            else "The packet and its approval must be distinct records"
+        )
+    return packet, authority, rigor
+
+
+def _configuration_transition(
+    item: dict[str, object],
+    profile: str,
+    identities: tuple[str, str],
+    preimages: tuple[dict[str, object], dict[str, object]],
+    changes: tuple[FieldChange, ...],
+) -> Transition:
+    """Validate the members only a configuration entry has, and build it."""
+    if (
+        item["canary"] is not None
+        or item["verification_records"] != {}
+        or item["drops"] != []
+        or item["message_only"] != []
+    ):
+        raise ValueError(
+            "A configuration transition has no canary, artefact, drop or reworded "
+            "message"
+        )
+    paths = _configuration_paths(item["configuration_paths"], profile, changes)
+    packet, authority, rigor = _approvals(item, optional_rigor=True)
+    return Transition(
+        profile,
+        CONFIGURATION_REASON,
+        identities[0],
+        identities[1],
+        preimages[0],
+        preimages[1],
+        changes,
+        {},
+        sha256_digest(item["evidence_digest"]),
+        (),
+        (),
+        None,
+        packet,
+        authority,
+        rigor,
+        paths,
+    )
+
+
 def parse_transition(value: object) -> Transition:
     """Validate one transition entry completely.
 
@@ -228,7 +334,8 @@ def parse_transition(value: object) -> Transition:
         changelog, or approvals that are not three distinct digests.
     """
     item = object_mapping(value)
-    if set(item) != ENTRY_MEMBERS:
+    configuration = item.get("reason") == CONFIGURATION_REASON
+    if set(item) != (CONFIGURATION_MEMBERS if configuration else ENTRY_MEMBERS):
         raise ValueError("Invalid transition entry members")
     profile, reason = item["profile"], item["reason"]
     if not isinstance(profile, str) or profile not in PREIMAGE_PROFILES:
@@ -244,6 +351,10 @@ def parse_transition(value: object) -> Transition:
     changes = tuple(sorted(_changes(item["changed_fields"]), key=lambda c: c.path))
     if _canonical(changes) != _canonical(preimage_changes(old, new)):
         raise ValueError("Declared changed fields differ from the preimage diff")
+    if configuration:
+        return _configuration_transition(
+            item, profile, (old_identity, new_identity), (old, new), changes
+        )
     records = {
         path: sha256_digest(digest)
         for path, digest in object_mapping(item["verification_records"]).items()
@@ -256,13 +367,7 @@ def parse_transition(value: object) -> Transition:
     if set(records) != artefacts:
         raise ValueError("Every changed artefact needs exactly one verification record")
     canary = _canary(item["canary"], old, new)
-    approvals = (
-        sha256_digest(item["packet_digest"]),
-        sha256_digest(item["authority_approval_digest"]),
-        sha256_digest(item["rigor_approval_digest"]),
-    )
-    if len(set(approvals)) != 3:
-        raise ValueError("The packet and its two approvals must be distinct records")
+    approvals = _approvals(item, optional_rigor=False)
     return Transition(
         profile,
         reason,
@@ -309,4 +414,17 @@ def parse_transitions(data: bytes) -> tuple[Transition, ...]:
     starts = [(entry.profile, entry.old_identity) for entry in entries]
     if len(set(starts)) != len(starts):
         raise ValueError("Two transitions leave the same profile identity")
+    used: set[tuple[str, str, str]] = set()
+    for entry in entries:
+        recorded = {
+            (entry.profile, name, pointer)
+            for name, pointers in entry.configuration_paths.items()
+            for pointer in pointers
+        }
+        if entry.rigor_approval_digest is None and not recorded <= used:
+            raise ValueError(
+                "A configuration path used for the first time needs the statistics "
+                "approval"
+            )
+        used |= recorded
     return entries
