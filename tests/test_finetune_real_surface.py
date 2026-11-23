@@ -14,7 +14,7 @@ from pathlib import Path
 
 import pytest
 
-from director_ai.core.training.finetune import finetune_nli
+from director_ai.core.training.finetune import finetune_nli, loader_options
 from tools.test_surface_policy_manifest import KNOWN_TEST_SURFACE_CLASSIFICATIONS
 
 
@@ -89,6 +89,16 @@ def test_finetune_nli_truncates_large_label_error_reports(tmp_path: Path) -> Non
 
     with pytest.raises(ValueError, match="truncated, too many label errors"):
         finetune_nli(train_path)
+
+
+def test_loader_options_follow_the_resolved_training_device() -> None:
+    """Load in-process and unpinned on a CPU; keep four workers on accelerators."""
+    assert loader_options("cpu") == {
+        "dataloader_num_workers": 0,
+        "dataloader_pin_memory": False,
+    }
+    for device_type in ("cuda", "mps", "xpu", "npu"):
+        assert loader_options(device_type) == {"dataloader_num_workers": 4}
 
 
 @pytest.mark.parametrize(
@@ -167,6 +177,11 @@ def test_finetune_trains_local_cpu_checkpoint(
         saved_args = torch.load(output / "training_args.bin", weights_only=False)
         assert isinstance(saved_args, TrainingArguments)
         assert saved_args.get_warmup_steps(4) == expected_steps
+        loader = loader_options(saved_args.device.type)
+        assert saved_args.dataloader_num_workers == loader["dataloader_num_workers"]
+        assert saved_args.dataloader_pin_memory is loader.get(
+            "dataloader_pin_memory", True
+        )
         reloaded = BertForSequenceClassification.from_pretrained(output)
         assert not torch.equal(model.classifier.weight, reloaded.classifier.weight)
         encoded = tokenizer("evidence", "approval", return_tensors="pt")

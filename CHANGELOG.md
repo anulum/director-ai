@@ -227,6 +227,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Fine-tuning on a CPU now loads its data in-process and unpinned, so a
+  caller that trains from a thread no longer forks four loader workers or
+  pins host memory with no accelerator to copy to. The loader settings
+  follow the device that `TrainingArguments` resolves; every accelerator
+  keeps four workers and the pinning default.
 - `director_ai` and `director_ai.core` name the advanced tier only when the
   requested symbol's own module, or one of its parent packages, is absent
   from the installed tier. In a Core-only installation,

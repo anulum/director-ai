@@ -596,6 +596,7 @@ class TestFinetuneNli:
         class _TrainingArguments:
             def __init__(self, **kwargs: Any) -> None:
                 recorder["training_args"] = kwargs
+                self.device = SimpleNamespace(type="cpu")
 
         class _EarlyStoppingCallback:
             def __init__(self, **kwargs: Any) -> None:
@@ -793,6 +794,8 @@ class TestFinetuneNli:
         assert recorder["model_from_pretrained"][1]["num_labels"] == 2
         assert recorder["training_args"]["eval_strategy"] == "steps"
         assert recorder["training_args"]["load_best_model_at_end"] is True
+        assert recorder["training_args"]["dataloader_num_workers"] == 0
+        assert recorder["training_args"]["dataloader_pin_memory"] is False
         assert recorder["early_stopping"] == {"early_stopping_patience": 3}
         assert (
             recorder["trainer_kwargs"]["compute_metrics"]

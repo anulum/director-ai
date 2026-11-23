@@ -40,7 +40,7 @@ import random
 from collections import Counter
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Protocol, cast
+from typing import Any, Protocol, TypedDict, cast
 
 try:
     from backfire_kernel import rust_sum_f64, rust_sum_i64
@@ -466,6 +466,37 @@ def _auto_benchmark(
     }
 
 
+class LoaderOptions(TypedDict, total=False):
+    """``TrainingArguments`` data-loader fields that depend on the device."""
+
+    dataloader_num_workers: int
+    dataloader_pin_memory: bool
+
+
+def loader_options(device_type: str) -> LoaderOptions:
+    """Return the data-loader settings for the device that training resolved.
+
+    On a CPU, worker processes would fork from a caller that may run other
+    threads, and pinned host memory has no accelerator to copy to, so
+    training loads in-process and unpinned. Every accelerator keeps four
+    workers and the pinning default of Transformers.
+
+    Parameters
+    ----------
+    device_type : str
+        The ``type`` of the device that ``TrainingArguments`` resolved, such
+        as ``"cpu"``, ``"cuda"``, ``"mps"`` or ``"xpu"``.
+
+    Returns
+    -------
+    LoaderOptions
+        ``TrainingArguments`` fields for the data loaders.
+    """
+    if device_type == "cpu":
+        return {"dataloader_num_workers": 0, "dataloader_pin_memory": False}
+    return {"dataloader_num_workers": 4}
+
+
 def finetune_nli(
     train_path: str | Path,
     eval_path: str | Path | None = None,
@@ -606,29 +637,31 @@ def finetune_nli(
         # to every training step, preserving the full-warmup ratio.
         warmup_fraction = math.nextafter(1.0, 0.0)
     warmup_options: dict[str, Any] = {warmup_key: warmup_fraction}
-    training_args = TrainingArguments(
-        output_dir=config.output_dir,
-        num_train_epochs=config.epochs,
-        per_device_train_batch_size=config.batch_size,
-        per_device_eval_batch_size=config.batch_size * 2,
-        learning_rate=config.learning_rate,
+    arguments: dict[str, Any] = {
+        "output_dir": config.output_dir,
+        "num_train_epochs": config.epochs,
+        "per_device_train_batch_size": config.batch_size,
+        "per_device_eval_batch_size": config.batch_size * 2,
+        "learning_rate": config.learning_rate,
         **warmup_options,
-        weight_decay=config.weight_decay,
-        fp16=config.fp16,
-        seed=config.seed,
-        eval_strategy="steps" if eval_dataset else "no",
-        eval_steps=config.eval_steps if eval_dataset else None,
-        save_strategy=save_strat,
-        save_steps=(config.eval_steps if eval_dataset else 0),
-        save_total_limit=2,
-        load_best_model_at_end=bool(eval_dataset),
-        metric_for_best_model="balanced_accuracy" if eval_dataset else None,
-        greater_is_better=True,
-        gradient_accumulation_steps=config.gradient_accumulation_steps,
-        logging_steps=50,
-        report_to="none",
-        dataloader_num_workers=4,
-    )
+        "weight_decay": config.weight_decay,
+        "fp16": config.fp16,
+        "seed": config.seed,
+        "eval_strategy": "steps" if eval_dataset else "no",
+        "eval_steps": config.eval_steps if eval_dataset else None,
+        "save_strategy": save_strat,
+        "save_steps": (config.eval_steps if eval_dataset else 0),
+        "save_total_limit": 2,
+        "load_best_model_at_end": bool(eval_dataset),
+        "metric_for_best_model": "balanced_accuracy" if eval_dataset else None,
+        "greater_is_better": True,
+        "gradient_accumulation_steps": config.gradient_accumulation_steps,
+        "logging_steps": 50,
+        "report_to": "none",
+    }
+    # The loaders follow the device these arguments resolve to, so resolve it first.
+    resolved = TrainingArguments(**arguments).device.type
+    training_args = TrainingArguments(**arguments, **loader_options(resolved))
 
     # Phase E: early stopping callback
     callbacks: list[Any] = []
