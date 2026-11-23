@@ -217,9 +217,9 @@ def test_an_experimental_row_may_claim_no_installation() -> None:
             "alpha-row: a custody record is not a record stem: ' '",
         ),
         (
-            (Custody("evidence", "REVIEW_claude-b0f9_20261123T121107Z.md", DIGEST),),
+            (Custody("evidence", "review_20261123T121107Z.md", DIGEST),),
             "alpha-row: a custody record is not a record stem: "
-            "'REVIEW_claude-b0f9_20261123T121107Z.md'",
+            "'review_20261123T121107Z.md'",
         ),
         (
             (Custody("evidence", "REVIEW_20261123T1211Z", DIGEST),),

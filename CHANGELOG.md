@@ -171,6 +171,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
   It loads no `torch`, `transformers` or `safetensors` and no module under
   another licence. It does not train, evaluate or deploy models.
+- Add the production support contract, `director_ai.support_contract`: a
+  typed Core catalog that classifies every public export and CLI command
+  exactly once, with each operation's smallest installation, its support
+  (`production-qualified` or `experimental`) and its activation. Eleven
+  operations are production-qualified; each scope note states what its
+  probe does not measure.
+- Add `tools/support_contract_check.py` and
+  `scripts/probe_support_contract.py`. CI refuses an unclassified export or
+  command, a production default that no operation owns and a stale generated
+  table, and binds each claimed installation to a probe that passed on the
+  installed wheels.
 
 ### Changed
 
@@ -210,6 +221,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add the permanent text-and-data-mining and machine-learning Use Limitation
   for the Advanced/Labs source under `LicenseRef-BUSL-1.1-ANULUM-TDM`;
   preserve the Apache core licence and original conversion parameters.
+- README, the production checklist and the deployment guide show one
+  generated production support block in place of their separate shortlists,
+  and the capability matrix gains a support column.
 
 ### Fixed
 
