@@ -5,11 +5,11 @@
     "model_documentation_pages": 90,
     "optional_extras": 62,
     "public_api_exports": 227,
-    "public_documentation_pages": 208,
-    "python_model_classes": 1206,
-    "python_model_source_modules": 618,
+    "public_documentation_pages": 209,
+    "python_model_classes": 1211,
+    "python_model_source_modules": 620,
     "rust_pyo3_model_wrappers": 83,
-    "test_files": 891
+    "test_files": 898
   },
   "documentation": {
     "public_pages": [
@@ -131,6 +131,7 @@
       "docs-site/deployment/monitoring.md",
       "docs-site/deployment/observability.md",
       "docs-site/deployment/onnx-artefacts.md",
+      "docs-site/deployment/production-support.md",
       "docs-site/deployment/production.md",
       "docs-site/deployment/public-endpoints.md",
       "docs-site/deployment/repository-backups.md",
@@ -1341,6 +1342,10 @@
       {
         "name": "CurriculumStageSpec",
         "path": "src/director_ai/model_lifecycle/recipe_records.py"
+      },
+      {
+        "name": "Custody",
+        "path": "src/director_ai/support_contract.py"
       },
       {
         "name": "CustodyIngestRecord",
@@ -3251,6 +3256,10 @@
         "path": "src/director_ai/core/calibration/operating_points.py"
       },
       {
+        "name": "Operation",
+        "path": "src/director_ai/support_contract.py"
+      },
+      {
         "name": "Or",
         "path": "src/director_ai/core/formal_verification/formula.py"
       },
@@ -3621,6 +3630,10 @@
       {
         "name": "ProductionScaffoldReport",
         "path": "src/director_ai/_cli_production.py"
+      },
+      {
+        "name": "ProfileDefault",
+        "path": "src/director_ai/support_contract.py"
       },
       {
         "name": "ProfileMetadata",
@@ -4509,6 +4522,14 @@
       {
         "name": "SupersessionResult",
         "path": "src/director_ai/core/ingestion/pipeline.py"
+      },
+      {
+        "name": "SupportContract",
+        "path": "src/director_ai/support_contract.py"
+      },
+      {
+        "name": "SupportContractError",
+        "path": "src/director_ai/support_contract.py"
       },
       {
         "name": "SustainabilityBudget",
@@ -5765,6 +5786,8 @@
       "src/director_ai/routers/verification.py",
       "src/director_ai/server.py",
       "src/director_ai/server_support.py",
+      "src/director_ai/support_contract.py",
+      "src/director_ai/support_contract_catalog.py",
       "src/director_ai/testing/adversarial_suite.py",
       "src/director_ai/ui/_dashboard_analytics.py",
       "src/director_ai/ui/_dashboard_app.py",
@@ -6785,6 +6808,7 @@
       "tests/test_pricing_tier_boundary_docs.py",
       "tests/test_private_score_release.py",
       "tests/test_probability_calibration.py",
+      "tests/test_probe_support_contract.py",
       "tests/test_production_asserts.py",
       "tests/test_production_guard.py",
       "tests/test_production_guard_real_surface.py",
@@ -6996,6 +7020,11 @@
       "tests/test_structured_halt_recovery.py",
       "tests/test_summarization_bidir.py",
       "tests/test_supersession.py",
+      "tests/test_support_contract.py",
+      "tests/test_support_contract_catalog.py",
+      "tests/test_support_contract_check.py",
+      "tests/test_support_contract_inventory.py",
+      "tests/test_support_contract_receipts.py",
       "tests/test_sustainability.py",
       "tests/test_sustainability_forecaster.py",
       "tests/test_sustainability_policy_adapter.py",
@@ -7090,6 +7119,7 @@
       "tests/test_wasm_overhead_bench.py",
       "tests/test_wasm_release_package.py",
       "tests/test_wasm_runtime_priority.py",
+      "tests/test_wheel_checks_support_contract.py",
       "tests/test_ws_ticket.py",
       "tests/test_zk_attestation.py",
       "tests/test_zk_attestation_fuzz.py",

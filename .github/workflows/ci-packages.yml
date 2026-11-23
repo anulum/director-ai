@@ -52,3 +52,40 @@ jobs:
           python -m build --wheel . --outdir dist-free
           twine check dist-free/*
           python scripts/check_free_wheel.py dist-free
+
+      - name: Probe the production support contract on the installed wheels
+        env:
+          COMMIT: ${{ github.sha }}
+        run: |
+          # Each combination installs into its own clean environment, and the
+          # probes run with -P from outside the checkout, so only the installed
+          # wheels can be imported. Core+Pro runs first: it emits the evidence
+          # packet that the Core run verifies and tampers with. The receipts
+          # check then binds every claimed installation to a passing probe,
+          # and every receipt to this commit's tree.
+          set -euo pipefail
+          tree="$(git rev-parse 'HEAD^{tree}')"
+          receipts="$RUNNER_TEMP/support-receipts"
+          packets="$RUNNER_TEMP/support-packets"
+          mkdir -p "$receipts" "$packets"
+          for combination in core+pro core core+full; do
+            case "$combination" in
+              core) wheels=(dist-free/*.whl) ;;
+              core+pro) wheels=(dist-free/*.whl dist-pro/*.whl) ;;
+              core+full) wheels=(dist-free/*.whl dist-full/*.whl) ;;
+            esac
+            environment="$RUNNER_TEMP/env-$combination"
+            python -m venv "$environment"
+            "$environment/bin/pip" install --require-hashes --no-deps -r requirements/ci-dev.txt
+            "$environment/bin/pip" install --no-deps "${wheels[@]}"
+            mkdir -p "$RUNNER_TEMP/wheels-$combination"
+            cp "${wheels[@]}" "$RUNNER_TEMP/wheels-$combination/"
+            (cd "$RUNNER_TEMP" && "$environment/bin/python" -P \
+              "$GITHUB_WORKSPACE/scripts/probe_support_contract.py" \
+              --installation "$combination" --host hosted-ci --commit "$COMMIT" \
+              --tree "$tree" --machine "${RUNNER_NAME:-github-hosted}" \
+              --wheels "$RUNNER_TEMP/wheels-$combination" \
+              --out "$receipts/$combination.json" \
+              --checkout "$GITHUB_WORKSPACE" --packets "$packets")
+          done
+          PYTHONPATH=src:. python -m tools.support_contract_check --receipts "$receipts" --tree "$tree"

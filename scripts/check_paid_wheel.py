@@ -31,6 +31,11 @@ REPO = Path(__file__).resolve().parents[1]
 MANIFEST = REPO / "packages" / "paid_tier_manifest.json"
 
 _PARENT_INIT = ("director_ai/__init__.py", "director_ai/core/__init__.py")
+_CONTRACT = (
+    "director_ai/support_contract.py",
+    "director_ai/support_contract_catalog.py",
+)
+"""The production support contract, which only the Core wheel may ship."""
 
 
 def _labs_prefixes() -> list[str]:
@@ -55,6 +60,9 @@ def main(dist_dir: str, tier: str) -> int:
     conflict = [n for n in names if n in _PARENT_INIT]
     if conflict:
         failures.append(f"ships parent __init__ that collides with core: {conflict}")
+    contract = sorted(n for n in names if n in _CONTRACT)
+    if contract:
+        failures.append(f"ships the Core support contract: {contract}")
     if not any(n.startswith("director_ai/core/streaming_repair/") for n in names):
         failures.append("missing the streaming_repair advanced package")
 

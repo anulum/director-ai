@@ -51,6 +51,8 @@ _FREE_ESSENTIALS = (
     "director_ai/_cli_verify.py",
     "director_ai/guard.py",
     "director_ai/model_lifecycle/__init__.py",
+    "director_ai/support_contract.py",
+    "director_ai/support_contract_catalog.py",
 )
 
 _SIMULATION = """

@@ -22,6 +22,12 @@ static-inventory facts:
 * ``benchmarked`` — the symbol name appears under ``benchmarks/``
   (informational only, most public symbols have no compute hot path).
 
+Each row also carries its ``support`` level from the production support
+contract (``src/director_ai/support_contract_catalog.py``, read statically):
+``production-qualified`` for an export a qualified operation covers, otherwise
+``experimental``. ``tools/support_contract_check.py`` checks the contract
+itself; the matrix only reports it.
+
 ``--check`` is a ratchet, not a snapshot: it fails when the committed matrix
 drifts, when any symbol is unwired, when a symbol outside the committed
 baseline (``tools/capability_matrix_baseline.toml``) is untested or
@@ -50,6 +56,7 @@ _PACKAGE_ROOT = "src/director_ai"
 _TESTS_ROOT = "tests"
 _DOCS_ROOT = "docs-site"
 _BENCHMARKS_ROOT = "benchmarks"
+_SUPPORT_CATALOG = "src/director_ai/support_contract_catalog.py"
 _SCHEMA_VERSION = "capability-matrix.v1"
 
 
@@ -112,6 +119,30 @@ def _mentioned(corpus: list[str], name: str) -> bool:
     return any(pattern.search(text) for text in corpus)
 
 
+def _support_levels(catalog: Path) -> dict[str, str]:
+    """Map each export a support-contract operation covers to its support.
+
+    The catalog is read statically, as the exports are, so the matrix needs
+    no import. An export no operation covers is experimental.
+    """
+    if not catalog.is_file():
+        return {}
+    levels: dict[str, str] = {}
+    for node in ast.walk(ast.parse(catalog.read_text(encoding="utf-8"))):
+        if not (
+            isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Name)
+            and node.func.id == "Operation"
+        ):
+            continue
+        keywords = {item.arg: item.value for item in node.keywords if item.arg}
+        support = ast.literal_eval(keywords["support"])
+        exported = keywords.get("exports")
+        for name in ast.literal_eval(exported) if exported is not None else ():
+            levels[name] = support
+    return levels
+
+
 def build_matrix(repo: Path) -> dict[str, Any]:
     """Build the deterministic coverage matrix for one repository checkout."""
     package_root = repo / _PACKAGE_ROOT
@@ -121,6 +152,7 @@ def build_matrix(repo: Path) -> dict[str, Any]:
     tests = _corpus(repo / _TESTS_ROOT, ".py")
     docs = _corpus(repo / _DOCS_ROOT, ".md", exclude_part="_generated")
     benchmarks = _corpus(repo / _BENCHMARKS_ROOT, ".py")
+    support = _support_levels(repo / _SUPPORT_CATALOG)
 
     rows: list[dict[str, Any]] = []
     for name, module in sorted(exports.items()):
@@ -133,6 +165,7 @@ def build_matrix(repo: Path) -> dict[str, Any]:
                 "tested": _mentioned(tests, name),
                 "documented": _mentioned(docs, name),
                 "benchmarked": _mentioned(benchmarks, name),
+                "support": support.get(name, "experimental"),
             }
         )
     for name, module in sorted(hooks.items()):
@@ -145,6 +178,7 @@ def build_matrix(repo: Path) -> dict[str, Any]:
                 "tested": _mentioned(tests, name),
                 "documented": _mentioned(docs, name),
                 "benchmarked": _mentioned(benchmarks, name),
+                "support": "experimental",
             }
         )
 
@@ -161,6 +195,9 @@ def build_matrix(repo: Path) -> dict[str, Any]:
             "untested": len(_gaps("tested")),
             "undocumented": len(_gaps("documented")),
             "benchmarked": sum(1 for row in rows if row["benchmarked"]),
+            "production_qualified": sum(
+                1 for row in rows if row["support"] == "production-qualified"
+            ),
         },
         "gaps": {
             "unwired": _gaps("wired"),
@@ -190,6 +227,7 @@ def render_markdown(matrix: dict[str, Any]) -> str:
         f"| Untested (by name mention) | {counts['untested']} |",
         f"| Undocumented (by name mention) | {counts['undocumented']} |",
         f"| Benchmarked (informational) | {counts['benchmarked']} |",
+        f"| Production-qualified (support contract) | {counts['production_qualified']} |",
         "",
     ]
     for label, names in (

@@ -3,6 +3,7 @@
   "counts": {
     "benchmarked": 52,
     "experimental_hooks": 23,
+    "production_qualified": 9,
     "public_exports": 227,
     "undocumented": 0,
     "untested": 0,
@@ -20,6 +21,7 @@
       "kind": "public_export",
       "module": ".core.retrieval.adaptive_router",
       "name": "AdaptiveRouter",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -29,6 +31,7 @@
       "kind": "public_export",
       "module": ".core",
       "name": "AdaptiveThresholdArm",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -38,6 +41,7 @@
       "kind": "public_export",
       "module": ".core",
       "name": "AdaptiveThresholdLearner",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -47,6 +51,7 @@
       "kind": "public_export",
       "module": ".core",
       "name": "AdaptiveThresholdRecommendation",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -56,6 +61,7 @@
       "kind": "public_export",
       "module": ".core",
       "name": "AdaptiveThresholdReport",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -65,6 +71,7 @@
       "kind": "public_export",
       "module": ".testing.adversarial_suite",
       "name": "AdversarialTester",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -74,6 +81,7 @@
       "kind": "public_export",
       "module": ".agentic.agent_profile",
       "name": "AgentProfile",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -83,6 +91,7 @@
       "kind": "public_export",
       "module": ".compliance.annex_iv",
       "name": "AnnexIVTechnicalDocumentationContext",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -92,6 +101,7 @@
       "kind": "public_export",
       "module": ".compliance.reporter",
       "name": "Article15Report",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -101,6 +111,7 @@
       "kind": "public_export",
       "module": ".compliance.reporter",
       "name": "Article15TemplateContext",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -110,6 +121,7 @@
       "kind": "public_export",
       "module": ".core",
       "name": "AsyncStreamingKernel",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -119,6 +131,7 @@
       "kind": "public_export",
       "module": ".voice.guard",
       "name": "AsyncVoiceGuard",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -128,6 +141,7 @@
       "kind": "public_export",
       "module": ".core",
       "name": "AttributionEdge",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -137,6 +151,7 @@
       "kind": "public_export",
       "module": ".core",
       "name": "AttributionNode",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -146,6 +161,7 @@
       "kind": "public_export",
       "module": ".compliance.audit_log",
       "name": "AuditEntry",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -155,6 +171,7 @@
       "kind": "public_export",
       "module": ".compliance.audit_log",
       "name": "AuditLog",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -164,6 +181,7 @@
       "kind": "public_export",
       "module": ".core",
       "name": "BFTConsensusResult",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -173,6 +191,7 @@
       "kind": "public_export",
       "module": ".core",
       "name": "BFTConsensusVote",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -182,6 +201,7 @@
       "kind": "public_export",
       "module": ".core",
       "name": "BatchProcessor",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -191,6 +211,7 @@
       "kind": "public_export",
       "module": ".core",
       "name": "BatchResult",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -200,6 +221,7 @@
       "kind": "public_export",
       "module": ".core",
       "name": "ByzantineFaultTolerantConsensus",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -209,6 +231,7 @@
       "kind": "public_export",
       "module": ".core.calibration.online_calibrator",
       "name": "CalibrationReport",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -218,6 +241,7 @@
       "kind": "public_export",
       "module": ".core",
       "name": "CausalAttributionGraph",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -227,6 +251,7 @@
       "kind": "public_export",
       "module": ".core",
       "name": "ChromaBackend",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -236,6 +261,7 @@
       "kind": "public_export",
       "module": ".core.scoring.temporal_freshness",
       "name": "CitationStatusSignal",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -245,6 +271,7 @@
       "kind": "public_export",
       "module": ".core.scoring.temporal_freshness",
       "name": "CitationStatusVerdict",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -254,6 +281,7 @@
       "kind": "public_export",
       "module": ".core",
       "name": "ClaimAttribution",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -263,6 +291,7 @@
       "kind": "public_export",
       "module": ".core",
       "name": "ClaimVerdict",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -272,6 +301,7 @@
       "kind": "public_export",
       "module": ".core.verification.types",
       "name": "CodeCheckResult",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -281,6 +311,7 @@
       "kind": "public_export",
       "module": ".core",
       "name": "CoherenceAgent",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -290,6 +321,7 @@
       "kind": "public_export",
       "module": ".integrations.langchain_callback",
       "name": "CoherenceCallbackHandler",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -299,6 +331,7 @@
       "kind": "public_export",
       "module": ".core.exceptions",
       "name": "CoherenceError",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -308,6 +341,7 @@
       "kind": "public_export",
       "module": ".core",
       "name": "CoherenceScore",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -317,6 +351,7 @@
       "kind": "public_export",
       "module": ".core",
       "name": "CoherenceScorer",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -326,6 +361,7 @@
       "kind": "public_export",
       "module": ".core",
       "name": "ColBERTBackend",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -335,6 +371,7 @@
       "kind": "public_export",
       "module": ".compliance.reporter",
       "name": "ComplianceReporter",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -344,6 +381,7 @@
       "kind": "public_export",
       "module": ".core",
       "name": "ConflictAwareKnowledgeGuard",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -353,6 +391,7 @@
       "kind": "public_export",
       "module": ".core.calibration.conformal",
       "name": "ConformalPredictor",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -362,6 +401,7 @@
       "kind": "public_export",
       "module": ".core.calibration.conformal",
       "name": "ConformalRoutingDecision",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -371,6 +411,7 @@
       "kind": "public_export",
       "module": ".core.calibration.conformal",
       "name": "ConformalRoutingPolicy",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -380,6 +421,7 @@
       "kind": "public_export",
       "module": ".core.scoring.consensus",
       "name": "ConsensusScorer",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -389,6 +431,7 @@
       "kind": "public_export",
       "module": ".enterprise.moderation",
       "name": "ContentModerationFinding",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -398,6 +441,7 @@
       "kind": "public_export",
       "module": ".enterprise.moderation",
       "name": "ContentModerationResult",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -407,6 +451,7 @@
       "kind": "public_export",
       "module": ".enterprise.moderation",
       "name": "ContentModerator",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -416,6 +461,7 @@
       "kind": "public_export",
       "module": ".core.retrieval.contextual_compression",
       "name": "ContextualCompressionBackend",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -425,6 +471,7 @@
       "kind": "public_export",
       "module": ".core.runtime.contradiction_tracker",
       "name": "ContradictionReport",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -434,6 +481,7 @@
       "kind": "public_export",
       "module": ".core.runtime.contradiction_tracker",
       "name": "ContradictionTracker",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -443,6 +491,7 @@
       "kind": "public_export",
       "module": ".core",
       "name": "ConversationSession",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -452,6 +501,7 @@
       "kind": "public_export",
       "module": ".compliance.cost_analyser",
       "name": "CostAnalyser",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -461,6 +511,7 @@
       "kind": "public_export",
       "module": ".core",
       "name": "CounterfactualFactChange",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -470,6 +521,7 @@
       "kind": "public_export",
       "module": ".core",
       "name": "CounterfactualHaltDiagnostic",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -479,6 +531,7 @@
       "kind": "public_export",
       "module": ".core.scoring.consensus",
       "name": "CriticalConsensusProfile",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -488,6 +541,7 @@
       "kind": "public_export",
       "module": ".core",
       "name": "CrossDocumentConflict",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -497,6 +551,7 @@
       "kind": "public_export",
       "module": ".core",
       "name": "CrossDocumentConsistencyMemory",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -506,6 +561,7 @@
       "kind": "public_export",
       "module": ".core",
       "name": "CrossDocumentConsistencyReport",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -515,6 +571,7 @@
       "kind": "public_export",
       "module": ".core.scoring.consensus",
       "name": "CrossVerifierConsensus",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -524,6 +581,7 @@
       "kind": "public_export",
       "module": ".enterprise.rules_dsl",
       "name": "CustomRule",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -533,6 +591,7 @@
       "kind": "public_export",
       "module": ".enterprise.rules_dsl",
       "name": "CustomRuleset",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -542,6 +601,7 @@
       "kind": "public_export",
       "module": ".core",
       "name": "DIRECTOR_SAFETY_PROTOCOL_VERSION",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -551,6 +611,7 @@
       "kind": "public_export",
       "module": ".core",
       "name": "DataQualityReport",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -560,6 +621,7 @@
       "kind": "public_export",
       "module": ".core",
       "name": "DatasetTypeClassifier",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -569,6 +631,7 @@
       "kind": "public_export",
       "module": ".voice.adapters",
       "name": "DeepgramAdapter",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -578,6 +641,7 @@
       "kind": "public_export",
       "module": ".core.exceptions",
       "name": "DependencyError",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -587,6 +651,7 @@
       "kind": "public_export",
       "module": ".core",
       "name": "DifferentialPrivacyScoreReleaser",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -596,6 +661,7 @@
       "kind": "public_export",
       "module": ".core.exceptions",
       "name": "DirectorAIError",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -605,6 +671,7 @@
       "kind": "public_export",
       "module": ".core",
       "name": "DirectorConfig",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -614,6 +681,7 @@
       "kind": "public_export",
       "module": ".core",
       "name": "DirectorSafetySignal",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -623,6 +691,7 @@
       "kind": "public_export",
       "module": ".compliance.drift_detector",
       "name": "DriftDetector",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -632,6 +701,7 @@
       "kind": "public_export",
       "module": ".compliance.drift_detector",
       "name": "DriftResult",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -641,6 +711,7 @@
       "kind": "public_export",
       "module": ".core",
       "name": "ElasticsearchBackend",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -650,6 +721,7 @@
       "kind": "public_export",
       "module": ".voice.adapters",
       "name": "ElevenLabsAdapter",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -659,6 +731,7 @@
       "kind": "public_export",
       "module": ".core",
       "name": "EvidenceChunk",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -668,6 +741,7 @@
       "kind": "public_export",
       "module": ".core",
       "name": "FAISSBackend",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -677,6 +751,7 @@
       "kind": "public_export",
       "module": ".core",
       "name": "FederatedSafetySignalAggregator",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -686,6 +761,7 @@
       "kind": "public_export",
       "module": ".core",
       "name": "FederatedSafetySignalRelease",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -695,6 +771,7 @@
       "kind": "public_export",
       "module": ".compliance.feedback_loop_detector",
       "name": "FeedbackLoopDetector",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -704,6 +781,7 @@
       "kind": "public_export",
       "module": ".core.calibration.feedback_store",
       "name": "FeedbackStore",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -713,6 +791,7 @@
       "kind": "public_export",
       "module": ".core.verification.types",
       "name": "FieldVerdict",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -722,6 +801,7 @@
       "kind": "public_export",
       "module": ".core",
       "name": "FinetuneConfig",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -731,6 +811,7 @@
       "kind": "public_export",
       "module": ".core",
       "name": "FinetuneResult",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -740,6 +821,7 @@
       "kind": "public_export",
       "module": ".core.exceptions",
       "name": "GeneratorError",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -749,6 +831,7 @@
       "kind": "public_export",
       "module": ".core",
       "name": "GroundTruthStore",
+      "support": "production-qualified",
       "tested": true,
       "wired": true
     },
@@ -758,6 +841,7 @@
       "kind": "public_export",
       "module": ".guard",
       "name": "GuardResult",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -767,6 +851,7 @@
       "kind": "public_export",
       "module": ".core.exceptions",
       "name": "HallucinationError",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -776,6 +861,7 @@
       "kind": "public_export",
       "module": ".core",
       "name": "HaltEvidence",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -785,6 +871,7 @@
       "kind": "public_export",
       "module": ".core",
       "name": "HaltMonitor",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -794,6 +881,7 @@
       "kind": "public_export",
       "module": ".core",
       "name": "HaltTraceAttribution",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -803,6 +891,7 @@
       "kind": "public_export",
       "module": ".agentic.handoff_scorer",
       "name": "HandoffScorer",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -812,6 +901,7 @@
       "kind": "public_export",
       "module": ".compliance.readiness",
       "name": "HipaaDeploymentObligation",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -821,6 +911,7 @@
       "kind": "public_export",
       "module": ".compliance.readiness",
       "name": "HipaaDocumentationPacket",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -830,6 +921,7 @@
       "kind": "public_export",
       "module": ".core",
       "name": "HumanReviewCase",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -839,6 +931,7 @@
       "kind": "public_export",
       "module": ".core",
       "name": "HumanReviewDecision",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -848,6 +941,7 @@
       "kind": "public_export",
       "module": ".core",
       "name": "HumanReviewQueue",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -857,6 +951,7 @@
       "kind": "public_export",
       "module": ".core.retrieval.hyde",
       "name": "HyDEBackend",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -866,6 +961,7 @@
       "kind": "public_export",
       "module": ".core",
       "name": "HybridBackend",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -875,6 +971,7 @@
       "kind": "public_export",
       "module": ".core",
       "name": "InMemoryBackend",
+      "support": "production-qualified",
       "tested": true,
       "wired": true
     },
@@ -884,6 +981,7 @@
       "kind": "public_export",
       "module": ".integrations.inference_server_hooks",
       "name": "InferenceHookDecision",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -893,6 +991,7 @@
       "kind": "public_export",
       "module": ".integrations.inference_server_hooks",
       "name": "InferenceHookRequest",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -902,6 +1001,7 @@
       "kind": "public_export",
       "module": ".integrations.inference_server_hooks",
       "name": "InferenceServerHook",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -911,6 +1011,7 @@
       "kind": "public_export",
       "module": ".integrations.inference_server_hooks",
       "name": "InferenceServerHookPolicy",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -920,6 +1021,7 @@
       "kind": "public_export",
       "module": ".core.types",
       "name": "InjectedClaim",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -929,6 +1031,7 @@
       "kind": "public_export",
       "module": ".core.safety.injection",
       "name": "InjectionDetector",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -938,6 +1041,7 @@
       "kind": "public_export",
       "module": ".core.types",
       "name": "InjectionResult",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -947,6 +1051,7 @@
       "kind": "public_export",
       "module": ".core",
       "name": "InputSanitizer",
+      "support": "production-qualified",
       "tested": true,
       "wired": true
     },
@@ -956,6 +1061,7 @@
       "kind": "public_export",
       "module": ".interlock",
       "name": "InterlockDecision",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -965,6 +1071,7 @@
       "kind": "public_export",
       "module": ".interlock",
       "name": "InterlockKernel",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -974,6 +1081,7 @@
       "kind": "public_export",
       "module": ".interlock",
       "name": "InterlockPolicy",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -983,6 +1091,7 @@
       "kind": "public_export",
       "module": ".core.retrieval.kb_health",
       "name": "KBHealthCheck",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -992,6 +1101,7 @@
       "kind": "public_export",
       "module": ".core.retrieval.kb_health",
       "name": "KBHealthReport",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -1001,6 +1111,7 @@
       "kind": "public_export",
       "module": ".core.exceptions",
       "name": "KernelHaltError",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -1010,6 +1121,7 @@
       "kind": "public_export",
       "module": ".core",
       "name": "KnowledgeConflict",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -1019,6 +1131,7 @@
       "kind": "public_export",
       "module": ".core",
       "name": "KnowledgeConflictCheck",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -1028,6 +1141,7 @@
       "kind": "public_export",
       "module": ".core",
       "name": "KnowledgeFact",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -1037,6 +1151,7 @@
       "kind": "public_export",
       "module": ".core",
       "name": "LLMGenerator",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -1046,6 +1161,7 @@
       "kind": "public_export",
       "module": ".core",
       "name": "LabelledPolicySample",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -1055,6 +1171,7 @@
       "kind": "public_export",
       "module": ".core",
       "name": "LiteScorer",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -1064,6 +1181,7 @@
       "kind": "public_export",
       "module": ".agentic.loop_monitor",
       "name": "LoopMonitor",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -1073,6 +1191,7 @@
       "kind": "public_export",
       "module": ".core",
       "name": "MetaClassifier",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -1082,6 +1201,7 @@
       "kind": "public_export",
       "module": ".core",
       "name": "MockGenerator",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -1091,6 +1211,7 @@
       "kind": "public_export",
       "module": ".core.scoring.consensus",
       "name": "ModelResponse",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -1100,6 +1221,7 @@
       "kind": "public_export",
       "module": ".enterprise.moderation",
       "name": "ModerationAction",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -1109,6 +1231,7 @@
       "kind": "public_export",
       "module": ".core.retrieval.multi_vector",
       "name": "MultiVectorBackend",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -1118,6 +1241,7 @@
       "kind": "public_export",
       "module": ".core",
       "name": "NLIScorer",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -1127,6 +1251,7 @@
       "kind": "public_export",
       "module": ".core",
       "name": "NeuroSymbolicVerificationResult",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -1136,6 +1261,7 @@
       "kind": "public_export",
       "module": ".core",
       "name": "NeuroSymbolicVerifier",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -1145,6 +1271,7 @@
       "kind": "public_export",
       "module": ".core",
       "name": "NeuroSymbolicVerifierInput",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -1154,6 +1281,7 @@
       "kind": "public_export",
       "module": ".core.verification.numeric_verifier",
       "name": "NumericVerificationResult",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -1163,6 +1291,7 @@
       "kind": "public_export",
       "module": ".core.exceptions",
       "name": "NumericalError",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -1172,6 +1301,7 @@
       "kind": "public_export",
       "module": ".core.calibration.online_calibrator",
       "name": "OnlineCalibrator",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -1181,6 +1311,7 @@
       "kind": "public_export",
       "module": ".voice.adapters",
       "name": "OpenAITTSAdapter",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -1190,6 +1321,7 @@
       "kind": "public_export",
       "module": ".core.retrieval.parent_child",
       "name": "ParentChildBackend",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -1199,6 +1331,7 @@
       "kind": "public_export",
       "module": ".core.exceptions",
       "name": "PhysicsError",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -1208,6 +1341,7 @@
       "kind": "public_export",
       "module": ".core",
       "name": "PineconeBackend",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -1217,6 +1351,7 @@
       "kind": "public_export",
       "module": ".core",
       "name": "PolicyComparisonReport",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -1226,6 +1361,7 @@
       "kind": "public_export",
       "module": ".core",
       "name": "PolicyEvaluationReport",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -1235,6 +1371,7 @@
       "kind": "public_export",
       "module": ".core",
       "name": "PolicyVariant",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -1244,6 +1381,7 @@
       "kind": "public_export",
       "module": ".core",
       "name": "PolicyVariantResult",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -1253,6 +1391,7 @@
       "kind": "public_export",
       "module": ".core.calibration.conformal",
       "name": "PredictionInterval",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -1262,6 +1401,7 @@
       "kind": "public_export",
       "module": ".core",
       "name": "PrivacyScoreRelease",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -1271,6 +1411,7 @@
       "kind": "public_export",
       "module": ".guard",
       "name": "ProductionGuard",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -1280,6 +1421,7 @@
       "kind": "public_export",
       "module": ".core",
       "name": "ProfileMetadata",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -1289,6 +1431,7 @@
       "kind": "public_export",
       "module": ".core",
       "name": "QdrantBackend",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -1298,6 +1441,7 @@
       "kind": "public_export",
       "module": ".core.retrieval.query_decomposition",
       "name": "QueryDecompositionBackend",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -1307,6 +1451,7 @@
       "kind": "public_export",
       "module": ".compliance.readiness",
       "name": "ReadinessStatus",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -1316,6 +1461,7 @@
       "kind": "public_export",
       "module": ".core",
       "name": "RegressionReport",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -1325,6 +1471,7 @@
       "kind": "public_export",
       "module": ".core",
       "name": "RerankedBackend",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -1334,6 +1481,7 @@
       "kind": "public_export",
       "module": ".core",
       "name": "ReviewQueue",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -1343,6 +1491,7 @@
       "kind": "public_export",
       "module": ".core",
       "name": "ReviewResult",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -1352,6 +1501,7 @@
       "kind": "public_export",
       "module": ".enterprise.rules_dsl",
       "name": "RulesDslError",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -1361,6 +1511,7 @@
       "kind": "public_export",
       "module": ".core",
       "name": "SAFETY_EVENT_JSON_SCHEMA",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -1370,6 +1521,7 @@
       "kind": "public_export",
       "module": ".core",
       "name": "SafetyEvent",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -1379,6 +1531,7 @@
       "kind": "public_export",
       "module": ".core",
       "name": "SafetyKernel",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -1388,6 +1541,7 @@
       "kind": "public_export",
       "module": ".core",
       "name": "SanitizeResult",
+      "support": "production-qualified",
       "tested": true,
       "wired": true
     },
@@ -1397,6 +1551,7 @@
       "kind": "public_export",
       "module": ".core",
       "name": "ScoreCache",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -1406,6 +1561,7 @@
       "kind": "public_export",
       "module": ".core",
       "name": "ScorerBackend",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -1415,6 +1571,7 @@
       "kind": "public_export",
       "module": ".core",
       "name": "ScoringEvidence",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -1424,6 +1581,7 @@
       "kind": "public_export",
       "module": ".core",
       "name": "SentenceTransformerBackend",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -1433,6 +1591,7 @@
       "kind": "public_export",
       "module": ".core",
       "name": "ShardedNLIScorer",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -1442,6 +1601,7 @@
       "kind": "public_export",
       "module": ".compliance.readiness",
       "name": "Soc2IsoControl",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -1451,6 +1611,7 @@
       "kind": "public_export",
       "module": ".compliance.readiness",
       "name": "Soc2IsoReadinessReport",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -1460,6 +1621,7 @@
       "kind": "public_export",
       "module": ".core",
       "name": "StoredDocument",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -1469,6 +1631,7 @@
       "kind": "public_export",
       "module": ".lite",
       "name": "StreamGuard",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -1478,6 +1641,7 @@
       "kind": "public_export",
       "module": ".core",
       "name": "StreamSession",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -1487,6 +1651,7 @@
       "kind": "public_export",
       "module": ".core",
       "name": "StreamingKernel",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -1496,6 +1661,7 @@
       "kind": "public_export",
       "module": ".core",
       "name": "StructuredRecoveryConfig",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -1505,6 +1671,7 @@
       "kind": "public_export",
       "module": ".core",
       "name": "StructuredRecoveryResult",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -1514,6 +1681,7 @@
       "kind": "public_export",
       "module": ".core.verification.types",
       "name": "StructuredVerificationResult",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -1523,6 +1691,7 @@
       "kind": "public_export",
       "module": ".agentic.swarm_guardian",
       "name": "SwarmGuardian",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -1532,6 +1701,7 @@
       "kind": "public_export",
       "module": ".agentic.swarm_metrics",
       "name": "SwarmMetrics",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -1541,6 +1711,7 @@
       "kind": "public_export",
       "module": ".voice.adapters",
       "name": "TTSAdapter",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -1550,6 +1721,7 @@
       "kind": "public_export",
       "module": ".core",
       "name": "ThresholdFeedback",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -1559,6 +1731,7 @@
       "kind": "public_export",
       "module": ".core",
       "name": "TokenEvent",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -1568,6 +1741,7 @@
       "kind": "public_export",
       "module": ".core.verification.types",
       "name": "ToolCallResult",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -1577,6 +1751,7 @@
       "kind": "public_export",
       "module": ".core",
       "name": "TuneResult",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -1586,6 +1761,7 @@
       "kind": "public_export",
       "module": ".core",
       "name": "Turn",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -1595,6 +1771,7 @@
       "kind": "public_export",
       "module": ".core.exceptions",
       "name": "ValidationError",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -1604,6 +1781,7 @@
       "kind": "public_export",
       "module": ".core",
       "name": "VectorBackend",
+      "support": "production-qualified",
       "tested": true,
       "wired": true
     },
@@ -1613,6 +1791,7 @@
       "kind": "public_export",
       "module": ".core",
       "name": "VectorGroundTruthStore",
+      "support": "production-qualified",
       "tested": true,
       "wired": true
     },
@@ -1622,6 +1801,7 @@
       "kind": "public_export",
       "module": ".core",
       "name": "VerificationResult",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -1631,6 +1811,7 @@
       "kind": "public_export",
       "module": ".core",
       "name": "VerifiedScorer",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -1640,6 +1821,7 @@
       "kind": "public_export",
       "module": ".integrations.voice",
       "name": "VoiceGuard",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -1649,6 +1831,7 @@
       "kind": "public_export",
       "module": ".integrations.voice",
       "name": "VoiceToken",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -1658,6 +1841,7 @@
       "kind": "public_export",
       "module": ".core",
       "name": "WeaviateBackend",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -1667,6 +1851,7 @@
       "kind": "public_export",
       "module": ".core",
       "name": "benchmark_finetuned_model",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -1676,6 +1861,7 @@
       "kind": "public_export",
       "module": ".core",
       "name": "build_causal_attribution_graph",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -1685,6 +1871,7 @@
       "kind": "public_export",
       "module": ".compliance.readiness",
       "name": "build_hipaa_documentation_packet",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -1694,6 +1881,7 @@
       "kind": "public_export",
       "module": ".integrations.inference_server_hooks",
       "name": "build_inference_server_hook",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -1703,6 +1891,7 @@
       "kind": "public_export",
       "module": ".compliance.readiness",
       "name": "build_soc2_iso_readiness_report",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -1712,6 +1901,7 @@
       "kind": "public_export",
       "module": ".core",
       "name": "clear_model_cache",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -1721,6 +1911,7 @@
       "kind": "public_export",
       "module": ".core",
       "name": "compare_policy_variants",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -1730,6 +1921,7 @@
       "kind": "public_export",
       "module": ".core.scoring.meta_confidence",
       "name": "compute_meta_confidence",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -1739,6 +1931,7 @@
       "kind": "public_export",
       "module": ".server",
       "name": "create_app",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -1748,6 +1941,7 @@
       "kind": "public_export",
       "module": ".grpc_server",
       "name": "create_grpc_server",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -1757,6 +1951,7 @@
       "kind": "public_export",
       "module": ".knowledge_api",
       "name": "create_knowledge_router",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -1766,6 +1961,7 @@
       "kind": "public_export",
       "module": ".core.verification.fallacy_detector",
       "name": "detect_fallacies",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -1775,6 +1971,7 @@
       "kind": "public_export",
       "module": ".core",
       "name": "director_safety_signal_from_event",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -1784,6 +1981,7 @@
       "kind": "public_export",
       "module": ".core",
       "name": "evaluate_policy_variants",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -1793,6 +1991,7 @@
       "kind": "public_export",
       "module": ".core",
       "name": "export_onnx",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -1802,6 +2001,7 @@
       "kind": "public_export",
       "module": ".core",
       "name": "export_tensorrt",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -1811,6 +2011,7 @@
       "kind": "public_export",
       "module": ".core",
       "name": "finetune_nli",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -1820,6 +2021,7 @@
       "kind": "public_export",
       "module": ".core",
       "name": "get_backend",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -1829,6 +2031,7 @@
       "kind": "public_export",
       "module": ".integrations.sdk_guard",
       "name": "get_score",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -1838,6 +2041,7 @@
       "kind": "public_export",
       "module": ".core",
       "name": "get_vector_backend",
+      "support": "production-qualified",
       "tested": true,
       "wired": true
     },
@@ -1847,6 +2051,7 @@
       "kind": "public_export",
       "module": ".integrations.sdk_guard",
       "name": "guard",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -1856,6 +2061,7 @@
       "kind": "public_export",
       "module": ".core",
       "name": "list_backends",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -1865,6 +2071,7 @@
       "kind": "public_export",
       "module": ".core",
       "name": "list_vector_backends",
+      "support": "production-qualified",
       "tested": true,
       "wired": true
     },
@@ -1874,6 +2081,7 @@
       "kind": "public_export",
       "module": ".core",
       "name": "new_director_safety_signal_id",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -1883,6 +2091,7 @@
       "kind": "public_export",
       "module": ".core",
       "name": "new_safety_event_id",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -1892,6 +2101,7 @@
       "kind": "public_export",
       "module": ".core",
       "name": "nli_available",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -1901,6 +2111,7 @@
       "kind": "public_export",
       "module": ".core",
       "name": "register_backend",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -1910,6 +2121,7 @@
       "kind": "public_export",
       "module": ".core",
       "name": "register_vector_backend",
+      "support": "production-qualified",
       "tested": true,
       "wired": true
     },
@@ -1919,6 +2131,7 @@
       "kind": "public_export",
       "module": ".integrations.sdk_guard",
       "name": "score",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -1928,6 +2141,7 @@
       "kind": "public_export",
       "module": ".core.scoring.temporal_freshness",
       "name": "score_temporal_freshness",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -1937,6 +2151,7 @@
       "kind": "public_export",
       "module": ".lite",
       "name": "streaming_guard",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -1946,6 +2161,7 @@
       "kind": "public_export",
       "module": ".core.verification.citation_tracer",
       "name": "trace_citations",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -1955,6 +2171,7 @@
       "kind": "public_export",
       "module": ".core",
       "name": "tune",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -1964,6 +2181,7 @@
       "kind": "public_export",
       "module": ".core",
       "name": "utc_timestamp",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -1973,6 +2191,7 @@
       "kind": "public_export",
       "module": ".core",
       "name": "validate_director_safety_signal",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -1982,6 +2201,7 @@
       "kind": "public_export",
       "module": ".core",
       "name": "validate_finetune_data",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -1991,6 +2211,7 @@
       "kind": "public_export",
       "module": ".core",
       "name": "validate_safety_event_payload",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -2000,6 +2221,7 @@
       "kind": "public_export",
       "module": ".core.verification.math_consistency",
       "name": "verify_arithmetic",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -2009,6 +2231,7 @@
       "kind": "public_export",
       "module": ".core.verification.code_verifier",
       "name": "verify_code",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -2018,6 +2241,7 @@
       "kind": "public_export",
       "module": ".core.verification.json_verifier",
       "name": "verify_json",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -2027,6 +2251,7 @@
       "kind": "public_export",
       "module": ".core.verification.numeric_verifier",
       "name": "verify_numeric",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -2036,6 +2261,7 @@
       "kind": "public_export",
       "module": ".core.verification.reasoning_verifier",
       "name": "verify_reasoning_chain",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -2045,6 +2271,7 @@
       "kind": "public_export",
       "module": ".core.verification.tool_call_verifier",
       "name": "verify_tool_call",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -2054,6 +2281,7 @@
       "kind": "public_export",
       "module": ".voice.pipeline",
       "name": "voice_pipeline",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -2063,6 +2291,7 @@
       "kind": "experimental_hook",
       "module": "director_ai.core.agent_identity",
       "name": "agent_identity",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -2072,6 +2301,7 @@
       "kind": "experimental_hook",
       "module": "director_ai.core.autopoietic",
       "name": "autopoietic",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -2081,6 +2311,7 @@
       "kind": "experimental_hook",
       "module": "director_ai.core.causal_verifier",
       "name": "causal_verifier",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -2090,6 +2321,7 @@
       "kind": "experimental_hook",
       "module": "director_ai.core.continual_adversarial",
       "name": "continual_adversarial",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -2099,6 +2331,7 @@
       "kind": "experimental_hook",
       "module": "director_ai.core.defense_genome",
       "name": "defense_genome",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -2108,6 +2341,7 @@
       "kind": "experimental_hook",
       "module": "director_ai.core.emergence_oracle",
       "name": "emergence_oracle",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -2117,6 +2351,7 @@
       "kind": "experimental_hook",
       "module": "director_ai.core.federated_privacy",
       "name": "federated_privacy",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -2126,6 +2361,7 @@
       "kind": "experimental_hook",
       "module": "director_ai.core.formal_verification",
       "name": "formal_verification",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -2135,6 +2371,7 @@
       "kind": "experimental_hook",
       "module": "director_ai.core.irreversibility",
       "name": "irreversibility",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -2144,6 +2381,7 @@
       "kind": "experimental_hook",
       "module": "director_ai.core.knowledge_graph",
       "name": "knowledge_graph",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -2153,6 +2391,7 @@
       "kind": "experimental_hook",
       "module": "director_ai.core.meta_guard",
       "name": "meta_guard",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -2162,6 +2401,7 @@
       "kind": "experimental_hook",
       "module": "director_ai.core.multi_scale_alignment",
       "name": "multi_scale_alignment",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -2171,6 +2411,7 @@
       "kind": "experimental_hook",
       "module": "director_ai.core.multimodal_guard",
       "name": "multimodal_guard",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -2180,6 +2421,7 @@
       "kind": "experimental_hook",
       "module": "director_ai.core.ontology",
       "name": "ontology",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -2189,6 +2431,7 @@
       "kind": "experimental_hook",
       "module": "director_ai.core.provenance",
       "name": "provenance",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -2198,6 +2441,7 @@
       "kind": "experimental_hook",
       "module": "director_ai.core.self_evolving",
       "name": "self_evolving",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -2207,6 +2451,7 @@
       "kind": "experimental_hook",
       "module": "director_ai.core.sustainability",
       "name": "sustainability",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -2216,6 +2461,7 @@
       "kind": "experimental_hook",
       "module": "director_ai.core.swarm_economics",
       "name": "swarm_economics",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -2225,6 +2471,7 @@
       "kind": "experimental_hook",
       "module": "director_ai.core.swarm_equilibrium",
       "name": "swarm_equilibrium",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -2234,6 +2481,7 @@
       "kind": "experimental_hook",
       "module": "director_ai.core.symbolic_chain",
       "name": "symbolic_chain",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -2243,6 +2491,7 @@
       "kind": "experimental_hook",
       "module": "director_ai.core.trace_safe",
       "name": "trace_safe",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -2252,6 +2501,7 @@
       "kind": "experimental_hook",
       "module": "director_ai.core.trajectory",
       "name": "trajectory",
+      "support": "experimental",
       "tested": true,
       "wired": true
     },
@@ -2261,6 +2511,7 @@
       "kind": "experimental_hook",
       "module": "director_ai.core.zk_attestation",
       "name": "zk_attestation",
+      "support": "experimental",
       "tested": true,
       "wired": true
     }

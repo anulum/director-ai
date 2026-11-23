@@ -250,6 +250,42 @@ Some files are intentionally large because they are one cohesive thing — notab
 flag these for size alone. Genuine multi-responsibility files are tracked for
 splitting in the internal backlog.
 
+## Production support contract
+
+`src/director_ai/support_contract_catalog.py` classifies every export of
+`director_ai.__all__` and every CLI command exactly once. Each classified
+operation has three separate fields:
+
+- the smallest installation that runs it: `core`, `core+pro` or `core+full`;
+- its support: `production-qualified` or `experimental`;
+- its activation: `default`, `opt-in` or `command`.
+
+Add a new export or command to the experimental lists in the same change;
+CI refuses an unclassified one. Promotion to `production-qualified` is a
+reviewed change that cites the signed review records. Each setting that the
+production profile turns on also names the operation that owns it.
+
+```bash
+PYTHONPATH=src:. python -m tools.support_contract_check --check
+PYTHONPATH=src:. python -m tools.support_contract_check --write
+```
+
+`--write` regenerates `docs/_generated/production_support.md`. The package job
+runs `scripts/probe_support_contract.py` on clean Core, Core+Pro and Core+Full
+installations. It then checks that each claimed installation passed its probe
+in that job, and that every receipt tested the commit's own tree
+(`--receipts DIR --tree TREE`). The probe environments install the hash-locked
+`requirements/ci-dev.txt` and the wheels with `--no-deps`, so the receipts
+prove the wheels against that locked dependency set, not against a fresh
+resolver install.
+
+Only the Core distribution may ship the contract. An installed reader checks
+that `director-ai`'s RECORD lists each contract file it imported, with a
+matching sha256, and that no other distribution records it. Two limits hold
+by design: a source or editable checkout, where nothing records the files, is
+unverified and is never authority; and the check compares the file on disk
+with its record at check time, not the bytecode that already ran.
+
 ## Pull Request Process
 
 1. **Branch** from `main` with a descriptive name (`feature/`, `fix/`, `docs/`)

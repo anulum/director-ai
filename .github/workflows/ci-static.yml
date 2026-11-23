@@ -55,6 +55,9 @@ jobs:
       - name: Capability matrix ratchet
         run: python tools/capability_matrix.py --check
 
+      - name: Production support contract
+        run: PYTHONPATH=src:. python -m tools.support_contract_check --check
+
       - name: Mojibake guard (source tree)
         run: python tools/check_mojibake.py --root .
 

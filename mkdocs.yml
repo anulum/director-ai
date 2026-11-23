@@ -296,6 +296,7 @@ nav:
       - Cross-Org Passport: api/zk-attestation.md
   - Deployment:
       - Production Guide: deployment/production.md
+      - Production Support Contract: deployment/production-support.md
       - Docker: deployment/docker.md
       - Cloud Run CPU: deployment/cloud-run.md
       - ONNX Artefacts: deployment/onnx-artefacts.md
