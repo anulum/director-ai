@@ -508,18 +508,23 @@ def paid_facade_refusal(module: object, name: str) -> str:
 
 
 def negative_paid_boundary(packets: Path | None) -> str:
-    """Keep the paid modules out of Core and refuse their command and facade."""
+    """Keep the paid modules out of Core and refuse their command and both facades."""
     for module in ("director_ai.server", "director_ai.proxy", "director_ai.compliance"):
         _require(
             importlib.util.find_spec(module) is None, f"{module} is importable in Core"
         )
     status, output = _cli(["serve"])
     _require(status != 0 and "advanced tier" in output, "serve ran in Core")
+    import director_ai
     import director_ai.core as core
 
     message = paid_facade_refusal(core, "LLMGenerator")
     _require("advanced tier" in message, "the facade error is not the tier diagnostic")
-    return "paid modules absent; serve and the LLMGenerator facade refused"
+    root = paid_facade_refusal(director_ai, "create_app")
+    _require(
+        "advanced tier" in root, "the root facade error is not the tier diagnostic"
+    )
+    return "paid modules absent; serve, LLMGenerator and the root create_app refused"
 
 
 def negative_tampered_packet(packets: Path | None) -> str:

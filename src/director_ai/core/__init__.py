@@ -585,10 +585,15 @@ def __getattr__(name: str) -> Any:
     try:
         module = import_module(target, __name__)
     except ModuleNotFoundError as exc:
-        raise ImportError(
+        from director_ai._facade_tier import absent_from_tier
+
+        if not absent_from_tier(exc.name, f"{__name__}{target}"):
+            raise
+        raise ModuleNotFoundError(
             f"{name} requires the advanced tier "
             f"(director_ai.core{target} is not installed). "
             "Install director-ai-pro to use it.",
+            name=exc.name,
         ) from exc
     value = getattr(module, name)
     globals()[name] = value  # cache — subsequent access bypasses __getattr__

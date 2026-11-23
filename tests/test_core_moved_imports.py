@@ -10,6 +10,7 @@
 
 from __future__ import annotations
 
+from importlib.util import resolve_name
 from typing import NoReturn
 
 import pytest
@@ -84,17 +85,20 @@ def test_missing_paid_submodule_raises_advanced_tier_import_error(
         Parameters
         ----------
         name : str
-            Module name included in the simulated failure.
+            Module name, relative to *package*, that the import cannot find.
         package : str or None
-            Import-function package argument, unused by this test double.
+            Import-function package argument that anchors the relative name.
 
         Raises
         ------
         ModuleNotFoundError
-            Always, to exercise the facade's missing-tier error.
+            Always, naming the absent module as a real import does.
         """
-        raise ModuleNotFoundError(name)
+        missing = resolve_name(name, package)
+        raise ModuleNotFoundError(f"No module named {missing!r}", name=missing)
 
     monkeypatch.setattr(core, "import_module", _boom)
-    with pytest.raises(ImportError, match="requires the advanced tier"):
+    with pytest.raises(ModuleNotFoundError, match="requires the advanced tier") as info:
         _ = core.tune
+    assert info.value.name == "director_ai.core.calibration.tuner"
+    assert isinstance(info.value.__cause__, ModuleNotFoundError)

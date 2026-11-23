@@ -227,6 +227,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- `director_ai` and `director_ai.core` name the advanced tier only when the
+  requested symbol's own module, or one of its parent packages, is absent
+  from the installed tier. In a Core-only installation,
+  `from director_ai import create_app` and the 48 other root symbols whose
+  modules ship only in Pro or Full now raise the tier diagnostic instead of
+  `No module named 'director_ai.server'`. A missing third-party dependency
+  keeps its own error in both facades; `director_ai.core` used to report it
+  as a missing tier. Both raise `ModuleNotFoundError`, a subclass of
+  `ImportError`, with `name` set to the missing module.
 - `SelfEvolver` now calibrates on held-out real source clusters only. It
   splits whole clusters recorded in `metadata["source_cluster"]`, merges
   clusters that share a normalised prompt, and calibrates on one seeded

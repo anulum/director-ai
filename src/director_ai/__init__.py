@@ -411,11 +411,46 @@ _MOVED_TO_ENTERPRISE = {
 
 
 def __getattr__(name: str) -> Any:
+    """Import a public symbol on first access and cache it.
+
+    Parameters
+    ----------
+    name : str
+        The attribute requested from the package.
+
+    Returns
+    -------
+    Any
+        The symbol.
+
+    Raises
+    ------
+    ModuleNotFoundError
+        If the symbol's module ships only in an advanced tier that is not
+        installed; the message names the tiers. A missing third-party
+        module is re-raised unchanged.
+    ImportError
+        If the symbol moved to ``director_ai.enterprise``.
+    AttributeError
+        If the package has no such symbol.
+    """
     if name in _LAZY_IMPORTS:
         module_path, attr = _LAZY_IMPORTS[name]
         import importlib
 
-        mod = importlib.import_module(module_path, __name__)
+        try:
+            mod = importlib.import_module(module_path, __name__)
+        except ModuleNotFoundError as error:
+            from director_ai._facade_tier import absent_from_tier
+
+            target = f"{__name__}{module_path}"
+            if not absent_from_tier(error.name, target):
+                raise
+            raise ModuleNotFoundError(
+                f"{name} requires an advanced tier ({target} is not installed). "
+                "Install director-ai-pro, or director-ai-full for the labs packages.",
+                name=error.name,
+            ) from error
         val = getattr(mod, attr)
         # Cache in module globals for subsequent access without __getattr__
         globals()[name] = val

@@ -7,9 +7,9 @@
     "public_api_exports": 227,
     "public_documentation_pages": 209,
     "python_model_classes": 1211,
-    "python_model_source_modules": 620,
+    "python_model_source_modules": 621,
     "rust_pyo3_model_wrappers": 83,
-    "test_files": 898
+    "test_files": 899
   },
   "documentation": {
     "public_pages": [
@@ -5191,6 +5191,7 @@
       "src/director_ai/_cli_train.py",
       "src/director_ai/_cli_train_tracking.py",
       "src/director_ai/_cli_verify.py",
+      "src/director_ai/_facade_tier.py",
       "src/director_ai/_finetune_benchmark_access.py",
       "src/director_ai/_finetune_managed.py",
       "src/director_ai/_finetune_operator_benchmark.py",
@@ -6478,6 +6479,7 @@
       "tests/test_experimental_namespace.py",
       "tests/test_explainability.py",
       "tests/test_external_security_packet.py",
+      "tests/test_facade_tier_diagnostic.py",
       "tests/test_factcg_public_claims.py",
       "tests/test_factcg_scores_schema.py",
       "tests/test_fallacy_detector.py",

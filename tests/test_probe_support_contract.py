@@ -443,6 +443,37 @@ def test_every_identifier_the_redactor_row_names_is_probed() -> None:
         assert any(sample.startswith(identifier) for sample in PROBE.PII_SAMPLES["phi"])
 
 
+def test_a_root_facade_without_the_diagnostic_fails_the_boundary_probe(
+    tmp_path: Path,
+) -> None:
+    """Fail the paid-boundary probe when the root facade lets the bare error out."""
+    site = _tree(tmp_path / "core", paid=False, labs=False)
+    root = site / "director_ai" / "__init__.py"
+    text = root.read_text(encoding="utf-8")
+    narrowed = "            if not absent_from_tier(error.name, target):\n                raise\n"
+    assert text.count(narrowed) == 1
+    root.write_text(text.replace(narrowed, "            raise\n"), encoding="utf-8")
+    code = (
+        "import importlib.util, sys\n"
+        "spec = importlib.util.spec_from_file_location('probe', sys.argv[1])\n"
+        "probe = importlib.util.module_from_spec(spec)\n"
+        "spec.loader.exec_module(probe)\n"
+        "print(probe._run(lambda: probe.negative_paid_boundary(None)))\n"
+    )
+    result = subprocess.run(
+        [sys.executable, "-P", "-c", code, str(SCRIPT)],
+        cwd=tmp_path,
+        env={**_environment(), "PYTHONPATH": str(site)},
+        capture_output=True,
+        text=True,
+        timeout=600,
+        check=False,
+    )
+    assert result.returncode == 0, result.stderr[-2000:]
+    assert "the root facade error is not the tier diagnostic" in result.stdout
+    assert "'passed': False" in result.stdout
+
+
 def test_the_tamper_probe_needs_the_pro_packet(tmp_path: Path) -> None:
     """Refuse without a packet directory or without the emitted packet."""
     with pytest.raises(PROBE.ProbeError, match="no packet directory"):
