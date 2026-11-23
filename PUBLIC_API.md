@@ -268,7 +268,7 @@ Result types: `StructuredVerificationResult`, `ToolCallResult`, `CodeCheckResult
 | `DriftDetector` | `compliance.drift_detector` | Statistical drift detection (two-proportion z-test) |
 | `DriftResult` | `compliance.drift_detector` | Drift analysis result with z-score, p-value, severity |
 
-## Numeric Verification (Phase 5)
+## Numeric Verification
 
 | Symbol | Module | Description |
 |--------|--------|-------------|

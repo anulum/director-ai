@@ -4,7 +4,7 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-"""Multi-angle tests for Phase 5 Gem 1: Multi-Signal Explainability.
+"""Multi-angle tests for multi-signal explainability.
 
 Covers: new field defaults, field settability, existing field compatibility,
 task type detection, verdict confidence, signal agreement, retrieval
@@ -23,7 +23,8 @@ from director_ai.core.types import CoherenceScore
 class TestCoherenceScoreFields:
     """Verify new explainability fields exist and have correct defaults."""
 
-    def test_new_fields_default_none(self):
+    def test_new_fields_default_none(self) -> None:
+        """The explainability fields default to None."""
         score = CoherenceScore(
             score=0.8,
             approved=True,
@@ -35,7 +36,8 @@ class TestCoherenceScoreFields:
         assert score.nli_probs is None
         assert score.retrieval_confidence is None
 
-    def test_new_fields_settable(self):
+    def test_new_fields_settable(self) -> None:
+        """The explainability fields accept values at construction."""
         score = CoherenceScore(
             score=0.8,
             approved=True,
@@ -48,10 +50,12 @@ class TestCoherenceScoreFields:
         )
         assert score.detected_task_type == "qa"
         assert score.escalated_to_judge is False
+        assert score.nli_probs is not None
         assert score.nli_probs["contradiction"] == 0.7
         assert score.retrieval_confidence == 0.85
 
-    def test_existing_fields_still_work(self):
+    def test_existing_fields_still_work(self) -> None:
+        """The earlier confidence fields keep their values."""
         score = CoherenceScore(
             score=0.9,
             approved=True,
@@ -71,7 +75,8 @@ class TestCoherenceScoreFields:
 class TestReviewExplainability:
     """Verify scorer.review() populates explainability fields."""
 
-    def test_review_populates_task_type(self):
+    def test_review_populates_task_type(self) -> None:
+        """A review records the detected task type."""
         scorer = CoherenceScorer(threshold=0.3, use_nli=False)
         approved, score = scorer.review(
             "What is the capital of France?",
@@ -87,7 +92,8 @@ class TestReviewExplainability:
             "default",
         )
 
-    def test_review_populates_verdict_confidence(self):
+    def test_review_populates_verdict_confidence(self) -> None:
+        """A review records a verdict confidence between 0 and 1."""
         scorer = CoherenceScorer(threshold=0.3, use_nli=False)
         _, score = scorer.review(
             "What is 2+2?",
@@ -96,7 +102,8 @@ class TestReviewExplainability:
         assert score.verdict_confidence is not None
         assert 0.0 <= score.verdict_confidence <= 1.0
 
-    def test_review_populates_signal_agreement(self):
+    def test_review_populates_signal_agreement(self) -> None:
+        """A review records a signal agreement between 0 and 1."""
         scorer = CoherenceScorer(threshold=0.3, use_nli=False)
         _, score = scorer.review(
             "Describe photosynthesis.",
@@ -105,13 +112,15 @@ class TestReviewExplainability:
         assert score.signal_agreement is not None
         assert 0.0 <= score.signal_agreement <= 1.0
 
-    def test_retrieval_confidence_none_without_kb(self):
+    def test_retrieval_confidence_none_without_kb(self) -> None:
+        """Without a knowledge base the retrieval confidence stays None."""
         scorer = CoherenceScorer(threshold=0.3, use_nli=False)
         _, score = scorer.review("test", "response")
         # No KB = no retrieval = None
         assert score.retrieval_confidence is None
 
-    def test_escalated_to_judge_none_without_judge(self):
+    def test_escalated_to_judge_none_without_judge(self) -> None:
+        """Without a judge the escalation flag stays None, not False."""
         scorer = CoherenceScorer(threshold=0.3, use_nli=False)
         _, score = scorer.review("test", "response")
         # No judge configured = None (not False — we don't know)
@@ -124,13 +133,17 @@ class TestReviewExplainability:
             ("Summarise the following document:", "summarization"),
         ],
     )
-    def test_task_type_detection_parametrised(self, prompt, expected_task):
+    def test_task_type_detection_parametrised(
+        self, prompt: str, expected_task: str
+    ) -> None:
+        """Every prompt kind gets a detected task type."""
         scorer = CoherenceScorer(threshold=0.3, use_nli=False)
         _, score = scorer.review(prompt, "Response text.")
         assert score.detected_task_type is not None
 
     @pytest.mark.parametrize("threshold", [0.1, 0.3, 0.5, 0.7, 0.9])
-    def test_explainability_at_various_thresholds(self, threshold):
+    def test_explainability_at_various_thresholds(self, threshold: float) -> None:
+        """Every threshold still exposes the explainability fields."""
         scorer = CoherenceScorer(threshold=threshold, use_nli=False)
         _, score = scorer.review("test", "response")
         assert hasattr(score, "detected_task_type")
@@ -141,7 +154,8 @@ class TestReviewExplainability:
 class TestExplainabilityPerformanceDoc:
     """Document explainability pipeline performance."""
 
-    def test_score_has_all_explainability_fields(self):
+    def test_score_has_all_explainability_fields(self) -> None:
+        """A review's score exposes every explainability field."""
         scorer = CoherenceScorer(threshold=0.3, use_nli=False)
         _, score = scorer.review("What is AI?", "AI is intelligence.")
         fields = [
@@ -156,7 +170,8 @@ class TestExplainabilityPerformanceDoc:
         for field in fields:
             assert hasattr(score, field), f"Missing: {field}"
 
-    def test_explainability_overhead_minimal(self):
+    def test_explainability_overhead_minimal(self) -> None:
+        """A heuristic review with explainability takes under 5 ms."""
         import time
 
         scorer = CoherenceScorer(threshold=0.3, use_nli=False)

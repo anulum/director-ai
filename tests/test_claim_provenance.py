@@ -4,7 +4,7 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-"""Multi-angle tests for Phase 5 Gem 2: Claim-Level Provenance.
+"""Multi-angle tests for claim-level provenance.
 
 Covers: claims from empty/populated evidence, unsupported claim filtering,
 provenance structure, multiple claims, empty attributions, parametrised
@@ -23,7 +23,9 @@ from director_ai.core.types import (
 
 
 def _make_evidence(
-    claims=None, attributions=None, claim_coverage=None
+    claims: list[str] | None = None,
+    attributions: list[ClaimAttribution] | None = None,
+    claim_coverage: float | None = None,
 ) -> ScoringEvidence:
     return ScoringEvidence(
         chunks=[],
@@ -36,7 +38,7 @@ def _make_evidence(
     )
 
 
-def _make_score(evidence=None) -> CoherenceScore:
+def _make_score(evidence: ScoringEvidence | None = None) -> CoherenceScore:
     return CoherenceScore(
         score=0.85,
         approved=True,
@@ -47,7 +49,10 @@ def _make_score(evidence=None) -> CoherenceScore:
 
 
 class TestClaimProperties:
-    def test_claims_empty_without_evidence(self):
+    """Tests for the claim properties of a coherence score."""
+
+    def test_claims_empty_without_evidence(self) -> None:
+        """Without evidence every claim property is empty."""
         score = _make_score()
         assert score.claims == []
         assert score.attributions == []
@@ -55,7 +60,8 @@ class TestClaimProperties:
         assert score.unsupported_claims == []
         assert score.claim_provenance() == []
 
-    def test_claims_from_evidence(self):
+    def test_claims_from_evidence(self) -> None:
+        """Claims, coverage and attributions are read from the evidence."""
         ev = _make_evidence(
             claims=["Paris is the capital.", "It has 2M people."],
             claim_coverage=0.5,
@@ -85,7 +91,8 @@ class TestClaimProperties:
         assert len(score.attributions) == 2
         assert score.claim_coverage == 0.5
 
-    def test_unsupported_claims(self):
+    def test_unsupported_claims(self) -> None:
+        """Only the attributions marked unsupported are unsupported claims."""
         ev = _make_evidence(
             attributions=[
                 ClaimAttribution("A", 0, "src", 0, 0.1, True),
@@ -101,7 +108,10 @@ class TestClaimProperties:
 
 
 class TestClaimProvenance:
-    def test_provenance_structure(self):
+    """Tests for the claim provenance records."""
+
+    def test_provenance_structure(self) -> None:
+        """A provenance record carries the claim, its source and the divergence."""
         ev = _make_evidence(
             attributions=[
                 ClaimAttribution(
@@ -124,7 +134,8 @@ class TestClaimProvenance:
         assert prov[0]["divergence"] == 0.08
         assert prov[0]["source_index"] == 5
 
-    def test_provenance_multiple_claims(self):
+    def test_provenance_multiple_claims(self) -> None:
+        """Each attribution gives one provenance record, in order."""
         ev = _make_evidence(
             attributions=[
                 ClaimAttribution("A", 0, "srcA", 0, 0.1, True),
@@ -138,7 +149,8 @@ class TestClaimProvenance:
         assert prov[2]["supported"] is False
         assert prov[2]["divergence"] == 0.9
 
-    def test_provenance_empty_attributions(self):
+    def test_provenance_empty_attributions(self) -> None:
+        """No attributions give no provenance records."""
         ev = _make_evidence(attributions=[])
         score = _make_score(evidence=ev)
         assert score.claim_provenance() == []
@@ -157,7 +169,10 @@ class TestClaimProvenanceParametrised:
             (1.0, False),
         ],
     )
-    def test_divergence_support_combinations(self, divergence, supported):
+    def test_divergence_support_combinations(
+        self, divergence: float, supported: bool
+    ) -> None:
+        """Each divergence and support pair is kept in the record."""
         ev = _make_evidence(
             attributions=[
                 ClaimAttribution("claim", 0, "src", 0, divergence, supported),
@@ -170,7 +185,8 @@ class TestClaimProvenanceParametrised:
         assert prov[0]["supported"] is supported
 
     @pytest.mark.parametrize("n_claims", [0, 1, 3, 5, 10])
-    def test_various_claim_counts(self, n_claims):
+    def test_various_claim_counts(self, n_claims: int) -> None:
+        """The record count equals the claim count."""
         attrs = [
             ClaimAttribution(f"claim_{i}", i, f"src_{i}", i, 0.1, True)
             for i in range(n_claims)
@@ -183,7 +199,8 @@ class TestClaimProvenanceParametrised:
 class TestClaimProvenancePerformanceDoc:
     """Document claim provenance pipeline performance."""
 
-    def test_claim_attribution_has_required_fields(self):
+    def test_claim_attribution_has_required_fields(self) -> None:
+        """A claim attribution exposes every documented field."""
         attr = ClaimAttribution("claim", 0, "source", 0, 0.1, True)
         assert hasattr(attr, "claim")
         assert hasattr(attr, "claim_index")
@@ -192,7 +209,8 @@ class TestClaimProvenancePerformanceDoc:
         assert hasattr(attr, "divergence")
         assert hasattr(attr, "supported")
 
-    def test_provenance_dict_structure(self):
+    def test_provenance_dict_structure(self) -> None:
+        """A provenance record holds every required key."""
         ev = _make_evidence(
             attributions=[ClaimAttribution("c", 0, "s", 0, 0.1, True)],
         )

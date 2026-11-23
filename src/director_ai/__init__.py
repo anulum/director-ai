@@ -298,7 +298,7 @@ _LAZY_IMPORTS: dict[str, tuple[str, str]] = {
     ),
     "DriftDetector": (".compliance.drift_detector", "DriftDetector"),
     "DriftResult": (".compliance.drift_detector", "DriftResult"),
-    # Numeric verification (Phase 5)
+    # Numeric verification
     "verify_numeric": (".core.verification.numeric_verifier", "verify_numeric"),
     # Arithmetic-equation verification
     "verify_arithmetic": (
@@ -315,9 +315,9 @@ _LAZY_IMPORTS: dict[str, tuple[str, str]] = {
         ".core.verification.citation_tracer",
         "trace_citations",
     ),
-    # Agentic loop monitoring (Phase 5)
+    # Agentic loop monitoring
     "LoopMonitor": (".agentic.loop_monitor", "LoopMonitor"),
-    # Conformal prediction (Phase 5)
+    # Conformal prediction
     "ConformalPredictor": (".core.calibration.conformal", "ConformalPredictor"),
     "ConformalRoutingDecision": (
         ".core.calibration.conformal",
@@ -328,7 +328,7 @@ _LAZY_IMPORTS: dict[str, tuple[str, str]] = {
         "ConformalRoutingPolicy",
     ),
     "PredictionInterval": (".core.calibration.conformal", "PredictionInterval"),
-    # Cross-model consensus (Phase 5)
+    # Cross-model consensus
     "ConsensusScorer": (".core.scoring.consensus", "ConsensusScorer"),
     "CriticalConsensusProfile": (
         ".core.scoring.consensus",
@@ -336,9 +336,9 @@ _LAZY_IMPORTS: dict[str, tuple[str, str]] = {
     ),
     "CrossVerifierConsensus": (".core.scoring.consensus", "CrossVerifierConsensus"),
     "ModelResponse": (".core.scoring.consensus", "ModelResponse"),
-    # Adversarial robustness testing (Phase 5)
+    # Adversarial robustness testing
     "AdversarialTester": (".testing.adversarial_suite", "AdversarialTester"),
-    # Temporal freshness (Phase 5)
+    # Temporal freshness
     "score_temporal_freshness": (
         ".core.scoring.temporal_freshness",
         "score_temporal_freshness",
@@ -351,12 +351,12 @@ _LAZY_IMPORTS: dict[str, tuple[str, str]] = {
         ".core.scoring.temporal_freshness",
         "CitationStatusVerdict",
     ),
-    # Reasoning chain verification (Phase 5)
+    # Reasoning chain verification
     "verify_reasoning_chain": (
         ".core.verification.reasoning_verifier",
         "verify_reasoning_chain",
     ),
-    # Feedback loop detection (Phase 5 — EU AI Act Art 15(4))
+    # Feedback loop detection (EU AI Act Art 15(4))
     "FeedbackLoopDetector": (
         ".compliance.feedback_loop_detector",
         "FeedbackLoopDetector",

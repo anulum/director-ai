@@ -72,7 +72,7 @@ from .retrieval.vector_store import (
 from .runtime.async_streaming import AsyncStreamingKernel
 from .runtime.batch import BatchProcessor, BatchResult
 
-# --- Runtime (Phase 5) ---
+# --- Runtime: kernels, streaming, sessions, correction and review ---
 from .runtime.contradiction_tracker import ContradictionReport, ContradictionTracker
 from .runtime.correction import (
     CorrectionLoop,
@@ -114,7 +114,7 @@ from .scoring.backends import (
     register_backend,
 )
 
-# --- Scoring (Phase 5) ---
+# --- Scorers and their result types ---
 from .scoring.consensus import (
     BFTConsensusResult,
     BFTConsensusVote,
@@ -451,7 +451,7 @@ __all__ = [
     "read_recall_ledger",
     "recall_outcome",
     "validate_grader",
-    # Verification (Phase 5)
+    # Verification
     "ClaimCitation",
     "CodeCheckResult",
     "FallacyMatch",
@@ -470,7 +470,7 @@ __all__ = [
     "verify_numeric",
     "verify_reasoning_chain",
     "verify_tool_call",
-    # Scoring (Phase 5)
+    # Scoring: consensus, freshness and meta-confidence
     "ConsensusScorer",
     "CriticalConsensusProfile",
     "CrossVerifierConsensus",
@@ -478,7 +478,7 @@ __all__ = [
     "CitationStatusVerdict",
     "compute_meta_confidence",
     "score_temporal_freshness",
-    # Runtime (Phase 5)
+    # Runtime: contradiction tracking
     "ContradictionReport",
     "ContradictionTracker",
 ]

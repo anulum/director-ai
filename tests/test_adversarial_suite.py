@@ -4,7 +4,7 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-"""Multi-angle tests for Phase 5 Gem 9: Adversarial Robustness Testing.
+"""Multi-angle tests for adversarial robustness testing.
 
 Covers: pattern generation, unicode injection, homoglyph substitution,
 perfect/broken/partial guardrails, custom patterns, report structure,
@@ -27,7 +27,10 @@ from director_ai.testing.adversarial_suite import (
 
 
 class TestPatternGeneration:
-    def test_builds_patterns(self):
+    """Tests for building the adversarial pattern set."""
+
+    def test_builds_patterns(self) -> None:
+        """The built set holds at least 33 patterns across the attack categories."""
         patterns = _build_patterns()
         # 5 samples × 5 transforms + NLI-evasion classes (KIMI2-I):
         # 5 paraphrase + 5 temporal + 3 negation.
@@ -40,10 +43,11 @@ class TestPatternGeneration:
         assert "temporal" in categories
         assert "negation" in categories
 
-    def test_nli_evasion_patterns_target_the_detector(self):
+    def test_nli_evasion_patterns_target_the_detector(self) -> None:
         # KIMI2-I: the NLI-evasion adversarials are plain-text falsehoods —
         # no encoding/wrapping — so a bypass means the DETECTOR itself missed
         # a reworded/authority-framed/negated falsehood.
+        """The NLI-evasion patterns are built against the detector they target."""
         patterns = _build_patterns()
         temporal = [p for p in patterns if p.category == "temporal"]
         assert temporal
@@ -60,20 +64,26 @@ class TestPatternGeneration:
         for p in paraphrase:
             assert p.adversarial != p.original
 
-    def test_zero_width_injection(self):
+    def test_zero_width_injection(self) -> None:
+        """Zero-width injection lengthens the text with U+200B."""
         result = _inject_zero_width("hello")
         assert len(result) > len("hello")
         assert "\u200b" in result
 
-    def test_homoglyph_changes_chars(self):
+    def test_homoglyph_changes_chars(self) -> None:
+        """Homoglyph replacement changes characters but keeps the length."""
         result = _homoglyph_replace("ace")
         assert result != "ace"
         assert len(result) == 3
 
 
 class TestAdversarialTester:
-    def test_perfect_guardrail(self):
-        def always_reject(prompt, response):
+    """Tests for running the adversarial tester against a review function."""
+
+    def test_perfect_guardrail(self) -> None:
+        """A guardrail that rejects everything detects every pattern and is robust."""
+
+        def always_reject(prompt: str, response: str) -> tuple[bool, float]:
             return False, 0.1
 
         tester = AdversarialTester(review_fn=always_reject)
@@ -82,8 +92,10 @@ class TestAdversarialTester:
         assert report.bypassed == 0
         assert report.is_robust
 
-    def test_broken_guardrail(self):
-        def always_approve(prompt, response):
+    def test_broken_guardrail(self) -> None:
+        """A guardrail that approves everything is bypassed by every pattern."""
+
+        def always_approve(prompt: str, response: str) -> tuple[bool, float]:
             return True, 0.9
 
         tester = AdversarialTester(review_fn=always_approve)
@@ -92,12 +104,16 @@ class TestAdversarialTester:
         assert report.bypassed == report.total_patterns
         assert not report.is_robust
 
-    def test_score_extracted_from_object_with_score_attribute(self):
+    def test_score_extracted_from_object_with_score_attribute(self) -> None:
+        """The score is read from a verdict object's ``score`` attribute."""
+
         class _Verdict:
-            def __init__(self, score):
+            """A verdict object that carries only a score."""
+
+            def __init__(self, score: float) -> None:
                 self.score = score
 
-        def review(prompt, response):
+        def review(prompt: str, response: str) -> tuple[bool, _Verdict]:
             return False, _Verdict(0.42)
 
         tester = AdversarialTester(review_fn=review)
@@ -106,11 +122,15 @@ class TestAdversarialTester:
         assert report.detection_rate == 1.0
         assert report.bypassed == 0
 
-    def test_score_defaults_when_object_score_is_none(self):
+    def test_score_defaults_when_object_score_is_none(self) -> None:
+        """A verdict object whose score is None falls back to the default score."""
+
         class _Verdict:
+            """A verdict object that carries only a score."""
+
             score = None
 
-        def review(prompt, response):
+        def review(prompt: str, response: str) -> tuple[bool, _Verdict]:
             return True, _Verdict()
 
         tester = AdversarialTester(review_fn=review)
@@ -118,8 +138,10 @@ class TestAdversarialTester:
         # approved=True everywhere -> nothing detected.
         assert report.detection_rate == 0.0
 
-    def test_score_defaults_when_review_returns_non_tuple(self):
-        def review(prompt, response):
+    def test_score_defaults_when_review_returns_non_tuple(self) -> None:
+        """A review that returns no tuple falls back to the default score."""
+
+        def review(prompt: str, response: str) -> str:
             return "approved-without-score"
 
         tester = AdversarialTester(review_fn=review)
@@ -128,10 +150,11 @@ class TestAdversarialTester:
         # nothing is detected.
         assert report.detection_rate == 0.0
 
-    def test_partial_detection(self):
+    def test_partial_detection(self) -> None:
+        """A guardrail that misses some patterns both detects and is bypassed."""
         call_count = 0
 
-        def detect_some(prompt, response):
+        def detect_some(prompt: str, response: str) -> tuple[bool, float]:
             nonlocal call_count
             call_count += 1
             # Reject (detect) every 3rd call; others pass through
@@ -143,7 +166,8 @@ class TestAdversarialTester:
         assert report.detected > 0
         assert report.bypassed > 0
 
-    def test_custom_patterns(self):
+    def test_custom_patterns(self) -> None:
+        """A caller's own pattern list replaces the built-in set."""
         from director_ai.testing.adversarial_suite import AdversarialPattern
 
         patterns = [
@@ -156,7 +180,7 @@ class TestAdversarialTester:
             )
         ]
 
-        def reject_all(prompt, response):
+        def reject_all(prompt: str, response: str) -> tuple[bool, float]:
             return False, 0.2
 
         tester = AdversarialTester(review_fn=reject_all)
@@ -166,7 +190,10 @@ class TestAdversarialTester:
 
 
 class TestRobustnessReport:
-    def test_report_structure(self):
+    """Tests for the robustness report's verdict."""
+
+    def test_report_structure(self) -> None:
+        """A 90 % detection rate is robust and keeps the vulnerable categories."""
         report = RobustnessReport(
             total_patterns=10,
             detected=9,
@@ -177,7 +204,8 @@ class TestRobustnessReport:
         assert report.is_robust
         assert "unicode" in report.vulnerable_categories
 
-    def test_not_robust(self):
+    def test_not_robust(self) -> None:
+        """A 50 % detection rate is not robust."""
         report = RobustnessReport(
             total_patterns=10,
             detected=5,
@@ -186,7 +214,8 @@ class TestRobustnessReport:
         )
         assert not report.is_robust
 
-    def test_empty_report(self):
+    def test_empty_report(self) -> None:
+        """A report over no patterns counts as robust."""
         report = RobustnessReport(
             total_patterns=0,
             detected=0,
@@ -199,7 +228,10 @@ class TestRobustnessReport:
         "detection_rate,expected_robust",
         [(1.0, True), (0.95, True), (0.9, True), (0.5, False), (0.0, False)],
     )
-    def test_robustness_threshold(self, detection_rate, expected_robust):
+    def test_robustness_threshold(
+        self, detection_rate: float, expected_robust: bool
+    ) -> None:
+        """Robustness follows the detection-rate threshold."""
         report = RobustnessReport(
             total_patterns=100,
             detected=int(100 * detection_rate),
@@ -212,12 +244,13 @@ class TestRobustnessReport:
 class TestAdversarialPipelineIntegration:
     """Verify adversarial tester works with real CoherenceScorer."""
 
-    def test_scorer_as_review_fn(self):
+    def test_scorer_as_review_fn(self) -> None:
+        """A heuristic CoherenceScorer runs as the review function."""
         from director_ai.core import CoherenceScorer
 
         scorer = CoherenceScorer(threshold=0.5, use_nli=False)
 
-        def review_fn(prompt, response):
+        def review_fn(prompt: str, response: str) -> tuple[bool, float]:
             approved, score = scorer.review(prompt, response)
             return approved, score.score
 
@@ -230,7 +263,8 @@ class TestAdversarialPipelineIntegration:
 class TestAdversarialPerformanceDoc:
     """Document adversarial testing pipeline performance."""
 
-    def test_pattern_generation_fast(self):
+    def test_pattern_generation_fast(self) -> None:
+        """Building the pattern set takes under one second."""
         import time
 
         t0 = time.perf_counter()
@@ -239,7 +273,8 @@ class TestAdversarialPerformanceDoc:
         assert elapsed_ms < 1000, f"Pattern generation took {elapsed_ms:.0f}ms"
         assert len(patterns) >= 20
 
-    def test_report_has_all_fields(self):
+    def test_report_has_all_fields(self) -> None:
+        """The report exposes every documented field."""
         report = RobustnessReport(
             total_patterns=10,
             detected=8,
@@ -255,7 +290,9 @@ class TestAdversarialPerformanceDoc:
 
 
 class TestGroundedSuite:
-    def test_grounded_suite_attaches_relevant_prompts_and_benign_arm(self):
+    """Tests for the grounded attack suite and its benign arm."""
+
+    def test_grounded_suite_attaches_relevant_prompts_and_benign_arm(self) -> None:
         """Every pattern carries its relevant prompt; the control arm exists."""
         suite = grounded_suite()
         assert len(suite.patterns) == len(_build_patterns())
@@ -265,11 +302,11 @@ class TestGroundedSuite:
         # Prompts follow the pattern's origin sample, not one fixed string.
         assert len({p.prompt for p in suite.patterns}) > 1
 
-    def test_per_pattern_prompt_takes_precedence_over_fixed(self):
+    def test_per_pattern_prompt_takes_precedence_over_fixed(self) -> None:
         """run() must send each pattern's own prompt to the guardrail."""
         seen: list[str] = []
 
-        def review_fn(prompt: str, response: str):
+        def review_fn(prompt: str, response: str) -> tuple[bool, float]:
             seen.append(prompt)
             return False, 0.1
 
@@ -280,7 +317,7 @@ class TestGroundedSuite:
         assert "FIXED" not in seen
         assert set(seen) == {p.prompt for p in suite.patterns}
 
-    def test_constant_reject_passes_robustness_but_fails_discrimination(self):
+    def test_constant_reject_passes_robustness_but_fails_discrimination(self) -> None:
         """The vacuousness regression: reject-everything must not certify.
 
         Measured 2026-07-18: an ungrounded scorer returned the 0.5 neutral
@@ -297,7 +334,7 @@ class TestGroundedSuite:
         assert report.benign_approval_rate == 0.0
         assert not report.is_discriminative
 
-    def test_discriminating_guardrail_passes_both_arms(self):
+    def test_discriminating_guardrail_passes_both_arms(self) -> None:
         """A guardrail that rejects attacks and approves truths certifies.
 
         The attack set is the ADVERSARIAL texts only — negation patterns'
@@ -307,7 +344,7 @@ class TestGroundedSuite:
         suite = grounded_suite()
         attacks = {p.adversarial for p in suite.patterns}
 
-        def review_fn(prompt: str, response: str):
+        def review_fn(prompt: str, response: str) -> tuple[bool, float]:
             return response not in attacks, 0.2 if response in attacks else 0.8
 
         tester = AdversarialTester(review_fn=review_fn)
@@ -317,7 +354,7 @@ class TestGroundedSuite:
         assert report.benign_approved == report.benign_total == 8
         assert report.is_discriminative
 
-    def test_report_without_benign_arm_is_never_discriminative(self):
+    def test_report_without_benign_arm_is_never_discriminative(self) -> None:
         """Structure-only runs cannot claim efficacy."""
         tester = AdversarialTester(review_fn=lambda _p, _r: (False, 0.1))
         report = tester.run()
@@ -335,16 +372,17 @@ class TestGroundedEfficacyPinned:
     explained away.
     """
 
-    def test_grounded_heuristic_per_class_efficacy_and_benign_approval(self):
+    def test_grounded_heuristic_per_class_efficacy_and_benign_approval(self) -> None:
+        """The grounded heuristic's per-class detections and benign approvals match the pins."""
+        from director_ai.core.retrieval.vector_store import VectorGroundTruthStore
         from director_ai.core.scoring.scorer import CoherenceScorer
-        from director_ai.core.vector_store import VectorGroundTruthStore
 
         suite = grounded_suite()
         store = VectorGroundTruthStore()
         store.ingest(suite.facts)
         scorer = CoherenceScorer(use_nli=False, ground_truth_store=store)
 
-        def review_fn(prompt: str, response: str):
+        def review_fn(prompt: str, response: str) -> tuple[bool, float]:
             approved, score = scorer.review(prompt, response)
             return approved, score.score
 

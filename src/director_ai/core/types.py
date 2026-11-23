@@ -123,7 +123,7 @@ class CoherenceScore:
     contradiction_index: float | None = (
         None  # 0-1, cross-turn self-contradiction severity
     )
-    # Phase 5 — Multi-Signal Explainability
+    # Multi-signal explainability
     detected_task_type: str | None = None  # dialogue/summarization/qa/rag/default
     escalated_to_judge: bool | None = None  # whether LLM judge was consulted
     nli_probs: dict[str, float] | None = None  # {entailment, neutral, contradiction}
@@ -158,7 +158,7 @@ class CoherenceScore:
     semantic_entropy: float | None = None  # 0-1, normalised cluster entropy
     self_consistency_backend: str | None = None  # "nli" | "lexical"
 
-    # -- Claim-Level Provenance (Gem 2) ------------------------------------
+    # -- Claim-Level Provenance --------------------------------------------
 
     @property
     def claims(self) -> list[str]:

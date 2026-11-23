@@ -4,7 +4,7 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-"""Multi-angle tests for Phase 5 Gem 5: Conformal Prediction Intervals.
+"""Multi-angle tests for conformal prediction intervals.
 
 Covers: uncalibrated/calibrated prediction, coverage narrowing, many
 samples, mismatched lengths guard, invalid coverage guard, dataclass
@@ -13,6 +13,8 @@ integration with scorer, and performance documentation.
 """
 
 from __future__ import annotations
+
+from typing import Protocol
 
 import pytest
 
@@ -23,7 +25,18 @@ from director_ai.core.calibration.conformal import (
 )
 
 
+class _FeedbackRecord(Protocol):
+    """The fields the conformal predictor reads from one feedback entry."""
+
+    human_label: bool | None
+    score: float
+    approved: bool
+    human_override: bool | None
+
+
 class FeedbackEntry:
+    """A stand-in feedback record with a score and the human label."""
+
     def __init__(
         self,
         *,
@@ -41,19 +54,27 @@ class FeedbackEntry:
 
 
 class FeedbackStore:
-    def __init__(self, entries):
+    """A stand-in feedback store that returns the entries it was given."""
+
+    def __init__(self, entries: list[_FeedbackRecord]) -> None:
         self._entries = entries
 
-    def query(self):
+    def query(self) -> list[_FeedbackRecord]:
+        """Return every stored entry."""
         return list(self._entries)
 
 
 class TestConformalPredictor:
-    def test_rust_quantile_kernel_is_used_when_available(self, monkeypatch):
+    """Tests for the conformal predictor's intervals."""
+
+    def test_rust_quantile_kernel_is_used_when_available(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Rust quantile kernel is used when available."""
         monkeypatch.setattr(conformal_mod, "_RUST_CONFORMAL", True)
         called = {"count": 0}
 
-        def _quantile(residuals, coverage):
+        def _quantile(residuals: list[float], coverage: float) -> float:
             called["count"] += 1
             return 0.2
 
@@ -69,7 +90,10 @@ class TestConformalPredictor:
         assert called["count"] == 1
         assert pi.upper - pi.point_estimate == pytest.approx(0.2)
 
-    def test_rust_quantile_runtime_error_falls_back_to_python(self, monkeypatch):
+    def test_rust_quantile_runtime_error_falls_back_to_python(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Rust quantile runtime error falls back to Python."""
         cp = ConformalPredictor(coverage=0.8, min_samples=1)
         cp.calibrate([0.9, 0.8], [False, True])
         monkeypatch.setattr(conformal_mod, "_RUST_CONFORMAL", True)
@@ -84,7 +108,10 @@ class TestConformalPredictor:
         pi = cp.predict(0.7)
         assert 0.0 <= pi.lower <= pi.point_estimate <= pi.upper <= 1.0
 
-    def test_rust_quantile_type_error_falls_back_to_python(self, monkeypatch):
+    def test_rust_quantile_type_error_falls_back_to_python(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Rust quantile type error falls back to Python."""
         cp = ConformalPredictor(coverage=0.8, min_samples=1)
         cp.calibrate([0.9, 0.8], [False, True])
         monkeypatch.setattr(conformal_mod, "_RUST_CONFORMAL", True)
@@ -99,7 +126,8 @@ class TestConformalPredictor:
         pi = cp.predict(0.7)
         assert 0.0 <= pi.lower <= pi.point_estimate <= pi.upper <= 1.0
 
-    def test_uncalibrated_returns_full_interval(self):
+    def test_uncalibrated_returns_full_interval(self) -> None:
+        """Without calibration the interval is 0 to 1 and unreliable."""
         cp = ConformalPredictor()
         pi = cp.predict(0.7)
         assert pi.lower == 0.0
@@ -107,7 +135,8 @@ class TestConformalPredictor:
         assert pi.calibration_size == 0
         assert not pi.is_reliable
 
-    def test_calibrated_narrows_interval(self):
+    def test_calibrated_narrows_interval(self) -> None:
+        """Calibration on correct answers narrows the interval."""
         cp = ConformalPredictor(coverage=0.95, min_samples=5)
         # Calibration: 50 responses, all correct (score > 0.7, label=False)
         scores = [0.8 + i * 0.001 for i in range(50)]
@@ -119,7 +148,8 @@ class TestConformalPredictor:
         assert pi.calibration_size == 50
         assert pi.is_reliable
 
-    def test_mixed_calibration(self):
+    def test_mixed_calibration(self) -> None:
+        """Mixed calibration gives a reliable, ordered interval inside 0 to 1."""
         cp = ConformalPredictor(coverage=0.90, min_samples=10)
         scores = [0.9, 0.85, 0.7, 0.3, 0.2, 0.8, 0.75, 0.6, 0.4, 0.95]
         labels = [False, False, False, True, True, False, False, True, True, False]
@@ -129,33 +159,38 @@ class TestConformalPredictor:
         assert pi.point_estimate <= pi.upper <= 1.0
         assert pi.is_reliable
 
-    def test_point_estimate_is_inverted_score(self):
+    def test_point_estimate_is_inverted_score(self) -> None:
+        """The point estimate is one minus the score."""
         cp = ConformalPredictor()
         cp.calibrate([0.5], [False])
         pi = cp.predict(0.8)
         assert abs(pi.point_estimate - 0.2) < 0.001  # 1 - 0.8 = 0.2
 
-    def test_high_score_low_hallucination_prob(self):
+    def test_high_score_low_hallucination_prob(self) -> None:
+        """A high score gives a low hallucination probability."""
         cp = ConformalPredictor(min_samples=5)
         cp.calibrate([0.9] * 10, [False] * 10)
         pi = cp.predict(0.95)
         assert pi.point_estimate < 0.1
         assert pi.lower < 0.1
 
-    def test_low_score_high_hallucination_prob(self):
+    def test_low_score_high_hallucination_prob(self) -> None:
+        """A low score gives a high hallucination probability."""
         cp = ConformalPredictor(min_samples=5)
         cp.calibrate([0.3] * 10, [True] * 10)
         pi = cp.predict(0.2)
         assert pi.point_estimate > 0.7
 
-    def test_below_min_samples_unreliable(self):
+    def test_below_min_samples_unreliable(self) -> None:
+        """Fewer samples than the minimum give an unreliable interval."""
         cp = ConformalPredictor(min_samples=50)
         cp.calibrate([0.8] * 10, [False] * 10)
         pi = cp.predict(0.7)
         assert not pi.is_reliable
         assert pi.calibration_size == 10
 
-    def test_empty_calibration_keeps_full_unreliable_interval(self):
+    def test_empty_calibration_keeps_full_unreliable_interval(self) -> None:
+        """Empty calibration keeps full unreliable interval."""
         cp = ConformalPredictor(min_samples=1)
         cp.calibrate([], [])
         pi = cp.predict(0.8)
@@ -165,11 +200,13 @@ class TestConformalPredictor:
         assert pi.calibration_size == 0
         assert not pi.is_reliable
 
-    def test_score_to_probability_clamps_out_of_range_scores(self):
+    def test_score_to_probability_clamps_out_of_range_scores(self) -> None:
+        """Score to probability clamps out of range scores."""
         assert ConformalPredictor._score_to_prob(-0.4) == 1.0
         assert ConformalPredictor._score_to_prob(1.4) == 0.0
 
-    def test_calibrate_from_feedback_uses_human_labels_as_correctness(self):
+    def test_calibrate_from_feedback_uses_human_labels_as_correctness(self) -> None:
+        """Calibrate from feedback uses human labels as correctness."""
         cp = ConformalPredictor(coverage=0.8, min_samples=2)
         store = FeedbackStore(
             [
@@ -186,7 +223,8 @@ class TestConformalPredictor:
         assert pi.point_estimate == pytest.approx(0.1)
         assert pi.upper < 0.3
 
-    def test_calibrate_from_feedback_supports_legacy_override_entries(self):
+    def test_calibrate_from_feedback_supports_legacy_override_entries(self) -> None:
+        """Calibrate from feedback supports legacy override entries."""
         cp = ConformalPredictor(coverage=0.8, min_samples=2)
         store = FeedbackStore(
             [
@@ -216,12 +254,16 @@ class TestConformalPredictor:
 
 
 class TestConformalValidation:
-    def test_mismatched_lengths_raises(self):
+    """Tests for the conformal predictor's input validation."""
+
+    def test_mismatched_lengths_raises(self) -> None:
+        """Scores and labels of different lengths raise ValueError."""
         cp = ConformalPredictor()
         with pytest.raises(ValueError, match="same length"):
             cp.calibrate([0.5, 0.6], [True])
 
-    def test_invalid_coverage_raises(self):
+    def test_invalid_coverage_raises(self) -> None:
+        """A coverage of 0 or 1 raises ValueError."""
         with pytest.raises(ValueError, match="coverage"):
             ConformalPredictor(coverage=0.0)
         with pytest.raises(ValueError, match="coverage"):
@@ -229,7 +271,10 @@ class TestConformalValidation:
 
 
 class TestPredictionInterval:
-    def test_dataclass_fields(self):
+    """Tests for the prediction interval record."""
+
+    def test_dataclass_fields(self) -> None:
+        """The interval keeps the values it was built with."""
         pi = PredictionInterval(
             point_estimate=0.15,
             lower=0.05,
@@ -243,7 +288,8 @@ class TestPredictionInterval:
         assert pi.upper == 0.25
 
     @pytest.mark.parametrize("score", [0.0, 0.2, 0.5, 0.8, 1.0])
-    def test_bounds_are_valid(self, score):
+    def test_bounds_are_valid(self, score: float) -> None:
+        """The bounds stay inside 0 to 1 and in order."""
         cp = ConformalPredictor(min_samples=5)
         cp.calibrate([0.7 + i * 0.01 for i in range(20)], [False] * 20)
         pi = cp.predict(score)
@@ -254,7 +300,8 @@ class TestConformalParametrised:
     """Parametrised conformal prediction tests."""
 
     @pytest.mark.parametrize("coverage", [0.8, 0.9, 0.95, 0.99])
-    def test_various_coverage_levels(self, coverage):
+    def test_various_coverage_levels(self, coverage: float) -> None:
+        """The interval reports the requested coverage and stays in bounds."""
         cp = ConformalPredictor(coverage=coverage, min_samples=5)
         scores = [0.7 + i * 0.01 for i in range(20)]
         cp.calibrate(scores, [False] * 20)
@@ -263,7 +310,8 @@ class TestConformalParametrised:
         assert 0.0 <= pi.lower <= pi.upper <= 1.0
 
     @pytest.mark.parametrize("n_samples", [10, 50, 100])
-    def test_calibration_sizes(self, n_samples):
+    def test_calibration_sizes(self, n_samples: int) -> None:
+        """The interval reports the calibration size it was given."""
         cp = ConformalPredictor(min_samples=5)
         scores = [0.5 + i * 0.001 for i in range(n_samples)]
         cp.calibrate(scores, [i % 2 == 0 for i in range(n_samples)])
@@ -274,7 +322,8 @@ class TestConformalParametrised:
 class TestConformalPerformanceDoc:
     """Document conformal prediction pipeline performance."""
 
-    def test_prediction_fast(self):
+    def test_prediction_fast(self) -> None:
+        """One prediction takes under 100 microseconds."""
         import time
 
         cp = ConformalPredictor(min_samples=5)
@@ -285,7 +334,8 @@ class TestConformalPerformanceDoc:
         per_call_us = (time.perf_counter() - t0) / 1000 * 1_000_000
         assert per_call_us < 100, f"Predict took {per_call_us:.1f}µs"
 
-    def test_interval_has_all_fields(self):
+    def test_interval_has_all_fields(self) -> None:
+        """The interval exposes every documented field."""
         cp = ConformalPredictor(min_samples=5)
         cp.calibrate([0.7] * 10, [False] * 10)
         pi = cp.predict(0.5)
@@ -307,8 +357,11 @@ class TestQuantileFallback:
     paths: the accelerator being absent, and the accelerator raising.
     """
 
-    def test_python_fallback_when_rust_absent(self, monkeypatch):
+    def test_python_fallback_when_rust_absent(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         # _RUST_CONFORMAL False -> _compute_quantile takes the Python branch.
+        """Without the Rust kernel the Python quantile is used."""
         monkeypatch.setattr(conformal_mod, "_RUST_CONFORMAL", False)
         scores = [0.5 + i * 0.02 for i in range(10)]
         labels = [bool(i % 2) for i in range(10)]
@@ -324,11 +377,14 @@ class TestQuantileFallback:
         # The Python fallback computed the split-conformal quantile directly.
         assert cp._quantile == pytest.approx(residuals[q_idx])
 
-    def test_python_fallback_when_rust_raises(self, monkeypatch):
+    def test_python_fallback_when_rust_raises(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         # Rust present but raises -> except branch logs and falls back to Python.
+        """A Rust kernel error falls back to the Python quantile."""
         monkeypatch.setattr(conformal_mod, "_RUST_CONFORMAL", True)
 
-        def _boom(_residuals, _coverage):
+        def _boom(_residuals: list[float], _coverage: float) -> float:
             raise RuntimeError("rust kernel exploded")
 
         monkeypatch.setattr(conformal_mod, "rust_conformal_quantile", _boom)
@@ -340,8 +396,9 @@ class TestQuantileFallback:
         pi = cp.predict(0.5)
         assert pi.upper >= pi.point_estimate >= pi.lower
 
-    def test_python_quantile_index_clamped(self):
+    def test_python_quantile_index_clamped(self) -> None:
         # High coverage on a tiny set forces q_idx past n-1 -> clamp to last.
+        """The Python quantile index is clamped to the last residual."""
         residuals = [0.1, 0.4, 0.9]
         q = ConformalPredictor._python_quantile(list(residuals), 0.99)
         assert q == 0.9  # ceil((3+1)*0.99)-1 = 3 -> clamped to index 2

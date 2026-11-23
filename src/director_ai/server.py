@@ -440,7 +440,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
 
     app.include_router(create_compliance_router())
 
-    # -- Gem endpoints (Phase 5 verification & analysis) -----------------
+    # -- Verification-gem endpoints (standalone verification & analysis) -----
 
     # Standalone verification routes - numeric, reasoning, temporal-freshness,
     # consensus, adversarial, conformal, feedback-loops, agentic check-step -

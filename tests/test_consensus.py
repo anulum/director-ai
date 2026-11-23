@@ -4,7 +4,7 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-"""Multi-angle tests for Phase 5 Gem 10: Cross-Model Consensus.
+"""Multi-angle tests for cross-model consensus.
 
 Covers: identical/different responses, multi-model, single response,
 generate_fn, custom score_fn, validation guards, pairwise count,
@@ -12,6 +12,8 @@ parametrised model counts, pipeline integration, and performance.
 """
 
 from __future__ import annotations
+
+from collections.abc import Sequence
 
 import pytest
 
@@ -37,7 +39,10 @@ from director_ai.core.scoring.consensus import (
 
 
 class TestConsensusScorer:
-    def test_identical_responses_full_agreement(self):
+    """Tests for scoring agreement between model responses."""
+
+    def test_identical_responses_full_agreement(self) -> None:
+        """Identical responses reach full agreement."""
         responses = [
             ModelResponse(model="a", response="The capital of France is Paris."),
             ModelResponse(model="b", response="The capital of France is Paris."),
@@ -48,7 +53,8 @@ class TestConsensusScorer:
         assert result.has_consensus
         assert len(result.disagreement_pairs) == 0
 
-    def test_completely_different_responses(self):
+    def test_completely_different_responses(self) -> None:
+        """Responses with no shared words fall below 0.3 and reach no consensus."""
         responses = [
             ModelResponse(model="a", response="AAAA BBBB CCCC DDDD"),
             ModelResponse(model="b", response="xxxx yyyy zzzz wwww"),
@@ -58,7 +64,8 @@ class TestConsensusScorer:
         assert result.agreement_score < 0.3
         assert not result.has_consensus
 
-    def test_three_models_mixed(self):
+    def test_three_models_mixed(self) -> None:
+        """Three responses are compared over all three pairs."""
         responses = [
             ModelResponse(model="a", response="Paris is the capital of France."),
             ModelResponse(model="b", response="The capital of France is Paris."),
@@ -69,7 +76,8 @@ class TestConsensusScorer:
         assert result.num_models == 3
         assert len(result.pairs) == 3  # C(3,2) = 3
 
-    def test_single_response(self):
+    def test_single_response(self) -> None:
+        """A single response counts as full agreement of one model."""
         responses = [ModelResponse(model="a", response="test")]
         scorer = ConsensusScorer(models=["a", "b"])
         result = scorer.score_responses(responses)
@@ -78,8 +86,12 @@ class TestConsensusScorer:
 
 
 class TestConsensusWithGenerate:
-    def test_generate_fn(self):
-        def mock_gen(prompt, model):
+    """Tests for consensus that generates the responses itself."""
+
+    def test_generate_fn(self) -> None:
+        """The generate function supplies one response per model."""
+
+        def mock_gen(prompt: str, model: str) -> str:
             return f"{model} says: the answer is 42"
 
         scorer = ConsensusScorer(
@@ -90,15 +102,20 @@ class TestConsensusWithGenerate:
         assert result.num_models == 2
         assert result.agreement_score > 0.5
 
-    def test_no_generate_fn_raises(self):
+    def test_no_generate_fn_raises(self) -> None:
+        """Scoring a prompt without a generate function raises ValueError."""
         scorer = ConsensusScorer(models=["a", "b"])
         with pytest.raises(ValueError, match="generate_fn"):
             scorer.score("test")
 
 
 class TestConsensusCustomScorer:
-    def test_custom_score_fn(self):
-        def always_agree(a, b):
+    """Tests for consensus with a caller-supplied divergence function."""
+
+    def test_custom_score_fn(self) -> None:
+        """A divergence function that always returns 0 gives full agreement."""
+
+        def always_agree(a: str, b: str) -> float:
             return 0.0
 
         responses = [
@@ -109,8 +126,10 @@ class TestConsensusCustomScorer:
         result = scorer.score_responses(responses)
         assert result.agreement_score == 1.0
 
-    def test_custom_score_fn_disagree(self):
-        def always_disagree(a, b):
+    def test_custom_score_fn_disagree(self) -> None:
+        """A divergence function that always returns 1 gives no agreement."""
+
+        def always_disagree(a: str, b: str) -> float:
             return 1.0
 
         responses = [
@@ -123,11 +142,15 @@ class TestConsensusCustomScorer:
 
 
 class TestValidation:
-    def test_needs_two_models(self):
+    """Tests for consensus input validation."""
+
+    def test_needs_two_models(self) -> None:
+        """Fewer than two models raise ValueError."""
         with pytest.raises(ValueError, match="at least 2"):
             ConsensusScorer(models=["only_one"])
 
-    def test_pairwise_count(self):
+    def test_pairwise_count(self) -> None:
+        """Four models are compared over six pairs."""
         responses = [
             ModelResponse(model="a", response="x"),
             ModelResponse(model="b", response="x"),
@@ -143,7 +166,8 @@ class TestConsensusParametrised:
     """Parametrised consensus tests."""
 
     @pytest.mark.parametrize("n_models", [2, 3, 4, 5])
-    def test_pairwise_formula(self, n_models):
+    def test_pairwise_formula(self, n_models: int) -> None:
+        """The pair count is n(n-1)/2."""
         models = [f"m{i}" for i in range(n_models)]
         responses = [ModelResponse(model=m, response="same text") for m in models]
         scorer = ConsensusScorer(models=models)
@@ -155,8 +179,12 @@ class TestConsensusParametrised:
         "agreement,expected_consensus",
         [(1.0, True), (0.9, True), (0.5, False), (0.0, False)],
     )
-    def test_consensus_thresholds(self, agreement, expected_consensus):
-        def score_fn(a, b):
+    def test_consensus_thresholds(
+        self, agreement: float, expected_consensus: bool
+    ) -> None:
+        """Consensus follows the agreement threshold."""
+
+        def score_fn(a: str, b: str) -> float:
             return 1.0 - agreement
 
         responses = [
@@ -171,7 +199,8 @@ class TestConsensusParametrised:
 class TestConsensusPerformanceDoc:
     """Document consensus pipeline performance."""
 
-    def test_result_has_all_fields(self):
+    def test_result_has_all_fields(self) -> None:
+        """The result exposes every documented field."""
         responses = [
             ModelResponse(model="a", response="test"),
             ModelResponse(model="b", response="test"),
@@ -184,7 +213,8 @@ class TestConsensusPerformanceDoc:
         assert hasattr(result, "pairs")
         assert hasattr(result, "disagreement_pairs")
 
-    def test_scoring_fast(self):
+    def test_scoring_fast(self) -> None:
+        """Scoring five responses takes under one second."""
         import time
 
         responses = [
@@ -202,22 +232,29 @@ class TestConsensusRustDelegation:
     # _word_overlap now delegates to the shared director_ai.core.text_overlap
     # helper; the Python/Rust dispatch and mandatory-failure behaviour are covered
     # by test_text_overlap. These pin the values consensus scoring relies on.
-    def test_word_overlap_values(self):
+    """Tests for the Rust delegation of the consensus helpers."""
+
+    def test_word_overlap_values(self) -> None:
+        """Word overlap is the Jaccard ratio of the two word sets."""
         assert _word_overlap("alpha beta", "alpha gamma") == pytest.approx(1.0 / 3.0)
         assert _word_overlap("", "alpha gamma") == 0.0
         assert _word_overlap("alpha beta", "alpha beta") == 1.0
 
-    def test_jaccard_divergence_uses_overlap(self):
+    def test_jaccard_divergence_uses_overlap(self) -> None:
+        """Jaccard divergence is one minus the word overlap."""
         assert ConsensusScorer._jaccard_divergence("x y", "x y") == pytest.approx(0.0)
         assert ConsensusScorer._jaccard_divergence("x", "y") == pytest.approx(1.0)
 
-    def test_sum_float_delegates_to_rust_and_python_paths(self, monkeypatch):
+    def test_sum_float_delegates_to_rust_and_python_paths(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Sum float delegates to Rust and Python paths."""
         from director_ai.core.scoring import consensus as consensus_mod
 
         monkeypatch.setattr(consensus_mod, "_RUST_CONSENSUS", True)
-        calls = []
+        calls: list[list[float]] = []
 
-        def _sum(values):
+        def _sum(values: list[float]) -> float:
             calls.append(list(values))
             return 2.5
 
@@ -228,12 +265,15 @@ class TestConsensusRustDelegation:
         monkeypatch.setattr(consensus_mod, "_RUST_CONSENSUS", False)
         assert _sum_float([1.0, 1.5]) == pytest.approx(2.5)
 
-    def test_sum_float_exception_is_mandatory_failure(self, monkeypatch):
+    def test_sum_float_exception_is_mandatory_failure(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Sum float exception is mandatory failure."""
         from director_ai.core.scoring import consensus as consensus_mod
 
         monkeypatch.setattr(consensus_mod, "_RUST_CONSENSUS", True)
 
-        def _boom(values):
+        def _boom(values: list[float]) -> float:
             raise RuntimeError("ffi fail")
 
         monkeypatch.setattr(consensus_mod, "rust_sum_f64", _boom, raising=False)
@@ -242,7 +282,10 @@ class TestConsensusRustDelegation:
 
 
 class TestByzantineFaultTolerantConsensus:
-    def test_vote_validation_rejects_invalid_inputs(self):
+    """Tests for Byzantine fault-tolerant consensus."""
+
+    def test_vote_validation_rejects_invalid_inputs(self) -> None:
+        """Vote validation rejects invalid inputs."""
         with pytest.raises(ValueError, match="verifier must be non-empty"):
             BFTConsensusVote(verifier=" ", verdict="allow", risk_score=0.1)
         with pytest.raises(ValueError, match="verdict must be one of"):
@@ -250,7 +293,8 @@ class TestByzantineFaultTolerantConsensus:
         with pytest.raises(ValueError, match=r"risk_score must be in \[0, 1\]"):
             BFTConsensusVote(verifier="nli", verdict="allow", risk_score=1.1)
 
-    def test_fault_tolerance_validation_and_insufficient_replicas(self):
+    def test_fault_tolerance_validation_and_insufficient_replicas(self) -> None:
+        """Fault tolerance validation and insufficient replicas."""
         with pytest.raises(ValueError, match="fault_tolerance must be non-negative"):
             ByzantineFaultTolerantConsensus(fault_tolerance=-1)
 
@@ -269,7 +313,8 @@ class TestByzantineFaultTolerantConsensus:
         assert result.quorum_size == 3
         assert not result.byzantine_resilient
 
-    def test_quorum_prefers_halt_and_redacts_unsafe_evidence_refs(self):
+    def test_quorum_prefers_halt_and_redacts_unsafe_evidence_refs(self) -> None:
+        """Quorum prefers halt and redacts unsafe evidence refs."""
         result = ByzantineFaultTolerantConsensus(fault_tolerance=1).decide(
             (
                 BFTConsensusVote("nli", "halt", 0.8, "secret://raw-claim"),
@@ -290,7 +335,8 @@ class TestByzantineFaultTolerantConsensus:
             "proof://claim",
         )
 
-    def test_no_quorum_and_duplicate_verifiers_are_rejected(self):
+    def test_no_quorum_and_duplicate_verifiers_are_rejected(self) -> None:
+        """No quorum and duplicate verifiers are rejected."""
         consensus = ByzantineFaultTolerantConsensus(fault_tolerance=1)
         with pytest.raises(ValueError, match="duplicate verifier votes"):
             consensus.decide(
@@ -319,7 +365,10 @@ class TestByzantineFaultTolerantConsensus:
 
 
 class TestCrossVerifierConsensus:
-    def test_profile_validation_rejects_empty_bad_interval_and_weights(self):
+    """Tests for cross-verifier consensus."""
+
+    def test_profile_validation_rejects_empty_bad_interval_and_weights(self) -> None:
+        """Profile validation rejects empty bad interval and weights."""
         with pytest.raises(ValueError, match="required_verifiers are required"):
             CriticalConsensusProfile(required_verifiers=())
         with pytest.raises(ValueError, match=r"max_interval_width must be in \[0, 1\]"):
@@ -338,7 +387,8 @@ class TestCrossVerifierConsensus:
                 weights={"nli": -1.0},
             )
 
-    def test_constructor_and_weight_validation_rejects_invalid_thresholds(self):
+    def test_constructor_and_weight_validation_rejects_invalid_thresholds(self) -> None:
+        """Constructor and weight validation rejects invalid thresholds."""
         with pytest.raises(ValueError, match="mode must be"):
             CrossVerifierConsensus(mode="average")
         with pytest.raises(
@@ -374,7 +424,8 @@ class TestCrossVerifierConsensus:
                 policy_id="policy.weighted",
             )
 
-    def test_weighted_consensus_rejects_zero_total_weight(self):
+    def test_weighted_consensus_rejects_zero_total_weight(self) -> None:
+        """Weighted consensus rejects zero total weight."""
         consensus = CrossVerifierConsensus(
             mode="weighted",
             weights={"nli": 0.0},
@@ -402,7 +453,8 @@ class TestCrossVerifierConsensus:
                 policy_id="policy.weighted",
             )
 
-    def test_critical_consensus_combines_required_verifiers_into_interval(self):
+    def test_critical_consensus_combines_required_verifiers_into_interval(self) -> None:
+        """Critical consensus combines required verifiers into interval."""
         envelope = RiskEnvelope(
             action_category="text",
             reversibility="reversible",
@@ -487,7 +539,8 @@ class TestCrossVerifierConsensus:
         )
         assert decision.attributes["calibrated_interval_width"] == "0.122308"
 
-    def test_critical_consensus_warns_when_required_verifier_is_missing(self):
+    def test_critical_consensus_warns_when_required_verifier_is_missing(self) -> None:
+        """Critical consensus warns when required verifier is missing."""
         envelope = RiskEnvelope(
             action_category="text",
             reversibility="reversible",
@@ -527,7 +580,8 @@ class TestCrossVerifierConsensus:
         assert decision.reason == "critical_consensus_missing_verifier"
         assert decision.attributes["missing_verifiers"] == "numeric,symbolic,temporal"
 
-    def test_critical_consensus_warns_when_interval_is_too_wide(self):
+    def test_critical_consensus_warns_when_interval_is_too_wide(self) -> None:
+        """Critical consensus warns when interval is too wide."""
         envelope = RiskEnvelope(
             action_category="text",
             reversibility="reversible",
@@ -569,7 +623,8 @@ class TestCrossVerifierConsensus:
         assert decision.confidence_low == pytest.approx(0.0)
         assert decision.confidence_high == pytest.approx(0.4)
 
-    def test_critical_consensus_preserves_decisive_contradiction_risk(self):
+    def test_critical_consensus_preserves_decisive_contradiction_risk(self) -> None:
+        """Critical consensus preserves decisive contradiction risk."""
         envelope = RiskEnvelope(
             action_category="text",
             reversibility="reversible",
@@ -634,7 +689,10 @@ class TestCrossVerifierConsensus:
         assert decision.reason == "cross_verifier_contradiction"
         assert decision.risk_score == pytest.approx(0.94)
 
-    def test_conservative_consensus_halts_on_high_confidence_contradiction(self):
+    def test_conservative_consensus_halts_on_high_confidence_contradiction(
+        self,
+    ) -> None:
+        """Conservative consensus halts on high confidence contradiction."""
         envelope = RiskEnvelope(
             action_category="text",
             reversibility="reversible",
@@ -684,7 +742,8 @@ class TestCrossVerifierConsensus:
             == "halt"
         )
 
-    def test_empty_consensus_warns_instead_of_allowing(self):
+    def test_empty_consensus_warns_instead_of_allowing(self) -> None:
+        """Empty consensus warns instead of allowing."""
         envelope = RiskEnvelope(
             action_category="code",
             reversibility="costly",
@@ -704,7 +763,8 @@ class TestCrossVerifierConsensus:
         assert decision.risk_score == 0.0
         assert decision.verifier_signals == ()
 
-    def test_no_go_policy_preserves_matching_empty_consensus_decision(self):
+    def test_no_go_policy_preserves_matching_empty_consensus_decision(self) -> None:
+        """No go policy preserves matching empty consensus decision."""
         envelope = RiskEnvelope(
             action_category="code",
             reversibility="costly",
@@ -725,7 +785,8 @@ class TestCrossVerifierConsensus:
         assert decision.reason == "insufficient_verifier_evidence"
         assert "requires_human_review" not in decision.attributes
 
-    def test_uncertain_consensus_warns_below_calibrated_halt_threshold(self):
+    def test_uncertain_consensus_warns_below_calibrated_halt_threshold(self) -> None:
+        """Uncertain consensus warns below calibrated halt threshold."""
         envelope = RiskEnvelope(
             action_category="text",
             reversibility="reversible",
@@ -756,7 +817,8 @@ class TestCrossVerifierConsensus:
         )
         assert decision.evidence_refs == ("policy:review",)
 
-    def test_consensus_deduplicates_evidence_refs_in_signal_order(self):
+    def test_consensus_deduplicates_evidence_refs_in_signal_order(self) -> None:
+        """Consensus deduplicates evidence refs in signal order."""
         envelope = RiskEnvelope(
             action_category="text",
             reversibility="reversible",
@@ -796,7 +858,8 @@ class TestCrossVerifierConsensus:
             "calc://claim",
         )
 
-    def test_blank_action_sequence_is_not_serialised_for_forecast(self):
+    def test_blank_action_sequence_is_not_serialised_for_forecast(self) -> None:
+        """Blank action sequence is not serialised for forecast."""
         envelope = RiskEnvelope(
             action_category="tool",
             reversibility="costly",
@@ -825,7 +888,8 @@ class TestCrossVerifierConsensus:
         assert decision.reason == "cross_verifier_uncertain"
         assert "action_sequence" not in decision.attributes
 
-    def test_no_go_policy_blocks_irreversible_weighted_consensus(self):
+    def test_no_go_policy_blocks_irreversible_weighted_consensus(self) -> None:
+        """No go policy blocks irreversible weighted consensus."""
         envelope = RiskEnvelope(
             action_category="physical",
             reversibility="irreversible",
@@ -869,9 +933,16 @@ class TestCrossVerifierConsensus:
         assert decision.reason == "no_go_irreversible_risk"
         assert decision.attributes["consensus_mode"] == "weighted"
 
-    def test_no_go_policy_blocks_forecasted_irreversibility_from_consensus(self):
+    def test_no_go_policy_blocks_forecasted_irreversibility_from_consensus(
+        self,
+    ) -> None:
+        """No go policy blocks forecasted irreversibility from consensus."""
+
         class AlwaysIrreversibleForecaster:
-            def forecast(self, actions, *, seed=0):
+            """A forecaster that predicts the planned actions are irreversible."""
+
+            def forecast(self, actions: Sequence[str], *, seed: int = 0) -> Forecast:
+                """Return a forecast that crosses the irreversibility threshold."""
                 assert tuple(actions) == ("stage plan", "transfer funds")
                 return Forecast(
                     p_irreversible=0.87,
@@ -925,7 +996,8 @@ class TestCrossVerifierConsensus:
         assert decision.attributes["reviewed_threshold"] == "0.700000"
         assert decision.attributes["reviewed_threshold_calibration_size"] == "128"
 
-    def test_interval_fusion_handles_empty_signals_and_validates_weights(self):
+    def test_interval_fusion_handles_empty_signals_and_validates_weights(self) -> None:
+        """Interval fusion handles empty signals and validates weights."""
         assert _fused_interval((), {}) == (0.0, 1.0)
         assert _weighted_value((), {}, "score") == 0.0
 
