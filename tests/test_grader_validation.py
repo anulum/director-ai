@@ -4,7 +4,7 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-"""Tests for the WS-3 grader-validation contract (the FPR of the honesty gate).
+"""Tests for the grader-validation contract (the FPR of the honesty gate).
 
 Covers the overclaim semantics (a render asserting more support than the truth,
 with under-claims and false-refutations correctly excluded), per-status FPR/FNR
@@ -30,7 +30,7 @@ from director_ai.core.calibration.grader_validation import (
 
 
 def _grader(inputs: Mapping[str, object]) -> GraderStatus:
-    """A controllable grader: it renders whatever the case put in ``predict``."""
+    """Render whatever the case put in ``predict`` (a controllable grader)."""
     return inputs["predict"]  # type: ignore[return-value]
 
 
@@ -42,6 +42,7 @@ def _case(case_id: str, predict: GraderStatus, truth: GraderStatus) -> GraderCas
 
 
 def test_perfect_grader_has_zero_overclaim_full_coverage() -> None:
+    """A grader that renders every truth has no overclaim and full coverage."""
     cases = [
         _case("a", "validated", "validated"),
         _case("b", "bounded", "bounded"),
@@ -55,12 +56,14 @@ def test_perfect_grader_has_zero_overclaim_full_coverage() -> None:
 
 
 def test_validated_for_bounded_is_an_overclaim() -> None:
+    """Rendering validated for a bounded truth is an overclaim."""
     cases = [_case("a", "validated", "bounded")]
     report = validate_grader(_grader, cases)
     assert report.headline_overclaim_rate == 1.0
 
 
 def test_bounded_for_refuted_is_an_overclaim() -> None:
+    """Rendering bounded for a refuted truth is an overclaim."""
     report = validate_grader(_grader, [_case("a", "bounded", "refuted")])
     assert report.headline_overclaim_rate == 1.0
 
@@ -83,6 +86,7 @@ def test_refuted_for_validated_is_not_an_overclaim() -> None:
 
 
 def test_per_status_fpr_and_fnr() -> None:
+    """Each status reports its own support, false-positive and false-negative rates."""
     cases = [
         _case("a", "validated", "validated"),  # validated TP
         _case("b", "validated", "bounded"),  # validated FP (and bounded FN)
@@ -102,6 +106,7 @@ def test_per_status_fpr_and_fnr() -> None:
 
 
 def test_coverage_excludes_unknown_only() -> None:
+    """Coverage counts every answer except unknown, refutations included."""
     cases = [
         _case("a", "validated", "validated"),
         _case("b", "unknown", "bounded"),
@@ -115,12 +120,14 @@ def test_coverage_excludes_unknown_only() -> None:
 
 
 def test_empty_cases_raises() -> None:
+    """An empty case set raises ValueError."""
     with pytest.raises(ValueError, match="empty case set"):
         validate_grader(_grader, [])
 
 
 @pytest.mark.parametrize("bad", [0.0, 1.0, -0.1, 1.5])
 def test_bad_confidence_raises(bad: float) -> None:
+    """A confidence outside the open interval (0, 1) raises ValueError."""
     with pytest.raises(ValueError, match="confidence must be in"):
         validate_grader(_grader, [_case("a", "validated", "validated")], confidence=bad)
 
@@ -129,6 +136,7 @@ def test_bad_confidence_raises(bad: float) -> None:
 
 
 def test_report_to_dict_shape() -> None:
+    """The report serialises its schema, size, headline and per-status rows."""
     report = validate_grader(_grader, [_case("a", "validated", "validated")])
     payload = report.to_dict()
     assert payload["schema"] == "studio.grader-report.v1"
@@ -140,6 +148,7 @@ def test_report_to_dict_shape() -> None:
 
 
 def test_status_lookup_unknown_key_raises() -> None:
+    """Looking up a status that does not exist raises KeyError."""
     report = validate_grader(_grader, [_case("a", "validated", "validated")])
     with pytest.raises(KeyError):
         report.status("not-a-status")  # type: ignore[arg-type]
@@ -158,6 +167,7 @@ def _clean_cases() -> list[GraderCase]:
 
 
 def test_admissible_clean_grader_passes() -> None:
+    """A grader with no errors on 20 cases is admissible at a realistic alpha."""
     report = validate_grader(_grader, _clean_cases())
     # With zero overclaims the Hoeffding upper bound on 0/20 may still exceed a
     # tight alpha; assert with a realistic alpha for a 20-case smoke set.
@@ -165,6 +175,7 @@ def test_admissible_clean_grader_passes() -> None:
 
 
 def test_overclaim_above_alpha_raises() -> None:
+    """An overclaim rate above alpha is refused as a grade above its evidence."""
     cases = [_case(f"o{i}", "validated", "bounded") for i in range(10)]
     report = validate_grader(_grader, cases)
     with pytest.raises(GraderValidationError, match="above its evidence"):
@@ -172,6 +183,7 @@ def test_overclaim_above_alpha_raises() -> None:
 
 
 def test_missed_falsification_raises() -> None:
+    """A single missed falsification is refused whatever the alpha."""
     cases = _clean_cases()
     # Corrupt one falsified case: the grader downgrades it to bounded (a miss).
     cases.append(_case("miss", "bounded", "falsified"))
@@ -182,6 +194,7 @@ def test_missed_falsification_raises() -> None:
 
 def test_abstention_crutch_coverage_floor_raises() -> None:
     # A grader that abstains on everything: zero overclaim, but useless.
+    """A grader that abstains on everything is refused by the coverage floor."""
     cases = [_case(f"u{i}", "unknown", "validated") for i in range(10)]
     report = validate_grader(_grader, cases)
     assert report.headline_overclaim_rate == 0.0
@@ -190,7 +203,7 @@ def test_abstention_crutch_coverage_floor_raises() -> None:
 
 
 def test_canonical_bytes_and_digest_are_deterministic() -> None:
-    """The canonical form + digest are byte-stable (the WS-1 signed-unit seam)."""
+    """The canonical form + digest are byte-stable (the unit the seal signs)."""
     cases = [_case("a", "validated", "validated"), _case("b", "bounded", "bounded")]
     report = validate_grader(_grader, cases)
     other = validate_grader(_grader, cases)
@@ -209,6 +222,7 @@ def test_digest_changes_when_report_changes() -> None:
 
 
 def test_public_surface_reexports() -> None:
+    """The core facade re-exports the grader report and the validator."""
     from director_ai.core import GraderReport as ExportedReport
     from director_ai.core import validate_grader as exported_fn
 

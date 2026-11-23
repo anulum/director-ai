@@ -4,7 +4,7 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI — validate the honesty grader (WS-3, the meta-FPR contract)
+# Director-Class AI — validate the honesty grader (the meta-FPR contract)
 
 """Validate the honesty grader itself — measure the FPR of the trust gate.
 
@@ -15,14 +15,15 @@ classifier has its own false-positive and false-negative rates. A portal that
 renders a grade it never validated is theatre: a beautiful render of an
 uncalibrated verdict.
 
-This module is the WS-3 release-blocker contract (SCPN-STUDIO Round 2): run a
-grader against a labelled validation set and publish its drift-gated error rate,
-so a *grade above its evidence* is a measurable, CI-failable event. The headline
-measurable is the **overclaim rate** — P(the grader renders more support than the
-ground truth warrants) — reported with a one-sided Hoeffding upper bound and,
-crucially, **paired with coverage** so a grader that punts everything to
-``unknown`` cannot game a perfect overclaim rate (the abstention-crutch failure;
-WS-4 frontier discipline applied to the grader).
+This module is the grader's release-blocker contract, shared with SCPN-STUDIO:
+run a grader against a labelled validation set and publish its drift-gated
+error rate, so a *grade above its evidence* is a measurable, CI-failable event.
+The headline measurable is the **overclaim rate** — P(the grader renders more
+support than the ground truth warrants) — reported with a one-sided Hoeffding
+upper bound and, crucially, **paired with coverage** so a grader that punts
+everything to ``unknown`` cannot game a perfect overclaim rate (the
+abstention-crutch failure: an error rate is never reported without the coverage
+it was measured at).
 
 The grader is an injected callable, so this harness validates *any* grader — the
 canonical ``@anulum/ui`` honesty bridge, a Director-AI reference grader, or a
@@ -50,7 +51,7 @@ __all__ = [
     "validate_grader",
 ]
 
-#: The canonical honesty statuses (LOCK-4); ``falsified``/``refuted`` are
+#: The canonical honesty statuses; ``falsified``/``refuted`` are
 #: first-class negatives, never hidden.
 GraderStatus = Literal["validated", "bounded", "refuted", "falsified", "unknown"]
 
@@ -155,7 +156,7 @@ class GraderReport:
         }
 
     def canonical_bytes(self) -> bytes:
-        """Return the byte-stable canonical form — the unit a seal signs (WS-1).
+        """Return the byte-stable canonical form — the unit a seal signs.
 
         Deterministic, sorted-key, tight-separator JSON, so the grader-report can
         be a *signed unit* in the verifiable-honesty contract: a portal that
@@ -171,7 +172,7 @@ class GraderReport:
         ).encode("utf-8")
 
     def content_digest(self) -> str:
-        """Return the ``sha256:`` digest of the canonical form (H2 reproduction)."""
+        """Return the ``sha256:`` digest a reproduction must match exactly."""
         return "sha256:" + hashlib.sha256(self.canonical_bytes()).hexdigest()
 
 
@@ -243,7 +244,7 @@ def assert_grader_admissible(
     overclaim_alpha: float = 0.05,
     coverage_floor: float = 0.70,
 ) -> None:
-    """Enforce the WS-3 release-blocker rules; raise on any violation.
+    """Enforce the grader's release-blocker rules; raise on any violation.
 
     1. The overclaim **upper bound** must not exceed ``overclaim_alpha`` — a grade
        above its evidence, beyond the tolerated rate, fails (the meta-overclaim).

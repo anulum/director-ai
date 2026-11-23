@@ -15,7 +15,7 @@ export interface RunnableCell {
   readonly kind: "wasm-halt" | "katex" | "pyodide" | "chart";
   /** KaTeX source, a kernel config, or a chart artefact path — kind-dependent. */
   readonly source: string;
-  /** For reproduction cells: the committed claim digest + its exactness (H2/H3). */
+  /** For reproduction cells: the committed claim digest + its declared exactness. */
   readonly claim?: {
     /** Expected digest from the committed claim. */
     readonly digest: string;

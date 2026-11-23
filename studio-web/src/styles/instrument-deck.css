@@ -25,7 +25,7 @@
   --text: #e6ecf7;
   --text-muted: #94a3b8;
 
-  /* Honesty palette — MUST equal honesty.ts / @anulum/ui (H4). */
+  /* Honesty palette — MUST equal honesty.ts / @anulum/ui (the single palette). */
   --status-validated: #34d399;
   --status-boundary: #fbbf24;
   --status-voided: #f87171;

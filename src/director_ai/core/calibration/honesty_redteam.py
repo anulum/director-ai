@@ -6,7 +6,7 @@
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI — adversarial strip-resistance battery for the honesty seal
 
-"""Red-team the verifiable-honesty seal — a survivor is a release blocker (WS-1).
+"""Red-team the verifiable-honesty seal — a survivor is a release blocker.
 
 Signing a claim is necessary but not sufficient: an attacker does not strip the
 badge, they show a *plausible-wrong* one. DIRECTOR-AI owns the adversarial layer

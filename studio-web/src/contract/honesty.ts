@@ -2,12 +2,12 @@
 // © Code 2020–2026 Miroslav Šotek. All rights reserved.
 // Director-AI Studio — honesty bridge (LOCAL MIRROR of @anulum/ui honesty.ts).
 //
-// H4 (CEO ruling, locked): this is the SINGLE source of claim grading; the portal
+// Locked by the CEO's ruling: this is the SINGLE source of claim grading; the portal
 // never forms a second opinion. Until `@anulum/ui` publishes, this local mirror
 // stands in with the canonical palette; swapping the import is the only change.
 // `falsified`/`refuted` are first-class statuses, never hidden.
 
-/** Canonical claim statuses (LOCK-4). `falsified`/`refuted` are first-class. */
+/** Canonical claim statuses. `falsified`/`refuted` are first-class. */
 export type ClaimStatus =
   | "validated"
   | "bounded"
@@ -16,7 +16,7 @@ export type ClaimStatus =
   | "falsified"
   | "unknown";
 
-/** The canonical honesty palette — one set, never a second opinion (H4). */
+/** The canonical honesty palette — one set, never a second opinion. */
 export const HONESTY_PALETTE: Readonly<Record<ClaimStatus, string>> = {
   validated: "#34d399", // evidence meets the claim
   bounded: "#fbbf24", // true within a stated boundary
@@ -48,14 +48,14 @@ export function gradeStatus(raw: string): ClaimStatus {
   }
 }
 
-/** Exactness of a reproduction (H3): a tolerance-match is never labelled bit-exact. */
+/** Exactness of a reproduction: a tolerance-match is never labelled bit-exact. */
 export type Exactness = "bit-exact" | "tolerance-aware";
 
-/** Outcome of an in-browser reproduction — a CONSUMER signal only (H1). */
+/** Outcome of an in-browser reproduction — a CONSUMER signal only. */
 export interface ReproductionResult {
-  /** True only when the WASM output digest equals the committed claim digest (H2). */
+  /** True only when the WASM output digest equals the committed claim digest. */
   readonly matches: boolean;
-  /** Whether the match was exact or within tolerance; the UI states which (H3). */
+  /** Whether the match was exact or within tolerance; the UI states which. */
   readonly exactness: Exactness;
   /** Committed claim digest (the producer-verified source of truth). */
   readonly claimDigest: string;
@@ -66,10 +66,10 @@ export interface ReproductionResult {
 /**
  * Judge an in-browser reproduction against a committed claim digest.
  *
- * H1: the result is a *consumer* signal ("reproduced in your browser ✓"); it is
+ * The result is a *consumer* signal ("reproduced in your browser ✓"); it is
  * NEVER promoted to producer verification (`verified-at-source`) — a visitor's
- * browser cannot be hub-attested. H2: a digest mismatch is drift and must be
- * surfaced loudly. H3: the caller passes the claim's declared `exactness`; a
+ * browser cannot be hub-attested. A digest mismatch is drift and must be
+ * surfaced loudly. The caller passes the claim's declared `exactness`; a
  * tolerance-aware claim is never rendered as "bit-exact reproduced".
  */
 export function judgeReproduction(
@@ -85,7 +85,7 @@ export function judgeReproduction(
   };
 }
 
-/** Human label for a reproduction — consumer-side wording only (H1). */
+/** Human label for a reproduction — consumer-side wording only. */
 export function reproductionLabel(result: ReproductionResult): string {
   if (!result.matches) return "reproduction MISMATCH — drift detected";
   return result.exactness === "bit-exact"

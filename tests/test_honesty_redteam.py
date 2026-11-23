@@ -4,7 +4,7 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-"""Tests for the WS-1 adversarial strip-resistance battery.
+"""Tests for the honesty seal's adversarial strip-resistance battery.
 
 Runs the real published ``scpn_studio_platform.seal`` (the ``honesty`` extra) and
 asserts the battery catches every attack — strip-overclaim, tamper-unit, the
@@ -51,6 +51,7 @@ def _run() -> BatteryReport:
 
 
 def test_battery_catches_every_attack_zero_survivors() -> None:
+    """The battery mounts all six attacks and every one is caught."""
     report = _run()
     assert report.all_blocked is True
     assert report.survivors == ()
@@ -69,10 +70,12 @@ def test_battery_catches_every_attack_zero_survivors() -> None:
 
 
 def test_assert_zero_survivors_passes_on_clean_report() -> None:
+    """A report with no survivor passes the survivor gate."""
     assert_zero_survivors(_run())  # does not raise
 
 
 def test_assert_zero_survivors_raises_on_a_survivor() -> None:
+    """A report with a survivor is refused as a release blocker."""
     report = BatteryReport(
         outcomes=(AttackOutcome("forged-pass", "verified", survived=True),),
         survivors=("forged-pass",),
@@ -83,6 +86,7 @@ def test_assert_zero_survivors_raises_on_a_survivor() -> None:
 
 
 def test_vacuous_strip_grade_rejected() -> None:
+    """An inflated grade equal to the true grade is refused as vacuous."""
     with pytest.raises(ValueError, match="over-claim"):
         run_strip_resistance_battery(
             unit={"claim": "x", "margin": 2.0},
@@ -93,6 +97,7 @@ def test_vacuous_strip_grade_rejected() -> None:
 
 
 def test_report_and_outcome_serialise() -> None:
+    """The report and each outcome serialise to plain data."""
     report = _run()
     payload = report.to_dict()
     assert payload["all_blocked"] is True

@@ -110,4 +110,5 @@ runtime.
 - `docs/_generated/studio_manifest.json` — schema-A verbs/capabilities (Capabilities).
 - `benchmarks/scores/factcg-*.json`, `benchmarks/results/*` — accuracy + FPR (Benchmarks, Evidence).
 - `backfire-kernel/crates/backfire-wasm/pkg` — the live halt kernel (Play).
-- the sealed evidence packet — digest-verified reproduction (Evidence, per H1–H3).
+- the sealed evidence packet — digest-verified reproduction (Evidence, judged by the
+  honesty bridge's reproduction rules).
