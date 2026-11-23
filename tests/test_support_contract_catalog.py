@@ -30,12 +30,12 @@ def test_the_catalog_loads_through_the_authority_check() -> None:
 
 
 def test_model_lifecycle_is_experimental() -> None:
-    """Name the model-lifecycle contracts experimental (C-6)."""
+    """Name the model-lifecycle contracts experimental."""
     assert CONTRACT.experimental_namespaces == ("director_ai.model_lifecycle",)
 
 
 def test_rows_that_rest_on_a_model_verdict_are_experimental() -> None:
-    """Keep model scoring and every row built on its verdict experimental (K-1, K-2)."""
+    """Keep model scoring and every row built on its verdict experimental."""
     for identifier in (
         "model-scoring",
         "production-guard",
@@ -48,12 +48,12 @@ def test_rows_that_rest_on_a_model_verdict_are_experimental() -> None:
 
 
 def test_streaming_is_opt_in() -> None:
-    """Never turn streaming contradiction handling on by default (K-3)."""
+    """Never turn streaming contradiction handling on by default."""
     assert CONTRACT.operation("streaming-contradiction-halt").activation == "opt-in"
 
 
 def test_the_transport_rows_name_their_verdict_routes_experimental() -> None:
-    """State beside the transport rows that their verdict routes are experimental (T-2)."""
+    """State beside the transport rows that their verdict routes are experimental."""
     assert (
         "/v1/review is experimental" in CONTRACT.operation("rest-server-transport").note
     )
@@ -67,7 +67,7 @@ def test_the_transport_rows_name_their_verdict_routes_experimental() -> None:
 
 
 def test_compliance_is_split_at_subcommand_level() -> None:
-    """Split compliance by subcommand: the reports and the evidence kit (b0f9, O-2)."""
+    """Split compliance by subcommand: the reports and the evidence kit."""
     row = CONTRACT.operation("compliance-reports")
     assert (row.commands, row.subcommands) == (
         ("compliance",),
@@ -79,7 +79,7 @@ def test_compliance_is_split_at_subcommand_level() -> None:
 
 
 def test_the_owner_added_rows_claim_their_installations() -> None:
-    """Add the redactor, the evidence kit and evidence emission and verification (O-2)."""
+    """Add the redactor, the evidence kit and evidence emission and verification."""
     claimed = {
         identifier: CONTRACT.operation(identifier).installation
         for identifier in (
@@ -108,7 +108,7 @@ def test_the_injection_firewall_is_the_rule_based_sanitizer() -> None:
 
 
 def test_the_redactor_stays_on_and_names_its_classes() -> None:
-    """Own redact_pii by the redactor row, which names every class it covers (R-1)."""
+    """Own redact_pii by the redactor row, which names every class it covers."""
     owners = {
         default.setting: default.owner for default in CONTRACT.production_defaults
     }
@@ -151,7 +151,7 @@ def test_each_scope_note_bounds_what_its_probe_shows() -> None:
 
 
 def test_every_row_with_an_installation_names_its_probe() -> None:
-    """Bind every claimed installation to an installed probe (C-4)."""
+    """Bind every claimed installation to an installed probe."""
     claimed = {
         row.identifier: row.probe for row in CONTRACT.operations if row.installation
     }

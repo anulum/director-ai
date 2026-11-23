@@ -335,7 +335,7 @@ def test_an_accepted_overlay_is_refused(monkeypatch: pytest.MonkeyPatch) -> None
 
 
 def test_an_unrecorded_contract_fails_the_authority_probe() -> None:
-    """Fail when no distribution records the contract, as in this checkout (A-1)."""
+    """Fail when no distribution records the contract, as in this checkout."""
     with pytest.raises(
         PROBE.ProbeError,
         match="director-ai does not record director_ai.support_contract with",
@@ -547,7 +547,7 @@ def test_a_failing_negative_probe_fails_the_run(tmp_path: Path) -> None:
 def test_a_weakened_server_posture_fails_the_probe(
     monkeypatch: pytest.MonkeyPatch, change: dict[str, object], message: str
 ) -> None:
-    """Fail the transport probe when the server loses part of its posture (T-1)."""
+    """Fail the transport probe when the server loses part of its posture."""
     real: Callable[..., object] = PROBE._posture_config
 
     def weakened(**values: object) -> object:

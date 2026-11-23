@@ -5,7 +5,7 @@
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-AI — tests that only the Core wheel ships the support contract
-"""Refuse a paid wheel that ships the contract, and a Core wheel that lost it (C-1)."""
+"""Refuse a paid wheel that ships the contract, and a Core wheel that lost it."""
 
 from __future__ import annotations
 

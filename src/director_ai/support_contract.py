@@ -52,7 +52,7 @@ INSTALLATIONS = ("core", "core+pro", "core+full")
 SUPPORT_LEVELS = ("production-qualified", "experimental")
 ACTIVATIONS = ("default", "opt-in", "command")
 CUSTODY_ROLES = ("classification", "evidence", "owner", "quality")
-"""Who signed a row: the Architect, RIGOR, the owner, and the quality gates."""
+"""Who signed a row: the classification and evidence reviewers, the owner, and the quality gates."""
 
 DISTRIBUTION = "director-ai"
 """The Core distribution, the only one that may ship the contract files."""
