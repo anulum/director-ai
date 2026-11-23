@@ -272,7 +272,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
     app.state.router_mounts = {}
     app.state.start_time = _start_time
 
-    # Fine-tuning API router (Phase C)
+    # Fine-tuning API router
     try:
         from .finetune_api import create_finetune_router
 

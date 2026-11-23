@@ -103,7 +103,7 @@ class FinetuneConfig:
     save_strategy: str = "epoch"
     gradient_accumulation_steps: int = 1
 
-    # Phase E: training optimization. Replay mixing needs an explicit
+    # Training optimization. Replay mixing needs an explicit
     # ``general_data_path``; the auto-benchmark needs an independent
     # ``general_benchmark_path`` and otherwise reports ``reject``.
     mix_general_data: bool = False
@@ -545,7 +545,7 @@ def finetune_nli(
     else:
         eval_rows = None
 
-    # Phase E: mix explicit replay data to prevent catastrophic forgetting
+    # Mix explicit replay data to prevent catastrophic forgetting
     n_general_mixed = 0
     if config.mix_general_data and replay_path:
         train_rows, n_general_mixed = _mix_general_data(
@@ -583,7 +583,7 @@ def finetune_nli(
 
     clear_model_cache()
 
-    # Phase E: compute class weights for imbalanced datasets
+    # Compute class weights for imbalanced datasets
     class_weights = None
     if config.class_weighted_loss:
         class_weights = _compute_class_weights(train_rows)
@@ -663,7 +663,7 @@ def finetune_nli(
     resolved = TrainingArguments(**arguments).device.type
     training_args = TrainingArguments(**arguments, **loader_options(resolved))
 
-    # Phase E: early stopping callback
+    # Early stopping callback
     callbacks: list[Any] = []
     if config.early_stopping_patience > 0 and eval_dataset:
         callbacks.append(
@@ -672,7 +672,7 @@ def finetune_nli(
             ),
         )
 
-    # Phase E: class-weighted loss via custom Trainer
+    # Class-weighted loss via a custom Trainer
     trainer_cls = Trainer
     if class_weights is not None:
         trainer_cls = _make_weighted_trainer_class(class_weights)
@@ -721,11 +721,11 @@ def finetune_nli(
                 result.best_balanced_accuracy * 100,
             )
 
-        # Phase E: auto-benchmark against baseline
+        # Auto-benchmark against the baseline
         if config.auto_benchmark:
             result.regression_report = _auto_benchmark(config, eval_path)
 
-        # Phase E: auto ONNX export
+        # Automatic ONNX export
         if config.auto_onnx_export:
             from director_ai.core.scoring.nli import export_onnx
 

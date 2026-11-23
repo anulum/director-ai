@@ -6,7 +6,7 @@
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI — Fine-tuning REST API
 
-"""Server-side fine-tuning API (Phase C).
+"""Server-side fine-tuning API.
 
 Endpoints::
 
