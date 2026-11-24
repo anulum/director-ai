@@ -9,7 +9,7 @@
     "python_model_classes": 1212,
     "python_model_source_modules": 621,
     "rust_pyo3_model_wrappers": 83,
-    "test_files": 899
+    "test_files": 900
   },
   "documentation": {
     "public_pages": [
@@ -6869,6 +6869,7 @@
       "tests/test_quality_ratchet_python_engine.py",
       "tests/test_quality_ratchet_required.py",
       "tests/test_quality_ratchet_rust_cli.py",
+      "tests/test_quality_ratchet_rust_toolchain.py",
       "tests/test_quality_ratchet_succession.py",
       "tests/test_quality_ratchet_succession_load.py",
       "tests/test_quality_ratchet_typescript.py",

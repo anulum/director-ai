@@ -90,6 +90,13 @@ cache. Run it with a Cargo home and working directory whose Cargo configuration
 lookup paths contain no `config` or `config.toml`. The capture reports a
 refusal if one is present.
 
+The capture's identity hashes the `cargo` and `rustc` executables it runs.
+Through rustup those are rustup's own proxies, so a capture reproduces the
+recorded baseline only under rustup 1.29.3. `tools/install_rustup.sh`
+installs that release with Rust 1.98.1 and refuses unless every proxy is the
+verified binary. The required native quality job runs it, then fetches the
+reader's locked dependencies, before the ratchet.
+
 The required Rust job also audits the reader's own Cargo lock.
 
 ## Native Julia documentation checks

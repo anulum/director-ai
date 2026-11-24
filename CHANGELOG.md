@@ -227,6 +227,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- The required native quality job can build the Rust declaration reader. It
+  built the reader offline without fetching the reader's locked
+  dependencies, and it ran whichever rustup release the runner image carried,
+  while the rust-docs identity hashes rustup's proxies. The job now installs
+  rustup 1.29.3 and Rust 1.98.1 through `tools/install_rustup.sh`, which
+  verifies the download and every proxy against the pinned digest, and
+  fetches the reader's lock before the ratchet runs.
 - The quality ratchet keeps the checkout's location out of its snapshots.
   The Lean compiler names each message's source by its absolute path, and
   the Lean profile keeps those messages as advisories, so a recorded

@@ -68,13 +68,15 @@ jobs:
           fi
           test "$(/usr/bin/protoc --version)" = "libprotoc 3.21.12"
 
-      - uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable
-        with:
-          toolchain: "1.98.1"
+      - name: Install the verified rustup and Rust toolchain
+        run: bash tools/install_rustup.sh
 
       - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
         with:
           workspaces: tools/quality_ratchet_rust
+
+      - name: Fetch the locked Rust declaration reader dependencies
+        run: cargo fetch --locked --manifest-path tools/quality_ratchet_rust/Cargo.toml
 
       - name: Install the verified Lean toolchain
         run: bash tools/install_lean.sh
