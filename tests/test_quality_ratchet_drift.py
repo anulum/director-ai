@@ -20,6 +20,7 @@ from pathlib import Path
 import pytest
 
 from tools.quality_ratchet_native import capture_python_documentation
+from tools.quality_ratchet_profiles import PROFILE_CONFIGURATIONS
 from tools.quality_ratchet_typing import capture_python_typing
 
 
@@ -55,6 +56,15 @@ def native_repository(tmp_path: Path) -> Path:
     (root / "requirements/ci-lint.txt").write_text("ruff==0.16.10\n")
     (root / "requirements/ci-dev.txt").write_text("mypy==1.20.2\n")
     (root / "requirements/ci-types.txt").write_text("types-requests==2.33.0.20260906\n")
+    # Every configuration file the two collectors bind must exist, or they refuse
+    # the repository before any concurrent change can be observed.
+    for relative in (
+        *PROFILE_CONFIGURATIONS["python-docs"],
+        *PROFILE_CONFIGURATIONS["python-types"],
+    ):
+        path = root / relative
+        if not path.exists():
+            path.write_text(f"# {relative}: bound configuration fixture\n")
     return root
 
 

@@ -227,6 +227,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- The quality ratchet's concurrent-change test again exercises the typing
+  collector. Since the collector began binding
+  `requirements/quality-protobuf.txt`, the test's repository lacked that file,
+  so its three typing cases stopped at the missing file instead of the change
+  they were written to catch. The test repository now creates every
+  configuration file the documentation and typing collectors bind.
 - Fine-tuning on a CPU now loads its data in-process and unpinned, so a
   caller that trains from a thread no longer forks four loader workers or
   pins host memory with no accelerator to copy to. The loader settings
