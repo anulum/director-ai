@@ -8,53 +8,134 @@
 """Every tracked test file is collected by exactly one CI lane that has its tools.
 
 The Python partitions collect ``tests/``; native toolchain tests live with the
-lane that installs their toolchain. A file under no lane would never run, and a
-file under two would run twice or with the wrong tools, so each lane is declared
-here with the workflow command that collects it, and the two are checked against
-the tracked files and the workflow text.
+lane that installs their toolchain. Each completeness lane is declared here with
+its workflow, the command that collects it and the paths that command names.
+A file under no completeness lane would never run, and a file under two would
+run twice, or with the wrong tools. The extras lanes are deliberately not
+completeness lanes: they re-run named ``tests/`` files with optional
+dependencies installed, so those files are collected by the partitions and
+again by an extras lane by design. The one extras entry declared here, the
+standalone training runner test, is collected by no other lane.
 """
 
 from __future__ import annotations
 
 import re
 import subprocess
+from collections.abc import Mapping, Sequence
 from pathlib import Path
+from typing import NamedTuple
+
+import pytest
 
 from tools.audit_ci_workflow_modularity import read_workflow
 from tools.ci_workflow_inventory import object_mapping
 
 ROOT = Path(__file__).resolve().parents[2]
-LANES: dict[str, tuple[str, str]] = {
-    "tests/": ("ci-python.yml", r"-m pytest tests/ -v --tb=short"),
-    "tools/quality_ratchet_rust_tests/": (
+
+
+class Lane(NamedTuple):
+    """One completeness lane: where it is collected, and what it collects."""
+
+    workflow: str
+    command: str
+    collected: tuple[str, ...]
+
+
+LANES: dict[str, Lane] = {
+    "tests/": Lane("ci-python.yml", r"-m pytest tests/ -v --tb=short", ("tests/",)),
+    "tools/quality_ratchet_rust_tests/": Lane(
         "ci-rust.yml",
         r"python -m pytest tools/quality_ratchet_rust_tests$",
+        ("tools/quality_ratchet_rust_tests/",),
     ),
-    "formal/HaltMonitor/tests/": (
+    "formal/HaltMonitor/tests/": Lane(
         "ci-lean.yml",
         r"python -m pytest formal/HaltMonitor/tests$",
+        ("formal/HaltMonitor/tests/",),
     ),
-    "packages/director-ai-lite/tests/": (
+    "packages/director-ai-lite/tests/": Lane(
         "ci-lite.yml",
         r"cd packages/director-ai-lite\nPYTHONPATH=src pytest tests/ -q",
+        ("packages/director-ai-lite/tests/",),
     ),
-    "tools/quality_ratchet_julia_tests/": (
+    "tools/quality_ratchet_julia_tests/": Lane(
         "ci-quality.yml",
         r'"\$QUALITY_PYTHON" -m pytest tools/quality_ratchet_julia_tests ',
+        ("tools/quality_ratchet_julia_tests/",),
     ),
-    "tools/quality_ratchet_required_tests/": (
+    "tools/quality_ratchet_required_tests/": Lane(
         "ci-quality.yml",
         r"^\s*tools/quality_ratchet_required_tests$",
+        ("tools/quality_ratchet_required_tests/",),
     ),
-    "tools/run_training_standalone_tests/": (
+    "tools/run_training_standalone_tests/": Lane(
         "ci-extras.yml",
         r"^\s*tools/run_training_standalone_tests/test_run_training_standalone\.py$",
+        ("tools/run_training_standalone_tests/test_run_training_standalone.py",),
     ),
 }
-"""Each lane root mapped to its workflow and the command that collects it."""
+"""Each lane root mapped to its workflow, collecting command and collected paths."""
+EXCLUSIONS = re.compile(
+    r"(?<!\S)(?:--ignore(?:-glob)?(?:=|\s)|--deselect(?:=|\s)|-k(?:=|\s|$))", re.M
+)
+"""Pytest options that would let a lane's command skip files it seems to collect."""
 NATIVE_FIXTURES = re.compile(r"\b(?:rust_tools|lean_binary|julia_binary)\b")
 THIS_FILE = Path(__file__).resolve().relative_to(ROOT).as_posix()
 """This file names the native fixtures to search for them, so it is not scanned."""
+
+
+def lane_refusals(
+    lanes: Mapping[str, Lane],
+    files: Sequence[str],
+    scripts: Mapping[str, Sequence[str]],
+) -> list[str]:
+    """Return every way the declared lanes fail to collect the tracked test files.
+
+    Parameters
+    ----------
+    lanes : Mapping[str, Lane]
+        Lane roots mapped to their declarations.
+    files : Sequence[str]
+        Tracked test files, repository-relative.
+    scripts : Mapping[str, Sequence[str]]
+        Each workflow's ``run`` scripts.
+
+    Returns
+    -------
+    list[str]
+        One refusal per file outside exactly one lane, per file a lane's command
+        does not name, per lane whose command is missing or excludes files, and
+        per lane with no file. Empty means the lanes are complete and disjoint.
+    """
+    refusals = []
+    for path in files:
+        roots = [root for root in lanes if path.startswith(root)]
+        if len(roots) != 1:
+            refusals.append(f"{path} is in {len(roots)} lanes")
+            continue
+        collected = lanes[roots[0]].collected
+        if not any(path == entry or path.startswith(entry) for entry in collected):
+            refusals.append(
+                f"{path} is under {roots[0]} but its command never names it"
+            )
+    for root, lane in lanes.items():
+        pattern = re.compile(lane.command, re.M)
+        steps = [
+            script
+            for script in scripts.get(lane.workflow, ())
+            if pattern.search(script)
+        ]
+        if not steps:
+            refusals.append(f"{root} has no collecting command in {lane.workflow}")
+        refusals.extend(
+            f"{root} is collected by a command that excludes files"
+            for step in steps
+            if EXCLUSIONS.search(step)
+        )
+        if not any(path.startswith(root) for path in files):
+            refusals.append(f"{root} holds no test file")
+    return refusals
 
 
 def _test_files() -> list[str]:
@@ -83,26 +164,97 @@ def _run_scripts(workflow: str) -> list[str]:
     return scripts
 
 
-def test_every_test_file_belongs_to_exactly_one_lane() -> None:
-    """Collect each tracked test file in one lane, never in none or two."""
-    offenders = {
-        path: [root for root in LANES if path.startswith(root)]
-        for path in _test_files()
+def test_the_repository_lanes_are_complete_and_disjoint() -> None:
+    """Collect each tracked test file in exactly one lane, by a command that names it."""
+    scripts = {lane.workflow: _run_scripts(lane.workflow) for lane in LANES.values()}
+    assert lane_refusals(LANES, _test_files(), scripts) == []
+
+
+DIRECTORY_LANE = Lane("ci.yml", r"pytest suite/", ("suite/",))
+FILE_LANE = Lane("ci.yml", r"pytest named/test_one\.py$", ("named/test_one.py",))
+COMMANDS = ["pytest suite/", "pytest named/test_one.py"]
+
+
+@pytest.mark.parametrize(
+    ("files", "commands", "refusal"),
+    [
+        (
+            ["suite/test_a.py", "named/test_one.py", "named/test_two.py"],
+            COMMANDS,
+            "named/test_two.py is under named/ but its command never names it",
+        ),
+        (
+            ["suite/test_a.py", "named/test_one.py"],
+            ["pytest suite/ --ignore=suite/test_a.py", "pytest named/test_one.py"],
+            "suite/ is collected by a command that excludes files",
+        ),
+        (
+            ["suite/test_a.py", "named/test_one.py"],
+            ["pytest suite/ --ignore-glob=*_a.py", "pytest named/test_one.py"],
+            "suite/ is collected by a command that excludes files",
+        ),
+        (
+            ["suite/test_a.py", "named/test_one.py"],
+            [
+                "pytest suite/ --deselect suite/test_a.py::test_x",
+                "pytest named/test_one.py",
+            ],
+            "suite/ is collected by a command that excludes files",
+        ),
+        (
+            ["suite/test_a.py", "named/test_one.py"],
+            ["pytest suite/ -k 'not slow'", "pytest named/test_one.py"],
+            "suite/ is collected by a command that excludes files",
+        ),
+        (
+            ["suite/test_a.py", "named/test_one.py", "loose/test_b.py"],
+            COMMANDS,
+            "loose/test_b.py is in 0 lanes",
+        ),
+        (
+            ["suite/test_a.py", "named/test_one.py"],
+            ["pytest suite/"],
+            "named/ has no collecting command in ci.yml",
+        ),
+        (
+            ["named/test_one.py"],
+            COMMANDS,
+            "suite/ holds no test file",
+        ),
+    ],
+    ids=[
+        "second-file-in-a-file-named-lane",
+        "ignore",
+        "ignore-glob",
+        "deselect",
+        "keyword-selection",
+        "file-under-no-lane",
+        "lane-command-missing",
+        "empty-lane",
+    ],
+)
+def test_each_completeness_gap_is_refused(
+    files: list[str], commands: list[str], refusal: str
+) -> None:
+    """Refuse a file no command names, an excluding command, and a missing lane."""
+    lanes = {"suite/": DIRECTORY_LANE, "named/": FILE_LANE}
+
+    assert refusal in lane_refusals(lanes, files, {"ci.yml": commands})
+
+
+def test_a_file_under_two_lanes_is_refused() -> None:
+    """Refuse a file that two declared lane roots both contain."""
+    lanes = {
+        "suite/": DIRECTORY_LANE,
+        "suite/deep/": Lane("ci.yml", r"pytest suite/deep", ("suite/deep/",)),
     }
-    assert {path: roots for path, roots in offenders.items() if len(roots) != 1} == {}
+    commands = ["pytest suite/", "pytest suite/deep"]
 
+    refusals = lane_refusals(
+        lanes, ["suite/test_a.py", "suite/deep/test_b.py"], {"ci.yml": commands}
+    )
 
-def test_every_lane_is_collected_by_its_workflow() -> None:
-    """Find each lane's collecting command in a step of its declared workflow."""
-    for root, (workflow, command) in LANES.items():
-        pattern = re.compile(command, re.M)
-        assert any(pattern.search(script) for script in _run_scripts(workflow)), root
-
-
-def test_every_lane_holds_a_test_file() -> None:
-    """Declare no lane that collects nothing."""
-    files = _test_files()
-    assert all(any(path.startswith(root) for path in files) for root in LANES)
+    assert refusals == ["suite/deep/test_b.py is in 2 lanes"]
 
 
 def test_no_partition_test_needs_a_native_toolchain() -> None:
