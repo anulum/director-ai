@@ -80,7 +80,7 @@ class TestParents:
         self, changes: dict[str, object], fragment: str
     ) -> None:
         """Two unset identities prove nothing."""
-        unset = replace(CONTRACT, **changes)  # type: ignore[arg-type]
+        unset = replace(CONTRACT, **changes)  # type: ignore[arg-type]  # **changes takes any value so refusal tests can set ill-typed fields
         with pytest.raises(AdapterMergeError, match=fragment):
             merge_identity((parent("a", unset), parent("b", unset)), (unset, unset))
 
@@ -95,7 +95,7 @@ class TestParents:
     )
     def test_a_different_identity_is_refused(self, changes: dict[str, object]) -> None:
         """The architecture, embedding space and tie are equal across parents."""
-        other = replace(CONTRACT, **changes)  # type: ignore[arg-type]
+        other = replace(CONTRACT, **changes)  # type: ignore[arg-type]  # **changes takes any value so refusal tests can set ill-typed fields
         with pytest.raises(AdapterMergeError, match="differ in architecture"):
             merge_identity((PARENTS[0], parent("b", other)), (CONTRACT, other))
 
@@ -232,7 +232,7 @@ class TestResult:
         self, changes: dict[str, object]
     ) -> None:
         """The result may not claim another tokeniser, architecture, embedding or tie."""
-        other = replace(CONTRACT, **changes)  # type: ignore[arg-type]
+        other = replace(CONTRACT, **changes)  # type: ignore[arg-type]  # **changes takes any value so refusal tests can set ill-typed fields
         with pytest.raises(AdapterMergeError, match="claims another"):
             validate_merge_result(
                 self.merged(other), other, parents=PARENTS, parent_contracts=CONTRACTS

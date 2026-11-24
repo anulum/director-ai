@@ -158,7 +158,7 @@ class TestTensorSetIdentity:
     ) -> None:
         """Each descriptor's name, dtype and shape are validated first."""
         with pytest.raises(error, match=message):
-            tensor_set_identity([item])  # type: ignore[list-item]
+            tensor_set_identity([item])  # type: ignore[list-item]  # a malformed descriptor on purpose: it must be refused
 
     def test_a_malformed_data_digest_is_refused(self) -> None:
         """Descriptors must carry a real digest."""
@@ -283,7 +283,7 @@ class TestHardenedParser:
         message: str,
     ) -> None:
         """Each malformed header entry is refused by name."""
-        data = safetensors_bytes([], metadata, entries=entries) + bytes(4)  # type: ignore[arg-type]
+        data = safetensors_bytes([], metadata, entries=entries) + bytes(4)  # type: ignore[arg-type]  # an ill-typed argument on purpose: the call must refuse it
         with pytest.raises(MalformedWeightsError, match=message):
             _parse(data)
 

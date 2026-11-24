@@ -232,11 +232,13 @@ def test_overlap_digests_and_percentiles(small: Corpus) -> None:
 def test_evaluate_and_dev_selection(small: Corpus) -> None:
     """A full run reports every arm, the swap and a decision."""
     result = bench.evaluate(small, bench.HashingEmbedder(), "test", g=4, tau=0.3)
-    assert set(result["summary"]) == set(bench.ARMS)  # type: ignore[call-overload]
-    assert set(result["swap"]) == set(bench.ARMS)  # type: ignore[call-overload]
-    assert "accepted" in result["decision"]  # type: ignore[operator]
+    summary, swap, decision = result["summary"], result["swap"], result["decision"]
+    assert isinstance(summary, dict) and set(summary) == set(bench.ARMS)
+    assert isinstance(swap, dict) and set(swap) == set(bench.ARMS)
+    assert isinstance(decision, dict) and "accepted" in decision
     selection = bench.select_on_dev(small, bench.HashingEmbedder())
-    assert len(selection["grid"]) == 9  # type: ignore[arg-type]
+    grid = selection["grid"]
+    assert isinstance(grid, list) and len(grid) == 9
     assert selection["g"] in bench.GRID_G and selection["tau"] in bench.GRID_TAU
 
 

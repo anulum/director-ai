@@ -107,9 +107,9 @@ class TestSpendRefusals:
     def test_refusals_take_keywords_only(self) -> None:
         """Positional arguments are refused."""
         with pytest.raises(TypeError):
-            SpendReservationRefusedError("pool", "reason")  # type: ignore[misc]
+            SpendReservationRefusedError("pool", "reason")  # type: ignore[misc]  # positional arguments on purpose: the error must refuse them
         with pytest.raises(TypeError):
-            SpendSettlementRefusedError("pool", "res", "reason")  # type: ignore[misc]
+            SpendSettlementRefusedError("pool", "res", "reason")  # type: ignore[misc]  # positional arguments on purpose: the error must refuse them
 
 
 def evidence(**changes: object) -> PostSwapEvidence:
@@ -126,7 +126,7 @@ def evidence(**changes: object) -> PostSwapEvidence:
         "1763700000000000000",
         4242,
     )
-    return replace(base, **changes)  # type: ignore[arg-type]
+    return replace(base, **changes)  # type: ignore[arg-type]  # **changes takes any value so refusal tests can set ill-typed fields
 
 
 def verification(
@@ -143,7 +143,7 @@ def verification(
         "observation": observation,
         "evidence": evidence(),
     }
-    return replace(PostSwapVerification(**fields), **changes)  # type: ignore[arg-type]
+    return replace(PostSwapVerification(**fields), **changes)  # type: ignore[arg-type]  # **changes takes any value so refusal tests can set ill-typed fields
 
 
 class TestPostSwapRecords:
@@ -235,9 +235,9 @@ class TestPostSwapRecords:
         with pytest.raises(DeploymentRecordError):
             validate_post_swap_verification(verification(**changes))
         with pytest.raises(DeploymentRecordError):
-            validate_post_swap_verification(evidence())  # type: ignore[arg-type]
+            validate_post_swap_verification(evidence())  # type: ignore[arg-type]  # an ill-typed argument on purpose: the call must refuse it
         with pytest.raises(DeploymentRecordError):
-            validate_post_swap_evidence(verification())  # type: ignore[arg-type]
+            validate_post_swap_evidence(verification())  # type: ignore[arg-type]  # an ill-typed argument on purpose: the call must refuse it
 
 
 @dataclass
@@ -301,7 +301,7 @@ def preflight(**changes: object) -> BarrenPlateauWitnessReceipt:
         0.01,
         True,
     )
-    return replace(base, **changes)  # type: ignore[arg-type]
+    return replace(base, **changes)  # type: ignore[arg-type]  # **changes takes any value so refusal tests can set ill-typed fields
 
 
 VARIATIONAL = {
@@ -323,7 +323,7 @@ def approval(plan: Any = PAID, **changes: object) -> PaidRunApprovalRecord:
         "pool-cloud",
         binding(),
     )
-    return replace(base, **changes)  # type: ignore[arg-type]
+    return replace(base, **changes)  # type: ignore[arg-type]  # **changes takes any value so refusal tests can set ill-typed fields
 
 
 class TestSubmissionGuard:

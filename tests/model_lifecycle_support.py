@@ -139,7 +139,7 @@ def licence(**changes: object) -> DualAxisLicenceRecord:
         derivative_weights_permitted=True,
         output_training_permitted=True,
     )
-    return replace(base, **changes)  # type: ignore[arg-type]
+    return replace(base, **changes)  # type: ignore[arg-type]  # **changes takes any value so refusal tests can set ill-typed fields
 
 
 def budget(**changes: object) -> ComputeAndTuningBudget:
@@ -152,13 +152,13 @@ def budget(**changes: object) -> ComputeAndTuningBudget:
         max_sealed_looks=1,
         min_training_seeds=3,
     )
-    return replace(base, **changes)  # type: ignore[arg-type]
+    return replace(base, **changes)  # type: ignore[arg-type]  # **changes takes any value so refusal tests can set ill-typed fields
 
 
 def edge(parent: str, child: str, **changes: object) -> LineageEdge:
     """Return a valid lineage edge from ``parent`` to ``child``."""
     base = LineageEdge(parent, child, "finetuned_from", "search-1", UTC)
-    return replace(base, **changes)  # type: ignore[arg-type]
+    return replace(base, **changes)  # type: ignore[arg-type]  # **changes takes any value so refusal tests can set ill-typed fields
 
 
 def envelope(**changes: object) -> ModelArtefactEnvelope:
@@ -179,7 +179,7 @@ def envelope(**changes: object) -> ModelArtefactEnvelope:
         family_contract_schema="language-family-contract.v1",
         family_contract_digest=digest_of("family"),
     )
-    return replace(base, **changes)  # type: ignore[arg-type]
+    return replace(base, **changes)  # type: ignore[arg-type]  # **changes takes any value so refusal tests can set ill-typed fields
 
 
 def base_checkpoint(**changes: object) -> BaseCheckpointRecord:
@@ -196,7 +196,7 @@ def base_checkpoint(**changes: object) -> BaseCheckpointRecord:
         weight_spdx_expression="Apache-2.0",
         commercial_and_derivative_clear=True,
     )
-    return replace(base, **changes)  # type: ignore[arg-type]
+    return replace(base, **changes)  # type: ignore[arg-type]  # **changes takes any value so refusal tests can set ill-typed fields
 
 
 METADATA_KINDS = frozenset(
@@ -222,7 +222,7 @@ def custody_record(
     base = CustodyIngestRecord(
         schema="custody-ingest-record.v1",
         programme=PROGRAMME,
-        kind=kind,  # type: ignore[arg-type]
+        kind=kind,  # type: ignore[arg-type]  # the helper takes any string so refusal tests can pass unknown values
         content_digest=digest,
         tensor_set_digest=FIXTURE_DIGEST if model else None,
         custody_ingest_seq=seq,
@@ -242,13 +242,13 @@ def custody_record(
             else None
         ),
     )
-    return replace(base, **changes)  # type: ignore[arg-type]
+    return replace(base, **changes)  # type: ignore[arg-type]  # **changes takes any value so refusal tests can set ill-typed fields
 
 
 def grader(**changes: object) -> GraderSpec:
     """Return a valid sealed, exact grader with ``changes`` applied."""
     base = GraderSpec("grader-sealed", digest_of("grader"), ("sealed",), True, None)
-    return replace(base, **changes)  # type: ignore[arg-type]
+    return replace(base, **changes)  # type: ignore[arg-type]  # **changes takes any value so refusal tests can set ill-typed fields
 
 
 SPLITS = (digest_of("split-1"), digest_of("split-2"), digest_of("split-3"))
@@ -257,7 +257,7 @@ SPLITS = (digest_of("split-1"), digest_of("split-2"), digest_of("split-3"))
 def pool(**changes: object) -> SealedSplitPool:
     """Return a valid three-split pool with ``changes`` applied."""
     base = SealedSplitPool("pool-1", SPLITS, digest_of("dedup"))
-    return replace(base, **changes)  # type: ignore[arg-type]
+    return replace(base, **changes)  # type: ignore[arg-type]  # **changes takes any value so refusal tests can set ill-typed fields
 
 
 def preregistration(**changes: object) -> PreregistrationRecord:
@@ -280,7 +280,7 @@ def preregistration(**changes: object) -> PreregistrationRecord:
         declared_registered_at_utc=UTC,
         base_checkpoint_digests=(),
     )
-    return replace(base, **changes)  # type: ignore[arg-type]
+    return replace(base, **changes)  # type: ignore[arg-type]  # **changes takes any value so refusal tests can set ill-typed fields
 
 
 def journal_entry(
@@ -320,8 +320,8 @@ def journal_entry(
         frozen_artefact_digests=frozen,
         requester_role=role,
         requester_holder="seat-1",
-        look_kind=look_kind,  # type: ignore[arg-type]
-        status=status,  # type: ignore[arg-type]
+        look_kind=look_kind,  # type: ignore[arg-type]  # the helper takes any string so refusal tests can pass unknown values
+        status=status,  # type: ignore[arg-type]  # the helper takes any string so refusal tests can pass unknown values
         fault_attestation_digest=fault,
         recorded_at_utc=UTC,
         programme=PROGRAMME,
@@ -434,12 +434,12 @@ class LookScenario:
             declared_lineage_edges=self.edges,
             requester_role=self.requester,
             requester_holder="seat-1",
-            look_kind=self.look_kind,  # type: ignore[arg-type]
+            look_kind=self.look_kind,  # type: ignore[arg-type]  # the helper takes any string so refusal tests can pass unknown values
             programme=PROGRAMME,
             evaluator_name="evaluator-x",
             evaluator_digest=digest_of("evaluator"),
         )
-        return replace(base, **changes)  # type: ignore[arg-type]
+        return replace(base, **changes)  # type: ignore[arg-type]  # **changes takes any value so refusal tests can set ill-typed fields
 
     def admit(self, **request_changes: object) -> LineageComponent:
         """Ingest the preregistration and approval, then admit the look."""

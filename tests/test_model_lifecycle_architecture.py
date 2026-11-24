@@ -69,7 +69,7 @@ def spec(**changes: object) -> TransformerArchitectureSpec:
         init_seed=7,
         mup_spec=None,
     )
-    return replace(base, **changes)  # type: ignore[arg-type]
+    return replace(base, **changes)  # type: ignore[arg-type]  # **changes takes any value so refusal tests can set ill-typed fields
 
 
 QWEN2 = {"gguf_wire_profile": "qwen2", "qkv_bias": True}
@@ -102,7 +102,7 @@ CUSTOM_DYNAMICS = {
 def yarn(**changes: object) -> YarnRopeScalingSpec:
     """Return a valid YaRN scaling from 1024 positions with ``changes`` applied."""
     base = YarnRopeScalingSpec("yarn-rope-scaling.v1", 4.0, 1024, None, 1.0, 32.0, 1.0)
-    return replace(base, **changes)  # type: ignore[arg-type]
+    return replace(base, **changes)  # type: ignore[arg-type]  # **changes takes any value so refusal tests can set ill-typed fields
 
 
 def mup(**changes: object) -> MaximalUpdateParametrisationSpec:
@@ -121,7 +121,7 @@ def mup(**changes: object) -> MaximalUpdateParametrisationSpec:
         -1.0,
         digest_of("receipt"),
     )
-    return replace(base, **changes)  # type: ignore[arg-type]
+    return replace(base, **changes)  # type: ignore[arg-type]  # **changes takes any value so refusal tests can set ill-typed fields
 
 
 def receipt(**changes: object) -> MupValidationReceipt:
@@ -135,7 +135,7 @@ def receipt(**changes: object) -> MupValidationReceipt:
         digest_of("dedup"),
         UTC,
     )
-    return replace(base, **changes)  # type: ignore[arg-type]
+    return replace(base, **changes)  # type: ignore[arg-type]  # **changes takes any value so refusal tests can set ill-typed fields
 
 
 class TestProfiles:
@@ -353,7 +353,7 @@ class TestNumericRules:
     def test_a_scaling_of_another_type_is_refused(self) -> None:
         """YaRN scaling must be its own record."""
         with pytest.raises(ArchitectureSpecError):
-            validate_yarn_rope_scaling(receipt(), max_context_length=4096)  # type: ignore[arg-type]
+            validate_yarn_rope_scaling(receipt(), max_context_length=4096)  # type: ignore[arg-type]  # an ill-typed argument on purpose: the call must refuse it
 
 
 class TestWidthTransfer:
@@ -423,7 +423,7 @@ class TestWidthTransfer:
     def test_a_mup_of_another_type_is_refused(self) -> None:
         """Width transfer must be its own record."""
         with pytest.raises(ArchitectureSpecError):
-            validate_mup_spec(yarn(), d_model=512)  # type: ignore[arg-type]
+            validate_mup_spec(yarn(), d_model=512)  # type: ignore[arg-type]  # an ill-typed argument on purpose: the call must refuse it
 
     @pytest.mark.parametrize(
         ("changes", "error"),
@@ -453,7 +453,7 @@ class TestWidthTransfer:
         assert validate_mup_validation_receipt(receipt()) == receipt()
         validate_mup_validation_receipt(receipt(max_optimal_lr_drift_ratio=0.0))
         with pytest.raises(ArchitectureSpecError):
-            validate_mup_validation_receipt(yarn())  # type: ignore[arg-type]
+            validate_mup_validation_receipt(yarn())  # type: ignore[arg-type]  # an ill-typed argument on purpose: the call must refuse it
 
 
 class TestCodec:
@@ -488,4 +488,4 @@ class TestCodec:
     def test_a_spec_of_another_type_is_refused(self) -> None:
         """The shape check checks its own record type."""
         with pytest.raises(ArchitectureSpecError):
-            check_transformer_architecture_shape(receipt())  # type: ignore[arg-type]
+            check_transformer_architecture_shape(receipt())  # type: ignore[arg-type]  # an ill-typed argument on purpose: the call must refuse it

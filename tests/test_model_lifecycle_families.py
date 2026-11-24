@@ -94,7 +94,7 @@ def write(tmp_path: Path, tensors: list[TensorSpec], name: str = "m") -> Path:
 
 def descriptor(name: str, dtype: str) -> TensorDescriptor:
     """Return a one-element descriptor for layout checks without a file."""
-    return TensorDescriptor(name, dtype, (1,), digest_of(name))  # type: ignore[arg-type]
+    return TensorDescriptor(name, dtype, (1,), digest_of(name))  # type: ignore[arg-type]  # the helper takes any string so refusal tests can pass unknown values
 
 
 class TestRegistry:
@@ -273,7 +273,7 @@ def _layout(
     validate_family_tensor_layout(
         family,
         [descriptor(name, dtype) for name, dtype in names],
-        fixed_point_map=fixed_point_map or {},  # type: ignore[arg-type]
+        fixed_point_map=fixed_point_map or {},  # type: ignore[arg-type]  # the helper takes any mapping so refusal tests can pass malformed formats
     )
 
 
@@ -336,12 +336,12 @@ class TestLayout:
     ) -> None:
         """SP-2: a signed declaration of the tensor's own width is accepted."""
         bits = {"I16": 16, "I32": 32, "I64": 64}[dtype]
-        decl = FixedPointFormatDecl(True, bits, bits - 1)  # type: ignore[arg-type]
+        decl = FixedPointFormatDecl(True, bits, bits - 1)  # type: ignore[arg-type]  # an ill-typed argument on purpose: the call must refuse it
         _layout("spiking", [*SPIKING_NAMES, ("qat.w", dtype)], {"qat.w": decl})
         _layout(
             "spiking",
             [*SPIKING_NAMES, ("qat.w", dtype)],
-            {"qat.w": FixedPointFormatDecl(True, bits, 0)},  # type: ignore[arg-type]
+            {"qat.w": FixedPointFormatDecl(True, bits, 0)},  # type: ignore[arg-type]  # an ill-typed argument on purpose: the call must refuse it
         )
 
     @pytest.mark.parametrize("dtype", ["I16", "I32", "I64"])
@@ -356,9 +356,9 @@ class TestLayout:
             ("I32", FixedPointFormatDecl(True, 16, 8)),
             ("I16", FixedPointFormatDecl(True, 16, 16)),
             ("I16", FixedPointFormatDecl(True, 16, -1)),
-            ("I16", FixedPointFormatDecl(False, 16, 8)),  # type: ignore[arg-type]
+            ("I16", FixedPointFormatDecl(False, 16, 8)),  # type: ignore[arg-type]  # an ill-typed argument on purpose: the call must refuse it
             ("I16", FixedPointFormatDecl(True, 16, True)),
-            ("I16", FixedPointFormatDecl(True, 16, 8.0)),  # type: ignore[arg-type]
+            ("I16", FixedPointFormatDecl(True, 16, 8.0)),  # type: ignore[arg-type]  # an ill-typed argument on purpose: the call must refuse it
             ("I16", (True, 16, 8)),
         ],
         ids=[
@@ -419,7 +419,7 @@ def language_contract(**changes: object) -> LanguageFamilyContract:
         False,
         (SecondaryFamilyContractRef("dynamics-family-contract.v1", digest_of("dyn")),),
     )
-    return replace(base, **changes)  # type: ignore[arg-type]
+    return replace(base, **changes)  # type: ignore[arg-type]  # **changes takes any value so refusal tests can set ill-typed fields
 
 
 def dynamics_contract(**changes: object) -> DynamicsFamilyContract:
@@ -434,7 +434,7 @@ def dynamics_contract(**changes: object) -> DynamicsFamilyContract:
         "review_only_non_actuating",
         (),
     )
-    return replace(base, **changes)  # type: ignore[arg-type]
+    return replace(base, **changes)  # type: ignore[arg-type]  # **changes takes any value so refusal tests can set ill-typed fields
 
 
 REF = SecondaryFamilyContractRef("x.v1", digest_of("x"))
@@ -518,9 +518,9 @@ class TestCompanions:
     def test_a_contract_of_the_other_type_is_refused(self) -> None:
         """Each validator checks its own record type."""
         with pytest.raises(EnvelopeError):
-            validate_language_family_contract(dynamics_contract())  # type: ignore[arg-type]
+            validate_language_family_contract(dynamics_contract())  # type: ignore[arg-type]  # an ill-typed argument on purpose: the call must refuse it
         with pytest.raises(EnvelopeError):
-            validate_dynamics_family_contract(language_contract())  # type: ignore[arg-type]
+            validate_dynamics_family_contract(language_contract())  # type: ignore[arg-type]  # an ill-typed argument on purpose: the call must refuse it
 
 
 class TestModelIdentity:

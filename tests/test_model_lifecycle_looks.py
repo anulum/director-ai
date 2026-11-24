@@ -177,7 +177,9 @@ class TestAdmission:
         ):
             scenario.admit()
 
-    def test_an_approval_of_another_pool_is_refused(self) -> None:
+    def test_an_approval_of_another_pool_is_refused(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         """The approval must name this preregistration and its pool."""
         scenario = LookScenario()
         other = replace(scenario.approval(), pool_id="pool-2")
@@ -185,7 +187,7 @@ class TestAdmission:
         scenario.records[digest] = custody_record(
             digest, "preregistration_approval", 11, APPROVER
         )
-        scenario.approval = lambda: other  # type: ignore[method-assign]
+        monkeypatch.setattr(scenario, "approval", lambda: other)
         with pytest.raises(
             SealedPoolCustodyError, match="another preregistration or pool"
         ):
@@ -488,7 +490,7 @@ class TestLineageAndBudget:
 def _estimate(**changes: object) -> SliceAggregateEstimate:
     """Return a valid slice estimate for ``A1``."""
     base = SliceAggregateEstimate(A1, "accuracy", "all", 0.8, 0.75, 0.85, 40)
-    return replace(base, **changes)  # type: ignore[arg-type]
+    return replace(base, **changes)  # type: ignore[arg-type]  # **changes takes any value so refusal tests can set ill-typed fields
 
 
 def _output(**changes: object) -> EvaluatorOutput:
@@ -496,7 +498,7 @@ def _output(**changes: object) -> EvaluatorOutput:
     base = EvaluatorOutput(
         "evaluator-output.v1", "slice_estimates", (_estimate(),), None, None
     )
-    return replace(base, **changes)  # type: ignore[arg-type]
+    return replace(base, **changes)  # type: ignore[arg-type]  # **changes takes any value so refusal tests can set ill-typed fields
 
 
 class TestLookRecords:
@@ -548,7 +550,7 @@ class TestLookRecords:
         """The attestation digest is present exactly for the two faults."""
         entry = journal_entry(_lineage_id(20, A1), (A1,))
         with pytest.raises(error):
-            validate_journal_entry(replace(entry, **changes))  # type: ignore[arg-type]
+            validate_journal_entry(replace(entry, **changes))  # type: ignore[arg-type]  # **changes takes any value so refusal tests can set ill-typed fields
 
     def test_output_forms(self) -> None:
         """Exactly one aggregate form is filled."""
@@ -602,7 +604,7 @@ class TestLookRecords:
         opened = opening_record(entry)
         assert validate_look_result(result, entry, opening_record=opened) == result
         bad = [
-            (replace(result, schema="result"), entry),  # type: ignore[arg-type]
+            (replace(result, schema="result"), entry),  # type: ignore[arg-type]  # an ill-typed argument on purpose: the call must refuse it
             (result, replace(entry, status="candidate_failed")),
             (replace(result, look_journal_digest=digest_of("other")), entry),
             (replace(result, split_digest=SPLITS[1]), entry),
@@ -629,7 +631,7 @@ class TestLookRecords:
             validate_slice_estimate,
         ):
             with pytest.raises(EvaluationContractError):
-                validator("record")  # type: ignore[arg-type]
+                validator("record")  # type: ignore[arg-type]  # an ill-typed argument on purpose: the call must refuse it
 
 
 def _decision(**changes: object) -> PromotionDecisionRecord:
@@ -649,7 +651,7 @@ def _decision(**changes: object) -> PromotionDecisionRecord:
         remanentia_rollback_blob_digest=digest_of("rollback-blob"),
         decided_at_utc=UTC,
     )
-    return replace(base, **changes)  # type: ignore[arg-type]
+    return replace(base, **changes)  # type: ignore[arg-type]  # **changes takes any value so refusal tests can set ill-typed fields
 
 
 class TestPromotion:
@@ -796,4 +798,4 @@ class TestPromotion:
     def test_a_non_decision_is_refused(self) -> None:
         """The validator needs a decision."""
         with pytest.raises(PromotionDecisionError):
-            validate_promotion_decision("decision")  # type: ignore[arg-type]
+            validate_promotion_decision("decision")  # type: ignore[arg-type]  # an ill-typed argument on purpose: the call must refuse it

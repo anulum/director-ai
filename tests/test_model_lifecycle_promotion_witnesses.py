@@ -314,7 +314,7 @@ class TestRecord:
         """A wrong type or schema is refused by name."""
         witnesses = promote("dynamics")["family_witnesses"]
         with pytest.raises(PromotionDecisionError, match="FamilyWitnesses is required"):
-            validate_family_witnesses(object())  # type: ignore[arg-type]
+            validate_family_witnesses(object())  # type: ignore[arg-type]  # an ill-typed argument on purpose: the call must refuse it
         with pytest.raises(PromotionDecisionError, match="schema"):
             validate_family_witnesses(replace(witnesses, schema="v0"))
 

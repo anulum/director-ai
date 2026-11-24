@@ -60,7 +60,7 @@ def binding(**changes: object) -> SpendReservationBinding:
         "adapter-sweep",
         "idem-1",
     )
-    return replace(base, **changes)  # type: ignore[arg-type]
+    return replace(base, **changes)  # type: ignore[arg-type]  # **changes takes any value so refusal tests can set ill-typed fields
 
 
 def estimate(**changes: object) -> CostEstimateRecord:
@@ -80,7 +80,7 @@ def estimate(**changes: object) -> CostEstimateRecord:
         price_source_and_revision="price-sheet r7",
         estimated_at_utc=UTC,
     )
-    return replace(base, **changes)  # type: ignore[arg-type]
+    return replace(base, **changes)  # type: ignore[arg-type]  # **changes takes any value so refusal tests can set ill-typed fields
 
 
 def live(**changes: object) -> LiveReservationProjection:
@@ -106,7 +106,7 @@ def live(**changes: object) -> LiveReservationProjection:
         expires_at=UTC,
         overrun_open=False,
     )
-    return replace(base, **changes)  # type: ignore[arg-type]
+    return replace(base, **changes)  # type: ignore[arg-type]  # **changes takes any value so refusal tests can set ill-typed fields
 
 
 class TestSpendCover:
@@ -194,7 +194,7 @@ class TestSpendCover:
         with pytest.raises(SpendBindingError, match="task"):
             validate_spend_reservation_live(binding(task=""), live(task=""), estimate())
         with pytest.raises(SpendBindingError):
-            validate_spend_reservation_live(binding(), estimate(), estimate())  # type: ignore[arg-type]
+            validate_spend_reservation_live(binding(), estimate(), estimate())  # type: ignore[arg-type]  # an ill-typed argument on purpose: the call must refuse it
 
     def test_amounts_are_decimal_text(self) -> None:
         """Amounts are text, finite and not negative."""
@@ -335,9 +335,9 @@ class TestEstimatesAndApprovals:
             validate_job_cancel,
         ):
             with pytest.raises(SpendBindingError):
-                check(live())  # type: ignore[arg-type]
+                check(live())  # type: ignore[arg-type]  # an ill-typed argument on purpose: the call must refuse it
         with pytest.raises(SpendBindingError):
-            validate_spend_reservation_live(binding(), binding(), estimate())  # type: ignore[arg-type]
+            validate_spend_reservation_live(binding(), binding(), estimate())  # type: ignore[arg-type]  # an ill-typed argument on purpose: the call must refuse it
 
 
 CONFINED = SandboxConfinementSpec("sandbox-confinement-spec.v1", True, "landlock_v4")
@@ -362,7 +362,7 @@ def submission(**changes: object) -> CloudJobSubmissionReceipt:
         stop_lease_operation_id="op-stop-9",
         submitted_at_utc=UTC,
     )
-    return replace(base, **changes)  # type: ignore[arg-type]
+    return replace(base, **changes)  # type: ignore[arg-type]  # **changes takes any value so refusal tests can set ill-typed fields
 
 
 class TestJobRecords:
@@ -414,7 +414,7 @@ class TestJobRecords:
                 {
                     "confinement": SandboxConfinementSpec(
                         "sandbox-confinement-spec.v1",
-                        False,  # type: ignore[arg-type]
+                        False,  # type: ignore[arg-type]  # an ill-typed argument on purpose: the call must refuse it
                         "landlock_v4",
                     )
                 },
@@ -425,7 +425,7 @@ class TestJobRecords:
                     "confinement": SandboxConfinementSpec(
                         "sandbox-confinement-spec.v1",
                         True,
-                        "iptables",  # type: ignore[arg-type]
+                        "iptables",  # type: ignore[arg-type]  # an ill-typed argument on purpose: the call must refuse it
                     )
                 },
                 "network_isolation_layer",
@@ -445,11 +445,11 @@ class TestJobRecords:
     @pytest.mark.parametrize(
         "item",
         [
-            CloudJobStatusReport("cloud-job-status.v1", "job-9", "lost", None, 1, UTC),  # type: ignore[arg-type]
+            CloudJobStatusReport("cloud-job-status.v1", "job-9", "lost", None, 1, UTC),  # type: ignore[arg-type]  # an ill-typed argument on purpose: the call must refuse it
             CloudJobStatusReport(
                 "cloud-job-status.v1", "job-9", "running", None, -1, UTC
             ),
-            CloudJobCancelReceipt("cloud-job-cancel.v1", "job-9", 1, "x", UTC),  # type: ignore[arg-type]
+            CloudJobCancelReceipt("cloud-job-cancel.v1", "job-9", 1, "x", UTC),  # type: ignore[arg-type]  # an ill-typed argument on purpose: the call must refuse it
             CloudJobCancelReceipt("cloud-job-cancel.v1", "job-9", True, "", UTC),
         ],
     )
@@ -459,7 +459,7 @@ class TestJobRecords:
             if isinstance(item, CloudJobStatusReport):
                 validate_job_status(item)
             else:
-                validate_job_cancel(item)  # type: ignore[arg-type]
+                validate_job_cancel(item)  # type: ignore[arg-type]  # an ill-typed argument on purpose: the call must refuse it
 
 
 def decline(**changes: object) -> StudyDeclineRecord:
@@ -474,7 +474,7 @@ def decline(**changes: object) -> StudyDeclineRecord:
         True,
         UTC,
     )
-    return replace(base, **changes)  # type: ignore[arg-type]
+    return replace(base, **changes)  # type: ignore[arg-type]  # **changes takes any value so refusal tests can set ill-typed fields
 
 
 class TestPromotionRecords:
@@ -511,7 +511,7 @@ class TestPromotionRecords:
         ):
             with pytest.raises(PromotionDecisionError):
                 validate_serving_memory_budget(
-                    ServingMemoryBudget("serving-memory-budget.v1", *bad)  # type: ignore[arg-type]
+                    ServingMemoryBudget("serving-memory-budget.v1", *bad)  # type: ignore[arg-type]  # an ill-typed argument on purpose: the call must refuse it
                 )
 
     @pytest.mark.parametrize(
@@ -538,7 +538,7 @@ class TestPromotionRecords:
             (digest_of("w"),),
         )
         with pytest.raises(error):
-            validate_dependency_pins(replace(pins, **changes))  # type: ignore[arg-type]
+            validate_dependency_pins(replace(pins, **changes))  # type: ignore[arg-type]  # **changes takes any value so refusal tests can set ill-typed fields
 
     @pytest.mark.parametrize(
         "changes",
@@ -578,4 +578,4 @@ class TestPromotionRecords:
             validate_study_decline,
         ):
             with pytest.raises(PromotionDecisionError):
-                check(live())  # type: ignore[arg-type]
+                check(live())  # type: ignore[arg-type]  # an ill-typed argument on purpose: the call must refuse it

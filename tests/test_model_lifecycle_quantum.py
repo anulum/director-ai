@@ -125,7 +125,7 @@ def spec(
     mode: str = "finite_shot_simulator", /, **changes: object
 ) -> QuantumShotNoiseAcceptanceSpec:
     """Return a valid spec of ``mode`` with ``changes`` applied."""
-    return replace(SPECS[mode], **changes)  # type: ignore[arg-type]
+    return replace(SPECS[mode], **changes)  # type: ignore[arg-type]  # **changes takes any value so refusal tests can set ill-typed fields
 
 
 def receipt(
@@ -136,7 +136,7 @@ def receipt(
     base = QuantumCircuitExecutionReceipt(
         "quantum-circuit-execution-receipt.v1",
         digest_of(arm),
-        mode,  # type: ignore[arg-type]
+        mode,  # type: ignore[arg-type]  # the helper takes any string so refusal tests can pass unknown values
         SPECS[mode].shots_per_pauli_group,
         40,
         1.4 if mitigated else 1.0,
@@ -144,7 +144,7 @@ def receipt(
         digest_of("mitigation") if mitigated else None,
         digest_of("qpu") if qpu else None,
     )
-    return replace(base, **changes)  # type: ignore[arg-type]
+    return replace(base, **changes)  # type: ignore[arg-type]  # **changes takes any value so refusal tests can set ill-typed fields
 
 
 class TestSpec:
@@ -255,7 +255,7 @@ class TestSpec:
         with pytest.raises(MalformedDigestError):
             validate_shot_noise_spec(spec(classical_baseline_digest="x"))
         with pytest.raises(QuantumAcceptanceError):
-            validate_shot_noise_spec(SEEDS["exact_statevector"])  # type: ignore[arg-type]
+            validate_shot_noise_spec(SEEDS["exact_statevector"])  # type: ignore[arg-type]  # an ill-typed argument on purpose: the call must refuse it
 
 
 class TestSeeds:
@@ -343,7 +343,7 @@ class TestSeeds:
     ) -> None:
         """Each mode's seed pattern, range and distinctness is enforced."""
         with pytest.raises(QuantumAcceptanceError, match=fragment):
-            validate_quantum_seeds(replace(SEEDS[mode], **changes), spec(mode))  # type: ignore[arg-type]
+            validate_quantum_seeds(replace(SEEDS[mode], **changes), spec(mode))  # type: ignore[arg-type]  # **changes takes any value so refusal tests can set ill-typed fields
 
     def test_the_shape_alone_checks_range_and_digest(self) -> None:
         """The codec's shape check refuses a bad digest or a non-tuple."""
@@ -352,7 +352,7 @@ class TestSeeds:
                 replace(SEEDS["hardware_qpu"], hardware_entropy_attestation_digest="x")
             )
         with pytest.raises(QuantumAcceptanceError):
-            validate_seed_tuple(spec())  # type: ignore[arg-type]
+            validate_seed_tuple(spec())  # type: ignore[arg-type]  # an ill-typed argument on purpose: the call must refuse it
 
 
 class TestReceipts:
@@ -462,7 +462,7 @@ class TestReceipts:
         with pytest.raises(error):
             validate_receipt_shape(receipt(**changes))
         with pytest.raises(QuantumAcceptanceError):
-            validate_receipt_shape(spec())  # type: ignore[arg-type]
+            validate_receipt_shape(spec())  # type: ignore[arg-type]  # an ill-typed argument on purpose: the call must refuse it
 
 
 def group(
@@ -635,7 +635,7 @@ def barren(**changes: object) -> BarrenPlateauWitnessReceipt:
         0.01,
         True,
     )
-    return replace(base, **changes)  # type: ignore[arg-type]
+    return replace(base, **changes)  # type: ignore[arg-type]  # **changes takes any value so refusal tests can set ill-typed fields
 
 
 def parity(**changes: object) -> SpikingLoweringParityReport:
@@ -653,7 +653,7 @@ def parity(**changes: object) -> SpikingLoweringParityReport:
         0.98,
         True,
     )
-    return replace(base, **changes)  # type: ignore[arg-type]
+    return replace(base, **changes)  # type: ignore[arg-type]  # **changes takes any value so refusal tests can set ill-typed fields
 
 
 class TestWitnesses:
@@ -693,7 +693,7 @@ class TestWitnesses:
         with pytest.raises(QuantumAcceptanceError):
             validate_barren_plateau_receipt(barren(**changes))
         with pytest.raises(QuantumAcceptanceError):
-            validate_barren_plateau_receipt(parity())  # type: ignore[arg-type]
+            validate_barren_plateau_receipt(parity())  # type: ignore[arg-type]  # an ill-typed argument on purpose: the call must refuse it
 
     def test_tsn3_a_failed_parity_is_refused(self) -> None:
         """A report that did not pass is a valid record but no witness."""
@@ -721,7 +721,7 @@ class TestWitnesses:
         with pytest.raises(SpikingParityError, match=fragment):
             validate_spiking_lowering_parity(parity(**changes))
         with pytest.raises(SpikingParityError):
-            validate_spiking_lowering_parity(barren())  # type: ignore[arg-type]
+            validate_spiking_lowering_parity(barren())  # type: ignore[arg-type]  # an ill-typed argument on purpose: the call must refuse it
         with pytest.raises(MalformedDigestError):
             validate_spiking_lowering_parity(parity(checkpoint_content_digest="x"))
 

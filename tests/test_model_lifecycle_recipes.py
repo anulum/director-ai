@@ -56,7 +56,7 @@ BASE = digest_of("base")
 
 def seeds(**changes: object) -> SeedQuadruple:
     """Return four distinct valid seeds with ``changes`` applied."""
-    return replace(SeedQuadruple("seed-quadruple.v1", 1, 2, 3, 4), **changes)  # type: ignore[arg-type]
+    return replace(SeedQuadruple("seed-quadruple.v1", 1, 2, 3, 4), **changes)  # type: ignore[arg-type]  # **changes takes any value so refusal tests can set ill-typed fields
 
 
 def hardware(**changes: object) -> HardwareCapabilityProfile:
@@ -64,7 +64,7 @@ def hardware(**changes: object) -> HardwareCapabilityProfile:
     base = HardwareCapabilityProfile(
         "hardware-capability-profile.v1", "rocm_consumer_gpu", "bf16", "x86-64-v3", None
     )
-    return replace(base, **changes)  # type: ignore[arg-type]
+    return replace(base, **changes)  # type: ignore[arg-type]  # **changes takes any value so refusal tests can set ill-typed fields
 
 
 def stage(index: int = 0, **changes: object) -> CurriculumStageSpec:
@@ -79,7 +79,7 @@ def stage(index: int = 0, **changes: object) -> CurriculumStageSpec:
         (("shard-a", 0.1), ("shard-b", 0.2), ("shard-c", 0.7)),
         None,
     )
-    return replace(base, **changes)  # type: ignore[arg-type]
+    return replace(base, **changes)  # type: ignore[arg-type]  # **changes takes any value so refusal tests can set ill-typed fields
 
 
 def budget(**changes: object) -> MatchedBudgetAccountingSpec:
@@ -94,7 +94,7 @@ def budget(**changes: object) -> MatchedBudgetAccountingSpec:
         0,
         ("training_tokens", "gradient_steps"),
     )
-    return replace(base, **changes)  # type: ignore[arg-type]
+    return replace(base, **changes)  # type: ignore[arg-type]  # **changes takes any value so refusal tests can set ill-typed fields
 
 
 def rlvr(**changes: object) -> RlvrAlgorithmSpec:
@@ -115,7 +115,7 @@ def rlvr(**changes: object) -> RlvrAlgorithmSpec:
         max_masked_fraction_drift_vs_reference=0.0,
         masked_drift_alpha=0.05,
     )
-    return replace(base, **changes)  # type: ignore[arg-type]
+    return replace(base, **changes)  # type: ignore[arg-type]  # **changes takes any value so refusal tests can set ill-typed fields
 
 
 def recipe(**changes: object) -> TrainingRecipeManifest:
@@ -136,7 +136,7 @@ def recipe(**changes: object) -> TrainingRecipeManifest:
         rlvr_spec=None,
         matched_budget=budget(),
     )
-    return replace(base, **changes)  # type: ignore[arg-type]
+    return replace(base, **changes)  # type: ignore[arg-type]  # **changes takes any value so refusal tests can set ill-typed fields
 
 
 RLVR_RECIPE = {
@@ -152,7 +152,7 @@ def attestation(**changes: object) -> VerifierFaultAttestation:
     base = VerifierFaultAttestation(
         "verifier-fault-attestation.v1", "host_io_error", 4242, True, UTC
     )
-    return replace(base, **changes)  # type: ignore[arg-type]
+    return replace(base, **changes)  # type: ignore[arg-type]  # **changes takes any value so refusal tests can set ill-typed fields
 
 
 def outcome(
@@ -169,7 +169,7 @@ def outcome(
         512,
         900,
     )
-    return replace(base, status=status, reward=reward, **changes)  # type: ignore[arg-type]
+    return replace(base, status=status, reward=reward, **changes)  # type: ignore[arg-type]  # **changes takes any value so refusal tests can set ill-typed fields
 
 
 def fault(**changes: object) -> VerifiableRewardOutcome:
@@ -179,7 +179,7 @@ def fault(**changes: object) -> VerifiableRewardOutcome:
         None,
         fault_attestation_digest=record_digest(attestation()),
     )
-    return replace(attested, **changes)  # type: ignore[arg-type]
+    return replace(attested, **changes)  # type: ignore[arg-type]  # **changes takes any value so refusal tests can set ill-typed fields
 
 
 class TestRecipeParts:
@@ -281,7 +281,7 @@ class TestRecipeParts:
     def test_stage_refusals(self, changes: dict[str, object], fragment: str) -> None:
         """M-B2-REC-3 and every other stage rule, by name."""
         with pytest.raises(RecipeContractError, match=fragment):
-            validate_curriculum_stage(replace(stage(), **changes))  # type: ignore[arg-type]
+            validate_curriculum_stage(replace(stage(), **changes))  # type: ignore[arg-type]  # **changes takes any value so refusal tests can set ill-typed fields
 
     @pytest.mark.parametrize(
         "changes",
@@ -311,7 +311,7 @@ class TestRecipeParts:
             validate_pretraining_checkpoint_state,
         ):
             with pytest.raises(RecipeContractError):
-                check(rlvr())  # type: ignore[arg-type]
+                check(rlvr())  # type: ignore[arg-type]  # an ill-typed argument on purpose: the call must refuse it
 
 
 class TestRecipe:
@@ -498,9 +498,9 @@ class TestRlvrSpec:
     def test_records_of_other_types_are_refused(self) -> None:
         """The spec and attestation validators check their own record types."""
         with pytest.raises(RlvrContractError):
-            validate_rlvr_spec(attestation())  # type: ignore[arg-type]
+            validate_rlvr_spec(attestation())  # type: ignore[arg-type]  # an ill-typed argument on purpose: the call must refuse it
         with pytest.raises(RlvrContractError):
-            validate_verifier_fault_attestation(rlvr())  # type: ignore[arg-type]
+            validate_verifier_fault_attestation(rlvr())  # type: ignore[arg-type]  # an ill-typed argument on purpose: the call must refuse it
 
     def test_records_round_trip(self) -> None:
         """The spec and the attestation decode through the codec."""
@@ -605,7 +605,7 @@ class TestOutcomes:
                 outcome("verified_fail", 0.0), spec=rlvr(group_size_g=2)
             )
         with pytest.raises(RlvrContractError):
-            validate_verifiable_reward_outcome(attestation(), spec=rlvr())  # type: ignore[arg-type]
+            validate_verifiable_reward_outcome(attestation(), spec=rlvr())  # type: ignore[arg-type]  # an ill-typed argument on purpose: the call must refuse it
 
 
 def batch(masked: int, total: int) -> list[VerifiableRewardOutcome]:

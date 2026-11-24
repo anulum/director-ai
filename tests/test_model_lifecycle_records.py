@@ -247,9 +247,9 @@ class TestLicencesAndBudgets:
     def test_wrong_record_types_are_refused(self) -> None:
         """Validators refuse an object of another type."""
         with pytest.raises(LicenceRecordError):
-            validate_licence_record(budget())  # type: ignore[arg-type]
+            validate_licence_record(budget())  # type: ignore[arg-type]  # an ill-typed argument on purpose: the call must refuse it
         with pytest.raises(LicenceRecordError):
-            validate_compute_budget(licence())  # type: ignore[arg-type]
+            validate_compute_budget(licence())  # type: ignore[arg-type]  # an ill-typed argument on purpose: the call must refuse it
 
 
 def _no_optional_or_untyped(annotation: object) -> bool:
@@ -320,7 +320,7 @@ class TestEnvelopes:
     def test_a_non_envelope_is_refused(self) -> None:
         """The validator needs an envelope."""
         with pytest.raises(EnvelopeError):
-            validate_envelope(licence())  # type: ignore[arg-type]
+            validate_envelope(licence())  # type: ignore[arg-type]  # an ill-typed argument on purpose: the call must refuse it
 
     @pytest.mark.parametrize(
         ("changes", "error"),
@@ -345,7 +345,7 @@ class TestEnvelopes:
     def test_a_non_edge_is_refused(self) -> None:
         """The edge validator needs an edge."""
         with pytest.raises(EnvelopeError):
-            validate_lineage_edge("edge")  # type: ignore[arg-type]
+            validate_lineage_edge("edge")  # type: ignore[arg-type]  # an ill-typed argument on purpose: the call must refuse it
 
 
 class TestCustodyRecords:
@@ -444,7 +444,7 @@ class TestCustodyRecords:
     def test_a_non_record_is_refused(self) -> None:
         """The record validator needs a record."""
         with pytest.raises(CustodyRecordError):
-            validate_custody_ingest_record(licence())  # type: ignore[arg-type]
+            validate_custody_ingest_record(licence())  # type: ignore[arg-type]  # an ill-typed argument on purpose: the call must refuse it
 
 
 class TestBaseCheckpointsAndApprovals:
@@ -505,7 +505,7 @@ class TestBaseCheckpointsAndApprovals:
         assert validate_preregistration_approval(approval) == approval
         for changes in ({"schema": "x"}, {"pool_id": ""}, {"approved_at_utc": "now"}):
             with pytest.raises(CustodyRecordError):
-                validate_preregistration_approval(replace(approval, **changes))  # type: ignore[arg-type]
+                validate_preregistration_approval(replace(approval, **changes))  # type: ignore[arg-type]  # **changes takes any value so refusal tests can set ill-typed fields
         with pytest.raises(MalformedDigestError):
             validate_preregistration_approval(
                 replace(approval, preregistration_digest="")
@@ -514,9 +514,9 @@ class TestBaseCheckpointsAndApprovals:
     def test_wrong_types_are_refused(self) -> None:
         """Both validators need their own record type."""
         with pytest.raises(CustodyRecordError):
-            validate_base_checkpoint_record(licence())  # type: ignore[arg-type]
+            validate_base_checkpoint_record(licence())  # type: ignore[arg-type]  # an ill-typed argument on purpose: the call must refuse it
         with pytest.raises(CustodyRecordError):
-            validate_preregistration_approval(licence())  # type: ignore[arg-type]
+            validate_preregistration_approval(licence())  # type: ignore[arg-type]  # an ill-typed argument on purpose: the call must refuse it
 
 
 class TestGradersPoolsAndPreregistrations:
@@ -645,7 +645,7 @@ class TestGradersPoolsAndPreregistrations:
             validate_preregistration,
         ):
             with pytest.raises(EvaluationContractError):
-                validator(licence())  # type: ignore[arg-type]
+                validator(licence())  # type: ignore[arg-type]  # an ill-typed argument on purpose: the call must refuse it
 
     def test_a_preregistration_round_trips_through_json(self) -> None:
         """Nested records and pairs decode back exactly."""

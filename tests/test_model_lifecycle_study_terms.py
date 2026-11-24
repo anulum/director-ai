@@ -40,7 +40,7 @@ from tests.test_model_lifecycle_recipes import budget
 def envelope(**changes: object) -> InferenceComputeEnvelope:
     """Return valid per-item compute caps with ``changes`` applied."""
     base = InferenceComputeEnvelope("inference-compute-envelope.v1", 2048, 8, 8, 60_000)
-    return replace(base, **changes)  # type: ignore[arg-type]
+    return replace(base, **changes)  # type: ignore[arg-type]  # **changes takes any value so refusal tests can set ill-typed fields
 
 
 def terms(**changes: object) -> PreregistrationBuild2Terms:
@@ -62,7 +62,7 @@ def terms(**changes: object) -> PreregistrationBuild2Terms:
         dynamics_eval_contract_digest=digest_of("dynamics"),
         quantum_acceptance_spec_digest=None,
     )
-    return replace(base, **changes)  # type: ignore[arg-type]
+    return replace(base, **changes)  # type: ignore[arg-type]  # **changes takes any value so refusal tests can set ill-typed fields
 
 
 def dynamics(**changes: object) -> DynamicsEvaluationContract:
@@ -97,7 +97,7 @@ def dynamics(**changes: object) -> DynamicsEvaluationContract:
         energy_reference_params_digest=digest_of("energy"),
         onnx_parity_rollout_horizon_h=100,
     )
-    return replace(base, **changes)  # type: ignore[arg-type]
+    return replace(base, **changes)  # type: ignore[arg-type]  # **changes takes any value so refusal tests can set ill-typed fields
 
 
 def profile(**changes: object) -> OnnxExportProfileSpec:
@@ -113,7 +113,7 @@ def profile(**changes: object) -> OnnxExportProfileSpec:
         50_000_000,
         False,
     )
-    return replace(base, **changes)  # type: ignore[arg-type]
+    return replace(base, **changes)  # type: ignore[arg-type]  # **changes takes any value so refusal tests can set ill-typed fields
 
 
 WASM = {
@@ -131,7 +131,7 @@ def slice_check(**changes: object) -> ExportParityMetricSlice:
     base = ExportParityMetricSlice(
         "all", "accuracy", 0.91, 0.905, -0.008, 0.01, 0.005, True
     )
-    return replace(base, **changes)  # type: ignore[arg-type]
+    return replace(base, **changes)  # type: ignore[arg-type]  # **changes takes any value so refusal tests can set ill-typed fields
 
 
 def report(**changes: object) -> ExportParityReport:
@@ -152,7 +152,7 @@ def report(**changes: object) -> ExportParityReport:
         familywise_alpha=0.01,
         slice_checks=(slice_check(), slice_check(slice_id="long_context")),
     )
-    return replace(base, **changes)  # type: ignore[arg-type]
+    return replace(base, **changes)  # type: ignore[arg-type]  # **changes takes any value so refusal tests can set ill-typed fields
 
 
 GGUF = {
@@ -278,13 +278,13 @@ class TestStudyTerms:
             validate_dynamics_evaluation_contract,
         ):
             with pytest.raises(EvaluationContractError):
-                check(profile())  # type: ignore[arg-type]
+                check(profile())  # type: ignore[arg-type]  # an ill-typed argument on purpose: the call must refuse it
         for check_export in (
             validate_onnx_export_profile,
             validate_export_parity_report,
         ):
             with pytest.raises(ExportParityError):
-                check_export(terms())  # type: ignore[arg-type]
+                check_export(terms())  # type: ignore[arg-type]  # an ill-typed argument on purpose: the call must refuse it
 
 
 class TestDynamicsContract:

@@ -48,7 +48,7 @@ def entry(
         "custody-tier-journal-entry.v1",
         PROGRAMME,
         seq,
-        action,  # type: ignore[arg-type]
+        action,  # type: ignore[arg-type]  # the helper takes any string so refusal tests can pass unknown values
         digest,
         scope if action in PIN_ACTIONS else "",
         OPERATOR,
@@ -161,7 +161,7 @@ class TestWatermark:
     def test_a_malformed_position_is_refused(self, through: object) -> None:
         """The position is an integer of at least zero."""
         with pytest.raises(CustodyRecordError, match="through_seq"):
-            active_pins(journal(*pinned()), through_seq=through)  # type: ignore[arg-type]
+            active_pins(journal(*pinned()), through_seq=through)  # type: ignore[arg-type]  # an ill-typed argument on purpose: the call must refuse it
 
 
 class TestColdDigests:
@@ -303,7 +303,7 @@ class TestRolesAndShape:
         """A pin act names a scope; every field is checked."""
         with pytest.raises(error):
             validate_tier_journal_entry(
-                replace(entry(1, "tier_pinned", FAMILY), **changes)  # type: ignore[arg-type]
+                replace(entry(1, "tier_pinned", FAMILY), **changes)  # type: ignore[arg-type]  # **changes takes any value so refusal tests can set ill-typed fields
             )
 
     def test_only_pin_acts_name_a_scope(self) -> None:
@@ -316,7 +316,7 @@ class TestRolesAndShape:
     def test_records_of_other_types_are_refused_and_entries_round_trip(self) -> None:
         """The validator checks its type; the codec round-trips an entry."""
         with pytest.raises(CustodyRecordError):
-            validate_tier_journal_entry(pins())  # type: ignore[arg-type]
+            validate_tier_journal_entry(pins())  # type: ignore[arg-type]  # an ill-typed argument on purpose: the call must refuse it
         item = entry(1, "tier_unpinned", WITNESS)
         assert (
             from_canonical_json_bytes(

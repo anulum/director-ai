@@ -171,7 +171,7 @@ class TestSchema:
         """The validator names the retired schema."""
         retired: dict[str, object] = {"schema": "sealed-look-journal-entry.v1"}
         entry = journal_entry(_lineage("a"), (digest_of("a"),))
-        old = replace(entry, **retired)  # type: ignore[arg-type]
+        old = replace(entry, **retired)  # type: ignore[arg-type]  # an ill-typed argument on purpose: the call must refuse it
         with pytest.raises(EvaluationContractError, match="retired"):
             validate_journal_entry(old)
 
@@ -200,7 +200,7 @@ class TestSchema:
         """The study and preregistration fields are required."""
         entry = journal_entry(_lineage("a"), (digest_of("a"),))
         with pytest.raises(error):
-            validate_journal_entry(replace(entry, **changes))  # type: ignore[arg-type]
+            validate_journal_entry(replace(entry, **changes))  # type: ignore[arg-type]  # **changes takes any value so refusal tests can set ill-typed fields
 
 
 class TestBuilder:

@@ -61,12 +61,12 @@ def entry_of(seq: int = 1, **changes: object) -> SealedLookJournalEntry:
     base = journal_entry(
         lineage, (digest_of(f"artefact:{seq}"),), seq=seq, study_id="study-x"
     )
-    return replace(base, custody_seq_at_open=30, custody_seq_at_release=40, **changes)  # type: ignore[arg-type]
+    return replace(base, custody_seq_at_open=30, custody_seq_at_release=40, **changes)  # type: ignore[arg-type]  # **changes takes any value so refusal tests can set ill-typed fields
 
 
 def scenario(*journal: SealedLookJournalEntry, **changes: object) -> LookScenario:
     """Return a scenario whose custody the test sets up by hand."""
-    return LookScenario(journal=list(journal), ingest_journal=False, **changes)  # type: ignore[arg-type]
+    return LookScenario(journal=list(journal), ingest_journal=False, **changes)  # type: ignore[arg-type]  # **changes takes any value so refusal tests can set ill-typed fields
 
 
 def custodied(look: LookScenario, *entries: SealedLookJournalEntry) -> LookScenario:
@@ -110,7 +110,7 @@ class TestCustodyWitness:
         entry = entry_of()
         look = custodied(scenario(entry), entry)
         digest = record_digest(entry)
-        look.records[digest] = replace(look.records[digest], **changes)  # type: ignore[arg-type]
+        look.records[digest] = replace(look.records[digest], **changes)  # type: ignore[arg-type]  # **changes takes any value so refusal tests can set ill-typed fields
         with pytest.raises(PreregistrationOrderError, match=fragment):
             look.admit()
 
@@ -134,7 +134,7 @@ class TestCustodyWitness:
         if changes is None:
             del look.records[digest]
         else:
-            look.records[digest] = replace(look.records[digest], **changes)  # type: ignore[arg-type]
+            look.records[digest] = replace(look.records[digest], **changes)  # type: ignore[arg-type]  # **changes takes any value so refusal tests can set ill-typed fields
         with pytest.raises(PreregistrationOrderError, match=fragment):
             look.admit()
 
@@ -228,7 +228,7 @@ class TestOpeningRecord:
         base = look_opening_for(
             look.request(), look.prereg, prior_journal=(), look_custody_seq=100
         )
-        return replace(base, **changes)  # type: ignore[arg-type]
+        return replace(base, **changes)  # type: ignore[arg-type]  # **changes takes any value so refusal tests can set ill-typed fields
 
     def test_the_builder_takes_the_next_position(self) -> None:
         """A first look is at position 1; a later one follows the journal."""
@@ -288,7 +288,7 @@ class TestOpeningRecord:
     def test_a_non_opening_is_refused(self) -> None:
         """The validator needs the record type."""
         with pytest.raises(EvaluationContractError, match="SealedLookOpening"):
-            validate_look_opening(object())  # type: ignore[arg-type]
+            validate_look_opening(object())  # type: ignore[arg-type]  # an ill-typed argument on purpose: the call must refuse it
 
     def test_an_entry_rebuilds_its_opening_and_the_record_round_trips(self) -> None:
         """The entry built from an opening claims exactly that opening."""
@@ -332,7 +332,7 @@ class TestOpeningRecord:
         """v2 recorded no opening, so it is retired."""
         with pytest.raises(EvaluationContractError, match="retired"):
             retired = "sealed-look-journal-entry.v2"
-            validate_journal_entry(replace(entry_of(), schema=retired))  # type: ignore[arg-type]
+            validate_journal_entry(replace(entry_of(), schema=retired))  # type: ignore[arg-type]  # an ill-typed argument on purpose: the call must refuse it
 
     @pytest.mark.parametrize(
         ("changes", "fragment"),
@@ -352,7 +352,7 @@ class TestOpeningRecord:
     ) -> None:
         """A-1 at use: the record is the entry's opening and came by its release."""
         entry = entry_of()
-        record = replace(opening_record(entry), **changes)  # type: ignore[arg-type]
+        record = replace(opening_record(entry), **changes)  # type: ignore[arg-type]  # **changes takes any value so refusal tests can set ill-typed fields
         with pytest.raises(EvaluationContractError, match=fragment):
             require_opening_custodied(entry, record)
         assert require_opening_custodied(

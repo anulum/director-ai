@@ -70,7 +70,7 @@ def dedup(**changes: object) -> DatasetDeduplicationReport:
         scrubber_report_digest=digest_of("scrubber"),
         contains_human_biosignal_or_phi=False,
     )
-    return replace(base, **changes)  # type: ignore[arg-type]
+    return replace(base, **changes)  # type: ignore[arg-type]  # **changes takes any value so refusal tests can set ill-typed fields
 
 
 DYNAMICS = {"domain_kind": "dynamics_trajectories", "cluster_key_kind": "episode_id"}
@@ -87,7 +87,7 @@ def manifest(
         "grader-exact-match",
         record_digest(report),
     )
-    return replace(base, **changes)  # type: ignore[arg-type]
+    return replace(base, **changes)  # type: ignore[arg-type]  # **changes takes any value so refusal tests can set ill-typed fields
 
 
 def tokeniser(
@@ -115,7 +115,7 @@ def tokeniser(
         delimiter_injection_report_digest=digest_of("delimiters"),
         fertility_tokens_per_byte=(("en", 0.25), ("sk", 0.31)),
     )
-    return replace(base, **changes)  # type: ignore[arg-type]
+    return replace(base, **changes)  # type: ignore[arg-type]  # **changes takes any value so refusal tests can set ill-typed fields
 
 
 def normaliser(
@@ -131,7 +131,7 @@ def normaliser(
         record_digest(report),
         TRAIN,
     )
-    return replace(base, **changes)  # type: ignore[arg-type]
+    return replace(base, **changes)  # type: ignore[arg-type]  # **changes takes any value so refusal tests can set ill-typed fields
 
 
 def embedding(**changes: object) -> EmbeddingSpaceIdentity:
@@ -145,7 +145,7 @@ def embedding(**changes: object) -> EmbeddingSpaceIdentity:
         True,
         None,
     )
-    return replace(base, **changes)  # type: ignore[arg-type]
+    return replace(base, **changes)  # type: ignore[arg-type]  # **changes takes any value so refusal tests can set ill-typed fields
 
 
 class TestSplitAudit:
@@ -325,9 +325,9 @@ class TestSplitAudit:
     def test_records_of_other_types_are_refused(self) -> None:
         """Each validator checks its own record type."""
         with pytest.raises(DatasetContractError):
-            validate_dedup_report(embedding())  # type: ignore[arg-type]
+            validate_dedup_report(embedding())  # type: ignore[arg-type]  # an ill-typed argument on purpose: the call must refuse it
         with pytest.raises(DatasetContractError):
-            validate_distillation_manifest(embedding())  # type: ignore[arg-type]
+            validate_distillation_manifest(embedding())  # type: ignore[arg-type]  # an ill-typed argument on purpose: the call must refuse it
 
 
 class TestTokeniser:
@@ -521,9 +521,9 @@ class TestNormaliserAndEmbedding:
             validate_embedding_space_identity,
         ):
             with pytest.raises(EncodingContractError):
-                check(report)  # type: ignore[arg-type]
+                check(report)  # type: ignore[arg-type]  # an ill-typed argument on purpose: the call must refuse it
         with pytest.raises(EncodingContractError):
-            validate_tokeniser_and_normaliser_disjointness(embedding(), report)  # type: ignore[arg-type]
+            validate_tokeniser_and_normaliser_disjointness(embedding(), report)  # type: ignore[arg-type]  # an ill-typed argument on purpose: the call must refuse it
 
 
 @pytest.mark.parametrize(

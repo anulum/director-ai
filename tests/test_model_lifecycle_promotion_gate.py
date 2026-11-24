@@ -531,7 +531,7 @@ class TestEvidence:
         with pytest.raises(error):
             validate_promotion_evidence(replace(inputs()["evidence"], **changes))
         with pytest.raises(PromotionDecisionError):
-            validate_promotion_evidence(BUDGET)  # type: ignore[arg-type]
+            validate_promotion_evidence(BUDGET)  # type: ignore[arg-type]  # an ill-typed argument on purpose: the call must refuse it
 
 
 class TestStudyGates:
