@@ -227,6 +227,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- The lite-scorer evaluator's end-to-end test serves a manifest-bound ONNX
+  bundle again. Since serving began warning about ONNX directories without an
+  export manifest, the test's own bundle had none, so the warning reached the
+  CLI's standard error and the test failed. The test bundle now carries the
+  manifest the ONNX export guide describes, and serving verifies its digest.
 - The quality ratchet's concurrent-change test again exercises the typing
   collector. Since the collector began binding
   `requirements/quality-protobuf.txt`, the test's repository lacked that file,

@@ -9,6 +9,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import subprocess
@@ -49,11 +50,30 @@ def _write_dataset(path: Path) -> None:
 
 
 def _write_model_bundle(root: Path) -> Path:
-    """Write the local ONNX bundle required by ``DistilledNLIBackend``."""
+    """Write the local ONNX bundle required by ``DistilledNLIBackend``.
+
+    The bundle carries the export manifest that ``export_onnx`` writes, as the
+    ONNX export guide documents it, so the backend serves the bound file and
+    verifies its digest the way a production export is served.
+    """
     model_dir = root / "model"
     model_dir.mkdir()
-    (model_dir / "model.onnx").write_bytes(b"local-onnx")
+    model = model_dir / "model.onnx"
+    model.write_bytes(b"local-onnx")
     (model_dir / "tokenizer.json").write_text('{"version": "1.0"}', encoding="utf-8")
+    manifest = {
+        "schema": "director-ai.onnx-export.v1",
+        "model_file": model.name,
+        "sha256": hashlib.sha256(model.read_bytes()).hexdigest(),
+        "precision": "fp32",
+        "int8_reduce_range": None,
+        "source_model": "local-test-model",
+        "source_revision": None,
+        "opset": 17,
+    }
+    (model_dir / "director_onnx_manifest.json").write_text(
+        json.dumps(manifest, sort_keys=True, indent=2) + "\n", encoding="utf-8"
+    )
     return model_dir
 
 
