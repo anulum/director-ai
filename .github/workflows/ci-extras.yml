@@ -261,6 +261,7 @@ jobs:
                 tests/test_finetune_validator.py
                 tests/test_managed_training_jobs.py
                 tests/test_training_model_registry.py
+                tools/run_training_standalone_tests/test_run_training_standalone.py
               )
               ;;
           esac
@@ -312,7 +313,7 @@ jobs:
             echo "::error::No extras-specific tests configured for ${{ matrix.extras }}"
             exit 1
           fi
-          uv run --no-sync pytest "${TEST_TARGETS[@]}" -v --tb=short \
+          uv run --no-sync python -m pytest "${TEST_TARGETS[@]}" -v --tb=short \
             --cov=director_ai \
             --cov-report=term-missing \
             --cov-report=xml \

@@ -413,6 +413,15 @@ floor of one nanosecond; original phase measurements remain in the worker
 reports. Timing advice is neither cached scores nor proof that a test ran.
 Failed, skipped or cancelled prerequisites fail the aggregate explicitly.
 
+Tests that need a native toolchain run with the lane that installs it, not
+in `tests/`: the Rust reader tests in `tools/quality_ratchet_rust_tests/`
+(Rust job), the Lean tests in `formal/HaltMonitor/tests/` (Lean job), the
+Julia report and required-gate tests in `tools/quality_ratchet_julia_tests/`
+and `tools/quality_ratchet_required_tests/` (native quality job), and the
+standalone training runner test with the training extras.
+`tests/test_tools/test_ci_test_lanes.py` declares every lane with the command
+that collects it and requires each tracked test file to sit in exactly one.
+
 `Test (Python 3.11)` and `Lint & Format` remain the branch-protection names
 through one aggregate job definition. Both require every applicable category.
 Only declared PR skips for push-only Docker and main-only notification are

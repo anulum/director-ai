@@ -227,6 +227,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Every test file runs in exactly one CI lane that has the tools it needs.
+  The Rust and Lean quality CLI tests sat in `tests/`, so the Python
+  partitions collected them without the pinned Rust or Lean toolchain and
+  they failed; they now live with the Rust and Lean lanes, which install
+  those toolchains. The native Julia report, the complete required-gate
+  and the standalone training runner tests were collected by no lane; the
+  native quality job and the training extras now run them, and the extras
+  lanes collect through `python -m pytest`. A lane inventory test keeps
+  every tracked test file in exactly one declared lane.
 - The required native quality job can build the Rust declaration reader. It
   built the reader offline without fetching the reader's locked
   dependencies, and it ran whichever rustup release the runner image carried,

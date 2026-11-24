@@ -9,7 +9,7 @@
     "python_model_classes": 1212,
     "python_model_source_modules": 621,
     "rust_pyo3_model_wrappers": 83,
-    "test_files": 900
+    "test_files": 899
   },
   "documentation": {
     "public_pages": [
@@ -6857,7 +6857,6 @@
       "tests/test_quality_ratchet_golang_protocol.py",
       "tests/test_quality_ratchet_historical.py",
       "tests/test_quality_ratchet_inventory.py",
-      "tests/test_quality_ratchet_lean_cli.py",
       "tests/test_quality_ratchet_native.py",
       "tests/test_quality_ratchet_notebook.py",
       "tests/test_quality_ratchet_notebook_canary.py",
@@ -6868,7 +6867,6 @@
       "tests/test_quality_ratchet_protobuf_descriptors.py",
       "tests/test_quality_ratchet_python_engine.py",
       "tests/test_quality_ratchet_required.py",
-      "tests/test_quality_ratchet_rust_cli.py",
       "tests/test_quality_ratchet_rust_toolchain.py",
       "tests/test_quality_ratchet_succession.py",
       "tests/test_quality_ratchet_succession_load.py",
@@ -7067,6 +7065,7 @@
       "tests/test_tools/test_audit_ci_workflow_modularity.py",
       "tests/test_tools/test_capability_manifest.py",
       "tests/test_tools/test_check_ci_gate.py",
+      "tests/test_tools/test_ci_test_lanes.py",
       "tests/test_tools/test_ci_workflow_inventory.py",
       "tests/test_tools/test_emit_studio_manifest.py",
       "tests/test_tools/test_emit_studio_manifest_real_surface.py",

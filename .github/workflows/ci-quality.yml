@@ -102,6 +102,11 @@ jobs:
           julia --startup-file=no --history-file=no --project=tools/quality_ratchet_julia \
             tools/quality_ratchet_julia/test/generated.jl
 
+      - name: Test the native Julia report and the complete required gate
+        run: |
+          "$QUALITY_PYTHON" -m pytest tools/quality_ratchet_julia_tests \
+            tools/quality_ratchet_required_tests
+
       - name: Walk every pushed commit against its first parent
         env:
           PR_BASE: ${{ github.event.pull_request.base.sha }}
