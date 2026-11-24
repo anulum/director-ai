@@ -23,6 +23,14 @@ from tools.export_julia_lock_for_osv import julia_lock_packages
 
 _ROOT = Path(__file__).resolve().parents[2]
 _LOCK = _ROOT / "tools/julia_tuner/Manifest.toml"
+# A package the real lock holds, with exactly one versioned record. It is read from
+# the lock, not hard-coded, so a lock refresh cannot leave the refusal cases
+# corrupting a package that is no longer there.
+_PACKAGE = next(
+    name
+    for name, records in tomllib.loads(_LOCK.read_text())["deps"].items()
+    if len(records) == 1 and "version" in records[0]
+)
 
 
 def test_export_projects_every_version_from_the_native_lock() -> None:
@@ -55,7 +63,11 @@ def test_export_projects_every_version_from_the_native_lock() -> None:
     [
         (r'^julia_version = "[^"\n]+"$', 'julia_version = "unknown"', "for Julia"),
         (r"(?ms)^\[\[deps\..*\Z", "[deps]\n", "no dependencies"),
-        (r"^\[\[deps\.ADTypes\]\]$", "[deps.ADTypes]", "records for ADTypes"),
+        (
+            rf"^\[\[deps\.{re.escape(_PACKAGE)}\]\]$",
+            f"[deps.{_PACKAGE}]",
+            f"records for {re.escape(_PACKAGE)}",
+        ),
         (
             r'(?m)^uuid = "4607b0f0-06f3-5cda-b6b1-a6196a1729e9"$',
             'uuid = "00000000-0000-0000-0000-000000000000"',
@@ -72,9 +84,9 @@ def test_export_projects_every_version_from_the_native_lock() -> None:
             "wrapper has no locked binary",
         ),
         (
-            r'(?ms)(^\[\[deps\.ADTypes\]\]\n.*?)^version = "[^"\n]+"\n',
+            rf'(?ms)(^\[\[deps\.{re.escape(_PACKAGE)}\]\]\n.*?)^version = "[^"\n]+"\n',
             r"\1",
-            "lock version for ADTypes",
+            f"lock version for {re.escape(_PACKAGE)}",
         ),
     ],
 )

@@ -227,6 +227,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- The Julia lock export test's two refusal cases for a package's records and
+  its version corrupt a real package again. They named a package that a lock
+  refresh had removed, so they found nothing to corrupt; they now read a
+  package with one versioned record from the lock itself.
 - The lite-scorer evaluator's end-to-end test serves a manifest-bound ONNX
   bundle again. Since serving began warning about ONNX directories without an
   export manifest, the test's own bundle had none, so the warning reached the
