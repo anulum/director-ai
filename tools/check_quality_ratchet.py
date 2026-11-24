@@ -23,6 +23,8 @@ from tools.quality_ratchet_baseline import (
     Baseline,
     baseline_payload,
     parse_baseline,
+    portable_baseline,
+    portable_snapshot,
     read_committed_baseline,
     resolve_commit,
 )
@@ -112,7 +114,9 @@ def _run_required(root: Path, args: argparse.Namespace) -> int:
             candidate = parse_baseline(source_path(root, BASELINE_PATH).read_bytes())
             required_baseline_scope(candidate, origin)
     before = required_input_state(root)
-    actual = Baseline(origin, capture_required_profiles(root, args))
+    actual = portable_baseline(
+        Baseline(origin, capture_required_profiles(root, args)), root
+    )
     required_baseline_scope(actual, origin)
     verify_required_captures(root, actual, before)
     if source_path(root, POLICY_PATH).read_bytes() != policy:
@@ -213,7 +217,7 @@ def main(argv: list[str] | None = None) -> int:
         root = args.root.resolve(strict=True)
         if args.all:
             return _run_required(root, args)
-        actual = capture_profile(root, args, args.profile)
+        actual = portable_snapshot(capture_profile(root, args, args.profile), root)
         if args.command == "capture":
             write_original_json(args.output, snapshot_payload(actual))
             refusals: tuple[str, ...] = ()

@@ -10,10 +10,11 @@
 from __future__ import annotations
 
 import hashlib
+import os
 import re
 import subprocess
 from collections.abc import Iterable
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 
 from tools.ci_workflow_inventory import object_mapping
@@ -144,6 +145,72 @@ def parse_baseline(data: bytes) -> Baseline:
     if not profiles:
         raise ValueError("Original quality baseline has no native profiles")
     return Baseline(origin, profiles)
+
+
+def portable_snapshot(snapshot: Snapshot, root: Path) -> Snapshot:
+    """Return ``snapshot`` with the checkout root removed from its advisories.
+
+    A native tool may echo the absolute path of a source it read. The Lean
+    compiler does so in the ``fileName`` of every JSON message, and the Lean
+    profile keeps those messages as advisories. Such a path names the machine
+    and the checkout, not the repository: kept as it is, it would carry a local
+    directory layout into public history, and a baseline recorded in one
+    checkout would not equal the same capture in another. The command line
+    applies this to every capture before it compares or writes anything, so
+    both sides of a comparison and every written file share one portable form.
+    Only the ``<root>/`` prefix goes; each source keeps its repository-relative
+    path, and findings, sources and the identity are untouched.
+
+    Parameters
+    ----------
+    snapshot : Snapshot
+        Validated native snapshot captured under ``root``.
+    root : Path
+        Resolved repository root of that capture.
+
+    Returns
+    -------
+    Snapshot
+        The revalidated snapshot, unchanged apart from its advisories.
+
+    Raises
+    ------
+    ValueError
+        If two advisories become one once the prefix is removed.
+    """
+    prefix = f"{root}{os.sep}"
+    portable = replace(
+        snapshot,
+        advisories=tuple(
+            advisory.replace(prefix, "") for advisory in snapshot.advisories
+        ),
+    )
+    return parse_snapshot(snapshot_payload(portable))
+
+
+def portable_baseline(baseline: Baseline, root: Path) -> Baseline:
+    """Return ``baseline`` with every profile made portable, as captures are.
+
+    Parameters
+    ----------
+    baseline : Baseline
+        Validated baseline captured under ``root``.
+    root : Path
+        Resolved repository root of that capture.
+
+    Returns
+    -------
+    Baseline
+        The same origin and profiles, each passed through
+        :func:`portable_snapshot`.
+    """
+    return Baseline(
+        baseline.origin_commit,
+        {
+            name: portable_snapshot(snapshot, root)
+            for name, snapshot in baseline.profiles.items()
+        },
+    )
 
 
 def baseline_payload(baseline: Baseline) -> dict[str, object]:

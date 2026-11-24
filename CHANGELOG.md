@@ -227,6 +227,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- The quality ratchet keeps the checkout's location out of its snapshots.
+  The Lean compiler names each message's source by its absolute path, and
+  the Lean profile keeps those messages as advisories, so a recorded
+  baseline carried the local directory of the machine that wrote it, and a
+  single-profile check, which needs the baseline to equal the capture,
+  passed only in that checkout. The command line now removes the checkout
+  root from every advisory as soon as a profile is captured, so what it
+  compares and what it writes carry repository-relative paths on POSIX
+  runners. Findings, sources and profile identities are unchanged.
 - The Julia lock export test's two refusal cases for a package's records and
   its version corrupt a real package again. They named a package that a lock
   refresh had removed, so they found nothing to corrupt; they now read a

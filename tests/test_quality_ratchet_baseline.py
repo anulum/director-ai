@@ -13,6 +13,7 @@ import hashlib
 import json
 import os
 import subprocess
+from dataclasses import replace
 from pathlib import Path
 
 import pytest
@@ -25,6 +26,8 @@ from tools.quality_ratchet_baseline import (
     compare_baselines,
     parse_baseline,
     parse_git_blob_batch,
+    portable_baseline,
+    portable_snapshot,
     read_committed_baseline,
     resolve_commit,
     verify_adoption_sources,
@@ -410,6 +413,63 @@ def test_adoption_rejects_a_finding_without_original_committed_source_bytes(
     )
     with pytest.raises(ValueError, match="new or modified source bytes"):
         verify_adoption_sources(git_repository, original.origin_commit, candidate)
+
+
+def test_portable_baseline_removes_only_the_checkout_root_from_advisories(
+    git_repository: Path,
+) -> None:
+    """Write advisories with repository-relative paths and keep everything else.
+
+    Parameters
+    ----------
+    git_repository : Path
+        Actual committed repository standing in for the capture root.
+    """
+    original = original_baseline(git_repository)
+    native = replace(
+        original.profiles["python-docs"],
+        advisories=(
+            f'src/original.py: {{"fileName":"{git_repository}{os.sep}src/original.py"}}',
+            "mypy-unused-override:PIL",
+            f"{git_repository}-sibling{os.sep}src/original.py: another directory",
+        ),
+    )
+
+    portable = portable_baseline(
+        Baseline(original.origin_commit, {"python-docs": native}), git_repository
+    )
+
+    written = portable.profiles["python-docs"]
+    assert written.advisories == (
+        'src/original.py: {"fileName":"src/original.py"}',
+        "mypy-unused-override:PIL",
+        f"{git_repository}-sibling{os.sep}src/original.py: another directory",
+    )
+    assert replace(written, advisories=native.advisories) == native
+    assert portable.origin_commit == original.origin_commit
+    assert f"{git_repository}{os.sep}" not in json.dumps(baseline_payload(portable))
+
+
+def test_portable_snapshot_refuses_advisories_that_merge(
+    git_repository: Path,
+) -> None:
+    """Refuse two advisories that differ only by the checkout root.
+
+    Parameters
+    ----------
+    git_repository : Path
+        Actual committed repository standing in for the capture root.
+    """
+    snapshot = replace(
+        original_baseline(git_repository).profiles["python-docs"],
+        advisories=(
+            f"{git_repository}{os.sep}src/original.py: note",
+            "src/original.py: note",
+        ),
+    )
+
+    with pytest.raises(ValueError, match="Repeated original native advisory identity"):
+        portable_snapshot(snapshot, git_repository)
 
 
 def capture_git_blob_batch(
