@@ -202,7 +202,7 @@ def _canary(
 
 
 def _drops(value: object, rules: tuple[str, ...]) -> tuple[Drop, ...]:
-    """Parse TS-2 drops; each names a changelog and a rule with a live canary."""
+    """Parse the declared drops; each names a changelog and a rule with a live canary."""
     if not isinstance(value, list):
         raise ValueError("Transition member drops must be a list")
     drops = []

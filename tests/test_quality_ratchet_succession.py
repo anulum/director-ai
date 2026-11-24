@@ -334,7 +334,7 @@ def test_repeated_keys_are_refused() -> None:
 
 
 def test_drops_need_a_changelog_and_a_canaried_rule() -> None:
-    """Parse a TS-2 drop and refuse drops that lack their evidence."""
+    """Parse a declared drop and refuse drops that lack their evidence."""
     record = entry()
     drop = {**CANARY_KEYS[0], "path": "packages/b.ts", "changelog_digest": "9" * 64}
     record["drops"] = [drop]
@@ -416,7 +416,7 @@ def test_a_weaker_tool_that_drops_a_finding_is_refused() -> None:
 
 
 def test_declared_drop_passes_only_while_the_rule_keeps_findings() -> None:
-    """Admit a TS-2 drop when the rule keeps another finding; refuse a stale drop."""
+    """Admit a declared drop when the rule keeps another finding; refuse a stale one."""
     record = entry()
     record["drops"] = [
         {

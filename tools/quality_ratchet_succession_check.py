@@ -13,15 +13,15 @@ now; neither is ever taken from the record alone. Findings are compared by
 their message-free key (path, rule, line, column, cell):
 
 - on a byte-identical source, each key keeps its multiplicity, since one
-  position may carry several findings; only a declared drop (TS-2) may remove
-  a key, and then every occurrence of it;
+  position may carry several findings; only a declared drop may remove a
+  key, and then every occurrence of it;
 - a key whose sorted messages alone changed is listed in the record;
 - a rule whose findings all disappear from the unchanged sources is refused,
   even when every drop is declared;
 - a new or modified source has no findings, as without a transition.
 
 The canary run of :func:`verify_canary_run` shows that every enabled rule
-still fires on seeded known positives (TS-3).
+still fires on seeded known positives.
 """
 
 from __future__ import annotations

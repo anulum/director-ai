@@ -260,7 +260,7 @@ def git(root: Path, *arguments: str) -> None:
 
 
 def test_the_inventory_skips_the_canary_root_and_nothing_else(tmp_path: Path) -> None:
-    """Skip a TypeScript file under the canary root; refuse one elsewhere (C-5)."""
+    """Skip a TypeScript file under the canary root; refuse one elsewhere."""
     git(tmp_path, "init")
     (tmp_path / "packages").mkdir()
     (tmp_path / "packages" / "a.ts").write_text("export {};\n", encoding="utf-8")
@@ -274,7 +274,7 @@ def test_the_inventory_skips_the_canary_root_and_nothing_else(tmp_path: Path) ->
 
 
 def test_no_profile_measures_a_canary_fixture_file() -> None:
-    """Every fixture file is absent from all nine committed profiles (C-5)."""
+    """Every fixture file is absent from all nine committed profiles."""
     fixtures = {
         path.relative_to(ROOT).as_posix()
         for path in (ROOT / CANARY_ROOT).rglob("*")
