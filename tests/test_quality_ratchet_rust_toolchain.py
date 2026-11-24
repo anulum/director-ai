@@ -17,6 +17,8 @@ dependencies first.
 from __future__ import annotations
 
 import re
+import stat
+import subprocess
 from pathlib import Path
 
 from tools.audit_ci_workflow_modularity import read_workflow
@@ -83,3 +85,94 @@ def test_the_installer_refuses_unless_every_proxy_is_the_verified_binary() -> No
     assert "--default-toolchain none" in text
     assert '"${cargo_home}/bin/rustup" default "$toolchain"' in text
     assert "|| true" not in text
+
+
+FAKE_CURL = """#!/usr/bin/env bash
+printf '%s\\n' "$@" > "$FAKE_CURL_ARGS"
+while [[ $# -gt 0 ]]; do
+    if [[ "$1" == --output ]]; then output=$2; fi
+    shift
+done
+head -c "$FAKE_CURL_BYTES" /dev/zero > "$output"
+"""
+FAKE_UNAME = """#!/usr/bin/env bash
+if [[ "$1" == -s ]]; then echo Linux; else echo x86_64; fi
+"""
+
+
+def _run_with_fake_download(
+    tmp_path: Path, size: int
+) -> subprocess.CompletedProcess[str]:
+    """Run the real installer with a recording ``curl`` that writes ``size`` zero bytes."""
+    tools = tmp_path / "bin"
+    tools.mkdir()
+    for name, body in (("curl", FAKE_CURL), ("uname", FAKE_UNAME)):
+        path = tools / name
+        path.write_text(body, encoding="utf-8")
+        path.chmod(path.stat().st_mode | stat.S_IXUSR)
+    (tmp_path / "runner").mkdir()
+    environment = {
+        "PATH": f"{tools}:/usr/bin:/bin",
+        "HOME": str(tmp_path),
+        "CARGO_HOME": str(tmp_path / "cargo"),
+        "RUNNER_TEMP": str(tmp_path / "runner"),
+        "GITHUB_PATH": str(tmp_path / "github_path"),
+        "FAKE_CURL_ARGS": str(tmp_path / "curl_args"),
+        "FAKE_CURL_BYTES": str(size),
+    }
+    return subprocess.run(
+        ["bash", str(INSTALLER)],
+        env=environment,
+        capture_output=True,
+        text=True,
+        timeout=120,
+        check=False,
+    )
+
+
+def test_the_download_is_https_only_and_bounded_to_the_pinned_size(
+    tmp_path: Path,
+) -> None:
+    """Ask curl for HTTPS and TLS 1.2 only, with the pinned size as the upper bound."""
+    result = _run_with_fake_download(tmp_path, 10)
+    arguments = (tmp_path / "curl_args").read_text(encoding="utf-8").splitlines()
+
+    assert arguments[:3] == ["--proto", "=https", "--tlsv1.2"]
+    bound = arguments.index("--max-filesize") + 1
+    assert arguments[bound] == _assignment("rustup_bytes")
+    assert result.returncode != 0
+
+
+def test_a_download_of_another_size_is_refused_before_its_digest(
+    tmp_path: Path,
+) -> None:
+    """Refuse a short download by size, and install nothing."""
+    result = _run_with_fake_download(tmp_path, 10)
+
+    assert result.returncode == 1
+    assert "rustup-init size differs from the pinned release." in result.stderr
+    assert "sha256sum" not in result.stderr and "FAILED" not in result.stdout
+    assert not (tmp_path / "cargo").exists()
+    assert not (tmp_path / "github_path").exists()
+
+
+def test_a_download_of_the_pinned_size_but_other_bytes_is_refused(
+    tmp_path: Path,
+) -> None:
+    """Refuse bytes of the right length that do not match the pinned digest."""
+    result = _run_with_fake_download(tmp_path, int(_assignment("rustup_bytes")))
+
+    assert result.returncode == 1
+    assert "FAILED" in result.stdout + result.stderr
+    assert not (tmp_path / "cargo").exists()
+
+
+def test_the_installed_rustup_and_rustc_versions_are_checked() -> None:
+    """Refuse an installed rustup or rustc that reports another version."""
+    text = INSTALLER.read_text(encoding="utf-8")
+
+    for check in (
+        r'if \[\[ "\$rustup_actual" != "rustup \$\{rustup_version\} "\* \]\]; then\n.*\n    exit 1\n',
+        r'if \[\[ "\$rustc_actual" != "rustc \$\{toolchain\} "\* \]\]; then\n.*\n    exit 1\n',
+    ):
+        assert re.search(check, text), check
