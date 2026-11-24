@@ -34,7 +34,7 @@ from typing import TYPE_CHECKING
 from ..types import EvidenceChunk
 from .credibility import SourceCredibility, SourceScore
 
-if TYPE_CHECKING:  # pro-tier type — annotations only (ladder P2.4)
+if TYPE_CHECKING:  # pro-tier type — annotations only
     from ..calibration.feedback_store import Correction
 
 __all__ = ["CredibilityFeedbackLoop"]

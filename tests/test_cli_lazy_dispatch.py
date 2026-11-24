@@ -4,7 +4,7 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI — CLI lazy pro-tier dispatch tests (ladder P2)
+# Director-Class AI — CLI lazy pro-tier dispatch tests
 
 """Retain the existing lazy CLI dispatch controls and real handler resolution.
 

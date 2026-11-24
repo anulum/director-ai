@@ -4,8 +4,8 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-AI — paid-tier packaging parity tests (ladder P3)
-"""Parity tests for the D1/D2 tier re-slice (decisions of 2026-07-16).
+# Director-AI — paid-tier packaging parity tests
+"""Parity tests for the open-core tier split of 2026-07-16.
 
 The free/paid wheel boundary is declared in four places that must agree:
 the root ``pyproject.toml`` exclude list (whole paid packages), the pro and

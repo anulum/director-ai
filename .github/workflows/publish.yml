@@ -55,7 +55,7 @@ jobs:
       - name: Check distribution
         run: twine check dist/*
 
-      - name: Verify the free wheel is core-only (D1 re-slice)
+      - name: Verify the free wheel is core-only
         # Contents check + unpacked-wheel import simulation: no paid packages
         # or paid single modules may reach the public artefact, and the lazy
         # facades must raise the friendly "advanced tier" error.
@@ -183,7 +183,7 @@ jobs:
         run: sha256sum --check dist-sha256.txt
 
       - name: Refuse paid artefacts on the public lane
-        # Hard gate (decision D3): director-ai-pro / director-ai-full are
+        # Hard gate: director-ai-pro / director-ai-full are
         # BUSL wheels for private distribution only. Fail the release if
         # any paid artefact reaches the public PyPI lane.
         run: |

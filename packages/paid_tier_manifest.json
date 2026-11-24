@@ -1,5 +1,5 @@
 {
-  "description": "Paid-tier packaging manifest (ladder P3, decisions D1/D2 2026-07-16). paid_modules lists the single .py modules (src-relative) that live inside free packages but ship only in the paid wheels: the root setup.py hook keeps them out of the free wheel, the pro/full setup.py hooks copy them in, and the wheel checks plus tests/test_paid_tier_packaging.py enforce parity. Whole paid PACKAGES are canonical in [tool.setuptools.packages.find].exclude of the root pyproject.toml; labs_packages is the full-only subset of that list.",
+  "description": "Paid-tier packaging manifest (the open-core tier split of 2026-07-16). paid_modules lists the single .py modules (src-relative) that live inside free packages but ship only in the paid wheels: the root setup.py hook keeps them out of the free wheel, the pro/full setup.py hooks copy them in, and the wheel checks plus tests/test_paid_tier_packaging.py enforce parity. Whole paid PACKAGES are canonical in [tool.setuptools.packages.find].exclude of the root pyproject.toml; labs_packages is the full-only subset of that list.",
   "spdx": "Apache-2.0",
   "paid_modules": [
     "director_ai/_cli_bench.py",

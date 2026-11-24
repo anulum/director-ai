@@ -39,7 +39,7 @@ COPY packages/ packages/
 COPY requirements/ requirements/
 COPY backfire-kernel/ backfire-kernel/
 
-# The production server image composes TWO wheels since the D1 re-slice
+# The production server image composes TWO wheels since the open-core tier split
 # (2026-07-16): the Apache-2.0 free core wheel (sliced by the setup.py
 # build hook) plus the LicenseRef-BUSL-1.1-ANULUM-TDM director-ai-pro overlay that carries the
 # server surface. The image label already declares Apache-2.0 AND LicenseRef-BUSL-1.1-ANULUM-TDM;

@@ -83,7 +83,7 @@ KNOWN_TEST_SURFACE_CLASSIFICATIONS: dict[str, tuple[str, str]] = {
     ),
     "tests/test_cli_lazy_dispatch.py": (
         "approved-protocol-fake",
-        "ladder P2 lazy-dispatch boundary; the sys.modules reset simulates a "
+        "lazy paid-tier dispatch boundary; the sys.modules reset simulates a "
         "fresh import to prove no pro-tier _cli_* module loads at import "
         "time, with the same file's real _lazy_handler resolution test and "
         "the CLI suites dispatching through main as the real surface",

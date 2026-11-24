@@ -17,7 +17,7 @@ from typing import TYPE_CHECKING, Any
 
 from .numeric_verifier import NumericVerificationResult, verify_numeric
 
-if TYPE_CHECKING:  # pro-tier types — annotations only (ladder P2.4)
+if TYPE_CHECKING:  # pro-tier types — annotations only
     from ..formal_verification import ReasoningStep, ReasoningVerdict, ReasoningVerifier
 
 __all__ = [

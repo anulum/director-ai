@@ -17,7 +17,7 @@ from typing import TYPE_CHECKING, Protocol
 
 from .decision import GuardDecision
 
-if TYPE_CHECKING:  # pro-tier type — annotations only (ladder P2.4)
+if TYPE_CHECKING:  # pro-tier type — annotations only
     from director_ai.core.irreversibility import Forecast
 
 _HIGH_RISK_ACTION_CATEGORIES = frozenset(

@@ -28,7 +28,7 @@ from ...otel import trace_vector_add, trace_vector_query
 from ...types import EvidenceChunk
 from ..knowledge import GroundTruthStore, _require_non_empty_string
 
-if TYPE_CHECKING:  # pro-tier type — annotations only (ladder P2.4)
+if TYPE_CHECKING:  # pro-tier type — annotations only
     from ...evidence_firewall import EvidenceFirewall
 from ._conflicts import ConflictLedgerMixin
 from ._snapshot import SnapshotAuditMixin

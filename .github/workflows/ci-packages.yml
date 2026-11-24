@@ -46,7 +46,7 @@ jobs:
 
       - name: Build + check the free core wheel
         run: |
-          # The free wheel must stay core-only after the D1 re-slice: no paid
+          # The free wheel must stay core-only after the open-core tier split: no paid
           # packages, no paid single modules, and the unpacked wheel must import
           # standalone with the friendly "advanced tier" boundary errors.
           python -m build --wheel . --outdir dist-free

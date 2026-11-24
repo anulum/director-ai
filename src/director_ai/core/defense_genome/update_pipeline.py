@@ -18,7 +18,7 @@ from director_ai.core.continual_adversarial import EvolveReport
 
 from .registry import Defense, DefenseRegistry, DefenseSnapshot
 
-if TYPE_CHECKING:  # full-tier type — annotations only (ladder P2.4)
+if TYPE_CHECKING:  # full-tier type — annotations only
     from director_ai.core.self_evolving import GuardLoopProposal
 
 

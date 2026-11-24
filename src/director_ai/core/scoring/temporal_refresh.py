@@ -59,7 +59,7 @@ from urllib.parse import parse_qs, unquote, urlsplit
 from ..text_overlap import word_overlap
 from .temporal_freshness import FreshnessClaim, FreshnessResult
 
-if TYPE_CHECKING:  # pro-tier protocol — annotations only (ladder P2.4)
+if TYPE_CHECKING:  # pro-tier protocol — annotations only
     from ..citation_grounding.fetch import HttpGetter
 
 __all__ = [

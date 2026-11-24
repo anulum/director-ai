@@ -40,7 +40,7 @@ from director_ai.core.continual_adversarial import (
 from .registry import Defense, DefenseRegistry
 from .update_pipeline import DefenseUpdatePipeline
 
-if TYPE_CHECKING:  # full-tier type — annotations only (ladder P2.4)
+if TYPE_CHECKING:  # full-tier type — annotations only
     from director_ai.core.self_evolving import GuardLoopProposal
 
 

@@ -26,7 +26,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 
-if TYPE_CHECKING:  # pro-tier type — annotations only (ladder P2.4)
+if TYPE_CHECKING:  # pro-tier type — annotations only
     from ..labelling_cockpit.items import LabelItem
 
 __all__ = ["KpiReport", "compute_kpis"]
